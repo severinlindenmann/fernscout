@@ -207,6 +207,25 @@ Three things it does that are not obvious from the name:
 > new behaviour only appears on the next run. Deploy twice, and judge the
 > second one.
 
+> **Deploying a change to the user config shape?** `content/` lives outside
+> the repository — `git pull` never touches it — so a branch that changes what
+> `content/<username>/config.json` must look like (W37's `owner:`, for
+> instance) needs the content files migrated **before** the code that requires
+> the new shape ships, never after. Deploying first leaves every journal whose
+> config the parser now rejects stuck on the old shape until someone notices
+> and fixes it by hand, on a live site.
+>
+> That failure is quiet on purpose from the parser's point of view, and quiet
+> by accident from the operator's: `getUser` catches the `ConfigError`, logs a
+> warning and returns `null`, so the journal just 404s — `/api/health` reports
+> nothing wrong, because config resolution for the *server* still succeeds.
+> An uptime monitor watching `/api/health` will not catch this.
+>
+> Check `journalctl -u fernscout` for `config.json is unusable` after any
+> deploy that touched config parsing, and see
+> [`docs/config-upgrades.md`](config-upgrades.md) — most such changes ship a
+> `scripts/migrate-*.ts` to run against `/var/lib/fernscout/content` first.
+
 ---
 
 ## Deploying alongside an existing Caddy site

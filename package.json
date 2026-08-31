@@ -26,6 +26,7 @@
     "export": "tsx --conditions=react-server scripts/export.mts",
     "rates:update": "node scripts/update-rates.mjs",
     "migrate:users": "node scripts/migrate-users.ts",
+    "migrate:owner": "node scripts/migrate-owner.ts",
     "ingest": "node scripts/ingest.ts",
     "i18n:keys": "node scripts/i18n-keys.mjs"
   },

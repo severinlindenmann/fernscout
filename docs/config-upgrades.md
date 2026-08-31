@@ -61,9 +61,32 @@ After:
 
     "owner": { "name": "Alex Berger", "nickname": "Alex", "email": "alex@example.com" },
 
-Everyone else who was on a trip belongs in that trip's `people:` block in
-`trip.md`, which already decides who may write to it and now also decides who
-the trip is credited to:
+### The recommended path: `scripts/migrate-owner.ts`
+
+```bash
+node scripts/migrate-owner.ts --user <username> --dry-run   # eyeball it first
+node scripts/migrate-owner.ts --user <username>
+node scripts/migrate-owner.ts --all                         # every journal at once
+```
+
+It maps `ownerEmail` to `owner.email` and `travellers[0]` to `owner.name` and
+`owner.nickname`, leaves every other key untouched, and is idempotent — a
+config that already has `owner` is reported as already migrated and left
+alone, so running it again (or against a mix of migrated and unmigrated
+journals with `--all`) is safe. It never invents a nickname by splitting a
+name: it uses `travellers[0].nickname` if present, or the full name if not.
+
+If `travellers` had more than one entry, the script does not carry the rest
+forward silently — it prints a warning naming each one and leaves the file
+otherwise migrated, because those people now belong in the relevant trip's
+`people:` block instead (see below). A config with no `travellers` to draw a
+name from is refused rather than mangled: fix it by hand.
+
+### By hand
+
+Everyone who was on a trip, other than the owner, belongs in that trip's
+`people:` block in `trip.md`, which already decides who may write to it and
+now also decides who the trip is credited to:
 
     people:
       - { name: "Robin Berger", email: "robin@example.com", nickname: "Robin" }
