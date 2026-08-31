@@ -27,7 +27,7 @@
 
 **Task 1 — the config type**
 - Modify: `lib/config.ts` (`Owner` type, `parseUser`)
-- Modify: `lib/tripPeople.ts:19`, `lib/contacts/session.ts:29-39`, `lib/contacts/mail.ts:115-119`, `lib/photobook/source.ts:19,108-110`, `app/api/auth/request/route.ts:133-138`, `app/api/auth/verify/route.ts:105`
+- Modify: `lib/tripPeople.ts:19`, `lib/contacts/session.ts:29-39`, `lib/contacts/mail.ts:115-119`, `lib/photobook/source.ts:19,108-110`, `lib/site.ts:29-37`, `lib/api/documentation.ts:104`, `app/api/auth/request/route.ts:133-138`, `app/api/auth/verify/route.ts:105`
 - Modify: `content/example/config.json`, `scripts/migrate-users.ts:56`, `test/depersonalised.test.ts:85`, `AGENTS.md`, `docs/config-upgrades.md`
 - Modify: every fixture carrying `travellers:` (list in Task 1, Step 6)
 - Test: `test/config.test.ts`
@@ -63,7 +63,7 @@ of it.
 
 **Files:**
 - Modify: `lib/config.ts`
-- Modify: `lib/tripPeople.ts`, `lib/contacts/session.ts`, `lib/contacts/mail.ts`, `lib/photobook/source.ts`, `app/api/auth/request/route.ts`, `app/api/auth/verify/route.ts`
+- Modify: `lib/tripPeople.ts`, `lib/contacts/session.ts`, `lib/contacts/mail.ts`, `lib/photobook/source.ts`, `lib/site.ts`, `lib/api/documentation.ts`, `app/api/auth/request/route.ts`, `app/api/auth/verify/route.ts`
 - Modify: `content/example/config.json`, `scripts/migrate-users.ts`, `test/depersonalised.test.ts`, `AGENTS.md`, `docs/config-upgrades.md`
 - Test: `test/config.test.ts`
 
@@ -207,16 +207,35 @@ the `?.trim().toLowerCase()` calls come off.
 - `app/api/auth/request/route.ts:133` → the parameter type becomes `{ username: string; owner: { email?: string } }`; line 138 → `if (user.owner.email === address) return true;`
 - `app/api/auth/verify/route.ts:105` → `const owner = getUser(username)?.owner.email;`
 - `lib/viewer.ts:16` — comment only, say `owner.email`
+Three more files read `user.travellers` and so stop compiling the moment the
+field goes. Each gets the smallest stopgap that keeps its current signature and
+today's behaviour for a journal with one traveller; Task 3 replaces all three
+with the per-trip helpers, which cannot exist yet.
+
 - `lib/photobook/source.ts:19,108-110` — the only importer of the `Traveller`
-  type, so it stops compiling here. Drop `type Traveller` from the import and
-  make the byline the owner for now, preserving today's nickname-first choice:
+  type. Drop `type Traveller` from the import and preserve today's
+  nickname-first choice:
 
   ```ts
   const travellers = [config.owner.nickname || config.owner.name].filter(Boolean);
   ```
 
-  Task 3 makes it per-trip. Doing it here would need `travellersOf`, which does
-  not exist yet.
+- `lib/site.ts:29-37` — keep both helpers' one-argument signatures, so
+  `siteSummaryFor` and every caller are untouched:
+
+  ```ts
+  /** Temporary: one owner, until Task 3 makes this per-trip. */
+  export function travellerNamesOf(user: UserConfig): string {
+    return user.owner.nickname;
+  }
+
+  export function travellerFullNamesOf(user: UserConfig): string {
+    return user.owner.name;
+  }
+  ```
+
+- `lib/api/documentation.ts:104` — `user.owner.name`. This one is journal-wide
+  and Task 3 leaves it that way, so it is the final form, not a stopgap.
 
 - [ ] **Step 6: Rewrite every config that still has the old shape**
 
@@ -515,7 +534,8 @@ one argument.
 
 - [ ] **Step 3: Rewrite the helpers in `lib/site.ts`**
 
-Replace `travellerNamesOf` and `travellerFullNamesOf` with:
+Replace Task 1's one-argument stopgaps for `travellerNamesOf` and
+`travellerFullNamesOf` with:
 
 ```ts
 /**
@@ -623,8 +643,8 @@ nicknames.
 - `scripts/photobook.ts:171` — no change. It reads `source.travellers`, which
   stays a `string[]` on the photobook source; only how that array is built
   moves.
-- `lib/api/documentation.ts:104` — journal-wide, with no trip. Replace
-  `user.travellers…` with `user.owner.name`.
+- `lib/api/documentation.ts:104` — already final after Task 1's stopgap pass
+  (`user.owner.name`). No change; confirm and leave it.
 
 - [ ] **Step 8: Note the second break in `docs/config-upgrades.md`**
 
