@@ -15,12 +15,16 @@ import {
   type Unconverted,
 } from "@/lib/costFormat";
 import type { TranslationKey } from "@/lib/i18n";
-import { useSite } from "@/components/SiteProvider";
 
-export default function CostsPageContent({ summary }: { summary: CostSummary }) {
+export default function CostsPageContent({
+  summary,
+  travellers,
+}: {
+  summary: CostSummary;
+  travellers: string;
+}) {
   const { t, formatShortDate } = useI18n();
   const { money, original, currency, base, approximate, asOf } = useMoney();
-  const site = useSite();
   const [showTable, setShowTable] = useState(false);
 
   const catLabel = (c: CostCategory) => t(`cost.cat.${c}` as TranslationKey);
@@ -202,7 +206,7 @@ export default function CostsPageContent({ summary }: { summary: CostSummary }) 
 
         <p className="mt-8 text-xs text-navy-600">
           {t("cost.disclaimer", {
-            travellers: site.travellerNames,
+            travellers,
             currency: summary.baseCurrency,
           })}
         </p>

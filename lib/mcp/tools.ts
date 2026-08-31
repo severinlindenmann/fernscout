@@ -474,8 +474,13 @@ const createJournalTool: Handler = (session, args) => {
 
   const username = optionalString(args, "username");
   const title = optionalString(args, "title");
-  if (!username || !title) {
-    return { ok: false, error: "username and title are both required." };
+  const ownerName = optionalString(args, "owner_name");
+  const ownerNickname = optionalString(args, "owner_nickname");
+  if (!username || !title || !ownerName || !ownerNickname) {
+    return {
+      ok: false,
+      error: "username, title, owner_name and owner_nickname are all required.",
+    };
   }
 
   const created = createJournal({
@@ -483,7 +488,8 @@ const createJournalTool: Handler = (session, args) => {
     title,
     tagline: optionalString(args, "tagline"),
     ownerEmail: session.email,
-    ownerName: optionalString(args, "owner_name"),
+    ownerName,
+    ownerNickname,
     startLocation: optionalString(args, "start_location"),
     defaultLocale: optionalString(args, "default_locale"),
     baseCurrency: optionalString(args, "base_currency"),
@@ -650,12 +656,18 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
         },
         title: { type: "string", description: "What the journal is called." },
         tagline: { type: "string", description: "One line under the title. Optional — leave it out rather than inventing one." },
-        owner_name: { type: "string", description: "The traveller's name, if they gave you one." },
+        owner_name: { type: "string", description: "The traveller's name. Required — ask for it." },
+        owner_nickname: {
+          type: "string",
+          description:
+            "What the site calls them, in its own voice — not necessarily their first name. " +
+            "Required, and never guessed from owner_name: ask the person rather than splitting it.",
+        },
         start_location: { type: "string", description: "Where they usually set out from." },
         default_locale: { type: "string", description: "Language code, e.g. en or de. Default en." },
         base_currency: { type: "string", description: "Currency costs are kept in. Default CHF." },
       },
-      required: ["username", "title"],
+      required: ["username", "title", "owner_name", "owner_nickname"],
       additionalProperties: false,
     },
     annotations: {

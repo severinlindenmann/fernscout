@@ -1,6 +1,7 @@
 import "server-only";
 import { loadServerConfig, type UserConfig } from "./config";
 import { getUser } from "./users";
+import type { Trip, TripPerson } from "./types";
 
 /**
  * Site identity.
@@ -27,24 +28,59 @@ export function serverSite() {
   };
 }
 
-/** Nicknames joined with "+", as a user's site refers to its travellers. */
-export function travellerNamesOf(user: UserConfig): string {
-  return user.travellers.map((t) => t.nickname).join(" + ");
+/**
+ * Who a trip is credited to, owner first.
+ *
+ * The same owner-first union `peopleOf()` computes for write access, so the
+ * credit on a trip and the right to edit it cannot disagree. De-duplicated on
+ * the address, because an owner who also lists themselves in `people:` is one
+ * person, not two.
+ */
+export function travellersOf(user: UserConfig, trip: Trip): TripPerson[] {
+  const owner: TripPerson = {
+    name: user.owner.name,
+    email: user.owner.email ?? "",
+    nickname: user.owner.nickname,
+  };
+  const out = [owner];
+  const seen = new Set([owner.email.trim().toLowerCase()]);
+  for (const person of trip.people) {
+    const email = person.email.trim().toLowerCase();
+    if (seen.has(email)) continue;
+    seen.add(email);
+    out.push(person);
+  }
+  return out;
 }
 
-/** Full names joined with "&", for metadata and credits. */
-export function travellerFullNamesOf(user: UserConfig): string {
-  return user.travellers.map((t) => t.name).join(" & ");
+/** Short forms joined with "+", as a journal refers to the people on a trip. */
+export function travellerNamesOf(user: UserConfig, trip: Trip): string {
+  return travellersOf(user, trip)
+    .map((p) => p.nickname || p.name)
+    .join(" + ");
 }
 
-/** The serialisable subset handed to client components. */
+/** Full names joined with "&", for credits and metadata. */
+export function travellerFullNamesOf(user: UserConfig, trip: Trip): string {
+  return travellersOf(user, trip)
+    .map((p) => p.name)
+    .join(" & ");
+}
+
+/**
+ * The serialisable subset handed to client components.
+ *
+ * Deliberately no traveller names. Who was on a trip is a per-trip fact
+ * (`travellersOf`), and this summary is seeded once per request by a layout
+ * that has no trip in hand — a journal-wide answer here is how every trip
+ * came to be credited to the same two people.
+ */
 export type SiteSummary = {
   username: string;
   title: string;
   tagline: string;
   url: string;
   startLocation: string;
-  travellerNames: string;
   baseCurrency: string;
   /** The languages this journal offers, in config order. */
   locales: string[];
@@ -71,7 +107,6 @@ export function siteSummaryFor(
     tagline: user.tagline,
     url: serverSite().url,
     startLocation: user.startLocation,
-    travellerNames: travellerNamesOf(user),
     baseCurrency: user.baseCurrency,
     locales: user.locales,
     base: `/${user.username}`,

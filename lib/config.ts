@@ -19,7 +19,20 @@ export const FEATURE_NAMES = [
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
 
-export type Traveller = { name: string; nickname: string };
+/**
+ * Whose journal this is.
+ *
+ * One person, not a list. The list this replaces was journal-wide and
+ * display-only, which meant every trip in a journal was credited to the same
+ * people whether or not they were on it; who was actually on a trip is that
+ * trip's `people:` block, and `lib/site.ts` builds the byline from both.
+ *
+ * `email` is optional and absent means read-only: it is the only address that
+ * can obtain a write token for the journal (decision 24), so a journal that
+ * declares no owner cannot be written to by anyone. That is the safe state,
+ * and the state a freshly cloned repository is in.
+ */
+export type Owner = { name: string; nickname: string; email?: string };
 
 /**
  * One person's settings, from `content/<username>/config.json`.
@@ -30,17 +43,9 @@ export type Traveller = { name: string; nickname: string };
  */
 export type UserConfig = {
   username: string;
-  /**
-   * The address that owns this journal.
-   *
-   * The only address that can obtain an agent (write) token for it — see
-   * decision 24. Absent means nobody can, which is the right default: a
-   * journal with no declared owner is read-only to the world.
-   */
-  ownerEmail?: string;
+  owner: Owner;
   title: string;
   tagline: string;
-  travellers: Traveller[];
   startLocation: string;
   defaultLocale: string;
   locales: string[];
@@ -116,8 +121,15 @@ export type FeatureConfig = {
  */
 export class ConfigError extends Error {
   readonly problems: string[];
-  constructor(problems: string[]) {
-    super(`content/config.json is not usable:\n  - ${problems.join("\n  - ")}`);
+  /**
+   * Which file this is. Defaults to the server config for callers that
+   * predate this parameter, but every caller in this module now passes its
+   * own path — this class carries both `content/config.json` problems and
+   * `content/<username>/config.json` ones, and a hardcoded filename in the
+   * message named the wrong file for the second case.
+   */
+  constructor(problems: string[], file = "content/config.json") {
+    super(`${file} is not usable:\n  - ${problems.join("\n  - ")}`);
     this.name = "ConfigError";
     this.problems = problems;
   }
@@ -213,23 +225,42 @@ function readManualRates(
   return out;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
+  // The shape before W37. Named explicitly rather than ignored: this file has
+  // no configVersion gate, so an unrecognised key would otherwise be a journal
+  // that silently loses its owner and becomes read-only.
+  if (src.owner === undefined && (src.travellers !== undefined || src.ownerEmail !== undefined)) {
+    problems.push(
+      'travellers and ownerEmail were replaced by a single owner: ' +
+        '"owner": { "name": …, "nickname": …, "email": … }. ' +
+        "Who was on a given trip now belongs in that trip's people: block. " +
+        "See docs/config-upgrades.md.",
+    );
+    return { name: "", nickname: "" };
+  }
+
+  const raw = src.owner;
+  if (!isRecord(raw) || typeof raw.name !== "string" || typeof raw.nickname !== "string") {
+    problems.push("owner must be { name, nickname, email? }");
+    return { name: "", nickname: "" };
+  }
+
+  const owner: Owner = { name: raw.name, nickname: raw.nickname };
+  if (raw.email !== undefined) {
+    if (typeof raw.email !== "string" || !EMAIL_RE.test(raw.email.trim())) {
+      problems.push("owner.email must be an email address, or absent");
+    } else {
+      owner.email = raw.email.trim().toLowerCase();
+    }
+  }
+  return owner;
+}
+
 function parseUser(username: string, raw: unknown, problems: string[]): UserConfig {
   const src = isRecord(raw) ? raw : {};
   if (!isRecord(raw)) problems.push("the file must contain a JSON object");
-
-  const travellers: Traveller[] = [];
-  const rawTravellers = src.travellers;
-  if (Array.isArray(rawTravellers)) {
-    rawTravellers.forEach((t, i) => {
-      if (!isRecord(t) || typeof t.name !== "string" || typeof t.nickname !== "string") {
-        problems.push(`travellers[${i}] must be { name, nickname }`);
-        return;
-      }
-      travellers.push({ name: t.name, nickname: t.nickname });
-    });
-  } else if (rawTravellers !== undefined) {
-    problems.push("travellers must be an array of { name, nickname }");
-  }
 
   const locales = readStringArray(src, "locales", "", problems, ["en"]);
   const defaultLocale = readString(src, "defaultLocale", "", problems, locales[0]);
@@ -268,22 +299,11 @@ function parseUser(username: string, raw: unknown, problems: string[]): UserConf
     else problems.push(`units must be "metric" or "imperial"`);
   }
 
-  const ownerEmailRaw = src.ownerEmail;
-  let ownerEmail: string | undefined;
-  if (ownerEmailRaw !== undefined) {
-    if (typeof ownerEmailRaw !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(ownerEmailRaw)) {
-      problems.push("ownerEmail must be an email address, or absent");
-    } else {
-      ownerEmail = ownerEmailRaw.trim().toLowerCase();
-    }
-  }
-
   return {
     username,
-    ownerEmail,
+    owner: parseOwner(src, problems),
     title: readString(src, "title", "", problems),
     tagline: readString(src, "tagline", "", problems, ""),
-    travellers,
     startLocation: readString(src, "startLocation", "", problems, ""),
     defaultLocale,
     locales,
@@ -333,7 +353,7 @@ export function parseUserConfig(username: string, raw: unknown): UserConfig {
   const problems: string[] = [];
   if (!isRecord(raw)) problems.push("the file must contain a JSON object");
   const config = parseUser(username, raw, problems);
-  if (problems.length > 0) throw new ConfigError(problems);
+  if (problems.length > 0) throw new ConfigError(problems, userConfigPath(username));
   return config;
 }
 
@@ -383,7 +403,7 @@ export function parseServerConfig(raw: unknown): ServerConfig {
     features: parseFeatures(src.features, problems),
     media: parseMediaLimits(src.media),
   };
-  if (problems.length > 0) throw new ConfigError(problems);
+  if (problems.length > 0) throw new ConfigError(problems, serverConfigPath());
   return config;
 }
 
@@ -456,12 +476,12 @@ function readJson(file: string, hint: string): unknown {
   try {
     text = fs.readFileSync(file, "utf8");
   } catch {
-    throw new ConfigError([`${file} could not be read. ${hint}`]);
+    throw new ConfigError([`could not be read. ${hint}`], file);
   }
   try {
     return JSON.parse(text);
   } catch (err) {
-    throw new ConfigError([`${file} is not valid JSON: ${(err as Error).message}`]);
+    throw new ConfigError([`is not valid JSON: ${(err as Error).message}`], file);
   }
 }
 

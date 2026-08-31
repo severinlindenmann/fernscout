@@ -148,7 +148,7 @@ No SMTP is involved. `transport: "file"` writes each message as an `.eml` under
 
 Two things catch people out: the request must say `"kind":"agent"` (without it
 you get a *guest* code, which the agent endpoints will not accept), and the
-address must be the journal's own `ownerEmail` — `agent@fernscout.ch` in the
+address must be the journal's own `owner.email` — `agent@fernscout.ch` in the
 demo content. Anyone listed in a trip's `people:` may also ask, naming that
 trip, and gets a token scoped to it and nothing else.
 

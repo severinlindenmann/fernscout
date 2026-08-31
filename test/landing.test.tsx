@@ -69,7 +69,7 @@ function writeUser(username: string, title: string, withTrip = true) {
     JSON.stringify({
       title,
       tagline: "A tagline",
-      travellers: [{ name: "A B", nickname: "A" }],
+      owner: { name: "A B", nickname: "A" },
       startLocation: "X",
       defaultLocale: "en",
       locales: ["en"],

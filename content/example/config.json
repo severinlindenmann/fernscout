@@ -1,11 +1,7 @@
 {
   "title": "Fernscout Demo",
   "tagline": "Four journeys, to show what this thing does",
-  "ownerEmail": "agent@fernscout.ch",
-  "travellers": [
-    { "name": "Alex Berger", "nickname": "Alex" },
-    { "name": "Robin Berger", "nickname": "Robin" }
-  ],
+  "owner": { "name": "Alex Berger", "nickname": "Alex", "email": "agent@fernscout.ch" },
   "startLocation": "Zurich, Switzerland",
   "defaultLocale": "en",
   "locales": ["en", "de", "hu"],

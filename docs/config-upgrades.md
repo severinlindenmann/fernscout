@@ -31,3 +31,74 @@ this package already matches version 1. Adding the field is optional right up
 until a future version bump; from then on a file still on an old version stops
 the server at boot with a message pointing back here, rather than starting up
 against a schema it no longer matches.
+
+## Outside configVersion
+
+Everything above is about `content/config.json`, the server-wide file, and
+its boot-time version check. A user's own `content/<username>/config.json`
+carries no `configVersion` at all — it is validated at parse time instead, so
+a shape `lib/config.ts` no longer recognises surfaces as a `ConfigError`
+naming the field, not as a version mismatch at boot. The entry below is one
+of those: a change to the user config, not a `configVersion` bump, and not
+something setting `"configVersion"` fixes.
+
+## W37 — `travellers` and `ownerEmail` become `owner`
+
+A user's `content/<username>/config.json` named its people twice. `travellers`
+was a journal-wide display list, so every trip in a journal was credited to the
+same people whether or not they were on it; `ownerEmail` beside it was the real
+identity, with no relationship to the list.
+
+Before:
+
+    "ownerEmail": "alex@example.com",
+    "travellers": [
+      { "name": "Alex Berger", "nickname": "Alex" },
+      { "name": "Robin Berger", "nickname": "Robin" }
+    ],
+
+After:
+
+    "owner": { "name": "Alex Berger", "nickname": "Alex", "email": "alex@example.com" },
+
+### The recommended path: `scripts/migrate-owner.ts`
+
+```bash
+node scripts/migrate-owner.ts --user <username> --dry-run   # eyeball it first
+node scripts/migrate-owner.ts --user <username>
+node scripts/migrate-owner.ts --all                         # every journal at once
+```
+
+It maps `ownerEmail` to `owner.email` and `travellers[0]` to `owner.name` and
+`owner.nickname`, leaves every other key untouched, and is idempotent — a
+config that already has `owner` is reported as already migrated and left
+alone, so running it again (or against a mix of migrated and unmigrated
+journals with `--all`) is safe. It never invents a nickname by splitting a
+name: it uses `travellers[0].nickname` if present, or the full name if not.
+
+If `travellers` had more than one entry, the script does not carry the rest
+forward silently — it prints a warning naming each one and leaves the file
+otherwise migrated, because those people now belong in the relevant trip's
+`people:` block instead (see below). A config with no `travellers` to draw a
+name from is refused rather than mangled: fix it by hand.
+
+A non-zero exit means at least one journal needs attention — it does **not**
+mean nothing was written. With `--all`, every journal that migrated cleanly is
+still written even if another in the same run was refused; re-running is
+always safe, since a journal already carrying `owner` is left untouched.
+
+### By hand
+
+Everyone who was on a trip, other than the owner, belongs in that trip's
+`people:` block in `trip.md`, which already decides who may write to it and
+now also decides who the trip is credited to:
+
+    people:
+      - { name: "Robin Berger", email: "robin@example.com", nickname: "Robin" }
+
+`owner.email` stays optional; a journal without one is read-only, as it was
+without `ownerEmail`.
+
+`SiteSummary` no longer carries `travellerNames`. A fork rendering its own
+components should read `travellerNamesOf(user, trip)` from `lib/site.ts`, which
+needs the trip because who was on one is a per-trip fact.

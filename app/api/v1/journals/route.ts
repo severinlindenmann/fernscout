@@ -61,11 +61,15 @@ export async function POST(request: Request) {
 
   const username = str("username") ?? "";
   const title = str("title") ?? "";
-  if (!username || !title) {
+  const ownerName = str("ownerName") ?? "";
+  const ownerNickname = str("ownerNickname") ?? "";
+  if (!username || !title || !ownerName || !ownerNickname) {
     return Response.json(
       {
         error: "invalid_request",
-        message: 'A journal needs at least {"username": "…", "title": "…"}.',
+        message:
+          'A journal needs at least {"username": "…", "title": "…", "ownerName": "…", ' +
+          '"ownerNickname": "…"}.',
       },
       { status: 400 },
     );
@@ -76,7 +80,8 @@ export async function POST(request: Request) {
     title,
     tagline: str("tagline"),
     ownerEmail: session.email,
-    ownerName: str("ownerName"),
+    ownerName,
+    ownerNickname,
     startLocation: str("startLocation"),
     defaultLocale: str("defaultLocale"),
     locales: list("locales"),

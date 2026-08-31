@@ -21,13 +21,13 @@ import { getUser } from "../users";
  *   (`app/api/auth/request` refuses to issue one to anybody else) and which is
  *   how a script or an agent approves someone.
  *
- * A journal with no `ownerEmail` has no owner, and therefore no admin surface.
+ * A journal with no `owner.email` has no owner, and therefore no admin surface.
  * That is the right default: it fails closed.
  */
 export async function isOwner(username: string, request?: Request): Promise<boolean> {
   const user = getUser(username);
-  if (!user?.ownerEmail) return false;
-  const ownerEmail = user.ownerEmail.trim().toLowerCase();
+  if (!user?.owner.email) return false;
+  const ownerEmail = user.owner.email;
 
   const jar = await cookies();
   const guest = await resolveSession(jar.get(GUEST_COOKIE)?.value, "guest");

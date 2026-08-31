@@ -8,6 +8,7 @@ import {
   contactsKey,
   decryptAddress,
   encryptAddress,
+  hasAnyDetail,
   isPostable,
   normaliseAddress,
   type PostalAddress,
@@ -193,10 +194,13 @@ export async function requestContact(
   }
 
   const id = existing?.id ?? newId();
-  const cipher = isPostable(address)
+  const cipher = hasAnyDetail(address)
     ? encryptAddress(address, addressAad(owner, id))
-    : // Unticking the postcard box and clearing the address is a deletion, not
-      // a no-op: the address stops existing rather than lingering unused.
+    : // Nothing at all was given — not even a phone number — so there is
+      // nothing to keep. Unticking the postcard box and clearing every field
+      // is a deletion, not a no-op: the address stops existing rather than
+      // lingering unused. A phone number on its own is not `isPostable`, but
+      // it is not nothing either, and must not be discarded here.
       null;
 
   if (existing) {
@@ -518,6 +522,101 @@ export async function revokeContact(owner: string, id: string): Promise<ContactR
     .where("owner_id", "=", owner)
     .where("contact_id", "=", id)
     .execute();
+  return getContact(owner, id);
+}
+
+/**
+ * The owner correcting somebody's details.
+ *
+ * Keyed on **id**, not on the address, because the commonest correction is the
+ * address itself — `requestContact` would write a second row for the new one
+ * and leave the old behind.
+ *
+ * Deliberately cannot *set* `status` to anything the caller chooses.
+ * Approving is `approveContact`, and it refuses an unconfirmed address on
+ * purpose; a general-purpose editor that let the caller choose `status`
+ * would be a way around that refusal.
+ *
+ * One exception, and it goes only one direction. Changing the email on an
+ * `active`, confirmed row would otherwise leave `status: "active"`,
+ * `confirmed_at` set, and the `access_grants` row untouched — an address
+ * nobody has proved they can read, sitting behind a `guest`-visibility trip,
+ * reached without ever going through `approveContact`'s refusal.
+ * `resolveViewer` (`lib/viewer.ts`) looks a contact up by email and grants
+ * `guest` the moment `status === "active"`, so that gap is not theoretical:
+ * it is the exact escalation `approveContact` exists to block, through a side
+ * door. So an email change knocks a previously-active row back to `pending`
+ * and clears its confirmation and its grants — the same shape
+ * `revokeContact` already writes, because the effect is the same one:
+ * whoever holds the new address has to confirm and be approved again, same
+ * as anyone else.
+ */
+export async function updateContactByOwner(
+  owner: string,
+  id: string,
+  fields: {
+    name?: string;
+    email?: string;
+    locale?: Locale;
+    address?: Partial<PostalAddress> | null;
+    wantsEmailDigest?: boolean;
+    wantsPostcard?: boolean;
+  },
+): Promise<ContactRecord | null> {
+  const { db } = await getDatabase();
+  const existing = await db
+    .selectFrom("contacts")
+    .selectAll()
+    .where("owner_id", "=", owner)
+    .where("id", "=", id)
+    .executeTakeFirst();
+  if (!existing) return null;
+
+  const patch: Record<string, unknown> = { updated_at: nowIso() };
+  let emailChanged = false;
+  if (fields.name !== undefined) patch.name = fields.name.trim().slice(0, 120) || null;
+  if (fields.email !== undefined) {
+    const email = normaliseEmail(fields.email);
+    emailChanged = email !== existing.email_key;
+    patch.email = email;
+    patch.email_key = email;
+  }
+  if (fields.locale !== undefined) patch.locale = fields.locale;
+  if (fields.wantsEmailDigest !== undefined) {
+    patch.wants_email_digest = fields.wantsEmailDigest ? 1 : 0;
+  }
+  if (fields.address !== undefined) {
+    const address = normaliseAddress(fields.address);
+    // Keep the blob whenever anything is in it, not only when it is postable
+    // — a phone-number-only correction must not be silently discarded.
+    patch.postal_cipher = hasAnyDetail(address)
+      ? encryptAddress(address, addressAad(owner, id))
+      : null;
+    // Wanting a postcard with nowhere to send it is not a state worth storing.
+    if (!isPostable(address)) patch.wants_postcard = 0;
+  }
+  if (fields.wantsPostcard !== undefined && patch.wants_postcard === undefined) {
+    patch.wants_postcard = fields.wantsPostcard ? 1 : 0;
+  }
+
+  if (emailChanged) {
+    // Downgrading is not the escalation `status` is otherwise off-limits for
+    // — it serves the same refusal `approveContact` makes, just reached from
+    // the other side.
+    patch.status = "pending";
+    patch.confirmed_at = null;
+  }
+
+  await db.updateTable("contacts").set(patch).where("id", "=", id).execute();
+
+  if (emailChanged) {
+    await db
+      .deleteFrom("access_grants")
+      .where("owner_id", "=", owner)
+      .where("contact_id", "=", id)
+      .execute();
+  }
+
   return getContact(owner, id);
 }
 

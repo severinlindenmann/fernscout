@@ -111,7 +111,16 @@ function parsePeople(raw: unknown, folder: string): TripPerson[] {
       return [];
     }
     seen.add(email);
-    people.push({ name, email });
+    const rawNickname = entry.nickname;
+    if (rawNickname !== undefined && typeof rawNickname !== "string") {
+      console.warn(
+        `[trips] ${folder}/trip.md has a people: entry whose nickname is not text — ` +
+          `ignoring the whole list.`,
+      );
+      return [];
+    }
+    const nickname = rawNickname?.trim() || undefined;
+    people.push({ name, email, ...(nickname ? { nickname } : {}) });
   }
   return people;
 }

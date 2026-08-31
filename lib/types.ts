@@ -193,6 +193,14 @@ export type TripPerson = {
   name: string;
   /** Lower-cased on parse, because that is what an address is compared as. */
   email: string;
+  /**
+   * What to call them in a byline. Optional, falling back to `name`.
+   *
+   * There is no derivation from the full name: splitting on a space to guess a
+   * first name is how you mangle somebody's name in the credit line of their
+   * own holiday.
+   */
+  nickname?: string;
 };
 
 export type Trip = {

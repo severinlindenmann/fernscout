@@ -18,9 +18,11 @@ function JsonLd({ data }: { data: Record<string, unknown> }) {
 export function BlogStructuredData({
   entries,
   site,
+  authors,
 }: {
   entries: Entry[];
   site: SiteSummary;
+  authors: string;
 }) {
   return (
     <JsonLd
@@ -30,8 +32,8 @@ export function BlogStructuredData({
         name: site.title,
         description: site.tagline,
         url: site.url,
-        
-        author: [{ "@type": "Person", name: site.travellerNames }],
+
+        author: [{ "@type": "Person", name: authors }],
         blogPost: entries.slice(-10).map((entry) => ({
           "@type": "BlogPosting",
           headline: entry.title,
@@ -43,7 +45,15 @@ export function BlogStructuredData({
   );
 }
 
-export function DayStructuredData({ entry, site }: { entry: Entry; site: SiteSummary }) {
+export function DayStructuredData({
+  entry,
+  site,
+  authors,
+}: {
+  entry: Entry;
+  site: SiteSummary;
+  authors: string;
+}) {
   const image = entry.gallery.find((g) => g.type === "image")?.src;
   return (
     <JsonLd
@@ -56,7 +66,7 @@ export function DayStructuredData({ entry, site }: { entry: Entry; site: SiteSum
         dateModified: entry.date,
         url: `${site.url}${site.base}/day/${entry.slug}`,
         image: image ? `${site.url}${image}` : undefined,
-        author: [{ "@type": "Person", name: site.travellerNames }],
+        author: [{ "@type": "Person", name: authors }],
         publisher: { "@type": "Organization", name: site.title },
         isPartOf: { "@type": "Blog", name: site.title, url: `${site.url}${site.base}` },
         contentLocation: {

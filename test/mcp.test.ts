@@ -135,7 +135,7 @@ beforeEach(async () => {
       JSON.stringify({
         title: `${username}'s journal`,
         tagline: "A tagline",
-        travellers: [{ name: "A B", nickname: "A" }],
+        owner: { name: "A B", nickname: "A" },
         startLocation: "X",
         defaultLocale: "en",
         locales: ["en"],

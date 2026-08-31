@@ -72,6 +72,7 @@ foundations, W27/W28/W31 build on them, W32 and W33 are independent.
 | [W32](W32-trip-end.md) | A trip that is over stops saying "right now" | — | ✅ |
 | [W33](W33-plans-from-drafts.md) | Future drafts become planned stops | — | ✅ |
 | [W36](W36-blackbox-fixes.md) | Everything the three QA runs found | W26–W33 | ✅ |
+| [W37](W37-owner-and-guests.md) | One owner, per-trip travellers, an editable guest list | W10, W26 | ⬜ |
 
 There is no W34 or W35 — the numbers were skipped, not lost.
 

@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import {
   ConfigError,
@@ -7,6 +9,8 @@ import {
   parseServerConfig,
   loadUserConfig,
   parseUserConfig,
+  serverConfigPath,
+  userConfigPath,
 } from "@/lib/config";
 
 const FIXTURES = path.join(process.cwd(), "test", "fixtures", "content");
@@ -14,7 +18,7 @@ const FIXTURES = path.join(process.cwd(), "test", "fixtures", "content");
 const VALID = {
   title: "T",
   tagline: "L",
-  travellers: [{ name: "A B", nickname: "A" }],
+  owner: { name: "A B", nickname: "A", email: "a@example.com" },
   startLocation: "X",
   defaultLocale: "en",
   locales: ["en", "de"],
@@ -66,6 +70,42 @@ describe("loadUserConfig", () => {
     process.env.CONTENT_DIR = path.join(FIXTURES, "does-not-exist");
     clearConfigCache();
     expect(() => loadUserConfig("u")).toThrow(/config\.json/);
+  });
+
+  /**
+   * `ConfigError` used to hardcode `content/config.json is not usable`,
+   * regardless of which file actually failed. It also carries the *user*
+   * config's problems — `content/<username>/config.json` — and `getUser`
+   * (`lib/users.ts`) downgrades exactly this error to a `console.warn` and a
+   * 404, so a message naming the wrong file was the only place the mistake
+   * was ever visible. It must name the file that is actually wrong.
+   */
+  test("names the user config's own path, not the server's, when it fails to parse", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-config-"));
+    fs.writeFileSync(path.join(dir, "config.json"), JSON.stringify({ site: { name: "R", url: "https://example.test" } }));
+    // Missing `title`, so parseUserConfig rejects it — the file itself reads
+    // fine, so this exercises `parseUserConfig`'s own ConfigError, not
+    // `readJson`'s.
+    fs.mkdirSync(path.join(dir, "broken"));
+    fs.writeFileSync(
+      path.join(dir, "broken", "config.json"),
+      JSON.stringify({ owner: { name: "A", nickname: "A" } }),
+    );
+    process.env.CONTENT_DIR = dir;
+    clearConfigCache();
+    try {
+      let caught: unknown;
+      try {
+        loadUserConfig("broken");
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught).toBeInstanceOf(ConfigError);
+      expect((caught as ConfigError).message).toContain(userConfigPath("broken"));
+      expect((caught as ConfigError).message).not.toContain(serverConfigPath());
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
@@ -138,6 +178,47 @@ describe("parseUserConfig", () => {
  * their visitors with somebody else's. `test/depersonalised.test.ts` fails the
  * build over exactly that, which is how this ended up here.
  */
+describe("owner", () => {
+  test("reads name, nickname and email", () => {
+    const cfg = parseUserConfig("u", clone());
+    expect(cfg.owner).toEqual({ name: "A B", nickname: "A", email: "a@example.com" });
+  });
+
+  test("lower-cases and trims the address, as an address is compared", () => {
+    const raw = clone();
+    raw.owner = { name: "A B", nickname: "A", email: "  A@Example.COM " };
+    expect(parseUserConfig("u", raw).owner.email).toBe("a@example.com");
+  });
+
+  test("an owner with no email parses — that journal is read-only", () => {
+    const raw = clone();
+    raw.owner = { name: "A B", nickname: "A" };
+    expect(parseUserConfig("u", raw).owner.email).toBeUndefined();
+  });
+
+  test("rejects an owner that is not an object", () => {
+    const raw = clone();
+    raw.owner = "A B";
+    expect(problemsOf(raw)).toContain("owner must be { name, nickname, email? }");
+  });
+
+  test("rejects a malformed address rather than dropping it", () => {
+    const raw = clone();
+    raw.owner = { name: "A B", nickname: "A", email: "not-an-address" };
+    expect(problemsOf(raw)).toContain("owner.email must be an email address, or absent");
+  });
+
+  test("names the migration when the old shape is still there", () => {
+    const raw = clone();
+    delete raw.owner;
+    raw.travellers = [{ name: "A B", nickname: "A" }];
+    raw.ownerEmail = "a@example.com";
+    const problems = problemsOf(raw);
+    expect(problems.some((p) => p.includes("travellers"))).toBe(true);
+    expect(problems.some((p) => p.includes("owner"))).toBe(true);
+  });
+});
+
 describe("site.repository and site.credit", () => {
   test("are absent by default, and absent stays absent", () => {
     const config = parseServerConfig({ site: { name: "N", url: "https://x.test" } });

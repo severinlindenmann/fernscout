@@ -1,7 +1,7 @@
 {
   "title": "Fixture Trip",
   "tagline": "A tagline",
-  "travellers": [{ "name": "Test Person", "nickname": "Test" }],
+  "owner": { "name": "Test Person", "nickname": "Test" },
   "startLocation": "Somewhere",
   "defaultLocale": "en",
   "locales": ["en", "de"],

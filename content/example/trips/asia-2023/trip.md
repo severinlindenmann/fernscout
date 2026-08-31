@@ -6,6 +6,10 @@ start: "2023-01-08"
 end: "2023-06-02"
 status: past
 accent: coral
+people:
+  - name: "Priya Fenwick"
+    email: "priya@example.com"
+    nickname: "Priya"
 visibility: public
 costsVisibility: public
 rates:

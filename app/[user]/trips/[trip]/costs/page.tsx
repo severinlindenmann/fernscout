@@ -6,8 +6,9 @@ import CostsPageContent from "@/app/[user]/(trip)/costs/CostsPageContent";
 import CostsPrivate from "@/components/CostsPrivate";
 import { getCostSummary } from "@/lib/costs";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
-import { getUsernames } from "@/lib/users";
+import { getUser, getUsernames } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
+import { travellerNamesOf } from "@/lib/site";
 
 export function generateStaticParams() {
   return getUsernames().flatMap((user) => {
@@ -47,10 +48,16 @@ export default async function TripCostsPage({ params }: PageProps<"/[user]/trips
   if (!(await mayReadTrip(trip))) return null;
   if (trip.status === "current") redirect(`/${user}/costs`);
 
+  const userConfig = getUser(user);
+  if (!userConfig) notFound();
+
   return (
     <TripProvider trip={trip} isCurrent={false}>
       {(await mayViewCosts(trip)) ? (
-        <CostsPageContent summary={getCostSummary(trip.ref)} />
+        <CostsPageContent
+          summary={getCostSummary(trip.ref)}
+          travellers={travellerNamesOf(userConfig, trip)}
+        />
       ) : (
         <CostsPrivate />
       )}

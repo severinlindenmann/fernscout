@@ -56,7 +56,7 @@ beforeEach(() => {
     JSON.stringify({
       title: "P's journal",
       tagline: "t",
-      travellers: [{ name: "P", nickname: "P" }],
+      owner: { name: "P", nickname: "P" },
       startLocation: "X",
       defaultLocale: "en",
       locales: ["en"],

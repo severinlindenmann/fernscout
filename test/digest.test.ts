@@ -83,7 +83,7 @@ function writeUserConfig() {
     JSON.stringify({
       title: "Two Backpacks",
       tagline: "one slow loop",
-      travellers: [{ name: "Ana Meyer", nickname: "Ana" }],
+      owner: { name: "Ana Meyer", nickname: "Ana" },
       startLocation: "Zurich",
       defaultLocale: "de",
       locales: ["de", "en", "hu"],

@@ -27,7 +27,14 @@ export type NewJournal = {
   tagline?: string;
   /** The address that owns it: the only one that can get a token to write. */
   ownerEmail: string;
-  ownerName?: string;
+  ownerName: string;
+  /**
+   * What the site calls this person, in its own voice. Required, and never
+   * guessed from `ownerName` — a first-word split mangles any name whose
+   * given name is not first, which is exactly the shortcut W37 removed from
+   * `lib/config.ts`'s `Owner`.
+   */
+  ownerNickname: string;
   startLocation?: string;
   defaultLocale?: string;
   locales?: string[];
@@ -53,8 +60,11 @@ export function journalsOwnedBy(email: string): string[] {
     try {
       const raw = JSON.parse(
         fs.readFileSync(path.join(contentRoot(), username, "config.json"), "utf8"),
-      ) as { ownerEmail?: unknown };
-      if (typeof raw.ownerEmail === "string" && raw.ownerEmail.trim().toLowerCase() === address) {
+      ) as { owner?: { email?: unknown } };
+      if (
+        typeof raw.owner?.email === "string" &&
+        raw.owner.email.trim().toLowerCase() === address
+      ) {
         owned.push(username);
       }
     } catch {
@@ -102,6 +112,21 @@ export function createJournal(input: NewJournal): CreateJournalResult {
     return { ok: false, error: "invalid_title", message: "A journal needs a title." };
   }
 
+  const ownerName = input.ownerName.trim();
+  if (!ownerName) {
+    return { ok: false, error: "invalid_owner", message: "A journal needs the owner's name." };
+  }
+  const ownerNickname = input.ownerNickname.trim();
+  if (!ownerNickname) {
+    return {
+      ok: false,
+      error: "invalid_owner",
+      message:
+        "A journal needs the owner's nickname — what the site calls them. It is not guessed " +
+        "from their name.",
+    };
+  }
+
   const ownerEmail = input.ownerEmail.trim().toLowerCase();
   const owned = journalsOwnedBy(ownerEmail);
   if (owned.length >= MAX_JOURNALS_PER_EMAIL) {
@@ -122,10 +147,10 @@ export function createJournal(input: NewJournal): CreateJournalResult {
     // which is a strange way to punish somebody for not having a subtitle.
     // Inventing one instead would be worse: it is the owner's line, not ours.
     ...(input.tagline?.trim() ? { tagline: input.tagline.trim() } : {}),
-    ownerEmail,
-    travellers: input.ownerName?.trim()
-      ? [{ name: input.ownerName.trim(), nickname: input.ownerName.trim().split(/\s+/)[0] }]
-      : [],
+    // `nickname` is required rather than derived from `name`: a first-word
+    // split mangles any name whose given name is not first, so there is no
+    // safe guess to fall back to — the caller must ask.
+    owner: { name: ownerName, nickname: ownerNickname, email: ownerEmail },
     ...(input.startLocation?.trim() ? { startLocation: input.startLocation.trim() } : {}),
     defaultLocale: input.defaultLocale ?? "en",
     locales: input.locales?.length ? input.locales : [input.defaultLocale ?? "en"],

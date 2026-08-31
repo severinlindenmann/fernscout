@@ -32,7 +32,11 @@ beforeEach(() => {
   fs.mkdirSync(tripDir(), { recursive: true });
   fs.writeFileSync(
     path.join(root, USER, "config.json"),
-    JSON.stringify({ title: "A Test Site", baseCurrency: "CHF" }),
+    JSON.stringify({
+      title: "A Test Site",
+      baseCurrency: "CHF",
+      owner: { name: "A Test Person", nickname: "A" },
+    }),
   );
   fs.writeFileSync(
     path.join(tripDir(), "trip.md"),
