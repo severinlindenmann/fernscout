@@ -68,7 +68,10 @@ Four fields decide behaviour rather than decoration:
   the bare `/<user>` URLs; the rest live under `/<user>/trips/<id>`.
 - **`people`** — everyone listed may write to the *whole* trip and may obtain an
   agent token scoped to it and to nothing else in the journal. Up to ten. Leave
-  it out for a trip somebody took alone.
+  it out for a trip somebody took alone. Everyone listed is also **published**
+  — their full name appears in the trip's structured data and in the costs
+  disclaimer on a public trip. This is not a quiet way to hand somebody write
+  access; if that's all they need, that is not what this field is for.
 - **`visibility`** — who is let in. `private` is the people above and the
   journal's owner; `public` is everyone; `guest` is invited guests plus the
   people above. An unrecognised value reads as **`private`**, never as public: a
