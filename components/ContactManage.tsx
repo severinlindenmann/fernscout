@@ -23,6 +23,7 @@ export type ManageAddress = {
   postcode: string;
   city: string;
   country: string;
+  tel: string;
 };
 
 export type ManageContact = {
@@ -141,6 +142,20 @@ export default function ContactManage({
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="mt-6">
+          <label className={LABEL} htmlFor="manage-tel">
+            {`${t("contact.tel")} (${t("contact.optional")})`}
+          </label>
+          <input
+            id="manage-tel"
+            className={FIELD}
+            type="tel"
+            autoComplete="tel"
+            value={address.tel}
+            onChange={(e) => setAddress((previous) => ({ ...previous, tel: e.target.value }))}
+          />
         </div>
 
         <fieldset className="mt-8 rounded-2xl border border-navy-200 bg-cream-100 p-5">

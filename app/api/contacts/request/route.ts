@@ -1,7 +1,7 @@
 import { isEmail, issueCode } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { requestContact } from "@/lib/contacts";
-import { isPostable, normaliseAddress } from "@/lib/contacts/crypto";
+import { EMPTY_ADDRESS, isPostable, normaliseAddress } from "@/lib/contacts/crypto";
 import { resolveInvite } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
 import { sendCodeMail } from "@/lib/contacts/mail";
@@ -79,6 +79,15 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_address" }, { status: 400 });
   }
 
+  // A phone number is not a postal address (task 10). The client is not the
+  // boundary — a submission could tick `wantsPostcard: false` while still
+  // sending a full street address, deliberately or otherwise — so this route
+  // decides for itself what to keep: the full submitted address when the
+  // postcard box is ticked, otherwise only the phone number, never `null`.
+  // `requestContact` decides whether that is worth persisting at all via
+  // `hasAnyDetail`, so neither a tel nor a postcard still stores nothing.
+  const addressToStore = wantsPostcard ? address : { ...EMPTY_ADDRESS, tel: address.tel };
+
   // The token in a personal link prefills two fields and does nothing else —
   // decision 19. Note in particular that the *submitted* address is what
   // identifies this person, never the invite.
@@ -95,7 +104,7 @@ export async function POST(request: Request) {
     name,
     email,
     locale,
-    address: wantsPostcard ? address : null,
+    address: addressToStore,
     wantsEmailDigest: digestPreference(body) === true,
     wantsPostcard,
     createdVia: invite ? `invite:${invite.id}` : "open",

@@ -364,30 +364,30 @@ export async function updateContactSelf(
     patch.address === undefined
       ? undefined
       : normaliseAddress(patch.address);
-  // The guest's own manage form (`ContactManage.tsx`) has no `tel` field, so
-  // every save resends the address it knows about with `tel` empty — even a
-  // save that only touched a preference checkbox, because the form posts the
-  // whole address on every submit. Carry the existing number forward unless
-  // the caller actually supplied a new, non-empty one.
-  // Note: `patch.address === null` (as opposed to `undefined`, "the caller
-  // didn't send this field") normalises to an all-empty `submittedAddress`,
-  // and lands here the same as any other resend with no `tel` typed — so an
-  // explicit "clear the address" from a guest who has a tel on file carries
-  // that tel forward too, leaving a tel-only blob rather than clearing it.
-  // The UI never sends `address: null` (it always posts the fields, blank or
-  // not), and `deleteContactSelf` is the real "erase everything" path, so
-  // this is a latent inconsistency — "null means delete" now differs per
-  // field — rather than a live bug. Deliberately left alone here: fixing it
-  // risks the tel-preservation behaviour item 1 just added.
+  // `ContactManage.tsx` now has its own `tel` field (task 10), and posts the
+  // whole address on every save — including a `tel` key holding `""` when
+  // the guest has deliberately cleared it. An *older* client, or one that
+  // never had the field, sends no `tel` key at all. Those two must not read
+  // the same: distinguish on whether the key was present in what was
+  // actually submitted, not on whether the value is empty, so a genuine
+  // clear takes effect while an old client's silent omission still falls
+  // back to the number already on file.
+  // `patch.address === null` (an explicit "no address" rather than
+  // `undefined`, "the caller didn't send this field") has no `tel` key
+  // either, by the same test — a null address behaves like an old client
+  // with none, carrying the existing tel forward rather than erasing it.
+  // `deleteContactSelf` remains the real "erase everything" path.
+  const telSubmitted =
+    patch.address !== undefined &&
+    patch.address !== null &&
+    typeof patch.address === "object" &&
+    "tel" in patch.address;
   const address =
     submittedAddress === undefined
       ? undefined
       : {
           ...submittedAddress,
-          tel:
-            submittedAddress.tel.trim() !== ""
-              ? submittedAddress.tel
-              : (current.postalAddress?.tel ?? ""),
+          tel: telSubmitted ? submittedAddress.tel : (current.postalAddress?.tel ?? ""),
         };
 
   const wantsPostcard = patch.wantsPostcard ?? current.wantsPostcard;

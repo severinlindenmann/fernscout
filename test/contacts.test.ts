@@ -246,6 +246,113 @@ describe("a telephone number", () => {
   });
 });
 
+/**
+ * Task 10 — an optional phone number on the public join form.
+ *
+ * The trap this guards against: both `ContactForm.tsx` and this route used to
+ * drop the whole submitted address — `tel` included — unless `wantsPostcard`
+ * was ticked. A guest who gave a phone number without wanting a postcard had
+ * it silently discarded. `tel` must survive that path; the postal address
+ * must still only be stored with the tick.
+ */
+describe("a guest's phone number, given through the join form", () => {
+  beforeEach(() => {
+    fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "ana", "config.json"),
+      JSON.stringify({
+        title: "Ana's journal",
+        tagline: "t",
+        owner: { name: "Ana B", nickname: "Ana" },
+        startLocation: "X",
+        defaultLocale: "en",
+        locales: ["en"],
+        baseCurrency: "CHF",
+        displayCurrencies: ["CHF"],
+        units: "metric",
+        features: { contacts: { enabled: true } },
+      }),
+    );
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "R", url: "https://example.test", defaultUser: "ana" },
+        users: { reserved: [] },
+        features: { contacts: { enabled: true } },
+      }),
+    );
+    clearConfigCache();
+    clearUserCache();
+  });
+
+  // A distinct `x-forwarded-for` so this describe's calls land in their own
+  // rate-limit bucket (`lib/rateLimit.ts` is a module-level, in-memory map
+  // shared for the life of the test file) rather than sharing "unknown" —
+  // the IP every other test in this file gets by not sending the header —
+  // and tripping the 5-per-window cap the "digest preference's name" tests
+  // below rely on having to themselves.
+  async function post(body: Record<string, unknown>) {
+    const { POST } = await import("@/app/api/contacts/request/route");
+    return POST(
+      new Request("https://example.test/api/contacts/request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.7",
+        },
+        body: JSON.stringify({ user: "ana", name: "A Reader", locale: "en", ...body }),
+      }),
+    );
+  }
+
+  test("a tel with no postcard is stored, and the contact is not postable", async () => {
+    const response = await post({
+      email: "tel-no-postcard@example.test",
+      wantsPostcard: false,
+      address: { tel: "+41 79 555 00 00" },
+    });
+    expect(response.status).toBe(202);
+
+    const [contact] = (await listContacts("ana")).filter(
+      (c) => c.email === "tel-no-postcard@example.test",
+    );
+    expect(contact.postalAddress?.tel).toBe("+41 79 555 00 00");
+    expect(isPostable(contact.postalAddress!)).toBe(false);
+    expect(contact.wantsPostcard).toBe(false);
+  });
+
+  test("a tel with a full postcard address stores both", async () => {
+    const response = await post({
+      email: "tel-and-postcard@example.test",
+      wantsPostcard: true,
+      address: {
+        line1: "Bahnhofstrasse 1",
+        city: "Zurich",
+        country: "Switzerland",
+        tel: "+41 79 555 11 11",
+      },
+    });
+    expect(response.status).toBe(202);
+
+    const [contact] = (await listContacts("ana")).filter(
+      (c) => c.email === "tel-and-postcard@example.test",
+    );
+    expect(contact.postalAddress?.tel).toBe("+41 79 555 11 11");
+    expect(contact.postalAddress?.line1).toBe("Bahnhofstrasse 1");
+    expect(contact.wantsPostcard).toBe(true);
+  });
+
+  test("ticking the postcard box with no address still 400s, tel or not", async () => {
+    const response = await post({
+      email: "tel-no-address@example.test",
+      wantsPostcard: true,
+      address: { tel: "+41 79 555 22 22" },
+    });
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error?: string }).error).toBe("invalid_address");
+  });
+});
+
 describe("signing the guestbook", () => {
   test("creates a pending, unconfirmed contact and grants nothing", async () => {
     await signUp("ana", "oma@example.test");
@@ -767,6 +874,31 @@ describe("the self-serve page", () => {
     });
     expect(updated?.postalAddress?.city).toBe("Basel");
     expect(updated?.postalAddress?.tel).toBe("+41 79 222 22 22");
+  });
+
+  /**
+   * Task 10, item 3: `ContactManage.tsx` now has its own `tel` field, so a
+   * submitted `address` always carries a `tel` key — including an explicit
+   * `tel: ""` when the guest clears it. That must actually clear the number,
+   * not be read as "no tel submitted" and fall back to the one on file the
+   * way an old client's request (no `tel` key at all) still should.
+   */
+  test("a guest can change, and then clear, their tel through the manage path", async () => {
+    const { manageToken } = await signUpAndConfirm("ana", "tel-manage@example.test", {
+      address: { ...ADDRESS, tel: "+41 79 000 11 22" },
+    });
+
+    const changed = await updateContactSelf("ana", manageToken, {
+      address: { ...ADDRESS, tel: "+41 79 999 88 77" },
+    });
+    expect(changed?.postalAddress?.tel).toBe("+41 79 999 88 77");
+
+    const cleared = await updateContactSelf("ana", manageToken, {
+      address: { ...ADDRESS, tel: "" },
+    });
+    expect(cleared?.postalAddress?.tel).toBe("");
+    // The rest of the address is postable, so the blob itself survives.
+    expect(cleared?.postalAddress?.line1).toBe(ADDRESS.line1);
   });
 
   test("a guest clearing their address to nothing does not resurrect a deleted one", async () => {

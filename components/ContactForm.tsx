@@ -71,6 +71,7 @@ export default function ContactForm({
     postcode: "",
     city: "",
     country: "",
+    tel: "",
   });
   const [code, setCode] = useState("");
   const [manage, setManage] = useState<string | null>(null);
@@ -84,6 +85,13 @@ export default function ContactForm({
     // Somebody typing a street plainly wants the postcard; ticking the box for
     // them saves a step, and it stays a box they can untick.
     if (value.trim() !== "") setWantsPostcard(true);
+  }
+
+  // A phone number is not a postal address, and giving one is not asking for
+  // a postcard — unlike `setAddressField` above, typing a `tel` must never
+  // tick that box for them.
+  function setTel(value: string) {
+    setAddress((previous) => ({ ...previous, tel: value }));
   }
 
   async function submitDetails(event: React.FormEvent) {
@@ -113,7 +121,20 @@ export default function ContactForm({
         invite: inviteToken,
         wantsEmailDigest: wantsDigest,
         wantsPostcard,
-        address: wantsPostcard ? address : null,
+        // The phone number is always sent; the postal address only comes
+        // along when the postcard box is ticked — never `null`, so a `tel`
+        // typed in without wanting a postcard is not silently dropped.
+        address: wantsPostcard
+          ? address
+          : {
+              name: "",
+              line1: "",
+              line2: "",
+              postcode: "",
+              city: "",
+              country: "",
+              tel: address.tel,
+            },
       }),
     }).catch(() => null);
     setBusy(false);
@@ -213,6 +234,20 @@ export default function ContactForm({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="mt-6">
+            <label className={LABEL} htmlFor="contact-tel">
+              {`${t("contact.tel")} (${t("contact.optional")})`}
+            </label>
+            <input
+              id="contact-tel"
+              className={FIELD}
+              type="tel"
+              autoComplete="tel"
+              value={address.tel}
+              onChange={(e) => setTel(e.target.value)}
+            />
           </div>
 
           <fieldset className="mt-10 rounded-2xl border border-navy-200 bg-cream-100 p-5">
