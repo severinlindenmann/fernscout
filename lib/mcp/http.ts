@@ -125,8 +125,18 @@ async function authenticate(request: Request): Promise<{ ok: true; session: Sess
   // here as a bearer token is refused by class, before anything asks what it
   // can reach — a session that can read the site for a year must not be a
   // session that can write to it (decision 24).
-  const session = await resolveSession(match[1].trim(), "agent");
+  const token = match[1].trim();
+  const session = await resolveSession(token, "agent");
   if (session) return { ok: true, session };
+
+  // A signup session is the one exception, and it buys exactly one tool.
+  // Somebody with no journal yet has no agent token to present, so without
+  // this `create_journal` could not be reached over MCP at all and the first
+  // step of using this software would still be a shell prompt. `tools/list`
+  // and `tools/call` both narrow to that single tool — see `toolsFor` in
+  // lib/mcp/tools.ts — so the exception cannot widen into anything else.
+  const signup = await resolveSession(token, "signup");
+  if (signup) return { ok: true, session: signup };
 
   // Only *failures* are counted. A wrong token is cheap to try, so trying
   // thousands is bounded; a working client never touches this, which is what

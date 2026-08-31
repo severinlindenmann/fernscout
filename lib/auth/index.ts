@@ -17,7 +17,22 @@ import { getDatabase } from "../db";
  * `AUTH_DEV_CODE` fixes it outright for end-to-end tests.
  */
 
-export type SessionKind = "guest" | "agent";
+/**
+ * `signup` is the odd one out and deliberately so: it belongs to an address
+ * rather than to a journal, because at the moment it is issued there is no
+ * journal for it to belong to. It can do exactly one thing — create one — and
+ * it expires in twenty minutes.
+ */
+export type SessionKind = "guest" | "agent" | "signup";
+
+/**
+ * The owner a signup code is filed under.
+ *
+ * Not a username, and it cannot become one: `USERNAME_RE` in `lib/users.ts`
+ * has no `*`, so no journal can ever collide with this and no session issued
+ * here can satisfy `ownsUser` for anything real.
+ */
+export const SIGNUP_OWNER = "*";
 
 export const CODE_TTL_MS = 10 * 60 * 1000;
 export const MAX_CODE_ATTEMPTS = 5;
@@ -26,11 +41,15 @@ export const MAX_CODE_ATTEMPTS = 5;
 export const SESSION_TTL_MS: Record<SessionKind, number> = {
   agent: 7 * 24 * 60 * 60 * 1000,
   guest: 365 * 24 * 60 * 60 * 1000,
+  // Long enough to finish the call it was issued for, short enough that a
+  // token which can create journals is not lying around afterwards.
+  signup: 20 * 60 * 1000,
 };
 
 export const SESSION_SCOPE: Record<SessionKind, string> = {
   agent: "write:content",
   guest: "read",
+  signup: "create:journal",
 };
 
 export const GUEST_COOKIE = "fs_session";
@@ -280,6 +299,23 @@ export async function verifyLink(
     .execute();
 
   return openSession(owner, row.email, kind);
+}
+
+/**
+ * An agent session for a journal, without a code round trip.
+ *
+ * The one caller is `POST /api/v1/journals`: the address has just been proved
+ * by the signup code, and sending its owner back for a second code — to a
+ * journal created a millisecond ago, by them — would be ceremony rather than
+ * security. Nothing else may use this; every other path goes through a code.
+ */
+export async function openAgentSession(
+  owner: string,
+  email: string,
+): Promise<{ token: string; expiresAt: string }> {
+  const result = await openSession(owner, email, "agent");
+  if (!result.ok) throw new Error("could not open a session for a journal just created");
+  return { token: result.token, expiresAt: result.expiresAt };
 }
 
 /** Mint the session both redemption paths end at. */

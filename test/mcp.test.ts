@@ -330,18 +330,23 @@ describe("the protocol", () => {
     expect(status).toBe(400);
   });
 
-  test("tools/list names every tool, with a schema", async () => {
+  test("tools/list names every tool an agent may call, with a schema", async () => {
     const { body } = await rpc(anaToken, "tools/list");
     const tools = (body.result as { tools: { name: string; inputSchema: unknown }[] }).tools;
     expect(tools.map((t) => t.name).sort()).toEqual([
       "add_media",
       "create_day",
+      "create_trip",
       "delete_day",
       "get_day",
       "list_drafts",
       "list_trips",
       "search_entries",
     ]);
+    // Not `create_journal`. This token belongs to a journal, and a journal's
+    // token must not be able to mint more journals beside it — offering the
+    // tool and then refusing the call would be a worse way to say so.
+    expect(tools.map((t) => t.name)).not.toContain("create_journal");
     for (const tool of tools) {
       expect(tool.inputSchema).toMatchObject({ type: "object" });
       expect(tool.name).toMatch(/^[a-z_]+$/);
