@@ -18,14 +18,17 @@ import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
 import { isOver } from "@/lib/tripTime";
+import {
+  LEGACY_KEYS,
+  lastVisitKey,
+  newestDate,
+  resumeKey,
+  visitMark,
+  visitMarkKey,
+  whatsNew,
+} from "@/lib/whatsNew";
 import type { Day, DaySummary } from "@/lib/types";
 import type { HeroStats } from "@/components/TripHero";
-
-const RESUME_KEY = "fs.lastDay";
-/** The newest entry date the reader had already seen. Storing the day rather
- * than a wall-clock timestamp means "new since you were here" survives clock
- * skew and lines up with how the entries are dated. */
-const LAST_VISIT_KEY = "fs.lastVisit";
 
 /** How many days either side of the one on screen are kept loaded. Mirrors
  * `STORY_WINDOW` on the server; the client asks for the same shape. */
@@ -135,25 +138,47 @@ export default function TripStory({
     return () => window.removeEventListener("hashchange", onHashChange);
   }, [index, stepForDay]);
 
+  /** Which trip's reading marks to keep. Null outside TripProvider, in which
+   * case there is no trip to be up to date with and the feature sits out. */
+  const storageRef = trip?.trip.ref ?? null;
+
   /** The day the reader last reached, remembered across reloads. */
   const [resumeSlug, setResumeSlug] = useState<string | null>(null);
   /** The newest day that existed the last time they were here. */
   const [lastVisit, setLastVisit] = useState<string | null>(null);
-  // Read after the first paint: localStorage only exists in the browser, and
+  /** The newest day they have opened during this visit. */
+  const [reached, setReached] = useState<string | null>(null);
+  const newest = newestDate(index);
+  // Read after the first paint: web storage only exists in the browser, and
   // reading it during render would make the client HTML differ from the
   // server's.
+  //
+  // Deliberately idempotent rather than guarded to run once. Arriving stamps
+  // the last-visit mark forward, so anything that re-runs this after that
+  // reads back its own stamp and decides the reader is up to date — which is
+  // why the visit's starting mark is written to sessionStorage on the first
+  // pass and read from there on every later one. Remounts are not ours to
+  // prevent: `next dev` does one on every page, and that alone was enough to
+  // make the banner impossible to see locally.
   useEffect(() => {
+    if (!storageRef) return;
+    const mark = visitMark(
+      window.sessionStorage.getItem(visitMarkKey(storageRef)),
+      window.localStorage.getItem(lastVisitKey(storageRef)),
+    );
+    window.sessionStorage.setItem(visitMarkKey(storageRef), mark);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setResumeSlug(window.localStorage.getItem(RESUME_KEY));
-    setLastVisit(window.localStorage.getItem(LAST_VISIT_KEY));
-    // Stamp the visit immediately, but keep the value we read in state — so
-    // the "what's new" line stays put for the whole session instead of
-    // vanishing the moment they arrive.
-    const newest = index.reduce((max, d) => (d.date > max ? d.date : max), "");
-    if (newest) window.localStorage.setItem(LAST_VISIT_KEY, newest);
-    // Only on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setResumeSlug(window.localStorage.getItem(resumeKey(storageRef)));
+    setLastVisit(mark || null);
+    // Stamp the visit immediately, but read from the session mark above — so
+    // the "what's new" line stays put until the reader has actually taken it
+    // up, instead of vanishing the moment they arrive.
+    if (newest) window.localStorage.setItem(lastVisitKey(storageRef), newest);
+    // The marks predating per-trip scoping. Whatever they hold was written by
+    // whichever trip was read last, so it cannot be migrated into a scoped
+    // key — only cleared, at the cost of one visit with no banner.
+    for (const legacy of LEGACY_KEYS) window.localStorage.removeItem(legacy);
+  }, [storageRef, newest]);
   // Which step's travel leg has finished playing. Kept here so both the
   // desktop nav and the merged mobile bar can label Continue vs Skip.
   const [doneStep, setDoneStep] = useState<number | null>(null);
@@ -229,8 +254,24 @@ export default function TripStory({
     }
     const day = index[s.dayIndex];
     history.replaceState(null, "", hashForDay(day));
-    if (s.kind === "day") window.localStorage.setItem(RESUME_KEY, day.slug);
-  }, [stepIndex, steps, index]);
+    if (s.kind === "day") {
+      if (storageRef) {
+        window.localStorage.setItem(resumeKey(storageRef), day.slug);
+        // Opening one of the new days is taking the prompt up, so this visit
+        // stops needing its starting mark — and dropping it is what makes the
+        // banner stay gone across a reload or a remount, where component state
+        // does not survive. The stamped mark is the truth from here on.
+        if (lastVisit && day.date > lastVisit) {
+          window.sessionStorage.removeItem(visitMarkKey(storageRef));
+        }
+      }
+      // The furthest-forward day they have opened this visit. `whatsNew` reads
+      // it to know the prompt has been taken up; kept as the newest rather
+      // than the latest so paging back afterwards can't undo it.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setReached((prev) => (prev && prev > day.date ? prev : day.date));
+    }
+  }, [stepIndex, steps, index, storageRef, lastVisit]);
 
   const progress =
     index.length > 0 ? ((activeIndex + 1) / index.length) * 100 : 0;
@@ -320,10 +361,13 @@ export default function TripStory({
   const resumeIndex = resumeSlug ? index.findIndex((d) => d.slug === resumeSlug) : -1;
   const canResume = resumeIndex >= 0 && resumeIndex !== todayIndex;
 
-  // Days published since their last visit. Skipped for a first-time reader,
-  // for whom every day is new and the line would say nothing useful.
-  const firstNewIndex = lastVisit ? index.findIndex((d) => d.date > lastVisit) : -1;
-  const newDayCount = firstNewIndex >= 0 ? index.length - firstNewIndex : 0;
+  // Days published since their last visit — see lib/whatsNew.ts for when this
+  // says nothing at all.
+  const { firstIndex: firstNewIndex, count: newDayCount } = whatsNew(
+    index,
+    lastVisit,
+    reached,
+  );
 
   const story = (
     <div className="flex min-h-screen flex-col">
