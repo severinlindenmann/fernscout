@@ -64,7 +64,11 @@ as_service npm run build
 # Which commit is actually serving, readable at /api/health. Written to a
 # drop-in rather than $ENV_FILE, because that file holds secrets and this is
 # the one value that changes on every deploy.
-GIT_SHA="$(git rev-parse HEAD)"
+#
+# Read through `as_service` like everything else: HOME points at the service
+# user by now, so a root `git` here would look for its `safe.directory`
+# exception in the wrong config file and refuse the repository it just built.
+GIT_SHA="$(as_service git rev-parse HEAD)"
 log "recording GIT_SHA=${GIT_SHA:0:12}"
 if [ "$(id -u)" -eq 0 ]; then
   mkdir -p "/etc/systemd/system/${SERVICE}.service.d"
