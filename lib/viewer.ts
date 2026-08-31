@@ -81,7 +81,18 @@ export async function resolveViewer(username: string): Promise<Viewer> {
       visible.push(describe(trip, "traveller", current));
     } else if (trip.visibility === "public" && trip.listed) {
       visible.push(describe(trip, "public", current));
-    } else if (trip.visibility === "guest" && (guest || grants?.has(trip.id))) {
+    } else if (
+      trip.visibility === "guest" &&
+      // `grants?.has(trip.id)`: nothing in this codebase currently issues a
+      // grant with a specific `trip_id` — the only insert (`approveContact`,
+      // `lib/contacts/index.ts`) always writes `"*"`, so this arm cannot be
+      // reached today. It stays rather than being trimmed to `guest` alone:
+      // the schema (`access_grants`'s unique index on `trip_id`), the read
+      // side here and `digestableTrips` (`lib/digest/visibility.ts`) already
+      // treat a per-trip grant as a first-class case, so this is a live
+      // placeholder for that write path landing, not a stray leftover.
+      (guest || grants?.has(trip.id))
+    ) {
       visible.push(describe(trip, "guest", current));
     }
   }

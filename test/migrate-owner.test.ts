@@ -193,6 +193,16 @@ describe("the write path", () => {
   // exercises the same guarantee (original file byte-identical afterwards)
   // via a path that doesn't depend on timing.
   //
+  // This does discriminate the two code paths, and was checked directly
+  // rather than assumed: opening an *existing* file for writing needs write
+  // permission on the file itself, not on its directory — only creating a
+  // new directory entry (the temp file) needs that. So `chmod 555` on the
+  // directory leaves the pre-fix, in-place `fs.writeFileSync(configPath, …)`
+  // free to succeed; it is specifically the temp-file-then-rename sequence
+  // this test's failure depends on. Reverting `writeConfigAtomic` to a plain
+  // `fs.writeFileSync` and rerunning this test reproduces exactly that: the
+  // script exits 0 and this assertion goes red.
+  //
   // Skipped when running as root, where directory permission bits don't
   // block writes and the simulated failure wouldn't occur.
   const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
