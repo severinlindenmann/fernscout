@@ -1,11 +1,20 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
-import { issueCode } from "@/lib/auth";
+import { issueCode, verifyCode } from "@/lib/auth";
+
+// `isOwner` (`lib/contacts/session.ts`) reads the guest cookie via
+// `next/headers`'s `cookies()`, which throws outside a real Next.js request
+// scope. The admin route tests below authenticate with an agent bearer token
+// instead — a header on the `Request` they build by hand — so this stub only
+// needs to hand back an empty jar and let that path through.
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+}));
 import {
   approveContact,
   confirmContact,
@@ -357,6 +366,59 @@ describe("the owner adding a guest", () => {
     });
     expect(await updateContactByOwner("other", contactId!, { name: "X" })).toBeNull();
   });
+
+  /**
+   * The fix in this round: `updateContactByOwner` cannot *set* `status`, but
+   * changing the email on an already-active row used to leave `status:
+   * "active"`, `confirmed_at` set and the `access_grants` row untouched — an
+   * address nobody has proved they can read, still let in behind a
+   * `guest`-visibility trip. `resolveViewer` looks a contact up by email, so
+   * that was `approveContact`'s refusal reached through a side door. An email
+   * change now knocks the row back to `pending`, same shape `revokeContact`
+   * already writes.
+   */
+  test("changing the email of an active, confirmed contact de-approves it", async () => {
+    const { contact } = await signUpAndConfirm("u", "before@example.com", {
+      createdVia: "owner",
+    });
+    expect((await approveContact("u", contact.id))?.status).toBe("active");
+
+    const after = await updateContactByOwner("u", contact.id, { email: "after@example.com" });
+    expect(after?.status).toBe("pending");
+    expect(after?.confirmedAt).toBeNull();
+    expect(after?.email).toBe("after@example.com");
+
+    const { db } = await getDatabase();
+    const grants = await db
+      .selectFrom("access_grants")
+      .selectAll()
+      .where("contact_id", "=", contact.id)
+      .execute();
+    expect(grants).toHaveLength(0);
+  });
+
+  test("correcting something other than the email leaves status and confirmation alone", async () => {
+    const { contact } = await signUpAndConfirm("u", "stays@example.com", {
+      createdVia: "owner",
+    });
+    await approveContact("u", contact.id);
+
+    const after = await updateContactByOwner("u", contact.id, {
+      name: "New Name",
+      email: "stays@example.com", // same address, re-sent as the form would
+    });
+    expect(after?.status).toBe("active");
+    expect(after?.confirmedAt).not.toBeNull();
+    expect(after?.name).toBe("New Name");
+
+    const { db } = await getDatabase();
+    const grants = await db
+      .selectFrom("access_grants")
+      .selectAll()
+      .where("contact_id", "=", contact.id)
+      .execute();
+    expect(grants).toHaveLength(1);
+  });
 });
 
 describe("the personal link", () => {
@@ -651,5 +713,119 @@ describe("the digest preference's name", () => {
   test("neither means no", async () => {
     const contact = await post({ email: "quiet@example.test" });
     expect(contact.wantsEmailDigest).toBe(false);
+  });
+});
+
+/**
+ * The admin route's own validation on `update`.
+ *
+ * `create` already runs the address through `isEmail`; `update` used to
+ * accept any string and write it to both `email` and `email_key`. There is no
+ * unique index on `(owner_id, email_key)` — `003-contacts.ts` creates only
+ * `contacts_manage_token` and `contacts_owner_status` — so two rows sharing a
+ * key would make `requestContact` and `confirmContact`'s `executeTakeFirst()`
+ * lookups ambiguous rather than loud. Both checks now happen before
+ * `updateContactByOwner` is ever called.
+ */
+describe("the admin route's update validation", () => {
+  const OWNER_EMAIL = "ana@example.test";
+
+  beforeEach(() => {
+    fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "ana", "config.json"),
+      JSON.stringify({
+        title: "Ana's journal",
+        tagline: "t",
+        owner: { name: "Ana B", nickname: "Ana", email: OWNER_EMAIL },
+        startLocation: "X",
+        defaultLocale: "en",
+        locales: ["en"],
+        baseCurrency: "CHF",
+        displayCurrencies: ["CHF"],
+        units: "metric",
+        features: { contacts: { enabled: true } },
+      }),
+    );
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "R", url: "https://example.test", defaultUser: "ana" },
+        users: { reserved: [] },
+        features: { contacts: { enabled: true } },
+      }),
+    );
+    clearConfigCache();
+    clearUserCache();
+  });
+
+  /**
+   * A real agent bearer token for Ana's own address — the credential
+   * `isOwner` accepts from a script — minted the way `/api/auth/verify` does,
+   * without the HTTP round trip: `issueCode` then `verifyCode`, the same pair
+   * `signUpAndConfirm` above uses for a guest session.
+   */
+  async function ownerToken(): Promise<string> {
+    const { code } = await issueCode("ana", OWNER_EMAIL, "agent");
+    const verified = await verifyCode("ana", OWNER_EMAIL, code, "agent");
+    if (!verified.ok) throw new Error("expected the code to verify");
+    return verified.token;
+  }
+
+  async function postAdmin(body: Record<string, unknown>, token: string) {
+    const { POST } = await import("@/app/api/contacts/admin/route");
+    return POST(
+      new Request("https://example.test/api/contacts/admin", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ user: "ana", ...body }),
+      }),
+    );
+  }
+
+  test("rejects a malformed address rather than writing it", async () => {
+    const token = await ownerToken();
+    const { contactId } = await requestContact("ana", {
+      name: "Gran", email: "gran@example.test", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
+    });
+
+    const response = await postAdmin(
+      { action: "update", id: contactId, email: "not-an-address" },
+      token,
+    );
+
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error?: string }).error).toBe("invalid_email");
+    expect((await getContact("ana", contactId!))?.email).toBe("gran@example.test");
+  });
+
+  test("refuses to give a contact the address a different contact already holds", async () => {
+    const token = await ownerToken();
+    await requestContact("ana", {
+      name: "Gran", email: "taken@example.test", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
+    });
+    const { contactId } = await requestContact("ana", {
+      name: "Other", email: "other@example.test", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
+    });
+
+    const response = await postAdmin(
+      { action: "update", id: contactId, email: "taken@example.test" },
+      token,
+    );
+
+    expect(response.status).toBe(409);
+    expect(((await response.json()) as { error?: string }).error).toBe("email_taken");
+    expect((await getContact("ana", contactId!))?.email).toBe("other@example.test");
+    // Ana's own attempt is still findable, undisturbed.
+    expect((await listContacts("ana")).map((c) => c.email).sort()).toEqual([
+      "other@example.test",
+      "taken@example.test",
+    ]);
   });
 });

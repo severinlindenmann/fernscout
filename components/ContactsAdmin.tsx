@@ -64,14 +64,16 @@ const STATUS_KEY: Record<AdminContact["status"], TranslationKey> = {
   blocked: "contact.statusBlocked",
 };
 
-/** The three errors `create` and `update` can answer with, named the same way
- * the public form names them — `ContactForm.tsx` — so a reader who mistyped
- * their address and an owner who mistyped a guest's see the same words. */
+/** What `create` and `update` can answer with. `needEmail` and `needAddress`
+ * are shared with the public form verbatim — neither reads as talking to the
+ * wrong person. `invalid_name`'s public wording ("write your name") does, so
+ * it gets its own owner-facing copy instead. */
 const ERROR_KEY: Record<string, TranslationKey> = {
-  invalid_name: "contact.needName",
+  invalid_name: "contact.adminNeedName",
   invalid_email: "contact.needEmail",
   invalid_address: "contact.needAddress",
   blocked_contact: "contact.adminBlockedContact",
+  email_taken: "contact.adminEmailTaken",
 };
 
 type Translate = (key: TranslationKey, vars?: Record<string, string>) => string;
@@ -215,11 +217,16 @@ function fieldsFor(contact: AdminContact | null, fallbackLocale: Locale): GuestF
 
 /**
  * The owner's own entry into the guest list (W37) — the create-a-contact form
- * this journal never had before now. Every field, label and translation key
- * below is lifted from `ContactForm.tsx` rather than re-worded: it is the same
- * field set asked by the same journal, and giving the two forms separate
- * copies of the same labels is how they drift apart (the visibility vocabulary
- * did exactly that in W27).
+ * this journal never had before now. The *field* labels — name, email,
+ * language, the address block — are lifted from `ContactForm.tsx` rather than
+ * re-worded: they are person-neutral, and giving the two forms separate
+ * copies of the same label is how they drift apart (the visibility vocabulary
+ * did exactly that in W27). The two consent checkboxes and the address hint
+ * are the opposite case: `ContactForm.tsx`'s copy for them is first-person
+ * ("Send me…", "only if you'd like…"), written for the guest filling in their
+ * own form, and reads as talking to the wrong person when it is the owner
+ * typing on somebody else's behalf — so those three get their own
+ * `contact.admin*` keys instead of reuse.
  *
  * One instance of this form exists on the page at a time — opened either by
  * the "Add a guest" toggle above the pending group, or by a row's own Edit
@@ -227,8 +234,11 @@ function fieldsFor(contact: AdminContact | null, fallbackLocale: Locale): GuestF
  * edited (or "new"): switching targets has to reset every field, not patch
  * over what the previous target left behind.
  *
- * Submitting never sends `status`. That is `updateContactByOwner`'s rule, not
- * a UI nicety: there is no field here that could set it even by accident.
+ * No field here can *choose* `status` — that is `updateContactByOwner`'s
+ * rule. Changing the email of an already-active contact still moves it back
+ * to `pending` and clears its grants, same as `revokeContact`; that is not an
+ * escalation this form could cause, only the one de-escalation the address
+ * change makes necessary.
  */
 function GuestForm({
   contact,
@@ -356,7 +366,7 @@ function GuestForm({
         <legend className="px-2 font-display text-lg text-navy-900">
           {t("contact.address")}
         </legend>
-        <p className="text-base text-navy-700">{t("contact.addressHint")}</p>
+        <p className="text-base text-navy-700">{t("contact.adminAddressHint")}</p>
 
         <div className="mt-4">
           <label className={LABEL} htmlFor="guest-addr-name">
@@ -436,7 +446,7 @@ function GuestForm({
             checked={form.wantsEmailDigest}
             onChange={(e) => field("wantsEmailDigest", e.target.checked)}
           />
-          <span>{t("contact.wantsDigest")}</span>
+          <span>{t("contact.adminWantsDigest")}</span>
         </label>
         <label className="flex items-start gap-3 text-base text-navy-900">
           <input
@@ -445,7 +455,7 @@ function GuestForm({
             checked={form.wantsPostcard}
             onChange={(e) => field("wantsPostcard", e.target.checked)}
           />
-          <span>{t("contact.wantsPostcard")}</span>
+          <span>{t("contact.adminWantsPostcard")}</span>
         </label>
       </div>
 

@@ -5,6 +5,7 @@ import {
   deleteContact,
   getContact,
   listContacts,
+  normaliseEmail,
   requestContact,
   revokeContact,
   updateContactByOwner,
@@ -176,6 +177,23 @@ export async function POST(request: Request) {
       return Response.json({ ok: true, contact: contact ? ownerView(contact) : null });
     }
     case "update": {
+      // `create` runs the address through `isEmail`; `update` did not, and
+      // there is no unique index on `(owner_id, email_key)` to catch what
+      // slips through — `requestContact` and `confirmContact` both resolve a
+      // contact with `executeTakeFirst()`, so two rows sharing a key make
+      // that lookup ambiguous rather than loud. Both checks happen before
+      // `updateContactByOwner` is ever called, and neither silently merges.
+      if (typeof body.email === "string") {
+        if (!isEmail(body.email)) {
+          return Response.json({ error: "invalid_email" }, { status: 400 });
+        }
+        const email = normaliseEmail(body.email);
+        const clash = (await listContacts(username)).find(
+          (other) => other.id !== id && other.email === email,
+        );
+        if (clash) return Response.json({ error: "email_taken" }, { status: 409 });
+      }
+
       const contact = await updateContactByOwner(username, id, {
         ...(typeof body.name === "string" ? { name: body.name } : {}),
         ...(typeof body.email === "string" ? { email: body.email } : {}),

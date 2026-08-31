@@ -528,9 +528,24 @@ export async function revokeContact(owner: string, id: string): Promise<ContactR
  * address itself — `requestContact` would write a second row for the new one
  * and leave the old behind.
  *
- * Deliberately cannot touch `status`. Approving is `approveContact`, and it
- * refuses an unconfirmed address on purpose; a general-purpose editor that
- * could set `status` would be a way around that refusal.
+ * Deliberately cannot *set* `status` to anything the caller chooses.
+ * Approving is `approveContact`, and it refuses an unconfirmed address on
+ * purpose; a general-purpose editor that let the caller choose `status`
+ * would be a way around that refusal.
+ *
+ * One exception, and it goes only one direction. Changing the email on an
+ * `active`, confirmed row would otherwise leave `status: "active"`,
+ * `confirmed_at` set, and the `access_grants` row untouched — an address
+ * nobody has proved they can read, sitting behind a `guest`-visibility trip,
+ * reached without ever going through `approveContact`'s refusal.
+ * `resolveViewer` (`lib/viewer.ts`) looks a contact up by email and grants
+ * `guest` the moment `status === "active"`, so that gap is not theoretical:
+ * it is the exact escalation `approveContact` exists to block, through a side
+ * door. So an email change knocks a previously-active row back to `pending`
+ * and clears its confirmation and its grants — the same shape
+ * `revokeContact` already writes, because the effect is the same one:
+ * whoever holds the new address has to confirm and be approved again, same
+ * as anyone else.
  */
 export async function updateContactByOwner(
   owner: string,
@@ -554,9 +569,11 @@ export async function updateContactByOwner(
   if (!existing) return null;
 
   const patch: Record<string, unknown> = { updated_at: nowIso() };
+  let emailChanged = false;
   if (fields.name !== undefined) patch.name = fields.name.trim().slice(0, 120) || null;
   if (fields.email !== undefined) {
     const email = normaliseEmail(fields.email);
+    emailChanged = email !== existing.email_key;
     patch.email = email;
     patch.email_key = email;
   }
@@ -576,7 +593,24 @@ export async function updateContactByOwner(
     patch.wants_postcard = fields.wantsPostcard ? 1 : 0;
   }
 
+  if (emailChanged) {
+    // Downgrading is not the escalation `status` is otherwise off-limits for
+    // — it serves the same refusal `approveContact` makes, just reached from
+    // the other side.
+    patch.status = "pending";
+    patch.confirmed_at = null;
+  }
+
   await db.updateTable("contacts").set(patch).where("id", "=", id).execute();
+
+  if (emailChanged) {
+    await db
+      .deleteFrom("access_grants")
+      .where("owner_id", "=", owner)
+      .where("contact_id", "=", id)
+      .execute();
+  }
+
   return getContact(owner, id);
 }
 
