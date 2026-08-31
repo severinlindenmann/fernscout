@@ -8,6 +8,7 @@ systemd unit, and a deploy script.
 - [What actually runs](#what-actually-runs)
 - [First deploy on a fresh VPS](#first-deploy-on-a-fresh-vps)
 - [Day-to-day deploys](#day-to-day-deploys)
+- [Deploying alongside an existing Caddy site](#deploying-alongside-an-existing-caddy-site)
 - [Adding Postgres later](#adding-postgres-later)
 - [`/api/health`](#apihealth)
 - [Backups](#backups)
@@ -63,9 +64,15 @@ sudo chown fernscout:fernscout /var/lib/fernscout
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
-sudo apt install -y nodejs git
+sudo apt install -y nodejs git build-essential python3
 node -v            # expect v24.x
 ```
+
+`build-essential` and `python3` are for node-gyp: `better-sqlite3` compiles
+from source, and `package.json`'s `allowScripts` block means `npm ci` actually
+runs that build rather than skipping it. A Postgres deployment never loads the
+module — `lib/db/client.ts` imports it lazily — but `npm ci` still fails
+outright if it cannot be built.
 
 ### 3. Caddy
 
@@ -81,7 +88,7 @@ sudo apt update && sudo apt install -y caddy
 ### 4. The app
 
 ```bash
-sudo -u fernscout git clone https://github.com/severinlindenmann/travel.git /srv/fernscout
+sudo -u fernscout git clone https://github.com/severinlindenmann/fernscout.git /srv/fernscout
 cd /srv/fernscout
 sudo -u fernscout npm ci
 ```
@@ -97,6 +104,25 @@ sudo nano /etc/fernscout/env
 
 At minimum set `NEXT_PUBLIC_SITE_URL` and `DATA_DIR=/var/lib/fernscout`.
 Leave `DATABASE_URL` unset for a public-only site.
+
+Set `CONTENT_DIR=/var/lib/fernscout/content` too, and seed it once:
+
+```bash
+sudo -u fernscout mkdir -p /var/lib/fernscout/content
+sudo -u fernscout cp -a /srv/fernscout/content/. /var/lib/fernscout/content/
+```
+
+The journal then lives outside the repository, which matters for two reasons
+that only show up later. `scripts/deploy.sh` runs `git pull --ff-only`, and an
+agent writing a draft over `/api/v1` or `/api/mcp` writes into that same
+working tree — the next deploy fails on local modifications. And the config
+that switches on `mail` and `auth` belongs to *this* machine, where the
+credentials are; committed to the repository it would fail the boot check
+(`instrumentation.ts` → `assertCapabilities`) for everyone who cloned it.
+
+`content/locales/` still resolves from the repo when the content folder has no
+copy of its own (`lib/locales.ts`), so a UI translation added upstream arrives
+with the next deploy either way.
 
 > `/etc/fernscout/env` holds every secret on the machine. Mode `640`,
 > owned by root, readable by the service group — never world-readable, and
@@ -118,8 +144,18 @@ curl -s localhost:3000/api/health | head
 ```bash
 sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
 sudo nano /etc/caddy/Caddyfile     # set your domain and ACME email
+sudo caddy validate --config /etc/caddy/Caddyfile
 sudo systemctl reload caddy
 ```
+
+> **Only on a machine that serves nothing else.** Caddy has exactly one config
+> file, shared by everything on the host, so that `cp` deletes any site already
+> configured there. If `/etc/caddy/Caddyfile` already has content, see
+> [Deploying alongside an existing Caddy site](#deploying-alongside-an-existing-caddy-site).
+
+`caddy validate` before the reload, always: a reload of a broken config leaves
+the old one running, but a *restart* of one does not, and the difference is
+easy to discover the wrong way round.
 
 Point the domain's A/AAAA records at the VPS **before** reloading — Caddy
 requests the certificate over HTTP on port 80 and needs the name to resolve.
@@ -139,6 +175,51 @@ cd /srv/fernscout && ./scripts/deploy.sh
 Pull, `npm ci`, migrate if a database is configured, build, restart, wait for
 health. **The build runs before the restart**, so a broken build leaves the
 running site untouched instead of taking it down and then failing.
+
+---
+
+## Deploying alongside an existing Caddy site
+
+A VPS that already serves something is the normal case, not the exception.
+Nothing about the deploy changes except step 7 — but that step, run as written,
+takes the other site down.
+
+**Back the file up before touching it**, then append a site block, leaving
+every existing block byte-identical:
+
+```bash
+sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak-$(date +%F)
+sudo tee -a /etc/caddy/Caddyfile >/dev/null <<'EOF'
+
+fernscout.ch {
+	encode gzip zstd
+	reverse_proxy 127.0.0.1:3000
+}
+
+www.fernscout.ch {
+	redir https://fernscout.ch{uri} permanent
+}
+EOF
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+Two things not to do. Do not add a second global options block — the `{ email }`
+block at the top of `deploy/Caddyfile` is a config error when one already
+exists, and adding one where there was none changes ACME behaviour for the
+sites already being served; Caddy's default account is already issuing their
+certificates. And `reload`, never `restart`: a reload swaps the config with no
+dropped connection, so the neighbouring site does not so much as blink.
+
+Check the neighbour before and after, not just your own site:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://the-other-site.example
+```
+
+Port 3000 must also be free. `sudo ss -tlnp | grep :3000` before you start;
+if something else holds it, set `PORT` in `/etc/fernscout/env` and match it in
+the `reverse_proxy` line.
 
 ---
 

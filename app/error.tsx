@@ -31,7 +31,7 @@ export default function Error({
   const { t } = useI18n();
 
   useEffect(() => {
-    console.error("[reisepost] render failed", error);
+    console.error("[fernscout] render failed", error);
   }, [error]);
 
   return (

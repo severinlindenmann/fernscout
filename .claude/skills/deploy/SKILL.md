@@ -34,7 +34,7 @@ quietly.
 ```bash
 git push
 ssh <host>
-cd /srv/reisepost && ./scripts/deploy.sh
+cd /srv/fernscout && ./scripts/deploy.sh
 ```
 
 `scripts/deploy.sh` does, in this order:
@@ -44,11 +44,11 @@ cd /srv/reisepost && ./scripts/deploy.sh
 3. `npm run db:migrate`, only when `DATABASE_URL` is set. Unset is supported
    and means a public-only site.
 4. `npm run build` — **before** the restart, on purpose.
-5. `systemctl restart reisepost` (and the worker, if it is enabled).
+5. `systemctl restart fernscout` (and the worker, if it is enabled).
 6. Polls `/api/health` for 30 seconds and fails loudly if it never goes green.
 
-Overridable by environment: `APP_DIR` (default `/srv/reisepost`), `SERVICE`
-(`reisepost`), `PORT` (`3000`).
+Overridable by environment: `APP_DIR` (default `/srv/fernscout`), `SERVICE`
+(`fernscout`), `PORT` (`3000`).
 
 ## Confirming it, from outside
 
@@ -66,8 +66,8 @@ nothing happened".
 ## When it does not come up
 
 ```bash
-journalctl -u reisepost -n 50 --no-pager
-systemctl status reisepost
+journalctl -u fernscout -n 50 --no-pager
+systemctl status fernscout
 ```
 
 The usual causes, in order of likelihood:
@@ -84,7 +84,7 @@ Nothing here is fixed by re-running the deploy. Read the log first.
 
 ## Secrets
 
-Every secret on the machine lives in `/etc/reisepost/env`, mode `640`, owned by
+Every secret on the machine lives in `/etc/fernscout/env`, mode `640`, owned by
 root and readable by the service group. **Never** in `content/config.json`,
 never in the repository, never in a commit message, and never echoed back into
 a chat. If you need a new one, add the name to `.env.example` with an empty
@@ -93,7 +93,7 @@ value and tell the author to set it on the server.
 ## Backups, before a risky deploy
 
 ```bash
-sudo systemctl start reisepost-backup   # restic; reads the output, don't assume
+sudo systemctl start fernscout-backup   # restic; reads the output, don't assume
 ```
 
 Backs up the Postgres dump (when the dialect is Postgres), `$DATA_DIR` — which

@@ -1,3 +1,12 @@
+# A reference snippet, not a file to copy blindly.
+#
+# On a VPS that serves nothing else, this can become /etc/caddy/Caddyfile
+# outright. On a machine that already has one — another site, another
+# service — **merge the site block below into the existing file instead**.
+# `sudo cp deploy/Caddyfile /etc/caddy/Caddyfile` would delete whatever was
+# already there, and Caddy is a single-config-file server: there is only one
+# of them, and everything on the machine shares it.
+#
 # Automatic HTTPS: Caddy requests and renews a Let's Encrypt certificate for
 # {$CADDY_DOMAIN} on first request, with no cron job and no certbot. Needs
 # :80 reachable for the ACME HTTP-01 challenge and :443 for the site itself —
@@ -12,6 +21,10 @@
 # working for any CADDY_DOMAIN, TLS or not. `email` needs a non-empty
 # argument — set a real address here before the first certificate request
 # so this never sees a blank one, even before .env exists.
+#
+# Merging into an existing Caddyfile: take the site block only. A second
+# global options block is a config error, and adding one where there was none
+# changes ACME behaviour for the sites already being served.
 {
 	email {$CADDY_ACME_EMAIL}
 }
@@ -20,6 +33,7 @@
 	encode gzip zstd
 
 	# Next.js sets its own cache headers per-route (see next.config.ts and
-	# the API routes' `cache-control: no-store`); Caddy just proxies.
-	reverse_proxy app:3000
+	# the API routes' `cache-control: no-store`); Caddy just proxies. The app
+	# runs on this host — there is no container to address by name.
+	reverse_proxy 127.0.0.1:3000
 }
