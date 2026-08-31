@@ -222,7 +222,15 @@ export async function POST(request: Request) {
           : (current.postalAddress ?? EMPTY_ADDRESS);
       const nextWantsPostcard =
         typeof body.wantsPostcard === "boolean" ? body.wantsPostcard : current.wantsPostcard;
-      if (nextWantsPostcard && !isPostable(nextAddress)) {
+      // Only refuse when the request actually asserts the postcard preference
+      // or touches the address. A row can carry `wants_postcard = 1` with an
+      // unreadable address — written by the pre-fix `update`, or a blob that
+      // no longer decrypts after a key rotation — and an edit that touches
+      // neither must still go through: the owner cannot otherwise correct
+      // even the name without first reaching a tick this form may not show.
+      const touchesPostcardOrAddress =
+        typeof body.wantsPostcard === "boolean" || body.address !== undefined;
+      if (touchesPostcardOrAddress && nextWantsPostcard && !isPostable(nextAddress)) {
         return Response.json({ error: "invalid_address" }, { status: 400 });
       }
 

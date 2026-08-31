@@ -360,16 +360,34 @@ export async function updateContactSelf(
   if (!current) return null;
 
   const { db } = await getDatabase();
-  const address =
+  const submittedAddress =
     patch.address === undefined
       ? undefined
       : normaliseAddress(patch.address);
+  // The guest's own manage form (`ContactManage.tsx`) has no `tel` field, so
+  // every save resends the address it knows about with `tel` empty — even a
+  // save that only touched a preference checkbox, because the form posts the
+  // whole address on every submit. Carry the existing number forward unless
+  // the caller actually supplied a new, non-empty one.
+  const address =
+    submittedAddress === undefined
+      ? undefined
+      : {
+          ...submittedAddress,
+          tel:
+            submittedAddress.tel.trim() !== ""
+              ? submittedAddress.tel
+              : (current.postalAddress?.tel ?? ""),
+        };
 
   const wantsPostcard = patch.wantsPostcard ?? current.wantsPostcard;
+  // `isPostable` is the wrong gate for whether to keep the blob at all — a
+  // record holding only a phone number is worth keeping, same as
+  // `requestContact` and `updateContactByOwner`.
   const keepAddress =
     address === undefined
       ? current.postalAddress
-      : isPostable(address)
+      : hasAnyDetail(address)
         ? address
         : null;
 
@@ -379,9 +397,10 @@ export async function updateContactSelf(
       name: patch.name?.trim() ? patch.name.trim().slice(0, 120) : current.name,
       locale: parseLocale(patch.locale) ?? current.locale,
       wants_email_digest: (patch.wantsEmailDigest ?? current.wantsEmailDigest) ? 1 : 0,
-      // Asking for a postcard without an address on file is not a preference,
-      // it is a typo. Stored as what it can actually mean.
-      wants_postcard: wantsPostcard && keepAddress !== null ? 1 : 0,
+      // Asking for a postcard without a *postable* address on file is not a
+      // preference, it is a typo. `keepAddress` may now hold a tel-only blob,
+      // so the gate is `isPostable`, not merely "there is a blob at all".
+      wants_postcard: wantsPostcard && keepAddress !== null && isPostable(keepAddress) ? 1 : 0,
       postal_cipher: keepAddress
         ? encryptAddress(keepAddress, addressAad(owner, current.id))
         : null,
@@ -607,7 +626,16 @@ export async function updateContactByOwner(
     patch.confirmed_at = null;
   }
 
-  await db.updateTable("contacts").set(patch).where("id", "=", id).execute();
+  // `owner_id` on the write itself, not only on the SELECT above — defence in
+  // depth. Safe today only because that SELECT is owner-scoped and `id` is
+  // the table's global primary key; this costs nothing and removes the
+  // dependency on both of those staying true together.
+  await db
+    .updateTable("contacts")
+    .set(patch)
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .execute();
 
   if (emailChanged) {
     await db

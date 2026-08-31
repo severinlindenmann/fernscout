@@ -451,6 +451,68 @@ describe("the owner adding a guest", () => {
       .execute();
     expect(grants).toHaveLength(1);
   });
+
+  /**
+   * The bug: the write itself carried only `.where("id", "=", id)`, safe
+   * today only because it is reached through an `owner_id`-scoped SELECT a
+   * few lines above and `id` is the table's global primary key — one refactor
+   * of either away from a cross-journal write. Defence in depth, on the write
+   * itself: assert the compiled query actually carries `owner_id` as one of
+   * its predicates, rather than relying on the read guard alone. There is no
+   * way to make this observably wrong through the exported function today
+   * (the SELECT and the write share the same `owner` parameter, and `id` is
+   * globally unique), so this inspects the query Kysely builds rather than a
+   * data outcome.
+   */
+  test("the write itself is scoped to the owner, not only the read that precedes it", async () => {
+    const { contactId } = await requestContact("u", {
+      name: "Gran", email: "scope-check@example.com", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
+    });
+
+    const { db } = await getDatabase();
+    // Recursively wrap whatever `db.updateTable("contacts")` returns, so every
+    // `.where(...)` call in the chain is recorded regardless of how many
+    // immutable builder objects it passes through before `.execute()`.
+    const whereCalls: unknown[][] = [];
+    function watch<T extends object>(builder: T): T {
+      return new Proxy(builder, {
+        get(target, prop, receiver) {
+          const value = Reflect.get(target, prop, receiver) as unknown;
+          if (typeof value !== "function") return value;
+          return (...args: unknown[]) => {
+            if (prop === "where") whereCalls.push(args);
+            const result = (value as (...a: unknown[]) => unknown).apply(target, args);
+            return result && typeof result === "object" && typeof (result as { then?: unknown }).then !== "function"
+              ? watch(result as object)
+              : result;
+          };
+        },
+      });
+    }
+    // Kysely's `updateTable` is generic over the table name in a way that
+    // does not admit a loose mock signature; the query it returns is only
+    // being watched here, not typed against, so the object is untyped for
+    // the span of the spy.
+    const loose = db as unknown as { updateTable: (table: unknown) => object };
+    const original = loose.updateTable.bind(loose);
+    const spy = vi
+      .spyOn(loose, "updateTable")
+      .mockImplementation((table: unknown) =>
+        table === "contacts" ? watch(original(table)) : original(table),
+      );
+
+    try {
+      await updateContactByOwner("u", contactId!, { name: "Corrected" });
+    } finally {
+      spy.mockRestore();
+    }
+
+    const scopedToOwner = whereCalls.some(
+      (args) => args[0] === "owner_id" && args[1] === "=" && args[2] === "u",
+    );
+    expect(scopedToOwner).toBe(true);
+  });
 });
 
 describe("the personal link", () => {
@@ -588,6 +650,70 @@ describe("the self-serve page", () => {
     const cleared = await updateContactSelf("ana", manageToken, { address: null });
     expect(cleared?.postalAddress).toBeNull();
     expect(cleared?.wantsPostcard).toBe(false);
+  });
+
+  /**
+   * The bug: the guest's own manage form (`ContactManage.tsx`) has no `tel`
+   * field, so every save resends the address it knows about minus `tel` —
+   * even a save that only changed a preference checkbox, because the form
+   * posts the whole address state on every submit. `updateContactSelf` used
+   * to re-encrypt straight from that object, so the phone number the owner
+   * had recorded was gone after the guest's very next save.
+   */
+  test("a guest updating only their preferences keeps the tel", async () => {
+    const withTel = { ...ADDRESS, tel: "+41 79 111 11 11" };
+    const { manageToken } = await signUpAndConfirm("ana", "keeps-tel-1@example.test", {
+      address: withTel,
+    });
+
+    // What `ContactManage.tsx` actually posts: every address field it has, and
+    // no `tel` key at all.
+    const updated = await updateContactSelf("ana", manageToken, {
+      address: {
+        name: withTel.name,
+        line1: withTel.line1,
+        line2: withTel.line2,
+        postcode: withTel.postcode,
+        city: withTel.city,
+        country: withTel.country,
+      },
+      wantsEmailDigest: false,
+    });
+    expect(updated?.wantsEmailDigest).toBe(false);
+    expect(updated?.postalAddress?.tel).toBe("+41 79 111 11 11");
+  });
+
+  test("a guest editing their postal address keeps the tel", async () => {
+    const withTel = { ...ADDRESS, tel: "+41 79 222 22 22" };
+    const { manageToken } = await signUpAndConfirm("ana", "keeps-tel-2@example.test", {
+      address: withTel,
+    });
+
+    const updated = await updateContactSelf("ana", manageToken, {
+      address: {
+        name: withTel.name,
+        line1: withTel.line1,
+        line2: withTel.line2,
+        postcode: withTel.postcode,
+        city: "Basel",
+        country: withTel.country,
+      },
+    });
+    expect(updated?.postalAddress?.city).toBe("Basel");
+    expect(updated?.postalAddress?.tel).toBe("+41 79 222 22 22");
+  });
+
+  test("a guest clearing their address to nothing does not resurrect a deleted one", async () => {
+    // No tel was ever given here — ADDRESS's is "" — so there is nothing to
+    // carry forward, and clearing every field must still delete the blob.
+    const { manageToken } = await signUpAndConfirm("ana", "clears-address@example.test", {
+      address: ADDRESS,
+    });
+
+    const cleared = await updateContactSelf("ana", manageToken, {
+      address: { name: "", line1: "", line2: "", postcode: "", city: "", country: "" },
+    });
+    expect(cleared?.postalAddress).toBeNull();
   });
 
   test("one click stops every kind of message", async () => {
@@ -935,5 +1061,58 @@ describe("the admin route's update validation", () => {
     expect(response.status).toBe(400);
     expect(((await response.json()) as { error?: string }).error).toBe("invalid_address");
     expect((await getContact("ana", contactId!))?.wantsPostcard).toBe(false);
+  });
+
+  /**
+   * The bug: `update` used to compute `nextAddress` as `EMPTY_ADDRESS` for a
+   * row whose `postalAddress` reads null — a row written by the pre-fix
+   * `update` with `wants_postcard = 1` and no address, or any row whose blob
+   * no longer decrypts after `CONTACTS_ENCRYPTION_KEY` was rotated — and then
+   * refused every edit against that unpostable `EMPTY_ADDRESS`, including a
+   * name-only one that never touched the address or the postcard preference.
+   */
+  test("a name-only edit succeeds on a contact with wants_postcard set and no readable address", async () => {
+    const token = await ownerToken();
+    const { contactId } = await requestContact("ana", {
+      name: "Gran", email: "legacy-postcard@example.test", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
+    });
+    // Simulate the legacy row directly: `wants_postcard` set, no readable
+    // address behind it.
+    const { db } = await getDatabase();
+    await db
+      .updateTable("contacts")
+      .set({ wants_postcard: 1, postal_cipher: null })
+      .where("id", "=", contactId!)
+      .execute();
+
+    const response = await postAdmin({ action: "update", id: contactId, name: "Grandma" }, token);
+
+    expect(response.status).toBe(200);
+    const after = await getContact("ana", contactId!);
+    expect(after?.name).toBe("Grandma");
+    expect(after?.wantsPostcard).toBe(true);
+  });
+
+  test("still refuses to assert wantsPostcard true with no address, even on a legacy row", async () => {
+    const token = await ownerToken();
+    const { contactId } = await requestContact("ana", {
+      name: "Gran", email: "legacy-postcard-2@example.test", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
+    });
+    const { db } = await getDatabase();
+    await db
+      .updateTable("contacts")
+      .set({ wants_postcard: 1, postal_cipher: null })
+      .where("id", "=", contactId!)
+      .execute();
+
+    const response = await postAdmin(
+      { action: "update", id: contactId, wantsPostcard: true },
+      token,
+    );
+
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error?: string }).error).toBe("invalid_address");
   });
 });
