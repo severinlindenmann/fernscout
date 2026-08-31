@@ -221,3 +221,64 @@ describe("what a navigation falls back to", () => {
     expect(answer?.status).toBe(503);
   });
 });
+
+
+/**
+ * What everything that is *not* a navigation is answered with when its fetch
+ * fails.
+ *
+ * A subresource fetch fails for two reasons and the common one is not being
+ * offline: the browser abandons every request still in flight the moment the
+ * reader clicks a link, and a page of photographs always has some in flight.
+ * Either way `respondWith` has to be handed a Response. A promise that rejects
+ * is printed as `Uncaught (in promise) TypeError: Failed to fetch`, and one
+ * that resolves to nothing is a network error just the same — noise in the one
+ * console the author reads for real problems, about a photograph the reader
+ * had already left.
+ */
+async function offlineSubresource(url: string, cached: Cached[]) {
+  const handlers = loadWorker(cached, "fail");
+  return new Promise<Response | undefined>((resolve, reject) => {
+    handlers.fetch({
+      request: {
+        url,
+        method: "GET",
+        mode: "cors",
+        headers: { get: () => null },
+      },
+      respondWith: (value: Promise<Response>) => {
+        void Promise.resolve(value).then(resolve, reject);
+      },
+      waitUntil: () => {},
+    });
+  });
+}
+
+describe("what a failed subresource fetch is answered with", () => {
+  const photo = "https://journal.test/alex/media/trip/day/01.jpg";
+  const window_ = "https://journal.test/alex/story.json?from=0&to=2";
+
+  test("a photograph nothing holds: a response, not a rejected promise", async () => {
+    const answer = await offlineSubresource(photo, []);
+    expect(answer?.status).toBe(503);
+  });
+
+  test("a photograph the cache holds is still served", async () => {
+    const answer = await offlineSubresource(photo, [
+      { url: photo, type: "image/jpeg", body: "JPEG" },
+    ]);
+    expect(await answer?.text()).toBe("JPEG");
+  });
+
+  test("a story window nothing holds: a response, not `undefined`", async () => {
+    const answer = await offlineSubresource(window_, []);
+    expect(answer?.status).toBe(503);
+  });
+
+  test("a story window the cache holds survives the refresh failing", async () => {
+    const answer = await offlineSubresource(window_, [
+      { url: window_, type: "application/json", body: '{"days":[]}' },
+    ]);
+    expect(await answer?.text()).toBe('{"days":[]}');
+  });
+});

@@ -28,6 +28,11 @@
  * anything under /api/, and the App Router's own `?_rsc=` payloads. See the
  * fetch handler for why the second one matters.
  *
+ * Every one of the three answers a request with a Response even when there is
+ * nothing to answer it with — an empty 503. Rejecting instead, or resolving
+ * with nothing, turns each abandoned photograph into a console error and tells
+ * the author their site is broken when a reader merely followed a link.
+ *
  * Known, and deliberately not fixed here: the runtime cache is trimmed by
  * insertion order, which is not an LRU. On a five-month trip with thousands of
  * photographs that evicts the oldest cached days first — the right guess, but
@@ -94,6 +99,21 @@ async function putRuntime(request, response) {
 }
 
 /**
+ * Handed back when a request can be answered from neither the cache nor the
+ * network. It has to *be* a Response. A promise given to `respondWith` that
+ * rejects is printed as `Uncaught (in promise) TypeError: Failed to fetch`,
+ * and one that resolves to nothing is a network error just the same — and in
+ * both cases the console the author reads for real problems fills up with
+ * something that is usually not even a fault. A subresource fetch fails for
+ * two reasons and the common one is not being offline: the browser abandons
+ * every request still in flight the moment the reader clicks a link, and a
+ * page of photographs always has some in flight.
+ */
+function unavailable() {
+  return new Response("", { status: 503, statusText: "Offline" });
+}
+
+/**
  * What to show when a navigation cannot reach the network.
  *
  * The cached page for this URL, then any cached page from the same journal,
@@ -139,7 +159,7 @@ async function navigationFallback(request) {
   }
 
   const offline = await caches.match("/offline");
-  return offline || new Response("", { status: 503, statusText: "Offline" });
+  return offline || unavailable();
 }
 
 self.addEventListener("fetch", (event) => {
@@ -197,29 +217,38 @@ self.addEventListener("fetch", (event) => {
   // Journal data: the story pager's day windows and the search index.
   if (url.pathname.endsWith(".json")) {
     event.respondWith(
-      caches.match(request).then((hit) => {
-        const fresh = fetch(request)
-          .then((res) => {
-            event.waitUntil(putRuntime(request, res.clone()));
-            return res;
-          })
-          .catch(() => hit);
-        return hit || fresh;
-      }),
+      caches
+        .match(request)
+        .then((hit) => {
+          const fresh = fetch(request)
+            .then((res) => {
+              event.waitUntil(putRuntime(request, res.clone()));
+              return res;
+            })
+            .catch(() => hit || unavailable());
+          return hit || fresh;
+        })
+        .catch(unavailable),
     );
     return;
   }
 
-  // Everything else (build assets, photos): cache first.
+  // Everything else (build assets, photos): cache first. The trailing catch
+  // covers the fetch and the cache lookup alike — a browser that has run out
+  // of storage rejects `caches.match`, and that must not be louder than a
+  // missing photograph either.
   event.respondWith(
-    caches.match(request).then(
-      (hit) =>
-        hit ||
-        fetch(request).then((res) => {
-          event.waitUntil(putRuntime(request, res.clone()));
-          return res;
-        }),
-    ),
+    caches
+      .match(request)
+      .then(
+        (hit) =>
+          hit ||
+          fetch(request).then((res) => {
+            event.waitUntil(putRuntime(request, res.clone()));
+            return res;
+          }),
+      )
+      .catch(unavailable),
   );
 });
 
