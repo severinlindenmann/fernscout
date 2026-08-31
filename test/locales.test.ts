@@ -34,7 +34,7 @@ function writeUser(username: string, locales: string[], defaultLocale: string) {
     JSON.stringify({
       title: `${username}'s journal`,
       tagline: "t",
-      travellers: [{ name: "A B", nickname: "A" }],
+      owner: { name: "A B", nickname: "A" },
       startLocation: "X",
       defaultLocale,
       locales,

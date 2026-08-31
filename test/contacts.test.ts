@@ -528,7 +528,7 @@ describe("the digest preference's name", () => {
       JSON.stringify({
         title: "Ana's journal",
         tagline: "t",
-        travellers: [{ name: "Ana B", nickname: "Ana" }],
+        owner: { name: "Ana B", nickname: "Ana" },
         startLocation: "X",
         defaultLocale: "de",
         locales: ["de"],

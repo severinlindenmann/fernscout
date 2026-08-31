@@ -48,7 +48,7 @@ content/
                               widen them.
   rates/ecb.json              shared currency reference rates
   <username>/
-    config.json               who this person is: title, tagline, travellers,
+    config.json               who this person is: title, tagline, owner,
                               locales, baseCurrency, per-user features
     trips/
       <trip-id>/
@@ -88,7 +88,7 @@ it is advertised at all.
 
 **`people:` is who took it** — up to ten, each a name and an email. Everyone
 listed may write to the whole trip, and may hold an agent token scoped to it
-and to nothing else in the journal.
+and to nothing else in the journal. It is also who the trip is credited to.
 
 ## Working in this repository
 

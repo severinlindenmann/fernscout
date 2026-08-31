@@ -26,8 +26,8 @@ import { getUser } from "../users";
  */
 export async function isOwner(username: string, request?: Request): Promise<boolean> {
   const user = getUser(username);
-  if (!user?.ownerEmail) return false;
-  const ownerEmail = user.ownerEmail.trim().toLowerCase();
+  if (!user?.owner.email) return false;
+  const ownerEmail = user.owner.email;
 
   const jar = await cookies();
   const guest = await resolveSession(jar.get(GUEST_COOKIE)?.value, "guest");

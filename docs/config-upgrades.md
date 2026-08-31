@@ -31,3 +31,32 @@ this package already matches version 1. Adding the field is optional right up
 until a future version bump; from then on a file still on an old version stops
 the server at boot with a message pointing back here, rather than starting up
 against a schema it no longer matches.
+
+## W37 — `travellers` and `ownerEmail` become `owner`
+
+A user's `content/<username>/config.json` named its people twice. `travellers`
+was a journal-wide display list, so every trip in a journal was credited to the
+same people whether or not they were on it; `ownerEmail` beside it was the real
+identity, with no relationship to the list.
+
+Before:
+
+    "ownerEmail": "alex@example.com",
+    "travellers": [
+      { "name": "Alex Berger", "nickname": "Alex" },
+      { "name": "Robin Berger", "nickname": "Robin" }
+    ],
+
+After:
+
+    "owner": { "name": "Alex Berger", "nickname": "Alex", "email": "alex@example.com" },
+
+Everyone else who was on a trip belongs in that trip's `people:` block in
+`trip.md`, which already decides who may write to it and now also decides who
+the trip is credited to:
+
+    people:
+      - { name: "Robin Berger", email: "robin@example.com", nickname: "Robin" }
+
+`owner.email` stays optional; a journal without one is read-only, as it was
+without `ownerEmail`.

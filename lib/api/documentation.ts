@@ -101,9 +101,7 @@ export function userDocumentation(username: string): string | null {
   const lines: string[] = [
     `# ${user.title}`,
     "",
-    `> ${user.tagline || "A travel journal."} Written by ${user.travellers
-      .map((t) => t.name)
-      .join(" and ")}.`,
+    `> ${user.tagline || "A travel journal."} Written by ${user.owner.name}.`,
     "",
     "## Reading this journal",
     "",

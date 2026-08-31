@@ -71,7 +71,7 @@ export function makeScaleFixture(out, dayCount) {
       {
         title: "Scale",
         tagline: "A trip long enough to measure",
-        travellers: [{ name: "A Traveller", nickname: "A" }],
+        owner: { name: "A Traveller", nickname: "A" },
         startLocation: "Zurich, Switzerland",
         defaultLocale: "en",
         locales: ["en", "de", "hu"],

@@ -13,7 +13,7 @@ import type { Trip } from "./types";
  * Who is asking, and what that entitles them to see.
  *
  * One resolver, because the answer is assembled from four unrelated places —
- * the session cookie, the journal's `ownerEmail`, each trip's `people:` block
+ * the session cookie, the journal's `owner.email`, each trip's `people:` block
  * and the contacts table — and working that out separately on each page is how
  * two pages start disagreeing about whether somebody is a guest.
  *

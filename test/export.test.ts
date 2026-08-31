@@ -35,7 +35,7 @@ function seedSource() {
     JSON.stringify({
       title: "Traveller's journal",
       tagline: "t",
-      travellers: [{ name: "A B", nickname: "A" }],
+      owner: { name: "A B", nickname: "A" },
       startLocation: "X",
       defaultLocale: "en",
       locales: ["en"],

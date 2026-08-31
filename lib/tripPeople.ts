@@ -16,7 +16,7 @@ import { getUser } from "./users";
 
 /** Every address that may write to this trip, lower-cased. */
 export function peopleOf(trip: Trip): string[] {
-  const owner = getUser(trip.username)?.ownerEmail?.trim().toLowerCase();
+  const owner = getUser(trip.username)?.owner.email;
   const listed = trip.people.map((p) => p.email);
   return owner ? [...new Set([owner, ...listed])] : listed;
 }

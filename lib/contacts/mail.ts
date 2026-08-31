@@ -112,11 +112,11 @@ export async function notifyOwnerOfRequest(
   user: UserConfig,
   contact: ContactRecord,
 ) {
-  if (!user.ownerEmail) return null;
+  if (!user.owner.email) return null;
   const locale = pickLocale(user.defaultLocale);
   return sendMail(
     renderMail(
-      user.ownerEmail,
+      user.owner.email,
       translateIn(locale, "contact.mailRequestSubject", { title: user.title }),
       {
         preheader: translateIn(locale, "contact.mailRequestBody", {

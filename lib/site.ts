@@ -27,14 +27,13 @@ export function serverSite() {
   };
 }
 
-/** Nicknames joined with "+", as a user's site refers to its travellers. */
+/** Temporary: one owner, until Task 3 makes this per-trip. */
 export function travellerNamesOf(user: UserConfig): string {
-  return user.travellers.map((t) => t.nickname).join(" + ");
+  return user.owner.nickname;
 }
 
-/** Full names joined with "&", for metadata and credits. */
 export function travellerFullNamesOf(user: UserConfig): string {
-  return user.travellers.map((t) => t.name).join(" & ");
+  return user.owner.name;
 }
 
 /** The serialisable subset handed to client components. */

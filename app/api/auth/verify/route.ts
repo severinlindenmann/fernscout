@@ -102,7 +102,7 @@ function agentScope(username: string, tripId: string, email: string): string | u
   if (!tripId) return undefined;
   const trip = getTrip(tripRef(username, tripId));
   if (!trip) return undefined;
-  const owner = getUser(username)?.ownerEmail?.trim().toLowerCase();
+  const owner = getUser(username)?.owner.email;
   const isOwnerAddress = owner === email.trim().toLowerCase();
   return isOwnerAddress || isPersonOn(trip, email) ? tripWriteScope(trip.id) : undefined;
 }

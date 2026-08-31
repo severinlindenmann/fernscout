@@ -82,11 +82,9 @@ function personalTerms(): RegExp[] {
     const user = readJson(path.join(contentRoot, username, "config.json"));
     if (!user) continue;
     add(user.title);
-    for (const traveller of Array.isArray(user.travellers) ? user.travellers : []) {
-      const t = traveller as { name?: unknown; nickname?: unknown };
-      add(t.name);
-      add(t.nickname);
-    }
+    const owner = user.owner as { name?: unknown; nickname?: unknown } | undefined;
+    add(owner?.name);
+    add(owner?.nickname);
     try {
       for (const trip of fs.readdirSync(path.join(contentRoot, username, "trips"))) {
         if (!trip.startsWith(".")) terms.add(trip);

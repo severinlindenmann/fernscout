@@ -53,7 +53,11 @@ if (fs.existsSync(configPath)) {
   const userConfig = {
     title: site.title ?? username,
     tagline: site.tagline ?? "",
-    travellers: site.travellers ?? [],
+    owner: {
+      name: site.travellers?.[0]?.name ?? username,
+      nickname: site.travellers?.[0]?.nickname ?? username,
+      ...(site.ownerEmail ? { email: site.ownerEmail } : {}),
+    },
     startLocation: site.startLocation ?? "",
     defaultLocale: site.defaultLocale ?? "en",
     locales: site.locales ?? ["en"],

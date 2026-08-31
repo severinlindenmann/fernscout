@@ -5,7 +5,7 @@ import os from "node:os";
 import { getTrip, getTrips, getCurrentTrip, getTripIds, currentTripRef } from "@/lib/trips";
 
 const SERVER_CFG = '{"site":{"name":"F","url":"https://example.test","defaultUser":"u"},"users":{"reserved":[]},"features":{}}';
-const USER_CFG = '{"title":"F","tagline":"t","travellers":[{"name":"A B","nickname":"A"}],"startLocation":"X","defaultLocale":"en","locales":["en"],"baseCurrency":"CHF","displayCurrencies":["CHF"],"units":"metric","features":{"reactions":{"enabled":true},"costs":{"enabled":true}}}';
+const USER_CFG = '{"title":"F","tagline":"t","owner":{"name":"A B","nickname":"A"},"startLocation":"X","defaultLocale":"en","locales":["en"],"baseCurrency":"CHF","displayCurrencies":["CHF"],"units":"metric","features":{"reactions":{"enabled":true},"costs":{"enabled":true}}}';
 
 const FIXTURES = path.join(process.cwd(), "test", "fixtures", "content");
 

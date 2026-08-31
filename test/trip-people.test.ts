@@ -55,8 +55,8 @@ beforeEach(() => {
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
-      title: "Alex", tagline: "t", ownerEmail: "alex@example.com",
-      travellers: [{ name: "A B", nickname: "A" }], startLocation: "X",
+      title: "Alex", tagline: "t",
+      owner: { name: "A B", nickname: "A", email: "alex@example.com" }, startLocation: "X",
       defaultLocale: "en", locales: ["en"], baseCurrency: "CHF",
       displayCurrencies: ["CHF"], units: "metric", features: {},
     }),

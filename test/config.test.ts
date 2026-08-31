@@ -14,7 +14,7 @@ const FIXTURES = path.join(process.cwd(), "test", "fixtures", "content");
 const VALID = {
   title: "T",
   tagline: "L",
-  travellers: [{ name: "A B", nickname: "A" }],
+  owner: { name: "A B", nickname: "A", email: "a@example.com" },
   startLocation: "X",
   defaultLocale: "en",
   locales: ["en", "de"],
@@ -138,6 +138,47 @@ describe("parseUserConfig", () => {
  * their visitors with somebody else's. `test/depersonalised.test.ts` fails the
  * build over exactly that, which is how this ended up here.
  */
+describe("owner", () => {
+  test("reads name, nickname and email", () => {
+    const cfg = parseUserConfig("u", clone());
+    expect(cfg.owner).toEqual({ name: "A B", nickname: "A", email: "a@example.com" });
+  });
+
+  test("lower-cases and trims the address, as an address is compared", () => {
+    const raw = clone();
+    raw.owner = { name: "A B", nickname: "A", email: "  A@Example.COM " };
+    expect(parseUserConfig("u", raw).owner.email).toBe("a@example.com");
+  });
+
+  test("an owner with no email parses — that journal is read-only", () => {
+    const raw = clone();
+    raw.owner = { name: "A B", nickname: "A" };
+    expect(parseUserConfig("u", raw).owner.email).toBeUndefined();
+  });
+
+  test("rejects an owner that is not an object", () => {
+    const raw = clone();
+    raw.owner = "A B";
+    expect(problemsOf(raw)).toContain("owner must be { name, nickname, email? }");
+  });
+
+  test("rejects a malformed address rather than dropping it", () => {
+    const raw = clone();
+    raw.owner = { name: "A B", nickname: "A", email: "not-an-address" };
+    expect(problemsOf(raw)).toContain("owner.email must be an email address, or absent");
+  });
+
+  test("names the migration when the old shape is still there", () => {
+    const raw = clone();
+    delete raw.owner;
+    raw.travellers = [{ name: "A B", nickname: "A" }];
+    raw.ownerEmail = "a@example.com";
+    const problems = problemsOf(raw);
+    expect(problems.some((p) => p.includes("travellers"))).toBe(true);
+    expect(problems.some((p) => p.includes("owner"))).toBe(true);
+  });
+});
+
 describe("site.repository and site.credit", () => {
   test("are absent by default, and absent stays absent", () => {
     const config = parseServerConfig({ site: { name: "N", url: "https://x.test" } });

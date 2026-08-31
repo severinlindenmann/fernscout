@@ -130,12 +130,12 @@ export async function POST(request: Request) {
  * stated before the token exists rather than chosen afterwards.
  */
 function mayRequestAgentToken(
-  user: { username: string; ownerEmail?: string },
+  user: { username: string; owner: { email?: string } },
   tripId: string,
   email: string,
 ): boolean {
   const address = email.trim().toLowerCase();
-  if (user.ownerEmail?.trim().toLowerCase() === address) return true;
+  if (user.owner.email === address) return true;
   if (!tripId) return false;
   const trip = getTrip(tripRef(user.username, tripId));
   return trip ? isPersonOn(trip, address) : false;

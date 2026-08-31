@@ -25,7 +25,7 @@ function writeUser(username: string, trips: Record<string, string>) {
     JSON.stringify({
       title: `${username}'s journal`,
       tagline: "t",
-      travellers: [{ name: "A B", nickname: "A" }],
+      owner: { name: "A B", nickname: "A" },
       startLocation: "X",
       defaultLocale: "en",
       locales: ["en"],
@@ -114,7 +114,7 @@ describe("config is split by owner", () => {
     const server = loadServerConfig();
     expect(server.site.name).toBe("R");
     expect(server.site).not.toHaveProperty("title");
-    expect(server.site).not.toHaveProperty("travellers");
+    expect(server.site).not.toHaveProperty("owner");
   });
 
   test("each user keeps their own currency and title", () => {
