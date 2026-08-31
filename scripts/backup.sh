@@ -79,8 +79,8 @@ fi
 
 # --- 3. content/ (the canonical, git-tracked trip data) --------------------
 # Backed up anyway even though it's in git: an uncommitted edit made straight
-# on the VPS (or media that was rsynced but never committed, see TODO.md
-# OPS-1) is exactly the kind of state a "just re-clone the repo" recovery
+# on the VPS (or media that was rsynced but never committed, see ROADMAP A9)
+# is exactly the kind of state a "just re-clone the repo" recovery
 # would silently lose.
 if [[ -d "$CONTENT_DIR" ]]; then
   log "staging content/ ($CONTENT_DIR)"

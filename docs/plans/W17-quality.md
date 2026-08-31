@@ -80,4 +80,5 @@ Timezone (J6)
 Slow network (J4)
 : Service worker v2 — timeout on navigations, stale-while-revalidate for the
   pager's JSON, a fallback chain that ends at a real page, a bounded runtime
-  cache. What was not cheap is written down in `TODO.md` §2 under J4.
+  cache. What was not cheap is written down in `docs/ROADMAP.md` under J8
+  (`TODO.md` §2 J4 at the time; that file was folded into the roadmap).

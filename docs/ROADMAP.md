@@ -1,11 +1,14 @@
 # Roadmap — research & task backlog
 
-A working document. Nothing here is implemented; everything here is a decision,
-a task, or a piece of research feeding one of the two. `TODO.md` stays what it
-is: the short list of things blocking *this* trip going live. This file is the
-long game.
+A working document: everything here is a decision, a task, or a piece of
+research feeding one of the two. It was written before any of it was built, so
+read an unannotated task as a proposal rather than as a description of the
+code — `docs/plans/` (W01–W36) is the record of what actually shipped. This is
+the only backlog: the short go-live list that used to sit in `TODO.md` was
+folded in here on 2026-08-31, once everything on it had either shipped or
+turned out to describe a file layout that no longer exists.
 
-Last updated: 2026-08-30 · researched against the state of the web in Aug 2026.
+Last updated: 2026-08-31 · researched against the state of the web in Aug 2026.
 
 ---
 
@@ -312,7 +315,7 @@ no-DB prototype — it does not have to wait for Postgres.
 | **A6** | **A real demo content set** in `content.example/`, and `npm run seed:demo` copies it. The current demo *is* the live content, which is why the repo can't be shown to anyone yet. | **S** |
 | **A7** | **Config validation with good error messages.** A cloner's first experience is a typo in `config.json`; the app should say which key and what was expected, not stack-trace. `lib/trips.ts` already has the right instinct (log + skip, don't throw) — apply it here. | **S** |
 | **A8** | **`.gitignore` the content folder in the fork story?** No — but do document the two modes: content committed (a personal blog, git is your backup) vs content ignored + on a volume (a hosted instance). | **XS** |
-| **A9** | **Media out of git for large trips.** Already flagged as OPS-1 in `TODO.md`. Ingest resizes to ≤2000px; originals go to object storage or a synced folder. This is what makes A1 survivable at 5000 photos. | **M** |
+| **A9** | **Media out of git for large trips.** Partly done — originals are gitignored and ingest resizes. Ingest resizes to ≤2000px; originals go to object storage or a synced folder. This is what makes A1 survivable at 5000 photos. | **M** |
 
 ◆ **Note on A1/A9 tension:** media inside `content/` is the clean story, but a
 5-month trip is 10–30 GB of photos. Resolution: `content/trips/<id>/media/`
@@ -335,7 +338,7 @@ cloneable; the originals stay yours.
 | TLS + reverse proxy | **Caddy**, installed as a package | Automatic ACME/Let's Encrypt, auto-renewal, no cron. Removes a whole class of expiry incidents. Needs :80 for the challenge and :443. |
 | Media | VPS disk first; S3-compatible later | See B4 |
 | Jobs | A single Node worker process, same codebase (pg-boss or a table + poller) | Photobook rendering, email digests, push fan-out, ingest. No Redis until something demands it. |
-| Backups | `pg_dump` + `restic`/`rclone` to off-VPS storage, nightly, *tested restore* | The reactions JSON lesson in `TODO.md` generalises: the only state not in git is the only state you can lose. |
+| Backups | `pg_dump` + `restic`/`rclone` to off-VPS storage, nightly, *tested restore* | The reactions JSON lesson generalises: the only state not in git is the only state you can lose. |
 
 Nothing else. No Redis, no Kubernetes, no separate API service, no Vercel.
 
@@ -430,7 +433,7 @@ leave Wave 1 entirely. They arrive with auth and contacts, not before.
 | --- | --- | --- |
 | **B1** | **Docker Compose stack**: app + postgres + caddy + worker. One `docker compose up` on a fresh VPS, and the same file is what a self-hoster runs. | **M** |
 | **B2** | **Postgres + migrations.** Pick the driver/ORM now: Drizzle (SQL-first, small, good with Next) or Prisma. Schema starts tiny: `users`, `sessions`, `access_grants`, `push_subscriptions`, `reactions`, `jobs`. | **M** |
-| **B3** | **Move `.data/*.json` into Postgres** (reactions, push subs). Removes the fork-mode pm2 constraint in `TODO.md` and the per-process write queue in `lib/store.ts`. | **M** |
+| **B3** | **Move `.data/*.json` into Postgres** (reactions, push subs). Done in W06 — `lib/repos/`. Removed the single-process constraint that the per-process write queue in `lib/store.ts` imposed on the old JSON store. | **M** |
 | **B4** | **Media interface + VPS disk** (decision 15). All reads/writes go through one small interface so swapping to S3-compatible storage later is a config change, not a refactor. Off-VPS backups are non-negotiable either way (M1). Reference prices for when it outgrows the disk: ◆ Prices as of 2026: Cloudflare R2 ~$0.015/GB stored, **$0 egress**; Backblaze B2 ~$6.95/TB stored, free egress up to 3× stored/month (unlimited via Cloudflare); Hetzner Object Storage from €6.49/mo incl. 1 TB storage + 1 TB egress. For photo serving, egress dominates → **R2**, or Hetzner if you want everything in one invoice next to the VPS. | **S** |
 | **B5** | **CDN / image resizing at the edge.** With R2 + Cloudflare you get caching free. Otherwise `next/image` on the VPS does the work — fine for family traffic, not for a hosted product. | **M** |
 | **B6** | **Deploy pipeline.** GitHub Actions → build image → push → pull on VPS. Zero-downtime is optional at this scale; a 5-second restart is fine. | **S** |
@@ -592,7 +595,7 @@ non-Mac users, `exiftool` alone reads GPS from HEIC/JPEG fine.
 
 | ID | Task | Effort |
 | --- | --- | --- |
-| **E1** | **`npm run ingest -- <folder>`** — the single most important script in this repo. Folder of photos (+ optional text) → resized derivatives, EXIF read for GPS + timestamp, entry markdown written with frontmatter filled, media placed. Already in `TODO.md`; promote it to blocking. | **L** |
+| **E1** | **`npm run ingest -- <folder>`** — the single most important script in this repo. Folder of photos (+ optional text) → resized derivatives, EXIF read for GPS + timestamp, entry markdown written with frontmatter filled, media placed. Built in W15 — `scripts/ingest.ts`, `lib/ingest/`, `docs/ingest.md`. | **L** |
 | **E2** | **EXIF → day grouping.** Cluster photos by capture time and location into candidate days/stops, so ingest proposes "24 Aug, Da Lat, 31 photos" rather than asking you. | **M** |
 | **E3** | **Reverse geocoding** coords → place/country, offline-capable. Options: a local dataset (GeoNames cities1000, ~10 MB) or Nominatim with caching. Offline matters — you'll be ingesting on bad wifi. | **M** |
 | **E4** | **Google Timeline importer** — parse the on-device export JSON (and the legacy Takeout format for your older archives) into a `route` layer per trip. Handle both schemas; write tests against a redacted fixture. | **M** |
@@ -788,20 +791,28 @@ support burden. H5 (Stripe/VAT) drops out entirely for now; revisit only if
 
 ## 10. Quality, bugs & the audit
 
-*Your item 5, plus what `TODO.md` already measured.*
+*Your item 5, plus the measured problems that used to live in `TODO.md`.*
 
-`TODO.md` already holds the measured problems (SCALE-1 home page growth,
-OPS-1 photos in git, PERF-1 no route splitting, TEST-1 no tests). Not repeating
-them here — they stay owned there. What's missing:
+`TODO.md` held four measured problems and is gone because all four were fixed:
+SCALE-1 (the whole trip serialised into one client tree) is windowed in
+`lib/tripView.ts`; OPS-1 (photos in git at full size) is originals gitignored
+plus resize at ingest; PERF-1 (no route splitting) is the dynamic import in
+`components/useWorldLand.ts`; TEST-1 (no tests) is 65 files and 939 assertions.
+What it measured and left behind is J7–J10 below.
 
 | ID | Task | Effort |
 | --- | --- | --- |
 | **J1** | **Manual desktop + mobile audit pass**, written up as findings with screenshots: iPhone SE / iPhone Pro / iPad / 1440px desktop, both orientations, Safari + Chrome + Firefox. | **M** |
-| **J2** | **Accessibility pass aimed at your actual audience**: 60+ readers on phones. Minimum 16px body, tap targets ≥44px, contrast ≥4.5:1 (the `navy-500` overload in `TODO.md` §3 is already a known failure), and no interaction that requires a hover. | **M** |
-| **J3** | **Playwright smoke suite** — walk the pager, run axe on each route. Already listed as TEST-1; it's also the only way you'll safely refactor during §1. | **M** |
+| **J2** | **Accessibility pass aimed at your actual audience**: 60+ readers on phones. Minimum 16px body, tap targets ≥44px, contrast ≥4.5:1 (the `navy-500` overload was one such failure, split by job in W17 and now guarded by `test/contrast.test.ts`), and no interaction that requires a hover. | **M** |
+| **J3** | **Playwright smoke suite** — walk the pager, run axe on each route. The unit layer exists (65 files, 939 tests); this is the browser pass it does not cover, and the only way you'll safely refactor during §1. | **M** |
 | **J4** | **Slow-network / offline behaviour.** You will be on 3G in a bus. Does the PWA serve the last-read day offline? Does an upload survive a dropped connection? | **M** |
 | **J5** | **Error states for readers**: expired session, revoked access, wrong password, deleted trip. Currently these are 404s or worse. | **S** |
 | **J6** | **Timezone correctness.** Entry dates are local-to-where-you-were; "today" for a reader in Zurich is not "today" in Hanoi. `components/TripCountdown.tsx` already hit one hydration bug from this. | **S** |
+| **J7** | **RSS `pubDate` treats the author's local date as UTC.** `rfc822()` in `lib/feed.ts` stamps `T00:00:00Z`, so an item can be up to ~14 hours out and some aggregators hide future-dated ones. `lib/tripTime.ts` already reasons about exactly this and the feed does not use it; the honest fix is a `timezone:` on the trip, which is a frontmatter change. Subsumes the feed half of J6. | **S** |
+| **J8** | **The service worker's two remaining gaps**, both documented at `public/sw.js:31`. The runtime cache is trimmed by insertion order, not use — right on a five-month trip, but a guess, and a real LRU needs timestamps the Cache API does not keep, i.e. a parallel IndexedDB index. And nothing is precached per journal: the worker installs from whichever page the reader opened and cannot know whose journal it is about to serve, so a trip's first day is always a cold fetch. Fixing that means a message channel plus a per-user manifest. | **M** |
+| **J9** | **The top bar takes two rows on a phone.** Six nav icons plus the currency, language and trip chips plus the journal title want 373px and have 343px, so W17 wrapped them — 121px of sticky header instead of 61px. The icons are 36×44, which clears WCAG 2.2's 24px but not the 44px this audience wants. The real fix is a mobile menu behind one button, which is a design decision rather than a contrast fix. See the comment at `components/PageHeader.tsx:40`. | **S** |
+| **J10** | **Swipe navigation on mobile.** The reading model is one screen at a time, which is exactly the model people swipe; on a phone the only way forward is still the button. `motion` is already a dependency — `drag="x"` on the `motion.div` in `components/StoryPager.tsx` plus a threshold, wired to the same `goStep` the buttons call. | **S** |
+| **J11** | **"Since you last visited" counts by entry date, not publish date.** Backdating an entry will not announce it. Fine while days are written up roughly in order; needs a separate `published:` field if that stops being true. | **S** |
 
 ---
 
@@ -928,7 +939,7 @@ the most likely thing in this section to be wasted work.
 
 | ID | Task | Effort |
 | --- | --- | --- |
-| **K1** | **Register `fernscout.ch`** ← *decided*, then set `NEXT_PUBLIC_SITE_URL=https://fernscout.ch` and update the fallback in `lib/site.ts` (currently `https://example.com`). Unblocks TLS, OG previews, sitemap and the whole `TODO.md` §1 deploy checklist. Use accurate registrant data — SWITCH deletes on failed identity verification, without refund. | **XS** |
+| **K1** | **Register `fernscout.ch`** ← *decided*, then set `NEXT_PUBLIC_SITE_URL=https://fernscout.ch` and update the fallback in `lib/site.ts` (currently `https://example.com`). Unblocks TLS, OG previews, sitemap and the whole Wave 0 deploy checklist. Use accurate registrant data — SWITCH deletes on failed identity verification, without refund. | **XS** |
 | **K2** | **Trademark search on `Fernscout`** — Swissreg + DPMA + EUIPO — before any money goes into a logo, and professionally if §12 goes commercial. IGE won't do it for you. Still outstanding. | **S** |
 | **K3** | **Defensive TLDs — `fernscout.com` / `.de` / `.at`** (~CHF 30/yr), redirected to `.ch`. Open, deliberately deferred. `.de` needs an admin-c with a German postal address. Cheap now, expensive once someone else takes them. | **XS** |
 | **K4** | **Logo + wordmark**, SVG-first, legible at 16px favicon and on a book cover. The slots already exist: `app/icon.svg`, `app/apple-icon.tsx`, `app/opengraph-image.tsx`. | **M** |
@@ -978,10 +989,10 @@ as it arrived."
 | **M1** | **Backups you have restored from at least once.** The single highest-value item in this document. A 5-month trip journal with no tested restore is a 5-month trip journal you might lose. | **S** |
 | **M2** | **Offline-first writing.** Draft an entry, attach photos, queue the upload, sync when there's wifi. Without this the workflow breaks exactly where you'll be using it. | **L** |
 | **M3** | **A "what I'll actually do each night" ritual, designed and timed.** If it's more than ~10 minutes, it won't happen in month three. Design the workflow first, then build to it. This should shape E1/G2/G3 more than any feature request does. | **S** |
-| **M4** | **Full-text search** across entries (already in `TODO.md` ideas — at 180 days it stops being optional). | **M** |
+| **M4** | **Full-text search** across entries — at 180 days it stops being optional. Built on minisearch in `lib/search.ts`. | **M** |
 | **M5** | **RSS/Atom feed** — free given the existing sitemap code, and it reaches the technical friends who'll never install a PWA. | **XS** |
 | **M6** | **Data export / portability** — "download my whole trip as a zip of markdown + photos." One endpoint, and it's the entire anti-lock-in pitch made concrete. | **S** |
-| **M7** | **Locale URLs.** `TODO.md` §4 already flags that all three languages share one URL, so German and Hungarian pages can't be linked, shared, or indexed. If the translations matter for family, this becomes required, not optional. | **M** |
+| **M7** | **Locale URLs.** Resolved differently: rather than a `/[locale]/…` segment on every route, language is a shareable `?lang=` parameter set by `proxy.ts` and advertised to crawlers as `hreflang` from `app/sitemap.ts`. German and Hungarian pages are linkable and indexable without touching every route. | **M** |
 | **M8** | **Photo policy, in writing** (decision 20): a plain line on the About page saying these are personal travel photos and anything will be taken down on request, with a working contact address. Per-photo private mode (C1) stays available for what you'd rather not publish at all. | **XS** |
 | **M9** | **Safety features**: share live location with two trusted people, an emergency contacts/documents page (insurance, passport scans) that only you can unlock. Genuinely useful for a 6-month trip and nobody in this category does it well. | **M** |
 | **M10** | **Guestbook / comments with moderation** — reactions already exist; free text needs a moderation story first. | **M** |
@@ -1002,7 +1013,7 @@ Waves, not dates — each one is shippable on its own.
 Public site, real domain, no database. An afternoon of ops plus whatever
 content is ready.
 
-`K1` register `fernscout.ch` · `TODO.md` §1 (real content, env, TLS) ·
+`K1` register `fernscout.ch` · real content, server env and TLS ·
 `B1` Docker + Caddy · **`M1` backups with a tested restore** · `B8` health check
 and uptime ping · optionally `C2` password-protected trips (free without a DB)
 
