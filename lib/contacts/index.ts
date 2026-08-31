@@ -8,6 +8,7 @@ import {
   contactsKey,
   decryptAddress,
   encryptAddress,
+  hasAnyDetail,
   isPostable,
   normaliseAddress,
   type PostalAddress,
@@ -193,10 +194,13 @@ export async function requestContact(
   }
 
   const id = existing?.id ?? newId();
-  const cipher = isPostable(address)
+  const cipher = hasAnyDetail(address)
     ? encryptAddress(address, addressAad(owner, id))
-    : // Unticking the postcard box and clearing the address is a deletion, not
-      // a no-op: the address stops existing rather than lingering unused.
+    : // Nothing at all was given — not even a phone number — so there is
+      // nothing to keep. Unticking the postcard box and clearing every field
+      // is a deletion, not a no-op: the address stops existing rather than
+      // lingering unused. A phone number on its own is not `isPostable`, but
+      // it is not nothing either, and must not be discarded here.
       null;
 
   if (existing) {
@@ -583,7 +587,9 @@ export async function updateContactByOwner(
   }
   if (fields.address !== undefined) {
     const address = normaliseAddress(fields.address);
-    patch.postal_cipher = isPostable(address)
+    // Keep the blob whenever anything is in it, not only when it is postable
+    // — a phone-number-only correction must not be silently discarded.
+    patch.postal_cipher = hasAnyDetail(address)
       ? encryptAddress(address, addressAad(owner, id))
       : null;
     // Wanting a postcard with nowhere to send it is not a state worth storing.

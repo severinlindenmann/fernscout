@@ -64,16 +64,20 @@ const STATUS_KEY: Record<AdminContact["status"], TranslationKey> = {
   blocked: "contact.statusBlocked",
 };
 
-/** What `create` and `update` can answer with. `needEmail` and `needAddress`
- * are shared with the public form verbatim — neither reads as talking to the
- * wrong person. `invalid_name`'s public wording ("write your name") does, so
- * it gets its own owner-facing copy instead. */
+/** What `create` and `update` can answer with — five entries, two owner-only.
+ * `needEmail` and `needAddress` are shared with the public form verbatim —
+ * neither reads as talking to the wrong person. `invalid_name`'s public
+ * wording ("write your name") does, so it gets its own owner-facing copy
+ * instead, alongside the two errors only this form can produce:
+ * `blocked_contact` (an address the owner shown the door) and `contact_exists`
+ * (`create` refusing to rewrite somebody already on the list). */
 const ERROR_KEY: Record<string, TranslationKey> = {
   invalid_name: "contact.adminNeedName",
   invalid_email: "contact.needEmail",
   invalid_address: "contact.needAddress",
   blocked_contact: "contact.adminBlockedContact",
   email_taken: "contact.adminEmailTaken",
+  contact_exists: "contact.adminContactExists",
 };
 
 type Translate = (key: TranslationKey, vars?: Record<string, string>) => string;
@@ -94,9 +98,11 @@ function ContactRow({
   act: (body: Record<string, unknown>) => void;
   onEdit: (contact: AdminContact) => void;
 }) {
+  // Owner-facing copy, not the guest form's first-person "Send me…" — this
+  // list is read by the owner, about somebody else.
   const wants = [
-    contact.wantsEmailDigest ? t("contact.wantsDigest") : null,
-    contact.wantsPostcard ? t("contact.wantsPostcard") : null,
+    contact.wantsEmailDigest ? t("contact.adminWantsDigest") : null,
+    contact.wantsPostcard ? t("contact.adminWantsPostcard") : null,
   ].filter(Boolean);
 
   const postal = contact.postalAddress;
@@ -288,7 +294,7 @@ function GuestForm({
     });
     if (!response?.ok) {
       const body = (await response?.json().catch(() => null)) as { error?: string } | null;
-      // The same three the public form can produce, named the same way.
+      // `ERROR_KEY` above: three shared with the public form, two owner-only.
       setError(body?.error ?? "unknown");
       return;
     }

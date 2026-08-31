@@ -333,6 +333,38 @@ describe("the owner adding a guest", () => {
     expect(contact?.postalAddress?.tel).toBe("+41 79 000 00 00");
   });
 
+  /**
+   * The bug in this round: `isPostable()` governs the postcard consent, not
+   * whether the encrypted blob gets written at all. Both write paths used to
+   * decide "encrypt, or store null" off `isPostable`, which meant a contact
+   * saved with only a phone number — no street, no city, no country — was
+   * silently discarded on both `create` and `update`. `hasAnyDetail` fixes
+   * that; `isPostable` still means exactly what it always has.
+   */
+  test("a phone number alone round-trips and does not make the contact postable", async () => {
+    const { contactId } = await requestContact("u", {
+      name: "Gran", email: "tel-only@example.com", locale: "en",
+      address: { tel: "+41 79 000 00 00" },
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
+    });
+    const created = await getContact("u", contactId!);
+    expect(created?.postalAddress?.tel).toBe("+41 79 000 00 00");
+    expect(created?.hasPostalAddress).toBe(true);
+    expect(isPostable(created!.postalAddress!)).toBe(false);
+
+    // The same predicate governs `updateContactByOwner`.
+    const { contactId: id2 } = await requestContact("u", {
+      name: "Gramps", email: "tel-only-2@example.com", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
+    });
+    const updated = await updateContactByOwner("u", id2!, {
+      address: { tel: "+41 79 111 11 11" },
+    });
+    expect(updated?.postalAddress?.tel).toBe("+41 79 111 11 11");
+    expect(updated?.hasPostalAddress).toBe(true);
+    expect(isPostable(updated!.postalAddress!)).toBe(false);
+  });
+
   test("a pending contact can still be posted to", async () => {
     const { contactId } = await requestContact("u", {
       name: "Gran", email: "gran2@example.com", locale: "en",
@@ -827,5 +859,81 @@ describe("the admin route's update validation", () => {
       "other@example.test",
       "taken@example.test",
     ]);
+  });
+
+  /**
+   * `create` used to route straight through `requestContact`, whose
+   * existing-row branch overwrites locale and consents, NULLs the postal
+   * address, and then this route mails a fresh code — an owner adding an
+   * address unaware it already belongs to an approved guest would delete
+   * that guest's address, unsubscribe them and confuse them with a code they
+   * never asked for. `create` now refuses instead, the same shape it already
+   * used for a blocked address.
+   */
+  test("create refuses an address already on the list, and leaves it untouched", async () => {
+    const token = await ownerToken();
+    const { contact: existing } = await signUpAndConfirm("ana", "existing@example.test", {
+      name: "Existing Guest",
+      address: ADDRESS,
+      wantsPostcard: true,
+      createdVia: "owner",
+    });
+    await approveContact("ana", existing.id);
+    const before = await getContact("ana", existing.id);
+
+    const { db } = await getDatabase();
+    const codesBefore = await db
+      .selectFrom("login_codes")
+      .selectAll()
+      .where("owner_id", "=", "ana")
+      .where("email", "=", "existing@example.test")
+      .execute();
+
+    const response = await postAdmin(
+      { action: "create", name: "Somebody New", email: "existing@example.test", locale: "en" },
+      token,
+    );
+
+    expect(response.status).toBe(409);
+    expect(((await response.json()) as { error?: string }).error).toBe("contact_exists");
+
+    const after = await getContact("ana", existing.id);
+    expect(after?.locale).toBe(before?.locale);
+    expect(after?.status).toBe(before?.status);
+    expect(after?.wantsEmailDigest).toBe(before?.wantsEmailDigest);
+    expect(after?.wantsPostcard).toBe(before?.wantsPostcard);
+    expect(after?.postalAddress).toEqual(before?.postalAddress);
+
+    // No code was issued for the address a second time.
+    const codesAfter = await db
+      .selectFrom("login_codes")
+      .selectAll()
+      .where("owner_id", "=", "ana")
+      .where("email", "=", "existing@example.test")
+      .execute();
+    expect(codesAfter).toHaveLength(codesBefore.length);
+  });
+
+  /**
+   * `create` already refused `wantsPostcard` with no postable address
+   * (400 `invalid_address`); `update` used to silently zero the tick
+   * instead, so the same form gave two different answers to the same
+   * mistake. `update` now refuses the same way.
+   */
+  test("update refuses a postcard consent with nowhere to send it, same as create", async () => {
+    const token = await ownerToken();
+    const { contactId } = await requestContact("ana", {
+      name: "Gran", email: "no-address@example.test", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
+    });
+
+    const response = await postAdmin(
+      { action: "update", id: contactId, wantsPostcard: true },
+      token,
+    );
+
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error?: string }).error).toBe("invalid_address");
+    expect((await getContact("ana", contactId!))?.wantsPostcard).toBe(false);
   });
 });

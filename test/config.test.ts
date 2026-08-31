@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import {
   ConfigError,
@@ -7,6 +9,8 @@ import {
   parseServerConfig,
   loadUserConfig,
   parseUserConfig,
+  serverConfigPath,
+  userConfigPath,
 } from "@/lib/config";
 
 const FIXTURES = path.join(process.cwd(), "test", "fixtures", "content");
@@ -66,6 +70,42 @@ describe("loadUserConfig", () => {
     process.env.CONTENT_DIR = path.join(FIXTURES, "does-not-exist");
     clearConfigCache();
     expect(() => loadUserConfig("u")).toThrow(/config\.json/);
+  });
+
+  /**
+   * `ConfigError` used to hardcode `content/config.json is not usable`,
+   * regardless of which file actually failed. It also carries the *user*
+   * config's problems — `content/<username>/config.json` — and `getUser`
+   * (`lib/users.ts`) downgrades exactly this error to a `console.warn` and a
+   * 404, so a message naming the wrong file was the only place the mistake
+   * was ever visible. It must name the file that is actually wrong.
+   */
+  test("names the user config's own path, not the server's, when it fails to parse", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-config-"));
+    fs.writeFileSync(path.join(dir, "config.json"), JSON.stringify({ site: { name: "R", url: "https://example.test" } }));
+    // Missing `title`, so parseUserConfig rejects it — the file itself reads
+    // fine, so this exercises `parseUserConfig`'s own ConfigError, not
+    // `readJson`'s.
+    fs.mkdirSync(path.join(dir, "broken"));
+    fs.writeFileSync(
+      path.join(dir, "broken", "config.json"),
+      JSON.stringify({ owner: { name: "A", nickname: "A" } }),
+    );
+    process.env.CONTENT_DIR = dir;
+    clearConfigCache();
+    try {
+      let caught: unknown;
+      try {
+        loadUserConfig("broken");
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught).toBeInstanceOf(ConfigError);
+      expect((caught as ConfigError).message).toContain(userConfigPath("broken"));
+      expect((caught as ConfigError).message).not.toContain(serverConfigPath());
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

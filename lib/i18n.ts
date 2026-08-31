@@ -56,6 +56,7 @@ export type TranslationKey =
   | "contact.adminApprove"
   | "contact.adminApproved"
   | "contact.adminBlockedContact"
+  | "contact.adminContactExists"
   | "contact.adminCreate"
   | "contact.adminDelete"
   | "contact.adminEdit"

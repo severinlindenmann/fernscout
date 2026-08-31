@@ -11,7 +11,12 @@ import {
   updateContactByOwner,
   type ContactRecord,
 } from "@/lib/contacts";
-import { isPostable, normaliseAddress, type PostalAddress } from "@/lib/contacts/crypto";
+import {
+  EMPTY_ADDRESS,
+  isPostable,
+  normaliseAddress,
+  type PostalAddress,
+} from "@/lib/contacts/crypto";
 import {
   createInvite,
   inviteUrl,
@@ -130,6 +135,17 @@ export async function POST(request: Request) {
       if (name === "") return Response.json({ error: "invalid_name" }, { status: 400 });
       if (!isEmail(email)) return Response.json({ error: "invalid_email" }, { status: 400 });
 
+      // Refuse rather than silently rewrite: `requestContact`'s existing-row
+      // branch overwrites locale and consents, NULLs the postal address, and
+      // this route mails a fresh code — an owner typing an address they don't
+      // realise is already an approved guest would delete that guest's
+      // address, unsubscribe them and confuse them with an unexpected code.
+      const normalisedEmail = normaliseEmail(email);
+      const already = (await listContacts(username)).some((c) => c.email === normalisedEmail);
+      if (already) {
+        return Response.json({ error: "contact_exists" }, { status: 409 });
+      }
+
       const address = normaliseAddress(
         typeof body.address === "object" && body.address !== null
           ? (body.address as Record<string, unknown>)
@@ -192,6 +208,22 @@ export async function POST(request: Request) {
           (other) => other.id !== id && other.email === email,
         );
         if (clash) return Response.json({ error: "email_taken" }, { status: 409 });
+      }
+
+      // The same refusal `create` makes, for the same reason: `update` used
+      // to silently zero the tick instead, so the same form gave two
+      // different answers to "I want a postcard but gave no address" —
+      // wanting one with nowhere to send it is a typo here too.
+      const current = await getContact(username, id);
+      if (!current) return Response.json({ error: "unknown_contact" }, { status: 404 });
+      const nextAddress =
+        body.address !== undefined
+          ? normaliseAddress(body.address as Partial<PostalAddress> | null)
+          : (current.postalAddress ?? EMPTY_ADDRESS);
+      const nextWantsPostcard =
+        typeof body.wantsPostcard === "boolean" ? body.wantsPostcard : current.wantsPostcard;
+      if (nextWantsPostcard && !isPostable(nextAddress)) {
+        return Response.json({ error: "invalid_address" }, { status: 400 });
       }
 
       const contact = await updateContactByOwner(username, id, {

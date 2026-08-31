@@ -120,8 +120,15 @@ export type FeatureConfig = {
  */
 export class ConfigError extends Error {
   readonly problems: string[];
-  constructor(problems: string[]) {
-    super(`content/config.json is not usable:\n  - ${problems.join("\n  - ")}`);
+  /**
+   * Which file this is. Defaults to the server config for callers that
+   * predate this parameter, but every caller in this module now passes its
+   * own path — this class carries both `content/config.json` problems and
+   * `content/<username>/config.json` ones, and a hardcoded filename in the
+   * message named the wrong file for the second case.
+   */
+  constructor(problems: string[], file = "content/config.json") {
+    super(`${file} is not usable:\n  - ${problems.join("\n  - ")}`);
     this.name = "ConfigError";
     this.problems = problems;
   }
@@ -344,7 +351,7 @@ export function parseUserConfig(username: string, raw: unknown): UserConfig {
   const problems: string[] = [];
   if (!isRecord(raw)) problems.push("the file must contain a JSON object");
   const config = parseUser(username, raw, problems);
-  if (problems.length > 0) throw new ConfigError(problems);
+  if (problems.length > 0) throw new ConfigError(problems, userConfigPath(username));
   return config;
 }
 
@@ -394,7 +401,7 @@ export function parseServerConfig(raw: unknown): ServerConfig {
     features: parseFeatures(src.features, problems),
     media: parseMediaLimits(src.media),
   };
-  if (problems.length > 0) throw new ConfigError(problems);
+  if (problems.length > 0) throw new ConfigError(problems, serverConfigPath());
   return config;
 }
 
@@ -467,12 +474,12 @@ function readJson(file: string, hint: string): unknown {
   try {
     text = fs.readFileSync(file, "utf8");
   } catch {
-    throw new ConfigError([`${file} could not be read. ${hint}`]);
+    throw new ConfigError([`could not be read. ${hint}`], file);
   }
   try {
     return JSON.parse(text);
   } catch (err) {
-    throw new ConfigError([`${file} is not valid JSON: ${(err as Error).message}`]);
+    throw new ConfigError([`is not valid JSON: ${(err as Error).message}`], file);
   }
 }
 

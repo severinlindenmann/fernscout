@@ -122,6 +122,30 @@ export function isPostable(address: PostalAddress): boolean {
   );
 }
 
+/**
+ * True when there is anything at all worth keeping in the blob — not
+ * necessarily enough to post to.
+ *
+ * A distinct question from `isPostable`, on purpose. A phone number with no
+ * street is not somewhere to send a card, but it is not nothing either: a
+ * write path that only encrypts and stores the blob when `isPostable(address)`
+ * is true silently drops a phone-number-only contact, which is the one thing
+ * this field exists for. `isPostable` keeps meaning exactly what it always
+ * has — governs the postcard consent, nothing else — and this governs whether
+ * the ciphertext is written at all.
+ */
+export function hasAnyDetail(address: PostalAddress): boolean {
+  return (
+    address.name.trim() !== "" ||
+    address.line1.trim() !== "" ||
+    address.line2.trim() !== "" ||
+    address.postcode.trim() !== "" ||
+    address.city.trim() !== "" ||
+    address.country.trim() !== "" ||
+    address.tel.trim() !== ""
+  );
+}
+
 export function normaliseAddress(input: Partial<PostalAddress> | null | undefined): PostalAddress {
   const field = (value: unknown) => (typeof value === "string" ? value.trim().slice(0, 120) : "");
   return {

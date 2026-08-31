@@ -16,7 +16,12 @@ import { getUser } from "./users";
 
 /** Every address that may write to this trip, lower-cased. */
 export function peopleOf(trip: Trip): string[] {
-  const owner = getUser(trip.username)?.owner.email;
+  const rawOwner = getUser(trip.username)?.owner.email;
+  // Normalised here rather than trusted from the config parser: this is the
+  // security-relevant comparison (`isPersonOn`, below), and it should not
+  // depend on `parseOwner` having already lower-cased it for an unrelated
+  // reason (`lib/site.ts`'s byline).
+  const owner = rawOwner?.trim().toLowerCase();
   const listed = trip.people.map((p) => p.email);
   return owner ? [...new Set([owner, ...listed])] : listed;
 }
