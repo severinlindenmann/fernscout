@@ -1,0 +1,49 @@
+{
+  "provider": "gelato",
+  "method": "POST",
+  "url": "https://order.gelatoapis.com/v4/orders",
+  "authHeaders": [
+    "X-API-KEY"
+  ],
+  "transfer": "fetches-from-url",
+  "body": {
+    "orderType": "draft",
+    "orderReferenceId": "test-trip-2026-12-24",
+    "customerReferenceId": "test-trip-2026-12-24",
+    "currency": "CHF",
+    "items": [
+      {
+        "itemReferenceId": "test-trip-2026-12-24-book",
+        "productUid": "photobook_pf_210x210-mm_pt_36-pages_cl_4-4_ct_matt-lamination_ver_softcover",
+        "pageCount": 36,
+        "quantity": 5,
+        "files": [
+          {
+            "type": "cover",
+            "url": "https://example.test/books/test-cover.pdf"
+          },
+          {
+            "type": "default",
+            "url": "https://example.test/books/test-interior.pdf"
+          }
+        ]
+      }
+    ],
+    "shipmentMethodUid": "normal",
+    "shippingAddress": {
+      "firstName": "Maria",
+      "lastName": "Muster",
+      "addressLine1": "Bahnhofstrasse 12",
+      "city": "Zurich",
+      "postCode": "8001",
+      "country": "CH",
+      "email": "maria@example.test"
+    }
+  },
+  "requires": [
+    "GELATO_API_KEY",
+    "The real productUid from GET https://product.gelatoapis.com/v3/... — the one above is the right shape, not a real id",
+    "The interior and cover PDFs reachable at a public HTTPS URL",
+    "orderType 'draft' first: Gelato validates the files without printing"
+  ]
+}

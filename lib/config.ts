@@ -1,0 +1,518 @@
+import fs from "node:fs";
+import path from "node:path";
+import { contentRoot } from "./contentRoot";
+import { normalizeCurrency, type RateTable } from "./currency";
+import { DEFAULT_MEDIA_LIMITS, narrowest, parseMediaLimits, type MediaLimits } from "./mediaLimits";
+
+/** Every optional capability. Adding one here is the only place it gets named. */
+export const FEATURE_NAMES = [
+  "reactions",
+  "costs",
+  "push",
+  "mail",
+  "auth",
+  "contacts",
+  "postcards",
+  "photobook",
+] as const;
+
+export type FeatureName = (typeof FEATURE_NAMES)[number];
+
+export type Traveller = { name: string; nickname: string };
+
+/**
+ * One person's settings, from `content/<username>/config.json`.
+ *
+ * Everything here belongs to the person, not to whoever runs the server. That
+ * split is what lets one instance carry several unrelated travel blogs without
+ * them sharing a voice, a language or a currency.
+ */
+export type UserConfig = {
+  username: string;
+  /**
+   * The address that owns this journal.
+   *
+   * The only address that can obtain an agent (write) token for it — see
+   * decision 24. Absent means nobody can, which is the right default: a
+   * journal with no declared owner is read-only to the world.
+   */
+  ownerEmail?: string;
+  title: string;
+  tagline: string;
+  travellers: Traveller[];
+  startLocation: string;
+  defaultLocale: string;
+  locales: string[];
+  baseCurrency: string;
+  displayCurrencies: string[];
+  /**
+   * Rates for anything the ECB does not publish, and overrides for anything
+   * it does. Same convention as the ECB table: units of the currency for one
+   * euro, so `{ "VND": 30500 }` reads "1 EUR = 30 500 VND".
+   */
+  manualRates: RateTable;
+  units: "metric" | "imperial";
+  /** Opt-ins, bounded by what the server can actually provide. */
+  features: Record<FeatureName, FeatureConfig>;
+  /**
+   * This journal's media allowance, already narrowed to the server's.
+   *
+   * A user may ask for less than the instance allows, never more: the person
+   * paying for the disk decides its size. See lib/mediaLimits.ts.
+   */
+  media: MediaLimits;
+};
+
+/**
+ * Deployment settings, from `content/config.json`. A user cannot change these.
+ *
+ * `features` here is a **ceiling**: it says what this server is able to offer,
+ * because it is the server that holds the credentials. A user opts in to what
+ * they want from that set, and can never switch on something the server cannot
+ * do — which keeps "enabled but unconfigured" a server-side boot error.
+ */
+export type ServerConfig = {
+  site: {
+    name: string;
+    url: string;
+    /** Served at the bare URLs as well as at /<username>. */
+    defaultUser?: string;
+    /**
+     * Where this instance's source lives, and who runs it.
+     *
+     * Both optional and both absent by default. They exist because the
+     * landing page wanted a "made in … by …" line and a link to the source,
+     * and neither could be written into a component: the whole promise of the
+     * content folder is that somebody deletes it, drops in their own and has
+     * their own site, which a hardcoded name breaks on their very first
+     * visitor. `test/depersonalised.test.ts` fails the build over exactly
+     * this.
+     *
+     * A fork sets its own. An instance that sets neither shows neither.
+     */
+    repository?: string;
+    credit?: { name: string; url?: string; countryCode?: string };
+  };
+  users: { reserved: string[] };
+  features: Record<FeatureName, FeatureConfig>;
+  /** How much media this instance accepts. A ceiling — see lib/mediaLimits.ts. */
+  media: MediaLimits;
+};
+
+export type FeatureConfig = {
+  enabled: boolean;
+  /** Feature-specific settings — `transport`, `provider`, and so on. */
+  [key: string]: unknown;
+};
+
+
+
+/**
+ * A config problem, carrying every error found rather than only the first.
+ *
+ * Someone cloning this repo will get their config wrong on the first try. One
+ * message per run means one round trip per mistake, so we collect them all.
+ */
+export class ConfigError extends Error {
+  readonly problems: string[];
+  constructor(problems: string[]) {
+    super(`content/config.json is not usable:\n  - ${problems.join("\n  - ")}`);
+    this.name = "ConfigError";
+    this.problems = problems;
+  }
+}
+
+const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
+  reactions: { enabled: true },
+  costs: { enabled: true },
+  push: { enabled: false },
+  mail: { enabled: false, transport: "file" },
+  auth: { enabled: false },
+  contacts: { enabled: false },
+  postcards: { enabled: false, provider: "dry-run" },
+  photobook: { enabled: false, provider: "dry-run" },
+};
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function readString(
+  src: Record<string, unknown>,
+  key: string,
+  where: string,
+  problems: string[],
+  fallback?: string,
+): string {
+  const v = src[key];
+  if (typeof v === "string" && v.trim() !== "") return v;
+  if (v === undefined && fallback !== undefined) return fallback;
+  const at = where ? `${where}.${key}` : key;
+  problems.push(
+    v === undefined
+      ? `${at} is missing (expected a non-empty string)`
+      : `${at} must be a non-empty string, got ${JSON.stringify(v)}`,
+  );
+  return fallback ?? "";
+}
+
+function readStringArray(
+  src: Record<string, unknown>,
+  key: string,
+  where: string,
+  problems: string[],
+  fallback: string[],
+): string[] {
+  const v = src[key];
+  if (v === undefined) return fallback;
+  if (!Array.isArray(v) || v.some((x) => typeof x !== "string" || x.trim() === "")) {
+    problems.push(`${where ? `${where}.` : ""}${key} must be an array of non-empty strings`);
+    return fallback;
+  }
+  if (v.length === 0) {
+    problems.push(`${where ? `${where}.` : ""}${key} must not be empty`);
+    return fallback;
+  }
+  return v as string[];
+}
+
+/**
+ * `site.manualRates` — a currency-code → number map.
+ *
+ * Validated here rather than shrugged off the way trip rates are: a trip is
+ * one page among many and must degrade rather than fail, but a typo in the
+ * one file a cloner edits should be named on the way in.
+ */
+function readManualRates(
+  src: Record<string, unknown>,
+  problems: string[],
+): Record<string, number> {
+  const v = src.manualRates;
+  if (v === undefined) return {};
+  if (typeof v !== "object" || v === null || Array.isArray(v)) {
+    problems.push("manualRates must be an object like { \"VND\": 30500 }");
+    return {};
+  }
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(v as Record<string, unknown>)) {
+    const code = normalizeCurrency(key);
+    if (!code) {
+      problems.push(`manualRates has key "${key}", expected a three-letter currency code`);
+      continue;
+    }
+    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+      problems.push(
+        `manualRates.${code} must be a positive number (units per 1 EUR), got ${JSON.stringify(value)}`,
+      );
+      continue;
+    }
+    out[code] = value;
+  }
+  return out;
+}
+
+function parseUser(username: string, raw: unknown, problems: string[]): UserConfig {
+  const src = isRecord(raw) ? raw : {};
+  if (!isRecord(raw)) problems.push("the file must contain a JSON object");
+
+  const travellers: Traveller[] = [];
+  const rawTravellers = src.travellers;
+  if (Array.isArray(rawTravellers)) {
+    rawTravellers.forEach((t, i) => {
+      if (!isRecord(t) || typeof t.name !== "string" || typeof t.nickname !== "string") {
+        problems.push(`travellers[${i}] must be { name, nickname }`);
+        return;
+      }
+      travellers.push({ name: t.name, nickname: t.nickname });
+    });
+  } else if (rawTravellers !== undefined) {
+    problems.push("travellers must be an array of { name, nickname }");
+  }
+
+  const locales = readStringArray(src, "locales", "", problems, ["en"]);
+  const defaultLocale = readString(src, "defaultLocale", "", problems, locales[0]);
+  if (locales.length > 0 && !locales.includes(defaultLocale)) {
+    problems.push(
+      `defaultLocale "${defaultLocale}" is not in locales [${locales.join(", ")}]`,
+    );
+  }
+
+  const baseCurrency = readString(src, "baseCurrency", "", problems, "CHF");
+  if (baseCurrency && !normalizeCurrency(baseCurrency)) {
+    problems.push(
+      `baseCurrency must be a three-letter currency code, got "${baseCurrency}"`,
+    );
+  }
+  const displayCurrencies = readStringArray(src, "displayCurrencies", "", problems, [
+    baseCurrency,
+  ]);
+  if (!displayCurrencies.includes(baseCurrency)) {
+    problems.push(
+      `displayCurrencies must include baseCurrency ("${baseCurrency}")`,
+    );
+  }
+  for (const code of displayCurrencies) {
+    if (!normalizeCurrency(code)) {
+      problems.push(
+        `displayCurrencies has "${code}", expected a three-letter currency code`,
+      );
+    }
+  }
+
+  const rawUnits = src.units;
+  let units: UserConfig["units"] = "metric";
+  if (rawUnits !== undefined) {
+    if (rawUnits === "metric" || rawUnits === "imperial") units = rawUnits;
+    else problems.push(`units must be "metric" or "imperial"`);
+  }
+
+  const ownerEmailRaw = src.ownerEmail;
+  let ownerEmail: string | undefined;
+  if (ownerEmailRaw !== undefined) {
+    if (typeof ownerEmailRaw !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(ownerEmailRaw)) {
+      problems.push("ownerEmail must be an email address, or absent");
+    } else {
+      ownerEmail = ownerEmailRaw.trim().toLowerCase();
+    }
+  }
+
+  return {
+    username,
+    ownerEmail,
+    title: readString(src, "title", "", problems),
+    tagline: readString(src, "tagline", "", problems, ""),
+    travellers,
+    startLocation: readString(src, "startLocation", "", problems, ""),
+    defaultLocale,
+    locales,
+    baseCurrency,
+    displayCurrencies,
+    manualRates: readManualRates(src, problems),
+    units,
+    features: parseFeatures(src.features, problems),
+    media: parseMediaLimits(src.media),
+  };
+}
+
+function parseFeatures(raw: unknown, problems: string[]): Record<FeatureName, FeatureConfig> {
+  const out = {} as Record<FeatureName, FeatureConfig>;
+  const src = isRecord(raw) ? raw : {};
+  if (raw !== undefined && !isRecord(raw)) problems.push("features must be an object");
+
+  for (const name of FEATURE_NAMES) {
+    const entry = src[name];
+    if (entry === undefined) {
+      out[name] = { ...DEFAULT_FEATURES[name] };
+      continue;
+    }
+    if (!isRecord(entry)) {
+      problems.push(`features.${name} must be an object like { "enabled": false }`);
+      out[name] = { ...DEFAULT_FEATURES[name] };
+      continue;
+    }
+    if (typeof entry.enabled !== "boolean") {
+      problems.push(`features.${name}.enabled must be true or false`);
+    }
+    out[name] = { ...DEFAULT_FEATURES[name], ...entry, enabled: entry.enabled === true };
+  }
+
+  for (const key of Object.keys(src)) {
+    if (!(FEATURE_NAMES as readonly string[]).includes(key)) {
+      problems.push(
+        `features.${key} is not a known feature (expected one of: ${FEATURE_NAMES.join(", ")})`,
+      );
+    }
+  }
+  return out;
+}
+
+/** Parse and validate a user's config. Exported for tests. */
+export function parseUserConfig(username: string, raw: unknown): UserConfig {
+  const problems: string[] = [];
+  if (!isRecord(raw)) problems.push("the file must contain a JSON object");
+  const config = parseUser(username, raw, problems);
+  if (problems.length > 0) throw new ConfigError(problems);
+  return config;
+}
+
+/** Parse and validate the server's config. Exported for tests. */
+export function parseServerConfig(raw: unknown): ServerConfig {
+  const problems: string[] = [];
+  const src = isRecord(raw) ? raw : {};
+  if (!isRecord(raw)) problems.push("the file must contain a JSON object");
+
+  const site = isRecord(src.site) ? src.site : {};
+  if (!isRecord(src.site)) problems.push("site is missing (expected an object)");
+
+  const users = isRecord(src.users) ? src.users : {};
+  // May legitimately be empty: lib/users.ts carries its own always-reserved
+  // list, so this one is additive rather than the whole defence.
+  let reserved: string[] = [];
+  if (users.reserved !== undefined) {
+    if (
+      !Array.isArray(users.reserved) ||
+      users.reserved.some((x) => typeof x !== "string")
+    ) {
+      problems.push("users.reserved must be an array of strings");
+    } else {
+      reserved = users.reserved as string[];
+    }
+  }
+
+  const defaultUserRaw = site.defaultUser;
+  let defaultUser: string | undefined;
+  if (defaultUserRaw !== undefined) {
+    if (typeof defaultUserRaw !== "string" || defaultUserRaw.trim() === "") {
+      problems.push("site.defaultUser must be a username, or absent");
+    } else {
+      defaultUser = defaultUserRaw;
+    }
+  }
+
+  const config: ServerConfig = {
+    site: {
+      name: readString(site, "name", "site", problems, "Fernscout"),
+      url: readString(site, "url", "site", problems, "http://localhost:3000"),
+      defaultUser,
+      repository: optionalUrl(site, "repository", "site.repository", problems),
+      credit: parseCredit(site.credit, problems),
+    },
+    users: { reserved },
+    features: parseFeatures(src.features, problems),
+    media: parseMediaLimits(src.media),
+  };
+  if (problems.length > 0) throw new ConfigError(problems);
+  return config;
+}
+
+export function serverConfigPath(): string {
+  return path.join(contentRoot(), "config.json");
+}
+
+/**
+ * An optional `https://` field, or nothing.
+ *
+ * Rejected rather than ignored when it is present and wrong: a footer link
+ * that goes nowhere is worse than no footer link, and a `javascript:` in a
+ * config file should never reach an `href`.
+ */
+function optionalUrl(
+  src: Record<string, unknown>,
+  key: string,
+  path: string,
+  problems: string[],
+): string | undefined {
+  const raw = src[key];
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "string" || !/^https?:\/\//.test(raw.trim())) {
+    // Named by its full path. `site.credit.url` and `site.url` are different
+    // lines of the same file, and a message that says the wrong one sends
+    // somebody to look at a field that is fine.
+    problems.push(`${path} must be an http(s) URL, or absent`);
+    return undefined;
+  }
+  return raw.trim();
+}
+
+/** Who to credit at the foot of the landing page. Absent is the default. */
+function parseCredit(
+  raw: unknown,
+  problems: string[],
+): { name: string; url?: string; countryCode?: string } | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    problems.push("site.credit must be an object, or absent");
+    return undefined;
+  }
+  const src = raw as Record<string, unknown>;
+  const name = typeof src.name === "string" ? src.name.trim() : "";
+  if (name === "") {
+    problems.push("site.credit.name is required when site.credit is present");
+    return undefined;
+  }
+  const countryCode =
+    typeof src.countryCode === "string" && /^[A-Za-z]{2}$/.test(src.countryCode.trim())
+      ? src.countryCode.trim().toUpperCase()
+      : undefined;
+  if (src.countryCode !== undefined && !countryCode) {
+    problems.push("site.credit.countryCode must be a two-letter code, or absent");
+  }
+  return { name, url: optionalUrl(src, "url", "site.credit.url", problems), countryCode };
+}
+
+export function userConfigPath(username: string): string {
+  return path.join(contentRoot(), username, "config.json");
+}
+
+/** Keyed by absolute path, so a test pointing CONTENT_DIR elsewhere doesn't get
+ * handed the previous directory's config. Mirrors lib/trips.ts. */
+const serverCache = new Map<string, ServerConfig>();
+const userCache = new Map<string, UserConfig>();
+
+function readJson(file: string, hint: string): unknown {
+  let text: string;
+  try {
+    text = fs.readFileSync(file, "utf8");
+  } catch {
+    throw new ConfigError([`${file} could not be read. ${hint}`]);
+  }
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    throw new ConfigError([`${file} is not valid JSON: ${(err as Error).message}`]);
+  }
+}
+
+export function loadServerConfig(): ServerConfig {
+  const file = serverConfigPath();
+  const cached = serverCache.get(file);
+  if (cached) return cached;
+  const config = parseServerConfig(
+    readJson(file, "Copy content/example/../config.json to get started."),
+  );
+  serverCache.set(file, config);
+  return config;
+}
+
+export function loadUserConfig(username: string): UserConfig {
+  const file = userConfigPath(username);
+  const cached = userCache.get(file);
+  if (cached) return cached;
+  const parsed = parseUserConfig(
+    username,
+    readJson(file, `Every user needs a config.json — see content/example/config.json.`),
+  );
+  // Narrowed here rather than at parse time: the ceiling belongs to the
+  // server, and a user config parsed on its own has no way to see it. Asking
+  // for more than the instance allows is not an error — it is a preference the
+  // instance cannot honour, and the instance's number wins.
+  const config: UserConfig = {
+    ...parsed,
+    media: narrowest(serverMediaCeiling(), parsed.media),
+  };
+  userCache.set(file, config);
+  return config;
+}
+
+/**
+ * The instance's media ceiling, or the shipped defaults.
+ *
+ * Deliberately tolerant of a missing server config. Reading one journal must
+ * not require the whole instance to be present: `npm run export` produces a
+ * folder that is exactly one user, and restoring it somewhere to read it back
+ * is a supported thing to do — a test does precisely that. A journal with no
+ * instance around it gets the defaults rather than an exception.
+ */
+function serverMediaCeiling(): MediaLimits {
+  try {
+    return loadServerConfig().media;
+  } catch {
+    return DEFAULT_MEDIA_LIMITS;
+  }
+}
+
+/** Test seam — drops every memoised config. */
+export function clearConfigCache(): void {
+  serverCache.clear();
+  userCache.clear();
+}

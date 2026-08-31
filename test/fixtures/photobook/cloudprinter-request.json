@@ -1,0 +1,63 @@
+{
+  "provider": "cloudprinter",
+  "method": "POST",
+  "url": "https://api.cloudprinter.com/cloudcore/1.0/orders/add",
+  "authHeaders": [],
+  "transfer": "fetches-from-url",
+  "body": {
+    "apikey": "$CLOUDPRINTER_API_KEY",
+    "reference": "test-trip-2026-12-24",
+    "email": "maria@example.test",
+    "addresses": [
+      {
+        "type": "delivery",
+        "firstname": "Maria",
+        "lastname": "Muster",
+        "street1": "Bahnhofstrasse 12",
+        "zip": "8001",
+        "city": "Zurich",
+        "country": "CH",
+        "email": "maria@example.test"
+      }
+    ],
+    "items": [
+      {
+        "reference": "test-trip-2026-12-24-book",
+        "product": "book_softcover_perfect_bound",
+        "shipping_level": "cp_saver",
+        "title": "A test trip",
+        "count": 5,
+        "files": [
+          {
+            "type": "cover",
+            "url": "https://example.test/books/test-cover.pdf",
+            "md5sum": "11111111111111111111111111111111"
+          },
+          {
+            "type": "book",
+            "url": "https://example.test/books/test-interior.pdf",
+            "md5sum": "00000000000000000000000000000000"
+          }
+        ],
+        "options": [
+          {
+            "type": "total_pages",
+            "count": 36
+          },
+          {
+            "type": "pageblock_80mc"
+          },
+          {
+            "type": "cover_matt_lamination"
+          }
+        ]
+      }
+    ]
+  },
+  "requires": [
+    "CLOUDPRINTER_API_KEY",
+    "An MD5 of each PDF — Cloudprinter verifies what it downloaded against it",
+    "The product code and option codes from POST /cloudcore/1.0/products, which vary by partner",
+    "A quote from /orders/quote first: it returns the real page-count range for the chosen partner"
+  ]
+}

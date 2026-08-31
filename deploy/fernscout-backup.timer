@@ -1,0 +1,16 @@
+# Nightly backup.
+#
+#   sudo cp deploy/fernscout-backup.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now fernscout-backup.timer
+#   systemctl list-timers fernscout-backup
+[Unit]
+Description=Nightly Fernscout backup
+
+[Timer]
+OnCalendar=*-*-* 03:20:00
+# Spread the load, and survive a machine that was asleep at 03:20.
+RandomizedDelaySec=20min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

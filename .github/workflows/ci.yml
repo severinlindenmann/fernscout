@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same PR/branch should cancel the previous run rather
+# than queue behind it.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned to an exact patch, not "24". A floating major silently changes
+  # the bundled npm underneath us: 24.20.0 ships npm 11.19.0, which expands
+  # bundled/optional wasm deps that older npm did not, and rejected a
+  # lockfile every local `npm install` reported as up to date. Bump this
+  # deliberately, and regenerate package-lock.json with the matching npm.
+  NODE_VERSION: "24.20.0"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx eslint .
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # tsc needs .next/types (route typing), which only next build/dev
+      # generate — see next.config.ts and app/layout.tsx's LayoutProps<"/">.
+      - run: npx next build
+      - run: npx tsc --noEmit
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # docs/plans/W06-data-layer.md: SQLite in dev, Postgres in prod,
+        # chosen by DATABASE_URL. Both dialects run the same suite here so a
+        # test that only passes against one of them fails CI, not a reader's
+        # production deploy. The postgres leg gets a real service container;
+        # DATABASE_URL is otherwise inert until the data layer lands.
+        include:
+          - dialect: sqlite
+            database_url: "sqlite:./test.db"
+            postgres_test_url: ""
+          - dialect: postgres
+            database_url: "postgres://fernscout:fernscout@localhost:5432/fernscout_test"
+            postgres_test_url: "postgres://fernscout:fernscout@localhost:5432/fernscout_test"
+    services:
+      postgres:
+        image: postgres:17-alpine
+        # Only actually used by the postgres leg, but starting it
+        # unconditionally per-matrix-entry is simpler than conditional
+        # services, and idle Postgres in CI is cheap.
+        env:
+          POSTGRES_USER: fernscout
+          POSTGRES_PASSWORD: fernscout
+          POSTGRES_DB: fernscout_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fernscout"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: ${{ matrix.database_url }}
+      # The suite opts into Postgres on POSTGRES_TEST_URL, not DATABASE_URL.
+      # Setting only the latter meant the "postgres" leg quietly ran the SQLite
+      # path against a Postgres URL and tested nothing extra at all.
+      POSTGRES_TEST_URL: ${{ matrix.postgres_test_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build

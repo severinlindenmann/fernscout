@@ -1,0 +1,16 @@
+{
+  "title": "Currency Fixture",
+  "tagline": "Three currencies, two trips, one missing rate",
+  "travellers": [{ "name": "Test Person", "nickname": "Test" }],
+  "startLocation": "Somewhere",
+  "defaultLocale": "en",
+  "locales": ["en"],
+  "baseCurrency": "CHF",
+  "displayCurrencies": ["CHF", "EUR", "USD", "VND", "XXQ"],
+  "manualRates": { "VND": 30000 },
+  "units": "metric",
+  "features": {
+    "reactions": { "enabled": true },
+    "costs": { "enabled": true }
+  }
+}

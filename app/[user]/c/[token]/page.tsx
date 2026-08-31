@@ -1,0 +1,79 @@
+import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { notFound } from "next/navigation";
+import ContactManage from "@/components/ContactManage";
+import NoticeShell from "@/components/NoticeShell";
+import { isEnabled } from "@/lib/capabilities";
+import { resolveManageToken } from "@/lib/contacts";
+import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
+import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
+
+import { dictionaryFor, localesFor, translateIn } from "@/lib/locales";
+import { getUser } from "@/lib/users";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
+
+/**
+ * "Your details" — `/{user}/c/<token>`, reachable with no login at all (C13).
+ *
+ * The link every mail footer carries. Change the language, correct the address,
+ * stop the emails, or delete the record entirely. The token in the URL is the
+ * credential, which is the only design a seventy-eight-year-old will actually
+ * use; it can touch exactly one row.
+ *
+ * The page renders in the language on the record, not the one in the browser —
+ * somebody who asked to be written to in Hungarian gets a Hungarian page from
+ * whatever device they opened the mail on.
+ */
+export default async function ManagePage({ params }: PageProps<"/[user]/c/[token]">) {
+  const { user: username, token } = await params;
+  const user = getUser(username);
+  if (!user || !isEnabled("contacts", username)) notFound();
+
+  const contact = await resolveManageToken(username, token);
+
+  // An expired, revoked or invented token. There is no record to read a
+  // language from, so this one falls back to what the browser asked for — and
+  // it says what to do next, because "this link no longer works" on its own
+  // reads as "you have been removed" to the person it happens to.
+  if (!contact) {
+    const accept = (await headers()).get("accept-language");
+    const locale = pickLocale(fromAcceptLanguage(accept), user.defaultLocale);
+    return (
+      <NoticeShell
+        lang={locale}
+        title={translateIn(locale, "err.linkExpiredTitle")}
+        body={translateIn(locale, "err.linkExpiredBody")}
+        actions={[
+          { href: `/${username}/join`, label: translateIn(locale, "contact.title") },
+          {
+            href: `/${username}`,
+            label: translateIn(locale, "err.goToJournal", { title: user.title }),
+          },
+        ]}
+      />
+    );
+  }
+
+  const locale = pickLocale(contact.locale, user.defaultLocale);
+
+  return (
+    <ContactManage
+      locales={localesFor(username)}
+      dictionary={dictionaryFor(locale)}
+      username={username}
+      token={token}
+      contact={{
+        name: contact.name ?? "",
+        email: contact.email,
+        locale,
+        status: contact.status,
+        wantsEmailDigest: contact.wantsEmailDigest,
+        wantsPostcard: contact.wantsPostcard,
+        address: contact.postalAddress ?? EMPTY_ADDRESS,
+      }}
+    />
+  );
+}

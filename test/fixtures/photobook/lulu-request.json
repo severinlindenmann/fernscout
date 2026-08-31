@@ -1,0 +1,37 @@
+{
+  "provider": "lulu",
+  "method": "POST",
+  "url": "https://api.sandbox.lulu.com/print-jobs/",
+  "authHeaders": [
+    "Authorization"
+  ],
+  "transfer": "fetches-from-url",
+  "body": {
+    "external_id": "test-trip-2026-12-24",
+    "contact_email": "maria@example.test",
+    "line_items": [
+      {
+        "title": "A test trip",
+        "pod_package_id": "LULU_POD_PACKAGE_ID",
+        "page_count": 36,
+        "quantity": 5,
+        "cover_source_url": "https://example.test/books/test-cover.pdf",
+        "interior_source_url": "https://example.test/books/test-interior.pdf"
+      }
+    ],
+    "shipping_address": {
+      "name": "Maria Muster",
+      "street1": "Bahnhofstrasse 12",
+      "city": "Zurich",
+      "postcode": "8001",
+      "country_code": "CH"
+    },
+    "shipping_level": "MAIL"
+  },
+  "requires": [
+    "LULU_CLIENT_KEY and LULU_CLIENT_SECRET",
+    "An OAuth2 token from POST /auth/realms/glasstree/protocol/openid-connect/token",
+    "The pod_package_id for the chosen trim, binding and paper from Lulu's specification sheet",
+    "The interior and cover PDFs reachable at a public HTTPS URL"
+  ]
+}

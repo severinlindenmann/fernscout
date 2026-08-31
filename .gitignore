@@ -1,0 +1,88 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Reader data written at runtime (reactions, push subscriptions).
+# On the VPS this lives in DATA_DIR outside the repo instead.
+.data/
+
+# Local development artefacts
+/mail
+
+# Agent worktrees and local agent state — but .claude/skills/ is part of the
+# repository. The skills are how an agent is told to do the things the author
+# actually does (ROADMAP G1); they are source, not local state.
+.claude/*
+!.claude/skills/
+
+# Generated per-user output. Postcards carry postal addresses and mail carries
+# an email list, so none of it belongs in git — with content/example the
+# deliberate exception, since it holds nothing real.
+content/*/postcards/
+content/*/photobooks/
+content/*/mail/
+# The files exactly as the camera wrote them. Kept so the photobook has
+# something better than a 2000px derivative to print from, gitignored because
+# a repository is the wrong place for a hundred 40 MB originals.
+content/*/trips/*/originals/
+!content/example/
+
+# scratch output from .claude/skills/apply-the-brand/favicon-check.mjs
+favicon-check.png
+
+# Playwright MCP scratch output (screenshots, snapshots, console logs)
+.playwright-mcp/
+
+# Journal exports. `npm run export` writes real content — somebody's actual
+# trips, photographs and addresses — and it must never be committed.
+*-export.zip
+/*.png
+
+# Resized copies made by the media route, rebuilt on demand.
+content/.cache/
+
+# Journal backups from `npm run export`. Never committed: they hold private
+# trips and unpublished drafts.
+exports/
+
+# Alternative build outputs — see NEXT_DIST_DIR in next.config.ts.
+.next-*

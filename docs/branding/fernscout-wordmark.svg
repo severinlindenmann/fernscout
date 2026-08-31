@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 64" width="260" height="64">
+  <title>Fernscout — wordmark only</title>
+  <!--
+    Fredoka 700. "Fern" and "scout" are set as one word with no case break or
+    colour break: the name is a single thing, not a compound to be pulled
+    apart. Outline the text before distributing this file outside the repo —
+    Fredoka is not guaranteed on a stranger's machine.
+  -->
+  <text x="0" y="46" font-family="Fredoka, 'Trebuchet MS', sans-serif" font-size="44" font-weight="700" fill="#1e293b">Fernscout</text>
+</svg>

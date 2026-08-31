@@ -1,0 +1,21 @@
+{
+  "title": "Fernscout Demo",
+  "tagline": "Four journeys, to show what this thing does",
+  "ownerEmail": "agent@fernscout.ch",
+  "travellers": [
+    { "name": "Alex Berger", "nickname": "Alex" },
+    { "name": "Robin Berger", "nickname": "Robin" }
+  ],
+  "startLocation": "Zurich, Switzerland",
+  "defaultLocale": "en",
+  "locales": ["en", "de", "hu"],
+  "baseCurrency": "CHF",
+  "displayCurrencies": ["CHF", "EUR", "USD"],
+  "units": "metric",
+  "features": {
+    "reactions": { "enabled": true },
+    "costs": { "enabled": true },
+    "push": { "enabled": false },
+    "postcards": { "enabled": false }
+  }
+}

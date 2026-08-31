@@ -1,0 +1,63 @@
+{
+  "configVersion": 1,
+  "site": {
+    "name": "Fernscout",
+    "url": "https://fernscout.ch",
+    "defaultUser": "example",
+    "repository": "https://github.com/severinlindenmann/fernscout",
+    "credit": {
+      "name": "Severin Lindenmann",
+      "url": "https://github.com/severinlindenmann",
+      "countryCode": "CH"
+    }
+  },
+  "users": {
+    "reserved": [
+      "api",
+      "media",
+      "_next",
+      "static",
+      "admin",
+      "trips",
+      "day",
+      "costs",
+      "gallery",
+      "map",
+      "welcome",
+      "i",
+      "join",
+      "auth",
+      "docs",
+      "documentation",
+      "llms",
+      "openapi",
+      "sitemap",
+      "robots",
+      "manifest",
+      "icon",
+      "apple-icon",
+      "opengraph-image",
+      "favicon"
+    ]
+  },
+  "features": {
+    "mail": {
+      "enabled": false,
+      "transport": "file"
+    },
+    "auth": {
+      "enabled": false
+    },
+    "contacts": {
+      "enabled": false
+    },
+    "postcards": {
+      "enabled": false,
+      "provider": "dry-run"
+    },
+    "photobook": {
+      "enabled": false,
+      "provider": "dry-run"
+    }
+  }
+}

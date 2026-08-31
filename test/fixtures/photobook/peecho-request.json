@@ -1,0 +1,37 @@
+{
+  "provider": "peecho",
+  "method": "POST",
+  "url": "https://www.peecho.com/rest/v2/orders",
+  "authHeaders": [
+    "X-API-Key"
+  ],
+  "transfer": "fetches-from-url",
+  "body": {
+    "merchantReference": "test-trip-2026-12-24",
+    "test": true,
+    "items": [
+      {
+        "offeringId": "PEECHO_OFFERING_ID",
+        "quantity": 5,
+        "title": "A test trip",
+        "numberOfPages": 36,
+        "contentUrl": "https://example.test/books/test-interior.pdf",
+        "coverUrl": "https://example.test/books/test-cover.pdf"
+      }
+    ],
+    "address": {
+      "name": "Maria Muster",
+      "address": "Bahnhofstrasse 12",
+      "postalCode": "8001",
+      "city": "Zurich",
+      "countryCode": "CH",
+      "email": "maria@example.test"
+    }
+  },
+  "requires": [
+    "PEECHO_API_KEY",
+    "A Peecho (or Prodigi) account with a configured offering for this trim size and page range",
+    "The interior and cover PDFs reachable at a public HTTPS URL",
+    "Field names confirmed against the current Peecho/Prodigi API documentation"
+  ]
+}

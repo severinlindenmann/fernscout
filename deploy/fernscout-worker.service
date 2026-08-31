@@ -1,0 +1,35 @@
+# Background jobs: email digests, push fan-out, print rendering, ingest.
+#
+# Nothing enqueues work yet — the queue arrives with W10/W11/W12/W13/W14. This
+# unit exists so the deployment shape is settled; enable it when there is
+# something for it to do.
+#
+#   sudo systemctl enable --now fernscout-worker
+[Unit]
+Description=Fernscout background worker
+After=network-online.target postgresql.service fernscout.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=fernscout
+Group=fernscout
+WorkingDirectory=/srv/fernscout
+EnvironmentFile=/etc/fernscout/env
+ExecStart=/usr/bin/npm run worker
+Restart=always
+RestartSec=10
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/srv/fernscout /var/lib/fernscout
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fernscout-worker
+
+[Install]
+WantedBy=multi-user.target

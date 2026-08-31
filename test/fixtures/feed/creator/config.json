@@ -1,0 +1,12 @@
+{
+  "title": "Creator's journal",
+  "tagline": "A test tagline",
+  "travellers": [{ "name": "Cre Ator", "nickname": "Cre" }],
+  "startLocation": "Zurich",
+  "defaultLocale": "en",
+  "locales": ["en"],
+  "baseCurrency": "CHF",
+  "displayCurrencies": ["CHF"],
+  "units": "metric",
+  "features": { "reactions": { "enabled": true }, "costs": { "enabled": true } }
+}

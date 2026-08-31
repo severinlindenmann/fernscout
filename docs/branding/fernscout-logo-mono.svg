@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" width="360" height="96">
+  <title>Fernscout — logo, one colour (print, embossing, fax-grade reproduction)</title>
+  <!--
+    A single ink. The lozenge stays solid and the trail stays a stroke, so the
+    two never merge; the scout dot is drawn as a ring rather than a disc to
+    keep it distinct from the lozenge at small sizes. Recolour `currentColor`
+    at the point of use — do not introduce a second ink here.
+  -->
+  <g fill="currentColor" color="#1e293b">
+    <path d="M18 75 L34 62 L47 57 L63 37 L78 24" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M48 27 L71 50 L48 73 L25 50 Z" fill="currentColor" />
+    <circle cx="78" cy="24" r="6.5" fill="none" stroke="currentColor" stroke-width="3.5" />
+    <text x="120" y="62" font-family="Fredoka, 'Trebuchet MS', sans-serif" font-size="44" font-weight="700" fill="currentColor">Fernscout</text>
+  </g>
+</svg>

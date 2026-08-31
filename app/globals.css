@@ -1,0 +1,163 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+:root {
+  /* "Game path" palette — bright and playful, not a moody dashboard. */
+  --color-cream-50: #fffaf0;
+  --color-cream-100: #fff3dc;
+  --color-cream-200: #ffe9bd;
+
+  /*
+    The navy ramp is split **by job**, not by taste. `navy-500` used to do all
+    four jobs at once — 11px metadata, 12px body, icon strokes and disabled
+    states, across white, cream-50 and cream-100 — and one token cannot be
+    right for all of them, which is why the contrast audit failed in eight
+    places at the same time.
+
+    Readers here are past sixty, on a phone, often outdoors, so small text is
+    held to AAA (7:1) rather than AA (4.5:1): at 11px in daylight the AA floor
+    is a number that passes and a line that doesn't get read.
+
+    Measured against the three grounds text is ever set on (WCAG 2.x relative
+    luminance):
+
+      token      white   cream-50  cream-100   job
+      navy-900   14.63     14.06      13.31    headings, values
+      navy-700    8.98      8.63       8.17    body copy
+      navy-600    7.69      7.39       7.00    secondary text at any size
+      navy-500    5.51      5.30       5.02    NOT TEXT — borders, rules,
+                                               decorative icons, placeholders
+
+    navy-500 still clears AA, so nothing that was legal became illegal; it is
+    simply no longer the token that carries the smallest words on the page.
+  */
+  --color-navy-900: #1e293b;
+  --color-navy-700: #3a4a63;
+  --color-navy-600: #44546c;
+  /* Dark enough for AA on cream-100 too, which #64748b was not (4.33:1). */
+  --color-navy-500: #5a6a80;
+  --color-navy-200: #d8dee8;
+
+  --color-sky-300: #8fe0ef;
+  --color-sky-400: #5ec8dc;
+  --color-sky-500: #3fa9c4;
+
+  --color-yellow-300: #ffe08a;
+  --color-yellow-400: #ffd23f;
+  --color-yellow-600: #d69b0a;
+  --color-yellow-950: #4a3300;
+
+  --color-green-100: #ddf3e4;
+  --color-green-500: #22c55e;
+  --color-green-700: #15803d;
+
+  --color-coral-300: #f6a7bb;
+  --color-coral-400: #f06a8a;
+  /* Text-safe coral: 4.94:1 even on cream-100. coral-400 is fill-only. */
+  --color-coral-600: #c2334a;
+
+  --color-blue-500: #2f6fed;
+
+  --background: var(--color-cream-50);
+  --foreground: var(--color-navy-900);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-cream-50: var(--color-cream-50);
+  --color-cream-100: var(--color-cream-100);
+  --color-cream-200: var(--color-cream-200);
+
+  --color-navy-900: var(--color-navy-900);
+  --color-navy-700: var(--color-navy-700);
+  --color-navy-600: var(--color-navy-600);
+  --color-navy-500: var(--color-navy-500);
+  --color-navy-200: var(--color-navy-200);
+
+  --color-sky-300: var(--color-sky-300);
+  --color-sky-400: var(--color-sky-400);
+  --color-sky-500: var(--color-sky-500);
+
+  --color-yellow-300: var(--color-yellow-300);
+  --color-yellow-400: var(--color-yellow-400);
+  --color-yellow-600: var(--color-yellow-600);
+  --color-yellow-950: var(--color-yellow-950);
+
+  --color-green-100: var(--color-green-100);
+  --color-green-500: var(--color-green-500);
+  --color-green-700: var(--color-green-700);
+
+  --color-coral-300: var(--color-coral-300);
+  --color-coral-400: var(--color-coral-400);
+  --color-coral-600: var(--color-coral-600);
+
+  --color-blue-500: var(--color-blue-500);
+
+  --font-display: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  /* Sticky header + day bar, so anchored jumps don't land under them. */
+  scroll-padding-top: 7rem;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Faint paper-grain texture so flat panels don't read as plain CSS. */
+.grain {
+  position: relative;
+}
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes path-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 210, 63, 0.5);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 8px rgba(255, 210, 63, 0);
+  }
+}
+
+/* Scrollable, but without the bar — used where the container is obviously
+   scrollable from its content and a bar would just add visual noise. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-navy-200) transparent;
+}
+
+/* Keyboard focus. Nearly every control here is a custom-styled button, so
+   without this they fall back to whatever ring the browser happens to draw
+   — and on the yellow buttons that was nothing at all. blue-500 is the one
+   palette colour that clears 3:1 against every surface we put controls on
+   (cream 4.37, white 4.55, navy-900 3.22, yellow-400 3.15). */
+:focus-visible {
+  outline: 2px solid var(--color-blue-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

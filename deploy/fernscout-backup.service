@@ -1,0 +1,25 @@
+# One backup run. Driven by fernscout-backup.timer, not enabled directly.
+[Unit]
+Description=Fernscout backup
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=fernscout
+Group=fernscout
+WorkingDirectory=/srv/fernscout
+EnvironmentFile=/etc/fernscout/env
+ExecStart=/srv/fernscout/scripts/backup.sh
+# A backup that hangs must not block the next one forever.
+TimeoutStartSec=30min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/srv/fernscout /var/lib/fernscout /var/backups/fernscout
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fernscout-backup

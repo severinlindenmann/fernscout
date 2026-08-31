@@ -1,0 +1,38 @@
+# The Fernscout web server.
+#
+#   sudo cp deploy/fernscout.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now fernscout
+#
+# Postgres is listed as a soft dependency on purpose: running with no database
+# at all is a supported deployment (ROADMAP §2.2), and the unit must still
+# start cleanly on a machine where postgresql was never installed.
+[Unit]
+Description=Fernscout
+Documentation=https://github.com/severinlindenmann/travel
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fernscout
+Group=fernscout
+WorkingDirectory=/srv/fernscout
+EnvironmentFile=/etc/fernscout/env
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=5
+
+# The app writes only to the content folder and DATA_DIR. Everything else on
+# the filesystem can be read-only as far as it is concerned.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/srv/fernscout /var/lib/fernscout
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fernscout
+
+[Install]
+WantedBy=multi-user.target

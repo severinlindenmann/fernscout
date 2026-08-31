@@ -1,0 +1,11 @@
+{
+  "site": { "name": "Fixture", "url": "https://example.test", "defaultUser": "u" },
+  "users": { "reserved": [] },
+  "features": {
+    "mail": { "enabled": false, "transport": "file" },
+    "auth": { "enabled": false },
+    "contacts": { "enabled": false },
+    "postcards": { "enabled": false, "provider": "dry-run" },
+    "photobook": { "enabled": false, "provider": "dry-run" }
+  }
+}

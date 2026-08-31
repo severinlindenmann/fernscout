@@ -1,0 +1,5 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# The packed place index is binary; never normalise its line endings.
+*.bin.gz binary

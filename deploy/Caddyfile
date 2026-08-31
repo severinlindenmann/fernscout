@@ -1,0 +1,25 @@
+# Automatic HTTPS: Caddy requests and renews a Let's Encrypt certificate for
+# {$CADDY_DOMAIN} on first request, with no cron job and no certbot. Needs
+# :80 reachable for the ACME HTTP-01 challenge and :443 for the site itself —
+# Caddy binds both itself; nothing else may hold :80 or :443.
+#
+# {$CADDY_DOMAIN} / {$CADDY_ACME_EMAIL} come from the environment (.env);
+# see .env.example. For a bare local/offline test, run with
+# CADDY_DOMAIN=:80 to skip TLS entirely (see docs/runbook.md) — Caddy detects
+# the plain :80/:8080-style address and serves HTTP-only automatically.
+#
+# The global options block (rather than a per-site `tls <email>`) keeps this
+# working for any CADDY_DOMAIN, TLS or not. `email` needs a non-empty
+# argument — set a real address here before the first certificate request
+# so this never sees a blank one, even before .env exists.
+{
+	email {$CADDY_ACME_EMAIL}
+}
+
+{$CADDY_DOMAIN} {
+	encode gzip zstd
+
+	# Next.js sets its own cache headers per-route (see next.config.ts and
+	# the API routes' `cache-control: no-store`); Caddy just proxies.
+	reverse_proxy app:3000
+}

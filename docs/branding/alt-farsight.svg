@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" width="360" height="96">
+  <title>Fernscout — alternate direction: farsight (not chosen)</title>
+  <!--
+    Concept: the most literal reading of "fern" — far-seeing. A scout's lens:
+    a cream aperture with the land curving away inside it, the trail climbing
+    over the horizon toward a point the traveller cannot see yet. This is the
+    most explicitly agentic of the three — it is about looking ahead rather
+    than about walking.
+
+    Not chosen: at 16x16 the aperture becomes a plain pale circle and every
+    interior element — horizon, trail, dot — falls below one pixel. It also
+    reads as a generic "search"/"discover" glyph, which is the opposite of a
+    distinctive mark. Kept because it is the strongest direction for a large
+    format: a book cover or an app store hero, where the interior survives.
+  -->
+  <rect width="360" height="96" fill="#fffaf0" />
+
+  <!-- mark -->
+  <g>
+    <rect x="0" y="0" width="96" height="96" rx="21" fill="#1e293b" />
+    <circle cx="48" cy="48" r="31" fill="#fffaf0" />
+    <!-- the land, curving away -->
+    <path d="M20 60 Q48 44 76 60 L76 79 L20 79 Z" fill="#8fe0ef" />
+    <!-- the trail, climbing over the horizon -->
+    <path
+      d="M30 72 L40 62 L52 58 L64 46"
+      fill="none"
+      stroke="#ffd23f"
+      stroke-width="5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <circle cx="66" cy="44" r="5.5" fill="#22c55e" stroke="#1e293b" stroke-width="1.6" />
+    <circle cx="48" cy="48" r="31" fill="none" stroke="#1e293b" stroke-width="3" />
+  </g>
+
+  <!-- wordmark -->
+  <text
+    x="120"
+    y="62"
+    font-family="Fredoka, 'Trebuchet MS', sans-serif"
+    font-size="44"
+    font-weight="700"
+    fill="#1e293b"
+  >Fernscout</text>
+</svg>
