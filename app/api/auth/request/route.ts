@@ -23,21 +23,27 @@ export async function POST(request: Request) {
     return Response.json({ error: "auth_disabled" }, { status: 404 });
   }
 
-  const limit = rateLimitFor("auth-request", clientIp(request), {
-    max: 10,
-    windowMs: 15 * 60 * 1000,
-  });
+  // Read before rate-limiting, because which bucket applies depends on what
+  // is being asked for.
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const email = typeof body.email === "string" ? body.email : "";
+  const username = typeof body.user === "string" ? body.user : "";
+  const kind: SessionKind = body.kind === "agent" ? "agent" : "guest";
+
+  // Agent requests get a smaller bucket than guest ones: they are the path
+  // that now says whether an address owns a journal, so enumerating addresses
+  // has to stay expensive. A person asking for their own code needs one or two.
+  const limit = rateLimitFor(
+    kind === "agent" ? "auth-request-agent" : "auth-request",
+    clientIp(request),
+    { max: kind === "agent" ? 5 : 10, windowMs: 15 * 60 * 1000 },
+  );
   if (!limit.ok) {
     return Response.json(
       { error: "too_many_requests", retryAfter: limit.retryAfter },
       { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
     );
   }
-
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-  const email = typeof body.email === "string" ? body.email : "";
-  const username = typeof body.user === "string" ? body.user : "";
-  const kind: SessionKind = body.kind === "agent" ? "agent" : "guest";
   // Optional, and only meaningful for an agent token: which trip the caller is
   // asking to write to. Somebody who is on a trip but does not own the journal
   // gets a token scoped to that trip and nothing else.
@@ -49,13 +55,38 @@ export async function POST(request: Request) {
   const user = getUser(username);
   if (!user) return accepted;
 
-  // An agent token can write, so the address has to be one this journal
-  // recognises: the owner, or somebody listed on the trip they named. There is
-  // no self-registration on this path, and the answer is 202 either way — a
-  // different status would turn this into an address oracle.
+  /**
+   * An agent token can write, so the address has to be one this journal
+   * recognises: the owner, or somebody listed on the trip they named.
+   *
+   * **This answers truthfully, and that is a deliberate trade.** Every other
+   * failure on this endpoint returns the same 202, because a status that
+   * varied by address would let anyone ask which of somebody's family is
+   * registered. Here the cost of that silence fell on the wrong person: an
+   * agent asking for a code it was never going to receive waited, retried, and
+   * had no way to learn it was knocking on a journal it does not own. Days
+   * were lost to it.
+   *
+   * What leaks is narrower than it looks. Guest codes — the ones tied to a
+   * reader's address — still answer 202 for everything, so the "who reads this
+   * journal" question is as unanswerable as it was. What a caller can now
+   * learn is whether a *given address owns a given journal*, which the journal
+   * already tells its own owner and which the rate limit below makes slow to
+   * enumerate.
+   */
   if (kind === "agent" && !mayRequestAgentToken(user, tripId, email)) {
     console.warn(`[auth] agent code refused for ${username}: not the owner or on that trip`);
-    return accepted;
+    return Response.json(
+      {
+        error: "not_authorised",
+        message:
+          `An agent code for "${username}" is only sent to the address that owns it, or to ` +
+          `somebody listed on a trip — and "${email.trim()}" is neither. Ask whoever owns the ` +
+          `journal which address to use. If you are on one of its trips, name the trip: ` +
+          `{"user": "${username}", "email": "…", "kind": "agent", "trip": "<trip-id>"}.`,
+      },
+      { status: 403 },
+    );
   }
 
   const { code, linkToken } = await issueCode(username, email, kind);
