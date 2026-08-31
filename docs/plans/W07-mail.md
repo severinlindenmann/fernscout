@@ -12,7 +12,7 @@ No account needed to build or test anything.
 | Transport | Use |
 | --- | --- |
 | **`file`** (dev default) | Writes `./mail/<timestamp>-<to>-<subject>.eml` — real RFC822, openable in any mail client. **`./mail/` is gitignored.** Also prints a one-line summary to the console. |
-| `smtp` | Proton SMTP Submission (decision 17). Host/user/pass from env. |
+| `smtp` | Proton SMTP Submission (decision 17). Host/user/pass from env. Implemented 2026-08-31 in `lib/mail/smtp.ts` — hand-rolled on `node:net`/`node:tls`, no dependency, tested against a real socket in `test/smtp.test.ts`. |
 | `console` | Log only, for CI |
 
 - `sendMail({ to, subject, html, text, headers })` — nothing else in the

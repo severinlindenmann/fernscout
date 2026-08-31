@@ -30,11 +30,34 @@ MAIL_FROM="Fernscout <hello@fernscout.ch>"
 
 and `features.mail.transport` to `smtp` in `content/config.json`.
 
-> **The SMTP transport is not implemented yet.** It throws a clear error rather
-> than pretending to send. Shipping an untested SMTP client would be worse than
-> shipping none, and it cannot be tested without a paid mailbox. The capability
-> registry already knows which variables it needs, so turning it on without them
-> fails at boot rather than at send time.
+`SMTP_PASSWORD` is Proton's **SMTP token**, generated per-address under
+Settings → Import/Export → SMTP submission. It is not the account password and
+not the mailbox password, and it is the only one of the three that works here.
+`SMTP_USER` is the address the token was issued for, and `MAIL_FROM` must be
+that same address or one of its aliases — Proton rejects a sender it has not
+authorised, with a 5xx at `MAIL FROM` rather than a bounce later.
+
+### The client
+
+`lib/mail/smtp.ts`, about two hundred lines, no dependency. It does exactly
+what submission needs: EHLO, STARTTLS, AUTH PLAIN or LOGIN, one recipient,
+DATA, QUIT. It is not an MX client — no DNS, no queue, no retry schedule — and
+the moment this journal needs those, it needs a real MTA rather than a longer
+version of this file.
+
+Two behaviours worth knowing before you debug something at 3am:
+
+- **It refuses to authenticate over an unencrypted connection.** If the server
+  does not advertise STARTTLS, the send fails and no credential is written to
+  the socket. Port 465 (`secure`, TLS from the first byte) is chosen
+  automatically when `SMTP_PORT=465`.
+- **Errors name the step and the SMTP code and never the password** — `AUTH
+  PLAIN failed: 535 …`, `RCPT TO failed: 550 …`. That string reaches
+  `journalctl`, so it must stay safe to paste.
+
+`test/smtp.test.ts` runs it against a real socket and a real TLS handshake,
+including the dot-stuffing and multiline-reply cases, which is what made it
+safe to ship without a mailbox in CI.
 
 ## DNS — do this before the first digest
 
@@ -53,6 +76,20 @@ there rather than from this table.
 **Verify before relying on it:** send one digest to a Gmail address and one to
 an Outlook address, and check both landed in the inbox rather than spam. Then
 check the raw headers show `spf=pass` and `dkim=pass`.
+
+The cheapest end-to-end check on a live instance is the login code — it uses
+the same transport as everything else:
+
+```bash
+curl -s -X POST https://<domain>/api/auth/request \
+  -H 'content-type: application/json' \
+  -d '{"user":"<user>","email":"<the journal owner>","kind":"agent"}'
+# 202 always, by design. Whether it sent is in the log:
+journalctl -u fernscout -n 20 | grep mail
+```
+
+A successful send logs `[mail:smtp] <recipient> — "<subject>" -> 250 …`. A
+failure logs the step and the code.
 
 ## Deliverability, honestly
 

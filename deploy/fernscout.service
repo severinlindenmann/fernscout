@@ -18,7 +18,11 @@ User=fernscout
 Group=fernscout
 WorkingDirectory=/srv/fernscout
 EnvironmentFile=/etc/fernscout/env
-ExecStart=/usr/bin/npm run start
+# Bind to loopback: Caddy is the only way in, and `next start` otherwise
+# listens on 0.0.0.0 — which puts an untrusted, TLS-less copy of the site on
+# port 3000 the moment a firewall rule changes. A deployment that genuinely
+# wants the port reachable (a load balancer on another host) drops the flag.
+ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1
 Restart=always
 RestartSec=5
 

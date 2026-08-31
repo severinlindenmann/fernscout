@@ -5,6 +5,7 @@ import { isEnabled } from "../capabilities";
 import { loadServerConfig } from "../config";
 import { contentRoot } from "../contentRoot";
 import { buildMessage } from "./rfc822";
+import { sendSmtp } from "./smtp";
 import type { Mail, MailTransport, SendResult } from "./types";
 
 export type { Mail, SendResult } from "./types";
@@ -68,19 +69,37 @@ class ConsoleTransport implements MailTransport {
 /**
  * SMTP, for production (decision 17: Proton SMTP Submission).
  *
- * Deliberately not implemented yet: it needs a paid mailbox to test against,
- * and shipping an untested SMTP client would be worse than shipping none. The
- * capability registry already knows which variables it needs, so turning it on
- * without them fails at boot rather than at send time.
+ * The client is `lib/mail/smtp.ts` and is tested against a real socket and a
+ * real TLS upgrade in `test/smtp.test.ts` — which is what made it safe to
+ * ship. This class is only the part that reads configuration: the capability
+ * registry has already refused the boot if any of these variables is missing,
+ * so by the time anything calls `send` they are known to be present.
  */
 class SmtpTransport implements MailTransport {
   readonly name = "smtp";
 
-  async send(): Promise<SendResult> {
-    throw new Error(
-      "The SMTP transport is not implemented yet. Set features.mail.transport to " +
-        `"file" for development. See docs/plans/W07-mail.md.`,
-    );
+  async send(mail: Mail): Promise<SendResult> {
+    const port = Number.parseInt(process.env.SMTP_PORT ?? "587", 10);
+    const result = await sendSmtp(buildMessage(mail, senderAddress()), {
+      from: senderAddress(),
+      to: mail.to,
+      config: {
+        host: process.env.SMTP_HOST!,
+        port,
+        user: process.env.SMTP_USER!,
+        password: process.env.SMTP_PASSWORD!,
+        // 465 is TLS from the first byte; 587 negotiates it with STARTTLS.
+        secure: port === 465,
+        // Servers log the EHLO name. Ours is the site's own host, which makes
+        // a rejected send traceable to the instance that sent it.
+        clientName: hostOf(loadServerConfig().site.url),
+      },
+    });
+
+    // The recipient is logged, the message is not — a one-time code must not
+    // end up in the journal.
+    console.log(`[mail:smtp] ${mail.to} — "${mail.subject}" -> ${result.reference}`);
+    return { transport: this.name, reference: result.reference };
   }
 }
 

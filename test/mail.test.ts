@@ -147,10 +147,28 @@ describe("transports", () => {
     expect(result.reference).toBe("console");
   });
 
-  /** Shipping an untested SMTP client would be worse than shipping none. */
-  test("smtp refuses clearly rather than failing obscurely", async () => {
-    await expect(
-      sendMailWith("smtp", renderMail("r@example.test", "S", SAMPLE)),
-    ).rejects.toThrow(/not implemented/);
+  /**
+   * The wire protocol has its own tests, against a real socket, in
+   * `test/smtp.test.ts`. What matters here is the seam: the transport reads
+   * its configuration from the environment, and says so when it cannot reach
+   * the server rather than failing somewhere unrecognisable.
+   */
+  test("smtp reports an unreachable server as an unreachable server", async () => {
+    writeConfig({ enabled: true, transport: "smtp" });
+    process.env.SMTP_HOST = "127.0.0.1";
+    // Port 1 is reserved and nothing listens on it.
+    process.env.SMTP_PORT = "1";
+    process.env.SMTP_USER = "agent@example.test";
+    process.env.SMTP_PASSWORD = "unused";
+    try {
+      await expect(
+        sendMailWith("smtp", renderMail("r@example.test", "S", SAMPLE)),
+      ).rejects.toThrow(/ECONNREFUSED|connect|timed out/i);
+    } finally {
+      delete process.env.SMTP_HOST;
+      delete process.env.SMTP_PORT;
+      delete process.env.SMTP_USER;
+      delete process.env.SMTP_PASSWORD;
+    }
   });
 });

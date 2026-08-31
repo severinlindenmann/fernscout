@@ -10,6 +10,7 @@ systemd unit, and a deploy script.
 - [Day-to-day deploys](#day-to-day-deploys)
 - [Deploying alongside an existing Caddy site](#deploying-alongside-an-existing-caddy-site)
 - [Adding Postgres later](#adding-postgres-later)
+- [What the first deploy turned up](#what-the-first-deploy-turned-up)
 - [`/api/health`](#apihealth)
 - [Backups](#backups)
 - [Restore procedure](#restore-procedure)
@@ -169,12 +170,32 @@ curl -sI https://<your-domain>/api/health | head -1
 ## Day-to-day deploys
 
 ```bash
-cd /srv/fernscout && ./scripts/deploy.sh
+cd /srv/fernscout && sudo ./scripts/deploy.sh
 ```
 
 Pull, `npm ci`, migrate if a database is configured, build, restart, wait for
 health. **The build runs before the restart**, so a broken build leaves the
 running site untouched instead of taking it down and then failing.
+
+Three things it does that are not obvious from the name:
+
+- **It reads `/etc/fernscout/env` itself.** A root shell has no `DATABASE_URL`,
+  and without this the migration step takes its "running without a database
+  (supported)" branch on a deployment that has had Postgres since its first
+  boot — a skipped migration that announces itself as a design decision.
+- **It steps down to the `fernscout` user** for the pull, the install and the
+  build, and uses `sudo` only for the restart. Building as root leaves
+  root-owned files in `.next/` and `node_modules/`, under a service that is not
+  root and needs to write its own build cache. If that has already happened:
+  `sudo chown -R fernscout:fernscout /srv/fernscout`.
+- **It records `GIT_SHA`** in a systemd drop-in, so `/api/health` answers
+  "which build is actually running" rather than `"commit": null`.
+
+> **Editing `scripts/deploy.sh` itself?** The running script pulls its own
+> replacement partway through, and bash reads a script incrementally — so the
+> deploy that lands a change to this file is still the *old* script, and the
+> new behaviour only appears on the next run. Deploy twice, and judge the
+> second one.
 
 ---
 
@@ -249,6 +270,27 @@ sudo systemctl restart fernscout
 ```
 
 `/api/health` should now report the database-backed capabilities as available.
+
+---
+
+## What the first deploy turned up
+
+Recorded because none of it is visible from a clean checkout, and all of it
+cost time on the day (2026-08-31, the first deployment to fernscout.ch).
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `npm ci` "succeeds" but `next: command not found` | npm ≥ 11.19 blocks install scripts unless `package.json` lists them under `allowScripts`; esbuild's postinstall never ran, so `tsx` was broken and `db:migrate` with it | The `allowScripts` block is committed. `npm install-scripts ls` must say "no packages with unreviewed install scripts" |
+| `npm ci` fails on `better-sqlite3` | node-gyp has no toolchain | `apt install build-essential python3` |
+| Untracked `.npm/`, `.cache/`, `.config/` appear in the repo | The service user's home *was* the repo root, so npm cached into it | `usermod -d /var/lib/fernscout/home fernscout` |
+| Migrations skipped, cheerfully | `deploy.sh` did not read `/etc/fernscout/env` | Fixed in the script; see above |
+| `git` refuses the repo halfway through a deploy | `HOME` is repointed at the service user by then, so root's `safe.directory` exception is in the wrong config file | Every git call in the script runs as the service user |
+| Port 3000 answering on the public IP | `next start` binds `0.0.0.0` by default | `--hostname 127.0.0.1` in the unit. `HOSTNAME=` in the environment does **not** do this — `next start` takes the flag |
+| Auth returns 500, log says "SMTP transport is not implemented" | It genuinely was not, until 2026-08-31 | Implemented in `lib/mail/smtp.ts`; see [deploy-mail.md](deploy-mail.md) |
+
+The certificate step, by contrast, was uneventful: DNS already pointed at the
+host, so Caddy issued for `fernscout.ch` and `www.fernscout.ch` within seconds
+of the reload, and the neighbouring site never noticed.
 
 ---
 
