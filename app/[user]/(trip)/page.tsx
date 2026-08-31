@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getAllEntries } from "@/lib/entries";
 import { currentTripRef, getTrip } from "@/lib/trips";
@@ -14,8 +14,16 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   const { user } = await params;
   const site = siteSummary(user, getDefaultUsername() === user);
   if (!site) notFound();
+  /**
+   * The bare `/<user>` serves whichever trip is `current`. Having none is a
+   * normal state, not a missing journal: a new journal has no trips at all,
+   * and one whose trips are all `upcoming` or `past` is simply between
+   * journeys. Both used to answer 404 — so a journal created through the API
+   * was born broken, and its owner's first act was to look at a page that
+   * said it did not exist.
+   */
   const tripId = currentTripRef(user);
-  if (!tripId) notFound();
+  if (!tripId) redirect(`/${user}/trips`);
   const current = getTrip(tripId);
   if (!current) notFound();
   // The layout draws the password form; this stops the page from *running*.

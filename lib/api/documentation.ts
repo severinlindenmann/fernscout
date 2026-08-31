@@ -116,7 +116,8 @@ export function userDocumentation(username: string): string | null {
     "```",
     `POST ${base()}/api/auth/request`,
     `     {"user": "${username}", "email": "<the owner's address>", "kind": "agent"}`,
-    "     -> 202 always. A code is mailed only to the address that owns this journal.",
+    "     -> 202 when a code is on its way; 403 not_authorised if that address does",
+    "        not own this journal and is not on the trip you named.",
     "",
     `POST ${base()}/api/auth/verify`,
     `     {"user": "${username}", "email": "…", "code": "123456", "kind": "agent"}`,
@@ -144,6 +145,7 @@ export function userDocumentation(username: string): string | null {
     `- [Trips](${base()}/api/v1/${username}/trips): every trip, including ones the public cannot see`,
     `- [Days](${base()}/api/v1/${username}/trips/<trip-id>/days): read them, or POST to add one as a draft`,
     `- [Drafts](${base()}/api/v1/${username}/drafts): everything waiting for a person to approve`,
+    `- Trips: POST to [the same URL](${base()}/api/v1/${username}/trips) to create one (owner only; private by default)`,
     `- [MCP](${base()}/api/mcp): the same operations as tools — list_trips, get_day, search_entries, list_drafts, create_day`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,
@@ -192,6 +194,49 @@ were not told about, no meals nobody mentioned, no feelings nobody expressed.
 If you do not know where a photograph was taken, leave the location empty and
 say so.
 
+## Starting from nothing
+
+If the person you are working for has no journal yet, make one. Three calls,
+and the first two exist only to prove they can read their own email.
+
+\`\`\`http
+POST ${site.url}/api/auth/signup/request
+Content-Type: application/json
+
+{"email": "them@example.com"}
+\`\`\`
+
+\`\`\`http
+POST ${site.url}/api/auth/signup/verify
+Content-Type: application/json
+
+{"email": "them@example.com", "code": "123456"}
+\`\`\`
+
+That returns a token which can do exactly one thing, for twenty minutes:
+
+\`\`\`http
+POST ${site.url}/api/v1/journals
+Authorization: Bearer fs_signup_…
+Content-Type: application/json
+
+{"username": "their-name", "title": "Their journal", "tagline": "optional"}
+\`\`\`
+
+\`\`\`json
+{"ok": true, "user": "their-name", "url": "${site.url}/their-name",
+ "token": "fs_agent_…", "expires": "…", "scope": ["write:content"]}
+\`\`\`
+
+The reply carries an **agent token for the journal it just made**, so you can
+go straight on to creating a trip — no second code.
+
+**Ask them for the username.** It is the address of their site and cannot be
+changed afterwards; picking one for them is the sort of thing they will live
+with for years. Lowercase letters, digits and dashes.
+
+One address may own three journals on this server.
+
 ## Authenticating
 
 Two calls. The token is never sent by email — only a short-lived code is, and
@@ -204,8 +249,10 @@ Content-Type: application/json
 {"user": "${example}", "email": "owner@example.com", "kind": "agent"}
 \`\`\`
 
-Always answers \`202\`, whether or not that address owns anything. Ask the person
-for the six-digit code that arrives in their inbox. It lasts ten minutes, is
+Answers \`202\` when a code is on its way, and **\`403 not_authorised\` when that
+address is neither the journal's owner nor listed on the trip you named** — so
+you are told, rather than waiting for a code that was never going to arrive.
+Ask the person for the six-digit code that arrives in their inbox. It lasts ten minutes, is
 single use, and burns after five wrong guesses.
 
 **If the person is not the journal's owner but came on one of its trips**, add
@@ -253,6 +300,24 @@ You do not need a token to read anything public.
 GET ${site.url}/api/v1/${example}/trips
 Authorization: Bearer fs_agent_…
 \`\`\`
+
+A day needs a trip to live in. If there is none yet, make one — only the
+journal's owner can, and a trip-scoped token cannot:
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/trips
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"id": "japan-2027", "title": "Japan", "start": "2027-04-01", "end": "2027-05-15",
+ "visibility": "private", "status": "upcoming"}
+\`\`\`
+
+\`start\` and \`end\` are required: a trip without both is skipped when the site
+reads it, so it would exist on disk and nowhere a reader could find it.
+
+A trip is created **private** unless you say otherwise. Publishing somebody's
+journey is their decision — ask before sending \`"visibility": "public"\`.
 
 \`\`\`http
 POST ${site.url}/api/v1/${example}/trips/<trip-id>/days

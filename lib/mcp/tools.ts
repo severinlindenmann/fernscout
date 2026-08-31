@@ -1,6 +1,6 @@
 import "server-only";
 import MiniSearch from "minisearch";
-import type { Session } from "../auth";
+import { SESSION_SCOPE, SIGNUP_OWNER, type Session } from "../auth";
 import type { Trip } from "../types";
 import { createDraft, deleteEntry, entrySummary, isPublished, listDrafts, tripSummary, type DraftInput } from "../api/entries";
 import { getAllEntries, getEntryBySlug } from "../entries";
@@ -9,6 +9,9 @@ import { SEARCH_OPTIONS, type SearchDoc } from "../searchOptions";
 import { getTrip, getTrips, tripRef } from "../trips";
 import { scopeAllows } from "../tripPeople";
 import { validateEntry, type Problem } from "../validate/entry";
+import { createJournal } from "../journals";
+import { createTrip } from "../tripWrite";
+import { serverSite } from "../site";
 import { storeUploads, type UploadCandidate } from "../api/media";
 import { fetchImage } from "../api/fetchMedia";
 import { getUser } from "../users";
@@ -456,6 +459,107 @@ const createDay: Handler = (session, args) => {
   return outcome;
 };
 
+const createJournalTool: Handler = (session, args) => {
+  // Only a signup session, and this is the check that keeps the MCP exception
+  // from widening: an agent token for one journal must not be able to mint
+  // more beside it.
+  if (session.owner !== SIGNUP_OWNER) {
+    return {
+      ok: false,
+      error:
+        "This token belongs to a journal, so it cannot create another. Journals are created " +
+        "with a signup token — start at POST /api/auth/signup/request.",
+    };
+  }
+
+  const username = optionalString(args, "username");
+  const title = optionalString(args, "title");
+  if (!username || !title) {
+    return { ok: false, error: "username and title are both required." };
+  }
+
+  const created = createJournal({
+    username,
+    title,
+    tagline: optionalString(args, "tagline"),
+    ownerEmail: session.email,
+    ownerName: optionalString(args, "owner_name"),
+    startLocation: optionalString(args, "start_location"),
+    defaultLocale: optionalString(args, "default_locale"),
+    baseCurrency: optionalString(args, "base_currency"),
+  });
+  if (!created.ok) return { ok: false, error: created.message };
+
+  const base = serverSite().url;
+  return {
+    ok: true,
+    text:
+      `Created the journal "${created.username}" at ${base}/${created.username}, owned by ` +
+      `${session.email}.\n\nIt has no trips yet. Ask for an agent token for it — ` +
+      `POST /api/auth/request with {"user": "${created.username}", "email": "${session.email}", ` +
+      `"kind": "agent"} — and then create a trip.`,
+    data: {
+      user: created.username,
+      url: `${base}/${created.username}`,
+      documentation: `${base}/${created.username}/documentation.txt`,
+    },
+  };
+};
+
+const createTripTool: Handler = (session, args) => {
+  if (session.owner === SIGNUP_OWNER) {
+    return { ok: false, error: "Create a journal first, then get an agent token for it." };
+  }
+  if (session.scope !== SESSION_SCOPE.agent) {
+    return {
+      ok: false,
+      error:
+        "This token is scoped to one trip, so it can write days into that trip but cannot " +
+        "create new ones. Only the journal's owner can create a trip.",
+    };
+  }
+
+  const id = optionalString(args, "id");
+  const title = optionalString(args, "title");
+  const start = optionalString(args, "start");
+  const end = optionalString(args, "end");
+  if (!id || !title || !start || !end) {
+    return {
+      ok: false,
+      error:
+        "id, title, start and end are all required. A trip without both dates is skipped " +
+        "when the site reads it, so it would exist on disk and nowhere a reader could find it.",
+    };
+  }
+
+  const created = createTrip(session.owner, {
+    id,
+    title,
+    start,
+    end,
+    tagline: optionalString(args, "tagline"),
+    status: optionalString(args, "status") as never,
+    accent: optionalString(args, "accent") as never,
+    visibility: optionalString(args, "visibility") as never,
+    intro: optionalString(args, "intro"),
+  });
+  if (!created.ok) return { ok: false, error: created.message };
+
+  const trip = getTrip(created.ref);
+  const visibility = trip?.visibility ?? "private";
+  return {
+    ok: true,
+    text:
+      `Created the trip "${created.id}" in ${session.owner}, ${visibility}.` +
+      (visibility === "private"
+        ? ' Nobody but the owner can read it yet — say visibility "public" when it is ready, ' +
+          "or ask the owner to."
+        : "") +
+      `\n\nWrite its first day with create_day, trip "${created.id}". Days arrive as drafts.`,
+    data: { trip: created.id, ref: created.ref, visibility },
+  };
+};
+
 // ---------------------------------------------------------------------------
 // The registry
 // ---------------------------------------------------------------------------
@@ -526,6 +630,77 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
     },
     annotations: READ_ONLY,
     handler: listDraftsTool,
+  },
+  {
+    name: "create_journal",
+    title: "Create a journal",
+    description:
+      "Create a new travel journal — a blog of its own, at /<username>, owned by the address " +
+      "that verified the signup code. This is the only tool a signup token can call, and it " +
+      "is the first step for somebody who has no journal yet. Ask the person for the username " +
+      "they want rather than inventing one: it becomes the address of their site and cannot " +
+      "be changed afterwards.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        username: {
+          type: "string",
+          description:
+            "The address of the journal: lowercase letters, digits and dashes. Permanent.",
+        },
+        title: { type: "string", description: "What the journal is called." },
+        tagline: { type: "string", description: "One line under the title. Optional — leave it out rather than inventing one." },
+        owner_name: { type: "string", description: "The traveller's name, if they gave you one." },
+        start_location: { type: "string", description: "Where they usually set out from." },
+        default_locale: { type: "string", description: "Language code, e.g. en or de. Default en." },
+        base_currency: { type: "string", description: "Currency costs are kept in. Default CHF." },
+      },
+      required: ["username", "title"],
+      additionalProperties: false,
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    handler: createJournalTool,
+  },
+  {
+    name: "create_trip",
+    title: "Create a trip",
+    description:
+      "Create a trip in this journal, so there is somewhere to write days into. Needs a start " +
+      "and an end date — a trip without both is skipped when the site reads it. Created " +
+      "PRIVATE unless you are told otherwise: publishing somebody's journey is their decision, " +
+      "not a default. Only the journal's owner can call this.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: {
+          type: "string",
+          description:
+            "URL segment: lowercase letters, digits and dashes. `japan-2027` ages better than `the-big-one`.",
+        },
+        title: { type: "string", description: "What the trip is called." },
+        start: { type: "string", description: "First day, as 2027-04-01. Required." },
+        end: { type: "string", description: "Last day, as 2027-05-15. Required." },
+        tagline: { type: "string", description: "One line under the title. Optional." },
+        status: { type: "string", enum: ["upcoming", "current", "past"], description: "Default upcoming. Exactly one trip should be `current`; it is the one served at the bare /<user> URL." },
+        accent: { type: "string", enum: ["sky", "yellow", "green", "coral", "navy"], description: "Colour. Default sky." },
+        visibility: { type: "string", enum: ["private", "public", "guest"], description: "Who is let in. Default private." },
+        intro: { type: "string", description: "A paragraph introducing the trip. Only what you were told." },
+      },
+      required: ["id", "title", "start", "end"],
+      additionalProperties: false,
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    handler: createTripTool,
   },
   {
     name: "create_day",
@@ -654,10 +829,23 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
   },
 ] as const;
 
+/**
+ * The tools this session may actually call.
+ *
+ * A signup token proves an address and nothing else — there is no journal for
+ * it to read or write. Listing the rest would be an invitation to call them
+ * and get an error, so it sees one tool and `callTool` enforces the same list.
+ */
+export function toolsFor(session: Session): readonly (ToolDefinition & { handler: Handler })[] {
+  return session.owner === SIGNUP_OWNER
+    ? TOOLS.filter((t) => t.name === "create_journal")
+    : TOOLS.filter((t) => t.name !== "create_journal");
+}
+
 /** The wire shape, with the handler left behind. Written out field by field so
  * that adding a field to the registry cannot leak it into the protocol. */
-export function toolDefinitions(): ToolDefinition[] {
-  return TOOLS.map((tool) => ({
+export function toolDefinitions(session?: Session): ToolDefinition[] {
+  return (session ? toolsFor(session) : TOOLS).map((tool) => ({
     name: tool.name,
     title: tool.title,
     description: tool.description,
@@ -671,7 +859,7 @@ export async function callTool(
   session: Session,
   args: Args,
 ): Promise<ToolOutcome | null> {
-  const tool = TOOLS.find((t) => t.name === name);
+  const tool = toolsFor(session).find((t) => t.name === name);
   if (!tool) return null;
   return tool.handler(session, args);
 }

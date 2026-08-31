@@ -123,7 +123,7 @@ export async function handleRpc(
       return rpcResult(id, {});
 
     case "tools/list":
-      return rpcResult(id, { tools: toolDefinitions() });
+      return rpcResult(id, { tools: toolDefinitions(session) });
 
     case "tools/call":
       return toolsCall(id, params, session);
