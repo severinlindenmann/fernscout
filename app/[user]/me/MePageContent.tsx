@@ -3,6 +3,7 @@
 import Link from "next/link";
 import CopyLine from "@/components/CopyLine";
 import GuestSignIn from "@/components/GuestSignIn";
+import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
@@ -202,6 +203,16 @@ export default function MePageContent({
             </Link>
           </section>
         )}
+
+        {/*
+          Last on the page, and only when there is a session to end.
+
+          `viewer.email` is set from the guest cookie and from nothing else, so
+          it is exactly the right condition: an owner reading their own journal
+          without a session, or a guest following a link token, has nothing to
+          sign out of and is not offered a control that would do nothing.
+        */}
+        {viewer.email && <SignOut />}
       </main>
     </div>
   );
