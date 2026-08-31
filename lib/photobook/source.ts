@@ -106,7 +106,7 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
 
   const config = loadUserConfig(trip.username);
   const travellers = travellersOf(config, trip)
-    .map((p) => p.nickname ?? p.name)
+    .map((p) => p.nickname || p.name)
     .filter(Boolean);
 
   const days: BookDay[] = getDays(tripId).map((day) => {

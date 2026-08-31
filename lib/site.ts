@@ -43,7 +43,7 @@ export function travellersOf(user: UserConfig, trip: Trip): TripPerson[] {
     nickname: user.owner.nickname,
   };
   const out = [owner];
-  const seen = new Set([owner.email]);
+  const seen = new Set([owner.email.trim().toLowerCase()]);
   for (const person of trip.people) {
     const email = person.email.trim().toLowerCase();
     if (seen.has(email)) continue;
@@ -56,7 +56,7 @@ export function travellersOf(user: UserConfig, trip: Trip): TripPerson[] {
 /** Short forms joined with "+", as a journal refers to the people on a trip. */
 export function travellerNamesOf(user: UserConfig, trip: Trip): string {
   return travellersOf(user, trip)
-    .map((p) => p.nickname ?? p.name)
+    .map((p) => p.nickname || p.name)
     .join(" + ");
 }
 

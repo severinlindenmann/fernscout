@@ -41,4 +41,23 @@ describe("who a trip is credited to", () => {
     const anon = { owner: { name: "Alex Berger", nickname: "Alex" } } as UserConfig;
     expect(travellerNamesOf(anon, tripWith([]))).toBe("Alex");
   });
+
+  test("an owner with an empty nickname is credited by full name", () => {
+    const blank = {
+      owner: { name: "Alex Berger", nickname: "", email: "alex@example.com" },
+    } as UserConfig;
+    expect(travellerNamesOf(blank, tripWith([]))).toBe("Alex Berger");
+  });
+
+  test("an owner's address differing only in case from a people: entry is still one person", () => {
+    const mixedCase = {
+      owner: { name: "Alex Berger", nickname: "Alex", email: "Alex@Example.com" },
+    } as UserConfig;
+    const trip = tripWith([
+      { name: "Alex Berger", email: "alex@example.com", nickname: "Alex" },
+      { name: "Robin Berger", email: "robin@example.com", nickname: "Robin" },
+    ]);
+    expect(travellersOf(mixedCase, trip)).toHaveLength(2);
+    expect(travellerNamesOf(mixedCase, trip)).toBe("Alex + Robin");
+  });
 });
