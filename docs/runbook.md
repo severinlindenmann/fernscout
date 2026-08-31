@@ -111,7 +111,17 @@ Set `CONTENT_DIR=/var/lib/fernscout/content` too, and seed it once:
 ```bash
 sudo -u fernscout mkdir -p /var/lib/fernscout/content
 sudo -u fernscout cp -a /srv/fernscout/content/. /var/lib/fernscout/content/
+# The UI strings ship with the software and are not this instance's to own.
+sudo -u fernscout rm -rf /var/lib/fernscout/content/locales
 ```
+
+> **Do not keep a copy of `locales/` unless you mean to override it.**
+> `lib/locales.ts` reads the shipped dictionary first and then merges the
+> content folder's on top, key by key. A copy taken at install time therefore
+> wins for every string it holds, for ever — so a wording fix shipped six
+> months later silently does not appear, and the only clue is that the site
+> disagrees with the repository. An instance that really does want its own
+> wording should keep a file with *only* the keys it is changing.
 
 The journal then lives outside the repository, which matters for two reasons
 that only show up later. `scripts/deploy.sh` runs `git pull --ff-only`, and an
