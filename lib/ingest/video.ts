@@ -55,24 +55,70 @@ export function readCreationTime(tags: Record<string, string> | undefined): Exif
   return { year, month, day, hour, minute, second };
 }
 
-function has(command: string): boolean {
+/**
+ * Three answers, not two.
+ *
+ * `unknown` is the one that matters: a spawn can fail because the binary is
+ * not there, and it can fail because this machine could not start a process
+ * inside five seconds. Only the first is a fact about the installation.
+ */
+type Presence = "present" | "absent" | "unknown";
+
+function probe(command: string): Presence {
   // Bounded, like every other spawn here. `-version` on a working binary is
   // instant; the only ways it is not are a binary that hangs on start and a
   // machine under enough load that spawning itself is slow, and neither is
   // worth holding a request open indefinitely for.
-  return !spawnSync(command, ["-version"], { stdio: "ignore", timeout: 5_000 }).error;
+  const run = spawnSync(command, ["-version"], { stdio: "ignore", timeout: 5_000 });
+  if (!run.error) return "present";
+  // ENOENT is the only one of these that means what it says. A timeout
+  // (ETIMEDOUT), a fork that could not get a slot (EAGAIN) or a binary that
+  // will not execute (EACCES) are all "ask again later".
+  return (run.error as NodeJS.ErrnoException).code === "ENOENT" ? "absent" : "unknown";
 }
 
-let toolsChecked = false;
-let tools = { ffmpeg: false, ffprobe: false };
-
-/** Whether video can be handled at all, checked once per run. */
-export function videoToolsAvailable(): boolean {
-  if (!toolsChecked) {
-    toolsChecked = true;
-    tools = { ffmpeg: has("ffmpeg"), ffprobe: has("ffprobe") };
+function has(command: string): Presence {
+  // A second go at an inconclusive check, because some callers get only one.
+  // `describe.runIf(videoToolsAvailable())` in test/ingest-run.test.ts is
+  // evaluated once as the file loads, and a momentary hiccup there does not
+  // fail anything — it quietly runs three fewer tests. Costs nothing on a
+  // machine where the first attempt answers, which is every healthy one.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const answer = probe(command);
+    if (answer !== "unknown") return answer;
   }
-  return tools.ffmpeg && tools.ffprobe;
+  return "unknown";
+}
+
+/** Null until the check has produced an answer worth keeping. */
+let tools: boolean | null = null;
+
+/**
+ * Whether video can be handled at all.
+ *
+ * Cached, because two `-version` spawns per upload would be absurd — but only
+ * once the check has actually concluded something. An inconclusive check
+ * answers "no" for this caller, which degrades to images and says so, and
+ * leaves the question open for the next one.
+ *
+ * Caching the inconclusive answer is what this used to do, and it cost more
+ * than it looks: a single busy moment turned video off for the lifetime of the
+ * process, so a server that had transcoded clips all week would start refusing
+ * them as "ffmpeg is not installed" until somebody restarted it. Under test it
+ * silently skipped every `describe.runIf(videoToolsAvailable())` and blew a
+ * five-second budget on ten seconds of detection.
+ */
+export function videoToolsAvailable(): boolean {
+  if (tools !== null) return tools;
+  const ffmpeg = has("ffmpeg");
+  // Short-circuited so a machine that cannot spawn is asked twice rather than
+  // four times: the worst case here is already several seconds of a held
+  // request, and the second tool cannot change the answer.
+  if (ffmpeg === "unknown") return false;
+  const ffprobe = has("ffprobe");
+  if (ffprobe === "unknown") return false;
+  tools = ffmpeg === "present" && ffprobe === "present";
+  return tools;
 }
 
 export const FFMPEG_MISSING_MESSAGE =

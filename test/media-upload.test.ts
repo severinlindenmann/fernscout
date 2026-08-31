@@ -243,6 +243,11 @@ describe("the day a photograph belongs to", () => {
  * same file from a folder handled it.
  */
 describe("video", () => {
+  // The first request of the process to mention video pays for finding
+  // ffmpeg — two bounded `-version` spawns — before it does anything else.
+  // That is well under the default budget on a machine at rest and has been
+  // over it on one running a build at the same time, which showed up here as
+  // a timeout on the line below rather than as anything to do with video.
   test("a clip is judged as a clip, not as a broken photograph", async () => {
     writeDay("day-one", "2026-01-01");
     const result = await storeUploads(REF, "day-one", [
@@ -253,7 +258,7 @@ describe("video", () => {
     // It may be refused for being unreadable, or for there being no ffmpeg.
     // What it must never be refused for is failing to be a JPEG.
     expect(problems.some((p) => /jpeg/.test(p.expected))).toBe(false);
-  });
+  }, 30_000);
 
   /**
    * A file that is not really a video used to take seconds to refuse.
@@ -266,15 +271,23 @@ describe("video", () => {
    *
    * The cap is set between those two numbers rather than near either: it is
    * checking that the wait is gone, not measuring ffprobe on this machine.
+   *
+   * The probe is timed rather than the whole upload, because an upload also
+   * pays for finding ffmpeg — two bounded spawns, seconds of them on a loaded
+   * machine — and that cost is not what the pipe fix was about. Timing the
+   * request instead made this fail for a reason it does not describe.
    */
   test("and is refused promptly, rather than waiting on a pipe nobody writes to", async () => {
-    writeDay("day-one", "2026-01-01");
+    const { probeVideo, videoToolsAvailable } = await import("@/lib/ingest/video");
+    if (!videoToolsAvailable()) return; // Nothing to be slow about without ffprobe.
+
+    const notAVideo = path.join(dir, "clip.mp4");
+    fs.writeFileSync(notAVideo, "not really an mp4");
+
     const started = Date.now();
-    await storeUploads(REF, "day-one", [
-      { filename: "clip.mp4", bytes: Buffer.from("not really an mp4") },
-    ]);
+    expect(probeVideo(notAVideo)).toBeNull();
     expect(Date.now() - started).toBeLessThan(2_000);
-  });
+  }, 30_000);
 
   test("a photograph in the same request is still judged as a photograph", async () => {
     writeDay("day-one", "2026-01-01");
