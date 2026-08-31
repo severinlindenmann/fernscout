@@ -288,6 +288,9 @@ cost time on the day (2026-08-31, the first deployment to fernscout.ch).
 | Port 3000 answering on the public IP | `next start` binds `0.0.0.0` by default | `--hostname 127.0.0.1` in the unit. `HOSTNAME=` in the environment does **not** do this — `next start` takes the flag |
 | Auth returns 500, log says "SMTP transport is not implemented" | It genuinely was not, until 2026-08-31 | Implemented in `lib/mail/smtp.ts`; see [deploy-mail.md](deploy-mail.md) |
 
+One thing was left undone rather than fixed: **there are no backups**, by
+decision and not by omission. See [Backups](#backups).
+
 The certificate step, by contrast, was uneventful: DNS already pointed at the
 host, so Caddy issued for `fernscout.ch` and `www.fernscout.ch` within seconds
 of the reload, and the neighbouring site never noticed.
@@ -315,6 +318,36 @@ while travelling, you cannot debug what you cannot see.
 ---
 
 ## Backups
+
+> ### Not set up on fernscout.ch — deliberately, and still true
+>
+> **Decided 2026-08-31, at the first deploy.** No off-VPS storage had been
+> chosen yet, and a backup written to the machine it protects is not a backup.
+> Rather than wire up something that looks like protection, nothing was
+> installed: no `restic`, no units, no timer. Check it yourself with
+> `systemctl list-timers | grep fernscout` — an empty result is the expected
+> one, not a fault.
+>
+> The choice was to have no backups and *know* it, rather than have a timer
+> that fails quietly into a journal nobody reads. The reason it is written
+> here, in the operations doc, is that the second-worst outcome after losing
+> the journal is being surprised that it was possible.
+>
+> **What is exposed meanwhile:** `/var/lib/fernscout/content` — the journal
+> itself, and the only state on the host that cannot be rebuilt from git or by
+> re-running a migration. Losing Postgres logs everybody out and drops the
+> reaction counts; losing `content/` loses the trip.
+>
+> **Interim measure, if the real thing is still weeks away:** copy the content
+> folder off the machine by hand and date it. It is 17 MB today.
+>
+> ```bash
+> rsync -a --delete root@<host>:/var/lib/fernscout/content/ ~/fernscout-content-$(date +%F)/
+> ```
+>
+> Everything below works and is `CONTENT_DIR`-aware. Turning it on needs two
+> credentials and one `systemctl enable`; `/etc/fernscout/env` carries a
+> commented block naming the variables.
 
 `scripts/backup.sh`, driven by `deploy/fernscout-backup.timer` (nightly, 03:20
 with a randomised delay).
