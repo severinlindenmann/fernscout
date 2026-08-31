@@ -2,7 +2,8 @@ import "server-only";
 import crypto from "node:crypto";
 
 /**
- * Postal addresses, encrypted at rest (C14).
+ * A contact's private details, encrypted at rest (C14): the postal address —
+ * most of what is here — and, alongside it, a telephone number.
  *
  * Fifty named people's home addresses are a different risk class from anything
  * else in this repository. Everything else here is a holiday photograph; this
@@ -31,6 +32,16 @@ export type PostalAddress = {
   postcode: string;
   city: string;
   country: string;
+  /**
+   * A telephone number, if they gave one.
+   *
+   * In here rather than in a column of its own, for the reason
+   * `003-contacts.ts` gives about the address: this is the same class of data,
+   * and a plaintext column beside an encrypted blob is a way of leaking half of
+   * what the blob exists to protect. It is not part of `isPostable` — a number
+   * is not somewhere to send a card.
+   */
+  tel: string;
 };
 
 export const EMPTY_ADDRESS: PostalAddress = {
@@ -40,6 +51,7 @@ export const EMPTY_ADDRESS: PostalAddress = {
   postcode: "",
   city: "",
   country: "",
+  tel: "",
 };
 
 const ALGORITHM = "aes-256-gcm";
@@ -119,6 +131,7 @@ export function normaliseAddress(input: Partial<PostalAddress> | null | undefine
     postcode: field(input?.postcode),
     city: field(input?.city),
     country: field(input?.country),
+    tel: field(input?.tel),
   };
 }
 

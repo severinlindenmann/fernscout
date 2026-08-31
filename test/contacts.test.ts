@@ -21,6 +21,7 @@ import {
 } from "@/lib/contacts";
 import {
   ContactsKeyError,
+  EMPTY_ADDRESS,
   addressAad,
   contactsKey,
   decryptAddress,
@@ -49,6 +50,7 @@ const ADDRESS = {
   postcode: "8001",
   city: "Zurich",
   country: "Switzerland",
+  tel: "",
 };
 
 let dir: string;
@@ -196,6 +198,28 @@ describe("postal addresses", () => {
     const [contact] = await listContacts("ana");
     expect(contact.wantsPostcard).toBe(false);
     expect(contact.hasPostalAddress).toBe(false);
+  });
+});
+
+describe("a telephone number", () => {
+  test("survives the round trip", () => {
+    const aad = addressAad("u", "c1");
+    const address = { ...EMPTY_ADDRESS, tel: "+41 79 000 00 00", line1: "1 Road", city: "Bern", country: "CH" };
+    expect(decryptAddress(encryptAddress(address, aad), aad)?.tel).toBe("+41 79 000 00 00");
+  });
+
+  test("a tel alone does not make somebody postable", () => {
+    expect(isPostable({ ...EMPTY_ADDRESS, tel: "+41 79 000 00 00" })).toBe(false);
+  });
+
+  test("a blob written before this field decrypts with an empty tel", () => {
+    const aad = addressAad("u", "c2");
+    // Encrypt a payload with no tel key at all, as existing rows hold.
+    const legacy = encryptAddress(
+      { name: "", line1: "1 Road", line2: "", postcode: "", city: "Bern", country: "CH" } as never,
+      aad,
+    );
+    expect(decryptAddress(legacy, aad)?.tel).toBe("");
   });
 });
 
