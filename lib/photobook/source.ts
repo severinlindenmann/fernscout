@@ -15,7 +15,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { isEnabled } from "../capabilities";
-import { serverSite } from "../site";
+import { serverSite, travellersOf } from "../site";
 import { loadUserConfig } from "../config";
 import { contentRoot } from "../contentRoot";
 import { getDays, getPlaces } from "../entries";
@@ -105,7 +105,9 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
   if (!trip) throw new Error(`No trip "${tripId}" in ${tripDir(tripId)}`);
 
   const config = loadUserConfig(trip.username);
-  const travellers = [config.owner.nickname || config.owner.name].filter(Boolean);
+  const travellers = travellersOf(config, trip)
+    .map((p) => p.nickname ?? p.name)
+    .filter(Boolean);
 
   const days: BookDay[] = getDays(tripId).map((day) => {
     const photos: BookPhoto[] = [];

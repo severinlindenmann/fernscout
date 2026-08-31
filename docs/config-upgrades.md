@@ -70,3 +70,7 @@ the trip is credited to:
 
 `owner.email` stays optional; a journal without one is read-only, as it was
 without `ownerEmail`.
+
+`SiteSummary` no longer carries `travellerNames`. A fork rendering its own
+components should read `travellerNamesOf(user, trip)` from `lib/site.ts`, which
+needs the trip because who was on one is a per-trip fact.

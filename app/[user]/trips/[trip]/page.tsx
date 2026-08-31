@@ -7,9 +7,9 @@ import { buildStoryProps } from "@/lib/tripView";
 import { getPlan } from "@/lib/plan";
 import { getBudgetInBase } from "@/lib/costs";
 import { BlogStructuredData } from "@/components/StructuredData";
-import { getUsernames } from "@/lib/users";
+import { getUser, getUsernames } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary } from "@/lib/site";
+import { siteSummary, travellerFullNamesOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripCountdown from "@/components/TripCountdown";
 import TripStory from "@/app/TripStory";
@@ -78,9 +78,15 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
     showCosts: await mayViewCosts(trip),
     includeDrafts: await isOwner(user),
   });
+  const userConfig = getUser(user);
+  if (!userConfig) notFound();
   return (
     <TripProvider trip={trip} isCurrent={false}>
-      <BlogStructuredData entries={getAllEntries(trip.ref)} site={site} />
+      <BlogStructuredData
+        entries={getAllEntries(trip.ref)}
+        site={site}
+        authors={travellerFullNamesOf(userConfig, trip)}
+      />
       <TripStory
         index={index}
         days={days}

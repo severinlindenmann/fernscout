@@ -7,6 +7,7 @@ import { getCostSummary } from "@/lib/costs";
 import { currentTripRef, getTrip } from "@/lib/trips";
 import TripProvider from "@/components/TripProvider";
 import { getUser } from "@/lib/users";
+import { travellerNamesOf } from "@/lib/site";
 
 export async function generateMetadata({
   params,
@@ -40,10 +41,15 @@ export default async function CostsPage({ params }: PageProps<"/[user]/costs">) 
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(trip))) return null;
+  const userConfig = getUser(user);
+  if (!userConfig) notFound();
   return (
     <TripProvider trip={trip} isCurrent>
       {(await mayViewCosts(trip)) ? (
-        <CostsPageContent summary={getCostSummary(tripId)} />
+        <CostsPageContent
+          summary={getCostSummary(tripId)}
+          travellers={travellerNamesOf(userConfig, trip)}
+        />
       ) : (
         <CostsPrivate />
       )}

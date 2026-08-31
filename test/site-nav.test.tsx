@@ -33,7 +33,6 @@ const site: SiteSummary = {
   tagline: "t",
   url: "https://example.test",
   startLocation: "X",
-  travellerNames: "Alex",
   baseCurrency: "CHF",
   locales: ["en"],
   base: "/alex",

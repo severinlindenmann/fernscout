@@ -3,11 +3,11 @@ import { notFound } from "next/navigation";
 import { getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { currentTripRef, getTrip } from "@/lib/trips";
 import { lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
-import { getUsernames } from "@/lib/users";
+import { getUser, getUsernames } from "@/lib/users";
 import { buildStoryProps } from "@/lib/tripView";
 import { DayStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary } from "@/lib/site";
+import { siteSummary, travellerFullNamesOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripStory from "@/app/TripStory";
 import { isOwner } from "@/lib/contacts/session";
@@ -88,9 +88,16 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
     includeDrafts: owner,
   });
 
+  const userConfig = getUser(user);
+  if (!userConfig) notFound();
+
   return (
     <TripProvider trip={trip} isCurrent>
-      <DayStructuredData entry={entry} site={site} />
+      <DayStructuredData
+        entry={entry}
+        site={site}
+        authors={travellerFullNamesOf(userConfig, trip)}
+      />
       <TripStory
         index={index}
         days={days}
