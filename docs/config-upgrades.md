@@ -82,6 +82,11 @@ otherwise migrated, because those people now belong in the relevant trip's
 `people:` block instead (see below). A config with no `travellers` to draw a
 name from is refused rather than mangled: fix it by hand.
 
+A non-zero exit means at least one journal needs attention — it does **not**
+mean nothing was written. With `--all`, every journal that migrated cleanly is
+still written even if another in the same run was refused; re-running is
+always safe, since a journal already carrying `owner` is left untouched.
+
 ### By hand
 
 Everyone who was on a trip, other than the owner, belongs in that trip's

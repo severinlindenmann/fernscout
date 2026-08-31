@@ -182,6 +182,48 @@ describe("no travellers to build an owner from", () => {
   });
 });
 
+describe("the write path", () => {
+  // The write is meant to be atomic: a temp file in the same directory,
+  // then a rename over the original. Simulating an actual mid-write crash
+  // (the process killed by OOM/SIGKILL partway through writing the temp
+  // file) isn't practical from a vitest test — there's no hook that lands
+  // between two bytes of a writeFileSync call. What *is* testable, and is
+  // the case this suite covers, is a write that fails outright: the target
+  // directory made unwritable so creating the temp file itself fails. That
+  // exercises the same guarantee (original file byte-identical afterwards)
+  // via a path that doesn't depend on timing.
+  //
+  // Skipped when running as root, where directory permission bits don't
+  // block writes and the simulated failure wouldn't occur.
+  const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
+
+  test.skipIf(isRoot)(
+    "a failed write leaves the original file byte-identical, and is reported as needing attention",
+    () => {
+      writeConfig("alex", oldShape());
+      const userDir = path.join(dir, "alex");
+      const before = fs.readFileSync(path.join(userDir, "config.json"), "utf8");
+
+      fs.chmodSync(userDir, 0o555); // r-xr-xr-x: can't create a file inside it
+      let result: { status: number; stdout: string; stderr: string };
+      try {
+        result = run(["--user", "alex"]);
+      } finally {
+        fs.chmodSync(userDir, 0o755); // restore, so afterEach's rmSync can clean up
+      }
+
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toMatch(/failed to write config\.json/);
+      expect(fs.readFileSync(path.join(userDir, "config.json"), "utf8")).toBe(before);
+
+      // No orphaned temp file left behind either: the directory refused the
+      // open() before any temp file could be created.
+      const entries = fs.readdirSync(userDir);
+      expect(entries).toEqual(["config.json"]);
+    },
+  );
+});
+
 describe("the CLI", () => {
   test("refuses to run with neither --user nor --all", () => {
     const result = run([]);

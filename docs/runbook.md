@@ -224,7 +224,9 @@ Three things it does that are not obvious from the name:
 > Check `journalctl -u fernscout` for `config.json is unusable` after any
 > deploy that touched config parsing, and see
 > [`docs/config-upgrades.md`](config-upgrades.md) — most such changes ship a
-> `scripts/migrate-*.ts` to run against `/var/lib/fernscout/content` first.
+> `scripts/migrate-*.ts` to run against `/var/lib/fernscout/content` first. A
+> non-zero exit from one of those scripts means at least one journal needs
+> attention — it does not mean nothing was written; re-running is safe.
 
 ---
 

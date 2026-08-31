@@ -23,8 +23,40 @@
  *
  * Idempotent: a config that already has `owner` is left completely alone.
  */
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+
+/**
+ * Writes `contents` to `configPath` atomically: write a temp file in the same
+ * directory (so it's the same filesystem, which is what makes the rename
+ * atomic on POSIX), then `renameSync` over the original.
+ *
+ * This file lives outside the repository and the server it runs on keeps no
+ * backups of it on purpose (see docs/runbook.md) — a plain in-place
+ * `writeFileSync` leaves a truncated, unrecoverable config behind if the
+ * process is killed mid-write (OOM, SIGKILL, a full disk). The temp-then-
+ * rename sequence means a crash before the rename leaves the *original* file
+ * intact and an orphaned temp file next to it, never a damaged config. If the
+ * write to the temp file itself throws, the temp file is removed before the
+ * error propagates, so a failed attempt doesn't litter the content folder.
+ */
+function writeConfigAtomic(configPath: string, contents: string) {
+  const dir = path.dirname(configPath);
+  const tmp = path.join(dir, `.${path.basename(configPath)}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`);
+  try {
+    fs.writeFileSync(tmp, contents);
+  } catch (err) {
+    try {
+      fs.rmSync(tmp, { force: true });
+    } catch {
+      // Best effort — the write already failed, and the write's own error is
+      // the one worth surfacing.
+    }
+    throw err;
+  }
+  fs.renameSync(tmp, configPath);
+}
 
 const args = process.argv.slice(2);
 const dry = args.includes("--dry-run");
@@ -193,7 +225,14 @@ function migrateOne(user: string): Outcome {
   say(`  owner: ${JSON.stringify(owner, null, 2).replace(/\n/g, "\n  ")}`);
 
   if (!dry) {
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+    try {
+      writeConfigAtomic(configPath, JSON.stringify(config, null, 2) + "\n");
+    } catch (err) {
+      console.warn(
+        `${user}: failed to write config.json (${(err as Error).message}) — original file left untouched.`,
+      );
+      return "failed";
+    }
   }
 
   return "migrated";
