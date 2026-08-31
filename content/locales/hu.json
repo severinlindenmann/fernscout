@@ -120,7 +120,7 @@
   "cost.cumulative": "Futó összeg",
   "cost.cumulativeNote": "Az indulás előtt már elköltött összegtől indulva.",
   "cost.day": "nap",
-  "cost.disclaimer": "A feltüntetett árak {travellers} ténylegesen kifizetett összegei, az aznapi árfolyamon {currency}-ben. Két főre, hacsak nincs másképp jelölve.",
+  "cost.disclaimer": "A feltüntetett árak {travellers} ténylegesen kifizetett összegei, az aznapi árfolyamon {currency}-ben.",
   "cost.everyExpense": "Minden kiadás",
   "cost.hideTable": "Táblázat elrejtése",
   "cost.noRate": "nincs árfolyam",

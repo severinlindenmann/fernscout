@@ -120,7 +120,7 @@
   "cost.cumulative": "Running total",
   "cost.cumulativeNote": "Starting from what we'd already spent before leaving.",
   "cost.day": "day",
-  "cost.disclaimer": "Prices are what {travellers} actually paid, converted to {currency} at the rate on the day. For two people unless noted.",
+  "cost.disclaimer": "Prices are what {travellers} actually paid, converted to {currency} at the rate on the day.",
   "cost.everyExpense": "Every expense",
   "cost.hideTable": "Hide table",
   "cost.noRate": "no rate",

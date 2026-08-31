@@ -120,7 +120,7 @@
   "cost.cumulative": "Laufende Summe",
   "cost.cumulativeNote": "Beginnend bei dem, was wir vor der Abreise schon ausgegeben hatten.",
   "cost.day": "Tag",
-  "cost.disclaimer": "Angegeben ist, was {travellers} tatsächlich bezahlt haben, zum Tageskurs in {currency}. Für zwei Personen, sofern nicht anders vermerkt.",
+  "cost.disclaimer": "Angegeben ist, was {travellers} tatsächlich bezahlt haben, zum Tageskurs in {currency}.",
   "cost.everyExpense": "Alle Ausgaben",
   "cost.hideTable": "Tabelle ausblenden",
   "cost.noRate": "kein Kurs",
