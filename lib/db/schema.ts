@@ -72,10 +72,18 @@ export type LoginCodesTable = {
   email: string;
   /** sha-256 of the six-digit code. The code exists only in the email. */
   code_hash: string;
+  /** sha-256 of the one-click sign-in link's token. Null for agent codes,
+   * which have no link. See `005-signin-link` for why the two credentials are
+   * consumed separately. */
+  link_hash: string | null;
   kind: string;
   created_at: string;
   expires_at: string;
+  /** Set when the *code* is redeemed, which retires the link with it. */
   consumed_at: string | null;
+  /** Set when the *link* is redeemed. Leaves the code usable, so a mail
+   * scanner that follows the link cannot lock the reader out. */
+  link_consumed_at: string | null;
   attempts: number;
 };
 

@@ -1,7 +1,7 @@
 import { isEnabled } from "@/lib/capabilities";
-import { isEmail, issueCode, type SessionKind } from "@/lib/auth";
+import { isEmail, issueCode, signInUrl, type SessionKind } from "@/lib/auth";
 import { sendMail } from "@/lib/mail";
-import { renderMail } from "@/lib/mail/template";
+import { renderMail, type MailBlock } from "@/lib/mail/template";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
@@ -58,30 +58,55 @@ export async function POST(request: Request) {
     return accepted;
   }
 
-  const { code } = await issueCode(username, email, kind);
+  const { code, linkToken } = await issueCode(username, email, kind);
   const base = serverSite().url;
+
+  /**
+   * A reader gets a button; an agent gets a code.
+   *
+   * The button is first and the code is underneath, because one tap is what a
+   * person opening this on a phone will actually do, and copying six digits
+   * between two devices is where the other kind of reader gives up. Both work,
+   * and using the code does not require having ignored the button.
+   */
+  const guestBlocks: MailBlock[] = linkToken
+    ? [
+        {
+          kind: "paragraph",
+          text: `Tap the button to open ${user.title}. It works once, for ten minutes.`,
+        },
+        { kind: "button", text: `Open ${user.title}`, href: signInUrl(base, username, linkToken) },
+        {
+          kind: "paragraph",
+          text: `Or sign in by hand with this code: ${code}`,
+        },
+      ]
+    : [
+        { kind: "paragraph", text: `Your code is ${code}. It works for ten minutes.` },
+        { kind: "button", text: `Open ${user.title}`, href: `${base}/${username}` },
+      ];
+
+  const agentBlocks: MailBlock[] = [
+    { kind: "paragraph", text: `Your code is ${code}. It works for ten minutes.` },
+    {
+      kind: "paragraph",
+      text:
+        "Give this code to the agent that asked for it. It will exchange the code " +
+        "for a token that can write to your journal for seven days.",
+    },
+  ];
 
   await sendMail(
     renderMail(
       email,
-      kind === "agent" ? "Your Fernscout agent code" : `Your code for ${user.title}`,
+      kind === "agent" ? "Your Fernscout agent code" : `Sign in to ${user.title}`,
       {
+        // What a phone shows next to the subject. The code, not the link:
+        // a reader who only glances at the notification can still type it in.
         preheader: `Your code is ${code}`,
-        title: kind === "agent" ? "Agent access code" : "Your sign-in code",
+        title: kind === "agent" ? "Agent access code" : `Sign in to ${user.title}`,
         blocks: [
-          { kind: "paragraph", text: `Your code is ${code}. It works for ten minutes.` },
-          kind === "agent"
-            ? {
-                kind: "paragraph",
-                text:
-                  "Give this code to the agent that asked for it. It will exchange the code " +
-                  "for a token that can write to your journal for seven days.",
-              }
-            : {
-                kind: "button",
-                text: `Open ${user.title}`,
-                href: `${base}/${username}`,
-              },
+          ...(kind === "agent" ? agentBlocks : guestBlocks),
           {
             kind: "paragraph",
             text: "If you did not ask for this, ignore it — nothing has changed.",
