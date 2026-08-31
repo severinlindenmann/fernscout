@@ -64,13 +64,15 @@ const STATUS_KEY: Record<AdminContact["status"], TranslationKey> = {
   blocked: "contact.statusBlocked",
 };
 
-/** What `create` and `update` can answer with — five entries, two owner-only.
- * `needEmail` and `needAddress` are shared with the public form verbatim —
- * neither reads as talking to the wrong person. `invalid_name`'s public
- * wording ("write your name") does, so it gets its own owner-facing copy
- * instead, alongside the two errors only this form can produce:
- * `blocked_contact` (an address the owner shown the door) and `contact_exists`
- * (`create` refusing to rewrite somebody already on the list). */
+/** What `create` and `update` can answer with — six entries, four carrying
+ * owner-facing copy. `needEmail` and `needAddress` are shared with the public
+ * form verbatim — neither reads as talking to the wrong person. `invalid_name`'s
+ * public wording ("write your name") does, so it gets its own owner-facing copy
+ * instead, alongside the three errors only this form can produce:
+ * `blocked_contact` (an address the owner shown the door), `email_taken` (the
+ * address already belongs to a different contact on the list) and
+ * `contact_exists` (`create` refusing to rewrite somebody already on the
+ * list). */
 const ERROR_KEY: Record<string, TranslationKey> = {
   invalid_name: "contact.adminNeedName",
   invalid_email: "contact.needEmail",
@@ -140,6 +142,12 @@ function ContactRow({
                 .filter((line) => line !== "")
                 .join(", ")}
             </dd>
+          </>
+        )}
+        {postal?.tel && (
+          <>
+            <dt>{t("contact.tel")}</dt>
+            <dd>{postal.tel}</dd>
           </>
         )}
       </dl>
@@ -268,6 +276,14 @@ function GuestForm({
   const [form, setForm] = useState<GuestFields>(() => fieldsFor(contact, fallbackLocale));
   const [error, setError] = useState<string | null>(null);
 
+  // Changing the email of an already-active contact knocks them back to
+  // `pending` and drops their access grant (`updateContactByOwner`,
+  // deliberately) — correct, but silent otherwise. Warned here rather than
+  // discovered afterwards.
+  const emailChanged =
+    contact?.status === "active" &&
+    form.email.trim().toLowerCase() !== contact.email.trim().toLowerCase();
+
   function field<K extends keyof GuestFields>(key: K, value: GuestFields[K]) {
     setForm((previous) => ({ ...previous, [key]: value }));
   }
@@ -294,7 +310,7 @@ function GuestForm({
     });
     if (!response?.ok) {
       const body = (await response?.json().catch(() => null)) as { error?: string } | null;
-      // `ERROR_KEY` above: three shared with the public form, two owner-only.
+      // `ERROR_KEY` above: two shared with the public form, four owner-only.
       setError(body?.error ?? "unknown");
       return;
     }
@@ -335,6 +351,9 @@ function GuestForm({
           value={form.email}
           onChange={(e) => field("email", e.target.value)}
         />
+        {emailChanged && (
+          <p className="mt-2 text-base text-coral-600">{t("contact.adminEmailChangeWarning")}</p>
+        )}
       </div>
 
       <div className="mt-4">

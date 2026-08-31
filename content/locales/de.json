@@ -30,6 +30,7 @@
   "contact.adminDelete": "Löschen",
   "contact.adminEdit": "Bearbeiten",
   "contact.adminEditGuest": "Angaben bearbeiten",
+  "contact.adminEmailChangeWarning": "Wenn du eine neue Adresse speicherst, muss sie erneut bestätigt und von dir erneut freigegeben werden.",
   "contact.adminEmailTaken": "Diese Adresse gehört schon zu jemand anderem auf der Liste.",
   "contact.adminGuestCancel": "Abbrechen",
   "contact.adminInviteCopy": "Jetzt kopieren — er wird nur einmal angezeigt.",

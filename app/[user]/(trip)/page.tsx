@@ -5,7 +5,7 @@ import { currentTripRef, getTrip } from "@/lib/trips";
 import { buildStoryProps } from "@/lib/tripView";
 import { BlogStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellerFullNamesOf } from "@/lib/site";
+import { siteSummary, travellersOf } from "@/lib/site";
 import { getDefaultUsername, getUser } from "@/lib/users";
 import TripStory from "@/app/TripStory";
 import { isOwner } from "@/lib/contacts/session";
@@ -42,7 +42,7 @@ export default async function Home({ params }: PageProps<"/[user]">) {
       <BlogStructuredData
         entries={getAllEntries(tripId)}
         site={site}
-        authors={travellerFullNamesOf(userConfig, trip)}
+        authors={travellersOf(userConfig, trip).map((p) => p.name)}
       />
       <TripStory
         index={index}

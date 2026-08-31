@@ -9,7 +9,7 @@ import { getBudgetInBase } from "@/lib/costs";
 import { BlogStructuredData } from "@/components/StructuredData";
 import { getUser, getUsernames } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellerFullNamesOf } from "@/lib/site";
+import { siteSummary, travellersOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripCountdown from "@/components/TripCountdown";
 import TripStory from "@/app/TripStory";
@@ -85,7 +85,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
       <BlogStructuredData
         entries={getAllEntries(trip.ref)}
         site={site}
-        authors={travellerFullNamesOf(userConfig, trip)}
+        authors={travellersOf(userConfig, trip).map((p) => p.name)}
       />
       <TripStory
         index={index}

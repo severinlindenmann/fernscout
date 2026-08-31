@@ -225,9 +225,21 @@ describe("a telephone number", () => {
 
   test("a blob written before this field decrypts with an empty tel", () => {
     const aad = addressAad("u", "c2");
-    // Encrypt a payload with no tel key at all, as existing rows hold.
+    // Encrypt a payload with no tel key at all, as existing rows hold. Built
+    // via a JSON round trip rather than a type assertion, so the object
+    // genuinely lacks the field instead of merely being told to pretend it
+    // has one.
     const legacy = encryptAddress(
-      { name: "", line1: "1 Road", line2: "", postcode: "", city: "Bern", country: "CH" } as never,
+      JSON.parse(
+        JSON.stringify({
+          name: "",
+          line1: "1 Road",
+          line2: "",
+          postcode: "",
+          city: "Bern",
+          country: "CH",
+        }),
+      ),
       aad,
     );
     expect(decryptAddress(legacy, aad)?.tel).toBe("");

@@ -61,6 +61,7 @@ export type TranslationKey =
   | "contact.adminDelete"
   | "contact.adminEdit"
   | "contact.adminEditGuest"
+  | "contact.adminEmailChangeWarning"
   | "contact.adminEmailTaken"
   | "contact.adminGuestCancel"
   | "contact.adminInviteCopy"

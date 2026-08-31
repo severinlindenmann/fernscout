@@ -30,6 +30,7 @@
   "contact.adminDelete": "Törlés",
   "contact.adminEdit": "Szerkesztés",
   "contact.adminEditGuest": "Adatok szerkesztése",
+  "contact.adminEmailChangeWarning": "Ha új címet mentesz, a személynek újra meg kell erősítenie, neked pedig újra jóvá kell hagynod.",
   "contact.adminEmailTaken": "Ez a cím már valaki máshoz tartozik a listán.",
   "contact.adminGuestCancel": "Mégse",
   "contact.adminInviteCopy": "Másold ki most — csak egyszer látszik.",

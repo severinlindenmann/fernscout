@@ -7,7 +7,7 @@ import { getUser, getUsernames } from "@/lib/users";
 import { buildStoryProps } from "@/lib/tripView";
 import { DayStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellerFullNamesOf } from "@/lib/site";
+import { siteSummary, travellersOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripStory from "@/app/TripStory";
 import { isOwner } from "@/lib/contacts/session";
@@ -96,7 +96,7 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
       <DayStructuredData
         entry={entry}
         site={site}
-        authors={travellerFullNamesOf(userConfig, trip)}
+        authors={travellersOf(userConfig, trip).map((p) => p.name)}
       />
       <TripStory
         index={index}

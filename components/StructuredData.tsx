@@ -22,7 +22,9 @@ export function BlogStructuredData({
 }: {
   entries: Entry[];
   site: SiteSummary;
-  authors: string;
+  /** One traveller per entry — never a joined string. Two people sharing a
+   * trip are two `Person`s, not one with an ampersand in their name. */
+  authors: string[];
 }) {
   return (
     <JsonLd
@@ -33,7 +35,7 @@ export function BlogStructuredData({
         description: site.tagline,
         url: site.url,
 
-        author: [{ "@type": "Person", name: authors }],
+        author: authors.map((name) => ({ "@type": "Person", name })),
         blogPost: entries.slice(-10).map((entry) => ({
           "@type": "BlogPosting",
           headline: entry.title,
@@ -52,7 +54,8 @@ export function DayStructuredData({
 }: {
   entry: Entry;
   site: SiteSummary;
-  authors: string;
+  /** One traveller per entry — never a joined string. See `BlogStructuredData`. */
+  authors: string[];
 }) {
   const image = entry.gallery.find((g) => g.type === "image")?.src;
   return (
@@ -66,7 +69,7 @@ export function DayStructuredData({
         dateModified: entry.date,
         url: `${site.url}${site.base}/day/${entry.slug}`,
         image: image ? `${site.url}${image}` : undefined,
-        author: [{ "@type": "Person", name: authors }],
+        author: authors.map((name) => ({ "@type": "Person", name })),
         publisher: { "@type": "Organization", name: site.title },
         isPartOf: { "@type": "Blog", name: site.title, url: `${site.url}${site.base}` },
         contentLocation: {

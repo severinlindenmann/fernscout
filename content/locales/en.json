@@ -30,6 +30,7 @@
   "contact.adminDelete": "Delete",
   "contact.adminEdit": "Edit",
   "contact.adminEditGuest": "Edit their details",
+  "contact.adminEmailChangeWarning": "Saving a new address means they will need to confirm it, and you will need to approve them, again.",
   "contact.adminEmailTaken": "Somebody else on this list already has that address.",
   "contact.adminGuestCancel": "Cancel",
   "contact.adminInviteCopy": "Copy this now — it is shown once.",
