@@ -122,6 +122,27 @@ describe("the people block", () => {
     ]);
     expect(trip("dupe-2026").people).toEqual([]);
   });
+
+  describe("a nickname on a person", () => {
+    test("is read when given", () => {
+      writeTrip("nick-1", [
+        '  - { name: "Robin Berger", email: "robin@example.com", nickname: "Robin" }',
+      ]);
+      expect(trip("nick-1").people[0].nickname).toBe("Robin");
+    });
+
+    test("is absent rather than guessed from the name", () => {
+      writeTrip("nick-2", ['  - { name: "Robin Berger", email: "robin@example.com" }']);
+      expect(trip("nick-2").people[0].nickname).toBeUndefined();
+    });
+
+    test("drops the whole list when it is not text, as any bad entry does", () => {
+      writeTrip("nick-3", [
+        '  - { name: "Robin Berger", email: "robin@example.com", nickname: 7 }',
+      ]);
+      expect(trip("nick-3").people).toEqual([]);
+    });
+  });
 });
 
 /**
