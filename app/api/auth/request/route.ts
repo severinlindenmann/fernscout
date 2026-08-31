@@ -124,7 +124,7 @@ export async function POST(request: Request) {
 /**
  * Whether this address may be sent an agent code for this journal.
  *
- * Two ways in. The journal's `ownerEmail` may write to all of it. Anyone in a
+ * Two ways in. The journal's `owner.email` may write to all of it. Anyone in a
  * trip's `people:` block may write to that trip, and must name it in the
  * request — the code is one address plus one journal, so the trip has to be
  * stated before the token exists rather than chosen afterwards.

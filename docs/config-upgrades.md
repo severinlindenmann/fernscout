@@ -32,6 +32,16 @@ until a future version bump; from then on a file still on an old version stops
 the server at boot with a message pointing back here, rather than starting up
 against a schema it no longer matches.
 
+## Outside configVersion
+
+Everything above is about `content/config.json`, the server-wide file, and
+its boot-time version check. A user's own `content/<username>/config.json`
+carries no `configVersion` at all — it is validated at parse time instead, so
+a shape `lib/config.ts` no longer recognises surfaces as a `ConfigError`
+naming the field, not as a version mismatch at boot. The entry below is one
+of those: a change to the user config, not a `configVersion` bump, and not
+something setting `"configVersion"` fixes.
+
 ## W37 — `travellers` and `ownerEmail` become `owner`
 
 A user's `content/<username>/config.json` named its people twice. `travellers`
