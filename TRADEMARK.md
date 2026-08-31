@@ -1,6 +1,6 @@
 # Trademark policy
 
-**Fernscout**, and the envelope logo in `docs/branding/fernscout-logo.svg`,
+**Fernscout**, and the waymark logo in `docs/branding/fernscout-logo.svg`,
 are the project's name and mark. This document explains what that does and
 doesn't mean for you.
 
@@ -29,14 +29,14 @@ The code is free. The name and logo are not part of that.
 ## What's not fine
 
 - Naming a public fork or a competing hosted service "Fernscout" (or
-  something confusingly close to it), or using the envelope logo for it, in
+  something confusingly close to it), or using the waymark logo for it, in
   a way that could make people think it's this project or affiliated with
   it.
 - Any use that implies endorsement, partnership, or official status this
   project hasn't actually given you.
 
 If you're unsure whether something you want to do crosses that line, ask —
-see the contact details in `README.md`.
+open an issue on the repository.
 
 ## Why "unregistered"
 

@@ -18,16 +18,16 @@ below.
 ## What works today, with no account
 
 ```bash
-npm run photobook -- --trip <id>                      # the whole book
-npm run photobook -- --trip <id> --guides             # + trim and safe-area guides
-npm run photobook -- --trip <id> --outline            # just the page plan, as text
-npm run photobook -- --trip <id> --binding saddle     # short trip: staples, not glue
-npm run photobook -- --trip <id> --size landscape-a4
-npm run photobook -- --trip <id> --icc <profile.icc>  # embed an output intent
+npm run photobook -- --trip <user>/<trip-id>                      # the whole book
+npm run photobook -- --trip <user>/<trip-id> --guides             # + trim and safe-area guides
+npm run photobook -- --trip <user>/<trip-id> --outline            # just the page plan, as text
+npm run photobook -- --trip <user>/<trip-id> --binding saddle     # short trip: staples, not glue
+npm run photobook -- --trip <user>/<trip-id> --size landscape-a4
+npm run photobook -- --trip <user>/<trip-id> --icc <profile.icc>  # embed an output intent
 npm run photobook -- --providers
 ```
 
-Writes to `out/photobooks/` (gitignored):
+Writes to `content/<user>/photobooks/` (gitignored):
 
 | File | For |
 | --- | --- |
@@ -176,8 +176,8 @@ fonts, converts DeviceRGB to the output intent's space, flattens what needs
 flattening, and fails loudly on what it cannot fix.
 
 ```bash
-npm run photobook -- --trip <id> --icc /path/to/FOGRA39.icc
-sh out/photobooks/gs-pdfx.sh          # needs: apt install ghostscript
+npm run photobook -- --trip <user>/<trip-id> --icc /path/to/FOGRA39.icc
+sh content/<user>/photobooks/gs-pdfx.sh   # needs: apt install ghostscript
 ```
 
 `gs-pdfx.sh` and the `PDFX_def.ps` prologue it needs are both generated with
@@ -330,7 +330,7 @@ up.
 
 ## Go-live checklist
 
-1. **Look at the preview.** `out/photobooks/<trip>-preview.html`. Every page,
+1. **Look at the preview.** `content/<user>/photobooks/<trip>-preview.html`. Every page,
    trim line and all. Nothing below matters if the layout is wrong.
 2. **Read `<trip>-pdfx.txt`.** Know what you are sending before you send it.
 3. **Fix the low-resolution warnings** by pointing the content at camera
@@ -340,7 +340,7 @@ up.
    read the validation errors. Fix them.
 5. **Decide about colour.** Either accept the provider's own RGB→CMYK
    conversion and order a proof, or install Ghostscript and run
-   `out/photobooks/gs-pdfx.sh` with the profile your printer names.
+   `content/<user>/photobooks/gs-pdfx.sh` with the profile your printer names.
 6. **Serve the PDFs.** All four fetch by URL. Decide now how a book gets a
    reachable, unguessable HTTPS address, and how it stops being reachable
    afterwards.

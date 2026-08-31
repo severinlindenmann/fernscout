@@ -13,11 +13,11 @@ work package was told to stop.
 
 ```bash
 npm run postcard -- --providers
-npm run postcard -- --photo <file.jpg> --message "..." --to recipients.json --from "Us"
+npm run postcard -- --user <username> --photo <file.jpg> --message "..." --to recipients.json --from "Us"
 npm run postcard -- ... --guides     # adds trim guides, for proofing only
 ```
 
-Writes to `out/postcards/` (gitignored), per recipient:
+Writes to `content/<user>/postcards/` (gitignored), per recipient:
 
 | File | For |
 | --- | --- |

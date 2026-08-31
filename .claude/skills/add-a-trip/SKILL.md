@@ -142,5 +142,6 @@ route if `plan.md` exists, and the budget if `costs.md` does. If the trip does
 **not** appear at all, the cause is nearly always the id — folder name and `id:`
 must match, and both must satisfy the pattern above.
 
-Copy `content/example/trips/example-trip/` if you want a working shape to edit
-rather than a blank page.
+Copy `content/example/trips/alps-2024/` if you want a working shape to edit
+rather than a blank page — it is the smallest of the four demo trips and has a
+`trip.md`, a `costs.md` and a `plan.md` to read side by side.

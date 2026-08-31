@@ -77,7 +77,7 @@ transportMode: "bus"          # flight | train | bus | motorbike | boat | car | 
 transportFrom: "Da Lat"
 transportTo: "Hoi An"
 gallery:
-  - src: "/media/hoi-an/01.jpg"
+  - src: "/media/<trip-id>/hoi-an/01.jpg"   # trip-relative; the username is added at read time
     type: "image"
     width: 1200
     height: 800
@@ -103,7 +103,7 @@ visibility: `private`, `public` or `guest`. An unrecognised value reads as
 | | |
 | --- | --- |
 | `npm run dev` · `npm run build` · `npm start` | the site |
-| `npm test` · `npx tsc --noEmit` · `npx eslint .` | the gate, all four before pushing |
+| `npx tsc --noEmit` · `npx eslint .` · `npm test` · `npm run build` | the gate, all four before pushing |
 | `npm run ingest -- --user <u> --trip <id> <folder>` | a card of photos → dated, geotagged draft days |
 | `npm run rates:update` | refresh the cached ECB rates |
 | `npm run export -- <username>` | the whole journal as a zip |

@@ -26,7 +26,7 @@ Nothing else matters until this passes.
 | --- | --- | --- |
 | **A1** | `npm install` | Finishes, no errors |
 | **A2** | `npm run dev`, open http://localhost:3000 | The **landing page** — what this is, how to hand it to an agent, and the public journals on this server |
-| **A3** | `npm test` | 679 tests pass |
+| **A3** | `npm test` | Every test passes |
 | **A4** | Click a journal card at the bottom of the landing page | Opens that journal, e.g. `/example` |
 | **A5** | `npm run build` | Compiles, no errors |
 | **A6** | `npm run build && npm start`, open http://localhost:3000 | Same as A2. **Test the rest against this**, not `dev` — some bugs only appear in a production build |

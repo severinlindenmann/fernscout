@@ -19,8 +19,8 @@ that your machine accepts and CI rejects with `Missing: ... from lock file`.
 If you bump `.nvmrc`, bump `NODE_VERSION` in `.github/workflows/ci.yml` too and
 regenerate the lockfile with the matching npm.
 
-The repo ships with demo content (`npm run seed:demo`) so the app works end
-to end with no real trip data. Real configuration lives in
+The repo ships with a demo journal at `/example`, rebuilt with
+`npm run demo:build`, so the app works end to end with no real trip data. Real configuration lives in
 `content/config.json`, read by `lib/config.ts` — don't put personal data or
 secrets in code; see `docs/plans/INDEX.md` for the ground rules the codebase
 follows (feature flags default off, secrets stay in the environment, and so
@@ -56,7 +56,7 @@ feature requests ask for different information. If neither fits (a
 question, a security report), open a blank issue and explain.
 
 **Security issues:** please don't open a public issue for a vulnerability.
-See `README.md` for a contact address instead.
+Use GitHub's private advisory form, linked from the "New issue" page.
 
 ## License and copyright
 
