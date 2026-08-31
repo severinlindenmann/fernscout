@@ -215,12 +215,17 @@ export function GET() {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["username", "title"],
+                  required: ["username", "title", "ownerName", "ownerNickname"],
                   properties: {
                     username: { type: "string", description: "The journal's address. Permanent." },
                     title: { type: "string" },
                     tagline: { type: "string" },
                     ownerName: { type: "string" },
+                    ownerNickname: {
+                      type: "string",
+                      description:
+                        "What the site calls them, in its own voice. Never guessed from ownerName.",
+                    },
                     startLocation: { type: "string" },
                     defaultLocale: { type: "string" },
                     locales: { type: "array", items: { type: "string" } },
@@ -234,7 +239,7 @@ export function GET() {
           },
           responses: {
             "201": { description: "Created, with an agent token for it" },
-            "400": { description: "The username or title is not usable" },
+            "400": { description: "The username, title or owner name/nickname is not usable" },
             "401": { description: "Missing or invalid signup token" },
             "403": { description: "This address already owns as many journals as it may" },
             "404": { description: "Signing up is not enabled on this server" },

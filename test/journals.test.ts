@@ -47,7 +47,14 @@ const OWNER = "owner@example.test";
 const DATES = { start: "2027-04-01", end: "2027-04-20" };
 
 function make(username: string, extra: Record<string, unknown> = {}) {
-  return createJournal({ username, title: "A journal", ownerEmail: OWNER, ...extra });
+  return createJournal({
+    username,
+    title: "A journal",
+    ownerEmail: OWNER,
+    ownerName: "Robin Traveller",
+    ownerNickname: "Robin",
+    ...extra,
+  });
 }
 
 describe("creating a journal", () => {
@@ -57,9 +64,33 @@ describe("creating a journal", () => {
 
     const user = getUser("wanderer");
     expect(user?.title).toBe("A journal");
-    expect(user?.ownerEmail).toBe(OWNER);
+    expect(user?.owner.email).toBe(OWNER);
     // Or the owner could never obtain a token to write to what they just made.
     expect(user?.features.auth?.enabled).toBe(true);
+  });
+
+  test("the owner it was created with loads back through getUser", () => {
+    const result = make("traveller", { ownerName: "Alex Rivera", ownerNickname: "Al" });
+    expect(result.ok).toBe(true);
+
+    const user = getUser("traveller");
+    expect(user?.owner.name).toBe("Alex Rivera");
+    expect(user?.owner.nickname).toBe("Al");
+    expect(user?.owner.email).toBe(OWNER);
+  });
+
+  test("refuses a missing or blank nickname, and never guesses one", () => {
+    const missing = make("no-nickname", { ownerNickname: "" });
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) expect(missing.error).toBe("invalid_owner");
+
+    const blank = make("blank-nickname", { ownerNickname: "   " });
+    expect(blank.ok).toBe(false);
+    if (!blank.ok) expect(blank.error).toBe("invalid_owner");
+
+    // In particular: no journal was written that guessed a nickname from the name.
+    expect(getUser("no-nickname")).toBeNull();
+    expect(getUser("blank-nickname")).toBeNull();
   });
 
   test("creates the trips folder, so the journal reads as empty and not as broken", () => {
@@ -92,6 +123,8 @@ describe("creating a journal", () => {
       username: "wanderer",
       title: "Someone else's",
       ownerEmail: "thief@example.test",
+      ownerName: "Thief",
+      ownerNickname: "Thief",
     });
     expect(second.ok).toBe(false);
     if (!second.ok) expect(second.error).toBe("username_taken");
@@ -109,7 +142,13 @@ describe("creating a journal", () => {
 
     // A different address is unaffected.
     expect(
-      createJournal({ username: "someone-else", title: "T", ownerEmail: "other@example.test" }).ok,
+      createJournal({
+        username: "someone-else",
+        title: "T",
+        ownerEmail: "other@example.test",
+        ownerName: "Other",
+        ownerNickname: "Other",
+      }).ok,
     ).toBe(true);
   });
 
