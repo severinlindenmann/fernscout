@@ -11,12 +11,14 @@ import {
   confirmContact,
   deleteContact,
   deleteContactSelf,
+  getContact,
   listContacts,
   manageTokenFor,
   requestContact,
   resolveManageToken,
   revokeContact,
   unsubscribeContact,
+  updateContactByOwner,
   updateContactSelf,
 } from "@/lib/contacts";
 import {
@@ -306,6 +308,54 @@ describe("approval", () => {
 
     const { db } = await getDatabase();
     expect(await db.selectFrom("access_grants").selectAll().execute()).toHaveLength(0);
+  });
+});
+
+describe("the owner adding a guest", () => {
+  test("creates a pending contact, marked as the owner's doing", async () => {
+    const { contactId } = await requestContact("u", {
+      name: "Gran", email: "gran@example.com", locale: "en",
+      address: { line1: "1 Road", city: "Bern", country: "CH", tel: "+41 79 000 00 00" },
+      wantsEmailDigest: false, wantsPostcard: true, createdVia: "owner",
+    });
+    const contact = await getContact("u", contactId!);
+    expect(contact?.status).toBe("pending");
+    expect(contact?.createdVia).toBe("owner");
+    expect(contact?.postalAddress?.tel).toBe("+41 79 000 00 00");
+  });
+
+  test("a pending contact can still be posted to", async () => {
+    const { contactId } = await requestContact("u", {
+      name: "Gran", email: "gran2@example.com", locale: "en",
+      address: { line1: "1 Road", city: "Bern", country: "CH" },
+      wantsEmailDigest: false, wantsPostcard: true, createdVia: "owner",
+    });
+    const contact = await getContact("u", contactId!);
+    expect(contact?.status).toBe("pending");
+    expect(contact?.wantsPostcard).toBe(true);
+    expect(contact?.hasPostalAddress).toBe(true);
+  });
+
+  test("update corrects the address and leaves the status alone", async () => {
+    const { contactId } = await requestContact("u", {
+      name: "Gran", email: "gran3@example.com", locale: "en",
+      address: { line1: "1 Road", city: "Bern", country: "CH" },
+      wantsEmailDigest: false, wantsPostcard: true, createdVia: "owner",
+    });
+    const before = await getContact("u", contactId!);
+    const after = await updateContactByOwner("u", contactId!, {
+      address: { line1: "2 Road", city: "Bern", country: "CH" },
+    });
+    expect(after?.postalAddress?.line1).toBe("2 Road");
+    expect(after?.status).toBe(before?.status);
+  });
+
+  test("update returns null for a contact in another journal", async () => {
+    const { contactId } = await requestContact("u", {
+      name: "Gran", email: "gran4@example.com", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
+    });
+    expect(await updateContactByOwner("other", contactId!, { name: "X" })).toBeNull();
   });
 });
 

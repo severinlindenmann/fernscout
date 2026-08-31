@@ -17,6 +17,13 @@ import type { Locale } from "@/lib/types";
  * does it again: a page that renders is not an authorisation.
  */
 
+// The same field classes `ContactForm.tsx` uses, so the owner's own guest form
+// looks like the one their guests fill in rather than like a different corner
+// of the admin.
+const FIELD =
+  "mt-2 w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-lg text-navy-900";
+const LABEL = "block text-base font-medium text-navy-700";
+
 export type AdminAddress = {
   name: string;
   line1: string;
@@ -24,6 +31,7 @@ export type AdminAddress = {
   postcode: string;
   city: string;
   country: string;
+  tel: string;
 };
 
 export type AdminContact = {
@@ -56,6 +64,16 @@ const STATUS_KEY: Record<AdminContact["status"], TranslationKey> = {
   blocked: "contact.statusBlocked",
 };
 
+/** The three errors `create` and `update` can answer with, named the same way
+ * the public form names them — `ContactForm.tsx` — so a reader who mistyped
+ * their address and an owner who mistyped a guest's see the same words. */
+const ERROR_KEY: Record<string, TranslationKey> = {
+  invalid_name: "contact.needName",
+  invalid_email: "contact.needEmail",
+  invalid_address: "contact.needAddress",
+  blocked_contact: "contact.adminBlockedContact",
+};
+
 type Translate = (key: TranslationKey, vars?: Record<string, string>) => string;
 
 /** One person. Declared at module scope rather than inside the page component:
@@ -66,11 +84,13 @@ function ContactRow({
   t,
   busy,
   act,
+  onEdit,
 }: {
   contact: AdminContact;
   t: Translate;
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
+  onEdit: (contact: AdminContact) => void;
 }) {
   const wants = [
     contact.wantsEmailDigest ? t("contact.wantsDigest") : null,
@@ -139,6 +159,14 @@ function ContactRow({
         <button
           type="button"
           disabled={busy}
+          onClick={() => onEdit(contact)}
+          className="rounded-xl border border-navy-200 px-4 py-2 text-base text-navy-900 disabled:opacity-50"
+        >
+          {t("contact.adminEdit")}
+        </button>
+        <button
+          type="button"
+          disabled={busy}
           onClick={() => act({ action: "delete", id: contact.id })}
           className="rounded-xl border border-coral-400 px-4 py-2 text-base text-coral-600 disabled:opacity-50"
         >
@@ -149,18 +177,319 @@ function ContactRow({
   );
 }
 
+/** The fields the owner's own guest form holds — name, contact details, an
+ * address, and the two consent checkboxes. Declared at module scope like
+ * `ContactRow` above it, for the same reason. */
+type GuestFields = {
+  name: string;
+  email: string;
+  locale: string;
+  tel: string;
+  addressName: string;
+  line1: string;
+  line2: string;
+  postcode: string;
+  city: string;
+  country: string;
+  wantsEmailDigest: boolean;
+  wantsPostcard: boolean;
+};
+
+function fieldsFor(contact: AdminContact | null, fallbackLocale: Locale): GuestFields {
+  const postal = contact?.postalAddress;
+  return {
+    name: contact?.name ?? "",
+    email: contact?.email ?? "",
+    locale: contact?.locale ?? fallbackLocale,
+    tel: postal?.tel ?? "",
+    addressName: postal?.name ?? "",
+    line1: postal?.line1 ?? "",
+    line2: postal?.line2 ?? "",
+    postcode: postal?.postcode ?? "",
+    city: postal?.city ?? "",
+    country: postal?.country ?? "",
+    wantsEmailDigest: contact?.wantsEmailDigest ?? false,
+    wantsPostcard: contact?.wantsPostcard ?? false,
+  };
+}
+
+/**
+ * The owner's own entry into the guest list (W37) — the create-a-contact form
+ * this journal never had before now. Every field, label and translation key
+ * below is lifted from `ContactForm.tsx` rather than re-worded: it is the same
+ * field set asked by the same journal, and giving the two forms separate
+ * copies of the same labels is how they drift apart (the visibility vocabulary
+ * did exactly that in W27).
+ *
+ * One instance of this form exists on the page at a time — opened either by
+ * the "Add a guest" toggle above the pending group, or by a row's own Edit
+ * button, which is why it is `key`ed by the caller on the contact being
+ * edited (or "new"): switching targets has to reset every field, not patch
+ * over what the previous target left behind.
+ *
+ * Submitting never sends `status`. That is `updateContactByOwner`'s rule, not
+ * a UI nicety: there is no field here that could set it even by accident.
+ */
+function GuestForm({
+  contact,
+  fallbackLocale,
+  locales,
+  t,
+  busy,
+  act,
+  onClose,
+}: {
+  /** The row being corrected, or `null` to add a new one. */
+  contact: AdminContact | null;
+  fallbackLocale: Locale;
+  locales: string[];
+  t: Translate;
+  busy: boolean;
+  act: (body: Record<string, unknown>) => Promise<Response | null>;
+  onClose: () => void;
+}) {
+  const editingId = contact?.id ?? null;
+  const [form, setForm] = useState<GuestFields>(() => fieldsFor(contact, fallbackLocale));
+  const [error, setError] = useState<string | null>(null);
+
+  function field<K extends keyof GuestFields>(key: K, value: GuestFields[K]) {
+    setForm((previous) => ({ ...previous, [key]: value }));
+  }
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    const response = await act({
+      action: editingId ? "update" : "create",
+      ...(editingId ? { id: editingId } : {}),
+      name: form.name,
+      email: form.email,
+      locale: form.locale,
+      wantsEmailDigest: form.wantsEmailDigest,
+      wantsPostcard: form.wantsPostcard,
+      address: {
+        name: form.addressName,
+        line1: form.line1,
+        line2: form.line2,
+        postcode: form.postcode,
+        city: form.city,
+        country: form.country,
+        tel: form.tel,
+      },
+    });
+    if (!response?.ok) {
+      const body = (await response?.json().catch(() => null)) as { error?: string } | null;
+      // The same three the public form can produce, named the same way.
+      setError(body?.error ?? "unknown");
+      return;
+    }
+    setError(null);
+    onClose();
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="mt-4 rounded-2xl border border-navy-200 bg-cream-100 p-5"
+    >
+      <p className="font-display text-xl text-navy-900">
+        {t(editingId ? "contact.adminEditGuest" : "contact.adminAddGuest")}
+      </p>
+
+      <div className="mt-4">
+        <label className={LABEL} htmlFor="guest-name">
+          {t("contact.name")}
+        </label>
+        <input
+          id="guest-name"
+          className={FIELD}
+          value={form.name}
+          onChange={(e) => field("name", e.target.value)}
+        />
+      </div>
+
+      <div className="mt-4">
+        <label className={LABEL} htmlFor="guest-email">
+          {t("contact.email")}
+        </label>
+        <input
+          id="guest-email"
+          className={FIELD}
+          type="email"
+          inputMode="email"
+          value={form.email}
+          onChange={(e) => field("email", e.target.value)}
+        />
+      </div>
+
+      <div className="mt-4">
+        <label className={LABEL} htmlFor="guest-locale">
+          {t("contact.language")}
+        </label>
+        <select
+          id="guest-locale"
+          className={FIELD}
+          value={form.locale}
+          onChange={(e) => field("locale", e.target.value)}
+        >
+          {locales.map((option: string) => (
+            <option key={option} value={option}>
+              {LOCALE_LABEL[option]}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="mt-4">
+        <label className={LABEL} htmlFor="guest-tel">
+          {`${t("contact.tel")} (${t("contact.optional")})`}
+        </label>
+        <input
+          id="guest-tel"
+          className={FIELD}
+          type="tel"
+          value={form.tel}
+          onChange={(e) => field("tel", e.target.value)}
+        />
+      </div>
+
+      <fieldset className="mt-6 rounded-2xl border border-navy-200 bg-white p-5">
+        <legend className="px-2 font-display text-lg text-navy-900">
+          {t("contact.address")}
+        </legend>
+        <p className="text-base text-navy-700">{t("contact.addressHint")}</p>
+
+        <div className="mt-4">
+          <label className={LABEL} htmlFor="guest-addr-name">
+            {t("contact.addrName")}
+          </label>
+          <input
+            id="guest-addr-name"
+            className={FIELD}
+            value={form.addressName}
+            onChange={(e) => field("addressName", e.target.value)}
+          />
+        </div>
+        <div className="mt-4">
+          <label className={LABEL} htmlFor="guest-addr-line1">
+            {t("contact.addrLine1")}
+          </label>
+          <input
+            id="guest-addr-line1"
+            className={FIELD}
+            value={form.line1}
+            onChange={(e) => field("line1", e.target.value)}
+          />
+        </div>
+        <div className="mt-4">
+          <label className={LABEL} htmlFor="guest-addr-line2">
+            {`${t("contact.addrLine2")} (${t("contact.optional")})`}
+          </label>
+          <input
+            id="guest-addr-line2"
+            className={FIELD}
+            value={form.line2}
+            onChange={(e) => field("line2", e.target.value)}
+          />
+        </div>
+        <div className="mt-4 flex gap-4">
+          <div className="w-1/3">
+            <label className={LABEL} htmlFor="guest-addr-postcode">
+              {t("contact.addrPostcode")}
+            </label>
+            <input
+              id="guest-addr-postcode"
+              className={FIELD}
+              value={form.postcode}
+              onChange={(e) => field("postcode", e.target.value)}
+            />
+          </div>
+          <div className="flex-1">
+            <label className={LABEL} htmlFor="guest-addr-city">
+              {t("contact.addrCity")}
+            </label>
+            <input
+              id="guest-addr-city"
+              className={FIELD}
+              value={form.city}
+              onChange={(e) => field("city", e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className={LABEL} htmlFor="guest-addr-country">
+            {t("contact.addrCountry")}
+          </label>
+          <input
+            id="guest-addr-country"
+            className={FIELD}
+            value={form.country}
+            onChange={(e) => field("country", e.target.value)}
+          />
+        </div>
+      </fieldset>
+
+      <div className="mt-6 space-y-4">
+        <label className="flex items-start gap-3 text-base text-navy-900">
+          <input
+            type="checkbox"
+            className="mt-1 size-5"
+            checked={form.wantsEmailDigest}
+            onChange={(e) => field("wantsEmailDigest", e.target.checked)}
+          />
+          <span>{t("contact.wantsDigest")}</span>
+        </label>
+        <label className="flex items-start gap-3 text-base text-navy-900">
+          <input
+            type="checkbox"
+            className="mt-1 size-5"
+            checked={form.wantsPostcard}
+            onChange={(e) => field("wantsPostcard", e.target.checked)}
+          />
+          <span>{t("contact.wantsPostcard")}</span>
+        </label>
+      </div>
+
+      {error && (
+        <p role="alert" className="mt-4 text-base text-coral-600">
+          {t(ERROR_KEY[error] ?? "contact.error")}
+        </p>
+      )}
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        <button
+          type="submit"
+          disabled={busy}
+          className="rounded-xl bg-navy-900 px-4 py-3 text-base text-cream-50 disabled:opacity-50"
+        >
+          {t("contact.save")}
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onClose}
+          className="rounded-xl border border-navy-200 px-4 py-3 text-base text-navy-700 disabled:opacity-50"
+        >
+          {t("contact.adminGuestCancel")}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function ContactGroup({
   title,
   rows,
   t,
   busy,
   act,
+  onEdit,
 }: {
   title: string;
   rows: AdminContact[];
   t: Translate;
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
+  onEdit: (contact: AdminContact) => void;
 }) {
   return (
     <section className="mt-10">
@@ -170,7 +499,14 @@ function ContactGroup({
       ) : (
         <ul className="mt-4 space-y-4">
           {rows.map((contact) => (
-            <ContactRow contact={contact} t={t} busy={busy} act={act} key={contact.id} />
+            <ContactRow
+              contact={contact}
+              t={t}
+              busy={busy}
+              act={act}
+              onEdit={onEdit}
+              key={contact.id}
+            />
           ))}
         </ul>
       )}
@@ -202,6 +538,10 @@ export default function ContactsAdmin({
   const [inviteLocale, setInviteLocale] = useState<Locale>(locale);
   const [freshLink, setFreshLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // `null`: closed. `"new"`: the "Add a guest" toggle. Otherwise the row being
+  // corrected. One form on the page at a time, so opening a second target
+  // replaces whichever was open rather than stacking a second copy of it.
+  const [formTarget, setFormTarget] = useState<"new" | AdminContact | null>(null);
 
   const t = (key: TranslationKey, vars?: Record<string, string>) =>
     translate(dictionary, key, vars);
@@ -239,10 +579,57 @@ export default function ContactsAdmin({
       </h1>
       <p className="mt-3 text-lg text-navy-700">{t("contact.adminSubtitle")}</p>
 
-      <ContactGroup title={t("contact.adminPending")} rows={pending} t={t} busy={busy} act={act} />
-      <ContactGroup title={t("contact.adminApproved")} rows={approved} t={t} busy={busy} act={act} />
+      <div className="mt-8">
+        {formTarget === null ? (
+          <button
+            type="button"
+            onClick={() => setFormTarget("new")}
+            className="rounded-xl bg-navy-900 px-4 py-3 text-base text-cream-50"
+          >
+            {t("contact.adminAddGuest")}
+          </button>
+        ) : (
+          <GuestForm
+            // Keyed on the target so switching from one row to another — or to
+            // "new" — remounts the form instead of patching stale field values
+            // from whoever was being edited before.
+            key={formTarget === "new" ? "new" : formTarget.id}
+            contact={formTarget === "new" ? null : formTarget}
+            fallbackLocale={locale}
+            locales={locales}
+            t={t}
+            busy={busy}
+            act={act}
+            onClose={() => setFormTarget(null)}
+          />
+        )}
+      </div>
+
+      <ContactGroup
+        title={t("contact.adminPending")}
+        rows={pending}
+        t={t}
+        busy={busy}
+        act={act}
+        onEdit={setFormTarget}
+      />
+      <ContactGroup
+        title={t("contact.adminApproved")}
+        rows={approved}
+        t={t}
+        busy={busy}
+        act={act}
+        onEdit={setFormTarget}
+      />
       {other.length > 0 && (
-        <ContactGroup title={t("contact.adminOther")} rows={other} t={t} busy={busy} act={act} />
+        <ContactGroup
+          title={t("contact.adminOther")}
+          rows={other}
+          t={t}
+          busy={busy}
+          act={act}
+          onEdit={setFormTarget}
+        />
       )}
 
       <section className="mt-14">

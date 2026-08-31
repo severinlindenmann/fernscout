@@ -521,6 +521,65 @@ export async function revokeContact(owner: string, id: string): Promise<ContactR
   return getContact(owner, id);
 }
 
+/**
+ * The owner correcting somebody's details.
+ *
+ * Keyed on **id**, not on the address, because the commonest correction is the
+ * address itself — `requestContact` would write a second row for the new one
+ * and leave the old behind.
+ *
+ * Deliberately cannot touch `status`. Approving is `approveContact`, and it
+ * refuses an unconfirmed address on purpose; a general-purpose editor that
+ * could set `status` would be a way around that refusal.
+ */
+export async function updateContactByOwner(
+  owner: string,
+  id: string,
+  fields: {
+    name?: string;
+    email?: string;
+    locale?: Locale;
+    address?: Partial<PostalAddress> | null;
+    wantsEmailDigest?: boolean;
+    wantsPostcard?: boolean;
+  },
+): Promise<ContactRecord | null> {
+  const { db } = await getDatabase();
+  const existing = await db
+    .selectFrom("contacts")
+    .selectAll()
+    .where("owner_id", "=", owner)
+    .where("id", "=", id)
+    .executeTakeFirst();
+  if (!existing) return null;
+
+  const patch: Record<string, unknown> = { updated_at: nowIso() };
+  if (fields.name !== undefined) patch.name = fields.name.trim().slice(0, 120) || null;
+  if (fields.email !== undefined) {
+    const email = normaliseEmail(fields.email);
+    patch.email = email;
+    patch.email_key = email;
+  }
+  if (fields.locale !== undefined) patch.locale = fields.locale;
+  if (fields.wantsEmailDigest !== undefined) {
+    patch.wants_email_digest = fields.wantsEmailDigest ? 1 : 0;
+  }
+  if (fields.address !== undefined) {
+    const address = normaliseAddress(fields.address);
+    patch.postal_cipher = isPostable(address)
+      ? encryptAddress(address, addressAad(owner, id))
+      : null;
+    // Wanting a postcard with nowhere to send it is not a state worth storing.
+    if (!isPostable(address)) patch.wants_postcard = 0;
+  }
+  if (fields.wantsPostcard !== undefined && patch.wants_postcard === undefined) {
+    patch.wants_postcard = fields.wantsPostcard ? 1 : 0;
+  }
+
+  await db.updateTable("contacts").set(patch).where("id", "=", id).execute();
+  return getContact(owner, id);
+}
+
 /** The self-serve page: change anything, or leave. */
 export function manageUrl(base: string, username: string, token: string): string {
   return `${base}/${username}/c/${token}`;

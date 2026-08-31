@@ -1,11 +1,16 @@
+import { isEmail, issueCode } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import {
   approveContact,
   deleteContact,
+  getContact,
   listContacts,
+  requestContact,
   revokeContact,
+  updateContactByOwner,
   type ContactRecord,
 } from "@/lib/contacts";
+import { isPostable, normaliseAddress, type PostalAddress } from "@/lib/contacts/crypto";
 import {
   createInvite,
   inviteUrl,
@@ -13,7 +18,8 @@ import {
   openInviteUrl,
   revokeInvite,
 } from "@/lib/contacts/invites";
-import { sendApprovedMail } from "@/lib/contacts/mail";
+import { pickLocale } from "@/lib/contacts/locale";
+import { sendApprovedMail, sendCodeMail } from "@/lib/contacts/mail";
 import { isOwner } from "@/lib/contacts/session";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
@@ -116,6 +122,78 @@ export async function POST(request: Request) {
     case "revoke-invite": {
       await revokeInvite(username, id);
       return Response.json({ ok: true });
+    }
+    case "create": {
+      const name = typeof body.name === "string" ? body.name.trim() : "";
+      const email = typeof body.email === "string" ? body.email : "";
+      if (name === "") return Response.json({ error: "invalid_name" }, { status: 400 });
+      if (!isEmail(email)) return Response.json({ error: "invalid_email" }, { status: 400 });
+
+      const address = normaliseAddress(
+        typeof body.address === "object" && body.address !== null
+          ? (body.address as Record<string, unknown>)
+          : null,
+      );
+      const wantsPostcard = body.wantsPostcard === true;
+      if (wantsPostcard && !isPostable(address)) {
+        return Response.json({ error: "invalid_address" }, { status: 400 });
+      }
+
+      const user = getUser(username)!;
+      const locale = pickLocale(
+        typeof body.locale === "string" ? body.locale : null,
+        null,
+        user.defaultLocale,
+      );
+
+      // `pending`, like every other route into this table. The owner typing an
+      // address is not the address proving it can be read, and approveContact
+      // refuses an unconfirmed one for a reason.
+      //
+      // The address is passed whether or not a postcard was asked for, unlike
+      // the public form, which passes it only with the tick. This is the
+      // owner's own address book: a number and a street they typed in is
+      // something they meant to keep, not a consent they granted themselves.
+      const result = await requestContact(username, {
+        name,
+        email,
+        locale,
+        address,
+        wantsEmailDigest: body.wantsEmailDigest === true,
+        wantsPostcard,
+        createdVia: "owner",
+      });
+      if (result.outcome === "ignored") {
+        return Response.json({ error: "blocked_contact" }, { status: 409 });
+      }
+      // The same six-digit code the public form sends. Without it the row can
+      // never be confirmed and so can never be approved, and an owner-created
+      // contact would be a dead end.
+      const { code } = await issueCode(username, email, "guest");
+      await sendCodeMail(username, user, email, locale, code);
+
+      const contact = await getContact(username, result.contactId);
+      return Response.json({ ok: true, contact: contact ? ownerView(contact) : null });
+    }
+    case "update": {
+      const contact = await updateContactByOwner(username, id, {
+        ...(typeof body.name === "string" ? { name: body.name } : {}),
+        ...(typeof body.email === "string" ? { email: body.email } : {}),
+        ...(typeof body.locale === "string"
+          ? { locale: pickLocale(body.locale, null, getUser(username)!.defaultLocale) }
+          : {}),
+        ...(body.address !== undefined
+          ? { address: body.address as Partial<PostalAddress> | null }
+          : {}),
+        ...(typeof body.wantsEmailDigest === "boolean"
+          ? { wantsEmailDigest: body.wantsEmailDigest }
+          : {}),
+        ...(typeof body.wantsPostcard === "boolean"
+          ? { wantsPostcard: body.wantsPostcard }
+          : {}),
+      });
+      if (!contact) return Response.json({ error: "unknown_contact" }, { status: 404 });
+      return Response.json({ ok: true, contact: ownerView(contact) });
     }
     default:
       return Response.json({ error: "unknown_action" }, { status: 400 });
