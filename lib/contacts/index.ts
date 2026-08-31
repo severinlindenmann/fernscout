@@ -369,6 +369,16 @@ export async function updateContactSelf(
   // save that only touched a preference checkbox, because the form posts the
   // whole address on every submit. Carry the existing number forward unless
   // the caller actually supplied a new, non-empty one.
+  // Note: `patch.address === null` (as opposed to `undefined`, "the caller
+  // didn't send this field") normalises to an all-empty `submittedAddress`,
+  // and lands here the same as any other resend with no `tel` typed — so an
+  // explicit "clear the address" from a guest who has a tel on file carries
+  // that tel forward too, leaving a tel-only blob rather than clearing it.
+  // The UI never sends `address: null` (it always posts the fields, blank or
+  // not), and `deleteContactSelf` is the real "erase everything" path, so
+  // this is a latent inconsistency — "null means delete" now differs per
+  // field — rather than a live bug. Deliberately left alone here: fixing it
+  // risks the tel-preservation behaviour item 1 just added.
   const address =
     submittedAddress === undefined
       ? undefined
@@ -493,6 +503,7 @@ export async function approveContact(
   await db
     .updateTable("contacts")
     .set({ status: "active", approved_at: contact.approvedAt ?? now, updated_at: now })
+    .where("owner_id", "=", owner)
     .where("id", "=", id)
     .execute();
 

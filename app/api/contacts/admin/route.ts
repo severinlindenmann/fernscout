@@ -13,6 +13,7 @@ import {
 } from "@/lib/contacts";
 import {
   EMPTY_ADDRESS,
+  hasAnyDetail,
   isPostable,
   normaliseAddress,
   type PostalAddress,
@@ -216,21 +217,42 @@ export async function POST(request: Request) {
       // wanting one with nowhere to send it is a typo here too.
       const current = await getContact(username, id);
       if (!current) return Response.json({ error: "unknown_contact" }, { status: 404 });
+      const currentAddress = current.postalAddress ?? EMPTY_ADDRESS;
       const nextAddress =
         body.address !== undefined
           ? normaliseAddress(body.address as Partial<PostalAddress> | null)
-          : (current.postalAddress ?? EMPTY_ADDRESS);
+          : currentAddress;
       const nextWantsPostcard =
         typeof body.wantsPostcard === "boolean" ? body.wantsPostcard : current.wantsPostcard;
-      // Only refuse when the request actually asserts the postcard preference
-      // or touches the address. A row can carry `wants_postcard = 1` with an
-      // unreadable address — written by the pre-fix `update`, or a blob that
-      // no longer decrypts after a key rotation — and an edit that touches
-      // neither must still go through: the owner cannot otherwise correct
-      // even the name without first reaching a tick this form may not show.
-      const touchesPostcardOrAddress =
-        typeof body.wantsPostcard === "boolean" || body.address !== undefined;
-      if (touchesPostcardOrAddress && nextWantsPostcard && !isPostable(nextAddress)) {
+      // `ContactsAdmin.tsx`'s form always posts a full `wantsPostcard` and
+      // `address` on every save, whatever the owner actually touched — so
+      // "the request mentions this field" (the previous gate here) is true on
+      // every real save, including a name-only edit against a legacy row
+      // whose `wants_postcard = 1` sits over an unreadable address. That
+      // reintroduced the original bug through the one caller that matters.
+      //
+      // What must actually be refused is a *change* that leaves the row
+      // inconsistent, not the state already sitting in it:
+      //  - genuinely turning the preference ON (it was not already on) while
+      //    the address on file cannot be posted to, and
+      //  - writing an address that now holds *something* but not enough to
+      //    post to.
+      // A save that re-sends exactly what is already stored — the address
+      // unchanged, the tick unchanged — always passes, however unpostable
+      // that stored state is; that is what lets an owner fix a name on a
+      // pre-fix or key-rotated row at all.
+      const addressChanged =
+        nextAddress.name !== currentAddress.name ||
+        nextAddress.line1 !== currentAddress.line1 ||
+        nextAddress.line2 !== currentAddress.line2 ||
+        nextAddress.postcode !== currentAddress.postcode ||
+        nextAddress.city !== currentAddress.city ||
+        nextAddress.country !== currentAddress.country ||
+        nextAddress.tel !== currentAddress.tel;
+      const turningPostcardOn = nextWantsPostcard && !current.wantsPostcard;
+      const newAddressIsHalfWritten =
+        addressChanged && hasAnyDetail(nextAddress) && !isPostable(nextAddress);
+      if ((turningPostcardOn && !isPostable(nextAddress)) || newAddressIsHalfWritten) {
         return Response.json({ error: "invalid_address" }, { status: 400 });
       }
 
@@ -240,13 +262,20 @@ export async function POST(request: Request) {
         ...(typeof body.locale === "string"
           ? { locale: pickLocale(body.locale, null, getUser(username)!.defaultLocale) }
           : {}),
-        ...(body.address !== undefined
-          ? { address: body.address as Partial<PostalAddress> | null }
-          : {}),
+        // Forwarded only when it actually changed, not merely because the
+        // form always includes it. `updateContactByOwner` re-encrypts
+        // whatever `address` it is given and — deliberately, for a genuine
+        // change — zeroes `wants_postcard` itself when that address isn't
+        // postable. Forwarding an unchanged address on every save would run
+        // that same zeroing against a merely-resent legacy state, silently
+        // unsubscribing an owner who only meant to fix a name: the exact
+        // "silently zero the tick" failure mode `update` was already fixed
+        // not to do, reappearing one layer down.
+        ...(addressChanged ? { address: body.address as Partial<PostalAddress> | null } : {}),
         ...(typeof body.wantsEmailDigest === "boolean"
           ? { wantsEmailDigest: body.wantsEmailDigest }
           : {}),
-        ...(typeof body.wantsPostcard === "boolean"
+        ...(typeof body.wantsPostcard === "boolean" && body.wantsPostcard !== current.wantsPostcard
           ? { wantsPostcard: body.wantsPostcard }
           : {}),
       });

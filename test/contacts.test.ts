@@ -330,6 +330,60 @@ describe("approval", () => {
     const { db } = await getDatabase();
     expect(await db.selectFrom("access_grants").selectAll().execute()).toHaveLength(0);
   });
+
+  /**
+   * The bug (second W37 followup round, IMPORTANT 2): the write that sets
+   * `status: "active"` carried only `.where("id", "=", id)`, safe today only
+   * because it is reached through an `owner_id`-scoped `getContact` a few
+   * lines above — the same pattern item 3 fixed on `updateContactByOwner`'s
+   * write, on the highest-stakes write in the file: this is the one that
+   * grants read access to every `guest`-visibility trip. `revokeContact`'s
+   * sibling write already carries the clause. As with `updateContactByOwner`,
+   * there is no way to make this observably wrong through the exported
+   * function today (the read and the write share the same `owner`
+   * parameter, and `id` is globally unique), so this inspects the compiled
+   * query rather than a data outcome — see the identical test above for
+   * `updateContactByOwner`.
+   */
+  test("the approving write itself is scoped to the owner, not only the read that precedes it", async () => {
+    const { contact } = await signUpAndConfirm("ana", "oma@example.test");
+
+    const { db } = await getDatabase();
+    const whereCalls: unknown[][] = [];
+    function watch<T extends object>(builder: T): T {
+      return new Proxy(builder, {
+        get(target, prop, receiver) {
+          const value = Reflect.get(target, prop, receiver) as unknown;
+          if (typeof value !== "function") return value;
+          return (...args: unknown[]) => {
+            if (prop === "where") whereCalls.push(args);
+            const result = (value as (...a: unknown[]) => unknown).apply(target, args);
+            return result && typeof result === "object" && typeof (result as { then?: unknown }).then !== "function"
+              ? watch(result as object)
+              : result;
+          };
+        },
+      });
+    }
+    const loose = db as unknown as { updateTable: (table: unknown) => object };
+    const original = loose.updateTable.bind(loose);
+    const spy = vi
+      .spyOn(loose, "updateTable")
+      .mockImplementation((table: unknown) =>
+        table === "contacts" ? watch(original(table)) : original(table),
+      );
+
+    try {
+      await approveContact("ana", contact.id);
+    } finally {
+      spy.mockRestore();
+    }
+
+    const scopedToOwner = whereCalls.some(
+      (args) => args[0] === "owner_id" && args[1] === "=" && args[2] === "ana",
+    );
+    expect(scopedToOwner).toBe(true);
+  });
 });
 
 describe("the owner adding a guest", () => {
@@ -1106,7 +1160,15 @@ describe("the admin route's update validation", () => {
     expect(after?.wantsPostcard).toBe(true);
   });
 
-  test("still refuses to assert wantsPostcard true with no address, even on a legacy row", async () => {
+  /**
+   * A row whose stored address never decrypts (a key rotation, say) is the
+   * same shape as one that never had an address at all: `getContact` reads
+   * `postalAddress` as `null` either way. Genuinely turning the preference on
+   * against that row must still be refused — the "resend what's already
+   * stored passes through" rule below only excuses a request that changes
+   * nothing.
+   */
+  test("still refuses to turn wantsPostcard on when the stored address won't decrypt", async () => {
     const token = await ownerToken();
     const { contactId } = await requestContact("ana", {
       name: "Gran", email: "legacy-postcard-2@example.test", locale: "en",
@@ -1115,7 +1177,7 @@ describe("the admin route's update validation", () => {
     const { db } = await getDatabase();
     await db
       .updateTable("contacts")
-      .set({ wants_postcard: 1, postal_cipher: null })
+      .set({ postal_cipher: "not-a-real-ciphertext" })
       .where("id", "=", contactId!)
       .execute();
 
@@ -1126,5 +1188,73 @@ describe("the admin route's update validation", () => {
 
     expect(response.status).toBe(400);
     expect(((await response.json()) as { error?: string }).error).toBe("invalid_address");
+    expect((await getContact("ana", contactId!))?.wantsPostcard).toBe(false);
+  });
+
+  /**
+   * IMPORTANT 1 of the second followup round: the fix above only worked
+   * against a request that omits `wantsPostcard`/`address` entirely. The
+   * real form (`ContactsAdmin.tsx`'s `submit`) always posts both, on every
+   * save — so on a legacy row (`wants_postcard = 1`, address unreadable) the
+   * old "touches this field" gate 400'd every edit again, including a
+   * name-only one, exactly reproducing the bug the fix claimed to close.
+   * This posts the request shaped the way the real form does: the stored
+   * (unreadable) address resent verbatim, `wantsPostcard` resent unchanged,
+   * only the name actually different.
+   */
+  test("a save that re-posts the legacy row's own values unchanged succeeds, as the real form does", async () => {
+    const token = await ownerToken();
+    const { contactId } = await requestContact("ana", {
+      name: "Gran", email: "legacy-repost@example.test", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
+    });
+    const { db } = await getDatabase();
+    await db
+      .updateTable("contacts")
+      .set({ wants_postcard: 1, postal_cipher: null })
+      .where("id", "=", contactId!)
+      .execute();
+
+    const response = await postAdmin(
+      {
+        action: "update",
+        id: contactId,
+        name: "Grandma",
+        wantsEmailDigest: false,
+        wantsPostcard: true,
+        address: {
+          name: "", line1: "", line2: "", postcode: "", city: "", country: "", tel: "",
+        },
+      },
+      token,
+    );
+
+    expect(response.status).toBe(200);
+    const after = await getContact("ana", contactId!);
+    expect(after?.name).toBe("Grandma");
+    expect(after?.wantsPostcard).toBe(true);
+  });
+
+  test("submitting a non-empty but non-postable address still 400s, whatever wantsPostcard says", async () => {
+    const token = await ownerToken();
+    const { contactId } = await requestContact("ana", {
+      name: "Gran", email: "partial-address@example.test", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
+    });
+
+    const response = await postAdmin(
+      {
+        action: "update",
+        id: contactId,
+        address: {
+          name: "Gran", line1: "", line2: "", postcode: "", city: "Zurich", country: "", tel: "",
+        },
+      },
+      token,
+    );
+
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error?: string }).error).toBe("invalid_address");
+    expect((await getContact("ana", contactId!))?.postalAddress).toBeNull();
   });
 });
