@@ -14,6 +14,8 @@ import {
   resolveSession,
   revokeSession,
   verifyCode,
+  verifyLink,
+  signInUrl,
 } from "@/lib/auth";
 
 /**
@@ -211,5 +213,106 @@ describe("sessions", () => {
   test("sessions are scoped to their owner", async () => {
     await login("guest");
     expect(await listSessions("bea")).toHaveLength(0);
+  });
+});
+
+/**
+ * The one-click link in a sign-in email.
+ *
+ * The link and the six-digit code are two credentials on one row, and the
+ * whole design rests on them being consumed *separately* — see
+ * `005-signin-link`. These are the tests that hold that apart.
+ */
+describe("the sign-in link", () => {
+  test("a guest code carries one; an agent code does not", async () => {
+    const guest = await issueCode("ana", "reader@example.test", "guest");
+    expect(guest.linkToken).toMatch(/^[A-Za-z0-9_-]{20,}$/);
+
+    // An agent is a program with no cookie jar. A URL that silently opens a
+    // browser session is the wrong shape of credential to mail one.
+    const agent = await issueCode("ana", "reader@example.test", "agent");
+    expect(agent.linkToken).toBeUndefined();
+  });
+
+  test("redeeming it opens a read session and nothing wider", async () => {
+    const { linkToken } = await issueCode("ana", "reader@example.test", "guest");
+    const result = await verifyLink("ana", linkToken!);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.token).toMatch(/^fs_guest_/);
+    expect(result.scope).toBe("read");
+  });
+
+  test("it works exactly once", async () => {
+    const { linkToken } = await issueCode("ana", "reader@example.test", "guest");
+    expect((await verifyLink("ana", linkToken!)).ok).toBe(true);
+    expect((await verifyLink("ana", linkToken!)).ok).toBe(false);
+  });
+
+  test("a link followed by a mail scanner does not cost the reader their code", async () => {
+    // The failure this whole split exists to prevent: a corporate scanner
+    // fetches every URL in an incoming message, and the reader — who has not
+    // even opened it yet — finds their code already spent.
+    const { code, linkToken } = await issueCode("ana", "reader@example.test", "guest");
+    await verifyLink("ana", linkToken!);
+
+    const byHand = await verifyCode("ana", "reader@example.test", code, "guest");
+    expect(byHand.ok).toBe(true);
+  });
+
+  test("but using the code retires the link with it", async () => {
+    const { code, linkToken } = await issueCode("ana", "reader@example.test", "guest");
+    expect((await verifyCode("ana", "reader@example.test", code, "guest")).ok).toBe(true);
+    expect((await verifyLink("ana", linkToken!)).ok).toBe(false);
+  });
+
+  test("an expired link is refused", async () => {
+    const { linkToken } = await issueCode("ana", "reader@example.test", "guest");
+    const { db } = await getDatabase();
+    await db
+      .updateTable("login_codes")
+      .set({ expires_at: new Date(Date.now() - 1000).toISOString() })
+      .execute();
+    const result = await verifyLink("ana", linkToken!);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("expired");
+  });
+
+  test("asking for a new code invalidates the previous link", async () => {
+    const first = await issueCode("ana", "reader@example.test", "guest");
+    await issueCode("ana", "reader@example.test", "guest");
+    expect((await verifyLink("ana", first.linkToken!)).ok).toBe(false);
+  });
+
+  test("a link cannot be redeemed against another journal", async () => {
+    const { linkToken } = await issueCode("ana", "reader@example.test", "guest");
+    expect((await verifyLink("bea", linkToken!)).ok).toBe(false);
+  });
+
+  test("a guest link cannot be redeemed as an agent token", async () => {
+    // The kinds are not interchangeable — decision 24. If this ever passes,
+    // a link mailed to a reader has become a credential that can write.
+    const { linkToken } = await issueCode("ana", "reader@example.test", "guest");
+    expect((await verifyLink("ana", linkToken!, "agent")).ok).toBe(false);
+  });
+
+  test("the token is never stored in the clear", async () => {
+    const { linkToken } = await issueCode("ana", "reader@example.test", "guest");
+    const { db } = await getDatabase();
+    const rows = await db.selectFrom("login_codes").selectAll().execute();
+    expect(rows[0].link_hash).not.toBe(linkToken);
+    expect(rows[0].link_hash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  test("a made-up token is refused", async () => {
+    await issueCode("ana", "reader@example.test", "guest");
+    expect((await verifyLink("ana", "not-a-real-token")).ok).toBe(false);
+  });
+
+  test("the url carries no address, only the token", async () => {
+    // A forwarded link must not also disclose who reads this journal.
+    const url = signInUrl("https://x.test", "ana", "TOKEN123");
+    expect(url).toBe("https://x.test/ana/s/TOKEN123");
+    expect(url).not.toContain("@");
   });
 });

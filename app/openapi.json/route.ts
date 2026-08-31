@@ -119,6 +119,128 @@ export function GET() {
             "403": { description: "The token belongs to a different journal" },
           },
         },
+        post: {
+          summary: "Create a trip (owner only; private unless asked otherwise)",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["id", "title", "start", "end"],
+                  properties: {
+                    id: { type: "string", description: "URL segment: lowercase, digits, dashes." },
+                    title: { type: "string" },
+                    start: { type: "string", description: "2027-04-01. Required — a trip without dates is never read." },
+                    end: { type: "string", description: "2027-05-15. Required." },
+                    tagline: { type: "string" },
+                    status: { type: "string", enum: ["upcoming", "current", "past"] },
+                    accent: { type: "string", enum: ["sky", "yellow", "green", "coral", "navy"] },
+                    visibility: { type: "string", enum: ["private", "public", "guest"], default: "private" },
+                    listed: { type: "boolean" },
+                    intro: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": { description: "Created" },
+            "400": { description: "The id, title or dates are not usable" },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "Another journal's token, or one scoped to a single trip" },
+            "409": { description: "A trip with that id already exists" },
+          },
+        },
+      },
+      "/api/auth/signup/request": {
+        post: {
+          summary: "Ask for a code to create a journal (no journal needed yet)",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["email"],
+                  properties: { email: { type: "string", format: "email" } },
+                },
+              },
+            },
+          },
+          responses: {
+            "202": { description: "Accepted — a code is mailed if the address is usable" },
+            "404": { description: "Signing up is not enabled on this server" },
+            "429": { description: "Too many attempts" },
+            "503": { description: "This server cannot send mail, so signing up cannot finish" },
+          },
+        },
+      },
+      "/api/auth/signup/verify": {
+        post: {
+          summary: "Exchange the code for a token that can create one journal",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["email", "code"],
+                  properties: {
+                    email: { type: "string", format: "email" },
+                    code: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "A signup token, good for twenty minutes" },
+            "401": { description: "The code is wrong, expired or already used" },
+          },
+        },
+      },
+      "/api/v1/journals": {
+        post: {
+          summary: "Create a journal",
+          description:
+            "Takes the signup token. Answers with an agent token for the journal it just " +
+            "created, so the caller can go straight on to creating a trip.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["username", "title"],
+                  properties: {
+                    username: { type: "string", description: "The journal's address. Permanent." },
+                    title: { type: "string" },
+                    tagline: { type: "string" },
+                    ownerName: { type: "string" },
+                    startLocation: { type: "string" },
+                    defaultLocale: { type: "string" },
+                    locales: { type: "array", items: { type: "string" } },
+                    baseCurrency: { type: "string" },
+                    displayCurrencies: { type: "array", items: { type: "string" } },
+                    units: { type: "string", enum: ["metric", "imperial"] },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": { description: "Created, with an agent token for it" },
+            "400": { description: "The username or title is not usable" },
+            "401": { description: "Missing or invalid signup token" },
+            "403": { description: "This address already owns as many journals as it may" },
+            "404": { description: "Signing up is not enabled on this server" },
+            "409": { description: "That username is taken" },
+          },
+        },
       },
       "/api/v1/{user}/trips/{trip}/days": {
         get: {

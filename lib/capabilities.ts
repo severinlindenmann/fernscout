@@ -19,6 +19,10 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   push: { env: ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"], db: false },
   mail: { env: [], db: false }, // transport-specific; see mailRequirements()
   auth: { env: ["SESSION_SECRET"], db: true },
+  // Self-service journal creation. Needs somewhere to keep the codes it
+  // issues, and — checked in the route rather than here — mail to send them
+  // with, since a signup nobody can complete is worse than one refused.
+  signup: { env: ["SESSION_SECRET"], db: true },
   contacts: { env: ["CONTACTS_ENCRYPTION_KEY"], db: true },
   postcards: { env: [], db: true }, // provider-specific; see providerRequirements()
   photobook: { env: [], db: false },

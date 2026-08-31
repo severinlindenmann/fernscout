@@ -17,7 +17,22 @@ import { getDatabase } from "../db";
  * `AUTH_DEV_CODE` fixes it outright for end-to-end tests.
  */
 
-export type SessionKind = "guest" | "agent";
+/**
+ * `signup` is the odd one out and deliberately so: it belongs to an address
+ * rather than to a journal, because at the moment it is issued there is no
+ * journal for it to belong to. It can do exactly one thing — create one — and
+ * it expires in twenty minutes.
+ */
+export type SessionKind = "guest" | "agent" | "signup";
+
+/**
+ * The owner a signup code is filed under.
+ *
+ * Not a username, and it cannot become one: `USERNAME_RE` in `lib/users.ts`
+ * has no `*`, so no journal can ever collide with this and no session issued
+ * here can satisfy `ownsUser` for anything real.
+ */
+export const SIGNUP_OWNER = "*";
 
 export const CODE_TTL_MS = 10 * 60 * 1000;
 export const MAX_CODE_ATTEMPTS = 5;
@@ -26,11 +41,15 @@ export const MAX_CODE_ATTEMPTS = 5;
 export const SESSION_TTL_MS: Record<SessionKind, number> = {
   agent: 7 * 24 * 60 * 60 * 1000,
   guest: 365 * 24 * 60 * 60 * 1000,
+  // Long enough to finish the call it was issued for, short enough that a
+  // token which can create journals is not lying around afterwards.
+  signup: 20 * 60 * 1000,
 };
 
 export const SESSION_SCOPE: Record<SessionKind, string> = {
   agent: "write:content",
   guest: "read",
+  signup: "create:journal",
 };
 
 export const GUEST_COOKIE = "fs_session";
@@ -59,6 +78,24 @@ export function generateToken(kind: SessionKind): string {
   return `fs_${kind}_${crypto.randomBytes(32).toString("base64url")}`;
 }
 
+/**
+ * The token in a one-click sign-in link.
+ *
+ * 32 bytes, url-safe, and — unlike the six-digit code — not guessable at all.
+ * It has to carry the whole identification on its own: the URL deliberately
+ * holds no email address, so that a link forwarded or pasted somewhere public
+ * does not also disclose who reads this journal.
+ */
+export function generateLinkToken(): string {
+  return crypto.randomBytes(32).toString("base64url");
+}
+
+/** Where a sign-in link points. One place, so the mail and the route cannot
+ * disagree about the shape of it. */
+export function signInUrl(base: string, username: string, linkToken: string): string {
+  return `${base.replace(/\/$/, "")}/${username}/s/${linkToken}`;
+}
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -71,7 +108,12 @@ export function isEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
 }
 
-export type IssuedCode = { code: string; expiresAt: string };
+export type IssuedCode = {
+  code: string;
+  expiresAt: string;
+  /** Present for guest codes only. An agent has no browser to sign in. */
+  linkToken?: string;
+};
 
 /**
  * Issue a login code for an address.
@@ -100,6 +142,10 @@ export async function issueCode(
     .execute();
 
   const code = generateCode();
+  // Only a guest code gets a link. An agent token is handed back through the
+  // API to a program with no cookie jar; a URL that quietly creates a browser
+  // session is the wrong shape of credential to mail one.
+  const linkToken = kind === "guest" ? generateLinkToken() : undefined;
   await db
     .insertInto("login_codes")
     .values({
@@ -107,6 +153,8 @@ export async function issueCode(
       owner_id: owner,
       email: address,
       code_hash: hashSecret(code),
+      link_hash: linkToken ? hashSecret(linkToken) : null,
+      link_consumed_at: null,
       kind,
       created_at: now.toISOString(),
       expires_at: expiresAt,
@@ -115,7 +163,7 @@ export async function issueCode(
     })
     .execute();
 
-  return { code, expiresAt };
+  return { code, expiresAt, linkToken };
 }
 
 export type VerifyResult =
@@ -191,12 +239,93 @@ export async function verifyCode(
     return { ok: false, reason: "wrong" };
   }
 
+  // Redeeming the code retires the link along with it: the reader is in, and
+  // the weaker credential has no reason to stay live in someone's inbox.
   await db
     .updateTable("login_codes")
-    .set({ consumed_at: nowIso() })
+    .set({ consumed_at: nowIso(), link_consumed_at: nowIso() })
     .where("id", "=", row.id)
     .execute();
 
+  return openSession(owner, address, kind, scope);
+}
+
+/**
+ * Redeem a one-click sign-in link.
+ *
+ * The token is the whole key: there is no address in the URL to check it
+ * against, which is the point — a link that named its recipient would turn a
+ * forwarded email into a statement about who reads this journal.
+ *
+ * Unlike `verifyCode` this consumes only the link, leaving the six-digit code
+ * live. A mail scanner that follows the URL before the reader has opened the
+ * message therefore costs them the button, not the sign-in.
+ */
+export async function verifyLink(
+  owner: string,
+  linkToken: string,
+  kind: SessionKind = "guest",
+): Promise<VerifyResult> {
+  const { db } = await getDatabase();
+
+  const row = await db
+    .selectFrom("login_codes")
+    .selectAll()
+    .where("owner_id", "=", owner)
+    .where("kind", "=", kind)
+    .where("link_hash", "=", hashSecret(linkToken.trim()))
+    .where("link_consumed_at", "is", null)
+    // A code redeemed by hand consumes the row, and this link with it.
+    .where("consumed_at", "is", null)
+    .executeTakeFirst();
+
+  // No attempt counter here, and none needed: the token is 256 bits, so there
+  // is nothing to brute-force and nothing an attempt count would protect.
+  if (!row) return { ok: false, reason: "no-code" };
+
+  if (new Date(row.expires_at).getTime() < Date.now()) {
+    await db
+      .updateTable("login_codes")
+      .set({ link_consumed_at: nowIso() })
+      .where("id", "=", row.id)
+      .execute();
+    return { ok: false, reason: "expired" };
+  }
+
+  await db
+    .updateTable("login_codes")
+    .set({ link_consumed_at: nowIso() })
+    .where("id", "=", row.id)
+    .execute();
+
+  return openSession(owner, row.email, kind);
+}
+
+/**
+ * An agent session for a journal, without a code round trip.
+ *
+ * The one caller is `POST /api/v1/journals`: the address has just been proved
+ * by the signup code, and sending its owner back for a second code — to a
+ * journal created a millisecond ago, by them — would be ceremony rather than
+ * security. Nothing else may use this; every other path goes through a code.
+ */
+export async function openAgentSession(
+  owner: string,
+  email: string,
+): Promise<{ token: string; expiresAt: string }> {
+  const result = await openSession(owner, email, "agent");
+  if (!result.ok) throw new Error("could not open a session for a journal just created");
+  return { token: result.token, expiresAt: result.expiresAt };
+}
+
+/** Mint the session both redemption paths end at. */
+async function openSession(
+  owner: string,
+  address: string,
+  kind: SessionKind,
+  scope?: string,
+): Promise<VerifyResult> {
+  const { db } = await getDatabase();
   const userId = await upsertUser(owner, address);
   const token = generateToken(kind);
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS[kind]).toISOString();
