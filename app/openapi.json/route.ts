@@ -578,9 +578,13 @@ export function GET() {
           responses: {
             "201": {
               description:
-                "Written and added to the day. `items` is what was attached; `attached` is " +
-                "false only if the entry has no frontmatter to write into, in which case the " +
-                "files are still on disk and `items` is what to add by hand.",
+                "Written and added to the day. `items` is the resized copy the site serves, " +
+                "and its width/height are that copy's. `kept` is the original stored " +
+                "untouched for print, with the dimensions you sent — the two differ on " +
+                "purpose, and `kept` is how you confirm the full-resolution file survived " +
+                "rather than taking it on trust. `attached` is false only if the entry has " +
+                "no frontmatter to write into, in which case the files are still on disk " +
+                "and `items` is what to add by hand.",
             },
             "400": { description: "A file, a URL, or the day was rejected — the response says which and why" },
             "409": { description: "That day is published; changing what people have read is a person's job" },

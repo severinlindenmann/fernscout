@@ -396,6 +396,59 @@ describe("a batch that fails halfway", () => {
  * photographs nothing pointed at, and the only way back was deleting the
  * drafts.
  */
+/**
+ * B30. An agent reported that the URL route "keeps no original", having sent
+ * 3000px and read 2000px back. It was wrong — the original was always kept —
+ * but nothing in the reply said so, and the guide promises a photobook is
+ * printed from it. A promise the API makes and never evidences is one that
+ * gets doubted.
+ */
+describe("what was kept, beside what is served", () => {
+  test("reports the original's dimensions, not the derivative's", async () => {
+    writeDay("day-one", "2026-01-01", true);
+    const result = await storeUploads(REF, "day-one", [
+      { filename: "big.jpg", bytes: await jpeg(3000, 2000) },
+    ]);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    // The served copy is resized…
+    expect(result.items[0].width).toBe(2000);
+    expect(result.items[0].height).toBe(1333);
+    // …and the original is not. These are the numbers the caller sent, which
+    // is the fact they are actually checking.
+    expect(result.kept).toHaveLength(1);
+    expect(result.kept[0]).toMatchObject({ filename: "big.jpg", width: 3000, height: 2000 });
+    expect(result.kept[0].bytes).toBeGreaterThan(0);
+  });
+
+  test("the original really is on disk at full size — the claim being doubted", async () => {
+    writeDay("day-one", "2026-01-01", true);
+    await storeUploads(REF, "day-one", [
+      { filename: "big.jpg", bytes: await jpeg(3000, 2000) },
+    ]);
+
+    const original = path.join(tripPath(), "originals", "day-one", "01.jpg");
+    expect(fs.existsSync(original)).toBe(true);
+    const meta = await sharp(original).metadata();
+    expect(meta.width).toBe(3000);
+    expect(meta.height).toBe(2000);
+  });
+
+  test("one entry per file, in the order they were sent", async () => {
+    writeDay("day-one", "2026-01-01", true);
+    const result = await storeUploads(REF, "day-one", [
+      { filename: "a.jpg", bytes: await jpeg(2400, 1600) },
+      { filename: "b.jpg", bytes: await jpeg(800, 600) },
+    ]);
+    if (!result.ok) throw new Error("expected the batch to land");
+    expect(result.kept.map((k) => k.filename)).toEqual(["a.jpg", "b.jpg"]);
+    // A source already under the cap is not enlarged, so kept and served match.
+    expect(result.kept[1]).toMatchObject({ width: 800, height: 600 });
+    expect(result.items[1]).toMatchObject({ width: 800, height: 600 });
+  });
+});
+
 describe("attaching a gallery to the day", () => {
   test("puts what was uploaded into the entry that names it", async () => {
     writeDay("day-one", "2026-01-01", true);

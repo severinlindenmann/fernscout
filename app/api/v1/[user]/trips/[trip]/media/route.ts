@@ -1,6 +1,6 @@
 import { authenticate, errorResponse, mayWriteTrip, ownsUser } from "@/lib/api/auth";
 import { attachGallery, isPublished } from "@/lib/api/entries";
-import { storeUploads, type UploadCandidate } from "@/lib/api/media";
+import { storeUploads, type KeptOriginal, type UploadCandidate } from "@/lib/api/media";
 import { getTrip, tripRef } from "@/lib/trips";
 import { fetchImage } from "@/lib/api/fetchMedia";
 import { getUser } from "@/lib/users";
@@ -70,16 +70,33 @@ function dayProblem(ref: string, day: string): Response | null {
  * already on disk by then, so the honest answer is the success it is, plus
  * `attached: false` and the block to add by hand.
  */
-function stored(day: string, items: GalleryItem[], attached: boolean, error?: string) {
+function stored(
+  day: string,
+  items: GalleryItem[],
+  kept: KeptOriginal[],
+  attached: boolean,
+  error?: string,
+) {
   return Response.json(
     {
       ok: true,
       day,
       items,
+      /**
+       * What was kept, beside what is served.
+       *
+       * `items` are the derivatives, and their `width`/`height` are the served
+       * copy's — so an agent that sent 3000px and read 2000px back had no way
+       * to tell that the original survived, on a route whose documentation
+       * promises a photobook is printed from it. Now it can compare the two.
+       */
+      kept,
       attached,
       note: attached
-        ? `Added to "${day}". Nothing to paste — read the day back to see it.`
-        : `${error} The originals are kept either way.`,
+        ? `Added to "${day}". Nothing to paste — read the day back to see it. ` +
+          `\`kept\` is what was stored untouched for print; \`items\` is the resized copy the ` +
+          `site serves.`
+        : `${error} The originals in \`kept\` are stored either way.`,
     },
     { status: 201 },
   );
@@ -142,7 +159,7 @@ export async function POST(
       return Response.json({ error: "invalid_media", problems: written.problems }, { status: 400 });
     }
     const attached = attachGallery(ref, day, written.items);
-    return stored(day, written.items, attached.ok, attached.ok ? undefined : attached.error);
+    return stored(day, written.items, written.kept, attached.ok, attached.ok ? undefined : attached.error);
   }
 
   const form = await request.formData().catch(() => null);
@@ -209,5 +226,5 @@ export async function POST(
   }
 
   const attached = attachGallery(ref, day, result.items);
-  return stored(day, result.items, attached.ok, attached.ok ? undefined : attached.error);
+  return stored(day, result.items, result.kept, attached.ok, attached.ok ? undefined : attached.error);
 }

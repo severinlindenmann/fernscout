@@ -1,6 +1,7 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
+import sharp from "sharp";
 import { decodeSource, extensionFor, makeDerivative } from "../ingest/image.ts";
 import { getEntryBySlug } from "../entries";
 import { frontmatterSrc } from "../ingest/paths.ts";
@@ -30,8 +31,29 @@ export type UploadCandidate = {
   bytes: Buffer;
 };
 
+/**
+ * What was kept of one file, as opposed to what is served.
+ *
+ * The endpoint has always kept the original — the raw bytes, before any
+ * resize, for whichever door they arrived through — and never said so. An
+ * agent that sends 3000px, reads 2000px back in `items`, and has just been
+ * told by the guide that a photobook is printed from the original has every
+ * reason to conclude the promise did not hold. `items` carries the *served*
+ * copy's dimensions; this carries the original's, so the two can be compared
+ * rather than confused.
+ */
+export type KeptOriginal = {
+  /** The name the caller sent, or the one derived from the URL. */
+  filename: string;
+  bytes: number;
+  /** Absent for a video, where dimensions come from a probe rather than a
+   * decode and are the transcode's business. */
+  width?: number;
+  height?: number;
+};
+
 export type UploadResult =
-  | { ok: true; items: GalleryItem[] }
+  | { ok: true; items: GalleryItem[]; kept: KeptOriginal[] }
   | { ok: false; problems: Problem[] };
 
 function megabytes(bytes: number): string {
@@ -234,6 +256,7 @@ export async function storeUploads(
   const staging = fs.mkdtempSync(path.join(tripDir(ref), ".staging-"));
   const staged: { from: string; to: string }[] = [];
   const items: GalleryItem[] = [];
+  const originals: KeptOriginal[] = [];
   let index = nextIndex(mediaOut);
 
   /** Give up, leaving the trip exactly as it was. */
@@ -317,6 +340,11 @@ export async function storeUploads(
       }
 
       try {
+        // Measured from the decoded source rather than from `upload.bytes`,
+        // because a HEIC's own header is not something sharp can always read —
+        // `decodeSource` is what guarantees a file with legible dimensions.
+        // These are the *original's* pixels; the derivative's are below.
+        const original = await sharp(source.file).metadata();
         const derivative = await makeDerivative(source);
         const name = `${stem}${extensionFor(derivative.format)}`;
         fs.writeFileSync(path.join(staging, name), derivative.bytes);
@@ -329,6 +357,12 @@ export async function storeUploads(
           type: "image",
           width: derivative.width,
           height: derivative.height,
+        });
+        originals.push({
+          filename: upload.filename,
+          bytes: upload.bytes.byteLength,
+          width: original.width,
+          height: original.height,
         });
       } finally {
         source.dispose();
@@ -348,5 +382,5 @@ export async function storeUploads(
     fs.rmSync(staging, { recursive: true, force: true });
   }
 
-  return { ok: true, items };
+  return { ok: true, items, kept: originals };
 }

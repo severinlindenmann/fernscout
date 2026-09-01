@@ -12,7 +12,7 @@ import { validateEntry, type Problem } from "../validate/entry";
 import { createJournal } from "../journals";
 import { createTrip } from "../tripWrite";
 import { serverSite } from "../site";
-import { storeUploads, type UploadCandidate } from "../api/media";
+import { storeUploads, type KeptOriginal, type UploadCandidate } from "../api/media";
 import { fetchImage } from "../api/fetchMedia";
 import { getUser } from "../users";
 import { confirmationMatches, confirmationRequired } from "../agentConfirm";
@@ -346,6 +346,27 @@ const deleteDayTool: Handler = (session, args) => {
   };
 };
 
+/**
+ * What was stored untouched, in a sentence.
+ *
+ * The tool's reply reports the derivative's dimensions, and the guide promises
+ * a photobook is printed from the original — so an agent that sent 3000px and
+ * read 2000px back concluded the original had been discarded. It had not. This
+ * says so with the numbers it actually sent.
+ */
+function keptSummary(kept: KeptOriginal[]): string {
+  const sized = kept.filter((k) => k.width && k.height);
+  const shown = sized
+    .slice(0, 3)
+    .map((k) => `${k.filename} at ${k.width}×${k.height}`)
+    .join(", ");
+  const rest = sized.length > 3 ? `, and ${sized.length - 3} more` : "";
+  return sized.length > 0
+    ? `The originals are kept untouched — ${shown}${rest} — and the photobook prints from ` +
+        `those, not from the resized copies the site serves.`
+    : "The originals are kept untouched, and the photobook prints from those.";
+}
+
 const addMedia: Handler = async (session, args) => {
   const trip = resolveTrip(session, args);
   if (!trip.ok) return trip;
@@ -408,11 +429,10 @@ const addMedia: Handler = async (session, args) => {
     ok: true,
     text: attached.ok
       ? `Wrote ${result.items.length} file(s) and added them to ${day}. Nothing to paste — ` +
-        `read the day back to see them. The originals are kept as sent: the site serves a ` +
-        `resized copy, the photobook prints from what you gave it.`
+        `read the day back to see them. ${keptSummary(result.kept)}`
       : `Wrote ${result.items.length} file(s) to ${day}, but could not add them to the entry: ` +
         `${attached.error}`,
-    data: { day, items: result.items, attached: attached.ok },
+    data: { day, items: result.items, kept: result.kept, attached: attached.ok },
   };
 };
 
