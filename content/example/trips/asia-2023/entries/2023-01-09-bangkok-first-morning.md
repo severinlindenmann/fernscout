@@ -1,6 +1,7 @@
 ---
 title: "First morning in Bangkok"
 date: "2023-01-09"
+time: "09:15"
 location: "Bangkok"
 country: "Thailand"
 countryCode: "TH"

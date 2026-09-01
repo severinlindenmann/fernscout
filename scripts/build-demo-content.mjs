@@ -123,6 +123,9 @@ const TRIPS = [
       },
       {
         date: "2024-09-14",
+        // The shortest trip has a two-update day too — four days is not too
+        // few for the pager to have to draw a branch.
+        time: "12:10",
         slug: "into-italy",
         title: "A wrong turn into Italy",
         location: "Domodossola",
@@ -138,6 +141,27 @@ const TRIPS = [
           { label: "Groceries", amount: 34, category: "food", currency: "EUR" },
         ],
         text: "Not really a wrong turn — we just kept going down the wrong side of the mountain and found ourselves buying coffee in euros. Nobody minded.\n\nA market was packing up in the square. We bought tomatoes we had nowhere to cook and ate them like apples in the car park.",
+      },
+      {
+        date: "2024-09-14",
+        time: "21:30",
+        slug: "we-stayed-for-dinner",
+        title: "We stayed for dinner",
+        location: "Domodossola",
+        country: "Italy",
+        code: "IT",
+        lat: 46.1161,
+        lng: 8.2939,
+        tags: ["italy", "food", "unplanned"],
+        costs: [
+          { label: "Room above the restaurant", amount: 85, category: "accommodation", currency: "EUR" },
+          { label: "Dinner, all four things", amount: 48, category: "food", currency: "EUR" },
+        ],
+        text: "Decided in the car park not to drive back over the pass tonight. There was a room above the restaurant and the restaurant had a menu with four things on it.\n\nWe ate all four between the two of us and went to bed in Italy, which was not the plan we left with.",
+        de: {
+          title: "Wir sind zum Abendessen geblieben",
+          content: "Auf dem Parkplatz entschieden, heute nicht mehr über den Pass zurückzufahren. Über dem Restaurant gab es ein Zimmer, und auf der Karte standen vier Gerichte.\n\nWir haben zu zweit alle vier gegessen und sind in Italien ins Bett gegangen, was so nicht geplant war.",
+        },
       },
       {
         date: "2024-09-15",
@@ -202,6 +226,10 @@ const TRIPS = [
     days: [
       {
         date: "2023-01-09",
+        // Three updates on one day — the arrival day, written as it went.
+        // Two was the most the demo had, and two is the case where "several"
+        // and "the one after the first" happen to look the same.
+        time: "09:15",
         slug: "bangkok-first-morning",
         title: "First morning in Bangkok",
         location: "Bangkok",
@@ -218,6 +246,46 @@ const TRIPS = [
         text: "Landed at six, asleep by eight, awake at three in the morning entirely convinced it was lunchtime. By the time it actually was lunchtime we had been walking for four hours and eaten twice.\n\nThe heat is not the thing people warn you about. The thing is the noise, and how quickly you stop hearing it.",
         de: "Um sechs gelandet, um acht geschlafen, um drei Uhr nachts hellwach und fest überzeugt, es sei Mittag. Als es dann wirklich Mittag war, waren wir vier Stunden gelaufen und hatten zweimal gegessen.\n\nDie Hitze ist nicht das, wovor die Leute warnen. Es ist der Lärm — und wie schnell man ihn nicht mehr hört.",
         hu: "Hatkor landoltunk, nyolckor aludtunk, hajnali háromkor pedig teljesen éberen, abban a hitben, hogy dél van. Mire tényleg dél lett, négy órát gyalogoltunk és kétszer ettünk.\n\nNem a hőség az, amire figyelmeztetnek. Hanem a zaj — és hogy milyen gyorsan nem hallod meg többé.",
+      },
+      {
+        date: "2023-01-09",
+        time: "16:40",
+        slug: "bangkok-boat-to-thonburi",
+        title: "Across the river on the wrong boat",
+        location: "Bangkok",
+        country: "Thailand",
+        code: "TH",
+        lat: 13.7563,
+        lng: 100.5018,
+        // The gallery sits on an update that is not the day's lead — which is
+        // the arrangement that used to quietly drop photographs from a day.
+        photos: 3,
+        tags: ["thailand", "boats", "rivers"],
+        costs: [
+          { label: "River boat, the expensive one", amount: 160, category: "transport", currency: "THB" },
+        ],
+        text: "Meant to take the orange-flag ferry two stops and took the blue-flag one instead, which is for tourists and costs four times as much. We worked it out when the commentary started.\n\nGot off in Thonburi anyway and walked back over the bridge. Every photograph is of the wrong side of the river and better for it.",
+        de: {
+          title: "Mit dem falschen Boot über den Fluss",
+          content: "Wir wollten zwei Stationen mit der orangen Fähre fahren und sind in die blaue gestiegen, die für Touristen ist und viermal so viel kostet. Gemerkt haben wir es, als die Ansage anfing.\n\nSind trotzdem in Thonburi ausgestiegen und über die Brücke zurückgelaufen. Jedes Foto zeigt die falsche Flussseite und ist dadurch besser.",
+        },
+      },
+      {
+        date: "2023-01-09",
+        time: "22:50",
+        slug: "bangkok-still-awake",
+        title: "Still awake, still hot",
+        location: "Bangkok",
+        country: "Thailand",
+        code: "TH",
+        lat: 13.7563,
+        lng: 100.5018,
+        tags: ["thailand", "food", "nights"],
+        costs: [
+          { label: "Second dinner, standing up", amount: 95, category: "food", currency: "THB" },
+        ],
+        text: "The street outside the guesthouse does its best trade at eleven at night, and we have stopped pretending we are going to sleep through it.\n\nSecond dinner, eaten standing up. No photographs: the phone was flat by nine and neither of us went back for the charger.",
+        hu: "A vendégház előtti utca este tizenegykor megy a legjobban, és feladtuk, hogy majd átalusszuk.\n\nMásodik vacsora, állva megevett. Fotó nincs: a telefon kilencre lemerült, és egyikünk sem ment vissza a töltőért.",
       },
       {
         date: "2023-01-24",
@@ -384,7 +452,6 @@ const TRIPS = [
           { label: "Groceries", amount: 143, category: "food", currency: "USD" },
         ],
         text: "The truck made it, loudly. Four nights on a bluff outside town with nobody else on it, which cost twenty dollars a night and felt like theft.\n\nIt is hard to photograph and we tried anyway, several hundred times.",
-        de: "Der Pick-up hat es geschafft, lautstark. Vier Nächte auf einer Anhöhe außerhalb der Stadt, sonst niemand da, zwanzig Dollar die Nacht — das fühlte sich an wie Diebstahl.\n\nEs ist schwer zu fotografieren, und wir haben es trotzdem versucht, mehrere hundert Mal.",
         hu: "A pickup megcsinálta, hangosan. Négy éjszaka egy dombon a városon kívül, rajtunk kívül senki, húsz dollár egy éjszaka — lopásnak éreztük.\n\nNehéz lefényképezni, és mi mégis megpróbáltuk, több százszor.",
         de: "Der Pick-up hat es geschafft, laut. Vier Nächte auf einem Felsvorsprung außerhalb der Stadt, ganz allein — zwanzig Dollar die Nacht, und es fühlte sich an wie Diebstahl.\n\nEs lässt sich schlecht fotografieren. Wir haben es trotzdem versucht, mehrere hundert Mal.",
       },
@@ -647,6 +714,9 @@ const TRIPS = [
       },
       {
         date: "2025-09-13",
+        // Eighteen places, one night each — and one of those nights still gets
+        // two updates. The branch has to work in the trip that moves daily.
+        time: "12:30",
         slug: "monument-valley",
         title: "Monument Valley in the wrong light",
         location: "Monument Valley",
@@ -663,6 +733,21 @@ const TRIPS = [
           { label: "Room on the rim", amount: 195, category: "accommodation", currency: "USD" },
         ],
         text: "Arrived at midday, when the buttes are flat and grey and look like a postcard left in a window. Waited six hours and got the other version.\n\nThis is Navajo land, not a national park, and it is run entirely differently — better signposted about what you may not photograph.",
+      },
+      {
+        date: "2025-09-13",
+        time: "21:15",
+        slug: "monument-valley-after-dark",
+        title: "The six hours were worth it",
+        // No costs of its own: the day's spend is all on the lead, which is
+        // how a day of several updates usually adds up.
+        location: "Monument Valley",
+        country: "United States",
+        code: "US",
+        lat: 36.9980,
+        lng: -110.0985,
+        tags: ["arizona", "desert", "night"],
+        text: "The light came back at about six and the place stopped looking like a postcard and started looking like the reason anybody drives out here at all.\n\nWriting this from a plastic chair outside the room. Nothing photographable in the dark, so this one is only words.",
       },
       {
         date: "2025-09-14",

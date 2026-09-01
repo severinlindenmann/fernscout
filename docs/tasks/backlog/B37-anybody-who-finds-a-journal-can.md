@@ -92,7 +92,7 @@ Two details that will otherwise be got wrong:
 
 Not doing: the approval step, which stays manual and unchanged. The personal
 invite link, which is the door that remains. Anything about what a guest may
-read once approved — that is B33.
+read once approved — that is B41.
 
 ## Acceptance
 

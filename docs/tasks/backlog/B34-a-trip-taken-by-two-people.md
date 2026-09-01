@@ -34,7 +34,7 @@ the canonical copy without owning it.
 
 This follows B33, which is what makes somebody a buddy through a link rather
 than through a hand-edited file. Both want the same underlying answer to "which
-trips does this person belong to, across the instance" — B33 for the gate, this
+trips does this person belong to, across the instance" — B41 for the gate, this
 for the listing — so whatever B33 builds for membership is what this reads.
 
 ## Work

@@ -29,13 +29,13 @@ job"* — and W09 shipped the password gate instead. So the granularity has been
 sitting there unbuilt long enough that the codebase now documents it as a
 placeholder rather than as a plan.
 
-B33 settles the question it was waiting on, and settles it the other way: **a
+B41 settles the question it was waiting on, and settles it the other way: **a
 guest is a guest of the journal, not of a trip.** Somebody let in sees every
 trip they would see as an approved contact, and a trip that must be held back
 from them is `visibility: private`. There will be no per-trip guest link and no
 per-trip grant write path.
 
-That makes this more than tidiness. Whoever builds B33 will open `lib/viewer.ts`
+That makes this more than tidiness. Whoever builds B41 will open `lib/viewer.ts`
 and `lib/digest/visibility.ts` — those are exactly the files it touches — read
 `grants?.has(trip.id)`, and reasonably conclude that per-trip guest scoping is a
 supported thing they should preserve or extend. The dead arm is positioned to
@@ -45,7 +45,7 @@ naming this trip specifically covers it"*, and its neighbour asserts that a
 grant for another trip does **not** cover this one — both constructing rows by
 hand that no production path can produce.
 
-Do this before B33, or as its first commit. Not after: the point is to remove
+Do this before B41, or as its first commit. Not after: the point is to remove
 the misleading thing before somebody reads it.
 
 ## Work
@@ -96,7 +96,7 @@ and they are the door for somebody who will not prove an email address, which is
 most of the audience this is built for. `visibility: guest` currently *requires*
 a hash (`assertTripAccessConfig`, `lib/access.ts:206`), so removing them would
 redefine what `guest` means; that is a design change and would be its own task,
-not a cleanup. After B33 a `guest` trip has two doors, one anonymous and one
+not a cleanup. After B41 a `guest` trip has two doors, one anonymous and one
 identified, and that is intended.
 
 ## Acceptance

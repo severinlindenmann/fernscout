@@ -1,6 +1,7 @@
 ---
 title: "Monument Valley in the wrong light"
 date: "2025-09-13"
+time: "12:30"
 location: "Monument Valley"
 country: "United States"
 countryCode: "US"

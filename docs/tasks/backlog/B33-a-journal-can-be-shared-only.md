@@ -121,7 +121,7 @@ confirmation, not a form.
 - Redemption routes for both kinds, landing somewhere that explains what just
   happened — including for somebody who redeems and is then waiting on the
   owner, who otherwise sees a form that appeared to do nothing.
-- The buddy path has to make `peopleOf` (`lib/tripPeople.ts:20`) merge the
+- The buddy path has to make `peopleOf` (`lib/tripPeople.ts:18`) merge the
   frontmatter list with redeemed rows, which is the one place this task reaches
   into code B41 does not touch.
 

@@ -1,6 +1,7 @@
 ---
 title: "A wrong turn into Italy"
 date: "2024-09-14"
+time: "12:10"
 location: "Domodossola"
 country: "Italy"
 countryCode: "IT"

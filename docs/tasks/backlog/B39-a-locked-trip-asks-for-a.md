@@ -71,10 +71,10 @@ a different answer for a known address turns the form into a way of asking who
 reads somebody's journal.
 
 **Sequencing follows from that, and it is not optional.** `mayReadTrip`
-(`lib/tripGate.ts:26`) does not consult grants yet — B33 is what wires them in.
-Remove the password before B33 lands and a `visibility: guest` trip becomes
+(`lib/tripGate.ts:26`) does not consult grants yet — B41 is what wires them in.
+Remove the password before B41 lands and a `visibility: guest` trip becomes
 readable by nobody except the people listed on it: every guest in the journal
-is locked out with no way back. **B33 must ship first.** B35 should also land
+is locked out with no way back. **B41 must ship first.** B35 should also land
 first, or its dead per-trip code gets tangled into this.
 
 ## Work
@@ -85,7 +85,7 @@ first, or its dead per-trip code gets tangled into this.
   reader back on the trip; check that the return path actually works from a
   trip URL rather than assuming it.
 - Say the right thing to somebody signed in who still may not read it. That is
-  a different sentence from "sign in", and it is the one B33's guests will hit
+  a different sentence from "sign in", and it is the one B41's guests will hit
   when they open a `private` trip: *you are signed in, this one is not shared
   with you, ask the owner.* Without it they will sign in repeatedly and think
   it is broken.
@@ -118,7 +118,7 @@ first, or its dead per-trip code gets tangled into this.
   happens silently on the trips that were most deliberately closed.
 
 Not doing: changing what a guest session grants, or how somebody becomes a
-guest — that is B33 and B37. This task only changes what the gate asks for.
+guest — that is B41, B33 and B37. This task only changes what the gate asks for.
 
 ## Acceptance
 
