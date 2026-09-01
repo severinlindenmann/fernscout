@@ -23,7 +23,10 @@ import { postgresConfigured } from "./support/dialects";
  *     unit records a failure rather than a silent no-backup night;
  *   - and, since B64, the two things that make a failure *visible*: the
  *     `.backup-last-success` stamp `/api/health` reads, and `scripts/alert.sh`,
- *     which the unit's `OnFailure=` starts.
+ *     which the unit's `OnFailure=` starts;
+ *   - and, since B63, the repository probe: the two shapes of "no repository
+ *     here" — *absent*, and *cannot see it* — must not be confused, because
+ *     one may create a repository and the other must never be allowed to.
  *
  * What it deliberately does **not** cover, and cannot: the destroy-and-restore
  * drill against the deployed stack. Restoring here means "the files come back
@@ -162,6 +165,26 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     return { PATH: `${stubBin}${path.delimiter}${process.env.PATH ?? ""}` };
   }
 
+  /** A `restic` on PATH that fails the `cat config` probe with a chosen message
+   * and exit 1 — which is what **every** restic before 0.17 does, whatever went
+   * wrong. Debian 12 ships 0.14, so the message-reading fallback in the script
+   * is not a legacy nicety; it is the only classifier a stock apt install gets.
+   *
+   * Only the probe is stubbed. Both classifications that matter here stop the
+   * run at the probe, so nothing further is ever called. */
+  function stubOldRestic(stderrText: string): Record<string, string> {
+    fs.writeFileSync(
+      path.join(stubBin, "restic"),
+      `#!/bin/sh\nif [ "$1" = "cat" ]; then\n  echo '${stderrText}' >&2\n  exit 1\nfi\nexit 1\n`,
+      { mode: 0o755 },
+    );
+    return { PATH: `${stubBin}${path.delimiter}${process.env.PATH ?? ""}` };
+  }
+
+  function clearResticStub() {
+    fs.rmSync(path.join(stubBin, "restic"), { force: true });
+  }
+
   beforeAll(() => {
     scratch = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-backup-"));
     dataDir = path.join(scratch, "data");
@@ -195,6 +218,12 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     fs.writeFileSync(path.join(trip, "trip.md"), "---\ntitle: Kyrgyzstan\n---\n\nedited on the box, never committed\n");
     fs.writeFileSync(path.join(trip, "entries", "2026-06-01-over-the-pass.md"), "---\ndate: 2026-06-01\n---\n\nUp early.\n");
     fs.writeFileSync(path.join(trip, "originals", "DSCF1234.RAF"), crypto.randomBytes(64 * 1024));
+
+    // Initialised by hand, once, before anything runs — which is exactly what
+    // the runbook now tells an operator to do. Since B63 the script refuses to
+    // create a repository it did not find, so a suite that relied on auto-init
+    // would be testing a path the nightly timer can no longer take.
+    expect(restic(["init"]).status, "the fixture repository must initialise").toBe(0);
   });
 
   afterAll(() => {
@@ -294,13 +323,155 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
       fs.mkdirSync(locked, { recursive: true });
       fs.chmodSync(locked, 0o500);
       try {
-        const run = runBackup({ RESTIC_REPOSITORY: path.join(locked, "repo") });
+        // The path is readable, so restic can see there is nothing there:
+        // absent, not unreachable. Since B63 that is refused by default rather
+        // than initialised — and with the opt-in it still fails, because the
+        // directory cannot be written.
+        const run = runBackup({ RESTIC_REPOSITORY: path.join(locked, "repo"), BACKUP_INIT_IF_MISSING: "1" });
         expect(run.status).not.toBe(0);
-        expect(run.stdout).toContain("running 'restic init'");
+        expect(run.stdout).toContain("creating a NEW, EMPTY repository");
         expect(run.stderr).toMatch(/permission denied/i);
         expect(fs.existsSync(path.join(locked, "repo"))).toBe(false);
       } finally {
         fs.chmodSync(locked, 0o700);
+      }
+    },
+    180_000,
+  );
+
+  // --- B63: "not initialised yet" is not the same as "cannot see it" --------
+
+  test(
+    "a RESTIC_REPOSITORY that does not exist is refused, not quietly created",
+    () => {
+      // The whole of B63. A typo used to make a brand new empty repository,
+      // back into it, prune it and exit 0 — a green backup protecting nothing,
+      // while every real snapshot sat in the repository nobody wrote to again.
+      const typo = path.join(scratch, "restic-repo-typo");
+      const before = snapshotCount();
+
+      const run = runBackup({ RESTIC_REPOSITORY: typo });
+
+      expect(run.status, "a wrong repository must not be a successful backup").not.toBe(0);
+      expect(run.stdout).toContain("there is no repository at");
+      expect(run.stdout).toContain("refusing to create one");
+      expect(run.stdout).not.toContain("backing up to");
+      expect(fs.existsSync(typo), "nothing may be created at the wrong path").toBe(false);
+      // And the repository that does hold the backups is untouched.
+      expect(snapshotCount()).toBe(before);
+    },
+    180_000,
+  );
+
+  test(
+    "the first run still works, by the route the runbook documents",
+    () => {
+      // The convenience is not gone, it is opt-in: one run with the flag, or
+      // one `restic init` by hand. What is gone is the nightly timer being
+      // able to do it without anybody asking.
+      const fresh = path.join(scratch, "restic-repo-fresh");
+      const run = runBackup({ RESTIC_REPOSITORY: fresh, BACKUP_INIT_IF_MISSING: "1" });
+
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+      expect(run.stdout).toContain("creating a NEW, EMPTY repository");
+      expect(run.stdout).toContain("nothing taken before now is in it");
+      expect(snapshotCount(fresh)).toBe(1);
+
+      // The count check: one snapshot in a repository somebody believes holds
+      // a fortnight is worth saying out loud, even on the run that made it.
+      expect(run.stdout).toContain("1 snapshot(s) tagged fernscout");
+      expect(run.stdout).toMatch(/WARNING: one snapshot, in the repository this run just created/);
+    },
+    180_000,
+  );
+
+  test(
+    "a healthy repository with a history draws no low-count warning",
+    () => {
+      const run = runBackup();
+      expect(run.status).toBe(0);
+      expect(run.stdout).toContain("repository is there and readable");
+      expect(run.stdout).toMatch(/\d+ snapshot\(s\) tagged fernscout/);
+      expect(run.stdout).not.toContain("not the repository you meant");
+      expect(snapshotCount()).toBeGreaterThan(1);
+    },
+    180_000,
+  );
+
+  test.skipIf(IS_ROOT)(
+    "a repository that cannot be read is never mistaken for one that is not there",
+    () => {
+      // The shape the restore drill actually hit on the live server: the repo
+      // was root-owned, the service runs as `fernscout`, the old probe read
+      // permission-denied as "not initialised yet", ran `restic init` and died
+      // on "config file already exists".
+      const unreadable = path.join(scratch, "restic-repo-unreadable");
+      fs.cpSync(repo, unreadable, { recursive: true });
+      fs.chmodSync(unreadable, 0o000);
+      try {
+        const run = runBackup({ RESTIC_REPOSITORY: unreadable });
+
+        expect(run.status).not.toBe(0);
+        expect(run.stdout).toContain("cannot read the repository");
+        expect(run.stdout).toContain("no answer");
+        // The two things that must not happen: init, and any claim of absence.
+        expect(run.stdout).not.toContain("there is no repository at");
+        expect(run.stdout).not.toContain("creating a NEW, EMPTY repository");
+        expect(run.stdout).not.toContain("backing up to");
+      } finally {
+        fs.chmodSync(unreadable, 0o700);
+      }
+    },
+    180_000,
+  );
+
+  test(
+    "a wrong password is not mistaken for an absent repository either",
+    () => {
+      // Same class as the permission case, different cause: something is
+      // there, and we cannot open it. Creating anything here would be wrong.
+      const before = snapshotCount();
+      const run = runBackup({ RESTIC_PASSWORD: "not-the-password" });
+
+      expect(run.status).not.toBe(0);
+      expect(run.stdout).toContain("cannot read the repository");
+      expect(run.stdout).not.toContain("there is no repository at");
+      expect(run.stdout).not.toContain("backing up to");
+      expect(snapshotCount()).toBe(before);
+    },
+    180_000,
+  );
+
+  test(
+    "an older restic, which returns 1 for everything, is classified by its message",
+    () => {
+      try {
+        // Absent, as restic 0.14 phrases it.
+        const absent = runBackup({
+          ...stubOldRestic("Fatal: unable to open config file: stat /x/config: no such file or directory"),
+        });
+        expect(absent.status).not.toBe(0);
+        expect(absent.stdout).toContain("there is no repository at");
+        expect(absent.stdout).toContain("refusing to create one");
+
+        // Unreadable, as restic 0.14 phrases it. Note the message contains
+        // "unable to open config file" too — reading only that phrase is how a
+        // naive fallback would send this down the absent path and init over a
+        // repository that exists.
+        const unreadable = runBackup({
+          ...stubOldRestic("Fatal: unable to open config file: stat /x/config: permission denied"),
+        });
+        expect(unreadable.status).not.toBe(0);
+        expect(unreadable.stdout).toContain("cannot read the repository");
+        expect(unreadable.stdout).not.toContain("there is no repository at");
+
+        // And an error nobody has a pattern for is treated as "cannot see it",
+        // because absence has to be proven, not assumed.
+        const strange = runBackup({ ...stubOldRestic("Fatal: something nobody has seen before") });
+        expect(strange.status).not.toBe(0);
+        expect(strange.stdout).toContain("cannot read the repository");
+      } finally {
+        clearResticStub();
       }
     },
     180_000,

@@ -89,6 +89,7 @@ Do not edit them by hand; run the script.
 | [B58](backlog/B58-smtptransport-cannot-be-driven-to-a.md) | SmtpTransport cannot be driven to a successful send from a test | CHORE | low | low |
 | [B71](backlog/B71-the-per-day-media-ceiling-test.md) | The per-day media ceiling test asserts on problems[0], and failed once in a full run | CHORE | low | low |
 | [B81](backlog/B81-the-notify-script-still-calls-a.md) | The notify script still calls a closed trip password-protected | CHORE | low | low |
+| [B82](backlog/B82-an-unreachable-restic-repository-burns-the.md) | An unreachable restic repository burns the unit's whole 30-minute timeout | ISSUE | low | low |
 | [B86](backlog/B86-a-recipient-whose-name-has-no.md) | A recipient whose name has no ASCII gets an empty postcard filename, and each one overwrites the last | ISSUE | low | low |
 
 ## open

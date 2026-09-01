@@ -454,6 +454,33 @@ Set `RESTIC_REPOSITORY` and `RESTIC_PASSWORD` in `/etc/fernscout/env`, and
 `BACKUP_ALERT_EMAIL` if the alert should go somewhere other than the default
 journal's owner.
 
+**Then initialise the repository, once, by hand.** The nightly run will not do
+it for you, on purpose:
+
+```bash
+set -a; . /etc/fernscout/env; set +a
+sudo -u fernscout -E restic init
+```
+
+A run that finds no repository **fails** rather than creating one, because the
+two reasons it might find none are a genuine first run and a typo in
+`RESTIC_REPOSITORY` — and the second used to make a brand new empty repository,
+back into it, prune it and exit 0. A perfectly green backup protecting nothing,
+while every real snapshot sat in the repository nobody was writing to any more
+(B63). `BACKUP_INIT_IF_MISSING=1` allows it for one run if you would rather not
+type `restic init`; do not put it in `/etc/fernscout/env`, where the timer would
+read it every night.
+
+The script also refuses to run `restic init` when it *cannot see* the
+repository — permission denied, wrong password, storage unreachable — and says
+which of the two it found. That is the case this server hit: the repository was
+root-owned, the service runs as `fernscout`, and the old probe read
+permission-denied as "not initialised yet".
+
+Each run logs how many snapshots the repository holds, and warns when that is
+one. A repository you believe holds a fortnight and which holds one is not the
+repository you meant.
+
 Two things the drill learned the hard way, both worth checking before the first
 run: `RESTIC_REPOSITORY` must be under a path listed in the unit's
 `ReadWritePaths=`, and the repository must be **owned by `fernscout`**, the
@@ -593,9 +620,11 @@ this machine at all (B65):
   (`/var/backups/fernscout`). Anywhere else and systemd refuses to start the
   service with `Failed at step NAMESPACE`, before `backup.sh` runs at all.
 - The repository must be **owned by the service user**. Root-owned, the
-  script's `restic snapshots` probe fails on permissions, the script reads that
-  as "not initialised yet", runs `restic init`, and dies on `config file
-  already exists`. See B63 — the probe cannot tell the two apart.
+  script's probe fails on permissions — which the old probe read as "not
+  initialised yet", so it ran `restic init` and died on `config file already
+  exists`. **Fixed in B63:** the probe is `restic cat config` now, and it
+  distinguishes *absent* from *cannot see it*; the ownership requirement is
+  unchanged, but getting it wrong now produces a message that says so.
 - A single unreadable file anywhere under `DATA_DIR` aborts the whole backup:
   `cp -a` fails, `set -e` stops the script, and nobody was told. One root-owned
   stray file left by an operator is enough. **The "nobody was told" half is
