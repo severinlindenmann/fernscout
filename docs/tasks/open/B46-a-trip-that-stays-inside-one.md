@@ -174,6 +174,23 @@ A single-stop trip is the degenerate case and should be checked explicitly: one
 point has a zero-extent bounding box, which is what produces the current
 behaviour in its purest form.
 
+**The bake has to notice when the trip grows, and this is the trap.** Today
+nothing is generated: every request re-derives the frame from the entry files,
+so adding a day in a new country simply reframes the map on the next load. A
+per-trip clipped basemap is the first thing on this page that would be
+*generated*, and a trip is a thing that grows a stop at a time — a journal that
+starts in Bangkok and ends in Hanoi would otherwise keep the basemap it was
+first baked with and draw its later half over empty sea.
+
+So the artefact must carry the bounding box it was cut for, and be rebuilt when
+the trip's own box no longer fits inside it — checked on read, the way
+`lib/entries.ts:85` checks a directory signature, not left to a build step
+somebody has to remember to run. Bake with a margin so that ordinary growth
+does not re-cut it on every new day, and treat a missing or stale file as
+"draw without a basemap" rather than as an error: the abstract treatment above
+is already the fallback, so there is a correct thing to render while a rebake
+has not happened.
+
 **Not doing:** an interactive slippy map, tile fetching (see above), per-day
 GPS traces (B06), or changing what counts as a place.
 
