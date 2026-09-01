@@ -77,14 +77,43 @@ config documentation.
 Not doing: redaction or partial copies. A copy with the code stripped out
 cannot answer the question this exists to answer.
 
+## What the build found that this file did not say
+
+Two things, both recorded rather than quietly worked around.
+
+**The copy cannot be byte-identical, and the criterion below was written before
+that was known.** `buildMessage` generates a fresh multipart boundary per call
+(`Math.random()`, `lib/mail/rfc822.ts:22`) and a `Date:` header at second
+resolution. The copy is therefore a faithful *re-render* of the message, not
+the bytes that went down the socket. Everything a person opens the file to read
+— every header, both bodies, the code, the link — is identical; only the
+boundary differs. The test freezes time and normalises the boundary, then
+decodes the base64 parts and asserts the content really is recoverable, which
+is the property that was actually wanted.
+
+Making it exact would mean building the message once in `sendMail` and handing
+the same bytes to both the transport and the copy, which changes the
+`MailTransport` interface — every transport currently calls `buildMessage`
+itself. Not worth it for a boundary string, but it is the honest reason the
+word "identical" left this file.
+
+**A successful smtp send cannot be driven from a test**, so the acceptance line
+about smtp is covered by the `console` transport plus a real smtp *failure*.
+`SmtpTransport` builds its TLS config from the environment with no CA option,
+the fake server is self-signed, and the client rightly refuses a server that
+offers no STARTTLS. That gap is **B58**; it predates this task.
+
 ## Acceptance
 
 - With `keepCopy` absent, `smtp` writes nothing to `content/<user>/mail/` —
   asserted by a test, because this is the default and the one that must not
   regress.
-- With `keepCopy: true`, an `smtp` send leaves an `.eml` whose bytes are
-  identical to what the file transport would have written for the same message.
-- The same holds for the `console` transport.
+- With `keepCopy: true`, a send over a transport that is not `file` leaves an
+  `.eml` matching what the file transport would have written for the same
+  message — every header and both bodies, modulo the per-render multipart
+  boundary (see above) — and the decoded body really is readable.
+- Driven through the `console` transport, because smtp cannot reach a
+  successful send from a test (B58).
 - A send whose copy cannot be written still reports success, and logs.
 - No copy is written when the send itself fails.
 - `/api/health` reports the setting under the `mail` capability.

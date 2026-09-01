@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveCapabilities } from "@/lib/capabilities";
+import { loadServerConfig } from "@/lib/config";
 import { FEATURE_NAMES } from "@/lib/config";
 import { getUsernames } from "@/lib/users";
 import pkg from "@/package.json";
@@ -27,7 +28,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const startedAt = Date.now();
 
-  let capabilities: Record<string, { enabled: boolean; reason?: string }>;
+  let capabilities: Record<string, { enabled: boolean; reason?: string; keepingCopies?: true }>;
   let configOk = true;
   let configError: string | undefined;
 
@@ -39,6 +40,14 @@ export async function GET() {
       capabilities[name] = state.enabled
         ? { enabled: true }
         : { enabled: false, reason: state.reason };
+    }
+
+    // Surfaced because it is a security-relevant setting an operator can
+    // otherwise only discover by reading the config file: with it on, every
+    // sign-in code, invitation and deletion link is also written to disk in
+    // plaintext. Reported as a flag, never as the value of anything.
+    if (capabilities.mail?.enabled && loadServerConfig().features.mail.keepCopy === true) {
+      capabilities.mail.keepingCopies = true;
     }
   } catch (err) {
     // loadConfig() throws ConfigError for a missing/invalid content/config.json.
