@@ -27,7 +27,11 @@ import path from "node:path";
 
 const ROOT = path.join(process.cwd(), "docs", "tasks");
 // Flow order, which is also the order they are written into INDEX.md.
-const LANES = ["backlog", "open", "in-development", "completed"];
+const LANES = ["backlog", "open", "in-development", "testing", "completed"];
+/** Lanes only a person may move a task into. See .claude/skills/manage-tasks. */
+const HUMAN_ONLY = new Set(["open", "completed"]);
+/** The date each lane stamps on arrival. */
+const STAMPS = { "in-development": "started", testing: "merged", completed: "completed" };
 /** Where `new` puts things. Never `open` — that lane is a person's review. */
 const INTAKE = "backlog";
 const TYPES = ["SECURITY", "ISSUE", "FEATURE", "CHORE"];
@@ -56,6 +60,14 @@ function field(front, key) {
   const match = new RegExp(`^${key}:\\s*(.*)$`, "m").exec(front);
   if (!match) return undefined;
   return match[1].trim().replace(/^["'](.*)["']$/, "$1");
+}
+
+/** Remove a key, if it is there. */
+function clearField(front, key) {
+  return front
+    .split("\n")
+    .filter((line) => !new RegExp(`^${key}:\\s*`).test(line))
+    .join("\n");
 }
 
 /** Set a key, or add it at the end of the block if it is not there yet. */
@@ -193,13 +205,38 @@ function move(argv) {
 
   const { front, body } = split(item.file);
   let updated = front;
-  if (lane === "in-development") updated = setField(updated, "started", `"${today()}"`);
-  if (lane === "completed") updated = setField(updated, "completed", `"${today()}"`);
 
+  // A task that goes backwards — testing back to in-development because it did
+  // not hold up, anything back to backlog — loses the stamps for the lanes it
+  // no longer occupies. Otherwise a task in backlog/ carries a `merged:` date
+  // for a merge that is no longer true of it.
+  if (LANES.indexOf(lane) < LANES.indexOf(item.lane)) {
+    for (const [at, key] of Object.entries(STAMPS)) {
+      if (LANES.indexOf(at) > LANES.indexOf(lane)) updated = clearField(updated, key);
+    }
+  }
+  if (STAMPS[lane]) updated = setField(updated, STAMPS[lane], `"${today()}"`);
+
+  // The lane directory may not exist yet — an empty lane keeps only a
+  // .gitkeep, and a newly added lane keeps nothing at all. Renaming into a
+  // missing directory throws *after* the stamp has been written, which leaves
+  // the task in its old lane wearing a date for a move that did not happen.
   const target = path.join(ROOT, lane, item.filename);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(item.file, `---\n${updated}\n---\n${body}`);
   fs.renameSync(item.file, target);
   console.log(`${item.id}: ${item.lane} → ${lane}`);
+  const skipped = LANES.indexOf(lane) - LANES.indexOf(item.lane);
+  if (skipped > 1) {
+    console.log(
+      `  note: skipped ${LANES.slice(LANES.indexOf(item.lane) + 1, LANES.indexOf(lane)).join(", ")}.`,
+    );
+  }
+  if (HUMAN_ONLY.has(lane)) {
+    console.log(
+      `  note: ${lane}/ is a human gate — an agent moves a task here only when asked to, in that turn.`,
+    );
+  }
   writeIndex();
 }
 

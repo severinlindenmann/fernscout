@@ -15,31 +15,40 @@ docs/tasks/
   backlog/           captured, not yet reviewed — write anything here
   open/              reviewed and approved; work may be taken from here
   in-development/    somebody is on it now
-  completed/         shipped, kept as the record
+  testing/           merged, waiting for a person to try it
+  completed/         verified by a person, kept as the record
 ```
+
+Building one is `work-on-a-task`. This skill is the bookkeeping around it.
 
 ```bash
 npm run tasks                          # what is in each lane
 npm run tasks -- move B03 completed
 ```
 
-## The two rules
+## The two gates
 
-**1. Anything you notice goes in `backlog/`.** Not `open/`. `new` writes there
-and that is the only lane an agent adds to.
+Three lanes an agent moves tasks through freely — `backlog/`,
+`in-development/`, `testing/`. Two it does not:
 
-**2. Only a person moves a task from `backlog/` to `open/`.** `open/` is the
-reviewed queue — the tasks the author has read and agreed are worth doing. It
-is what makes "find yourself something useful" a safe instruction: an agent
-picking its own work takes it from `open/`, never from `backlog/`.
-
-Promoting your own capture to `open/` and then starting it is the failure this
-skill exists to prevent. It converts "I noticed something" into "I decided
-this project needs it", and skips the one review step in the loop.
+**`open/` — the way in.** Anything you notice goes to `backlog/`; `new` writes
+there and that is the only lane an agent adds to. Only a person promotes
+`backlog/ → open/`, because `open/` is the queue that makes "find yourself
+something useful" a safe instruction. Promoting your own capture and then
+starting it converts "I noticed something" into "I decided this project needs
+it", and skips the one review step in the loop.
 
 If `open/` is empty and you were asked to pick something up: **say so and
 stop.** Show what is in `backlog/` and ask which to promote. Do not promote,
-do not pick the highest-priority backlog item, do not start "the obvious one".
+do not take the highest-priority backlog item, do not start "the obvious one".
+
+**`completed/` — the way out.** A task is done when a person has seen it
+working, not when its tests pass. An agent takes work as far as `testing/` and
+says what to look at; the last move is the author's.
+
+An agent runs `move … open` or `move … completed` only when told to, in that
+turn, for that id. The script prints a reminder when either lane is the
+target — it is a note, not a permission.
 
 ## Steps
 
@@ -100,36 +109,29 @@ The author reads `backlog/` and promotes what they want done:
 npm run tasks -- move B01 open
 ```
 
-An agent runs this only when told to, in that turn, for that id. "Add it to
-the backlog" is not permission; neither is "this looks important".
+"Add it to the backlog" is not permission to do this; neither is "this looks
+important".
 
-### 3. Take one on
+### 3. Build it
 
-```bash
-npm run tasks -- move B03 in-development
-```
-
-Stamps `started:`. Move it **when you begin**, not when you finish — the lane
-is how anybody else sees the task is taken. More than two or three in
-`in-development` at once means they are not actually in development; move the
-rest back to `open/`.
-
-Asked to pick something up with no id given: take the highest-priority task in
-`open/`, say which you took and why, and start. Ties break toward lower
-`complexity` — finishing something beats starting something.
-
-### 4. Finish
-
-Before anything moves to `completed/`, the bar from `AGENTS.md` applies — all
-four, every time:
+`work-on-a-task` covers this in full: take from `open/`, commit the lane move,
+branch and worktree named for the task, update the task file as you learn,
+verify against the four checks and the task's own acceptance criteria, merge,
+and land in `testing/`.
 
 ```bash
-npx tsc --noEmit && npx eslint . && npx vitest run && npm run build
+npm run tasks -- move B03 in-development     # stamps started:
+npm run tasks -- move B03 testing            # stamps merged:
 ```
 
-Then check the task's own **Acceptance** section line by line. If a line
-cannot be demonstrated, it is not finished: say which line, and leave it in
-`in-development/`.
+Move to `in-development` **when you begin**, not when you finish — the lane is
+how anybody else sees the task is taken. More than two or three at once means
+they are not actually in development; move the rest back to `open/`.
+
+### 4. The person tries it
+
+A task in `testing/` has merged and is waiting for somebody to look. When they
+are satisfied:
 
 ```bash
 npm run tasks -- move B03 completed
@@ -137,6 +139,9 @@ npm run tasks -- move B03 completed
 
 Record what shipped it — a commit sha or a branch — in a closing line of the
 task. Completed tasks are the record; they are not deleted.
+
+If it does not hold up, it goes back to `in-development/` with a line saying
+what was wrong. That is a normal outcome, not a failure of the process.
 
 ### 5. When the answer is "no"
 
@@ -166,6 +171,7 @@ leaves no trace gets proposed again in three months.
 - Moving something you captured into `open/` → that is the author's call.
 - `open/` is empty, so taking the best-looking thing from `backlog/` → stop
   and ask.
-- Moving to `completed/` without having run the four checks → not finished.
+- Moving anything to `completed/` yourself → that gate is a person's, always.
+- Reporting a task done when it is in `testing/` → it is merged, not verified.
 - Editing an `INDEX.md` table by hand → run the script.
 - A title that names a solution → rewrite it as the problem.
