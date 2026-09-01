@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -164,5 +164,94 @@ describe("localeForPath", () => {
   test("an address that names nobody falls back", () => {
     expect(localeForPath("/nobody")).toBe(instanceLocale());
     expect(localeForPath("/api/health")).toBe(instanceLocale());
+  });
+});
+
+/**
+ * The dictionary a running process is serving, versus the one on disk.
+ *
+ * B59: this cache was populated once and never invalidated, so a string added
+ * to a locale file rendered as its own key — `map.titlePlanned`, in an `<h1>` —
+ * until somebody restarted the server. Adding a *day* showed up on the next
+ * request, in the same process, because `lib/entries.ts` fingerprints its
+ * files; adding a *string* did not.
+ *
+ * The case worth being explicit about is the one B56 creates: a deploy
+ * replaces `$CONTENT_DIR/locales/` underneath a process that is already
+ * running and already serving. Neither half is much use alone — one gets the
+ * file onto the machine, the other makes the machine notice.
+ */
+describe("a locale file that changes under a running process", () => {
+  const overrideDir = () => path.join(dir, "locales");
+  const writeOverride = (code: string, strings: Record<string, string>) => {
+    fs.mkdirSync(overrideDir(), { recursive: true });
+    fs.writeFileSync(path.join(overrideDir(), `${code}.json`), JSON.stringify(strings));
+  };
+
+  test("a key added to an override file is served without a restart", () => {
+    writeOverride("en", { "nav.map": "Chart" });
+    expect(dictionaryFor("en")["nav.map"]).toBe("Chart");
+
+    writeOverride("en", { "nav.map": "Chart", "nav.gallery": "Pictures, mostly" });
+
+    expect(dictionaryFor("en")["nav.gallery"]).toBe("Pictures, mostly");
+  });
+
+  test("a reworded string replaces the one already being served", () => {
+    writeOverride("de", { "nav.map": "Karte" });
+    expect(dictionaryFor("de")["nav.map"]).toBe("Karte");
+
+    writeOverride("de", { "nav.map": "Landkarte" });
+
+    expect(dictionaryFor("de")["nav.map"]).toBe("Landkarte");
+    expect(translateIn("de", "nav.map")).toBe("Landkarte");
+  });
+
+  /**
+   * The deploy case. Before the sync there is no override at all, and "no file"
+   * has to be part of the fingerprint or the first one to arrive is invisible.
+   */
+  test("an override file appearing for the first time is noticed", () => {
+    const shipped = dictionaryFor("de")["nav.map"];
+    expect(shipped).toBeTruthy();
+
+    writeOverride("de", { "nav.map": "Ein anderes Wort" });
+
+    expect(dictionaryFor("de")["nav.map"]).toBe("Ein anderes Wort");
+  });
+
+  /** And a key deleted from the override falls back to the shipped string. */
+  test("a key removed from an override stops being served", () => {
+    const shipped = dictionaryFor("de")["nav.map"];
+    writeOverride("de", { "nav.map": "Landkarte", "nav.gallery": "Bilder" });
+    expect(dictionaryFor("de")["nav.map"]).toBe("Landkarte");
+
+    writeOverride("de", { "nav.gallery": "Bilder" });
+
+    expect(dictionaryFor("de")["nav.map"]).toBe(shipped);
+  });
+
+  /**
+   * The other half of the bargain: this runs on every server render, so an
+   * unchanged dictionary must cost a `stat` and not a parse of every string.
+   */
+  test("an untouched dictionary is not re-read on every call", () => {
+    writeOverride("de", { "nav.map": "Karte" });
+    dictionaryFor("de");
+
+    const read = vi.spyOn(fs, "readFileSync");
+    try {
+      for (let i = 0; i < 5; i += 1) dictionaryFor("de");
+      const localeReads = read.mock.calls.filter(([file]) =>
+        String(file).includes(`${path.sep}locales${path.sep}`),
+      );
+      expect(localeReads).toHaveLength(0);
+    } finally {
+      read.mockRestore();
+    }
+
+    // …and it starts reading again the moment the file moves.
+    writeOverride("de", { "nav.map": "Karte", "nav.gallery": "Bilder" });
+    expect(dictionaryFor("de")["nav.gallery"]).toBe("Bilder");
   });
 });

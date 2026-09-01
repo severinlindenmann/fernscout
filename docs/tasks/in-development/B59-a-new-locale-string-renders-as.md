@@ -72,6 +72,32 @@ Worth checking whether `lib/i18n.ts`'s client-side dictionary needs anything —
 it receives a flat object from the server per render, so it should follow for
 free, but confirm rather than assume.
 
+## Built
+
+`readDictionary` now stats the files it is about to read and keys the cache on
+`name:mtimeMs:size` per file, exactly as `entriesSignature` does in
+`lib/entries.ts`. Nothing outside `lib/locales.ts` changed, and no watcher was
+added.
+
+Two things worth recording:
+
+- **A missing file is part of the signature**, as `-`. Without that, the
+  interesting case would still be broken: `$CONTENT_DIR/locales/` *arriving*
+  where there was none is a change from absent, and that is precisely what B56
+  makes a deploy do to a process that is already running and already serving.
+  The two tasks are one behaviour between them — B56 gets the file onto the
+  machine, B59 makes the machine notice.
+- **`lib/i18n.ts` needed nothing**, confirmed rather than assumed: editing
+  `en.json` under a running production server changed both the rendered `<h1>`
+  and the dictionary serialised into the RSC payload for `LocaleProvider`, in
+  the same request. The client is handed a flat object per render and has no
+  cache of its own.
+
+`clearLocaleCache()` stays. It is still the right tool for a test that points
+`CONTENT_DIR` somewhere new, and the signature is deliberately coarse — two
+writes to one file inside the same millisecond, ending at the same length, look
+identical to it. That is the same trade `lib/entries.ts` makes.
+
 ## Acceptance
 
 - With the dev server running, adding a key to `content/locales/en.json` and
