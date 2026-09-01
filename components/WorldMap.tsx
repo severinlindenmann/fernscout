@@ -293,6 +293,20 @@ export default function WorldMap({
                     <path key={i} d={d} />
                   ))}
                 </g>
+                {/* Ice, over the high ground it sits on. */}
+                <g fill="#eef6fb" stroke="#d6e8f2" strokeWidth={0.6} opacity={0.9}>
+                  {basemap.glaciers.map((d, i) => (
+                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                  ))}
+                </g>
+                {/* Cantons, prefectures, states. Dashed and faint, because an
+                    internal boundary is a weaker fact than a national one and
+                    should not read as the same line. */}
+                <g fill="none" stroke="#b6cdbc" strokeWidth={0.8} strokeDasharray="3 3">
+                  {basemap.admin1.map((d, i) => (
+                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                  ))}
+                </g>
                 <g fill="#8fe0ef" stroke="#6fcfe0" strokeWidth={0.8}>
                   {basemap.lakes.map((d, i) => (
                     <path key={i} d={d} vectorEffect="non-scaling-stroke" />

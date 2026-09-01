@@ -77,6 +77,16 @@ const RIVER_SCALERANK_MAX = 5;
  */
 const MIN_LAKE_KM = 3;
 
+/**
+ * How prominent a state or province boundary must be to be kept.
+ *
+ * Natural Earth tags each with the zoom level at which it starts being worth
+ * drawing. The whole layer is 21 MB of source and doubles this file; at 6 it is
+ * the subdivisions a reader has heard of — cantons, prefectures, states — and
+ * not every district boundary on earth.
+ */
+const ADMIN1_MIN_ZOOM_MAX = 6;
+
 function arg(name) {
   const i = process.argv.indexOf(`--${name}`);
   return i >= 0 ? process.argv[i + 1] : undefined;
@@ -186,6 +196,8 @@ async function main() {
   const rivers = await fetchJson(`${NE}/ne_10m_rivers_lake_centerlines.geojson`);
   const peaks = await fetchJson(`${NE}/ne_10m_geography_regions_elevation_points.geojson`);
   const regions = await fetchJson(`${NE}/ne_10m_geography_regions_polys.geojson`);
+  const admin1 = await fetchJson(`${NE}/ne_10m_admin_1_states_provinces_lines.geojson`);
+  const glaciers = await fetchJson(`${NE}/ne_10m_glaciated_areas.geojson`);
 
   const out = {
     version: 1,
@@ -223,6 +235,26 @@ async function main() {
       close: true,
       keep: (p) => ["Range/mtn", "Plateau", "Foothills"].includes(p.FEATURECLA ?? p.featurecla),
     }),
+    // Cantons, prefectures, states — the border a reader actually crosses on a
+    // trip inside one country, which the country layer cannot show. Lines
+    // rather than polygons: only the boundary is wanted, and the polygon file
+    // is four times the size to draw the same thing.
+    //
+    // `min_zoom` is Natural Earth's own judgement of when a subdivision is
+    // worth drawing. Keeping the whole layer roughly doubles this file for
+    // boundaries between administrative districts nobody on a holiday is
+    // thinking about.
+    admin1: collectionToShapes(admin1, {
+      close: false,
+      keep: (p) => (p.min_zoom ?? p.MIN_ZOOM ?? 99) <= ADMIN1_MIN_ZOOM_MAX,
+    }),
+    // Ice. In the Alps this is the Aletsch, two valleys from where the demo
+    // trip crosses the Grimsel, and it is the single feature that most makes a
+    // mountain map look like mountains.
+    glaciers: collectionToShapes(glaciers, {
+      close: true,
+      minSpanUnits: unitsForKm(4),
+    }),
     peaks: [],
   };
 
@@ -252,7 +284,9 @@ async function main() {
   const kb = (n) => `${(n / 1024).toFixed(0)} KB`;
   console.log(`\nWrote ${path.relative(ROOT, OUT_FILE)}`);
   console.log(
-    `  borders ${out.borders.length}, relief ${out.relief.length}, lakes ${out.lakes.length}, rivers ${out.rivers.length}, peaks ${out.peaks.length}`,
+    `  borders ${out.borders.length}, admin1 ${out.admin1.length}, relief ${out.relief.length},` +
+      ` glaciers ${out.glaciers.length}, lakes ${out.lakes.length}, rivers ${out.rivers.length},` +
+      ` peaks ${out.peaks.length}`,
   );
   console.log(`  ${kb(json.length)} raw → ${kb(fs.statSync(OUT_FILE).size)} gzipped`);
 }

@@ -37,7 +37,9 @@ type Bundle = {
   version: number;
   attribution: string;
   borders: Shape[];
+  admin1: Shape[];
   relief: Shape[];
+  glaciers: Shape[];
   lakes: Shape[];
   rivers: Shape[];
   /** x, y, metres, name. */
@@ -54,8 +56,11 @@ export type BasemapLabel = {
 
 export type Basemap = {
   borders: string[];
+  /** States, cantons, prefectures — the border crossed inside one country. */
+  admin1: string[];
   /** Mountain ranges, plateaus and foothills — high ground, not contours. */
   relief: string[];
+  glaciers: string[];
   lakes: string[];
   rivers: string[];
   peaks: BasemapLabel[];
@@ -179,7 +184,9 @@ export function basemapFor(frame: Frame): Basemap | null {
 
   return {
     borders: clip(data.borders, x0, y0, x1, y1),
+    admin1: clip(data.admin1 ?? [], x0, y0, x1, y1),
     relief: clip(data.relief ?? [], x0, y0, x1, y1),
+    glaciers: clip(data.glaciers ?? [], x0, y0, x1, y1),
     lakes: clip(data.lakes, x0, y0, x1, y1),
     rivers: clip(data.rivers, x0, y0, x1, y1),
     peaks: spread(peakCandidates, frame, MAX_PEAKS),
