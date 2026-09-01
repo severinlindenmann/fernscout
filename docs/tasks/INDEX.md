@@ -95,7 +95,6 @@ _Nothing here._
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B72](in-development/B72-a-trip-whose-dates-have-passed.md) | A trip whose dates have passed still calls itself upcoming, and hides every day written to it | ISSUE | high | medium |
-| [B73](in-development/B73-a-journal-with-no-current-trip.md) | A journal with no current trip answers 404 on three of the four pages its own nav offers | ISSUE | high | low |
 | [B33](in-development/B33-a-journal-can-be-shared-only.md) | A journal can be shared only by password or by hand-edited frontmatter, so an agent cannot invite anybody | FEATURE | medium | medium |
 | [B63](in-development/B63-a-wrong-restic-repository-makes-a.md) | A wrong RESTIC_REPOSITORY makes a new empty repo instead of failing | ISSUE | medium | low |
 | [B68](in-development/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low |
@@ -114,6 +113,7 @@ _Nothing here._
 | [B47](testing/B47-the-test-flag-can-be-written.md) | The test flag can be written but never read back, so nothing can confirm it stuck | ISSUE | high | low |
 | [B56](testing/B56-deploying-ships-code-but-not-content.md) | Deploying ships code but not content/locales, so translations never reach the live site | ISSUE | high | low |
 | [B64](testing/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low |
+| [B73](testing/B73-a-journal-with-no-current-trip.md) | A journal with no current trip answers 404 on three of the four pages its own nav offers | ISSUE | high | low |
 | [B26](testing/B26-the-welcome-mail-is-english-only.md) | The welcome mail is English only, and nobody is asked which language the journal is in | FEATURE | medium | low |
 | [B27](testing/B27-the-welcome-mail-s-link-opens.md) | The welcome mail's link opens the public view, so the owner cannot see their own drafts | FEATURE | medium | medium |
 | [B28](testing/B28-publishing-a-draft-requires-editing-a.md) | Publishing a draft requires editing a file by hand, so an agent cannot close the loop it opened | FEATURE | medium | high |
