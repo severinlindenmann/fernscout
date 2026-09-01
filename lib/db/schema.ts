@@ -84,6 +84,13 @@ export type LoginCodesTable = {
   /** Set when the *link* is redeemed. Leaves the code usable, so a mail
    * scanner that follows the link cannot lock the reader out. */
   link_consumed_at: string | null;
+  /**
+   * 1 for the welcome mail's link, which never expires and is not swept away
+   * when a fresh code is issued for the same address. 0 — the default, and
+   * every row written before `006-standing-link` — is a link that dies with
+   * its code. Still single use either way; see that migration.
+   */
+  link_standing: number;
   attempts: number;
 };
 
@@ -149,7 +156,7 @@ export type ContactInvitesTable = {
  * One row: this contact may read this journal.
  *
  * **Journal-wide, never per-trip.** The table carried a `trip_id` until
- * `006-journal-wide-grants` — always written `*`, honoured by three readers,
+ * `007-journal-wide-grants` — always written `*`, honoured by three readers,
  * issued by nothing — and the column is gone because a guest is a guest of the
  * journal, not of a trip (B35, B41). A trip that must be held back from the
  * people let in is `visibility: private`; that is the whole mechanism, and

@@ -4,6 +4,7 @@ import path from "node:path";
 import { isEnabled } from "./capabilities";
 import { clearConfigCache, type JournalVisibility } from "./config";
 import { contentRoot } from "./contentRoot";
+import { issueStandingLink, signInUrl } from "./auth";
 import type { TranslationKey } from "./i18n";
 import { translateIn } from "./locales";
 import { sendMail } from "./mail";
@@ -271,6 +272,29 @@ export async function sendWelcome(input: {
   const t = (key: TranslationKey, vars?: Record<string, string>) =>
     translateIn(locale, key, vars);
 
+  /**
+   * The button signs them in; the plain address is in the text underneath.
+   *
+   * Without a session this mail invited its reader to look at a page that
+   * shows them none of the work that prompted it: an agent has just written
+   * drafts, into a trip that is private by default, and both are invisible to
+   * an anonymous visitor. "You can see what is waiting at any time" followed
+   * by a link that cannot is the wrong first impression to give somebody about
+   * their own journal.
+   *
+   * Best effort, like the mail itself. `auth` is an optional capability and a
+   * journal on an instance without it still gets a welcome mail — with the
+   * address and no button, which is what it can honestly offer.
+   */
+  let signIn: string | null = null;
+  if (isEnabled("auth", input.username)) {
+    try {
+      signIn = signInUrl(site.url, input.username, await issueStandingLink(input.username, input.email));
+    } catch (err) {
+      console.error(`[journals] no sign-in link for ${input.username}:`, err);
+    }
+  }
+
   try {
     await sendMail(
       renderMail(
@@ -292,7 +316,14 @@ export async function sendWelcome(input: {
                 site: site.name,
               }),
             },
-            { kind: "button", text: t("welcome.open"), href: url },
+            { kind: "button", text: t("welcome.open"), href: signIn ?? url },
+            // What the button does, and the address on its own. The button
+            // signs whoever taps it in, so somebody forwarding this mail as
+            // "here is my journal" needs to know that is not all they are
+            // sending. And a link that has been used is spent — this mail is
+            // the only one carrying the address, so the address has to be in
+            // it as text too.
+            { kind: "paragraph", text: t(signIn ? "welcome.linkNote" : "welcome.addressNote", { url }) },
             {
               kind: "paragraph",
               text: t(input.visibility === "private" ? "welcome.private" : "welcome.public"),

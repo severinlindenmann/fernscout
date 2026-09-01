@@ -48,21 +48,21 @@ if (!postgresConfigured()) {
 }
 
 /**
- * The one hazard in `006-journal-wide-grants`: the new unique index is
+ * The one hazard in `007-journal-wide-grants`: the new unique index is
  * narrower than the old one, so two grants that differed only by `trip_id`
  * would collide on it. Nothing shipped could write such a pair — approval, the
  * only insert, always wrote `*` — but a hand-written row could, and a
  * migration that fails halfway is worse than either outcome. So it collapses
  * them first, keeping the one that grants the most.
  */
-describe.each(dialectCases())("006 on $name, against rows 005 allowed", ({ target }) => {
+describe.each(dialectCases())("007 on $name, against rows 006 allowed", ({ target }) => {
   test("collapses two grants for one contact into the wider one", async () => {
     const handle = await createDatabase(target);
     try {
       await dropEverything(handle);
       const migrator = new Migrator({ db: handle.db, provider: migrationProvider });
-      const upTo005 = await migrator.migrateTo("005-signin-link");
-      expect(upTo005.error).toBeUndefined();
+      const before = await migrator.migrateTo("006-standing-link");
+      expect(before.error).toBeUndefined();
 
       const now = "2026-08-01T08:00:00.000Z";
       await handle.db
@@ -372,11 +372,11 @@ describe.each(dialectCases())("schema on $name", ({ target }) => {
   });
 
   /**
-   * `006-journal-wide-grants`. A grant is one bit — this contact may read this
+   * `007-journal-wide-grants`. A grant is one bit — this contact may read this
    * journal — so the column that said *which trip* is gone, and with it the
    * `trip_id` on `contact_invites` that was only ever written null.
    */
-  test("006 leaves no trip_id on access_grants or contact_invites", async () => {
+  test("007 leaves no trip_id on access_grants or contact_invites", async () => {
     const tables = await handle.db.introspection.getTables();
     const columns = (name: string) =>
       tables.find((t) => t.name === name)!.columns.map((c) => c.name);
@@ -388,7 +388,7 @@ describe.each(dialectCases())("schema on $name", ({ target }) => {
     );
   });
 
-  test("006 narrows access_grants_unique to one read grant per contact", async () => {
+  test("007 narrows access_grants_unique to one read grant per contact", async () => {
     const now = "2026-08-30T09:15:00.000Z";
     const row = (id: string, scope: string) => ({
       id,

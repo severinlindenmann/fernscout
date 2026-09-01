@@ -7,6 +7,7 @@ complexity: medium
 area: mail, auth, journals
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B27 — The welcome mail's link opens the public view, so the owner cannot see their own drafts
@@ -87,6 +88,35 @@ link has to survive an ordinary sign-in code being issued.
 Not doing: an owner-specific session class. If the guest session plus
 `isOwner()` is not enough to show drafts, that is a finding to write up, not to
 fix inside this task.
+
+## What was found while building it
+
+The interaction this file predicted — `revokeCodes` killing the standing link —
+was real and is handled by `link_standing`, a column that **defaults to 0** so
+every row written by code that does not know about it behaves exactly as
+before. A forgotten call site produces a link that expires, not one that never
+does: the failure that costs somebody a second email rather than the one that
+leaves a credential live for ever.
+
+**A second interaction was not predicted, and it broke sign-in.** `verifyCode`
+takes the newest live row for an address and assumes it is the code the person
+is holding — true while `issueCode` superseded every other row, and false the
+moment a standing link sits alongside them and outlives them by design. Without
+excluding it, the welcome link's row (whose code is a value nobody has ever
+been told) was matched against what the person typed, and **every real code
+failed**. Caught by the test asserting the link survives its code being
+redeemed. Both lookups now say `link_standing = 0` explicitly.
+
+`issueStandingLink` is deliberately a separate function rather than an option
+on `issueCode`. `issueCode`'s contract is "supersede whatever this address
+had"; this one must not, and folding two opposite behaviours behind a boolean
+is how the next caller gets it wrong.
+
+One shape worth knowing: the row still needs a `code_hash` because the column
+is `NOT NULL`. It gets the hash of a token that is generated, never returned
+and never sent — so no code exists that could redeem the row and retire its
+link. That is the intended state, and a test walks the obvious guesses to show
+`verifyCode` has nothing to match.
 
 ## Acceptance
 

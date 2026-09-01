@@ -85,7 +85,7 @@ journal's guest trips.
 
 ### The decision: the columns are dropped
 
-`lib/db/migrations/006-journal-wide-grants.ts`. Dropped, not documented as
+`lib/db/migrations/007-journal-wide-grants.ts`. Dropped, not documented as
 unused, for the reason the task was raised in the first place: a column whose
 stated meaning nothing honours is read as a plan that has not landed yet, and
 the next person to open `schema.ts` is the one building B41 — the task most
@@ -106,9 +106,14 @@ Two things settled the argument beyond that:
   keeping the one that grants the most (`expires_at: null` beats a date, a
   later date beats an earlier one, ties break on `granted_at` then `id` so two
   databases with the same rows keep the same one). Merging two grants has to
-  keep what either allowed. Covered by *"006 on $name, against rows 005
-  allowed"* in `test/db-migrations.test.ts`, which migrates to `005`, writes
-  the pair `005` still permits, and then runs `006` over it.
+  keep what either allowed. Covered by *"007 on $name, against rows 006
+  allowed"* in `test/db-migrations.test.ts`, which migrates to `006`, writes
+  the pair `006` still permits, and then runs `007` over it.
+
+  *Numbered `007`, not `006`: `006-standing-link` (B27) landed on `main` while
+  this was in progress, and a migration name is the primary key in
+  `kysely_migration` — renumbering one that has run anywhere is the one thing
+  `lib/db/migrations/index.ts` says never to do, so the newer of the two moved.*
 
 `down()` restores both columns, `access_grants.trip_id` defaulting to `"*"` —
 which is what every surviving grant means. The suite's "rolls all the way down
@@ -167,11 +172,11 @@ Against the Acceptance lines above, in order.
   column is gone. Neither `access_grants` nor `contact_invites` appears among
   them. The criterion is left as it was written rather than edited to fit.
 - **The decision is written above**, the migration is
-  `lib/db/migrations/006-journal-wide-grants.ts`, and
+  `lib/db/migrations/007-journal-wide-grants.ts`, and
   `test/db-migrations.test.ts` covers it three ways: the columns are absent from
   both tables, the narrowed `access_grants_unique` refuses a second `read` grant
   for one contact while still allowing a different scope, and the duplicate
-  collapse runs against rows written at `005`.
+  collapse runs against rows written at `006`.
 - **The three behaviours are unchanged.** This is the line the change risked, so
   it was tested rather than reasoned about:
   - *digest* — `test/digest.test.ts`, "an unlisted trip reaches only the readers

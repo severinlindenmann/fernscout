@@ -29,7 +29,7 @@ import type { Trip } from "../types";
  *   function is the single place that changes.
  *
  * A grant is journal-wide — one bit, not a set of trip ids. It said which trip
- * until `006-journal-wide-grants`, and nothing ever wrote anything but `*`.
+ * until `007-journal-wide-grants`, and nothing ever wrote anything but `*`.
  */
 
 /** Trips a reader may be told about. `granted` is whether they hold a `read`

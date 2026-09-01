@@ -1174,13 +1174,24 @@ function writeTrip(trip) {
   // is derived from where the trip actually went.
   const stops =
     trip.plan ??
-    trip.days.map((day) => ({
-      location: day.location,
-      country: day.country,
-      code: day.code,
-      lat: day.lat,
-      lng: day.lng,
-    }));
+    // One stop per place, not one per update. A day written as three updates
+    // is still one point on the route line, and it used to be three of them
+    // stacked on the same coordinate — which the map draws as a marker that
+    // will not go away when you click past it.
+    trip.days.reduce((route, day) => {
+      const last = route.at(-1);
+      if (last && last.location === day.location && last.country === day.country) {
+        return route;
+      }
+      route.push({
+        location: day.location,
+        country: day.country,
+        code: day.code,
+        lat: day.lat,
+        lng: day.lng,
+      });
+      return route;
+    }, []);
   const plan = ["---", "route:"];
   for (const stop of stops) {
     const note = stop.note ? `, note: ${quote(stop.note)}` : "";

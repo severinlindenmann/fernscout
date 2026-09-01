@@ -82,7 +82,7 @@ export async function resolveViewer(username: string): Promise<Viewer> {
     } else if (trip.visibility === "guest" && guest) {
       // An active contact, and nothing narrower. This arm used to also ask
       // `grants?.has(trip.id)` — a per-trip grant nothing ever issued, removed
-      // with the column in `006-journal-wide-grants`. The `access_grants` row
+      // with the column in `007-journal-wide-grants`. The `access_grants` row
       // is not consulted here because it says the same thing `guest` does:
       // approval is what writes it, and both paths that end an approval
       // (`revokeContact`, and changing the address on `updateContactByOwner`)

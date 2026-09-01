@@ -6,6 +6,8 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser, getUsernames, userExists } from "@/lib/users";
 import { createJournal, journalsOwnedBy, MAX_JOURNALS_PER_EMAIL, sendWelcome } from "@/lib/journals";
 import { listedUsernames } from "@/lib/users";
+import { verifyLink } from "@/lib/auth";
+import { closeDatabase, getDatabase } from "@/lib/db";
 import { instanceDocumentation } from "@/lib/api/documentation";
 import { createTrip } from "@/lib/tripWrite";
 import { getTrip, getTrips } from "@/lib/trips";
@@ -383,6 +385,65 @@ describe("the welcome mail", () => {
     // letter is the seam that sends somebody to the spam button.
     expect(body).toContain("Gesendet von T");
     expect(body).not.toContain("Sent by");
+  });
+
+  /**
+   * B27. The button used to point at the bare journal URL, which makes the
+   * owner an anonymous reader of their own site — private trips gated, drafts
+   * filtered out — in a letter that says "you can see what is waiting at any
+   * time". It arrives precisely when there is nothing to see without a session.
+   */
+  test("the button is a sign-in link, and the plain address is in the text", async () => {
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "T", url: "https://t.test" },
+        features: {
+          mail: { enabled: true, transport: "file" },
+          auth: { enabled: true },
+        },
+      }),
+    );
+    fs.symlinkSync(path.join(process.cwd(), "content", "locales"), path.join(dir, "locales"));
+    process.env.DATABASE_URL = `sqlite:${path.join(dir, "auth.db")}`;
+    process.env.SESSION_SECRET = "b27-test-secret-b27-test-secret";
+    clearConfigCache();
+    const { migrateToLatest } = await import("@/lib/db/migrate");
+    await migrateToLatest(await getDatabase());
+
+    make("wanderer");
+    expect(
+      await sendWelcome({
+        username: "wanderer",
+        title: "A journal",
+        email: OWNER,
+        nickname: "Robin",
+        visibility: "public",
+      }),
+    ).toBe(true);
+
+    const body = mailBodyOf("wanderer");
+    const link = /https:\/\/t\.test\/wanderer\/s\/([A-Za-z0-9_-]+)/.exec(body);
+    expect(link, "the mail should carry a /s/<token> sign-in link").not.toBeNull();
+
+    // It redeems to a session…
+    const result = await verifyLink("wanderer", link![1]);
+    expect(result.ok).toBe(true);
+
+    // …and the bare address is still in the letter, because a spent link must
+    // not take the only copy of the journal's URL with it. Checked with the
+    // sign-in URL removed, so the plain address cannot be satisfied by the
+    // link's own prefix.
+    const withoutLink = body.replaceAll(link![0], "");
+    expect(withoutLink).toContain("https://t.test/wanderer");
+
+    // And the letter says what the button does, so nobody forwards it
+    // believing they are only sharing an address.
+    expect(body).toMatch(/signs you in/i);
+
+    await closeDatabase();
+    delete process.env.DATABASE_URL;
+    delete process.env.SESSION_SECRET;
   });
 
   test("falls back to English when the journal names no language", async () => {
