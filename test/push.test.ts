@@ -20,7 +20,7 @@ import { clearUserCache } from "@/lib/users";
  * Per-recipient push fan-out (W12).
  *
  * The one behaviour worth being paranoid about: a subscription that cannot
- * prove it may read a password-protected trip must never be notified about
+ * prove it may read a closed trip must never be notified about
  * it. Everything else here is in service of that.
  */
 
@@ -127,7 +127,7 @@ describe("subscribersFor — public and unlisted trips", () => {
   });
 });
 
-describe("subscribersFor — password-protected trips", () => {
+describe("subscribersFor — closed trips", () => {
   test("a subscription nobody could identify is not notified", async () => {
     const trip = fakeTrip({ visibility: "guest" });
     await saveSubscription(fakeSub({ contactId: null }));
@@ -228,7 +228,7 @@ describe("subscribersFor — no database", () => {
     expect(await subscribersFor(trip)).toHaveLength(1);
   });
 
-  test("a password-protected trip notifies nobody — there is no way to tell who may read it", async () => {
+  test("a closed trip notifies nobody — there is no way to tell who may read it", async () => {
     const trip = fakeTrip({ visibility: "guest" });
     await saveSubscription(fakeSub());
     expect(await subscribersFor(trip)).toEqual([]);

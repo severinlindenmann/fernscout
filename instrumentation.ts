@@ -22,11 +22,10 @@ export async function register() {
   assertDatabaseUrl();
   assertCapabilities();
 
-  // A trip that is password-protected needs something to sign its cookie with;
-  // finding that out on first use means finding it out in front of a reader.
-  const { assertTripAccessConfig } = await import("./lib/access");
+  // A `passwordHash:` left in a trip.md is a line that no longer does
+  // anything, on a trip whose owner still believes it is locked.
   const { getAllTrips } = await import("./lib/trips");
-  assertTripAccessConfig(getAllTrips());
+  assertNoTripPasswords(getAllTrips());
 
   // Running with no database at all is a supported deployment (ROADMAP §2.2),
   // so there is nothing to do here in that case.
@@ -43,4 +42,36 @@ export async function register() {
   } catch (err) {
     console.error("[db] not ready at boot; will retry on first use:", err);
   }
+}
+
+
+/**
+ * Refuses to boot on a leftover trip password.
+ *
+ * Trip passwords are gone (B39): a trip is opened by who you are, not by what
+ * you know. The check that used to live here was the mirror image — it failed
+ * the boot when a `guest` trip had *no* hash — and inverting it is not
+ * pedantry, because the removal **widens** access on exactly the trips that
+ * were most deliberately closed. A trip that was `guest` plus a password is
+ * now readable by every guest of the journal, which may be more people than
+ * the password ever reached, and nothing about the file says so. Refusing to
+ * serve until somebody has looked at the line is the only way that decision
+ * gets made by a person.
+ *
+ * Fatal rather than a warning, and consistent with the two checks above it: a
+ * warning in a boot log is not read, and the failure it prevents is silent.
+ *
+ * The key is named here and nowhere under `lib/` — see `Trip.unknownFields`.
+ */
+export function assertNoTripPasswords(trips: { ref: string; unknownFields?: string[] }[]): void {
+  const stale = trips.filter((t) => t.unknownFields?.includes("passwordHash")).map((t) => t.ref);
+  if (stale.length === 0) return;
+  throw new Error(
+    `These trips still carry a passwordHash: line, which no longer protects anything — ` +
+      `${stale.join(", ")}. Trip passwords were removed; a trip is opened by who the ` +
+      `reader is, not by a shared secret. Delete the line, and check the trip's ` +
+      `visibility: while "guest" once meant "whoever holds the password", it now means ` +
+      `every guest of this journal — which may be more people. Use "private" if only the ` +
+      `people in its people: block should read it.`,
+  );
 }

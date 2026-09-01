@@ -14,6 +14,16 @@ import type { Trip } from "@/lib/types";
  * whole bug, so the test that matters is a table over every viewer and every
  * trip, asserting the two agree.
  *
+ * B39 removed the password, which makes the grant the only door into a `guest`
+ * trip — and makes one row of the table the most important assertion in the
+ * project: **`stranger`, somebody who has proved an address and been granted
+ * nothing, reads exactly what `anonymous` reads.** Proving an address is free;
+ * `/api/auth/request` mails a code to anyone who asks, because answering
+ * differently would say who reads somebody's journal. The mail proves who you
+ * are; the grant decides what you may read. If those two ever merge, every
+ * closed trip on the instance is readable by anyone with an inbox, and this
+ * table is what says so.
+ *
  * The one divergence the table permits is stated in it and asserted to be the
  * only one: a `public` trip with `listed: false` is readable by anybody and
  * advertised to nobody, which is what `listed` is for. Everywhere else the
@@ -39,15 +49,16 @@ const PENDING = "knock@example.test";
 const BLOCKED = "gone@example.test";
 /** On `people:` for one trip, and not a contact at all. */
 const ROBIN = "robin@example.test";
-
-/** A hash no password matches — the anonymous door, left shut throughout. */
-const A_HASH = "scrypt$32768$8$1$c2FsdA$a2V5";
+/**
+ * Signed in, and nothing else: never a contact, never invited, never on a
+ * trip. Anybody at all can be this, which is the point.
+ */
+const STRANGER = "anyone@example.test";
 
 type TripSpec = {
   id: string;
   /** Written into the frontmatter verbatim, older words included. */
   visibility: string;
-  password: boolean;
   people: string[];
   costsVisibility: "public" | "guests";
 };
@@ -59,11 +70,11 @@ type TripSpec = {
  * B51.
  */
 const TRIPS: TripSpec[] = [
-  { id: "open-2026", visibility: "public", password: false, people: [], costsVisibility: "guests" },
-  { id: "quiet-2026", visibility: "unlisted", password: false, people: [], costsVisibility: "public" },
-  { id: "invited-2026", visibility: "guest", password: true, people: [], costsVisibility: "guests" },
-  { id: "secret-2026", visibility: "private", password: false, people: [], costsVisibility: "guests" },
-  { id: "robins-2026", visibility: "private", password: false, people: [ROBIN], costsVisibility: "guests" },
+  { id: "open-2026", visibility: "public", people: [], costsVisibility: "guests" },
+  { id: "quiet-2026", visibility: "unlisted", people: [], costsVisibility: "public" },
+  { id: "invited-2026", visibility: "guest", people: [], costsVisibility: "guests" },
+  { id: "secret-2026", visibility: "private", people: [], costsVisibility: "guests" },
+  { id: "robins-2026", visibility: "private", people: [ROBIN], costsVisibility: "guests" },
 ];
 
 /**
@@ -80,6 +91,17 @@ const EXPECTED: Record<string, Record<string, Expectation>> = {
   anonymous: {
     "open-2026": { panel: "public", read: true },
     "quiet-2026": { panel: null, read: true }, // unlisted, not locked
+    "invited-2026": { panel: null, read: false },
+    "secret-2026": { panel: null, read: false },
+    "robins-2026": { panel: null, read: false },
+  },
+  // Signed in, and that is all. Never a contact, never invited. **Identical
+  // to `anonymous` above, deliberately and forever**: signing in is an
+  // identity claim, not a key. Any diff that makes this row differ from the
+  // anonymous one has opened every closed trip on the instance.
+  stranger: {
+    "open-2026": { panel: "public", read: true },
+    "quiet-2026": { panel: null, read: true },
     "invited-2026": { panel: null, read: false },
     "secret-2026": { panel: null, read: false },
     "robins-2026": { panel: null, read: false },
@@ -170,7 +192,6 @@ function writeTrip(spec: TripSpec) {
       'status: "past"',
       `visibility: "${spec.visibility}"`,
       `costsVisibility: "${spec.costsVisibility}"`,
-      ...(spec.password ? [`passwordHash: "${A_HASH}"`] : []),
       ...(spec.people.length > 0
         ? ["people:", ...spec.people.map((e) => `  - { name: "Robin", email: "${e}" }`)]
         : []),
@@ -254,6 +275,7 @@ beforeAll(async () => {
   await revokeContact(OWNER, blockedId);
 
   tokens.approved = await signIn(GUEST);
+  tokens.stranger = await signIn(STRANGER);
   tokens.pending = await signIn(PENDING);
   tokens.revoked = await signIn(BLOCKED);
   tokens.traveller = await signIn(ROBIN);
@@ -325,21 +347,108 @@ describe("the panel and the gate agree", () => {
   });
 });
 
-describe("an approved contact needs no password", () => {
-  test("opens a guest trip with no trip cookie at all", async () => {
+describe("an approved contact is let in by the grant alone", () => {
+  test("opens a guest trip with nothing but a session cookie", async () => {
     as("approved");
     const trip = (await tripsByRef()).get("invited-2026")!;
     const { mayReadTrip } = await import("@/lib/tripGate");
-    expect(jar.cookies).not.toHaveProperty("fs_trip_ana_invited-2026");
+    expect(Object.keys(jar.cookies)).toEqual(["fs_session"]);
     expect(await mayReadTrip(trip)).toBe(true);
   });
 
-  test("a stranger still meets the password form", async () => {
+  test("a stranger still meets the gate", async () => {
     as("anonymous");
     const trip = (await tripsByRef()).get("invited-2026")!;
-    const { mayReadTrip, tripLockReason } = await import("@/lib/tripGate");
+    const { mayReadTrip } = await import("@/lib/tripGate");
     expect(await mayReadTrip(trip)).toBe(false);
-    expect(await tripLockReason(trip)).toBe("locked");
+  });
+});
+
+/**
+ * **The assertion this whole task turns on.** B39.
+ *
+ * The obvious way to replace a password form with a sign-in form is to let the
+ * sign-in be what opens the trip: enter an address, get a code, be let in.
+ * That would be a strictly worse gate than the password it replaced, because
+ * everybody has an address and `/api/auth/request` will mail a code to any of
+ * them. So: a session grants nothing. What a stranger sees signed in is what
+ * they saw signed out — the page, the metadata, the switcher, the panel and
+ * the costs, all five.
+ *
+ * Asserted against `anonymous` rather than against a list of `false`s, so it
+ * cannot be satisfied by a change that locks both of them out of something
+ * they should both be able to read.
+ */
+describe("a signed-in stranger", () => {
+  test("sees exactly what they saw signed out, trip by trip", async () => {
+    const trips = [...(await tripsByRef()).values()];
+    const { mayReadTrip, isGuestOf, mayViewCosts } = await import("@/lib/tripGate");
+
+    const answers = async (viewer: string, trip: Trip) => {
+      as(viewer);
+      return {
+        read: await mayReadTrip(trip),
+        guest: await isGuestOf(trip),
+        costs: await mayViewCosts(trip),
+      };
+    };
+
+    for (const trip of trips) {
+      const before = await answers("anonymous", trip);
+      const after = await answers("stranger", trip);
+      expect(after, `${trip.id}: signing in changed something`).toEqual(before);
+    }
+  });
+
+  test("the switcher and the panel mention no more than they did", async () => {
+    const trips = [...(await tripsByRef()).values()];
+    const { listableTrips } = await import("@/lib/tripGate");
+    const { resolveViewer } = await import("@/lib/viewer");
+
+    as("anonymous");
+    const listedOut = (await listableTrips(trips)).map((t) => t.id);
+    as("anonymous");
+    const panelOut = (await resolveViewer(OWNER)).trips.map((t) => t.id);
+
+    as("stranger");
+    const listedIn = (await listableTrips(trips)).map((t) => t.id);
+    as("stranger");
+    const panelIn = (await resolveViewer(OWNER)).trips.map((t) => t.id);
+
+    expect(listedIn).toEqual(listedOut);
+    expect(panelIn).toEqual(panelOut);
+  });
+
+  /**
+   * And the page itself. `mayReadTrip` being false is what makes every gated
+   * page return `null` and answer `lockedMetadata` — see `test/trip-gate.ts`,
+   * which asserts each of them actually calls it. Here: the metadata a refused
+   * trip is allowed to emit carries nothing of the trip but its title.
+   */
+  test("gets locked metadata, with no prose in it", async () => {
+    as("stranger");
+    const trip = (await tripsByRef()).get("invited-2026")!;
+    const { mayReadTrip, lockedMetadata } = await import("@/lib/tripGate");
+    expect(await mayReadTrip(trip)).toBe(false);
+
+    const meta = lockedMetadata(trip);
+    expect(meta.description).toBeUndefined();
+    expect(meta.openGraph).toBeUndefined();
+    expect(meta.robots).toEqual({ index: false, follow: false });
+  });
+
+  /**
+   * The gate has to *say* something different to them, though. A stranger with
+   * no session needs the sign-in form; somebody already signed in needs to be
+   * told this trip is not theirs, or they will sign in again and conclude the
+   * site is broken. That is the only thing signing in changes.
+   */
+  test("is recognised by name, which is what the gate says back to them", async () => {
+    const { signedInAs } = await import("@/lib/tripGate");
+    as("anonymous");
+    expect(await signedInAs(OWNER)).toBeNull();
+    as("stranger");
+    expect(await signedInAs(OWNER)).toBe(STRANGER);
   });
 });
 

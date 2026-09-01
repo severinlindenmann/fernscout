@@ -161,10 +161,7 @@ describe("resolveViewer, against a database", () => {
         'end: "2026-08-26"',
         'status: "past"',
         `visibility: "${visibility}"`,
-        // `guest` still requires a hash — the anonymous door, untouched here.
-        ...(visibility === "guest"
-          ? ['passwordHash: "scrypt$32768$8$1$c2FsdA$a2V5"', "listed: false"]
-          : []),
+        ...(visibility === "guest" ? ["listed: false"] : []),
         "---",
         "",
         "Intro.",

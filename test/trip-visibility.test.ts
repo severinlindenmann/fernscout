@@ -1,12 +1,13 @@
 import { describe, expect, test } from "vitest";
-import { isIndexable, isOpenToLink, isRestricted } from "@/lib/access";
+import { isIndexable, isOpenToLink } from "@/lib/access";
 import type { Trip } from "@/lib/types";
 
 /**
  * private / public / guest, and the two words they replaced.
  *
  * The older pair were answering a different question. `password` said *how*
- * somebody gets in; `unlisted` said the trip is not advertised. Who is let in
+ * somebody gets in — a question the software no longer asks anybody, since
+ * B39 removed trip passwords; `unlisted` said the trip is not advertised. Who is let in
  * and whether it is advertised are separate axes, and conflating them is how
  * "unlisted" stopped meaning anything. Both still parse — see
  * test/visibility.test.ts, which reads real fixture files — and this pins what
@@ -37,9 +38,16 @@ describe("who a trip is for", () => {
     expect(isIndexable(trip({ visibility: "private", listed: true }))).toBe(false);
   });
 
-  test("everything that is not public has a gate", () => {
-    expect(isRestricted(trip({ visibility: "public" }))).toBe(false);
-    expect(isRestricted(trip({ visibility: "guest" }))).toBe(true);
-    expect(isRestricted(trip({ visibility: "private" }))).toBe(true);
+  /**
+   * `isRestricted` — "everything that is not public" — went with the passwords
+   * (B39). It only ever gated the cookie check, and as a name it invited the
+   * mistake the gate must not make: `guest` and `private` are *not* the same
+   * closed, and one call that answers for both is how they get conflated.
+   * `isOpenToLink` above is the negative that survived, and `mayReadTrip` asks
+   * about the two closed values separately.
+   */
+  test("guest and private are not one closed", () => {
+    expect(isOpenToLink(trip({ visibility: "guest" }))).toBe(false);
+    expect(isOpenToLink(trip({ visibility: "private" }))).toBe(false);
   });
 });

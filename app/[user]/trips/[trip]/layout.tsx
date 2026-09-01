@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import TripPasswordForm from "@/components/TripPasswordForm";
+import TripGate from "@/components/TripGate";
 import { isIndexable } from "@/lib/access";
-import { mayReadTrip, tripLockReason } from "@/lib/tripGate";
+import { CODE_TTL_MINUTES } from "@/lib/auth";
+import { isEnabled } from "@/lib/capabilities";
+import { mayReadTrip, signedInAs } from "@/lib/tripGate";
 import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 
@@ -10,7 +12,7 @@ import { getUser } from "@/lib/users";
  * Rendered per request, not prerendered.
  *
  * Everything under `/[user]` reads cookies — `listableTrips` in the user
- * layout, and the password gate below — and a page that answers differently
+ * layout, and the gate below — and a page that answers differently
  * depending on who is asking cannot be a build artefact. The pages in this
  * subtree declared `generateStaticParams`, so Next marked them SSG, prerender
  * bailed with `DYNAMIC_SERVER_USAGE`, and **every `/[user]/trips/<id>` URL
@@ -46,17 +48,13 @@ export default async function TripLayout({
   if (!trip) notFound();
   if (await mayReadTrip(trip)) return children;
   return (
-    <TripPasswordForm
-      /* The qualified ref, not the bare id: /api/trip-access resolves it with
-         getTrip(), which needs "<user>/<id>". A bare id resolved to nothing,
-         so the endpoint answered "wrong-password" to the *correct* password
-         and no password-protected trip outside the current one could ever be
-         opened. The sibling layout has always passed `current.ref`. */
-      tripId={trip.ref}
+    <TripGate
       tripTitle={trip.title}
       username={user}
       journalTitle={getUser(user)?.title ?? user}
-      reason={await tripLockReason(trip)}
+      signedInAs={await signedInAs(user)}
+      canSignIn={isEnabled("auth", user)}
+      codeMinutes={CODE_TTL_MINUTES}
     />
   );
 }

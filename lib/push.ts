@@ -72,15 +72,13 @@ export async function findActiveContactId(
  *
  * A public or unlisted trip is open to anyone holding the link (`lib/access.ts`
  * — `isOpenToLink`), so every subscription for this journal qualifies. A
- * password-protected trip is not: a device merely being subscribed proves
- * nothing about whether it was ever shown the password, so only a
- * subscription tied to a signed-in, active contact (`contactId`, set at
- * subscribe time — see `findActiveContactId`) who holds a `read` grant on this
- * journal qualifies. The grant is journal-wide and there is no other kind: a
- * trip that the people let in should not hear about is `visibility: private`,
- * which never reaches this function. Everyone else — including every
- * subscriber at all, when there is no database — is left out rather than
- * guessed into an audience that might not have the password. That is the
+ * closed trip is not: a device merely being subscribed says nothing about who
+ * is holding it, so only a subscription tied to a signed-in, active contact
+ * (`contactId`, set at subscribe time — see `findActiveContactId`) who holds a
+ * `read` grant on this journal qualifies. The grant is journal-wide and there
+ * is no other kind. Everyone else — including every subscriber at all, when
+ * there is no database — is left out rather than guessed into an audience that
+ * may not be able to open the page the notification links to. That is the
  * fail-closed choice: under-notifying a restricted trip is a nuisance,
  * over-notifying it is a leak.
  */

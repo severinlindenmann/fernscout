@@ -50,11 +50,10 @@ describe("buildSearchIndex", () => {
     expect(index.search("Quietburg")).toEqual([]);
   });
 
-  test("the raw JSON never contains the excluded markers or the password hash", () => {
+  test("the raw JSON never contains the excluded markers", () => {
     const json = buildSearchIndexJson("creator")!;
     expect(json).not.toContain("PRIVATEMARKERSECRET");
     expect(json).not.toContain("UNLISTEDMARKERQUIET");
-    expect(json).not.toContain("scrypt$");
   });
 });
 

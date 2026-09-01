@@ -70,6 +70,9 @@ Do not edit them by hand; run the script.
 | [B60](backlog/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low |
 | [B62](backlog/B62-every-docs-link-in-the-readme.md) | Every docs/ link in the README points at a file that moved to docs/archiv | CHORE | medium | low |
 | [B63](backlog/B63-a-wrong-restic-repository-makes-a.md) | A wrong RESTIC_REPOSITORY makes a new empty repo instead of failing | ISSUE | medium | low |
+| [B66](backlog/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium |
+| [B68](backlog/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low |
+| [B69](backlog/B69-the-one-tap-sign-in-link.md) | The one-tap sign-in link always lands on the journal home, losing the page you were trying to read | ISSUE | medium | medium |
 | [B03](backlog/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium |
 | [B04](backlog/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium |
 | [B05](backlog/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |

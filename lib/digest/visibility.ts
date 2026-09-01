@@ -7,7 +7,7 @@ import type { Trip } from "../types";
  *
  * The rule this file enforces is one sentence: **a digest never contains a line
  * about a trip the reader cannot open.** A mail saying "3 new days in Vietnam"
- * that leads to a password box is worse than no mail — it tells somebody
+ * that leads to a locked page is worse than no mail — it tells somebody
  * something private exists and then refuses them, which is the one thing a
  * private trip is for.
  *
@@ -22,12 +22,12 @@ import type { Trip } from "../types";
  *   draws for the trip switcher.
  * - **guest and private** — never. This was once simply true: the gate had no
  *   database behind it, so a grant did not open it, and a digest cannot carry
- *   a password. B41 changed half of that — a reader holding a live grant can
- *   now open a `guest` trip with no password at all, so a line about one would
- *   no longer be a link to a door they have no key for. Widening this function
- *   to match is B52, and deliberately not done here: it changes what lands in
- *   somebody's inbox, which is the owner's call and not a side effect of
- *   fixing the gate. `private` stays never, whatever else changes.
+ *   a password. B41 changed half of that and B39 finished it — a `guest` trip
+ *   is now opened by a live grant and by nothing else, so a line about one
+ *   would no longer be a link to a door the reader has no key for. Widening
+ *   this function to match is B52, and deliberately not done here: it changes
+ *   what lands in somebody's inbox, which is the owner's call and not a side
+ *   effect of changing the gate. `private` stays never, whatever else changes.
  *
  * A grant is journal-wide — one bit, not a set of trip ids. It said which trip
  * until `007-journal-wide-grants`, and nothing ever wrote anything but `*`.
@@ -39,7 +39,8 @@ import type { Trip } from "../types";
 export function digestableTrips(trips: Trip[], granted: boolean): Trip[] {
   return trips.filter((trip) => {
     if (isIndexable(trip)) return true;
-    // Password-protected: excluded even with a grant. See above.
+    // `guest` and `private`: excluded even with a grant. See above — this is
+    // deliberately narrower than the gate, and B52 is where that is revisited.
     if (!isOpenToLink(trip)) return false;
     return granted;
   });

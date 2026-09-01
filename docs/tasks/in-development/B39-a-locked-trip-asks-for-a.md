@@ -78,6 +78,10 @@ readable by nobody except the people listed on it: every guest in the journal
 is locked out with no way back. **B41 must ship first.** B35 should also land
 first, or its dead per-trip code gets tangled into this.
 
+*Both landed before this was built.* `mayReadTrip` reached `isJournalGuest`
+before the cookie check, so removing the cookie check narrowed nothing for
+anybody the owner had approved.
+
 ## Work
 
 - Replace the password form in both layouts (`app/[user]/trips/[trip]/layout.tsx:49`,
@@ -85,6 +89,14 @@ first, or its dead per-trip code gets tangled into this.
   only `{ username }` and the session is journal-wide, so redeeming lands the
   reader back on the trip; check that the return path actually works from a
   trip URL rather than assuming it.
+
+  **Checked, and it works for one of the two paths.** Typing the six-digit code
+  reloads the page you are standing on, which is the trip. The one-tap button
+  in the mail redeems at `app/[user]/s/[token]/route.ts`, which redirects to
+  `/<username>` unconditionally — so the reader least likely to type anything
+  is the one who loses the destination. That is pre-existing and not fixable
+  here without threading a return path through the code store and taking on an
+  open-redirect surface, so it is **B69**.
 - Say the right thing to somebody signed in who still may not read it. That is
   a different sentence from "sign in", and it is the one B41's guests will hit
   when they open a `private` trip: *you are signed in, this one is not shared
@@ -95,7 +107,9 @@ first, or its dead per-trip code gets tangled into this.
   `signTripToken`, `verifyTripToken`, `tripCookieName`, `TRIP_COOKIE_MAX_AGE`
   and `isRestricted` in `lib/access.ts`, `tripLockReason` in `lib/tripGate.ts`,
   the `passwordHash` field (`lib/types.ts:280`, parsed at `lib/trips.ts:308`),
-  `scripts/trip-password.mjs` and the `trip:password` npm script.
+  `scripts/trip-password.mjs` and the `trip:password` npm script. Also the
+  README row for that script, and the `passwordHash:` paragraph in
+  `.claude/skills/add-a-trip/SKILL.md`, which told an agent to write one.
 - **Keep `accessSecret()`** (`lib/access.ts:73`). It looks like part of this and
   is not — `lib/agentConfirm.ts:67` signs every destructive-operation code with
   it. Removing it with the rest breaks agent confirmations. If `lib/access.ts`
@@ -104,6 +118,26 @@ first, or its dead per-trip code gets tangled into this.
   `guest` trip has *no* hash. Invert it: a `passwordHash:` left in a trip.md is
   now a line that does nothing, and a trip whose owner believes it is protected
   by one is the dangerous case. Fail, or warn loudly, on its presence.
+
+  **Correction, found while building it: that check never fired.** It filtered
+  to `visibility === "guest" && t.passwordHash` and then looked *within that
+  set* for trips with no hash, which is empty by construction. Only its
+  `SESSION_SECRET` branch ever ran. So there is nothing to invert; there is a
+  check to write.
+
+  **And it cannot live in `lib/`**, because the acceptance line below requires
+  `grep passwordHash lib` to come back empty and the check has to name the key.
+  It is in `instrumentation.ts` — outside the four greppable directories, and
+  already the file that owns boot-time refusals — as `assertNoTripPasswords`.
+  For it to have anything to look at, `lib/trips.ts` now reports the
+  frontmatter keys it did not consume as `Trip.unknownFields`, and the boot
+  decides which of those is dangerous. That split is the point: the parser
+  names no passwords, and the one place that does is the one refusing to serve
+  them.
+
+  It **throws** rather than warning. A warning in a boot log is not read, and
+  the failure it prevents — an owner believing a line still locks a trip that
+  is now open to every guest of the journal — is silent.
 - `exportZip` strips `passwordHash` on the way out (`lib/exportZip.ts:66`) —
   that can go, but only after existing content no longer carries the field.
 - `digestableTrips` (`lib/digest/visibility.ts:33`) excludes password-protected
@@ -118,8 +152,36 @@ first, or its dead per-trip code gets tangled into this.
   password ever reached. Say so in the deploy note; this is a widening, and it
   happens silently on the trips that were most deliberately closed.
 
+- **Say it in three states, not two.** Signed out and sign-in available: the
+  form. Signed out and `features.auth` off for this journal: no form to offer,
+  so say to ask the owner rather than showing a door that leads nowhere.
+  Signed in and still refused: the third sentence, below. `components/TripGate.tsx`.
+
 Not doing: changing what a guest session grants, or how somebody becomes a
 guest — that is B41, B33 and B37. This task only changes what the gate asks for.
+
+Also found and not absorbed:
+
+- **B68** — `subscribersFor` (`lib/push.ts:87`) never checks for `private`, so
+  a journal guest holding a `read` grant is push-notified about a trip
+  `mayReadTrip` refuses them. Pre-existing, and nothing to do with passwords;
+  the grant check in that function was already the right one for `guest`.
+- **B69** — the one-tap sign-in link's return path, above.
+
+## Deploying this
+
+**This widens access on the trips that were most deliberately closed, and it
+does so silently.** A trip that was `guest` plus a password was readable by
+whoever held the password; it is now readable by every approved contact of the
+journal, which may be more people and may be different people. Nothing in the
+trip's own file says so.
+
+The instance this was built against carries no such trip — all five are
+`visibility: public`, and `grep -rn passwordHash content/` is empty — so there
+is nothing to migrate here. A self-hoster with one will not boot: the server
+refuses to start until the `passwordHash:` line is gone, and the error names
+the trip and says to reconsider its `visibility`. That refusal is the migration
+step, and it is deliberately not skippable.
 
 ## Acceptance
 

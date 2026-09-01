@@ -83,10 +83,12 @@ Four fields decide behaviour rather than decoration:
   people who were there.** Approving one contact opens every `guest` trip in the
   journal to them; a trip that has to be held back from them is `private`.
 
-  A `guest` trip may also carry a `passwordHash:` — set it with
-  `npm run trip:password` rather than by hand — which is the anonymous door for
-  somebody who was sent a password rather than approved. It is optional: an
-  approved contact opens the trip without one.
+  There is no password, and no other door. A closed trip asks the reader for
+  their e-mail address and mails them a way in; whether that lets them read it
+  is decided by the trip's `people:` list and by the owner having approved
+  them. **Never write a `passwordHash:` line** — the server refuses to start on
+  one, because a line that used to lock a trip and no longer does is worse than
+  no line at all.
 
   `listed:` is a separate question — whether the trip is advertised in the
   sitemap, the feed and the switcher. The two older words still parse:

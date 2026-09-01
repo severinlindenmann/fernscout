@@ -60,8 +60,8 @@ export async function POST(request: Request) {
   }
 
   // A subscriber who is also signed in as an approved contact gets tied to
-  // that record, so a password-protected trip's notifications can be scoped
-  // to people who can actually read it (`lib/push.ts#subscribersFor`).
+  // that record, so a closed trip's notifications can be scoped to people who
+  // can actually read it (`lib/push.ts#subscribersFor`).
   // Nobody else's subscription is any less valid for a public or unlisted
   // trip — it just can't be scoped to a restricted one.
   const jar = await cookies();

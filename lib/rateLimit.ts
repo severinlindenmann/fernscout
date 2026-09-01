@@ -23,9 +23,9 @@ function key(ip: string) {
 /**
  * A named bucket with its own limits.
  *
- * The default bucket is deliberately generous (see above). Guessing a trip
- * password is the opposite situation: a household will try it once or twice,
- * and anything beyond that is someone working through a word list.
+ * The default bucket is deliberately generous (see above). Asking for a
+ * sign-in code is the opposite situation: a reader needs one or two, and
+ * anything beyond that is somebody working through a list of addresses.
  */
 export function rateLimitFor(
   namespace: string,

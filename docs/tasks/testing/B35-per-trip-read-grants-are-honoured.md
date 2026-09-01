@@ -120,13 +120,20 @@ Two things settled the argument beyond that:
 which is what every surviving grant means. The suite's "rolls all the way down
 and back up" exercises it on every dialect.
 
-**Superseded by B39, which removes trip passwords outright.** The paragraph
-below is kept as written because it is the argument that lost, and a reversed
-decision with no trace of the reasoning gets re-proposed. What it got wrong:
-the anonymous door it defends is the one that cannot be revoked, and for this
-audience an address is not a burden but the only thing that makes "let this
-person in, and not that one" possible. B39 replaces the password with the
-sign-in flow that already exists.
+**Superseded, and B39 has now shipped it: trip passwords are gone.** The
+paragraph below is kept as written because it is the argument that lost, and a
+reversed decision with no trace of the reasoning gets re-proposed. What it got
+wrong: the anonymous door it defends is the one that cannot be revoked, and for
+this audience an address is not a burden but the only thing that makes "let
+this person in, and not that one" possible. A closed trip now asks for an
+e-mail address and mails a way in; the mail proves who you are, and the owner's
+grant decides what you may read.
+
+One factual claim below is also wrong, and it is worth naming because it was
+part of the argument: `visibility: guest` never *required* a hash.
+`assertTripAccessConfig` filtered to trips that had one and then looked for
+ones that did not, so that branch could not fire. A `guest` trip with no hash
+was simply a trip nobody could open.
 
 Not doing: **trip passwords.** `passwordHash`, `signTripToken`, the unlock form
 and `app/api/trip-access/route.ts` are also per-trip guest access, and they stay.
