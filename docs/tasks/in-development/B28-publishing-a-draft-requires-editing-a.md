@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: api, drafts, mcp, docs
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B28 — Publishing a draft requires editing a file by hand, so an agent cannot close the loop it opened
