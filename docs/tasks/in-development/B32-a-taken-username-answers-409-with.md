@@ -59,6 +59,21 @@ moment from the mail side.
   wrong at the start has to work out on its own that it should have taken the
   other one.
 
+## What was found while building it
+
+The Why held. One thing worth recording about the shape of the fix: the
+identical-refusal property is not something the wording is careful about, it is
+something the code makes structural. `createJournal` builds the taken-name
+refusal from the requested username alone — it never reads `ownerEmail` on that
+path — so there is no branch that *could* differ for the owner. The test
+asserts the two results are `toEqual`, which is stronger than comparing strings
+and will fail if anybody later adds a field that depends on the caller.
+
+Also added, beyond the task's Work section: a **"do not pick a different
+name"** line in the guide. It is the obvious wrong move — `alex-2` costs
+somebody a second-choice address forever — and an agent holding a signup token
+that cannot do anything else is exactly the agent that would reach for it.
+
 ## Acceptance
 
 - A `409 username_taken` body names the endpoint that gets a write token, and

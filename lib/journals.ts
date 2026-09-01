@@ -59,7 +59,13 @@ export type NewJournal = {
 
 export type CreateJournalResult =
   | { ok: true; username: string; visibility: JournalVisibility }
-  | { ok: false; error: string; message: string };
+  /**
+   * `next` is the call to make instead, where there is one. The successful
+   * replies on this API all carry one and it is the single thing agents said
+   * was most useful about it; a refusal that leaves the caller with no move is
+   * where that stops being true.
+   */
+  | { ok: false; error: string; message: string; next?: string };
 
 /** How many journals one address may own. Not a licensing rule — a brake on
  * the obvious abuse of an endpoint anybody with an email can reach. */
@@ -118,6 +124,26 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       ok: false,
       error: "username_taken",
       message: `"${username}" already exists on this server.`,
+      /**
+       * The route onward, for the case that actually happens.
+       *
+       * "Set up my travel journal" from somebody who set one up last month is
+       * the same sentence, and an agent following the guide's signup path
+       * lands here holding a signup token — a credential that by design can
+       * only create journals, so there is nothing it can do next. It used to
+       * be told the name was taken and nothing else.
+       *
+       * Phrased as a condition, never as a fact. This server does not know
+       * whether the caller owns the name and must not check: a refusal that
+       * differed for the owner would turn journal creation into a way of
+       * asking whether an address owns a journal, which is exactly what the
+       * uniform 202 on /api/auth/request exists to prevent.
+       */
+      next:
+        `If "${username}" is theirs, they do not need a new journal — they need a write ` +
+        `token for this one. POST /api/auth/request with ` +
+        `{"user": "${username}", "email": "<their address>", "kind": "agent"}, then exchange ` +
+        `the code at /api/auth/verify.`,
     };
   }
 
@@ -150,6 +176,12 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       message:
         `This address already owns ${owned.length} journals (${owned.join(", ")}), ` +
         `which is the limit on this server.`,
+      // Safe to be specific here in a way the taken-name refusal is not: the
+      // caller has already proved they can read this address, and the reply
+      // names the journals it owns anyway.
+      next:
+        `To write to one of them instead, POST /api/auth/request with ` +
+        `{"user": "${owned[0]}", "email": "<their address>", "kind": "agent"}.`,
     };
   }
 
