@@ -132,7 +132,7 @@ const TEST_TRIPS = TRIPS.filter((t) => t.test).map((t) => t.id);
  * the implementation cannot disagree with it.
  */
 type Expectation = {
-  panel: "public" | "traveller" | "guest" | null;
+  panel: "public" | "owner" | "traveller" | "guest" | null;
   read: boolean;
   /** Whether `digestableTrips` would put this trip in this reader's mail. */
   digest: boolean;
@@ -212,16 +212,22 @@ const EXPECTED: Record<string, Record<string, Expectation>> = {
     "proving-guest-2026": { panel: null, read: false, digest: false, push: false },
   },
   // The journal's owner reads their own journal, including the trip they did
-  // not put themselves on `people:` for. They are not a contact, so the
-  // digest treats them as ungranted — they are not on its list at all.
+  // not put themselves on `people:` for — and is told so in those words.
+  // They are not a contact, so the digest treats them as ungranted: they are
+  // not on its list at all.
+  //
+  // Every row here is `owner` and not one is `traveller`, which is the whole
+  // of B80: Ana is on nobody's `people:` block, `robins-2026` is Robin's
+  // fortnight written up in her journal, and the panel used to tell her she
+  // had been there.
   owner: {
-    "open-2026": { panel: "traveller", read: true, digest: true, push: true },
-    "quiet-2026": { panel: "traveller", read: true, digest: false, push: true },
-    "invited-2026": { panel: "traveller", read: true, digest: false, push: false },
-    "secret-2026": { panel: "traveller", read: true, digest: false, push: false },
-    "robins-2026": { panel: "traveller", read: true, digest: false, push: false },
-    "proving-2026": { panel: "traveller", read: true, digest: false, push: false },
-    "proving-guest-2026": { panel: "traveller", read: true, digest: false, push: false },
+    "open-2026": { panel: "owner", read: true, digest: true, push: true },
+    "quiet-2026": { panel: "owner", read: true, digest: false, push: true },
+    "invited-2026": { panel: "owner", read: true, digest: false, push: false },
+    "secret-2026": { panel: "owner", read: true, digest: false, push: false },
+    "robins-2026": { panel: "owner", read: true, digest: false, push: false },
+    "proving-2026": { panel: "owner", read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: "owner", read: true, digest: false, push: false },
   },
 };
 

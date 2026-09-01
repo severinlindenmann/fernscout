@@ -367,6 +367,7 @@ export type TranslationKey =
   | "me.tokenTitle"
   | "me.tokenWarning"
   | "me.viaGuest"
+  | "me.viaOwner"
   | "me.viaPublic"
   | "me.viaTraveller"
   | "media.count"

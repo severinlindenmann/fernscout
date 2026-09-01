@@ -336,6 +336,7 @@
   "me.tokenTitle": "Was der Agent bekommt",
   "me.tokenWarning": "Das ist nicht dasselbe wie hier angemeldet zu sein. Füge ihn nirgends ein, wo du nicht selbst angefangen hast: Wer ihn hat, kann bis zum Ablauf in dein Journal schreiben.",
   "me.viaGuest": "du wurdest eingeladen",
+  "me.viaOwner": "sie steht in deinem Tagebuch",
   "me.viaPublic": "öffentlich",
   "me.viaTraveller": "du warst auf dieser Reise dabei",
   "media.count": "Medien",

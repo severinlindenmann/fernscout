@@ -114,6 +114,40 @@ describe("the access panel, for somebody not signed in", () => {
 });
 
 /**
+ * The line beside each trip — the panel's whole claim about why this reader
+ * may open that trip, and the reason the page exists.
+ *
+ * B80: `resolveViewer` had one arm for "owns the journal" and "was on the
+ * trip", so the owner was told they had been on every trip in their own
+ * journal — including one somebody else travelled and a `test: true` one
+ * nobody did. The strings are asserted here rather than the key, because the
+ * bug was a sentence a reader believed.
+ */
+describe("the reason beside each trip", () => {
+  function seeing(through: Viewer["trips"][number]["through"], owner: boolean): string {
+    const viewer: Viewer = {
+      email: "reader@example.test",
+      owner,
+      guest: false,
+      trips: [{ id: "t", title: "A trip", href: "/alex/trips/t", through }],
+    };
+    return render({ viewer });
+  }
+
+  test("an owner is told the journal is theirs, not that they were there", () => {
+    const html = seeing("owner", true);
+    expect(html).toContain("it is in your journal");
+    expect(html).not.toContain("you were on this trip");
+  });
+
+  test("a traveller who is not the owner still reads that they were on it", () => {
+    const html = seeing("traveller", false);
+    expect(html).toContain("you were on this trip");
+    expect(html).not.toContain("it is in your journal");
+  });
+});
+
+/**
  * B74. The owner block ends in a link to the guest list, and that page is a
  * capability: `/<user>/contacts` calls `notFound()` when the journal has
  * contacts off. The link was drawn on ownership alone, so the owner of a
