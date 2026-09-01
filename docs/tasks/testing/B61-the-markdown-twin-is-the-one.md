@@ -7,6 +7,7 @@ complexity: low
 area: markdownTwin, deletions
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B61 — The markdown twin is the one route that does not know a journal was deleted
