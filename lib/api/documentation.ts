@@ -617,8 +617,15 @@ attached, as a record rather than as homework:
 {"ok": true, "day": "lanterns-of-hoi-an", "attached": true,
  "items": [{"src": "/${example}/media/<trip>/lanterns-of-hoi-an/01.jpg",
             "type": "image", "width": 2000, "height": 1333}],
- "note": "Added to \\"lanterns-of-hoi-an\\". Nothing to paste — read the day back to see it."}
+ "kept":  [{"filename": "DSC_4471.jpg", "bytes": 4210332,
+            "width": 3000, "height": 2000}]}
 \`\`\`
+
+**\`items\` is what the site serves; \`kept\` is what was stored for print.** The
+dimensions differ on purpose — the served copy is resized, the original is not
+touched — and \`kept\` is there so you can see that the original survived rather
+than inferring it from a promise. If \`kept\` shows the same numbers you sent,
+the full-resolution file is on disk.
 
 \`day\` is required and must name a day that already exists in this trip. A
 **published** day is refused with \`409\`: adding photographs to something people

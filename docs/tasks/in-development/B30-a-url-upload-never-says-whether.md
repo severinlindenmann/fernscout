@@ -49,6 +49,24 @@ A promise the API makes and never evidences is a promise that gets doubted.
 Not doing: returning original dimensions for the multipart path only. Both
 doors answer the same way or the asymmetry is the next thing somebody reports.
 
+## What was found while building it
+
+The Why held: the original was always kept, and the test added here proves it
+directly by reading 3000×2000 back off disk after an upload. That case had
+genuinely never been covered — the existing tests asserted the *derivative's*
+dimensions and that two files exist, never the original's size.
+
+One decision worth recording. The original's dimensions are measured from
+`decodeSource(...).file` rather than from the raw bytes, because a HEIC's own
+header is not something sharp can always read — `decodeSource` exists precisely
+to hand back a file it can. Measuring the raw bytes would have worked for JPEG
+and thrown for the format the guide most encourages people to send.
+
+Scope note: the task said "both doors answer the same way", and they do —
+`kept` comes out of `storeUploads`, which is the single path both the multipart
+and the URL branch go through, so the asymmetry the task worried about could
+not be reintroduced without deleting the field.
+
 ## Acceptance
 
 - A URL upload's 201 states that an original was kept, with the source
