@@ -20,8 +20,8 @@ export const dynamic = "force-dynamic";
  *
  * **Per journal as well as per server.** A capability is a server ceiling and
  * a journal opt-in, and this reported only the ceiling — so `contacts` read
- * "enabled" while `/<user>/join` answered 404, because that journal had never
- * switched it on. The person reading this page at 2am concluded the routing
+ * "enabled" while `/<user>/contacts` answered 404, because that journal had
+ * never switched it on. The person reading this page at 2am concluded the routing
  * was broken. `journals` gives the answer they were actually looking for.
  */
 export async function GET() {

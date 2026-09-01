@@ -45,7 +45,7 @@ anything still open is in §15.
 | 16 | Push | **Build it properly** (`D1` + `D7`), despite the audience estimate |
 | 17 | Mail | **Proton SMTP** (Business plan — also provides the `fernscout.ch` mailbox) |
 | 18 | Video | **Short clips only**, hard length cap, ffmpeg at ingest |
-| 19 | Re-sharing | **Links forward freely, but access needs your approval** — email on each request, plus a guest overview |
+| 19 | Re-sharing | **Links forward freely, but access needs your approval** — email on each request, plus a guest overview. *Amended by B37: the link has to have been issued by the owner. The open, tokenless one is gone — see §3 and `lib/contacts/invites.ts`.* |
 | 20 | Photo consent | **Publish, remove on request**, stated in writing |
 | 21 | Currencies | **Configurable list**, ECB reference rates fetched at build time |
 | 22 | Trademark | **Skipped for now** — personal site. Revisit on the triggers in §0.6 |
@@ -187,9 +187,14 @@ Everything downstream reads it: the digest picks `preferred_locale` per
 recipient, the postcard script selects contacts with an address, access control
 reads the grants. One form, one table, one place to revoke.
 
-**Two link shapes.** A personal link (`/<user>/i/<token>`) is one per person with
-name and language baked in. An open link (`/<user>/join`) is one per trip, pasted
-into a family group chat, falling back to `Accept-Language`.
+**One link shape.** A personal link (`/<user>/i/<token>`) is one per person with
+name and language baked in. There was a second — an open link, one per journal,
+pasted into a family group chat and falling back to `Accept-Language` — and
+B37 removed it. It granted nothing, which was the original argument for it, but
+it advertised a way in the owner had never offered: anybody who found a
+username was shown a form, and the owner was left approving strangers. The old
+address redirects to `/<user>/me`, and the endpoint behind the form now
+requires a live invite token.
 
 ### Still open here
 

@@ -35,9 +35,12 @@ import { parseLocale } from "./locale";
  * ```
  *
  * Confirming proves an address belongs to whoever filled the form. It does not
- * let them in. That separation is decision 19: a link may be forwarded around a
- * family group chat freely, because reaching the form is not access — every
- * person who fills it in becomes their own pending row and waits for the owner.
+ * let them in. That separation is decision 19: an invite link may be forwarded
+ * around a family group chat freely, because reaching the form is not access —
+ * every person who fills it in becomes their own pending row and waits for the
+ * owner. What B37 changed is only who is shown the form at all: an invite the
+ * owner issued is now required to reach it and to submit it, because a journal
+ * should not advertise a way in its owner never offered.
  *
  * ## What is never in the clear
  *
@@ -149,7 +152,9 @@ export type ContactRequestInput = {
   address?: Partial<PostalAddress> | null;
   wantsEmailDigest: boolean;
   wantsPostcard: boolean;
-  /** `invite:<id>` | `open` | `owner`. */
+  /** `invite:<id>` | `owner` — and `open` on rows written before B37 removed
+   * the open guestbook. Those are left as they are: they record how somebody
+   * actually arrived. */
   createdVia: string;
   /** The invite whose use should be counted, if any. */
   inviteId?: string | null;

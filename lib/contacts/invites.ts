@@ -6,25 +6,47 @@ import type { Locale } from "../types";
 import { parseLocale } from "./locale";
 
 /**
- * The two link shapes — decision 19.
+ * The one link shape — decision 19, as amended by B37.
  *
- * | | personal `/{user}/i/<token>` | open `/{user}/join?lang=de` |
- * | --- | --- | --- |
- * | one per | person | user |
- * | carries | a name and a language | a language |
- * | grants  | nothing | nothing |
+ * | | personal `/{user}/i/<token>` |
+ * | --- | --- |
+ * | one per | person |
+ * | carries | a name and a language |
+ * | grants  | nothing |
  *
  * That last row is the important one and it is why this module is so small.
  * **An invite is an invitation to request, not a grant.** It has no email in
  * it, it creates no `access_grants` row, and resolving one only ever returns
  * text to put in two form fields. Forward it to a group chat and the worst
  * that happens is that several people fill in the form — each becoming their
- * own pending contact, each still having to prove their own address.
+ * own pending contact, each still having to prove their own address, and each
+ * still waiting for the owner to approve them by hand.
+ *
+ * ## What changed, and why (B37)
+ *
+ * There used to be a second shape: an open link, one per journal, carrying no
+ * token and only a language in its query string. It was safe in what it
+ * granted — exactly nothing, the same as this one — and that is what the
+ * original decision argued. It was wrong in what it *advertised*. Anybody who found a username
+ * was shown a form asking for a name, an email and a postal address, and the
+ * owner was then left with a decision to make about somebody they had never
+ * invited, correctly, every time, for as long as the journal exists. The queue
+ * was the leak, not the access.
+ *
+ * So the open link is gone, its old address answers with a redirect to
+ * `/{user}/me` rather than a 404 — people had already sent it to their
+ * families — and `POST /api/contacts/request` now requires a live token.
+ * Removing the page alone would have been a sign taken down from an open
+ * door.
+ *
+ * `created_via: "open"` survives on rows written before this; they record how
+ * somebody actually arrived, and rewriting them to say "invite" would be a
+ * lie.
  *
  * The token is stored hashed, like every other bearer credential here. Not
- * because guessing one would achieve much — it would get you a form anyone can
- * reach at `/join` — but because a name is personal data, and a database dump
- * should not be a list of who was invited.
+ * because guessing one gets you access — it gets you a form, and the owner
+ * still has to approve whoever fills it in — but because a name is personal
+ * data, and a database dump should not be a list of who was invited.
  */
 
 export type Invite = {
@@ -44,11 +66,6 @@ export function generateInviteToken(): string {
 /** The URL to send someone. Built here so no caller invents its own shape. */
 export function inviteUrl(base: string, username: string, token: string): string {
   return `${base}/${username}/i/${token}`;
-}
-
-/** The link for a group chat: no token, no secret, rate-limited instead. */
-export function openInviteUrl(base: string, username: string, locale?: Locale): string {
-  return `${base}/${username}/join${locale ? `?lang=${locale}` : ""}`;
 }
 
 export async function createInvite(

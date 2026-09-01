@@ -556,7 +556,6 @@ export default function ContactsAdmin({
   dictionary,
   contacts: initialContacts,
   invites: initialInvites,
-  openLink,
 }: {
   username: string;
   locale: Locale;
@@ -565,7 +564,6 @@ export default function ContactsAdmin({
   dictionary: Record<string, string>;
   contacts: AdminContact[];
   invites: AdminInvite[];
-  openLink: string;
 }) {
   const [contacts, setContacts] = useState(initialContacts);
   const [invites, setInvites] = useState(initialInvites);
@@ -670,12 +668,11 @@ export default function ContactsAdmin({
       <section className="mt-14">
         <h2 className="font-display text-2xl text-navy-900">{t("contact.adminLinks")}</h2>
 
-        <p className="mt-4 text-base font-medium text-navy-700">{t("contact.adminOpenLink")}</p>
-        <p className="text-base text-navy-600">{t("contact.adminOpenLinkHint")}</p>
-        <code className="mt-2 block break-all rounded-xl bg-cream-100 p-3 text-sm text-navy-900">
-          {openLink}
-        </code>
-
+        {/* There was a second block here: the open link, one per journal,
+            offered for pasting into a group chat. It is gone (B37) — a journal
+            no longer advertises a way in its owner never offered — and this
+            section is now the one way anybody arrives: a link issued for a
+            named person, which still only lets them ask. */}
         <form
           className="mt-8 rounded-2xl border border-navy-200 p-5"
           onSubmit={async (event) => {

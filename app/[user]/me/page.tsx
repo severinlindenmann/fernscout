@@ -45,10 +45,12 @@ export default async function MePage({ params }: PageProps<"/[user]/me">) {
       username={user}
       docUrl={`${serverSite().url}/documentation.txt`}
       manageHref={manageHref}
-      // Resolved here rather than guessed in the component: both are a server
-      // ceiling and a journal opt-in, and the page was offering a door that
-      // this journal had never opened.
-      canJoin={isEnabled("contacts", user)}
+      // Resolved here rather than guessed in the component: a capability is a
+      // server ceiling and a journal opt-in, and the page was offering a door
+      // that this journal had never opened. The panel used to take a second
+      // flag, `canJoin`, which was `isEnabled("contacts", …)` under a name
+      // that promised something narrower — there is no open form to gate any
+      // more (B37), so it is gone rather than left to be misread.
       canSignIn={isEnabled("auth", user)}
       codeMinutes={CODE_TTL_MINUTES}
     />

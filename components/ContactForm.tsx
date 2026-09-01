@@ -23,6 +23,11 @@ import type { Locale } from "@/lib/types";
  * - It does not treat the name it was given as identity. A forwarded link
  *   prefills the greeting and nothing else; whoever is sitting there types
  *   their own address and gets their own code.
+ *
+ * It is reached from one place — `/{user}/i/<token>`, a link the owner issued
+ * for a named person. There was a second, open address for it and it is gone
+ * (B37): the form granted nothing, but offering it to anybody who found a
+ * username advertised a way in the owner had never offered.
  */
 
 type Step = "form" | "code" | "done";
@@ -53,7 +58,10 @@ export default function ContactForm({
    * switches language without a round trip, so it needs them all up front. */
   dictionaries: Record<string, Record<string, string>>;
   initialName?: string;
-  inviteToken?: string;
+  /** Required since B37: the endpoint refuses a submission without a live
+   * invite token, so a form rendered without one could only ever lie to the
+   * person filling it in. */
+  inviteToken: string;
 }) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [step, setStep] = useState<Step>("form");

@@ -134,7 +134,8 @@ export type ContactsTable = {
 export type ContactInvitesTable = {
   id: string;
   owner_id: string;
-  /** `personal`. The open link has no row — it carries no secret. */
+  /** `personal`. The only kind: the open link that had no row at all, because
+   * it carried no secret, was removed in B37. */
   kind: Generated<string>;
   token_hash: string;
   name: string | null;

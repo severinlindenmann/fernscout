@@ -139,7 +139,7 @@ is the failure this project cannot afford.
 > resolved state and, when one is off, why — per server *and* per journal,
 > since those are two different answers. A journal that never switched
 > `contacts` on shows `"not enabled by example"` there, which is what explains
-> a `/example/join` that 404s on a server where contacts are enabled.
+> an `/example/contacts` that 404s on a server where contacts are enabled.
 
 ### Getting an agent token
 

@@ -7,9 +7,10 @@ import { useI18n } from "@/components/LocaleProvider";
 /**
  * A way back, for the two pages that have no header.
  *
- * The password gate and `/join` both render a bare `<main>`, which was right —
- * neither can show the trip navigation, because on one of them you have not
- * been let in and on the other you are not a reader yet. But it left somebody
+ * The password gate and the invite form (`/{user}/i/<token>`) both render a
+ * bare `<main>`, which was right — neither can show the trip navigation,
+ * because on one of them you have not been let in and on the other you are not
+ * a reader yet. But it left somebody
  * who followed a link and then thought better of it with nothing to do but
  * edit the address bar or close the tab. That reads as a dead end, which for
  * the person most likely to meet the gate — sent a link and a word, on a phone

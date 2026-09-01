@@ -22,7 +22,6 @@ import {
   createInvite,
   inviteUrl,
   listInvites,
-  openInviteUrl,
   revokeInvite,
 } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
@@ -81,7 +80,6 @@ export async function GET(request: Request) {
   return Response.json({
     contacts: (await listContacts(username)).map(ownerView),
     invites: await listInvites(username),
-    openLink: openInviteUrl(serverSite().url, username),
   });
 }
 
