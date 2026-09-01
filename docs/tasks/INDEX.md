@@ -89,7 +89,6 @@ Do not edit them by hand; run the script.
 | [B36](open/B36-address-checks-match-one-spelling-each.md) | Address checks match one spelling each, and the URL parser writes another | SECURITY | medium | low |
 | [B52](open/B52-the-digest-still-refuses-a-guest.md) | The digest still refuses a guest trip to a reader who can now open it | FEATURE | medium | low |
 | [B55](open/B55-a-signup-token-is-documented-as.md) | A signup token is documented as single-use and is not | SECURITY | medium | low |
-| [B59](open/B59-a-new-locale-string-renders-as.md) | A new locale string renders as its own key until the server is restarted | ISSUE | low | low |
 
 ## in-development
 
@@ -99,6 +98,7 @@ Do not edit them by hand; run the script.
 | [B21](in-development/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | CHORE | high | medium |
 | [B39](in-development/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high |
 | [B46](in-development/B46-a-trip-that-stays-inside-one.md) | A trip that stays inside one city draws as a single dot on a map thousands of kilometres wide | ISSUE | medium | medium |
+| [B59](in-development/B59-a-new-locale-string-renders-as.md) | A new locale string renders as its own key until the server is restarted | ISSUE | low | low |
 
 ## testing
 
