@@ -277,7 +277,7 @@ export type ConfirmResult =
  *
  * The one-time code machinery is not reimplemented here — `verifyCode` is the
  * same function the sign-in route uses, which is why "the code is single use",
- * "five wrong guesses burn it" and "ten minutes" are true here for free.
+ * "five wrong guesses burn it" and the code window are true here for free.
  *
  * The session it mints is revoked on the spot. Confirming an address is not
  * signing in: nobody is handed the token, and leaving a live row behind for a

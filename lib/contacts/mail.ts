@@ -1,5 +1,6 @@
 import "server-only";
 import type { UserConfig } from "../config";
+import { CODE_TTL_MINUTES } from "../auth";
 
 import { translateIn } from "../locales";
 import { sendMail } from "../mail";
@@ -53,10 +54,10 @@ export async function sendCodeMail(
       to,
       translateIn(locale, "contact.mailCodeSubject", { title: user.title }),
       {
-        preheader: translateIn(locale, "contact.mailCodeBody", { code }),
+        preheader: translateIn(locale, "contact.mailCodeBody", { code, minutes: CODE_TTL_MINUTES }),
         title: translateIn(locale, "contact.mailCodeTitle"),
         blocks: [
-          { kind: "paragraph", text: translateIn(locale, "contact.mailCodeBody", { code }) },
+          { kind: "paragraph", text: translateIn(locale, "contact.mailCodeBody", { code, minutes: CODE_TTL_MINUTES }) },
           { kind: "paragraph", text: translateIn(locale, "contact.mailCodeIgnore") },
         ],
         footer: footerFor(locale, user),

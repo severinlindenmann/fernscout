@@ -30,6 +30,7 @@ export default function MePageContent({
   manageHref,
   canJoin,
   canSignIn,
+  codeMinutes,
 }: {
   viewer: Viewer;
   username: string;
@@ -40,6 +41,8 @@ export default function MePageContent({
   canJoin: boolean;
   /** Whether codes can be issued at all, which is what signing in needs. */
   canSignIn: boolean;
+  /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
+  codeMinutes: string;
 }) {
   const { t } = useI18n();
   const site = useSite();
@@ -99,7 +102,7 @@ export default function MePageContent({
 
             {/* The way back for somebody who has been here before and lost the
                 email they were let in with. */}
-            {canSignIn && <GuestSignIn username={username} />}
+            {canSignIn && <GuestSignIn username={username} codeMinutes={codeMinutes} />}
 
             {canSignIn && canJoin && (
               <p className="mt-4 text-base text-navy-700">

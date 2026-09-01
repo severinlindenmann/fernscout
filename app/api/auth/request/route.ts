@@ -1,5 +1,5 @@
 import { isEnabled } from "@/lib/capabilities";
-import { isEmail, issueCode, revokeCodes, signInUrl, type SessionKind } from "@/lib/auth";
+import { CODE_TTL_MINUTES, isEmail, issueCode, revokeCodes, signInUrl, type SessionKind } from "@/lib/auth";
 import { sendMail } from "@/lib/mail";
 import { renderMail, type MailBlock } from "@/lib/mail/template";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
     ? [
         {
           kind: "paragraph",
-          text: `Tap the button to open ${user.title}. It works once, for ten minutes.`,
+          text: `Tap the button to open ${user.title}. It works once, for ${CODE_TTL_MINUTES} minutes.`,
         },
         { kind: "button", text: `Open ${user.title}`, href: signInUrl(base, username, linkToken) },
         {
@@ -113,12 +113,12 @@ export async function POST(request: Request) {
         },
       ]
     : [
-        { kind: "paragraph", text: `Your code is ${code}. It works for ten minutes.` },
+        { kind: "paragraph", text: `Your code is ${code}. It works for ${CODE_TTL_MINUTES} minutes.` },
         { kind: "button", text: `Open ${user.title}`, href: `${base}/${username}` },
       ];
 
   const agentBlocks: MailBlock[] = [
-    { kind: "paragraph", text: `Your code is ${code}. It works for ten minutes.` },
+    { kind: "paragraph", text: `Your code is ${code}. It works for ${CODE_TTL_MINUTES} minutes.` },
     {
       kind: "paragraph",
       text:

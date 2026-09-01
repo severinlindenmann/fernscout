@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  * The second half of the double opt-in (C12).
  *
  * The code itself is W08's — `confirmContact` calls the same `verifyCode` the
- * sign-in route does, so "ten minutes", "single use" and "five wrong guesses
+ * sign-in route does, so the code window, "single use" and "five wrong guesses
  * burns it" hold here without being written twice.
  *
  * Confirming is not being approved. What it earns is a place in the queue, a

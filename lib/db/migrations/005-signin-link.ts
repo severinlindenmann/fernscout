@@ -19,7 +19,7 @@ import type { MigrationDb } from "./types";
  *
  * Hence: redeeming the *code* consumes the whole row, link included — the
  * strong credential retires the weak one. Redeeming the *link* consumes only
- * itself, and the code stays live for the rest of its ten minutes.
+ * itself, and the code stays live for the rest of its window (CODE_TTL_MS).
  */
 export async function up(db: MigrationDb): Promise<void> {
   await db.schema

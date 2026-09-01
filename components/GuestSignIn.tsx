@@ -23,7 +23,15 @@ import { useI18n } from "@/components/LocaleProvider";
  * what that session can *see* is decided separately, by whether the owner has
  * approved you.
  */
-export default function GuestSignIn({ username }: { username: string }) {
+export default function GuestSignIn({
+  username,
+  codeMinutes,
+}: {
+  username: string;
+  /** How long the code lasts, from `CODE_TTL_MINUTES`. Passed rather than
+   * imported: this is a client component and `lib/auth` is server-only. */
+  codeMinutes: string;
+}) {
   const { t } = useI18n();
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
@@ -97,7 +105,12 @@ export default function GuestSignIn({ username }: { username: string }) {
         </form>
       ) : (
         <form onSubmit={submitCode}>
-          <p className="mt-2 text-base leading-7 text-navy-700">{t("me.signInSent")}</p>
+          {/* The number comes from CODE_TTL_MS, not from the sentence — see
+              CODE_TTL_MINUTES. This is a client component, so it is passed in
+              rather than imported. */}
+          <p className="mt-2 text-base leading-7 text-navy-700">
+            {t("me.signInSent", { minutes: codeMinutes })}
+          </p>
           <label htmlFor="signin-code" className="mt-4 block text-base font-medium text-navy-700">
             {t("me.signInCode")}
           </label>

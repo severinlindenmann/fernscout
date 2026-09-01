@@ -54,6 +54,27 @@ a justification that no longer holds.
 Not doing: anything to `MAX_CODE_ATTEMPTS` or the verify rate limit. Those are
 the controls that matter and they are not being touched.
 
+## What was found while building it
+
+The Work section said the code mails were "English literals in the auth routes
+rather than locale keys". Half right, and the half it missed is the reason this
+was worth more than a constant change: **"ten minutes" was written out in words
+in eleven places** — three locale files (`contact.mailCodeBody`,
+`me.signInSent`, in en/de/hu), four mail bodies across two routes, the agent
+guide, and five comments including two migrations.
+
+Changing the constant alone would have left every one of them lying, and the
+person who found out would have been a reader whose code had expired while the
+page said it had twenty minutes left. So the number is now published from the
+constant that enforces it — `CODE_TTL_MINUTES` — and the locale strings take
+`{minutes}`. This is the same discipline the media limits table already uses,
+and the reason it exists.
+
+That threading reached further than expected: `GuestSignIn` is a client
+component and `lib/auth` is server-only, so the value is passed as a prop from
+`me/page.tsx` through `MePageContent`. Worth knowing before assuming a similar
+change is one line.
+
 ## Acceptance
 
 - A code issued now verifies 25 minutes later and not 35.
