@@ -8,6 +8,7 @@ import { Clapperboard } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
+import type { Basemap } from "@/lib/basemap";
 import type { PlannedStop } from "@/lib/types";
 
 // Behind a button — nobody should pay to download the presentation bundle
@@ -19,11 +20,14 @@ export default function MapPageContent({
   stats,
   plan = [],
   reachedCount = 0,
+  basemap = null,
 }: {
   places: PlaceView[];
   stats: { tripDays: number; places: number; countries: number; totalMedia: number };
   plan?: PlannedStop[];
   reachedCount?: number;
+  /** Clipped on the server to this trip's frame — see lib/basemap.ts. */
+  basemap?: Basemap | null;
 }) {
   const { t, tn, formatShortDate, formatStay } = useI18n();
   // Day permalinks hang off the trip in view — `/example/day/…` for the
@@ -94,7 +98,7 @@ export default function MapPageContent({
             directly above a legend for the route it had just refused to draw. */}
         <div className="mt-7">
           {hasPlaces || plan.length > 0 ? (
-            <WorldMap places={places} plan={plan} />
+            <WorldMap places={places} plan={plan} basemap={basemap} />
           ) : (
             // Not `story.empty`. "No entries yet" is true and is not the reason
             // the map is missing; with neither days nor a route there is

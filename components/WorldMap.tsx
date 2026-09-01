@@ -11,6 +11,7 @@ import { TRANSPORT_STYLE } from "@/lib/transport";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
+import type { Basemap } from "@/lib/basemap";
 import type { Entry, PlannedStop, TransportMode } from "@/lib/types";
 
 export type PlaceView = {
@@ -70,10 +71,17 @@ function clusterPlaces(places: PlaceView[], markerRadius: number, frame: Frame):
 export default function WorldMap({
   places,
   plan = [],
+  basemap = null,
 }: {
   places: PlaceView[];
   /** The intended route, drawn behind the real one. */
   plan?: PlannedStop[];
+  /**
+   * Borders, water, peaks and towns for this frame, clipped on the server
+   * (lib/basemap.ts). Null when the bundle has not been built, in which case
+   * the old 110m coastline stands in — which is all this map had before B46.
+   */
+  basemap?: Basemap | null;
 }) {
   const { t, formatShortDate, formatStay } = useI18n();
   // Same as the stop list below the map: the day link has to carry the owner
@@ -218,24 +226,91 @@ export default function WorldMap({
           onPointerUp={endDrag}
           onPointerLeave={endDrag}
         >
-          {/* The coastline is baked in uncorrected projected units
-              (lib/worldLand.json), so it is the one thing on the map that has
-              to be squeezed rather than positioned — everything else goes
-              through `placeIn`, which applies the same factor per point.
-              `vector-effect` keeps the outline an even hairline: without it the
-              horizontal squeeze thins the vertical strokes by a third at Swiss
-              latitudes and the coast looks half-drawn. */}
-          <g
-            fill="#dff3e0"
-            stroke="#bfe3c4"
-            strokeWidth={size(0.6)}
-            transform={`scale(${base.lngScale} 1)`}
-            vectorEffect="non-scaling-stroke"
-          >
-            {worldLand.map((d, i) => (
-              <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-            ))}
+          {/* Ground.
+
+              Path data — whether the old coastline or the new basemap — is
+              baked in *uncorrected* projected units, so it is the one thing on
+              the map squeezed by a transform rather than positioned point by
+              point; everything else goes through `placeIn`, which applies the
+              same factor. `vector-effect` keeps outlines an even hairline:
+              without it the horizontal squeeze thins vertical strokes by a
+              third at Swiss latitudes and the coast looks half-drawn. */}
+          <g transform={`scale(${base.lngScale} 1)`}>
+            {basemap ? (
+              <>
+                {/* Countries, not coastline. Each polygon is one country, so
+                    filling gives land against sea and stroking gives the
+                    borders between them from the same shapes — and a landlocked
+                    trip finally has something to draw, which under the 110m
+                    coastline it never did. */}
+                <g fill="#dff3e0" stroke="#94c9a0" strokeWidth={1.2}>
+                  {basemap.borders.map((d, i) => (
+                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                  ))}
+                </g>
+                <g fill="#8fe0ef" stroke="#6fcfe0" strokeWidth={0.8}>
+                  {basemap.lakes.map((d, i) => (
+                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                  ))}
+                </g>
+                <g fill="none" stroke="#8fe0ef" strokeWidth={1.6} strokeLinecap="round">
+                  {basemap.rivers.map((d, i) => (
+                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                  ))}
+                </g>
+              </>
+            ) : (
+              <g fill="#dff3e0" stroke="#bfe3c4" strokeWidth={1}>
+                {worldLand.map((d, i) => (
+                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                ))}
+              </g>
+            )}
           </g>
+
+          {/* Names, in the frame's corrected space — see the note in
+              lib/basemap.ts on why labels come back already corrected.
+              Deliberately quiet: this is context behind the trip, and a town
+              that competes with a stop the author actually wrote about has the
+              emphasis the wrong way round. `pointerEvents` off throughout, so
+              none of it can swallow a tap meant for a marker. */}
+          {basemap && (
+            <g pointerEvents="none">
+              {basemap.towns.map((town) => (
+                <g key={`town-${town.name}-${town.x}`}>
+                  <circle cx={town.x} cy={town.y} r={size(0.6)} fill="#8aa0b8" />
+                  <text
+                    x={town.x + size(1.1)}
+                    y={town.y + size(0.75)}
+                    fontSize={size(1.9)}
+                    fill="#5a6a80"
+                    className="font-display"
+                  >
+                    {town.name}
+                  </text>
+                </g>
+              ))}
+              {basemap.peaks.map((peak) => (
+                <g key={`peak-${peak.name}-${peak.x}`}>
+                  {/* A triangle, because a dot would read as another town. */}
+                  <path
+                    d={`M${peak.x},${peak.y - size(1.2)} L${peak.x + size(1.1)},${peak.y + size(0.8)} L${peak.x - size(1.1)},${peak.y + size(0.8)} Z`}
+                    fill="#9a8f7a"
+                  />
+                  <text
+                    x={peak.x + size(1.7)}
+                    y={peak.y + size(1.1)}
+                    fontSize={size(1.9)}
+                    fill="#7a6f5a"
+                    className="font-display"
+                  >
+                    {peak.name}
+                    {peak.metres ? ` ${peak.metres} m` : ""}
+                  </text>
+                </g>
+              ))}
+            </g>
+          )}
 
           {/* What's left of the plan, behind the real route: a dashed run from
               where we've got to through the stops still ahead, with hollow
