@@ -189,3 +189,50 @@ copy of `content/`.
   installed at all. If that holds, it comes before items 1–2 — there is nothing
   to restore *from* until it is fixed, and "the drill has never been run" is
   then the smaller half of the problem.
+
+---
+
+## The drill, run — 2026-09-01
+
+Items 1 and 2 are now done as well. The automated half (items 3 and 4) landed
+first and is described above; this is the part that needed a person on the box.
+
+**Result: the data came back, the procedure did not.** ~35 seconds end to end.
+All three seeded artefacts were byte-exact — 7 reaction rows, an uncommitted
+file under `content/`, and a 64 KiB `originals/DRILL.RAF` in neither git nor
+the export. `restic restore` moved 453 MiB in 1 second; `npm ci` and the build
+were 29 of the 35 seconds. The database was dropped and `DATA_DIR` removed
+entirely before restoring, so this was a real destroy, not a simulation.
+
+**The procedure as written failed at its first command**, and at three more
+after that. All four are corrected inline in `docs/archiv/runbook.md`:
+
+1. Nothing loaded `/etc/fernscout/env`, so `restic restore` had no repository
+   and `$DATABASE_URL` was empty — `pg_restore` reached for `/db/postgres.dump`.
+2. restic restores as root; the runbook then reads the dump as `fernscout`.
+   Permission denied.
+3. `createdb` aborts the run if a previous attempt already made the database.
+4. **The worst one.** Step 4 rsynced `$STAGED/content/` into
+   `/srv/fernscout/content/` — the git checkout, which this deployment does not
+   read (`CONTENT_DIR=/var/lib/fernscout/content`). It left **49 tracked files
+   modified**, and `scripts/deploy.sh` runs `git pull --ff-only`, so the next
+   deploy would have refused. The journals were restored correctly anyway, by
+   accident: `CONTENT_DIR` sits inside `DATA_DIR`, so step 4's first rsync
+   already carried them.
+
+Three more came out of *setting the backup up*, which had never been done on
+this machine — see B65, found while preparing for this drill. They are recorded
+in the runbook's Backups section: the repository must live under a path in the
+unit's `ReadWritePaths=`, it must be owned by the service user (or the script
+mistakes permission-denied for "not initialised" and dies in `restic init` —
+B63), and one unreadable file anywhere under `DATA_DIR` aborts the whole
+backup with nobody told (B64).
+
+One incidental confirmation: `alpenweg` had been deleted through B38 twenty
+minutes before the backup, and the restore reproduced that correctly — the
+journal absent, its tombstone present, `/alpenweg` still answering 410. The
+tombstone survives a restore, which is the behaviour you want and had not been
+demonstrated.
+
+The checkbox at `docs/archiv/runbook.md` is now ticked, with the date and the
+elapsed time.
