@@ -1,5 +1,5 @@
 import "server-only";
-import { isOpenToLink } from "./access";
+import { isOpenToLink, isTestContent } from "./access";
 import { getDatabaseOrNull } from "./db";
 import { pushRepo } from "./repos";
 import type { StoredSubscription } from "./repos/types";
@@ -81,8 +81,27 @@ export async function findActiveContactId(
  * may not be able to open the page the notification links to. That is the
  * fail-closed choice: under-notifying a restricted trip is a nuisance,
  * over-notifying it is a leak.
+ *
+ * Before any of that, one question that is not about access: content nobody
+ * lived has no subscribers at all, however public it says it is. A
+ * notification is the digest's problem again in miniature — a title and a
+ * link on a lock screen, with nowhere to put the banner the page itself wears
+ * — so it is not sent rather than disclaimed (B70).
+ *
+ * `entry` is optional because two callers ask different questions. The
+ * subscribe route asks about a trip; the notify script is always announcing
+ * one particular day, and a `test: true` day inside an otherwise real trip is
+ * exactly what an agent proving the write path on a live journal writes. Pass
+ * the entry whenever there is one.
  */
-export async function subscribersFor(trip: Trip): Promise<StoredSubscription[]> {
+export async function subscribersFor(
+  trip: Trip,
+  entry?: { test?: boolean },
+): Promise<StoredSubscription[]> {
+  // Nobody lived it, so nobody is told about it — checked before `isOpenToLink`,
+  // because a test trip is usually `public` and would sail past it (B70).
+  if (isTestContent(trip, entry)) return [];
+
   const all = await listSubscriptions(trip.username);
   if (isOpenToLink(trip)) return all;
 

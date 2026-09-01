@@ -61,6 +61,8 @@ type TripSpec = {
   visibility: string;
   people: string[];
   costsVisibility: "public" | "guests";
+  /** Content nobody lived. Orthogonal to visibility, which is the point. */
+  test?: boolean;
 };
 
 /**
@@ -75,79 +77,135 @@ const TRIPS: TripSpec[] = [
   { id: "invited-2026", visibility: "guest", people: [], costsVisibility: "guests" },
   { id: "secret-2026", visibility: "private", people: [], costsVisibility: "guests" },
   { id: "robins-2026", visibility: "private", people: [ROBIN], costsVisibility: "guests" },
+  // `test: true` is a second dimension, not a sixth visibility (B70). Both
+  // spellings are here because the harm differs: the public one is what an
+  // agent proving the pipeline writes on a fresh instance, the guest one is
+  // what it writes on a journal already in use — and B52 is what put the
+  // second within reach of the digest.
+  { id: "proving-2026", visibility: "public", people: [], costsVisibility: "guests", test: true },
+  {
+    id: "proving-guest-2026",
+    visibility: "guest",
+    people: [],
+    costsVisibility: "guests",
+    test: true,
+  },
 ];
 
+/** The trips nobody lived — the column the announcing surfaces must skip. */
+const TEST_TRIPS = TRIPS.filter((t) => t.test).map((t) => t.id);
+
 /**
- * What each viewer should be told, and what each viewer should be let into.
+ * What each viewer should be told, what each viewer should be let into, and
+ * what each *announcing* surface may say to them unprompted.
  *
- * `panel` is `resolveViewer`'s `through` value, or null for "not mentioned".
- * `read` is `mayReadTrip`. Written out per case rather than derived, because a
- * table that recomputes the implementation cannot disagree with it.
+ * Four columns, four surfaces, one table:
+ *
+ * - `read` is `mayReadTrip` — the gate, and the only thing that actually
+ *   opens a page. Every other column is measured against it.
+ * - `panel` is `resolveViewer`'s `through` value, or null for "not
+ *   mentioned": what `/<user>/me` tells somebody who came looking.
+ * - `digest` is `digestableTrips` — what arrives in their inbox uninvited.
+ * - (`push`, the fourth surface, is B68's to add.)
+ *
+ * The two halves are different questions and it is worth keeping them apart.
+ * `read` and `panel` answer "may I", asked by somebody already here. `digest`
+ * answers "should we say", asked by nobody — which is why a column can be
+ * `false` where `read` is `true` (an unlisted trip, a trip nobody lived) and
+ * must never be `true` where `read` is `false`.
+ *
+ * Written out per case rather than derived, because a table that recomputes
+ * the implementation cannot disagree with it.
  */
-type Expectation = { panel: "public" | "traveller" | "guest" | null; read: boolean };
+type Expectation = {
+  panel: "public" | "traveller" | "guest" | null;
+  read: boolean;
+  /** Whether `digestableTrips` would put this trip in this reader's mail. */
+  digest: boolean;
+};
 
 const EXPECTED: Record<string, Record<string, Expectation>> = {
   // Nobody signed in.
   anonymous: {
-    "open-2026": { panel: "public", read: true },
-    "quiet-2026": { panel: null, read: true }, // unlisted, not locked
-    "invited-2026": { panel: null, read: false },
-    "secret-2026": { panel: null, read: false },
-    "robins-2026": { panel: null, read: false },
+    "open-2026": { panel: "public", read: true, digest: true },
+    // unlisted, not locked — openable by link, advertised nowhere.
+    "quiet-2026": { panel: null, read: true, digest: false },
+    "invited-2026": { panel: null, read: false, digest: false },
+    "secret-2026": { panel: null, read: false, digest: false },
+    "robins-2026": { panel: null, read: false, digest: false },
+    // Nobody lived it: openable, banner and all, and mailed to no one.
+    "proving-2026": { panel: "public", read: true, digest: false },
+    "proving-guest-2026": { panel: null, read: false, digest: false },
   },
   // Signed in, and that is all. Never a contact, never invited. **Identical
   // to `anonymous` above, deliberately and forever**: signing in is an
   // identity claim, not a key. Any diff that makes this row differ from the
   // anonymous one has opened every closed trip on the instance.
   stranger: {
-    "open-2026": { panel: "public", read: true },
-    "quiet-2026": { panel: null, read: true },
-    "invited-2026": { panel: null, read: false },
-    "secret-2026": { panel: null, read: false },
-    "robins-2026": { panel: null, read: false },
+    "open-2026": { panel: "public", read: true, digest: true },
+    "quiet-2026": { panel: null, read: true, digest: false },
+    "invited-2026": { panel: null, read: false, digest: false },
+    "secret-2026": { panel: null, read: false, digest: false },
+    "robins-2026": { panel: null, read: false, digest: false },
+    "proving-2026": { panel: "public", read: true, digest: false },
+    "proving-guest-2026": { panel: null, read: false, digest: false },
   },
   // Signed in, confirmed, never approved. Reads no more than a stranger.
   pending: {
-    "open-2026": { panel: "public", read: true },
-    "quiet-2026": { panel: null, read: true },
-    "invited-2026": { panel: null, read: false },
-    "secret-2026": { panel: null, read: false },
-    "robins-2026": { panel: null, read: false },
+    "open-2026": { panel: "public", read: true, digest: true },
+    "quiet-2026": { panel: null, read: true, digest: false },
+    "invited-2026": { panel: null, read: false, digest: false },
+    "secret-2026": { panel: null, read: false, digest: false },
+    "robins-2026": { panel: null, read: false, digest: false },
+    "proving-2026": { panel: "public", read: true, digest: false },
+    "proving-guest-2026": { panel: null, read: false, digest: false },
   },
   // Approved. A guest of the journal — every `guest` trip, no `private` one.
+  // The only reader whose digest goes beyond what the world may read (B52),
+  // and the reason the test rows below matter: the guest test trip is one
+  // they *can* open and must still never be mailed about (B70).
   approved: {
-    "open-2026": { panel: "public", read: true },
-    "quiet-2026": { panel: null, read: true },
-    "invited-2026": { panel: "guest", read: true },
-    "secret-2026": { panel: null, read: false },
-    "robins-2026": { panel: null, read: false },
+    "open-2026": { panel: "public", read: true, digest: true },
+    "quiet-2026": { panel: null, read: true, digest: true },
+    "invited-2026": { panel: "guest", read: true, digest: true },
+    "secret-2026": { panel: null, read: false, digest: false },
+    "robins-2026": { panel: null, read: false, digest: false },
+    "proving-2026": { panel: "public", read: true, digest: false },
+    "proving-guest-2026": { panel: "guest", read: true, digest: false },
   },
   // Approved and then revoked. Back to a stranger.
   revoked: {
-    "open-2026": { panel: "public", read: true },
-    "quiet-2026": { panel: null, read: true },
-    "invited-2026": { panel: null, read: false },
-    "secret-2026": { panel: null, read: false },
-    "robins-2026": { panel: null, read: false },
+    "open-2026": { panel: "public", read: true, digest: true },
+    "quiet-2026": { panel: null, read: true, digest: false },
+    "invited-2026": { panel: null, read: false, digest: false },
+    "secret-2026": { panel: null, read: false, digest: false },
+    "robins-2026": { panel: null, read: false, digest: false },
+    "proving-2026": { panel: "public", read: true, digest: false },
+    "proving-guest-2026": { panel: null, read: false, digest: false },
   },
   // On one trip's `people:`, and nothing else. Their own private trip, and
   // not the journal's other one — and no more than a stranger everywhere else,
   // because being on a trip is not being a guest of the journal.
   traveller: {
-    "open-2026": { panel: "public", read: true },
-    "quiet-2026": { panel: null, read: true },
-    "invited-2026": { panel: null, read: false },
-    "secret-2026": { panel: null, read: false },
-    "robins-2026": { panel: "traveller", read: true },
+    "open-2026": { panel: "public", read: true, digest: true },
+    "quiet-2026": { panel: null, read: true, digest: false },
+    "invited-2026": { panel: null, read: false, digest: false },
+    "secret-2026": { panel: null, read: false, digest: false },
+    "robins-2026": { panel: "traveller", read: true, digest: false },
+    "proving-2026": { panel: "public", read: true, digest: false },
+    "proving-guest-2026": { panel: null, read: false, digest: false },
   },
   // The journal's owner reads their own journal, including the trip they did
-  // not put themselves on `people:` for.
+  // not put themselves on `people:` for. They are not a contact, so the
+  // digest treats them as ungranted — they are not on its list at all.
   owner: {
-    "open-2026": { panel: "traveller", read: true },
-    "quiet-2026": { panel: "traveller", read: true },
-    "invited-2026": { panel: "traveller", read: true },
-    "secret-2026": { panel: "traveller", read: true },
-    "robins-2026": { panel: "traveller", read: true },
+    "open-2026": { panel: "traveller", read: true, digest: true },
+    "quiet-2026": { panel: "traveller", read: true, digest: false },
+    "invited-2026": { panel: "traveller", read: true, digest: false },
+    "secret-2026": { panel: "traveller", read: true, digest: false },
+    "robins-2026": { panel: "traveller", read: true, digest: false },
+    "proving-2026": { panel: "traveller", read: true, digest: false },
+    "proving-guest-2026": { panel: "traveller", read: true, digest: false },
   },
 };
 
@@ -192,6 +250,7 @@ function writeTrip(spec: TripSpec) {
       'status: "past"',
       `visibility: "${spec.visibility}"`,
       `costsVisibility: "${spec.costsVisibility}"`,
+      ...(spec.test ? ["test: true"] : []),
       ...(spec.people.length > 0
         ? ["people:", ...spec.people.map((e) => `  - { name: "Robin", email: "${e}" }`)]
         : []),
@@ -410,6 +469,59 @@ describe("the digest never mentions a trip the gate would refuse", () => {
     }
   });
 
+  /** And the column itself, exactly — not a subset of it. */
+  test.each(Object.keys(EXPECTED))("%s: the digest column, trip by trip", async (viewer) => {
+    const trips = [...(await tripsByRef()).values()];
+    const { digestableTrips } = await import("@/lib/digest/visibility");
+
+    const mentioned = new Set(
+      digestableTrips(trips, await grantedFor(viewer)).map((t) => t.id),
+    );
+    for (const [id, expected] of Object.entries(EXPECTED[viewer])) {
+      expect(mentioned.has(id), `${viewer} is mailed about ${id}`).toBe(expected.digest);
+    }
+  });
+
+  /**
+   * B70. `test: true` is the second dimension of this table, and the digest is
+   * where forgetting it costs the most.
+   *
+   * Every other surface that hides a test trip has somewhere to explain
+   * itself: the page carries a banner, the markdown twin carries the flag
+   * twice over (B47). A digest line is a date, a title, a location and a link,
+   * and a mail cannot be walked back — so invented content does not go out by
+   * mail at all, which was the decision rather than making the mail able to
+   * disclaim it.
+   *
+   * The `guest` one is the case B52 created: before it, this needed a `public`
+   * trip carrying the flag; now a grant-holder reaches the guest one too.
+   */
+  test("a trip nobody lived is in nobody's digest, grant or no grant", async () => {
+    const trips = [...(await tripsByRef()).values()];
+    const { digestableTrips } = await import("@/lib/digest/visibility");
+    for (const granted of [true, false]) {
+      const ids = digestableTrips(trips, granted).map((t) => t.id);
+      for (const id of TEST_TRIPS) expect(ids, `granted: ${granted}`).not.toContain(id);
+    }
+    // And the flag really is on them, so this is not passing because the
+    // fixture stopped writing it.
+    for (const id of TEST_TRIPS) expect((await tripsByRef()).get(id)?.test).toBe(true);
+  });
+
+  /**
+   * The one thing a test trip is *not*: locked. It opens for anyone the
+   * visibility lets in, banner and all — the containment is about announcing
+   * it, never about refusing it, and a fix that quietly gated test trips would
+   * be a different change from the one B70 asked for.
+   */
+  test("a test trip is hidden from the mail and not from the gate", async () => {
+    const { mayReadTrip } = await import("@/lib/tripGate");
+    as("anonymous");
+    expect(await mayReadTrip((await tripsByRef()).get("proving-2026")!)).toBe(true);
+    as("approved");
+    expect(await mayReadTrip((await tripsByRef()).get("proving-guest-2026")!)).toBe(true);
+  });
+
   test("an approved reader is told about the guest trip", async () => {
     const trips = [...(await tripsByRef()).values()];
     const { digestableTrips } = await import("@/lib/digest/visibility");
@@ -422,6 +534,8 @@ describe("the digest never mentions a trip the gate would refuse", () => {
     const trips = [...(await tripsByRef()).values()];
     const { digestableTrips } = await import("@/lib/digest/visibility");
     for (const viewer of ["anonymous", "stranger", "pending", "revoked", "traveller"]) {
+      // `proving-2026` is public, listed and would be advertised anywhere
+      // else on the instance — it is absent because nobody lived it.
       expect(digestableTrips(trips, await grantedFor(viewer)).map((t) => t.id), viewer).toEqual([
         "open-2026",
       ]);

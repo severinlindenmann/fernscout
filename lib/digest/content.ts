@@ -1,5 +1,6 @@
+import { isTestContent } from "../access";
 import { monthNames } from "../i18n";
-import type { Locale, Trip } from "../types";
+import type { Day, Locale, Trip } from "../types";
 import { getDays } from "../entries";
 
 /**
@@ -19,6 +20,28 @@ import { getDays } from "../entries";
  * weeks ago is not "new" by this rule and will not be mailed. That is the right
  * trade for a travel journal, where filling in a missed day is routine and a
  * digest that re-announces last month every time somebody edits a typo is not.
+ *
+ * ## What is not new, and never becomes new
+ *
+ * `getDays` drops drafts and keeps everything else, so two kinds of day would
+ * otherwise reach the mail. `digestableTrips` has already removed the trips
+ * nobody may hear about; what is left to remove here is the **`test: true`
+ * entry inside an otherwise real trip** — the demonstration day an agent
+ * writes in a journal that is already in use (B70).
+ *
+ * The decision, because it was a choice: **the day is dropped, not the mail.**
+ * The trip is real and the reader wants to hear about it; only the Tuesday is
+ * invented. Dropping it means it counts toward nothing — not `dayCount`, not
+ * the listing, and **not the cursor**, which is the part worth stating: a
+ * watermark that advanced over a day the reader was never told about would
+ * quietly bury any real day written for the same date afterwards. So a test
+ * day leaves the watermark exactly where it was, is skipped again on every
+ * later run, and a reader whose only new days were test days is `null` here —
+ * no mail at all, rather than an empty one.
+ *
+ * A whole test *trip* would be caught by the same predicate, though
+ * `digestableTrips` has refused it long before. Two locks on one door, on
+ * purpose: this function is also called directly, by the dry run and by tests.
  */
 
 /** How many days one mail lists before it stops being readable on a phone. */
@@ -132,11 +155,18 @@ export function buildDigestContent(options: {
   let dayCount = 0;
 
   for (const trip of trips) {
-    const fresh = getDays(trip.ref).filter(
-      (day) =>
-        day.date <= today &&
-        (since === null || (includeSince ? day.date >= since : day.date > since)),
-    );
+    const fresh: Day[] = [];
+    for (const day of getDays(trip.ref)) {
+      if (day.date > today) continue;
+      if (since !== null && !(includeSince ? day.date >= since : day.date > since)) continue;
+      // A day may hold several updates, and only some of them invented, so
+      // this filters entries rather than days — the lead becomes the first
+      // one that actually happened, and a day of nothing but test entries
+      // disappears entirely.
+      const lived = day.entries.filter((entry) => !isTestContent(trip, entry));
+      if (lived.length === 0) continue;
+      fresh.push({ date: day.date, entries: lived, lead: lived[0] });
+    }
     if (fresh.length === 0) continue;
 
     dayCount += fresh.length;

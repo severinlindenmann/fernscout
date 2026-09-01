@@ -31,7 +31,7 @@
  * `scripts/photobook.ts` and `scripts/export.mts`, which do the same thing.
  */
 import webpush, { WebPushError } from "web-push";
-import { isOpenToLink } from "../lib/access";
+import { isOpenToLink, isTestContent } from "../lib/access";
 import { getAllEntries, getDefaultDay, getEntryBySlug } from "../lib/entries";
 import { isGoneSubscription, removeSubscriptions, subscribersFor } from "../lib/push";
 import { currentTripRef, getTrip, getTripIds } from "../lib/trips";
@@ -153,7 +153,16 @@ console.log(`    ${SITE_URL}${dayPath(entry.slug)}\n`);
 // ---- who gets it -------------------------------------------------------
 
 const restricted = !isOpenToLink(trip);
-const recipients = await subscribersFor(trip);
+// The entry, not just the trip: a `test: true` day inside a real trip is
+// announced to nobody, the same as a whole test trip (B70).
+const recipients = await subscribersFor(trip, entry);
+
+if (isTestContent(trip, entry)) {
+  console.log(
+    "  This day is marked `test: true` — content nobody lived — so nobody is\n" +
+      "  notified about it. The page itself still says so, in a banner.\n",
+  );
+}
 
 if (restricted) {
   console.log(
