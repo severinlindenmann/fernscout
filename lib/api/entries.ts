@@ -259,6 +259,72 @@ export function attachGallery(
   return { ok: true, attached: items.length };
 }
 
+/**
+ * Publish a draft: remove the one line that was holding it back.
+ *
+ * Until B28 the only way to do this was to open the file in a text editor and
+ * delete `status: draft` by hand. That is fine for the author on their own
+ * laptop, and useless to somebody who was handed a journal by an agent and has
+ * never seen the folder — which, since journal creation over the API exists, is
+ * now a real person. The guide told them four times that "a person publishes
+ * it" and never once said how.
+ *
+ * **This does not weaken the draft rule; it moves where the person stands.**
+ * Writing and publishing remain two separate calls, the second is refused
+ * without a confirmation code bound to that exact day, and the refusal asks
+ * whether the person actually said to. What an agent still cannot do is
+ * publish as a side effect of writing.
+ *
+ * Textual, like `attachGallery`: the file is not parsed and re-emitted, so
+ * comments, key order and hand-written formatting survive. Only the status line
+ * goes.
+ */
+export function publishDraft(
+  ref: string,
+  slug: string,
+): { ok: true; slug: string } | { ok: false; error: string } {
+  const dir = path.join(tripDir(ref), "entries");
+  let files: string[] = [];
+  try {
+    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
+  } catch {
+    return { ok: false, error: `no entry "${slug}" in this trip` };
+  }
+  const match = files.find(
+    (f) => f.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "") === slug,
+  );
+  if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
+
+  const file = path.join(dir, match);
+  const raw = fs.readFileSync(file, "utf8");
+  const { data } = matter(raw);
+  if (!isDraft(data)) {
+    // Not an error worth a 500, and not silently fine either: an agent that
+    // publishes twice should be told the second call did nothing rather than
+    // reporting success to somebody.
+    return { ok: false, error: `"${slug}" is already published` };
+  }
+
+  const lines = raw.split("\n");
+  if (lines[0].trim() !== "---") {
+    return { ok: false, error: `"${slug}" has no frontmatter block to change` };
+  }
+  const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
+  if (closing < 0) return { ok: false, error: `"${slug}" has no frontmatter block to change` };
+
+  // Only inside the frontmatter, and only the status line. A `status: draft`
+  // in the prose is somebody writing about drafts.
+  const at = lines.findIndex(
+    (line, i) => i > 0 && i < closing && /^status:\s*draft\s*$/i.test(line.trim()),
+  );
+  if (at < 0) return { ok: false, error: `"${slug}" has no "status: draft" line to remove` };
+
+  lines.splice(at, 1);
+  fs.writeFileSync(file, lines.join("\n"));
+  forgetEntries(ref);
+  return { ok: true, slug };
+}
+
 /** Entries awaiting a human, for the review queue. */
 export function listDrafts(ref: string): { slug: string; title: string; date: string }[] {
   const dir = path.join(tripDir(ref), "entries");

@@ -100,6 +100,41 @@ keeps the guarantee exactly as strong as it is today and solves the same
 problem — the person with no text editor — and it is probably less work. It
 depends on B27, which gives the owner a session in the first place.
 
+## The decision, and what was built
+
+**The author decided: build the endpoint, over REST and MCP.** The prompting
+observation was that an agent working around the gap by editing files over ssh
+is cheating — it proves nothing and leaves the next agent exactly where the
+last one was. That is right, and it is the argument this task needed.
+
+So `POST .../days/<slug>/publish` and `publish_day`. What was kept:
+
+- **Writing can never publish.** Nothing on `POST .../days` moves a day to the
+  site — no parameter, and `create_day`'s schema is asserted not to grow one.
+  This is the structural half and it is unchanged.
+- **Owner only.** A trip-scoped token writes days into its trip and cannot
+  publish them. Being on the trip is not deciding what the journal says. This
+  is new, and narrower than the old file-editing route, which any hand on the
+  server had.
+- **Its own confirmation verb.** `publish_day` alongside `delete_draft` and
+  `delete_published`, so a code obtained for one cannot act on another. Tested
+  in both directions.
+
+**What it does not guarantee, stated plainly because the old rule read as
+though it did:** an agent holds both calls and can make them without asking
+anybody. The confirmation makes publishing deliberate, not consented. The
+honest description is "writing and publishing are structurally separate, and
+the rest is instruction" — and `AGENTS.md`, `/agent.md` and `openapi.json` now
+all say that rather than implying a human gate that was never enforced.
+
+The existing MCP test `there is no tool that publishes` was rewritten rather
+than deleted: it encoded the old guarantee, and the new one it should assert is
+that *the tool which writes* cannot publish.
+
+The documentation half shipped with it, which was the part that needed no
+decision: `/api/v1/{user}/drafts` and `list_drafts` now return where each draft
+is approved, so an agent can end its report with the answer instead of a shrug.
+
 ## Acceptance
 
 Whichever route is chosen:

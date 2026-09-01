@@ -2,7 +2,7 @@ import "server-only";
 import MiniSearch from "minisearch";
 import { SESSION_SCOPE, SIGNUP_OWNER, type Session } from "../auth";
 import type { Trip } from "../types";
-import { attachGallery, createDraft, deleteEntry, entrySummary, isPublished, listDrafts, tripSummary, type DraftInput } from "../api/entries";
+import { attachGallery, createDraft, deleteEntry, entrySummary, isPublished, listDrafts, publishDraft, tripSummary, type DraftInput } from "../api/entries";
 import { getAllEntries, getEntryBySlug } from "../entries";
 import { stripMarkdown } from "../markdownText";
 import { SEARCH_OPTIONS, type SearchDoc } from "../searchOptions";
@@ -281,7 +281,9 @@ const listDraftsTool: Handler = (session, args) => {
 
   const text = drafts.length
     ? drafts.map((d) => `${d.date} · ${d.trip}/${d.slug} — ${d.title}`).join("\n") +
-      "\n\nEach of these is waiting for a person to publish it."
+      "\n\nEach of these is waiting for a person to publish it. Tell them what is here " +
+      "and ask which they want on the site; `publish_day` is the tool that acts on the " +
+      "answer. Do not call it for anything they have not said yes to."
     : "Nothing is waiting for review.";
 
   return { ok: true, text, data: { user: session.owner, drafts } };
@@ -367,6 +369,65 @@ function keptSummary(kept: KeptOriginal[]): string {
         `those, not from the resized copies the site serves.`
     : "The originals are kept untouched, and the photobook prints from those.";
 }
+
+/**
+ * Put a draft on the site — the other half of the draft rule.
+ *
+ * The rule was always "an agent writes drafts, a person publishes them", and
+ * the second half had no mechanism at either door: over MCP, as over REST, a
+ * finished piece of work had nowhere to go. See the route handler for what
+ * this does and does not guarantee.
+ *
+ * Owner only, and confirmed. A trip-scoped session writes days and cannot
+ * publish them: being on the trip is not the same as deciding what the journal
+ * says.
+ */
+const publishDayTool: Handler = (session, args) => {
+  const trip = resolveTrip(session, args);
+  if (!trip.ok) return trip;
+
+  const slug = optionalString(args, "slug");
+  if (!slug) return { ok: false, error: "slug is required — the draft to publish" };
+
+  if (session.scope !== SESSION_SCOPE.agent) {
+    return {
+      ok: false,
+      error:
+        "This token is scoped to one trip, so it can write days into that trip but cannot " +
+        "publish them. Only the journal's owner decides what goes on the site.",
+    };
+  }
+
+  const entry = getEntryBySlug(trip.ref, slug, { includeDrafts: true });
+  if (!entry) return { ok: false, error: `unknown_day: no entry "${slug}" in ${trip.ref}` };
+  if (!entry.draft) return { ok: false, error: `"${slug}" is already on the site.` };
+
+  const operation = { action: "publish_day" as const, scope: trip.ref, target: slug };
+  const confirm = optionalString(args, "confirm");
+  if (!confirmationMatches(confirm, operation)) {
+    const body = confirmationRequired(
+      operation,
+      `This publishes "${entry.title}" (${entry.date}). It goes into the journal, the feed ` +
+        `and the search index, and anyone with the link can read it. Taking it down again ` +
+        `removes it from the site, not from the people who have already read it.`,
+    );
+    return { ok: false, error: `${body.message}\n\nconfirm: ${body.confirm}` };
+  }
+
+  const result = publishDraft(trip.ref, slug);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  const base = serverSite().url;
+  const [username, tripId] = trip.ref.split("/");
+  return {
+    ok: true,
+    text:
+      `Published "${entry.title}". It is on the site at ` +
+      `${base}/${username}/trips/${tripId}/day/${slug} — tell the person, and give them ` +
+      `the link.`,
+    data: { slug, status: "published" },
+  };
+};
 
 const addMedia: Handler = async (session, args) => {
   const trip = resolveTrip(session, args);
@@ -931,6 +992,41 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
       openWorldHint: false,
     },
     handler: addMedia,
+  },
+  {
+    name: "publish_day",
+    title: "Publish a draft (needs confirming)",
+    description:
+      "Put a draft on the site. This is the step the draft rule reserves for a person — so " +
+      "ask them first, in words, and do not call this because the day looks finished to " +
+      "you. The first call is ALWAYS refused and hands you a confirmation code; repeat it " +
+      "with `confirm` set to that value. Only the journal's owner can publish: a token " +
+      "scoped to one trip writes days and cannot put them on the site. Publishing cannot " +
+      "really be undone — taking a day down removes it from the journal, not from the " +
+      "people who have already read it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        trip: { type: "string", description: "Trip id, as list_trips reports it." },
+        slug: { type: "string", description: "The draft's slug, as list_drafts reports it." },
+        confirm: {
+          type: "string",
+          description: "The code from the refusal. Do not invent one; it will not verify.",
+        },
+      },
+      required: ["trip", "slug"],
+      additionalProperties: false,
+    },
+    annotations: {
+      readOnlyHint: false,
+      // Not destructive — it creates nothing and removes nothing — but it is
+      // not reversible either, and a client that treats it as safe would be
+      // wrong in the way that matters.
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    handler: publishDayTool,
   },
   {
     name: "delete_day",

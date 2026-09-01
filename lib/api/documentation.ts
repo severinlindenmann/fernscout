@@ -205,7 +205,7 @@ export function userDocumentation(username: string): string | null {
     `- [Drafts](${base()}/api/v1/${username}/drafts): everything waiting for a person to approve`,
     `- Trips: POST to [the same URL](${base()}/api/v1/${username}/trips) to create one (owner only; private by default)`,
     `- Deleting: DELETE [a trip](${base()}/api/v1/${username}/trips/<trip-id>) or [the journal](${base()}/api/v1/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it, so a 202 means the mail was sent`,
-    `- [MCP](${base()}/api/mcp): the same operations as tools — list_trips, get_day, search_entries, list_drafts, create_day`,
+    `- [MCP](${base()}/api/mcp): the same operations as tools — list_trips, get_day, search_entries, list_drafts, create_day, publish_day`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,
     `- [Export](${root}/export.zip): the whole journal as markdown and photographs`,
@@ -250,9 +250,18 @@ no CMS. Writing happens through the API below, which is why you are here.
 ## The one rule
 
 **Everything you create is a draft.** A person publishes it. There is no
-parameter, header or endpoint that skips this. If you were hoping to publish
-directly: you cannot, and that is the design. One invented memory presented to
-somebody's family as fact is not recoverable, so a human always sees it first.
+parameter, header or endpoint that skips this: nothing you send to
+\`POST .../days\` can put a day on the site, whatever you put in it. One
+invented memory presented to somebody's family as fact is not recoverable, so
+the writing and the publishing are two separate acts with a person in between.
+
+**Publishing is a second, deliberate call — \`POST .../days/<slug>/publish\`.**
+It exists because the person deciding may never have seen the folder this
+journal lives in, and telling them to edit a file was not an answer. It does
+not make publishing yours to decide. **Ask them, in words, and wait for an
+answer.** "It looks finished" is not consent, and neither is silence. The call
+is refused the first time and hands you a code, which is there to make you
+stop; it is not a substitute for having asked.
 
 Write what you were told. Do not invent detail to fill a page — no weather you
 were not told about, no meals nobody mentioned, no feelings nobody expressed.
@@ -555,6 +564,51 @@ resubmitting for each:
 ]}
 \`\`\`
 
+### Publishing, when they say so
+
+This is the step the draft rule reserves for a person. It has an endpoint now
+because the person doing the deciding often has no text editor and no folder —
+a journal made through this API belongs to somebody who has never seen either —
+and "a person publishes it" was advice with nowhere to go.
+
+**Ask first. Report what is waiting, and let them answer.** Do not call this
+because the day reads well to you, and do not batch it: one day, one question,
+one answer.
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/trips/<trip-id>/days/<slug>/publish
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{}
+\`\`\`
+
+The first call is always refused, with a code and a sentence naming the day and
+what publishing it means:
+
+\`\`\`json
+{"error": "confirmation_required", "confirm": "cf_m1x2y3_…",
+ "message": "This publishes \\"Lanterns of Hoi An\\" (2026-08-26) to ${site.url}/${example}. …"}
+\`\`\`
+
+Repeat the call with \`{"confirm": "cf_…"}\` and it goes up. You get the URL
+back — **give it to them**; it is the thing they actually wanted.
+
+Three things worth knowing:
+
+- **Only the journal's owner can publish.** A token scoped to one trip writes
+  days into it and cannot put them on the site. Being on the trip is not the
+  same as deciding what the journal says.
+- **A code is bound to one day**, and to this verb. One issued to delete will
+  not publish, and one issued for another day will not verify.
+- **It does not really come back.** Taking a day down removes it from the
+  journal, the feed and the search index — not from the people who have already
+  read it.
+
+When you have finished writing, end your report with what is waiting and where
+to approve it: \`GET /api/v1/${example}/drafts\` lists it, and this is the call
+that acts on their answer.
+
 ### Deleting, and anything that costs money
 
 Some calls are refused the first time on purpose.
@@ -756,7 +810,9 @@ Authorization: Bearer fs_agent_…
 \`\`\`
 
 Everything waiting for a person — slugs, titles and dates. Useful for telling
-them what is outstanding.
+them what is outstanding, and each entry carries \`publish\`, the call that puts
+that day on the site once they say so. **That is the list to end your report
+with**: what you wrote, and where they approve it.
 
 To read one back in full, including a draft:
 
@@ -786,6 +842,7 @@ system, and the draft rule holds through it exactly as it does here.
 | \`search_entries\` | full-text across the journal, private trips included |
 | \`list_drafts\` | what is waiting for a person |
 | \`create_day\` | write a day — **as a draft**, always |
+| \`publish_day\` | put a draft on the site, once the person has said so |
 
 Authenticate with the same agent token, in the same header. There is no
 separate OAuth authorization server to log in to; the token you already have is
