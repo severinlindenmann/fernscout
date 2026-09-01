@@ -535,7 +535,6 @@ export async function approveContact(
     .select(["id"])
     .where("owner_id", "=", owner)
     .where("contact_id", "=", id)
-    .where("trip_id", "=", "*")
     .where("scope", "=", "read")
     .executeTakeFirst();
 
@@ -546,9 +545,9 @@ export async function approveContact(
         id: newId(),
         owner_id: owner,
         contact_id: id,
-        // Every trip. Per-trip grants are W09's job; this is the "they may
-        // read what is not password-protected" grant.
-        trip_id: "*",
+        // The whole journal. There is no narrower grant to write — see
+        // `AccessGrantsTable` — so this is simply "they may read what is not
+        // password-protected".
         scope: "read",
         granted_at: now,
         granted_by: owner,

@@ -2,7 +2,6 @@ import "server-only";
 import { cookies } from "next/headers";
 import { GUEST_COOKIE, resolveSession } from "./auth";
 import { listContacts, normaliseEmail } from "./contacts";
-import { readGrantsByContact } from "./digest/visibility";
 import { isOwner } from "./contacts/session";
 import { isPersonOn } from "./tripPeople";
 import { getTrips } from "./trips";
@@ -68,7 +67,6 @@ export async function resolveViewer(username: string): Promise<Viewer> {
     ? ((await listContacts(username)).find((c) => c.email === normaliseEmail(email)) ?? null)
     : null;
   const guest = contact?.status === "active";
-  const grants = contact ? (await readGrantsByContact(username, new Date())).get(contact.id) : undefined;
 
   const trips = getTrips(username);
   const current = trips.find((t) => t.status === "current")?.id;
@@ -81,18 +79,14 @@ export async function resolveViewer(username: string): Promise<Viewer> {
       visible.push(describe(trip, "traveller", current));
     } else if (trip.visibility === "public" && trip.listed) {
       visible.push(describe(trip, "public", current));
-    } else if (
-      trip.visibility === "guest" &&
-      // `grants?.has(trip.id)`: nothing in this codebase currently issues a
-      // grant with a specific `trip_id` — the only insert (`approveContact`,
-      // `lib/contacts/index.ts`) always writes `"*"`, so this arm cannot be
-      // reached today. It stays rather than being trimmed to `guest` alone:
-      // the schema (`access_grants`'s unique index on `trip_id`), the read
-      // side here and `digestableTrips` (`lib/digest/visibility.ts`) already
-      // treat a per-trip grant as a first-class case, so this is a live
-      // placeholder for that write path landing, not a stray leftover.
-      (guest || grants?.has(trip.id))
-    ) {
+    } else if (trip.visibility === "guest" && guest) {
+      // An active contact, and nothing narrower. This arm used to also ask
+      // `grants?.has(trip.id)` — a per-trip grant nothing ever issued, removed
+      // with the column in `007-journal-wide-grants`. The `access_grants` row
+      // is not consulted here because it says the same thing `guest` does:
+      // approval is what writes it, and both paths that end an approval
+      // (`revokeContact`, and changing the address on `updateContactByOwner`)
+      // delete it in the same call that leaves `status` non-active.
       visible.push(describe(trip, "guest", current));
     }
   }

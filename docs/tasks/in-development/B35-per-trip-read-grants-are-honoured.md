@@ -61,6 +61,21 @@ journal's guest trips.
   contact ids, and its two callers (`lib/digest/index.ts:151`, `lib/viewer.ts:71`)
   simplify with it. Change the signature rather than leaving a set that only
   ever holds `"*"`.
+
+  *Built as `contactsWithReadGrant(owner, now): Promise<Set<string>>` — renamed,
+  because "grants by contact" is the old shape's name and a `Map` is what it
+  promises.* **One caller, not two.** `resolveViewer` does not consult
+  `access_grants` at all any more, and the reasoning is worth having: with the
+  trip id gone, the question left is "does this contact hold a read grant", and
+  in this codebase that is the same question as `contact.status === "active"`,
+  which the function has already answered two lines earlier. `approveContact`
+  is the only thing that writes a grant and it sets `active` in the same call;
+  `revokeContact` and an address change in `updateContactByOwner` are the only
+  things that end an approval and both delete the grant in the same call. So
+  `guest || hasGrant` would have been a second dead arm replacing the one this
+  task exists to remove — the same mistake in a shorter sentence. The
+  equivalence is now pinned by tests rather than asserted (see Acceptance), and
+  it costs a database round-trip off every page render as a side effect.
 - Rewrite the two tests in `test/push.test.ts` around 170–210 and the row built
   at `test/digest.test.ts:208`. The negative case is still worth keeping in some
   form — *a contact without a grant is not told about a guest trip* — it just
@@ -68,19 +83,41 @@ journal's guest trips.
 - `contact_invites.trip_id` (`lib/db/schema.ts:142`) is written `null` and never
   read. It goes the same way.
 
-One decision to make and record here before writing the migration:
+### The decision: the columns are dropped
 
-- **Drop the columns, or leave them and document them as unused?** Dropping
-  means a new numbered migration (the pattern is `lib/db/migrations/005-signin-link.ts`)
-  that also rebuilds `access_grants_unique`, which is currently
-  `(owner_id, contact_id, trip_id, scope)` (`lib/db/migrations/001-initial.ts:97`)
-  and would become `(owner_id, contact_id, scope)` — and that new index will
-  collide on any deployment that already holds two grants for one contact.
-  Nothing produces such rows today, but the migration should still decide what
-  it does if it finds them rather than failing halfway. Leaving the column is
-  cheaper and keeps the door open if per-trip access is ever wanted back; it
-  also leaves a column whose stated meaning nothing honours, which is how this
-  task came to exist. Lean to dropping.
+`lib/db/migrations/007-journal-wide-grants.ts`. Dropped, not documented as
+unused, for the reason the task was raised in the first place: a column whose
+stated meaning nothing honours is read as a plan that has not landed yet, and
+the next person to open `schema.ts` is the one building B41 — the task most
+likely to extend it by mistake. A comment saying "unused" does not survive
+being skimmed; a missing column does.
+
+Two things settled the argument beyond that:
+
+- **Keeping the column means keeping the sentinel.** `access_grants_unique`
+  includes `trip_id`, so `approveContact` would have to go on writing `"*"`
+  into a column nobody reads, and its own dedupe lookup would have to go on
+  matching it, forever. That is not a door left open, it is a value that has to
+  be maintained.
+- **The rebuild hazard is real but bounded, and the migration handles it
+  rather than hoping.** The new index is `(owner_id, contact_id, scope)`, so
+  two grants for one contact — a pair only a hand-written row can produce —
+  would collide. `up()` collapses duplicates *before* creating the index,
+  keeping the one that grants the most (`expires_at: null` beats a date, a
+  later date beats an earlier one, ties break on `granted_at` then `id` so two
+  databases with the same rows keep the same one). Merging two grants has to
+  keep what either allowed. Covered by *"007 on $name, against rows 006
+  allowed"* in `test/db-migrations.test.ts`, which migrates to `006`, writes
+  the pair `006` still permits, and then runs `007` over it.
+
+  *Numbered `007`, not `006`: `006-standing-link` (B27) landed on `main` while
+  this was in progress, and a migration name is the primary key in
+  `kysely_migration` — renumbering one that has run anywhere is the one thing
+  `lib/db/migrations/index.ts` says never to do, so the newer of the two moved.*
+
+`down()` restores both columns, `access_grants.trip_id` defaulting to `"*"` —
+which is what every surviving grant means. The suite's "rolls all the way down
+and back up" exercises it on every dialect.
 
 **Superseded by B39, which removes trip passwords outright.** The paragraph
 below is kept as written because it is the argument that lost, and a reversed
@@ -113,3 +150,67 @@ identified, and that is intended.
   behaviours must be unchanged, which is the whole risk of this change.
 - A contact with no grant still gets none of the three.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.
+
+## Evidence
+
+Against the Acceptance lines above, in order.
+
+- **No path in `lib/` reads or writes either column.** Both are gone from
+  `lib/db/schema.ts`; `subscribersFor` (`lib/push.ts`) lost its
+  `.where("trip_id", "in", …)`, `digestableTrips` takes a `boolean`,
+  `resolveViewer` no longer looks a grant up at all, `approveContact` writes no
+  `trip_id` and no longer matches on one, and `createInvite` no longer writes
+  `trip_id: null`.
+  `grep -rn "access_grants\|contact_invites" lib/ app/ scripts/ | grep -i trip_id`
+  → nothing.
+- **The grep.** `grep -rn "trip_id" lib/ | grep -v migrations` is not empty, and
+  the criterion as written could not be met by any correct change: `reactions`,
+  `tracking_points` and `print_orders` each have a legitimate `trip_id` of their
+  own, and `lib/tripWrite.ts` has an unrelated `"invalid_trip_id"` error string.
+  What the line is asking for holds — the remaining 18 hits are those four
+  things and one prose mention in the `AccessGrantsTable` comment saying the
+  column is gone. Neither `access_grants` nor `contact_invites` appears among
+  them. The criterion is left as it was written rather than edited to fit.
+- **The decision is written above**, the migration is
+  `lib/db/migrations/007-journal-wide-grants.ts`, and
+  `test/db-migrations.test.ts` covers it three ways: the columns are absent from
+  both tables, the narrowed `access_grants_unique` refuses a second `read` grant
+  for one contact while still allowing a different scope, and the duplicate
+  collapse runs against rows written at `006`.
+- **The three behaviours are unchanged.** This is the line the change risked, so
+  it was tested rather than reasoned about:
+  - *digest* — `test/digest.test.ts`, "an unlisted trip reaches only the readers
+    actually granted it": the approved reader still gets `open-2026` **and**
+    `quiet-2026`, the reader whose grant was cleared still gets only
+    `open-2026`. "an expired grant is not a grant" still passes, so the expiry
+    arm survived the signature change.
+  - *`resolveViewer`* — `test/viewer.test.ts` gained a `describe` that runs the
+    **real** function against a real database and a real signed-in session:
+    confirmed-but-unapproved sees only the public trip, `approveContact` (which
+    is what writes the grant) makes the guest trip appear, `revokeContact`
+    (which deletes it) makes it disappear, no session sees only the public trip.
+    Those four were then run against `lib/` checked out at `HEAD` — the
+    pre-change code — and pass identically. That is the equivalence claim,
+    demonstrated rather than argued.
+  - *push* — `test/push.test.ts`: an approved contact's grant covers a trip that
+    did not exist when it was written; a contact whose grant is gone is not
+    notified; a grant of another scope is not a read grant. The two tests that
+    constructed per-trip rows by hand are gone, since no schema can hold them.
+- **A contact with no grant still gets none of the three**: the "no grant"
+  half of each of the three bullets above.
+- **The four checks**: `npx tsc --noEmit` clean, `npx eslint .` 0 errors (4
+  warnings, all pre-existing on `main`), `npx vitest run` 76 files / 1196 tests
+  passing, `npm run build` succeeds.
+- **The dev server boots both ways** (`AGENTS.md`). With contacts and auth off:
+  `/api/health` 200, and `006` ran on a fresh SQLite file — `access_grants` came
+  up as `id, owner_id, contact_id, scope, granted_at, granted_by, expires_at`
+  with `access_grants_unique on ("owner_id", "contact_id", "scope")`, and
+  `contact_invites` with no `trip_id`. With them on (`SESSION_SECRET` and
+  `CONTACTS_ENCRYPTION_KEY` set): `/api/health` 200 reporting both enabled, and
+  `/example/me` — the access panel, which is `resolveViewer`'s only caller —
+  renders 200 with nothing in the log.
+
+One gap worth naming: `POSTGRES_TEST_URL` is unset on this machine and no
+Postgres is reachable, so the migration was proved on SQLite only. The suite is
+dialect-parameterised and CI supplies the URL, so `006` is covered there — but
+it is the one thing about this change that has not been seen to run twice.

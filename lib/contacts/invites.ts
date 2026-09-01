@@ -85,7 +85,6 @@ export async function createInvite(
       token_hash: hashSecret(token),
       name: input.name?.trim() ? input.name.trim().slice(0, 120) : null,
       locale: parseLocale(input.locale),
-      trip_id: null,
       created_at: nowIso(),
       expires_at: input.expiresAt ?? null,
       revoked_at: null,

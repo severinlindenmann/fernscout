@@ -147,19 +147,26 @@ export type ContactInvitesTable = {
   token_hash: string;
   name: string | null;
   locale: string | null;
-  trip_id: string | null;
   created_at: string;
   expires_at: string | null;
   revoked_at: string | null;
   uses: Generated<number>;
 };
 
+/**
+ * One row: this contact may read this journal.
+ *
+ * **Journal-wide, never per-trip.** The table carried a `trip_id` until
+ * `007-journal-wide-grants` — always written `*`, honoured by three readers,
+ * issued by nothing — and the column is gone because a guest is a guest of the
+ * journal, not of a trip (B35, B41). A trip that must be held back from the
+ * people let in is `visibility: private`; that is the whole mechanism, and
+ * there is deliberately no narrower one to reach for.
+ */
 export type AccessGrantsTable = {
   id: string;
   owner_id: string;
   contact_id: string;
-  /** A trip id, or `*` for every trip. */
-  trip_id: string;
   /** `read` | `costs` | … — what the grant unlocks. */
   scope: Generated<string>;
   granted_at: string;
