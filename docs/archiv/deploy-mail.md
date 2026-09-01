@@ -13,6 +13,28 @@ reader would get, including the plain-text alternative.
 That covers the whole flow: digests, one-time codes, approval notices. Nothing
 in this project requires a paid mailbox to build or test.
 
+## Keeping copies on a server that really sends
+
+`features.mail.keepCopy: true` writes the same `.eml` under
+`content/<user>/mail/` *in addition to* sending the message for real. It works
+over any transport and is **off unless you set it**.
+
+It exists because on an instance sending real mail, the flows that matter most
+cannot be checked: a sign-in code and a journal-deletion link both arrive only
+in somebody's inbox, so whoever is testing the site can get as far as "the
+endpoint refuses me" and no further.
+
+**Turning it on writes sign-in codes, guest invitations and deletion links to
+disk in plaintext**, and they stay there until somebody deletes them. Anyone who
+can read the filesystem — a backup, a snapshot, another process on the box — can
+then sign in as any reader of that journal, or finish a deletion. That is the
+same exposure the `file` transport already has in development; the difference is
+that a server has real readers. Turn it on to debug something, and turn it off
+again.
+
+`/api/health` reports it as `capabilities.mail.keepingCopies`, so you can tell
+from outside whether a server is doing this without reading its config.
+
 ## Production
 
 Decision 17 chose **Proton SMTP Submission**, which needs a Proton Mail

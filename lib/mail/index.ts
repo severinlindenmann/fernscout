@@ -36,18 +36,32 @@ function slug(text: string): string {
  * every recipient, so it is not something to leave in a directory shared by
  * everyone on the instance. `content/<user>/mail/` is gitignored.
  */
+/**
+ * Write one message to `content/<user>/mail/`, and return where it landed.
+ *
+ * Shared by the file transport, which is the only thing it does, and by
+ * `keepCopy`, which layers it over a transport that really sends. One
+ * function rather than two so the copy is byte-identical to the original
+ * rather than approximately like it — a debugging aid that differs from the
+ * real thing in some detail nobody has written down is worse than none.
+ */
+function writeEml(mail: Mail): string {
+  const dir = mail.username
+    ? path.join(contentRoot(), mail.username, "mail")
+    : path.join(process.cwd(), "mail");
+  fs.mkdirSync(dir, { recursive: true });
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const file = path.join(dir, `${stamp}-${slug(mail.to)}-${slug(mail.subject)}.eml`);
+  fs.writeFileSync(file, buildMessage(mail, senderAddress()));
+  return file;
+}
+
 class FileTransport implements MailTransport {
   readonly name = "file";
 
   async send(mail: Mail): Promise<SendResult> {
-    const dir = mail.username
-      ? path.join(contentRoot(), mail.username, "mail")
-      : path.join(process.cwd(), "mail");
-    fs.mkdirSync(dir, { recursive: true });
-
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const file = path.join(dir, `${stamp}-${slug(mail.to)}-${slug(mail.subject)}.eml`);
-    fs.writeFileSync(file, buildMessage(mail, senderAddress()));
+    const file = writeEml(mail);
 
     // Printed as well as written: when a test or a script is waiting on a
     // one-time code, reading it out of the terminal beats hunting for a file.
@@ -144,7 +158,47 @@ function transportFor(name: string): MailTransport {
  */
 export async function sendMail(mail: Mail): Promise<SendResult | null> {
   if (!isEnabled("mail")) return null;
-  return transportFor(transportName()).send(mail);
+
+  const name = transportName();
+  const result = await transportFor(name).send(mail);
+
+  // Only after the send resolved. A `.eml` on disk for a message that never
+  // left is a debugging aid that lies, and the person reading it is by
+  // definition already confused about what happened.
+  if (name !== "file" && keepsCopy()) keepCopyOf(mail);
+
+  return result;
+}
+
+/**
+ * Whether to write a copy of every message to disk — `features.mail.keepCopy`.
+ *
+ * **Absent means off, and that default is load-bearing.** Turning this on
+ * writes sign-in codes, guest invitations and journal-deletion links to
+ * `content/<user>/mail/` in plaintext, where they stay until somebody removes
+ * them. Anyone who can read the filesystem — a backup, a snapshot, another
+ * process on the box — can then sign in as any reader of that journal, or
+ * finish a deletion.
+ *
+ * It exists because the alternative was worse in the case that actually
+ * arose: on an instance sending real mail, the deletion-confirmation link and
+ * every sign-in code are unreadable to whoever is testing, so the flows that
+ * matter most cannot be verified at all. This is the file transport's one good
+ * property, made available to a server that also has to really send.
+ */
+function keepsCopy(): boolean {
+  return loadServerConfig().features.mail.keepCopy === true;
+}
+
+/** Never throws. The mail has gone; a full disk is not a reason to tell a
+ * caller it failed, because the caller's remedy is to send it again. */
+function keepCopyOf(mail: Mail): void {
+  try {
+    const file = writeEml(mail);
+    console.log(`[mail] copy kept -> ${path.relative(process.cwd(), file)}`);
+  } catch (error) {
+    console.warn(`[mail] could not keep a copy for ${mail.to}: ${(error as Error).message}`);
+  }
 }
 
 /** For tests and scripts that want the file transport regardless of config. */

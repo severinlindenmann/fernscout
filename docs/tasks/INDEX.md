@@ -84,6 +84,7 @@ Do not edit them by hand; run the script.
 | [B48](backlog/B48-nothing-says-what-ownernickname-should-be.md) | Nothing says what ownerNickname should be when the agent and the owner are the same person | CHORE | low | low |
 | [B50](backlog/B50-two-mails-in-the-same-millisecond.md) | Two mails in the same millisecond overwrite each other in development | ISSUE | low | low |
 | [B53](backlog/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium |
+| [B58](backlog/B58-smtptransport-cannot-be-driven-to-a.md) | SmtpTransport cannot be driven to a successful send from a test | CHORE | low | low |
 
 ## open
 

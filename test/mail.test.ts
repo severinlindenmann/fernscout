@@ -172,3 +172,133 @@ describe("transports", () => {
     }
   });
 });
+
+/**
+ * `features.mail.keepCopy` — send it for real, and leave a readable copy.
+ *
+ * The default is the important half. Turning this on puts one-time codes and
+ * deletion links on disk in plaintext, so a test that the *absence* of the
+ * setting writes nothing is guarding a security property, not a preference.
+ */
+describe("keeping a copy of mail that was really sent", () => {
+  function mailDir() {
+    return path.join(dir, "ana", "mail");
+  }
+
+  function copies(): string[] {
+    return fs.existsSync(mailDir()) ? fs.readdirSync(mailDir()) : [];
+  }
+
+  test("absent keepCopy writes nothing — the default that must not regress", async () => {
+    writeConfig({ enabled: true, transport: "console" });
+    await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));
+    expect(copies()).toEqual([]);
+  });
+
+  test("keepCopy: false is still off", async () => {
+    writeConfig({ enabled: true, transport: "console", keepCopy: false });
+    await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));
+    expect(copies()).toEqual([]);
+  });
+
+  test("keepCopy leaves a copy of a message the console transport 'sent'", async () => {
+    writeConfig({ enabled: true, transport: "console", keepCopy: true });
+    const result = await sendMail(renderMail("reader@example.test", "Hello", SAMPLE, "ana"));
+
+    // The send still reports the real transport: a copy is not a delivery.
+    expect(result?.transport).toBe("console");
+
+    const written = copies();
+    expect(written).toHaveLength(1);
+    const body = fs.readFileSync(path.join(mailDir(), written[0]), "utf8");
+    expect(body).toContain("To: reader@example.test");
+    expect(body).toContain("Subject: Hello");
+  });
+
+  /**
+   * The copy is a re-render, not the exact bytes that went down the socket.
+   * Two things in a message are generated per render: the `Date:` header, at
+   * second resolution, and the multipart boundary, which is random
+   * (`lib/mail/rfc822.ts:22`). Time is frozen here and the boundary is
+   * normalised, so what remains compared is every header and both bodies —
+   * which is everything a person reading the copy is reading it for.
+   */
+  test("the copy matches what the file transport would write", async () => {
+    const mail = renderMail("reader@example.test", "Hello", SAMPLE, "ana");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-01T12:00:00Z"));
+
+    const withoutBoundary = (text: string) =>
+      text.replace(/fs-[a-z0-9]+-[a-z0-9]+/g, "BOUNDARY");
+
+    writeConfig({ enabled: true, transport: "file" });
+    const viaFile = await sendMail(mail);
+    const fileText = fs.readFileSync(viaFile!.reference, "utf8");
+    fs.rmSync(mailDir(), { recursive: true, force: true });
+
+    writeConfig({ enabled: true, transport: "console", keepCopy: true });
+    await sendMail(mail);
+    const copyText = fs.readFileSync(path.join(mailDir(), copies()[0]), "utf8");
+
+    expect(withoutBoundary(copyText)).toBe(withoutBoundary(fileText));
+
+    // The thing it is actually for. The parts are base64, so "readable" means
+    // recoverable by anything that opens an .eml — decode it and check the
+    // content really is in there, rather than trusting the byte comparison to
+    // imply it.
+    const parts = copyText
+      .split(/--fs-[a-z0-9-]+/)
+      .map((p) => p.split(/\r?\n\r?\n/).slice(1).join("\n").trim())
+      .filter(Boolean);
+    const decoded = parts.map((p) => Buffer.from(p, "base64").toString("utf8")).join("\n");
+    expect(decoded).toContain("Three new days since you last looked");
+    vi.useRealTimers();
+  });
+
+  test("a copy that cannot be written does not fail the send", async () => {
+    writeConfig({ enabled: true, transport: "console", keepCopy: true });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // A file where the directory has to go: mkdir fails, the send must not.
+    fs.writeFileSync(mailDir(), "not a directory");
+
+    const result = await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));
+
+    expect(result?.transport).toBe("console");
+    expect(warn).toHaveBeenCalled();
+  });
+
+  describe("over a transport that really sends", () => {
+    afterEach(() => {
+      for (const k of ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "MAIL_FROM"]) {
+        delete process.env[k];
+      }
+    });
+
+    /**
+     * There is deliberately no "smtp succeeded and left a copy" test here.
+     * `SmtpTransport` builds its TLS options from the environment and has no
+     * way to be handed a CA, the client correctly refuses a server that does
+     * not offer STARTTLS (`test/smtp.test.ts`), and the fake server's
+     * certificate is self-signed — so a *successful* send cannot be driven
+     * through `sendMail` from a test. B58 is that gap.
+     *
+     * What is covered instead: the console transport above proves a copy is
+     * kept for a transport that is not `file`, which is the whole of the new
+     * behaviour, and the test below proves the ordering against a real smtp
+     * attempt.
+     */
+    test("a send that fails leaves no copy behind", async () => {
+      writeConfig({ enabled: true, transport: "smtp", keepCopy: true });
+      process.env.SMTP_HOST = "127.0.0.1";
+      process.env.SMTP_PORT = "1";
+      process.env.SMTP_USER = "agent@example.test";
+      process.env.SMTP_PASSWORD = "unused";
+      process.env.MAIL_FROM = "Fernscout <no-reply@example.test>";
+
+      await expect(
+        sendMail(renderMail("r@example.test", "S", SAMPLE, "ana")),
+      ).rejects.toThrow();
+      expect(copies()).toEqual([]);
+    });
+  });
+});
