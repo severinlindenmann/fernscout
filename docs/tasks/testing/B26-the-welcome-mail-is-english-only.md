@@ -7,6 +7,7 @@ complexity: low
 area: mail, i18n, journals
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B26 — The welcome mail is English only, and nobody is asked which language the journal is in
