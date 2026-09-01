@@ -52,6 +52,21 @@ export type ConfirmableAction =
   | "delete_published"
   | "delete_media"
   | "overwrite_day"
+  /**
+   * Putting a draft on the site.
+   *
+   * The odd one out here, because it destroys nothing — and it belongs anyway.
+   * Everything else on this list can be undone by somebody with the folder;
+   * this one cannot, in the sense that matters. Once a day is published it is
+   * in the feed, in the search index, and in whatever reader already had the
+   * page open. Un-publishing removes it from the site and not from the people
+   * who read it.
+   *
+   * Its own verb, like `delete_published`: a code issued to publish one day
+   * must not authorise publishing another, and neither must a code obtained
+   * for anything else.
+   */
+  | "publish_day"
   | "order";
 
 export type Operation = {

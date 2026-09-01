@@ -25,9 +25,22 @@ Two ways in, and they are the same content behind two doors:
 ## The one rule
 
 **Anything an agent creates is a draft.** `status: draft` in the frontmatter,
-and every reading path filters it out in `lib/entries.ts`. A person removes that
-line to publish. There is no parameter, argument, flag or endpoint anywhere that
-skips the step — not in the REST API, not in MCP, not in the skills below.
+and every reading path filters it out in `lib/entries.ts`. There is no
+parameter, argument or flag on anything that *writes* which skips the step —
+not in the REST API, not in MCP, not in the skills below.
+
+Publishing is a **separate, deliberate call** the person asks for:
+`POST /api/v1/<user>/trips/<trip>/days/<slug>/publish`, or `publish_day` over
+MCP. Owner only — a trip-scoped token writes days and cannot put them on the
+site — and refused once, with a code bound to that one day.
+
+Be exact about what that guarantees, because it is less than it looks. An agent
+holds both calls; the confirmation makes publishing a distinct act it has to
+mean, not proof that a human consented. The guarantee is structural — writing
+can never publish — and the rest is instruction: **ask, in words, and wait for
+an answer.** B28 records why it exists at all: the person the rule reserves this
+for is often somebody who has never seen the folder, and telling them to edit a
+file was advice with nowhere to go.
 
 One invented memory presented to somebody's family as fact is not recoverable.
 So: write what you were told. No weather nobody mentioned, no meals nobody ate,

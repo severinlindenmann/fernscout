@@ -580,6 +580,63 @@ export function GET() {
           },
         },
       },
+      "/api/v1/{user}/trips/{trip}/days/{slug}/publish": {
+        post: {
+          summary: "Publish a draft — the step the draft rule reserves for a person",
+          description:
+            "Puts a draft on the site. **Ask the person first, in words, and wait for an " +
+            "answer** — this endpoint exists because the person deciding often has no text " +
+            "editor and has never seen the content folder, not because the decision moved " +
+            "to you.\n\n" +
+            "Refused the first time, always, with a `confirm` code bound to this journal, " +
+            "trip, day and verb; repeat the call carrying it. A code issued to delete will " +
+            "not publish, and one issued for another day will not verify.\n\n" +
+            "Owner only: a token scoped to a single trip writes days into it and cannot put " +
+            "them on the site. Nothing sent to the days POST can publish — writing and " +
+            "publishing are two calls, and that is the part that is structural.\n\n" +
+            "It does not really come back. Taking a day down removes it from the journal, " +
+            "the feed and the search index, not from the people who have read it.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+            { name: "slug", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: false,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    confirm: {
+                      type: "string",
+                      description:
+                        "The code from the 409. Omit it to be issued one. Do not invent " +
+                        "one — it is signed and will not verify.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Published; the body carries the day's public URL" },
+            "400": { description: "The day could not be published — the body says why" },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "Another journal's token, or one scoped to a single trip — which may write " +
+                "days but not publish them",
+            },
+            "404": { description: "No such trip, or no such day" },
+            "409": {
+              description:
+                "Confirmation required — the body carries the code and the question. Also " +
+                "returned when the day is already on the site.",
+            },
+          },
+        },
+      },
       "/api/v1/{user}/trips/{trip}/days/{slug}": {
         get: {
           summary: "One day in full, drafts included",

@@ -343,6 +343,7 @@ describe("the protocol", () => {
       "get_day",
       "list_drafts",
       "list_trips",
+      "publish_day",
       "search_entries",
     ]);
     // Not `create_journal`. This token belongs to a journal, and a journal's
@@ -475,13 +476,60 @@ describe("create_day writes a draft, and only a draft", () => {
     expect(listed.map((d) => d.slug)).toContain("lanterns-of-hoi-an");
   });
 
-  test("there is no tool that publishes", async () => {
+  /**
+   * This used to assert that no tool published at all. B28 gave publishing an
+   * endpoint, because the person the rule reserves it for often has no text
+   * editor and no folder — so the guarantee is no longer "it cannot be done"
+   * but "it cannot be done *here*". That is a real narrowing and it is the
+   * thing worth pinning: the tool that writes must never be the tool that
+   * publishes, whatever arguments it is handed.
+   */
+  test("the tool that writes cannot publish, whatever it is given", async () => {
     const { body } = await rpc(anaToken, "tools/list");
     const tools = (body.result as { tools: { name: string; description: string }[] }).tools;
-    expect(tools.map((t) => t.name)).not.toContain("publish_day");
-    // Nor an argument on the one that writes.
     const create = tools.find((t) => t.name === "create_day");
     expect(JSON.stringify(create)).not.toMatch(/"publish"|"status"/);
+  });
+
+  test("publishing is a separate tool, and it refuses the first time", async () => {
+    await call(anaToken, "create_day", DAY);
+    const first = await call(anaToken, "publish_day", {
+      trip: "ana-trip",
+      slug: "lanterns-of-hoi-an",
+    });
+    // Refused, with the code and the question — not published.
+    expect(first.isError).toBe(true);
+    expect(JSON.stringify(first)).toMatch(/confirm/);
+    expect(getAllEntries("ana/ana-trip").map((e) => e.slug)).not.toContain("lanterns-of-hoi-an");
+  });
+
+  test("and goes through on the second, with the code", async () => {
+    await call(anaToken, "create_day", DAY);
+    const first = await call(anaToken, "publish_day", {
+      trip: "ana-trip",
+      slug: "lanterns-of-hoi-an",
+    });
+    const code = /cf_[A-Za-z0-9_-]+/.exec(JSON.stringify(first))?.[0];
+    expect(code).toBeTruthy();
+
+    const second = await call(anaToken, "publish_day", {
+      trip: "ana-trip",
+      slug: "lanterns-of-hoi-an",
+      confirm: code,
+    });
+    expect(second.isError).toBeFalsy();
+    expect(getAllEntries("ana/ana-trip").map((e) => e.slug)).toContain("lanterns-of-hoi-an");
+  });
+
+  test("an invented confirmation does not publish anything", async () => {
+    await call(anaToken, "create_day", DAY);
+    const result = await call(anaToken, "publish_day", {
+      trip: "ana-trip",
+      slug: "lanterns-of-hoi-an",
+      confirm: "cf_zzzz_imadethisup",
+    });
+    expect(result.isError).toBe(true);
+    expect(getAllEntries("ana/ana-trip").map((e) => e.slug)).not.toContain("lanterns-of-hoi-an");
   });
 
   test("a `status` argument is not a way in", async () => {
