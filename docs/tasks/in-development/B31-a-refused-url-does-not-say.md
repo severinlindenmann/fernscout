@@ -50,6 +50,35 @@ Not doing: retrying inside `fetchImage`. The all-or-nothing contract already
 tells the caller to resend the batch, and a silent internal retry makes a slow
 endpoint slower without telling anyone why.
 
+## What was found while building it
+
+**Splitting the two refusals apart uncovered a live SSRF bypass, and fixing it
+had to happen in this task rather than a follow-up.**
+
+`new URL("https://[::1]/…").hostname` keeps its brackets. `net.isIP("[::1]")`
+is `0`, so every IPv6 literal skipped the address check entirely and fell
+through to `dns.lookup("[::1]")`, which threw, which returned `false`, which
+refused the URL. The right answer, by accident, for the wrong reason.
+
+Separating "did not resolve" from "resolved somewhere private" turned that
+accident into `[::1]` being answered with *try again* — the wrong thing to tell
+somebody probing for loopback. So the brackets had to be stripped. And stripping
+them removed the accidental protection, exposing the second bug underneath:
+
+`isPublicAddress` matched IPv4-mapped IPv6 as `::ffff:127.0.0.1`, the spelling a
+person writes, while the URL parser normalises to `::ffff:7f00:1`. The hex form
+matched no branch and returned `true`. `169.254.169.254` — the cloud metadata
+address the check's own comment names — arrives as `::ffff:a9fe:a9fe` and was
+public. Four addresses now fail the test suite without the fix, confirmed by
+stashing it.
+
+That is why the mapped-address fix is in this commit and not deferred: this
+change would otherwise have *introduced* the exposure it had been masking.
+
+The wider question — whether other branches match one spelling while the parser
+writes another (`0:0:0:0:0:0:0:1`, `fe90::` link-local, NAT64) — is **B36**, not
+absorbed here.
+
 ## Acceptance
 
 - A URL whose host resolves into a private range is refused with today's exact

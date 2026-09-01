@@ -61,9 +61,32 @@ export function isPublicAddress(ip: string): boolean {
   }
 
   const lower = ip.toLowerCase();
-  // An IPv4 address wearing a v6 costume still goes wherever the v4 goes.
-  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(lower);
-  if (mapped) return isPublicAddress(mapped[1]);
+  /**
+   * An IPv4 address wearing a v6 costume still goes wherever the v4 goes —
+   * **in either spelling**.
+   *
+   * The dotted form is what a person writes. The hex form is what they get:
+   * `new URL("https://[::ffff:127.0.0.1]/…").hostname` normalises to
+   * `[::ffff:7f00:1]`, and `169.254.169.254` — the cloud metadata address this
+   * check exists for — becomes `::ffff:a9fe:a9fe`. Only the dotted form was
+   * matched, so the hex form fell past every branch below and returned
+   * `true`.
+   *
+   * It was masked until now by a second bug rather than by anything
+   * deliberate: `hostname` keeps its brackets, `net.isIP("[…]")` is 0, and the
+   * DNS lookup that followed threw and refused the URL. Fixing the brackets
+   * removed that accident, which is how this surfaced.
+   */
+  const dotted = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(lower);
+  if (dotted) return isPublicAddress(dotted[1]);
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(lower);
+  if (hex) {
+    const high = Number.parseInt(hex[1], 16);
+    const low = Number.parseInt(hex[2], 16);
+    return isPublicAddress(
+      [high >> 8, high & 0xff, low >> 8, low & 0xff].join("."),
+    );
+  }
   if (lower === "::" || lower === "::1") return false;
   if (lower.startsWith("fc") || lower.startsWith("fd")) return false; // unique-local
   if (lower.startsWith("fe80")) return false; // link-local
@@ -71,17 +94,57 @@ export function isPublicAddress(ip: string): boolean {
   return true;
 }
 
-/** Resolves a hostname and refuses it unless *every* answer is public. */
-async function resolvesPublicly(hostname: string): Promise<boolean> {
-  // A literal address never reaches DNS; check it directly.
-  if (net.isIP(hostname)) return isPublicAddress(hostname);
+/**
+ * The three answers a hostname check can have, kept apart.
+ *
+ * `private` and `unresolvable` used to be the same `false`, and so shared one
+ * refusal — "that host does not resolve to a public address". For a genuinely
+ * private address that wording is exactly right and must not change: a prober
+ * does not get to map somebody's network one hostname at a time, so every
+ * private answer has to read alike.
+ *
+ * But a resolver that timed out is not that. It means *try again*, and an
+ * agent told the host "does not resolve to a public address" reads it as
+ * permanent, drops the image and reports to the person that their photo host
+ * is blocked. The all-or-nothing batch rule makes it louder: one flaky lookup
+ * discards a whole upload, explained in words that say resending is pointless.
+ *
+ * So the distinction exposed is permanent-versus-transient, and nothing more.
+ * Which range, which resolver and how it failed stay unsaid.
+ */
+type HostVerdict = "public" | "private" | "unresolvable";
+
+async function checkHost(hostname: string): Promise<HostVerdict> {
+  /**
+   * A literal address never reaches DNS; check it directly. It can never be
+   * "unresolvable" — there was nothing to resolve.
+   *
+   * The brackets come off first. `new URL("https://[::1]/a.jpg").hostname` is
+   * `"[::1]"`, which `net.isIP` does not recognise, so every IPv6 literal used
+   * to fall through to `dns.lookup("[::1]")` — which throws, which returned
+   * `false`, which happened to produce the right refusal. It was never
+   * actually checked as an address. Splitting the DNS failure out of the
+   * private answer is what made that visible: `[::1]` started reading as
+   * "try again", which is the wrong thing to tell somebody probing for
+   * loopback.
+   */
+  const literal = hostname.startsWith("[") && hostname.endsWith("]")
+    ? hostname.slice(1, -1)
+    : hostname;
+  if (net.isIP(literal)) return isPublicAddress(literal) ? "public" : "private";
+
   let addresses: { address: string }[];
   try {
     addresses = await dns.lookup(hostname, { all: true });
   } catch {
-    return false;
+    return "unresolvable";
   }
-  return addresses.length > 0 && addresses.every((a) => isPublicAddress(a.address));
+  // No answers at all is a name that does not exist, which is the caller's
+  // mistake rather than a reason to retry — but it is also not evidence about
+  // anybody's private network, so it reads as unresolvable rather than as
+  // private.
+  if (addresses.length === 0) return "unresolvable";
+  return addresses.every((a) => isPublicAddress(a.address)) ? "public" : "private";
 }
 
 function filenameFrom(url: URL, contentType: string): string {
@@ -121,10 +184,18 @@ export async function fetchImage(
   let response: Response;
   let hops = 0;
   for (;;) {
-    if (!(await resolvesPublicly(url.hostname))) {
+    const verdict = await checkHost(url.hostname);
+    if (verdict === "private") {
       // Same words whichever private range it was: a prober does not get to
       // map somebody's network one hostname at a time.
       return refuse("that host does not resolve to a public address");
+    }
+    if (verdict === "unresolvable") {
+      // Deliberately different words, and they say what to do. See `checkHost`.
+      return refuse(
+        "could not be looked up — the name did not resolve. This may be temporary; " +
+          "send the batch again. It is not a refusal for pointing somewhere private",
+      );
     }
 
     const controller = new AbortController();
