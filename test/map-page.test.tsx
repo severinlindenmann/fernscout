@@ -94,6 +94,23 @@ function render(props: {
   );
 }
 
+/**
+ * Rendered markup with entities turned back into the characters they stand for.
+ *
+ * `renderToStaticMarkup` escapes the apostrophe in "Where we've been" to
+ * `&#x27;`, so asserting against the dictionary string directly fails on copy
+ * that is on the page and correct. Comparing decoded text keeps the assertions
+ * about the words rather than about React's escaping.
+ */
+function text(html: string): string {
+  return html
+    .replaceAll("&#x27;", "'")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&");
+}
+
 /** The map itself, told apart from the page's lucide icons by its viewBox —
  * theirs is always the 24×24 the icon set is drawn on. */
 function mapViewBox(html: string): string | null {
@@ -148,6 +165,44 @@ describe("an upcoming trip: a plan and no days", () => {
     expect(html).toContain(dictionaryFor("en")["map.stillToCome"]);
     expect(html).toContain("Fukuoka");
   });
+
+  /**
+   * B54. "Where we've been" is a claim, and over eight places nobody has been
+   * to it is a false one. The subtitle was worse: it invited the reader to tap
+   * stops that do not exist, since the only markers are planned and they open
+   * nothing.
+   */
+  test("is titled for a journey ahead, not one already made", () => {
+    const html = text(render({ plan: planned }));
+    expect(html).toContain(dictionaryFor("en")["map.titlePlanned"]);
+    expect(html).toContain(dictionaryFor("en")["map.subtitlePlanned"]);
+    expect(html).not.toContain(dictionaryFor("en")["map.title"]);
+    expect(html).not.toContain(dictionaryFor("en")["map.subtitle"]);
+  });
+
+  /**
+   * The heading was not the only place the claim was made. `WorldMap` names
+   * itself with `map.title`, and that name is the whole of what a screen
+   * reader is told about the picture — so fixing only the h1 would have left
+   * the past tense in the one place nobody sighted would ever catch it.
+   */
+  test("does not announce itself to a screen reader as somewhere we have been", () => {
+    const html = text(render({ plan: planned }));
+    expect(html).toContain(`aria-label="${dictionaryFor("en")["map.titlePlanned"]}"`);
+    expect(html).not.toContain(`aria-label="${dictionaryFor("en")["map.title"]}"`);
+  });
+
+  test("says so in every language the journal ships", () => {
+    for (const locale of ["en", "de", "hu"] as const) {
+      const dict = dictionaryFor(locale);
+      // The pair has to exist and differ, or one locale silently keeps the
+      // past tense while the others are fixed.
+      expect(dict["map.titlePlanned"]).toBeTruthy();
+      expect(dict["map.subtitlePlanned"]).toBeTruthy();
+      expect(dict["map.titlePlanned"]).not.toBe(dict["map.title"]);
+      expect(dict["map.subtitlePlanned"]).not.toBe(dict["map.subtitle"]);
+    }
+  });
 });
 
 describe("a trip with days", () => {
@@ -158,6 +213,13 @@ describe("a trip with days", () => {
     expect(html).toContain(dictionaryFor("en")["map.everyStop"]);
     expect(html).toContain("Kyoto");
     expect(html).not.toContain(dictionaryFor("en")["map.empty"]);
+  });
+
+  test("keeps the past tense, which is true of it", () => {
+    const html = text(render({ places: [place], stats: travelled }));
+    expect(html).toContain(dictionaryFor("en")["map.title"]);
+    expect(html).toContain(dictionaryFor("en")["map.subtitle"]);
+    expect(html).not.toContain(dictionaryFor("en")["map.titlePlanned"]);
   });
 });
 

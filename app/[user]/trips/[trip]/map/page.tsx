@@ -26,11 +26,17 @@ export async function generateMetadata({
   const trip = getTrip(tripRef(user, id));
   if (!trip) return {};
   const locale = await requestLocale();
+  // The tab title carried the same past tense the page did — "Wo wir waren"
+  // for a trip nobody has left for yet. Asked the same way the page asks it,
+  // on whether there are days rather than on `trip.status`, so the two can
+  // never disagree. `getPlaces` is cached per directory (lib/entries.ts), so
+  // this does not re-read the trip a second time.
+  const visited = getPlaces(trip.ref).length > 0;
   return {
     // The section name follows the reader; the trip's own title is the
     // author's and is never translated. See the note in the gallery page.
     title: translateIn(locale, "meta.sectionOfTrip", {
-      section: translateIn(locale, "map.title"),
+      section: translateIn(locale, visited ? "map.title" : "map.titlePlanned"),
       trip: trip.title,
     }),
     description: `Every stop on ${trip.title}, with routes coloured by how we travelled.`,

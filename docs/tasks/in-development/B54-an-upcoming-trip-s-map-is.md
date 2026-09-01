@@ -59,6 +59,30 @@ upcoming trip can reach — the gallery and the costs page. B19 already covers t
 costs page reporting spending that has not happened, which is the same defect
 one level deeper.
 
+### What the work turned up
+
+**It was three places, not two.** `WorldMap` names its own `<svg>` with
+`t("map.title")` (`components/WorldMap.tsx:175`), and that `aria-label` is the
+entire description a screen reader gets of the picture. Fixing only the `<h1>`
+would have corrected the claim for everyone who can see it and left it standing
+in the one place nobody sighted would ever catch. Found by a test asserting the
+old string was absent, not by reading — worth knowing, because the same shape
+of miss is available in every other component that titles itself from a shared
+key.
+
+**The tab title too.** `generateMetadata` in
+`app/[user]/trips/[trip]/map/page.tsx` built the section name from `map.title`,
+so the browser tab read "Wo wir waren — Japan, end to end". It now asks the
+same question the page does, via `getPlaces(...).length`, which is cached per
+directory in `lib/entries.ts` and so costs no extra read.
+
+**Not changed:** the current-trip route's `generateMetadata`
+(`app/[user]/(trip)/map/page.tsx`) takes no params and reaches the journal
+through a header rather than a trip, so asking it the same question means
+changing its signature. The case it would cover — a *current* trip whose first
+day is not yet written — is real but transient, and it is the only route an
+upcoming trip cannot reach. Left alone deliberately rather than overlooked.
+
 ## Acceptance
 
 - `/example/trips/japan-2027/map` is titled and subtitled for a trip that has
