@@ -325,7 +325,9 @@ Content-Type: application/json
 {"email": "them@example.com", "code": "123456"}
 \`\`\`
 
-That returns a token which can do exactly one thing, for twenty minutes:
+That returns a token which creates **exactly one journal** and is spent by doing
+so. Unused, it expires in twenty minutes. A refused creation does not spend it,
+so a taken username is worth correcting rather than starting over:
 
 \`\`\`http
 POST ${site.url}/api/v1/journals

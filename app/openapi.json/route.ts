@@ -428,7 +428,13 @@ export function GET() {
             },
           },
           responses: {
-            "200": { description: "A signup token, good for twenty minutes" },
+            "200": {
+              description:
+                "A signup token. It creates exactly one journal and is spent by doing so; " +
+                "unused, it expires in twenty minutes. A refused creation — a taken or " +
+                "malformed username — does not spend it, so a correctable mistake can be " +
+                "corrected without another emailed code.",
+            },
             "401": { description: "The code is wrong, expired or already used" },
           },
         },
