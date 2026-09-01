@@ -65,7 +65,7 @@ describes was still true as written.
 "Wo wir waren" and subtitled "Tippe auf einen Ort, um zu sehen, wie lange wir
 dort waren" — past tense, on a trip starting in 2027. That is a copy decision
 across three locale files rather than a component deciding what to render, so
-it is captured as B51 rather than absorbed.
+it is captured as B54 rather than absorbed.
 
 ## Work
 

@@ -1,5 +1,5 @@
 ---
-id: B51
+id: B54
 title: An upcoming trip's map is titled "Where we've been"
 type: ISSUE
 priority: low
@@ -8,7 +8,7 @@ area: map, i18n, plan
 found: "2026-09-01"
 ---
 
-# B51 — An upcoming trip's map is titled "Where we've been"
+# B54 — An upcoming trip's map is titled "Where we've been"
 
 ## Why
 
