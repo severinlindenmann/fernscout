@@ -44,11 +44,20 @@ export default function MapPageContent({
     <div className="min-h-screen">
       <PageHeader />
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Past tense is a claim, and on a trip that has not started it is a
+            false one: "Wo wir waren" over eight places nobody has been to yet.
+            The subtitle was worse — it invited the reader to tap stops that do
+            not exist, because the only markers on the map are planned ones and
+            they open nothing. Both follow `hasPlaces`, the same question the
+            rest of the page asks (B18), rather than `trip.status`, which this
+            component is deliberately never told. */}
         <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
-          {t("map.title")}
+          {t(hasPlaces ? "map.title" : "map.titlePlanned")}
         </h1>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-navy-600">{t("map.subtitle")}</p>
+          <p className="text-sm text-navy-600">
+            {t(hasPlaces ? "map.subtitle" : "map.subtitlePlanned")}
+          </p>
           {hasPlaces && (
             <button
               onClick={() => setShowing(true)}

@@ -172,7 +172,11 @@ export default function WorldMap({
           viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
           className="block h-auto w-full cursor-grab touch-none active:cursor-grabbing"
           role="group"
-          aria-label={t("map.title")}
+          // The same question the heading above it asks (B54). A map showing
+          // only a planned route must not announce itself as "where we've
+          // been" — the sighted reader had that corrected in the h1, and this
+          // is the only name a screen reader gets.
+          aria-label={t(places.length > 0 ? "map.title" : "map.titlePlanned")}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
