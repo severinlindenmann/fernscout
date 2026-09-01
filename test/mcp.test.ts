@@ -338,6 +338,8 @@ describe("the protocol", () => {
       "create_day",
       "create_trip",
       "delete_day",
+      "delete_journal",
+      "delete_trip",
       "get_day",
       "list_drafts",
       "list_trips",

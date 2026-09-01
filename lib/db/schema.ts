@@ -266,6 +266,32 @@ export type PrintOrdersTable = {
   updated_at: string;
 };
 
+/**
+ * A mailed "are you sure" for something that cannot be undone — see
+ * `006-deletions`. The token lives in the owner's mailbox and nowhere else;
+ * this row holds its hash, the exact target, and the moment it was spent.
+ */
+export type DeletionRequestsTable = {
+  id: string;
+  owner_id: string;
+  /** `journal` | `trip`. */
+  kind: string;
+  /** The trip, when `kind` is `trip`. Null for a journal. */
+  trip_id: string | null;
+  /** The address the link was mailed to, read from the journal's config. */
+  email: string;
+  /** sha-256 of the token in the link. */
+  token_hash: string;
+  created_at: string;
+  expires_at: string;
+  /** Set before anything is deleted, so the link is single-use even if the
+   * deletion itself then fails half way. */
+  consumed_at: string | null;
+  /** The session that asked. Not a foreign key — that row is deleted by the
+   * sweep this request authorises. */
+  requested_by: string | null;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -279,6 +305,7 @@ export type Database = {
   jobs: JobsTable;
   tracking_points: TrackingPointsTable;
   print_orders: PrintOrdersTable;
+  deletion_requests: DeletionRequestsTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -296,4 +323,5 @@ export const TABLE_NAMES = [
   "jobs",
   "tracking_points",
   "print_orders",
+  "deletion_requests",
 ] as const satisfies readonly (keyof Database)[];

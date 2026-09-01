@@ -204,6 +204,7 @@ export function userDocumentation(username: string): string | null {
     `- [Days](${base()}/api/v1/${username}/trips/<trip-id>/days): read them, or POST to add one as a draft`,
     `- [Drafts](${base()}/api/v1/${username}/drafts): everything waiting for a person to approve`,
     `- Trips: POST to [the same URL](${base()}/api/v1/${username}/trips) to create one (owner only; private by default)`,
+    `- Deleting: DELETE [a trip](${base()}/api/v1/${username}/trips/<trip-id>) or [the journal](${base()}/api/v1/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it, so a 202 means the mail was sent`,
     `- [MCP](${base()}/api/mcp): the same operations as tools — list_trips, get_day, search_entries, list_drafts, create_day`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,
@@ -596,6 +597,52 @@ Anything that **spends money** — ordering a photobook, sending postcards —
 needs the code *and* a payment the person makes themselves: the server emails
 them a link, and nothing reaches a printer until that is paid. There is no
 call here that puts a charge on somebody's card.
+
+### Deleting a trip, or the whole journal
+
+\`\`\`http
+DELETE ${site.url}/api/v1/${example}/trips/<trip-id>
+DELETE ${site.url}/api/v1/${example}
+Authorization: Bearer fs_agent_…
+\`\`\`
+
+\`\`\`json
+{"ok": true, "deleted": false, "status": "confirmation_sent",
+ "mailedTo": "them@example.com",
+ "note": "NOTHING HAS BEEN DELETED. A mail has gone to the address that owns this
+          journal with a link to a page that asks once more and has a button on it…"}
+\`\`\`
+
+**A \`202\` here is not success, and reporting it as one is the failure this is
+built to avoid.** Nothing has been deleted. The server has mailed the address
+that owns the journal a single-use link, valid for an hour, to a page that
+names what would go and has a button on it. Only that button deletes.
+
+**You cannot finish this, and that is deliberate.** The confirmation code in
+the section above goes to *you*, which is right for a draft day and wrong for
+somebody's photographs and every word they wrote: an agent that misread "get
+rid of that test entry" could satisfy its own confirmation. So the second step
+happens in a mailbox you cannot open. Do not ask for the link, do not offer to
+follow it, and do not treat not receiving it as something to work around.
+
+What to say: *a mail is on its way to \`mailedTo\`, and the journal is still
+there until they open it and press the button.* Then stop.
+
+Two things worth telling them before they do:
+
+- **A trip takes its photographs with it.** Deleting a *day* leaves its media
+  on disk; deleting a *trip* does not. That difference surprises people.
+- **A deleted journal's name is never given out again**, so the address stops
+  working for good rather than becoming somebody else's. Old links answer
+  \`410 Gone\`.
+
+The page offers them a complete copy first — private trips and unpublished
+drafts included, not just the public export — because leaving with your data is
+the half of leaving that a delete button on its own does not give you.
+
+Only the journal's **owner** may ask. A token scoped to one trip can write days
+into that trip and cannot delete it, or the journal around it; being on
+somebody's journey is not authority to end it.
 
 ### Photographs and video
 

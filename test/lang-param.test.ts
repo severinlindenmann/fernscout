@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { NextRequest } from "next/server";
-import { LOCALE_COOKIE, PATH_HEADER, default as proxy } from "@/proxy";
+import { default as proxy } from "@/proxy";
+import { LOCALE_COOKIE, PATH_HEADER } from "@/lib/requestKeys";
 
 /**
  * `?lang=` — a shareable link in a particular language.

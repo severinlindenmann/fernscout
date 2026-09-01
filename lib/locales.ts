@@ -194,7 +194,7 @@ export function instanceLocale(): string {
  */
 export async function requestLocale(): Promise<string> {
   const { cookies, headers } = await import("next/headers");
-  const { LOCALE_COOKIE, PATH_HEADER } = await import("@/proxy");
+  const { LOCALE_COOKIE, PATH_HEADER } = await import("./requestKeys");
   const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
   if (chosen && installedLocales().includes(chosen)) return chosen;
   return localeForPath((await headers()).get(PATH_HEADER));

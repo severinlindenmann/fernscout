@@ -65,6 +65,7 @@ Do not edit them by hand; run the script.
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B36](backlog/B36-address-checks-match-one-spelling-each.md) | Address checks match one spelling each, and the URL parser writes another | SECURITY | medium | low |
 | [B39](backlog/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high |
+| [B42](backlog/B42-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B03](backlog/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium |
 | [B04](backlog/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium |
 | [B05](backlog/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
@@ -74,6 +75,7 @@ Do not edit them by hand; run the script.
 | [B15](backlog/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium |
 | [B23](backlog/B23-everything-in-docs-was-archived-and.md) | Everything in docs was archived and nobody decided what is still current | CHORE | low | low |
 | [B24](backlog/B24-nothing-notices-when-a-file-stops.md) | Nothing notices when a file stops being used | CHORE | low | low |
+| [B43](backlog/B43-two-mails-in-the-same-millisecond.md) | Two mails in the same millisecond overwrite each other in development | ISSUE | low | low |
 
 ## open
 

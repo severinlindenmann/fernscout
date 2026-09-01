@@ -9,6 +9,7 @@ import { translateIn } from "./locales";
 import { sendMail } from "./mail";
 import { renderMail } from "./mail/template";
 import { serverSite } from "./site";
+import { journalTombstone } from "./tombstones";
 import { clearUserCache, getUsernames, isReservedUsername, isValidUsername } from "./users";
 
 /**
@@ -107,6 +108,23 @@ export function createJournal(input: NewJournal): CreateJournalResult {
         "starting with a letter or digit. It becomes the address of the journal.",
     };
   }
+  // Answered before the general reserved check, because the reason is
+  // different and so is what the caller should do about it. "It would shadow a
+  // route" invites trying a near-miss; "somebody deleted a journal that lived
+  // here" says the name is not coming back on this server.
+  const stone = journalTombstone(username);
+  if (stone) {
+    return {
+      ok: false,
+      error: "deleted_username",
+      message:
+        `"${username}" belonged to a journal that was deleted on ` +
+        `${stone.deletedAt.slice(0, 10)}, and this server does not hand a name back. ` +
+        `Every old link and bookmark still points at it, and they must not resolve to ` +
+        `somebody else's journal. Pick another name.`,
+    };
+  }
+
   if (isReservedUsername(username)) {
     return {
       ok: false,

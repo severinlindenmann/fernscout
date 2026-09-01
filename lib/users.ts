@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "./contentRoot";
 import { ConfigError, loadServerConfig, loadUserConfig, type UserConfig } from "./config";
+import { isDeletedUsername } from "./tombstones";
 
 /**
  * Users, and the boundary between them.
@@ -53,6 +54,11 @@ export function isValidUsername(username: string): boolean {
 
 export function isReservedUsername(username: string): boolean {
   if ((ALWAYS_RESERVED as readonly string[]).includes(username)) return true;
+  // A name that belonged to a deleted journal stays taken. Handing it back
+  // would point every old link, QR code and bookmark at somebody else's
+  // photographs — see lib/tombstones.ts, and B38's first decision. An operator
+  // reclaims it by deleting the tombstone.
+  if (isDeletedUsername(username)) return true;
   try {
     return loadServerConfig().users.reserved.includes(username);
   } catch {

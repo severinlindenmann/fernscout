@@ -54,6 +54,10 @@ content/
                               A user's own config.json may narrow these, never
                               widen them.
   rates/ecb.json              shared currency reference rates
+  .deleted/<username>.json    a journal that was deleted. Keeps the name
+                              reserved and makes its old URLs answer 410.
+                              Gitignored; an operator frees the name by
+                              deleting the file. See lib/tombstones.ts.
   <username>/
     config.json               who this person is: title, tagline, owner,
                               locales, baseCurrency, per-user features
@@ -159,9 +163,19 @@ every task.
 | `GET /<user>/day/<slug>.md` | a day's markdown source |
 | `POST /api/auth/request` + `/verify` | a six-digit code → a 7-day agent token |
 | `/api/v1/<user>/…` | REST: trips, days, drafts |
+| `DELETE /api/v1/<user>` and `…/trips/<trip>` | ask to delete — see below |
 | `POST /api/mcp` | MCP over Streamable HTTP — see `docs/providers/mcp.md` |
 
 Agent tokens arrive in `Authorization: Bearer` and nowhere else; guest sessions
 arrive in a cookie and nowhere else. The two are not interchangeable, and
 `resolveSession()` enforces it. That is decision 24: reading the site on your
 phone must not put a credential that can rewrite it in your pocket.
+
+**Deleting is the one thing an agent cannot finish.** `DELETE` on a journal or
+a trip removes nothing and answers `202`: the server mails the address in that
+journal's `config.json` a single-use link to a page with a button, and only the
+button deletes. `lib/agentConfirm.ts` is not used for it and must not be — that
+code is deliberately not single-use and it goes *to the agent*, so an agent
+could satisfy its own confirmation. Here the second step happens in a mailbox.
+An agent that reports a `202` as "deleted" has said something false; say a mail
+is waiting, and stop. `lib/deletions.ts`, and B38 for the reasoning.
