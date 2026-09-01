@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: media, api, docs
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B30 — A URL upload never says whether an original was kept
