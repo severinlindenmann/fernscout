@@ -311,6 +311,7 @@
   "me.detailsBody": "Your name, language and postal address are yours to change. Nothing else on this site can be edited here — the journal is written by an agent.",
   "me.editDetails": "Change my details",
   "me.nothing": "Nothing yet. Ask whoever sent you here to invite you.",
+  "me.ownerNoTrips": "Nothing yet — there are no trips in this journal so far. A new trip is written by an agent; the two lines it needs are further down this page.",
   "me.ownerTitle": "This is your journal",
   "me.signInAgain": "Use a different address",
   "me.signInBody": "If you have read this journal before, sign in with the same email address and we will send you a six-digit code.",

@@ -311,6 +311,7 @@
   "me.detailsBody": "Name, Sprache und Postadresse gehören dir und kannst du ändern. Sonst lässt sich hier nichts bearbeiten — das Tagebuch schreibt ein Agent.",
   "me.editDetails": "Meine Angaben ändern",
   "me.nothing": "Noch nichts. Bitte die Person, die dich hergeschickt hat, dich einzuladen.",
+  "me.ownerNoTrips": "Noch nichts — in diesem Tagebuch gibt es bisher keine Reise. Eine neue Reise schreibt ein Agent; die zwei Zeilen, die er dafür braucht, stehen weiter unten auf dieser Seite.",
   "me.ownerTitle": "Das ist dein Tagebuch",
   "me.signInAgain": "Andere Adresse verwenden",
   "me.signInBody": "Wenn du dieses Tagebuch schon einmal gelesen hast, melde dich mit derselben E-Mail-Adresse an — wir schicken dir einen sechsstelligen Code.",
