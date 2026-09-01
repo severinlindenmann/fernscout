@@ -12,6 +12,7 @@ import {
   issueCode,
   listSessions,
   resolveSession,
+  revokeCodes,
   revokeSession,
   verifyCode,
   verifyLink,
@@ -64,6 +65,34 @@ describe("codes", () => {
   test("AUTH_DEV_CODE fixes the code, so end-to-end tests need no inbox", () => {
     process.env.AUTH_DEV_CODE = "123456";
     expect(generateCode()).toBe("123456");
+  });
+
+  /**
+   * What a route does when the mail it just issued a code for will not send.
+   *
+   * The code is written before the mail goes out, and issuing one consumes
+   * every earlier one — so a send that throws used to leave a live code nobody
+   * had been told about, having just killed the one the person still had in
+   * their inbox. `revokeCodes` is what the routes call to put that right.
+   */
+  test("revokeCodes takes back a code that was never sent", async () => {
+    const { code } = await issueCode("ana", "reader@example.test", "guest");
+    await revokeCodes("ana", "reader@example.test", "guest");
+    expect((await verifyCode("ana", "reader@example.test", code, "guest")).ok).toBe(false);
+  });
+
+  test("revoking one address's code leaves another's alone", async () => {
+    const mine = await issueCode("ana", "reader@example.test", "guest");
+    const theirs = await issueCode("ana", "other@example.test", "guest");
+    await revokeCodes("ana", "reader@example.test", "guest");
+    expect((await verifyCode("ana", "reader@example.test", mine.code, "guest")).ok).toBe(false);
+    expect((await verifyCode("ana", "other@example.test", theirs.code, "guest")).ok).toBe(true);
+  });
+
+  test("and leaves a code of a different kind for the same address alone", async () => {
+    const guest = await issueCode("ana", "reader@example.test", "guest");
+    await revokeCodes("ana", "reader@example.test", "agent");
+    expect((await verifyCode("ana", "reader@example.test", guest.code, "guest")).ok).toBe(true);
   });
 
   test("a correct code produces a session", async () => {

@@ -63,6 +63,8 @@ export type EntryInput = {
   transportMode?: unknown;
   costs?: unknown;
   tags?: unknown;
+  /** Content nobody lived. See the note on `Entry.test` in lib/types.ts. */
+  test?: unknown;
   /** The prose body — "content" is what the REST route and MCP tool call it. */
   content?: unknown;
 };
@@ -242,6 +244,27 @@ export function validateEntry(input: EntryInput): Problem[] {
   checkTransportMode(input, problems);
   checkCosts(input, problems);
   checkTags(input, problems);
+  checkTest(input, problems);
   checkBody(input, problems);
   return problems;
+}
+
+/**
+ * `test` must be a real boolean, and a wrong value is refused rather than
+ * ignored.
+ *
+ * Every other optional field here can be dropped silently at worst. This one
+ * cannot: a caller sending `"test": "true"` is telling us this day did not
+ * happen, and treating that as absent would publish invented content with no
+ * banner on it — the exact outcome the flag exists to prevent.
+ */
+function checkTest(input: EntryInput, problems: Problem[]): void {
+  if (input.test === undefined) return;
+  if (typeof input.test !== "boolean") {
+    problems.push({
+      field: "test",
+      got: describe(input.test),
+      expected: "true or false — the JSON booleans, not the strings",
+    });
+  }
 }

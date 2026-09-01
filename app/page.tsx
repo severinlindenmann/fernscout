@@ -4,7 +4,7 @@ import { isIndexable } from "@/lib/access";
 import { getAllEntries } from "@/lib/entries";
 import { serverSite } from "@/lib/site";
 import { getTrips } from "@/lib/trips";
-import { getUser, getUsernames } from "@/lib/users";
+import { getUser, listedUsernames } from "@/lib/users";
 
 /**
  * The bare domain is the landing page.
@@ -38,7 +38,10 @@ function coverFor(username: string): string | undefined {
 export default function Root() {
   const site = serverSite();
 
-  const journals: PublicJournal[] = getUsernames().flatMap((username) => {
+  // listedUsernames() rather than getUsernames(): a journal whose config says
+  // `visibility: "private"` is not advertised, and the landing page is the most
+  // advertised surface there is.
+  const journals: PublicJournal[] = listedUsernames().flatMap((username) => {
     const user = getUser(username);
     if (!user) return [];
     const trips = getTrips(username).filter(isIndexable);

@@ -77,6 +77,23 @@ export type Entry = {
    * before deciding to publish it. See `getAllEntries`.
    */
   draft?: boolean;
+  /**
+   * Content nobody lived — written to exercise the pipeline, not to record
+   * anything.
+   *
+   * There is one legitimate reason to write a day that did not happen: proving
+   * that signup, a journal, a trip, a day and its photographs still work end to
+   * end. The guide otherwise forbids inventing detail, and an agent asked to do
+   * this had no way to mark it — the one that tried wrote "this is invented
+   * test content" into the prose, which is its own convention and only harmless
+   * because it chose to make it so.
+   *
+   * `test: true` makes that the system's business instead. The page says so in
+   * a banner nobody can miss, and the entry is kept out of the feed, the search
+   * index and the sitemap exactly as a draft is — so a test day cannot arrive
+   * in somebody's feed reader looking like a Tuesday.
+   */
+  test?: boolean;
 };
 
 /** One calendar day, which may hold several updates ("branches"). */
@@ -249,6 +266,14 @@ export type Trip = {
    * regardless, so this only narrows.
    */
   listed: boolean;
+  /**
+   * A trip that exists to prove the software works. See `Entry.test`.
+   *
+   * On a trip it is inherited: every day of a test trip is a test day, so
+   * somebody exercising the pipeline sets it once rather than remembering it
+   * on each entry.
+   */
+  test?: boolean;
   costsVisibility: CostsVisibility;
   /** Present only when `visibility` is "password". Never sent to a client. */
   passwordHash?: string;

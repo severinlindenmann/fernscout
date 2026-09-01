@@ -2,6 +2,9 @@ import { authenticate, errorResponse, mayWriteTrip, ownsUser } from "@/lib/api/a
 import { createDraft, deleteEntry, entrySummary, isPublished, type DraftInput } from "@/lib/api/entries";
 import { confirmationMatches, confirmationRequired } from "@/lib/agentConfirm";
 import { getAllEntries } from "@/lib/entries";
+// Shared with MCP's create_day. The module lives under lib/mcp/ because that
+// is where it was needed first; the mechanism is not MCP's.
+import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/mcp/idempotency";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntry } from "@/lib/validate/entry";
 
@@ -69,6 +72,51 @@ export async function POST(
     return Response.json({ error: "invalid_entry", problems }, { status: 400 });
   }
 
+  /**
+   * `idempotency_key`, the same mechanism MCP's `create_day` has.
+   *
+   * It was documented only under MCP, which left an agent using REST unable to
+   * tell whether sending one would be honoured, ignored, or rejected — so the
+   * advice to "pass one on every write" could not be followed here. It is
+   * honoured, with the same semantics: the same key with the same arguments
+   * replays the first answer; the same key with *different* arguments is
+   * refused and nothing is written, because answering a new day with an old
+   * day's result is a failure an agent has no way to notice.
+   *
+   * Shared with the MCP path rather than reimplemented — one door's retry
+   * behaviour differing from the other's would be its own surprise.
+   */
+  const supplied = typeof body.idempotency_key === "string" ? body.idempotency_key : undefined;
+  const key = supplied ? idempotencyKey(user, "create_day", supplied) : null;
+  const fingerprint = fingerprintOf({ ...body, trip: ref });
+  const previous = recall<{ slug: string; status: string }>(key, fingerprint);
+
+  if (previous.kind === "conflict") {
+    return Response.json(
+      {
+        error: "idempotency_key_reused",
+        message:
+          `idempotency_key ${JSON.stringify(supplied)} was already used for a different day, ` +
+          "so nothing was written. The key identifies one write, not your session: reuse it " +
+          "only to retry the same call after a dropped connection. For a new day, send a new key.",
+      },
+      { status: 409 },
+    );
+  }
+  if (previous.kind === "replay") {
+    return Response.json(
+      {
+        ok: true,
+        ...previous.value,
+        replayed: true,
+        note:
+          "This idempotency_key was already used for this same call. The day below is the one " +
+          "written then; nothing was written again.",
+      },
+      { status: 200 },
+    );
+  }
+
   const result = createDraft(ref, body as DraftInput);
   if (!result.ok) {
     // A retry that finds its own earlier write is a conflict, not a failure:
@@ -77,11 +125,13 @@ export async function POST(
     return Response.json({ error: result.error }, { status });
   }
 
+  const written = { slug: result.slug, status: result.status };
+  remember(key, fingerprint, written);
+
   return Response.json(
     {
       ok: true,
-      slug: result.slug,
-      status: result.status,
+      ...written,
       note: "Created as a draft. It is not on the site until a person publishes it.",
     },
     { status: 201 },

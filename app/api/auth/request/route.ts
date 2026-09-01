@@ -1,5 +1,5 @@
 import { isEnabled } from "@/lib/capabilities";
-import { isEmail, issueCode, signInUrl, type SessionKind } from "@/lib/auth";
+import { isEmail, issueCode, revokeCodes, signInUrl, type SessionKind } from "@/lib/auth";
 import { sendMail } from "@/lib/mail";
 import { renderMail, type MailBlock } from "@/lib/mail/template";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -127,29 +127,70 @@ export async function POST(request: Request) {
     },
   ];
 
-  await sendMail(
-    renderMail(
-      email,
-      kind === "agent" ? "Your Fernscout agent code" : `Sign in to ${user.title}`,
+  /**
+   * Guarded, and a failure takes the code back — see the note on the signup
+   * route, which had the same defect and lost somebody a working code to it.
+   *
+   * The answer breaks this endpoint's own rule that every outcome is a 202,
+   * and that is fine: "this server could not send mail at all" says nothing
+   * about the address, which is the thing the uniform 202 exists to protect.
+   */
+  try {
+    await sendMail(
+      renderMail(
+        email,
+        kind === "agent" ? "Your Fernscout agent code" : `Sign in to ${user.title}`,
+        {
+          // What a phone shows next to the subject. The code, not the link:
+          // a reader who only glances at the notification can still type it in.
+          preheader: `Your code is ${code}`,
+          title: kind === "agent" ? "Agent access code" : `Sign in to ${user.title}`,
+          blocks: [
+            ...(kind === "agent" ? agentBlocks : guestBlocks),
+            {
+              kind: "paragraph",
+              text:
+                `Asked for at ${requestedAt()}. If you have an older mail like this one, ` +
+                "its code no longer works — the newest is the only live one.",
+            },
+            {
+              kind: "paragraph",
+              text: "If you did not ask for this, ignore it — nothing has changed.",
+            },
+          ],
+          footer: `Sent by ${serverSite().name}.`,
+        },
+        username,
+      ),
+    );
+  } catch (err) {
+    console.error(`[auth] ${kind} code for ${username} could not be sent:`, err);
+    await revokeCodes(username, email, kind).catch(() => {});
+    return Response.json(
       {
-        // What a phone shows next to the subject. The code, not the link:
-        // a reader who only glances at the notification can still type it in.
-        preheader: `Your code is ${code}`,
-        title: kind === "agent" ? "Agent access code" : `Sign in to ${user.title}`,
-        blocks: [
-          ...(kind === "agent" ? agentBlocks : guestBlocks),
-          {
-            kind: "paragraph",
-            text: "If you did not ask for this, ignore it — nothing has changed.",
-          },
-        ],
-        footer: `Sent by ${serverSite().name}.`,
+        error: "mail_failed",
+        message:
+          "The code could not be sent, so no code is live for this address. Try again in a " +
+          "minute; if it keeps failing, this server's mail is broken.",
       },
-      username,
-    ),
-  );
+      { status: 503, headers: { "Retry-After": "60" } },
+    );
+  }
 
   return accepted;
+}
+
+/** `14:32 UTC on 1 September` — enough to tell two identical mails apart,
+ * without pretending to know the reader's timezone. */
+function requestedAt(): string {
+  const now = new Date();
+  const time = now.toISOString().slice(11, 16);
+  const day = now.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  });
+  return `${time} UTC on ${day}`;
 }
 
 /**

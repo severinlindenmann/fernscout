@@ -157,9 +157,30 @@ export function verifyTripToken(trip: Trip, token: string | undefined): boolean 
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-/** Trips that may be listed, linked from a sitemap, or indexed. */
+/**
+ * Trips that may be listed, linked from a sitemap, or indexed.
+ *
+ * A `test` trip never is, whatever its visibility says. It exists to prove the
+ * software works end to end, and the one place that must never happen is
+ * somebody's feed reader — a fabricated Tuesday arriving beside real ones is
+ * the exact harm the draft rule exists to prevent, wearing a different hat.
+ * Reachable by its URL, and there it wears a banner.
+ */
 export function isIndexable(trip: Trip): boolean {
-  return trip.visibility === "public" && trip.listed;
+  return trip.visibility === "public" && trip.listed && !trip.test;
+}
+
+/**
+ * Whether this is content nobody lived: the trip is marked `test`, or this
+ * particular day is.
+ *
+ * A trip's flag covers its days, so somebody exercising the pipeline sets it
+ * once. An entry may also carry its own inside an otherwise real trip, which
+ * is what an agent asked to demonstrate the write path in a journal that is
+ * already in use should do.
+ */
+export function isTestContent(trip: Trip | undefined, entry?: { test?: boolean }): boolean {
+  return trip?.test === true || entry?.test === true;
 }
 
 /** Trips reachable by anyone holding the link, with no secret. */

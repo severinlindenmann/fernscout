@@ -6,6 +6,8 @@ import sharp from "sharp";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { storeUploads } from "@/lib/api/media";
+import { attachGallery } from "@/lib/api/entries";
+import { getEntryBySlug } from "@/lib/entries";
 import { MAX_ITEMS_PER_DAY } from "@/lib/validate/media";
 
 /**
@@ -381,5 +383,80 @@ describe("a batch that fails halfway", () => {
       "01.jpg",
       "02.jpg",
     ]);
+  });
+});
+
+/**
+ * The photographs end up **in the day**, not beside it.
+ *
+ * The endpoint used to write the files and hand back a `gallery:` block with
+ * instructions to paste it into the entry. There was no call that could: a day
+ * has POST, GET and DELETE and no PATCH. So an agent that wrote three days and
+ * then uploaded to each got three days whose gallery was empty and five
+ * photographs nothing pointed at, and the only way back was deleting the
+ * drafts.
+ */
+describe("attaching a gallery to the day", () => {
+  test("puts what was uploaded into the entry that names it", async () => {
+    writeDay("day-one", "2026-01-01", true);
+    const result = await storeUploads(REF, "day-one", [
+      { filename: "a.jpg", bytes: await jpeg(400, 300) },
+    ]);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(attachGallery(REF, "day-one", result.items)).toEqual({ ok: true, attached: 1 });
+
+    const entry = getEntryBySlug(REF, "day-one", { includeDrafts: true });
+    expect(entry?.gallery).toHaveLength(1);
+    expect(entry?.gallery[0].width).toBe(400);
+  });
+
+  test("a second batch is added to the first, not instead of it", async () => {
+    writeDay("day-one", "2026-01-01", true);
+    for (const name of ["a.jpg", "b.jpg"]) {
+      const batch = await storeUploads(REF, "day-one", [
+        { filename: name, bytes: await jpeg(400, 300) },
+      ]);
+      if (batch.ok) attachGallery(REF, "day-one", batch.items);
+    }
+    expect(getEntryBySlug(REF, "day-one", { includeDrafts: true })?.gallery).toHaveLength(2);
+  });
+
+  test("the prose and the frontmatter around it are left exactly as they were", async () => {
+    writeDay("day-one", "2026-01-01", true);
+    const result = await storeUploads(REF, "day-one", [
+      { filename: "a.jpg", bytes: await jpeg(400, 300) },
+    ]);
+    if (result.ok) attachGallery(REF, "day-one", result.items);
+
+    const raw = fs.readFileSync(
+      path.join(tripPath(), "entries", "2026-01-01-day-one.md"),
+      "utf8",
+    );
+    expect(raw).toContain('location: "Hoi An"');
+    expect(raw).toContain("status: draft");
+    expect(raw.trimEnd().endsWith("Words.")).toBe(true);
+  });
+
+  test("a slug naming no entry is refused rather than guessed at", () => {
+    expect(attachGallery(REF, "no-such-day", [{ src: "x", type: "image" }])).toEqual({
+      ok: false,
+      error: 'no entry "no-such-day" in this trip',
+    });
+  });
+
+  test("an entry with no frontmatter is left alone and said so", () => {
+    fs.writeFileSync(
+      path.join(tripPath(), "entries", "2026-02-02-freeform.md"),
+      "Just prose, written by hand.\n",
+    );
+    const result = attachGallery(REF, "freeform", [{ src: "x", type: "image" }]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("no frontmatter block");
+    // And the file is untouched.
+    expect(
+      fs.readFileSync(path.join(tripPath(), "entries", "2026-02-02-freeform.md"), "utf8"),
+    ).toBe("Just prose, written by hand.\n");
   });
 });

@@ -99,6 +99,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     accent: str("accent") as never,
     visibility: str("visibility") as never,
     listed: typeof body.listed === "boolean" ? body.listed : undefined,
+    test: body.test === true,
     intro: str("intro"),
   });
 

@@ -1,6 +1,6 @@
 import { SESSION_SCOPE, SIGNUP_OWNER, openAgentSession, resolveSession } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
-import { createJournal } from "@/lib/journals";
+import { createJournal, sendWelcome } from "@/lib/journals";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 
@@ -69,13 +69,33 @@ export async function POST(request: Request) {
         error: "invalid_request",
         message:
           'A journal needs at least {"username": "…", "title": "…", "ownerName": "…", ' +
-          '"ownerNickname": "…"}.',
+          '"ownerNickname": "…"}. `ownerNickname` is what the site calls this person in ' +
+          "its own voice and is never guessed from `ownerName` — ask them for it.",
+      },
+      { status: 400 },
+    );
+  }
+
+  // Refused rather than quietly read as `public`: this is the field that
+  // decides whether a stranger can come across somebody's journal, and an
+  // agent that sent "hidden" or "unlisted" meant to ask for something.
+  const visibility = str("visibility");
+  if (visibility !== undefined && visibility !== "public" && visibility !== "private") {
+    return Response.json(
+      {
+        error: "invalid_request",
+        message:
+          `visibility must be "public" or "private", got ${JSON.stringify(visibility)}. ` +
+          "public is listed on this server's own index; private is reachable by anyone " +
+          "sent the address and appears on no list. Neither decides who may read a trip — " +
+          "that is the trip's own visibility.",
       },
       { status: 400 },
     );
   }
 
   const created = createJournal({
+    visibility,
     username,
     title,
     tagline: str("tagline"),
@@ -98,15 +118,42 @@ export async function POST(request: Request) {
 
   const token = await openAgentSession(created.username, session.email);
 
+  /**
+   * The owner is told, in writing, that this exists.
+   *
+   * Until W38 nobody was: the folder was written, the token went to the agent,
+   * and the person whose address owns the journal learned of it only if the
+   * agent thought to say so. Their address is the one credential that can ever
+   * get a write token for it, so they are the one party who must not have to
+   * take an agent's word for the URL.
+   *
+   * Best effort, deliberately. A journal whose welcome mail bounced is a
+   * journal, not a failed creation, and rolling one back over a mail server
+   * having a bad minute would be a much worse trade. The reply says whether it
+   * went, so an agent that sees `false` knows to hand the URL over itself.
+   */
+  const welcomeMailed = await sendWelcome({
+    username: created.username,
+    title,
+    email: session.email,
+    nickname: ownerNickname,
+    visibility: created.visibility,
+  });
+
   return Response.json(
     {
       ok: true,
       user: created.username,
       url: `${serverSite().url}/${created.username}`,
       documentation: `${serverSite().url}/${created.username}/documentation.txt`,
+      visibility: created.visibility,
       token: token.token,
       expires: token.expiresAt,
       scope: [SESSION_SCOPE.agent],
+      welcomeMailed,
+      note: welcomeMailed
+        ? undefined
+        : "The welcome mail could not be sent, so the owner does not have the URL. Give it to them.",
       next: `POST /api/v1/${created.username}/trips to create your first trip.`,
     },
     { status: 201 },

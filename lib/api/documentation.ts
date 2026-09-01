@@ -12,7 +12,7 @@ import {
   VIDEO_MAX_SECONDS,
 } from "../validate/media";
 import { TAG_MAX_LENGTH, TRANSPORT_MODES } from "../validate/entry";
-import { getDefaultUsername, getUsernames, getUser } from "../users";
+import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
 import { isIndexable } from "../access";
 
@@ -38,7 +38,10 @@ function base(): string {
 /** The instance-level document: what this is, and who is on it. */
 export function instanceDocumentation(): string {
   const site = serverSite();
-  const users = getUsernames();
+  // Only the journals that asked to be advertised. A `private` journal is
+  // reachable by anyone sent its address and appears on no list, and this
+  // document is the first list anybody reads.
+  const users = listedUsernames();
   const defaultUser = getDefaultUsername();
 
   const lines: string[] = [
@@ -48,15 +51,39 @@ export function instanceDocumentation(): string {
     "> author owns. Reading happens in a browser. Writing happens through an agent",
     "> holding a token — there is no editing interface, and there will not be one.",
     "",
-    "## How to work with this site",
+    "## Before you call anything, ask",
+    "",
+    "Four questions. They decide things the person lives with, and none of them",
+    "has a default you should pick for them.",
+    "",
+    "1. **Their email address.** It is the only address that can ever get a token",
+    "   for this journal — not a preference, the credential.",
+    "2. **The journal's address**, if you are making a new one: the `username` in",
+    `   ${base()}/<username>. It is permanent and it is what they will give people.`,
+    "3. **Public or private?** Public means this server lists the journal on this",
+    "   page and search engines may index it. Private means it appears on no list",
+    "   here and asks not to be indexed — anyone sent the address can still open",
+    "   it. Neither decides who may read a particular journey; that is set on the",
+    "   journey, and a new one starts out private either way.",
+    "4. **Their name, and what the site should call them.** Two separate answers.",
+    "   Do not derive the second from the first — a first-word split mangles any",
+    "   name whose given name is not first.",
+    "",
+    "## Then",
     "",
     "1. Read the guide at " + `${base()}/agent.md` + " — it lists every call, with examples.",
-    "2. Ask the person you are working for for the email address that owns their",
-    "   journal, and use it to request a code.",
+    "2. If they have no journal yet, make one: signup is in the guide, under",
+    "   **Starting from nothing**. If they have one, request a code for the",
+    "   address that owns it.",
     "3. Exchange the code for a token. It can write for seven days.",
     "",
     "Anything you create arrives as a **draft**. A person publishes it. That is",
     "deliberate and there is no parameter that skips it.",
+    "",
+    "Do not invent detail. If you were asked for content nobody lived — to check",
+    "that this all works — set `test: true` on the trip or the day and the site",
+    "will say so itself, in a banner, and keep it out of the feed and the search",
+    "index. That is the only way to write something that did not happen.",
     "",
     "## Journals",
     "",
@@ -105,10 +132,24 @@ export function userDocumentation(username: string): string | null {
     "",
     "## Reading this journal",
     "",
-    "Every page has a markdown twin: append `.md` to a day's URL and you get the",
-    "source that produced it, rather than the rendering. The content *is* markdown,",
-    "so nothing is lost in the conversion — there is no conversion.",
+    "Every page has a markdown twin: append `.md` to a day's own URL and you get",
+    "the source that produced it, rather than the rendering. The content *is*",
+    "markdown, so nothing is lost in the conversion — there is no conversion.",
     "",
+    // A worked URL, from a trip that actually exists here. The pattern alone
+    // sent an agent to `/<user>/day/<slug>.md` for a day in a past trip and it
+    // 404'd, because a day's URL carries its trip.
+    ...(trips.length > 0
+      ? [
+          "```",
+          `${root}/trips/${trips[0].id}/day/<slug>.md`,
+          "```",
+          "",
+          "A day's URL carries its trip, so the twin does too. `<slug>` alone is not a",
+          "day's identity — the search index below names entries `<trip-id>/<slug>`.",
+          "",
+        ]
+      : []),
     "## Writing to this journal",
     "",
     "```",
@@ -167,7 +208,10 @@ export function userDocumentation(username: string): string | null {
  */
 export function agentGuide(): string {
   const site = serverSite();
-  const example = getDefaultUsername() ?? getUsernames()[0] ?? "your-username";
+  // A listed journal, so the worked examples below cannot be the one place an
+  // unlisted journal's address gets published.
+  const example =
+    getDefaultUsername() ?? listedUsernames()[0] ?? "your-username";
 
   return `# Writing to ${site.name} as an agent
 
@@ -191,6 +235,38 @@ Write what you were told. Do not invent detail to fill a page — no weather you
 were not told about, no meals nobody mentioned, no feelings nobody expressed.
 If you do not know where a photograph was taken, leave the location empty and
 say so.
+
+**Unless you were asked to invent it.** There is one honest reason to write a
+day nobody lived: proving that all of this still works, end to end. Set
+\`"test": true\` on the day, or on the whole trip, and the site puts an
+unmissable banner on it and keeps it out of the feed, the search index and the
+sitemap. Do that rather than writing a warning into the prose — a sentence you
+chose to add is not a guarantee, and the next person to read the page has no
+way to know whether you added one.
+
+## Ask these four things first
+
+Before any call. Each decides something the person lives with, and none has a
+default you should pick for them.
+
+| Ask | Because |
+| --- | --- |
+| Their **email address** | It is the only address that can ever get a token for this journal. Not a preference — the credential. |
+| The **journal's address** (\`username\`) | It becomes \`${site.url}/<username>\`, it is permanent, and it is what they will give people. |
+| **Public or private?** | Whether this server advertises the journal at all. See below. |
+| Their **name**, and **what the site should call them** | Two answers, not one. Never split the first to get the second: it mangles any name whose given name is not first. |
+
+**Public or private** is the one nobody thinks to ask, so ask it. A *public*
+journal is listed on \`${site.url}/documentation.txt\`, on this server's landing
+page and in its sitemap. A *private* journal is on none of them and asks search
+engines not to index it — anyone sent the address can still open it.
+
+Neither decides who may read a particular journey. That is the trip's own
+\`visibility\`, which has a password, invited guests and the trip's \`people:\`
+list behind it — and a new trip is **private** whichever kind of journal it is
+in. So "private journal" means *unlisted*, not *locked*; if what they want is a
+journal only invited people can read at all, the answer today is a journal of
+private or guest trips, and say so plainly rather than implying more.
 
 ## Starting from nothing
 
@@ -218,22 +294,45 @@ POST ${site.url}/api/v1/journals
 Authorization: Bearer fs_signup_…
 Content-Type: application/json
 
-{"username": "their-name", "title": "Their journal", "tagline": "optional"}
+{"username": "their-name",
+ "title": "Their journal",
+ "ownerName": "Robin Delacroix-Mbeki",
+ "ownerNickname": "Robin",
+ "visibility": "public",
+ "tagline": "optional"}
 \`\`\`
 
 \`\`\`json
 {"ok": true, "user": "their-name", "url": "${site.url}/their-name",
- "token": "fs_agent_…", "expires": "…", "scope": ["write:content"]}
+ "visibility": "public", "welcomeMailed": true,
+ "token": "fs_agent_…", "expires": "…", "scope": ["write:content"],
+ "next": "POST /api/v1/their-name/trips to create your first trip."}
 \`\`\`
 
+**All four of \`username\`, \`title\`, \`ownerName\` and \`ownerNickname\` are
+required**, and none of them is guessable. \`ownerNickname\` is what the site
+calls this person in its own voice — "Robin", not "Robin Delacroix-Mbeki" — and
+it is never derived from \`ownerName\`, because taking the first word mangles any
+name whose given name is not first. Ask.
+
+\`visibility\` is \`"public"\` unless you say otherwise. Ask which they want; see
+the table above for what the two mean.
+
 The reply carries an **agent token for the journal it just made**, so you can
-go straight on to creating a trip — no second code.
+go straight on to creating a trip — no second code. It also carries
+\`welcomeMailed\`: this server mails the owner the journal's address when it is
+created, and if that says \`false\` the mail did not go and you should give them
+the URL yourself.
 
 **Ask them for the username.** It is the address of their site and cannot be
 changed afterwards; picking one for them is the sort of thing they will live
 with for years. Lowercase letters, digits and dashes.
 
 One address may own three journals on this server.
+
+**A note on names.** The path segment and the auth calls say \`user\`; journal
+creation says \`username\`. Same value: the journal's address, the thing between
+the domain and the rest of the URL.
 
 ## Authenticating
 
@@ -252,6 +351,18 @@ address is neither the journal's owner nor listed on the trip you named** — so
 you are told, rather than waiting for a code that was never going to arrive.
 Ask the person for the six-digit code that arrives in their inbox. It lasts ten minutes, is
 single use, and burns after five wrong guesses.
+
+**Asking again invalidates the code you already asked for.** Only the newest is
+live, and two of these mails are word for word identical apart from the time
+printed in them. So if you request twice — because the first attempt looked
+like it failed, or because the person was slow to find it — say clearly that
+they must read out the *newest* mail, or you will spend one of their five
+guesses on a code that was correct ten minutes ago.
+
+A \`503 mail_failed\` means this server could not send it at all, and **no code
+is live**: nothing was consumed and nothing is waiting in their inbox. Retry.
+That is different from \`429\`, which means wait, and from \`404\`, which means
+this server does not do tokens.
 
 **If the person is not the journal's owner but came on one of its trips**, add
 the trip to both calls:
@@ -288,9 +399,17 @@ You do not need a token to read anything public.
 | | |
 | --- | --- |
 | \`GET /${example}/documentation.txt\` | this journal's own summary |
-| \`GET /${example}/day/<slug>.md\` | a day's markdown source |
+| \`GET /${example}/trips/<trip-id>/day/<slug>.md\` | a day's markdown source |
+| \`GET /${example}/day/<slug>.md\` | the same, for the current trip |
 | \`GET /${example}/search-index.json\` | every public entry, for finding things |
 | \`GET /${example}/feed.xml\` | public entries as RSS |
+
+**The \`.md\` twin is the day page's own URL with \`.md\` on the end**, and a day's
+URL carries its trip. The search index identifies entries as
+\`<trip-id>/<slug>\` for the same reason: a slug is unique within a trip, not
+within a journal. The short form works too and falls back to the journal's
+other trips when the current one has no such day — but if you have the trip id,
+use it. A miss answers plain-text \`404\`, never an HTML error page.
 
 ## Writing
 
@@ -317,6 +436,10 @@ reads it, so it would exist on disk and nowhere a reader could find it.
 A trip is created **private** unless you say otherwise. Publishing somebody's
 journey is their decision — ask before sending \`"visibility": "public"\`.
 
+Add \`"test": true\` if this trip is being made to check that the software works
+rather than to record a journey. Every day of it then carries the banner, and
+none of it reaches the feed, the search index or the sitemap.
+
 \`\`\`http
 POST ${site.url}/api/v1/${example}/trips/<trip-id>/days
 Authorization: Bearer fs_agent_…
@@ -331,7 +454,8 @@ Content-Type: application/json
   "lat": 15.8801,
   "lng": 108.338,
   "content": "The whole old town hangs with lanterns...",
-  "tags": ["vietnam"]
+  "tags": ["vietnam"],
+  "idempotency_key": "one-key-per-day-you-write"
 }
 \`\`\`
 
@@ -340,8 +464,35 @@ Content-Type: application/json
  "note": "Created as a draft. It is not on the site until a person publishes it."}
 \`\`\`
 
-**\`409\` means an entry already exists for that date and title.** You are
-probably retrying. Do not work around it by changing the title — ask.
+**Every field a day can carry.** \`title\`, \`date\` and \`content\` are required;
+everything else is optional, and an omitted field is better than an invented
+one. The full schema, with the shape of each nested item, is in
+\`${site.url}/openapi.json\` under \`components.schemas.Draft\`.
+
+| | |
+| --- | --- |
+| \`time\` | \`"16:45"\`, local to where the day happened. Orders several days sharing a date. |
+| \`location\`, \`country\` | The country's name, not its code. |
+| \`lat\`, \`lng\` | Numbers, not strings. |
+| \`tags\` | Lowercase letters, digits and single hyphens. |
+| \`costs\` | \`[{"label": "Coffee", "amount": 4.5, "currency": "EUR", "category": "food"}]\` — \`label\` and \`amount\` required. No \`currency\` means the journal's base currency; amounts are never converted on the way in. |
+| \`transportMode\`, \`transportFrom\`, \`transportTo\` | How the day was travelled. The modes are in the table further down. |
+| \`test\` | \`true\` when this day did not happen. See **The one rule**. |
+| \`idempotency_key\` | Names this one write — see below. |
+
+There is no \`gallery\` field and no \`status\` field. Photographs go to the media
+endpoint, which puts them in the day for you; and what this writes is always a
+draft.
+
+**\`idempotency_key\` works here, not only over MCP.** Send one on every write.
+The same key with the same body replays the first answer — \`200\` with
+\`"replayed": true\`, and nothing written twice. The same key with a *different*
+body is refused with \`409\` and nothing is written, because answering your new
+day with the old day's result and reporting success is a failure you could not
+notice. **A new key for every day**: it names one write, not your session.
+
+**\`409\` otherwise means an entry already exists for that date and title.** You
+are probably retrying. Do not work around it by changing the title — ask.
 
 **\`400\` with \`"error": "invalid_entry"\` carries a \`problems\` list**, one
 entry per thing wrong, each naming the field, what arrived and what was
@@ -410,10 +561,25 @@ files=@DSC_4471.HEIC
 files=@DSC_4472.HEIC
 \`\`\`
 
-Answers with the \`gallery:\` block for what it wrote, ready to paste into the
-entry. Over MCP the same thing is \`add_media\`, taking base64 — fine for a
-handful, but base64 costs a third more than the bytes themselves, so use this
-endpoint for a real card full.
+**The photographs are put into the day for you.** There is nothing to paste,
+and it does not matter whether you write the day before or after sending its
+pictures — only that the day exists when they arrive. The reply lists what it
+attached, as a record rather than as homework:
+
+\`\`\`json
+{"ok": true, "day": "lanterns-of-hoi-an", "attached": true,
+ "items": [{"src": "/${example}/media/<trip>/lanterns-of-hoi-an/01.jpg",
+            "type": "image", "width": 2000, "height": 1333}],
+ "note": "Added to \\"lanterns-of-hoi-an\\". Nothing to paste — read the day back to see it."}
+\`\`\`
+
+\`day\` is required and must name a day that already exists in this trip. A
+**published** day is refused with \`409\`: adding photographs to something people
+have already read changes what they read, and that is a person's decision.
+
+Over MCP the same thing is \`add_media\`, taking base64 — fine for a handful, but
+base64 costs a third more than the bytes themselves, so use this endpoint for a
+real card full.
 
 **Send the largest file you have.** Two files are written from each one you
 send: a resized copy at 2000px which is what the site serves, and **the
@@ -447,6 +613,13 @@ loopback or link-local address is refused — including after a redirect — so 
 URL pointing at this server's own network, or at a cloud metadata endpoint,
 will not be fetched. If a URL is refused you are told which one and why, and
 nothing is written: fix it and send the batch again.
+
+**What is kept from a URL is the file the remote host served.** The warning
+above about sending the largest file you have applies here with nothing you can
+do about it afterwards: there is no "largest file" to choose, so if the URL
+points at a 2000px web export, that export *is* the original, and a printed
+photobook will be made from it. When the person has the real files, send the
+bytes instead.
 
 ### What is accepted
 
@@ -520,10 +693,11 @@ Accept: application/json, text/event-stream
    "idempotency_key":"one-key-per-day-you-write"}}}
 \`\`\`
 
-Pass \`idempotency_key\` on every write. If you retry and the first attempt had
-already landed, you get the first result back instead of a conflict — which is
-the difference between "already written" and "write it again under a different
-title".
+Pass \`idempotency_key\` on every write, over this door or the REST one — both
+accept it and both mean the same thing by it. If you retry and the first
+attempt had already landed, you get the first result back instead of a conflict
+— which is the difference between "already written" and "write it again under a
+different title".
 
 **A new key for every day.** The key names one write, not your session or your
 connection. Send the same key with the same arguments and you get the first
@@ -552,19 +726,30 @@ GPS from what gets published, and writes the entry frontmatter around the
 result — so a folder becomes dated, located draft days rather than a pile of
 attachments you then have to describe.
 
-Over the network you have only the endpoint, which is fine: send the files,
-paste the \`gallery:\` block it hands back into the day. Both routes keep the
-original and both mark what they create a draft.
+Over the network you have only the endpoint, which is fine: send the files and
+they are added to the day. Both routes keep the original and both mark what
+they create a draft.
 
 ## Errors
 
-| Status | Meaning |
-| --- | --- |
-| \`401\` | No token, a wrong one, or an expired one. Ask for a new code. |
-| \`403\` | The token is valid but belongs to a different journal. |
-| \`404\` | No such trip — or authentication is switched off on this server. |
-| \`409\` | That entry already exists. You are probably retrying. |
-| \`429\` | Too many attempts. Wait; the response says how long. |
+Every error carries an \`error\` field naming the case. **Read that, not only the
+status** — two of these statuses mean two different things, and the field is
+what tells them apart.
+
+| Status | \`error\` | Meaning |
+| --- | --- | --- |
+| \`400\` | \`invalid_entry\` | The body has a \`problems\` list: every problem at once, each naming the field, what arrived and what was expected. |
+| \`401\` | \`missing_token\`, \`invalid_token\` | No token, a wrong one, or an expired one. Ask for a new code. |
+| \`403\` | \`out_of_scope\` | The token is valid but belongs to a different journal, or is scoped to one trip and you asked about another. |
+| \`404\` | \`unknown_trip\` | No such trip, or not one this token may write to. **Fix the id.** |
+| \`404\` | \`auth_disabled\` | This server has authentication off entirely. Nothing you send will work; **stop** and tell the person. \`/api/health\` says which capabilities are on. |
+| \`409\` | — | That entry already exists, or an \`idempotency_key\` was reused for a different day. |
+| \`429\` | \`too_many_requests\` | Too many attempts. Wait; the response says how long. |
+| \`503\` | \`mail_failed\` | A code could not be sent, and none is live. Retry. |
+
+There is no \`500\` you should ever see. If you get one, it is a fault on this
+server rather than something in your request: report it and stop, rather than
+retrying in a loop.
 
 ## What good looks like
 

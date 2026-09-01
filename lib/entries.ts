@@ -172,6 +172,10 @@ function readAllEntries(ref: string): Entry[] {
       // Kept rather than dropped: `getAllEntries` filters on the way out, so
       // one cache serves both the public site and the owner's own view.
       draft: isDraft(data) || undefined,
+      // `true` and nothing else — see the note on `Entry.test`. A day that
+      // records something that happened must not be able to acquire a banner
+      // saying it did not because somebody wrote `test: no`.
+      test: data.test === true || undefined,
     } satisfies Entry];
   });
 

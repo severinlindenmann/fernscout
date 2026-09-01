@@ -25,11 +25,28 @@ const nextConfig: NextConfig = {
   // them here means a change to that default list can't quietly break the
   // build. Only one of the two is ever actually loaded — see lib/db/client.ts.
   serverExternalPackages: ["better-sqlite3", "pg"],
-  // Markdown twins: /<user>/day/<slug>.md serves the source of the page at
-  // /<user>/day/<slug>. A route handler and a page cannot share a path, so the
-  // suffix is rewritten to a handler rather than routed directly.
+  // Markdown twins: appending `.md` to a day page's URL serves its source. A
+  // route handler and a page cannot share a path, so the suffix is rewritten
+  // to a handler rather than routed directly.
+  //
+  // Both of a day's URLs, not just the short one. `/:user/day/:slug` is the
+  // current trip's day; every day also lives at
+  // `/:user/trips/:trip/day/:slug`, and that is the form the search index and
+  // the documentation identify entries by. Only the first was rewritten, so
+  // the documented `.md` URL 404'd for every trip but the current one — and
+  // the trip-scoped attempt fell through to the app and answered with the HTML
+  // 404 page, which is a bad thing to hand an agent in a loop.
+  //
+  // The trip-scoped rewrite goes first: `:trip/day/:slug` would otherwise be
+  // matched by nothing, but keeping the more specific pattern above the
+  // general one is how this file stays readable when a third form appears.
   async rewrites() {
     return [
+      { source: "/:user/trips/:trip/day/:slug.md", destination: "/api/md/:user/:trip/:slug" },
+      {
+        source: "/:user/trips/:trip/day/:slug([^/]+)\\.md",
+        destination: "/api/md/:user/:trip/:slug",
+      },
       { source: "/:user/day/:slug.md", destination: "/api/md/:user/:slug" },
       { source: "/:user/day/:slug([^/]+)\\.md", destination: "/api/md/:user/:slug" },
       // RFC 9728 protected-resource metadata for the MCP endpoint. Rewritten

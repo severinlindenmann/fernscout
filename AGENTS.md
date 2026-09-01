@@ -33,6 +33,13 @@ One invented memory presented to somebody's family as fact is not recoverable.
 So: write what you were told. No weather nobody mentioned, no meals nobody ate,
 no feelings nobody expressed. An empty field beats a plausible fiction.
 
+**`test: true`** is the exception, and the only one. A day or a trip carrying it
+is content nobody lived, written to prove the pipeline works: the page says so
+in a banner, and it is kept out of the feed, the search index and the sitemap.
+Use it when you were asked to invent something. Writing "this is a test" into
+the prose instead is a convention, not a guarantee — the next reader has no way
+to know whether you bothered.
+
 ## The content model
 
 Everything a person owns lives under `content/<username>/`. Nothing user-owned
@@ -89,6 +96,13 @@ it is advertised at all.
 **`people:` is who took it** — up to ten, each a name and an email. Everyone
 listed may write to the whole trip, and may hold an agent token scoped to it
 and to nothing else in the journal. It is also who the trip is credited to.
+
+A **journal** has a `visibility` too, in its own `config.json`, and it is a
+different question: `public` or `private`, meaning only whether this instance
+advertises the journal — on `/documentation.txt`, on the landing page, in
+`sitemap.xml`. A private journal is unlisted, not locked; who may read a
+*journey* is still the trip's own gate. Absent means `public`, which is what
+every journal written before W38 is.
 
 ## Working in this repository
 

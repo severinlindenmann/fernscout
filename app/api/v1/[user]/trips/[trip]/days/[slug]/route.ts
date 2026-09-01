@@ -57,6 +57,12 @@ export async function GET(
     gallery: entry.gallery,
     tags: entry.tags,
     costs: entry.costs,
+    // Both accepted on the way in, and until W38 neither came back — so an
+    // agent doing what the guide asks, reading its own work back before
+    // telling somebody it is ready, could confirm the prose and the costs and
+    // not the rest. A field the API takes is a field it has to show.
+    ...(entry.transport ? { transport: entry.transport } : {}),
+    ...(entry.test ? { test: true } : {}),
     content: entry.content,
     // Stated rather than implied. An agent reporting back to a person needs to
     // say whether this is on the site, and `status` absent from a response is

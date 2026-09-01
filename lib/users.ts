@@ -70,7 +70,7 @@ export function userDir(username: string): string {
   return path.join(contentRoot(), username);
 }
 
-const cache = new Map<string, string[]>();
+const cache = new Map<string, { signature: string; names: string[] }>();
 
 /**
  * Every user on this instance, in directory order.
@@ -79,19 +79,41 @@ const cache = new Map<string, string[]>();
  * than failing the site — the same discipline `lib/trips.ts` applies to a
  * malformed trip. A stray `.DS_Store` or a half-finished folder must not take
  * everyone else offline.
+ *
+ * Cached against what the directory currently holds, not until somebody calls
+ * `clearUserCache()`. That was the shape until W38, and it made a journal
+ * created through the API unreachable in a browser: in a production build Next
+ * gives the RSC layer and the route-handler layer separate instances of this
+ * module, so `createJournal`'s invalidation cleared the copy the API route was
+ * using and left the copy the pages were using stale until the process
+ * restarted. `POST /api/v1/journals` answered 201 with a URL that answered 404.
+ *
+ * `getTrips` and `getAllEntries` already work this way, for the neighbouring
+ * reason: a cache that needs a restart to notice `visibility: private` is not
+ * a privacy control. A cache that needs one to notice a journal exists is not
+ * a journal directory. The readdir happens on every call either way — it is
+ * how the list is built — so the signature costs nothing beyond comparing it,
+ * and the work it saves is the config load and the reserved-name check per
+ * directory.
  */
 export function getUsernames(): string[] {
   const root = contentRoot();
-  const hit = cache.get(root);
-  if (hit) return hit;
 
   let entries: fs.Dirent[] = [];
   try {
     entries = fs.readdirSync(root, { withFileTypes: true });
   } catch {
-    cache.set(root, []);
+    cache.set(root, { signature: "", names: [] });
     return [];
   }
+
+  const signature = entries
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort()
+    .join("|");
+  const hit = cache.get(root);
+  if (hit && hit.signature === signature) return hit.names;
 
   const names: string[] = [];
   for (const entry of entries) {
@@ -121,12 +143,29 @@ export function getUsernames(): string[] {
   }
 
   names.sort();
-  cache.set(root, names);
+  cache.set(root, { signature, names });
   return names;
 }
 
 export function userExists(username: string): boolean {
   return getUsernames().includes(username);
+}
+
+/**
+ * The journals this instance advertises: everything `getUsernames()` returns,
+ * minus the ones whose config says `visibility: "private"`.
+ *
+ * Use this for anything that *hands out* the existence of a journal — the
+ * instance documentation, the landing page, the sitemap. Never for resolving a
+ * request: a private journal is unlisted, not gone, and `/<user>` must still
+ * serve it to somebody who was sent the address. What a stranger with that
+ * address can then read is the per-trip gate's business.
+ *
+ * A journal whose config will not load is absent from both lists, which is the
+ * safe direction: `getUser` has already warned about it.
+ */
+export function listedUsernames(): string[] {
+  return getUsernames().filter((username) => getUser(username)?.visibility === "public");
 }
 
 /** A user's config, or null when there is no such user. */

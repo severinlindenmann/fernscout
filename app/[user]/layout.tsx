@@ -31,8 +31,14 @@ export async function generateMetadata({
   const user = getUser(username);
   if (!user) return {};
 
+  // Two independent reasons not to be indexed, and either is enough. The trip
+  // on show may be private or unlisted; and the whole journal may be, in which
+  // case no page of it is advertised whatever its trips say.
   const trip = getCurrentTrip(username);
-  const robots = trip && !isIndexable(trip) ? { index: false, follow: false } : undefined;
+  const robots =
+    user.visibility === "private" || (trip && !isIndexable(trip))
+      ? { index: false, follow: false }
+      : undefined;
 
   return {
     title: { default: `${user.title} — ${user.tagline}`, template: `%s · ${user.title}` },

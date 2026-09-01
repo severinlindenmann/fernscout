@@ -3,7 +3,7 @@ import { getAllEntries, getDays } from "@/lib/entries";
 import { getCurrentTrip, getTrips } from "@/lib/trips";
 import { isIndexable } from "@/lib/access";
 import { serverSite } from "@/lib/site";
-import { getUsernames } from "@/lib/users";
+import { listedUsernames } from "@/lib/users";
 import { defaultLocaleFor, localesFor } from "@/lib/locales";
 
 /**
@@ -38,7 +38,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   // Per user, and only their public trips. Building this from getAllTrips()
   // would be one filter away from listing somebody else's private journal.
-  for (const username of getUsernames()) {
+  // `listedUsernames()` drops the journals that asked not to be advertised at
+  // all: a sitemap is a list handed to crawlers, which is what advertising is.
+  for (const username of listedUsernames()) {
     const trips = getTrips(username).filter(isIndexable);
     if (trips.length === 0) continue;
 
@@ -80,6 +82,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
         });
       }
       for (const entry of getAllEntries(trip.ref)) {
+        // A test day inside a real trip is not offered to a crawler. A whole
+        // test trip never reached here — `isIndexable` above.
+        if (entry.test) continue;
         const url = `${tripBase}/day/${entry.slug}`;
         out.push({
           url,

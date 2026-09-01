@@ -3,8 +3,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
-import { clearUserCache, getUser } from "@/lib/users";
-import { createJournal, journalsOwnedBy, MAX_JOURNALS_PER_EMAIL } from "@/lib/journals";
+import { clearUserCache, getUser, getUsernames, userExists } from "@/lib/users";
+import { createJournal, journalsOwnedBy, MAX_JOURNALS_PER_EMAIL, sendWelcome } from "@/lib/journals";
+import { listedUsernames } from "@/lib/users";
+import { instanceDocumentation } from "@/lib/api/documentation";
 import { createTrip } from "@/lib/tripWrite";
 import { getTrip, getTrips } from "@/lib/trips";
 
@@ -163,6 +165,123 @@ describe("creating a journal", () => {
   });
 });
 
+/**
+ * A journal's own visibility: whether the instance advertises it.
+ *
+ * Not a wall in front of `/<user>` — that is each trip's job, and it has a
+ * password and a guest list behind it. What this decides is whether a stranger
+ * can come across the journal without being sent the address.
+ */
+describe("journal visibility", () => {
+  test("is public unless asked otherwise, so nothing existing changes", () => {
+    const result = make("open");
+    expect(result.ok && result.visibility).toBe("public");
+    expect(getUser("open")?.visibility).toBe("public");
+    expect(listedUsernames()).toContain("open");
+  });
+
+  test("a private journal is not advertised, but is still there", () => {
+    make("quiet", { visibility: "private" });
+
+    expect(getUser("quiet")?.visibility).toBe("private");
+    // Off every list…
+    expect(listedUsernames()).not.toContain("quiet");
+    expect(instanceDocumentation()).not.toContain("/quiet/");
+    // …and still resolvable for anybody sent the address.
+    expect(getUsernames()).toContain("quiet");
+    expect(userExists("quiet")).toBe(true);
+    expect(getUser("quiet")?.title).toBe("A journal");
+  });
+
+  test("`public` is not written into the file — only the interesting half is", () => {
+    make("open");
+    const written = JSON.parse(
+      fs.readFileSync(path.join(dir, "open", "config.json"), "utf8"),
+    ) as Record<string, unknown>;
+    expect(written.visibility).toBeUndefined();
+
+    make("quiet", { visibility: "private" });
+    const hidden = JSON.parse(
+      fs.readFileSync(path.join(dir, "quiet", "config.json"), "utf8"),
+    ) as Record<string, unknown>;
+    expect(hidden.visibility).toBe("private");
+  });
+
+  test("a journal written before the field existed reads as public", () => {
+    fs.mkdirSync(path.join(dir, "legacy", "trips"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "legacy", "config.json"),
+      JSON.stringify({ title: "Old", owner: { name: "O", nickname: "O", email: OWNER } }),
+    );
+    expect(getUser("legacy")?.visibility).toBe("public");
+    expect(listedUsernames()).toContain("legacy");
+  });
+
+  test("a private journal's trips are still private by default", () => {
+    make("quiet", { visibility: "private" });
+    createTrip("quiet", { id: "trip", title: "T", ...DATES });
+    expect(getTrip("quiet/trip")?.visibility).toBe("private");
+  });
+});
+
+describe("the welcome mail", () => {
+  test("is not attempted when the server cannot send mail", async () => {
+    make("wanderer");
+    // The fixture config enables signup and auth, and nothing else.
+    await expect(
+      sendWelcome({
+        username: "wanderer",
+        title: "A journal",
+        email: OWNER,
+        nickname: "Robin",
+        visibility: "public",
+      }),
+    ).resolves.toBe(false);
+  });
+
+  test("carries the journal's address, and says which drafts rule applies", async () => {
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "T", url: "https://t.test" },
+        features: { mail: { enabled: true, transport: "file" } },
+      }),
+    );
+    clearConfigCache();
+    make("wanderer");
+
+    const sent = await sendWelcome({
+      username: "wanderer",
+      title: "A journal",
+      email: OWNER,
+      nickname: "Robin",
+      visibility: "private",
+    });
+    expect(sent).toBe(true);
+
+    const files = fs.readdirSync(path.join(dir, "wanderer", "mail"));
+    expect(files).toHaveLength(1);
+    const raw = fs.readFileSync(path.join(dir, "wanderer", "mail", files[0]), "utf8");
+    const body = raw
+      .split(/\r?\n\r?\n/)
+      .slice(1)
+      .map((part) => {
+        try {
+          return Buffer.from(part.replace(/\s/g, ""), "base64").toString("utf8");
+        } catch {
+          return "";
+        }
+      })
+      .join("\n");
+
+    expect(raw).toContain(OWNER);
+    expect(body).toContain("https://t.test/wanderer");
+    expect(body).toContain("draft");
+    // The private wording, not the public one.
+    expect(body).toContain("appears on no list");
+  });
+});
+
 describe("creating a trip", () => {
   beforeEach(() => {
     make("wanderer");
@@ -223,5 +342,86 @@ describe("creating a trip", () => {
   test("the intro prose survives into the trip", () => {
     createTrip("wanderer", { ...DATES, id: "prose", title: "P", intro: "Two weeks, mostly by train." });
     expect(getTrip("wanderer/prose")?.intro).toContain("mostly by train");
+  });
+});
+
+/**
+ * The bug that made `POST /api/v1/journals` answer 201 with a URL that
+ * answered 404.
+ *
+ * `getUsernames()` and the config loaders used to cache until somebody called
+ * an invalidator, and `createJournal` called it. That is enough in a single
+ * module instance and not enough in a production build, where Next hands the
+ * page layer and the route-handler layer separate copies of the module: the
+ * API route cleared its own cache and the pages went on answering "no such
+ * journal" until the process restarted.
+ *
+ * So these tests never call the invalidators. Warming the cache and then
+ * writing to the directory is exactly the sequence that broke, and the fix is
+ * that the next read notices on its own.
+ */
+describe("a journal appears without anybody invalidating a cache", () => {
+  test("a journal created after the user list was read is in it", () => {
+    expect(getUsernames()).toEqual([]);
+
+    // Deliberately no clearUserCache() — the point is that nothing has to.
+    const result = createJournal({
+      username: "latecomer",
+      title: "Late",
+      ownerEmail: OWNER,
+      ownerName: "Late Person",
+      ownerNickname: "Late",
+    });
+    expect(result.ok).toBe(true);
+
+    expect(getUsernames()).toContain("latecomer");
+    expect(userExists("latecomer")).toBe(true);
+    expect(getUser("latecomer")?.title).toBe("Late");
+  });
+
+  /**
+   * The one that actually fails without the fix. A test can only ever hold one
+   * copy of the module, so `createJournal`'s own invalidation makes the case
+   * above pass either way — the defect only shows when the write happens
+   * somewhere the invalidator does not reach, which in production is the other
+   * module instance and here is a directory appearing on its own.
+   */
+  test("a journal folder written by hand is picked up too", () => {
+    getUsernames();
+
+    fs.mkdirSync(path.join(dir, "byhand", "trips"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "byhand", "config.json"),
+      JSON.stringify({
+        title: "By hand",
+        owner: { name: "Hand", nickname: "H", email: OWNER },
+      }),
+    );
+
+    expect(getUsernames()).toContain("byhand");
+  });
+
+  test("an edited config.json is re-read without a restart", () => {
+    make("editable");
+    expect(getUser("editable")?.title).toBe("A journal");
+
+    const file = path.join(dir, "editable", "config.json");
+    const config = JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>;
+    config.title = "Renamed by its owner";
+    // Written a millisecond later than it was made, so the signature differs
+    // even where the clock is coarse.
+    fs.writeFileSync(file, JSON.stringify(config, null, 2) + "\n");
+    const later = new Date(Date.now() + 1000);
+    fs.utimesSync(file, later, later);
+
+    expect(getUser("editable")?.title).toBe("Renamed by its owner");
+  });
+
+  test("a journal removed from disk stops being listed", () => {
+    make("temporary");
+    expect(getUsernames()).toContain("temporary");
+
+    fs.rmSync(path.join(dir, "temporary"), { recursive: true, force: true });
+    expect(getUsernames()).not.toContain("temporary");
   });
 });

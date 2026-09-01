@@ -1,9 +1,11 @@
 import { authenticate, errorResponse, mayWriteTrip, ownsUser } from "@/lib/api/auth";
+import { attachGallery, isPublished } from "@/lib/api/entries";
 import { storeUploads, type UploadCandidate } from "@/lib/api/media";
 import { getTrip, tripRef } from "@/lib/trips";
 import { fetchImage } from "@/lib/api/fetchMedia";
 import { getUser } from "@/lib/users";
 import { IMAGE_MAX_BYTES, MAX_ITEMS_PER_DAY } from "@/lib/validate/media";
+import type { GalleryItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +16,75 @@ export const dynamic = "force-dynamic";
  * ingest`, reading a folder on the same machine — so an agent working over
  * the network could write the words and nothing else.
  *
- * Answers with the gallery block for the files it wrote, in the exact shape
- * the entry's frontmatter wants, so the agent pastes rather than composes.
+ * It writes the files **and puts them in the day**. It used to do only the
+ * first and hand back a `gallery:` block to paste into the entry, which no
+ * call could do: a day has no PATCH. Days written before their photographs
+ * read back with an empty gallery and stayed that way. The block still comes
+ * back in `items`, now as a record of what was attached rather than as
+ * homework.
+ *
  * The original of every file is kept; see lib/api/media.ts for why.
  */
+/**
+ * The two ways a `day` can be wrong, answered before anything is read.
+ *
+ * `day` was always required — `storeUploads` refuses a slug that names no
+ * entry — but it used only to decide a folder name. Now that it decides which
+ * file gets edited, saying so up front is worth the six lines: a request with
+ * no day is one that would write photographs attached to nothing.
+ */
+function dayProblem(ref: string, day: string): Response | null {
+  if (!day) {
+    return Response.json(
+      {
+        error: "missing_day",
+        message:
+          'Send "day": "<slug>" — the day these photographs belong to. It has to exist ' +
+          "already: write the day first, then send its pictures, and they are added to it.",
+      },
+      { status: 400 },
+    );
+  }
+  // Refused before the bytes are read, not after. Adding photographs to a day
+  // people have already read changes what they read, and that is a person's
+  // decision — the same line the delete route draws.
+  if (isPublished(ref, day)) {
+    return Response.json(
+      {
+        error: "day_published",
+        message:
+          `"${day}" is published, so this would change a day people have already read. ` +
+          "Ask the person to add these themselves, or write a new day for them.",
+      },
+      { status: 409 },
+    );
+  }
+  return null;
+}
+
+/**
+ * The 201 for a batch that landed, whether or not it reached the entry.
+ *
+ * Attaching can only fail if the entry has no frontmatter to splice into — a
+ * file somebody wrote by hand in a shape this will not guess at. The files are
+ * already on disk by then, so the honest answer is the success it is, plus
+ * `attached: false` and the block to add by hand.
+ */
+function stored(day: string, items: GalleryItem[], attached: boolean, error?: string) {
+  return Response.json(
+    {
+      ok: true,
+      day,
+      items,
+      attached,
+      note: attached
+        ? `Added to "${day}". Nothing to paste — read the day back to see it.`
+        : `${error} The originals are kept either way.`,
+    },
+    { status: 201 },
+  );
+}
+
 export async function POST(
   request: Request,
   { params }: RouteContext<"/api/v1/[user]/trips/[trip]/media">,
@@ -44,6 +111,9 @@ export async function POST(
   if ((request.headers.get("content-type") ?? "").includes("application/json")) {
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const day = typeof body?.day === "string" ? body.day.trim() : "";
+    const wrongDay = dayProblem(ref, day);
+    if (wrongDay) return wrongDay;
+
     const urls = Array.isArray(body?.urls) ? body.urls.filter((u): u is string => typeof u === "string") : [];
     if (urls.length === 0) {
       return Response.json(
@@ -67,14 +137,12 @@ export async function POST(
       return Response.json({ error: "could_not_fetch", failures }, { status: 400 });
     }
 
-    const stored = await storeUploads(ref, day, fetched);
-    if (!stored.ok) {
-      return Response.json({ error: "invalid_media", problems: stored.problems }, { status: 400 });
+    const written = await storeUploads(ref, day, fetched);
+    if (!written.ok) {
+      return Response.json({ error: "invalid_media", problems: written.problems }, { status: 400 });
     }
-    return Response.json(
-      { ok: true, day, items: stored.items, fetched: fetched.length },
-      { status: 201 },
-    );
+    const attached = attachGallery(ref, day, written.items);
+    return stored(day, written.items, attached.ok, attached.ok ? undefined : attached.error);
   }
 
   const form = await request.formData().catch(() => null);
@@ -91,6 +159,9 @@ export async function POST(
   }
 
   const day = String(form.get("day") ?? "").trim();
+  const wrongDay = dayProblem(ref, day);
+  if (wrongDay) return wrongDay;
+
   const files = form.getAll("files").filter((f): f is File => f instanceof File);
 
   // Refused before anything is read into memory: a request carrying a
@@ -137,15 +208,6 @@ export async function POST(
     return Response.json({ error: "invalid_media", problems: result.problems }, { status: 400 });
   }
 
-  return Response.json(
-    {
-      ok: true,
-      day,
-      items: result.items,
-      note:
-        "Paste `items` into the entry's `gallery:` block. The originals are kept — " +
-        "the site serves a resized copy, the photobook prints from what you sent.",
-    },
-    { status: 201 },
-  );
+  const attached = attachGallery(ref, day, result.items);
+  return stored(day, result.items, attached.ok, attached.ok ? undefined : attached.error);
 }

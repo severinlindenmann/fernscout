@@ -391,6 +391,8 @@ export type TranslationKey =
   | "story.dayLoading"
   | "story.empty"
   | "story.tripEnd"
+  | "test.body"
+  | "test.title"
   | "trips.allTrips"
   | "trips.daysAway"
   | "trips.lifetimeCountries"

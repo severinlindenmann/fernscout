@@ -1,8 +1,12 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import { clearConfigCache } from "./config";
+import { isEnabled } from "./capabilities";
+import { clearConfigCache, type JournalVisibility } from "./config";
 import { contentRoot } from "./contentRoot";
+import { sendMail } from "./mail";
+import { renderMail } from "./mail/template";
+import { serverSite } from "./site";
 import { clearUserCache, getUsernames, isReservedUsername, isValidUsername } from "./users";
 
 /**
@@ -35,6 +39,14 @@ export type NewJournal = {
    * `lib/config.ts`'s `Owner`.
    */
   ownerNickname: string;
+  /**
+   * Whether the journal is advertised — see `JournalVisibility` in
+   * lib/config.ts. Anything unrecognised, including nothing at all, is
+   * `public`: that is what every journal made before the field existed is, and
+   * quietly unlisting somebody who did not ask to be unlisted is its own kind
+   * of surprise. An agent is told to ask; asking is the mechanism.
+   */
+  visibility?: JournalVisibility;
   startLocation?: string;
   defaultLocale?: string;
   locales?: string[];
@@ -44,7 +56,7 @@ export type NewJournal = {
 };
 
 export type CreateJournalResult =
-  | { ok: true; username: string }
+  | { ok: true; username: string; visibility: JournalVisibility }
   | { ok: false; error: string; message: string };
 
 /** How many journals one address may own. Not a licensing rule — a brake on
@@ -151,6 +163,11 @@ export function createJournal(input: NewJournal): CreateJournalResult {
     // split mangles any name whose given name is not first, so there is no
     // safe guess to fall back to — the caller must ask.
     owner: { name: ownerName, nickname: ownerNickname, email: ownerEmail },
+    // Written only when it is `private`. A file that says `"visibility":
+    // "public"` on every journal makes the field look like something you set,
+    // when the interesting half is the other one — and the owner reading their
+    // own config should find the line that is doing something.
+    ...(input.visibility === "private" ? { visibility: "private" } : {}),
     ...(input.startLocation?.trim() ? { startLocation: input.startLocation.trim() } : {}),
     defaultLocale: input.defaultLocale ?? "en",
     locales: input.locales?.length ? input.locales : [input.defaultLocale ?? "en"],
@@ -182,5 +199,93 @@ export function createJournal(input: NewJournal): CreateJournalResult {
   clearUserCache();
   clearConfigCache();
 
-  return { ok: true, username };
+  return { ok: true, username, visibility: input.visibility === "private" ? "private" : "public" };
+}
+
+/**
+ * Tell the owner their journal exists.
+ *
+ * The one mail this flow sends that is not a code. It carries the address of
+ * the journal, because the person who owns it should not have to trust an
+ * agent to have copied a URL correctly; and it carries the draft rule, because
+ * the first thing that will happen to this journal is an agent writing days
+ * into it that nobody has read yet.
+ *
+ * Returns whether it went. Never throws: the caller has already written the
+ * journal to disk, and there is no version of "the SMTP server was busy" that
+ * should undo that.
+ */
+export async function sendWelcome(input: {
+  username: string;
+  title: string;
+  email: string;
+  nickname: string;
+  visibility: JournalVisibility;
+}): Promise<boolean> {
+  if (!isEnabled("mail")) return false;
+
+  const site = serverSite();
+  const url = `${site.url}/${input.username}`;
+
+  try {
+    await sendMail(
+      renderMail(
+        input.email,
+        `Your journal is ready — ${input.title}`,
+        {
+          preheader: `${input.title} lives at ${url}`,
+          title: "Your journal is ready",
+          blocks: [
+            {
+              kind: "paragraph",
+              text:
+                `${input.nickname}, "${input.title}" now exists on ${site.name} and it is ` +
+                "yours. This is the only mail that carries its address, so keep it.",
+            },
+            { kind: "button", text: "Open your journal", href: url },
+            {
+              kind: "paragraph",
+              text:
+                input.visibility === "private"
+                  ? "It is private: it appears on no list on this server and asks search " +
+                    "engines not to index it, so the only people who will find it are the " +
+                    "ones you send the address to. Whether a particular journey can be read " +
+                    "is set on the journey itself."
+                  : "It is public: it is listed on this server's own index and search " +
+                    "engines may index it. Each journey still decides for itself whether " +
+                    "anyone can read it, and a new one starts out private.",
+            },
+            { kind: "heading", text: "Nothing an agent writes is published" },
+            {
+              kind: "paragraph",
+              text:
+                "Everything written into this journal by an agent arrives as a draft and " +
+                "stays invisible to readers until you publish it yourself, by removing one " +
+                "line from the file. There is no setting that skips that step.",
+            },
+            {
+              kind: "paragraph",
+              text:
+                "You can see what is waiting at any time — your agent can list the drafts, " +
+                "and reading one back is how you check it did not invent anything.",
+            },
+            { kind: "heading", text: "If you want to write to it later" },
+            {
+              kind: "paragraph",
+              text:
+                `Ask your agent to start at ${site.url}/agent.md. It will ask this server ` +
+                `to mail a six-digit code to ${input.email} — this address, and no other — ` +
+                "and that code becomes a token that can write for seven days.",
+            },
+          ],
+          footer: `Sent by ${site.name} because a journal was created for this address.`,
+        },
+        input.username,
+      ),
+    );
+    return true;
+  } catch (err) {
+    console.error(`[journals] welcome mail for ${input.username} failed:`, err);
+    return false;
+  }
 }

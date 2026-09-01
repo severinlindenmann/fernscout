@@ -116,11 +116,36 @@ export type IssuedCode = {
 };
 
 /**
+ * Consume every live code for an address, without issuing a new one.
+ *
+ * Two callers. `issueCode` uses it so that asking for a new code always
+ * invalidates the old — otherwise a forwarded email from ten minutes ago would
+ * still work. And a route whose mail failed to send uses it to take back the
+ * code it just wrote: the alternative is a live code that nobody was ever told,
+ * sitting there until it expires, having silently invalidated the one the
+ * person may still have in their inbox from a previous attempt.
+ */
+export async function revokeCodes(
+  owner: string,
+  email: string,
+  kind: SessionKind,
+): Promise<void> {
+  const { db } = await getDatabase();
+  await db
+    .updateTable("login_codes")
+    .set({ consumed_at: nowIso() })
+    .where("owner_id", "=", owner)
+    .where("email", "=", normaliseEmail(email))
+    .where("kind", "=", kind)
+    .where("consumed_at", "is", null)
+    .execute();
+}
+
+/**
  * Issue a login code for an address.
  *
- * Any previously live code for the same address and kind is consumed first, so
- * requesting a new one always invalidates the old — otherwise a forwarded email
- * from ten minutes ago would still work.
+ * Any previously live code for the same address and kind is consumed first —
+ * see `revokeCodes`.
  */
 export async function issueCode(
   owner: string,
@@ -132,14 +157,7 @@ export async function issueCode(
   const now = new Date();
   const expiresAt = new Date(now.getTime() + CODE_TTL_MS).toISOString();
 
-  await db
-    .updateTable("login_codes")
-    .set({ consumed_at: nowIso() })
-    .where("owner_id", "=", owner)
-    .where("email", "=", address)
-    .where("kind", "=", kind)
-    .where("consumed_at", "is", null)
-    .execute();
+  await revokeCodes(owner, email, kind);
 
   const code = generateCode();
   // Only a guest code gets a link. An agent token is handed back through the

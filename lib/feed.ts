@@ -67,6 +67,10 @@ function feedItems(username: string, trips: Trip[]): FeedItem[] {
     const tripBase = isCurrent ? `${base}/${username}` : `${base}/${username}/trips/${trip.id}`;
 
     for (const entry of getAllEntries(trip.ref)) {
+      // A day marked `test` inside a real trip. `isIndexable` above already
+      // dropped a whole test trip; this is the other half — a fabricated day
+      // in somebody's feed reader is indistinguishable from a real one.
+      if (entry.test) continue;
       items.push({ entry, trip, url: `${tripBase}/day/${entry.slug}` });
     }
   }

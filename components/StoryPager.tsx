@@ -7,6 +7,7 @@ import { useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import DayReactions from "./DayReactions";
 import DraftNotice from "./DraftNotice";
+import TestNotice from "./TestNotice";
 import EntryContent from "./EntryContent";
 import Gallery from "./Gallery";
 import TravelScene from "./TravelScene";
@@ -192,13 +193,19 @@ function DayCard({
   // A day is only ever wholly a draft in practice — an agent writes one entry
   // at a time. The per-update badge below covers the day that is half-published.
   const allDraft = day.entries.every((e) => e.draft);
+  // Marked on the trip, or on any update of the day. Either way the whole day
+  // gets the banner: a day that is half-invented is not a day anybody should
+  // be reading as a record of anything.
+  // `trip` here is the context, whose `.trip` is the trip itself.
+  const isTest = trip?.trip.test === true || day.entries.some((e) => e.test);
 
   return (
     <article
       className={`rounded-2xl border bg-white p-5 shadow-sm sm:p-7 ${
-        allDraft ? "border-coral-600" : "border-navy-200"
+        allDraft || isTest ? "border-coral-600" : "border-navy-200"
       }`}
     >
+      {isTest && <TestNotice />}
       {allDraft && <DraftNotice />}
       {/* One compact meta line rather than a stack of pills. */}
       <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-navy-600">

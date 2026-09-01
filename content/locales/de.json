@@ -360,6 +360,8 @@
   "story.dayLoading": "Dieser Tag wird geladen…",
   "story.empty": "Noch keine Einträge.",
   "story.tripEnd": "Das war die ganze Reise.",
+  "test.body": "Nichts davon ist passiert. Dieser Tag wurde geschrieben, um zu prüfen, ob die Software funktioniert — nimm nichts davon als Aufzeichnung: weder den Ort noch das Datum noch die Fotos.",
+  "test.title": "Testinhalt — das ist kein echter Tag",
   "trips.allTrips": "Alle Reisen",
   "trips.daysAway": "Tage entfernt",
   "trips.lifetimeCountries": "Länder",

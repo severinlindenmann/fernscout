@@ -69,19 +69,95 @@ export function GET() {
             drafts: { type: "integer" },
           },
         },
+        Cost: {
+          type: "object",
+          required: ["label", "amount"],
+          description: "One thing paid for on this day, in the currency it was paid in.",
+          properties: {
+            label: { type: "string", description: "What it was. Not a category — a thing." },
+            amount: {
+              type: "number",
+              description:
+                "As spent, in `currency`. Never converted on the way in: the journal " +
+                "converts for display and keeps what was actually paid.",
+            },
+            currency: {
+              type: "string",
+              description:
+                "ISO-4217, e.g. EUR. Omit it and the journal's own base currency is used.",
+            },
+            category: {
+              type: "string",
+              description: 'Free text; "other" when omitted.',
+            },
+          },
+        },
+        GalleryItem: {
+          type: "object",
+          required: ["src", "type"],
+          description:
+            "A photograph or clip on a day. **You do not write these** — POST to the media " +
+            "endpoint and it puts them in the day for you. Described here because they come " +
+            "back when you read a day.",
+          properties: {
+            src: { type: "string", description: "/{user}/media/{trip}/{day}/01.jpg" },
+            type: { type: "string", enum: ["image", "video"] },
+            width: { type: "integer" },
+            height: { type: "integer" },
+            caption: { type: "string" },
+            poster: { type: "string", description: "A still, for a clip." },
+          },
+        },
         Draft: {
           type: "object",
           required: ["title", "date", "content"],
+          description:
+            "The body of POST /api/v1/{user}/trips/{trip}/days. Everything but title, date " +
+            "and content is optional — and an omitted field is better than an invented one. " +
+            "There is no `status`: what this writes is always a draft.",
           properties: {
             title: { type: "string" },
-            date: { type: "string", format: "date" },
-            time: { type: "string", pattern: "^\\d{2}:\\d{2}$" },
+            date: { type: "string", format: "date", description: "2026-08-26" },
+            time: {
+              type: "string",
+              pattern: "^\\d{2}:\\d{2}$",
+              description: "24-hour, local to where the day happened. Orders several days that share a date.",
+            },
             location: { type: "string" },
-            country: { type: "string" },
+            country: { type: "string", description: "The country's name, not its code." },
             lat: { type: "number" },
             lng: { type: "number" },
-            content: { type: "string" },
-            tags: { type: "array", items: { type: "string" } },
+            content: { type: "string", description: "The prose, as markdown." },
+            tags: {
+              type: "array",
+              items: { type: "string" },
+              description: "Lowercase letters, digits and single hyphens.",
+            },
+            costs: { type: "array", items: { $ref: "#/components/schemas/Cost" } },
+            transportMode: {
+              type: "string",
+              description:
+                "How the day was travelled. One of the modes /agent.md lists; anything " +
+                "else is refused rather than dropped.",
+            },
+            transportFrom: { type: "string" },
+            transportTo: { type: "string" },
+            test: {
+              type: "boolean",
+              description:
+                "This day did not happen — it was written to check that the software works. " +
+                "The page shows a banner saying so, and the day is kept out of the feed, the " +
+                "search index and the sitemap. Set it whenever you were asked to invent " +
+                "content; a string here is refused rather than ignored.",
+            },
+            idempotency_key: {
+              type: "string",
+              description:
+                "Names this one write. Send the same key with the same body to retry after a " +
+                "dropped connection and you get the first answer back with `replayed: true`; " +
+                "send it with a different body and the call is refused (409) and nothing is " +
+                "written. A new key for every day.",
+            },
           },
         },
       },
@@ -93,14 +169,80 @@ export function GET() {
           security: [],
           description:
             "Always answers 202, whether or not the address owns anything — so " +
-            "it cannot be used to discover which addresses exist.",
-          responses: { "202": { description: "Accepted" } },
+            "it cannot be used to discover which addresses exist. The one " +
+            "exception is an agent code for an address that neither owns the " +
+            "journal nor is on the trip you named, which answers 403 rather than " +
+            "leaving you waiting for a code that was never coming.\n\n" +
+            "**A new request invalidates the previous code.** Two of these mails " +
+            "look identical apart from the time in them, and only the newest code " +
+            "works — so if you ask twice, make sure the person reads out the " +
+            "newest one.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["user", "email"],
+                  properties: {
+                    user: {
+                      type: "string",
+                      description:
+                        "The journal's address — the same segment that appears in its URLs. " +
+                        "Called `username` when a journal is created; the same value.",
+                    },
+                    email: { type: "string", format: "email" },
+                    kind: {
+                      type: "string",
+                      enum: ["agent", "guest"],
+                      default: "guest",
+                      description: "`agent` for a token that can write.",
+                    },
+                    trip: {
+                      type: "string",
+                      description:
+                        "For somebody who is on a trip but does not own the journal. The " +
+                        "token then writes to that trip and nothing else.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "202": { description: "Accepted" },
+            "403": { description: "That address may not have an agent code for this journal" },
+            "404": { description: "Authentication is off on this server" },
+            "429": { description: "Too many attempts" },
+            "503": {
+              description:
+                "The code could not be sent, so no code is live for this address. Retry.",
+            },
+          },
         },
       },
       "/api/auth/verify": {
         post: {
           summary: "Exchange a code for a token",
           security: [],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["user", "email", "code"],
+                  properties: {
+                    user: { type: "string" },
+                    email: { type: "string", format: "email" },
+                    code: { type: "string", description: "Six digits. Ten minutes, single use." },
+                    kind: { type: "string", enum: ["agent", "guest"], default: "guest" },
+                    trip: { type: "string", description: "The same trip named in the request." },
+                  },
+                },
+              },
+            },
+          },
           responses: {
             "200": { description: "A token, its expiry and its scope" },
             "401": { description: "Invalid code" },
@@ -141,6 +283,13 @@ export function GET() {
                     accent: { type: "string", enum: ["sky", "yellow", "green", "coral", "navy"] },
                     visibility: { type: "string", enum: ["private", "public", "guest"], default: "private" },
                     listed: { type: "boolean" },
+                    test: {
+                      type: "boolean",
+                      description:
+                        "This trip did not happen — it exists to check that the software " +
+                        "works. Every day of it gets a banner saying so, and none of it " +
+                        "reaches the feed, the search index or the sitemap.",
+                    },
                     intro: { type: "string" },
                   },
                 },
@@ -224,7 +373,21 @@ export function GET() {
                     ownerNickname: {
                       type: "string",
                       description:
-                        "What the site calls them, in its own voice. Never guessed from ownerName.",
+                        "What the site calls them, in its own voice. Never guessed from " +
+                        "ownerName — a first-word split mangles any name whose given name " +
+                        "is not first, so there is no safe guess. Ask.",
+                    },
+                    visibility: {
+                      type: "string",
+                      enum: ["public", "private"],
+                      default: "public",
+                      description:
+                        "Whether this server advertises the journal. `public` is listed on " +
+                        "/documentation.txt, on the landing page and in sitemap.xml. " +
+                        "`private` is on none of them and asks not to be indexed — reachable " +
+                        "by anyone sent the address, findable by nobody else. Neither decides " +
+                        "who may read a journey: that is the trip's own visibility, which has " +
+                        "a password and a guest list behind it. Ask which they want.",
                     },
                     startLocation: { type: "string" },
                     defaultLocale: { type: "string" },
@@ -260,15 +423,44 @@ export function GET() {
           summary: "Add a day, as a draft",
           description:
             "Always creates a draft. A retry that finds its own earlier write " +
-            "gets 409 rather than overwriting it.",
+            "gets 409 rather than overwriting it — send an `idempotency_key` to " +
+            "get the first answer back instead. Photographs are not part of this " +
+            "body: POST them to the media endpoint, which adds them to the day.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
           ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/Draft" } },
+            },
+          },
           responses: {
+            "200": {
+              description:
+                "Replayed: this idempotency_key had already been used for this exact call, " +
+                "and nothing was written again.",
+            },
             "201": { description: "Created as a draft" },
-            "400": { description: "Invalid entry" },
-            "409": { description: "An entry already exists for that date and title" },
+            "400": {
+              description:
+                "Invalid entry. The body carries a `problems` list — every problem at once, " +
+                "each naming the field, what arrived and what was expected.",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+            "404": {
+              description:
+                "No such trip, or none this token may write to — the two answer alike, so a " +
+                "trip-scoped token cannot enumerate the journal's others. `auth_disabled` " +
+                "instead means this server has authentication off entirely.",
+            },
+            "409": {
+              description:
+                "An entry already exists for that date and title, or an idempotency_key was " +
+                "reused for a different day.",
+            },
           },
         },
         delete: {
@@ -331,12 +523,19 @@ export function GET() {
       },
       "/api/v1/{user}/trips/{trip}/media": {
         post: {
-          summary: "Upload photographs or video to a day",
+          summary: "Upload photographs or video to a day, and add them to it",
           description:
-            "multipart/form-data: `day` is the slug of a day that already exists " +
-            "in this trip, and `files` may repeat. Two files are kept for each " +
-            "one sent — a resized copy for the browser and the original for " +
-            "print. Answers with the `gallery:` block to paste into the entry.",
+            "**The files are put into the day's entry for you.** There is nothing to " +
+            "paste, and it does not matter whether you write the day before or after " +
+            "sending its pictures — only that the day exists.\n\n" +
+            "Two ways in. multipart/form-data carries the bytes: `day` is the slug of a " +
+            "day in this trip, and `files` may repeat. application/json carries `urls` " +
+            "for this server to fetch — https only, public hosts only, refused after a " +
+            "redirect to a private address.\n\n" +
+            "Two files are kept for each one sent: a resized copy for the browser and the " +
+            "original for print. Send the largest you have — for a URL upload the original " +
+            "is whatever the remote host served, so a 2000px source is what a photobook " +
+            "will be printed from, and there is no way to get the pixels back later.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
@@ -349,16 +548,41 @@ export function GET() {
                   type: "object",
                   required: ["day", "files"],
                   properties: {
-                    day: { type: "string" },
+                    day: {
+                      type: "string",
+                      description: "A day that already exists in this trip. Write the day first.",
+                    },
                     files: { type: "array", items: { type: "string", format: "binary" } },
+                  },
+                },
+              },
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["day", "urls"],
+                  properties: {
+                    day: { type: "string" },
+                    urls: {
+                      type: "array",
+                      items: { type: "string", format: "uri" },
+                      description:
+                        "https URLs on public hosts. All or nothing: if any is refused, " +
+                        "nothing is written and the reply names which and why.",
+                    },
                   },
                 },
               },
             },
           },
           responses: {
-            "201": { description: "Written; the response carries the gallery block" },
-            "400": { description: "A file, or the day, was rejected — the response says which and why" },
+            "201": {
+              description:
+                "Written and added to the day. `items` is what was attached; `attached` is " +
+                "false only if the entry has no frontmatter to write into, in which case the " +
+                "files are still on disk and `items` is what to add by hand.",
+            },
+            "400": { description: "A file, a URL, or the day was rejected — the response says which and why" },
+            "409": { description: "That day is published; changing what people have read is a person's job" },
             "413": { description: "Over a size limit this instance sets" },
           },
         },
@@ -372,17 +596,41 @@ export function GET() {
           responses: { "200": { description: "Drafts" } },
         },
       },
-      [`/${example}/day/{slug}.md`]: {
+      [`/${example}/trips/{trip}/day/{slug}.md`]: {
         get: {
           summary: "A day's markdown source",
           security: [],
           description:
-            "The content is markdown, so this is the source rather than a " +
-            "conversion of it. Gated exactly like the HTML page.",
+            "Any day, in any trip. The content is markdown, so this is the source " +
+            "rather than a conversion of it, and it is gated exactly like the HTML " +
+            "page — a private trip answers 404 here too. This is the `.md` twin of " +
+            "the day's own URL, and the form to use when you have a trip id: the " +
+            "search index identifies entries as `{trip}/{slug}`.",
+          parameters: [
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+            { name: "slug", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "text/markdown" },
+            "404": { description: "text/plain — never an HTML error page" },
+          },
+        },
+      },
+      [`/${example}/day/{slug}.md`]: {
+        get: {
+          summary: "A day's markdown source, in the current trip",
+          security: [],
+          description:
+            "The short form, mirroring `/{user}/day/{slug}` — the current trip's day " +
+            "pages. If the current trip has no such slug, the journal's other readable " +
+            "trips are searched before this gives up, so a slug alone usually resolves.",
           parameters: [
             { name: "slug", in: "path", required: true, schema: { type: "string" } },
           ],
-          responses: { "200": { description: "text/markdown" } },
+          responses: {
+            "200": { description: "text/markdown" },
+            "404": { description: "text/plain — never an HTML error page" },
+          },
         },
       },
     },

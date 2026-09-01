@@ -281,6 +281,10 @@ function readTrip(username: string, dir: string, folder: string): Trip | null {
     intro: content.trim(),
     translations: parseTranslations(data.translations),
     people: parsePeople(data.people, folder),
+    // `true` and nothing else. Absent is the overwhelming case, and a flag
+    // that quietly accepted "no" or "false" as truthy would put a banner on
+    // somebody's actual holiday.
+    test: data.test === true || undefined,
     ...parseVisibility(data.visibility, folder),
     costsVisibility: parseCostsVisibility(data.costsVisibility, folder),
     passwordHash: data.passwordHash ? String(data.passwordHash) : undefined,

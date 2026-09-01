@@ -360,6 +360,8 @@
   "story.dayLoading": "Ez a nap betöltődik…",
   "story.empty": "Még nincsenek bejegyzések.",
   "story.tripEnd": "Ennyi volt az egész út.",
+  "test.body": "Ebből semmi nem történt meg. Ez a nap azért készült, hogy ellenőrizzük, működik-e a szoftver — semmit ne tekints belőle feljegyzésnek: sem a helyet, sem a dátumot, sem a fényképeket.",
+  "test.title": "Teszttartalom — ez nem valódi nap",
   "trips.allTrips": "Összes út",
   "trips.daysAway": "nap múlva",
   "trips.lifetimeCountries": "ország",

@@ -360,6 +360,8 @@
   "story.dayLoading": "Fetching this day…",
   "story.empty": "No entries yet.",
   "story.tripEnd": "That's the whole trip.",
+  "test.body": "Nothing here happened. This day was written to check that the software works, so treat none of it as a record — not the place, not the date, not the photographs.",
+  "test.title": "Test content — this is not a real day",
   "trips.allTrips": "All trips",
   "trips.daysAway": "days away",
   "trips.lifetimeCountries": "countries",

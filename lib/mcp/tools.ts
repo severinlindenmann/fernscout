@@ -2,7 +2,7 @@ import "server-only";
 import MiniSearch from "minisearch";
 import { SESSION_SCOPE, SIGNUP_OWNER, type Session } from "../auth";
 import type { Trip } from "../types";
-import { createDraft, deleteEntry, entrySummary, isPublished, listDrafts, tripSummary, type DraftInput } from "../api/entries";
+import { attachGallery, createDraft, deleteEntry, entrySummary, isPublished, listDrafts, tripSummary, type DraftInput } from "../api/entries";
 import { getAllEntries, getEntryBySlug } from "../entries";
 import { stripMarkdown } from "../markdownText";
 import { SEARCH_OPTIONS, type SearchDoc } from "../searchOptions";
@@ -199,6 +199,12 @@ const getDay: Handler = (session, args) => {
     // Said in the text, not only in the data: an agent summarising this to a
     // person must not describe a draft as though it were on the site.
     ...(entry.draft ? ["", "**Draft — not on the site.** A person publishes it."] : []),
+    // Said in the text as well as the data, for the same reason as the draft
+    // line above: an agent summarising this must not describe a day nobody
+    // lived as though it recorded something.
+    ...(entry.test
+      ? ["", "**Test content — this day did not happen.** It exists to check the software."]
+      : []),
     "",
     entry.content,
   ].join("\n");
@@ -210,6 +216,9 @@ const getDay: Handler = (session, args) => {
       trip: trip.ref,
       ...entrySummary(entry),
       tags: entry.tags,
+      costs: entry.costs,
+      ...(entry.transport ? { transport: entry.transport } : {}),
+      ...(entry.test ? { test: true } : {}),
       content: entry.content,
       status: entry.draft ? "draft" : "published",
     },
@@ -344,6 +353,18 @@ const addMedia: Handler = async (session, args) => {
   const day = optionalString(args, "day");
   if (!day) return { ok: false, error: "day is required — the day slug the photographs belong to" };
 
+  // The same line the REST route draws, and for the same reason: these are
+  // added to the day, and adding photographs to a day people have already read
+  // changes what they read.
+  if (isPublished(trip.ref, day)) {
+    return {
+      ok: false,
+      error:
+        `"${day}" is published, so this would change a day people have already read. ` +
+        `Ask the person to add these themselves, or write a new day for them.`,
+    };
+  }
+
   const raw = Array.isArray(args.files) ? args.files : [];
   const urls = Array.isArray(args.urls) ? args.urls.filter((u): u is string => typeof u === "string") : [];
   if (raw.length === 0 && urls.length === 0) {
@@ -378,15 +399,20 @@ const addMedia: Handler = async (session, args) => {
     return { ok: false, error: `invalid_media — ${describeProblems(result.problems)}` };
   }
 
-  const lines = result.items.map((i) => `  - src: "${i.src}"\n    type: "image"\n    width: ${i.width}\n    height: ${i.height}`);
+  // Written into the day itself, rather than handed back to paste. There was
+  // nothing to paste with: a day has no PATCH over either door, so a day
+  // written before its photographs kept an empty gallery for ever.
+  const attached = attachGallery(trip.ref, day, result.items);
+
   return {
     ok: true,
-    text:
-      `Wrote ${result.items.length} file(s) to ${day}. Paste this under the entry's ` +
-      `\`gallery:\` key:\n\n${lines.join("\n")}\n\n` +
-      `The originals are kept as sent — the site serves a resized copy, the ` +
-      `photobook prints from what you gave it.`,
-    data: { day, items: result.items },
+    text: attached.ok
+      ? `Wrote ${result.items.length} file(s) and added them to ${day}. Nothing to paste — ` +
+        `read the day back to see them. The originals are kept as sent: the site serves a ` +
+        `resized copy, the photobook prints from what you gave it.`
+      : `Wrote ${result.items.length} file(s) to ${day}, but could not add them to the entry: ` +
+        `${attached.error}`,
+    data: { day, items: result.items, attached: attached.ok },
   };
 };
 
@@ -760,8 +786,9 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
     name: "add_media",
     title: "Add photographs to a day",
     description:
-      "Upload photographs to a day of a trip and get back the gallery block to paste " +
-      "into its entry. Send the LARGEST file you have: the site is served a resized " +
+      "Upload photographs to a day of a trip. They are added to that day's entry for " +
+      "you — there is nothing to paste, and the order you write the day and send its " +
+      "pictures in does not matter. Send the LARGEST file you have: the site is served a resized " +
       "copy, and the original you send is what a printed photobook is made from — it " +
       "cannot be recovered later. Accepts JPEG, PNG, HEIC/HEIF and WebP. Base64 costs " +
       "a third more than the file itself, so for more than a handful use the REST " +

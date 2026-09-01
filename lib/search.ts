@@ -31,6 +31,9 @@ function buildDocs(username: string): SearchDoc[] {
     const tripBase = isCurrent ? `/${username}` : `/${username}/trips/${trip.id}`;
 
     for (const entry of getAllEntries(trip.ref)) {
+      // See the same line in lib/feed.ts: content nobody lived is not found
+      // by searching for it.
+      if (entry.test) continue;
       docs.push({
         id: `${trip.id}/${entry.slug}`,
         title: entry.title,

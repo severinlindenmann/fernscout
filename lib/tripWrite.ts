@@ -37,6 +37,14 @@ export type NewTrip = {
   accent?: (typeof ACCENTS)[number];
   visibility?: (typeof VISIBILITIES)[number];
   listed?: boolean;
+  /**
+   * A trip that exists to prove the software works, not to record anything.
+   *
+   * Every day of it gets a banner saying so, and none of it reaches the feed,
+   * the search index or the sitemap. The one honest way to answer "invent me
+   * three days so I can see the whole pipeline" — see lib/types.ts.
+   */
+  test?: boolean;
   intro?: string;
 };
 
@@ -130,6 +138,10 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     `accent: ${accent}`,
     `visibility: ${visibility}`,
     `listed: ${input.listed === false ? "false" : "true"}`,
+    // Written only when true. Every trip carrying `test: false` would make the
+    // flag look like a routine part of a trip file rather than the unusual
+    // thing it is.
+    ...(input.test === true ? ["test: true"] : []),
     "---",
     "",
     input.intro?.trim() ? input.intro.trim() : "",

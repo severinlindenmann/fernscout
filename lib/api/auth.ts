@@ -39,9 +39,34 @@ export function ownsUser(session: Session, username: string): boolean {
   return session.owner === username;
 }
 
+/**
+ * Why a call was refused, in words.
+ *
+ * `auth_disabled` is the one that needed saying. It answers 404, and so does
+ * "no such trip" — two very different instructions wearing the same status:
+ * one means "fix the trip id and try again", the other means "this server does
+ * not do tokens at all, stop". The `error` field has always distinguished
+ * them, but an agent reading a bare `{"error":"auth_disabled"}` on a URL it
+ * built correctly is entitled to think it built it wrong.
+ *
+ * 404 rather than 403 for a capability that is off is deliberate and stays:
+ * an endpoint that is not offered should not confirm it exists.
+ */
+const EXPLANATIONS: Record<string, string> = {
+  auth_disabled:
+    "This server has authentication switched off, so no token can be issued and no write " +
+    "endpoint will work — whatever trip you name. This is the operator's setting, not a " +
+    "mistake in your request: nothing you can send will change it. /api/health says which " +
+    "capabilities are on and why the others are not.",
+  missing_token: "Send the token as `Authorization: Bearer <token>`, and nowhere else.",
+  invalid_token:
+    "The token is unknown, revoked or expired. Ask for a new code at POST /api/auth/request.",
+};
+
 export function errorResponse(auth: Extract<ApiAuth, { ok: false }>): Response {
+  const message = EXPLANATIONS[auth.error];
   return Response.json(
-    { error: auth.error },
+    { error: auth.error, ...(message ? { message } : {}) },
     {
       status: auth.status,
       headers:

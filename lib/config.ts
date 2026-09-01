@@ -41,11 +41,32 @@ export type Owner = { name: string; nickname: string; email?: string };
  * split is what lets one instance carry several unrelated travel blogs without
  * them sharing a voice, a language or a currency.
  */
+/**
+ * Whether a journal is advertised at all.
+ *
+ * `public` is a journal anyone may come across: it is on the instance's
+ * `documentation.txt`, on the landing page, and in `sitemap.xml`. `private` is
+ * a journal you have to be sent the address of — off all three, and `noindex`.
+ *
+ * It is deliberately **not** an authentication wall in front of `/<user>`.
+ * Whether a stranger with the URL can read a *journey* is the trip's own
+ * `visibility`, which already has a password, invited guests and the trip's
+ * `people:` list behind it; putting a second, weaker gate above it would be a
+ * privacy control that looks stronger than the one doing the work. What
+ * `private` does change is the default a trip created in this journal gets, so
+ * an agent that omits `visibility` cannot put a journey on the open web.
+ *
+ * Absent means `public`, which is what every journal written before W38 is.
+ */
+export type JournalVisibility = "public" | "private";
+
 export type UserConfig = {
   username: string;
   owner: Owner;
   title: string;
   tagline: string;
+  /** See JournalVisibility. Defaults to "public". */
+  visibility: JournalVisibility;
   startLocation: string;
   defaultLocale: string;
   locales: string[];
@@ -299,11 +320,28 @@ function parseUser(username: string, raw: unknown, problems: string[]): UserConf
     else problems.push(`units must be "metric" or "imperial"`);
   }
 
+  // Absent is `public`, because that is what every journal written before the
+  // field existed is. A value that is neither is a config problem — as `units`
+  // is — and a config problem takes the journal off the site until it is
+  // fixed. The `private` assignment is what the value would be if it ever were
+  // read anyway: a misspelling must never be the thing that advertises
+  // somebody's journal.
+  const rawVisibility = src.visibility;
+  let visibility: JournalVisibility = "public";
+  if (rawVisibility !== undefined) {
+    if (rawVisibility === "public" || rawVisibility === "private") visibility = rawVisibility;
+    else {
+      problems.push(`visibility must be "public" or "private", got ${JSON.stringify(rawVisibility)}`);
+      visibility = "private";
+    }
+  }
+
   return {
     username,
     owner: parseOwner(src, problems),
     title: readString(src, "title", "", problems),
     tagline: readString(src, "tagline", "", problems, ""),
+    visibility,
     startLocation: readString(src, "startLocation", "", problems, ""),
     defaultLocale,
     locales,
@@ -467,9 +505,29 @@ export function userConfigPath(username: string): string {
 }
 
 /** Keyed by absolute path, so a test pointing CONTENT_DIR elsewhere doesn't get
- * handed the previous directory's config. Mirrors lib/trips.ts. */
-const serverCache = new Map<string, ServerConfig>();
-const userCache = new Map<string, UserConfig>();
+ * handed the previous directory's config. Mirrors lib/trips.ts.
+ *
+ * Held against the file's own `mtime:size` rather than until somebody calls
+ * `clearConfigCache()`, for the reason `getUsernames()` sets out at length: a
+ * production build hands the pages and the route handlers separate instances
+ * of this module, so an explicit invalidation only ever clears one of them.
+ * Editing a journal's config.json also used to need a restart, which is a poor
+ * answer for a file the owner is invited to edit by hand. */
+type Cached<T> = { signature: string; value: T };
+const serverCache = new Map<string, Cached<ServerConfig>>();
+const userCache = new Map<string, Cached<UserConfig>>();
+
+/** `mtime:size`, or "-" when the file cannot be stat'd — in which case the read
+ * below fails too and reports it properly. Never a constant: two different
+ * missing files must not share a cache entry. */
+function fileSignature(file: string): string {
+  try {
+    const { mtimeMs, size } = fs.statSync(file);
+    return `${mtimeMs}:${size}`;
+  } catch {
+    return "-";
+  }
+}
 
 function readJson(file: string, hint: string): unknown {
   let text: string;
@@ -487,19 +545,24 @@ function readJson(file: string, hint: string): unknown {
 
 export function loadServerConfig(): ServerConfig {
   const file = serverConfigPath();
+  const signature = fileSignature(file);
   const cached = serverCache.get(file);
-  if (cached) return cached;
+  if (cached && cached.signature === signature) return cached.value;
   const config = parseServerConfig(
     readJson(file, "Copy content/example/../config.json to get started."),
   );
-  serverCache.set(file, config);
+  serverCache.set(file, { signature, value: config });
   return config;
 }
 
 export function loadUserConfig(username: string): UserConfig {
   const file = userConfigPath(username);
+  // The server's file is in the signature too: the media block below is
+  // narrowed against the instance ceiling, so a user config that has not
+  // changed still parses to something different when the server's has.
+  const signature = `${fileSignature(file)}/${fileSignature(serverConfigPath())}`;
   const cached = userCache.get(file);
-  if (cached) return cached;
+  if (cached && cached.signature === signature) return cached.value;
   const parsed = parseUserConfig(
     username,
     readJson(file, `Every user needs a config.json — see content/example/config.json.`),
@@ -512,7 +575,7 @@ export function loadUserConfig(username: string): UserConfig {
     ...parsed,
     media: narrowest(serverMediaCeiling(), parsed.media),
   };
-  userCache.set(file, config);
+  userCache.set(file, { signature, value: config });
   return config;
 }
 
