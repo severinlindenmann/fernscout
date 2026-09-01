@@ -42,7 +42,7 @@ that should shape the work, so it is written out in full:
   already, in the database, a guest of the whole journal.
 - `resolveViewer` (`lib/viewer.ts:94`) reads it and tells such a person they
   may open every `visibility: guest` trip.
-- **`mayReadTrip` never asks.** `lib/tripGate.ts:28` checks `isOpenToLink`,
+- **`mayReadTrip` never asks.** `lib/tripGate.ts:26` checks `isOpenToLink`,
   then `isTravellerOn`, then the password cookie — and nothing else.
   `isGuestOf` says so outright: *"Identified per-person access lands with the
   contacts work; until then the only way to be a guest is to hold the trip's
@@ -88,6 +88,11 @@ what `access_grants` with `trip_id: "*"` already means, and what
 `resolveViewer` already reports. There is no per-trip guest link and none
 should be added; if a trip needs to be held back from people who are otherwise
 let in, that is what `visibility: private` is for.
+
+The schema and three read paths still carry an unbuilt per-trip granularity,
+written by nothing — that is B35, and it should land before this task rather
+than after, because `lib/viewer.ts` and `lib/digest/visibility.ts` are files
+this task opens and the dead arm reads as a feature worth preserving.
 
 This does **not** widen `private`. A journal guest sees `public` and `guest`
 trips. A `private` trip stays what `AGENTS.md` says it is — the people on it
