@@ -61,7 +61,10 @@ function feedItems(username: string, trips: Trip[]): FeedItem[] {
   const items: FeedItem[] = [];
   for (const trip of trips) {
     if (!isIndexable(trip)) continue; // the one line that matters
-    if (trip.status === "upcoming") continue; // nothing written yet
+    // "Nothing written yet" — and since B72 that is what the word means:
+    // `upcoming` is derived from `start` (lib/tripTime.ts), so a trip that has
+    // begun cannot carry it and cannot be skipped here on the strength of it.
+    if (trip.status === "upcoming") continue;
 
     const isCurrent = trip.id === currentId;
     const tripBase = isCurrent ? `${base}/${username}` : `${base}/${username}/trips/${trip.id}`;
