@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: map, ui
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B46 — A trip that stays inside one city draws as a single dot on a map thousands of kilometres wide
@@ -116,10 +117,31 @@ worth offering at all.
 
 > **Decided by the author, 2026-09-01: the first two options, together.** A
 > per-trip clipped basemap from `countries-10m`, and below roughly 30 km no
-> basemap at all. Lakes and rivers are *not* being added now, and OSM vector
-> tiles are not being adopted — the two rejected options are kept below because
-> the reasons they were rejected are the reasons to revisit them if the abstract
-> treatment reads as empty.
+> basemap at all. OSM vector tiles are not being adopted.
+>
+> **Widened by the author the same day: "basic mountains, lakes, cities etc
+> would be nice."** So the third option is in scope after all. What that costs
+> turned out to be much less than this file assumed, because two of the three
+> are already solved:
+>
+> - **Cities need no new dependency at all.** `lib/ingest/data/places.bin.gz` is
+>   already committed — every populated place over a thousand people, packed
+>   into fixed-size records *sorted by latitude* with a population scale on
+>   each (`lib/ingest/geo.ts:24`). It exists so ingest can reverse-geocode a
+>   photo with no network. Selecting the most significant places inside a
+>   bounding box is a latitude-range scan over an index that is already on
+>   disk and already binary-searchable.
+> - **Countries** are `world-atlas`, already a devDependency.
+> - **Lakes, rivers and peaks** are the only genuinely new data. Natural Earth
+>   publishes them as GeoJSON — `ne_10m_lakes`,
+>   `ne_10m_rivers_lake_centerlines`, `ne_10m_geography_regions_elevation_points`
+>   — and both were confirmed reachable before this was planned.
+>
+> And there is already a pattern in the repo for exactly this shape of thing.
+> `scripts/build-geodata.ts` downloads GeoNames, bakes a compact artefact, and
+> commits it, on the stated grounds that *"you are on hostel wifi; the geocoder
+> has to already be on the disk. This script exists to refresh it, not to run at
+> install time."* The new layers follow it rather than inventing a second way.
 
 **Decide what a close-up map shows.** The measurements above replace what this
 section originally guessed. Four options, and the first two are now the
