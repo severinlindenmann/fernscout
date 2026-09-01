@@ -46,37 +46,6 @@ function coordinate(value: number): string {
   return String(Number(value.toFixed(5)));
 }
 
-/**
- * Letters NFD cannot take apart, because they are not an ASCII letter plus an
- * accent — they are their own letters. Without these, "Ðà Lạt" slugs to
- * "a-lat" and "Ærøskøbing" to "rskbing", which is the sort of URL you only
- * notice after it has been shared.
- */
-const TRANSLITERATIONS: [RegExp, string][] = [
-  // Both the Vietnamese d-with-stroke and the eth GeoNames often uses for it.
-  [/[đĐðÐ]/g, "d"],
-  [/[øØ]/g, "o"],
-  [/[łŁ]/g, "l"],
-  [/[æÆ]/g, "ae"],
-  [/[œŒ]/g, "oe"],
-  [/[þÞ]/g, "th"],
-  [/ß/g, "ss"],
-];
-
-export function slugify(text: string): string {
-  let out = text.normalize("NFD");
-  for (const [pattern, replacement] of TRANSLITERATIONS) out = out.replace(pattern, replacement);
-  return (
-    out
-      .toLowerCase()
-      // Strip combining marks, so "Hội An" becomes "hoi-an" rather than losing
-      // the vowels entirely.
-      .replace(/[̀-ͯ]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "entry"
-  );
-}
-
 export function galleryLines(items: IngestGalleryItem[]): string[] {
   const lines: string[] = [];
   for (const item of items) {
