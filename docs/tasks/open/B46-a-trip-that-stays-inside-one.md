@@ -114,6 +114,13 @@ The framing arithmetic is straightforward; the basemap is a decision and should
 be made before the rest is built, because it determines whether zooming in is
 worth offering at all.
 
+> **Decided by the author, 2026-09-01: the first two options, together.** A
+> per-trip clipped basemap from `countries-10m`, and below roughly 30 km no
+> basemap at all. Lakes and rivers are *not* being added now, and OSM vector
+> tiles are not being adopted — the two rejected options are kept below because
+> the reasons they were rejected are the reasons to revisit them if the abstract
+> treatment reads as empty.
+
 **Decide what a close-up map shows.** The measurements above replace what this
 section originally guessed. Four options, and the first two are now the
 recommendation *together* — they answer different halves of the range:

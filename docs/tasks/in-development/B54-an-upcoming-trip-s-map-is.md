@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: map, i18n, plan
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B54 — An upcoming trip's map is titled "Where we've been"
