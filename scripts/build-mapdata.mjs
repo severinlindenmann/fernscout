@@ -97,23 +97,43 @@ async function fetchJson(url) {
   return json;
 }
 
-/** One ring of lng/lat pairs → an SVG path, and the box it occupies. */
+/**
+ * One ring of lng/lat pairs → an SVG path, and the box it occupies.
+ *
+ * **Split at the antimeridian.** Russia, Fiji and Antarctica have rings whose
+ * longitude steps from +179 to -179, which this projection turns into a jump
+ * from x=997 to x=3 — a straight line drawn across the entire world. It showed
+ * on the lifetime map as a stray horizontal rule through the Pacific. Any step
+ * of more than half the world is therefore treated as a lift of the pen: the
+ * ring becomes several subpaths in one `d`, which is also why an unclosed
+ * `Z` is only appended per subpath rather than once at the end.
+ */
 function ringToShape(ring, close) {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
-  const pts = [];
+
+  const runs = [];
+  let run = [];
+  let prevLng = null;
   for (const [lng, lat] of ring) {
+    if (prevLng !== null && Math.abs(lng - prevLng) > 180) {
+      if (run.length > 1) runs.push(run);
+      run = [];
+    }
+    prevLng = lng;
     const [x, y] = project(lat, lng);
     if (x < minX) minX = x;
     if (y < minY) minY = y;
     if (x > maxX) maxX = x;
     if (y > maxY) maxY = y;
-    pts.push(`${x.toFixed(DECIMALS)},${y.toFixed(DECIMALS)}`);
+    run.push(`${x.toFixed(DECIMALS)},${y.toFixed(DECIMALS)}`);
   }
-  if (pts.length < 2) return null;
-  const d = `M${pts.join(" L")}${close ? " Z" : ""}`;
+  if (run.length > 1) runs.push(run);
+  if (runs.length === 0) return null;
+
+  const d = runs.map((r) => `M${r.join(" L")}${close ? " Z" : ""}`).join(" ");
   return [
     Number(minX.toFixed(DECIMALS)),
     Number(minY.toFixed(DECIMALS)),
@@ -165,6 +185,7 @@ async function main() {
   const lakes = await fetchJson(`${NE}/ne_10m_lakes.geojson`);
   const rivers = await fetchJson(`${NE}/ne_10m_rivers_lake_centerlines.geojson`);
   const peaks = await fetchJson(`${NE}/ne_10m_geography_regions_elevation_points.geojson`);
+  const regions = await fetchJson(`${NE}/ne_10m_geography_regions_polys.geojson`);
 
   const out = {
     version: 1,
@@ -184,6 +205,23 @@ async function main() {
     rivers: collectionToShapes(rivers, {
       close: false,
       keep: (p) => (p.scalerank ?? 99) <= RIVER_SCALERANK_MAX,
+    }),
+    // High ground, as far as a vector basemap can express it.
+    //
+    // Natural Earth has no contours and no elevation raster in this pipeline,
+    // so "a bit of elevation" is the named terrain regions: mountain ranges,
+    // plateaus and foothills as polygons, drawn as a soft tint under
+    // everything else. It says "the ground rises here" without pretending to
+    // be a topographic map, which is the honest limit of the data — anything
+    // finer is the OSM/PMTiles rewrite this task deliberately does not take.
+    //
+    // Note the property names in *this* layer are upper case where every other
+    // Natural Earth file used here is lower case. Reading `featurecla` rather
+    // than `FEATURECLA` is what silently produced 1,047 features all classed
+    // `undefined` on the first attempt.
+    relief: collectionToShapes(regions, {
+      close: true,
+      keep: (p) => ["Range/mtn", "Plateau", "Foothills"].includes(p.FEATURECLA ?? p.featurecla),
     }),
     peaks: [],
   };
@@ -213,7 +251,9 @@ async function main() {
 
   const kb = (n) => `${(n / 1024).toFixed(0)} KB`;
   console.log(`\nWrote ${path.relative(ROOT, OUT_FILE)}`);
-  console.log(`  borders ${out.borders.length}, lakes ${out.lakes.length}, rivers ${out.rivers.length}, peaks ${out.peaks.length}`);
+  console.log(
+    `  borders ${out.borders.length}, relief ${out.relief.length}, lakes ${out.lakes.length}, rivers ${out.rivers.length}, peaks ${out.peaks.length}`,
+  );
   console.log(`  ${kb(json.length)} raw → ${kb(fs.statSync(OUT_FILE).size)} gzipped`);
 }
 

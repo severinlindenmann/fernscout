@@ -7,16 +7,20 @@ import { useI18n } from "./LocaleProvider";
 import { useMoney } from "./CurrencyProvider";
 import { flagFor } from "@/lib/flags";
 import { daysUntil } from "@/lib/tripTime";
+import type { Basemap } from "@/lib/basemap";
 import type { PlannedStop, Trip } from "@/lib/types";
 
 export default function TripCountdown({
   trip,
   stops,
   budget,
+  basemap = null,
 }: {
   trip: Trip;
   stops: PlannedStop[];
   budget?: { total: number; days: number };
+  /** Clipped to the planned route's frame on the server — see lib/basemap.ts. */
+  basemap?: Basemap | null;
 }) {
   const { t, formatLongDate, localizedTrip } = useI18n();
   const { money } = useMoney();
@@ -78,7 +82,7 @@ export default function TripCountdown({
             </h2>
             <div className="mt-3">
               {/* No places yet, so the map draws the plan alone. */}
-              <WorldMap places={[]} plan={stops} />
+              <WorldMap places={[]} plan={stops} basemap={basemap} />
             </div>
           </section>
         )}

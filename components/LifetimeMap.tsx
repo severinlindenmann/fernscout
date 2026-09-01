@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { project, MAP_VIEWBOX } from "@/lib/mapProjection";
+import { frameRoute, place as placeIn } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import { useI18n } from "./LocaleProvider";
+import type { Basemap } from "@/lib/basemap";
 import type { TripAccent } from "@/lib/types";
 
 export type TripRoute = {
@@ -29,28 +30,36 @@ export const ACCENT_HEX: Record<TripAccent, string> = {
  * zoom, no detail panel — that is what the per-trip WorldMap is for, and
  * this only has to answer "where have we been".
  */
-export default function LifetimeMap({ routes }: { routes: TripRoute[] }) {
+export default function LifetimeMap({
+  routes,
+  basemap = null,
+}: {
+  routes: TripRoute[];
+  /** Clipped to every trip's combined frame on the server — lib/basemap.ts. */
+  basemap?: Basemap | null;
+}) {
   const { t } = useI18n();
   const worldLand = useWorldLand();
 
-  // Frame the visited area, padded, rather than the whole world — otherwise
-  // two European trips are two dots in an ocean of empty Pacific.
-  const view = useMemo(() => {
-    const pts = routes.flatMap((r) => r.points.map((p) => project(p.lat, p.lng)));
-    if (pts.length === 0) {
-      return { x: 0, y: 0, width: MAP_VIEWBOX.width, height: MAP_VIEWBOX.height };
-    }
-    const xs = pts.map(([x]) => x);
-    const ys = pts.map(([, y]) => y);
-    const padX = Math.max(60, (Math.max(...xs) - Math.min(...xs)) * 0.25);
-    const padY = Math.max(40, (Math.max(...ys) - Math.min(...ys)) * 0.25);
-    return {
-      x: Math.min(...xs) - padX,
-      y: Math.min(...ys) - padY,
-      width: Math.max(...xs) - Math.min(...xs) + padX * 2,
-      height: Math.max(...ys) - Math.min(...ys) + padY * 2,
-    };
-  }, [routes]);
+  // Frame the visited area rather than the whole world — otherwise two European
+  // trips are two dots in an ocean of empty Pacific.
+  //
+  // This was the third copy of that arithmetic in the codebase, with a third
+  // set of constants: 60/40 units of padding here, 70/55 in WorldMap, 90/60 in
+  // MiniMap. B46 put it in one place, so all three now agree on what "framed"
+  // means and all three get the latitude correction that stops a north-south
+  // route being drawn stretched sideways.
+  const view = useMemo(
+    () => frameRoute(routes.flatMap((r) => r.points)),
+    [routes],
+  );
+
+  // Route strokes and dots keep their size on screen rather than being viewBox
+  // constants — the same fix WorldMap needed, for the same reason: a journal
+  // whose trips are all in one country now gets a small frame, and a
+  // radius-2.2 dot on a 5-unit map is most of the map. 140 is the frame width
+  // these numbers were originally chosen against.
+  const size = (units: number) => (units * view.w) / 140;
 
   const label =
     routes.length > 0
@@ -60,20 +69,42 @@ export default function LifetimeMap({ routes }: { routes: TripRoute[] }) {
   return (
     <figure className="overflow-hidden rounded-2xl border border-navy-200 bg-sky-300">
       <svg
-        viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`}
-        className="block h-auto w-full"
+        viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
+        // A map is the point of this figure, so it gets a floor to stand on:
+        // framed to a landscape shape it would otherwise be a 150-pixel band on
+        // a phone, which is a picture of nothing.
+        className="block h-auto min-h-[260px] w-full sm:min-h-0"
         role="img"
         aria-label={label}
       >
-        {/* Same land fill/stroke as the per-trip WorldMap (components/WorldMap.tsx),
-            so the two read as the same map. */}
-        <g fill="#dff3e0" stroke="#bfe3c4" strokeWidth={0.6}>
-          {worldLand.map((d, i) => (
-            <path key={i} d={d} />
-          ))}
+        {/* Same fills as the per-trip WorldMap (components/WorldMap.tsx), so the
+            two read as the same map — including the basemap when it has been
+            built, which is what lets a Swiss trip show a border rather than an
+            empty green field. */}
+        <g transform={`scale(${view.lngScale} 1)`}>
+          {basemap ? (
+            <>
+              <g fill="#dff3e0" stroke="#94c9a0" strokeWidth={1}>
+                {basemap.borders.map((d, i) => (
+                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                ))}
+              </g>
+              <g fill="#8fe0ef" stroke="#6fcfe0" strokeWidth={0.7}>
+                {basemap.lakes.map((d, i) => (
+                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                ))}
+              </g>
+            </>
+          ) : (
+            <g fill="#dff3e0" stroke="#bfe3c4" strokeWidth={1}>
+              {worldLand.map((d, i) => (
+                <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+              ))}
+            </g>
+          )}
         </g>
         {routes.map((route) => {
-          const pts = route.points.map((p) => project(p.lat, p.lng));
+          const pts = route.points.map((p) => placeIn(view, p));
           const colour = ACCENT_HEX[route.accent];
           return (
             <g key={route.id}>
@@ -82,14 +113,22 @@ export default function LifetimeMap({ routes }: { routes: TripRoute[] }) {
                   points={pts.map(([x, y]) => `${x},${y}`).join(" ")}
                   fill="none"
                   stroke={colour}
-                  strokeWidth={1.6}
+                  strokeWidth={size(1.6)}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   opacity={0.85}
                 />
               )}
               {pts.map(([x, y], i) => (
-                <circle key={i} cx={x} cy={y} r={2.2} fill={colour} stroke="#fffaf0" strokeWidth={0.7} />
+                <circle
+                  key={i}
+                  cx={x}
+                  cy={y}
+                  r={size(2.2)}
+                  fill={colour}
+                  stroke="#fffaf0"
+                  strokeWidth={size(0.7)}
+                />
               ))}
             </g>
           );

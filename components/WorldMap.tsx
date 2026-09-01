@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { mediaLoader } from "./mediaLoader";
 import { motion, AnimatePresence } from "motion/react";
@@ -48,7 +48,7 @@ type Cluster = { x: number; y: number; places: PlaceView[] };
  * Just over two radii, so two markers separate as soon as they would stop
  * overlapping rather than at the exact moment they touch.
  */
-const MERGE_RADII = 2.2;
+const MERGE_RADII = 1.9;
 
 function clusterPlaces(places: PlaceView[], markerRadius: number, frame: Frame): Cluster[] {
   const radius = markerRadius * MERGE_RADII;
@@ -162,26 +162,54 @@ export default function WorldMap({
   }, [base, zoom, pan, focus]);
 
   /**
-   * A length that keeps its size on screen, whatever the frame is.
+   * How wide this map is actually being drawn, in CSS pixels.
    *
-   * Every marker radius, stroke width and label on this map used to be a
-   * constant in viewBox units, divided by `zoom`. That worked only because the
-   * frame was *always* continental — around 140 units wide — so "r = 5" happened
-   * to mean a dot. Once B46 made the frame the size of the trip, the Alps came
-   * out 4.6 units across and a radius-8 marker was three times wider than the
-   * entire map: the page rendered as a blank white rectangle, because that is
-   * what a white circle bigger than its own viewBox looks like.
-   *
-   * So sizes are fractions of the current view instead. `view.w` already has
-   * the zoom divided into it, which is why none of these divide by zoom any
-   * more. 140 is the old frame width, so the fractions below reproduce what the
-   * map used to look like at the scale it used to be drawn at.
+   * Set after mount, and deliberately *not* during the server render: the
+   * initial value has to be identical on both sides or every size below becomes
+   * a hydration mismatch. 900 is a desktop map; a phone corrects it on the
+   * first frame.
    */
-  const size = useCallback((units: number) => (units * view.w) / 140, [view.w]);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [drawnWidth, setDrawnWidth] = useState(900);
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      if (w > 0) setDrawnWidth(w);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  /**
+   * A length in screen pixels, expressed in the units this frame is drawn in.
+   *
+   * Two bugs live here, and they are the same bug at two scales.
+   *
+   * Originally every marker radius, stroke width and label was a constant in
+   * viewBox units divided by `zoom`. That worked only because the frame was
+   * *always* continental — around 140 units wide — so "r = 5" happened to mean
+   * a dot. Once B46 made the frame the size of the trip, the Alps came out 4.6
+   * units across and a radius-8 marker was three times wider than the entire
+   * map: the page rendered as a blank white rectangle, which is what a white
+   * circle bigger than its own viewBox looks like.
+   *
+   * Making them a fraction of the view fixed that and introduced the second:
+   * a fraction of the width is a *different number of pixels* on a phone than
+   * on a laptop, so town names that read at 13px on a desktop arrived at 5px on
+   * a 390-pixel screen. Sizing against the measured width instead means a
+   * label is eleven pixels tall wherever it is read, which is the only
+   * definition of "legible" that survives changing the screen.
+   */
+  const px = useCallback(
+    (pixels: number) => (pixels * view.w) / drawnWidth,
+    [view.w, drawnWidth],
+  );
 
   // Clustered against the radius the markers are actually drawn at, so the
   // rule is "these two would overlap" rather than a distance guessed up front.
-  const clusters = useMemo(() => clusterPlaces(places, size(5), base), [places, size, base]);
+  const clusters = useMemo(() => clusterPlaces(places, px(13), base), [places, px, base]);
 
   const reset = useCallback(() => {
     setZoom(1);
@@ -213,8 +241,14 @@ export default function WorldMap({
             presentational, which hid the focusable cluster markers below from
             assistive tech entirely. */}
         <svg
+          ref={svgRef}
           viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
-          className="block h-auto w-full cursor-grab touch-none active:cursor-grabbing"
+          // A floor on the height. Framed to a 1.6 landscape shape, `h-auto`
+          // alone leaves a 240-pixel band on a phone — and this is the map
+          // page, where the map is the entire point of the screen. The pan and
+          // zoom controls also need somewhere to be that is not on top of the
+          // route.
+          className="block h-auto min-h-[340px] w-full cursor-grab touch-none active:cursor-grabbing sm:min-h-0"
           role="group"
           // The same question the heading above it asks (B54). A map showing
           // only a planned route must not announce itself as "where we've
@@ -248,6 +282,17 @@ export default function WorldMap({
                     <path key={i} d={d} vectorEffect="non-scaling-stroke" />
                   ))}
                 </g>
+                {/* High ground: mountain ranges, plateaus and foothills, as a
+                    tint over the land and under everything else. Natural Earth
+                    has no contours, so this is as far as "elevation" goes here
+                    — it says the ground rises without pretending to be a
+                    topographic map. Low opacity on purpose: it is texture
+                    behind the trip, not information competing with it. */}
+                <g fill="#cfe0bd" opacity={0.55} stroke="none">
+                  {basemap.relief.map((d, i) => (
+                    <path key={i} d={d} />
+                  ))}
+                </g>
                 <g fill="#8fe0ef" stroke="#6fcfe0" strokeWidth={0.8}>
                   {basemap.lakes.map((d, i) => (
                     <path key={i} d={d} vectorEffect="non-scaling-stroke" />
@@ -278,11 +323,11 @@ export default function WorldMap({
             <g pointerEvents="none">
               {basemap.towns.map((town) => (
                 <g key={`town-${town.name}-${town.x}`}>
-                  <circle cx={town.x} cy={town.y} r={size(0.6)} fill="#8aa0b8" />
+                  <circle cx={town.x} cy={town.y} r={px(3.5)} fill="#8aa0b8" />
                   <text
-                    x={town.x + size(1.1)}
-                    y={town.y + size(0.75)}
-                    fontSize={size(1.9)}
+                    x={town.x + px(6)}
+                    y={town.y + px(4)}
+                    fontSize={px(11)}
                     fill="#5a6a80"
                     className="font-display"
                   >
@@ -294,13 +339,13 @@ export default function WorldMap({
                 <g key={`peak-${peak.name}-${peak.x}`}>
                   {/* A triangle, because a dot would read as another town. */}
                   <path
-                    d={`M${peak.x},${peak.y - size(1.2)} L${peak.x + size(1.1)},${peak.y + size(0.8)} L${peak.x - size(1.1)},${peak.y + size(0.8)} Z`}
+                    d={`M${peak.x},${peak.y - px(7)} L${peak.x + px(6)},${peak.y + px(5)} L${peak.x - px(6)},${peak.y + px(5)} Z`}
                     fill="#9a8f7a"
                   />
                   <text
-                    x={peak.x + size(1.7)}
-                    y={peak.y + size(1.1)}
-                    fontSize={size(1.9)}
+                    x={peak.x + px(9)}
+                    y={peak.y + px(6)}
+                    fontSize={px(11)}
                     fill="#7a6f5a"
                     className="font-display"
                   >
@@ -329,8 +374,8 @@ export default function WorldMap({
                   .join(" ")}
                 fill="none"
                 stroke="#5a6a80"
-                strokeWidth={size(1.4)}
-                strokeDasharray={`${size(5)} ${size(4)}`}
+                strokeWidth={px(2)}
+                strokeDasharray={`${px(7)} ${px(5)}`}
                 strokeLinecap="round"
                 opacity={0.45}
               />
@@ -343,10 +388,10 @@ export default function WorldMap({
                       key={`${s.location}-${i}`}
                       cx={x}
                       cy={y}
-                      r={size(3.2)}
+                      r={px(5)}
                       fill="#fffaf0"
                       stroke="#5a6a80"
-                      strokeWidth={size(1.3)}
+                      strokeWidth={px(1.8)}
                       opacity={0.75}
                     />
                   );
@@ -362,7 +407,7 @@ export default function WorldMap({
             const dx = x2 - x1;
             const dy = y2 - y1;
             const len = Math.hypot(dx, dy) || 1;
-            const bow = Math.min(size(24), len * 0.18);
+            const bow = Math.min(px(120), len * 0.18);
             const cx = mx - (dy / len) * bow;
             const cy = my + (dx / len) * bow;
             const style = TRANSPORT_STYLE[leg.mode];
@@ -372,7 +417,7 @@ export default function WorldMap({
                 d={`M${x1},${y1} Q${cx},${cy} ${x2},${y2}`}
                 fill="none"
                 stroke={style.color}
-                strokeWidth={size(2)}
+                strokeWidth={px(4)}
                 strokeDasharray={style.dash}
                 strokeLinecap="round"
                 initial={{ pathLength: 0, opacity: 0 }}
@@ -386,7 +431,7 @@ export default function WorldMap({
             const many = cluster.places.length > 1;
             const isSelected =
               !many && selected?.key === cluster.places[0].key;
-            const r = size(many ? 8 : isSelected ? 7 : 5);
+            const r = px(many ? 18 : isSelected ? 16 : 13);
             const label = cluster.places.length;
             return (
               <g
@@ -427,7 +472,7 @@ export default function WorldMap({
                   r={r}
                   fill={many ? "#3b82f6" : isSelected ? "#ffd23f" : "#ffffff"}
                   stroke="#1e293b"
-                  strokeWidth={size(1.6)}
+                  strokeWidth={px(3)}
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{
@@ -444,7 +489,7 @@ export default function WorldMap({
                     y={cluster.y}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize={size(8)}
+                    fontSize={px(15)}
                     fontWeight={700}
                     fill="#ffffff"
                     pointerEvents="none"
@@ -455,7 +500,7 @@ export default function WorldMap({
                 {/* The hit area, deliberately larger than the drawn dot: the dot is
                     10px across and a thumb is not. Divided by zoom so it stays 44px
                     on screen rather than growing with the map. */}
-                <circle cx={cluster.x} cy={cluster.y} r={size(27)} fill="transparent" />
+                <circle cx={cluster.x} cy={cluster.y} r={px(26)} fill="transparent" />
               </g>
             );
           })}

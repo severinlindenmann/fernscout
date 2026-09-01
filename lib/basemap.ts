@@ -37,6 +37,7 @@ type Bundle = {
   version: number;
   attribution: string;
   borders: Shape[];
+  relief: Shape[];
   lakes: Shape[];
   rivers: Shape[];
   /** x, y, metres, name. */
@@ -53,6 +54,8 @@ export type BasemapLabel = {
 
 export type Basemap = {
   borders: string[];
+  /** Mountain ranges, plateaus and foothills — high ground, not contours. */
+  relief: string[];
   lakes: string[];
   rivers: string[];
   peaks: BasemapLabel[];
@@ -60,11 +63,19 @@ export type Basemap = {
   attribution: string;
 };
 
-/** How many town labels a frame is allowed, before it becomes a wall of text. */
-const MAX_TOWNS = 14;
+/**
+ * How many town labels a frame is allowed, before it becomes a wall of text.
+ *
+ * The ceiling is generous because `spread` below is what actually decides:
+ * candidates are offered largest-first and rejected on collision, so a crowded
+ * frame runs out of room long before it runs out of towns. On a phone the
+ * frame is the same shape and the labels the same fraction of it, so the same
+ * number fits — this is not a desktop figure being squeezed onto mobile.
+ */
+const MAX_TOWNS = 22;
 
-/** And how many peaks. Fewer: they carry a name and an altitude. */
-const MAX_PEAKS = 6;
+/** And how many peaks. Fewer: they carry a name *and* an altitude. */
+const MAX_PEAKS = 8;
 
 function bundleFile(): string {
   return path.join(path.dirname(fileURLToPath(import.meta.url)), "mapdata", "basemap.json.gz");
@@ -168,6 +179,7 @@ export function basemapFor(frame: Frame): Basemap | null {
 
   return {
     borders: clip(data.borders, x0, y0, x1, y1),
+    relief: clip(data.relief ?? [], x0, y0, x1, y1),
     lakes: clip(data.lakes, x0, y0, x1, y1),
     rivers: clip(data.rivers, x0, y0, x1, y1),
     peaks: spread(peakCandidates, frame, MAX_PEAKS),

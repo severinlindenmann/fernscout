@@ -6,6 +6,7 @@ import Image from "next/image";
 import { mediaLoader } from "@/components/mediaLoader";
 import PageHeader from "@/components/PageHeader";
 import LifetimeMap, { ACCENT_HEX, type TripRoute } from "@/components/LifetimeMap";
+import type { Basemap } from "@/lib/basemap";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
 import type { TranslationKey } from "@/lib/i18n";
@@ -45,10 +46,13 @@ export default function TripsIndexContent({
   trips,
   routes,
   lifetime,
+  basemap = null,
 }: {
   trips: TripCardData[];
   routes: RouteData[];
   lifetime: { countries: number; days: number; photos: number; trips: number };
+  /** Clipped on the server to every route's combined frame — lib/basemap.ts. */
+  basemap?: Basemap | null;
 }) {
   const { t, tn, localizedTrip } = useI18n();
 
@@ -80,7 +84,7 @@ export default function TripsIndexContent({
 
         {mapRoutes.length > 0 && (
           <div className="mt-7">
-            <LifetimeMap routes={mapRoutes} />
+            <LifetimeMap routes={mapRoutes} basemap={basemap} />
           </div>
         )}
 

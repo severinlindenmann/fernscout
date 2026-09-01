@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
+import { basemapFor } from "@/lib/basemap";
 import { getAllEntries } from "@/lib/entries";
+import { frameRoute } from "@/lib/mapFrame";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { buildStoryProps } from "@/lib/tripView";
 import { getPlan } from "@/lib/plan";
@@ -69,7 +71,12 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
     const plan = getPlan(trip.ref, { includeDrafts: await isOwner(user) });
     return (
       <TripProvider trip={trip} isCurrent={false}>
-        <TripCountdown trip={trip} stops={plan.stops} budget={getBudgetInBase(trip.ref)} />
+        <TripCountdown
+          trip={trip}
+          stops={plan.stops}
+          budget={getBudgetInBase(trip.ref)}
+          basemap={basemapFor(frameRoute(plan.stops))}
+        />
       </TripProvider>
     );
   }
