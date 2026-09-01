@@ -317,6 +317,7 @@ export type TranslationKey =
   | "map.countries.one"
   | "map.days"
   | "map.days.one"
+  | "map.empty"
   | "map.everyStop"
   | "map.media"
   | "map.nextUp"

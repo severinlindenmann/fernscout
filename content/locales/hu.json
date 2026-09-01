@@ -286,6 +286,7 @@
   "map.countries.one": "Ország",
   "map.days": "Nap úton",
   "map.days.one": "Nap úton",
+  "map.empty": "Még nincs mit megrajzolni — nincsenek napok és nincs tervezett útvonal.",
   "map.everyStop": "Minden helyszín",
   "map.media": "Fotó és videó",
   "map.nextUp": "Következik",

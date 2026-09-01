@@ -34,6 +34,11 @@ export default function MapPageContent({
   // Only ever true for the owner — `getPlan` only tags a stop `fromDraft` when
   // it was asked to include drafts, which only the owner's page does.
   const hasDraftStops = plan.some((s) => s.fromDraft);
+  // Everything on this page is one of two kinds: a record of travel already
+  // made, or the route still intended. An upcoming trip has only the second,
+  // and asked as `places.length > 0` in four separate places the first kind
+  // rendered anyway — as four zeroes, an empty box, and no map at all.
+  const hasPlaces = places.length > 0;
 
   return (
     <div className="min-h-screen">
@@ -44,7 +49,7 @@ export default function MapPageContent({
         </h1>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-navy-600">{t("map.subtitle")}</p>
-          {places.length > 0 && (
+          {hasPlaces && (
             <button
               onClick={() => setShowing(true)}
               className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-navy-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-navy-700"
@@ -55,18 +60,37 @@ export default function MapPageContent({
           )}
         </div>
 
-        <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label={tn("map.days", stats.tripDays)} value={stats.tripDays} />
-          <Stat label={tn("map.stops", stats.places)} value={stats.places} />
-          <Stat label={tn("map.countries", stats.countries)} value={stats.countries} />
-          <Stat label={t("map.media")} value={stats.totalMedia} />
-        </dl>
+        {/* Days on the road, stops, countries, photographs — every one counts
+            travel that has happened. A trip that has not started has an honest
+            answer for none of them, and four zeroes is not that answer. Nor is
+            the plan's own arithmetic: eight planned stops is not eight stops,
+            and putting it in this row would say it was. The size of the plan is
+            already on this page twice — the `0/8` counter under the map, and
+            the list of stops still to come. */}
+        {hasPlaces && (
+          <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label={tn("map.days", stats.tripDays)} value={stats.tripDays} />
+            <Stat label={tn("map.stops", stats.places)} value={stats.places} />
+            <Stat label={tn("map.countries", stats.countries)} value={stats.countries} />
+            <Stat label={t("map.media")} value={stats.totalMedia} />
+          </dl>
+        )}
 
+        {/* A planned route is a map. `WorldMap` has framed one since it was
+            written — see the `base` frame in components/WorldMap.tsx, which
+            falls back to projecting `plan` when there are no places — and this
+            guard, published entries only, was the single thing withholding it.
+            An upcoming trip is the one most likely to be shared before there is
+            anything else to show, and it was answering "no entries yet"
+            directly above a legend for the route it had just refused to draw. */}
         <div className="mt-7">
-          {places.length > 0 ? (
+          {hasPlaces || plan.length > 0 ? (
             <WorldMap places={places} plan={plan} />
           ) : (
-            <p className="text-navy-600">{t("story.empty")}</p>
+            // Not `story.empty`. "No entries yet" is true and is not the reason
+            // the map is missing; with neither days nor a route there is
+            // nothing to draw, and the message should say that instead.
+            <p className="text-navy-600">{t("map.empty")}</p>
           )}
         </div>
 
@@ -123,36 +147,44 @@ export default function MapPageContent({
           </section>
         )}
 
-        <section className="mt-10">
-          <h2 className="font-display text-xl font-semibold text-navy-900">{t("map.everyStop")}</h2>
-          <ol className="mt-3 divide-y divide-navy-200 overflow-hidden rounded-xl border border-navy-200 bg-white">
-            {places.map((place) => (
-              <li key={place.key}>
-                <a
-                  href={href(`/day/${place.entries[0].slug}`)}
-                  className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-cream-50"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate font-display text-sm font-semibold text-navy-900">
-                      {flagFor(place.country, place.countryCode)} {place.location}
+        {/* Withheld rather than drawn empty. A heading reading "Every stop"
+            over a blank bordered box says this trip had no stops, when what is
+            true is that it has not started — and where it is going is the list
+            immediately above. */}
+        {hasPlaces && (
+          <section className="mt-10">
+            <h2 className="font-display text-xl font-semibold text-navy-900">
+              {t("map.everyStop")}
+            </h2>
+            <ol className="mt-3 divide-y divide-navy-200 overflow-hidden rounded-xl border border-navy-200 bg-white">
+              {places.map((place) => (
+                <li key={place.key}>
+                  <a
+                    href={href(`/day/${place.entries[0].slug}`)}
+                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-cream-50"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-display text-sm font-semibold text-navy-900">
+                        {flagFor(place.country, place.countryCode)} {place.location}
+                      </div>
+                      <div className="text-xs text-navy-600">{place.country}</div>
                     </div>
-                    <div className="text-xs text-navy-600">{place.country}</div>
-                  </div>
-                  <div className="shrink-0 text-right text-xs text-navy-600">
-                    <div>
-                      {formatShortDate(place.firstDate)}
-                      {place.lastDate !== place.firstDate &&
-                        ` – ${formatShortDate(place.lastDate)}`}
+                    <div className="shrink-0 text-right text-xs text-navy-600">
+                      <div>
+                        {formatShortDate(place.firstDate)}
+                        {place.lastDate !== place.firstDate &&
+                          ` – ${formatShortDate(place.lastDate)}`}
+                      </div>
+                      <div>
+                        {formatStay(place.nights)} · {place.mediaCount} {t("media.count")}
+                      </div>
                     </div>
-                    <div>
-                      {formatStay(place.nights)} · {place.mediaCount} {t("media.count")}
-                    </div>
-                  </div>
-                </a>
-              </li>
-            ))}
-          </ol>
-        </section>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
       </main>
 
       {showing && <SlideShow places={places} onClose={() => setShowing(false)} />}

@@ -286,6 +286,7 @@
   "map.countries.one": "Land",
   "map.days": "Tage unterwegs",
   "map.days.one": "Tag unterwegs",
+  "map.empty": "Noch nichts zu zeichnen — keine Tage geschrieben und keine Route geplant.",
   "map.everyStop": "Alle Orte",
   "map.media": "Fotos & Videos",
   "map.nextUp": "Als Nächstes",
