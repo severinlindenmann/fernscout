@@ -42,11 +42,20 @@ export const VISIBILITY_MEANING =
  * sentence above wherever that goes: "private journal" sounds like a lock and
  * is not one. A person told otherwise will put something in it they should
  * not.
+ *
+ * It used to say a journey was gated by "a password, invited guests and the
+ * trip's `people:` list", which listed one mechanism beside two audiences and
+ * was wrong about the middle one from B41 onwards: a guest is a guest of the
+ * *journal*, so `guest` is not a property of who was invited to that trip. The
+ * distinction between the two closed values is the thing a person gets wrong
+ * at the moment they create a trip, so it is what the sentence now spends its
+ * words on.
  */
 export const VISIBILITY_NOT_A_LOCK =
-  "Neither decides who may read a particular journey: that is the trip's own visibility, " +
-  "which has a password, invited guests and the trip's `people:` list behind it — and a " +
-  "new trip is private whichever kind of journal it is in.";
+  "Neither decides who may read a particular journey: that is the trip's own `visibility` " +
+  "— `guest` means the people the owner has let into this journal, `private` means only " +
+  "the people who were there, `public` means anyone — and a new trip is private whichever " +
+  "kind of journal it is in.";
 
 // Read from the constant rather than typed into prose: a fourth language would
 // otherwise be maintained everywhere except in the sentence that tells an agent

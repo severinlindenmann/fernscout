@@ -88,10 +88,18 @@ followed.
 Two things about a trip are worth knowing before you open either.
 
 **`visibility` says who is let in** — `private` (the people on the trip, and
-the owner), `public` (everyone), or `guest` (invited guests, and the people on
-the trip). An unrecognised value reads as `private`, never as `public`: a typo
-must not publish somebody's trip. `listed:` is the separate question of whether
-it is advertised at all.
+the owner), `public` (everyone), or `guest` (everyone the owner has let into
+the *journal*, and the people on the trip). An unrecognised value reads as
+`private`, never as `public`: a typo must not publish somebody's trip.
+`listed:` is the separate question of whether it is advertised at all.
+
+The line between the two closed values is what a person gets wrong at the
+moment they create a trip: **`guest` means the people I let into this journal;
+`private` means only the people who were there.** A guest is a guest of the
+journal and never of one trip — approving somebody opens every `guest` trip in
+it, at once and for as long as the approval lasts. A trip that must be held
+back from people who are otherwise let in is `private`, and that is the only
+mechanism; there is deliberately no narrower one.
 
 **`people:` is who took it** — up to ten, each a name and an email. Everyone
 listed may write to the whole trip, and may hold an agent token scoped to it

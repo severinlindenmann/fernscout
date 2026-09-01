@@ -16,6 +16,12 @@ import type { Trip } from "@/lib/types";
  * The property that matters, in both: the panel never widens access. It
  * reports what `mayReadTrip` would already allow, and being told about a trip
  * you cannot open is the same leak as showing it in a list.
+ *
+ * That was a claim rather than a guarantee until B41 — the panel listed
+ * `guest` trips the gate then refused (B45). It is enforced in
+ * `test/access-gate.test.ts`, which runs both functions over every viewer and
+ * every visibility and checks the two answers agree. This file stays as the
+ * account of the panel's own reasoning.
  */
 
 /** The session cookie the mocked `next/headers` hands back, if any. */

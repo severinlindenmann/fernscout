@@ -50,8 +50,8 @@ export type Owner = { name: string; nickname: string; email?: string };
  *
  * It is deliberately **not** an authentication wall in front of `/<user>`.
  * Whether a stranger with the URL can read a *journey* is the trip's own
- * `visibility`, which already has a password, invited guests and the trip's
- * `people:` list behind it; putting a second, weaker gate above it would be a
+ * `visibility` — `guest` for the people let into the journal, `private` for
+ * only the people who were there; putting a second, weaker gate above it would be a
  * privacy control that looks stronger than the one doing the work. What
  * `private` does change is the default a trip created in this journal gets, so
  * an agent that omits `visibility` cannot put a journey on the open web.

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { isOpenToLink, isRestricted, maySeeCosts, tripCookieName, verifyTripToken } from "./access";
 import { GUEST_COOKIE, resolveSession } from "./auth";
+import { isJournalGuest } from "./contacts/session";
 import { isPersonOn } from "./tripPeople";
 import type { Trip } from "./types";
 
@@ -30,9 +31,24 @@ export async function mayReadTrip(trip: Trip): Promise<boolean> {
   // closed. Somebody who was on the bus should not need a password to read
   // their own week, and for a `private` trip they are the only way in.
   if (await isTravellerOn(trip)) return true;
+
+  // `private` is the people who were there, and nobody else — not the people
+  // the owner has let into the journal, and not a password holder. It is the
+  // one thing being a guest does not widen, and the reason there are three
+  // visibility values rather than two: invite the family to the journal and
+  // every non-public trip becomes theirs to read unless one word can hold a
+  // trip back.
   if (trip.visibility === "private") return false;
 
-  // `guest`: a password, or an invitation.
+  // `guest`: an invitation to the journal, or the trip's password.
+  //
+  // The invitation is the door B41 added. `isJournalGuest` is the same call
+  // `resolveViewer` makes to decide what to *list* on `/<user>/me`, so a trip
+  // shown there under "what you can read" is a trip this returns true for.
+  // Before, the panel said yes and this said no, and the reader met a password
+  // form for a password nobody had ever sent them.
+  if (await isJournalGuest(trip.username)) return true;
+
   const jar = await cookies();
   return verifyTripToken(trip, jar.get(tripCookieName(trip.ref))?.value);
 }
@@ -104,16 +120,25 @@ export async function mayViewCosts(trip: Trip): Promise<boolean> {
   return maySeeCosts(trip, await isGuestOf(trip));
 }
 
-/** True when the viewer has proved they belong here — used for costs. */
+/**
+ * True when the viewer has proved they belong here — used for costs.
+ *
+ * `costsVisibility: guests` finally means something for a person rather than
+ * only for a password holder: an approved contact is a guest of the journal,
+ * so the money on a trip they may read is theirs to see. It stays false for a
+ * `private` trip whatever the journal let them into — being a guest of the
+ * journal is not being on the trip, and this must never say yes about a trip
+ * `mayReadTrip` says no about.
+ */
 export async function isGuestOf(trip: Trip): Promise<boolean> {
   // Somebody who took the trip has already seen what it cost.
   if (await isTravellerOn(trip)) return true;
+  if (trip.visibility === "private") return false;
+  if (await isJournalGuest(trip.username)) return true;
   if (isRestricted(trip)) {
     const jar = await cookies();
     return verifyTripToken(trip, jar.get(tripCookieName(trip.ref))?.value);
   }
-  // Identified per-person access lands with the contacts work; until then the
-  // only way to be a guest is to hold the trip's password.
   return false;
 }
 
@@ -128,12 +153,27 @@ export async function isGuestOf(trip: Trip): Promise<boolean> {
 export async function listableTrips(trips: Trip[]): Promise<Trip[]> {
   const jar = await cookies();
   const session = await resolveSession(jar.get(GUEST_COOKIE)?.value, "guest");
+  // One lookup for the whole list rather than one per trip: a grant is
+  // journal-wide, so the answer cannot differ between two trips in it. Only
+  // asked when somebody is signed in, and only for the journal they are signed
+  // in to — the switcher renders on every page, including for strangers.
+  const owner = session?.owner;
+  const guest = owner !== undefined && (await isJournalGuest(owner));
+
   return trips.filter((trip) => {
     // `listed: false` is the old `unlisted` — reachable by link, never
     // advertised, not even to somebody who could open it.
     if (trip.visibility === "public") return trip.listed;
     // A trip you were on is listed for you: it is yours to find again.
     if (session?.owner === trip.username && isPersonOn(trip, session.email)) return true;
+    // `private` is nobody else's, and a password cookie does not change that
+    // — `mayReadTrip` refuses one before it ever looks at a cookie, so listing
+    // it here would advertise a trip the switcher cannot open.
+    if (trip.visibility === "private") return false;
+    // A guest of the journal: the same question the panel on `/<user>/me` asks
+    // and the same one the gate asks, so the switcher, the panel and the gate
+    // name one set of trips between them (B41, B45).
+    if (guest && owner === trip.username) return true;
     return verifyTripToken(trip, jar.get(tripCookieName(trip.ref))?.value);
   });
 }

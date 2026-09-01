@@ -73,10 +73,20 @@ Four fields decide behaviour rather than decoration:
   disclaimer on a public trip. This is not a quiet way to hand somebody write
   access; if that's all they need, that is not what this field is for.
 - **`visibility`** — who is let in. `private` is the people above and the
-  journal's owner; `public` is everyone; `guest` is invited guests plus the
-  people above. An unrecognised value reads as **`private`**, never as public: a
-  typo must not publish somebody's trip. For a `guest` trip set `passwordHash:`
-  with `npm run trip:password` rather than by hand.
+  journal's owner; `public` is everyone; `guest` is everyone the owner has let
+  into the *journal* — every approved contact — plus the people above. An
+  unrecognised value reads as **`private`**, never as public: a typo must not
+  publish somebody's trip.
+
+  Say it to the person in these words, because it is the choice they get wrong:
+  **`guest` means the people I let into this journal; `private` means only the
+  people who were there.** Approving one contact opens every `guest` trip in the
+  journal to them; a trip that has to be held back from them is `private`.
+
+  A `guest` trip may also carry a `passwordHash:` — set it with
+  `npm run trip:password` rather than by hand — which is the anonymous door for
+  somebody who was sent a password rather than approved. It is optional: an
+  approved contact opens the trip without one.
 
   `listed:` is a separate question — whether the trip is advertised in the
   sitemap, the feed and the switcher. The two older words still parse:
