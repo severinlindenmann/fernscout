@@ -47,6 +47,46 @@ a string match against one chosen spelling:
 Related to B03, which is about the same function re-resolving a hostname after
 checking it. Both are "the check is right and what reaches it is not".
 
+## What was found, and the decision
+
+**Every suspicion in this file was correct, and there was one more.** Probed
+against the old implementation before changing anything:
+
+```
+REACHABLE 0:0:0:0:0:0:0:1                    loopback, written out
+REACHABLE 0000:0000:...:0001                 loopback, fully padded
+REACHABLE fe90::1                            link-local (fe80::/10 is fe80-febf)
+REACHABLE feb0::1                            link-local, top of range
+REACHABLE 64:ff9b::7f00:1                    NAT64 carrying loopback
+REACHABLE 64:ff9b::a9fe:a9fe                 NAT64 carrying the metadata endpoint
+```
+
+`fc00::/7` was the one this file guessed might be fine, and it was. Everything
+else leaked. The extra find is `fec0::/10`, site-local — deprecated, not
+routable, and not checked.
+
+**Decision: parse to bytes.** The alternative was another round of spelling
+patches, and this file had already produced two of those (B31). A string is a
+spelling, not an address; reduced to sixteen bytes there is nothing left to
+spell differently, and the ranges can be compared as the RFCs write them.
+
+Two consequences worth recording:
+
+- **IPv4 is stored as `::ffff:a.b.c.d`**, so one set of range checks covers
+  both families and an address cannot be private in one form and public in
+  another. That was the actual shape of the B31 bug.
+- **NAT64 is judged on what it embeds**, like the mapped form, rather than
+  refused outright. `64:ff9b::808:808` is a legitimate route to 8.8.8.8 and
+  there is no reason to block it; `64:ff9b::a9fe:a9fe` is the metadata endpoint
+  and is refused for the same reason `::ffff:a9fe:a9fe` is. That is the NAT64
+  decision this file asked for.
+
+The tests gained the alternate spellings, an "every spelling agrees" property
+that states the rule once instead of enumerating it, and boundary pairs either
+side of each widened range — `fe7f::` public / `fe80::` not, `fbff::` public /
+`fc00::` not. Those last are where a `/9` written for a `/10` would show up and
+nowhere else. Fourteen of them fail against the old code.
+
 ## Work
 
 - Decide the approach first: keep matching strings, or parse the address into

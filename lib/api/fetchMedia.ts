@@ -39,58 +39,128 @@ export type FetchedMedia = { filename: string; bytes: Buffer };
 export type FetchProblem = { url: string; reason: string };
 
 /**
+ * One address, as the sixteen bytes it actually is.
+ *
+ * **This function is the whole fix for B36.** The checks below used to match
+ * strings, and a string is a *spelling* rather than an address: `::1` and
+ * `0:0:0:0:0:0:0:1` are the same machine and shared no prefix, `fe80::/10`
+ * spans `fe80`–`febf` while only `fe80` was matched, and `::ffff:127.0.0.1`
+ * arrives from `new URL()` normalised to `::ffff:7f00:1`. Every one of those
+ * was reachable. Two of them had already been found and patched individually
+ * (B31), which is what suggested that patching spellings was the wrong shape.
+ *
+ * Reduced to bytes there is nothing left to spell differently, so the ranges
+ * below can be compared as the RFCs define them.
+ *
+ * v4 becomes v4-mapped — `::ffff:a.b.c.d` — so one set of range checks covers
+ * both families and an IPv4 address cannot be private in one form and public
+ * in another.
+ */
+function toBytes(ip: string): Uint8Array | null {
+  const version = net.isIP(ip);
+  if (version === 0) return null;
+
+  const bytes = new Uint8Array(16);
+  if (version === 4) {
+    // ::ffff:a.b.c.d — the mapped form, so the v4 branch below catches it.
+    bytes[10] = 0xff;
+    bytes[11] = 0xff;
+    ip.split(".").forEach((part, i) => (bytes[12 + i] = Number(part)));
+    return bytes;
+  }
+
+  // The tail may be dotted-quad: `::ffff:127.0.0.1`, `64:ff9b::192.0.2.1`.
+  let text = ip.toLowerCase();
+  const dotted = /:(\d+\.\d+\.\d+\.\d+)$/.exec(text);
+  if (dotted) {
+    const quad = dotted[1].split(".").map(Number);
+    const high = ((quad[0] << 8) | quad[1]).toString(16);
+    const low = ((quad[2] << 8) | quad[3]).toString(16);
+    text = `${text.slice(0, dotted.index)}:${high}:${low}`;
+  }
+
+  // `::` stands for however many zero groups are needed to reach eight.
+  const [head, tail] = text.split("::");
+  const left = head ? head.split(":").filter(Boolean) : [];
+  const right = tail !== undefined && tail ? tail.split(":").filter(Boolean) : [];
+  const groups =
+    tail === undefined
+      ? left
+      : [...left, ...Array(8 - left.length - right.length).fill("0"), ...right];
+  if (groups.length !== 8) return null;
+
+  groups.forEach((group, i) => {
+    const value = Number.parseInt(group, 16);
+    bytes[i * 2] = value >> 8;
+    bytes[i * 2 + 1] = value & 0xff;
+  });
+  return bytes;
+}
+
+/** True when the first `bits` of the address equal `prefix`. */
+function inRange(bytes: Uint8Array, prefix: number[], bits: number): boolean {
+  for (let i = 0; i < bits; i++) {
+    const bit = (n: number) => (n >> (7 - (i % 8))) & 1;
+    if (bit(bytes[i >> 3]) !== bit(prefix[i >> 3] ?? 0)) return false;
+  }
+  return true;
+}
+
+/** The v4 rules, on the last four bytes of a mapped address. */
+function isPublicV4(b: Uint8Array): boolean {
+  const [a, second] = [b[12], b[13]];
+  if (a === 0 || a === 10 || a === 127) return false;
+  if (a === 169 && second === 254) return false; // link-local, and AWS metadata
+  if (a === 172 && second >= 16 && second <= 31) return false;
+  if (a === 192 && second === 168) return false;
+  if (a === 100 && second >= 64 && second <= 127) return false; // carrier-grade NAT
+  if (a >= 224) return false; // multicast and reserved
+  return true;
+}
+
+/**
  * Whether an IP is one this server may talk to.
  *
  * Everything private, loopback, link-local, multicast or otherwise reserved is
- * refused — including IPv4-mapped IPv6, which is how `::ffff:127.0.0.1` sneaks
- * a loopback address past a naive v6 check.
+ * refused. Compared as bytes, not as text — see `toBytes` for why that
+ * distinction is the entire point of this function.
  */
 export function isPublicAddress(ip: string): boolean {
-  const version = net.isIP(ip);
-  if (version === 0) return false;
+  const b = toBytes(ip);
+  if (!b) return false;
 
-  if (version === 4) {
-    const [a, b] = ip.split(".").map(Number);
-    if (a === 0 || a === 10 || a === 127) return false;
-    if (a === 169 && b === 254) return false; // link-local, and AWS metadata
-    if (a === 172 && b >= 16 && b <= 31) return false;
-    if (a === 192 && b === 168) return false;
-    if (a === 100 && b >= 64 && b <= 127) return false; // carrier-grade NAT
-    if (a >= 224) return false; // multicast and reserved
-    return true;
-  }
+  // v4-mapped `::ffff:0:0/96`. Covers every IPv4 address, in either family.
+  if (inRange(b, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff], 96)) return isPublicV4(b);
 
-  const lower = ip.toLowerCase();
   /**
-   * An IPv4 address wearing a v6 costume still goes wherever the v4 goes —
-   * **in either spelling**.
-   *
-   * The dotted form is what a person writes. The hex form is what they get:
-   * `new URL("https://[::ffff:127.0.0.1]/…").hostname` normalises to
-   * `[::ffff:7f00:1]`, and `169.254.169.254` — the cloud metadata address this
-   * check exists for — becomes `::ffff:a9fe:a9fe`. Only the dotted form was
-   * matched, so the hex form fell past every branch below and returned
-   * `true`.
-   *
-   * It was masked until now by a second bug rather than by anything
-   * deliberate: `hostname` keeps its brackets, `net.isIP("[…]")` is 0, and the
-   * DNS lookup that followed threw and refused the URL. Fixing the brackets
-   * removed that accident, which is how this surfaced.
+   * NAT64 — `64:ff9b::/96` — carries an IPv4 address in its last four bytes
+   * and is routed to it. It was not checked at all, so `64:ff9b::a9fe:a9fe`
+   * reached the metadata endpoint by a different door than `::ffff:a9fe:a9fe`
+   * did. Judged on what it embeds, for the same reason the mapped form is.
    */
-  const dotted = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(lower);
-  if (dotted) return isPublicAddress(dotted[1]);
-  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(lower);
-  if (hex) {
-    const high = Number.parseInt(hex[1], 16);
-    const low = Number.parseInt(hex[2], 16);
-    return isPublicAddress(
-      [high >> 8, high & 0xff, low >> 8, low & 0xff].join("."),
-    );
-  }
-  if (lower === "::" || lower === "::1") return false;
-  if (lower.startsWith("fc") || lower.startsWith("fd")) return false; // unique-local
-  if (lower.startsWith("fe80")) return false; // link-local
-  if (lower.startsWith("ff")) return false; // multicast
+  if (inRange(b, [0x00, 0x64, 0xff, 0x9b], 96)) return isPublicV4(b);
+
+  /**
+   * `::` and `::1`, and every way of writing them. These were exact string
+   * comparisons, so `0:0:0:0:0:0:0:1` — which `net.isIP` accepts and which is
+   * the same loopback — was public.
+   */
+  if (b.every((byte) => byte === 0)) return false;
+  if (b.slice(0, 15).every((byte) => byte === 0) && b[15] === 1) return false;
+
+  // ::a.b.c.d, the deprecated v4-compatible form. Still routes to the v4.
+  if (b.slice(0, 12).every((byte) => byte === 0)) return isPublicV4(b);
+
+  if (inRange(b, [0xfc], 7)) return false; // unique-local fc00::/7
+  /**
+   * Link-local is `fe80::/10`, which spans `fe80` through `febf`. The old
+   * check was `startsWith("fe80")`, so `fe90::1` and `feb0::1` — both
+   * link-local — were public.
+   */
+  if (inRange(b, [0xfe, 0x80], 10)) return false;
+  if (inRange(b, [0xfe, 0xc0], 10)) return false; // site-local, deprecated but not routable
+  if (inRange(b, [0xff], 8)) return false; // multicast
+
   return true;
 }
 
