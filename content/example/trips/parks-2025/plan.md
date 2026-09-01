@@ -9,7 +9,6 @@ route:
   - { location: "Arches National Park", country: "United States", countryCode: "US", lat: 38.7331, lng: -109.5925 }
   - { location: "Canyonlands National Park", country: "United States", countryCode: "US", lat: 38.1653, lng: -109.7859 }
   - { location: "Monument Valley", country: "United States", countryCode: "US", lat: 36.998, lng: -110.0985 }
-  - { location: "Monument Valley", country: "United States", countryCode: "US", lat: 36.998, lng: -110.0985 }
   - { location: "Mesa Verde National Park", country: "United States", countryCode: "US", lat: 37.2309, lng: -108.4618 }
   - { location: "Great Sand Dunes National Park", country: "United States", countryCode: "US", lat: 37.7916, lng: -105.5943 }
   - { location: "Black Canyon of the Gunnison", country: "United States", countryCode: "US", lat: 38.5754, lng: -107.7416 }

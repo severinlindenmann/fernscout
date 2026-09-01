@@ -55,6 +55,21 @@ describe("the demo journal covers every trip shape", () => {
     );
   });
 
+  test("a route never repeats the stop it is already standing on", () => {
+    // The route of a trip with no `plan:` is derived from its days, and it
+    // used to be derived from its *entries* — so a day written as three
+    // updates stacked three identical markers on one coordinate.
+    for (const trip of trips()) {
+      const stops = getPlan(trip.ref, { includeDrafts: true }).stops;
+      for (let i = 1; i < stops.length; i++) {
+        expect(
+          `${stops[i].location}|${stops[i].country}`,
+          `${trip.id} repeats ${stops[i].location} at stop ${i + 1}`,
+        ).not.toBe(`${stops[i - 1].location}|${stops[i - 1].country}`);
+      }
+    }
+  });
+
   test("a trip names the people who took it, with a nickname", () => {
     const shared = trips().filter((t) => t.people.length > 1);
     expect(shared.length).toBeGreaterThan(0);
@@ -128,6 +143,33 @@ describe("the demo journal covers every entry shape", () => {
       // The day's arrival leg belongs to the lead, not to the afterthought.
       expect(day.lead).toBe(day.entries[0]);
     }
+  });
+
+  test("a day holds three updates, not just two", () => {
+    // Two is the case where "several updates" and "the one after the lead"
+    // look the same, so a pager that only ever draws the second one passes.
+    // Three is what tells them apart.
+    const deepest = Math.max(
+      ...trips().flatMap((t) => getDays(t.ref).map((d) => d.entries.length)),
+    );
+    expect(deepest).toBeGreaterThanOrEqual(3);
+  });
+
+  test("an update that is not the day's lead carries a gallery", () => {
+    // The lead's photographs are the ones every surface reaches for. A
+    // gallery hanging off the second update of a day is the arrangement that
+    // gets dropped — from the day, and from the trip's gallery page.
+    const trailing = trips()
+      .flatMap((t) => getDays(t.ref))
+      .flatMap((d) => d.entries.slice(1));
+    expect(trailing.some((e) => e.gallery.length > 0)).toBe(true);
+  });
+
+  test("multi-update days are spread across trips, not just the current one", () => {
+    const withBranch = trips().filter((t) =>
+      getDays(t.ref).some((d) => d.entries.length > 1),
+    );
+    expect(withBranch.length).toBeGreaterThan(1);
   });
 
   test("every entry is tagged", () => {
