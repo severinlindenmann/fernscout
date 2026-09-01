@@ -54,6 +54,24 @@ export function tripDir(ref: TripRef): string {
 }
 
 /**
+ * A trip-relative media path with the journal's owner on the front.
+ *
+ * Frontmatter keeps media at "/media/<trip>/…" so that a trip folder is
+ * self-contained and can be copied to another journal unchanged — which is
+ * exactly what `npm run seed:example` does. The username is known from the ref
+ * and added here instead. Anything already absolute is left alone.
+ *
+ * Lives here rather than in lib/entries.ts because trip.md needs it too: a
+ * `cover:` written trip-relative was handed to the browser unprefixed, so the
+ * demo journal's own cover 404'd the moment anybody seeded it under a
+ * different name.
+ */
+export function mediaWithOwner(src: unknown, owner: string | undefined): string {
+  if (typeof src !== "string") return "";
+  return owner && src.startsWith("/media/") ? `/${owner}${src}` : src;
+}
+
+/**
  * How many people a trip may name.
  *
  * Ten is the stated ceiling and it is enforced rather than assumed: a trip
@@ -275,7 +293,7 @@ function readTrip(username: string, dir: string, folder: string): Trip | null {
     start,
     end,
     status: parseStatus(data.status),
-    cover: data.cover ? String(data.cover) : undefined,
+    cover: data.cover ? mediaWithOwner(String(data.cover), username) : undefined,
     accent: parseAccent(data.accent),
     rates: parseRates(data.rates, folder),
     intro: content.trim(),

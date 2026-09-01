@@ -229,7 +229,7 @@
   "landing.handEmail": "and an email address you control",
   "landing.handTitle": "Hand this to your agent",
   "landing.hero": "A travel journal your agent writes for you.",
-  "landing.lede": "Your trips are markdown and photographs in a folder you own. Read it in a browser. Write it by handing an agent a link and an email address.",
+  "landing.lede": "Your journal is markdown and photographs in a folder you own. You read it in a browser. An agent writes it — you hand it a link and an email address.",
   "landing.madeBy": "Made in {flag} with love by {name}",
   "landing.noEditor": "There is no editing interface, and there won’t be one. The agent is the editor.",
   "landing.publicNone": "No journals yet. Copy content/example to content/<your-name> and reload.",

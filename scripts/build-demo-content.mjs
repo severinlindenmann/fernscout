@@ -1,4 +1,4 @@
-// Builds the demo journal: three trips, real photographs, one short clip.
+// Builds the demo journal: five trips, real photographs, one short clip.
 //
 //   node scripts/build-demo-content.mjs            # entries only, offline
 //   node scripts/build-demo-content.mjs --media    # also fetch photos, make the clip
@@ -6,6 +6,14 @@
 // This is the content a fresh clone sees at /example, and it is what the test
 // guide walks through. It exists as a script rather than as committed prose so
 // the shape of a trip stays regenerable while the project is still moving.
+//
+// It is also the only place every field is exercised at once, which is the
+// point: a field nothing in content/example/ uses is a field nobody notices
+// has broken. Between them these five trips cover all three `status` values,
+// all five accents, every cost category, several updates in one day, per-trip
+// and per-entry translations, tags, covers, a clip with a poster, named
+// travellers, planned stops with notes, and future-dated drafts that extend
+// the route on the owner's own map.
 //
 // Photographs come from Lorem Picsum, which serves Unsplash images; every one
 // is requested by a fixed seed so a rebuild produces the same journal rather
@@ -37,15 +45,36 @@ const TRIPS = [
     end: "2024-09-15",
     status: "past",
     accent: "green",
+    cover: "/media/alps-2024/grimsel-and-rain/01.jpg",
     visibility: "public",
     costsVisibility: "public",
     intro:
       "Four days, one borrowed car, and a loop over three passes. Short enough that we never unpacked properly, long enough that we stopped talking about work.",
+    translations: {
+      de: {
+        title: "Vier Tage rund um die Alpen",
+        tagline: "Ein geliehener Kombi, drei Pässe, zu viel Käse",
+      },
+      hu: {
+        title: "Négy nap az Alpok körül",
+        tagline: "Egy kölcsönkért kombi, három hágó, túl sok sajt",
+      },
+    },
     rates: { EUR: 0.94 },
     budget: { total: 900, days: 4, currency: "CHF" },
     preparation: [
       { label: "Vignette and tolls", amount: 90, category: "transport" },
-      { label: "Roof box hire", amount: 60, category: "gear" },
+      { label: "Roof box hire", amount: 60, category: "preparation" },
+    ],
+    costsNote:
+      "Four days is short enough that the preparation is most of what you decide in advance. The rest of it happened at petrol stations.",
+    planNote:
+      "Three passes and whatever was between them. We booked one guesthouse and left the other three nights open.",
+    plan: [
+      { location: "Susten Pass", country: "Switzerland", code: "CH", lat: 46.7297, lng: 8.4444, note: "Leave after work, sleep somewhere near the top" },
+      { location: "Grimsel Pass", country: "Switzerland", code: "CH", lat: 46.5614, lng: 8.3372, note: "The only night we booked" },
+      { location: "Domodossola", country: "Italy", code: "IT", lat: 46.1161, lng: 8.2939, note: "Down the Italian side for lunch" },
+      { location: "Andermatt", country: "Switzerland", code: "CH", lat: 46.6364, lng: 8.5942, note: "Home over the Furka" },
     ],
     days: [
       {
@@ -59,12 +88,20 @@ const TRIPS = [
         lng: 8.4444,
         transport: null,
         photos: 3,
+        tags: ["alps", "passes", "driving"],
         costs: [
           { label: "Fuel", amount: 78, category: "transport" },
           { label: "Lunch at the pass", amount: 46, category: "food" },
         ],
         text: "We left Zurich late and regretted it for exactly as long as it took to get past Lucerne. The Susten is the kind of road that makes a borrowed estate car feel like a much better car than it is.\n\nAt the top there was a hut selling soup and one flavour of cake. We had both, twice.",
-        de: "Wir sind spät aus Zürich losgefahren und haben das genau so lange bereut, bis wir Luzern hinter uns hatten. Der Susten ist die Sorte Straße, die einen geliehenen Kombi deutlich besser wirken lässt, als er ist.\n\nOben gab es eine Hütte mit Suppe und genau einer Sorte Kuchen. Wir hatten beides, zweimal.",
+        de: {
+          title: "Über den Susten",
+          content: "Wir sind spät aus Zürich losgefahren und haben das genau so lange bereut, bis wir Luzern hinter uns hatten. Der Susten ist die Sorte Straße, die einen geliehenen Kombi deutlich besser wirken lässt, als er ist.\n\nOben gab es eine Hütte mit Suppe und genau einer Sorte Kuchen. Wir hatten beides, zweimal.",
+        },
+        hu: {
+          title: "Át a Susten-hágón",
+          content: "Későn indultunk Zürichből, és pontosan addig bántuk, amíg magunk mögött nem hagytuk Lucernt. A Susten az a fajta út, amitől egy kölcsönkért kombi sokkal jobb autónak tűnik, mint amilyen.\n\nFent volt egy kunyhó levessel és pontosan egyféle süteménnyel. Mindkettőből kértünk, kétszer.",
+        },
       },
       {
         date: "2024-09-13",
@@ -77,6 +114,7 @@ const TRIPS = [
         lng: 8.3372,
         transport: { mode: "car", from: "Susten Pass", to: "Grimsel Pass" },
         photos: 4,
+        tags: ["alps", "passes", "rain"],
         costs: [
           { label: "Guesthouse", amount: 145, category: "accommodation" },
           { label: "Dinner", amount: 62, category: "food" },
@@ -94,6 +132,7 @@ const TRIPS = [
         lng: 8.2939,
         transport: { mode: "car", from: "Grimsel Pass", to: "Domodossola" },
         photos: 3,
+        tags: ["italy", "markets", "driving"],
         costs: [
           { label: "Coffee and pastries", amount: 11, category: "food", currency: "EUR" },
           { label: "Groceries", amount: 34, category: "food", currency: "EUR" },
@@ -111,6 +150,7 @@ const TRIPS = [
         lng: 8.5942,
         transport: { mode: "car", from: "Domodossola", to: "Andermatt" },
         photos: 2,
+        tags: ["alps", "passes", "driving"],
         costs: [{ label: "Fuel", amount: 71, category: "transport" }],
         text: "Home by the Furka because the map said it was nine minutes slower and everybody knows the map is lying about which nine minutes matter.",
       },
@@ -126,17 +166,39 @@ const TRIPS = [
     end: "2023-06-02",
     status: "past",
     accent: "coral",
+    cover: "/media/asia-2023/mekong-slow-boat/01.jpg",
+    // Two people, so the trip is credited to both — and either of them may
+    // hold a token scoped to this trip and nothing else. See lib/tripPeople.ts.
+    people: [
+      { name: "Alex Berger", email: "agent@fernscout.ch", nickname: "Alex" },
+      { name: "Priya Fenwick", email: "priya@example.com", nickname: "Priya" },
+    ],
     visibility: "public",
     costsVisibility: "public",
     intro:
       "Five months from Bangkok to Hanoi, overland the whole way. We had a rough plan for the first fortnight and made the rest up on station platforms.",
+    translations: {
+      de: {
+        title: "Fünf Monate im Osten",
+        tagline: "Thailand bis Vietnam, meist mit dem Zug und nie in Eile",
+      },
+      hu: {
+        title: "Öt hónap keleten",
+        tagline: "Thaiföldtől Vietnamig, jórészt vonattal és soha nem sietve",
+      },
+    },
     rates: { THB: 0.0258, VND: 0.0000372, EUR: 0.98 },
     budget: { total: 18000, days: 146, currency: "CHF" },
     preparation: [
-      { label: "Flights to Bangkok", amount: 1120, category: "transport" },
-      { label: "Travel insurance, six months", amount: 480, category: "admin" },
-      { label: "Rucksacks", amount: 390, category: "gear" },
+      { label: "Flights to Bangkok", amount: 1120, category: "flights" },
+      { label: "Travel insurance, six months", amount: 480, category: "other" },
+      { label: "Visas, two people", amount: 210, category: "other" },
+      { label: "Rucksacks", amount: 390, category: "preparation" },
     ],
+    costsNote:
+      "Five months of it, and the flight is still the single biggest line. Everything after this was decided a week at a time.",
+    planNote:
+      "Bangkok to Hanoi overland. This is the version we drew on a napkin in December; the trip mostly agreed with it, which surprised us both.",
     days: [
       {
         date: "2023-01-09",
@@ -148,6 +210,7 @@ const TRIPS = [
         lat: 13.7563,
         lng: 100.5018,
         photos: 4,
+        tags: ["thailand", "cities", "food"],
         costs: [
           { label: "Street noodles", amount: 120, category: "food", currency: "THB" },
           { label: "Guesthouse", amount: 900, category: "accommodation", currency: "THB" },
@@ -167,6 +230,7 @@ const TRIPS = [
         lng: 98.9853,
         transport: { mode: "train", from: "Bangkok", to: "Chiang Mai" },
         photos: 3,
+        tags: ["thailand", "trains", "sleeper"],
         costs: [
           { label: "Sleeper berth", amount: 881, category: "transport", currency: "THB" },
           { label: "Breakfast on board", amount: 90, category: "food", currency: "THB" },
@@ -184,13 +248,15 @@ const TRIPS = [
         lng: 102.1350,
         transport: { mode: "boat", from: "Huay Xai", to: "Luang Prabang" },
         photos: 4,
-        video: true,
+        video: { caption: "Ten seconds of the bank going past" },
+        tags: ["laos", "boats", "slow-travel"],
         costs: [
           { label: "Slow boat, two days", amount: 78, category: "transport" },
           { label: "Night in Pakbeng", amount: 22, category: "accommodation" },
         ],
         text: "Two days on a wooden boat with a car engine bolted into the back of it. There is nothing to do, which is the entire point and takes about four hours to understand.\n\nWe filmed ten seconds of the bank going past on the second afternoon. It is the only video either of us took the whole trip and it is somehow the thing we show people first.",
         de: "Zwei Tage auf einem Holzboot mit einem hinten eingebauten Automotor. Es gibt nichts zu tun, was der ganze Sinn der Sache ist und ungefähr vier Stunden dauert, bis man es versteht.\n\nAm zweiten Nachmittag haben wir zehn Sekunden Ufer gefilmt. Es ist das einzige Video der ganzen Reise — und trotzdem das Erste, was wir den Leuten zeigen.",
+        hu: "Két nap egy fahajón, aminek a hátuljába autómotort építettek. Nincs semmi tennivaló, ami az egésznek a lényege, és körülbelül négy órába telik megérteni.\n\nA második délutánon felvettünk tíz másodpercnyi partot. Ez az egyetlen videó az egész útról — és mégis ez az első, amit megmutatunk.",
       },
       {
         date: "2023-04-18",
@@ -203,6 +269,7 @@ const TRIPS = [
         lng: 108.338,
         transport: { mode: "motorbike", from: "Hue", to: "Hoi An" },
         photos: 4,
+        tags: ["vietnam", "motorbike", "mountains"],
         costs: [
           { label: "Motorbike transfer", amount: 1150000, category: "transport", currency: "VND" },
           { label: "Tailored shirt", amount: 620000, category: "other", currency: "VND" },
@@ -220,6 +287,7 @@ const TRIPS = [
         lng: 105.8342,
         transport: { mode: "train", from: "Hoi An", to: "Hanoi" },
         photos: 3,
+        tags: ["vietnam", "trains", "cities"],
         costs: [
           { label: "Train, soft sleeper", amount: 1290000, category: "transport", currency: "VND" },
           { label: "Coffee, egg, several", amount: 180000, category: "food", currency: "VND" },
@@ -238,16 +306,47 @@ const TRIPS = [
     end: "2026-11-20",
     status: "current",
     accent: "sky",
+    cover: "/media/usa-2026/utah-red-country/01.jpg",
+    people: [
+      { name: "Alex Berger", email: "agent@fernscout.ch", nickname: "Alex" },
+      { name: "Priya Fenwick", email: "priya@example.com", nickname: "Priya" },
+    ],
     visibility: "public",
     costsVisibility: "public",
     intro:
       "Six months and a second-hand pickup, starting in Denver and going wherever the forest roads do. Still out there — this one is being written as it happens.",
+    translations: {
+      de: {
+        title: "Hin und zurück",
+        tagline: "Ein Pick-up, ein Zelt und der halbe Westen der USA",
+      },
+      hu: {
+        title: "Oda és vissza",
+        tagline: "Egy pickup, egy sátor és az Egyesült Államok nyugati fele",
+      },
+    },
     rates: { USD: 0.88 },
     budget: { total: 26000, days: 173, currency: "CHF" },
     preparation: [
-      { label: "Flights to Denver", amount: 980, category: "transport" },
+      { label: "Flights to Denver", amount: 980, category: "flights" },
       { label: "The truck", amount: 9400, category: "transport" },
-      { label: "Tent, stove, the rest of it", amount: 1250, category: "gear" },
+      { label: "Tent, stove, the rest of it", amount: 1250, category: "preparation" },
+      { label: "Six months of insurance", amount: 640, category: "other" },
+    ],
+    costsNote:
+      "Half of this went before we left the country, and most of that half was the truck. What happens to the other half is the part still being written.",
+    planNote:
+      "Denver, then west until the ocean and back again. Four fixed points and six months to join them up — the rest is forest roads and whoever we meet on them.",
+    // Written by hand rather than derived from the days: this trip is still
+    // going, so the plan is a claim about the future and not a summary of the
+    // past. It is also the only place a stop gets a `note:`.
+    plan: [
+      { location: "Denver", country: "United States", code: "US", lat: 39.7392, lng: -104.9903, note: "Buy a truck. Two weeks, at the outside." },
+      { location: "Moab", country: "United States", code: "US", lat: 38.5733, lng: -109.5498, note: "First proper test of the tent" },
+      { location: "Bishop", country: "United States", code: "US", lat: 37.3614, lng: -118.3951, note: "Sierra, if the fires allow it" },
+      { location: "Cannon Beach", country: "United States", code: "US", lat: 45.8918, lng: -123.9615, note: "Reach the Pacific by the end of August" },
+      { location: "Missoula", country: "United States", code: "US", lat: 46.8721, lng: -113.9940, note: "East again, before the passes close" },
+      { location: "Denver", country: "United States", code: "US", lat: 39.7392, lng: -104.9903, note: "Sell the truck, fly home" },
     ],
     days: [
       {
@@ -260,9 +359,10 @@ const TRIPS = [
         lat: 39.7392,
         lng: -104.9903,
         photos: 3,
+        tags: ["colorado", "logistics"],
         costs: [
           { label: "Motel, two nights", amount: 210, category: "accommodation", currency: "USD" },
-          { label: "Registration and plates", amount: 165, category: "admin", currency: "USD" },
+          { label: "Registration and plates", amount: 165, category: "other", currency: "USD" },
         ],
         text: "Four days of looking at other people's trucks in other people's driveways. Bought the fifth one we saw, which is either decisive or foolish and we will find out in Utah.\n\nIt has 180,000 miles and a bench seat. The man who sold it to us seemed relieved.",
       },
@@ -277,12 +377,15 @@ const TRIPS = [
         lng: -109.5498,
         transport: { mode: "car", from: "Denver", to: "Moab" },
         photos: 4,
+        tags: ["utah", "desert", "camping"],
         costs: [
           { label: "Fuel", amount: 96, category: "transport", currency: "USD" },
           { label: "Campground, four nights", amount: 80, category: "accommodation", currency: "USD" },
           { label: "Groceries", amount: 143, category: "food", currency: "USD" },
         ],
         text: "The truck made it, loudly. Four nights on a bluff outside town with nobody else on it, which cost twenty dollars a night and felt like theft.\n\nIt is hard to photograph and we tried anyway, several hundred times.",
+        de: "Der Pick-up hat es geschafft, lautstark. Vier Nächte auf einer Anhöhe außerhalb der Stadt, sonst niemand da, zwanzig Dollar die Nacht — das fühlte sich an wie Diebstahl.\n\nEs ist schwer zu fotografieren, und wir haben es trotzdem versucht, mehrere hundert Mal.",
+        hu: "A pickup megcsinálta, hangosan. Négy éjszaka egy dombon a városon kívül, rajtunk kívül senki, húsz dollár egy éjszaka — lopásnak éreztük.\n\nNehéz lefényképezni, és mi mégis megpróbáltuk, több százszor.",
         de: "Der Pick-up hat es geschafft, laut. Vier Nächte auf einem Felsvorsprung außerhalb der Stadt, ganz allein — zwanzig Dollar die Nacht, und es fühlte sich an wie Diebstahl.\n\nEs lässt sich schlecht fotografieren. Wir haben es trotzdem versucht, mehrere hundert Mal.",
       },
       {
@@ -296,6 +399,7 @@ const TRIPS = [
         lng: -118.3951,
         transport: { mode: "car", from: "Moab", to: "Bishop" },
         photos: 3,
+        tags: ["california", "mountains", "wildfire"],
         costs: [
           { label: "Fuel", amount: 121, category: "transport", currency: "USD" },
           { label: "New tyre", amount: 218, category: "transport", currency: "USD" },
@@ -304,6 +408,10 @@ const TRIPS = [
       },
       {
         date: "2026-08-24",
+        // Two updates on one day, which is what `time:` is for and what the
+        // day pager calls a branch. The first carries the day's arrival leg;
+        // the second is just a note from the evening.
+        time: "13:20",
         slug: "oregon-coast",
         title: "Down the Oregon coast",
         location: "Cannon Beach",
@@ -313,11 +421,32 @@ const TRIPS = [
         lng: -123.9615,
         transport: { mode: "car", from: "Bishop", to: "Cannon Beach" },
         photos: 4,
+        tags: ["oregon", "coast", "pacific"],
         costs: [
           { label: "Fuel", amount: 88, category: "transport", currency: "USD" },
           { label: "Crab, from a shack", amount: 34, category: "food", currency: "USD" },
         ],
         text: "Cold, grey, and the best week so far. The Pacific here does not look like a holiday; it looks like weather that has come a very long way to arrive.\n\nSlept in the truck twice because the tent was wet and neither of us could face it.",
+      },
+      {
+        date: "2026-08-24",
+        time: "21:40",
+        slug: "oregon-coast-evening",
+        title: "Later, from the same car park",
+        location: "Cannon Beach",
+        country: "United States",
+        code: "US",
+        lat: 45.8918,
+        lng: -123.9615,
+        tags: ["oregon", "coast"],
+        costs: [
+          { label: "Laundrette", amount: 9, category: "other", currency: "USD" },
+        ],
+        text: "Went back down at sunset because somebody in the laundrette said to. They were right, and I have no photographs of it, which is probably the correct outcome.",
+        de: {
+          title: "Später, vom selben Parkplatz",
+          content: "Bin bei Sonnenuntergang nochmal runter, weil jemand im Waschsalon gesagt hat, man solle das. Sie hatten recht, und ich habe keine Fotos davon, was vermutlich das richtige Ergebnis ist.",
+        },
       },
     ],
   },
@@ -337,17 +466,33 @@ const TRIPS = [
     // One accent per trip: sky, green and coral are taken, and two trips
     // sharing a colour makes the lifetime map's legend useless.
     accent: "navy",
+    cover: "/media/parks-2025/bryce-at-six/01.jpg",
     visibility: "public",
     costsVisibility: "public",
     intro:
       "A rental sedan, a cooler, and a national parks pass that paid for itself by the fourth gate. Las Vegas to Denver by way of Utah, Colorado and the Dakotas — eighteen nights, and never twice in the same bed.",
+    translations: {
+      de: {
+        title: "Achtzehn Tage, elf Parks",
+        tagline: "Von Las Vegas nach Denver, auf dem längsten Weg, eine Nacht pro Ort",
+      },
+      hu: {
+        title: "Tizennyolc nap, tizenegy nemzeti park",
+        tagline: "Las Vegastól Denverig a hosszabbik úton, éjszakánként új helyen",
+      },
+    },
     rates: { USD: 0.8 },
     budget: { total: 7200, days: 18, currency: "CHF" },
     preparation: [
-      { label: "Flights to Las Vegas", amount: 1120, category: "transport" },
+      { label: "Flights to Las Vegas", amount: 1120, category: "flights" },
       { label: "Car hire, eighteen days", amount: 940, category: "transport" },
-      { label: "Annual parks pass", amount: 72, category: "admin" },
+      { label: "Annual parks pass", amount: 72, category: "activities" },
+      { label: "Camping gear, borrowed and replaced", amount: 85, category: "preparation" },
     ],
+    costsNote:
+      "Eighteen nights, and the pass paid for itself by the fourth gate. The two lines that actually decided this trip were both bought before it started.",
+    planNote:
+      "Booked as a loop because a one-way car hire across four states costs more than the flights. Everything between Las Vegas and Denver was ours to choose.",
     days: [
       {
         date: "2025-09-05",
@@ -360,9 +505,10 @@ const TRIPS = [
         lng: -115.1398,
         transport: { mode: "flight", from: "Zurich", to: "Las Vegas" },
         photos: 2,
+        tags: ["nevada", "logistics"],
         costs: [
           { label: "Motel by the airport", amount: 96, category: "accommodation", currency: "USD" },
-          { label: "Cooler, ice, two weeks of coffee", amount: 61, category: "gear", currency: "USD" },
+          { label: "Cooler, ice, two weeks of coffee", amount: 61, category: "other", currency: "USD" },
         ],
         text: "Landed at four, collected a white sedan that looked like every other white sedan in the lot, and spent an hour in a supermarket the size of an airport buying a cooler.\n\nWe did not go near the Strip. That felt like the right start.",
         de: "Um vier gelandet, eine weiße Limousine abgeholt, die aussah wie jede andere weiße Limousine auf dem Platz, und dann eine Stunde in einem Supermarkt von der Größe eines Flughafens verbracht, um eine Kühlbox zu kaufen.\n\nWir waren nicht in der Nähe des Strip. Das fühlte sich nach dem richtigen Anfang an.",
@@ -378,10 +524,11 @@ const TRIPS = [
         lng: -113.0263,
         transport: { mode: "car", from: "Las Vegas", to: "Springdale" },
         photos: 3,
+        tags: ["utah", "national-parks", "hiking", "water"],
         costs: [
           { label: "Fuel", amount: 44, category: "transport", currency: "USD" },
           { label: "Cabin in Springdale", amount: 168, category: "accommodation", currency: "USD" },
-          { label: "Dry bags and sticks, hired", amount: 52, category: "gear", currency: "USD" },
+          { label: "Dry bags and sticks, hired", amount: 52, category: "activities", currency: "USD" },
         ],
         text: "Three hours of walking up a river between walls three hundred metres high, with the water somewhere between knee and waist depending on how well you read the gravel.\n\nEverybody in the canyon was quiet. Not reverent — just concentrating on their feet.",
       },
@@ -396,6 +543,7 @@ const TRIPS = [
         lng: -112.1871,
         transport: { mode: "car", from: "Springdale", to: "Bryce Canyon" },
         photos: 3,
+        tags: ["utah", "national-parks", "sunrise"],
         costs: [
           { label: "Fuel", amount: 38, category: "transport", currency: "USD" },
           { label: "Campground", amount: 30, category: "accommodation", currency: "USD" },
@@ -414,6 +562,7 @@ const TRIPS = [
         lng: -111.6010,
         transport: { mode: "car", from: "Bryce Canyon", to: "Escalante" },
         photos: 2,
+        tags: ["utah", "backroads", "desert"],
         costs: [
           { label: "Fuel", amount: 41, category: "transport", currency: "USD" },
           { label: "Motel", amount: 104, category: "accommodation", currency: "USD" },
@@ -432,6 +581,7 @@ const TRIPS = [
         lng: -111.2615,
         transport: { mode: "car", from: "Escalante", to: "Torrey" },
         photos: 3,
+        tags: ["utah", "national-parks", "food"],
         costs: [
           { label: "Fuel", amount: 36, category: "transport", currency: "USD" },
           { label: "Campground", amount: 25, category: "accommodation", currency: "USD" },
@@ -450,6 +600,7 @@ const TRIPS = [
         lng: -110.7079,
         transport: { mode: "car", from: "Torrey", to: "Green River" },
         photos: 2,
+        tags: ["utah", "desert", "camping"],
         costs: [
           { label: "Fuel", amount: 39, category: "transport", currency: "USD" },
           { label: "Motel in Green River", amount: 88, category: "accommodation", currency: "USD" },
@@ -467,6 +618,7 @@ const TRIPS = [
         lng: -109.5925,
         transport: { mode: "car", from: "Green River", to: "Moab" },
         photos: 3,
+        tags: ["utah", "national-parks", "sunset"],
         costs: [
           { label: "Fuel", amount: 34, category: "transport", currency: "USD" },
           { label: "Campground outside Moab", amount: 35, category: "accommodation", currency: "USD" },
@@ -485,6 +637,7 @@ const TRIPS = [
         lng: -109.7859,
         transport: { mode: "car", from: "Moab", to: "Needles District" },
         photos: 2,
+        tags: ["utah", "national-parks", "hiking"],
         costs: [
           { label: "Fuel", amount: 43, category: "transport", currency: "USD" },
           { label: "Campground", amount: 20, category: "accommodation", currency: "USD" },
@@ -502,9 +655,10 @@ const TRIPS = [
         lng: -110.0985,
         transport: { mode: "car", from: "Needles District", to: "Monument Valley" },
         photos: 2,
+        tags: ["arizona", "desert", "driving"],
         costs: [
           { label: "Fuel", amount: 47, category: "transport", currency: "USD" },
-          { label: "Tribal park entry", amount: 20, category: "admin", currency: "USD" },
+          { label: "Tribal park entry", amount: 20, category: "activities", currency: "USD" },
           { label: "Room on the rim", amount: 195, category: "accommodation", currency: "USD" },
         ],
         text: "Arrived at midday, when the buttes are flat and grey and look like a postcard left in a window. Waited six hours and got the other version.\n\nThis is Navajo land, not a national park, and it is run entirely differently — better signposted about what you may not photograph.",
@@ -520,6 +674,7 @@ const TRIPS = [
         lng: -108.4618,
         transport: { mode: "car", from: "Monument Valley", to: "Mesa Verde" },
         photos: 3,
+        tags: ["colorado", "national-parks", "history"],
         costs: [
           { label: "Fuel", amount: 40, category: "transport", currency: "USD" },
           { label: "Guided cliff dwelling tour", amount: 16, category: "activities", currency: "USD" },
@@ -538,6 +693,7 @@ const TRIPS = [
         lng: -105.5943,
         transport: { mode: "car", from: "Cortez", to: "Great Sand Dunes" },
         photos: 2,
+        tags: ["colorado", "national-parks", "dunes"],
         costs: [
           { label: "Fuel", amount: 52, category: "transport", currency: "USD" },
           { label: "Campground", amount: 28, category: "accommodation", currency: "USD" },
@@ -555,6 +711,7 @@ const TRIPS = [
         lng: -107.7416,
         transport: { mode: "car", from: "Great Sand Dunes", to: "Montrose" },
         photos: 2,
+        tags: ["colorado", "national-parks", "canyons"],
         costs: [
           { label: "Fuel", amount: 45, category: "transport", currency: "USD" },
           { label: "Motel in Montrose", amount: 118, category: "accommodation", currency: "USD" },
@@ -572,6 +729,7 @@ const TRIPS = [
         lng: -106.8175,
         transport: { mode: "car", from: "Montrose", to: "Aspen" },
         photos: 2,
+        tags: ["colorado", "passes", "autumn"],
         costs: [
           { label: "Fuel", amount: 43, category: "transport", currency: "USD" },
           { label: "Room, and it hurt", amount: 265, category: "accommodation", currency: "USD" },
@@ -591,6 +749,7 @@ const TRIPS = [
         lng: -105.6836,
         transport: { mode: "car", from: "Aspen", to: "Estes Park" },
         photos: 3,
+        tags: ["colorado", "national-parks", "wildlife"],
         costs: [
           { label: "Fuel", amount: 49, category: "transport", currency: "USD" },
           { label: "Cabin in Estes Park", amount: 142, category: "accommodation", currency: "USD" },
@@ -608,6 +767,7 @@ const TRIPS = [
         lng: -105.5911,
         transport: { mode: "car", from: "Estes Park", to: "Laramie" },
         photos: 2,
+        tags: ["wyoming", "driving", "plains"],
         costs: [
           { label: "Fuel", amount: 51, category: "transport", currency: "USD" },
           { label: "Motel", amount: 79, category: "accommodation", currency: "USD" },
@@ -625,6 +785,7 @@ const TRIPS = [
         lng: -102.3397,
         transport: { mode: "car", from: "Laramie", to: "Badlands" },
         photos: 3,
+        tags: ["south-dakota", "national-parks", "wildlife"],
         costs: [
           { label: "Fuel", amount: 58, category: "transport", currency: "USD" },
           { label: "Campground", amount: 22, category: "accommodation", currency: "USD" },
@@ -642,6 +803,7 @@ const TRIPS = [
         lng: -103.4780,
         transport: { mode: "car", from: "Badlands", to: "Custer" },
         photos: 2,
+        tags: ["south-dakota", "national-parks", "caves"],
         costs: [
           { label: "Fuel", amount: 33, category: "transport", currency: "USD" },
           { label: "Cave tour", amount: 28, category: "activities", currency: "USD" },
@@ -660,6 +822,7 @@ const TRIPS = [
         lng: -104.9903,
         transport: { mode: "car", from: "Custer", to: "Denver" },
         photos: 2,
+        tags: ["colorado", "driving"],
         costs: [
           { label: "Fuel", amount: 54, category: "transport", currency: "USD" },
           { label: "Car cleaning, required", amount: 40, category: "transport", currency: "USD" },
@@ -667,6 +830,106 @@ const TRIPS = [
         ],
         text: "Six hours south with the cooler finally empty and about four kilos of red dust in the footwells.\n\nEighteen nights in eighteen different places. We handed the car back with 6,140 kilometres on it and immediately began arguing about which park was best.",
         de: "Sechs Stunden nach Süden, die Kühlbox endlich leer und ungefähr vier Kilo roter Staub in den Fußräumen.\n\nAchtzehn Nächte an achtzehn verschiedenen Orten. Wir haben das Auto mit 6.140 Kilometern zurückgegeben und sofort angefangen zu streiten, welcher Park der beste war.",
+      },
+    ],
+  },
+
+  // ---- planned, hasn't happened yet ---------------------------------------
+  //
+  // The shape the other four cannot show: a trip with no photographs, no spend
+  // and no days, which still has to be a real page. What renders instead is
+  // the countdown, the planned route from plan.md, and the budget from
+  // costs.md — see components/TripCountdown.tsx.
+  //
+  // It also carries two future-dated drafts. Those are invisible to a reader,
+  // but on the owner's own map they extend the planned route past what plan.md
+  // says (W33, lib/plan.ts) — which is the whole argument for letting an agent
+  // write ahead of a trip rather than only behind it.
+  {
+    id: "japan-2027",
+    title: "Japan, end to end",
+    tagline: "Six weeks on a rail pass, Kyushu to Hokkaido",
+    start: "2027-03-28",
+    end: "2027-05-09",
+    status: "upcoming",
+    // The fifth accent. Four trips used four of them and nothing showed what
+    // the fifth looked like on the lifetime map.
+    accent: "yellow",
+    people: [
+      { name: "Alex Berger", email: "agent@fernscout.ch", nickname: "Alex" },
+      { name: "Priya Fenwick", email: "priya@example.com", nickname: "Priya" },
+    ],
+    visibility: "public",
+    costsVisibility: "public",
+    intro:
+      "Six weeks from the south end of Kyushu to the north end of Hokkaido, on one rail pass and no car. Nothing has happened yet — this is the plan, the budget, and a countdown.",
+    translations: {
+      de: {
+        title: "Japan, von einem Ende zum anderen",
+        tagline: "Sechs Wochen mit dem Bahnpass, von Kyushu nach Hokkaido",
+      },
+      hu: {
+        title: "Japán, az egyik végétől a másikig",
+        tagline: "Hat hét vasúti bérlettel, Kjúsútól Hokkaidóig",
+      },
+    },
+    // Frozen from the reference rate the day the budget was written, like
+    // every other trip here. It will be wrong by April 2027 and that is fine:
+    // what this trip cost is not what a later one will cost.
+    rates: { JPY: 0.00504 },
+    budget: { total: 14800, days: 43, currency: "CHF" },
+    preparation: [
+      { label: "Flights to Fukuoka, home from Sapporo", amount: 1240, category: "flights" },
+      { label: "Rail pass, 21 days, two people", amount: 1180, category: "preparation" },
+      { label: "Boots, one pair, overdue", amount: 260, category: "preparation" },
+      // Written in yen on purpose: a preparation cost is not always paid at
+      // home, and the trip's own rate is what converts it.
+      { label: "IC cards and a data SIM, prepaid", amount: 9000, category: "other", currency: "JPY" },
+    ],
+    costsNote:
+      "Nothing has been spent on the road yet, so this is preparation and a number we have agreed to argue about later. The rail pass is the decision everything else follows from.",
+    planNote:
+      "South to north, and the rail pass decides most of it. Eight places we mean to sleep in and six weeks to find out what goes between them.",
+    plan: [
+      { location: "Fukuoka", country: "Japan", code: "JP", lat: 33.5904, lng: 130.4017, note: "Land here, and do nothing for two days" },
+      { location: "Nagasaki", country: "Japan", code: "JP", lat: 32.7503, lng: 129.8779, note: "The furthest south we go" },
+      { location: "Hiroshima", country: "Japan", code: "JP", lat: 34.3853, lng: 132.4553, note: "Two nights, and the ferry to Miyajima" },
+      { location: "Kyoto", country: "Japan", code: "JP", lat: 35.0116, lng: 135.7681, note: "Early April — the one date we are not moving" },
+      { location: "Kanazawa", country: "Japan", code: "JP", lat: 36.5613, lng: 136.6562, note: "Across to the west coast, out of the crowds" },
+      { location: "Tokyo", country: "Japan", code: "JP", lat: 35.6762, lng: 139.6503, note: "A week, staying put" },
+      { location: "Sendai", country: "Japan", code: "JP", lat: 38.2682, lng: 140.8694, note: "North, and the coast road if it is open" },
+      { location: "Sapporo", country: "Japan", code: "JP", lat: 43.0618, lng: 141.3545, note: "Fly home from here" },
+    ],
+    days: [
+      // Drafts, both of them: dated inside the trip, written before it, and
+      // filtered out of every reading path until a person deletes the line.
+      {
+        date: "2027-04-14",
+        slug: "matsumoto-detour",
+        title: "The Matsumoto detour",
+        location: "Matsumoto",
+        country: "Japan",
+        code: "JP",
+        lat: 36.2380,
+        lng: 137.9720,
+        transport: { mode: "train", from: "Kanazawa", to: "Matsumoto" },
+        tags: ["japan", "trains", "mountains"],
+        draft: true,
+        text: "Not on the plan. Priya's colleague says the castle is worth the two changes it takes to get there, and the pass covers it either way.\n\nNothing booked. If it is raining we carry on to Tokyo the same evening.",
+      },
+      {
+        date: "2027-04-30",
+        slug: "hakodate-before-sapporo",
+        title: "Hakodate, before Sapporo",
+        location: "Hakodate",
+        country: "Japan",
+        code: "JP",
+        lat: 41.7688,
+        lng: 140.7288,
+        transport: { mode: "train", from: "Sendai", to: "Hakodate" },
+        tags: ["japan", "trains", "coast"],
+        draft: true,
+        text: "The tunnel under the strait comes out here, and getting off rather than staying on costs us nothing but a night.\n\nMorning market, then the last leg north.",
       },
     ],
   },
@@ -688,10 +951,14 @@ function galleryBlock(trip, day) {
     );
   }
   if (day.video) {
+    // `poster:` is the still ffmpeg pulls out of the clip below. Without it
+    // the grid draws a video thumbnail by downloading the video, which on a
+    // phone is the most expensive image on the page.
     items.push(
       `  - src: "/media/${trip.id}/${day.slug}/clip.mp4"\n` +
         `    type: "video"\n    width: 1280\n    height: 720\n` +
-        `    caption: "Ten seconds of the bank going past"`,
+        `    poster: "/media/${trip.id}/${day.slug}/clip.jpg"\n` +
+        `    caption: ${quote(day.video.caption)}`,
     );
   }
   return items.join("\n");
@@ -702,12 +969,17 @@ function writeEntry(trip, day) {
     "---",
     `title: ${quote(day.title)}`,
     `date: ${quote(day.date)}`,
+  ];
+  // Only where a day holds more than one update — an entry that is the whole
+  // day has no time to be ordered against.
+  if (day.time) lines.push(`time: ${quote(day.time)}`);
+  lines.push(
     `location: ${quote(day.location)}`,
     `country: ${quote(day.country)}`,
     `countryCode: ${quote(day.code)}`,
     `lat: ${day.lat}`,
     `lng: ${day.lng}`,
-  ];
+  );
   if (day.transport) {
     lines.push(
       `transportMode: ${quote(day.transport.mode)}`,
@@ -715,7 +987,8 @@ function writeEntry(trip, day) {
       `transportTo: ${quote(day.transport.to)}`,
     );
   }
-  lines.push("gallery:", galleryBlock(trip, day));
+  if (day.photos || day.video) lines.push("gallery:", galleryBlock(trip, day));
+  if (day.tags?.length) lines.push(`tags: [${day.tags.map(quote).join(", ")}]`);
   if (day.costs?.length) {
     lines.push("costs:");
     for (const c of day.costs) {
@@ -726,12 +999,23 @@ function writeEntry(trip, day) {
   if (day.de || day.hu) {
     lines.push("translations:");
     for (const code of ["de", "hu"]) {
-      if (!day[code]) continue;
+      // Shorthand: a bare string is prose with no translated title.
+      const raw = day[code];
+      if (!raw) continue;
+      const t = typeof raw === "string" ? { content: raw } : raw;
       lines.push(`  ${code}:`);
-      lines.push(`    content: |`);
-      for (const line of day[code].split("\n")) lines.push(`      ${line}`);
+      // A translation may carry a title, prose, or both — whatever is missing
+      // falls back to what the author wrote (lib/entries.ts).
+      if (t.title) lines.push(`    title: ${quote(t.title)}`);
+      if (t.content) {
+        lines.push(`    content: |`);
+        for (const line of t.content.split("\n")) lines.push(`      ${line}`);
+      }
     }
   }
+  // Last, so it reads as the thing standing between this file and the site.
+  // Nothing here removes it; a person does. See AGENTS.md, "The one rule".
+  if (day.draft) lines.push("status: draft");
   lines.push("---", "", day.text, "");
 
   const dir = path.join(USER, "trips", trip.id, "entries");
@@ -752,12 +1036,34 @@ function writeTrip(trip) {
     `end: ${quote(trip.end)}`,
     `status: ${trip.status}`,
     `accent: ${trip.accent}`,
-    `visibility: ${trip.visibility}`,
-    `costsVisibility: ${trip.costsVisibility}`,
   ];
+  // The card photograph, written trip-relative like every other media path —
+  // lib/trips.ts puts the owner on the front, so seeding this journal under
+  // another name keeps the covers working.
+  if (trip.cover) head.push(`cover: ${quote(trip.cover)}`);
+  if (trip.people?.length) {
+    head.push("people:");
+    for (const person of trip.people) {
+      head.push(`  - name: ${quote(person.name)}`, `    email: ${quote(person.email)}`);
+      if (person.nickname) head.push(`    nickname: ${quote(person.nickname)}`);
+    }
+  }
+  head.push(`visibility: ${trip.visibility}`);
+  // Only written when it narrows something: `listed: true` is the default and
+  // a line that says what would have happened anyway is a line to keep in step.
+  if (trip.listed === false) head.push("listed: false");
+  head.push(`costsVisibility: ${trip.costsVisibility}`);
   if (trip.rates) {
     head.push("rates:");
     for (const [code, rate] of Object.entries(trip.rates)) head.push(`  ${code}: ${rate}`);
+  }
+  if (trip.translations) {
+    head.push("translations:");
+    for (const [code, t] of Object.entries(trip.translations)) {
+      head.push(`  ${code}:`);
+      if (t.title) head.push(`    title: ${quote(t.title)}`);
+      if (t.tagline) head.push(`    tagline: ${quote(t.tagline)}`);
+    }
   }
   head.push("---", "", trip.intro, "");
   fs.writeFileSync(path.join(dir, "trip.md"), head.join("\n"));
@@ -766,20 +1072,40 @@ function writeTrip(trip) {
   costs.push(`  total: ${trip.budget.total}`, `  days: ${trip.budget.days}`, `  currency: ${trip.budget.currency}`);
   costs.push("costs:");
   for (const c of trip.preparation) {
-    costs.push(`  - { label: ${quote(c.label)}, amount: ${c.amount}, category: "preparation" }`);
-  }
-  costs.push("---", "", "What it took to get out of the door.", "");
-  fs.writeFileSync(path.join(dir, "costs.md"), costs.join("\n"));
-
-  const plan = ["---", "route:"];
-  for (const day of trip.days) {
-    plan.push(
-      `  - { location: ${quote(day.location)}, country: ${quote(day.country)}, countryCode: ${quote(day.code)}, lat: ${day.lat}, lng: ${day.lng} }`,
+    // The category is the one the spec gives. It used to be flattened to
+    // "preparation" for everything, which put a 1,120-franc flight and a pair
+    // of boots in one wedge of the donut and made the chart say nothing.
+    const cur = c.currency ? `, currency: ${quote(c.currency)}` : "";
+    costs.push(
+      `  - { label: ${quote(c.label)}, amount: ${c.amount}, category: ${quote(c.category)}${cur} }`,
     );
   }
-  plan.push("---", "", "The route as we sketched it before leaving.", "");
+  costs.push("---", "", trip.costsNote, "");
+  fs.writeFileSync(path.join(dir, "costs.md"), costs.join("\n"));
+
+  // A trip may write its own route — that is what an upcoming trip has instead
+  // of days, and it is the only way a stop gets a `note:`. Otherwise the route
+  // is derived from where the trip actually went.
+  const stops =
+    trip.plan ??
+    trip.days.map((day) => ({
+      location: day.location,
+      country: day.country,
+      code: day.code,
+      lat: day.lat,
+      lng: day.lng,
+    }));
+  const plan = ["---", "route:"];
+  for (const stop of stops) {
+    const note = stop.note ? `, note: ${quote(stop.note)}` : "";
+    plan.push(
+      `  - { location: ${quote(stop.location)}, country: ${quote(stop.country)}, countryCode: ${quote(stop.code)}, lat: ${stop.lat}, lng: ${stop.lng}${note} }`,
+    );
+  }
+  plan.push("---", "", trip.planNote, "");
   fs.writeFileSync(path.join(dir, "plan.md"), plan.join("\n"));
 
+  fs.mkdirSync(path.join(dir, "entries"), { recursive: true });
   for (const day of trip.days) writeEntry(trip, day);
 }
 
@@ -792,6 +1118,9 @@ async function fetchPhoto(seed, shape, dest) {
 
 async function media(trip) {
   for (const day of trip.days) {
+    // A draft written before the trip has no photographs yet, and an empty
+    // media folder is a folder somebody later wonders about.
+    if (!day.photos && !day.video) continue;
     const dir = path.join(USER, "trips", trip.id, "media", day.slug);
     fs.mkdirSync(dir, { recursive: true });
 

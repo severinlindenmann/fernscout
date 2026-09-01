@@ -4,6 +4,7 @@ import Link from "next/link";
 import CopyLine from "@/components/CopyLine";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 
 /**
  * The landing page, at the root.
@@ -39,12 +40,17 @@ export default function Landing({
   siteName,
   docUrl,
   journals,
+  locales,
   repository,
   credit,
 }: {
   siteName: string;
   docUrl: string;
   journals: PublicJournal[];
+  /** The interface languages this instance offers. Outside a journal there is
+   * nobody whose list to use, so it is the maintained set — see
+   * `installedLocales()`. */
+  locales?: string[];
   /** Where the source lives, if this instance says. */
   repository?: string;
   /** Who runs it, if this instance says. */
@@ -60,7 +66,15 @@ export default function Landing({
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
-      <p className="font-mono text-xs uppercase tracking-[0.2em] text-navy-600">{siteName}</p>
+      {/* The name on the left, the language on the right. The switcher is the
+          first thing on the page for a reason: somebody who cannot read the
+          hero has no way to guess that the rest of the site is translated. */}
+      <div className="flex items-start justify-between gap-4">
+        <p className="pt-3 font-mono text-xs uppercase tracking-[0.2em] text-navy-600">
+          {siteName}
+        </p>
+        <LocaleSwitcher locales={locales} subtle />
+      </div>
 
       <h1 className="mt-4 font-display text-[clamp(1.75rem,6vw,2.75rem)] font-semibold leading-[1.12] text-navy-900">
         {t("landing.hero")}
