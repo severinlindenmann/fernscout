@@ -7,6 +7,7 @@ complexity: low
 area: fetchMedia, security
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B36 — Address checks match one spelling each, and the URL parser writes another
