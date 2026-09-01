@@ -137,10 +137,18 @@ expired and listed — which is the whole reason for moving off a shared
 password. Keep hand-written `people:` working exactly as it does; the merge is
 additive.
 
-**Redeeming proves an address.** The code flow already exists (`issueCode`,
-`verifyCode` in `lib/auth`). A buddy link that granted write access on a click
-alone would be a link that grants write access to whoever the group chat was
-forwarded to.
+**Redeeming proves an address, and then waits for the owner.** The code flow
+already exists (`issueCode`, `verifyCode` in `lib/auth`). A buddy link that
+granted write access on a click alone would be a link that grants write access
+to whoever the group chat was forwarded to.
+
+Redemption does **not** grant. It writes a `pending` contact, exactly as
+`requestContact` does today, and `approveContact` remains the only thing that
+creates a grant — the owner accepts each person by hand, on the page that
+already exists for it. This is what keeps a shareable link safe to share: the
+link decides who may *ask*, the owner decides who gets in. It is also decision
+19's own reasoning, which survives this task intact even though B37 removes the
+open link that decision was written about.
 
 The redemption form must handle **somebody who is already a user here** — a
 buddy with their own journal on the same instance is the expected case, not the
@@ -184,6 +192,11 @@ of the trip. `VISIBILITY_MEANING` beside it is about *journal* visibility and is
 unaffected — the two are constantly confused and this task is a good moment to
 check the distinction still reads clearly.
 
+Depends on B37, which removes the open guestbook form and makes an
+owner-issued link the only way to reach the request form at all. This task's
+guest link is that owner-issued link, so the two describe the same door from
+two ends and should not invent two mechanisms for it.
+
 Not doing: trip passwords, which stay as a second door for people who will
 never prove an address. The contacts invites in `lib/contacts/invites.ts`.
 Owner-facing management UI beyond what a redemption needs. Showing a shared
@@ -200,10 +213,13 @@ trip inside the buddy's *own* journal — that is B34.
 - The `guest` versus `private` distinction is stated in `agent.md` and in
   `AGENTS.md`, and `VISIBILITY_NOT_A_LOCK` no longer describes guests as
   belonging to a trip.
-- Redeeming a guest link, from a cold browser, ends with that address able to
-  read every `guest` trip in the journal.
-- Redeeming a buddy link ends with that address able to write to that trip and
-  refused against another trip in the same journal, both asserted.
+- Redeeming a guest link, from a cold browser, creates a `pending` contact and
+  grants nothing; after the owner approves, that address reads every `guest`
+  trip in the journal.
+- A redeemed but unapproved guest reads no more than an anonymous visitor,
+  asserted by a test.
+- Redeeming a buddy link, once approved, ends with that address able to write to
+  that trip and refused against another trip in the same journal, both asserted.
 - Redeeming either link as somebody who already owns a journal on this instance
   does not create a duplicate contact and does not re-ask for what is known.
 - Both links still work on a second use, from a second browser.

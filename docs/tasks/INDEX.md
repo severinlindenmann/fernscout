@@ -66,6 +66,9 @@ Do not edit them by hand; run the script.
 | [B35](backlog/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low |
 | [B36](backlog/B36-address-checks-match-one-spelling-each.md) | Address checks match one spelling each, and the URL parser writes another | SECURITY | medium | low |
 | [B37](backlog/B37-anybody-who-finds-a-journal-can.md) | Anybody who finds a journal can put themselves on its guest list uninvited | FEATURE | medium | low |
+| [B38](backlog/B38-a-journal-or-a-trip-can.md) | A journal or a trip can be created through the API but never removed | FEATURE | medium | high |
+| [B39](backlog/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high |
+| [B40](backlog/B40-a-six-digit-code-expires-in.md) | A six-digit code expires in ten minutes, which is shorter than people take to find the mail | CHORE | medium | low |
 | [B03](backlog/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium |
 | [B04](backlog/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium |
 | [B05](backlog/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |

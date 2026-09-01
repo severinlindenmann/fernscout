@@ -45,17 +45,43 @@ are about the same signed-in surface from the reader's side.
 - Say what the button does, in one line. A link that silently signs somebody in
   is a link they should be told about before they forward the mail to anyone.
 
-Open questions for whoever takes this, both worth deciding before writing code:
+**Lifetime — decided by the author: the welcome link does not expire.**
 
-- **Lifetime.** Guest link tokens are short-lived by design. This one is the
-  owner's first way in and may be opened days later. Either it gets a longer
-  life than a guest invitation — and then it is a different kind of credential
-  and should be named one — or the mail says plainly that it expires and how to
-  get another.
-- **Scope.** A guest session is not an agent token and must not become one;
-  decision 24 is that reading the site on your phone must not put a credential
-  that can rewrite it in your pocket. Whatever is issued here stays on the
-  guest side of `resolveSession`.
+The reasoning given was that the link is far more than six digits, so it does
+not need the six-digit code's short window. That is true about *guessing* — the
+token is 256 bits and there is nothing to brute-force.
+
+It is worth writing down that guessing was never the reason the link was
+short-lived. `005-signin-link.ts` says the opposite, and it is right:
+
+> The link travels in a URL: it is prefetched by mail scanners, copied into
+> chat windows, and written to browser history. So the link is the weaker of
+> the two.
+
+Exposure, not entropy. A permanent link is one that stays live in an inbox, in
+whatever scanner logs it touched, and in browser history, indefinitely.
+
+What makes the decision safe anyway is **single use**, which already exists and
+must not be given up: the first fetch consumes the link, so a permanent link is
+self-limiting rather than indefinitely replayable. In practice a mail scanner
+that prefetches will burn it and the owner falls back to the code — which is
+exactly what the two-credential design was built for, and why redeeming the
+link must go on consuming only itself.
+
+So: permanent, single-use, and the mail says what the button does so nobody
+forwards it thinking it is just an address.
+
+**Scope — unchanged.** A guest session is not an agent token and must not
+become one; decision 24 is that reading the site on your phone must not put a
+credential that can rewrite it in your pocket. What is issued here stays on the
+guest side of `resolveSession`.
+
+**One interaction to handle.** `issueCode` calls `revokeCodes` for the same
+owner, address and kind, which sets `consumed_at` — and `verifyLink` requires
+`consumed_at is null`. So as things stand, the first time the owner asks for
+any guest code, the permanent welcome link dies. That makes "permanent"
+untrue in the case that matters most. Whatever shape the fix takes, the welcome
+link has to survive an ordinary sign-in code being issued.
 
 Not doing: an owner-specific session class. If the guest session plus
 `isOwner()` is not enough to show drafts, that is a finding to write up, not to
