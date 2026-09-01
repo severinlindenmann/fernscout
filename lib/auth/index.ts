@@ -343,6 +343,57 @@ export async function verifyCode(
  * has nothing to match.
  */
 export async function issueStandingLink(owner: string, email: string): Promise<string> {
+  return insertLinkRow(owner, email, { standing: true, ttlMs: CODE_TTL_MS });
+}
+
+/**
+ * How long a link an agent hands over stays usable.
+ *
+ * The person is in a conversation when they receive it; they follow it in the
+ * next minute or they do not follow it at all. Fifteen is generous for that and
+ * short enough that the copy left behind in a transcript is worthless by the
+ * time anybody reads the log — which is the whole reason this is not simply
+ * another standing link.
+ */
+export const RELAY_LINK_TTL_MS = 15 * 60 * 1000;
+
+/**
+ * A sign-in link for an agent to pass to the person whose journal it is.
+ *
+ * The welcome mail's link goes to an inbox and waits there; this one goes into
+ * a chat window, so that the natural end of "I have written your three days"
+ * can be "here, look" rather than "go and find an email".
+ *
+ * **Deliberately not standing.** The author's decision (B29) was that an agent
+ * may carry an authentication URL, and the reasoning that made it safe is that
+ * the agent already holds a strictly more powerful credential for the same
+ * journal. What is new is that something belonging to the *person* passes
+ * through a transcript — and a transcript outlives the conversation. So this
+ * expires in `RELAY_LINK_TTL_MS`, and it is still single use, which together
+ * mean the logged copy is spent long before it is read.
+ *
+ * A separate function rather than a flag on `issueStandingLink`, because the
+ * two differ in exactly the property that matters and a boolean argument is
+ * how somebody eventually passes the wrong one.
+ */
+export async function issueRelayLink(owner: string, email: string): Promise<string> {
+  return insertLinkRow(owner, email, { standing: false, ttlMs: RELAY_LINK_TTL_MS });
+}
+
+/**
+ * The row both link-only credentials share.
+ *
+ * Neither has a code beside it: nobody asked to sign in, so there are no six
+ * digits for anybody to type. The `code_hash` is the hash of a token that is
+ * generated, never returned and never sent — the column is `NOT NULL` and the
+ * schema is shared — so no code exists that could redeem the row and retire
+ * its link. `verifyCode` skips these rows anyway; see the note there.
+ */
+async function insertLinkRow(
+  owner: string,
+  email: string,
+  { standing, ttlMs }: { standing: boolean; ttlMs: number },
+): Promise<string> {
   const { db } = await getDatabase();
   const linkToken = generateLinkToken();
 
@@ -352,18 +403,18 @@ export async function issueStandingLink(owner: string, email: string): Promise<s
       id: crypto.randomUUID(),
       owner_id: owner,
       email: normaliseEmail(email),
-      // Unguessable and undisclosed — see above.
       code_hash: hashSecret(generateLinkToken()),
       link_hash: hashSecret(linkToken),
       link_consumed_at: null,
       kind: "guest",
       created_at: nowIso(),
-      // Never read for a standing link. Written because the column is NOT
-      // NULL, and set to the ordinary window so that anything which does look
-      // at it treats the row as stale rather than as live for ever.
-      expires_at: new Date(Date.now() + CODE_TTL_MS).toISOString(),
+      // Read for a relay link, and the thing that makes it expire. For a
+      // standing link it is never read — written because the column is NOT
+      // NULL, and set to the ordinary window so anything that does look at it
+      // treats the row as stale rather than as live for ever.
+      expires_at: new Date(Date.now() + ttlMs).toISOString(),
       consumed_at: null,
-      link_standing: 1,
+      link_standing: standing ? 1 : 0,
       attempts: 0,
     })
     .execute();

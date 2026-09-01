@@ -480,7 +480,15 @@ export function GET() {
             },
           },
           responses: {
-            "201": { description: "Created, with an agent token for it" },
+            "201": {
+              description:
+                "Created, with an agent token for it. Also `signIn` — a one-time sign-in " +
+                "URL **for the owner, not for you**: put it in your reply so they can open " +
+                "their journal without going to their inbox, and it lets them see drafts " +
+                "and private trips. Single use, expires in 15 minutes, and never to be " +
+                "handed over as the journal's address (that is `url`). Do not follow it " +
+                "yourself — opening it spends it. Absent when this server has auth off.",
+            },
             "400": { description: "The username, title or owner name/nickname is not usable" },
             "401": { description: "Missing or invalid signup token" },
             "403": { description: "This address already owns as many journals as it may" },

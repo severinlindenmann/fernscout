@@ -43,11 +43,31 @@ authorises a program, even when the second can do more.
 
 Depends on B27 — that task is what makes a sign-in link exist at all.
 
+## The decision (author, 2026-09-01): yes
+
+> The agent is allowed to hand out authentication URLs etc., that is fine.
+
+So an agent may carry an owner sign-in link. The reasoning that survives from
+the argument above, and which the implementation keeps: the agent already holds
+an agent token for the same journal, which is strictly more powerful, so the
+link grants it nothing it did not have. What is being accepted is that a
+credential belonging to the *person* now passes through a transcript.
+
+Two things follow from accepting that rather than waving it away, and both are
+in the build:
+
+- **It is short-lived.** Fifteen minutes, not the mail's permanent one. The
+  relayed link is used inside the conversation that produced it or not at all,
+  and a transcript outlives the conversation — so the copy that lands in one
+  should be worthless by the time anybody reads the log. This is the whole
+  difference between the two links and the reason `issueRelayLink` exists
+  beside `issueStandingLink`.
+- **It is named, never folded into `url`.** An agent handing over "the journal
+  address" must not be handing over a session by accident.
+
 ## Work
 
-- Decide first, in one paragraph in this file, whether an agent may carry an
-  owner sign-in link. If the answer is no, this task is closed unbuilt and the
-  answer is written down, because it will be asked again.
+- ~~Decide first~~ — decided above.
 - If yes: return it from `POST /api/v1/journals` as a clearly named field, not
   folded into `url`, so an agent cannot hand it over by accident when it meant
   to give somebody the plain address.

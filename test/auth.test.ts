@@ -9,10 +9,12 @@ import {
   CODE_TTL_MINUTES,
   CODE_TTL_MS,
   MAX_CODE_ATTEMPTS,
+  RELAY_LINK_TTL_MS,
   SESSION_SCOPE,
   SESSION_TTL_MS,
   generateCode,
   issueCode,
+  issueRelayLink,
   issueStandingLink,
   listSessions,
   resolveSession,
@@ -274,6 +276,70 @@ describe("the standing sign-in link", () => {
     const { linkToken } = await issueCode("ana", "reader@example.test", "guest");
     vi.setSystemTime(new Date(Date.now() + 35 * 60 * 1000));
     expect((await verifyLink("ana", linkToken!)).ok).toBe(false);
+  });
+});
+
+/**
+ * B29 — the link an agent hands over in the conversation.
+ *
+ * The author's decision was that an agent may carry an authentication URL: it
+ * already holds an agent token for the same journal, which is strictly more
+ * powerful, so the link grants it nothing new. What *is* new is that a
+ * credential belonging to the person passes through a transcript — and a
+ * transcript outlives the conversation. Hence a short life, which is the only
+ * thing separating this from the welcome mail's permanent one.
+ */
+describe("the relayed sign-in link", () => {
+  test("works, and produces a guest session like any other link", async () => {
+    const token = await issueRelayLink("ana", "owner@example.test");
+    const result = await verifyLink("ana", token);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.scope).toBe(SESSION_SCOPE.guest);
+    // Decision 24 holds: a reading credential never becomes a writing one.
+    expect(await resolveSession(result.token, "agent")).toBeNull();
+  });
+
+  test("is single use", async () => {
+    const token = await issueRelayLink("ana", "owner@example.test");
+    expect((await verifyLink("ana", token)).ok).toBe(true);
+    expect((await verifyLink("ana", token)).ok).toBe(false);
+  });
+
+  /** The property that makes it safe to put in a transcript. */
+  test("expires, unlike the mail's copy", async () => {
+    const relay = await issueRelayLink("ana", "owner@example.test");
+    const standing = await issueStandingLink("ana", "owner@example.test");
+
+    vi.setSystemTime(new Date(Date.now() + RELAY_LINK_TTL_MS + 60_000));
+
+    expect((await verifyLink("ana", relay)).ok).toBe(false);
+    // The one in the inbox is unaffected — that is the whole difference.
+    expect((await verifyLink("ana", standing)).ok).toBe(true);
+  });
+
+  test("is still live a minute after it was issued", async () => {
+    const token = await issueRelayLink("ana", "owner@example.test");
+    vi.setSystemTime(new Date(Date.now() + 60_000));
+    expect((await verifyLink("ana", token)).ok).toBe(true);
+  });
+
+  test("does not survive an ordinary code being issued", async () => {
+    // It is not standing, so `revokeCodes` sweeps it — correct, and the
+    // opposite of the welcome link, which must survive exactly that.
+    const relay = await issueRelayLink("ana", "owner@example.test");
+    const standing = await issueStandingLink("ana", "owner@example.test");
+    await issueCode("ana", "owner@example.test", "guest");
+
+    expect((await verifyLink("ana", relay)).ok).toBe(false);
+    expect((await verifyLink("ana", standing)).ok).toBe(true);
+  });
+
+  test("carries no code anybody could be given", async () => {
+    await issueRelayLink("ana", "owner@example.test");
+    for (const guess of ["000000", "123456", "999999"]) {
+      expect((await verifyCode("ana", "owner@example.test", guess, "guest")).ok).toBe(false);
+    }
   });
 });
 
