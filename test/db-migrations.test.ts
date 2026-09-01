@@ -10,6 +10,9 @@ import {
   migrateToLatest,
   type DatabaseHandle,
 } from "@/lib/db";
+import { Migrator } from "kysely/migration";
+import { migrationProvider } from "@/lib/db/migrations";
+import { createDatabase } from "@/lib/db";
 import { dialectCases, dropEverything, freshDatabase, postgresConfigured } from "./support/dialects";
 
 const migrationsDir = path.join(process.cwd(), "lib/db/migrations");
@@ -43,6 +46,73 @@ if (!postgresConfigured()) {
   // Set POSTGRES_TEST_URL to a database this suite may wipe to include it.
   console.warn("[test] POSTGRES_TEST_URL is not set — the Postgres dialect is being skipped.");
 }
+
+/**
+ * The one hazard in `006-journal-wide-grants`: the new unique index is
+ * narrower than the old one, so two grants that differed only by `trip_id`
+ * would collide on it. Nothing shipped could write such a pair — approval, the
+ * only insert, always wrote `*` — but a hand-written row could, and a
+ * migration that fails halfway is worse than either outcome. So it collapses
+ * them first, keeping the one that grants the most.
+ */
+describe.each(dialectCases())("006 on $name, against rows 005 allowed", ({ target }) => {
+  test("collapses two grants for one contact into the wider one", async () => {
+    const handle = await createDatabase(target);
+    try {
+      await dropEverything(handle);
+      const migrator = new Migrator({ db: handle.db, provider: migrationProvider });
+      const upTo005 = await migrator.migrateTo("005-signin-link");
+      expect(upTo005.error).toBeUndefined();
+
+      const now = "2026-08-01T08:00:00.000Z";
+      await handle.db
+        .insertInto("contacts")
+        .values({
+          id: "c-dup",
+          owner_id: "ana",
+          email: "oma@example.com",
+          email_key: "oma@example.com",
+          name: null,
+          locale: null,
+          status: "active",
+          notes: null,
+          created_at: now,
+          updated_at: now,
+        })
+        .execute();
+
+      const grant = (id: string, tripId: string, expiresAt: string | null) => ({
+        id,
+        owner_id: "ana",
+        contact_id: "c-dup",
+        trip_id: tripId,
+        scope: "read",
+        granted_at: now,
+        granted_by: "ana",
+        expires_at: expiresAt,
+      });
+      await handle.db
+        .insertInto("access_grants")
+        .values([
+          grant("g-expiring", "asia-2023", "2026-09-01T00:00:00.000Z"),
+          grant("g-forever", "algarve-2024", null),
+        ])
+        .execute();
+
+      await migrateToLatest(handle);
+
+      const rows = await handle.db.selectFrom("access_grants").selectAll().execute();
+      expect(rows.map((r) => r.id)).toEqual(["g-forever"]);
+      // The survivor is the one that expires last, because merging two grants
+      // has to keep what either of them allowed.
+      expect(rows[0].expires_at).toBeNull();
+
+      await dropEverything(handle);
+    } finally {
+      await handle.destroy();
+    }
+  });
+});
 
 describe.each(dialectCases())("schema on $name", ({ target }) => {
   let handle: DatabaseHandle;
@@ -148,7 +218,6 @@ describe.each(dialectCases())("schema on $name", ({ target }) => {
         id: "g1",
         owner_id: owner,
         contact_id: "c1",
-        trip_id: "*",
         scope: "read",
         granted_at: now,
         granted_by: "u1",
@@ -300,6 +369,62 @@ describe.each(dialectCases())("schema on $name", ({ target }) => {
     expect(defaulted.status).toBe("pending");
     expect(defaulted.attempts).toBe(0);
     expect(defaulted.payload).toBe("{}");
+  });
+
+  /**
+   * `006-journal-wide-grants`. A grant is one bit — this contact may read this
+   * journal — so the column that said *which trip* is gone, and with it the
+   * `trip_id` on `contact_invites` that was only ever written null.
+   */
+  test("006 leaves no trip_id on access_grants or contact_invites", async () => {
+    const tables = await handle.db.introspection.getTables();
+    const columns = (name: string) =>
+      tables.find((t) => t.name === name)!.columns.map((c) => c.name);
+    expect(columns("access_grants")).not.toContain("trip_id");
+    expect(columns("contact_invites")).not.toContain("trip_id");
+    // The rest of the row is untouched — this dropped a dimension, not a table.
+    expect(columns("access_grants")).toEqual(
+      expect.arrayContaining(["owner_id", "contact_id", "scope", "granted_at", "expires_at"]),
+    );
+  });
+
+  test("006 narrows access_grants_unique to one read grant per contact", async () => {
+    const now = "2026-08-30T09:15:00.000Z";
+    const row = (id: string, scope: string) => ({
+      id,
+      owner_id: "u-unique",
+      contact_id: "c-unique",
+      scope,
+      granted_at: now,
+      granted_by: null,
+      expires_at: null,
+    });
+    await handle.db
+      .insertInto("contacts")
+      .values({
+        id: "c-unique",
+        owner_id: "u-unique",
+        email: "u@example.com",
+        email_key: "u@example.com",
+        name: null,
+        locale: null,
+        status: "active",
+        notes: null,
+        created_at: now,
+        updated_at: now,
+      })
+      .execute();
+
+    await handle.db.insertInto("access_grants").values(row("ag-1", "read")).execute();
+    // A second `read` grant is now the same grant twice, and refused.
+    await expect(
+      handle.db.insertInto("access_grants").values(row("ag-2", "read")).execute(),
+    ).rejects.toThrow();
+    // A different scope is a different grant, and still allowed.
+    await handle.db.insertInto("access_grants").values(row("ag-3", "costs")).execute();
+
+    await handle.db.deleteFrom("access_grants").where("owner_id", "=", "u-unique").execute();
+    await handle.db.deleteFrom("contacts").where("id", "=", "c-unique").execute();
   });
 
   test("enforces the unique indexes the repositories rely on", async () => {

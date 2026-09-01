@@ -30,7 +30,7 @@ import {
   DEFAULT_WINDOW,
   type QuietWindow,
 } from "./quiet";
-import { digestableTrips, readGrantsByContact } from "./visibility";
+import { contactsWithReadGrant, digestableTrips } from "./visibility";
 
 /**
  * The digest — ROADMAP D2, and the only notification channel that reaches
@@ -55,7 +55,7 @@ import { digestableTrips, readGrantsByContact } from "./visibility";
 export { buildDigestContent, formatDigestDate, MAX_DAYS_LISTED } from "./content";
 export type { DigestContent, DigestDay, DigestTripSummary } from "./content";
 export { renderDigest } from "./mail";
-export { digestableTrips, readGrantsByContact } from "./visibility";
+export { contactsWithReadGrant, digestableTrips } from "./visibility";
 export {
   alreadySentToday,
   isAwake,
@@ -148,7 +148,7 @@ export async function planDigest(
   const trips = getTrips(owner);
   const [contacts, grants, lastSends] = await Promise.all([
     listContacts(owner),
-    readGrantsByContact(owner, now),
+    contactsWithReadGrant(owner, now),
     lastDigestsByContact(owner),
   ]);
 
@@ -183,7 +183,7 @@ export async function planDigest(
     // second is true and useless.
     const content = buildDigestContent({
       username: owner,
-      trips: digestableTrips(trips, grants.get(contact.id) ?? new Set()),
+      trips: digestableTrips(trips, grants.has(contact.id)),
       since,
       includeSince,
       today,

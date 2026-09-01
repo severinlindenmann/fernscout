@@ -75,11 +75,13 @@ export async function findActiveContactId(
  * password-protected trip is not: a device merely being subscribed proves
  * nothing about whether it was ever shown the password, so only a
  * subscription tied to a signed-in, active contact (`contactId`, set at
- * subscribe time — see `findActiveContactId`) who holds a `read` grant for
- * this trip, or for every trip (`*`), qualifies. Everyone else — including
- * every subscriber at all, when there is no database — is left out rather
- * than guessed into an audience that might not have the password. That is
- * the fail-closed choice: under-notifying a restricted trip is a nuisance,
+ * subscribe time — see `findActiveContactId`) who holds a `read` grant on this
+ * journal qualifies. The grant is journal-wide and there is no other kind: a
+ * trip that the people let in should not hear about is `visibility: private`,
+ * which never reaches this function. Everyone else — including every
+ * subscriber at all, when there is no database — is left out rather than
+ * guessed into an audience that might not have the password. That is the
+ * fail-closed choice: under-notifying a restricted trip is a nuisance,
  * over-notifying it is a leak.
  */
 export async function subscribersFor(trip: Trip): Promise<StoredSubscription[]> {
@@ -106,7 +108,6 @@ export async function subscribersFor(trip: Trip): Promise<StoredSubscription[]> 
       .select(["id"])
       .where("owner_id", "=", trip.username)
       .where("contact_id", "=", sub.contactId)
-      .where("trip_id", "in", [trip.id, "*"])
       .where("scope", "=", "read")
       .executeTakeFirst();
     if (grant) eligible.push(sub);

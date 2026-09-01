@@ -191,21 +191,21 @@ async function addReader(
 }
 
 /**
- * Grant one reader access to one trip (or `*`).
+ * Let one reader in.
  *
- * Approving somebody already creates the `*` grant — that is what approval
- * *is*, in `lib/contacts`. These helpers exist for the shapes approval does not
- * produce: a reader whose grant covers one trip only, or one that has run out.
+ * Approving somebody already creates this grant — that is what approval *is*,
+ * in `lib/contacts`. The helper exists for the one shape approval does not
+ * produce: a grant that has run out. A grant covers the journal, never a
+ * single trip; the `trip_id` that suggested otherwise went in B35.
  */
-async function grant(contactId: string, tripId: string, expiresAt: string | null = null) {
+async function grant(contactId: string, expiresAt: string | null = null) {
   const { db } = await getDatabase();
   await db
     .insertInto("access_grants")
     .values({
-      id: `g-${contactId}-${tripId}`,
+      id: `g-${contactId}`,
       owner_id: OWNER,
       contact_id: contactId,
-      trip_id: tripId,
       scope: "read",
       granted_at: "2026-08-01T08:00:00.000Z",
       granted_by: OWNER,
@@ -292,10 +292,9 @@ describe("what a reader is told about", () => {
   /** The one that must never regress. */
   test("a reader without access hears nothing about a private trip", async () => {
     const reader = await addReader("plain@example.test", "de");
-    // A reader whose grant covers one public trip: no `*`, so the unlisted and
-    // password-protected trips are both none of their business.
+    // A reader with no grant at all: the public trip is everybody's, and the
+    // unlisted and password-protected ones are none of their business.
     await clearGrants(reader);
-    await grant(reader, "open-2026");
 
     const plan = await planDigest(OWNER, { now: MORNING });
     expect(plan.ready).toHaveLength(1);
@@ -309,10 +308,11 @@ describe("what a reader is told about", () => {
   });
 
   test("an unlisted trip reaches only the readers actually granted it", async () => {
-    await addReader("granted@example.test", "de"); // approval is the `*` grant
+    await addReader("granted@example.test", "de"); // approval is the grant
     const stranger = await addReader("stranger@example.test", "de");
+    // Still on the digest list, still approved as far as `contacts` knows —
+    // and with the grant gone, told only what anyone may hear.
     await clearGrants(stranger);
-    await grant(stranger, "open-2026");
 
     const plan = await planDigest(OWNER, { now: MORNING });
     const byEmail = new Map(plan.ready.map((r) => [r.email, r]));
@@ -331,8 +331,7 @@ describe("what a reader is told about", () => {
    * reader has no key for.
    */
   test("a password-protected trip is never in a digest, grant or no grant", async () => {
-    const granted = await addReader("granted@example.test", "de");
-    await grant(granted, "locked-2026");
+    await addReader("granted@example.test", "de"); // approval is the grant
 
     const plan = await planDigest(OWNER, { now: MORNING });
     expect(plan.ready[0].content.trips.map((t) => t.tripId)).not.toContain("locked-2026");
@@ -341,7 +340,7 @@ describe("what a reader is told about", () => {
   test("an expired grant is not a grant", async () => {
     const reader = await addReader("expired@example.test", "de");
     await clearGrants(reader);
-    await grant(reader, "*", "2026-08-10T00:00:00.000Z");
+    await grant(reader, "2026-08-10T00:00:00.000Z");
 
     const plan = await planDigest(OWNER, { now: MORNING });
     expect(plan.ready[0].content.trips.map((t) => t.tripId)).toEqual(["open-2026"]);

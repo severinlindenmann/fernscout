@@ -150,23 +150,44 @@ describe("subscribersFor — password-protected trips", () => {
     expect(await subscribersFor(trip)).toEqual([]);
   });
 
-  test("an approved contact's wildcard grant covers every trip", async () => {
+  test("an approved contact's grant covers every trip in the journal", async () => {
     const trip = fakeTrip({ visibility: "guest" });
     const contact = await signUpAndConfirm("ana", "family@example.com");
-    await approveContact("ana", contact.id); // grants trip_id "*"
+    await approveContact("ana", contact.id); // approval is the grant
     const sub = fakeSub({ contactId: contact.id });
     await saveSubscription(sub);
 
     const eligible = await subscribersFor(trip);
     expect(eligible.map((s) => s.endpoint)).toEqual([sub.endpoint]);
+
+    // The same grant, and a second trip: a grant is journal-wide, so it
+    // covers a trip that did not exist when it was written.
+    const later = fakeTrip({ visibility: "guest", id: "algarve-2024" });
+    expect((await subscribersFor(later)).map((s) => s.endpoint)).toEqual([sub.endpoint]);
   });
 
-  test("a grant for a different trip does not cover this one", async () => {
+  /**
+   * The negative case, without a trip id in it. Grants used to carry one and
+   * nothing ever wrote it (B35); what is left is present or absent, and absent
+   * is what an approval taken back looks like.
+   */
+  test("a contact whose grant is gone is not notified", async () => {
+    const trip = fakeTrip({ visibility: "guest", id: "asia-2023" });
+    const contact = await signUpAndConfirm("ana", "family@example.com");
+    await approveContact("ana", contact.id);
+    await saveSubscription(fakeSub({ contactId: contact.id }));
+    expect(await subscribersFor(trip)).toHaveLength(1);
+
+    const { db } = await getDatabase();
+    await db.deleteFrom("access_grants").where("contact_id", "=", contact.id).execute();
+    expect(await subscribersFor(trip)).toEqual([]);
+  });
+
+  test("a grant of another scope is not a read grant", async () => {
     const trip = fakeTrip({ visibility: "guest", id: "asia-2023" });
     const contact = await signUpAndConfirm("ana", "family@example.com");
     await approveContact("ana", contact.id);
     const { db } = await getDatabase();
-    // Narrow the wildcard grant approval left behind to a different trip.
     await db.deleteFrom("access_grants").where("contact_id", "=", contact.id).execute();
     await db
       .insertInto("access_grants")
@@ -174,8 +195,7 @@ describe("subscribersFor — password-protected trips", () => {
         id: "grant-1",
         owner_id: "ana",
         contact_id: contact.id,
-        trip_id: "algarve-2024",
-        scope: "read",
+        scope: "costs",
         granted_at: new Date().toISOString(),
         granted_by: "ana",
         expires_at: null,
@@ -184,31 +204,6 @@ describe("subscribersFor — password-protected trips", () => {
 
     await saveSubscription(fakeSub({ contactId: contact.id }));
     expect(await subscribersFor(trip)).toEqual([]);
-  });
-
-  test("a grant naming this trip specifically covers it", async () => {
-    const trip = fakeTrip({ visibility: "guest", id: "asia-2023" });
-    const contact = await signUpAndConfirm("ana", "family@example.com");
-    await approveContact("ana", contact.id);
-    const { db } = await getDatabase();
-    await db.deleteFrom("access_grants").where("contact_id", "=", contact.id).execute();
-    await db
-      .insertInto("access_grants")
-      .values({
-        id: "grant-1",
-        owner_id: "ana",
-        contact_id: contact.id,
-        trip_id: "asia-2023",
-        scope: "read",
-        granted_at: new Date().toISOString(),
-        granted_by: "ana",
-        expires_at: null,
-      })
-      .execute();
-
-    const sub = fakeSub({ contactId: contact.id });
-    await saveSubscription(sub);
-    expect((await subscribersFor(trip)).map((s) => s.endpoint)).toEqual([sub.endpoint]);
   });
 
   test("one user's grants never cover another user's trip", async () => {
