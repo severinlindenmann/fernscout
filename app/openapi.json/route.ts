@@ -207,6 +207,15 @@ export function GET() {
                         "For somebody who is on a trip but does not own the journal. The " +
                         "token then writes to that trip and nothing else.",
                     },
+                    destination: {
+                      type: "string",
+                      description:
+                        "Where the one-tap link in the mail should land, for the browser " +
+                        "sign-in form: the path the reader was on. Guest codes only — an " +
+                        "agent code has no link. It is stored with the code and never " +
+                        "appears in the mailed URL, and anything that is not a path inside " +
+                        "`/{user}/` is ignored, landing the reader on the journal instead.",
+                    },
                   },
                 },
               },

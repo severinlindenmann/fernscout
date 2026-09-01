@@ -1,5 +1,13 @@
 import { isEnabled } from "@/lib/capabilities";
-import { CODE_TTL_MINUTES, isEmail, issueCode, revokeCodes, signInUrl, type SessionKind } from "@/lib/auth";
+import {
+  CODE_TTL_MINUTES,
+  isEmail,
+  issueCode,
+  revokeCodes,
+  safeDestination,
+  signInUrl,
+  type SessionKind,
+} from "@/lib/auth";
 import { sendMail } from "@/lib/mail";
 import { renderMail, type MailBlock } from "@/lib/mail/template";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -49,6 +57,19 @@ export async function POST(request: Request) {
   // gets a token scoped to that trip and nothing else.
   const tripId = typeof body.trip === "string" ? body.trip.trim() : "";
 
+  /**
+   * Where the button in the mail should land — the page the form was sitting
+   * on. Only the trip gate sends one; `/<user>/me` deliberately does not, and
+   * neither does anything that mails a link without a reader in front of it.
+   *
+   * **Stored, never echoed.** It goes into the row beside the link's hash and
+   * is read back at redemption, so no URL anywhere carries a redirect target
+   * somebody can substitute. `safeDestination` refuses anything that is not a
+   * path inside this journal — checked here so nothing unusable is written
+   * down, and again on the way out, which is the check that counts.
+   */
+  const destination = safeDestination(username, body.destination);
+
   const accepted = Response.json({ status: "accepted" }, { status: 202 });
   if (!isEmail(email) || !username) return accepted;
 
@@ -89,7 +110,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { code, linkToken } = await issueCode(username, email, kind);
+  const { code, linkToken } = await issueCode(username, email, kind, destination);
   const base = serverSite().url;
 
   /**

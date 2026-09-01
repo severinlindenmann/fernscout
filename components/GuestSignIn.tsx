@@ -26,11 +26,24 @@ import { useI18n } from "@/components/LocaleProvider";
 export default function GuestSignIn({
   username,
   codeMinutes,
+  destination,
 }: {
   username: string;
   /** How long the code lasts, from `CODE_TTL_MINUTES`. Passed rather than
    * imported: this is a client component and `lib/auth` is server-only. */
   codeMinutes: string;
+  /**
+   * Where the *button in the mail* should land, when this form is standing in
+   * front of a particular page. The trip gate passes the path the reader
+   * asked for; `/<user>/me` passes nothing, because the journal is already
+   * where somebody signing in there wants to be.
+   *
+   * Only the link needs it. Typing the six digits never leaves this page —
+   * see `submitCode` — so the code has nothing to carry the destination
+   * across, and giving `/api/auth/verify` a redirect target would add a
+   * second attacker-controlled one for no reader at all.
+   */
+  destination?: string;
 }) {
   const { t } = useI18n();
   const [step, setStep] = useState<"email" | "code">("email");
@@ -45,7 +58,7 @@ export default function GuestSignIn({
     await fetch("/api/auth/request", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ user: username, email }),
+      body: JSON.stringify({ user: username, email, destination }),
     }).catch(() => {});
     setBusy(false);
     // Always forward, whatever came back. Stopping here for an address we do
@@ -65,7 +78,9 @@ export default function GuestSignIn({
 
     if (response?.ok) {
       // The session is a cookie the server set, and this page is rendered from
-      // it — so a reload, not a router refresh.
+      // it — so a reload, not a router refresh. And a reload is why the code
+      // path needs no destination: the reader never left the page they were
+      // trying to open, so it re-renders as the thing they came for.
       window.location.reload();
       return;
     }
