@@ -190,7 +190,7 @@ The open-source promise: everything works, the mail lands in a folder.
 | --- | --- | --- |
 | K1 | Every mail the app sends, with `transport: file` | `.eml` under `content/<user>/mail/`, one file per message |
 | K2 | Open one in a mail client | Valid MIME, readable, links absolute |
-| K3 | `/<user>/join` | A form: name, email, optional postal address |
+| K3 | An invite link the owner issued, `/<user>/i/<token>` | A form: name, email, optional postal address. `/<user>/join` redirects to `/<user>/me` and offers nothing (B37) |
 | K4 | Submitting it | Confirmation code by `.eml`; entering it confirms |
 | K5 | The owner's notification | "Somebody wants to follow" mail written |
 | K6 | `/<user>/contacts` as owner | The pending request, with approve |

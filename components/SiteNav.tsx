@@ -28,7 +28,7 @@ export default function SiteNav() {
   // /trips and /search belong to the user, not to one trip.
   const { base: userBase } = useSite();
   const userHref = (p: string) => (p === "/" ? userBase : `${userBase}${p}`);
-  // Pages like /trips, /search and /join have no trip in context. Falling back
+  // Pages like /trips, /search and /me have no trip in context. Falling back
   // to the bare path there sent "Costs" to `/costs` — nobody's journal, and an
   // error page. The journal's own base is the right answer: it resolves to the
   // current trip, which is what a reader clicking "Costs" from the trip list
@@ -80,10 +80,11 @@ export default function SiteNav() {
         <span className="hidden xl:inline">{t("nav.trips")}</span>
       </Link>
       {/* Shown to everyone, not only to somebody already signed in.
-          Gating it on a session was a closed loop: `/join` is linked from
-          nowhere else, so the one page whose purpose is helping a reader who
-          lost their invitation email could only be reached by a reader who had
-          not lost it. The panel greets a stranger with an invitation. */}
+          Gating it on a session was a closed loop: this is the one page whose
+          purpose is helping a reader who lost their invitation email, so
+          requiring a session meant it could only be reached by a reader who
+          had not lost it. The panel greets a stranger with the truth — the
+          link somebody sends you is what lets you in. */}
       <Link
         href={userHref("/me")}
         title={t("me.title")}

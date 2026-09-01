@@ -11,7 +11,7 @@ import type { Trip } from "@/lib/types";
 /**
  * Every URL carries the owner.
  *
- * `/trips`, `/search` and `/join` belong to the journal rather than to one
+ * `/trips`, `/search` and `/me` belong to the journal rather than to one
  * trip, so `useTrip()` is null there — and the fallback was the bare path.
  * Clicking "Costs" from the trip list went to `/costs`: nobody's journal, and
  * an error page. The journal's base is the right fallback, because that is
@@ -102,10 +102,10 @@ describe("SiteNav", () => {
 describe("the access panel link", () => {
   /**
    * Offered to everyone, including a stranger. Gating it on a session was a
-   * closed loop: `/join` is linked from nowhere else, so the one page that
-   * exists to help a reader who lost their invitation email could only be
-   * opened by a reader who still had it. A black-box tester spent her whole
-   * session unable to find any way to sign in, and was right.
+   * closed loop: this is the one page that exists to help a reader who lost
+   * their invitation email, so requiring a session meant only a reader who
+   * still had it could open it. A black-box tester spent her whole session
+   * unable to find any way to sign in, and was right.
    */
   test("is offered whether or not there is a session", () => {
     expect(render(false)).toContain("/alex/me");

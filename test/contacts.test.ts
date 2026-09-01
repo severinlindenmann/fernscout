@@ -247,7 +247,7 @@ describe("a telephone number", () => {
 });
 
 /**
- * Task 10 — an optional phone number on the public join form.
+ * Task 10 — an optional phone number on the invite form.
  *
  * The trap this guards against: both `ContactForm.tsx` and this route used to
  * drop the whole submitted address — `tel` included — unless `wantsPostcard`
@@ -255,8 +255,10 @@ describe("a telephone number", () => {
  * it silently discarded. `tel` must survive that path; the postal address
  * must still only be stored with the tick.
  */
-describe("a guest's phone number, given through the join form", () => {
-  beforeEach(() => {
+describe("a guest's phone number, given through the invite form", () => {
+  let inviteToken: string;
+
+  beforeEach(async () => {
     fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
     fs.writeFileSync(
       path.join(dir, "ana", "config.json"),
@@ -283,6 +285,11 @@ describe("a guest's phone number, given through the join form", () => {
     );
     clearConfigCache();
     clearUserCache();
+
+    // Since B37 the route refuses a submission with no live invite token, so
+    // every post below carries one. It is the owner's act of issuing this that
+    // opens the door at all; approval is still separate and still by hand.
+    inviteToken = (await createInvite("ana", { name: "A Reader", locale: "en" })).token;
   });
 
   // A distinct `x-forwarded-for` so this describe's calls land in their own
@@ -300,7 +307,13 @@ describe("a guest's phone number, given through the join form", () => {
           "content-type": "application/json",
           "x-forwarded-for": "203.0.113.7",
         },
-        body: JSON.stringify({ user: "ana", name: "A Reader", locale: "en", ...body }),
+        body: JSON.stringify({
+          user: "ana",
+          name: "A Reader",
+          locale: "en",
+          invite: inviteToken,
+          ...body,
+        }),
       }),
     );
   }
@@ -372,7 +385,13 @@ describe("a guest's phone number, given through the join form", () => {
             "content-type": "application/json",
             "x-forwarded-for": "203.0.113.42",
           },
-          body: JSON.stringify({ user: "ana", name: "A Reader", locale: "en", ...body }),
+          body: JSON.stringify({
+            user: "ana",
+            name: "A Reader",
+            locale: "en",
+            invite: inviteToken,
+            ...body,
+          }),
         }),
       );
     }
@@ -423,7 +442,7 @@ describe("a guest's phone number, given through the join form", () => {
       expect(isPostable(contact!.postalAddress!)).toBe(true);
     });
 
-    test("a join submission with a new tel replaces the stored one", async () => {
+    test("a submission with a new tel replaces the stored one", async () => {
       const { contactId } = await requestContact("ana", {
         name: "Oma",
         email: "returning-3@example.test",
@@ -489,6 +508,205 @@ describe("a guest's phone number, given through the join form", () => {
       expect(isPostable(contact!.postalAddress!)).toBe(false);
       expect(contact?.postalAddress?.tel).toBe("+41 79 000 99 00");
     });
+  });
+});
+
+/**
+ * B37 — the door, not the signpost.
+ *
+ * `/{user}/join` was removed, but a page is only the sign above a door. The
+ * request endpoint used to treat the invite token as optional and record
+ * `createdVia: "open"` when there was none, so anybody who had watched the
+ * form submit once could keep putting strangers on the owner's queue for as
+ * long as the journal existed. These are the tests that say the endpoint
+ * itself is shut.
+ *
+ * The second property is as important as the first: a bad token must be
+ * answered exactly like a good one. Anything else — a 400, a different body, a
+ * different status — turns this route into a way of asking whether somebody's
+ * link is still live.
+ */
+describe("the request endpoint, with no invitation", () => {
+  let inviteId: string;
+  let inviteToken: string;
+
+  beforeEach(async () => {
+    fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "ana", "config.json"),
+      JSON.stringify({
+        title: "Ana's journal",
+        tagline: "t",
+        owner: { name: "Ana B", nickname: "Ana" },
+        startLocation: "X",
+        defaultLocale: "en",
+        locales: ["en"],
+        baseCurrency: "CHF",
+        displayCurrencies: ["CHF"],
+        units: "metric",
+        features: { contacts: { enabled: true } },
+      }),
+    );
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "R", url: "https://example.test", defaultUser: "ana" },
+        users: { reserved: [] },
+        features: { contacts: { enabled: true } },
+      }),
+    );
+    clearConfigCache();
+    clearUserCache();
+
+    const created = await createInvite("ana", { name: "Oma", locale: "en" });
+    inviteId = created.id;
+    inviteToken = created.token;
+  });
+
+  /** One IP per call: `lib/rateLimit.ts` is a module-level map shared for the
+   * life of the file, and five submissions per quarter of an hour is not many
+   * when a describe posts a dozen times. */
+  let ip = 0;
+  async function post(body: Record<string, unknown>) {
+    const { POST } = await import("@/app/api/contacts/request/route");
+    return POST(
+      new Request("https://example.test/api/contacts/request", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": `198.51.100.${(ip += 1)}`,
+        },
+        body: JSON.stringify({ user: "ana", name: "A Reader", locale: "en", ...body }),
+      }),
+    );
+  }
+
+  async function contactCount() {
+    return (await listContacts("ana")).length;
+  }
+
+  async function codeCount() {
+    const { db } = await getDatabase();
+    return (await db.selectFrom("login_codes").selectAll().execute()).length;
+  }
+
+  test("a live invitation still writes a pending row, and only a pending row", async () => {
+    const response = await post({ email: "invited@example.test", invite: inviteToken });
+    expect(response.status).toBe(202);
+
+    const [contact] = await listContacts("ana");
+    expect(contact.email).toBe("invited@example.test");
+    expect(contact.status).toBe("pending");
+    expect(contact.createdVia).toBe(`invite:${inviteId}`);
+
+    // The endpoint grants nothing. `approveContact` is still the only thing
+    // that does, and it still refuses an unconfirmed address.
+    const { db } = await getDatabase();
+    expect(await db.selectFrom("access_grants").selectAll().execute()).toHaveLength(0);
+    expect(await approveContact("ana", contact.id)).toBeNull();
+    expect((await listContacts("ana"))[0].status).toBe("pending");
+  });
+
+  for (const [what, token] of [
+    ["no token at all", undefined],
+    ["an invented token", "fs_inv_invented"],
+    ["an empty token", ""],
+  ] as const) {
+    test(`${what} creates no contact and sends no code`, async () => {
+      const response = await post({ email: "stranger@example.test", invite: token });
+      expect(response.status).toBe(202);
+      expect(await response.json()).toEqual({ status: "accepted" });
+      expect(await contactCount()).toBe(0);
+      expect(await codeCount()).toBe(0);
+    });
+  }
+
+  test("a revoked token creates no contact, and is answered like a live one", async () => {
+    const good = await post({ email: "invited@example.test", invite: inviteToken });
+    const goodBody = await good.json();
+    expect(await contactCount()).toBe(1);
+
+    await revokeInvite("ana", inviteId);
+
+    const revoked = await post({ email: "stranger@example.test", invite: inviteToken });
+    expect(revoked.status).toBe(good.status);
+    expect(await revoked.json()).toEqual(goodBody);
+
+    // Nothing was written, and nothing distinguishes the two answers — so the
+    // route cannot be used to ask whether a link is still live.
+    expect(await contactCount()).toBe(1);
+    expect((await listContacts("ana"))[0].email).toBe("invited@example.test");
+  });
+
+  test("an expired token creates no contact", async () => {
+    const { token } = await createInvite("ana", {
+      name: "Oma",
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+    });
+    const response = await post({ email: "stranger@example.test", invite: token });
+    expect(response.status).toBe(202);
+    expect(await contactCount()).toBe(0);
+    expect(await codeCount()).toBe(0);
+  });
+
+  test("another journal's token is not a token here", async () => {
+    const { token } = await createInvite("bea", { name: "Oma", locale: "en" });
+    const response = await post({ email: "stranger@example.test", invite: token });
+    expect(response.status).toBe(202);
+    expect(await contactCount()).toBe(0);
+  });
+
+  test("an uninvited submission does not count as a use of anybody's link", async () => {
+    await post({ email: "stranger@example.test" });
+    expect((await listInvites("ana"))[0].uses).toBe(0);
+  });
+});
+
+/**
+ * The link people already pasted into a group chat.
+ *
+ * It has to keep answering. A 404 reads as "the journal is gone" to the person
+ * who was sent it, which is the same reasoning `/{user}/s/<token>` gives for
+ * never landing an expired sign-in link on one.
+ */
+describe("the address the open guestbook used to have", () => {
+  beforeEach(() => {
+    fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "ana", "config.json"),
+      JSON.stringify({
+        title: "Ana's journal",
+        tagline: "t",
+        owner: { name: "Ana B", nickname: "Ana" },
+        startLocation: "X",
+        defaultLocale: "en",
+        locales: ["en"],
+        baseCurrency: "CHF",
+        displayCurrencies: ["CHF"],
+        units: "metric",
+        features: { contacts: { enabled: true } },
+      }),
+    );
+    clearConfigCache();
+    clearUserCache();
+  });
+
+  async function get(username: string) {
+    const { GET } = await import("@/app/[user]/join/route");
+    return GET(new Request(`https://example.test/${username}/join`), {
+      params: Promise.resolve({ user: username }),
+    });
+  }
+
+  test("redirects to the access panel rather than serving a form", async () => {
+    const response = await get("ana");
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("/ana/me");
+    expect(await response.text()).not.toContain("<form");
+  });
+
+  test("still 404s for a journal that does not exist", async () => {
+    expect((await get("nobody")).status).toBe(404);
   });
 });
 
@@ -911,7 +1129,7 @@ describe("the personal link", () => {
     expect(contacts.every((c) => c.confirmedAt === null)).toBe(true);
   });
 
-  test("a revoked link resolves to nothing, and the open form still works", async () => {
+  test("a revoked link resolves to nothing, and so does an invented one", async () => {
     const { id, token } = await createInvite("ana", { name: "Oma", locale: "de" });
     await revokeInvite("ana", id);
     expect(await resolveInvite("ana", token)).toBeNull();
@@ -1150,9 +1368,11 @@ describe("choosing a language", () => {
  * canonical one wins.
  */
 describe("the digest preference's name", () => {
+  let inviteToken: string;
+
   // The route checks the journal exists and has contacts switched on; the
   // library calls above do not, which is why these tests build a real one.
-  beforeEach(() => {
+  beforeEach(async () => {
     fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
     fs.writeFileSync(
       path.join(dir, "ana", "config.json"),
@@ -1179,6 +1399,9 @@ describe("the digest preference's name", () => {
     );
     clearConfigCache();
     clearUserCache();
+
+    // The route refuses anything without a live invite since B37.
+    inviteToken = (await createInvite("ana", { name: "A Reader", locale: "de" })).token;
   });
 
   async function post(body: Record<string, unknown>) {
@@ -1187,7 +1410,7 @@ describe("the digest preference's name", () => {
       new Request("https://example.test/api/contacts/request", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ user: "ana", name: "A Reader", ...body }),
+        body: JSON.stringify({ user: "ana", name: "A Reader", invite: inviteToken, ...body }),
       }),
     );
     expect(response.status).toBe(202);

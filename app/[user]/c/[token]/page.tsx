@@ -46,8 +46,11 @@ export default async function ManagePage({ params }: PageProps<"/[user]/c/[token
         lang={locale}
         title={translateIn(locale, "err.linkExpiredTitle")}
         body={translateIn(locale, "err.linkExpiredBody")}
+        // It used to offer the open guestbook here, as the way to get a fresh
+        // link. There is no open guestbook any more (B37), and the body now
+        // says the true thing instead: ask whoever invited you. Still not a
+        // 404 — see the note above.
         actions={[
-          { href: `/${username}/join`, label: translateIn(locale, "contact.title") },
           {
             href: `/${username}`,
             label: translateIn(locale, "err.goToJournal", { title: user.title }),

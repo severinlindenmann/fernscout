@@ -104,7 +104,7 @@ describe("what the password gate covers", () => {
 
     // These must stay outside it, or a private trip hides them too.
     const user = path.join(process.cwd(), "app", "[user]");
-    for (const outside of ["trips", "search", "join", "contacts", "media"]) {
+    for (const outside of ["trips", "search", "contacts", "media"]) {
       expect(fs.existsSync(path.join(user, outside))).toBe(true);
     }
   });

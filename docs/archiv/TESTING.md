@@ -168,7 +168,7 @@ files you can open — no mail account needed.
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
 | **H1** | Set `features.contacts.enabled: true` and 🔑 `CONTACTS_ENCRYPTION_KEY=$(openssl rand -hex 32)`. Rebuild | — |
-| **H2** | Open `/example/join` | A short form: name, email, optional postal address |
+| **H2** | Open `/example/contacts` as owner, issue an invite, open its link | A short form: name, email, optional postal address. `/example/join` redirects to `/example/me`, which offers no form (B37) |
 | **H3** | Fill it in and submit | A code arrives as an `.eml`; entering it confirms you |
 | **H4** | Check `content/example/mail/` | A "someone wants to follow" mail addressed to the owner |
 | **H5** | Open `/example/contacts` (as owner) | The pending request, with an approve button |

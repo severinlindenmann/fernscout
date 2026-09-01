@@ -76,6 +76,8 @@ lässt dich hinein."* Today it only appears when the contacts capability is off
   in what it granted and wrong in what it advertised.
 - `agent.md` and `documentation.txt` (`lib/api/documentation.ts`) if either
   mentions the open link, so an agent does not hand somebody a dead URL.
+  *Neither does — checked. `grep -rniE "guestbook|/join" lib/api/` finds
+  nothing, because the agent surface never covered contacts at all.*
 
 Two details that will otherwise be got wrong:
 
@@ -94,6 +96,34 @@ Two details that will otherwise be got wrong:
 Not doing: the approval step, which stays manual and unchanged. The personal
 invite link, which is the door that remains. Anything about what a guest may
 read once approved — that is B41.
+
+## What the build found that this file did not say
+
+Three things followed from closing the endpoint, and all three would have been
+left broken by doing only what the list above says:
+
+- **`/{user}/i/<token>` with a dead token fell back to the open form.** Its own
+  header said so: *"An expired, revoked or invented token is not an error page:
+  it falls back to the same form the open link shows."* With the endpoint
+  requiring a live token, that fallback becomes a form that accepts a
+  submission, answers `202` and does nothing — the person waits for a code that
+  is never coming. It now shows the same "this link has stopped working" notice
+  that `/{user}/c/<token>` shows, which is still not a 404.
+- **`err.linkExpiredBody` told people to fill the form in again**, and
+  `/{user}/c/<token>` offered `/{user}/join` as the action that did it. Both
+  are now wrong. The action is gone and the sentence says *ask whoever invited
+  you for a fresh one*, in all three locales.
+- **Three translation keys died with the form** — `contact.adminOpenLink`,
+  `contact.adminOpenLinkHint` (the owner's copy-me-the-open-link block) and
+  `me.newHere` ("Neu hier?"). Removed from all three locale files, with
+  `npm run i18n:keys` re-run.
+
+Nothing was captured into `backlog/`: the three above are consequences of this
+change rather than separate defects, and no unrelated problem turned up.
+
+`canJoin` was **removed**, not renamed. With the form gone there is nothing for
+a second flag to gate: `me.askOwner` appears when sign-in is off, and when it
+is on the stranger is offered sign-in and nothing else.
 
 ## Acceptance
 

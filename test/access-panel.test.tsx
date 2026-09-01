@@ -13,14 +13,14 @@ import { CODE_TTL_MINUTES } from "@/lib/auth";
 /**
  * What the access panel offers a stranger.
  *
- * It offered the guestbook unconditionally, and a journal that keeps no
- * guestbook answers `/{user}/join` with a 404 — so the only button on the page
- * that exists to explain your access led to "this page does not exist". Both
- * doors are capabilities: a server ceiling and a journal opt-in, and either can
- * be shut.
+ * Once, two things: sign-in, and the open guestbook. B37 removed the second —
+ * a form anybody who found a username could fill in, putting themselves on the
+ * owner's queue uninvited. What is left is one door, and it is a capability: a
+ * server ceiling and a journal opt-in, either of which can be shut.
  *
- * The rule is that a control is shown only when it can work, and when neither
- * can, the page says so in a sentence instead.
+ * The rule is that a control is shown only when it can work, and when none
+ * can, the page says so in a sentence instead — the sentence that used to
+ * appear only on a journal with no guestbook, and is now simply true.
  */
 
 // The panel renders the page header, which links and reads the path.
@@ -49,7 +49,7 @@ const site = {
 
 const stranger: Viewer = { email: null, owner: false, guest: false, trips: [] };
 
-function render(over: { canJoin?: boolean; canSignIn?: boolean } = {}) {
+function render(over: { canSignIn?: boolean } = {}) {
   return renderToStaticMarkup(
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
       <SiteProvider value={site}>
@@ -62,7 +62,6 @@ function render(over: { canJoin?: boolean; canSignIn?: boolean } = {}) {
           viewer={stranger}
           username="alex"
           docUrl="https://example.test/documentation.txt"
-          canJoin={over.canJoin ?? false}
           canSignIn={over.canSignIn ?? false}
           codeMinutes={CODE_TTL_MINUTES}
         />
@@ -74,35 +73,39 @@ function render(over: { canJoin?: boolean; canSignIn?: boolean } = {}) {
 }
 
 describe("the access panel, for somebody not signed in", () => {
-  test("with a guestbook, offers it", () => {
-    const html = render({ canJoin: true });
-    expect(html).toContain('href="/alex/join"');
-  });
-
-  /** The reported bug: a button whose destination answers 404. */
-  test("without one, never links to a page that does not exist", () => {
-    expect(render({ canJoin: false })).not.toContain("/alex/join");
-  });
-
-  test("and says why there is nothing to press", () => {
-    expect(render({ canJoin: false, canSignIn: false })).toMatch(/nothing to fill in/i);
+  /**
+   * B37. The panel is the only place the open guestbook was ever advertised,
+   * so this is the assertion that the signpost is down — whether or not the
+   * journal keeps contacts, and whether or not it can issue codes.
+   */
+  test("never offers a way to join uninvited", () => {
+    for (const canSignIn of [true, false]) {
+      const html = render({ canSignIn });
+      expect(html).not.toContain("/alex/join");
+      // The button that opened it. ("guestbook" itself still appears, in the
+      // sentence explaining that this journal does not keep one.)
+      expect(html).not.toContain("Sign the guestbook");
+      // And a stranger is never asked for what that form asked for. The
+      // sign-in form is itself a form and wants an email address, so only the
+      // postal fields separate the two.
+      expect(html).not.toMatch(/postal|postcode|street/i);
+    }
   });
 
   test("with sign-in available, offers the way back in", () => {
     expect(render({ canSignIn: true })).toContain("signin-email");
   });
 
+  test("and nothing else: no second thing for a stranger to press", () => {
+    const html = render({ canSignIn: true });
+    expect(html).not.toMatch(/nothing to fill in/i);
+  });
+
   test("without it, does not — the endpoints would answer 404", () => {
     expect(render({ canSignIn: false })).not.toContain("signin-email");
   });
 
-  /**
-   * Somebody reading this has almost certainly been here before and lost the
-   * email. Offering the sign-up form first asks them to become a second
-   * person, so the guestbook is named once, quietly, underneath.
-   */
-  test("names the guestbook once when both are on, not twice", () => {
-    const html = render({ canJoin: true, canSignIn: true });
-    expect(html.split('href="/alex/join"').length - 1).toBe(1);
+  test("and then says why there is nothing to press", () => {
+    expect(render({ canSignIn: false })).toMatch(/nothing to fill in/i);
   });
 });

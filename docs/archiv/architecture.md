@@ -30,7 +30,7 @@ serves any trip at the explicit one. Both render the same components.
 | `/<user>/costs` · `/gallery` · `/map` | the other views of one trip |
 | `/<user>/trips` | every trip, with the lifetime map |
 | `/<user>/search` | across the whole journal, not one trip |
-| `/<user>/me` · `/contacts` · `/join` | the reader's own access, and getting it |
+| `/<user>/me` · `/contacts` | the reader's own access, and the owner's list of readers |
 | `/<user>/i/<token>` · `/c/<token>` · `/u/<token>` | invite, confirm, unsubscribe |
 | `/<user>/feed.xml` · `/search-index.json` · `/story.json` · `/export.zip` | generated |
 | `/<user>/media/<path>` | media, resized on demand and cached |

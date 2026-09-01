@@ -11,21 +11,30 @@ import { getUser } from "@/lib/users";
 export const dynamic = "force-dynamic";
 
 /**
- * Somebody filled in the guestbook.
+ * Somebody the owner invited filled in their details.
  *
- * Two guards, for two different attacks:
+ * Three guards, for three different attacks:
  *
- * - **A rate limit** (C15), because this is a public form that asks for postal
- *   addresses and those attract junk. Five submissions per address per quarter
- *   of an hour is far more than a household filling it in together and far less
- *   than a script.
+ * - **A live invite token** (B37). This used to be optional: no token meant
+ *   `createdVia: "open"`, and anybody who had ever seen the request could put
+ *   a stranger on the owner's queue. Removing the page it was posted from
+ *   would have left the door standing with the sign taken down, so the token
+ *   is required here — where it is actually enforced — and only
+ *   `resolveInvite` says whether one is live.
+ * - **A rate limit** (C15), because this form asks for postal addresses and
+ *   those attract junk. Five submissions per address per quarter of an hour is
+ *   far more than a household filling it in together and far less than a
+ *   script.
  * - **A uniform answer.** Malformed input is named — a reader who mistyped
  *   their address deserves to be told — but everything else answers `202`,
- *   whether the contact is new, already known, or blocked. Anything else turns
- *   the form into a way of asking who else is on the list.
+ *   whether the contact is new, already known, blocked, or arrived with a
+ *   token that was revoked yesterday. Anything else turns the form into a way
+ *   of asking who else is on the list, or into an oracle for testing whether a
+ *   link is still live.
  *
  * Nothing here grants anything. The row it writes is `pending`, and the only
- * thing that happens next is a six-digit code.
+ * thing that happens next is a six-digit code. A person still approves it by
+ * hand; an invite is an invitation to request, never a grant.
  */
 /**
  * One name on the wire.
@@ -88,15 +97,23 @@ export async function POST(request: Request) {
   // `hasAnyDetail`, so neither a tel nor a postcard still stores nothing.
   const addressToStore = wantsPostcard ? address : { ...EMPTY_ADDRESS, tel: address.tel };
 
-  // The token in a personal link prefills two fields and does nothing else —
-  // decision 19. Note in particular that the *submitted* address is what
-  // identifies this person, never the invite.
+  // The token in a personal link prefills two fields, says which link somebody
+  // came through, and is now also what makes them admissible at all. It is
+  // still not identity: the *submitted* address is what identifies this
+  // person, never the invite.
   const inviteToken = typeof body.invite === "string" ? body.invite : "";
   const invite = inviteToken ? await resolveInvite(username, inviteToken) : null;
 
+  // Missing, invented, expired or revoked — all four end here, writing
+  // nothing, sending nothing, and answering exactly what a good token gets. A
+  // caller cannot tell the four apart from each other or from success, which
+  // is the point: otherwise this route answers "is that link still live?" for
+  // anybody who asks.
+  if (!invite) return Response.json({ status: "accepted" }, { status: 202 });
+
   const locale = pickLocale(
     typeof body.locale === "string" ? body.locale : null,
-    invite?.locale,
+    invite.locale,
     user.defaultLocale,
   );
 
@@ -107,8 +124,8 @@ export async function POST(request: Request) {
     address: addressToStore,
     wantsEmailDigest: digestPreference(body) === true,
     wantsPostcard,
-    createdVia: invite ? `invite:${invite.id}` : "open",
-    inviteId: invite?.id ?? null,
+    createdVia: `invite:${invite.id}`,
+    inviteId: invite.id,
   });
 
   if (result.outcome !== "ignored") {

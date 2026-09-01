@@ -4,9 +4,10 @@ import { notFound } from "next/navigation";
 import ContactForm from "@/components/ContactForm";
 import { isEnabled } from "@/lib/capabilities";
 import { resolveInvite } from "@/lib/contacts/invites";
+import NoticeShell from "@/components/NoticeShell";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { getUser } from "@/lib/users";
-import { dictionariesFor, localesFor } from "@/lib/locales";
+import { dictionariesFor, localesFor, translateIn } from "@/lib/locales";
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +30,13 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * contact. Forward it to forty people and the owner gets forty requests to
  * approve individually, which is exactly the intended behaviour.
  *
- * An expired, revoked or invented token is not an error page: it falls back to
- * the same form the open link shows. A stale link in an old email should still
- * let somebody in touch, and the fallback leaks nothing — that form is public.
+ * An expired, revoked or invented token used to fall back to the same form the
+ * open link showed. There is no open link any more (B37) and the endpoint
+ * behind the form refuses a submission without a live token, so that fallback
+ * would now be a form that silently does nothing — the worst of both, since
+ * whoever filled it in would wait for a reply that was never coming. It says
+ * the link has stopped working instead, which is true and tells them what to
+ * do, and it is still not a 404: the same reasoning as `/{user}/c/<token>`.
  */
 export default async function InvitePage({ params }: PageProps<"/[user]/i/[token]">) {
   const { user: username, token } = await params;
@@ -42,6 +47,22 @@ export default async function InvitePage({ params }: PageProps<"/[user]/i/[token
   const accept = (await headers()).get("accept-language");
   const locale = pickLocale(invite?.locale, fromAcceptLanguage(accept), user.defaultLocale);
 
+  if (!invite) {
+    return (
+      <NoticeShell
+        lang={locale}
+        title={translateIn(locale, "err.linkExpiredTitle")}
+        body={translateIn(locale, "err.linkExpiredBody")}
+        actions={[
+          {
+            href: `/${username}`,
+            label: translateIn(locale, "err.goToJournal", { title: user.title }),
+          },
+        ]}
+      />
+    );
+  }
+
   return (
     <ContactForm
       locales={localesFor(username)}
@@ -49,10 +70,11 @@ export default async function InvitePage({ params }: PageProps<"/[user]/i/[token
       username={username}
       journalTitle={user.title}
       initialLocale={locale}
-      initialName={invite?.name ?? ""}
-      // Passed back on submit only so the owner can see which link somebody
-      // came through. It is provenance, never identity.
-      inviteToken={invite ? token : undefined}
+      initialName={invite.name ?? ""}
+      // Passed back on submit so the owner can see which link somebody came
+      // through — and, since B37, so the submission is accepted at all. It is
+      // provenance and admissibility, never identity.
+      inviteToken={token}
     />
   );
 }

@@ -5,12 +5,11 @@ import NoticeShell from "@/components/NoticeShell";
 import { isEnabled } from "@/lib/capabilities";
 import { listContacts } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
-import { listInvites, openInviteUrl } from "@/lib/contacts/invites";
+import { listInvites } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
 import { isOwner } from "@/lib/contacts/session";
 
 import { dictionaryFor, localesFor, translateIn } from "@/lib/locales";
-import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -77,7 +76,6 @@ export default async function ContactsAdminPage({ params }: PageProps<"/[user]/c
       locale={locale}
       contacts={contacts}
       invites={await listInvites(username)}
-      openLink={openInviteUrl(serverSite().url, username)}
     />
   );
 }

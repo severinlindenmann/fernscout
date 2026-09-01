@@ -28,7 +28,6 @@ export default function MePageContent({
   username,
   docUrl,
   manageHref,
-  canJoin,
   canSignIn,
   codeMinutes,
 }: {
@@ -37,8 +36,6 @@ export default function MePageContent({
   docUrl: string;
   /** Present only when this reader has a contact record to edit. */
   manageHref?: string;
-  /** Whether this journal keeps a guestbook — `/{user}/join` 404s if not. */
-  canJoin: boolean;
   /** Whether codes can be issued at all, which is what signing in needs. */
   canSignIn: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
@@ -70,30 +67,23 @@ export default function MePageContent({
               <p className="mt-2 text-lg leading-8 text-navy-700">{t("me.strangerBody")}</p>
 
               {/*
-                What is on offer depends on what this journal actually runs,
-                and the guestbook is named once rather than twice.
+                There is exactly one door for a stranger, and it is signing in
+                — which only works for somebody already known here.
 
-                Signing in comes first when it is available: somebody reading
-                this has almost certainly been here before and lost the email,
-                and offering them the sign-up form first asks them to become a
-                second person. The guestbook is then a quiet line underneath,
-                for whoever really is new. With no sign-in it is the only door,
-                so it takes the button.
-                The guestbook link used to be unconditional, and on a journal
-                that keeps no guestbook it led to a 404 — the reader pressed
-                the only button on the page and was told the page does not
-                exist. When neither door is open, say so in a sentence instead
-                of showing a control that cannot work.
+                This page used to offer the open guestbook beside it: a form
+                anybody who found the address could fill in, putting themselves
+                on the owner's queue uninvited (B37). It is gone, and the
+                sentence that used to appear only on journals with no guestbook
+                is now the honest answer for every journal: the link somebody
+                sends you is what lets you in.
+
+                It is shown only when there is nothing to press. With sign-in
+                available, the reader is offered that and nothing else —
+                somebody reading this has almost certainly been here before and
+                lost the email, and a second paragraph telling them to ask for
+                a link would talk them out of the control right underneath it.
               */}
-              {canJoin && !canSignIn && (
-                <Link
-                  href={`${site.base}/join`}
-                  className="mt-4 inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-                >
-                  {t("contact.submit")}
-                </Link>
-              )}
-              {!canJoin && !canSignIn && (
+              {!canSignIn && (
                 <p className="mt-4 border-l-2 border-yellow-400 pl-4 text-base leading-7 text-navy-900">
                   {t("me.askOwner")}
                 </p>
@@ -103,18 +93,6 @@ export default function MePageContent({
             {/* The way back for somebody who has been here before and lost the
                 email they were let in with. */}
             {canSignIn && <GuestSignIn username={username} codeMinutes={codeMinutes} />}
-
-            {canSignIn && canJoin && (
-              <p className="mt-4 text-base text-navy-700">
-                {t("me.newHere")}{" "}
-                <Link
-                  href={`${site.base}/join`}
-                  className="font-semibold text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-4"
-                >
-                  {t("contact.submit")}
-                </Link>
-              </p>
-            )}
           </>
         ) : (
           <p className="mt-3 text-lg text-navy-700">
