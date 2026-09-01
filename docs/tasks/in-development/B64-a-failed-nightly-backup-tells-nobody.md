@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: backup, ops
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B64 — A failed nightly backup tells nobody

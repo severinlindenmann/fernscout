@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: auth, ui
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B69 — The one-tap sign-in link always lands on the journal home, losing the page you were trying to read

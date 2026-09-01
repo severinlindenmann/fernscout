@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: digest, test-flag, push
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B70 — A test trip is mailed out in the digest as if somebody had lived it
