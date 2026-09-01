@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: api, trips, test-flag
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B47 — The test flag can be written but never read back, so nothing can confirm it stuck
