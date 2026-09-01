@@ -251,14 +251,14 @@ function spread(candidates: BasemapLabel[], frame: Frame, limit: number): Basema
 }
 
 /**
- * Whether a frame is close enough in that labelling every town would crowd it.
+ * B46 proposed a "too close in to draw a basemap" threshold at about 30 km, and
+ * an `isCloseRange` helper stood here to answer it. Neither is needed, and the
+ * reason is worth keeping: nothing has to decide in advance whether Natural
+ * Earth has anything to say about a place. The clip either returns shapes or it
+ * does not, and an empty clip draws the clean background by itself — correct at
+ * every scale rather than at the one scale somebody guessed.
  *
- * Not a threshold for *whether* to draw a basemap — B46 originally proposed one
- * at 30 km, and it turned out not to be needed. Nothing has to decide in
- * advance whether Natural Earth has anything to say about a place: the clip
- * either returns shapes or it does not, and an empty clip draws the clean
- * background all by itself. This only decides how much labelling is decent.
+ * The one range question that *is* asked is `WAYS_BELOW_KM` above, and it is
+ * about roads and railways being noise on a continental map, not about whether
+ * a basemap exists.
  */
-export function isCloseRange(frame: Frame): boolean {
-  return kmForUnits(frame.w) < 60;
-}

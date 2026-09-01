@@ -216,6 +216,69 @@ has not happened.
 **Not doing:** an interactive slippy map, tile fetching (see above), per-day
 GPS traces (B06), or changing what counts as a place.
 
+## What was built, and where this plan was wrong
+
+Written after the work. The plan above is left as it was — it is the reasoning
+that led here — but four of its decisions did not survive contact.
+
+**There is no generated artefact, and so no staleness problem.** The plan spent
+a paragraph on the trap of baking a basemap per trip into
+`content/<user>/trips/<id>/` and having to notice when a trip outgrew it. That
+whole section is moot: `lib/basemap.ts` clips on the *server, per request*, from
+one committed bundle. A reader still receives only their own frame's worth —
+tens of kilobytes, not the 5.9 MB file — and because nothing is written
+anywhere, a trip that grows a stop is simply reframed on the next load, exactly
+as `getPlaces` already behaves. The cheaper design was available the whole time
+and the plan did not see it.
+
+**There is no "too close to draw" threshold either.** The plan proposed
+dropping the basemap below ~30 km. Nothing needed to decide that in advance: an
+empty clip draws the clean background by itself. One less constant, and the
+behaviour is right at every scale rather than at the scale somebody guessed.
+
+**The scope grew, and got cheaper than the plan assumed.** The author asked for
+mountains, lakes and cities, then regions, then elevation, then roads and rail.
+Cities cost nothing — `lib/ingest/data/places.bin.gz` was already committed for
+reverse-geocoding photographs and is sorted by latitude, so a bounding-box query
+is two binary searches (`placesInBox`). Country borders were already there the
+moment `countries-10m` replaced `land-110m`: each shape is one country, so
+stroking the polygons that fill the land gives every frontier for free.
+
+**The fourth constant was not in the plan at all, and it broke the map.** The
+plan named three — padding, zoom cap, cluster radius. It missed that every
+marker radius, stroke width and font size was *also* a viewBox constant tuned
+for a ~140-unit frame. Against the Alps' 4.6-unit frame a radius-8 white marker
+was three times wider than the map, and the first working version of the
+framing fix rendered as a blank white rectangle. Fixing that as a fraction of
+the frame then introduced its twin: a fraction of the width is a different
+number of *pixels* on a phone, so labels legible at 13px on a desktop arrived at
+5px on a 390px screen. Sizes are now measured screen pixels
+(`ResizeObserver` → `px()`), which is the only definition that survives changing
+the screen.
+
+Three smaller things, each found by looking at the rendered page rather than by
+reading:
+
+- `vector-effect="non-scaling-stroke"` makes `stroke-width` a screen length, so
+  passing it a frame-relative value drew every border at 0.016px — invisible.
+- Rings crossing the antimeridian drew a straight line across the whole world,
+  visible as a stray rule through the Pacific on the lifetime map.
+- Natural Earth's summit class is `mountain`, not `peak`, and the geography
+  regions file uses UPPER CASE property names where every other file here is
+  lower case. Each mistake shipped a layer that was silently empty.
+
+**Two more maps existed than the plan counted.** It named `WorldMap` and
+`MiniMap`. `LifetimeMap` on `/trips` held a *third* copy of the framing
+arithmetic with a third set of constants, and the trip overview page rendered a
+`WorldMap` with no basemap at all. All four share `frameRoute` now.
+
+**Cost, stated plainly.** `lib/mapdata/basemap.json.gz` is 5.9 MB committed,
+23 MB parsed, server-side only. That is three times the existing
+`places.bin.gz` and it is the one number in this task worth arguing about.
+Roads are most of it; the layers are independent and each is one constant away
+from being dropped. Urban areas (28 MB of source) were left out for this reason
+and not because they would not be useful.
+
 ## Acceptance
 
 - A fixture trip whose stops all lie within ~10 km renders framed on those
@@ -230,3 +293,31 @@ GPS traces (B06), or changing what counts as a place.
   comment where the threshold is set.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run` and `npm run build` all
   pass.
+
+### Checked, line by line
+
+| Line | Evidence |
+| --- | --- |
+| ~10 km fixture framed on its stops | `test/world-map.test.tsx`, "a day inside one city" — four stops across ~6 km of Zurich, asserts the frame is under 60 km |
+| Those stops as separate markers | same file, asserts four markers, one per stop |
+| Continental trip unchanged | **see below — this line cannot be met as written** |
+| One-stop trip is not a zero-width box | `test/map-frame.test.ts`, "a single stop gets a map rather than a point" |
+| Close range is a deliberate choice, reasoned at the constant | `WAYS_BELOW_KM` in `lib/basemap.ts`, and the note where the rejected 30 km threshold used to be |
+| Four checks | tsc clean, eslint 0 errors (4 pre-existing warnings), 1355 tests, build compiles |
+
+**"A trip spanning continents frames exactly as it does today" cannot be
+satisfied, and I have not rewritten it to something I could pass.** It
+contradicts the Work section it sits under: padding as a fraction of the route,
+a layout aspect, and a `cos(latitude)` correction all necessarily change the
+frame of *every* map, including continental ones. A test pinning the old
+viewBox would have to fail for the approved design to be built at all.
+
+What is asserted instead, in `test/world-map.test.tsx` and
+`test/map-page.test.tsx`: a continental route still has its whole span inside
+the frame, still draws one marker per stop when they are far apart, still
+clusters two stops in the same city, and Fukuoka-to-Sapporo still fits in a
+frame between 1,400 and 5,000 km. That is the intent — long trips must not
+regress — without pretending the numbers are unchanged.
+
+**This is the author's call, not mine.** If "unchanged" was meant literally,
+the aspect correction and the proportional padding are what would have to go.

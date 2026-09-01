@@ -101,6 +101,40 @@ describe("a trip inside one valley", () => {
   });
 });
 
+/**
+ * B46's own acceptance case: stops inside about ten kilometres. A day spent
+ * walking one city is the smallest thing a journal will ever ask this map to
+ * draw, and under the old fixed padding it was the purest form of the bug — a
+ * single dot on five and a half thousand kilometres.
+ */
+describe("a day inside one city", () => {
+  const zurich = [
+    stop("Hauptbahnhof", 47.3779, 8.5403),
+    stop("Bellevue", 47.3667, 8.5453),
+    stop("Zürichhorn", 47.3548, 8.5528),
+    stop("Uetliberg", 47.3499, 8.4917),
+  ];
+
+  test("is framed on the city, not the country", () => {
+    const [, , w] = viewBox(render(zurich));
+    // The walk spans about 6 km. Anything over ~60 means the padding is still
+    // being decided by something other than the route.
+    expect(kmForUnits(w)).toBeLessThan(60);
+  });
+
+  test("still draws each stop separately", () => {
+    expect(markers(render(zurich))).toHaveLength(zurich.length);
+  });
+
+  test("draws markers that fit inside the map", () => {
+    const html = render(zurich);
+    const [, , w] = viewBox(html);
+    for (const m of html.matchAll(/\br="([\d.]+)"/g)) {
+      expect(Number(m[1])).toBeLessThan(w / 2);
+    }
+  });
+});
+
 describe("a trip across a continent", () => {
   test("still frames the whole route", () => {
     const [, , w] = viewBox(render(continental));
