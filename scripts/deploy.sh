@@ -49,6 +49,14 @@ as_service git pull --ff-only
 log "installing dependencies (npm ci — exact lockfile)"
 as_service npm ci
 
+# The half of content/ that belongs to the release — locales/ and rates/ —
+# into the folder the app actually reads. `git pull` updates $APP_DIR/content,
+# and the app reads $CONTENT_DIR, so without this a translation shipped today
+# never reaches a reader (B56). It copies those two directories and refuses to
+# write anywhere else: config.json and the journals are not a deploy's to touch.
+log "syncing shipped content into ${CONTENT_DIR:-$APP_DIR/content}"
+as_service "$APP_DIR/scripts/sync-shipped-content.sh"
+
 log "running migrations (no-op when DATABASE_URL is unset)"
 if [ -n "${DATABASE_URL:-}" ]; then
   as_service npm run db:migrate

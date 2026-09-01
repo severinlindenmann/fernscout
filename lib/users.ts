@@ -17,8 +17,15 @@ import { isDeletedUsername } from "./tombstones";
 /** Same shape as a trip id: lowercase, digits, dashes, no leading dash. */
 const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 
-/** Not people: shared currency rates, shared UI dictionaries. */
-const INSTANCE_DIRS = new Set(["rates", "locales"]);
+/**
+ * Not people: shared currency rates, shared UI dictionaries.
+ *
+ * Exported because it is also the list `scripts/sync-shipped-content.sh` is
+ * allowed to overwrite on a deploy — the same two names for the same reason,
+ * and `test/sync-shipped-content.test.ts` holds the shell copy against this
+ * one so a third instance directory cannot be added to only one of them.
+ */
+export const INSTANCE_DIRS = new Set(["rates", "locales"]);
 
 /**
  * Route segments a username would shadow.
