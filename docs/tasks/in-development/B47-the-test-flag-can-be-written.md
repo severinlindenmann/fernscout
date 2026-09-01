@@ -98,6 +98,35 @@ label, to exactly the audience least able to tell.
 - One line in `agent.md` under the test flag: reading a day back is how you
   confirm it, and a twin says so too.
 
+## What was found while building it
+
+The Why held on every point, and one thing about the twin turned out to matter
+more than the task said. `render()` took only the entry, so it could not see an
+inherited flag even in principle — the trip had to be threaded through the
+lookup. That is why a day in a test trip was silent rather than merely
+unlabelled: the information was not there to omit.
+
+Two decisions worth recording.
+
+**The twin says it twice.** Frontmatter for anything parsing, and a blockquote
+above the prose for anything not. The whole reason this file exists is that
+agents read it instead of the HTML page — where the banner is — so a machine
+field alone would still leave a text-only reader with unmarked fiction. It is
+placed *before* the content on purpose: something that reads the first
+paragraph and stops still meets the warning.
+
+**The day read reports the effective flag, not the entry's.** `isTestContent`
+is the predicate the renderer already uses to decide the banner, so the read
+now answers the same question the page does. Reporting `entry.test` would have
+kept the exact bug that was reported — an agent that marked the whole trip
+being told its day was ordinary.
+
+MCP's `get_day` had the identical defect in both its text and its data, and is
+fixed with it.
+
+All five new assertions fail against the previous code, confirmed by stashing
+the fix.
+
 ## Acceptance
 
 - `POST .../trips` with `"test": true` answers with `test: true` in the trip it

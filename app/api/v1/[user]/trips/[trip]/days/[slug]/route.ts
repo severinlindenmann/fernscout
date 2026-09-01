@@ -1,4 +1,5 @@
 import { authenticate, errorResponse, mayWriteTrip, ownsUser } from "@/lib/api/auth";
+import { isTestContent } from "@/lib/access";
 import { getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 
@@ -62,7 +63,15 @@ export async function GET(
     // telling somebody it is ready, could confirm the prose and the costs and
     // not the rest. A field the API takes is a field it has to show.
     ...(entry.transport ? { transport: entry.transport } : {}),
-    ...(entry.test ? { test: true } : {}),
+    /**
+     * The flag the *page* will act on, not just the entry's own.
+     *
+     * A day in a test trip carries no flag of its own and still gets the
+     * banner, so reporting only `entry.test` told an agent that had marked the
+     * whole trip that its day was ordinary. `isTestContent` is the predicate
+     * the renderer uses; this is the same question.
+     */
+    ...(isTestContent(found, entry) ? { test: true } : {}),
     content: entry.content,
     // Stated rather than implied. An agent reporting back to a person needs to
     // say whether this is on the site, and `status` absent from a response is

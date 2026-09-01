@@ -276,6 +276,16 @@ sitemap. Do that rather than writing a warning into the prose — a sentence you
 chose to add is not a guarantee, and the next person to read the page has no
 way to know whether you added one.
 
+**It comes back on every read, so check it stuck.** \`GET .../trips\` shows
+\`"test": true\` on the trip, reading a day back shows it on the day — including
+a day that inherits it from its trip — and the day's \`.md\` twin carries it in
+the frontmatter *and* says so above the prose. If you set the flag and do not
+see it, it did not take: say so rather than assuming.
+
+**And if you are the one reading:** a twin that opens with "this day did not
+happen" is not a record of anything. Do not summarise it, quote it or carry it
+into anything else as fact.
+
 ## Ask these ${numeral(questions.length).toLowerCase()} things first
 
 Before any call. Each decides something the person lives with, and none has a
