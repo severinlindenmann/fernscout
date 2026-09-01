@@ -104,8 +104,25 @@ export default function MePageContent({
         {viewer.email && (
           <section className="mt-8">
             <h2 className="font-display text-xl font-semibold text-navy-900">{t("me.canRead")}</h2>
+            {/*
+              Two empty states, because there are two people who can reach one.
+
+              For a guest it means the invitation has not arrived, and the
+              answer is to ask whoever sent them. Said to the **owner** of a
+              journal with no trips in it yet, that is nonsense — nobody sent
+              them, and there is nothing to be invited to (B75).
+
+              `resolveViewer` puts every trip in the journal into the list for
+              an owner, so an empty list has exactly one meaning for them: the
+              journal has no trips. The answer is how one gets made — an agent,
+              per decision 24 — and the two lines to hand it are already in the
+              owner block below, so the copy points down the page rather than
+              repeating the handover here.
+            */}
             {viewer.trips.length === 0 ? (
-              <p className="mt-2 text-lg leading-8 text-navy-700">{t("me.nothing")}</p>
+              <p className="mt-2 text-lg leading-8 text-navy-700">
+                {t(viewer.owner ? "me.ownerNoTrips" : "me.nothing")}
+              </p>
             ) : (
               <ul className="mt-3 divide-y divide-navy-200 overflow-hidden rounded-2xl border border-navy-200 bg-white">
                 {viewer.trips.map((trip) => (

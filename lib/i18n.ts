@@ -342,6 +342,7 @@ export type TranslationKey =
   | "me.detailsBody"
   | "me.editDetails"
   | "me.nothing"
+  | "me.ownerNoTrips"
   | "me.ownerTitle"
   | "me.signInAgain"
   | "me.signInBody"
