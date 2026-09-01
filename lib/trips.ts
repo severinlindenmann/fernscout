@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { contentRoot } from "./contentRoot";
+import { calendarStatus, earliestTodayISO, effectiveStatus } from "./tripTime";
 import { getUsernames } from "./users";
 import { parseRateTable, type RateTable } from "./currency";
 import type { CostsVisibility, Trip, TripAccent, TripPerson, TripStatus, TripTranslations, TripVisibility } from "./types";
@@ -143,6 +144,14 @@ function parsePeople(raw: unknown, folder: string): TripPerson[] {
   return people;
 }
 
+/**
+ * The word the file declares, before the calendar has its say.
+ *
+ * Only `current` survives `effectiveStatus` unchanged, so this is really
+ * asking one question — is this trip the one the bare `/<user>` URLs serve? —
+ * and everything else, including a missing field and a typo, is "no". See
+ * `readTrip` for where the other two words come from.
+ */
 function parseStatus(raw: unknown): TripStatus {
   const v = String(raw ?? "past").toLowerCase();
   return v === "current" || v === "upcoming" ? v : "past";
@@ -326,7 +335,11 @@ function readTrip(username: string, dir: string, folder: string): Trip | null {
     tagline: data.tagline ? String(data.tagline) : undefined,
     start,
     end,
-    status: parseStatus(data.status),
+    // Declared or derived, and which is which matters: `current` is the
+    // author's choice and is honoured as written; `past` and `upcoming` are
+    // facts about `start` and today, so they are read off the calendar rather
+    // than off a field nobody has edited since the trip was created. B72.
+    status: effectiveStatus({ start, status: parseStatus(data.status) }),
     cover: data.cover ? mediaWithOwner(String(data.cover), username) : undefined,
     accent: parseAccent(data.accent),
     rates: parseRates(data.rates, folder),
@@ -388,7 +401,12 @@ export function getTrips(username: string): Trip[] {
     return [];
   }
 
-  const signature = tripsSignature(root, folders);
+  // The date is part of the fingerprint because `status` is derived from it:
+  // without this, a trip that starts at midnight would go on reading as
+  // `upcoming` until somebody touched trip.md or restarted the server, which
+  // is the same "a change that needs a restart" the file signature exists to
+  // stop. One string comparison a call, and the cache turns over once a day.
+  const signature = `${earliestTodayISO()}|${tripsSignature(root, folders)}`;
   const hit = cache.get(root);
   if (hit && hit.signature === signature) return hit.trips;
 
@@ -403,7 +421,7 @@ export function getTrips(username: string): Trip[] {
   const claiming = trips.filter((t) => t.status === "current");
   if (claiming.length > 1) {
     const winner = claiming.reduce((a, b) => (b.start > a.start ? b : a));
-    for (const t of claiming) if (t !== winner) t.status = "past";
+    for (const t of claiming) if (t !== winner) t.status = calendarStatus(t);
   }
 
   const rank: Record<TripStatus, number> = { current: 0, upcoming: 1, past: 2 };

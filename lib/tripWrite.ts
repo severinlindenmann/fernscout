@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "./contentRoot";
 import { getTrip, tripRef } from "./trips";
+import { calendarStatus } from "./tripTime";
 import { getUser } from "./users";
 
 /**
@@ -111,7 +112,24 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     };
   }
 
-  const status = STATUSES.includes(input.status as never) ? input.status! : "upcoming";
+  /**
+   * Unstated, the status comes from the dates — not from a hardcoded
+   * `upcoming`.
+   *
+   * That default is what B72 was: a trip created with dates a week in the past
+   * was written as `upcoming`, and the site then hid all three days published
+   * into it behind a countdown. Reading now derives `past`/`upcoming` from
+   * `start` (lib/tripTime.ts), so the word here is a snapshot rather than the
+   * authority — but a trip.md whose own frontmatter contradicts its dates from
+   * the minute it is written is a file nobody can read straight, and a person
+   * opening it in an editor is meant to be the point.
+   *
+   * An explicit value is still written as asked. `current` is the one the
+   * calendar cannot settle, and the other two cost nothing to record.
+   */
+  const status = STATUSES.includes(input.status as never)
+    ? input.status!
+    : calendarStatus({ start: input.start });
   const accent = ACCENTS.includes(input.accent as never) ? input.accent! : "sky";
   /**
    * Private unless asked otherwise, and this is the one default that is not a

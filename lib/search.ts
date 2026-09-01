@@ -25,6 +25,9 @@ function buildDocs(username: string): SearchDoc[] {
 
   for (const trip of getTrips(username)) {
     if (!isIndexable(trip)) continue;
+    // Not started, so nothing to index. Same line, same reasoning, as
+    // lib/feed.ts — and the same reliance on `upcoming` being the calendar's
+    // word rather than a stale field. B72.
     if (trip.status === "upcoming") continue;
 
     const isCurrent = trip.id === currentId;

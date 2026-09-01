@@ -882,7 +882,7 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
         start: { type: "string", description: "First day, as 2027-04-01. Required." },
         end: { type: "string", description: "Last day, as 2027-05-15. Required." },
         tagline: { type: "string", description: "One line under the title. Optional." },
-        status: { type: "string", enum: ["upcoming", "current", "past"], description: "Default upcoming. Exactly one trip should be `current`; it is the one served at the bare /<user> URL." },
+        status: { type: "string", enum: ["upcoming", "current", "past"], description: "Usually leave this out. `past` and `upcoming` are derived from `start` every time the site reads the trip, so setting either is a hint that the calendar will overrule. `current` is the one real choice: exactly one trip should have it, and it is the one served at the bare /<user> URL." },
         accent: { type: "string", enum: ["sky", "yellow", "green", "coral", "navy"], description: "Colour. Default sky." },
         visibility: { type: "string", enum: ["private", "public", "guest"], description: "Who is let in. Default private." },
         intro: { type: "string", description: "A paragraph introducing the trip. Only what you were told." },
