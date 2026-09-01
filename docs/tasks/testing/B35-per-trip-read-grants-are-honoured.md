@@ -215,3 +215,12 @@ One gap worth naming: `POSTGRES_TEST_URL` is unset on this machine and no
 Postgres is reachable, so the migration was proved on SQLite only. The suite is
 dialect-parameterised and CI supplies the URL, so `006` is covered there — but
 it is the one thing about this change that has not been seen to run twice.
+
+## Captured along the way
+
+**B45** — the access panel lists `guest` trips to any active contact, while
+`mayReadTrip` lets nobody into one without the trip password. The panel's own
+test file states the opposite as its guarantee. Older than this task and
+untouched by it — the arm B35 removed was dead — but it was found by reading
+`resolveViewer` closely enough to delete part of it, and it is very likely B41
+or B39's tail rather than its own change.
