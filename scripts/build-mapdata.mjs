@@ -87,6 +87,18 @@ const MIN_LAKE_KM = 3;
  */
 const ADMIN1_MIN_ZOOM_MAX = 6;
 
+/** Main railway lines only — the layer is 40 MB and goes down to sidings. */
+const RAIL_SCALERANK_MAX = 4;
+
+/**
+ * Motorways and trunk roads only.
+ *
+ * The full roads layer is 50 MB. Drawing all of it would bury the route the
+ * trip actually took under a net of lines nobody asked about — the road on
+ * this map is context for the drive, not a navigation aid.
+ */
+const ROAD_SCALERANK_MAX = 3;
+
 function arg(name) {
   const i = process.argv.indexOf(`--${name}`);
   return i >= 0 ? process.argv[i + 1] : undefined;
@@ -98,13 +110,34 @@ function unitsForKm(km) {
   return km / ((360 / 1000) * 111.32);
 }
 
+/**
+ * Where downloads are kept between runs.
+ *
+ * The source layers are ninety megabytes and this script is mostly re-run to
+ * change a *filter*, not to pick up new data from Natural Earth. Re-fetching
+ * all of it to answer "is scalerank 5 too many rivers" makes the answer take
+ * four minutes instead of ten seconds. Gitignored; delete it to force a
+ * genuine refresh, or pass --no-cache.
+ */
+const CACHE_DIR = path.join(ROOT, ".mapdata-cache");
+
 async function fetchJson(url) {
-  process.stdout.write(`  ${url.split("/").pop()} … `);
+  const name = url.split("/").pop();
+  const cached = path.join(CACHE_DIR, name);
+  process.stdout.write(`  ${name} … `);
+
+  if (!process.argv.includes("--no-cache") && fs.existsSync(cached)) {
+    process.stdout.write("cached\n");
+    return JSON.parse(fs.readFileSync(cached, "utf8"));
+  }
+
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
-  const json = await res.json();
-  process.stdout.write("ok\n");
-  return json;
+  const text = await res.text();
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
+  fs.writeFileSync(cached, text);
+  process.stdout.write("downloaded\n");
+  return JSON.parse(text);
 }
 
 /**
@@ -198,6 +231,9 @@ async function main() {
   const regions = await fetchJson(`${NE}/ne_10m_geography_regions_polys.geojson`);
   const admin1 = await fetchJson(`${NE}/ne_10m_admin_1_states_provinces_lines.geojson`);
   const glaciers = await fetchJson(`${NE}/ne_10m_glaciated_areas.geojson`);
+  const parks = await fetchJson(`${NE}/ne_10m_parks_and_protected_lands_area.geojson`);
+  const railroads = await fetchJson(`${NE}/ne_10m_railroads.geojson`);
+  const roads = await fetchJson(`${NE}/ne_10m_roads.geojson`);
 
   const out = {
     version: 1,
@@ -255,6 +291,24 @@ async function main() {
       close: true,
       minSpanUnits: unitsForKm(4),
     }),
+    // National parks and protected land. Natural Earth's layer is the US
+    // National Park Service only, which is a limitation worth knowing rather
+    // than hiding — it happens to be exactly the demo `parks-2025` trip, and it
+    // is 187 KB, the cheapest layer here by a wide margin.
+    parks: collectionToShapes(parks, { close: true }),
+    // Main lines only. The whole layer is 40 MB and includes sidings; what a
+    // reader wants on a rail trip is the line they were actually on.
+    railroads: collectionToShapes(railroads, {
+      close: false,
+      keep: (p) => (p.scalerank ?? 99) <= RAIL_SCALERANK_MAX,
+    }),
+    // Big roads. The full layer is 50 MB — every road Natural Earth knows —
+    // and drawing all of it would bury the route the trip actually took under
+    // a net of lines nobody asked about. Motorways and trunk roads only.
+    roads: collectionToShapes(roads, {
+      close: false,
+      keep: (p) => (p.scalerank ?? 99) <= ROAD_SCALERANK_MAX,
+    }),
     peaks: [],
   };
 
@@ -283,11 +337,11 @@ async function main() {
 
   const kb = (n) => `${(n / 1024).toFixed(0)} KB`;
   console.log(`\nWrote ${path.relative(ROOT, OUT_FILE)}`);
-  console.log(
-    `  borders ${out.borders.length}, admin1 ${out.admin1.length}, relief ${out.relief.length},` +
-      ` glaciers ${out.glaciers.length}, lakes ${out.lakes.length}, rivers ${out.rivers.length},` +
-      ` peaks ${out.peaks.length}`,
-  );
+  for (const [name, layer] of Object.entries(out)) {
+    if (Array.isArray(layer)) {
+      console.log(`  ${name.padEnd(10)} ${String(layer.length).padStart(6)}`);
+    }
+  }
   console.log(`  ${kb(json.length)} raw → ${kb(fs.statSync(OUT_FILE).size)} gzipped`);
 }
 

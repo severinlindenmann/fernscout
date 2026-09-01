@@ -293,6 +293,13 @@ export default function WorldMap({
                     <path key={i} d={d} />
                   ))}
                 </g>
+                {/* Protected land, under everything: a park is ground, not a
+                    feature drawn on it. */}
+                <g fill="#cde7cd" opacity={0.7} stroke="none">
+                  {basemap.parks.map((d, i) => (
+                    <path key={i} d={d} />
+                  ))}
+                </g>
                 {/* Ice, over the high ground it sits on. */}
                 <g fill="#eef6fb" stroke="#d6e8f2" strokeWidth={0.6} opacity={0.9}>
                   {basemap.glaciers.map((d, i) => (
@@ -314,6 +321,27 @@ export default function WorldMap({
                 </g>
                 <g fill="none" stroke="#8fe0ef" strokeWidth={1.6} strokeLinecap="round">
                   {basemap.rivers.map((d, i) => (
+                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                  ))}
+                </g>
+                {/* Ways, drawn only when the frame is close enough that they
+                    are information rather than texture — the server sends
+                    nothing here otherwise. Deliberately paler than any route
+                    the trip took: the point of this map is where *these people*
+                    went, and a motorway they never drove must not out-shout it. */}
+                <g fill="none" stroke="#d8c9a8" strokeWidth={1.4} strokeLinecap="round">
+                  {basemap.roads.map((d, i) => (
+                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                  ))}
+                </g>
+                <g
+                  fill="none"
+                  stroke="#9aa8b8"
+                  strokeWidth={1}
+                  strokeDasharray="6 4"
+                  strokeLinecap="round"
+                >
+                  {basemap.railroads.map((d, i) => (
                     <path key={i} d={d} vectorEffect="non-scaling-stroke" />
                   ))}
                 </g>

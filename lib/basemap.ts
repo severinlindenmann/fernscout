@@ -40,6 +40,9 @@ type Bundle = {
   admin1: Shape[];
   relief: Shape[];
   glaciers: Shape[];
+  parks: Shape[];
+  railroads: Shape[];
+  roads: Shape[];
   lakes: Shape[];
   rivers: Shape[];
   /** x, y, metres, name. */
@@ -61,6 +64,11 @@ export type Basemap = {
   /** Mountain ranges, plateaus and foothills — high ground, not contours. */
   relief: string[];
   glaciers: string[];
+  /** Protected land. Natural Earth ships the US Park Service only. */
+  parks: string[];
+  /** Main lines and motorways. Empty unless the frame is close enough to care. */
+  railroads: string[];
+  roads: string[];
   lakes: string[];
   rivers: string[];
   peaks: BasemapLabel[];
@@ -81,6 +89,18 @@ const MAX_TOWNS = 22;
 
 /** And how many peaks. Fewer: they carry a name *and* an altitude. */
 const MAX_PEAKS = 8;
+
+/**
+ * How wide a frame may be, in kilometres, before roads and railways are
+ * dropped from it.
+ *
+ * They are the two heaviest layers in the bundle and the two that stop being
+ * information soonest. On a map of Asia every motorway in China is a grey haze
+ * laid over the route the trip actually took; on a map of one valley the road
+ * *is* the trip. Eight hundred kilometres is about a long drive — the scale at
+ * which "which way did they go" is still a question about roads.
+ */
+const WAYS_BELOW_KM = 800;
 
 function bundleFile(): string {
   return path.join(path.dirname(fileURLToPath(import.meta.url)), "mapdata", "basemap.json.gz");
@@ -137,6 +157,8 @@ export function basemapFor(frame: Frame): Basemap | null {
   const data = bundle();
   if (!data) return null;
 
+  const ways = kmForUnits(frame.w) < WAYS_BELOW_KM;
+
   // The frame is in corrected space; the bundle is not. Undo the correction to
   // get the box to test against, and pad it by half a frame so that panning a
   // little does not run off the edge of what was clipped.
@@ -187,6 +209,13 @@ export function basemapFor(frame: Frame): Basemap | null {
     admin1: clip(data.admin1 ?? [], x0, y0, x1, y1),
     relief: clip(data.relief ?? [], x0, y0, x1, y1),
     glaciers: clip(data.glaciers ?? [], x0, y0, x1, y1),
+    parks: clip(data.parks ?? [], x0, y0, x1, y1),
+    // Roads and railways only once the frame is small enough for them to mean
+    // something. On a map of Asia every motorway in China is a grey haze over
+    // the route the trip actually took; on a map of one valley the road *is*
+    // the trip. The threshold is the same one `isCloseRange` names.
+    railroads: ways ? clip(data.railroads ?? [], x0, y0, x1, y1) : [],
+    roads: ways ? clip(data.roads ?? [], x0, y0, x1, y1) : [],
     lakes: clip(data.lakes, x0, y0, x1, y1),
     rivers: clip(data.rivers, x0, y0, x1, y1),
     peaks: spread(peakCandidates, frame, MAX_PEAKS),
