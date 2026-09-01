@@ -1,5 +1,8 @@
 import { serverSite } from "@/lib/site";
 import { getDefaultUsername, getUsernames } from "@/lib/users";
+// Shared with /agent.md and /documentation.txt. A machine contract that
+// disagrees with the prose about what `private` means is worse than either.
+import { VISIBILITY_MEANING, VISIBILITY_NOT_A_LOCK } from "@/lib/api/agentCopy";
 
 /**
  * The machine contract for the same API `/agent.md` describes in prose.
@@ -381,13 +384,11 @@ export function GET() {
                       type: "string",
                       enum: ["public", "private"],
                       default: "public",
+                      // The same two sentences /agent.md and /documentation.txt
+                      // carry, from the one place they are written.
                       description:
-                        "Whether this server advertises the journal. `public` is listed on " +
-                        "/documentation.txt, on the landing page and in sitemap.xml. " +
-                        "`private` is on none of them and asks not to be indexed — reachable " +
-                        "by anyone sent the address, findable by nobody else. Neither decides " +
-                        "who may read a journey: that is the trip's own visibility, which has " +
-                        "a password and a guest list behind it. Ask which they want.",
+                        `Whether this server advertises the journal: ${VISIBILITY_MEANING} ` +
+                        `${VISIBILITY_NOT_A_LOCK.replace(/`/g, "")} Ask which they want.`,
                     },
                     startLocation: { type: "string" },
                     defaultLocale: { type: "string" },

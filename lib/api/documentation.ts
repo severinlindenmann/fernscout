@@ -15,6 +15,16 @@ import { TAG_MAX_LENGTH, TRANSPORT_MODES } from "../validate/entry";
 import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
 import { isIndexable } from "../access";
+// The sentences these documents share with /openapi.json, kept in one place so
+// they cannot come to disagree. See the note at the top of that file.
+import {
+  VISIBILITY_MEANING,
+  VISIBILITY_NOT_A_LOCK,
+  asSentence,
+  firstQuestions,
+  numeral,
+  wrap,
+} from "./agentCopy";
 
 /**
  * The document an owner hands to their agent.
@@ -38,6 +48,7 @@ function base(): string {
 /** The instance-level document: what this is, and who is on it. */
 export function instanceDocumentation(): string {
   const site = serverSite();
+  const questions = firstQuestions(base());
   // Only the journals that asked to be advertised. A `private` journal is
   // reachable by anyone sent its address and appears on no list, and this
   // document is the first list anybody reads.
@@ -53,21 +64,27 @@ export function instanceDocumentation(): string {
     "",
     "## Before you call anything, ask",
     "",
-    "Four questions. They decide things the person lives with, and none of them",
-    "has a default you should pick for them.",
+    ...wrap(
+      `${numeral(questions.length)} questions. They decide things the person lives with, ` +
+        "and none of them has a default you should pick for them.",
+      78,
+    ),
     "",
-    "1. **Their email address.** It is the only address that can ever get a token",
-    "   for this journal — not a preference, the credential.",
-    "2. **The journal's address**, if you are making a new one: the `username` in",
-    `   ${base()}/<username>. It is permanent and it is what they will give people.`,
-    "3. **Public or private?** Public means this server lists the journal on this",
-    "   page and search engines may index it. Private means it appears on no list",
-    "   here and asks not to be indexed — anyone sent the address can still open",
-    "   it. Neither decides who may read a particular journey; that is set on the",
-    "   journey, and a new one starts out private either way.",
-    "4. **Their name, and what the site should call them.** Two separate answers.",
-    "   Do not derive the second from the first — a first-word split mangles any",
-    "   name whose given name is not first.",
+    // Rendered from the same list the guide renders as a table — see
+    // lib/api/agentCopy.ts. Two hand-written copies of this is how the two
+    // documents come to disagree about what an agent should ask.
+    ...questions.flatMap((q, i) => {
+      const [head, ...rest] = wrap(`${i + 1}. ${asSentence(q)}`, 78);
+      return [head, ...rest.map((line) => `   ${line}`)];
+    }),
+    "",
+    // The lead-in exists to give "Neither" an antecedent: after a list whose
+    // last item is about somebody's name, a bare pronoun points at nothing.
+    ...wrap(
+      "That third question is about listing, not access. " +
+        VISIBILITY_NOT_A_LOCK.replace(/`/g, ""),
+      78,
+    ),
     "",
     "## Then",
     "",
@@ -208,6 +225,9 @@ export function userDocumentation(username: string): string | null {
  */
 export function agentGuide(): string {
   const site = serverSite();
+  // The same list `/documentation.txt` renders as a numbered list, rendered
+  // here as a table. One source, two shapes — see lib/api/agentCopy.ts.
+  const questions = firstQuestions(site.url);
   // A listed journal, so the worked examples below cannot be the one place an
   // unlisted journal's address gets published.
   const example =
@@ -244,29 +264,25 @@ sitemap. Do that rather than writing a warning into the prose — a sentence you
 chose to add is not a guarantee, and the next person to read the page has no
 way to know whether you added one.
 
-## Ask these four things first
+## Ask these ${numeral(questions.length).toLowerCase()} things first
 
 Before any call. Each decides something the person lives with, and none has a
 default you should pick for them.
 
 | Ask | Because |
 | --- | --- |
-| Their **email address** | It is the only address that can ever get a token for this journal. Not a preference — the credential. |
-| The **journal's address** (\`username\`) | It becomes \`${site.url}/<username>\`, it is permanent, and it is what they will give people. |
-| **Public or private?** | Whether this server advertises the journal at all. See below. |
-| Their **name**, and **what the site should call them** | Two answers, not one. Never split the first to get the second: it mangles any name whose given name is not first. |
+${questions.map((q) => `| ${q.ask} | ${q.because} |`).join("\n")}
 
-**Public or private** is the one nobody thinks to ask, so ask it. A *public*
-journal is listed on \`${site.url}/documentation.txt\`, on this server's landing
-page and in its sitemap. A *private* journal is on none of them and asks search
-engines not to index it — anyone sent the address can still open it.
+**Public or private** is the one nobody thinks to ask, so ask it. To say it
+once more, because the table above is easy to skim past:
 
-Neither decides who may read a particular journey. That is the trip's own
-\`visibility\`, which has a password, invited guests and the trip's \`people:\`
-list behind it — and a new trip is **private** whichever kind of journal it is
-in. So "private journal" means *unlisted*, not *locked*; if what they want is a
+${wrap(VISIBILITY_MEANING.charAt(0).toUpperCase() + VISIBILITY_MEANING.slice(1)).join("\n")}
+
+${wrap(VISIBILITY_NOT_A_LOCK).join("\n")}
+
+So "private journal" means *unlisted*, not *locked*. If what they want is a
 journal only invited people can read at all, the answer today is a journal of
-private or guest trips, and say so plainly rather than implying more.
+private or guest trips — say that plainly rather than implying more.
 
 ## Starting from nothing
 

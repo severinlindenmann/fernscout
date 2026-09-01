@@ -8,6 +8,12 @@ import { createDraft, listDrafts, slugify, validateDraft } from "@/lib/api/entri
 import { agentGuide, instanceDocumentation, userDocumentation } from "@/lib/api/documentation";
 import { getAllEntries } from "@/lib/entries";
 import { validateEntry } from "@/lib/validate/entry";
+import {
+  VISIBILITY_MEANING,
+  VISIBILITY_NOT_A_LOCK,
+  asSentence,
+  firstQuestions,
+} from "@/lib/api/agentCopy";
 
 let dir: string;
 
@@ -321,6 +327,10 @@ describe("the documents an agent reads", () => {
  * these tests are the other half of that, naming the things it must not stop
  * saying.
  */
+/** These documents are wrapped at 78, so a shared sentence lands across lines.
+ * Collapsing whitespace asserts the wording without asserting the wrapping. */
+const flat = (text: string) => text.replace(/\s+/g, " ");
+
 describe("what the guide has to tell an agent before it starts", () => {
   test("names the four things to ask the person", () => {
     const guide = agentGuide();
@@ -377,6 +387,63 @@ describe("what the guide has to tell an agent before it starts", () => {
     for (const field of ["costs", "transportMode", "test"]) {
       expect(guide, `${field} must be documented`).toContain(field);
     }
+  });
+
+  /**
+   * The four documents say some of the same things, and must not come to
+   * disagree about them.
+   *
+   * `/documentation.txt` and `/<user>/documentation.txt` are indexes — the
+   * second generated per journal, naming its own trips — `/agent.md` is the
+   * manual, and `/openapi.json` is the machine contract. Keeping them apart is
+   * deliberate: an agent handed one journal's link should get 2.5 KB of
+   * "whose is this, where do I write", not 24 KB of manual. What that does not
+   * license is four hand-written copies of one definition. AGENTS.md is blunt
+   * about where that ends, and this project has been there once already.
+   *
+   * So the shared sentences live in lib/api/agentCopy.ts, and these tests fail
+   * if a document stops using them.
+   */
+  test("every document defines journal visibility with the same words", () => {
+    // Not a substring check against a hand-typed copy — that would be the bug
+    // it is guarding against. The constant itself is the expectation.
+    //
+    // Compared with whitespace collapsed, because these documents are wrapped
+    // at 78 and the sentence lands across lines. What is being asserted is the
+    // wording, not the line breaks.
+    expect(flat(agentGuide())).toContain(flat(VISIBILITY_MEANING));
+    expect(flat(instanceDocumentation())).toContain(flat(VISIBILITY_MEANING));
+  });
+
+  test("and all of them carry the warning that private is not a lock", () => {
+    // The half that gets misread. A person told "private" who believes it
+    // means "locked" will put something in the journal they should not.
+    expect(flat(agentGuide())).toContain(flat(VISIBILITY_NOT_A_LOCK));
+    expect(flat(instanceDocumentation())).toContain(
+      flat(VISIBILITY_NOT_A_LOCK.replace(/`/g, "")),
+    );
+  });
+
+  test("the index and the guide ask for the same things, in their own shapes", () => {
+    const guide = flat(agentGuide());
+    const index = flat(instanceDocumentation());
+    for (const question of firstQuestions("https://example.test")) {
+      expect(guide, `the guide must ask: ${question.ask}`).toContain(flat(question.because));
+      expect(index, `the index must ask: ${question.ask}`).toContain(flat(question.because));
+    }
+    // One as a table, one as a numbered list — the point is that the wording
+    // is shared and the form is not.
+    expect(guide).toContain("| Ask | Because |");
+    expect(instanceDocumentation()).toMatch(/^1\. Their \*\*email address\*\*/m);
+  });
+
+  test("a generated sentence does not end in `?.`", () => {
+    // "**Public or private?**." is the seam that makes a generated document
+    // read as generated.
+    for (const question of firstQuestions("https://example.test")) {
+      expect(asSentence(question)).not.toMatch(/[?!][*`_]*\.\s/);
+    }
+    expect(instanceDocumentation()).not.toMatch(/\?\*\*\./);
   });
 
   test("a journal's own document shows a twin URL with a real trip in it", () => {
