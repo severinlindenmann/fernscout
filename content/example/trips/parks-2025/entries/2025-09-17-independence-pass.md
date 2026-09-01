@@ -18,6 +18,7 @@ gallery:
     type: "image"
     width: 1600
     height: 1067
+tags: ["colorado", "passes", "autumn"]
 costs:
   - { label: "Fuel", amount: 43, category: "transport", currency: "USD" }
   - { label: "Room, and it hurt", amount: 265, category: "accommodation", currency: "USD" }

@@ -19,9 +19,10 @@ gallery:
     type: "image"
     width: 1067
     height: 1600
+tags: ["colorado", "logistics"]
 costs:
   - { label: "Motel, two nights", amount: 210, category: "accommodation", currency: "USD" }
-  - { label: "Registration and plates", amount: 165, category: "admin", currency: "USD" }
+  - { label: "Registration and plates", amount: 165, category: "other", currency: "USD" }
 ---
 
 Four days of looking at other people's trucks in other people's driveways. Bought the fifth one we saw, which is either decisive or foolish and we will find out in Utah.

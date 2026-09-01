@@ -30,7 +30,9 @@ gallery:
     type: "video"
     width: 1280
     height: 720
+    poster: "/media/asia-2023/mekong-slow-boat/clip.jpg"
     caption: "Ten seconds of the bank going past"
+tags: ["laos", "boats", "slow-travel"]
 costs:
   - { label: "Slow boat, two days", amount: 78, category: "transport" }
   - { label: "Night in Pakbeng", amount: 22, category: "accommodation" }
@@ -40,6 +42,11 @@ translations:
       Zwei Tage auf einem Holzboot mit einem hinten eingebauten Automotor. Es gibt nichts zu tun, was der ganze Sinn der Sache ist und ungefähr vier Stunden dauert, bis man es versteht.
       
       Am zweiten Nachmittag haben wir zehn Sekunden Ufer gefilmt. Es ist das einzige Video der ganzen Reise — und trotzdem das Erste, was wir den Leuten zeigen.
+  hu:
+    content: |
+      Két nap egy fahajón, aminek a hátuljába autómotort építettek. Nincs semmi tennivaló, ami az egésznek a lényege, és körülbelül négy órába telik megérteni.
+      
+      A második délutánon felvettünk tíz másodpercnyi partot. Ez az egyetlen videó az egész útról — és mégis ez az első, amit megmutatunk.
 ---
 
 Two days on a wooden boat with a car engine bolted into the back of it. There is nothing to do, which is the entire point and takes about four hours to understand.

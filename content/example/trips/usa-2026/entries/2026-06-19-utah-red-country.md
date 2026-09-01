@@ -26,6 +26,7 @@ gallery:
     type: "image"
     width: 1400
     height: 1400
+tags: ["utah", "desert", "camping"]
 costs:
   - { label: "Fuel", amount: 96, category: "transport", currency: "USD" }
   - { label: "Campground, four nights", amount: 80, category: "accommodation", currency: "USD" }
@@ -36,6 +37,11 @@ translations:
       Der Pick-up hat es geschafft, laut. Vier Nächte auf einem Felsvorsprung außerhalb der Stadt, ganz allein — zwanzig Dollar die Nacht, und es fühlte sich an wie Diebstahl.
       
       Es lässt sich schlecht fotografieren. Wir haben es trotzdem versucht, mehrere hundert Mal.
+  hu:
+    content: |
+      A pickup megcsinálta, hangosan. Négy éjszaka egy dombon a városon kívül, rajtunk kívül senki, húsz dollár egy éjszaka — lopásnak éreztük.
+      
+      Nehéz lefényképezni, és mi mégis megpróbáltuk, több százszor.
 ---
 
 The truck made it, loudly. Four nights on a bluff outside town with nobody else on it, which cost twenty dollars a night and felt like theft.

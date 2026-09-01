@@ -40,6 +40,17 @@ describe("getTrips", () => {
     expect(getTrip("u/alpha-2023")?.accent).toBe("coral");
   });
 
+  test("puts the owner on a trip-relative cover", () => {
+    // trip.md writes "/media/<trip>/…" so a trip folder is self-contained and
+    // copyable — `npm run seed:example` does exactly that. Handing that path
+    // to the browser unprefixed is a 404 on the trip card and in the OG image.
+    expect(getTrip("u/beta-2026")?.cover).toBe("/u/media/beta-2026/one/01.jpg");
+  });
+
+  test("leaves an already-absolute cover alone", () => {
+    expect(getTrip("u/gamma-2027")?.cover).toBe("/brand/placeholder.jpg");
+  });
+
   test("returns undefined for an unknown id", () => {
     expect(getTrip("u/nope")).toBeUndefined();
   });

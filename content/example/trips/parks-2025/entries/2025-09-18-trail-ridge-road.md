@@ -22,6 +22,7 @@ gallery:
     type: "image"
     width: 1067
     height: 1600
+tags: ["colorado", "national-parks", "wildlife"]
 costs:
   - { label: "Fuel", amount: 49, category: "transport", currency: "USD" }
   - { label: "Cabin in Estes Park", amount: 142, category: "accommodation", currency: "USD" }

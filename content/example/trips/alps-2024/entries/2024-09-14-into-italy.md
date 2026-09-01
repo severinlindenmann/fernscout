@@ -22,6 +22,7 @@ gallery:
     type: "image"
     width: 1067
     height: 1600
+tags: ["italy", "markets", "driving"]
 costs:
   - { label: "Coffee and pastries", amount: 11, category: "food", currency: "EUR" }
   - { label: "Groceries", amount: 34, category: "food", currency: "EUR" }

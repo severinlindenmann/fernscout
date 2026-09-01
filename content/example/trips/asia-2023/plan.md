@@ -7,4 +7,4 @@ route:
   - { location: "Hanoi", country: "Vietnam", countryCode: "VN", lat: 21.0278, lng: 105.8342 }
 ---
 
-The route as we sketched it before leaving.
+Bangkok to Hanoi overland. This is the version we drew on a napkin in December; the trip mostly agreed with it, which surprised us both.

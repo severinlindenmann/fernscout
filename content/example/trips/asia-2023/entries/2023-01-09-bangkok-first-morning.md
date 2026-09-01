@@ -23,6 +23,7 @@ gallery:
     type: "image"
     width: 1400
     height: 1400
+tags: ["thailand", "cities", "food"]
 costs:
   - { label: "Street noodles", amount: 120, category: "food", currency: "THB" }
   - { label: "Guesthouse", amount: 900, category: "accommodation", currency: "THB" }

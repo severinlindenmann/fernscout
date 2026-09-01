@@ -18,6 +18,7 @@ gallery:
     type: "image"
     width: 1600
     height: 1067
+tags: ["alps", "passes", "driving"]
 costs:
   - { label: "Fuel", amount: 71, category: "transport" }
 ---

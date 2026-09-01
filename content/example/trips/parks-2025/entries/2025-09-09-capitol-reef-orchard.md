@@ -22,6 +22,7 @@ gallery:
     type: "image"
     width: 1067
     height: 1600
+tags: ["utah", "national-parks", "food"]
 costs:
   - { label: "Fuel", amount: 36, category: "transport", currency: "USD" }
   - { label: "Campground", amount: 25, category: "accommodation", currency: "USD" }

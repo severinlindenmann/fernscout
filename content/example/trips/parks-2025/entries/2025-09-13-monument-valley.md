@@ -18,9 +18,10 @@ gallery:
     type: "image"
     width: 1600
     height: 1067
+tags: ["arizona", "desert", "driving"]
 costs:
   - { label: "Fuel", amount: 47, category: "transport", currency: "USD" }
-  - { label: "Tribal park entry", amount: 20, category: "admin", currency: "USD" }
+  - { label: "Tribal park entry", amount: 20, category: "activities", currency: "USD" }
   - { label: "Room on the rim", amount: 195, category: "accommodation", currency: "USD" }
 ---
 

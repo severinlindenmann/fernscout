@@ -22,6 +22,7 @@ gallery:
     type: "image"
     width: 1067
     height: 1600
+tags: ["california", "mountains", "wildfire"]
 costs:
   - { label: "Fuel", amount: 121, category: "transport", currency: "USD" }
   - { label: "New tyre", amount: 218, category: "transport", currency: "USD" }

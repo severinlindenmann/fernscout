@@ -4,9 +4,10 @@ budget:
   days: 146
   currency: CHF
 costs:
-  - { label: "Flights to Bangkok", amount: 1120, category: "preparation" }
-  - { label: "Travel insurance, six months", amount: 480, category: "preparation" }
+  - { label: "Flights to Bangkok", amount: 1120, category: "flights" }
+  - { label: "Travel insurance, six months", amount: 480, category: "other" }
+  - { label: "Visas, two people", amount: 210, category: "other" }
   - { label: "Rucksacks", amount: 390, category: "preparation" }
 ---
 
-What it took to get out of the door.
+Five months of it, and the flight is still the single biggest line. Everything after this was decided a week at a time.

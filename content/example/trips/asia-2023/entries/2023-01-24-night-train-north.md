@@ -22,6 +22,7 @@ gallery:
     type: "image"
     width: 1067
     height: 1600
+tags: ["thailand", "trains", "sleeper"]
 costs:
   - { label: "Sleeper berth", amount: 881, category: "transport", currency: "THB" }
   - { label: "Breakfast on board", amount: 90, category: "food", currency: "THB" }

@@ -26,6 +26,7 @@ gallery:
     type: "image"
     width: 1400
     height: 1400
+tags: ["vietnam", "motorbike", "mountains"]
 costs:
   - { label: "Motorbike transfer", amount: 1150000, category: "transport", currency: "VND" }
   - { label: "Tailored shirt", amount: 620000, category: "other", currency: "VND" }

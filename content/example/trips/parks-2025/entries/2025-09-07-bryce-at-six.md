@@ -22,6 +22,7 @@ gallery:
     type: "image"
     width: 1067
     height: 1600
+tags: ["utah", "national-parks", "sunrise"]
 costs:
   - { label: "Fuel", amount: 38, category: "transport", currency: "USD" }
   - { label: "Campground", amount: 30, category: "accommodation", currency: "USD" }
