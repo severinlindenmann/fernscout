@@ -29,6 +29,9 @@
 #                         file already lives under DATA_DIR
 #   CONTENT_DIR           default: <repo>/content
 #   BACKUP_KEEP_DAILY     default: 14 — passed to `restic forget --prune`
+#   BACKUP_INIT_IF_MISSING  default: 0. With 1, a missing repository is created
+#                         instead of refused. Off for the nightly timer on
+#                         purpose — see step 4.
 #   APP_DIR               default: the directory this script lives in, minus
 #                         /scripts
 #
@@ -103,6 +106,35 @@ else
 fi
 
 # --- 4. Push to off-VPS storage with restic --------------------------------
+#
+# The probe, and why it is this careful (B63).
+#
+# There are two ways to fail to find a repository and they want opposite
+# responses, and the old `if ! restic snapshots; then restic init; fi` could
+# tell them apart only by accident:
+#
+#   absent       nothing is there. A first run — or `RESTIC_REPOSITORY` has a
+#                typo in it, in which case `restic init` makes a brand new
+#                empty repository, backs into it, prunes it and exits 0. A
+#                green backup protecting nothing, while every real snapshot
+#                sits in the repository nobody is writing to any more.
+#   unreachable  something is there, or might be, and we cannot see it:
+#                permission denied, wrong password, connection refused, DNS.
+#                `restic init` here dies on "config file already exists" if we
+#                are lucky, and overwrites nothing if we are not.
+#
+# Both happened on the live server the same night: the repository was
+# root-owned while the service runs as `fernscout`, the probe read
+# permission-denied as "not initialised yet", and init collided with the
+# config that was there all along.
+#
+# `restic cat config` is the question actually being asked ("is there a
+# repository here I can read?"), and since restic 0.17 its exit status answers
+# it structurally: 10 = repository does not exist, 12 = wrong password, 0 =
+# yes. The text fallback below is for older restic — Debian 12 ships 0.14 —
+# and it is written to fail *towards* `unreachable`, because that is the
+# direction that refuses to create anything.
+#
 # Logged *before* the call, not after: this is the first thing that touches the
 # repository, and an unreachable one makes restic retry with exponential
 # backoff for minutes. Without this line the journal shows the staging lines,
@@ -110,16 +142,63 @@ fi
 log "checking the repository at $RESTIC_REPOSITORY (first call to reach it — a long pause here means it cannot be)"
 probe_error=""
 probe_status=0
-probe_error="$(restic snapshots --no-lock 2>&1 >/dev/null)" || probe_status=$?
+probe_error="$(restic cat config 2>&1 >/dev/null)" || probe_status=$?
 
-if (( probe_status != 0 )); then
-  # Kept, not discarded. `>/dev/null 2>&1` here is what made a stalled run
-  # illegible in the journal, and what left 'restic init' as the only
-  # explanation offered for a repository that was merely unreadable.
-  log "repository probe failed (exit $probe_status): ${probe_error:-no output}"
-  log "repository not initialised yet — running 'restic init'"
-  restic init
+if (( probe_status == 0 )); then
+  repo_state="present"
+elif (( probe_status == 10 )); then
+  repo_state="absent"
+elif (( probe_status == 12 )); then
+  repo_state="unreachable"   # wrong password: something IS there, we cannot open it
+else
+  # restic < 0.17 returns 1 for everything. Read the message instead, checking
+  # the "cannot see it" wordings first: "unable to open config file: … :
+  # permission denied" contains a phrase the absent list would otherwise match.
+  shopt -s nocasematch
+  if [[ "$probe_error" =~ (permission[[:space:]]denied|access[[:space:]]denied|wrong[[:space:]]password|no[[:space:]]key[[:space:]]found|connection[[:space:]]refused|no[[:space:]]route[[:space:]]to[[:space:]]host|timeout|timed[[:space:]]out|unauthorized|forbidden|invalidaccesskey|signaturedoesnotmatch|no[[:space:]]such[[:space:]]host) ]]; then
+    repo_state="unreachable"
+  elif [[ "$probe_error" =~ (repository[[:space:]]does[[:space:]]not[[:space:]]exist|no[[:space:]]such[[:space:]]file[[:space:]]or[[:space:]]directory|specified[[:space:]]key[[:space:]]does[[:space:]]not[[:space:]]exist|nosuchkey|nosuchbucket) ]]; then
+    repo_state="absent"
+  else
+    # An error nobody has classified is not evidence of absence.
+    repo_state="unreachable"
+  fi
+  shopt -u nocasematch
 fi
+
+created_repository=0
+case "$repo_state" in
+  present)
+    log "repository is there and readable"
+    ;;
+
+  unreachable)
+    log "ERROR: cannot read the repository at $RESTIC_REPOSITORY (restic exit $probe_status)"
+    log "ERROR: restic said: ${probe_error:-no output}"
+    log "ERROR: this is not 'no repository yet', it is 'no answer' — refusing to run 'restic init' over it."
+    log "ERROR: the usual causes, in order: the repository is owned by another user (it must be owned by the user this unit runs as), RESTIC_PASSWORD is wrong, or the storage is unreachable."
+    exit 1
+    ;;
+
+  absent)
+    log "WARNING: there is no repository at $RESTIC_REPOSITORY (restic exit $probe_status)"
+    if [[ "${BACKUP_INIT_IF_MISSING:-0}" == "1" ]]; then
+      log "WARNING: BACKUP_INIT_IF_MISSING=1 — creating a NEW, EMPTY repository at $RESTIC_REPOSITORY"
+      log "WARNING: nothing taken before now is in it. If you did not mean to start over, stop this run and check RESTIC_REPOSITORY."
+      restic init
+      created_repository=1
+    else
+      # The default, and the whole point of B63: the nightly timer never
+      # creates a repository, because a repository it created is by definition
+      # not the one holding the backups.
+      log "ERROR: refusing to create one. A typo in RESTIC_REPOSITORY otherwise becomes a new empty repository that backs up, prunes and exits 0 — a green backup that protects nothing."
+      log "ERROR: if this really is the first run, initialise it once by hand:"
+      log "ERROR:     sudo -u fernscout env RESTIC_REPOSITORY=\"$RESTIC_REPOSITORY\" RESTIC_PASSWORD=… restic init"
+      log "ERROR: or re-run this script once with BACKUP_INIT_IF_MISSING=1."
+      exit 1
+    fi
+    ;;
+esac
 
 log "backing up to $RESTIC_REPOSITORY"
 restic backup "$STAGING_DIR" \
@@ -128,6 +207,26 @@ restic backup "$STAGING_DIR" \
 
 log "pruning snapshots older than ${BACKUP_KEEP_DAILY} daily generations"
 restic forget --tag fernscout --keep-daily "$BACKUP_KEEP_DAILY" --prune
+
+# --- 4b. Does this repository hold what somebody thinks it holds? ----------
+# The probe above catches a path that is empty. It cannot catch a path that
+# happens to hold a *different* repository the credentials can read — an old
+# one, a neighbouring prefix in the same bucket — which reads as `present` and
+# backs up perfectly into the wrong place. Counting is the cheap check: a
+# repository the operator believes has fourteen nightly snapshots and which
+# holds one has something wrong with it, and the count is in the journal
+# either way so "it was one every night since March" is answerable later.
+snapshot_count="$(restic snapshots --tag fernscout --no-lock --json 2>/dev/null | grep -o '"short_id"' | wc -l | tr -d ' ')" || snapshot_count=""
+if [[ -n "$snapshot_count" ]]; then
+  log "$snapshot_count snapshot(s) tagged fernscout in this repository"
+  if (( snapshot_count <= 1 )); then
+    if (( created_repository )); then
+      log "WARNING: one snapshot, in the repository this run just created. Expected for a genuine first run, and exactly what a wrong RESTIC_REPOSITORY looks like too."
+    else
+      log "WARNING: this repository holds ${snapshot_count} snapshot(s) after a successful run. If you expected the last ${BACKUP_KEEP_DAILY} nights, this is not the repository you meant."
+    fi
+  fi
+fi
 
 # --- 5. Record that it worked ----------------------------------------------
 # The last line of a successful run, deliberately: everything above it can
