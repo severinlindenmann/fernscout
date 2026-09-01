@@ -1,7 +1,9 @@
 import { describe, expect, test } from "vitest";
 import {
+  calendarStatus,
   daysUntil,
   earliestTodayISO,
+  effectiveStatus,
   hasHappened,
   isOver,
   isReaderToday,
@@ -86,10 +88,50 @@ describe("readerTodayISO / daysUntil", () => {
   });
 });
 
+describe("effectiveStatus", () => {
+  // B72: a trip created through the write API with dates already in the past
+  // took the `upcoming` default and kept it. Three published days were hidden
+  // behind a countdown that could not say anything else.
+  const now = new Date("2026-09-01T12:00:00Z");
+
+  test("a trip whose start has passed is past, whatever the file says", () => {
+    expect(effectiveStatus({ start: "2026-08-24", status: "upcoming" }, now)).toBe("past");
+  });
+
+  test("a trip whose start is still ahead is upcoming, whatever the file says", () => {
+    expect(effectiveStatus({ start: "2027-04-02", status: "past" }, now)).toBe("upcoming");
+  });
+
+  test("current is the author's own choice and survives the calendar", () => {
+    // Which trip the bare /<user> URLs serve is editorial, not arithmetic —
+    // and a trip that ran long keeps its pulsing dot until somebody says
+    // otherwise. `isOver` is what decides that, from the dates and the days.
+    expect(effectiveStatus({ start: "2020-01-01", status: "current" }, now)).toBe("current");
+    expect(effectiveStatus({ start: "2099-01-01", status: "current" }, now)).toBe("current");
+  });
+
+  test("a trip under way reads as past, the side that shows its days", () => {
+    // It began yesterday and ends next week, and nobody declared it current.
+    // "Past" is the wrong word for it and the right bucket: upcoming is the
+    // one that hides what has been published.
+    expect(effectiveStatus({ start: "2026-08-31", status: "upcoming" }, now)).toBe("past");
+  });
+
+  test("turns over in the earliest calendar, like hasHappened", () => {
+    // 17:30 UTC on the 14th is already the 15th in Kiritimati, so a trip
+    // starting on the 15th has begun rather than being a day away.
+    const evening = new Date("2026-03-14T17:30:00Z");
+    expect(calendarStatus({ start: "2026-03-15" }, evening)).toBe("past");
+    expect(calendarStatus({ start: "2026-03-16" }, evening)).toBe("upcoming");
+  });
+});
+
 describe("isOver", () => {
   test("a trip marked past is over, whatever its end date says", () => {
-    // Guards against trusting the date over the author's own word for it —
-    // a hand-edited `status: past` must not be second-guessed by arithmetic.
+    // The status a `Trip` carries has already been through `effectiveStatus`,
+    // so `past` here means the calendar's answer or a demoted rival for
+    // `current` — either way, not the trip under way, and not something to
+    // second-guess with arithmetic about `end`.
     const trip = { end: "2099-01-01", status: "past" as const };
     expect(isOver(trip, [], new Date("2026-03-14T00:00:00Z"))).toBe(true);
   });

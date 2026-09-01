@@ -98,13 +98,60 @@ export function isReaderToday(dateISO: string, now: Date = new Date()): boolean 
 }
 
 /**
+ * `past` or `upcoming` for a trip, from its dates and nothing else.
+ *
+ * The line is `start`, not `end`: everything the two words decide is really
+ * the question "is there anything to read yet?", and the answer flips the day
+ * the trip begins, not the day it ends. A trip under way that nobody declared
+ * `current` therefore reads as `past` — the bucket that means "shows its
+ * days", which is the safe side of a wrong guess. Calling a running trip
+ * `upcoming` hides every day written to it (B72); calling it `past` shows
+ * them under a heading that is a few weeks early.
+ *
+ * Asked in the earliest calendar in use anywhere on earth, like `hasHappened`
+ * and for the same reason: the mistake worth avoiding is hiding a published
+ * day, never showing one a few hours early.
+ */
+export function calendarStatus(trip: { start: string }, now: Date = new Date()): TripStatus {
+  return hasHappened(trip.start, now) ? "past" : "upcoming";
+}
+
+/**
+ * The status a trip actually has, reconciling what it declares with the
+ * calendar.
+ *
+ * `status:` in a trip.md is **one** editorial choice and two facts. `current`
+ * is the choice — which of a journal's trips the bare `/<user>` URLs serve —
+ * and no date arithmetic can make it or take it away, so it is honoured as
+ * written. `past` and `upcoming` are not choices at all: they are what `start`
+ * says about today, and a field nobody has edited since the trip was created
+ * is the worst available source for them.
+ *
+ * B72 is what deriving them costs when it is not done. A trip was created
+ * through the write API with dates in the past and no status, took the
+ * `upcoming` default, and a week later still rendered a countdown over three
+ * published days — days the feed, the search index and the trip page had all
+ * skipped on the strength of that one word.
+ */
+export function effectiveStatus(
+  trip: { start: string; status: TripStatus },
+  now: Date = new Date(),
+): TripStatus {
+  if (trip.status === "current") return "current";
+  return calendarStatus(trip, now);
+}
+
+/**
  * Whether a trip is done — nothing more coming, only what's already written.
  *
- * `status: "past"` is the author's own word for it and settles the question
- * outright, whatever the calendar says: a person who has hand-edited that
- * field has more information than any date arithmetic here does.
+ * `status` settles the question outright at both ends, and by the time a
+ * `Trip` reaches here that status has already been through `effectiveStatus`:
+ * `past` and `upcoming` are the calendar's own reading of `start`, and
+ * `current` is the one word an author declares. So the two early returns are
+ * not a second opinion about the dates — they are "this trip is not the one
+ * under way", answered before any arithmetic.
  *
- * Failing that, this is the same question `hasHappened` answers for a single
+ * For the trip that *is* current, this is the same question `hasHappened` answers for a single
  * day, asked of the trip's `end:` date instead — so it errs the same
  * direction, in the same calendar: the earliest one in use anywhere on earth,
  * not the reader's own. Calling a trip over a few hours before the author's
