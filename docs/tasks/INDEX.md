@@ -90,9 +90,7 @@ Do not edit them by hand; run the script.
 
 ## open
 
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B55](open/B55-a-signup-token-is-documented-as.md) | A signup token is documented as single-use and is not | SECURITY | medium | low |
+_Nothing here._
 
 ## in-development
 
@@ -100,6 +98,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B46](in-development/B46-a-trip-that-stays-inside-one.md) | A trip that stays inside one city draws as a single dot on a map thousands of kilometres wide | ISSUE | medium | medium |
 | [B52](in-development/B52-the-digest-still-refuses-a-guest.md) | The digest still refuses a guest trip to a reader who can now open it | FEATURE | medium | low |
+| [B55](in-development/B55-a-signup-token-is-documented-as.md) | A signup token is documented as single-use and is not | SECURITY | medium | low |
 
 ## testing
 

@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: auth, signup, journals
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B55 — A signup token is documented as single-use and is not
