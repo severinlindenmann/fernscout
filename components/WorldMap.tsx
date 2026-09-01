@@ -5,7 +5,7 @@ import Image from "next/image";
 import { mediaLoader } from "./mediaLoader";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Plus, Minus, Maximize2 } from "lucide-react";
-import { project, MAP_VIEWBOX } from "@/lib/mapProjection";
+import { frameRoute, frameSpanKm, place as placeIn, type Frame } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import { TRANSPORT_STYLE } from "@/lib/transport";
 import { flagFor } from "@/lib/flags";
@@ -32,21 +32,37 @@ type Leg = { from: PlaceView; to: PlaceView; mode: TransportMode };
 /** Places close together at the current zoom collapse into one marker. */
 type Cluster = { x: number; y: number; places: PlaceView[] };
 
-function clusterPlaces(places: PlaceView[], zoom: number): Cluster[] {
-  // Merge radius shrinks as you zoom in, so stops separate out.
-  const radius = 16 / zoom;
+/**
+ * How far apart two markers must be, as a multiple of one marker's radius,
+ * before they are drawn separately.
+ *
+ * Clustering exists so that markers do not sit on top of each other, which
+ * makes it a question about the *drawing*, not about the ground: two stops
+ * fifteen kilometres apart collide on a map of Europe and are comfortably
+ * separate on a map of one valley. The old radius was `16 / zoom` viewBox units
+ * — 640 km at zoom 1, still 80 km fully zoomed in — so the four Alpine passes
+ * of `alps-2024`, which span 68 km, merged into one "4" and could not be
+ * separated at any zoom the UI offered.
+ *
+ * Just over two radii, so two markers separate as soon as they would stop
+ * overlapping rather than at the exact moment they touch.
+ */
+const MERGE_RADII = 2.2;
+
+function clusterPlaces(places: PlaceView[], markerRadius: number, frame: Frame): Cluster[] {
+  const radius = markerRadius * MERGE_RADII;
   const clusters: Cluster[] = [];
-  for (const place of places) {
-    const [x, y] = project(place.lat, place.lng);
+  for (const point of places) {
+    const [x, y] = placeIn(frame, point);
     const hit = clusters.find((c) => Math.hypot(c.x - x, c.y - y) < radius);
     if (hit) {
-      hit.places.push(place);
+      hit.places.push(point);
       // keep the cluster centred on its members
-      hit.x = hit.places.reduce((s, p) => s + project(p.lat, p.lng)[0], 0) / hit.places.length;
-      hit.y = hit.places.reduce((s, p) => s + project(p.lat, p.lng)[1], 0) / hit.places.length;
+      hit.x = hit.places.reduce((s, p) => s + placeIn(frame, p)[0], 0) / hit.places.length;
+      hit.y = hit.places.reduce((s, p) => s + placeIn(frame, p)[1], 0) / hit.places.length;
       continue;
     }
-    clusters.push({ x, y, places: [place] });
+    clusters.push({ x, y, places: [point] });
   }
   return clusters;
 }
@@ -94,36 +110,36 @@ export default function WorldMap({
   // — fall back to framing the planned route instead, so it isn't a few dots
   // lost in the full world. Only when there's neither does the whole world
   // stand in.
-  const base = useMemo(() => {
-    const pts =
-      places.length > 0
-        ? places.map((p) => project(p.lat, p.lng))
-        : plan.map((s) => project(s.lat, s.lng));
-    if (pts.length === 0) {
-      return { x: 0, y: 0, w: MAP_VIEWBOX.width, h: MAP_VIEWBOX.height };
-    }
-    const xs = pts.map((p) => p[0]);
-    const ys = pts.map((p) => p[1]);
-    const padX = 70;
-    const padY = 55;
-    const minX = Math.max(0, Math.min(...xs) - padX);
-    const maxX = Math.min(MAP_VIEWBOX.width, Math.max(...xs) + padX);
-    const minY = Math.max(0, Math.min(...ys) - padY);
-    const maxY = Math.min(MAP_VIEWBOX.height, Math.max(...ys) + padY);
-    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
-  }, [places, plan]);
+  const base = useMemo(
+    () => frameRoute(places.length > 0 ? places : plan),
+    [places, plan],
+  );
 
   // Where the stops actually are. Zooming in drifts the camera from the
   // route's bounding-box centre toward this, so you end up over the places
   // rather than the empty ocean in the middle of a long-haul leg.
   const focus = useMemo(() => {
     if (places.length === 0) return null;
-    const pts = places.map((p) => project(p.lat, p.lng));
+    const pts = places.map((p) => placeIn(base, p));
     return {
       x: pts.reduce((s, p) => s + p[0], 0) / pts.length,
       y: pts.reduce((s, p) => s + p[1], 0) / pts.length,
     };
-  }, [places]);
+  }, [places, base]);
+
+  /**
+   * How far in you may go: until the view is about two kilometres across.
+   *
+   * A constant 8 made sense against a base frame that was always continental —
+   * it was 8× of "most of Europe". Now that the base frame is the size of the
+   * trip, the same constant means something different for every trip, so the
+   * limit is expressed as the thing a reader actually wants: keep zooming until
+   * the street you walked would fill the screen, if the data went that far.
+   */
+  const maxZoom = useMemo(
+    () => Math.min(64, Math.max(8, frameSpanKm(base) / 2)),
+    [base],
+  );
 
   const view = useMemo(() => {
     const w = base.w / zoom;
@@ -137,7 +153,27 @@ export default function WorldMap({
     return { x: cx - w / 2, y: cy - h / 2, w, h };
   }, [base, zoom, pan, focus]);
 
-  const clusters = useMemo(() => clusterPlaces(places, zoom), [places, zoom]);
+  /**
+   * A length that keeps its size on screen, whatever the frame is.
+   *
+   * Every marker radius, stroke width and label on this map used to be a
+   * constant in viewBox units, divided by `zoom`. That worked only because the
+   * frame was *always* continental — around 140 units wide — so "r = 5" happened
+   * to mean a dot. Once B46 made the frame the size of the trip, the Alps came
+   * out 4.6 units across and a radius-8 marker was three times wider than the
+   * entire map: the page rendered as a blank white rectangle, because that is
+   * what a white circle bigger than its own viewBox looks like.
+   *
+   * So sizes are fractions of the current view instead. `view.w` already has
+   * the zoom divided into it, which is why none of these divide by zoom any
+   * more. 140 is the old frame width, so the fractions below reproduce what the
+   * map used to look like at the scale it used to be drawn at.
+   */
+  const size = useCallback((units: number) => (units * view.w) / 140, [view.w]);
+
+  // Clustered against the radius the markers are actually drawn at, so the
+  // rule is "these two would overlap" rather than a distance guessed up front.
+  const clusters = useMemo(() => clusterPlaces(places, size(5), base), [places, size, base]);
 
   const reset = useCallback(() => {
     setZoom(1);
@@ -182,9 +218,22 @@ export default function WorldMap({
           onPointerUp={endDrag}
           onPointerLeave={endDrag}
         >
-          <g fill="#dff3e0" stroke="#bfe3c4" strokeWidth={0.6 / zoom}>
+          {/* The coastline is baked in uncorrected projected units
+              (lib/worldLand.json), so it is the one thing on the map that has
+              to be squeezed rather than positioned — everything else goes
+              through `placeIn`, which applies the same factor per point.
+              `vector-effect` keeps the outline an even hairline: without it the
+              horizontal squeeze thins the vertical strokes by a third at Swiss
+              latitudes and the coast looks half-drawn. */}
+          <g
+            fill="#dff3e0"
+            stroke="#bfe3c4"
+            strokeWidth={size(0.6)}
+            transform={`scale(${base.lngScale} 1)`}
+            vectorEffect="non-scaling-stroke"
+          >
             {worldLand.map((d, i) => (
-              <path key={i} d={d} />
+              <path key={i} d={d} vectorEffect="non-scaling-stroke" />
             ))}
           </g>
 
@@ -199,30 +248,30 @@ export default function WorldMap({
               <path
                 d={planAhead
                   .map((s, i) => {
-                    const [x, y] = project(s.lat, s.lng);
+                    const [x, y] = placeIn(base, s);
                     return `${i === 0 ? "M" : "L"}${x},${y}`;
                   })
                   .join(" ")}
                 fill="none"
                 stroke="#5a6a80"
-                strokeWidth={1.4 / zoom}
-                strokeDasharray={`${5 / zoom} ${4 / zoom}`}
+                strokeWidth={size(1.4)}
+                strokeDasharray={`${size(5)} ${size(4)}`}
                 strokeLinecap="round"
                 opacity={0.45}
               />
               {planAhead
                 .filter((s) => !s.reached)
                 .map((s, i) => {
-                  const [x, y] = project(s.lat, s.lng);
+                  const [x, y] = placeIn(base, s);
                   return (
                     <circle
                       key={`${s.location}-${i}`}
                       cx={x}
                       cy={y}
-                      r={3.2 / zoom}
+                      r={size(3.2)}
                       fill="#fffaf0"
                       stroke="#5a6a80"
-                      strokeWidth={1.3 / zoom}
+                      strokeWidth={size(1.3)}
                       opacity={0.75}
                     />
                   );
@@ -231,14 +280,14 @@ export default function WorldMap({
           )}
 
           {legs.map((leg, i) => {
-            const [x1, y1] = project(leg.from.lat, leg.from.lng);
-            const [x2, y2] = project(leg.to.lat, leg.to.lng);
+            const [x1, y1] = placeIn(base, leg.from);
+            const [x2, y2] = placeIn(base, leg.to);
             const mx = (x1 + x2) / 2;
             const my = (y1 + y2) / 2;
             const dx = x2 - x1;
             const dy = y2 - y1;
             const len = Math.hypot(dx, dy) || 1;
-            const bow = Math.min(24, len * 0.18);
+            const bow = Math.min(size(24), len * 0.18);
             const cx = mx - (dy / len) * bow;
             const cy = my + (dx / len) * bow;
             const style = TRANSPORT_STYLE[leg.mode];
@@ -248,7 +297,7 @@ export default function WorldMap({
                 d={`M${x1},${y1} Q${cx},${cy} ${x2},${y2}`}
                 fill="none"
                 stroke={style.color}
-                strokeWidth={2 / zoom}
+                strokeWidth={size(2)}
                 strokeDasharray={style.dash}
                 strokeLinecap="round"
                 initial={{ pathLength: 0, opacity: 0 }}
@@ -262,7 +311,7 @@ export default function WorldMap({
             const many = cluster.places.length > 1;
             const isSelected =
               !many && selected?.key === cluster.places[0].key;
-            const r = (many ? 8 : isSelected ? 7 : 5) / zoom;
+            const r = size(many ? 8 : isSelected ? 7 : 5);
             const label = cluster.places.length;
             return (
               <g
@@ -279,7 +328,7 @@ export default function WorldMap({
                   if (many) {
                     // Zoom into the cluster instead of picking one arbitrarily,
                     // centring it after the drift the new zoom will apply.
-                    const nextZoom = Math.min(8, zoom * 2);
+                    const nextZoom = Math.min(maxZoom, zoom * 2);
                     const baseCx = base.x + base.w / 2;
                     const baseCy = base.y + base.h / 2;
                     const drift = focus ? Math.min(1, (nextZoom - 1) / 2) : 0;
@@ -303,7 +352,7 @@ export default function WorldMap({
                   r={r}
                   fill={many ? "#3b82f6" : isSelected ? "#ffd23f" : "#ffffff"}
                   stroke="#1e293b"
-                  strokeWidth={1.6 / zoom}
+                  strokeWidth={size(1.6)}
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{
@@ -320,7 +369,7 @@ export default function WorldMap({
                     y={cluster.y}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize={8 / zoom}
+                    fontSize={size(8)}
                     fontWeight={700}
                     fill="#ffffff"
                     pointerEvents="none"
@@ -331,7 +380,7 @@ export default function WorldMap({
                 {/* The hit area, deliberately larger than the drawn dot: the dot is
                     10px across and a thumb is not. Divided by zoom so it stays 44px
                     on screen rather than growing with the map. */}
-                <circle cx={cluster.x} cy={cluster.y} r={27 / zoom} fill="transparent" />
+                <circle cx={cluster.x} cy={cluster.y} r={size(27)} fill="transparent" />
               </g>
             );
           })}
