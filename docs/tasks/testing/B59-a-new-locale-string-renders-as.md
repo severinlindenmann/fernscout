@@ -7,6 +7,7 @@ complexity: low
 area: i18n, dx
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B59 — A new locale string renders as its own key until the server is restarted

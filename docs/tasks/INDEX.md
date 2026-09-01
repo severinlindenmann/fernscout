@@ -99,7 +99,6 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B39](in-development/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high |
 | [B46](in-development/B46-a-trip-that-stays-inside-one.md) | A trip that stays inside one city draws as a single dot on a map thousands of kilometres wide | ISSUE | medium | medium |
-| [B59](in-development/B59-a-new-locale-string-renders-as.md) | A new locale string renders as its own key until the server is restarted | ISSUE | low | low |
 
 ## testing
 
@@ -124,6 +123,7 @@ Do not edit them by hand; run the script.
 | [B30](testing/B30-a-url-upload-never-says-whether.md) | A URL upload never says whether an original was kept | ISSUE | low | low |
 | [B31](testing/B31-a-refused-url-does-not-say.md) | A refused URL does not say whether the host was checked or the check itself failed | ISSUE | low | low |
 | [B54](testing/B54-an-upcoming-trip-s-map-is.md) | An upcoming trip's map is titled "Where we've been" | ISSUE | low | low |
+| [B59](testing/B59-a-new-locale-string-renders-as.md) | A new locale string renders as its own key until the server is restarted | ISSUE | low | low |
 | [B61](testing/B61-the-markdown-twin-is-the-one.md) | The markdown twin is the one route that does not know a journal was deleted | ISSUE | low | low |
 
 ## completed
