@@ -97,7 +97,6 @@ Do not edit them by hand; run the script.
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B47](in-development/B47-the-test-flag-can-be-written.md) | The test flag can be written but never read back, so nothing can confirm it stuck | ISSUE | high | low |
 | [B57](in-development/B57-a-journal-sending-real-mail-keeps.md) | A journal sending real mail keeps no copy, so nothing that went out can be read back | FEATURE | medium | low |
 | [B54](in-development/B54-an-upcoming-trip-s-map-is.md) | An upcoming trip's map is titled "Where we've been" | ISSUE | low | low |
 
@@ -106,6 +105,7 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B18](testing/B18-a-planned-trip-s-map-page.md) | A planned trip's map page draws no map | ISSUE | high | low |
+| [B47](testing/B47-the-test-flag-can-be-written.md) | The test flag can be written but never read back, so nothing can confirm it stuck | ISSUE | high | low |
 | [B26](testing/B26-the-welcome-mail-is-english-only.md) | The welcome mail is English only, and nobody is asked which language the journal is in | FEATURE | medium | low |
 | [B27](testing/B27-the-welcome-mail-s-link-opens.md) | The welcome mail's link opens the public view, so the owner cannot see their own drafts | FEATURE | medium | medium |
 | [B28](testing/B28-publishing-a-draft-requires-editing-a.md) | Publishing a draft requires editing a file by hand, so an agent cannot close the loop it opened | FEATURE | medium | high |
