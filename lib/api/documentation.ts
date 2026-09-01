@@ -668,6 +668,17 @@ URL pointing at this server's own network, or at a cloud metadata endpoint,
 will not be fetched. If a URL is refused you are told which one and why, and
 nothing is written: fix it and send the batch again.
 
+**Two of those refusals mean opposite things, so read the reason.** "Does not
+resolve to a public address" is permanent — that URL points somewhere it will
+never be allowed to point, and resending changes nothing. "Could not be looked
+up" is a resolver that did not answer, which is often a moment rather than a
+fact: send the batch again. A single flaky lookup discards the whole batch, so
+this is worth one retry before you tell somebody their photo host is blocked.
+
+You do not need to pre-flight URLs yourself. If you do anyway, note that a
+\`HEAD\` is not a reliable test — plenty of image hosts answer it with \`405\`
+while serving \`GET\` perfectly well.
+
 **What is kept from a URL is the file the remote host served.** The warning
 above about sending the largest file you have applies here with nothing you can
 do about it afterwards: there is no "largest file" to choose, so if the URL
