@@ -19,6 +19,15 @@ export type { Mail, SendResult } from "./types";
  * outside this module knows which one is in use.
  */
 
+/**
+ * A filename component for a `.eml` on disk — not `slugify` from lib/slug.ts.
+ *
+ * That one mints permanent public identifiers, and the rule it follows is the
+ * point of it. What comes out of here is half of a local filename in a
+ * gitignored folder, kept unique by the timestamp it is joined to, read by a
+ * person hunting for the mail they just triggered and deleted afterwards.
+ * Nothing resolves it, so nothing breaks if it changes.
+ */
 function slug(text: string): string {
   return (
     text

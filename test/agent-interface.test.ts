@@ -4,7 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import { createDraft, listDrafts, slugify, validateDraft } from "@/lib/api/entries";
+import { createDraft, listDrafts, validateDraft } from "@/lib/api/entries";
+import { slugify } from "@/lib/slug.ts";
 import { agentGuide, instanceDocumentation, userDocumentation } from "@/lib/api/documentation";
 import { getAllEntries } from "@/lib/entries";
 import { validateEntry } from "@/lib/validate/entry";
@@ -170,6 +171,25 @@ describe("validation", () => {
 
   test("accepts a minimal entry", () => {
     expect(validateDraft({ title: "T", date: "2026-01-01", content: "c" })).toBeNull();
+  });
+
+  // The whole table of letters lives in test/slug.test.ts. What matters here
+  // is that the API writes with that function and no other: before B77 this
+  // module had its own copy, and a day titled "Rückfahrt" landed at
+  // /day/ruckfahrt — a different German word — while photo ingest would have
+  // filed the same title as rueckfahrt.
+  test("the slug on disk is the one the shared rule produces", () => {
+    writeTrip("ana", "trip-a");
+    const result = createDraft("ana/trip-a", {
+      title: "Rückfahrt",
+      date: "2026-01-02",
+      content: "Home again.",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.slug).toBe("rueckfahrt");
+    expect(result.slug).toBe(slugify("Rückfahrt"));
+    expect(path.basename(result.file)).toBe("2026-01-02-rueckfahrt.md");
   });
 
   test("slugs are safe for a filename", () => {
