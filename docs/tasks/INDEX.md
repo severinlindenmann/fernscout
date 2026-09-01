@@ -63,12 +63,8 @@ Do not edit them by hand; run the script.
 | [B25](backlog/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low |
 | [B33](backlog/B33-a-journal-can-be-shared-only.md) | A journal can be shared only by password or by hand-edited frontmatter, so an agent cannot invite anybody | FEATURE | medium | medium |
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
-| [B35](backlog/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low |
 | [B36](backlog/B36-address-checks-match-one-spelling-each.md) | Address checks match one spelling each, and the URL parser writes another | SECURITY | medium | low |
-| [B37](backlog/B37-anybody-who-finds-a-journal-can.md) | Anybody who finds a journal can put themselves on its guest list uninvited | FEATURE | medium | low |
-| [B38](backlog/B38-a-journal-or-a-trip-can.md) | A journal or a trip can be created through the API but never removed | FEATURE | medium | high |
 | [B39](backlog/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high |
-| [B41](backlog/B41-an-approved-contact-is-shown-a.md) | An approved contact is shown a trip in their own panel and then asked for a password nobody gave them | ISSUE | medium | medium |
 | [B03](backlog/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium |
 | [B04](backlog/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium |
 | [B05](backlog/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
@@ -84,6 +80,7 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B28](open/B28-publishing-a-draft-requires-editing-a.md) | Publishing a draft requires editing a file by hand, so an agent cannot close the loop it opened | FEATURE | medium | high |
+| [B41](open/B41-an-approved-contact-is-shown-a.md) | An approved contact is shown a trip in their own panel and then asked for a password nobody gave them | ISSUE | medium | medium |
 | [B29](open/B29-an-agent-has-no-way-to.md) | An agent has no way to hand its owner a working sign-in link | FEATURE | low | medium |
 
 ## in-development
@@ -91,6 +88,9 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B27](in-development/B27-the-welcome-mail-s-link-opens.md) | The welcome mail's link opens the public view, so the owner cannot see their own drafts | FEATURE | medium | medium |
+| [B35](in-development/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low |
+| [B37](in-development/B37-anybody-who-finds-a-journal-can.md) | Anybody who finds a journal can put themselves on its guest list uninvited | FEATURE | medium | low |
+| [B38](in-development/B38-a-journal-or-a-trip-can.md) | A journal or a trip can be created through the API but never removed | FEATURE | medium | high |
 
 ## testing
 

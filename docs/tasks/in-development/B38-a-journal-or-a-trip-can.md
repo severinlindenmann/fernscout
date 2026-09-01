@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: api, journals, trips, mail, auth
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B38 — A journal or a trip can be created through the API but never removed

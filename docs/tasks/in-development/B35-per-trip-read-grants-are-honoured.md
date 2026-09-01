@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: contacts, digest, push, db
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B35 — Per-trip read grants are honoured in three places and written by nothing
