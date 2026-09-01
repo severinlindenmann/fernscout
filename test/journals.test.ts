@@ -177,6 +177,59 @@ describe("creating a journal", () => {
     ).toBe(true);
   });
 
+  /**
+   * B32. The refusal used to be a dead end: an agent that took the signup path
+   * for somebody who already had a journal landed on 409 holding a token that
+   * can only create journals, and was told the name was taken and nothing
+   * else.
+   */
+  test("a taken name says how to get a write token instead", () => {
+    make("wanderer");
+    const again = make("wanderer");
+    expect(again.ok).toBe(false);
+    if (again.ok) return;
+    expect(again.next).toContain("/api/auth/request");
+    expect(again.next).toContain("wanderer");
+  });
+
+  test("and says it conditionally, because the server does not know whose it is", () => {
+    make("wanderer");
+    const again = make("wanderer");
+    if (again.ok) return;
+    // "If it is theirs" — never "this is yours" or "this is somebody else's".
+    expect(again.next).toMatch(/if .* is theirs/i);
+    expect(again.next).not.toMatch(/you own|your journal|somebody else/i);
+  });
+
+  /**
+   * The one that matters. A refusal that differed for the owner would turn
+   * journal creation into a way of asking whether an address owns a name —
+   * which is exactly what the uniform 202 on /api/auth/request exists to stop.
+   */
+  test("the refusal is byte-identical whether or not the caller owns the name", () => {
+    make("wanderer");
+
+    const byOwner = make("wanderer");
+    const byStranger = createJournal({
+      username: "wanderer",
+      title: "Someone else's",
+      ownerEmail: "stranger@example.test",
+      ownerName: "Stranger",
+      ownerNickname: "Stranger",
+    });
+
+    expect(byOwner).toEqual(byStranger);
+  });
+
+  test("the journal cap says how to write to one they already own", () => {
+    for (let i = 0; i < MAX_JOURNALS_PER_EMAIL; i++) make(`journal-${i}`);
+    const tooMany = make("journal-last");
+    expect(tooMany.ok).toBe(false);
+    if (tooMany.ok) return;
+    expect(tooMany.next).toContain("/api/auth/request");
+    expect(tooMany.next).toContain("journal-0");
+  });
+
   test("the cap counts by address, case-insensitively", () => {
     make("one");
     expect(journalsOwnedBy("OWNER@Example.TEST")).toEqual(["one"]);

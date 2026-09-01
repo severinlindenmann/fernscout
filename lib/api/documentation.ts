@@ -354,6 +354,29 @@ with for years. Lowercase letters, digits and dashes.
 
 One address may own three journals on this server.
 
+### If it turns out they already have one
+
+"Set up my travel journal" from somebody who set one up last month is the same
+sentence, so expect this. \`POST /api/v1/journals\` answers **\`409
+username_taken\`** for a name that exists, and the signup token you are holding
+cannot do anything else — it creates journals and nothing more.
+
+Do not pick a different name. \`alex-2\` is somebody living with a second-choice
+address forever because an agent did not stop to ask. **Stop and ask** whether
+the existing journal is theirs, and if it is, take the other path: they need a
+write token for it, not a new journal.
+
+\`\`\`http
+POST ${site.url}/api/auth/request
+Content-Type: application/json
+
+{"user": "their-existing-journal", "email": "them@example.com", "kind": "agent"}
+\`\`\`
+
+The 409 says this too. It cannot say whether the journal is *theirs* — this
+server does not know, and checking would make journal creation a way of asking
+which addresses own which names — so the answer has to come from the person.
+
 **A note on names.** The path segment and the auth calls say \`user\`; journal
 creation says \`username\`. Same value: the journal's address, the thing between
 the domain and the rest of the URL.

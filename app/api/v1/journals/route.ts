@@ -114,7 +114,16 @@ export async function POST(request: Request) {
   if (!created.ok) {
     // 409 for "that name is taken", 400 for "that name is not a name".
     const status = created.error === "username_taken" ? 409 : created.error === "too_many_journals" ? 403 : 400;
-    return Response.json({ error: created.error, message: created.message }, { status });
+    return Response.json(
+      {
+        error: created.error,
+        message: created.message,
+        // Only where there is one. A `next` on every refusal would train an
+        // agent to stop reading it.
+        ...(created.next ? { next: created.next } : {}),
+      },
+      { status },
+    );
   }
 
   const token = await openAgentSession(created.username, session.email);
