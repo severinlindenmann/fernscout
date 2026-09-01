@@ -216,6 +216,41 @@ describe("subscribersFor — closed trips", () => {
   });
 });
 
+/**
+ * B70. The same rule the digest was taught, in the surface that sits even
+ * closer to the reader.
+ *
+ * A `test: true` trip is content nobody lived. Every reading surface contains
+ * it by wearing a banner; a notification is a title and a link on a lock
+ * screen and has nowhere to put one — so the answer is not to notify at all.
+ * `public` is the case that matters, because that is what a trip written to
+ * prove the pipeline usually is, and because `isOpenToLink` would otherwise
+ * hand it every subscription in the journal before any other question is
+ * asked.
+ */
+describe("subscribersFor — a trip nobody lived", () => {
+  test("a public test trip notifies nobody, unidentified device or approved contact", async () => {
+    const trip = fakeTrip({ visibility: "public", test: true });
+    const contact = await signUpAndConfirm("ana", "family@example.com");
+    await approveContact("ana", contact.id);
+    await saveSubscription(fakeSub());
+    await saveSubscription(fakeSub({ contactId: contact.id }));
+
+    // The same two subscriptions on the same trip without the flag: both.
+    expect(await subscribersFor(fakeTrip({ visibility: "public" }))).toHaveLength(2);
+    expect(await subscribersFor(trip)).toEqual([]);
+  });
+
+  test("a guest test trip notifies nobody either", async () => {
+    const contact = await signUpAndConfirm("ana", "family@example.com");
+    await approveContact("ana", contact.id); // approval is the grant
+    await saveSubscription(fakeSub({ contactId: contact.id }));
+
+    expect(await subscribersFor(fakeTrip({ visibility: "guest" }))).toHaveLength(1);
+    expect(await subscribersFor(fakeTrip({ visibility: "guest", test: true }))).toEqual([]);
+  });
+});
+
 describe("subscribersFor — no database", () => {
   beforeEach(() => {
     delete process.env.DATABASE_URL;
