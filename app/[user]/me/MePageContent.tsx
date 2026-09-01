@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import CopyLine from "@/components/CopyLine";
+import AgentHandover from "@/components/AgentHandover";
 import GuestSignIn from "@/components/GuestSignIn";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
@@ -144,18 +144,10 @@ export default function MePageContent({
             <h2 className="font-display text-xl font-semibold text-navy-900">
               {t("me.ownerTitle")}
             </h2>
-            <h3 className="mt-4 font-display text-base font-semibold text-navy-900">
-              {t("me.agentTitle")}
-            </h3>
-            <p className="mt-1 text-base leading-7 text-navy-700">{t("me.agentBody")}</p>
-            <p className="mt-3 font-mono text-sm text-navy-900">{docUrl}</p>
-            <p className="font-mono text-sm text-navy-600">{viewer.email}</p>
-            <div className="mt-3">
-              <CopyLine
-                value={`${docUrl}\n${viewer.email}`}
-                label={t("landing.copy")}
-                copiedLabel={t("landing.copied")}
-              />
+            {/* Shared with the empty trip list, which is where a new owner
+                actually lands first — see components/AgentHandover.tsx. */}
+            <div className="mt-4">
+              <AgentHandover docUrl={docUrl} email={viewer.email} />
             </div>
             {/*
               What the code actually becomes.
