@@ -128,6 +128,55 @@ cannot both hold if the gate consults `expires_at` and the panel consults
 file, and make the table test cover it. Reintroducing the panel/gate
 disagreement in a new place would be an unusually ironic way to close this
 task.
+
+### The expiry decision: both ask the grant, and B35's lookup comes back
+
+**Being a guest is an `active` contact holding a `read` grant that has not
+expired, and one function answers it for every surface.** That function is
+`journalReader` in `lib/contacts/session.ts`; whether a grant is live is
+`lib/grants.ts` and nowhere else.
+
+So the lookup B35 removed from `resolveViewer` is back — but not as the arm it
+was. B35 removed it because "holds a grant" and `status === "active"` are the
+same question, and that is true of every row written today. It stops being true
+the moment one grant is issued with an expiry, because `expires_at` is the only
+field in the schema that can say *let in until*, and `status` cannot express it
+at all. The digest has honoured expiry since it was written
+(`contactsWithReadGrant`). Asking `status` in the panel and the gate while the
+digest asks `expires_at` would leave three readers and two answers, which is
+the shape of this bug with different actors.
+
+The alternative was to delete `expires_at`, making `status` the whole truth.
+That is a migration, it throws away the only way to express a time-limited
+invitation before B33 has decided whether it wants one, and it would put this
+task in the business of removing schema rather than closing a gate. Refused.
+
+The cost of the decision is one indexed single-row read per gated page for a
+signed-in reader, and it buys the property the whole task is about: there is
+one question, and every surface asks it by calling the same function.
+
+### What was found while building it
+
+- **`listed:` is not a frontmatter field.** `parseVisibility`
+  (`lib/trips.ts:174`) derives `listed` from `visibility` and `parseTrip` never
+  reads a `listed:` key, so writing `listed: false` on a public trip does
+  nothing — the only spelling that works is the legacy `visibility: unlisted`.
+  `AGENTS.md` and `add-a-trip` both document `listed:` as a field a person may
+  set. Captured separately; not fixed here.
+- **The digest still refuses `guest` trips to a reader who can now open one.**
+  `lib/digest/visibility.ts` says in its own comment that it is the single place
+  that changes when identified access can unlock the gate. That has now
+  happened, but widening it changes what lands in somebody's inbox, which is the
+  owner's call rather than a side effect of fixing the gate. The comment is
+  updated to say so; the behaviour is captured separately.
+- **A signed-in reader's page render resolves the session five times**, each
+  call writing `last_seen_at`. Three of those predate this task (the user
+  layout's own `signedIn` check, `listableTrips`, `isTravellerOn`); this adds
+  two. Correct, and wasteful. Captured separately.
+- **The owner is not a special case in the gate** and does not need to be:
+  `peopleOf` (`lib/tripPeople.ts:18`) already puts the journal's owner on every
+  trip in it, so `isTravellerOn` lets them into their own `private` trips. The
+  table test covers the owner row for the same reason it covers the others.
 - `VISIBILITY_NOT_A_LOCK` (`lib/api/agentCopy.ts:46`) says a journey is gated by
   "a password, invited guests and the trip's `people:` list", which stops being
   accurate once an invited guest is a guest of the journal rather than of the
@@ -157,3 +206,27 @@ accepts from somebody who already is one.
   because the whole bug is that these two disagreed.
 - `VISIBILITY_NOT_A_LOCK` no longer describes guests as belonging to a trip.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.
+
+## What was built
+
+`lib/grants.ts` is new and is the only place that decides whether a grant is
+live; `contactsWithReadGrant` moved into it from `lib/digest/visibility.ts`,
+which is a digest module and was never the right home for the rule three
+surfaces depend on.
+
+`journalReader` / `isJournalGuest` (`lib/contacts/session.ts`) is the one
+helper. `resolveViewer` calls it for the panel; `mayReadTrip`, `isGuestOf` and
+`listableTrips` call it for the gate, the costs and the trip switcher. Nothing
+computes a second answer.
+
+`getContactByEmail` (`lib/contacts/index.ts`) replaces `listContacts().find()`
+in the viewer — one indexed row instead of the whole address book, each entry
+of which costs a scrypt decryption of a postal address to build.
+
+`test/access-gate.test.ts` is the table: six viewers (anonymous, pending,
+approved, revoked, a traveller, the owner) against five trips (public, unlisted
+public, guest, private, private-with-people), asserting `resolveViewer`'s
+`through` value and `mayReadTrip`'s answer for all thirty, plus the two
+invariants derived from the table — the panel never widens the gate, and the
+only trip the gate opens without the panel mentioning it is the deliberately
+unlisted public one.

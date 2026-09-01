@@ -64,3 +64,37 @@ draw a similar distinction and may have the same gap.
   what is actually guaranteed.
 - Closing this by verifying B41 or B39 already fixed it is a valid outcome, and
   the note saying so belongs in this file.
+
+## Closed by B41 — verification, not code
+
+B41 took the first of the two shapes above: `mayReadTrip` (`lib/tripGate.ts`)
+now asks `isJournalGuest`, which is the same call `resolveViewer` makes. An
+approved contact opens a `visibility: guest` trip with no password, so the trip
+the panel lists is a trip they can actually open, and the panel became correct
+without being touched.
+
+The property `test/viewer.test.ts` states — *"the panel never widens access: it
+reports what `mayReadTrip` would already allow"* — is now asserted rather than
+merely claimed. `test/access-gate.test.ts` runs both functions over every
+viewer × every visibility and checks they agree, and derives the never-widens
+invariant from that table.
+
+The two sibling surfaces named above were checked and both changed:
+
+- **`listableTrips`** gained the same guest arm, so the trip switcher advertises
+  a `guest` trip to somebody who has been let into the journal. It also had a
+  second, opposite gap: it listed a `private` trip to anyone holding that trip's
+  password cookie, and `mayReadTrip` refuses a `private` trip before it ever
+  looks at a cookie. That was the same over-report this task reported, on a
+  different surface, and it is fixed.
+- **The trip switcher** is `listableTrips` — `app/[user]/layout.tsx:74` is its
+  only other caller besides `app/[user]/trips/page.tsx`, and both take what the
+  function returns.
+
+One thing this does **not** close: `listableTrips` deliberately stays narrower
+than `mayReadTrip` for a `public` trip with `listed: false`. That is the old
+`unlisted`, and not advertising a trip anybody could open is what the field is
+for, not a leak. The table test states that exception and asserts it is the only
+one.
+
+Leave this in `backlog/`. An agent does not move anything to `completed/`.

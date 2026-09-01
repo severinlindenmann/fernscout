@@ -495,6 +495,29 @@ export async function listContacts(owner: string): Promise<ContactRecord[]> {
   return rows.map((row) => toRecord(owner, row));
 }
 
+/**
+ * One contact, by the address on their session cookie.
+ *
+ * Indexed on `email_key`, and one row rather than the whole book: this is
+ * asked during a page render — `journalReader` in `./session.ts` calls it for
+ * every gated trip a signed-in reader opens — and `listContacts` decrypts a
+ * postal address per row, which is a lot of scrypt to do in order to answer a
+ * yes/no question about one person.
+ */
+export async function getContactByEmail(
+  owner: string,
+  email: string,
+): Promise<ContactRecord | null> {
+  const { db } = await getDatabase();
+  const row = await db
+    .selectFrom("contacts")
+    .selectAll()
+    .where("owner_id", "=", owner)
+    .where("email_key", "=", normaliseEmail(email))
+    .executeTakeFirst();
+  return row ? toRecord(owner, row) : null;
+}
+
 export async function getContact(owner: string, id: string): Promise<ContactRecord | null> {
   const { db } = await getDatabase();
   const row = await db

@@ -1,6 +1,5 @@
 import "server-only";
 import { isIndexable, isOpenToLink } from "../access";
-import { getDatabase } from "../db";
 import type { Trip } from "../types";
 
 /**
@@ -21,15 +20,18 @@ import type { Trip } from "../types";
  *   goes only to readers the owner has actually granted (the `read` grant that
  *   approving a contact creates). This is the same distinction `listableTrips`
  *   draws for the trip switcher.
- * - **password** — never. Not even for a reader with a grant: the password gate
- *   (W09, `lib/tripGate.ts`) has no database behind it by design, so a grant
- *   does not open it, and a digest cannot carry the password. Until identified
- *   access can actually unlock the gate, a line about one of these trips would
- *   be a link to a door the reader has no key for. When that lands, this
- *   function is the single place that changes.
+ * - **guest and private** — never. This was once simply true: the gate had no
+ *   database behind it, so a grant did not open it, and a digest cannot carry
+ *   a password. B41 changed half of that — a reader holding a live grant can
+ *   now open a `guest` trip with no password at all, so a line about one would
+ *   no longer be a link to a door they have no key for. Widening this function
+ *   to match is captured separately and deliberately not done here: it changes
+ *   what lands in somebody's inbox, which is the owner's call and not a side
+ *   effect of fixing the gate. `private` stays never, whatever else changes.
  *
  * A grant is journal-wide — one bit, not a set of trip ids. It said which trip
  * until `007-journal-wide-grants`, and nothing ever wrote anything but `*`.
+ * Whether it is live is `lib/grants.ts`, which is the one place that decides.
  */
 
 /** Trips a reader may be told about. `granted` is whether they hold a `read`
@@ -41,34 +43,4 @@ export function digestableTrips(trips: Trip[], granted: boolean): Trip[] {
     if (!isOpenToLink(trip)) return false;
     return granted;
   });
-}
-
-/**
- * Every contact of this owner holding a live `read` grant.
- *
- * One query for the whole run rather than one per contact: fifty readers is
- * not a lot of rows, and a per-contact query inside the send loop is how a
- * cron job starts taking minutes.
- */
-export async function contactsWithReadGrant(
-  owner: string,
-  now: Date,
-): Promise<Set<string>> {
-  const { db } = await getDatabase();
-  const rows = await db
-    .selectFrom("access_grants")
-    .select(["contact_id", "expires_at"])
-    .where("owner_id", "=", owner)
-    .where("scope", "=", "read")
-    .execute();
-
-  const stamp = now.toISOString();
-  const out = new Set<string>();
-  for (const row of rows) {
-    // An expired grant is not a grant. Compared as ISO strings, which is what
-    // the schema stores and what sorts correctly.
-    if (row.expires_at !== null && row.expires_at <= stamp) continue;
-    out.add(row.contact_id);
-  }
-  return out;
 }

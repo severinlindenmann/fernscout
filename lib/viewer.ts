@@ -1,8 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
-import { GUEST_COOKIE, resolveSession } from "./auth";
-import { listContacts, normaliseEmail } from "./contacts";
-import { isOwner } from "./contacts/session";
+import { isOwner, journalReader } from "./contacts/session";
 import { isPersonOn } from "./tripPeople";
 import { getTrips } from "./trips";
 import { getUser } from "./users";
@@ -56,17 +53,12 @@ export async function resolveViewer(username: string): Promise<Viewer> {
   const user = getUser(username);
   if (!user) return { email: null, owner: false, guest: false, trips: [] };
 
-  const jar = await cookies();
-  const session = await resolveSession(jar.get(GUEST_COOKIE)?.value, "guest");
-  const email = session?.owner === username ? session.email : null;
-
+  // The session, the contact record and the answer to "have they been let in?"
+  // — all three from `journalReader`, which is also what `mayReadTrip` asks.
+  // The panel computing its own answer is exactly how this page came to list
+  // trips the gate then refused (B41).
+  const { email, contact, guest } = await journalReader(username);
   const owner = await isOwner(username);
-  // Looked up by address rather than by a token: this is somebody reading
-  // their own site in a browser, not following a link out of an email.
-  const contact = email
-    ? ((await listContacts(username)).find((c) => c.email === normaliseEmail(email)) ?? null)
-    : null;
-  const guest = contact?.status === "active";
 
   const trips = getTrips(username);
   const current = trips.find((t) => t.status === "current")?.id;
@@ -80,13 +72,11 @@ export async function resolveViewer(username: string): Promise<Viewer> {
     } else if (trip.visibility === "public" && trip.listed) {
       visible.push(describe(trip, "public", current));
     } else if (trip.visibility === "guest" && guest) {
-      // An active contact, and nothing narrower. This arm used to also ask
-      // `grants?.has(trip.id)` — a per-trip grant nothing ever issued, removed
-      // with the column in `007-journal-wide-grants`. The `access_grants` row
-      // is not consulted here because it says the same thing `guest` does:
-      // approval is what writes it, and both paths that end an approval
-      // (`revokeContact`, and changing the address on `updateContactByOwner`)
-      // delete it in the same call that leaves `status` non-active.
+      // A guest of the *journal*, and nothing narrower: this arm used to also
+      // ask `grants?.has(trip.id)`, a per-trip grant nothing ever issued,
+      // removed with the column in `007-journal-wide-grants`. A trip held back
+      // from the people who are otherwise let in is `private`, and `private`
+      // never reaches here.
       visible.push(describe(trip, "guest", current));
     }
   }
