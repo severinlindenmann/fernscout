@@ -70,9 +70,48 @@ is the right answer — the owner of a journal with the capability off has no
 guest list to manage, and a disabled control explaining an operator-level
 switch would be noise.
 
+## Built
+
+`app/[user]/me/page.tsx` now asks the question once — `const contactsEnabled =
+isEnabled("contacts", user)` — and both doors on the page read the same answer:
+`manageHref`, which already consulted it, and a new `contactsEnabled` prop.
+`MePageContent` renders the owner's guest-list link only when it holds. The prop
+is required rather than optional, so a page that forgets to answer is a type
+error and not a silently missing link.
+
+The owner block itself is untouched: the address, the email and the token
+warning are what an owner comes to that page for and none of them depend on
+contacts. Only the last link disappears — absent, not disabled, as the Work
+section asked.
+
+**The sweep for other ungated links to `/<user>/contacts`.** There is exactly
+one other, and it is already safe: `lib/contacts/mail.ts:142` puts a button on
+the owner's "somebody wants to read along" mail. That mail is sent only from
+`notifyOwnerOfRequest`, whose one caller is `app/api/contacts/confirm/route.ts`,
+which refuses at `:27` unless the capability is on — so the mail cannot exist on
+a journal where the link would 404. Everything else matching `/contacts` is the
+`/api/contacts/*` routes, and all four of those gate on `isEnabled("contacts",
+…)` themselves. The page-level entry points (`/[user]/contacts`, `/[user]/c/…`,
+`/[user]/i/…`, `/[user]/u/…`) each gate too. `app/[user]/me/MePageContent.tsx`
+was the only unguarded one.
+
 ## Acceptance
 
 - With `contacts` disabled for a journal, the owner's `/<user>/me` shows no
   link to `/<user>/contacts`.
 - With it enabled, the link is present and the page it opens renders.
 - A test covering both, alongside whatever already covers `manageHref`.
+- `npm run build`, `npx tsc --noEmit`, `npx eslint .` and `npx vitest run` pass.
+
+The three new tests fail on the code as it stood: with `app/` reverted,
+`test/access-panel.test.tsx` renders `<a href="/alex/contacts">` for an owner
+whose journal has contacts off, and `contactsEnabled` arrives `undefined` from
+the server component.
+
+And the dev server was booted against a copy of `content/` with the capability
+both ways, which is the other half of the second line — the page the link opens:
+
+```
+contacts on   GET /example/contacts 200   GET /example/me 200
+contacts off  GET /example/contacts 404   GET /example/me 200
+```

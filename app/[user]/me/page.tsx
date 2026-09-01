@@ -28,11 +28,17 @@ export default async function MePage({ params }: PageProps<"/[user]/me">) {
 
   const viewer = await resolveViewer(user);
 
+  // Asked once, for both doors this page opens into contacts. B74: the
+  // guest-details link below was gated on it and the owner's guest-list link
+  // was not, so an owner whose journal has contacts off followed a link their
+  // own page had drawn and got a 404.
+  const contactsEnabled = isEnabled("contacts", user);
+
   // The manage page already exists and already works with no login, from the
   // token in every mail footer — so the panel links to it rather than growing
   // a second address form that would have to be kept in step with the first.
   let manageHref: string | undefined;
-  if (viewer.email && isEnabled("contacts", user)) {
+  if (viewer.email && contactsEnabled) {
     const contact = (await listContacts(user)).find(
       (c) => c.email === normaliseEmail(viewer.email!),
     );
@@ -53,6 +59,7 @@ export default async function MePage({ params }: PageProps<"/[user]/me">) {
       // more (B37), so it is gone rather than left to be misread.
       canSignIn={isEnabled("auth", user)}
       codeMinutes={CODE_TTL_MINUTES}
+      contactsEnabled={contactsEnabled}
     />
   );
 }

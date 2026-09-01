@@ -30,6 +30,7 @@ export default function MePageContent({
   manageHref,
   canSignIn,
   codeMinutes,
+  contactsEnabled,
 }: {
   viewer: Viewer;
   username: string;
@@ -40,6 +41,9 @@ export default function MePageContent({
   canSignIn: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
   codeMinutes: string;
+  /** Whether this journal keeps a guest list at all. Resolved on the server;
+   * `isEnabled` reads server config and this file is a client component. */
+  contactsEnabled: boolean;
 }) {
   const { t } = useI18n();
   const site = useSite();
@@ -193,12 +197,21 @@ export default function MePageContent({
               {t("me.tokenWarning")}
             </p>
 
-            <Link
-              href={`${site.base}/contacts`}
-              className="mt-5 inline-flex min-h-11 items-center text-base font-semibold text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-4"
-            >
-              {t("me.contacts")}
-            </Link>
+            {/*
+              B74. Owning the journal is not enough: `/<user>/contacts` is a
+              capability, and it answers 404 when the journal has not opened
+              it. Absent rather than disabled — an owner with contacts off has
+              no guest list to manage, and a greyed control explaining an
+              operator switch would be noise.
+            */}
+            {contactsEnabled && (
+              <Link
+                href={`${site.base}/contacts`}
+                className="mt-5 inline-flex min-h-11 items-center text-base font-semibold text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-4"
+              >
+                {t("me.contacts")}
+              </Link>
+            )}
           </section>
         )}
 
