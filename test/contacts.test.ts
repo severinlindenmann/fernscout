@@ -351,6 +351,145 @@ describe("a guest's phone number, given through the join form", () => {
     expect(response.status).toBe(400);
     expect(((await response.json()) as { error?: string }).error).toBe("invalid_address");
   });
+
+  /**
+   * Task 11 — the same defect returns because the join form has no
+   * prefill. `updateContactSelf` reads a submitted-but-empty `tel` as a
+   * deliberate clear, because that form's guest can see the number before
+   * removing it. This form never shows a returning guest what is on file —
+   * every box starts blank — so an empty `tel` here can only mean "I did
+   * not say", never "delete it". These use their own `x-forwarded-for` so
+   * they don't share the outer describe's rate-limit bucket, which is
+   * already spent down to 2 of its 5 by the tests above.
+   */
+  describe("a returning guest's blank tel must not erase a recorded number", () => {
+    async function postReturning(body: Record<string, unknown>) {
+      const { POST } = await import("@/app/api/contacts/request/route");
+      return POST(
+        new Request("https://example.test/api/contacts/request", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-forwarded-for": "203.0.113.42",
+          },
+          body: JSON.stringify({ user: "ana", name: "A Reader", locale: "en", ...body }),
+        }),
+      );
+    }
+
+    test("no postcard, blank tel: the owner's recorded tel survives and the contact stays unpostable", async () => {
+      const { contactId } = await requestContact("ana", {
+        name: "Oma",
+        email: "returning-1@example.test",
+        locale: "en",
+        address: { tel: "+41 79 000 11 22" },
+        wantsEmailDigest: false,
+        wantsPostcard: false,
+        createdVia: "owner",
+      });
+
+      const response = await postReturning({
+        email: "returning-1@example.test",
+        wantsPostcard: false,
+      });
+      expect(response.status).toBe(202);
+
+      const contact = await getContact("ana", contactId!);
+      expect(contact?.postalAddress?.tel).toBe("+41 79 000 11 22");
+      expect(isPostable(contact!.postalAddress!)).toBe(false);
+    });
+
+    test("a full postal address with a blank tel keeps both the new address and the recorded tel", async () => {
+      const { contactId } = await requestContact("ana", {
+        name: "Oma",
+        email: "returning-2@example.test",
+        locale: "en",
+        address: { tel: "+41 79 000 33 44" },
+        wantsEmailDigest: false,
+        wantsPostcard: false,
+        createdVia: "owner",
+      });
+
+      const response = await postReturning({
+        email: "returning-2@example.test",
+        wantsPostcard: true,
+        address: { line1: "Bahnhofstrasse 1", city: "Zurich", country: "Switzerland" },
+      });
+      expect(response.status).toBe(202);
+
+      const contact = await getContact("ana", contactId!);
+      expect(contact?.postalAddress?.tel).toBe("+41 79 000 33 44");
+      expect(contact?.postalAddress?.line1).toBe("Bahnhofstrasse 1");
+      expect(isPostable(contact!.postalAddress!)).toBe(true);
+    });
+
+    test("a join submission with a new tel replaces the stored one", async () => {
+      const { contactId } = await requestContact("ana", {
+        name: "Oma",
+        email: "returning-3@example.test",
+        locale: "en",
+        address: { tel: "+41 79 000 55 66" },
+        wantsEmailDigest: false,
+        wantsPostcard: false,
+        createdVia: "owner",
+      });
+
+      const response = await postReturning({
+        email: "returning-3@example.test",
+        wantsPostcard: false,
+        address: { tel: "+41 79 000 77 88" },
+      });
+      expect(response.status).toBe(202);
+
+      const contact = await getContact("ana", contactId!);
+      expect(contact?.postalAddress?.tel).toBe("+41 79 000 77 88");
+    });
+
+    test("a first-ever submission with nothing at all still stores no blob", async () => {
+      const response = await postReturning({
+        email: "returning-4@example.test",
+        wantsPostcard: false,
+      });
+      expect(response.status).toBe(202);
+
+      const { db } = await getDatabase();
+      const row = await db
+        .selectFrom("contacts")
+        .selectAll()
+        .where("email_key", "=", "returning-4@example.test")
+        .executeTakeFirst();
+      expect(row?.postal_cipher).toBeNull();
+    });
+
+    test("the postal address's delete-on-clear behaviour is unchanged: unticking clears the address but keeps the tel", async () => {
+      const { contactId } = await requestContact("ana", {
+        name: "Oma",
+        email: "returning-5@example.test",
+        locale: "en",
+        address: {
+          line1: "Bahnhofstrasse 1",
+          city: "Zurich",
+          country: "Switzerland",
+          tel: "+41 79 000 99 00",
+        },
+        wantsEmailDigest: false,
+        wantsPostcard: true,
+        createdVia: "owner",
+      });
+      expect((await getContact("ana", contactId!))?.hasPostalAddress).toBe(true);
+
+      const response = await postReturning({
+        email: "returning-5@example.test",
+        wantsPostcard: false,
+      });
+      expect(response.status).toBe(202);
+
+      const contact = await getContact("ana", contactId!);
+      expect(contact?.postalAddress?.line1).toBe("");
+      expect(isPostable(contact!.postalAddress!)).toBe(false);
+      expect(contact?.postalAddress?.tel).toBe("+41 79 000 99 00");
+    });
+  });
 });
 
 describe("signing the guestbook", () => {

@@ -194,13 +194,31 @@ export async function requestContact(
   }
 
   const id = existing?.id ?? newId();
-  const cipher = hasAnyDetail(address)
-    ? encryptAddress(address, addressAad(owner, id))
+
+  // Two different rules for two different forms, and they are opposites.
+  // `updateContactSelf` reads a submitted-but-empty `tel` as a deliberate
+  // clear, because that form *prefills*: the guest sees the number before
+  // choosing to remove it. This one — the public join form — never prefills;
+  // a returning guest always sees a blank phone box, whatever is on file. So
+  // an empty `tel` here can never mean "delete it", only "I did not say",
+  // and the stored number is carried forward. (The join form always sends a
+  // `tel` key, so presence can't carry the distinction the way it does in
+  // `updateContactSelf` — only the value, trimmed, can.) Clearing a number is
+  // done where it can be seen: the manage page, or `deleteContactSelf`.
+  const existingAddress = existing
+    ? decryptAddress(existing.postal_cipher, addressAad(owner, id))
+    : null;
+  const mergedAddress =
+    existingAddress && address.tel.trim() === "" ? { ...address, tel: existingAddress.tel } : address;
+
+  const cipher = hasAnyDetail(mergedAddress)
+    ? encryptAddress(mergedAddress, addressAad(owner, id))
     : // Nothing at all was given — not even a phone number — so there is
       // nothing to keep. Unticking the postcard box and clearing every field
-      // is a deletion, not a no-op: the address stops existing rather than
-      // lingering unused. A phone number on its own is not `isPostable`, but
-      // it is not nothing either, and must not be discarded here.
+      // is a deletion, not a no-op for the postal address: it stops existing
+      // rather than lingering unused. The phone number does not follow that
+      // rule — see the merge above — but with no existing tel to carry
+      // forward either, there is truly nothing left to store.
       null;
 
   if (existing) {
