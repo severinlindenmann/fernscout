@@ -14,6 +14,12 @@ ExecStart=/srv/fernscout/scripts/backup.sh
 # A backup that hangs must not block the next one forever.
 TimeoutStartSec=30min
 
+# The failure is told to somebody. Without this the unit simply sits in
+# `failed` until a person thinks to ask — which on this server meant three
+# aborted nights in a row that only a human tailing journalctl noticed (B64).
+# %n is this unit's full name, so the handler needs nothing hardcoded.
+OnFailure=fernscout-alert@%n.service
+
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
