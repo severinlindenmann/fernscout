@@ -94,11 +94,31 @@ written by nothing — that is B35, and it should land before this task rather
 than after, because `lib/viewer.ts` and `lib/digest/visibility.ts` are files
 this task opens and the dead arm reads as a feature worth preserving.
 
-This does **not** widen `private`. A journal guest sees `public` and `guest`
-trips. A `private` trip stays what `AGENTS.md` says it is — the people on it
-and the owner — and `mayReadTrip` must keep returning false for a journal
-guest. A test should assert exactly that, because it is the one place where
-"guests are journal-wide" could quietly become "guests see everything".
+**All three visibility values stay, and `private` does not widen.** A journal
+guest sees `public` and `guest` trips. A `private` trip stays what `AGENTS.md`
+says it is — the people on it and the owner — and `mayReadTrip` keeps returning
+false for a journal guest.
+
+This was considered and re-decided rather than inherited, because journal-wide
+guests are exactly what makes `guest` and `private` look redundant, and the
+argument for collapsing them into a plain public/private pair is a good one: two
+values are easier to hold in your head than three, and "not public" is how most
+people already think about it. It loses on one case. Invite the family to the
+journal and every non-public trip is theirs to read, including the week away
+with one person that the invitation was never meant to cover — and the only
+remedies left are un-inviting somebody or not writing the trip up. A third value
+is a smaller cost than that, because the trip that needs it is precisely the one
+where getting it wrong is unrecoverable.
+
+So the difference between the two is worth stating plainly wherever they are
+documented, since it is the thing a person gets wrong at the moment they create
+a trip: **`guest` means the people I let into this journal; `private` means only
+the people who were there.**
+
+A test must assert the `private` case directly. It is the one place where
+"guests are journal-wide" could quietly become "guests see everything", and the
+failure is silent — a trip that reads correctly to its owner and is also being
+read by everybody they ever invited.
 
 **Both link kinds are shareable.** Multi-use, not single-use. A guest link goes
 in a family group chat; a buddy link goes to the two people you travelled with.
@@ -155,6 +175,15 @@ Documentation, in the same change rather than after it: `agent.md` and both
 network-doors table in `AGENTS.md`. Say plainly that a buddy link grants write
 access and is not the one to paste into a group chat.
 
+Two pieces of shared copy need the `guest` / `private` line above, because they
+are what an agent reads before it picks a visibility for a trip it is creating:
+`VISIBILITY_NOT_A_LOCK` (`lib/api/agentCopy.ts:46`) currently says a journey is
+gated by "a password, invited guests and the trip's `people:` list", which stops
+being accurate the moment an invited guest is a guest of the journal rather than
+of the trip. `VISIBILITY_MEANING` beside it is about *journal* visibility and is
+unaffected — the two are constantly confused and this task is a good moment to
+check the distinction still reads clearly.
+
 Not doing: trip passwords, which stay as a second door for people who will
 never prove an address. The contacts invites in `lib/contacts/invites.ts`.
 Owner-facing management UI beyond what a redemption needs. Showing a shared
@@ -166,7 +195,11 @@ trip inside the buddy's *own* journal — that is B34.
   token appears in the response exactly once and is stored only hashed.
 - An approved contact opens a `visibility: guest` trip with no password —
   the case that fails today — and a test covers it.
-- A journal guest is refused a `visibility: private` trip, asserted by a test.
+- A journal guest is refused a `visibility: private` trip, asserted by a test —
+  not in a listing, not in metadata, not in the RSC payload.
+- The `guest` versus `private` distinction is stated in `agent.md` and in
+  `AGENTS.md`, and `VISIBILITY_NOT_A_LOCK` no longer describes guests as
+  belonging to a trip.
 - Redeeming a guest link, from a cold browser, ends with that address able to
   read every `guest` trip in the journal.
 - Redeeming a buddy link ends with that address able to write to that trip and
