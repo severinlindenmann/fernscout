@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: auth, api, contacts, trips, docs
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B33 — A journal can be shared only by password or by hand-edited frontmatter, so an agent cannot invite anybody

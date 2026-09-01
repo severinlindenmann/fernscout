@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: viewer, me, i18n
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B80 — The access panel tells the owner they were on every trip in their journal

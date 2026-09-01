@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: me, access, ui, i18n
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B79 — The owner has no way to hand somebody an invite link from the site
