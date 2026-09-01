@@ -67,6 +67,10 @@ function render(viewer: Viewer, locale = "en") {
               docUrl={DOC_URL}
               canSignIn={true}
               codeMinutes={CODE_TTL_MINUTES}
+              /* Irrelevant to the empty state, but required since B74 — the
+                 owner's guest-list link is only drawn when the journal runs
+                 contacts. Off, so nothing here depends on that link. */
+              contactsEnabled={false}
             />
           </TripListProvider>
         </CurrencyProvider>
