@@ -165,7 +165,7 @@ function mailBody(username: string, index = 0): string {
  * Consumed rather than indexed because the file transport names a message by
  * timestamp, recipient and subject, so two identical mails inside the same
  * millisecond land on one filename and a test that read `files[1]` failed
- * about one run in ten. Captured as B43; here, taking the mail as you read it
+ * about one run in ten. Captured as B50; here, taking the mail as you read it
  * removes the ordering question altogether.
  */
 function takeToken(username: string): string {

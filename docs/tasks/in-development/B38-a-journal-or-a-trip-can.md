@@ -161,7 +161,7 @@ mistyped this".
 Trips get a tombstone too (`content/.deleted/<username>/<trip-id>.json`), for
 the same reason and out of the same code.
 
-**3. Deletion is immediate on confirmation. Staged deletion is B42.**
+**3. Deletion is immediate on confirmation. Staged deletion is B49.**
 
 Not because it was easier. Because a grace period needs something to run at
 the end of it, and on this stack nothing runs: `deploy/fernscout-worker.service`
@@ -191,7 +191,7 @@ that made the trade acceptable:
   to pick a point to restore from (`deploy/fernscout-backup.timer`). Related to
   B21: this is the feature that makes that drill load-bearing.
 
-B42 captures the staged version, to be reconsidered when there is a worker.
+B49 captures the staged version, to be reconsidered when there is a worker.
 
 **4. Only the journal's owner may ask, and the mail goes to the journal's own
 owner address.**
@@ -231,10 +231,10 @@ exports anything a page or a component may import. The reasoning is written
 into both files so it does not come back.
 
 **Two mails in the same millisecond overwrite each other** in the development
-file transport — `B43`, captured, not fixed here. It made one of these tests
+file transport — `B50`, captured, not fixed here. It made one of these tests
 fail about one run in ten before the helper stopped depending on it.
 
-**`B42`** carries the staged-deletion decision, to be revisited when there is a
+**`B49`** carries the staged-deletion decision, to be revisited when there is a
 worker to run the sweep.
 
 Not doing: deleting a single day, which already works. Deleting somebody's

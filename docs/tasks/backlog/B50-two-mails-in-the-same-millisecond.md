@@ -1,5 +1,5 @@
 ---
-id: B43
+id: B50
 title: Two mails in the same millisecond overwrite each other in development
 type: ISSUE
 priority: low
@@ -8,7 +8,7 @@ area: mail
 found: "2026-09-01"
 ---
 
-# B43 — Two mails in the same millisecond overwrite each other in development
+# B50 — Two mails in the same millisecond overwrite each other in development
 
 ## Why
 

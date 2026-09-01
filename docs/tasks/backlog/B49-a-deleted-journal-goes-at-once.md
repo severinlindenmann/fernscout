@@ -1,5 +1,5 @@
 ---
-id: B42
+id: B49
 title: A deleted journal goes at once, with no grace period to change your mind
 type: FEATURE
 priority: medium
@@ -8,7 +8,7 @@ area: journals, jobs, deploy
 found: "2026-09-01"
 ---
 
-# B42 — A deleted journal goes at once, with no grace period to change your mind
+# B49 — A deleted journal goes at once, with no grace period to change your mind
 
 ## Why
 
