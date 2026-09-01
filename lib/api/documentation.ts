@@ -344,9 +344,25 @@ Content-Type: application/json
 \`\`\`json
 {"ok": true, "user": "their-name", "url": "${site.url}/their-name",
  "visibility": "public", "welcomeMailed": true,
+ "signIn": "${site.url}/their-name/s/…",
  "token": "fs_agent_…", "expires": "…", "scope": ["write:content"],
  "next": "POST /api/v1/their-name/trips to create your first trip."}
 \`\`\`
+
+**\`signIn\` is for them, not for you.** Put it in your reply so they can open
+their journal without going to their inbox — it signs them in, which is what
+lets them see drafts and private trips. It works **once**, expires in fifteen
+minutes, and the same door is in their welcome mail if they miss it.
+
+Three rules about it, and they are not fussiness:
+
+- **Give it to the person, once.** Do not repeat it later in the conversation
+  and do not store it anywhere.
+- **Never hand it over as "the address of your journal".** That is \`url\`.
+  Somebody forwarding what they think is an address would be forwarding a
+  session.
+- **Do not follow it yourself.** It is single use; opening it to check it works
+  spends it, and the person gets a dead link.
 
 **All four of \`username\`, \`title\`, \`ownerName\` and \`ownerNickname\` are
 required**, and none of them is guessable. \`ownerNickname\` is what the site

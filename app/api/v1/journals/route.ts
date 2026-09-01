@@ -1,4 +1,4 @@
-import { SESSION_SCOPE, SIGNUP_OWNER, openAgentSession, resolveSession } from "@/lib/auth";
+import { SESSION_SCOPE, SIGNUP_OWNER, issueRelayLink, openAgentSession, resolveSession, signInUrl } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { createJournal, sendWelcome } from "@/lib/journals";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -154,11 +154,48 @@ export async function POST(request: Request) {
     locale: getUser(created.username)?.defaultLocale,
   });
 
+  /**
+   * A sign-in link for the agent to hand over, so the conversation can end
+   * with "here, look" instead of "go and find an email".
+   *
+   * Named separately and never folded into `url`: an agent giving somebody
+   * "the address of your journal" must not be handing them a session by
+   * accident. B29 is the decision that an agent may carry one at all — the
+   * argument being that it already holds a strictly more powerful token for
+   * this journal — and `issueRelayLink` is why this copy expires in fifteen
+   * minutes while the mail's does not.
+   *
+   * Best effort, like the welcome mail. A journal on an instance with `auth`
+   * off gets a 201 without it rather than no journal.
+   */
+  let signIn: string | null = null;
+  if (isEnabled("auth", created.username)) {
+    try {
+      signIn = signInUrl(
+        serverSite().url,
+        created.username,
+        await issueRelayLink(created.username, session.email),
+      );
+    } catch (err) {
+      console.error(`[journals] no relay link for ${created.username}:`, err);
+    }
+  }
+
   return Response.json(
     {
       ok: true,
       user: created.username,
       url: `${serverSite().url}/${created.username}`,
+      ...(signIn
+        ? {
+            signIn,
+            signInNote:
+              "Give this to the person, once, in your reply. It signs them in so they can " +
+              "see their drafts and private trips. It works once and expires in 15 minutes; " +
+              "do not store it or repeat it later. The same link is in their welcome mail " +
+              "if they miss it.",
+          }
+        : {}),
       documentation: `${serverSite().url}/${created.username}/documentation.txt`,
       visibility: created.visibility,
       token: token.token,
