@@ -1,0 +1,41 @@
+# Somebody is told that %i failed.
+#
+#   OnFailure=fernscout-alert@%n.service
+#
+# on any unit that matters. systemd passes the failing unit's full name
+# (including the .service suffix) as the instance, so %i below is
+# "fernscout-backup.service" and nothing has to be hardcoded here.
+#
+#   sudo cp deploy/fernscout-alert@.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl start fernscout-alert@fernscout-backup.service   # rehearse it
+#
+# Not enabled, and has no timer: it is started by systemd, on failure, only.
+[Unit]
+Description=Alert that %i failed
+# The mail leaves this box, so do not race the network on a boot-time failure.
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=fernscout
+Group=fernscout
+WorkingDirectory=/srv/fernscout
+EnvironmentFile=/etc/fernscout/env
+ExecStart=/srv/fernscout/scripts/alert.sh %i
+# An alarm that hangs is an alarm nobody hears. Short on purpose.
+TimeoutStartSec=2min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+# Writes the failure stamp under DATA_DIR, and nothing else.
+ReadWritePaths=/srv/fernscout /var/lib/fernscout
+# Reading `journalctl -u` needs this; without it the alert still goes out, with
+# "no journal was readable" in place of the last 25 lines.
+SupplementaryGroups=systemd-journal
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fernscout-alert

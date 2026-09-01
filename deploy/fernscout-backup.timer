@@ -2,7 +2,17 @@
 #
 #   sudo cp deploy/fernscout-backup.{service,timer} /etc/systemd/system/
 #   sudo systemctl daemon-reload && sudo systemctl enable --now fernscout-backup.timer
-#   systemctl list-timers fernscout-backup
+#   systemctl list-timers fernscout-backup    # when the NEXT run is due
+#
+# For whether the LAST run worked — which is the question people actually mean
+# — `list-timers` is the wrong command; it prints a healthy-looking schedule
+# over a backup that has aborted every night since March. Use either of:
+#
+#   systemctl status fernscout-backup        # the last run's result
+#   curl -s https://<domain>/api/health | jq .backup
+#
+# Also install deploy/fernscout-alert@.service, which the backup unit's
+# OnFailure= starts: it is what makes a failed run arrive without being asked.
 [Unit]
 Description=Nightly Fernscout backup
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { readBackupStatus } from "@/lib/backupStatus";
 import { resolveCapabilities } from "@/lib/capabilities";
 import { loadServerConfig } from "@/lib/config";
 import { FEATURE_NAMES } from "@/lib/config";
@@ -18,6 +19,14 @@ export const dynamic = "force-dynamic";
  * only whether one is present. Also reports whether config.json parsed at
  * all, since a broken config is the one failure that can take capability
  * resolution down with it.
+ *
+ * **Backups, too.** `backup` reports when `scripts/backup.sh` last finished,
+ * because nothing else could answer it from outside the machine — a nightly
+ * backup that has aborted since March leaves a timer that still looks
+ * perfectly healthy (B64). It is reported as a field rather than folded into
+ * `status`: a stale backup is not a reason to take an instance out of a load
+ * balancer or fail a deploy, but it is very much a reason to page somebody.
+ * A monitor should assert on `.backup.state` being `"ok"`.
  *
  * **Per journal as well as per server.** A capability is a server ceiling and
  * a journal opt-in, and this reported only the ceiling — so `contacts` read
@@ -86,6 +95,7 @@ export async function GET() {
     config: configOk ? { ok: true } : { ok: false, error: configError },
     capabilities,
     journals,
+    backup: readBackupStatus(),
     responseTimeMs: Date.now() - startedAt,
   };
 
