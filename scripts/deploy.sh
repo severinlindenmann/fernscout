@@ -91,10 +91,28 @@ if systemctl is-enabled --quiet fernscout-worker 2>/dev/null; then
   sudo systemctl restart fernscout-worker
 fi
 
+# Whether the backup is working, printed by the one command this deployment's
+# operator definitely runs. Never fatal — a stale backup is not a reason to
+# refuse a deploy — but it is said out loud, every time, because the failure
+# mode B64 records is precisely one nobody went looking for.
+report_backup() {
+  local health="$1"
+  local state
+  state="$(printf '%s' "$health" | node -e \
+    'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const b=JSON.parse(s).backup;process.stdout.write(b?`${b.state}\t${b.reason??b.lastSuccessAt??""}`:"")}catch{}})' \
+    2>/dev/null)" || state=""
+  case "${state%%$'\t'*}" in
+    ok) log "backup: ok (last success ${state#*$'\t'})" ;;
+    "") ;;  # an older build with no .backup block, or node unavailable
+    *) echo "WARNING: backup ${state%%$'\t'*} — ${state#*$'\t'}" >&2 ;;
+  esac
+}
+
 log "waiting for health"
 for i in $(seq 1 30); do
-  if curl -fsS "http://127.0.0.1:${PORT:-3000}/api/health" > /dev/null 2>&1; then
+  if HEALTH="$(curl -fsS "http://127.0.0.1:${PORT:-3000}/api/health" 2>/dev/null)"; then
     log "healthy"
+    report_backup "$HEALTH"
     exit 0
   fi
   sleep 1

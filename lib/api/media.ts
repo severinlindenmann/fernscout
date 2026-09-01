@@ -96,7 +96,18 @@ function journalMediaBytes(username: string): number {
   return total;
 }
 
-/** A slug good enough to be a directory name, from whatever was sent. */
+/**
+ * A slug good enough to be a directory name, from whatever was sent.
+ *
+ * Deliberately not `slugify` from lib/slug.ts, which mints a slug from a
+ * title. This one normalises a slug the caller already claims to have, and
+ * the difference that matters is the empty case: `slugify` falls back to
+ * "entry", so a `day=` of "!!!" would come out as a lookup for a day called
+ * "entry" instead of the 400 the caller has earned. Everything reaching here
+ * is already an ASCII slug that lib/slug.ts produced, so the two never
+ * disagree about a letter in practice — but if this ever grows a caller that
+ * passes a title, it should call lib/slug.ts and check the result instead.
+ */
 function safeSlug(value: string): string {
   return value
     .toLowerCase()

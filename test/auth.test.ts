@@ -20,6 +20,7 @@ import {
   resolveSession,
   revokeCodes,
   revokeSession,
+  safeDestination,
   verifyCode,
   verifyLink,
   signInUrl,
@@ -527,5 +528,120 @@ describe("the sign-in link", () => {
     const url = signInUrl("https://x.test", "ana", "TOKEN123");
     expect(url).toBe("https://x.test/ana/s/TOKEN123");
     expect(url).not.toContain("@");
+  });
+
+  test("the url carries no destination either — it is stored, not echoed", async () => {
+    // The whole reason B69 puts the destination in the database. A redirect
+    // target that travels in the link is a redirect target anybody can edit
+    // before following it.
+    const { linkToken } = await issueCode("ana", "reader@example.test", "guest", "/ana/trips/x");
+    expect(signInUrl("https://x.test", "ana", linkToken!)).toBe(
+      `https://x.test/ana/s/${linkToken}`,
+    );
+  });
+});
+
+/**
+ * B69. The button used to land on `/<username>` whatever the reader had been
+ * trying to open, which stopped being harmless when B39 put the sign-in form
+ * in front of every closed trip: follow a link to a trip, meet the gate, tap
+ * the button, arrive somewhere that does not mention the trip.
+ *
+ * The destination is carried in the `login_codes` row rather than in the link,
+ * so these tests are about two things — that it survives the round trip, and
+ * that a value which should never have been stored cannot redirect anybody.
+ */
+describe("where the sign-in link lands", () => {
+  test("a destination survives from the form to the redemption", async () => {
+    const { linkToken } = await issueCode(
+      "ana",
+      "reader@example.test",
+      "guest",
+      "/ana/trips/vietnam-2026",
+    );
+    const result = await verifyLink("ana", linkToken!);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.destination).toBe("/ana/trips/vietnam-2026");
+  });
+
+  test("no destination means the journal, as it always did", async () => {
+    const { linkToken } = await issueCode("ana", "reader@example.test", "guest");
+    const result = await verifyLink("ana", linkToken!);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.destination).toBeNull();
+  });
+
+  test("a destination is never stored for an agent code", async () => {
+    // No link to follow, so nowhere to land — and no reason to keep a note of
+    // what somebody was reading.
+    await issueCode("ana", "reader@example.test", "agent", "/ana/trips/vietnam-2026");
+    const { db } = await getDatabase();
+    const row = await db
+      .selectFrom("login_codes")
+      .selectAll()
+      .where("kind", "=", "agent")
+      .executeTakeFirstOrThrow();
+    expect(row.link_dest).toBeNull();
+  });
+
+  /**
+   * The one that matters. Every one of these is a link that would sign a
+   * reader in and then hand them to somebody else — which is worse than the
+   * papercut the destination exists to fix, so the check runs on the value
+   * read back out of the database and not only on the way in.
+   */
+  test.each([
+    ["an absolute url", "https://evil.test/ana"],
+    ["a protocol-relative url", "//evil.test/ana"],
+    ["a backslash the browser reads as one", String.raw`/\evil.test/ana`],
+    ["a scheme with no slash", "javascript:alert(1)"],
+    ["another journal", "/bea/trips/theirs"],
+    ["a journal whose name merely starts the same way", "/anabelle/trips/theirs"],
+    ["a climb out with dot segments", "/ana/../bea/trips/theirs"],
+    ["a climb out the url parser decodes", "/ana/%2e%2e/bea/trips/theirs"],
+    ["a bare path outside the journal", "/api/health"],
+    ["a newline smuggled into a header", "/ana\nLocation: https://evil.test"],
+    ["nothing at all", ""],
+  ])("%s is refused, and the reader lands on the journal", async (_label, crafted) => {
+    const { linkToken } = await issueCode("ana", "reader@example.test", "guest");
+    const { db } = await getDatabase();
+    // Written straight into the row, past the check on the way in: this is a
+    // future bug, a restored dump or a hand-edited database, and the redirect
+    // has to survive all three.
+    await db.updateTable("login_codes").set({ link_dest: crafted }).execute();
+
+    const result = await verifyLink("ana", linkToken!);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.destination).toBeNull();
+  });
+
+  test("the form's own value is refused before it is written down", async () => {
+    await issueCode("ana", "reader@example.test", "guest", "https://evil.test/ana");
+    const { db } = await getDatabase();
+    const row = await db.selectFrom("login_codes").selectAll().executeTakeFirstOrThrow();
+    expect(row.link_dest).toBeNull();
+  });
+
+  test("the journal's own front page is a destination like any other", () => {
+    expect(safeDestination("ana", "/ana")).toBe("/ana");
+    expect(safeDestination("ana", "/ana/trips/vietnam-2026")).toBe("/ana/trips/vietnam-2026");
+    expect(safeDestination("ana", "/ana/day/2026-08-25-hanoi")).toBe("/ana/day/2026-08-25-hanoi");
+  });
+
+  test("a query string or a fragment is dropped rather than followed", () => {
+    // Nothing that sets a destination has one, and a redirect is not the place
+    // to discover which parameters a page acts on.
+    expect(safeDestination("ana", "/ana/trips/x?next=https://evil.test")).toBeNull();
+    expect(safeDestination("ana", "/ana/trips/x#f")).toBeNull();
+  });
+
+  test("anything that is not a string is not a destination", () => {
+    expect(safeDestination("ana", null)).toBeNull();
+    expect(safeDestination("ana", 42)).toBeNull();
+    expect(safeDestination("ana", { toString: () => "/ana" })).toBeNull();
+    expect(safeDestination("ana", "/ana/" + "x".repeat(600))).toBeNull();
   });
 });

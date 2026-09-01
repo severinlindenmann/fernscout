@@ -21,7 +21,7 @@ const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), "package.json"),
 const scripts: Record<string, string> = pkg.scripts;
 
 /** Scripts that read content through `lib/`, and so need the condition. */
-const CONTENT_READING = ["export", "photobook", "db:migrate", "db:status", "db:import"];
+const CONTENT_READING = ["alert", "export", "photobook", "db:migrate", "db:status", "db:import"];
 
 describe("CLI wiring", () => {
   for (const name of CONTENT_READING) {

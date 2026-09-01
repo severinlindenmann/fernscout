@@ -319,6 +319,47 @@ it and none of them otherwise has anything to say about maps.
 `test/world-map.test.tsx` now asserts no circle on the mini map is wider than a
 quarter of its frame, which is the assertion that would have caught this.
 
+### The clip had no ceiling, and that was the expensive bug
+
+Found by answering a question the author asked rather than by a test: *what
+happens to `asia-2023` if a flight from Zurich is added first?*
+
+Measured, both cases:
+
+| frame | span | shapes clipped | path text |
+| --- | --- | --- | --- |
+| `asia-2023` as it is | 2,408 km | 525 | 1.2 MB |
+| with a Zurich flight | 16,702 km | 7,448 | **13 MB** |
+
+And the first row was not hypothetical. The live page was **754 KB gzipped**,
+against a few tens of kilobytes before B46 — a regression this task introduced
+and did not notice, because every check was about whether the map looked right
+and none was about what it cost.
+
+The cause is that `basemapFor` returned everything overlapping the frame at
+1:10m, whatever the frame was. At sixteen thousand kilometres a whole island is
+one pixel, and a 1.6 km coastline is detail being paid for and thrown away.
+
+**Resolution now follows scale, in three bands** — the ordinary answer in
+cartography, and one this task should have started from:
+
+- under 900 km: 1:10m, with lakes, rivers, relief, glaciers, parks and admin-1;
+- 900–6,000 km: 1:50m outlines only;
+- above that: 1:110m outlines only.
+
+Two bands were tried first and were not enough: `asia-2023` frames at 2,400 km,
+where 110m is visibly blocky along the Vietnamese coast but 10m was still
+shipping 1.2 MB, because at that resolution a single country polygon —
+Indonesia, China — is tens of kilobytes by itself.
+
+Result: the Asia map went from **754 KB to 128 KB** gzipped and still reads
+correctly — coastline, borders, towns, peaks. A world-spanning frame is 138 KB.
+The Alps, which is genuinely in the detailed band, is 316 KB.
+
+The lesson worth keeping: this task measured the *source* data carefully at the
+start and never measured what a reader downloads. Those are different numbers
+and only one of them is the reader's problem.
+
 ### Checked, line by line
 
 | Line | Evidence |

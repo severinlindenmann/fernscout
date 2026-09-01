@@ -20,7 +20,10 @@ import { postgresConfigured } from "./support/dialects";
  *     locates it by name;
  *   - the failure paths: a `pg_dump` that fails must abort *without* pushing a
  *     snapshot, and an unwritable repository must exit non-zero so the systemd
- *     unit records a failure rather than a silent no-backup night.
+ *     unit records a failure rather than a silent no-backup night;
+ *   - and, since B64, the two things that make a failure *visible*: the
+ *     `.backup-last-success` stamp `/api/health` reads, and `scripts/alert.sh`,
+ *     which the unit's `OnFailure=` starts.
  *
  * What it deliberately does **not** cover, and cannot: the destroy-and-restore
  * drill against the deployed stack. Restoring here means "the files come back
@@ -53,11 +56,12 @@ type Run = { status: number; stdout: string; stderr: string };
 /** Every file under `dir`, as relative path → sha256. Directories are implied
  * by the paths; a tree comparison that ignored contents would pass on an empty
  * restore, which is the exact failure this test exists to catch. */
-function digestTree(dir: string): Record<string, string> {
+function digestTree(dir: string, skip: (rel: string) => boolean = () => false): Record<string, string> {
   const out: Record<string, string> = {};
   const walk = (rel: string) => {
     for (const entry of fs.readdirSync(path.join(dir, rel), { withFileTypes: true })) {
       const child = rel === "" ? entry.name : path.join(rel, entry.name);
+      if (skip(child)) continue;
       if (entry.isDirectory()) walk(child);
       else if (entry.isFile()) {
         out[child] = crypto.createHash("sha256").update(fs.readFileSync(path.join(dir, child))).digest("hex");
@@ -68,6 +72,14 @@ function digestTree(dir: string): Record<string, string> {
   return out;
 }
 
+/** The B64 stamp files, which live in `DATA_DIR` and are therefore inside the
+ * snapshot — but are written *after* it, so a snapshot always carries the
+ * previous run's stamp and can never equal the live directory. That is correct
+ * (a stamp written before the push would claim a backup that never happened),
+ * and it is why the round-trip comparison skips them rather than chasing the
+ * timestamps. */
+const isStamp = (rel: string) => rel === ".backup-last-success" || rel === ".backup-last-failure";
+
 describe.runIf(RESTIC)("scripts/backup.sh", () => {
   let scratch: string;
   let dataDir: string;
@@ -77,6 +89,16 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
   let stubBin: string;
 
   const PASSWORD = "backup-drill-password";
+
+  const successStamp = () => path.join(dataDir, ".backup-last-success");
+  const failureStamp = () => path.join(dataDir, ".backup-last-failure");
+
+  /** The stamp's ISO-8601 first line, or null when there is no stamp. */
+  function readStamp(file: string): { at: string; detail?: string } | null {
+    if (!fs.existsSync(file)) return null;
+    const [first, ...rest] = fs.readFileSync(file, "utf8").split("\n");
+    return { at: first.trim(), detail: rest.find((line) => line.trim() !== "")?.trim() };
+  }
 
   function runBackup(extra: Record<string, string> = {}): Run {
     // A DATABASE_URL inherited from the developer's shell would send the
@@ -189,7 +211,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
 
       const staged = restoreLatest("roundtrip");
 
-      expect(digestTree(path.join(staged, "data"))).toEqual(digestTree(dataDir));
+      expect(digestTree(path.join(staged, "data"), isStamp)).toEqual(digestTree(dataDir, isStamp));
       expect(digestTree(path.join(staged, "content"))).toEqual(digestTree(contentDir));
 
       // Named explicitly, because these are the acceptance criteria in B21 and
@@ -282,6 +304,112 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
       }
     },
     180_000,
+  );
+
+  // --- B64: a failed backup has to reach somebody ---------------------------
+
+  test(
+    "a run that finishes stamps DATA_DIR with the time /api/health reports",
+    () => {
+      fs.rmSync(successStamp(), { force: true });
+
+      const run = runBackup();
+      expect(run.status).toBe(0);
+
+      const stamp = readStamp(successStamp());
+      expect(stamp, "scripts/backup.sh must write .backup-last-success").not.toBeNull();
+      // Parsed, not pattern-matched: lib/backupStatus.ts does `new Date(line)`
+      // on it, and a stamp that string-matches but does not parse is worse
+      // than none — it reads as "no backup has ever run".
+      const at = new Date(stamp!.at);
+      expect(Number.isNaN(at.getTime())).toBe(false);
+      expect(Math.abs(Date.now() - at.getTime())).toBeLessThan(180_000);
+      expect(run.stdout).toContain(".backup-last-success");
+    },
+    180_000,
+  );
+
+  test(
+    "a run that fails leaves the last-success stamp alone",
+    () => {
+      // Otherwise the endpoint would report a backup that never happened,
+      // which is worse than reporting none: it is the same lie the timer told.
+      expect(runBackup().status).toBe(0);
+      const before = readStamp(successStamp());
+      expect(before).not.toBeNull();
+
+      const failed = runBackup({
+        DATABASE_URL: "postgres://fernscout@127.0.0.1:1/fernscout",
+        ...stubPgDump("#!/bin/sh\necho 'pg_dump: error: connection refused' >&2\nexit 1\n"),
+      });
+      expect(failed.status).not.toBe(0);
+      expect(readStamp(successStamp())?.at).toBe(before!.at);
+    },
+    180_000,
+  );
+
+  test(
+    "the repository is announced before it is reached, so a stall is legible",
+    () => {
+      // B64: with an unreachable repository restic retries with exponential
+      // backoff for minutes and the journal showed the staging lines, then
+      // nothing at all. The fix is a line before the first call, not after it.
+      const run = runBackup();
+      const probe = run.stdout.indexOf("checking the repository at");
+      const push = run.stdout.indexOf("backing up to");
+      expect(probe, "the probe must announce itself").toBeGreaterThan(-1);
+      expect(probe).toBeLessThan(push);
+    },
+    180_000,
+  );
+
+  test(
+    "scripts/alert.sh records the failure even where nothing else works",
+    () => {
+      // No systemctl, no journalctl, no app to mail from: a developer laptop,
+      // and also a box where the alert's own mail path is broken. The stamp is
+      // the channel that has no dependencies, so it is the one that must hold.
+      fs.rmSync(failureStamp(), { force: true });
+      const emptyApp = path.join(scratch, "no-app");
+      fs.mkdirSync(emptyApp, { recursive: true });
+
+      const run = spawnSync("bash", [path.join(process.cwd(), "scripts", "alert.sh"), "fernscout-backup.service"], {
+        encoding: "utf8",
+        env: { ...process.env, DATA_DIR: dataDir, APP_DIR: emptyApp },
+      });
+
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+      const stamp = readStamp(failureStamp());
+      expect(stamp).not.toBeNull();
+      expect(Number.isNaN(new Date(stamp!.at).getTime())).toBe(false);
+      expect(stamp!.detail).toContain("fernscout-backup.service failed");
+      expect(run.stdout).toContain(".backup-last-failure");
+    },
+    120_000,
+  );
+
+  test(
+    "scripts/alert.sh writes no backup stamp for a unit that is not the backup",
+    () => {
+      fs.rmSync(failureStamp(), { force: true });
+      const emptyApp = path.join(scratch, "no-app");
+      fs.mkdirSync(emptyApp, { recursive: true });
+
+      // The handler is generic — OnFailure= passes whatever unit failed. A
+      // worker failure recorded as a backup failure would be a false alarm
+      // about the one thing this whole mechanism exists to be trusted on.
+      const run = spawnSync("bash", [path.join(process.cwd(), "scripts", "alert.sh"), "fernscout-worker.service"], {
+        encoding: "utf8",
+        env: { ...process.env, DATA_DIR: dataDir, APP_DIR: emptyApp },
+      });
+
+      expect(run.stdout).toContain("fernscout-worker.service failed");
+      expect(fs.existsSync(failureStamp())).toBe(false);
+      // Nothing could be recorded and nothing could be mailed, so the alarm
+      // says so by failing itself — `systemctl --failed` is then the signal.
+      expect(run.status).not.toBe(0);
+    },
+    120_000,
   );
 
   // The real database, behind the guard the other db suites use. Everything

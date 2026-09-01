@@ -101,6 +101,12 @@ type TripSpec = {
   title: string;
   visibility?: "public" | "unlisted" | "guest" | "private";
   dates: string[];
+  /** The whole trip is content nobody lived (B70). */
+  test?: boolean;
+  /** Indices into `dates` whose entry carries the flag. The trip is real;
+   * these particular updates are not. Indices rather than dates, because a
+   * day may hold several updates and only some of them invented. */
+  testEntries?: number[];
 };
 
 function writeTrip(spec: TripSpec) {
@@ -116,6 +122,7 @@ function writeTrip(spec: TripSpec) {
       `end: "${spec.dates.at(-1)}"`,
       'status: "current"',
       ...(spec.visibility ? [`visibility: "${spec.visibility}"`] : []),
+      ...(spec.test ? ["test: true"] : []),
       "---",
       "",
       `${spec.title} intro.`,
@@ -134,6 +141,7 @@ function writeTrip(spec: TripSpec) {
         'country: "Vietnam"',
         "lat: 16.0",
         "lng: 108.2",
+        ...(spec.testEntries?.includes(i) ? ["test: true"] : []),
         "translations:",
         "  de:",
         `    title: "Halt ${i} auf ${spec.id}"`,
@@ -288,6 +296,15 @@ describe("what a reader is told about", () => {
       visibility: "private",
       dates: ["2026-08-29"],
     });
+    // B70. Public, listed, and nobody lived it — the shape an agent asked to
+    // prove the pipeline writes. Everywhere else on the instance it is
+    // reachable and wears a banner; a mail has nowhere to put one.
+    writeTrip({
+      id: "proving-2026",
+      title: "Proving trip",
+      test: true,
+      dates: ["2026-08-27"],
+    });
   });
 
   /** The one that must never regress. */
@@ -379,6 +396,30 @@ describe("what a reader is told about", () => {
     }
   });
 
+  /**
+   * B70. The flag AGENTS.md promises keeps invented content out of the feed,
+   * the search index and the sitemap — and, until this, not out of the post.
+   *
+   * The failure was not "no filter". `isIndexable` already refuses a test
+   * trip, so `digestableTrips` read it as merely *unadvertised* and passed it
+   * to every reader holding a grant — the family the owner approved, which is
+   * the whole audience the digest exists for.
+   */
+  test("a trip nobody lived is in nobody's mail, granted or not", async () => {
+    await addReader("granted@example.test", "de"); // approval is the grant
+    const stranger = await addReader("stranger@example.test", "de");
+    await clearGrants(stranger);
+
+    const plan = await planDigest(OWNER, { now: MORNING });
+    expect(plan.ready).toHaveLength(2);
+    for (const recipient of plan.ready) {
+      expect(recipient.content.trips.map((t) => t.tripId), recipient.email).not.toContain(
+        "proving-2026",
+      );
+      expect(JSON.stringify(recipient.content)).not.toContain("Proving trip");
+    }
+  });
+
   test("an expired grant is not a grant", async () => {
     const reader = await addReader("expired@example.test", "de");
     await clearGrants(reader);
@@ -401,6 +442,89 @@ describe("what a reader is told about", () => {
     });
     expect(content?.dayCount).toBe(1);
     expect(content?.cursor).toBe("2026-08-29");
+  });
+});
+
+/**
+ * B70, the day-sized half.
+ *
+ * A whole test trip never reaches `buildDigestContent` — `digestableTrips`
+ * has refused it. What does reach it is the demonstration day written inside
+ * a journal already in use, which is what an agent asked to prove the write
+ * path on somebody's live site should do.
+ *
+ * The decision recorded in `lib/digest/content.ts`: the **day** is dropped,
+ * not the mail. The trip is real; only the Tuesday is invented. And the
+ * dropped day moves nothing — not the count, not the listing, and not the
+ * cursor, which is the assertion that keeps a real day written later for the
+ * same date from being buried under a watermark that ran ahead of it.
+ */
+describe("a day nobody lived", () => {
+  const REAL = "2026-08-25";
+  const FAKE = "2026-08-26";
+
+  function contentFor(id: string) {
+    return buildDigestContent({
+      username: OWNER,
+      trips: getTrips(OWNER).filter((t) => t.id === id),
+      since: "2026-08-01",
+      today: "2026-08-30",
+      locale: "en",
+      base: "https://example.test",
+    });
+  }
+
+  test("is not listed, and does not carry the watermark past itself", () => {
+    writeTrip({
+      id: "mixed-2026",
+      title: "Mixed trip",
+      dates: [REAL, FAKE],
+      testEntries: [1],
+    });
+
+    const content = contentFor("mixed-2026");
+    expect(content?.dayCount).toBe(1);
+    expect(content?.trips[0].newDays).toBe(1);
+    expect(content?.trips[0].days.map((d) => d.date)).toEqual([REAL]);
+    // The whole point: the cursor stops at the last day that happened, so the
+    // invented one is skipped again next run rather than swallowed.
+    expect(content?.cursor).toBe(REAL);
+    expect(JSON.stringify(content)).not.toContain("stop-1");
+  });
+
+  test("leaves the real update of a day it shares", () => {
+    // Two updates on one date — the first invented, the second not. The day
+    // survives, and the lead becomes the update that happened.
+    writeTrip({
+      id: "branched-2026",
+      title: "Branched trip",
+      dates: [REAL, REAL],
+      testEntries: [0],
+    });
+
+    const content = contentFor("branched-2026");
+    expect(content?.dayCount).toBe(1);
+    expect(content?.trips[0].days.map((d) => d.slug)).toEqual(["stop-1"]);
+    expect(content?.cursor).toBe(REAL);
+  });
+
+  test("a reader whose only new days were invented gets no mail at all", async () => {
+    writeTrip({
+      id: "proving-days-2026",
+      title: "Proving days",
+      dates: [REAL, FAKE],
+      testEntries: [0, 1],
+    });
+    await addReader("only-fakes@example.test", "de");
+
+    // Not an empty mail: no mail, and a reason that says so.
+    const plan = await planDigest(OWNER, { now: MORNING });
+    expect(plan.ready).toHaveLength(0);
+    expect(plan.skipped.map((s) => s.reason)).toEqual(["nothing-new"]);
+
+    const outcome = await runDigest(OWNER, { now: MORNING });
+    expect(outcome.sent).toHaveLength(0);
+    expect(mailFiles()).toHaveLength(0);
   });
 });
 

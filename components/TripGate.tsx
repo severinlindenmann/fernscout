@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import GuestSignIn from "@/components/GuestSignIn";
 import BackToJournal from "@/components/BackToJournal";
 import { useI18n } from "@/components/LocaleProvider";
@@ -56,6 +57,19 @@ export default function TripGate({
   codeMinutes: string;
 }) {
   const { t } = useI18n();
+  /**
+   * The page the reader actually asked for, which is this one: both gate
+   * layouts render in place of the requested route, so the URL is still
+   * `/<user>/trips/<id>` or the day underneath it. Handing it to the form is
+   * what makes the button in the mail come back here instead of dropping
+   * somebody on a front page that does not mention the trip they clicked —
+   * and a `guest` trip is never listed, so from the front page there is no
+   * link back to it at all.
+   *
+   * Null only during the static render Next does of a `usePathname` boundary;
+   * a missing destination is the old behaviour, not a broken one.
+   */
+  const here = usePathname();
 
   return (
     <main
@@ -85,7 +99,11 @@ export default function TripGate({
       ) : canSignIn ? (
         <>
           <p className="mt-3 text-lg leading-8 text-navy-700">{t("gate.signInBody")}</p>
-          <GuestSignIn username={username} codeMinutes={codeMinutes} />
+          <GuestSignIn
+            username={username}
+            codeMinutes={codeMinutes}
+            destination={here ?? undefined}
+          />
         </>
       ) : (
         <p className="mt-3 text-lg leading-8 text-navy-700">{t("gate.askOwner")}</p>

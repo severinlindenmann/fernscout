@@ -6,7 +6,14 @@
 # Postgres dump and reads DATA_DIR/content straight off disk).
 #
 #   sudo systemctl start fernscout-backup      # one run, now
-#   systemctl list-timers fernscout-backup     # when the next one is due
+#   systemctl status fernscout-backup          # how the LAST run ended
+#   systemctl list-timers fernscout-backup     # only when the NEXT one is due
+#
+# `list-timers` reports the schedule and never the result: a timer whose every
+# run has aborted since March still prints a perfectly healthy next-elapse.
+# `systemctl status` is the one that shows the last result, and
+# `/api/health` -> `.backup` answers the same question from off the machine,
+# out of the stamp file this script writes below.
 #
 # See docs/runbook.md for the restore procedure and the timed restore drill.
 #
@@ -24,6 +31,11 @@
 #   BACKUP_KEEP_DAILY     default: 14 — passed to `restic forget --prune`
 #   APP_DIR               default: the directory this script lives in, minus
 #                         /scripts
+#
+# On the way out of a run that finished, the ISO-8601 time is written to
+# $DATA_DIR/.backup-last-success. That file is the only thing outside the
+# journal that knows a backup worked; /api/health reads it (lib/backupStatus.ts)
+# and deploy/fernscout-alert@.service writes the matching .backup-last-failure.
 
 set -euo pipefail
 
@@ -91,7 +103,20 @@ else
 fi
 
 # --- 4. Push to off-VPS storage with restic --------------------------------
-if ! restic snapshots >/dev/null 2>&1; then
+# Logged *before* the call, not after: this is the first thing that touches the
+# repository, and an unreachable one makes restic retry with exponential
+# backoff for minutes. Without this line the journal shows the staging lines,
+# then nothing at all, and the only bound is TimeoutStartSec=30min.
+log "checking the repository at $RESTIC_REPOSITORY (first call to reach it — a long pause here means it cannot be)"
+probe_error=""
+probe_status=0
+probe_error="$(restic snapshots --no-lock 2>&1 >/dev/null)" || probe_status=$?
+
+if (( probe_status != 0 )); then
+  # Kept, not discarded. `>/dev/null 2>&1` here is what made a stalled run
+  # illegible in the journal, and what left 'restic init' as the only
+  # explanation offered for a repository that was merely unreadable.
+  log "repository probe failed (exit $probe_status): ${probe_error:-no output}"
   log "repository not initialised yet — running 'restic init'"
   restic init
 fi
@@ -103,5 +128,24 @@ restic backup "$STAGING_DIR" \
 
 log "pruning snapshots older than ${BACKUP_KEEP_DAILY} daily generations"
 restic forget --tag fernscout --keep-daily "$BACKUP_KEEP_DAILY" --prune
+
+# --- 5. Record that it worked ----------------------------------------------
+# The last line of a successful run, deliberately: everything above it can
+# still exit non-zero, and a stamp written early would say a backup succeeded
+# that never pushed a snapshot. Written to DATA_DIR because that is the one
+# directory both this script and the app agree on, which is what lets
+# /api/health read it.
+#
+# It is therefore *inside* the snapshot, but written after it: every snapshot
+# carries the previous run's stamp, and a restored instance reports its
+# second-to-last backup rather than its last. One night out of date and honest
+# beats the alternative, which is a restored instance claiming a backup it
+# cannot have taken.
+if [[ -d "$DATA_DIR" ]]; then
+  date -u +%FT%TZ > "$DATA_DIR/.backup-last-success"
+  log "recorded success in $DATA_DIR/.backup-last-success"
+else
+  log "WARNING: DATA_DIR ($DATA_DIR) does not exist — cannot record the success stamp /api/health reads"
+fi
 
 log "done"

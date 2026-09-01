@@ -60,6 +60,12 @@ function readRecipients(file: string): PostalAddress[] {
   });
 }
 
+/**
+ * The base name of one recipient's PDFs — not `slugify` from lib/slug.ts, for
+ * the same reason as the mail transport: this names generated output in a
+ * gitignored folder that is rewritten on every run, not something anybody
+ * links to.
+ */
 function slug(text: string): string {
   return text
     .toLowerCase()

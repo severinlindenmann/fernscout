@@ -85,6 +85,15 @@ export type LoginCodesTable = {
    * scanner that follows the link cannot lock the reader out. */
   link_consumed_at: string | null;
   /**
+   * Where redeeming the *link* should land — the page the reader was on when
+   * they asked for the code. A path, never a URL, and always inside
+   * `/<owner_id>/`; null when there is nowhere in particular to go, which is
+   * every agent code and every mail that was not sent from a gate. Stored
+   * rather than carried in the link, and re-checked on the way out by
+   * `safeDestination`. See `009-signin-destination`.
+   */
+  link_dest: string | null;
+  /**
    * 1 for the welcome mail's link, which never expires and is not swept away
    * when a fresh code is issued for the same address. 0 — the default, and
    * every row written before `006-standing-link` — is a link that dies with

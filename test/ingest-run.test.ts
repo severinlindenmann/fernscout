@@ -8,7 +8,8 @@ import matter from "gray-matter";
 import { ingest } from "@/lib/ingest";
 import { readExif } from "@/lib/ingest/exif";
 import { geodataAvailable } from "@/lib/ingest/geo";
-import { appendGallery, renderEntry, slugify } from "@/lib/ingest/entry";
+import { appendGallery, entryFileName, renderEntry } from "@/lib/ingest/entry";
+import { slugify } from "@/lib/slug.ts";
 import { videoToolsAvailable } from "@/lib/ingest/video";
 import { writePhoto } from "./support/exif-jpeg";
 
@@ -497,15 +498,15 @@ describe("markdown shaping", () => {
     expect(matter(markdown).data.title).toBe('The "Old" Quarter');
   });
 
-  test("slugs keep the letters of a diacritic-heavy name", () => {
-    expect(slugify("Hội An")).toBe("hoi-an");
-    expect(slugify("Zürich")).toBe("zurich");
-    expect(slugify("Đà Lạt")).toBe("da-lat");
-    // GeoNames spells this one with an eth rather than a d-with-stroke, and
-    // NFD leaves both alone — so both have to be handled explicitly.
-    expect(slugify("Ðà Lạt")).toBe("da-lat");
-    expect(slugify("Ærøskøbing")).toBe("aeroskobing");
-    expect(slugify("!!!")).toBe("entry");
+  // Ingest names an entry file after the place the photographs were taken,
+  // and since B77 it does that with the one shared slugify — the same
+  // function the API writes with, so a day called "Zürich" has one permalink
+  // whichever door it came in by. Every letter it handles specially is a
+  // table in test/slug.test.ts.
+  test("an entry file is named with the shared slug rule", () => {
+    expect(entryFileName("2026-08-23", slugify("Zürich"))).toBe("2026-08-23-zuerich.md");
+    expect(entryFileName("2026-08-23", slugify("Hội An"))).toBe("2026-08-23-hoi-an.md");
+    expect(entryFileName("2026-08-23", slugify("Ærøskøbing"))).toBe("2026-08-23-aeroskobing.md");
   });
 
   test("appending leaves every other byte of the file alone", () => {

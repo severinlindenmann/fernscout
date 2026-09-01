@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { mediaLoader } from "@/components/mediaLoader";
+import AgentHandover from "@/components/AgentHandover";
 import PageHeader from "@/components/PageHeader";
 import LifetimeMap, { ACCENT_HEX, type TripRoute } from "@/components/LifetimeMap";
 import type { Basemap } from "@/lib/basemap";
@@ -28,6 +29,21 @@ export type TripCardData = {
   totalMedia: number;
 };
 
+/**
+ * What to say when the journal holds no trips at all.
+ *
+ * Null when it holds at least one — including when the gate has removed every
+ * one of them from *this* reader, which looks identical from here and is not
+ * the same thing (B44: there the journal is full and the filter is silent).
+ * The server decides, because only the server can see past the gate.
+ *
+ * A union rather than three nullable fields, so that the owner's address
+ * simply is not in the payload of a page a stranger asked for.
+ */
+export type EmptyJournal =
+  | { owner: false }
+  | { owner: true; docUrl: string; ownerEmail: string | null };
+
 export type RouteData = {
   id: string;
   title: string;
@@ -47,12 +63,15 @@ export default function TripsIndexContent({
   routes,
   lifetime,
   basemap = null,
+  empty = null,
 }: {
   trips: TripCardData[];
   routes: RouteData[];
   lifetime: { countries: number; days: number; photos: number; trips: number };
   /** Clipped on the server to every route's combined frame — lib/basemap.ts. */
   basemap?: Basemap | null;
+  /** Set only when the journal has no trips whatsoever. See `EmptyJournal`. */
+  empty?: EmptyJournal | null;
 }) {
   const { t, tn, localizedTrip } = useI18n();
 
@@ -72,38 +91,84 @@ export default function TripsIndexContent({
         <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
           {t("trips.title")}
         </h1>
-        <p className="mt-1 max-w-2xl text-sm text-navy-600">{t("trips.subtitle")}</p>
+        {/*
+          An empty journal used to render the subtitle and the four tiles
+          anyway: a promise to record everywhere its owner had been, under
+          0 · 0 · 0 · 0, with everything that could have said more hidden
+          because it had nothing to show. It looked finished and said nothing,
+          and it is the first page a new owner sees — `/<user>` redirects here.
+          So the totals go, and the page says what is true instead (B76).
+        */}
+        {empty ? (
+          <EmptyState empty={empty} />
+        ) : (
+          <>
+            <p className="mt-1 max-w-2xl text-sm text-navy-600">{t("trips.subtitle")}</p>
 
-        <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {/* `tn`, not `t`: one country is a country. */}
-          <Stat label={tn("trips.lifetimeCountries", lifetime.countries)} value={lifetime.countries} />
-          <Stat label={tn("trips.lifetimeDays", lifetime.days)} value={lifetime.days} />
-          <Stat label={t("trips.lifetimePhotos")} value={lifetime.photos} />
-          <Stat label={tn("trips.lifetimeTrips", lifetime.trips)} value={lifetime.trips} />
-        </dl>
+            <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {/* `tn`, not `t`: one country is a country. */}
+              <Stat
+                label={tn("trips.lifetimeCountries", lifetime.countries)}
+                value={lifetime.countries}
+              />
+              <Stat label={tn("trips.lifetimeDays", lifetime.days)} value={lifetime.days} />
+              <Stat label={t("trips.lifetimePhotos")} value={lifetime.photos} />
+              <Stat label={tn("trips.lifetimeTrips", lifetime.trips)} value={lifetime.trips} />
+            </dl>
 
-        {mapRoutes.length > 0 && (
-          <div className="mt-7">
-            <LifetimeMap routes={mapRoutes} basemap={basemap} />
-          </div>
-        )}
-
-        {GROUPS.map(({ status, key }) => {
-          const group = trips.filter((tr) => tr.status === status);
-          if (group.length === 0) return null;
-          return (
-            <section key={status} className="mt-10">
-              <h2 className="font-display text-xl font-semibold text-navy-900">{t(key)}</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {group.map((trip) => (
-                  <TripCard key={trip.id} trip={trip} />
-                ))}
+            {mapRoutes.length > 0 && (
+              <div className="mt-7">
+                <LifetimeMap routes={mapRoutes} basemap={basemap} />
               </div>
-            </section>
-          );
-        })}
+            )}
+
+            {GROUPS.map(({ status, key }) => {
+              const group = trips.filter((tr) => tr.status === status);
+              if (group.length === 0) return null;
+              return (
+                <section key={status} className="mt-10">
+                  <h2 className="font-display text-xl font-semibold text-navy-900">{t(key)}</h2>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    {group.map((trip) => (
+                      <TripCard key={trip.id} trip={trip} />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </>
+        )}
       </main>
     </div>
+  );
+}
+
+/**
+ * A journal with nothing in it, said plainly.
+ *
+ * Two readers, and they need opposite things. A visitor needs the honest line
+ * and nothing to do. The **owner** needs the one fact nobody can guess from
+ * looking: there is no button here, there never will be (ROADMAP decision 24),
+ * and a trip is made by handing two lines to an agent. That instruction
+ * already existed on `/<user>/me`, in a panel a person who has just created a
+ * journal has no reason to have opened — so it is repeated here rather than
+ * linked to, from the same component, and this is the page they land on.
+ */
+function EmptyState({ empty }: { empty: EmptyJournal }) {
+  const { t } = useI18n();
+
+  return (
+    <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+      <h2 className="font-display text-xl font-semibold text-navy-900">{t("trips.emptyTitle")}</h2>
+      <p className="mt-2 max-w-2xl text-lg leading-8 text-navy-700">
+        {empty.owner ? t("trips.emptyOwnerBody") : t("trips.emptyBody")}
+      </p>
+      {empty.owner && (
+        <div className="mt-6 border-t border-navy-200 pt-5">
+          <AgentHandover docUrl={empty.docUrl} email={empty.ownerEmail} />
+        </div>
+      )}
+    </section>
   );
 }
 
