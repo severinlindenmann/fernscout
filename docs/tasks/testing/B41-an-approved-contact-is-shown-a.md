@@ -7,6 +7,7 @@ complexity: medium
 area: access, contacts, trips
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B41 — An approved contact is shown a trip in their own panel and then asked for a password nobody gave them
@@ -162,17 +163,17 @@ one question, and every surface asks it by calling the same function.
   reads a `listed:` key, so writing `listed: false` on a public trip does
   nothing — the only spelling that works is the legacy `visibility: unlisted`.
   `AGENTS.md` and `add-a-trip` both document `listed:` as a field a person may
-  set. Captured separately; not fixed here.
+  set. **B51**; not fixed here.
 - **The digest still refuses `guest` trips to a reader who can now open one.**
   `lib/digest/visibility.ts` says in its own comment that it is the single place
   that changes when identified access can unlock the gate. That has now
   happened, but widening it changes what lands in somebody's inbox, which is the
   owner's call rather than a side effect of fixing the gate. The comment is
-  updated to say so; the behaviour is captured separately.
+  updated to say so; the behaviour is **B52**.
 - **A signed-in reader's page render resolves the session five times**, each
   call writing `last_seen_at`. Three of those predate this task (the user
   layout's own `signedIn` check, `listableTrips`, `isTravellerOn`); this adds
-  two. Correct, and wasteful. Captured separately.
+  two. Correct, and wasteful. **B53**.
 - **The owner is not a special case in the gate** and does not need to be:
   `peopleOf` (`lib/tripPeople.ts:18`) already puts the journal's owner on every
   trip in it, so `isTravellerOn` lets them into their own `private` trips. The

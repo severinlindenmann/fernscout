@@ -56,7 +56,7 @@ type TripSpec = {
  * `quiet-2026` says `unlisted` rather than `public` + `listed: false` because
  * that is the only spelling the parser honours — `lib/trips.ts` derives
  * `listed` from `visibility` and never reads a `listed:` key at all, which is
- * captured separately.
+ * B51.
  */
 const TRIPS: TripSpec[] = [
   { id: "open-2026", visibility: "public", password: false, people: [], costsVisibility: "guests" },

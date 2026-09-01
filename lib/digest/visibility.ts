@@ -25,9 +25,9 @@ import type { Trip } from "../types";
  *   a password. B41 changed half of that — a reader holding a live grant can
  *   now open a `guest` trip with no password at all, so a line about one would
  *   no longer be a link to a door they have no key for. Widening this function
- *   to match is captured separately and deliberately not done here: it changes
- *   what lands in somebody's inbox, which is the owner's call and not a side
- *   effect of fixing the gate. `private` stays never, whatever else changes.
+ *   to match is B52, and deliberately not done here: it changes what lands in
+ *   somebody's inbox, which is the owner's call and not a side effect of
+ *   fixing the gate. `private` stays never, whatever else changes.
  *
  * A grant is journal-wide — one bit, not a set of trip ids. It said which trip
  * until `007-journal-wide-grants`, and nothing ever wrote anything but `*`.
