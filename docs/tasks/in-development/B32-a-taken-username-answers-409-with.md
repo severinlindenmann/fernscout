@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: journals, api, signup
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B32 — A taken username answers 409 with no route onward for somebody who already owns it
