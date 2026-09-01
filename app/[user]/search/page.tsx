@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
-import { PATH_HEADER } from "@/proxy";
+import { PATH_HEADER } from "@/lib/requestKeys";
 import { notFound } from "next/navigation";
 import SearchPageContent from "./SearchPageContent";
 import { getUser } from "@/lib/users";

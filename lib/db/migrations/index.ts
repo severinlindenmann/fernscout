@@ -6,6 +6,7 @@ import * as digest from "./004-digest";
 import * as signinLink from "./005-signin-link";
 import * as standingLink from "./006-standing-link";
 import * as journalWideGrants from "./007-journal-wide-grants";
+import * as deletions from "./008-deletions";
 
 /**
  * Every migration, listed by hand.
@@ -27,6 +28,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "005-signin-link": signinLink,
   "006-standing-link": standingLink,
   "007-journal-wide-grants": journalWideGrants,
+  "008-deletions": deletions,
 };
 
 export const migrationProvider: MigrationProvider = {

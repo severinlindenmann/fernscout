@@ -30,7 +30,8 @@ import {
   DEFAULT_WINDOW,
   type QuietWindow,
 } from "./quiet";
-import { contactsWithReadGrant, digestableTrips } from "./visibility";
+import { contactsWithReadGrant } from "../grants";
+import { digestableTrips } from "./visibility";
 
 /**
  * The digest — ROADMAP D2, and the only notification channel that reaches
@@ -55,7 +56,8 @@ import { contactsWithReadGrant, digestableTrips } from "./visibility";
 export { buildDigestContent, formatDigestDate, MAX_DAYS_LISTED } from "./content";
 export type { DigestContent, DigestDay, DigestTripSummary } from "./content";
 export { renderDigest } from "./mail";
-export { contactsWithReadGrant, digestableTrips } from "./visibility";
+export { contactsWithReadGrant } from "../grants";
+export { digestableTrips } from "./visibility";
 export {
   alreadySentToday,
   isAwake,

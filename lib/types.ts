@@ -181,7 +181,16 @@ export type TripTranslations = Record<string, { title?: string; tagline?: string
  *
  * - `private` — only the people who took it (`people:`, plus the owner).
  * - `public`  — everyone.
- * - `guest`   — invited guests, and the people who took it.
+ * - `guest`   — everyone the owner has let into the **journal**, and the
+ *   people who took it.
+ *
+ * The line between the last two is the one a person gets wrong at the moment
+ * they create a trip, and it is worth saying in the words they will need:
+ * `guest` means the people I let into this journal; `private` means only the
+ * people who were there. A guest is a guest of the journal and never of a
+ * single trip — there is no per-trip invitation and none should be added, so a
+ * trip that must be held back from people who are otherwise let in is
+ * `private`. That is the whole reason there are three values and not two.
  *
  * The older words are still accepted and mapped on read: `password` is a
  * `guest` trip (a password is *how* a guest proves it), and `unlisted` is a

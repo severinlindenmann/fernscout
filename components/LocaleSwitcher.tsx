@@ -5,7 +5,7 @@ import { Check, Languages } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "./LocaleProvider";
 import { useOptionalSite } from "./SiteProvider";
-import { LOCALE_COOKIE } from "@/proxy";
+import { LOCALE_COOKIE } from "@/lib/requestKeys";
 import { LOCALE_SHORT, LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
 
 /** Compact language picker: one small chip that opens a menu, so the header

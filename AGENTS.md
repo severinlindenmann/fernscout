@@ -25,9 +25,22 @@ Two ways in, and they are the same content behind two doors:
 ## The one rule
 
 **Anything an agent creates is a draft.** `status: draft` in the frontmatter,
-and every reading path filters it out in `lib/entries.ts`. A person removes that
-line to publish. There is no parameter, argument, flag or endpoint anywhere that
-skips the step — not in the REST API, not in MCP, not in the skills below.
+and every reading path filters it out in `lib/entries.ts`. There is no
+parameter, argument or flag on anything that *writes* which skips the step —
+not in the REST API, not in MCP, not in the skills below.
+
+Publishing is a **separate, deliberate call** the person asks for:
+`POST /api/v1/<user>/trips/<trip>/days/<slug>/publish`, or `publish_day` over
+MCP. Owner only — a trip-scoped token writes days and cannot put them on the
+site — and refused once, with a code bound to that one day.
+
+Be exact about what that guarantees, because it is less than it looks. An agent
+holds both calls; the confirmation makes publishing a distinct act it has to
+mean, not proof that a human consented. The guarantee is structural — writing
+can never publish — and the rest is instruction: **ask, in words, and wait for
+an answer.** B28 records why it exists at all: the person the rule reserves this
+for is often somebody who has never seen the folder, and telling them to edit a
+file was advice with nowhere to go.
 
 One invented memory presented to somebody's family as fact is not recoverable.
 So: write what you were told. No weather nobody mentioned, no meals nobody ate,
@@ -54,6 +67,10 @@ content/
                               A user's own config.json may narrow these, never
                               widen them.
   rates/ecb.json              shared currency reference rates
+  .deleted/<username>.json    a journal that was deleted. Keeps the name
+                              reserved and makes its old URLs answer 410.
+                              Gitignored; an operator frees the name by
+                              deleting the file. See lib/tombstones.ts.
   <username>/
     config.json               who this person is: title, tagline, owner,
                               locales, baseCurrency, per-user features
@@ -88,10 +105,18 @@ followed.
 Two things about a trip are worth knowing before you open either.
 
 **`visibility` says who is let in** — `private` (the people on the trip, and
-the owner), `public` (everyone), or `guest` (invited guests, and the people on
-the trip). An unrecognised value reads as `private`, never as `public`: a typo
-must not publish somebody's trip. `listed:` is the separate question of whether
-it is advertised at all.
+the owner), `public` (everyone), or `guest` (everyone the owner has let into
+the *journal*, and the people on the trip). An unrecognised value reads as
+`private`, never as `public`: a typo must not publish somebody's trip.
+`listed:` is the separate question of whether it is advertised at all.
+
+The line between the two closed values is what a person gets wrong at the
+moment they create a trip: **`guest` means the people I let into this journal;
+`private` means only the people who were there.** A guest is a guest of the
+journal and never of one trip — approving somebody opens every `guest` trip in
+it, at once and for as long as the approval lasts. A trip that must be held
+back from people who are otherwise let in is `private`, and that is the only
+mechanism; there is deliberately no narrower one.
 
 **`people:` is who took it** — up to ten, each a name and an email. Everyone
 listed may write to the whole trip, and may hold an agent token scoped to it
@@ -159,9 +184,19 @@ every task.
 | `GET /<user>/day/<slug>.md` | a day's markdown source |
 | `POST /api/auth/request` + `/verify` | a six-digit code → a 7-day agent token |
 | `/api/v1/<user>/…` | REST: trips, days, drafts |
+| `DELETE /api/v1/<user>` and `…/trips/<trip>` | ask to delete — see below |
 | `POST /api/mcp` | MCP over Streamable HTTP — see `docs/providers/mcp.md` |
 
 Agent tokens arrive in `Authorization: Bearer` and nowhere else; guest sessions
 arrive in a cookie and nowhere else. The two are not interchangeable, and
 `resolveSession()` enforces it. That is decision 24: reading the site on your
 phone must not put a credential that can rewrite it in your pocket.
+
+**Deleting is the one thing an agent cannot finish.** `DELETE` on a journal or
+a trip removes nothing and answers `202`: the server mails the address in that
+journal's `config.json` a single-use link to a page with a button, and only the
+button deletes. `lib/agentConfirm.ts` is not used for it and must not be — that
+code is deliberately not single-use and it goes *to the agent*, so an agent
+could satisfy its own confirmation. Here the second step happens in a mailbox.
+An agent that reports a `202` as "deleted" has said something false; say a mail
+is waiting, and stop. `lib/deletions.ts`, and B38 for the reasoning.

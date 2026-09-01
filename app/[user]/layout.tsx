@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { LOCALE_COOKIE } from "@/proxy";
+import { LOCALE_COOKIE } from "@/lib/requestKeys";
 import { notFound } from "next/navigation";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";

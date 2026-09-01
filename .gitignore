@@ -80,6 +80,11 @@ favicon-check.png
 # Resized copies made by the media route, rebuilt on demand.
 content/.cache/
 
+# Tombstones for deleted journals and trips (lib/tombstones.ts). They keep the
+# username reserved and make old URLs answer 410, and they name real people's
+# journals — so they live on the operator's disk, not in the repository.
+content/.deleted/
+
 # Journal backups from `npm run export`. Never committed: they hold private
 # trips and unpublished drafts.
 exports/

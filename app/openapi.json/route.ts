@@ -252,6 +252,84 @@ export function GET() {
           },
         },
       },
+      /**
+       * Deletion is two calls in two places, and the OpenAPI document has to
+       * say so or an agent reads `202` as success.
+       */
+      "/api/v1/{user}": {
+        delete: {
+          summary: "Ask to delete a journal (deletes nothing; mails the owner)",
+          description:
+            "**This deletes nothing.** It answers 202 and mails the address that owns the " +
+            "journal a link to a page with a button; only that button deletes. The link is " +
+            "single-use, expires in an hour, and the caller cannot follow it — that is the " +
+            "point, because the confirmation for something irreversible must not be " +
+            "completable by the same agent that asked for it. Report that a mail is waiting, " +
+            "never that the journal is gone. Owner only: a trip-scoped token is refused.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "202": {
+              description:
+                "A confirmation was mailed. The body names the address and what would go, " +
+                "and carries `\"deleted\": false`.",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "The token belongs to a different journal, or is scoped to one trip. Writing " +
+                "to a trip and deleting the journal around it are different authorities.",
+            },
+            "404": { description: "No such journal, or this server cannot send mail" },
+            "409": { description: "The journal's config.json has no owner.email to mail" },
+            "410": { description: "This journal was already deleted" },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}": {
+        delete: {
+          summary: "Ask to delete a trip (deletes nothing; mails the owner)",
+          description:
+            "**This deletes nothing** — same flow as deleting a journal. One difference " +
+            "worth repeating to the person: deleting a *day* leaves its photographs on disk, " +
+            "and deleting a *trip* takes them with it. Owner only; somebody listed in the " +
+            "trip's `people:` may write days into it and may not delete it.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "202": { description: "A confirmation was mailed; nothing is deleted yet" },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "Not this journal's owner" },
+            "404": { description: "No such trip, or this server cannot send mail" },
+            "410": { description: "This trip was already deleted" },
+          },
+        },
+      },
+      "/api/v1/{user}/deletions/{token}": {
+        post: {
+          summary: "Confirm a deletion (from the mailed page, not from an agent)",
+          description:
+            "The button on the confirmation page. There is deliberately no GET: mail " +
+            "scanners and link previewers follow links, and a GET that destroyed a journal " +
+            "would eventually be followed by a robot. The token is the credential and it " +
+            "arrived in the owner's mailbox — an agent holding it has read somebody's mail " +
+            "and should not be using it.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "token", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Deleted" },
+            "404": { description: "No such token for this journal" },
+            "409": { description: "The link was already used, or it has expired" },
+            "410": { description: "What it pointed at has already gone" },
+            "429": { description: "Too many attempts" },
+          },
+        },
+      },
       "/api/v1/{user}/trips": {
         get: {
           summary: "Every trip in this journal",
@@ -499,6 +577,63 @@ export function GET() {
             "200": { description: "Deleted" },
             "400": { description: "No such day" },
             "409": { description: "Confirmation required — the body carries the code" },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}/days/{slug}/publish": {
+        post: {
+          summary: "Publish a draft — the step the draft rule reserves for a person",
+          description:
+            "Puts a draft on the site. **Ask the person first, in words, and wait for an " +
+            "answer** — this endpoint exists because the person deciding often has no text " +
+            "editor and has never seen the content folder, not because the decision moved " +
+            "to you.\n\n" +
+            "Refused the first time, always, with a `confirm` code bound to this journal, " +
+            "trip, day and verb; repeat the call carrying it. A code issued to delete will " +
+            "not publish, and one issued for another day will not verify.\n\n" +
+            "Owner only: a token scoped to a single trip writes days into it and cannot put " +
+            "them on the site. Nothing sent to the days POST can publish — writing and " +
+            "publishing are two calls, and that is the part that is structural.\n\n" +
+            "It does not really come back. Taking a day down removes it from the journal, " +
+            "the feed and the search index, not from the people who have read it.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+            { name: "slug", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: false,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    confirm: {
+                      type: "string",
+                      description:
+                        "The code from the 409. Omit it to be issued one. Do not invent " +
+                        "one — it is signed and will not verify.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Published; the body carries the day's public URL" },
+            "400": { description: "The day could not be published — the body says why" },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "Another journal's token, or one scoped to a single trip — which may write " +
+                "days but not publish them",
+            },
+            "404": { description: "No such trip, or no such day" },
+            "409": {
+              description:
+                "Confirmation required — the body carries the code and the question. Also " +
+                "returned when the day is already on the site.",
+            },
           },
         },
       },

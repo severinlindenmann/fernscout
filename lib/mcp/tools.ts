@@ -2,7 +2,7 @@ import "server-only";
 import MiniSearch from "minisearch";
 import { SESSION_SCOPE, SIGNUP_OWNER, type Session } from "../auth";
 import type { Trip } from "../types";
-import { attachGallery, createDraft, deleteEntry, entrySummary, isPublished, listDrafts, tripSummary, type DraftInput } from "../api/entries";
+import { attachGallery, createDraft, deleteEntry, entrySummary, isPublished, listDrafts, publishDraft, tripSummary, type DraftInput } from "../api/entries";
 import { getAllEntries, getEntryBySlug } from "../entries";
 import { stripMarkdown } from "../markdownText";
 import { SEARCH_OPTIONS, type SearchDoc } from "../searchOptions";
@@ -16,6 +16,7 @@ import { storeUploads, type KeptOriginal, type UploadCandidate } from "../api/me
 import { fetchImage } from "../api/fetchMedia";
 import { getUser } from "../users";
 import { confirmationMatches, confirmationRequired } from "../agentConfirm";
+import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "../deletions";
 import { fingerprintOf, idempotencyKey, recall, remember } from "./idempotency";
 
 /**
@@ -280,7 +281,9 @@ const listDraftsTool: Handler = (session, args) => {
 
   const text = drafts.length
     ? drafts.map((d) => `${d.date} · ${d.trip}/${d.slug} — ${d.title}`).join("\n") +
-      "\n\nEach of these is waiting for a person to publish it."
+      "\n\nEach of these is waiting for a person to publish it. Tell them what is here " +
+      "and ask which they want on the site; `publish_day` is the tool that acts on the " +
+      "answer. Do not call it for anything they have not said yes to."
     : "Nothing is waiting for review.";
 
   return { ok: true, text, data: { user: session.owner, drafts } };
@@ -366,6 +369,65 @@ function keptSummary(kept: KeptOriginal[]): string {
         `those, not from the resized copies the site serves.`
     : "The originals are kept untouched, and the photobook prints from those.";
 }
+
+/**
+ * Put a draft on the site — the other half of the draft rule.
+ *
+ * The rule was always "an agent writes drafts, a person publishes them", and
+ * the second half had no mechanism at either door: over MCP, as over REST, a
+ * finished piece of work had nowhere to go. See the route handler for what
+ * this does and does not guarantee.
+ *
+ * Owner only, and confirmed. A trip-scoped session writes days and cannot
+ * publish them: being on the trip is not the same as deciding what the journal
+ * says.
+ */
+const publishDayTool: Handler = (session, args) => {
+  const trip = resolveTrip(session, args);
+  if (!trip.ok) return trip;
+
+  const slug = optionalString(args, "slug");
+  if (!slug) return { ok: false, error: "slug is required — the draft to publish" };
+
+  if (session.scope !== SESSION_SCOPE.agent) {
+    return {
+      ok: false,
+      error:
+        "This token is scoped to one trip, so it can write days into that trip but cannot " +
+        "publish them. Only the journal's owner decides what goes on the site.",
+    };
+  }
+
+  const entry = getEntryBySlug(trip.ref, slug, { includeDrafts: true });
+  if (!entry) return { ok: false, error: `unknown_day: no entry "${slug}" in ${trip.ref}` };
+  if (!entry.draft) return { ok: false, error: `"${slug}" is already on the site.` };
+
+  const operation = { action: "publish_day" as const, scope: trip.ref, target: slug };
+  const confirm = optionalString(args, "confirm");
+  if (!confirmationMatches(confirm, operation)) {
+    const body = confirmationRequired(
+      operation,
+      `This publishes "${entry.title}" (${entry.date}). It goes into the journal, the feed ` +
+        `and the search index, and anyone with the link can read it. Taking it down again ` +
+        `removes it from the site, not from the people who have already read it.`,
+    );
+    return { ok: false, error: `${body.message}\n\nconfirm: ${body.confirm}` };
+  }
+
+  const result = publishDraft(trip.ref, slug);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  const base = serverSite().url;
+  const [username, tripId] = trip.ref.split("/");
+  return {
+    ok: true,
+    text:
+      `Published "${entry.title}". It is on the site at ` +
+      `${base}/${username}/trips/${tripId}/day/${slug} — tell the person, and give them ` +
+      `the link.`,
+    data: { slug, status: "published" },
+  };
+};
 
 const addMedia: Handler = async (session, args) => {
   const trip = resolveTrip(session, args);
@@ -612,6 +674,81 @@ const createTripTool: Handler = (session, args) => {
   };
 };
 
+/**
+ * Ask to delete a trip, or the whole journal. **Neither deletes anything.**
+ *
+ * The other destructive tool here, `delete_day`, is finished by the agent: it
+ * is refused once, hands back a code, and the agent repeats the call. That is
+ * the right shape for a draft and the wrong shape for a journal, because the
+ * agent can complete both halves on its own — see `lib/deletions.ts`.
+ *
+ * So these two answer with a *sentence about a mail*, not a result. An agent
+ * that reports "deleted" here has said something false, and the text it reads
+ * back says so before it says anything else.
+ */
+const requestDeletionTool =
+  (kind: "journal" | "trip"): Handler =>
+  async (session, args) => {
+    if (session.owner === SIGNUP_OWNER) {
+      return { ok: false, error: "This token belongs to no journal, so there is nothing to delete." };
+    }
+    // The owner, and nobody else. A `write:trip:<id>` token — what somebody
+    // listed in a trip's people: block holds — may write days into that trip
+    // and may not remove it. Writing to a journey and ending it are different
+    // authorities.
+    if (session.scope !== SESSION_SCOPE.agent) {
+      return {
+        ok: false,
+        error:
+          "This token is scoped to one trip, so it can write days into that trip but cannot " +
+          "delete it, or the journal around it. Only the journal's owner can.",
+      };
+    }
+
+    const tripId = optionalString(args, "trip");
+    if (kind === "trip" && !tripId) {
+      return { ok: false, error: "trip is required — the id of the journey to delete." };
+    }
+
+    const asked = await requestDeletion(
+      kind === "trip"
+        ? { kind, username: session.owner, tripId: tripId! }
+        : { kind, username: session.owner },
+      { sessionId: session.id },
+    );
+    if (!asked.ok) return { ok: false, error: asked.message };
+
+    const { summary } = asked;
+    const what =
+      kind === "journal"
+        ? `${summary.trips} journeys, ${summary.days} days and ${summary.files} files (${humanBytes(summary.bytes)})`
+        : `${summary.days} days and ${summary.files} files (${humanBytes(summary.bytes)}), photographs included`;
+
+    return {
+      ok: true,
+      text:
+        `NOTHING HAS BEEN DELETED. "${summary.title}" is still there.\n\n` +
+        `A mail has gone to ${asked.email}, the address that owns this journal, with a link ` +
+        `to a page that names what would go — ${what} — and has a button on it. The link ` +
+        `works for ${DELETION_TTL_MINUTES} minutes and once only, and you cannot follow it: ` +
+        `this step exists so that a person, not an agent, ends a journal.\n\n` +
+        `Tell them the mail is waiting. Do not report this as done.`,
+      data: {
+        deleted: false,
+        status: "confirmation_sent",
+        mailedTo: asked.email,
+        expires: asked.expiresAt,
+        willDelete: {
+          title: summary.title,
+          ...(kind === "trip" ? { trip: tripId, mediaGoesToo: true } : { trips: summary.trips }),
+          days: summary.days,
+          files: summary.files,
+          size: humanBytes(summary.bytes),
+        },
+      },
+    };
+  };
+
 // ---------------------------------------------------------------------------
 // The registry
 // ---------------------------------------------------------------------------
@@ -857,6 +994,41 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
     handler: addMedia,
   },
   {
+    name: "publish_day",
+    title: "Publish a draft (needs confirming)",
+    description:
+      "Put a draft on the site. This is the step the draft rule reserves for a person — so " +
+      "ask them first, in words, and do not call this because the day looks finished to " +
+      "you. The first call is ALWAYS refused and hands you a confirmation code; repeat it " +
+      "with `confirm` set to that value. Only the journal's owner can publish: a token " +
+      "scoped to one trip writes days and cannot put them on the site. Publishing cannot " +
+      "really be undone — taking a day down removes it from the journal, not from the " +
+      "people who have already read it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        trip: { type: "string", description: "Trip id, as list_trips reports it." },
+        slug: { type: "string", description: "The draft's slug, as list_drafts reports it." },
+        confirm: {
+          type: "string",
+          description: "The code from the refusal. Do not invent one; it will not verify.",
+        },
+      },
+      required: ["trip", "slug"],
+      additionalProperties: false,
+    },
+    annotations: {
+      readOnlyHint: false,
+      // Not destructive — it creates nothing and removes nothing — but it is
+      // not reversible either, and a client that treats it as safe would be
+      // wrong in the way that matters.
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    handler: publishDayTool,
+  },
+  {
     name: "delete_day",
     title: "Delete a day (needs confirming)",
     description:
@@ -885,6 +1057,52 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
       openWorldHint: false,
     },
     handler: deleteDayTool,
+  },
+  {
+    name: "delete_trip",
+    title: "Ask to delete a journey (the owner confirms by mail)",
+    description:
+      "Ask to delete a whole journey — its days, its costs, its plan and ITS PHOTOGRAPHS. " +
+      "This does not delete anything: the server mails the journal's owner a link to a page " +
+      "with a button, and only that button deletes. You cannot follow the link and must not " +
+      "try. Report that a mail is waiting, never that the journey is gone. Note the " +
+      "difference from delete_day, which leaves photographs on disk — a journey takes them " +
+      "with it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        trip: { type: "string", description: "Trip id, as list_trips reports it." },
+      },
+      required: ["trip"],
+      additionalProperties: false,
+    },
+    annotations: {
+      readOnlyHint: false,
+      // False: this call writes a request and sends a mail, and nothing else.
+      // Saying `true` here would invite a client to treat it as the deletion.
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    handler: requestDeletionTool("trip"),
+  },
+  {
+    name: "delete_journal",
+    title: "Ask to delete the whole journal (the owner confirms by mail)",
+    description:
+      "Ask to delete this entire journal — every journey, every day, every photograph, and " +
+      "the address itself, which is never given out again. This does not delete anything: " +
+      "the server mails the owner a link to a page with a button, and only that button " +
+      "deletes. You cannot follow the link. Ask the person twice before calling this, and " +
+      "report that a mail is waiting rather than that the journal is gone.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    handler: requestDeletionTool("journal"),
   },
 ] as const;
 
