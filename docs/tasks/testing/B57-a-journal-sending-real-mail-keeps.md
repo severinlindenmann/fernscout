@@ -7,6 +7,7 @@ complexity: low
 area: mail, ops, config
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B57 — A journal sending real mail keeps no copy, so nothing that went out can be read back
