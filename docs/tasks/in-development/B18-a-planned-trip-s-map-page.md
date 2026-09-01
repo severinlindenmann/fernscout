@@ -56,6 +56,17 @@ While in there, two things on the same page read wrongly for an upcoming trip:
 the four statistics all say 0 (`map.days`, `map.stops`, `map.countries`,
 `map.media`), and "Jeder Halt" renders as an empty bordered box.
 
+**Confirmed on the running site before the change.** The page answered 200 and
+its markup carried no map at all — the only SVGs in it were the 24×24 lucide
+icons — with `story.empty` where the map belongs. Everything the Why section
+describes was still true as written.
+
+**A third thing reads wrongly, and it is not fixed here.** The page is titled
+"Wo wir waren" and subtitled "Tippe auf einen Ort, um zu sehen, wie lange wir
+dort waren" — past tense, on a trip starting in 2027. That is a copy decision
+across three locale files rather than a component deciding what to render, so
+it is captured as B51 rather than absorbed.
+
 ## Work
 
 1. Render `WorldMap` when there is either a place or a planned stop. The
@@ -70,6 +81,33 @@ the four statistics all say 0 (`map.days`, `map.stops`, `map.countries`,
 4. Both routes, or it is fixed on one URL only: `app/[user]/(trip)/map/` (the
    current trip) and `app/[user]/trips/[trip]/map/` share `MapPageContent`, so
    the fix is in the shared component — check that both still render.
+
+### What was built, and the one decision item 3 left open
+
+Item 3 offered two answers and asked for one. **Suppressed, not replaced with
+the plan's numbers.** Days on the road, stops, countries and photographs all
+count travel that has happened; a plan has an honest equivalent for none of
+them. "Eight planned stops" is not "eight stops", and putting it in that row
+would have said it was — the same class of mistake as the zeroes, only harder
+to notice. Nothing is lost: the plan's size is already on the page twice, in
+the `0/8` counter under the map and in the list of stops still to come.
+
+The whole decision is asked once, as `hasPlaces`, and drives four things that
+each used to ask `places.length > 0` for themselves: the slideshow button, the
+statistics row, the map, and the every-stop list. It is deliberately a question
+about what the page *has* rather than about `trip.status` — `MapPageContent`
+never receives the status, and basing it on the data keeps the fix in the one
+shared component, which is what item 4 asks for.
+
+New key `map.empty` in all three locales, for the trip with neither days nor a
+route. `story.empty` stays where it belongs, on the story.
+
+**Not changed, deliberately:** `generateStaticParams` in
+`app/[user]/trips/[trip]/map/page.tsx:17` still excludes upcoming trips from
+the prerender list. Every trip sub-page does the same — `costs`, `gallery` and
+`day` all carry the identical filter — and diverging here would be a
+build-output change, not a correctness one. The page renders on demand and
+answers 200, which is what `dynamicParams` is for.
 
 ## Acceptance
 

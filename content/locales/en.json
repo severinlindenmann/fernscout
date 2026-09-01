@@ -250,6 +250,7 @@
   "map.countries.one": "Country",
   "map.days": "Days on the road",
   "map.days.one": "Day on the road",
+  "map.empty": "Nothing to draw yet — no days written, and no route planned.",
   "map.everyStop": "Every stop",
   "map.media": "Photos & videos",
   "map.nextUp": "Next up",

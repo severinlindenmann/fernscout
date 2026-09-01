@@ -77,6 +77,7 @@ Do not edit them by hand; run the script.
 | [B15](backlog/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium |
 | [B23](backlog/B23-everything-in-docs-was-archived-and.md) | Everything in docs was archived and nobody decided what is still current | CHORE | low | low |
 | [B24](backlog/B24-nothing-notices-when-a-file-stops.md) | Nothing notices when a file stops being used | CHORE | low | low |
+| [B47](backlog/B47-an-upcoming-trip-s-map-is.md) | An upcoming trip's map is titled "Where we've been" | ISSUE | low | low |
 
 ## open
 
