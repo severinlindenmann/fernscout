@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -9,6 +9,15 @@ import { buildFeedXml } from "@/lib/feed";
 import { buildSearchIndexJson } from "@/lib/search";
 import { getTrip } from "@/lib/trips";
 import { getAllEntries } from "@/lib/entries";
+import { tripSummary } from "@/lib/api/entries";
+
+// `mayReadTrip` reads the guest cookie through `next/headers`, which throws
+// outside a request scope. An empty jar is the case that matters: a stranger
+// with the URL, which is who the twin is for.
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+}));
+import { markdownTwin } from "@/lib/api/markdownTwin";
 
 /**
  * `test: true` — content nobody lived.
@@ -146,5 +155,60 @@ describe("a single test day inside a real trip", () => {
   test("a real day beside it is not flagged", () => {
     const day = getAllEntries("alex/real-2026").find((e) => e.slug === "realday");
     expect(isTestContent(getTrip("alex/real-2026"), day)).toBe(false);
+  });
+});
+
+/**
+ * B47 — the flag has to survive being read back.
+ *
+ * It could be written and never seen: `tripSummary` omitted it, so an agent
+ * that set it was never told it was accepted; the day read reported only the
+ * entry's own, so a day inheriting it from its trip looked ordinary; and worst,
+ * the markdown twin — public, unauthenticated, and the surface built so that
+ * agents read it *instead of* the page with the banner on it — said nothing at
+ * all. That handed invented content, unlabelled, to the one audience with no
+ * other way of telling.
+ */
+describe("reading the flag back", () => {
+  test("the trip summary says so, and only when it is true", () => {
+    expect(tripSummary("alex", "proving-2026")).toMatchObject({ test: true });
+    expect(tripSummary("alex", "real-2026")).not.toHaveProperty("test");
+  });
+
+  test("the markdown twin carries it in the frontmatter", async () => {
+    const body = await (await markdownTwin("alex", "proving-2026", "provingday")).text();
+    expect(body).toMatch(/^test: true$/m);
+  });
+
+  test("and says so in words, above the prose", async () => {
+    // Frontmatter is for parsers. Anything reading only the text still has to
+    // meet the warning, and has to meet it before the content.
+    const body = await (await markdownTwin("alex", "proving-2026", "provingday")).text();
+    const warning = body.indexOf("did not happen");
+    const prose = body.indexOf("MARKER-PROVINGDAY");
+    expect(warning).toBeGreaterThan(-1);
+    expect(warning).toBeLessThan(prose);
+  });
+
+  test("a day that inherits it from its trip is flagged too", async () => {
+    // The day carries no flag of its own — this is the case an operator
+    // marking a whole test trip actually produces.
+    const day = getAllEntries("alex/proving-2026")[0];
+    expect(day.test).toBeUndefined();
+
+    const body = await (await markdownTwin("alex", "proving-2026", "provingday")).text();
+    expect(body).toMatch(/^test: true$/m);
+  });
+
+  test("an ordinary day's twin says none of it", async () => {
+    const body = await (await markdownTwin("alex", "real-2026", "realday")).text();
+    expect(body).not.toMatch(/^test: true$/m);
+    expect(body).not.toContain("did not happen");
+  });
+
+  test("a test day inside an otherwise real trip is still flagged", async () => {
+    const body = await (await markdownTwin("alex", "real-2026", "fakeday")).text();
+    expect(body).toMatch(/^test: true$/m);
+    expect(body).toContain("did not happen");
   });
 });

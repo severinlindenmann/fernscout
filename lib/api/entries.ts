@@ -361,6 +361,11 @@ export function tripSummary(username: string, tripId: string) {
     end: trip.end,
     status: trip.status,
     visibility: trip.visibility,
+    // Echoed only when true, like every other flag here. Absent until B47,
+    // which meant an agent that set it was never told it had been accepted and
+    // could not see it afterwards — on the one field whose whole job is to say
+    // "none of this happened".
+    ...(trip.test ? { test: true } : {}),
     days: getDays(trip.ref).length,
     entries: getAllEntries(trip.ref).length,
     drafts: listDrafts(trip.ref).length,

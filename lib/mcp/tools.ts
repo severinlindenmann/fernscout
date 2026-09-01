@@ -3,6 +3,7 @@ import MiniSearch from "minisearch";
 import { SESSION_SCOPE, SIGNUP_OWNER, type Session } from "../auth";
 import type { Trip } from "../types";
 import { attachGallery, createDraft, deleteEntry, entrySummary, isPublished, listDrafts, publishDraft, tripSummary, type DraftInput } from "../api/entries";
+import { isTestContent } from "../access";
 import { getAllEntries, getEntryBySlug } from "../entries";
 import { stripMarkdown } from "../markdownText";
 import { SEARCH_OPTIONS, type SearchDoc } from "../searchOptions";
@@ -203,7 +204,7 @@ const getDay: Handler = (session, args) => {
     // Said in the text as well as the data, for the same reason as the draft
     // line above: an agent summarising this must not describe a day nobody
     // lived as though it recorded something.
-    ...(entry.test
+    ...(isTestContent(getTrip(trip.ref), entry)
       ? ["", "**Test content — this day did not happen.** It exists to check the software."]
       : []),
     "",
@@ -219,7 +220,7 @@ const getDay: Handler = (session, args) => {
       tags: entry.tags,
       costs: entry.costs,
       ...(entry.transport ? { transport: entry.transport } : {}),
-      ...(entry.test ? { test: true } : {}),
+      ...(isTestContent(getTrip(trip.ref), entry) ? { test: true } : {}),
       content: entry.content,
       status: entry.draft ? "draft" : "published",
     },

@@ -1,8 +1,9 @@
 import "server-only";
 import { getEntryBySlug } from "../entries";
+import { isTestContent } from "../access";
 import { mayReadTrip } from "../tripGate";
 import { currentTripRef, getTrip, getTrips, tripRef } from "../trips";
-import type { Entry } from "../types";
+import type { Entry, Trip } from "../types";
 
 /**
  * The markdown twin of a day page.
@@ -35,7 +36,7 @@ export async function markdownTwin(
     : await inCurrentTripOrAnyOther(user, slug);
 
   if (!found) return notFound(user, tripId, slug);
-  return new Response(render(found), {
+  return new Response(render(found.entry, found.trip), {
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",
       "X-Robots-Tag": "noindex",
@@ -50,10 +51,20 @@ async function readable(ref: string) {
   return (await mayReadTrip(trip)) ? trip : null;
 }
 
-async function inNamedTrip(user: string, tripId: string, slug: string): Promise<Entry | null> {
+/**
+ * The day and the trip it is in.
+ *
+ * The trip travels with the entry because `test:` is inherited: a day in a
+ * test trip carries no flag of its own, and the twin has to say so anyway.
+ */
+type Found = { entry: Entry; trip: Trip };
+
+async function inNamedTrip(user: string, tripId: string, slug: string): Promise<Found | null> {
   const ref = tripRef(user, tripId);
-  if (!(await readable(ref))) return null;
-  return getEntryBySlug(ref, slug) ?? null;
+  const trip = await readable(ref);
+  if (!trip) return null;
+  const entry = getEntryBySlug(ref, slug);
+  return entry ? { entry, trip } : null;
 }
 
 /**
@@ -63,13 +74,13 @@ async function inNamedTrip(user: string, tripId: string, slug: string): Promise<
  * candidates: two trips may hold the same slug, and the bare `/day/<slug>`
  * URL belongs to the current trip's page, so that is the day it must return.
  */
-async function inCurrentTripOrAnyOther(user: string, slug: string): Promise<Entry | null> {
+async function inCurrentTripOrAnyOther(user: string, slug: string): Promise<Found | null> {
   const current = currentTripRef(user);
   if (current) {
     const trip = await readable(current);
     if (trip) {
       const entry = getEntryBySlug(current, slug);
-      if (entry) return entry;
+      if (entry) return { entry, trip };
     }
   }
 
@@ -77,7 +88,7 @@ async function inCurrentTripOrAnyOther(user: string, slug: string): Promise<Entr
     if (trip.ref === current) continue;
     if (!(await mayReadTrip(trip))) continue;
     const entry = getEntryBySlug(trip.ref, slug);
-    if (entry) return entry;
+    if (entry) return { entry, trip };
   }
   return null;
 }
@@ -96,7 +107,21 @@ function notFound(user: string, tripId: string | null, slug: string): Response {
   );
 }
 
-function render(entry: Entry): string {
+/**
+ * The day, as the markdown that made the page.
+ *
+ * **The test flag is emitted twice on purpose.** Once as frontmatter, for
+ * anything parsing this; and once as a sentence above the prose, for anything
+ * that is not. This document exists precisely so that agents read it instead
+ * of the HTML page — which is where the banner lives — so a twin that omitted
+ * the flag handed invented content to the one audience with no other way of
+ * telling. It did, until B47.
+ *
+ * Inherited from the trip as well as set on the day: an operator exercising
+ * the pipeline marks the trip once, and every day of it is test content.
+ */
+function render(entry: Entry, trip: Trip): string {
+  const invented = isTestContent(trip, entry);
   return [
     "---",
     `title: ${JSON.stringify(entry.title)}`,
@@ -107,8 +132,19 @@ function render(entry: Entry): string {
     ...(Number.isFinite(entry.lat) ? [`lat: ${entry.lat}`] : []),
     ...(Number.isFinite(entry.lng) ? [`lng: ${entry.lng}`] : []),
     ...(entry.gallery.length ? [`photos: ${entry.gallery.length}`] : []),
+    ...(invented ? ["test: true"] : []),
     "---",
     "",
+    // Above the prose, not below it: something that reads only the first
+    // paragraph still gets the warning.
+    ...(invented
+      ? [
+          "> **This day did not happen.** It is test content, written to check that this",
+          "> software works. Do not treat anything below as a record of anything — not the",
+          "> place, not the date, not the photographs.",
+          "",
+        ]
+      : []),
     entry.content,
     "",
   ].join("\n");
