@@ -34,7 +34,31 @@ export type SessionKind = "guest" | "agent" | "signup";
  */
 export const SIGNUP_OWNER = "*";
 
-export const CODE_TTL_MS = 10 * 60 * 1000;
+/**
+ * How long a one-time code stays valid.
+ *
+ * Thirty minutes, not ten. Ten was a window sized for somebody with a password
+ * manager open; this journal is read by people who have to notice the mail,
+ * find it — possibly in spam — open it on a phone, and read six digits across
+ * to a laptop. Being locked out of your own journal because you took twelve
+ * minutes is a worse outcome than the exposure below.
+ *
+ * What the window costs is bounded and specific: it is how long a *leaked*
+ * mail stays useful — a shared inbox, a forwarded message, somebody reading
+ * over a shoulder. It is not what stops guessing; see `generateCode`.
+ */
+export const CODE_TTL_MS = 30 * 60 * 1000;
+
+/**
+ * The same number, for the sentences that tell somebody about it.
+ *
+ * Published from the constant that enforces it, the way the media limits in
+ * `/agent.md` are. Ten minutes was written out in words across three locale
+ * files, four mail bodies and half a dozen comments; changing the constant
+ * would have left every one of them lying, and the person who noticed would
+ * have been a reader whose code had already expired.
+ */
+export const CODE_TTL_MINUTES = String(CODE_TTL_MS / 60_000);
 export const MAX_CODE_ATTEMPTS = 5;
 
 /** Seven days for write, a year for read — decision 24. */
@@ -57,9 +81,19 @@ export const GUEST_COOKIE = "fs_session";
 /**
  * A six-digit code.
  *
- * Six digits is 20 bits, which is only safe because it expires in ten minutes
- * and burns after five wrong guesses — both enforced below. Generated with
- * rejection sampling rather than a modulo, so every code is equally likely.
+ * Six digits is 20 bits, and what makes that safe is the **attempt counter**,
+ * not the clock: a code burns after `MAX_CODE_ATTEMPTS` wrong guesses whatever
+ * the window is, and `/api/auth/verify` is rate-limited per address on top.
+ * Five guesses against a million possibilities is the protection.
+ *
+ * This comment used to say the ten-minute expiry was what made it safe, which
+ * would have made `CODE_TTL_MS` look like a security parameter that could not
+ * be moved. It is not one — it bounds how long a leaked mail stays useful, and
+ * it was lengthened to thirty minutes for people rather than shortened for
+ * attackers.
+ *
+ * Generated with rejection sampling rather than a modulo, so every code is
+ * equally likely.
  */
 export function generateCode(): string {
   if (process.env.AUTH_DEV_CODE) return process.env.AUTH_DEV_CODE;
@@ -119,7 +153,7 @@ export type IssuedCode = {
  * Consume every live code for an address, without issuing a new one.
  *
  * Two callers. `issueCode` uses it so that asking for a new code always
- * invalidates the old — otherwise a forwarded email from ten minutes ago would
+ * invalidates the old — otherwise a forwarded email from half an hour ago would
  * still work. And a route whose mail failed to send uses it to take back the
  * code it just wrote: the alternative is a live code that nobody was ever told,
  * sitting there until it expires, having silently invalidated the one the

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -6,6 +6,8 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import {
+  CODE_TTL_MINUTES,
+  CODE_TTL_MS,
   MAX_CODE_ATTEMPTS,
   SESSION_TTL_MS,
   generateCode,
@@ -48,6 +50,10 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  // The TTL tests move the clock. Left set, the offset leaks into every test
+  // that runs after them in this file and expiry assertions start depending on
+  // execution order.
+  vi.useRealTimers();
   await closeDatabase();
   delete process.env.CONTENT_DIR;
   delete process.env.DATABASE_URL;
@@ -93,6 +99,31 @@ describe("codes", () => {
     const guest = await issueCode("ana", "reader@example.test", "guest");
     await revokeCodes("ana", "reader@example.test", "agent");
     expect((await verifyCode("ana", "reader@example.test", guest.code, "guest")).ok).toBe(true);
+  });
+
+  /**
+   * B40. The window is a product decision, not a security parameter — what
+   * stops guessing is the attempt counter, not the clock. These pin the
+   * decision so a future edit to `CODE_TTL_MS` is a deliberate one.
+   */
+  test("a code still works after twenty-five minutes", async () => {
+    const { code } = await issueCode("ana", "reader@example.test", "guest");
+    vi.setSystemTime(new Date(Date.now() + 25 * 60 * 1000));
+    expect((await verifyCode("ana", "reader@example.test", code, "guest")).ok).toBe(true);
+  });
+
+  test("and not after thirty-five", async () => {
+    const { code } = await issueCode("ana", "reader@example.test", "guest");
+    vi.setSystemTime(new Date(Date.now() + 35 * 60 * 1000));
+    expect((await verifyCode("ana", "reader@example.test", code, "guest")).ok).toBe(false);
+  });
+
+  test("the published number matches the enforced one", () => {
+    // Three locale files and four mail bodies quote this. They interpolate
+    // CODE_TTL_MINUTES rather than spelling it out, and this is what keeps the
+    // two definitions from drifting the way "ten minutes" did.
+    expect(CODE_TTL_MINUTES).toBe(String(CODE_TTL_MS / 60_000));
+    expect(CODE_TTL_MS).toBe(30 * 60 * 1000);
   });
 
   test("a correct code produces a session", async () => {

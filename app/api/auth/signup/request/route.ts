@@ -1,4 +1,4 @@
-import { SIGNUP_OWNER, isEmail, issueCode, revokeCodes } from "@/lib/auth";
+import { CODE_TTL_MINUTES, SIGNUP_OWNER, isEmail, issueCode, revokeCodes } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { sendMail } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
         preheader: `Your code is ${code}`,
         title: "Start a journal",
         blocks: [
-          { kind: "paragraph", text: `Your code is ${code}. It works for ten minutes.` },
+          { kind: "paragraph", text: `Your code is ${code}. It works for ${CODE_TTL_MINUTES} minutes.` },
           {
             kind: "paragraph",
             text:

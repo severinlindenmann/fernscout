@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import MePageContent from "./MePageContent";
 import { manageTokenFor, listContacts, normaliseEmail } from "@/lib/contacts";
 import { isEnabled } from "@/lib/capabilities";
+import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
 import { getUser } from "@/lib/users";
@@ -49,6 +50,7 @@ export default async function MePage({ params }: PageProps<"/[user]/me">) {
       // this journal had never opened.
       canJoin={isEnabled("contacts", user)}
       canSignIn={isEnabled("auth", user)}
+      codeMinutes={CODE_TTL_MINUTES}
     />
   );
 }

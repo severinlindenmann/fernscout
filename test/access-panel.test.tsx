@@ -8,6 +8,7 @@ import TripListProvider from "@/components/TripListProvider";
 import { dictionaryFor } from "@/lib/locales";
 import type { SiteSummary } from "@/lib/site";
 import type { Viewer } from "@/lib/viewer";
+import { CODE_TTL_MINUTES } from "@/lib/auth";
 
 /**
  * What the access panel offers a stranger.
@@ -63,6 +64,7 @@ function render(over: { canJoin?: boolean; canSignIn?: boolean } = {}) {
           docUrl="https://example.test/documentation.txt"
           canJoin={over.canJoin ?? false}
           canSignIn={over.canSignIn ?? false}
+          codeMinutes={CODE_TTL_MINUTES}
         />
           </TripListProvider>
         </CurrencyProvider>

@@ -27,7 +27,7 @@ export async function up(db: MigrationDb): Promise<void> {
     .addColumn("expires_at", "text", (c) => c.notNull())
     .addColumn("consumed_at", "text")
     // Counted so a code can be burned after a handful of wrong guesses,
-    // rather than staying live for its full ten minutes.
+    // rather than staying live for the rest of its window.
     .addColumn("attempts", "integer", (c) => c.notNull().defaultTo(0))
     .execute();
 

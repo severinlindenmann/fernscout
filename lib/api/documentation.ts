@@ -16,6 +16,7 @@ import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
 import { isIndexable } from "../access";
 import { MAINTAINED_LOCALES } from "../i18n";
+import { CODE_TTL_MINUTES } from "../auth";
 // The sentences these documents share with /openapi.json, kept in one place so
 // they cannot come to disagree. See the note at the top of that file.
 import {
@@ -396,15 +397,15 @@ Content-Type: application/json
 Answers \`202\` when a code is on its way, and **\`403 not_authorised\` when that
 address is neither the journal's owner nor listed on the trip you named** — so
 you are told, rather than waiting for a code that was never going to arrive.
-Ask the person for the six-digit code that arrives in their inbox. It lasts ten minutes, is
-single use, and burns after five wrong guesses.
+Ask the person for the six-digit code that arrives in their inbox. It lasts
+${CODE_TTL_MINUTES} minutes, is single use, and burns after five wrong guesses.
 
 **Asking again invalidates the code you already asked for.** Only the newest is
 live, and two of these mails are word for word identical apart from the time
 printed in them. So if you request twice — because the first attempt looked
 like it failed, or because the person was slow to find it — say clearly that
 they must read out the *newest* mail, or you will spend one of their five
-guesses on a code that was correct ten minutes ago.
+guesses on a code that was correct half an hour ago.
 
 A \`503 mail_failed\` means this server could not send it at all, and **no code
 is live**: nothing was consumed and nothing is waiting in their inbox. Retry.
