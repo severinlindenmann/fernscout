@@ -9,9 +9,11 @@ import {
   CODE_TTL_MINUTES,
   CODE_TTL_MS,
   MAX_CODE_ATTEMPTS,
+  SESSION_SCOPE,
   SESSION_TTL_MS,
   generateCode,
   issueCode,
+  issueStandingLink,
   listSessions,
   resolveSession,
   revokeCodes,
@@ -187,6 +189,91 @@ describe("codes", () => {
     const rows = await db.selectFrom("login_codes").selectAll().execute();
     expect(rows[0].code_hash).not.toBe(code);
     expect(rows[0].code_hash).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+/**
+ * B27. The welcome mail's link. It is the owner's first way into their own
+ * journal, where an agent has just left drafts inside a private trip — both
+ * invisible without a session — and it may be opened a week later.
+ */
+describe("the standing sign-in link", () => {
+  test("still works long after an ordinary code would have expired", async () => {
+    const token = await issueStandingLink("ana", "owner@example.test");
+    vi.setSystemTime(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000));
+    expect((await verifyLink("ana", token)).ok).toBe(true);
+  });
+
+  /**
+   * The property the whole design turns on. `issueCode` supersedes outstanding
+   * codes for an address, and before this the sweep took the welcome link with
+   * them — so "permanent" ended the first time the owner asked to sign in,
+   * which is the most likely next thing to happen.
+   */
+  test("survives the owner asking for an ordinary code", async () => {
+    const token = await issueStandingLink("ana", "owner@example.test");
+    await issueCode("ana", "owner@example.test", "guest");
+    expect((await verifyLink("ana", token)).ok).toBe(true);
+  });
+
+  test("and survives that code being redeemed", async () => {
+    const token = await issueStandingLink("ana", "owner@example.test");
+    const { code } = await issueCode("ana", "owner@example.test", "guest");
+    expect((await verifyCode("ana", "owner@example.test", code, "guest")).ok).toBe(true);
+    expect((await verifyLink("ana", token)).ok).toBe(true);
+  });
+
+  /**
+   * What bounds a permanent link. Exposure is the risk with any link — they
+   * are prefetched by scanners and pasted into chat windows — and single use
+   * is what stops it being replayable for ever.
+   */
+  test("is single use, which is what makes permanence safe", async () => {
+    const token = await issueStandingLink("ana", "owner@example.test");
+    expect((await verifyLink("ana", token)).ok).toBe(true);
+    expect((await verifyLink("ana", token)).ok).toBe(false);
+  });
+
+  test("produces a guest session and never an agent one", async () => {
+    // Decision 24. Reading the journal on your phone must not put a credential
+    // that can rewrite it in your pocket.
+    const token = await issueStandingLink("ana", "owner@example.test");
+    const result = await verifyLink("ana", token);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.scope).toBe(SESSION_SCOPE.guest);
+    expect(await resolveSession(result.token, "agent")).toBeNull();
+  });
+
+  test("carries no code anybody could be given", async () => {
+    // The row needs a code_hash because the column is NOT NULL. The value
+    // hashed is generated and never returned, so there is no code in existence
+    // that could redeem the row and retire its link.
+    await issueStandingLink("ana", "owner@example.test");
+    const { db } = await getDatabase();
+    const row = await db
+      .selectFrom("login_codes")
+      .selectAll()
+      .where("link_standing", "=", 1)
+      .executeTakeFirstOrThrow();
+    expect(row.code_hash).toMatch(/^[0-9a-f]{64}$/);
+    // Six digits is the entire space a code could occupy.
+    for (const guess of ["000000", "123456", "999999"]) {
+      expect((await verifyCode("ana", "owner@example.test", guess, "guest")).ok).toBe(false);
+    }
+  });
+
+  test("one journal's standing link does not open another's", async () => {
+    const token = await issueStandingLink("ana", "owner@example.test");
+    expect((await verifyLink("bea", token)).ok).toBe(false);
+  });
+
+  test("an ordinary link still expires with its code", async () => {
+    // The default must not have moved. Every row written before this change,
+    // and every one written by `issueCode`, dies with the code beside it.
+    const { linkToken } = await issueCode("ana", "reader@example.test", "guest");
+    vi.setSystemTime(new Date(Date.now() + 35 * 60 * 1000));
+    expect((await verifyLink("ana", linkToken!)).ok).toBe(false);
   });
 });
 

@@ -4,6 +4,7 @@ import * as auth from "./002-auth";
 import * as contacts from "./003-contacts";
 import * as digest from "./004-digest";
 import * as signinLink from "./005-signin-link";
+import * as standingLink from "./006-standing-link";
 
 /**
  * Every migration, listed by hand.
@@ -23,6 +24,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "003-contacts": contacts,
   "004-digest": digest,
   "005-signin-link": signinLink,
+  "006-standing-link": standingLink,
 };
 
 export const migrationProvider: MigrationProvider = {

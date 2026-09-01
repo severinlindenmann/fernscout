@@ -172,6 +172,11 @@ export async function revokeCodes(
     .where("email", "=", normaliseEmail(email))
     .where("kind", "=", kind)
     .where("consumed_at", "is", null)
+    // Standing links survive. Without this, the welcome mail's permanent link
+    // would die the first time its owner asked for an ordinary sign-in code —
+    // which is the most likely thing to happen next, and would make
+    // "permanent" untrue in exactly the case it was added for.
+    .where("link_standing", "=", 0)
     .execute();
 }
 
@@ -211,6 +216,10 @@ export async function issueCode(
       created_at: now.toISOString(),
       expires_at: expiresAt,
       consumed_at: null,
+      // Stated rather than left to the column default. An ordinary code's link
+      // expires with it, and that is a property worth being able to read here
+      // instead of inferring from a migration.
+      link_standing: 0,
       attempts: 0,
     })
     .execute();
@@ -253,6 +262,17 @@ export async function verifyCode(
     .where("email", "=", address)
     .where("kind", "=", kind)
     .where("consumed_at", "is", null)
+    /**
+     * Never the standing link's row.
+     *
+     * This lookup takes the newest live row and assumes it is the code the
+     * person is holding, which was true while `issueCode` superseded every
+     * other. A standing link breaks that assumption: it lives alongside them
+     * and outlives them by design, so without this the welcome link's row —
+     * whose code is a value nobody has ever been told — is the one that gets
+     * matched against what the person typed, and every real code fails.
+     */
+    .where("link_standing", "=", 0)
     .orderBy("created_at", "desc")
     .executeTakeFirst();
 
@@ -303,6 +323,55 @@ export async function verifyCode(
 }
 
 /**
+ * A sign-in link with no code beside it and no expiry, for the welcome mail.
+ *
+ * The ordinary flow issues a code and hangs a link off it, because the person
+ * asked to sign in and may prefer to type. Here nobody asked for anything —
+ * they are being told their journal exists — so there are no six digits to
+ * read out, and a link that expired in half an hour would be one they never
+ * used.
+ *
+ * Deliberately **not** an option on `issueCode`. That function's contract is
+ * "supersede whatever code this address had"; this one must not, and folding
+ * two opposite behaviours into one function behind a boolean is how the next
+ * person calls it wrongly.
+ *
+ * The row still needs a `code_hash` — the column is `NOT NULL` and the schema
+ * is shared. It gets the hash of a token that is generated, never returned and
+ * never sent, so there is no code in existence that could redeem this row and
+ * retire its link. That is the intended state, not a workaround: `verifyCode`
+ * has nothing to match.
+ */
+export async function issueStandingLink(owner: string, email: string): Promise<string> {
+  const { db } = await getDatabase();
+  const linkToken = generateLinkToken();
+
+  await db
+    .insertInto("login_codes")
+    .values({
+      id: crypto.randomUUID(),
+      owner_id: owner,
+      email: normaliseEmail(email),
+      // Unguessable and undisclosed — see above.
+      code_hash: hashSecret(generateLinkToken()),
+      link_hash: hashSecret(linkToken),
+      link_consumed_at: null,
+      kind: "guest",
+      created_at: nowIso(),
+      // Never read for a standing link. Written because the column is NOT
+      // NULL, and set to the ordinary window so that anything which does look
+      // at it treats the row as stale rather than as live for ever.
+      expires_at: new Date(Date.now() + CODE_TTL_MS).toISOString(),
+      consumed_at: null,
+      link_standing: 1,
+      attempts: 0,
+    })
+    .execute();
+
+  return linkToken;
+}
+
+/**
  * Redeem a one-click sign-in link.
  *
  * The token is the whole key: there is no address in the URL to check it
@@ -335,7 +404,11 @@ export async function verifyLink(
   // is nothing to brute-force and nothing an attempt count would protect.
   if (!row) return { ok: false, reason: "no-code" };
 
-  if (new Date(row.expires_at).getTime() < Date.now()) {
+  // A standing link — the welcome mail's — has no expiry to check. It is the
+  // owner's first way into their own journal and may be opened a week later.
+  // What bounds it is `link_consumed_at` above: still single use, so the first
+  // fetch retires it. See `006-standing-link`.
+  if (row.link_standing !== 1 && new Date(row.expires_at).getTime() < Date.now()) {
     await db
       .updateTable("login_codes")
       .set({ link_consumed_at: nowIso() })

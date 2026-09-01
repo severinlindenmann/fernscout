@@ -84,6 +84,13 @@ export type LoginCodesTable = {
   /** Set when the *link* is redeemed. Leaves the code usable, so a mail
    * scanner that follows the link cannot lock the reader out. */
   link_consumed_at: string | null;
+  /**
+   * 1 for the welcome mail's link, which never expires and is not swept away
+   * when a fresh code is issued for the same address. 0 — the default, and
+   * every row written before `006-standing-link` — is a link that dies with
+   * its code. Still single use either way; see that migration.
+   */
+  link_standing: number;
   attempts: number;
 };
 
