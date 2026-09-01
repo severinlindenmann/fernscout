@@ -46,6 +46,8 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B65](backlog/B65-the-deployed-server-has-no-backup.md) | The deployed server has no backup at all — restic, the units and the credentials were never installed | CHORE | high | medium |
+| [B83](backlog/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low |
+| [B84](backlog/B84-npm-run-ingest-does-not-start.md) | npm run ingest does not start, because a lib import omits the extension Node needs | ISSUE | high | low |
 | [B02](backlog/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low |
 | [B06](backlog/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B09](backlog/B09-links-to-docs-moved-into-archiv.md) | Links to docs moved into archiv no longer resolve | CHORE | medium | low |
@@ -71,6 +73,7 @@ Do not edit them by hand; run the script.
 | [B66](backlog/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium |
 | [B78](backlog/B78-one-unreadable-file-under-data-dir.md) | One unreadable file under DATA_DIR aborts the whole backup | ISSUE | medium | low |
 | [B82](backlog/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low |
+| [B85](backlog/B85-an-upcoming-trip-with-no-plan.md) | An upcoming trip with no plan serialises a whole-world basemap into a page that draws no map | ISSUE | medium | low |
 | [B03](backlog/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium |
 | [B04](backlog/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium |
 | [B05](backlog/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
@@ -86,6 +89,7 @@ Do not edit them by hand; run the script.
 | [B58](backlog/B58-smtptransport-cannot-be-driven-to-a.md) | SmtpTransport cannot be driven to a successful send from a test | CHORE | low | low |
 | [B71](backlog/B71-the-per-day-media-ceiling-test.md) | The per-day media ceiling test asserts on problems[0], and failed once in a full run | CHORE | low | low |
 | [B81](backlog/B81-the-notify-script-still-calls-a.md) | The notify script still calls a closed trip password-protected | CHORE | low | low |
+| [B86](backlog/B86-a-recipient-whose-name-has-no.md) | A recipient whose name has no ASCII gets an empty postcard filename, and each one overwrites the last | ISSUE | low | low |
 
 ## open
 
