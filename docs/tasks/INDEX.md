@@ -70,6 +70,7 @@ Do not edit them by hand; run the script.
 | [B62](backlog/B62-every-docs-link-in-the-readme.md) | Every docs/ link in the README points at a file that moved to docs/archiv | CHORE | medium | low |
 | [B66](backlog/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium |
 | [B78](backlog/B78-one-unreadable-file-under-data-dir.md) | One unreadable file under DATA_DIR aborts the whole backup | ISSUE | medium | low |
+| [B82](backlog/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low |
 | [B03](backlog/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium |
 | [B04](backlog/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium |
 | [B05](backlog/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
@@ -101,7 +102,6 @@ _Nothing here._
 | [B76](in-development/B76-an-empty-journal-renders-four-zeroes.md) | An empty journal renders four zeroes and no way forward | ISSUE | medium | medium |
 | [B79](in-development/B79-the-owner-has-no-way-to.md) | The owner has no way to hand somebody an invite link from the site | FEATURE | medium | low |
 | [B80](in-development/B80-the-access-panel-tells-the-owner.md) | The access panel tells the owner they were on every trip in their journal | ISSUE | medium | low |
-| [B77](in-development/B77-a-german-umlaut-loses-its-vowel.md) | A German umlaut loses its vowel in a slug, and two slugify functions disagree about the rest | ISSUE | low | low |
 
 ## testing
 
@@ -140,6 +140,7 @@ _Nothing here._
 | [B54](testing/B54-an-upcoming-trip-s-map-is.md) | An upcoming trip's map is titled "Where we've been" | ISSUE | low | low |
 | [B59](testing/B59-a-new-locale-string-renders-as.md) | A new locale string renders as its own key until the server is restarted | ISSUE | low | low |
 | [B61](testing/B61-the-markdown-twin-is-the-one.md) | The markdown twin is the one route that does not know a journal was deleted | ISSUE | low | low |
+| [B77](testing/B77-a-german-umlaut-loses-its-vowel.md) | A German umlaut loses its vowel in a slug, and two slugify functions disagree about the rest | ISSUE | low | low |
 
 ## completed
 
