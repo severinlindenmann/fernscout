@@ -46,6 +46,7 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B64](backlog/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low |
+| [B65](backlog/B65-the-deployed-server-has-no-backup.md) | The deployed server has no backup at all — restic, the units and the credentials were never installed | SECURITY | high | medium |
 | [B02](backlog/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low |
 | [B09](backlog/B09-links-to-docs-moved-into-archiv.md) | Links to docs moved into archiv no longer resolve | CHORE | medium | low |
 | [B10](backlog/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
@@ -97,7 +98,6 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B01](in-development/B01-forwarded-for-trust.md) | X-Forwarded-For is taken on trust, so every rate limit is bypassable | SECURITY | high | low |
-| [B21](in-development/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | CHORE | high | medium |
 | [B39](in-development/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high |
 | [B46](in-development/B46-a-trip-that-stays-inside-one.md) | A trip that stays inside one city draws as a single dot on a map thousands of kilometres wide | ISSUE | medium | medium |
 | [B59](in-development/B59-a-new-locale-string-renders-as.md) | A new locale string renders as its own key until the server is restarted | ISSUE | low | low |
@@ -107,6 +107,7 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B18](testing/B18-a-planned-trip-s-map-page.md) | A planned trip's map page draws no map | ISSUE | high | low |
+| [B21](testing/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | CHORE | high | medium |
 | [B47](testing/B47-the-test-flag-can-be-written.md) | The test flag can be written but never read back, so nothing can confirm it stuck | ISSUE | high | low |
 | [B56](testing/B56-deploying-ships-code-but-not-content.md) | Deploying ships code but not content/locales, so translations never reach the live site | ISSUE | high | low |
 | [B26](testing/B26-the-welcome-mail-is-english-only.md) | The welcome mail is English only, and nobody is asked which language the journal is in | FEATURE | medium | low |

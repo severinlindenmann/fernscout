@@ -7,6 +7,7 @@ complexity: medium
 area: backup, ops
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B21 — The restore drill, on the stack that is actually deployed
