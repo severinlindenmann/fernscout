@@ -5,17 +5,16 @@ import {
   tripCookieName,
   verifyTripPassword,
 } from "@/lib/access";
-import { rateLimitFor } from "@/lib/rateLimit";
+// The shared one. This route had its own copy with the same first-value bug,
+// which is how a fix to one of them would have left the other wrong — and this
+// is the limit standing in front of a trip's password.
+import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip } from "@/lib/trips";
 
 /** Attempts allowed per address before the gate closes for a while. */
 const MAX_ATTEMPTS = 8;
 const WINDOW_MS = 15 * 60 * 1000;
 
-function clientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  return forwarded?.split(",")[0]?.trim() || "unknown";
-}
 
 export async function POST(request: Request) {
   const form = await request.formData().catch(() => null);
