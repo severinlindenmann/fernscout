@@ -132,6 +132,86 @@ describe("the bare twin", () => {
   });
 });
 
+/**
+ * B61 — deleted is not missing.
+ *
+ * Every other surface of a removed journal answers 410. The twins answered
+ * 404, which is a different instruction: 404 says "fix the slug and retry",
+ * 410 says "this was here and is not coming back". The twin is the route built
+ * so that agents read it instead of the page, so it is where the wrong answer
+ * costs most — an agent retries, or tells somebody their day never existed.
+ */
+describe("a journal that was deleted", () => {
+  /** Written straight to disk: what `lib/tombstones.ts` leaves behind. */
+  function entomb(username: string, over: Record<string, unknown> = {}) {
+    // Where lib/tombstones.ts actually writes them: content/.deleted/<user>.json
+    const file = path.join(dir, ".deleted", `${username}.json`);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        kind: "journal",
+        username,
+        title: "Alex",
+        deletedAt: "2026-08-30T10:00:00.000Z",
+        requestedBy: "owner@example.test",
+        held: { trips: 1, days: 1, files: 3, bytes: 1024 },
+        ...over,
+      }),
+    );
+  }
+
+  test("answers 410, not 404", async () => {
+    entomb("alex");
+    const response = await markdownTwin("alex", "parks-2025", "zion-narrows");
+    expect(response.status).toBe(410);
+  });
+
+  test("in plain text, because that is what this route is for", async () => {
+    entomb("alex");
+    const response = await markdownTwin("alex", "parks-2025", "zion-narrows");
+    expect(response.headers.get("content-type")).toContain("text/plain");
+    const body = await response.text();
+    expect(body.toLowerCase()).not.toContain("<html");
+    expect(body).toContain("deleted on 2026-08-30");
+  });
+
+  test("the short form too", async () => {
+    entomb("alex");
+    expect((await markdownTwin("alex", null, "today")).status).toBe(410);
+  });
+
+  test("and does not send anybody to a URL that is also gone", async () => {
+    // The 404 points at /<user>/documentation.txt, which is right for a live
+    // journal and a dead end for this one.
+    entomb("alex");
+    const body = await (await markdownTwin("alex", "parks-2025", "zion-narrows")).text();
+    expect(body).not.toContain("documentation.txt");
+  });
+
+  test("a deleted trip in a living journal says so as well", async () => {
+    fs.mkdirSync(path.join(dir, ".deleted", "alex"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, ".deleted", "alex", "gone-2025.json"),
+      JSON.stringify({
+        kind: "trip",
+        username: "alex",
+        tripId: "gone-2025",
+        title: "The one that went",
+        deletedAt: "2026-08-31T10:00:00.000Z",
+        requestedBy: "owner@example.test",
+        held: { days: 2, files: 4, bytes: 2048 },
+      }),
+    );
+
+    const response = await markdownTwin("alex", "gone-2025", "any-day");
+    expect(response.status).toBe(410);
+    expect(await response.text()).toContain("The one that went");
+    // And the rest of the journal is unaffected.
+    expect((await markdownTwin("alex", "parks-2025", "zion-narrows")).status).toBe(200);
+  });
+});
+
 describe("a miss", () => {
   test("is plain text, not an HTML error page", async () => {
     const response = await markdownTwin("alex", null, "no-such-day");

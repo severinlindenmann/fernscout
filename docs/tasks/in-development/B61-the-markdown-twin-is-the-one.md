@@ -69,6 +69,34 @@ answer "nothing here" for a deleted user, and then falls to its own
   the right advice for a live journal and a dead link for a deleted one. The
   410 branch must not repeat it.
 
+## What was found while building it
+
+The Why was right about the symptom and wrong about where the other nine 410s
+come from. They are not per-route: `proxy.ts` answers them, and its matcher
+excludes `.md` by extension while naming `documentation.txt`, `feed.xml`,
+`search-index.json` and `story.json` explicitly. The twins fell through both
+halves of that.
+
+**So the obvious fix — add the twins to the matcher — is the wrong one.**
+`gonePage` in `proxy.ts` answers in HTML. This route answers `text/plain` on
+purpose, so an agent polling it never pulls markup into a context window, and
+that reasoning does not stop applying because the status changed. Handled in
+the route instead, which is what the Work section had said for a different
+reason.
+
+Two things beyond the ticket:
+
+- **A deleted *trip* in a living journal** had the same gap and is covered by
+  the same check. `tripTombstone` already existed for it.
+- **The 410 body says nothing about what to try next**, deliberately. The 404's
+  advice is to read `/<user>/documentation.txt`, which for a deleted journal is
+  itself a 410 — a message whose only help is a dead end is how a retry loop
+  starts. It gives the deletion date instead, so an agent working from a stale
+  search index can see that the index is what is out of date.
+
+Four of the five new assertions fail against the previous code, confirmed by
+stashing the fix.
+
 ## Acceptance
 
 - `/{user}/trips/{trip}/day/{slug}.md` and `/{user}/day/{slug}.md` both answer
