@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: auth, mail
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B40 — A six-digit code expires in ten minutes, which is shorter than people take to find the mail

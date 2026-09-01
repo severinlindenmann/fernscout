@@ -81,6 +81,14 @@ One decision to make and record here before writing the migration:
   also leaves a column whose stated meaning nothing honours, which is how this
   task came to exist. Lean to dropping.
 
+**Superseded by B39, which removes trip passwords outright.** The paragraph
+below is kept as written because it is the argument that lost, and a reversed
+decision with no trace of the reasoning gets re-proposed. What it got wrong:
+the anonymous door it defends is the one that cannot be revoked, and for this
+audience an address is not a burden but the only thing that makes "let this
+person in, and not that one" possible. B39 replaces the password with the
+sign-in flow that already exists.
+
 Not doing: **trip passwords.** `passwordHash`, `signTripToken`, the unlock form
 and `app/api/trip-access/route.ts` are also per-trip guest access, and they stay.
 They are a different mechanism — anonymous, no contact record, no database row —

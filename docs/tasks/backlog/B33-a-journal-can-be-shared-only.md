@@ -197,8 +197,10 @@ owner-issued link the only way to reach the request form at all. This task's
 guest link is that owner-issued link, so the two describe the same door from
 two ends and should not invent two mechanisms for it.
 
-Not doing: trip passwords, which stay as a second door for people who will
-never prove an address. The contacts invites in `lib/contacts/invites.ts`.
+Not doing: trip passwords. They are untouched here and removed entirely by
+B39, which replaces the password form with the sign-in flow — and which depends
+on this task, because until `mayReadTrip` consults the grant there is nothing
+behind the gate to let a guest in. The contacts invites in `lib/contacts/invites.ts`.
 Owner-facing management UI beyond what a redemption needs. Showing a shared
 trip inside the buddy's *own* journal — that is B34.
 
