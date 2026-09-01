@@ -70,7 +70,6 @@ Do not edit them by hand; run the script.
 | [B60](backlog/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low |
 | [B62](backlog/B62-every-docs-link-in-the-readme.md) | Every docs/ link in the README points at a file that moved to docs/archiv | CHORE | medium | low |
 | [B66](backlog/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium |
-| [B78](backlog/B78-how-a-leg-was-travelled-is.md) | How a leg was travelled is carried by colour alone, and its dash pattern breaks on a small map | ISSUE | medium | low |
 | [B03](backlog/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium |
 | [B04](backlog/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium |
 | [B05](backlog/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
@@ -105,6 +104,7 @@ Do not edit them by hand; run the script.
 | [B74](in-development/B74-the-access-panel-offers-the-owner.md) | The access panel offers the owner a contacts page the journal has switched off | ISSUE | medium | low |
 | [B75](in-development/B75-an-owner-with-no-trips-is.md) | An owner with no trips is told to ask whoever sent them here for an invitation | ISSUE | medium | low |
 | [B76](in-development/B76-an-empty-journal-renders-four-zeroes.md) | An empty journal renders four zeroes and no way forward | ISSUE | medium | medium |
+| [B78](in-development/B78-how-a-leg-was-travelled-is.md) | How a leg was travelled is carried by colour alone, and its dash pattern breaks on a small map | ISSUE | medium | low |
 | [B77](in-development/B77-a-german-umlaut-loses-its-vowel.md) | A German umlaut loses its vowel in a slug, and two slugify functions disagree about the rest | ISSUE | low | low |
 
 ## testing
