@@ -70,29 +70,57 @@ export async function findActiveContactId(
  * Who is subscribed *and* may see this trip — the per-recipient fan-out
  * W12 asks for.
  *
- * A public or unlisted trip is open to anyone holding the link (`lib/access.ts`
- * — `isOpenToLink`), so every subscription for this journal qualifies. A
- * closed trip is not: a device merely being subscribed says nothing about who
- * is holding it, so only a subscription tied to a signed-in, active contact
- * (`contactId`, set at subscribe time — see `findActiveContactId`) who holds a
- * `read` grant on this journal qualifies. The grant is journal-wide and there
- * is no other kind. Everyone else — including every subscriber at all, when
- * there is no database — is left out rather than guessed into an audience that
- * may not be able to open the page the notification links to. That is the
- * fail-closed choice: under-notifying a restricted trip is a nuisance,
- * over-notifying it is a leak.
+ * The rule is the digest's rule, in the surface that sits closest to the
+ * reader: **a notification never names a trip the gate would refuse.** A push
+ * is a title and a link on a lock screen; it cannot be taken back, and it
+ * arrives whether or not anybody was going to look. `test/access-gate.test.ts`
+ * pins this function to `mayReadTrip` over the same viewer × trip table the
+ * gate, the panel and the digest are pinned to.
  *
- * Before any of that, one question that is not about access: content nobody
- * lived has no subscribers at all, however public it says it is. A
- * notification is the digest's problem again in miniature — a title and a
- * link on a lock screen, with nowhere to put the banner the page itself wears
- * — so it is not sent rather than disclaimed (B70).
+ * The questions, in the order they are asked:
+ *
+ * - **Content nobody lived** — a `test: true` trip, or a `test: true` day
+ *   inside a real one — has no subscribers at all, however public it says it
+ *   is. Every reading surface contains it by wearing a banner; a lock screen
+ *   has nowhere to put one, so it is not sent rather than disclaimed (B70).
+ *   Asked first, because a proving trip is normally `public` and would sail
+ *   straight past the next question.
+ * - **`private`** — nobody, and this is the line that was missing (B68). A
+ *   `read` grant is journal-wide and means *this person may read the
+ *   journal's `guest` trips*; it has never meant a `private` one, which
+ *   `mayReadTrip` refuses to a journal guest before it asks anything else. So
+ *   an approved family member with the PWA installed was pushed a title and a
+ *   link to a page that then refused them — the exact harm a private trip
+ *   exists to prevent, arriving by the one channel that interrupts.
+ * - **public or unlisted** — open to anyone holding the link (`isOpenToLink`),
+ *   so every subscription for this journal qualifies.
+ * - **`guest`** — a device merely being subscribed says nothing about who is
+ *   holding it, so only a subscription tied to a signed-in, active contact
+ *   (`contactId`, set at subscribe time — see `findActiveContactId`) who holds
+ *   a `read` grant on this journal qualifies. The grant is journal-wide and
+ *   there is no other kind.
+ *
+ * Everyone else — including every subscriber at all, when there is no database
+ * — is left out rather than guessed into an audience that may not be able to
+ * open the page the notification links to. That is the fail-closed choice:
+ * under-notifying a restricted trip is a nuisance, over-notifying it is a leak.
+ *
+ * ## What the `private` line costs, and why it is still right
+ *
+ * It costs `people:` their own notifications. They can open the trip — the
+ * gate lets them through on their address — and this function cannot tell that
+ * one of these subscriptions is theirs: a subscription carries a `contactId`,
+ * and `isPersonOn` matches an *address*. Closing that gap means resolving a
+ * contact's address here, which this file deliberately cannot do (it does not
+ * import `lib/contacts`; see docs/plans/W12-push.md) and which would put
+ * decrypted addresses in the notify path to serve at most a handful of people
+ * who already know what they wrote. The digest refuses `private` for its own
+ * travellers on the same grounds and in the same words. If it is ever wanted,
+ * it is a design, not a line — and it is not this task.
  *
  * `entry` is optional because two callers ask different questions. The
  * subscribe route asks about a trip; the notify script is always announcing
- * one particular day, and a `test: true` day inside an otherwise real trip is
- * exactly what an agent proving the write path on a live journal writes. Pass
- * the entry whenever there is one.
+ * one particular day. Pass the entry whenever there is one.
  */
 export async function subscribersFor(
   trip: Trip,
@@ -101,6 +129,10 @@ export async function subscribersFor(
   // Nobody lived it, so nobody is told about it — checked before `isOpenToLink`,
   // because a test trip is usually `public` and would sail past it (B70).
   if (isTestContent(trip, entry)) return [];
+  // And `private` is nobody's, grant or no grant. A journal-wide `read` grant
+  // is not a key to this trip, and there is no record here of who was on it
+  // (B68).
+  if (trip.visibility === "private") return [];
 
   const all = await listSubscriptions(trip.username);
   if (isOpenToLink(trip)) return all;

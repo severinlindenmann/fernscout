@@ -106,13 +106,27 @@ const TEST_TRIPS = TRIPS.filter((t) => t.test).map((t) => t.id);
  * - `panel` is `resolveViewer`'s `through` value, or null for "not
  *   mentioned": what `/<user>/me` tells somebody who came looking.
  * - `digest` is `digestableTrips` — what arrives in their inbox uninvited.
- * - (`push`, the fourth surface, is B68's to add.)
+ * - `push` is `subscribersFor` — what arrives on their lock screen (B68).
  *
  * The two halves are different questions and it is worth keeping them apart.
  * `read` and `panel` answer "may I", asked by somebody already here. `digest`
- * answers "should we say", asked by nobody — which is why a column can be
- * `false` where `read` is `true` (an unlisted trip, a trip nobody lived) and
- * must never be `true` where `read` is `false`.
+ * and `push` answer "should we say", asked by nobody — which is why those
+ * columns can be `false` where `read` is `true` (an unlisted trip, a trip
+ * nobody lived) and **must never be `true` where `read` is `false`**. That
+ * last relation is asserted below, derived from the table, for both.
+ *
+ * The two announcing columns differ in one place and it is not a mistake:
+ * `quiet-2026` is push `true` and digest `false`. An unlisted trip is
+ * openable by anyone with the link, so notifying a device that asked for
+ * notifications tells it nothing it could not already reach; mailing every
+ * address on the contact list *is* the advertising `listed: false` refuses.
+ * Push is asked by a device that opted in, the digest by an owner writing to
+ * a list.
+ *
+ * `push` is also the one column not keyed to a session: a subscription is
+ * identified by the `contactId` recorded when it was saved, so each viewer
+ * here owns one subscription — carrying their contact id where they have one,
+ * and `null` where they do not, which is what an unidentified device is.
  *
  * Written out per case rather than derived, because a table that recomputes
  * the implementation cannot disagree with it.
@@ -122,90 +136,92 @@ type Expectation = {
   read: boolean;
   /** Whether `digestableTrips` would put this trip in this reader's mail. */
   digest: boolean;
+  /** Whether `subscribersFor` would put it on this reader's lock screen. */
+  push: boolean;
 };
 
 const EXPECTED: Record<string, Record<string, Expectation>> = {
   // Nobody signed in.
   anonymous: {
-    "open-2026": { panel: "public", read: true, digest: true },
+    "open-2026": { panel: "public", read: true, digest: true, push: true },
     // unlisted, not locked — openable by link, advertised nowhere.
-    "quiet-2026": { panel: null, read: true, digest: false },
-    "invited-2026": { panel: null, read: false, digest: false },
-    "secret-2026": { panel: null, read: false, digest: false },
-    "robins-2026": { panel: null, read: false, digest: false },
+    "quiet-2026": { panel: null, read: true, digest: false, push: true },
+    "invited-2026": { panel: null, read: false, digest: false, push: false },
+    "secret-2026": { panel: null, read: false, digest: false, push: false },
+    "robins-2026": { panel: null, read: false, digest: false, push: false },
     // Nobody lived it: openable, banner and all, and mailed to no one.
-    "proving-2026": { panel: "public", read: true, digest: false },
-    "proving-guest-2026": { panel: null, read: false, digest: false },
+    "proving-2026": { panel: "public", read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: null, read: false, digest: false, push: false },
   },
   // Signed in, and that is all. Never a contact, never invited. **Identical
   // to `anonymous` above, deliberately and forever**: signing in is an
   // identity claim, not a key. Any diff that makes this row differ from the
   // anonymous one has opened every closed trip on the instance.
   stranger: {
-    "open-2026": { panel: "public", read: true, digest: true },
-    "quiet-2026": { panel: null, read: true, digest: false },
-    "invited-2026": { panel: null, read: false, digest: false },
-    "secret-2026": { panel: null, read: false, digest: false },
-    "robins-2026": { panel: null, read: false, digest: false },
-    "proving-2026": { panel: "public", read: true, digest: false },
-    "proving-guest-2026": { panel: null, read: false, digest: false },
+    "open-2026": { panel: "public", read: true, digest: true, push: true },
+    "quiet-2026": { panel: null, read: true, digest: false, push: true },
+    "invited-2026": { panel: null, read: false, digest: false, push: false },
+    "secret-2026": { panel: null, read: false, digest: false, push: false },
+    "robins-2026": { panel: null, read: false, digest: false, push: false },
+    "proving-2026": { panel: "public", read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: null, read: false, digest: false, push: false },
   },
   // Signed in, confirmed, never approved. Reads no more than a stranger.
   pending: {
-    "open-2026": { panel: "public", read: true, digest: true },
-    "quiet-2026": { panel: null, read: true, digest: false },
-    "invited-2026": { panel: null, read: false, digest: false },
-    "secret-2026": { panel: null, read: false, digest: false },
-    "robins-2026": { panel: null, read: false, digest: false },
-    "proving-2026": { panel: "public", read: true, digest: false },
-    "proving-guest-2026": { panel: null, read: false, digest: false },
+    "open-2026": { panel: "public", read: true, digest: true, push: true },
+    "quiet-2026": { panel: null, read: true, digest: false, push: true },
+    "invited-2026": { panel: null, read: false, digest: false, push: false },
+    "secret-2026": { panel: null, read: false, digest: false, push: false },
+    "robins-2026": { panel: null, read: false, digest: false, push: false },
+    "proving-2026": { panel: "public", read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: null, read: false, digest: false, push: false },
   },
   // Approved. A guest of the journal — every `guest` trip, no `private` one.
   // The only reader whose digest goes beyond what the world may read (B52),
   // and the reason the test rows below matter: the guest test trip is one
   // they *can* open and must still never be mailed about (B70).
   approved: {
-    "open-2026": { panel: "public", read: true, digest: true },
-    "quiet-2026": { panel: null, read: true, digest: true },
-    "invited-2026": { panel: "guest", read: true, digest: true },
-    "secret-2026": { panel: null, read: false, digest: false },
-    "robins-2026": { panel: null, read: false, digest: false },
-    "proving-2026": { panel: "public", read: true, digest: false },
-    "proving-guest-2026": { panel: "guest", read: true, digest: false },
+    "open-2026": { panel: "public", read: true, digest: true, push: true },
+    "quiet-2026": { panel: null, read: true, digest: true, push: true },
+    "invited-2026": { panel: "guest", read: true, digest: true, push: true },
+    "secret-2026": { panel: null, read: false, digest: false, push: false },
+    "robins-2026": { panel: null, read: false, digest: false, push: false },
+    "proving-2026": { panel: "public", read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: "guest", read: true, digest: false, push: false },
   },
   // Approved and then revoked. Back to a stranger.
   revoked: {
-    "open-2026": { panel: "public", read: true, digest: true },
-    "quiet-2026": { panel: null, read: true, digest: false },
-    "invited-2026": { panel: null, read: false, digest: false },
-    "secret-2026": { panel: null, read: false, digest: false },
-    "robins-2026": { panel: null, read: false, digest: false },
-    "proving-2026": { panel: "public", read: true, digest: false },
-    "proving-guest-2026": { panel: null, read: false, digest: false },
+    "open-2026": { panel: "public", read: true, digest: true, push: true },
+    "quiet-2026": { panel: null, read: true, digest: false, push: true },
+    "invited-2026": { panel: null, read: false, digest: false, push: false },
+    "secret-2026": { panel: null, read: false, digest: false, push: false },
+    "robins-2026": { panel: null, read: false, digest: false, push: false },
+    "proving-2026": { panel: "public", read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: null, read: false, digest: false, push: false },
   },
   // On one trip's `people:`, and nothing else. Their own private trip, and
   // not the journal's other one — and no more than a stranger everywhere else,
   // because being on a trip is not being a guest of the journal.
   traveller: {
-    "open-2026": { panel: "public", read: true, digest: true },
-    "quiet-2026": { panel: null, read: true, digest: false },
-    "invited-2026": { panel: null, read: false, digest: false },
-    "secret-2026": { panel: null, read: false, digest: false },
-    "robins-2026": { panel: "traveller", read: true, digest: false },
-    "proving-2026": { panel: "public", read: true, digest: false },
-    "proving-guest-2026": { panel: null, read: false, digest: false },
+    "open-2026": { panel: "public", read: true, digest: true, push: true },
+    "quiet-2026": { panel: null, read: true, digest: false, push: true },
+    "invited-2026": { panel: null, read: false, digest: false, push: false },
+    "secret-2026": { panel: null, read: false, digest: false, push: false },
+    "robins-2026": { panel: "traveller", read: true, digest: false, push: false },
+    "proving-2026": { panel: "public", read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: null, read: false, digest: false, push: false },
   },
   // The journal's owner reads their own journal, including the trip they did
   // not put themselves on `people:` for. They are not a contact, so the
   // digest treats them as ungranted — they are not on its list at all.
   owner: {
-    "open-2026": { panel: "traveller", read: true, digest: true },
-    "quiet-2026": { panel: "traveller", read: true, digest: false },
-    "invited-2026": { panel: "traveller", read: true, digest: false },
-    "secret-2026": { panel: "traveller", read: true, digest: false },
-    "robins-2026": { panel: "traveller", read: true, digest: false },
-    "proving-2026": { panel: "traveller", read: true, digest: false },
-    "proving-guest-2026": { panel: "traveller", read: true, digest: false },
+    "open-2026": { panel: "traveller", read: true, digest: true, push: true },
+    "quiet-2026": { panel: "traveller", read: true, digest: false, push: true },
+    "invited-2026": { panel: "traveller", read: true, digest: false, push: false },
+    "secret-2026": { panel: "traveller", read: true, digest: false, push: false },
+    "robins-2026": { panel: "traveller", read: true, digest: false, push: false },
+    "proving-2026": { panel: "traveller", read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: "traveller", read: true, digest: false, push: false },
   },
 };
 
@@ -295,6 +311,20 @@ async function contactIdFor(email: string): Promise<string> {
   return contact.id;
 }
 
+/**
+ * The push subscription belonging to one viewer.
+ *
+ * Push is the one surface in this table that is not asked through a cookie: a
+ * subscription is a device, tied at subscribe time to an active contact if it
+ * could be told which one (`findActiveContactId`). So each viewer owns exactly
+ * one endpoint, and `anonymous`, `stranger`, `traveller` and `owner` own an
+ * unidentified one — which is what a device that subscribed without a session,
+ * or with a session that matches no contact, actually is.
+ */
+function endpointFor(viewer: string): string {
+  return `https://push.example/${viewer}`;
+}
+
 /** Puts the named viewer behind the cookie jar for the calls that follow. */
 function as(viewer: string) {
   jar.cookies = {};
@@ -332,6 +362,31 @@ beforeAll(async () => {
   const blockedId = await contactIdFor(BLOCKED);
   await approveContact(OWNER, blockedId);
   await revokeContact(OWNER, blockedId);
+
+  const { saveSubscription } = await import("@/lib/push");
+  // One device per viewer, carrying their contact id where they have one.
+  // `pending` and `revoked` are contacts and would still be `null` in
+  // production (the route only ties an *active* one), which would make their
+  // rows pass for the wrong reason — so they carry theirs, and the status and
+  // grant checks are what have to refuse them.
+  const contactIds: Record<string, string | null> = {
+    anonymous: null,
+    stranger: null,
+    traveller: null,
+    owner: null,
+    approved: await contactIdFor(GUEST),
+    pending: await contactIdFor(PENDING),
+    revoked: await contactIdFor(BLOCKED),
+  };
+  for (const [viewer, contactId] of Object.entries(contactIds)) {
+    await saveSubscription({
+      username: OWNER,
+      endpoint: endpointFor(viewer),
+      keys: { p256dh: "p", auth: "a" },
+      created: "2026-08-01",
+      contactId,
+    });
+  }
 
   tokens.approved = await signIn(GUEST);
   tokens.stranger = await signIn(STRANGER);
@@ -384,6 +439,21 @@ describe("the panel and the gate agree", () => {
         if (panel !== null) {
           expect(read, `${viewer} is told about ${id}`).toBe(true);
         }
+      }
+    }
+  });
+
+  /**
+   * And the same property for the two surfaces that speak first. The panel
+   * answers somebody who came looking; the digest and push arrive unasked, so
+   * the rule is the same one and it matters more. Derived from the table, so a
+   * table that lies cannot satisfy it.
+   */
+  test("nothing the digest or push announces is refused by the gate", () => {
+    for (const [viewer, rows] of Object.entries(EXPECTED)) {
+      for (const [id, { read, digest, push }] of Object.entries(rows)) {
+        if (digest) expect(read, `${viewer} is mailed about ${id}`).toBe(true);
+        if (push) expect(read, `${viewer} is pushed about ${id}`).toBe(true);
       }
     }
   });
@@ -552,6 +622,72 @@ describe("the digest never mentions a trip the gate would refuse", () => {
       // by contact and cannot know a contact was on the bus.
       expect(ids, `granted: ${granted}`).not.toContain("robins-2026");
     }
+  });
+});
+
+/**
+ * Push, held to the same table. B68.
+ *
+ * `subscribersFor` (`lib/push.ts`) asked two questions and skipped a third: it
+ * let everybody through for a trip `isOpenToLink`, and otherwise took any
+ * subscription tied to an active contact holding a `read` grant. It never
+ * asked what kind of *closed* trip it had. A `read` grant is journal-wide and
+ * means "this person may read the journal's `guest` trips"; `mayReadTrip`
+ * refuses a `private` one to a journal guest before it asks anything else. So
+ * the approved family member with the PWA installed was pushed a title and a
+ * link to a page that then refused them.
+ *
+ * B41 established this property for the panel and B52 for the digest, both in
+ * this file. Push was the last surface still answering on its own, which is
+ * why the fix is a column here rather than a test of its own: what the table
+ * is for is that a fifth surface cannot be written that forgets one of these
+ * questions.
+ */
+describe("push never announces a trip the gate would refuse", () => {
+  test.each(Object.keys(EXPECTED))("%s: the push column, trip by trip", async (viewer) => {
+    const trips = await tripsByRef();
+    const { subscribersFor } = await import("@/lib/push");
+
+    for (const [id, expected] of Object.entries(EXPECTED[viewer])) {
+      const trip = trips.get(id);
+      if (!trip) throw new Error(`no trip ${id}`);
+      const endpoints = (await subscribersFor(trip)).map((sub) => sub.endpoint);
+      expect(endpoints.includes(endpointFor(viewer)), `${viewer} is pushed about ${id}`).toBe(
+        expected.push,
+      );
+    }
+  });
+
+  /** The line that was missing, stated on its own so a regression names itself. */
+  test("a private trip is on nobody's lock screen, grant or no grant", async () => {
+    const trips = await tripsByRef();
+    const { subscribersFor } = await import("@/lib/push");
+    for (const id of ["secret-2026", "robins-2026"]) {
+      expect(await subscribersFor(trips.get(id)!), id).toEqual([]);
+    }
+    // And the approved contact really is subscribed and really is granted —
+    // the same device reaches the guest trip, so this is not passing because
+    // nobody was eligible for anything.
+    const invited = await subscribersFor(trips.get("invited-2026")!);
+    expect(invited.map((sub) => sub.endpoint)).toEqual([endpointFor("approved")]);
+  });
+
+  /**
+   * Push and the digest disagree on exactly one trip, and it is deliberate.
+   * `quiet-2026` is `public` with `listed: false` — openable by anyone with
+   * the link. Notifying a device that asked to be notified adds nothing it
+   * could not already reach; mailing the whole contact list is the advertising
+   * `listed: false` exists to refuse. Pinned so the next person to "make them
+   * consistent" has to argue with a test.
+   */
+  test("the one place push says more than the digest is an unlisted public trip", () => {
+    const wider: string[] = [];
+    for (const [viewer, rows] of Object.entries(EXPECTED)) {
+      for (const [id, { digest, push }] of Object.entries(rows)) {
+        if (push && !digest) wider.push(`${viewer}/${id}`);
+      }
+    }
+    expect(new Set(wider.map((w) => w.split("/")[1]))).toEqual(new Set(["quiet-2026"]));
   });
 });
 
