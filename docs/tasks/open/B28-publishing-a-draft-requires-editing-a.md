@@ -42,6 +42,42 @@ an implementer's. Two things worth holding onto while deciding:
   The value is in the gap between the two calls, not in the confirmation
   ceremony around the second.
 
+## What a second agent run added (2026-09-01)
+
+An agent was asked to publish the drafts it had written and could not. Its
+report is worth quoting, because it identifies a gap this task had not:
+
+> Your guide tells an agent, four separate times, that "a person publishes it"
+> — and never once says **how** a person does that. There's no editing
+> interface by design, so the human reading my report has no obvious next move.
+> I don't want to guess at it: whether it's a link in the welcome mail,
+> something on the server, or a repo command, I haven't seen it stated anywhere
+> I've read, and I'd rather say so than invent a plausible route.
+
+That is a documentation defect independent of whether the endpoint is ever
+built, and it is arguably the more urgent half. Today the honest answer is
+"open `content/<user>/trips/<trip>/entries/<day>.md` in an editor and delete
+`status: draft`" — which is fine for the author on their own laptop and
+useless to somebody who was handed a journal by an agent and has never seen the
+folder. The guide states the rule beautifully and leaves the person holding it
+with nowhere to go.
+
+The agent also proposed the smallest useful version, which does not require
+deciding anything about the endpoint:
+
+> The draft list endpoint would be a natural place to return it too:
+> `list_drafts` could hand back the approval URL alongside the slugs.
+
+So this task now has two halves that can ship independently:
+
+1. **Say how a person publishes**, in `agent.md` and in the welcome mail, so an
+   agent can end its report with "here is where you approve them". Whatever the
+   answer is today, writing it down costs nothing and is owed.
+2. **The endpoint or the link**, which is the decision below.
+
+Note that half 1 gets much easier now that B27 has landed: the owner has a
+session, so there is somewhere on the site to send them.
+
 ## Work
 
 Sketch, not a decision:
@@ -67,6 +103,11 @@ depends on B27, which gives the owner a session in the first place.
 
 Whichever route is chosen:
 
+- **`/agent.md` says how a person publishes**, in as many words, near each of
+  the four places it says that a person does. An agent reading it can tell
+  somebody where to go. This holds even if the endpoint is never built.
+- `GET /api/v1/{user}/drafts` and MCP's `list_drafts` return where the approval
+  happens, alongside the slugs.
 - A person who has never opened the content folder can publish a draft.
 - An agent cannot cause a day to become published without a distinct,
   human-triggered step between writing it and publishing it — and a test

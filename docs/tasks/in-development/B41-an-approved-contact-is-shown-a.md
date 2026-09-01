@@ -101,13 +101,33 @@ way — moving a task to `completed/` is the author's gate, never an agent's.
   `costsVisibility: guests` finally mean something for an identified guest
   rather than only for a password holder.
 - One helper, called by both, rather than the lookup written twice. It needs the
-  signed-in address (`GUEST_COOKIE` → `resolveSession`), the contact record and
-  its grant — the same three things `resolveViewer` already assembles at
-  `lib/viewer.ts:56`. Reuse it if it fits; do not fork it.
-- Expiry is already handled in `readGrantsByContact` (`lib/digest/visibility.ts:49`)
-  and a second implementation will drift from it. An expired grant is not a
-  grant, and a revoked contact is not a contact — `revokeContact` deletes the
-  grant rows, so both fall out of one correct lookup.
+  signed-in address (`GUEST_COOKIE` → `resolveSession`) and the contact record —
+  which `resolveViewer` (`lib/viewer.ts:56`) already assembles. Reuse it if it
+  fits; do not fork it.
+
+**B35 landed first and changed two things this section originally assumed.**
+Read the code rather than this paragraph if they disagree — but do not miss
+the second one, which is a decision, not a detail.
+
+`readGrantsByContact` is now `contactsWithReadGrant` and returns a
+`Set<contactId>`; `access_grants.trip_id` no longer exists, so a grant is one
+bit — this contact may read this journal.
+
+And `resolveViewer` **no longer reads `access_grants` at all**. B35 found that
+"holds a read grant" and `status === "active"` are the same question, because
+`approveContact` writes both and `revokeContact` deletes both, and dropped the
+lookup rather than leave a second dead arm.
+
+That is sound for status, and it opens one gap this task has to close.
+`access_grants.expires_at` can in principle expire while the contact stays
+`active` — nothing writes a non-null expiry today (`approveContact` writes
+`null`), so it is theoretical, but this task's acceptance requires *both* that
+an expired grant is refused *and* that the panel and the gate agree. Those two
+cannot both hold if the gate consults `expires_at` and the panel consults
+`status`. Decide which single question both ask, write the decision into this
+file, and make the table test cover it. Reintroducing the panel/gate
+disagreement in a new place would be an unusually ironic way to close this
+task.
 - `VISIBILITY_NOT_A_LOCK` (`lib/api/agentCopy.ts:46`) says a journey is gated by
   "a password, invited guests and the trip's `people:` list", which stops being
   accurate once an invited guest is a guest of the journal rather than of the
