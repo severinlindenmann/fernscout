@@ -99,7 +99,7 @@ function writeUserConfig() {
 type TripSpec = {
   id: string;
   title: string;
-  visibility?: "public" | "unlisted" | "password";
+  visibility?: "public" | "unlisted" | "guest";
   dates: string[];
 };
 
@@ -116,11 +116,6 @@ function writeTrip(spec: TripSpec) {
       `end: "${spec.dates.at(-1)}"`,
       'status: "current"',
       ...(spec.visibility ? [`visibility: "${spec.visibility}"`] : []),
-      // A password trip needs a hash or the boot assertion complains; the
-      // digest never looks at it, which is rather the point.
-      ...(spec.visibility === "password"
-        ? ['passwordHash: "scrypt$32768$8$1$c2FsdA$a2V5"']
-        : []),
       "---",
       "",
       `${spec.title} intro.`,
@@ -284,7 +279,7 @@ describe("what a reader is told about", () => {
     writeTrip({
       id: "locked-2026",
       title: "Private trip",
-      visibility: "password",
+      visibility: "guest",
       dates: ["2026-08-28"],
     });
   });
@@ -293,7 +288,7 @@ describe("what a reader is told about", () => {
   test("a reader without access hears nothing about a private trip", async () => {
     const reader = await addReader("plain@example.test", "de");
     // A reader with no grant at all: the public trip is everybody's, and the
-    // unlisted and password-protected ones are none of their business.
+    // unlisted and guest-only ones are none of their business.
     await clearGrants(reader);
 
     const plan = await planDigest(OWNER, { now: MORNING });
@@ -326,11 +321,13 @@ describe("what a reader is told about", () => {
   });
 
   /**
-   * A grant does not open the password gate — `lib/tripGate.ts` has no database
-   * behind it — so a line about one of these trips would link to a door the
-   * reader has no key for.
+   * A grant *does* open a `guest` trip's gate now (B41, B39), and this stays
+   * shut anyway: `digestableTrips` is deliberately narrower than the gate,
+   * because widening what lands in somebody's inbox is the owner's call and
+   * not a side effect of changing what the gate asks for. That widening is
+   * B52; until then this is the assertion that keeps the two apart.
    */
-  test("a password-protected trip is never in a digest, grant or no grant", async () => {
+  test("a guest trip is never in a digest, grant or no grant", async () => {
     await addReader("granted@example.test", "de"); // approval is the grant
 
     const plan = await planDigest(OWNER, { now: MORNING });

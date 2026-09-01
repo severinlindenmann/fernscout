@@ -26,7 +26,7 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   if (!tripId) redirect(`/${user}/trips`);
   const current = getTrip(tripId);
   if (!current) notFound();
-  // The layout draws the password form; this stops the page from *running*.
+  // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(current))) return null;

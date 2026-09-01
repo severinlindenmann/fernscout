@@ -7,7 +7,7 @@ import { useI18n } from "@/components/LocaleProvider";
 /**
  * A way back, for the two pages that have no header.
  *
- * The password gate and the invite form (`/{user}/i/<token>`) both render a
+ * The trip gate and the invite form (`/{user}/i/<token>`) both render a
  * bare `<main>`, which was right — neither can show the trip navigation,
  * because on one of them you have not been let in and on the other you are not
  * a reader yet. But it left somebody

@@ -112,8 +112,7 @@ function seedSource() {
       'start: "2026-02-01"',
       'end: "2026-02-05"',
       "status: past",
-      "visibility: password",
-      "passwordHash: scrypt$32768$8$1$AAAA$AAAA",
+      "visibility: guest",
       "---",
       "",
       "Secret body.",
@@ -202,12 +201,12 @@ describe("buildUserExportZipBuffer — scope 'all'", () => {
     const secretEntries = getAllEntries(tripRef("traveller", "secret-2026"));
     expect(secretEntries[0].content).toContain("SECRET-MARKER");
 
-    // The password hash survives — this is the owner's own full backup.
+    // Frontmatter survives verbatim — this is the owner's own full backup.
     const secretTripMd = fs.readFileSync(
       path.join(restoredUserDir, "trips", "secret-2026", "trip.md"),
       "utf8",
     );
-    expect(secretTripMd).toContain("passwordHash: scrypt$32768$8$1$AAAA$AAAA");
+    expect(secretTripMd).toContain("visibility: guest");
 
     // Media round-trips too.
     const photo = fs.readFileSync(
@@ -236,7 +235,7 @@ describe("buildUserExportZipBuffer — scope 'open-to-link'", () => {
     expect(entries).not.toContain("2026-01-03-unpublished.md");
   });
 
-  test("excludes the password-protected trip entirely", async () => {
+  test("excludes the closed trip entirely", async () => {
     process.env.CONTENT_DIR = srcDir;
     const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
     const extracted = unzipInto(buffer, "open");
@@ -264,28 +263,5 @@ describe("buildUserExportZipBuffer — scope 'open-to-link'", () => {
 
     expect(getTrips("traveller").map((t) => t.id)).toEqual(["open-2026"]);
     expect(getAllEntries(tripRef("traveller", "open-2026"))[0].content).toContain("OPEN-MARKER");
-  });
-
-  test("strips a stale passwordHash even from a trip that is included", async () => {
-    // Flip the secret trip to public but leave its old hash in place — the
-    // kind of half-edited frontmatter a real trip.md could end up with.
-    const tripMdPath = path.join(srcDir, "traveller", "trips", "secret-2026", "trip.md");
-    const flipped = fs
-      .readFileSync(tripMdPath, "utf8")
-      .replace("visibility: password", "visibility: public");
-    fs.writeFileSync(tripMdPath, flipped);
-
-    process.env.CONTENT_DIR = srcDir;
-    clearConfigCache();
-    clearUserCache();
-    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
-    const extracted = unzipInto(buffer, "redact");
-
-    const restoredTripMd = fs.readFileSync(
-      path.join(extracted, "trips", "secret-2026", "trip.md"),
-      "utf8",
-    );
-    expect(restoredTripMd).not.toContain("passwordHash");
-    expect(restoredTripMd).not.toContain("scrypt$");
   });
 });

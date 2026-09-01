@@ -12,8 +12,8 @@ export const dynamic = "force-dynamic";
  * unlisted trips, drafts stripped (`"open-to-link"` in lib/exportZip.ts).
  *
  * **With an agent token for this journal**: all of it. The original objection
- * was that an HTTP endpoint would "hand out someone's password-protected
- * content on a plain GET", and that is right — but a request carrying a Bearer
+ * was that an HTTP endpoint would "hand out someone's closed content on a
+ * plain GET", and that is right — but a request carrying a Bearer
  * token scoped to this journal is not a plain GET, and the alternative was
  * telling somebody their backup needs shell access to a machine they may not
  * have. `npm run export` is still there for whoever does.

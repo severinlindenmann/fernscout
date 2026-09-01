@@ -69,7 +69,7 @@ beforeEach(() => {
       features: {},
     }),
   );
-  writeUser("ana", { "alps-2026": "public", "secret-2025": "password" });
+  writeUser("ana", { "alps-2026": "public", "secret-2025": "guest" });
   writeUser("bea", { "peru-2026": "public" });
   clearConfigCache();
   clearUserCache();

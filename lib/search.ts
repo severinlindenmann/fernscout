@@ -15,8 +15,8 @@ import { getUser } from "./users";
  * searching itself against a static asset — see components/SearchBox.tsx.
  *
  * Visibility follows the same `isIndexable` discipline as the sitemap and
- * the RSS feed: a `password` or `unlisted` trip's entries are never added,
- * so they cannot be found by searching either.
+ * the RSS feed: a `guest`, `private` or unlisted trip's entries are never
+ * added, so they cannot be found by searching either.
  */
 
 function buildDocs(username: string): SearchDoc[] {

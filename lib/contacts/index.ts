@@ -569,8 +569,9 @@ export async function approveContact(
         owner_id: owner,
         contact_id: id,
         // The whole journal. There is no narrower grant to write — see
-        // `AccessGrantsTable` — so this is simply "they may read what is not
-        // password-protected".
+        // `AccessGrantsTable` — so this is simply "they may read this
+        // journal's `guest` trips". Never its `private` ones: that is the one
+        // thing being let into a journal does not widen.
         scope: "read",
         granted_at: now,
         granted_by: owner,

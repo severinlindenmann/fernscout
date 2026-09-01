@@ -1,12 +1,11 @@
 ---
 id: private-2026
 title: "A Private Trip"
-tagline: "nobody but a password holder should read this"
+tagline: "nobody but an invited guest should read this"
 start: "2026-02-01"
 end: "2026-02-10"
 status: past
-visibility: password
-passwordHash: "scrypt$32768$8$1$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+visibility: guest
 ---
 
 The private trip. Its title, its entries, and this intro must never appear
