@@ -35,5 +35,19 @@
 	# Next.js sets its own cache headers per-route (see next.config.ts and
 	# the API routes' `cache-control: no-store`); Caddy just proxies. The app
 	# runs on this host — there is no container to address by name.
-	reverse_proxy 127.0.0.1:3000
+	reverse_proxy 127.0.0.1:3000 {
+		# Overwrite, never append — and this line is load-bearing.
+		#
+		# Caddy's default is to *append* the real client address to whatever
+		# `X-Forwarded-For` arrived. `clientIp()` in lib/rateLimit.ts reads the
+		# first value, so without this a client that sends its own
+		# `X-Forwarded-For: 203.0.113.9` is rate-limited as 203.0.113.9 —
+		# rotate the header per request and every limit on this server resets.
+		# That includes the eight-guess limit in front of a trip's password.
+		#
+		# The app trusts the first value *because* of this line. If Caddy is
+		# ever replaced, the replacement has to overwrite the header too, or
+		# `clientIp()` has to stop trusting it. See B01.
+		header_up X-Forwarded-For {remote_host}
+	}
 }
