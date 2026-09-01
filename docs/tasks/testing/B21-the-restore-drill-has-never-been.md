@@ -184,3 +184,8 @@ copy of `content/`.
 - **B64** — a failed nightly backup tells nobody (no `OnFailure=`, and the
   documented check reports the schedule rather than the result).
 - **B63** — a wrong `RESTIC_REPOSITORY` silently becomes a new empty repository.
+- **B65** — captured by a parallel session while this was in flight, and not
+  verified from here: it reports that the deployed server has no backup
+  installed at all. If that holds, it comes before items 1–2 — there is nothing
+  to restore *from* until it is fixed, and "the drill has never been run" is
+  then the smaller half of the problem.
