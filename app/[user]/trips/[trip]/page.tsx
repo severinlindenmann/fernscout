@@ -81,7 +81,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
     );
   }
 
-  const { index, days, windowStart, initialDate, stats } = buildStoryProps(trip.ref, {
+  const { index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(trip.ref, {
     showCosts: await mayViewCosts(trip),
     includeDrafts: await isOwner(user),
   });
@@ -100,6 +100,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
         windowStart={windowStart}
         initialDate={initialDate}
         stats={stats}
+        basemap={basemap}
       />
     </TripProvider>
   );

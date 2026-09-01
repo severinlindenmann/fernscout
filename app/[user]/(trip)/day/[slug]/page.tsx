@@ -82,7 +82,7 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
   const entry = getEntryBySlug(tripId, slug, { includeDrafts: owner });
   if (!entry) notFound();
 
-  const { trip, index, days, windowStart, initialDate, stats } = buildStoryProps(tripId, {
+  const { trip, index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(tripId, {
     openAt: entry.date,
     showCosts: await mayViewCosts(current),
     includeDrafts: owner,
@@ -105,6 +105,7 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
         initialDate={initialDate}
         openAtDate={entry.date}
         stats={stats}
+        basemap={basemap}
       />
     </TripProvider>
   );

@@ -1,5 +1,7 @@
 import "server-only";
+import { basemapFor } from "./basemap";
 import { getDays, getDefaultDay, getTripStats } from "./entries";
+import { frameRoute } from "./mapFrame";
 import { costForDay, getCostSummary } from "./costs";
 import { getTrip } from "./trips";
 import type { Day, DaySummary, Trip } from "./types";
@@ -31,6 +33,14 @@ export type StoryProps = {
   /** A specific day to open at, from the /day/<slug> route. */
   openAtDate?: string;
   stats: HeroStats;
+  /**
+   * The basemap for the hero's small map, clipped here rather than in the
+   * browser — the same reason the trip map does it (lib/basemap.ts). Built in
+   * this function because all four routes that render a story go through it,
+   * and the alternative was passing it down four call sites that otherwise have
+   * nothing to say about maps.
+   */
+  basemap: ReturnType<typeof basemapFor>;
 };
 
 /** The navigation's view of one day. */
@@ -142,6 +152,9 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
   return {
     trip,
     index,
+    // Framed on the same points MiniMap frames on, so the clip covers what is
+    // actually drawn. `frameRoute` is pure, so the two agree.
+    basemap: basemapFor(frameRoute(index)),
     days: showCosts ? days.slice(from, to) : days.slice(from, to).map(withoutCosts),
     windowStart: from,
     initialDate,

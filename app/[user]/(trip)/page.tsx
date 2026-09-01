@@ -31,7 +31,7 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(current))) return null;
 
-  const { trip, index, days, windowStart, initialDate, stats } = buildStoryProps(tripId, {
+  const { trip, index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(tripId, {
     showCosts: await mayViewCosts(current),
     includeDrafts: await isOwner(user),
   });
@@ -50,6 +50,7 @@ export default async function Home({ params }: PageProps<"/[user]">) {
         windowStart={windowStart}
         initialDate={initialDate}
         stats={stats}
+        basemap={basemap}
       />
     </TripProvider>
   );

@@ -87,7 +87,7 @@ export default async function TripDayPage({
   const entry = getEntryBySlug(trip.ref, slug, { includeDrafts: owner });
   if (!entry) notFound();
 
-  const { index, days, windowStart, initialDate, stats } = buildStoryProps(trip.ref, {
+  const { index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(trip.ref, {
     openAt: entry.date,
     showCosts: await mayViewCosts(trip),
     includeDrafts: owner,
@@ -110,6 +110,7 @@ export default async function TripDayPage({
         initialDate={initialDate}
         openAtDate={entry.date}
         stats={stats}
+        basemap={basemap}
       />
     </TripProvider>
   );

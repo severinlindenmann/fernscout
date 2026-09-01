@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import WorldMap, { type PlaceView } from "@/components/WorldMap";
+import MiniMap from "@/components/MiniMap";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 import { kmForUnits } from "@/lib/mapFrame";
@@ -158,5 +159,37 @@ describe("a trip across a continent", () => {
       stop("Bangkok", 13.7563, 100.5018),
     ];
     expect(markers(render(sameCity)).length).toBeLessThan(sameCity.length);
+  });
+});
+
+/**
+ * The hero's small map, which had the same bug and kept it two commits longer
+ * than the others: B46 gave MiniMap the shared frame but left its pin at
+ * `r={9}` viewBox units. Framed on `alps-2024` — 4.6 units wide — the pin came
+ * out twice as wide as the map and the trip page rendered as a solid yellow
+ * rectangle.
+ */
+describe("the hero's mini map", () => {
+  function renderMini(route: { lat: number; lng: number }[]) {
+    return renderToStaticMarkup(
+      <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+        <MiniMap route={route} current={route[route.length - 1]} />
+      </LocaleProvider>,
+    );
+  }
+
+  test("draws a pin, not a yellow rectangle", () => {
+    const html = renderMini(alps);
+    const [, , w] = viewBox(html);
+    const radii = [...html.matchAll(/\br="([\d.]+)"/g)].map((m) => Number(m[1]));
+    expect(radii.length).toBeGreaterThan(0);
+    // The pulsing ring is the largest circle on it and still has to be a mark
+    // on the map rather than the whole of it.
+    for (const r of radii) expect(r).toBeLessThan(w / 4);
+  });
+
+  test("frames the route it was given", () => {
+    const [, , w] = viewBox(renderMini(alps));
+    expect(kmForUnits(w)).toBeLessThan(250);
   });
 });

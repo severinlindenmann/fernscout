@@ -7,7 +7,6 @@ complexity: medium
 area: map, ui
 found: "2026-09-01"
 started: "2026-09-01"
-merged: "2026-09-01"
 ---
 
 # B46 — A trip that stays inside one city draws as a single dot on a map thousands of kilometres wide
@@ -294,6 +293,30 @@ and not because they would not be useful.
   comment where the threshold is set.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run` and `npm run build` all
   pass.
+
+### Sent back from testing, 2026-09-01
+
+The author found two pages still wrong, and both were the same miss:
+`components/MiniMap.tsx` — the hero's small map — got the shared frame and
+nothing else.
+
+- **`/example/trips/alps-2024` rendered as a solid yellow rectangle.** Its pin
+  was `r={9}` *viewBox units*. Under the old fixed padding no frame was ever
+  narrower than 140 units and that meant a dot; framed on the Alps it is 4.6
+  units, so the pin was twice as wide as the map. Exactly the blank-rectangle
+  bug already recorded above, in the one component that had been reframed but
+  not resized — which is what happens when a fix is applied by hand three times
+  instead of shared.
+- **`/example` had no basemap.** `MiniMap` was never given the prop, so it was
+  still drawing 110m coastline while every other map had been moved on.
+
+Both fixed: `MiniMap` sizes in measured screen pixels like `WorldMap`, and
+takes a basemap. The clip is built in `buildStoryProps` (`lib/tripView.ts`)
+rather than at the four routes that render a story, because all four go through
+it and none of them otherwise has anything to say about maps.
+
+`test/world-map.test.tsx` now asserts no circle on the mini map is wider than a
+quarter of its frame, which is the assertion that would have caught this.
 
 ### Checked, line by line
 

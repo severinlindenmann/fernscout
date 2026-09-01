@@ -14,6 +14,7 @@ import PagerNav, { type PagerNavState } from "@/components/PagerNav";
 import ReactionsProvider from "@/components/ReactionsProvider";
 import StoryPager, { buildSteps } from "@/components/StoryPager";
 import TripHero from "@/components/TripHero";
+import type { Basemap } from "@/lib/basemap";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
@@ -47,6 +48,7 @@ export default function TripStory({
   initialDate,
   openAtDate,
   stats,
+  basemap = null,
 }: {
   /** Every day of the trip, cheaply. */
   index: DaySummary[];
@@ -59,6 +61,8 @@ export default function TripStory({
   /** A specific day to open at, from the /day/<slug> route. */
   openAtDate?: string;
   stats: HeroStats;
+  /** Clipped to this trip's frame on the server — see lib/basemap.ts. */
+  basemap?: Basemap | null;
 }) {
   const { t, formatLongDate, localizedTrip } = useI18n();
   // TripStory is always rendered inside TripProvider (both the current-trip
@@ -499,6 +503,7 @@ export default function TripStory({
                   stats={stats}
                   route={index.map((d) => ({ lat: d.lat, lng: d.lng }))}
                   current={todayDay}
+                  basemap={basemap}
                   over={over}
                   coverSrc={heroCover}
                   onStart={() => {

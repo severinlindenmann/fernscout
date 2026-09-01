@@ -5,6 +5,7 @@ import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
 import { ArrowDown, LocateFixed, PlayCircle, Sparkles } from "lucide-react";
 import MiniMap from "./MiniMap";
+import type { Basemap } from "@/lib/basemap";
 import PushInstallOnboarding from "./PushInstallOnboarding";
 import PushOptIn from "./PushOptIn";
 import Travelers from "./Travelers";
@@ -46,8 +47,11 @@ export default function TripHero({
   resumeLabel,
   newDayCount = 0,
   onShowNew,
+  basemap = null,
 }: {
   stats: HeroStats;
+  /** Clipped to this trip's frame on the server — see lib/basemap.ts. */
+  basemap?: Basemap | null;
   route: { lat: number; lng: number }[];
   /** Where the trip has got to — the pin on the map and the "currently in" /
    * "ended in" line. A summary, not a full day: the hero never shows the day's
@@ -220,7 +224,12 @@ export default function TripHero({
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <MiniMap route={route} current={current} className="block h-auto w-full" />
+          <MiniMap
+            route={route}
+            current={current}
+            basemap={basemap}
+            className="block h-auto w-full"
+          />
         </motion.div>
       </section>
 
