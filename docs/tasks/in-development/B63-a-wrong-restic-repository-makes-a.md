@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: backup, ops
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B63 — A wrong RESTIC_REPOSITORY makes a new empty repo instead of failing
