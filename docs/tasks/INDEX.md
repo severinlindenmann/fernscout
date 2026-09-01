@@ -11,18 +11,26 @@ docs/tasks/
   backlog/           captured, not yet reviewed — anyone may add here
   open/              reviewed and approved; an agent may pick these up
   in-development/    somebody is on it now
-  completed/         shipped, kept as the record
+  testing/           merged, waiting for a person to try it
+  completed/         verified by a person, kept as the record
 ```
 
-The line between the first two lanes is the one that matters. **`backlog/` is
-intake and `open/` is a queue somebody has agreed to.** An agent asked to find
-itself something useful takes it from `open/` and nowhere else; anything it
-notices along the way it writes into `backlog/`. Promoting a task from
-`backlog/` to `open/` is a person's decision, and the only lane move an agent
-does not make on its own.
+**Two of those lanes are gates, and a person holds both.**
 
-That is what keeps "here is a list of things you could do" from turning into
-"an agent decided what this project needs next".
+`open/` is the way in. An agent asked to find itself something useful takes
+work from `open/` and nowhere else; anything it notices along the way it
+writes into `backlog/`. Promoting `backlog/ → open/` is the author's decision,
+and it is what keeps "here is a list of things you could do" from becoming "an
+agent decided what this project needs next".
+
+`completed/` is the way out. An agent takes a task as far as `testing/` —
+merged, verified against its own acceptance criteria — and then says what to
+look at. A task is done when somebody has seen it working, not when its tests
+pass.
+
+The three lanes in between are ordinary bookkeeping and an agent moves through
+them on its own. `.claude/skills/work-on-a-task/` is the build loop;
+`.claude/skills/manage-tasks/` is the bookkeeping around it.
 
 There is no `status:` field in the frontmatter. A status kept in two places
 disagrees with itself within a month — the same reason the entry and trip
@@ -38,20 +46,47 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B01](backlog/B01-forwarded-for-trust.md) | X-Forwarded-For is taken on trust, so every rate limit is bypassable | SECURITY | high | low |
+| [B18](backlog/B18-a-planned-trip-s-map-page.md) | A planned trip's map page draws no map | ISSUE | high | low |
+| [B21](backlog/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | CHORE | high | medium |
 | [B02](backlog/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low |
 | [B06](backlog/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B09](backlog/B09-links-to-docs-moved-into-archiv.md) | Links to docs moved into archiv no longer resolve | CHORE | medium | low |
+| [B10](backlog/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
+| [B12](backlog/B12-a-finished-trip-still-offers-a.md) | A finished trip still offers a Today button | ISSUE | medium | low |
+| [B13](backlog/B13-the-photobook-prints-from-the-web.md) | The photobook prints from the web derivatives, not the originals | ISSUE | medium | medium |
+| [B14](backlog/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
+| [B16](backlog/B16-the-day-photo-viewer-does-not.md) | The day photo viewer does not answer to touch and never says where you are | ISSUE | medium | low |
+| [B17](backlog/B17-how-a-trip-gets-its-rates.md) | How a trip gets its rates is written down nowhere a person will find it | CHORE | medium | low |
+| [B19](backlog/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium |
+| [B20](backlog/B20-the-stranger-s-me-page-never.md) | The stranger's me page never says who to ask | ISSUE | medium | low |
+| [B22](backlog/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | SECURITY | medium | medium |
+| [B25](backlog/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low |
+| [B26](backlog/B26-the-welcome-mail-is-english-only.md) | The welcome mail is English only, and nobody is asked which language the journal is in | FEATURE | medium | low |
+| [B27](backlog/B27-the-welcome-mail-s-link-opens.md) | The welcome mail's link opens the public view, so the owner cannot see their own drafts | FEATURE | medium | medium |
+| [B28](backlog/B28-publishing-a-draft-requires-editing-a.md) | Publishing a draft requires editing a file by hand, so an agent cannot close the loop it opened | FEATURE | medium | high |
+| [B32](backlog/B32-a-taken-username-answers-409-with.md) | A taken username answers 409 with no route onward for somebody who already owns it | ISSUE | medium | low |
 | [B03](backlog/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium |
 | [B04](backlog/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium |
 | [B05](backlog/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
 | [B07](backlog/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium |
 | [B08](backlog/B08-serve-webp-alongside-jpeg-with-picture.md) | Serve WebP alongside JPEG with <picture> in the gallery (W30 gap) | CHORE | low | low |
+| [B11](backlog/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium |
+| [B15](backlog/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium |
+| [B23](backlog/B23-everything-in-docs-was-archived-and.md) | Everything in docs was archived and nobody decided what is still current | CHORE | low | low |
+| [B24](backlog/B24-nothing-notices-when-a-file-stops.md) | Nothing notices when a file stops being used | CHORE | low | low |
+| [B29](backlog/B29-an-agent-has-no-way-to.md) | An agent has no way to hand its owner a working sign-in link | FEATURE | low | medium |
+| [B30](backlog/B30-a-url-upload-never-says-whether.md) | A URL upload never says whether an original was kept | ISSUE | low | low |
+| [B31](backlog/B31-a-refused-url-does-not-say.md) | A refused URL does not say whether the host was checked or the check itself failed | ISSUE | low | low |
 
 ## open
 
 _Nothing here._
 
 ## in-development
+
+_Nothing here._
+
+## testing
 
 _Nothing here._
 
