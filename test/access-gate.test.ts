@@ -84,7 +84,10 @@ const TRIPS: TripSpec[] = [
  * `read` is `mayReadTrip`. Written out per case rather than derived, because a
  * table that recomputes the implementation cannot disagree with it.
  */
-type Expectation = { panel: "public" | "traveller" | "guest" | null; read: boolean };
+type Expectation = {
+  panel: "public" | "owner" | "traveller" | "guest" | null;
+  read: boolean;
+};
 
 const EXPECTED: Record<string, Record<string, Expectation>> = {
   // Nobody signed in.
@@ -141,13 +144,17 @@ const EXPECTED: Record<string, Record<string, Expectation>> = {
     "robins-2026": { panel: "traveller", read: true },
   },
   // The journal's owner reads their own journal, including the trip they did
-  // not put themselves on `people:` for.
+  // not put themselves on `people:` for — and is told so in those words.
+  // Every row here is `owner` and not one is `traveller`, which is the whole
+  // of B80: Ana is on nobody's `people:` block, `robins-2026` is Robin's
+  // fortnight written up in her journal, and the panel used to tell her she
+  // had been there.
   owner: {
-    "open-2026": { panel: "traveller", read: true },
-    "quiet-2026": { panel: "traveller", read: true },
-    "invited-2026": { panel: "traveller", read: true },
-    "secret-2026": { panel: "traveller", read: true },
-    "robins-2026": { panel: "traveller", read: true },
+    "open-2026": { panel: "owner", read: true },
+    "quiet-2026": { panel: "owner", read: true },
+    "invited-2026": { panel: "owner", read: true },
+    "secret-2026": { panel: "owner", read: true },
+    "robins-2026": { panel: "owner", read: true },
   },
 };
 

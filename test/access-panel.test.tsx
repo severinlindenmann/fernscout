@@ -49,7 +49,7 @@ const site = {
 
 const stranger: Viewer = { email: null, owner: false, guest: false, trips: [] };
 
-function render(over: { canSignIn?: boolean } = {}) {
+function render(over: { canSignIn?: boolean; viewer?: Viewer } = {}) {
   return renderToStaticMarkup(
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
       <SiteProvider value={site}>
@@ -59,7 +59,7 @@ function render(over: { canSignIn?: boolean } = {}) {
         <CurrencyProvider options={{ base: "CHF", currencies: ["CHF"], rates: { CHF: 1 } }}>
           <TripListProvider trips={[]}>
         <MePageContent
-          viewer={stranger}
+          viewer={over.viewer ?? stranger}
           username="alex"
           docUrl="https://example.test/documentation.txt"
           canSignIn={over.canSignIn ?? false}
@@ -107,5 +107,39 @@ describe("the access panel, for somebody not signed in", () => {
 
   test("and then says why there is nothing to press", () => {
     expect(render({ canSignIn: false })).toMatch(/nothing to fill in/i);
+  });
+});
+
+/**
+ * The line beside each trip — the panel's whole claim about why this reader
+ * may open that trip, and the reason the page exists.
+ *
+ * B80: `resolveViewer` had one arm for "owns the journal" and "was on the
+ * trip", so the owner was told they had been on every trip in their own
+ * journal — including one somebody else travelled and a `test: true` one
+ * nobody did. The strings are asserted here rather than the key, because the
+ * bug was a sentence a reader believed.
+ */
+describe("the reason beside each trip", () => {
+  function seeing(through: Viewer["trips"][number]["through"], owner: boolean): string {
+    const viewer: Viewer = {
+      email: "reader@example.test",
+      owner,
+      guest: false,
+      trips: [{ id: "t", title: "A trip", href: "/alex/trips/t", through }],
+    };
+    return render({ viewer });
+  }
+
+  test("an owner is told the journal is theirs, not that they were there", () => {
+    const html = seeing("owner", true);
+    expect(html).toContain("it is in your journal");
+    expect(html).not.toContain("you were on this trip");
+  });
+
+  test("a traveller who is not the owner still reads that they were on it", () => {
+    const html = seeing("traveller", false);
+    expect(html).toContain("you were on this trip");
+    expect(html).not.toContain("it is in your journal");
   });
 });

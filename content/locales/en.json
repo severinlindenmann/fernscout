@@ -335,6 +335,7 @@
   "me.tokenTitle": "What the agent gets",
   "me.tokenWarning": "It is not the same as being signed in here. Do not paste it into a page or a chat you did not start: anyone holding it can write to your journal until it expires.",
   "me.viaGuest": "you were invited",
+  "me.viaOwner": "it is in your journal",
   "me.viaPublic": "public",
   "me.viaTraveller": "you were on this trip",
   "media.count": "media",

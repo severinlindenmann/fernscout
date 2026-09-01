@@ -335,6 +335,7 @@
   "me.tokenTitle": "Mit kap az ügynök",
   "me.tokenWarning": "Ez nem ugyanaz, mint hogy itt be vagy jelentkezve. Ne illeszd be olyan oldalra vagy beszélgetésbe, amit nem te kezdtél: akinél megvan, lejáratig írhat a naplódba.",
   "me.viaGuest": "meghívtak",
+  "me.viaOwner": "a te naplódban van",
   "me.viaPublic": "nyilvános",
   "me.viaTraveller": "te is ott voltál ezen az úton",
   "media.count": "média",

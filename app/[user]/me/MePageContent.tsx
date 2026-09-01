@@ -44,8 +44,12 @@ export default function MePageContent({
   const { t } = useI18n();
   const site = useSite();
 
+  // One line beside each trip, saying why it is open to this reader. The
+  // wording is `resolveViewer`'s answer and never this component's: the panel
+  // computing anything of its own about access is B41.
   const reason: Record<Viewer["trips"][number]["through"], TranslationKey> = {
     public: "me.viaPublic",
+    owner: "me.viaOwner",
     traveller: "me.viaTraveller",
     guest: "me.viaGuest",
   };
