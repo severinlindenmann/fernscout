@@ -69,7 +69,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
     const plan = getPlan(trip.ref, { includeDrafts: await isOwner(user) });
     return (
       <TripProvider trip={trip} isCurrent={false}>
-        <TripCountdown trip={trip} stops={plan.stops} budget={getBudgetInBase(trip.id)} />
+        <TripCountdown trip={trip} stops={plan.stops} budget={getBudgetInBase(trip.ref)} />
       </TripProvider>
     );
   }

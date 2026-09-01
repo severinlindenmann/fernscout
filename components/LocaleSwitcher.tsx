@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Languages } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "./LocaleProvider";
-import { useSite } from "./SiteProvider";
+import { useOptionalSite } from "./SiteProvider";
 import { LOCALE_COOKIE } from "@/proxy";
-import { LOCALE_SHORT, LOCALE_LABEL } from "@/lib/i18n";
+import { LOCALE_SHORT, LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
 
 /** Compact language picker: one small chip that opens a menu, so the header
  * isn't three buttons wide on every page. */
@@ -21,9 +21,16 @@ function remember(locale: string) {
   document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=${year}; samesite=lax`;
 }
 
-export default function LocaleSwitcher() {
+export default function LocaleSwitcher({
+  locales: given,
+  subtle = false,
+}: { locales?: string[]; subtle?: boolean } = {}) {
   const { locale, t } = useI18n();
-  const { locales } = useSite();
+  // Inside a journal the languages are that journal's, in the order it lists
+  // them. Outside one — the landing page — there is no journal to ask, so the
+  // caller passes the set this build ships chrome for.
+  const site = useOptionalSite();
+  const locales = given ?? site?.locales ?? MAINTAINED_LOCALES;
   const router = useRouter();
 
   const choose = (next: string) => {
@@ -57,7 +64,16 @@ export default function LocaleSwitcher() {
         aria-haspopup="menu"
         aria-expanded={open}
         title={LOCALE_LABEL[locale]}
-        className="flex min-h-11 items-center gap-1 rounded-full border border-navy-200 bg-white px-2.5 text-xs font-bold text-navy-700 transition-colors hover:border-navy-500"
+        // In the header the chip sits among other controls and is drawn like
+        // them. On the landing page it is alone above the headline, where a
+        // white pill on cream reads as the first thing on the page — which is
+        // not what it is. So there it keeps the size and the hit area and
+        // gives up the border and the fill until it is pointed at.
+        className={`flex min-h-11 items-center gap-1 rounded-full border px-2.5 text-xs font-bold transition-colors ${
+          subtle
+            ? "border-transparent bg-transparent text-navy-600 hover:bg-cream-100 hover:text-navy-900"
+            : "border-navy-200 bg-white text-navy-700 hover:border-navy-500"
+        }`}
       >
         <Languages className="h-3.5 w-3.5" aria-hidden />
         {LOCALE_SHORT[locale]}

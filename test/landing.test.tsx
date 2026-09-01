@@ -9,8 +9,9 @@ import Landing from "@/components/Landing";
 import { getUsernames, getUser } from "@/lib/users";
 import { getTrips } from "@/lib/trips";
 import { isIndexable } from "@/lib/access";
-import { dictionaryFor } from "@/lib/locales";
+import { dictionaryFor, installedLocales } from "@/lib/locales";
 import LocaleProvider from "@/components/LocaleProvider";
+import { LOCALE_LABEL } from "@/lib/i18n";
 
 /**
  * The landing page.
@@ -27,6 +28,11 @@ vi.mock("next/link", () => ({
     <a href={href}>{children}</a>
   ),
 }));
+
+// The language switcher refreshes the route so the server re-reads the cookie.
+// There is no router in a `renderToStaticMarkup`, and the switcher is the only
+// reason this file needs one.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 
 let dir: string;
 
@@ -110,6 +116,7 @@ function renderLanding(locale = "en") {
         siteName="Fernscout"
         docUrl="https://fernscout.test/documentation.txt"
         journals={journals}
+        locales={installedLocales()}
       />
     </LocaleProvider>,
   );
@@ -164,6 +171,22 @@ describe("the landing page", () => {
     writeUser("alex", "Alex on the road");
     const html = renderLanding();
     expect(html).not.toMatch(/@/);
+  });
+
+  /**
+   * The landing page sits above `app/[user]/layout.tsx`, so there is no
+   * `SiteProvider` over it. The switcher used to be a journal-only component
+   * that read its language list from that context and threw without it, which
+   * is why the one page a stranger sees first had no way to change language.
+   */
+  test("offers a language switcher, with no journal to ask", () => {
+    // Only the chip is in the markup — the menu opens on click — so what is
+    // assertable server-side is that the control is there, labelled in the
+    // reader's language, and naming the language they are currently reading.
+    const html = renderLanding("de");
+    expect(html).toContain(`aria-label="${dictionaryFor("de")["lang.label"]}"`);
+    expect(html).toContain(`title="${LOCALE_LABEL.de}"`);
+    expect(html).toContain(">DE<");
   });
 
   /**

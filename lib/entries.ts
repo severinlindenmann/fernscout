@@ -5,7 +5,7 @@ import { countryCodeFor } from "./flags";
 import { parseCostItems } from "./costFormat";
 import { loadUserConfig } from "./config";
 import { normalizeCurrency } from "./currency";
-import { parseTripRef, tripDir } from "./trips";
+import { mediaWithOwner, parseTripRef, tripDir } from "./trips";
 import { hasHappened } from "./tripTime";
 import type { Day, Entry, EntryTranslations, GalleryItem } from "./types";
 
@@ -96,18 +96,6 @@ function entriesSignature(dir: string, files: string[]): string {
 }
 
 /** Every entry on disk, drafts included. Cached; callers filter. */
-/**
- * A trip-relative media path with the journal's owner on the front.
- *
- * Frontmatter keeps media at "/media/<trip>/…", which is why the move to
- * multi-user rewrote no entry file: the username is known from the ref and
- * added at read time instead. Anything already absolute is left alone.
- */
-function withOwner(src: unknown, owner: string | undefined): string {
-  if (typeof src !== "string") return "";
-  return owner && src.startsWith("/media/") ? `/${owner}${src}` : src;
-}
-
 function readAllEntries(ref: string): Entry[] {
   const dir = entriesDir(ref);
 
@@ -151,18 +139,17 @@ function readAllEntries(ref: string): Entry[] {
             to: data.transportTo ?? "",
           }
         : undefined,
-      cover: data.cover,
-      // Frontmatter keeps media trip-relative ("/media/<trip>/…"), which is
-      // why the multi-user move rewrote no entry files: the username is known
-      // from the ref and prefixed here instead.
+      // Trip-relative like everything else under media/ — see mediaWithOwner
+      // in lib/trips.ts for why frontmatter keeps it that way.
+      cover: data.cover ? mediaWithOwner(data.cover, owner) : undefined,
       gallery: Array.isArray(data.gallery)
         ? (data.gallery as GalleryItem[]).map((item) => ({
             ...item,
-            src: withOwner(item.src, owner),
+            src: mediaWithOwner(item.src, owner),
             // A video's poster is trip-relative too, and used to be left that
             // way — the one media path in the file that never got the owner
             // prefixed onto it, so every ingested clip's still was a 404.
-            poster: item.poster ? withOwner(item.poster, owner) : undefined,
+            poster: item.poster ? mediaWithOwner(item.poster, owner) : undefined,
           }))
         : [],
       tags: Array.isArray(data.tags) ? data.tags : [],

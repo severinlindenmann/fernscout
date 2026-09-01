@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Landing, { type PublicJournal } from "@/components/Landing";
 import { isIndexable } from "@/lib/access";
 import { getAllEntries } from "@/lib/entries";
+import { installedLocales } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 import { getTrips } from "@/lib/trips";
 import { getUser, getUsernames } from "@/lib/users";
@@ -60,6 +61,9 @@ export default function Root() {
       siteName={site.name}
       docUrl={`${site.url}/documentation.txt`}
       journals={journals}
+      // No journal owns this page, so the choice is every language this build
+      // ships chrome for rather than one person's `locales:` list.
+      locales={installedLocales()}
       // Both absent unless this instance sets them — see site.repository and
       // site.credit in content/config.json. A fork gets to name itself.
       repository={site.repository}

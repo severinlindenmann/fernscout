@@ -224,7 +224,8 @@ export type Trip = {
   start: string; // ISO yyyy-mm-dd
   end: string;   // ISO yyyy-mm-dd
   status: TripStatus;
-  /** Path under /public, used on the trip card. */
+  /** The trip card's photograph. Written trip-relative ("/media/<trip>/…")
+   * and prefixed with the owner on read, like any other media path. */
   cover?: string;
   accent: TripAccent;
   /** The markdown body of trip.md — the trip's intro paragraph. */
