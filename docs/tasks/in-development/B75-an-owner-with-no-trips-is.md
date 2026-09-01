@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: me, i18n, viewer
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B75 — An owner with no trips is told to ask whoever sent them here for an invitation

@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: api, ingest, slugs
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B77 — A German umlaut loses its vowel in a slug, and two slugify functions disagree about the rest

@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: trips, tripWrite, feed, search, ui
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B72 — A trip whose dates have passed still calls itself upcoming, and hides every day written to it
