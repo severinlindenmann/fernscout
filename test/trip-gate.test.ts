@@ -3,13 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 
 /**
- * The password gate, as a structural rule.
+ * The trip gate, as a structural rule.
  *
  * A layout that returns something other than `children` changes what is
  * *displayed*. It does not stop the page component from running, and in the
  * App Router the page's data is serialised into the RSC payload and its
  * `generateMetadata` into the document head regardless. Relying on the layout
- * alone shipped a password-protected trip's day index — dates, locations,
+ * alone shipped a closed trip's day index — dates, locations,
  * coordinates, per-day spend — plus JSON-LD for every day and the day's own
  * prose in `<meta name="description">`, to anyone who opened the URL.
  *
@@ -39,7 +39,7 @@ function pagesUnder(dir: string): string[] {
 
 const pages = GATED_DIRS.flatMap(pagesUnder);
 
-describe("every page behind the password gate", () => {
+describe("every page behind the trip gate", () => {
   test("there are pages to check", () => {
     expect(pages.length).toBeGreaterThanOrEqual(10);
   });

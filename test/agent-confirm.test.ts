@@ -14,6 +14,15 @@ import {
  * flag, is that an agent cannot produce one — and that a code obtained for one
  * operation does not authorise a different one. Both of those are what these
  * tests are actually about; the expiry is the easy part.
+ *
+ * This file is also the only thing standing over `accessSecret()` in
+ * `lib/access.ts`. That function looks like trip-password machinery — it is
+ * named for the file it was born in, where it signed the password cookie — and
+ * B39 deleted everything around it. It stayed because `sign()` below signs
+ * every confirmation code with it, up to and including a journal deletion.
+ * Nothing here mocks it: these tests set `SESSION_SECRET` and run the real
+ * HMAC, so removing the function fails this file rather than shipping an agent
+ * that cannot confirm anything.
  */
 
 const deleteDay: Operation = {

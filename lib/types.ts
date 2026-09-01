@@ -193,7 +193,7 @@ export type TripTranslations = Record<string, { title?: string; tagline?: string
  * `private`. That is the whole reason there are three values and not two.
  *
  * The older words are still accepted and mapped on read: `password` is a
- * `guest` trip (a password is *how* a guest proves it), and `unlisted` is a
+ * `guest` trip (there are no trip passwords any more — B39), and `unlisted` is a
  * public trip that is not advertised, which is what `listed` below is for.
  * Those two were describing how you get in; these three describe who is let
  * in, and conflating the axes is how "unlisted" stopped meaning anything.
@@ -285,6 +285,18 @@ export type Trip = {
    */
   test?: boolean;
   costsVisibility: CostsVisibility;
-  /** Present only when `visibility` is "password". Never sent to a client. */
-  passwordHash?: string;
+  /**
+   * Frontmatter keys the parser did not consume. Absent when there are none,
+   * which is the ordinary case.
+   *
+   * It exists so that a key the software no longer honours can still be
+   * *noticed*. `instrumentation.ts` refuses to boot on a leftover trip
+   * password — a line that used to lock a trip and now does nothing is the
+   * most dangerous kind of dead config, because its owner still believes in
+   * it. Naming that key in here or anywhere else under `lib/` would put the
+   * password back in the codebase B39 took it out of, so the parser reports
+   * what it did not understand and the boot decides which of those is
+   * dangerous.
+   */
+  unknownFields?: string[];
 };

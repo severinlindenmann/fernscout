@@ -6,6 +6,8 @@ priority: medium
 complexity: low
 area: auth, signup, journals
 found: "2026-09-01"
+started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B55 — A signup token is documented as single-use and is not
@@ -52,6 +54,34 @@ either reading; the mail does not.
 - If the answer is instead "three is fine, fix the mail", that is a legitimate
   outcome — but then the mail has to say three, and the cap has to be the thing
   it names.
+
+## The decision, and what was built
+
+**Make the promise true**, not re-document it as three. "Once" is the word that
+makes somebody comfortable pasting a code into a chat window, and three
+journals per address was never a considered limit — it was `MAX_JOURNALS_PER_EMAIL`
+showing through because nothing else stopped the token.
+
+`revokeSession(session.id)` after `createJournal` succeeds. The care is in the
+placement, and the tests are mostly about that rather than about the revoke:
+**five of the seven assert that a refusal does *not* spend it.** A token burned
+on a mistyped username would leave somebody holding a dead credential with no
+way back except another round through their email, which is a worse experience
+than the bug.
+
+A reuse answers `401` with one message covering both ways a signup token stops
+working. `resolveSession` returns `null` for spent and expired alike and
+inventing a distinction it cannot make would be worse than saying less — but
+the message names the spent case *first*, because an agent that created a
+journal and then retried needs to know the first call worked rather than
+reporting a failure for something that succeeded.
+
+Found while writing the tests: the rate limiter is a module-level map that
+outlives a single test, and `journals-create` allows five per hour per address.
+Every request in the file keyed to `"unknown"`, so the bucket emptied partway
+through and later tests read `429` as though the behaviour had changed. Each
+call now carries its own `X-Forwarded-For` — which is exactly what B01 made
+trustworthy.
 
 ## Acceptance
 

@@ -21,15 +21,15 @@ import type { Trip } from "./types";
  *
  * - `"all"` — every trip, exactly as it sits on disk. This is the owner's own
  *   backup, produced by `scripts/export.ts` (a local/operator tool, the same
- *   trust level as `npm run trip:password` or `npm run db:migrate` — nothing
+ *   trust level as `npm run export` or `npm run db:migrate` — nothing
  *   here is exposed over HTTP).
  * - `"open-to-link"` — only trips an anonymous visitor could already reach
- *   without a password (`isOpenToLink`: public + unlisted). This is what
+ *   (`isOpenToLink`: public + unlisted). This is what
  *   `/<username>/export.zip` serves: a convenience packaging of content
- *   already reachable, never a new way to reach content that wasn't.
- *   Password-protected trips are excluded outright rather than partially
- *   redacted — there is no per-request password to check against in a plain
- *   GET, so the safe answer is "not in this zip."
+ *   already reachable, never a new way to reach content that wasn't. `guest`
+ *   and `private` trips are excluded outright rather than partially redacted
+ *   — a plain GET carries nothing that says who is asking, so the safe answer
+ *   is "not in this zip."
  */
 export type ExportScope = "all" | "open-to-link";
 
@@ -52,18 +52,6 @@ function walkFiles(dir: string): string[] {
     else if (entry.isFile()) out.push(full);
   }
   return out;
-}
-
-/**
- * Strips a stale `passwordHash:` line out of a trip.md that is being exported
- * under the `open-to-link` scope. Belt and braces: `isOpenToLink` already
- * excludes every password-protected trip, but a trip that *used to* be
- * password-protected and was later switched to public could still carry the
- * old hash in its frontmatter (nothing rewrites it away), and this is the one
- * export an anonymous downloader can actually trigger.
- */
-function redactPasswordHash(tripMd: string): string {
-  return tripMd.replace(/^passwordHash:.*\r?\n/m, "");
 }
 
 /**
@@ -114,11 +102,7 @@ export function appendUserContent(
       if (path.relative(tripRoot, file).split(path.sep)[0] === "originals") continue;
       if (scope === "open-to-link" && isDraftEntry(file)) continue;
       const name = path.relative(root, file).split(path.sep).join("/");
-      if (scope === "open-to-link" && path.basename(file) === "trip.md") {
-        archive.append(redactPasswordHash(fs.readFileSync(file, "utf8")), { name });
-      } else {
-        archive.file(file, { name });
-      }
+      archive.file(file, { name });
     }
   }
 }

@@ -157,19 +157,23 @@ function parseAccent(raw: unknown): TripAccent {
  * Visibility, defaulting to public.
  *
  * An unrecognised value falls back to the *most* restrictive reading rather
- * than to public: a typo in "password" must not publish a private trip.
+ * than to public: a typo in "private" must not publish a private trip.
  */
 /**
  * `visibility:`, and whether the trip is advertised.
  *
  * Two axes out of one field, because the two older words were answering
- * different questions. `password` said *how* somebody gets in; it is a `guest`
- * trip now, and the password is still how a guest proves it. `unlisted` said
- * the trip is not advertised; that is `listed: false` on a public trip.
+ * different questions. `password` said *how* somebody gets in, which is no
+ * longer a question the software asks anybody — trip passwords are gone (B39)
+ * — so it reads as `guest`: the people the owner has let into this journal.
+ * **That is wider than the word promised**, since a password reached only
+ * whoever was sent it; `instrumentation.ts` refuses to boot on a trip that
+ * still carries the frontmatter line the password lived on, so the widening is
+ * a decision somebody makes rather than one that happens to them. `unlisted`
+ * said the trip is not advertised; that is `listed: false` on a public trip.
  *
- * An unrecognised value reads as the **most private** option. It used to read
- * as `password`, which was already the right instinct; `private` is stricter
- * and a typo must never be the thing that publishes somebody's trip.
+ * An unrecognised value reads as the **most private** option — a typo must
+ * never be the thing that publishes somebody's trip.
  */
 function parseVisibility(
   raw: unknown,
@@ -196,6 +200,36 @@ function parseVisibility(
       );
       return { visibility: "private", listed: false };
   }
+}
+
+/**
+ * The frontmatter keys `parseTrip` above consumes. Anything else in a trip.md
+ * is reported on the trip as `unknownFields` — see the note on that field.
+ *
+ * A typo is the common case and is harmless here; a key the project has
+ * *withdrawn* is not, and the boot check is what catches those.
+ */
+const KNOWN_TRIP_FIELDS = new Set([
+  "id",
+  "title",
+  "tagline",
+  "start",
+  "end",
+  "status",
+  "cover",
+  "accent",
+  "rates",
+  "translations",
+  "people",
+  "test",
+  "visibility",
+  "listed",
+  "costsVisibility",
+]);
+
+function unknownFields(data: Record<string, unknown>): string[] | undefined {
+  const extra = Object.keys(data).filter((k) => !KNOWN_TRIP_FIELDS.has(k));
+  return extra.length > 0 ? extra : undefined;
 }
 
 function parseCostsVisibility(raw: unknown, folder: string): CostsVisibility {
@@ -305,7 +339,7 @@ function readTrip(username: string, dir: string, folder: string): Trip | null {
     test: data.test === true || undefined,
     ...parseVisibility(data.visibility, folder),
     costsVisibility: parseCostsVisibility(data.costsVisibility, folder),
-    passwordHash: data.passwordHash ? String(data.passwordHash) : undefined,
+    unknownFields: unknownFields(data),
   };
 }
 

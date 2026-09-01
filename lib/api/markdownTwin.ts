@@ -1,6 +1,7 @@
 import "server-only";
 import { getEntryBySlug } from "../entries";
 import { isTestContent } from "../access";
+import { journalTombstone, tripTombstone, type Tombstone } from "../tombstones";
 import { mayReadTrip } from "../tripGate";
 import { currentTripRef, getTrip, getTrips, tripRef } from "../trips";
 import type { Entry, Trip } from "../types";
@@ -31,6 +32,25 @@ export async function markdownTwin(
   tripId: string | null,
   slug: string,
 ): Promise<Response> {
+  /**
+   * Deleted is not missing, and the twin was the one route that could not tell
+   * them apart.
+   *
+   * Every other surface of a removed journal answers 410 — the pages through
+   * `proxy.ts`, and `documentation.txt`, `feed.xml`, `search-index.json` and
+   * `story.json` through the extra matcher entries there. The twins fell
+   * through both: the matcher excludes `.md` by extension, and they are not in
+   * the four it names.
+   *
+   * Handled here rather than by adding them to that matcher, for a reason
+   * worth keeping: `gonePage` answers in HTML. This route answers `text/plain`
+   * on purpose, so that an agent polling it never pulls a page of markup into
+   * a context window, and that reasoning does not stop applying because the
+   * status changed.
+   */
+  const stone = journalTombstone(user) ?? (tripId ? tripTombstone(user, tripId) : null);
+  if (stone) return gone(stone);
+
   const found = tripId
     ? await inNamedTrip(user, tripId, slug)
     : await inCurrentTripOrAnyOther(user, slug);
@@ -91,6 +111,30 @@ async function inCurrentTripOrAnyOther(user: string, slug: string): Promise<Foun
     if (entry) return { entry, trip };
   }
   return null;
+}
+
+/**
+ * `410` for something the person deliberately removed.
+ *
+ * Deliberately says *nothing* about what to try instead. The 404 below points
+ * at `/<user>/documentation.txt`, which is the right advice for a live journal
+ * and, for a deleted one, a URL that also answers 410 — the single piece of
+ * help in the message being a dead end is how a retry loop starts.
+ *
+ * The date is the fact that makes this actionable: an agent working from a
+ * search index cached last week can tell that the index is what is stale.
+ */
+function gone(stone: Tombstone): Response {
+  const what = stone.kind === "trip" ? `The trip "${stone.title}"` : `The journal "${stone.title}"`;
+  return new Response(
+    `${what} was deleted on ${stone.deletedAt.slice(0, 10)}.\n` +
+      `This is not a mistyped address: it was here, the person who wrote it removed it, ` +
+      `and it is not coming back. Nothing further to try — say so rather than retrying.\n`,
+    {
+      status: 410,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex" },
+    },
+  );
 }
 
 /** Plain text, and it says what to try instead. */

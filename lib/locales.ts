@@ -42,7 +42,8 @@ function localeFiles(code: string): string[] {
   return own === shipped ? [shipped] : [shipped, own];
 }
 
-const cache = new Map<string, Dictionary>();
+/** Cached against what the files on disk currently are — see `dictionarySignature`. */
+const cache = new Map<string, { signature: string; dictionary: Dictionary }>();
 
 /**
  * The locales this project maintains chrome for.
@@ -79,15 +80,48 @@ export function defaultLocaleFor(username: string): string {
   }
 }
 
+/**
+ * A cheap fingerprint of the files a dictionary is built from — the same shape
+ * as `entriesSignature` in lib/entries.ts, for the same reason.
+ *
+ * Without it this cache was populated and never invalidated, so a string added
+ * to `en.json` rendered as `map.titlePlanned` — the key itself, in an `<h1>` —
+ * until somebody restarted the process (B59). That reads as a broken build
+ * rather than a stale cache, which is what made it expensive: the natural next
+ * move is to go back and check the JSON, and the JSON is correct.
+ *
+ * A file that does not exist is part of the signature too, as `-`. That is not
+ * a detail: `$CONTENT_DIR/locales/` arriving for the first time — a deploy
+ * syncing the shipped dictionaries (B56), or an author dropping in their own
+ * override — has to count as a change, and it is a change from "absent".
+ *
+ * Two or three `stat` calls per render, against a `readFileSync` and a
+ * `JSON.parse` of two files it saves.
+ */
+function dictionarySignature(files: string[]): string {
+  return files
+    .map((file) => {
+      try {
+        const { mtimeMs, size } = fs.statSync(file);
+        return `${file}:${mtimeMs}:${size}`;
+      } catch {
+        return `${file}:-`;
+      }
+    })
+    .join("|");
+}
+
 function readDictionary(code: string): Dictionary {
+  const files = localeFiles(code);
   const key = `${contentRoot()}::${code}`;
+  const signature = dictionarySignature(files);
   const hit = cache.get(key);
-  if (hit) return hit;
+  if (hit && hit.signature === signature) return hit.dictionary;
 
   // Shipped strings first, then the instance's own on top, so an override file
   // may replace a handful of strings without restating all 284.
   const parsed: Dictionary = {};
-  for (const file of localeFiles(code)) {
+  for (const file of files) {
     try {
       const raw = JSON.parse(fs.readFileSync(file, "utf8")) as unknown;
       if (raw && typeof raw === "object" && !Array.isArray(raw)) {
@@ -100,7 +134,7 @@ function readDictionary(code: string): Dictionary {
       // and a locale with only content translations is a supported case.
     }
   }
-  cache.set(key, parsed);
+  cache.set(key, { signature, dictionary: parsed });
   return parsed;
 }
 
@@ -116,7 +150,15 @@ export function dictionaryFor(code: string): Dictionary {
   return { ...english, ...readDictionary(code) };
 }
 
-/** Test seam. */
+/**
+ * Test seam — drops every memoised dictionary.
+ *
+ * Still here after B59 gave the cache a staleness check, because a test that
+ * points `CONTENT_DIR` at a fresh directory wants a clean slate rather than a
+ * correct one, and because the signature is deliberately coarse: two writes to
+ * the same file inside one millisecond, ending at the same length, look
+ * identical to it.
+ */
 export function clearLocaleCache(): void {
   cache.clear();
 }

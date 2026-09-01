@@ -23,9 +23,9 @@ function key(ip: string) {
 /**
  * A named bucket with its own limits.
  *
- * The default bucket is deliberately generous (see above). Guessing a trip
- * password is the opposite situation: a household will try it once or twice,
- * and anything beyond that is someone working through a word list.
+ * The default bucket is deliberately generous (see above). Asking for a
+ * sign-in code is the opposite situation: a reader needs one or two, and
+ * anything beyond that is somebody working through a list of addresses.
  */
 export function rateLimitFor(
   namespace: string,
@@ -70,7 +70,28 @@ export function rateLimit(ip: string): { ok: boolean; retryAfter: number } {
   return { ok: true, retryAfter: 0 };
 }
 
-/** Client address as seen through nginx. */
+/**
+ * The address every limit on this server is keyed by.
+ *
+ * **Reading the first value here is only safe because the proxy overwrites the
+ * header.** `deploy/Caddyfile` sets `header_up X-Forwarded-For {remote_host}`,
+ * which replaces whatever the client sent rather than appending to it — which
+ * is Caddy's default and was the bug. Without that line a client sends
+ * `X-Forwarded-For: 203.0.113.9`, that value lands in first position, and it
+ * is what comes back from here: rotate the header per request and every limit
+ * keyed on this resets.
+ *
+ * So the two halves are one mechanism and neither works alone. If this app is
+ * ever put behind a different proxy, that proxy must overwrite the header too,
+ * or this function has to stop trusting it.
+ *
+ * Reading the *last* value instead would also defeat a forged prefix, but only
+ * while exactly one proxy sits in front; overwriting at the edge survives a
+ * second one being added.
+ *
+ * The docstring here used to say "as seen through nginx", from before Caddy,
+ * which is most of why nobody re-checked it.
+ */
 export function clientIp(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for");
   if (fwd) return fwd.split(",")[0].trim();

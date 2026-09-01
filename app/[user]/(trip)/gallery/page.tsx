@@ -38,7 +38,7 @@ export default async function GalleryPage({ params }: PageProps<"/[user]/gallery
   if (!tripId) notFound();
   const trip = getTrip(tripId);
   if (!trip) notFound();
-  // The layout draws the password form; this stops the page from *running*.
+  // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(trip))) return null;

@@ -106,22 +106,42 @@ sudo nano /etc/fernscout/env
 At minimum set `NEXT_PUBLIC_SITE_URL` and `DATA_DIR=/var/lib/fernscout`.
 Leave `DATABASE_URL` unset for a public-only site.
 
-Set `CONTENT_DIR=/var/lib/fernscout/content` too, and seed it once:
+Set `CONTENT_DIR=/var/lib/fernscout/content` too, and seed it once.
+
+**`content/` is two things with two lifecycles**, and the seeding step is only
+about one of them:
+
+| | | |
+| --- | --- | --- |
+| **Shipped with the code** | `locales/`, `rates/` | belongs to the release; every deploy replaces it |
+| **Owned by the operator** | `config.json`, `<username>/` | belongs to this machine; no deploy ever touches it |
+
+Seed the operator's half by hand — this instance's config and its journals —
+and let the deploy put the shipped half there:
 
 ```bash
 sudo -u fernscout mkdir -p /var/lib/fernscout/content
-sudo -u fernscout cp -a /srv/fernscout/content/. /var/lib/fernscout/content/
-# The UI strings ship with the software and are not this instance's to own.
-sudo -u fernscout rm -rf /var/lib/fernscout/content/locales
+# The operator's half: this machine's config, and the journals on it.
+sudo -u fernscout cp -a /srv/fernscout/content/config.json /var/lib/fernscout/content/
+sudo -u fernscout cp -a /srv/fernscout/content/example /var/lib/fernscout/content/
+# The shipped half. Every deploy repeats exactly this — see "Day-to-day deploys".
+sudo -u fernscout env CONTENT_DIR=/var/lib/fernscout/content \
+  /srv/fernscout/scripts/sync-shipped-content.sh
 ```
 
-> **Do not keep a copy of `locales/` unless you mean to override it.**
-> `lib/locales.ts` reads the shipped dictionary first and then merges the
-> content folder's on top, key by key. A copy taken at install time therefore
-> wins for every string it holds, for ever — so a wording fix shipped six
-> months later silently does not appear, and the only clue is that the site
-> disagrees with the repository. An instance that really does want its own
-> wording should keep a file with *only* the keys it is changing.
+> **Do not hand-edit `locales/` under `CONTENT_DIR`.** `lib/locales.ts` reads
+> the shipped dictionary first and then merges the content folder's on top, key
+> by key, so a copy taken at install time wins for every string it holds, for
+> ever — a wording fix shipped six months later silently does not appear, and
+> the only clue is that the site disagrees with the repository. That is what
+> B56 was: fernscout.ch served August's German for as long as it was up.
+>
+> The deploy now replaces `locales/` and `rates/` from the repository on every
+> run, which is what keeps them honest. An instance that really does want its
+> own wording keeps a file with *only* the keys it is changing **and** puts an
+> empty `.keep-local` file next to it — `scripts/sync-shipped-content.sh` then
+> leaves that directory alone and says so in its output. Without the marker,
+> local edits there are overwritten by design.
 
 The journal then lives outside the repository, which matters for two reasons
 that only show up later. `scripts/deploy.sh` runs `git pull --ff-only`, and an
@@ -131,9 +151,9 @@ that switches on `mail` and `auth` belongs to *this* machine, where the
 credentials are; committed to the repository it would fail the boot check
 (`instrumentation.ts` → `assertCapabilities`) for everyone who cloned it.
 
-`content/locales/` still resolves from the repo when the content folder has no
-copy of its own (`lib/locales.ts`), so a UI translation added upstream arrives
-with the next deploy either way.
+`content/locales/` also resolves from the repo when the content folder has no
+copy of its own (`lib/locales.ts`), so a fresh instance renders in English
+before the first sync rather than rendering nothing.
 
 > `/etc/fernscout/env` holds every secret on the machine. Mode `640`,
 > owned by root, readable by the service group — never world-readable, and
@@ -187,8 +207,17 @@ Pull, `npm ci`, migrate if a database is configured, build, restart, wait for
 health. **The build runs before the restart**, so a broken build leaves the
 running site untouched instead of taking it down and then failing.
 
-Three things it does that are not obvious from the name:
+Four things it does that are not obvious from the name:
 
+- **It syncs the shipped half of `content/` into `CONTENT_DIR`** —
+  `scripts/sync-shipped-content.sh`, run after the pull and before the build.
+  `git pull` updates `/srv/fernscout/content`, the app reads
+  `/var/lib/fernscout/content`, and until B56 nothing crossed the gap: every
+  string added or reworded since the machine was set up was invisible, and
+  three strings *deleted* from the repository were still being served. It
+  replaces `locales/` and `rates/` rather than merging into them, so a deleted
+  key actually disappears, and it refuses to write anywhere else — a deploy
+  that could overwrite `<username>/` is a worse bug than the one it fixes.
 - **It reads `/etc/fernscout/env` itself.** A root shell has no `DATABASE_URL`,
   and without this the migration step takes its "running without a database
   (supported)" branch on a deployment that has had Postgres since its first
@@ -200,6 +229,24 @@ Three things it does that are not obvious from the name:
   `sudo chown -R fernscout:fernscout /srv/fernscout`.
 - **It records `GIT_SHA`** in a systemd drop-in, so `/api/health` answers
   "which build is actually running" rather than `"commit": null`.
+
+**Check the shipped content actually arrived**, rather than reading the log and
+believing it. Both commands are silent on success:
+
+```bash
+# The dictionaries and the rates the site is serving are the ones in the repo.
+sudo diff -r /srv/fernscout/content/locales /var/lib/fernscout/content/locales
+sudo diff -r /srv/fernscout/content/rates   /var/lib/fernscout/content/rates
+```
+
+And the other half is still the operator's — nothing a deploy wrote:
+
+```bash
+# Run before and after a deploy; the two lines must be identical.
+sudo find /var/lib/fernscout/content \
+  \( -path '*/content/locales' -o -path '*/content/rates' \) -prune \
+  -o -type f -print0 | sudo xargs -0 sha256sum | sort | sha256sum
+```
 
 > **Editing `scripts/deploy.sh` itself?** The running script pulls its own
 > replacement partway through, and bash reads a script incrementally — so the
@@ -411,46 +458,90 @@ journalctl -u fernscout-backup -n 30
 
 ## Restore procedure
 
+Every step below was executed on the native stack on 2026-09-01. Where the
+earlier draft was wrong, the correction is inline and marked — the four things
+that had to change are the whole value of having run it.
+
 ```bash
 # 0. Fresh machine: steps 1–5 of "First deploy", with the same
 #    RESTIC_REPOSITORY / RESTIC_PASSWORD.
 
-# 1. Restore the latest snapshot to a scratch directory.
-sudo restic restore latest --target /restore
+# 1. Load the environment FIRST. Without this, step 1 fails with
+#    "Please specify repository location" and step 3 silently tries to read
+#    /db/postgres.dump, because $DATABASE_URL is empty. sudo does not carry
+#    the service's environment; nothing else supplies it.
+set -a; . /etc/fernscout/env; set +a
 
-# 2. The tree keeps its original absolute path — find it once.
+# 2. Restore the latest snapshot to a scratch directory. -E keeps the restic
+#    credentials across sudo.
+sudo -E restic restore latest --target /restore
+
+# 3. The tree keeps its original absolute path — find it once.
 STAGED=$(sudo find /restore -maxdepth 4 -type d -name 'fernscout-backup-staging' | head -1)
 
-# 3. Database (skip if this deployment has none).
-sudo -u postgres createdb fernscout -O fernscout
-sudo -u fernscout pg_restore --dbname="$DATABASE_URL" --clean --if-exists \
+# 4. restic restores as root, and pg_restore below runs as fernscout.
+#    Without this it fails with "Permission denied" on the dump.
+sudo chmod -R a+rX /restore
+
+# 5. Database (skip if this deployment has none). createdb fails harmlessly
+#    if a previous attempt already made it — that is not the restore failing.
+sudo -u postgres createdb fernscout -O fernscout || true
+sudo -E -u fernscout pg_restore --dbname="$DATABASE_URL" --clean --if-exists \
   "$STAGED/db/postgres.dump"
 
-# 4. DATA_DIR and content/.
-sudo rsync -a "$STAGED/data/"    /var/lib/fernscout/
-sudo rsync -a "$STAGED/content/" /srv/fernscout/content/
-sudo chown -R fernscout:fernscout /var/lib/fernscout /srv/fernscout/content
+# 6. DATA_DIR. On this deployment CONTENT_DIR is *inside* DATA_DIR
+#    (/var/lib/fernscout/content), so this one rsync restores the journals too
+#    — and `$STAGED/content/` is a second copy of the same bytes.
+sudo rsync -a "$STAGED/data/" /var/lib/fernscout/
+sudo chown -R fernscout:fernscout /var/lib/fernscout
 
-# 5. Build and start.
+#    Do NOT rsync "$STAGED/content/" into /srv/fernscout/content/. That is the
+#    git checkout, not what the app reads. It left 49 tracked files modified,
+#    and scripts/deploy.sh does `git pull --ff-only`, so the next deploy would
+#    have refused. Restore there only if CONTENT_DIR is unset — i.e. the app
+#    really is reading the checkout.
+
+# 7. Build and start.
 cd /srv/fernscout && sudo -u fernscout npm ci && sudo -u fernscout npm run build
 sudo systemctl restart fernscout
 
-# 6. Verify: health, then a known reaction count on a known day.
+# 8. Verify: health, then a known reaction count on a known day.
 curl -s https://<domain>/api/health
 ```
 
 ### Restore drill — executed and timed
 
-A drill was run against the previous containerised layout: real Postgres rows
-plus file state seeded, backed up, destroyed, restored. **Postgres rows came
-back exact and files byte-identical, in 46 seconds.** The mechanism —
-`pg_dump -Fc` into restic, restored with `pg_restore` — is unchanged here; only
-*where* `pg_dump` runs changed, from inside a container to the host.
+- [x] **Run on the native stack — 2026-09-01, ~35 seconds end to end.**
 
-- [ ] **Re-run the drill on the native stack before relying on it.** The
-      procedure above is derived, not yet executed end to end. A backup you
-      have not restored from is not a backup, and a *procedure* you have not
-      followed is not a procedure.
+Seeded: 7 reaction rows on a known day, an uncommitted file under
+`content/`, and a 64 KiB `originals/DRILL.RAF` that is in neither git nor the
+export. Backed up, then dropped the database and `rm -rf`'d `DATA_DIR`
+entirely. **All three came back identical** — the row count exact, both file
+hashes matching. `restic restore` moved 453 MiB in 1 second; `npm ci` plus the
+build was 29 of the 35 seconds.
+
+An earlier drill against the previous containerised layout took 46 seconds and
+is superseded by this one.
+
+Four things the procedure got wrong, all now fixed above: the environment was
+never loaded, so it failed at the first command; the restored tree was
+unreadable by the user that reads it; `createdb` aborted a re-run; and the
+`content/` rsync wrote to a directory this deployment does not read while
+dirtying the deploy checkout.
+
+Three more surfaced in *setting the backup up*, which had never been done on
+this machine at all (B65):
+
+- `RESTIC_REPOSITORY` must be under a path in the unit's `ReadWritePaths=`
+  (`/var/backups/fernscout`). Anywhere else and systemd refuses to start the
+  service with `Failed at step NAMESPACE`, before `backup.sh` runs at all.
+- The repository must be **owned by the service user**. Root-owned, the
+  script's `restic snapshots` probe fails on permissions, the script reads that
+  as "not initialised yet", runs `restic init`, and dies on `config file
+  already exists`. See B63 — the probe cannot tell the two apart.
+- A single unreadable file anywhere under `DATA_DIR` aborts the whole backup:
+  `cp -a` fails, `set -e` stops the script, and per B64 nobody is told. One
+  root-owned stray file left by an operator is enough.
 
 ---
 

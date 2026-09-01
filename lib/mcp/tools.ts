@@ -126,7 +126,7 @@ function reachableTrips(session: Session) {
  *
  * Deliberately wider than `/<user>/search-index.json`, which only indexes trips
  * the public may see. The caller here holds a token for this journal, so their
- * own unlisted and password-protected trips are theirs to search. Drafts are
+ * own unlisted and closed trips are theirs to search. Drafts are
  * still absent, because `getAllEntries` filters them — a draft is found through
  * `list_drafts`, which is the tool that says what it is.
  */

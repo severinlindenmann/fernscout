@@ -45,10 +45,10 @@ Do not edit them by hand; run the script.
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B01](backlog/B01-forwarded-for-trust.md) | X-Forwarded-For is taken on trust, so every rate limit is bypassable | SECURITY | high | low |
-| [B21](backlog/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | CHORE | high | medium |
-| [B56](backlog/B56-deploying-ships-code-but-not-content.md) | Deploying ships code but not content/locales, so translations never reach the live site | ISSUE | high | low |
+| [B64](backlog/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low |
+| [B65](backlog/B65-the-deployed-server-has-no-backup.md) | The deployed server has no backup at all — restic, the units and the credentials were never installed | CHORE | high | medium |
 | [B02](backlog/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low |
+| [B06](backlog/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B09](backlog/B09-links-to-docs-moved-into-archiv.md) | Links to docs moved into archiv no longer resolve | CHORE | medium | low |
 | [B10](backlog/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B12](backlog/B12-a-finished-trip-still-offers-a.md) | A finished trip still offers a Today button | ISSUE | medium | low |
@@ -62,17 +62,19 @@ Do not edit them by hand; run the script.
 | [B25](backlog/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low |
 | [B33](backlog/B33-a-journal-can-be-shared-only.md) | A journal can be shared only by password or by hand-edited frontmatter, so an agent cannot invite anybody | FEATURE | medium | medium |
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
-| [B36](backlog/B36-address-checks-match-one-spelling-each.md) | Address checks match one spelling each, and the URL parser writes another | SECURITY | medium | low |
-| [B39](backlog/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high |
 | [B42](backlog/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B43](backlog/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
 | [B44](backlog/B44-a-guest-who-arrives-without-their.md) | A guest who arrives without their link sees a complete-looking journal and no way to say who they are | ISSUE | medium | medium |
 | [B45](backlog/B45-the-access-panel-lists-guest-trips.md) | The access panel lists guest trips the reader cannot actually open | ISSUE | medium | low |
 | [B49](backlog/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B51](backlog/B51-listed-in-a-trip-s-frontmatter.md) | A trip's listed frontmatter key is documented and never read | ISSUE | medium | low |
-| [B52](backlog/B52-the-digest-still-refuses-a-guest.md) | The digest still refuses a guest trip to a reader who can now open it | FEATURE | medium | low |
-| [B55](backlog/B55-a-signup-token-is-documented-as.md) | A signup token is documented as single-use and is not | SECURITY | medium | low |
 | [B60](backlog/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low |
+| [B62](backlog/B62-every-docs-link-in-the-readme.md) | Every docs/ link in the README points at a file that moved to docs/archiv | CHORE | medium | low |
+| [B63](backlog/B63-a-wrong-restic-repository-makes-a.md) | A wrong RESTIC_REPOSITORY makes a new empty repo instead of failing | ISSUE | medium | low |
+| [B66](backlog/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium |
+| [B68](backlog/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low |
+| [B69](backlog/B69-the-one-tap-sign-in-link.md) | The one-tap sign-in link always lands on the journal home, losing the page you were trying to read | ISSUE | medium | medium |
+| [B70](backlog/B70-a-test-trip-is-mailed-out.md) | A test trip is mailed out in the digest as if somebody had lived it | ISSUE | medium | low |
 | [B03](backlog/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium |
 | [B04](backlog/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium |
 | [B05](backlog/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
@@ -86,13 +88,11 @@ Do not edit them by hand; run the script.
 | [B50](backlog/B50-two-mails-in-the-same-millisecond.md) | Two mails in the same millisecond overwrite each other in development | ISSUE | low | low |
 | [B53](backlog/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium |
 | [B58](backlog/B58-smtptransport-cannot-be-driven-to-a.md) | SmtpTransport cannot be driven to a successful send from a test | CHORE | low | low |
-| [B59](backlog/B59-a-new-locale-string-renders-as.md) | A new locale string renders as its own key until the server is restarted | ISSUE | low | low |
+| [B71](backlog/B71-the-per-day-media-ceiling-test.md) | The per-day media ceiling test asserts on problems[0], and failed once in a full run | CHORE | low | low |
 
 ## open
 
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B06](open/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
+_Nothing here._
 
 ## in-development
 
@@ -104,22 +104,31 @@ Do not edit them by hand; run the script.
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B01](testing/B01-forwarded-for-trust.md) | X-Forwarded-For is taken on trust, so every rate limit is bypassable | SECURITY | high | low |
 | [B18](testing/B18-a-planned-trip-s-map-page.md) | A planned trip's map page draws no map | ISSUE | high | low |
+| [B21](testing/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | CHORE | high | medium |
 | [B47](testing/B47-the-test-flag-can-be-written.md) | The test flag can be written but never read back, so nothing can confirm it stuck | ISSUE | high | low |
+| [B56](testing/B56-deploying-ships-code-but-not-content.md) | Deploying ships code but not content/locales, so translations never reach the live site | ISSUE | high | low |
 | [B26](testing/B26-the-welcome-mail-is-english-only.md) | The welcome mail is English only, and nobody is asked which language the journal is in | FEATURE | medium | low |
 | [B27](testing/B27-the-welcome-mail-s-link-opens.md) | The welcome mail's link opens the public view, so the owner cannot see their own drafts | FEATURE | medium | medium |
 | [B28](testing/B28-publishing-a-draft-requires-editing-a.md) | Publishing a draft requires editing a file by hand, so an agent cannot close the loop it opened | FEATURE | medium | high |
 | [B32](testing/B32-a-taken-username-answers-409-with.md) | A taken username answers 409 with no route onward for somebody who already owns it | ISSUE | medium | low |
 | [B35](testing/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low |
+| [B36](testing/B36-address-checks-match-one-spelling-each.md) | Address checks match one spelling each, and the URL parser writes another | SECURITY | medium | low |
 | [B37](testing/B37-anybody-who-finds-a-journal-can.md) | Anybody who finds a journal can put themselves on its guest list uninvited | FEATURE | medium | low |
 | [B38](testing/B38-a-journal-or-a-trip-can.md) | A journal or a trip can be created through the API but never removed | FEATURE | medium | high |
+| [B39](testing/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high |
 | [B40](testing/B40-a-six-digit-code-expires-in.md) | A six-digit code expires in ten minutes, which is shorter than people take to find the mail | CHORE | medium | low |
 | [B41](testing/B41-an-approved-contact-is-shown-a.md) | An approved contact is shown a trip in their own panel and then asked for a password nobody gave them | ISSUE | medium | medium |
+| [B52](testing/B52-the-digest-still-refuses-a-guest.md) | The digest still refuses a guest trip to a reader who can now open it | FEATURE | medium | low |
+| [B55](testing/B55-a-signup-token-is-documented-as.md) | A signup token is documented as single-use and is not | SECURITY | medium | low |
 | [B57](testing/B57-a-journal-sending-real-mail-keeps.md) | A journal sending real mail keeps no copy, so nothing that went out can be read back | FEATURE | medium | low |
 | [B29](testing/B29-an-agent-has-no-way-to.md) | An agent has no way to hand its owner a working sign-in link | FEATURE | low | medium |
 | [B30](testing/B30-a-url-upload-never-says-whether.md) | A URL upload never says whether an original was kept | ISSUE | low | low |
 | [B31](testing/B31-a-refused-url-does-not-say.md) | A refused URL does not say whether the host was checked or the check itself failed | ISSUE | low | low |
 | [B54](testing/B54-an-upcoming-trip-s-map-is.md) | An upcoming trip's map is titled "Where we've been" | ISSUE | low | low |
+| [B59](testing/B59-a-new-locale-string-renders-as.md) | A new locale string renders as its own key until the server is restarted | ISSUE | low | low |
+| [B61](testing/B61-the-markdown-twin-is-the-one.md) | The markdown twin is the one route that does not know a journal was deleted | ISSUE | low | low |
 
 ## completed
 

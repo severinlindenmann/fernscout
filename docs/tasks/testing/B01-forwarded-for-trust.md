@@ -6,6 +6,8 @@ priority: high
 complexity: low
 area: rate-limiting, deploy
 found: "2026-09-01"
+started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B01 — `X-Forwarded-For` is taken on trust

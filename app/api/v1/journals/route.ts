@@ -1,4 +1,4 @@
-import { SESSION_SCOPE, SIGNUP_OWNER, issueRelayLink, openAgentSession, resolveSession, signInUrl } from "@/lib/auth";
+import { SESSION_SCOPE, SIGNUP_OWNER, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { createJournal, sendWelcome } from "@/lib/journals";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -51,7 +51,26 @@ export async function POST(request: Request) {
   // journals should have been issued for the purpose.
   const session = await resolveSession(match[1].trim(), "signup");
   if (!session || session.owner !== SIGNUP_OWNER) {
-    return Response.json({ error: "invalid_token" }, { status: 401 });
+    /**
+     * One message for both ways a signup token stops working — spent, or
+     * expired — because `resolveSession` answers `null` to both and inventing
+     * a distinction it cannot make would be worse than saying less.
+     *
+     * It names the spent case first all the same. An agent that created a
+     * journal and then retried needs to know the first call *worked*, or it
+     * reports a failure for something that succeeded.
+     */
+    return Response.json(
+      {
+        error: "invalid_token",
+        message:
+          "A signup token creates one journal and is spent by doing so. If you have already " +
+          "created one, that succeeded — do not retry, and use the agent token it gave you. " +
+          "Otherwise this token has expired (they last twenty minutes): start again at " +
+          "POST /api/auth/signup/request.",
+      },
+      { status: 401 },
+    );
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
@@ -124,6 +143,31 @@ export async function POST(request: Request) {
       },
       { status },
     );
+  }
+
+  /**
+   * The signup token is spent, now that it has been used.
+   *
+   * The mail that carried the code says "it can create one journal, **once**",
+   * and until B55 that was not true: nothing revoked the session, so it lived
+   * its full twenty minutes and could create journals until the per-address
+   * cap stopped it. Three, not one.
+   *
+   * **After `createJournal` succeeds and never before.** A token burned on a
+   * refused request would strand somebody who mistyped a username — the name
+   * is taken, or not a name — with a dead credential and no way back except
+   * another round through their email. Every refusal above returns without
+   * reaching this line, which is the point of it being here rather than at the
+   * top.
+   *
+   * Best effort. The journal is already on disk; a session that failed to
+   * revoke is a token that expires in twenty minutes anyway, and unwinding a
+   * created journal over it would be a far worse trade.
+   */
+  try {
+    await revokeSession(session.id);
+  } catch (err) {
+    console.error(`[journals] could not spend the signup token for ${created.username}:`, err);
   }
 
   const token = await openAgentSession(created.username, session.email);

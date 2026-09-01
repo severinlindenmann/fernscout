@@ -49,9 +49,6 @@ describe("buildFeedXml", () => {
     expect(xml).not.toContain("A Secret Day");
     expect(xml).not.toContain("Secretville");
     expect(xml).not.toContain("private-2026");
-    // The password hash must never appear anywhere reachable by an anonymous
-    // request, feed included.
-    expect(xml).not.toContain("scrypt$");
   });
 
   test("contains no unlisted trip content", () => {

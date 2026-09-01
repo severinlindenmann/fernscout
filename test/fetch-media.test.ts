@@ -36,10 +36,42 @@ describe("which addresses may be reached", () => {
     ["::ffff:a9fe:a9fe", "the metadata endpoint, hex-normalised"],
     ["::ffff:c0a8:1", "192.168.0.1, hex-normalised"],
     ["::ffff:a00:1", "10.0.0.1, hex-normalised"],
+    // B36: every one of these was reachable, because the checks matched a
+    // spelling rather than an address. See `toBytes`.
+    ["0:0:0:0:0:0:0:1", "loopback, written out — was an exact string compare"],
+    ["0000:0000:0000:0000:0000:0000:0000:0001", "loopback, fully padded"],
+    ["0:0:0:0:0:0:0:0", "the unspecified address, written out"],
+    ["fe90::1", "link-local — fe80::/10 spans fe80 to febf, not just fe80"],
+    ["feb0::1", "link-local, the top of the range"],
+    ["febf:ffff::1", "link-local, the last address in it"],
+    ["fec0::1", "site-local: deprecated, and still not routable"],
+    ["fcff::1", "unique-local, the fc half"],
+    ["fdff::1", "unique-local, the fd half"],
+    ["64:ff9b::7f00:1", "NAT64 carrying loopback — was not checked at all"],
+    ["64:ff9b::a9fe:a9fe", "NAT64 carrying the metadata endpoint"],
+    ["64:ff9b::169.254.169.254", "the same, dotted"],
+    ["::127.0.0.1", "the deprecated v4-compatible form of loopback"],
+    ["ff00::", "multicast, the first address"],
     ["not-an-ip", "not an address at all"],
     ["", "nothing"],
   ])("refuses %s (%s)", (ip) => {
     expect(isPublicAddress(ip)).toBe(false);
+  });
+
+  /**
+   * The property the rewrite bought, stated once rather than as a list of
+   * spellings: writing an address differently must not change the answer.
+   */
+  test.each([
+    [["::1", "0:0:0:0:0:0:0:1", "0000:0000:0000:0000:0000:0000:0000:0001"], "loopback"],
+    [["::ffff:127.0.0.1", "::ffff:7f00:1"], "mapped loopback"],
+    [["::ffff:169.254.169.254", "::ffff:a9fe:a9fe"], "the metadata endpoint, mapped"],
+    [["64:ff9b::a9fe:a9fe", "64:ff9b::169.254.169.254"], "the metadata endpoint, NAT64"],
+    [["8.8.8.8", "::ffff:8.8.8.8", "::ffff:808:808"], "a public resolver"],
+    [["2001:4860:4860::8888", "2001:4860:4860:0:0:0:0:8888"], "a public v6"],
+  ])("every spelling of %s agrees", (spellings) => {
+    const answers = new Set((spellings as string[]).map(isPublicAddress));
+    expect(answers.size, `spellings disagreed: ${spellings}`).toBe(1);
   });
 
   test.each([
@@ -50,6 +82,13 @@ describe("which addresses may be reached", () => {
     // A mapped *public* address, hex-normalised: 8.8.8.8. The fix must not
     // turn every mapped address into a refusal.
     ["::ffff:808:808"],
+    // B36 widened several ranges. These sit just outside each of them, and
+    // are the addresses a too-eager fix would have taken out with the leak.
+    ["fe7f::1"],
+    ["2001:4860:4860::8888"],
+    ["64:ff9b::808:808"],
+    ["fbff::1"],
+    ["ff::1"],
   ])(
     "allows %s",
     (ip) => {
@@ -64,6 +103,33 @@ describe("which addresses may be reached", () => {
     expect(isPublicAddress("172.16.0.1")).toBe(false);
     expect(isPublicAddress("172.31.0.1")).toBe(false);
     expect(isPublicAddress("172.32.0.1")).toBe(true);
+  });
+
+  /**
+   * The v6 boundaries, which B36 moved. Each pair is the last refused address
+   * and the first allowed one — the place a prefix length written as `/9` or
+   * `/11` instead of `/10` would show up, and nowhere else.
+   */
+  test.each([
+    ["link-local fe80::/10", "febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "fec0::"],
+    ["unique-local fc00::/7", "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "fe00::"],
+  ])("gets the edges of %s right", (_name, lastRefused, firstAfter) => {
+    expect(isPublicAddress(lastRefused)).toBe(false);
+    // `fec0::` is itself refused as site-local, so this only asserts that the
+    // range below it ends where it should — see the next case for the rest.
+    expect(typeof isPublicAddress(firstAfter)).toBe("boolean");
+  });
+
+  test("fe7f:: is public and fe80:: is not", () => {
+    // One bit apart, and the old `startsWith("fe80")` got both wrong in
+    // different directions.
+    expect(isPublicAddress("fe7f:ffff::1")).toBe(true);
+    expect(isPublicAddress("fe80::")).toBe(false);
+  });
+
+  test("fbff:: is public and fc00:: is not", () => {
+    expect(isPublicAddress("fbff:ffff::1")).toBe(true);
+    expect(isPublicAddress("fc00::")).toBe(false);
   });
 });
 
