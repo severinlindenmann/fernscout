@@ -18,6 +18,7 @@ gallery:
     type: "image"
     width: 1600
     height: 1067
+tags: ["colorado", "driving"]
 costs:
   - { label: "Fuel", amount: 54, category: "transport", currency: "USD" }
   - { label: "Car cleaning, required", amount: 40, category: "transport", currency: "USD" }

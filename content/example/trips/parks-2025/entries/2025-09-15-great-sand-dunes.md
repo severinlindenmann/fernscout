@@ -18,6 +18,7 @@ gallery:
     type: "image"
     width: 1600
     height: 1067
+tags: ["colorado", "national-parks", "dunes"]
 costs:
   - { label: "Fuel", amount: 52, category: "transport", currency: "USD" }
   - { label: "Campground", amount: 28, category: "accommodation", currency: "USD" }

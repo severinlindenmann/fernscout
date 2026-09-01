@@ -18,9 +18,10 @@ gallery:
     type: "image"
     width: 1600
     height: 1067
+tags: ["nevada", "logistics"]
 costs:
   - { label: "Motel by the airport", amount: 96, category: "accommodation", currency: "USD" }
-  - { label: "Cooler, ice, two weeks of coffee", amount: 61, category: "gear", currency: "USD" }
+  - { label: "Cooler, ice, two weeks of coffee", amount: 61, category: "other", currency: "USD" }
 translations:
   de:
     content: |

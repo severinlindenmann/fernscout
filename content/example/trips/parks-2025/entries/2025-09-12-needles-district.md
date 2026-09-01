@@ -18,6 +18,7 @@ gallery:
     type: "image"
     width: 1600
     height: 1067
+tags: ["utah", "national-parks", "hiking"]
 costs:
   - { label: "Fuel", amount: 43, category: "transport", currency: "USD" }
   - { label: "Campground", amount: 20, category: "accommodation", currency: "USD" }

@@ -20,4 +20,4 @@ route:
   - { location: "Denver", country: "United States", countryCode: "US", lat: 39.7392, lng: -104.9903 }
 ---
 
-The route as we sketched it before leaving.
+Booked as a loop because a one-way car hire across four states costs more than the flights. Everything between Las Vegas and Denver was ours to choose.

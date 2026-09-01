@@ -22,6 +22,7 @@ gallery:
     type: "image"
     width: 1067
     height: 1600
+tags: ["south-dakota", "national-parks", "wildlife"]
 costs:
   - { label: "Fuel", amount: 58, category: "transport", currency: "USD" }
   - { label: "Campground", amount: 22, category: "accommodation", currency: "USD" }

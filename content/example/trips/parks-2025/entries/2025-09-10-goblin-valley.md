@@ -18,6 +18,7 @@ gallery:
     type: "image"
     width: 1600
     height: 1067
+tags: ["utah", "desert", "camping"]
 costs:
   - { label: "Fuel", amount: 39, category: "transport", currency: "USD" }
   - { label: "Motel in Green River", amount: 88, category: "accommodation", currency: "USD" }

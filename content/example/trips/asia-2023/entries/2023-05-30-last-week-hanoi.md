@@ -22,6 +22,7 @@ gallery:
     type: "image"
     width: 1067
     height: 1600
+tags: ["vietnam", "trains", "cities"]
 costs:
   - { label: "Train, soft sleeper", amount: 1290000, category: "transport", currency: "VND" }
   - { label: "Coffee, egg, several", amount: 180000, category: "food", currency: "VND" }

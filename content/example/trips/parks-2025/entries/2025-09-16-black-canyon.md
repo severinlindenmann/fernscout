@@ -18,6 +18,7 @@ gallery:
     type: "image"
     width: 1600
     height: 1067
+tags: ["colorado", "national-parks", "canyons"]
 costs:
   - { label: "Fuel", amount: 45, category: "transport", currency: "USD" }
   - { label: "Motel in Montrose", amount: 118, category: "accommodation", currency: "USD" }

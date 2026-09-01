@@ -28,7 +28,8 @@
     "migrate:users": "node scripts/migrate-users.ts",
     "migrate:owner": "node scripts/migrate-owner.ts",
     "ingest": "node scripts/ingest.ts",
-    "i18n:keys": "node scripts/i18n-keys.mjs"
+    "i18n:keys": "node scripts/i18n-keys.mjs",
+    "tasks": "node scripts/tasks.mjs"
   },
   "dependencies": {
     "archiver": "^8.0.0",

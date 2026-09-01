@@ -22,6 +22,7 @@ gallery:
     type: "image"
     width: 1067
     height: 1600
+tags: ["utah", "national-parks", "sunset"]
 costs:
   - { label: "Fuel", amount: 34, category: "transport", currency: "USD" }
   - { label: "Campground outside Moab", amount: 35, category: "accommodation", currency: "USD" }

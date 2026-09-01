@@ -1,6 +1,7 @@
 ---
 title: "Down the Oregon coast"
 date: "2026-08-24"
+time: "13:20"
 location: "Cannon Beach"
 country: "United States"
 countryCode: "US"
@@ -26,6 +27,7 @@ gallery:
     type: "image"
     width: 1400
     height: 1400
+tags: ["oregon", "coast", "pacific"]
 costs:
   - { label: "Fuel", amount: 88, category: "transport", currency: "USD" }
   - { label: "Crab, from a shack", amount: 34, category: "food", currency: "USD" }

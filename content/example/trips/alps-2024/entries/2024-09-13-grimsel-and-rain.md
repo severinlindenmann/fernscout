@@ -26,6 +26,7 @@ gallery:
     type: "image"
     width: 1400
     height: 1400
+tags: ["alps", "passes", "rain"]
 costs:
   - { label: "Guesthouse", amount: 145, category: "accommodation" }
   - { label: "Dinner", amount: 62, category: "food" }

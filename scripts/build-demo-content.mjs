@@ -531,6 +531,7 @@ const TRIPS = [
           { label: "Dry bags and sticks, hired", amount: 52, category: "activities", currency: "USD" },
         ],
         text: "Three hours of walking up a river between walls three hundred metres high, with the water somewhere between knee and waist depending on how well you read the gravel.\n\nEverybody in the canyon was quiet. Not reverent — just concentrating on their feet.",
+        hu: "Három óra gyaloglás felfelé egy folyóban, háromszáz méter magas falak között, térd- és derékmagasság közötti vízben — attól függően, mennyire jól olvasod a kavicsot.\n\nA kanyonban mindenki csendben volt. Nem áhítatból — csak a lábukra figyeltek.",
       },
       {
         date: "2025-09-07",

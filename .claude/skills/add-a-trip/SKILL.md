@@ -145,6 +145,13 @@ route if `plan.md` exists, and the budget if `costs.md` does. If the trip does
 **not** appear at all, the cause is nearly always the id — folder name and `id:`
 must match, and both must satisfy the pattern above.
 
-Copy `content/example/trips/alps-2024/` if you want a working shape to edit
-rather than a blank page — it is the smallest of the four demo trips and has a
-`trip.md`, a `costs.md` and a `plan.md` to read side by side.
+Copy a demo trip if you want a working shape to edit rather than a blank page.
+`content/example/trips/alps-2024/` is the smallest — a `trip.md`, a `costs.md`
+and a `plan.md` to read side by side. For an **upcoming** trip copy
+`content/example/trips/japan-2027/` instead: it is the one with no entries, so
+it shows what a countdown page is actually built from, including stops with
+`note:` and two future-dated drafts extending the route on the owner's map.
+
+Both are written by `scripts/build-demo-content.mjs`. If you change what the
+demo content is meant to demonstrate, change it there and re-run it — hand
+edits to `content/example/` are lost the next time somebody does.

@@ -22,6 +22,7 @@ gallery:
     type: "image"
     width: 1067
     height: 1600
+tags: ["colorado", "national-parks", "history"]
 costs:
   - { label: "Fuel", amount: 40, category: "transport", currency: "USD" }
   - { label: "Guided cliff dwelling tour", amount: 16, category: "activities", currency: "USD" }

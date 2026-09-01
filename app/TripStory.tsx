@@ -17,6 +17,7 @@ import TripHero from "@/components/TripHero";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
+import { WindowLedger } from "@/lib/dayLoader";
 import { isOver } from "@/lib/tripTime";
 import {
   LEGACY_KEYS,
@@ -76,8 +77,10 @@ export default function TripStory({
   const [loaded, setLoaded] = useState<Record<number, Day>>(() =>
     Object.fromEntries(days.map((d, i) => [windowStart + i, d])),
   );
-  /** Windows already requested, so paging back and forth doesn't refetch. */
-  const asked = useRef(new Set<number>());
+  /** Windows already requested, so paging back and forth doesn't refetch —
+   * and, just as importantly, one that was never answered goes back on the
+   * list. See lib/dayLoader.ts. */
+  const ledger = useRef(new WindowLedger());
   const [loadFailed, setLoadFailed] = useState(false);
 
   /** The step showing a given day's card. */
@@ -202,25 +205,27 @@ export default function TripStory({
    */
   useEffect(() => {
     if (!trip) return;
-    const from = Math.max(0, activeIndex - WINDOW);
-    const to = Math.min(index.length, activeIndex + WINDOW + 1);
+    const windows = ledger.current;
+    const want = windows.plan({
+      centre: activeIndex,
+      length: index.length,
+      radius: WINDOW,
+      has: (i) => Boolean(loaded[i]),
+    });
+    if (!want) return;
 
-    const missing: number[] = [];
-    for (let i = from; i < to; i++) {
-      if (!loaded[i] && !asked.current.has(i)) missing.push(i);
-    }
-    if (missing.length === 0) return;
-
-    // One request for the whole gap, not one per day.
-    const start = missing[0];
-    const end = missing[missing.length - 1] + 1;
-    for (let i = start; i < end; i++) asked.current.add(i);
+    const { start, end } = want;
+    windows.claim(want);
 
     const url = `${trip.userHref("/story.json")}?trip=${encodeURIComponent(trip.trip.ref)}&from=${start}&to=${end}`;
     const abort = new AbortController();
+    // Whether this request ever got an answer, and so whether the claim above
+    // still stands when the effect is torn down.
+    let settled = false;
     fetch(url, { signal: abort.signal })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
       .then((data: { from: number; days: Day[] }) => {
+        settled = true;
         setLoaded((prev) => {
           const next = { ...prev };
           data.days.forEach((d, i) => {
@@ -232,13 +237,22 @@ export default function TripStory({
       })
       .catch((err: unknown) => {
         if (abort.signal.aborted) return;
+        settled = true;
         // Let the reader try again by moving away and back — an offline bus
         // ride shouldn't permanently blank a day.
-        for (let i = start; i < end; i++) asked.current.delete(i);
+        windows.release(want);
         setLoadFailed(true);
         console.warn("[story] could not load days", start, "–", end, err);
       });
-    return () => abort.abort();
+    return () => {
+      abort.abort();
+      // An unanswered request leaves nothing behind, so it must not leave its
+      // claim behind either — otherwise these days are never asked for again
+      // and sit on their placeholder for good. Released here rather than in the
+      // catch above because the abort's rejection arrives too late: the effect
+      // has already been set up again and found nothing missing.
+      if (!settled) windows.release(want);
+    };
   }, [activeIndex, index.length, loaded, trip]);
 
   useEffect(() => {

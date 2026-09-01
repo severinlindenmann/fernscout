@@ -1,6 +1,6 @@
 {
   "title": "Fernscout Demo",
-  "tagline": "Four journeys, to show what this thing does",
+  "tagline": "Five journeys, to show what this thing does",
   "owner": { "name": "Alex Berger", "nickname": "Alex", "email": "agent@fernscout.ch" },
   "startLocation": "Zurich, Switzerland",
   "defaultLocale": "en",
