@@ -7,7 +7,10 @@ import { getPlaces, getTripStats } from "@/lib/entries";
 import { frameRoute } from "@/lib/mapFrame";
 import { getTrips } from "@/lib/trips";
 import { listableTrips } from "@/lib/tripGate";
-import TripsIndexContent from "./TripsIndexContent";
+import { isOwner } from "@/lib/contacts/session";
+import { serverSite } from "@/lib/site";
+import { getUser } from "@/lib/users";
+import TripsIndexContent, { type EmptyJournal } from "./TripsIndexContent";
 
 /**
  * Two languages on purpose.
@@ -38,7 +41,36 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
   // layout has always run `listableTrips`; this page — the one actually called
   // "Trips" — did not, and listed every restricted trip's title, tagline,
   // dates, day and country counts, and drew its route on the lifetime map.
-  const trips = await listableTrips(getTrips(user));
+  const all = getTrips(user);
+  const trips = await listableTrips(all);
+
+  /*
+   * Is this journal empty, and is the person looking at it its owner?
+   *
+   * Asked of `all`, before the gate: a journal whose trips this reader may
+   * not see is a full journal behind a silent filter (B44), not an empty one,
+   * and telling a guest there are no trips would be a second lie on top of the
+   * four zeroes. Only genuine emptiness gets the empty state.
+   *
+   * `isOwner` reads the session cookie, which `listableTrips` has already
+   * read on this request — and this route is dynamic regardless, because both
+   * that call and `generateMetadata`'s `headers()` make it so. There was no
+   * static render to lose, and the lookup happens only on the one page in a
+   * journal's life that has nothing on it.
+   *
+   * The owner's address is put in the payload only once `isOwner` has said
+   * yes. A stranger's copy of this page does not contain it.
+   */
+  let empty: EmptyJournal | null = null;
+  if (all.length === 0) {
+    empty = (await isOwner(user))
+      ? {
+          owner: true,
+          docUrl: `${serverSite().url}/documentation.txt`,
+          ownerEmail: getUser(user)?.owner.email ?? null,
+        }
+      : { owner: false };
+  }
   // Upcoming trips have no entries, so they contribute nothing to the map or
   // the lifetime totals — only a card with a countdown.
   const travelled = trips.filter((t) => t.status !== "upcoming");
@@ -94,6 +126,7 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
       // Every trip's points at once: the lifetime map frames all of them, so
       // the clip has to cover all of them too.
       basemap={basemapFor(frameRoute(routes.flatMap((r) => r.points)))}
+      empty={empty}
       lifetime={{
         countries: countries.size,
         days: travelled.reduce((n, t) => n + statsByTrip.get(t.ref)!.tripDays, 0),
