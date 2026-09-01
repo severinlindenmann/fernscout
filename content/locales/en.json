@@ -382,5 +382,17 @@
   "trips.switch": "Switch trip",
   "trips.title": "Our trips",
   "trips.today": "today",
-  "trips.upcoming": "Upcoming"
+  "trips.upcoming": "Upcoming",
+  "welcome.drafts": "You can see what is waiting at any time — your agent can list the drafts, and reading one back is how you check it did not invent anything.",
+  "welcome.draftsHeading": "Nothing an agent writes is published",
+  "welcome.draftsRule": "Everything written into this journal by an agent arrives as a draft and stays invisible to readers until you publish it yourself, by removing one line from the file. There is no setting that skips that step.",
+  "welcome.footer": "Sent by {site} because a journal was created for this address.",
+  "welcome.intro": "{nickname}, “{title}” now exists on {site} and it is yours. This is the only mail that carries its address, so keep it.",
+  "welcome.open": "Open your journal",
+  "welcome.private": "It is private: it appears on no list on this server and asks search engines not to index it, so the only people who will find it are the ones you send the address to. Whether a particular journey can be read is set on the journey itself.",
+  "welcome.public": "It is public: it is listed on this server’s own index and search engines may index it. Each journey still decides for itself whether anyone can read it, and a new one starts out private.",
+  "welcome.subject": "Your journal is ready — {title}",
+  "welcome.title": "Your journal is ready",
+  "welcome.token": "Ask your agent to start at {guide}. It will ask this server to mail a six-digit code to {email} — this address, and no other — and that code becomes a token that can write for seven days.",
+  "welcome.tokenHeading": "If you want to write to it later"
 }

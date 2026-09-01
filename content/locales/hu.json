@@ -382,5 +382,17 @@
   "trips.switch": "Út váltása",
   "trips.title": "Útjaink",
   "trips.today": "ma",
-  "trips.upcoming": "Tervezett"
+  "trips.upcoming": "Tervezett",
+  "welcome.drafts": "Bármikor megnézheted, mi vár rád — az ügynököd ki tudja listázni a piszkozatokat, és ha egyet visszaolvasol, azzal ellenőrzöd, hogy nem talált ki semmit.",
+  "welcome.draftsHeading": "Amit egy ügynök ír, az nem jelenik meg",
+  "welcome.draftsRule": "Minden, amit egy ügynök ebbe a naplóba ír, piszkozatként érkezik, és láthatatlan marad az olvasók számára, amíg te magad közzé nem teszed — egyetlen sor törlésével a fájlból. Nincs olyan beállítás, amely ezt a lépést átugorná.",
+  "welcome.footer": "Küldte: {site}, mert ehhez a címhez napló készült.",
+  "welcome.intro": "{nickname}, a(z) „{title}” mostantól létezik a(z) {site} oldalon, és a tiéd. Ez az egyetlen levél, amely a címét tartalmazza — őrizd meg.",
+  "welcome.open": "Napló megnyitása",
+  "welcome.private": "Privát: nem szerepel a szerver egyetlen listáján sem, és arra kéri a keresőket, hogy ne indexeljék. Így csak azok találják meg, akiknek elküldöd a címet. Azt, hogy egy adott utazás olvasható-e, magánál az utazásnál kell beállítani.",
+  "welcome.public": "Nyilvános: szerepel a szerver saját jegyzékében, és a keresők indexelhetik. Minden utazás továbbra is maga dönti el, hogy ki olvashatja, és egy új utazás privátként indul.",
+  "welcome.subject": "A naplód készen áll — {title}",
+  "welcome.title": "A naplód készen áll",
+  "welcome.token": "Kérd meg az ügynököt, hogy itt kezdjen: {guide}. Kér a szervertől egy hatjegyű kódot a(z) {email} címre — erre és semmilyen másikra —, és ebből a kódból lesz a token, amely hét napig írhat.",
+  "welcome.tokenHeading": "Ha később bele akarsz írni"
 }

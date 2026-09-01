@@ -45,6 +45,29 @@ afterEach(() => {
 
 const OWNER = "owner@example.test";
 
+/**
+ * The plain-text alternative of the one mail written under a journal.
+ *
+ * Parsed by MIME boundary rather than by splitting on blank lines: a base64
+ * body contains blank lines of its own, so the cruder version decoded to
+ * mojibake for some payloads and cleanly for others, which is the worst way
+ * for a test helper to be wrong.
+ */
+function mailBodyOf(username: string): string {
+  const mailDir = path.join(dir, username, "mail");
+  const files = fs.readdirSync(mailDir).filter((f) => f.endsWith(".eml"));
+  const raw = fs.readFileSync(path.join(mailDir, files[0]), "utf8");
+  const boundary = raw.match(/boundary="([^"]+)"/)?.[1];
+  if (!boundary) throw new Error("no MIME boundary in the message");
+
+  for (const part of raw.split(`--${boundary}`)) {
+    if (!/Content-Type: text\/plain/i.test(part)) continue;
+    const encoded = part.split(/\r?\n\r?\n/).slice(1).join("\n");
+    return Buffer.from(encoded.replace(/\s/g, ""), "base64").toString("utf8");
+  }
+  throw new Error("no text/plain part in the message");
+}
+
 /** Every trip needs both, so they are not worth restating in each test. */
 const DATES = { start: "2027-04-01", end: "2027-04-20" };
 
@@ -262,23 +285,78 @@ describe("the welcome mail", () => {
     const files = fs.readdirSync(path.join(dir, "wanderer", "mail"));
     expect(files).toHaveLength(1);
     const raw = fs.readFileSync(path.join(dir, "wanderer", "mail", files[0]), "utf8");
-    const body = raw
-      .split(/\r?\n\r?\n/)
-      .slice(1)
-      .map((part) => {
-        try {
-          return Buffer.from(part.replace(/\s/g, ""), "base64").toString("utf8");
-        } catch {
-          return "";
-        }
-      })
-      .join("\n");
+    const body = mailBodyOf("wanderer");
 
     expect(raw).toContain(OWNER);
     expect(body).toContain("https://t.test/wanderer");
     expect(body).toContain("draft");
     // The private wording, not the public one.
     expect(body).toContain("appears on no list");
+  });
+
+  /**
+   * B26. This letter is the first thing the software says to somebody, and it
+   * said it in English to a German journal — the one piece of the product they
+   * did not get to choose the language of.
+   */
+  test("is written in the journal's language, footer included", async () => {
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "T", url: "https://t.test" },
+        features: { mail: { enabled: true, transport: "file" } },
+      }),
+    );
+    // The dictionaries live beside the journals, under content/locales.
+    fs.symlinkSync(
+      path.join(process.cwd(), "content", "locales"),
+      path.join(dir, "locales"),
+    );
+    clearConfigCache();
+    make("reisender", { defaultLocale: "de", locales: ["de"] });
+
+    await sendWelcome({
+      username: "reisender",
+      title: "Meine Reise",
+      email: OWNER,
+      nickname: "Robin",
+      visibility: "public",
+      locale: getUser("reisender")?.defaultLocale,
+    });
+
+    const body = mailBodyOf("reisender");
+    expect(body).toContain("Dein Reisetagebuch ist bereit");
+    // The footer follows the body. An English "Sent by …" under a German
+    // letter is the seam that sends somebody to the spam button.
+    expect(body).toContain("Gesendet von T");
+    expect(body).not.toContain("Sent by");
+  });
+
+  test("falls back to English when the journal names no language", async () => {
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "T", url: "https://t.test" },
+        features: { mail: { enabled: true, transport: "file" } },
+      }),
+    );
+    fs.symlinkSync(
+      path.join(process.cwd(), "content", "locales"),
+      path.join(dir, "locales"),
+    );
+    clearConfigCache();
+    make("wanderer");
+
+    await sendWelcome({
+      username: "wanderer",
+      title: "A journal",
+      email: OWNER,
+      nickname: "Robin",
+      visibility: "public",
+      locale: getUser("wanderer")?.defaultLocale,
+    });
+
+    expect(mailBodyOf("wanderer")).toContain("Your journal is ready");
   });
 });
 

@@ -4,6 +4,8 @@ import path from "node:path";
 import { isEnabled } from "./capabilities";
 import { clearConfigCache, type JournalVisibility } from "./config";
 import { contentRoot } from "./contentRoot";
+import type { TranslationKey } from "./i18n";
+import { translateIn } from "./locales";
 import { sendMail } from "./mail";
 import { renderMail } from "./mail/template";
 import { serverSite } from "./site";
@@ -221,64 +223,64 @@ export async function sendWelcome(input: {
   email: string;
   nickname: string;
   visibility: JournalVisibility;
+  /**
+   * The journal's own language. Anything this instance does not maintain a
+   * dictionary for falls back to English inside `dictionaryFor`, so a journal
+   * that speaks a fourth language still gets a readable letter rather than a
+   * page of missing keys.
+   */
+  locale?: string;
 }): Promise<boolean> {
   if (!isEnabled("mail")) return false;
 
   const site = serverSite();
   const url = `${site.url}/${input.username}`;
+  const locale = input.locale ?? "en";
+  const t = (key: TranslationKey, vars?: Record<string, string>) =>
+    translateIn(locale, key, vars);
 
   try {
     await sendMail(
       renderMail(
         input.email,
-        `Your journal is ready — ${input.title}`,
+        t("welcome.subject", { title: input.title }),
         {
-          preheader: `${input.title} lives at ${url}`,
-          title: "Your journal is ready",
+          preheader: t("welcome.intro", {
+            nickname: input.nickname,
+            title: input.title,
+            site: site.name,
+          }),
+          title: t("welcome.title"),
           blocks: [
             {
               kind: "paragraph",
-              text:
-                `${input.nickname}, "${input.title}" now exists on ${site.name} and it is ` +
-                "yours. This is the only mail that carries its address, so keep it.",
+              text: t("welcome.intro", {
+                nickname: input.nickname,
+                title: input.title,
+                site: site.name,
+              }),
             },
-            { kind: "button", text: "Open your journal", href: url },
+            { kind: "button", text: t("welcome.open"), href: url },
             {
               kind: "paragraph",
-              text:
-                input.visibility === "private"
-                  ? "It is private: it appears on no list on this server and asks search " +
-                    "engines not to index it, so the only people who will find it are the " +
-                    "ones you send the address to. Whether a particular journey can be read " +
-                    "is set on the journey itself."
-                  : "It is public: it is listed on this server's own index and search " +
-                    "engines may index it. Each journey still decides for itself whether " +
-                    "anyone can read it, and a new one starts out private.",
+              text: t(input.visibility === "private" ? "welcome.private" : "welcome.public"),
             },
-            { kind: "heading", text: "Nothing an agent writes is published" },
+            { kind: "heading", text: t("welcome.draftsHeading") },
+            { kind: "paragraph", text: t("welcome.draftsRule") },
+            { kind: "paragraph", text: t("welcome.drafts") },
+            { kind: "heading", text: t("welcome.tokenHeading") },
             {
               kind: "paragraph",
-              text:
-                "Everything written into this journal by an agent arrives as a draft and " +
-                "stays invisible to readers until you publish it yourself, by removing one " +
-                "line from the file. There is no setting that skips that step.",
-            },
-            {
-              kind: "paragraph",
-              text:
-                "You can see what is waiting at any time — your agent can list the drafts, " +
-                "and reading one back is how you check it did not invent anything.",
-            },
-            { kind: "heading", text: "If you want to write to it later" },
-            {
-              kind: "paragraph",
-              text:
-                `Ask your agent to start at ${site.url}/agent.md. It will ask this server ` +
-                `to mail a six-digit code to ${input.email} — this address, and no other — ` +
-                "and that code becomes a token that can write for seven days.",
+              text: t("welcome.token", {
+                guide: `${site.url}/agent.md`,
+                email: input.email,
+              }),
             },
           ],
-          footer: `Sent by ${site.name} because a journal was created for this address.`,
+          // The footer follows the body. An English "Sent by …" under a
+          // Hungarian letter is the seam that sends somebody to the spam
+          // button — the digest already learned this.
+          footer: t("welcome.footer", { site: site.name }),
         },
         input.username,
       ),

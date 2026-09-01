@@ -15,6 +15,7 @@ import { TAG_MAX_LENGTH, TRANSPORT_MODES } from "../validate/entry";
 import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
 import { isIndexable } from "../access";
+import { MAINTAINED_LOCALES } from "../i18n";
 // The sentences these documents share with /openapi.json, kept in one place so
 // they cannot come to disagree. See the note at the top of that file.
 import {
@@ -315,6 +316,7 @@ Content-Type: application/json
  "ownerName": "Robin Delacroix-Mbeki",
  "ownerNickname": "Robin",
  "visibility": "public",
+ "defaultLocale": "de",
  "tagline": "optional"}
 \`\`\`
 
@@ -333,6 +335,12 @@ name whose given name is not first. Ask.
 
 \`visibility\` is \`"public"\` unless you say otherwise. Ask which they want; see
 the table above for what the two mean.
+
+\`defaultLocale\` is the journal's language — \`${MAINTAINED_LOCALES.join("\`, \`")}\` on this
+instance — and it decides the language of the site's chrome **and of the
+welcome mail this server sends the owner the moment the journal exists**. It
+defaults to \`en\`, so a German journal created without it greets its owner in
+English. Ask, and pass it.
 
 The reply carries an **agent token for the journal it just made**, so you can
 go straight on to creating a trip — no second code. It also carries
