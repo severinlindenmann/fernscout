@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: media, fetchMedia
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B31 — A refused URL does not say whether the host was checked or the check itself failed
