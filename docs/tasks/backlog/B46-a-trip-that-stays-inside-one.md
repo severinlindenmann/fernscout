@@ -55,26 +55,102 @@ to deserve a map, and the map page is one of the four things in the nav
 (`components/SiteNav.tsx:14`). Related: B18 is the same page drawing nothing at
 all for a planned trip, and B06 covers route rendering more broadly.
 
+## Measured, 2026-09-01
+
+The basemap question was "can this reach roughly 1 km detail". It was measured
+rather than estimated, against the three resolutions `world-atlas` already ships
+as a devDependency. **Distance between neighbouring coastline points** — the
+finest thing the data can express:
+
+| source | world median | Japan median | 10th pct | baked, whole world |
+| --- | --- | --- | --- | --- |
+| `land-110m` (current) | 63.1 km | 75.3 km | 35.0 km | 0.06 MB |
+| `land-50m` | 7.6 km | 9.8 km | 3.0 km | 0.71 MB |
+| `land-10m` | **1.6 km** | 1.7 km | 661 m | 4.90 MB |
+
+So 1 km detail **is** reachable from data already on disk: `land-10m` resolves
+to a 1.6 km median, 661 m at the tenth percentile. Three things qualify it.
+
+**The bake throws most of that away before it ships.**
+`scripts/build-world-map.mjs:17` writes coordinates with `toFixed(1)` — a tenth
+of a viewBox unit, and one unit is 40.1 km, so every point snaps to a **4 km
+grid**. At 10m resolution the data would be finer than the grid it is rounded
+onto. Three decimals gives a 40 m grid and costs 6.45 MB instead of 4.90 MB.
+
+**The whole world at 10m is 80× the current payload.** `test/bundle.test.ts`
+exists because 62 KB of coastline in the shared chunk was considered a bug worth
+a permanent test. 4.9 MB is a different category, and it is the entire planet
+downloaded to look at one city.
+
+**Clipping to the trip fixes that completely.** The same 10m source, cut to a
+trip's own bounding box and kept at 3 decimals:
+
+| area | `land-10m` | `countries-10m` |
+| --- | --- | --- |
+| Japan, end to end | 126 KB | 144 KB |
+| Switzerland | **0 KB** | 39 KB |
+| Zurich, 30 km across | **0 KB** | **0 KB** |
+
+Japan at full 10m resolution costs 126 KB — twice today's payload for forty
+times the detail, and it ships with the trip rather than with the site.
+
+**And the last row is the real answer.** `land-*` is a coastline: land against
+sea, nothing else. Switzerland has no coastline, so an inland journal draws a
+blank green field at *every* resolution — `countries-10m` rescues it with 39 KB
+of borders, which is why the country file, not the land file, is the right
+source. But inside a 30 km box over Zurich **both files are empty**. There are
+no lakes, no rivers, no roads, no urban areas in this data family at any
+resolution. Below roughly the size of a country there is nothing to draw.
+
+Getting a city to look like a city therefore is not a resolution problem and
+cannot be solved by swapping files. It needs a different dataset — Natural
+Earth's separate 10m lakes and rivers layers (a new dependency, and enough for
+"Zurich is on a lake"), or OSM-derived vector tiles for anything street-level,
+which is the hosting decision B06's plan already flags.
+
 ## Work
 
 The framing arithmetic is straightforward; the basemap is a decision and should
 be made before the rest is built, because it determines whether zooming in is
 worth offering at all.
 
-**Decide what a close-up map shows.** Three honest options, and the second is
-the recommendation:
+**Decide what a close-up map shows.** The measurements above replace what this
+section originally guessed. Four options, and the first two are now the
+recommendation *together* — they answer different halves of the range:
 
-- Ship a higher-resolution basemap (`land-50m`, or `10m` for coastal detail).
-  Correct-looking, and it grows a payload that is currently baked and free.
-  50m still has little to say inside a city.
-- **Stop pretending there is terrain.** Below some span, drop the coastline and
-  draw the route and its stops on the clean background the brand already uses —
-  an abstract diagram of the trip rather than a bad map of a city. This is
-  honest at every scale, needs no new data, and for a walk across a city is
-  arguably the better picture.
-- Fetch raster tiles. Rejected unless the author says otherwise: it makes every
-  reader's browser call a third party that then learns their IP and which trip
-  they opened, on a self-hosted journal whose maps are deliberately baked in.
+- **Bake the basemap per trip, from `countries-10m`, clipped to the trip's own
+  bounding box.** 126–144 KB for Japan, 39 KB for Switzerland, at ~1.6 km
+  resolution. It ships beside the trip's other derivatives under
+  `content/<user>/trips/<id>/`, which is where generated output already lives,
+  so a long journal never pays for a country it has not visited. `countries-10m`
+  rather than `land-10m` because a landlocked trip gets nothing from a
+  coastline. This carries the map from continents down to roughly the size of a
+  region, which is most of the gap.
+- **Below that, stop pretending there is terrain.** Inside a 30 km box there is
+  nothing in Natural Earth to draw at any resolution — measured, both files
+  empty. So under some span, drop the basemap and put the route and its stops on
+  the clean background the brand already uses: an abstract diagram of the day
+  rather than a blank green field with pins on it. Honest, free, and for a walk
+  across a city arguably the better picture.
+- Add Natural Earth's 10m lakes and rivers as well. A new dependency, and the
+  smallest thing that would make an inland city read as a place — "Zurich is on
+  a lake" — without going near OSM. Worth costing separately if the abstract
+  treatment above turns out to feel empty.
+- Self-hosted OSM vector tiles (Protomaps/PMTiles, built with Planetiler for
+  only the areas a journal covers) are the only route to genuine street-level
+  detail. They also mean replacing the SVG map with a GL renderer and losing the
+  drawn look entirely, so this is a rewrite, not a setting. It is the same
+  hosting decision `docs/plans/W20-tracking.md` defers, and it should be made
+  once, for both.
+
+Third-party raster tiles stay rejected unless the author says otherwise: they
+make every reader's browser call a service that then learns their IP and which
+trip they opened, on a self-hosted journal whose maps are deliberately baked in.
+
+**Fix the bake precision at the same time.** `scripts/build-world-map.mjs:17`
+rounds to `toFixed(1)`, a 4 km grid, which would quantise away most of what a
+10m source provides. Three decimals is a 40 m grid; per-trip clipping is what
+makes that affordable.
 
 **Then make the framing scale-aware.** Pad as a fraction of the route's own
 extent with a floor, rather than a fixed 70/55; raise or remove the zoom cap
