@@ -347,6 +347,100 @@ describe("the panel and the gate agree", () => {
   });
 });
 
+/**
+ * The digest, held to the same table. B52.
+ *
+ * `digestableTrips` (`lib/digest/visibility.ts`) states its own rule: **a
+ * digest never contains a line about a trip the reader cannot open.** That is
+ * not a property of the digest alone — it is a relation between two files, and
+ * the only way to assert it is to run both against the same readers and the
+ * same trips. So: whatever the digest would mention to a reader must be a
+ * subset of what the gate would open for that same reader, for every row of the
+ * table above.
+ *
+ * B52 widened the digest to include `guest` trips, which is why this is here.
+ * Before it, the subset was trivially satisfied by mentioning almost nothing;
+ * the two positive assertions below are what stop it being satisfied that way
+ * again, and `private` is asserted to be in nobody's mail at all.
+ *
+ * The two sides are joined by one word, `granted`, and it has to mean the same
+ * thing twice: a live `read` grant here, and `isJournalGuest` — an **active**
+ * contact holding a live grant — at the gate. `planDigest` drops every contact
+ * that is not active before it calls `digestableTrips`, so `grantedFor` below
+ * asks both questions in the same order the digest run does.
+ */
+describe("the digest never mentions a trip the gate would refuse", () => {
+  const EMAILS: Record<string, string | null> = {
+    anonymous: null,
+    stranger: STRANGER,
+    pending: PENDING,
+    approved: GUEST,
+    revoked: BLOCKED,
+    traveller: ROBIN,
+    owner: OWNER_EMAIL,
+  };
+
+  /**
+   * The `granted` bit the digest run would pass for this viewer — asked of the
+   * database, not written down, so it cannot drift from what `runDigest` does.
+   */
+  async function grantedFor(viewer: string): Promise<boolean> {
+    const email = EMAILS[viewer];
+    if (!email) return false;
+    const { listContacts } = await import("@/lib/contacts");
+    const contact = (await listContacts(OWNER)).find((c) => c.email === email);
+    // Exactly `planDigest`'s order: a contact, active, holding a live grant.
+    if (!contact || contact.status !== "active") return false;
+    const { contactsWithReadGrant } = await import("@/lib/grants");
+    return (await contactsWithReadGrant(OWNER, new Date())).has(contact.id);
+  }
+
+  test.each(Object.keys(EXPECTED))("%s: every line leads somewhere open", async (viewer) => {
+    const trips = [...(await tripsByRef()).values()];
+    const { digestableTrips } = await import("@/lib/digest/visibility");
+    const { mayReadTrip } = await import("@/lib/tripGate");
+
+    const mentioned = digestableTrips(trips, await grantedFor(viewer));
+    for (const trip of mentioned) {
+      as(viewer);
+      expect(await mayReadTrip(trip), `${viewer} is mailed about ${trip.id}`).toBe(true);
+      // And the table, so a gate that started saying yes to everything would
+      // not quietly make this pass.
+      expect(EXPECTED[viewer][trip.id].read, `${trip.id} in the table`).toBe(true);
+    }
+  });
+
+  test("an approved reader is told about the guest trip", async () => {
+    const trips = [...(await tripsByRef()).values()];
+    const { digestableTrips } = await import("@/lib/digest/visibility");
+    expect(digestableTrips(trips, await grantedFor("approved")).map((t) => t.id)).toContain(
+      "invited-2026",
+    );
+  });
+
+  test("a reader with no grant is told only what the world may read", async () => {
+    const trips = [...(await tripsByRef()).values()];
+    const { digestableTrips } = await import("@/lib/digest/visibility");
+    for (const viewer of ["anonymous", "stranger", "pending", "revoked", "traveller"]) {
+      expect(digestableTrips(trips, await grantedFor(viewer)).map((t) => t.id), viewer).toEqual([
+        "open-2026",
+      ]);
+    }
+  });
+
+  test("a private trip is in nobody's digest, grant or no grant", async () => {
+    const trips = [...(await tripsByRef()).values()];
+    const { digestableTrips } = await import("@/lib/digest/visibility");
+    for (const granted of [true, false]) {
+      const ids = digestableTrips(trips, granted).map((t) => t.id);
+      expect(ids, `granted: ${granted}`).not.toContain("secret-2026");
+      // Not even the trip its own traveller can open: the digest is addressed
+      // by contact and cannot know a contact was on the bus.
+      expect(ids, `granted: ${granted}`).not.toContain("robins-2026");
+    }
+  });
+});
+
 describe("an approved contact is let in by the grant alone", () => {
   test("opens a guest trip with nothing but a session cookie", async () => {
     as("approved");

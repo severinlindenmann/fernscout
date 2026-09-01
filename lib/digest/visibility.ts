@@ -1,5 +1,5 @@
 import "server-only";
-import { isIndexable, isOpenToLink } from "../access";
+import { isIndexable } from "../access";
 import type { Trip } from "../types";
 
 /**
@@ -11,23 +11,45 @@ import type { Trip } from "../types";
  * something private exists and then refuses them, which is the one thing a
  * private trip is for.
  *
- * Three cases, and the two interesting ones are the trips that are *not* public:
+ * Four cases, and the interesting ones are the trips that are *not*
+ * advertised:
  *
- * - **public** (`isIndexable`) — anyone may see it listed, so anyone on the
- *   digest list may be told about it.
- * - **unlisted** — reachable by link, but deliberately not advertised. Mailing
- *   it to everybody who ever signed the guestbook *is* advertising it, so it
- *   goes only to readers the owner has actually granted (the `read` grant that
- *   approving a contact creates). This is the same distinction `listableTrips`
- *   draws for the trip switcher.
- * - **guest and private** — never. This was once simply true: the gate had no
- *   database behind it, so a grant did not open it, and a digest cannot carry
- *   a password. B41 changed half of that and B39 finished it — a `guest` trip
- *   is now opened by a live grant and by nothing else, so a line about one
- *   would no longer be a link to a door the reader has no key for. Widening
- *   this function to match is B52, and deliberately not done here: it changes
- *   what lands in somebody's inbox, which is the owner's call and not a side
- *   effect of changing the gate. `private` stays never, whatever else changes.
+ * - **public and listed** (`isIndexable`) — anyone may see it in the sitemap,
+ *   so anyone on the digest list may be told about it.
+ * - **public but unlisted** — reachable by link, and deliberately not
+ *   advertised. Mailing it to everybody who ever signed the guestbook *is*
+ *   advertising it, so it goes only to readers the owner has actually granted
+ *   (the `read` grant that approving a contact creates). This is the same
+ *   distinction `listableTrips` draws for the trip switcher.
+ * - **guest** — the same readers, for a stronger reason: a live grant is now
+ *   the only door into one (B41 made the grant open the gate, B39 removed the
+ *   password that used to stand in front of it), so a grant-holder told about
+ *   a `guest` trip can open it and nobody else is told at all. This was once
+ *   excluded outright, when the gate had no database behind it and a digest
+ *   could not carry a password; B52 widened it, because a trip written for
+ *   exactly the people the owner invited was the one trip those people were
+ *   never told about.
+ * - **private** — never, for anybody. Not the journal's guests, whom
+ *   `mayReadTrip` refuses before it asks anything else, and not the people on
+ *   `people:` either: they can open it, but the digest is addressed by contact
+ *   and has no way to know a contact is also a traveller. Refusing is the
+ *   fail-safe direction, and the same line push draws (B68).
+ *
+ * ## Why this is a subset of the gate, and stays one
+ *
+ * `mayReadTrip` (`lib/tripGate.ts`) is the only thing that decides whether the
+ * link in the mail opens. This function must never mention a trip that would
+ * refuse — the pairing is asserted trip-by-trip and reader-by-reader in
+ * `test/access-gate.test.ts`, against the same table the gate itself is pinned
+ * to, so a change to either side that pulls them apart fails there.
+ *
+ * The two are matched by `granted`, and that word has to mean the same thing on
+ * both sides. Here it is a live `read` grant (`contactsWithReadGrant`); at the
+ * gate it is `isJournalGuest`, which is an **active** contact holding a live
+ * grant. `planDigest` skips every contact that is not `active` before it gets
+ * this far, which is what closes the gap — revoking a contact clears both, so
+ * the two conditions do not come apart in practice, but the digest's version is
+ * the looser of the two and the status check above it is load-bearing.
  *
  * A grant is journal-wide — one bit, not a set of trip ids. It said which trip
  * until `007-journal-wide-grants`, and nothing ever wrote anything but `*`.
@@ -38,10 +60,13 @@ import type { Trip } from "../types";
  * grant on this journal at all. */
 export function digestableTrips(trips: Trip[], granted: boolean): Trip[] {
   return trips.filter((trip) => {
+    // First, and whatever else changes: `private` is nobody's to be told about.
+    if (trip.visibility === "private") return false;
+    // Already advertised to the world, so a mail advertises nothing new.
     if (isIndexable(trip)) return true;
-    // `guest` and `private`: excluded even with a grant. See above — this is
-    // deliberately narrower than the gate, and B52 is where that is revisited.
-    if (!isOpenToLink(trip)) return false;
+    // Everything left is a trip the owner keeps off the listings — a `guest`
+    // trip, or a public one with `listed: false`. Both go only to a reader the
+    // owner has actually let in, which is the same grant the gate asks for.
     return granted;
   });
 }

@@ -99,7 +99,7 @@ function writeUserConfig() {
 type TripSpec = {
   id: string;
   title: string;
-  visibility?: "public" | "unlisted" | "guest";
+  visibility?: "public" | "unlisted" | "guest" | "private";
   dates: string[];
 };
 
@@ -277,18 +277,24 @@ describe("what a reader is told about", () => {
       dates: ["2026-08-27"],
     });
     writeTrip({
-      id: "locked-2026",
-      title: "Private trip",
+      id: "invited-2026",
+      title: "Guest trip",
       visibility: "guest",
       dates: ["2026-08-28"],
+    });
+    writeTrip({
+      id: "secret-2026",
+      title: "Private trip",
+      visibility: "private",
+      dates: ["2026-08-29"],
     });
   });
 
   /** The one that must never regress. */
-  test("a reader without access hears nothing about a private trip", async () => {
+  test("a reader without access hears nothing about a closed trip", async () => {
     const reader = await addReader("plain@example.test", "de");
     // A reader with no grant at all: the public trip is everybody's, and the
-    // unlisted and guest-only ones are none of their business.
+    // unlisted, guest and private ones are none of their business.
     await clearGrants(reader);
 
     const plan = await planDigest(OWNER, { now: MORNING });
@@ -296,7 +302,9 @@ describe("what a reader is told about", () => {
     expect(plan.ready[0].content.trips.map((t) => t.tripId)).toEqual(["open-2026"]);
 
     const mail = JSON.stringify(plan.ready[0].content);
-    expect(mail).not.toContain("locked-2026");
+    expect(mail).not.toContain("invited-2026");
+    expect(mail).not.toContain("Guest trip");
+    expect(mail).not.toContain("secret-2026");
     expect(mail).not.toContain("Private trip");
     expect(mail).not.toContain("quiet-2026");
     expect(mail).not.toContain("Unlisted trip");
@@ -314,24 +322,61 @@ describe("what a reader is told about", () => {
 
     expect(
       byEmail.get("granted@example.test")!.content.trips.map((t) => t.tripId).sort(),
-    ).toEqual(["open-2026", "quiet-2026"]);
+    ).toEqual(["invited-2026", "open-2026", "quiet-2026"]);
     expect(byEmail.get("stranger@example.test")!.content.trips.map((t) => t.tripId)).toEqual([
       "open-2026",
     ]);
   });
 
   /**
-   * A grant *does* open a `guest` trip's gate now (B41, B39), and this stays
-   * shut anyway: `digestableTrips` is deliberately narrower than the gate,
-   * because widening what lands in somebody's inbox is the owner's call and
-   * not a side effect of changing what the gate asks for. That widening is
-   * B52; until then this is the assertion that keeps the two apart.
+   * B52. A live grant is the only door into a `guest` trip — B41 made it open
+   * the gate, B39 removed the password that used to stand in front of it — so a
+   * line about one now leads somewhere the reader can genuinely open, and a
+   * reader without the grant is still told nothing at all. The owner writes a
+   * trip up for exactly the people they invited; the mail that exists to tell
+   * those people about new days no longer skips it.
+   *
+   * That the link actually opens is asserted in `test/access-gate.test.ts`,
+   * which pairs this function against `mayReadTrip` for every reader and every
+   * visibility. This is the mail half.
    */
-  test("a guest trip is never in a digest, grant or no grant", async () => {
+  test("a guest trip reaches the readers actually granted it, and nobody else", async () => {
     await addReader("granted@example.test", "de"); // approval is the grant
+    const stranger = await addReader("stranger@example.test", "de");
+    await clearGrants(stranger);
 
     const plan = await planDigest(OWNER, { now: MORNING });
-    expect(plan.ready[0].content.trips.map((t) => t.tripId)).not.toContain("locked-2026");
+    const byEmail = new Map(plan.ready.map((r) => [r.email, r]));
+
+    const invited = byEmail
+      .get("granted@example.test")!
+      .content.trips.find((t) => t.tripId === "invited-2026");
+    expect(invited).toBeDefined();
+    // The line leads at the trip, not at a gate the reader has to argue with:
+    // that they may open it is `test/access-gate.test.ts`; that the mail points
+    // there is this.
+    expect(invited!.url).toBe("https://example.test/ana/trips/invited-2026");
+    expect(invited!.days[0].url).toBe(
+      "https://example.test/ana/trips/invited-2026/day/stop-0",
+    );
+
+    expect(
+      byEmail.get("stranger@example.test")!.content.trips.map((t) => t.tripId),
+    ).not.toContain("invited-2026");
+  });
+
+  /** The line B52 did not move, and nothing may: `private` reaches nobody. */
+  test("a private trip is never in a digest, grant or no grant", async () => {
+    await addReader("granted@example.test", "de"); // approval is the grant
+    const stranger = await addReader("stranger@example.test", "de");
+    await clearGrants(stranger);
+
+    const plan = await planDigest(OWNER, { now: MORNING });
+    expect(plan.ready).toHaveLength(2);
+    for (const recipient of plan.ready) {
+      expect(recipient.content.trips.map((t) => t.tripId)).not.toContain("secret-2026");
+      expect(JSON.stringify(recipient.content)).not.toContain("Private trip");
+    }
   });
 
   test("an expired grant is not a grant", async () => {
