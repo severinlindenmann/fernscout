@@ -7,6 +7,7 @@ complexity: medium
 area: mail, auth, journals
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B27 — The welcome mail's link opens the public view, so the owner cannot see their own drafts
