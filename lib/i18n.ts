@@ -413,7 +413,19 @@ export type TranslationKey =
   | "trips.switch"
   | "trips.title"
   | "trips.today"
-  | "trips.upcoming";
+  | "trips.upcoming"
+  | "welcome.drafts"
+  | "welcome.draftsHeading"
+  | "welcome.draftsRule"
+  | "welcome.footer"
+  | "welcome.intro"
+  | "welcome.open"
+  | "welcome.private"
+  | "welcome.public"
+  | "welcome.subject"
+  | "welcome.title"
+  | "welcome.token"
+  | "welcome.tokenHeading";
 
 
 /**

@@ -3,6 +3,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { createJournal, sendWelcome } from "@/lib/journals";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
+import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -138,6 +139,10 @@ export async function POST(request: Request) {
     email: session.email,
     nickname: ownerNickname,
     visibility: created.visibility,
+    // The journal's own language, not the instance's. This letter is the first
+    // thing the software says to its owner, and until B26 it said it in
+    // English to a German journal.
+    locale: getUser(created.username)?.defaultLocale,
   });
 
   return Response.json(

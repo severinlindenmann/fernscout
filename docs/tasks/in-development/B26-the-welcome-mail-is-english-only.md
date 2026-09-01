@@ -47,6 +47,25 @@ just does not use it.
 Not doing: translating `agent.md` or `documentation.txt`. Those are read by
 agents, and the instance's own operator language is a separate question.
 
+## What was found while building it
+
+The **Why** held up. Two things it did not anticipate:
+
+`translateIn` falls back to the English dictionary for any locale it has no
+file for, so `sendWelcome` needed no guard of its own for a journal declaring a
+fourth language — it gets a readable English letter rather than a page of
+missing keys. Recorded because the obvious defensive check would be dead code.
+
+The existing welcome-mail test decoded the message by splitting on blank lines,
+which happens to work for some base64 payloads and produces mojibake for
+others — it decoded the English body cleanly and the German one as garbage.
+Replaced with `mailBodyOf`, which parses by MIME boundary. That was a latent
+bug in the test, not in the mail: nothing was ever wrong with what was sent.
+
+Scope held: the fifth question ("which language") went into `firstQuestions`,
+so it is asked once and rendered by both `/documentation.txt` and `/agent.md`
+in their own shapes, rather than written into either by hand.
+
 ## Acceptance
 
 - Creating a journal with `"defaultLocale": "de"` produces a `.eml` under

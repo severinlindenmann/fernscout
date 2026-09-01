@@ -48,6 +48,11 @@ export const VISIBILITY_NOT_A_LOCK =
   "which has a password, invited guests and the trip's `people:` list behind it — and a " +
   "new trip is private whichever kind of journal it is in.";
 
+// Read from the constant rather than typed into prose: a fourth language would
+// otherwise be maintained everywhere except in the sentence that tells an agent
+// it exists. The media limits table already works this way.
+import { MAINTAINED_LOCALES } from "../i18n";
+
 /** One thing an agent has to ask before its first call. */
 export type FirstQuestion = { ask: string; because: string };
 
@@ -113,6 +118,14 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
       because:
         "Two answers, not one. Never split the first to get the second: it mangles any " +
         "name whose given name is not first.",
+    },
+    {
+      ask: "**Which language** the journal is in",
+      because:
+        `This instance maintains ${MAINTAINED_LOCALES.join(", ")}. It sets the language of ` +
+        "the site's own chrome and of the mail this server sends the owner — including the " +
+        "letter that arrives the moment the journal is created, which is the first thing " +
+        "the software ever says to them. Send it as `defaultLocale`.",
     },
   ];
 }
