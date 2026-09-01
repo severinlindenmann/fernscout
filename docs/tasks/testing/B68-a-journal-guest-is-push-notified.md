@@ -7,6 +7,7 @@ complexity: low
 area: push, trips, digest
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B68 — A journal guest is push-notified about a private trip they cannot open
