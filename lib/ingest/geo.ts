@@ -215,3 +215,59 @@ export function reverseGeocode(lat: number, lng: number): Place | null {
   );
   return best < 0 ? null : readPlace(index, best, lat, lng);
 }
+
+/** A town the map may label: enough to draw it, and nothing more. */
+export type BoxedPlace = {
+  name: string;
+  lat: number;
+  lng: number;
+  /** GeoNames population, recovered from the packed scale. */
+  population: number;
+};
+
+/**
+ * The most significant places inside a bounding box, largest first.
+ *
+ * The index exists for `reverseGeocode`, which asks "what is nearest to here".
+ * A map asks the other question — "what is inside this rectangle" — and the
+ * same file answers it with no new data: records are sorted by latitude, so the
+ * band is a pair of binary searches and longitude is a filter over what they
+ * return.
+ *
+ * `limit` is not an optimisation. A frame over the Randstad holds hundreds of
+ * towns and drawing them all is a wall of text, so the caller says how many
+ * labels it has room for and gets the largest that many.
+ */
+export function placesInBox(
+  south: number,
+  west: number,
+  north: number,
+  east: number,
+  limit: number,
+): BoxedPlace[] {
+  const index = load();
+  if (index.count === 0) return [];
+
+  const from = lowerBound(index.lats, south);
+  const to = lowerBound(index.lats, north);
+  const found: { at: number; popScale: number }[] = [];
+
+  for (let i = from; i < to; i++) {
+    const at = i * RECORD_SIZE;
+    const lng = index.records.readInt32BE(at + 4) / 1e5;
+    if (lng < west || lng > east) continue;
+    found.push({ at, popScale: index.records.readUInt8(at + 10) });
+  }
+
+  found.sort((a, b) => b.popScale - a.popScale);
+  return found.slice(0, limit).map(({ at, popScale }) => {
+    const nameLen = index.records.readUInt8(at + 11);
+    const nameOffset = index.records.readUInt32BE(at + 12);
+    return {
+      name: index.names.subarray(nameOffset, nameOffset + nameLen).toString("utf8"),
+      lat: index.records.readInt32BE(at) / 1e5,
+      lng: index.records.readInt32BE(at + 4) / 1e5,
+      population: Math.round(2 ** (popScale / 8) - 1),
+    };
+  });
+}

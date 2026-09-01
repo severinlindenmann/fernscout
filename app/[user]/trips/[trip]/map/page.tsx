@@ -3,7 +3,9 @@ import { requestLocale, translateIn } from "@/lib/locales";
 import { mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import MapPageContent from "@/app/[user]/(trip)/map/MapPageContent";
+import { basemapFor } from "@/lib/basemap";
 import { getPlaces, getTripStats } from "@/lib/entries";
+import { frameRoute } from "@/lib/mapFrame";
 import { getPlan } from "@/lib/plan";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUsernames } from "@/lib/users";
@@ -57,12 +59,18 @@ export default async function TripMapPage({ params }: PageProps<"/[user]/trips/[
   const stats = getTripStats(trip.ref);
   // See app/[user]/(trip)/map/page.tsx — drafted stops are the owner's alone.
   const plan = getPlan(trip.ref, { includeDrafts: await isOwner(user) });
+  const places = getPlaces(trip.ref);
+  // The frame is worked out here as well as in the component, so that only the
+  // few dozen kilobytes this trip covers cross the wire rather than the eleven
+  // megabytes of the baked bundle. `frameRoute` is pure, so the two agree.
+  const basemap = basemapFor(frameRoute(places.length > 0 ? places : plan.stops));
   return (
     <TripProvider trip={trip} isCurrent={false}>
       <MapPageContent
-        places={getPlaces(trip.ref)}
+        places={places}
         plan={plan.stops}
         reachedCount={plan.reachedCount}
+        basemap={basemap}
         stats={{
           tripDays: stats.tripDays,
           places: stats.places,

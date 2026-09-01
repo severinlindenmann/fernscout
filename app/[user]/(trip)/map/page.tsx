@@ -5,7 +5,9 @@ import { PATH_HEADER } from "@/lib/requestKeys";
 import { mayReadTrip } from "@/lib/tripGate";
 import { notFound } from "next/navigation";
 import MapPageContent from "./MapPageContent";
+import { basemapFor } from "@/lib/basemap";
 import { getPlaces, getTripStats } from "@/lib/entries";
+import { frameRoute } from "@/lib/mapFrame";
 import { getPlan } from "@/lib/plan";
 import { currentTripRef, getTrip } from "@/lib/trips";
 import TripProvider from "@/components/TripProvider";
@@ -48,12 +50,17 @@ export default async function MapPage({ params }: PageProps<"/[user]/map">) {
   // Planned stops derived from drafts are the trip's own next moves — shown
   // only to the person who wrote them, exactly like the drafts themselves.
   const plan = getPlan(tripId, { includeDrafts: await isOwner(user) });
+  const places = getPlaces(tripId);
+  // Clipped here so the reader gets their own trip's worth of map rather than
+  // the whole bundle — see the same two lines in the trip-scoped route.
+  const basemap = basemapFor(frameRoute(places.length > 0 ? places : plan.stops));
   return (
     <TripProvider trip={trip} isCurrent>
       <MapPageContent
-        places={getPlaces(tripId)}
+        places={places}
         plan={plan.stops}
         reachedCount={plan.reachedCount}
+        basemap={basemap}
         stats={{
           tripDays: stats.tripDays,
           places: stats.places,

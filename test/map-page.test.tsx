@@ -6,6 +6,7 @@ import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import TripListProvider from "@/components/TripListProvider";
 import { dictionaryFor } from "@/lib/locales";
+import { kmForUnits } from "@/lib/mapFrame";
 import type { PlaceView } from "@/components/WorldMap";
 import type { SiteSummary } from "@/lib/site";
 import type { Entry, PlannedStop } from "@/lib/types";
@@ -127,12 +128,18 @@ describe("an upcoming trip: a plan and no days", () => {
     const box = mapViewBox(html);
     expect(box).not.toBeNull();
 
-    // Framed on Japan rather than standing the whole world in. The plan spans
-    // lng 130.4–141.4, which the equirectangular projection of
-    // lib/mapProjection.mjs puts at x 862–893 in a 1000-wide viewBox.
-    const [x, , w] = box!.split(" ").map(Number);
-    expect(x).toBeGreaterThan(700);
-    expect(x + w).toBeLessThan(1000);
+    // Framed on Japan rather than standing the whole world in.
+    //
+    // Asserted as a distance rather than as raw viewBox coordinates: B46 added
+    // the `cos(latitude)` correction, so x is no longer the projected value and
+    // the old bound (`x > 700`, from Japan sitting at x 862–893 in a 1000-wide
+    // box) silently became a statement about the projection instead of about
+    // the framing. What this test has always meant is "the map shows Japan, not
+    // the planet", and `frameSpanKm` says exactly that.
+    const [, , w] = box!.split(" ").map(Number);
+    expect(kmForUnits(w)).toBeLessThan(5000);
+    // Fukuoka to Sapporo is about 1,400 km, and all of it has to be on screen.
+    expect(kmForUnits(w)).toBeGreaterThan(1400);
   });
 
   test("draws every planned stop, on a dashed run", () => {

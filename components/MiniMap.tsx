@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { project, MAP_VIEWBOX } from "@/lib/mapProjection";
+import { frameRoute, place as placeIn } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 
 /** A small "you are here" world map — the whole route faintly, with a pulsing
@@ -16,30 +16,30 @@ export default function MiniMap({
   className?: string;
 }) {
   const worldLand = useWorldLand();
-  const pts = route.map((p) => project(p.lat, p.lng));
-  const [cx, cy] = project(current.lat, current.lng);
-
-  // Frame the route with padding, biased so the pin is comfortably inside.
-  const xs = pts.map((p) => p[0]);
-  const ys = pts.map((p) => p[1]);
-  const padX = 90;
-  const padY = 60;
-  const minX = Math.max(0, Math.min(...xs, cx) - padX);
-  const maxX = Math.min(MAP_VIEWBOX.width, Math.max(...xs, cx) + padX);
-  const minY = Math.max(0, Math.min(...ys, cy) - padY);
-  const maxY = Math.min(MAP_VIEWBOX.height, Math.max(...ys, cy) + padY);
+  // The pin is part of the route for framing purposes — it is the one point
+  // that must never fall outside, and on a trip whose current position has run
+  // ahead of its written days it is the outlier that decides the frame.
+  const frame = frameRoute([...route, current]);
+  const pts = route.map((p) => placeIn(frame, p));
+  const [cx, cy] = placeIn(frame, current);
 
   return (
     <svg
-      viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`}
+      viewBox={`${frame.x} ${frame.y} ${frame.w} ${frame.h}`}
       className={className}
       role="img"
       aria-hidden
     >
-      <rect x={minX} y={minY} width={maxX - minX} height={maxY - minY} fill="#8fe0ef" />
-      <g fill="#dff3e0" stroke="#bfe3c4" strokeWidth={0.6}>
+      <rect x={frame.x} y={frame.y} width={frame.w} height={frame.h} fill="#8fe0ef" />
+      {/* Squeezed, not positioned — see the same group in WorldMap. */}
+      <g
+        fill="#dff3e0"
+        stroke="#bfe3c4"
+        strokeWidth={0.6}
+        transform={`scale(${frame.lngScale} 1)`}
+      >
         {worldLand.map((d, i) => (
-          <path key={i} d={d} />
+          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
         ))}
       </g>
 

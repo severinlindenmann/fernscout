@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
+import { basemapFor } from "@/lib/basemap";
 import { getPlaces, getTripStats } from "@/lib/entries";
+import { frameRoute } from "@/lib/mapFrame";
 import { getTrips } from "@/lib/trips";
 import { listableTrips } from "@/lib/tripGate";
 import TripsIndexContent from "./TripsIndexContent";
@@ -89,6 +91,9 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
     <TripsIndexContent
       trips={cards}
       routes={routes}
+      // Every trip's points at once: the lifetime map frames all of them, so
+      // the clip has to cover all of them too.
+      basemap={basemapFor(frameRoute(routes.flatMap((r) => r.points)))}
       lifetime={{
         countries: countries.size,
         days: travelled.reduce((n, t) => n + statsByTrip.get(t.ref)!.tripDays, 0),
