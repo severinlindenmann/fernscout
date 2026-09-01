@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: deploy, i18n, ops
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B56 — Deploying ships code but not content/locales, so translations never reach the live site

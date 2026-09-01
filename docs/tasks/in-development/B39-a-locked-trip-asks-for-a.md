@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: access, trips, auth, i18n, ui
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B39 — A locked trip asks for a shared password, which nobody can revoke and everybody forwards
