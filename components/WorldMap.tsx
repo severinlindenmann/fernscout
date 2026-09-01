@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, Plus, Minus, Maximize2 } from "lucide-react";
 import { frameRoute, frameSpanKm, place as placeIn, type Frame } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
-import { TRANSPORT_STYLE } from "@/lib/transport";
+import { TRANSPORT_STYLE, dashFor } from "@/lib/transport";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
@@ -449,21 +449,33 @@ export default function WorldMap({
             const dx = x2 - x1;
             const dy = y2 - y1;
             const len = Math.hypot(dx, dy) || 1;
-            const bow = Math.min(px(120), len * 0.18);
+            const style = TRANSPORT_STYLE[leg.mode];
+            // Bowed by mode, not by a constant: a flight arcs because it does
+            // not touch the ground, a walk is a straight line because it is
+            // one. Capped so that a very long leg does not swing off the map.
+            const bow = Math.min(px(140), len * style.bow);
             const cx = mx - (dy / len) * bow;
             const cy = my + (dx / len) * bow;
-            const style = TRANSPORT_STYLE[leg.mode];
             return (
+              // Fades in rather than drawing itself on.
+              //
+              // Motion animates `pathLength` by taking over `stroke-dasharray`
+              // — it normalises the path and writes `1 1` there. So every leg
+              // on this map rendered `stroke-dasharray="1 1"` whatever the mode
+              // said, including the train that is meant to be solid, and the
+              // dashes in TRANSPORT_STYLE had never once reached the screen.
+              // The dash carries which way the leg was travelled; the draw-on
+              // was decoration. The information wins.
               <motion.path
                 key={i}
                 d={`M${x1},${y1} Q${cx},${cy} ${x2},${y2}`}
                 fill="none"
                 stroke={style.color}
                 strokeWidth={px(4)}
-                strokeDasharray={style.dash}
+                strokeDasharray={dashFor(style, px)}
                 strokeLinecap="round"
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 0.95 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.95 }}
                 transition={{ duration: 0.7, delay: 0.2 + i * 0.08, ease: "easeOut" }}
               />
             );
@@ -630,15 +642,18 @@ export default function WorldMap({
             const style = TRANSPORT_STYLE[mode];
             return (
               <span key={mode} className="flex items-center gap-2 text-xs text-navy-600">
-                <svg width="26" height="6" aria-hidden>
-                  <line
-                    x1="0"
-                    y1="3"
-                    x2="26"
-                    y2="3"
+                {/* The swatch bows by the same fraction the real leg does, so
+                    the legend teaches the shape and not only the colour — a
+                    flight curves here exactly as it curves up there. Its own
+                    SVG is unscaled, so the dash is used at face value: these
+                    are already pixels. */}
+                <svg width="30" height="14" aria-hidden className="shrink-0 overflow-visible">
+                  <path
+                    d={`M1,11 Q15,${11 - 28 * style.bow} 29,11`}
+                    fill="none"
                     stroke={style.color}
                     strokeWidth={3}
-                    strokeDasharray={style.dash}
+                    strokeDasharray={style.dash ? style.dash.join(" ") : undefined}
                     strokeLinecap="round"
                   />
                 </svg>

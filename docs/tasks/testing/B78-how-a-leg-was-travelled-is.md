@@ -7,6 +7,7 @@ complexity: low
 area: map, transport
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B78 — How a leg was travelled is carried by colour alone, and its dash pattern breaks on a small map
@@ -62,6 +63,29 @@ same modes on its own map.
 
 **Not doing:** icons on the line, per-leg labels, or a new mode. This is how
 the seven existing modes are drawn, nothing more.
+
+### The dashes had never reached the screen at all
+
+The Why above blames B46 for the dash lengths, and that was true but not the
+whole of it. The dashes were also being **overwritten every time**, and had
+been since long before B46.
+
+`components/WorldMap.tsx` drew each leg as a `motion.path` animating
+`pathLength` from 0 to 1 — the draw-itself-on effect. Motion implements
+`pathLength` by taking over `stroke-dasharray`: it normalises the path and
+writes `1 1` into that attribute. Inspecting the running page showed every leg
+carrying `stroke-dasharray="1 1"`, including the train, which has no dash at
+all in `TRANSPORT_STYLE` and is meant to be solid.
+
+So the three modes that did have a dash never showed one, and the flight's
+`"10 7"` was decorative in the source and nothing on the page. The unit bug and
+this one had been hiding each other.
+
+The legs now fade in rather than drawing themselves on. The dash carries which
+way the leg was travelled; the draw-on was decoration, and information wins.
+`components/SlideShow.tsx` keeps its `pathLength` animation, because there it
+only runs on the leg currently being travelled and *is* the meaning — the rest
+of its legs pass `initial={false}` and keep their dashes.
 
 ## Acceptance
 

@@ -672,16 +672,23 @@ function SlideMap({
           if (!style) return null;
           const done = i + 1 <= activeIndex;
           const isCurrentLeg = travelling && i + 1 === activeIndex;
+          // Bowed by mode, exactly as the trip map draws it, so a flight
+          // arcs in both places. This map's viewBox is the whole world at
+          // roughly a unit per pixel, so the dash needs no scaling here.
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const len = Math.hypot(dx, dy) || 1;
+          const bow = len * style.bow;
+          const bx = (x1 + x2) / 2 - (dy / len) * bow;
+          const by = (y1 + y2) / 2 + (dx / len) * bow;
           return (
-            <motion.line
+            <motion.path
               key={p.key}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
+              d={`M${x1},${y1} Q${bx},${by} ${x2},${y2}`}
+              fill="none"
               stroke={style.color}
               strokeWidth={1.2}
-              strokeDasharray={style.dash}
+              strokeDasharray={style.dash ? style.dash.join(" ") : undefined}
               strokeLinecap="round"
               opacity={done ? 0.95 : 0.25}
               initial={isCurrentLeg ? { pathLength: 0 } : false}
