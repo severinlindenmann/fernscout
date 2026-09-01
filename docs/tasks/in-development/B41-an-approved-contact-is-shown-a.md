@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: access, contacts, trips
 found: "2026-09-01"
+started: "2026-09-01"
 ---
 
 # B41 — An approved contact is shown a trip in their own panel and then asked for a password nobody gave them
@@ -72,6 +73,24 @@ The distinction is worth stating plainly wherever it is documented, since it is
 what a person gets wrong at the moment they create a trip: **`guest` means the
 people I let into this journal; `private` means only the people who were
 there.**
+
+## B45 is the same defect, seen from the other side
+
+B45 was captured while B35 was being built: the access panel lists `guest`
+trips to any active contact, and `mayReadTrip` then refuses them. That is this
+bug reported from the panel rather than from the gate, and B45 says so — it
+offers "closing this by verifying B41 already fixed it" as a valid outcome.
+
+Take that seriously rather than treating it as a separate job. B45 names one
+thing this file does not: `test/viewer.test.ts` already states the property
+that is being violated — *"the panel never widens access: it reports what
+`mayReadTrip` would already allow"* — so there is an existing test file whose
+own stated contract is currently false. Fixing the gate should make it true.
+
+Two concrete things to carry over: check `listableTrips` and the trip switcher
+for the same gap while you are in there, and when you are done, write into
+B45's file whether it is closed by this work. Leave B45 in `backlog/` either
+way — moving a task to `completed/` is the author's gate, never an agent's.
 
 ## Work
 
