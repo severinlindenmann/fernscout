@@ -92,7 +92,6 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B06](open/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
-| [B52](open/B52-the-digest-still-refuses-a-guest.md) | The digest still refuses a guest trip to a reader who can now open it | FEATURE | medium | low |
 | [B55](open/B55-a-signup-token-is-documented-as.md) | A signup token is documented as single-use and is not | SECURITY | medium | low |
 
 ## in-development
@@ -101,6 +100,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B36](in-development/B36-address-checks-match-one-spelling-each.md) | Address checks match one spelling each, and the URL parser writes another | SECURITY | medium | low |
 | [B46](in-development/B46-a-trip-that-stays-inside-one.md) | A trip that stays inside one city draws as a single dot on a map thousands of kilometres wide | ISSUE | medium | medium |
+| [B52](in-development/B52-the-digest-still-refuses-a-guest.md) | The digest still refuses a guest trip to a reader who can now open it | FEATURE | medium | low |
 
 ## testing
 
