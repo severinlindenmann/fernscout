@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
-import { PATH_HEADER } from "@/proxy";
+import { PATH_HEADER } from "@/lib/requestKeys";
 import { getPlaces, getTripStats } from "@/lib/entries";
 import { getTrips } from "@/lib/trips";
 import { listableTrips } from "@/lib/tripGate";

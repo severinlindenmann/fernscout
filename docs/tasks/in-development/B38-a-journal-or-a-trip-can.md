@@ -123,11 +123,119 @@ Decisions to make and record here before writing code:
   delete that trip — they can write to it, which is not the same authority.
   Assert both.
 
+### The decisions, made
+
+Written before the code, and the code matches them.
+
+**1. The username is reserved, by a tombstone the operator can see and remove.**
+
+Deleting `content/anna/` leaves `content/.deleted/anna.json`: when it went, who
+asked, what it held. `isReservedUsername()` consults it, so `POST
+/api/v1/journals` refuses the name with `reserved_username` and the same
+sentence it uses for `api` or `_next`. Freeing the name is one command —
+`rm content/.deleted/anna.json` — which is a thing an operator does on purpose
+and can see in a directory listing.
+
+Chosen over `loadServerConfig().users.reserved` (the mechanism the task file
+leans on) because that file is hand-written by the operator: a program that
+rewrites `content/config.json` on every deletion is a program that reformats
+somebody's configuration and loses their comments. The tombstone is additive on
+top of that list, in a directory that exists for nothing else, and it carries
+the *why* — a name in a `reserved` array says nothing about what happened to it.
+Chosen over freeing the name because a family following a five-year-old link
+must never land on a stranger's photographs, and there is no way to un-hand-out
+a QR code on somebody's fridge.
+
+**2. Old URLs answer `410 Gone`.**
+
+The tombstone is what makes this possible: without a record on disk there is
+nothing that distinguishes "deleted" from "never existed", which is why this
+decision and the one above are the same decision twice. `proxy.ts` answers 410
+for `/<username>` and everything under it, and for a deleted trip's
+`/<username>/trips/<trip-id>`, before any page renders — a page cannot set a
+status code in Next, and a route handler cannot sit where a page already does.
+A crawler drops the URL instead of retrying it for a year; a person reads that
+the journal was removed by its owner, which is a different sentence from "you
+mistyped this".
+
+Trips get a tombstone too (`content/.deleted/<username>/<trip-id>.json`), for
+the same reason and out of the same code.
+
+**3. Deletion is immediate on confirmation. Staged deletion is B49.**
+
+Not because it was easier. Because a grace period needs something to run at
+the end of it, and on this stack nothing runs: `deploy/fernscout-worker.service`
+says in its own header *"Nothing enqueues work yet"*, `npm run worker` is not a
+script in `package.json`, and nothing anywhere drains the `jobs` table. A
+seven-day expiry that no process reaches is not a grace period — it is a
+journal that has been told it is gone, is already unreachable, and stays on
+disk forever. That is precisely the "broken rather than absent" failure
+`AGENTS.md` forbids, and it would be worse than what we have now: the owner
+would believe their content was deleted when it was not.
+
+What the grace period was for is bought a different way, and this is the part
+that made the trade acceptable:
+
+- The gate is already two independent steps in two different places — an API
+  call, and then a mailbox only a person can open. The agent cannot complete
+  the second one.
+- **The mail and the page both carry a full export**, `"all"` scope: private
+  trips, drafts, everything. `/<user>/export.zip` anonymously serves only the
+  public scope, so linking that before a deletion would have handed somebody a
+  copy that silently omitted the things they were about to lose. The deletion
+  token authorises the complete archive at
+  `/<user>/delete/<token>/export.zip`, and the confirmation page puts it
+  *above* the delete button. Leaving with your data is the recovery a person
+  can actually perform.
+- The tombstone records the exact timestamp, which is what an operator needs
+  to pick a point to restore from (`deploy/fernscout-backup.timer`). Related to
+  B21: this is the feature that makes that drill load-bearing.
+
+B49 captures the staged version, to be reconsidered when there is a worker.
+
+**4. Only the journal's owner may ask, and the mail goes to the journal's own
+owner address.**
+
+Both endpoints require an agent session for that journal whose scope is the
+unqualified `write:content`. Somebody listed in a trip's `people:` gets
+`write:trip:<id>` from `/api/auth/request` (`mayRequestAgentToken`), and is
+refused on both endpoints — including on the very trip they may write days
+into. Writing to a trip and removing it are not the same authority.
+
+The confirmation mail is addressed to `owner.email` in
+`content/<user>/config.json`, never to `session.email`. Those are the same
+address today, but reading it from the config rather than from the credential
+means a token can never route its own confirmation somewhere else.
+
 Documentation, in the same change: `agent.md` and `documentation.txt`
 (`agentGuide()`, `lib/api/documentation.ts`), `openapi.json`, the MCP tool list
 (`lib/mcp/tools.ts`), and `AGENTS.md`. The guide should tell an agent to
 mention the mail rather than treat a `202` as success — an agent that reports
 "deleted" when nothing has been deleted is worse than one that cannot delete.
+
+### Found while building it
+
+Two things the Why did not know, both recorded rather than absorbed:
+
+**`proxy.ts` was in the browser bundle.** The 410 has to be served from the
+proxy — a page in Next cannot set a status code, and a route handler cannot sit
+where a page already does — so the proxy had to read a file, and that broke
+`npm run build` with *"the chunking context does not support external modules
+(request: node:fs)"* while chunking `/page`. The cause: `LOCALE_COOKIE` and
+`PATH_HEADER` were exported from `proxy.ts`, and `components/LocaleSwitcher.tsx`
+is a client component that imported one of them — so everything `proxy.ts`
+imported was pulled into the browser graph. Harmless while the proxy imported
+nothing; a build failure the moment it needed the filesystem. The two constants
+moved to `lib/requestKeys.ts`, which imports nothing, and `proxy.ts` no longer
+exports anything a page or a component may import. The reasoning is written
+into both files so it does not come back.
+
+**Two mails in the same millisecond overwrite each other** in the development
+file transport — `B50`, captured, not fixed here. It made one of these tests
+fail about one run in ten before the helper stopped depending on it.
+
+**`B49`** carries the staged-deletion decision, to be revisited when there is a
+worker to run the sweep.
 
 Not doing: deleting a single day, which already works. Deleting somebody's
 account across journals — `journalsOwnedBy` returns several and each is deleted
