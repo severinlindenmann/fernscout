@@ -7,8 +7,7 @@ complexity: medium
 area: auth, mail, onboarding
 found: "2026-09-03"
 started: "2026-09-03T19:48:54Z"
-session: ea97c35d-5c6a-4610-ab68-d1575d52ea4f
-claimed: "2026-09-03T19:48:54Z"
+merged: "2026-09-03T20:02:18Z"
 ---
 
 # B142 — Something at the recipient's mail host follows the sign-in link

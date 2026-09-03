@@ -8,6 +8,7 @@ area: mail, ops, config
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-03T20:01:25Z"
 ---
 
 # B57 — A journal sending real mail keeps no copy, so nothing that went out can be read back
