@@ -61,19 +61,25 @@ type TripSpec = {
   visibility: string;
   people: string[];
   costsVisibility: "public" | "guests";
+  /** Written into the frontmatter when set. Omitted otherwise, which is what
+   * an ordinary trip.md looks like. */
+  listed?: boolean;
   /** Content nobody lived. Orthogonal to visibility, which is the point. */
   test?: boolean;
 };
 
 /**
- * `quiet-2026` says `unlisted` rather than `public` + `listed: false` because
- * that is the only spelling the parser honours — `lib/trips.ts` derives
- * `listed` from `visibility` and never reads a `listed:` key at all, which is
- * B51.
+ * `quiet-2026` is written the way the documentation has always described an
+ * unadvertised public trip — `visibility: public` plus `listed: false` — and
+ * that spelling is the one this table runs on. It used to say `unlisted`,
+ * because until B51 the legacy word was the only spelling the parser honoured:
+ * `listed` was derived from `visibility` and the key itself read by nothing.
+ * The whole table below is the evidence that the two spellings are one
+ * behaviour rather than two.
  */
 const TRIPS: TripSpec[] = [
   { id: "open-2026", visibility: "public", people: [], costsVisibility: "guests" },
-  { id: "quiet-2026", visibility: "unlisted", people: [], costsVisibility: "public" },
+  { id: "quiet-2026", visibility: "public", listed: false, people: [], costsVisibility: "public" },
   { id: "invited-2026", visibility: "guest", people: [], costsVisibility: "guests" },
   { id: "secret-2026", visibility: "private", people: [], costsVisibility: "guests" },
   { id: "robins-2026", visibility: "private", people: [ROBIN], costsVisibility: "guests" },
@@ -280,6 +286,7 @@ function writeTrip(spec: TripSpec) {
       'end: "2026-08-26"',
       'status: "past"',
       `visibility: "${spec.visibility}"`,
+      ...(spec.listed === undefined ? [] : [`listed: ${spec.listed}`]),
       `costsVisibility: "${spec.costsVisibility}"`,
       ...(spec.test ? ["test: true"] : []),
       ...(spec.people.length > 0

@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { isIndexable } from "@/lib/access";
 import { getTrip, getTrips } from "@/lib/trips";
@@ -61,8 +62,118 @@ describe("visibility parsing", () => {
   });
 });
 
+/**
+ * `listed:` — the key that was documented in `AGENTS.md`, offered by the
+ * `add-a-trip` skill, accepted by `POST /api/v1/<user>/trips` and written into
+ * every trip.md `createTrip` produced, and read by nothing at all. B51.
+ *
+ * It reads now, in one direction. The whole of the design is that it can take
+ * advertising away and can never grant it, so the value on a `Trip` is never
+ * wider than `visibility:` alone would have made it and the three consumers —
+ * `isIndexable`, `listableTrips`, `resolveViewer` — cannot be widened by a
+ * frontmatter key. And it is never about *access*: nothing here changes who
+ * `mayReadTrip` lets in.
+ */
+describe("the listed: key", () => {
+  test("listed: false on a public trip is the old unlisted, exactly", () => {
+    const written = getTrip("u/eta-2023")!;
+    const legacy = getTrip("u/epsilon-2024")!;
+
+    expect(written.visibility).toBe("public");
+    expect(written.listed).toBe(false);
+    // The acceptance line: the two spellings are one behaviour, not two.
+    expect([written.visibility, written.listed]).toEqual([legacy.visibility, legacy.listed]);
+    expect(isIndexable(written)).toBe(isIndexable(legacy));
+    expect(isIndexable(written)).toBe(false);
+  });
+
+  test("listed: true is honoured where the visibility already advertises the trip", () => {
+    expect(getTrip("u/mu-2023")?.listed).toBe(true);
+    expect(isIndexable(getTrip("u/mu-2023")!)).toBe(true);
+  });
+
+  /**
+   * The direction that must not work. A trip closed by `visibility:` stays
+   * unadvertised however loudly the file asks, so the key cannot be used to
+   * put a private trip's title in a sitemap or a switcher — and it is not the
+   * gate either, which is the sentence to keep: `listed` never widens access,
+   * because nothing consults it to decide who may read.
+   */
+  test("listed: true cannot advertise a trip its visibility does not", () => {
+    for (const id of ["theta-2023", "iota-2023", "kappa-2023"]) {
+      const trip = getTrip(`u/${id}`)!;
+      expect(trip.listed, `${id} is advertised`).toBe(false);
+      expect(isIndexable(trip), `${id} is indexable`).toBe(false);
+    }
+    // And the visibility itself is untouched by the key: it decides access,
+    // and `listed:` has no say in it.
+    expect(getTrip("u/theta-2023")?.visibility).toBe("private");
+    expect(getTrip("u/iota-2023")?.visibility).toBe("guest");
+    expect(getTrip("u/kappa-2023")?.visibility).toBe("public");
+  });
+
+  /**
+   * `listed: "no"` is a string, because YAML 1.2 does not read `no` as false.
+   * Anything that is not a boolean falls back to what `visibility:` said —
+   * which here is "advertised" — rather than being coerced, since coercing a
+   * truthy string is how a trip somebody tried to hide ends up in the sitemap.
+   */
+  test("a listed: that is not a boolean is refused, not coerced", () => {
+    expect(getTrip("u/lambda-2023")?.listed).toBe(true);
+  });
+
+  test("listed: is a known field, so it is never reported as one nothing consumes", () => {
+    for (const id of ["eta-2023", "theta-2023", "lambda-2023"]) {
+      expect(getTrip(`u/${id}`)?.unknownFields, id).toBeUndefined();
+    }
+  });
+
+  /**
+   * Refused *out loud*. A key silently dropped is what this task was: the
+   * author's belief about their own trip and the software's reading of it came
+   * apart, and nothing said so.
+   */
+  test("refusing a listed: says which trip and why", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-listed-"));
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({ siteName: "T", url: "http://localhost:3000", defaultUser: "u" }),
+    );
+    fs.mkdirSync(path.join(dir, "u", "trips", "nu-2023", "entries"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "u", "config.json"), JSON.stringify({ title: "T" }));
+    fs.writeFileSync(
+      path.join(dir, "u", "trips", "nu-2023", "trip.md"),
+      ['---', 'id: nu-2023', 'title: "Nu"', 'start: "2023-01-01"', 'end: "2023-01-02"',
+        "visibility: private", "listed: true", "---", "", "Intro.", ""].join("\n"),
+    );
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      process.env.CONTENT_DIR = dir;
+      expect(getTrip("u/nu-2023")?.listed).toBe(false);
+      const said = warn.mock.calls.map((c) => String(c[0])).join("\n");
+      expect(said).toContain("nu-2023");
+      expect(said).toContain("listed: true");
+      expect(said).toContain("can only narrow");
+    } finally {
+      warn.mockRestore();
+      process.env.CONTENT_DIR = FIXTURES;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("the enumeration surfaces", () => {
-  const restricted = ["delta-2025", "epsilon-2024", "zeta-2022"];
+  const restricted = [
+    "delta-2025",
+    "epsilon-2024",
+    "zeta-2022",
+    // Written with the key rather than the older word — same answer.
+    "eta-2023",
+    "theta-2023",
+    "iota-2023",
+    "kappa-2023",
+  ];
 
   test("every restricted trip is excluded from anything indexable", () => {
     const indexable = getTrips("u").filter(isIndexable).map((t) => t.id);
