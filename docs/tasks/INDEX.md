@@ -146,7 +146,6 @@ Do not edit them by hand; run the script.
 | [B19](in-development/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium | `0c03d994` |
 | [B44](in-development/B44-a-guest-who-arrives-without-their.md) | A guest who arrives without their link sees a complete-looking journal and no way to say who they are | ISSUE | medium | medium | `0c03d994` |
 | [B60](in-development/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | `a4b53c2f` |
-| [B85](in-development/B85-an-upcoming-trip-with-no-plan.md) | An upcoming trip with no plan serialises a whole-world basemap into a page that draws no map | ISSUE | medium | low | `a4b53c2f` |
 
 ## testing
 
@@ -189,6 +188,7 @@ Do not edit them by hand; run the script.
 | [B79](testing/B79-the-owner-has-no-way-to.md) | The owner has no way to hand somebody an invite link from the site | FEATURE | medium | low | — |
 | [B80](testing/B80-the-access-panel-tells-the-owner.md) | The access panel tells the owner they were on every trip in their journal | ISSUE | medium | low | — |
 | [B82](testing/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
+| [B85](testing/B85-an-upcoming-trip-with-no-plan.md) | An upcoming trip with no plan serialises a whole-world basemap into a page that draws no map | ISSUE | medium | low | — |
 | [B98](testing/B98-revoking-somebody-s-access-leaves-every.md) | Revoking somebody's access leaves every agent token already issued to them working until it expires | SECURITY | medium | medium | — |
 | [B99](testing/B99-two-agents-working-in-parallel-worktrees.md) | Two agents working in parallel worktrees are handed the same task id | CHORE | medium | low | — |
 | [B115](testing/B115-an-unreachable-restic-repository-burns-the.md) | An unreachable restic repository burns the unit's whole 30-minute timeout | ISSUE | low | low | — |
