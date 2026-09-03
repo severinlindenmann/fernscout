@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { clearConfigCache } from "@/lib/config";
+import { clearConfigCache, parseServerConfig, parseUserConfig } from "@/lib/config";
 import { clearUserCache, getUser } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
@@ -39,6 +39,8 @@ import { GET as health } from "@/app/api/health/route";
 
 const QUIET = "quiet";
 const LOUD = "loud";
+/** A journal whose config has no `features` key at all — the common case. */
+const SILENT = "silent";
 const OWNER = "owner@example.test";
 const SITE = "https://example.test";
 
@@ -62,7 +64,11 @@ function serverConfig(extra: Record<string, unknown> = {}) {
   clearUserCache();
 }
 
-function writeJournal(username: string, mail: boolean) {
+/**
+ * A journal on disk. `mail` is the state under test: stated true, stated
+ * false, or — the case B60 nearly broke for everybody — never mentioned.
+ */
+function writeJournal(username: string, mail: boolean | "unstated") {
   fs.mkdirSync(path.join(dir, username, "trips"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, username, "config.json"),
@@ -75,8 +81,25 @@ function writeJournal(username: string, mail: boolean) {
       features: {
         auth: { enabled: true },
         contacts: { enabled: true },
-        mail: { enabled: mail },
+        ...(mail === "unstated" ? {} : { mail: { enabled: mail } }),
       },
+    }),
+  );
+  clearConfigCache();
+  clearUserCache();
+}
+
+/** No `features` key whatsoever — what `scripts/migrate-users.ts` produced. */
+function writeBareJournal(username: string) {
+  fs.mkdirSync(path.join(dir, username, "trips"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, username, "config.json"),
+    JSON.stringify({
+      title: `${username}'s journal`,
+      owner: { name: "Robin Traveller", nickname: "Robin", email: OWNER },
+      defaultLocale: "en",
+      locales: ["en"],
+      baseCurrency: "CHF",
     }),
   );
   clearConfigCache();
@@ -99,6 +122,7 @@ beforeEach(async () => {
   serverConfig();
   writeJournal(QUIET, false);
   writeJournal(LOUD, true);
+  writeBareJournal(SILENT);
   await migrateToLatest(await getDatabase());
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -268,6 +292,87 @@ describe("no .eml copy is written for mail a journal suppressed", () => {
   });
 });
 
+describe("a journal that has never mentioned mail has not switched it off", () => {
+  /**
+   * The half of B60 that nearly shipped as a worse bug than the one it fixed.
+   *
+   * A user's `features.mail` defaults to *absent*, and every journal on disk
+   * is in that state: `scripts/migrate-users.ts` files `mail` under the server
+   * config and never the user's, so the per-journal key exists only because
+   * one parser runs over both files. Reading absence as "no" would have
+   * silently stopped the welcome, the digest and every contact letter for
+   * every existing journal — with no config change by any owner and nothing
+   * announcing it.
+   *
+   * So absence means **no opinion** and inherits the server's answer. Only a
+   * stated `false` is a no. `USER_DEFAULT_FEATURES` in lib/config.ts.
+   */
+  test("its welcome letter is sent", async () => {
+    await expect(
+      sendWelcome({
+        username: SILENT,
+        title: "A journal",
+        email: OWNER,
+        nickname: "Robin",
+        visibility: "public",
+      }),
+    ).resolves.toBe(true);
+    expect(mailFor(SILENT)).toHaveLength(1);
+  });
+
+  test("its contact letters are sent", async () => {
+    await expect(
+      sendCodeMail(SILENT, getUser(SILENT)!, "reader@example.test", "en", "123456"),
+    ).resolves.not.toBeNull();
+    expect(mailFor(SILENT)).toHaveLength(1);
+  });
+
+  test("its digest is not refused over mail", async () => {
+    // It is refused over `contacts`, which really is an opt-in and really is
+    // absent here. Asserting the *other* message is what proves the mail gate
+    // let it through rather than that nothing was checked.
+    await expect(runDigest(SILENT)).rejects.toThrow(/Contacts are not enabled/);
+  });
+
+  test("a stated false is still a no, beside it", async () => {
+    await expect(
+      sendCodeMail(QUIET, getUser(QUIET)!, "reader@example.test", "en", "123456"),
+    ).resolves.toBeNull();
+    expect(mailFor(QUIET)).toEqual([]);
+  });
+
+  test("it still cannot send when the server cannot", async () => {
+    // Absence inherits the server's answer, which cuts both ways — this is the
+    // property that keeps a user config unable to widen anything.
+    serverConfig({ enabled: false });
+    await expect(
+      sendMail(renderMail("r@example.test", "S", SAMPLE, SILENT)),
+    ).resolves.toBeNull();
+    expect(mailFor(SILENT)).toEqual([]);
+  });
+
+  test("the three states, at the parser", () => {
+    const journal = (features?: Record<string, unknown>) =>
+      parseUserConfig("j", {
+        title: "T",
+        owner: { name: "R", nickname: "R", email: OWNER },
+        ...(features ? { features } : {}),
+      }).features.mail.enabled;
+
+    expect(journal(), "absent — no opinion, inherit the server").toBe(true);
+    expect(journal({}), "an empty features block is still no opinion").toBe(true);
+    expect(journal({ mail: { enabled: true } }), "stated yes").toBe(true);
+    expect(journal({ mail: { enabled: false } }), "stated no — the only no").toBe(false);
+
+    // The server's own default is untouched and must stay off: it is the one
+    // holding the credentials, and AGENTS.md's "off by default" is about this
+    // file. A journal saying yes above cannot reach past it.
+    expect(
+      parseServerConfig({ site: { name: "T", url: "https://t.test" } }).features.mail.enabled,
+    ).toBe(false);
+  });
+});
+
 describe("/api/health agrees with what actually happens", () => {
   test("a journal with mail off is reported off, and told what still arrives", async () => {
     const body = await (await health()).json();
@@ -281,8 +386,12 @@ describe("/api/health agrees with what actually happens", () => {
     // Reporting `enabled: false` and nothing else was the lie: sign-in codes
     // kept arriving for a journal this page said had mail switched off.
     expect(body.journals[QUIET].mail.stillSent).toMatch(/sign-in codes/);
-    // A journal that has mail on is not narrowed, so it is not listed at all.
+    // A journal that has mail on is not narrowed, so it is not listed at all —
+    // and neither is one that never mentioned mail, because it is not narrowed
+    // either. Reporting "not enabled by silent" for a journal that said nothing
+    // was the other half of the lie.
     expect(body.journals[LOUD]?.mail).toBeUndefined();
+    expect(body.journals[SILENT]?.mail).toBeUndefined();
   });
 });
 

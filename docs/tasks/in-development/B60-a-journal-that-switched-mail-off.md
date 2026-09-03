@@ -65,15 +65,14 @@ place to fix it. Four things it did not know:
    unchanged. That is now stated in `sendMail`'s doc comment rather than left
    looking like an omission.
 
-3. **A user's `features.mail` defaults to off** (`DEFAULT_FEATURES` in
-   `lib/config.ts:163`), so "a journal that switched mail off" is in practice
-   *every journal that has never mentioned mail*, including every one
-   `createJournal` has ever written. Gating on it alone would therefore have
-   silently stopped the welcome letter for every journal made through signup.
-   `createJournal` now writes `mail: { enabled: true }` beside the `auth:
-   { enabled: true }` it already wrote, for the same stated reason: a journal
-   that cannot greet its own owner is not one anybody asked for. It is an
-   opt-in inside the server's ceiling and can never widen it.
+3. **A user's `features.mail` defaulted to off** (`DEFAULT_FEATURES` in
+   `lib/config.ts`), so "a journal that switched mail off" was in practice
+   *every journal that has never mentioned mail* — which is every journal on
+   disk, `content/example` included. Gating on that would have silently stopped
+   the welcome, the digest and every contact letter for all of them, with no
+   config change by any owner and nothing announcing it: a worse failure than
+   the bug this task fixes. **A journal that has never mentioned mail has not
+   switched it off.** See "The three states" below.
 
 4. **A second, unrelated defect: see B160.** `POST /api/auth/request` never
    checks `isEnabled("mail")` at all, so on an instance with mail off
@@ -82,6 +81,50 @@ place to fix it. Four things it did not know:
    it is captured rather than absorbed.
 
 ## Work
+
+### The three states, and why absence is not "no"
+
+A user's `features.mail` is **not an opt-in**, and it is the only capability
+here that is not. Every other one — `contacts`, `postcards`, `push`, `auth` —
+says "I want this feature on my journal", so absent means "I have not asked for
+it" and off is both the safe and the obvious reading; the failure mode is a
+feature that does not appear, which is visible and recoverable. Mail is a
+**mute button**: a journal does not opt in to being able to send, it opts out
+of being written to on its behalf. Read absence as "no" and the failure mode
+inverts into silent suppression.
+
+`scripts/migrate-users.ts` settles it. When this project went multi-user it
+filed `mail`, `auth`, `contacts` and `photobook` under the **server** config and
+only `reactions`, `costs`, `push` and `postcards` under the user's. The
+per-journal `mail` key exists at all only because one `parseFeatures` runs over
+both files. Nobody ever chose it as a per-journal opt-in.
+
+| In `content/<user>/config.json` | Means |
+| --- | --- |
+| absent, or no `features` block | **No opinion** — whatever the server says |
+| `"mail": { "enabled": true }` | The same; a user can never widen past a server with mail off |
+| `"mail": { "enabled": false }` | **Off** — the only "no" |
+
+So a journal's mail flag can only ever *narrow*, and now it narrows only when
+somebody asked it to. Implemented as `USER_DEFAULT_FEATURES` in `lib/config.ts`
+— the server's table with one entry changed — rather than as a branch in
+`resolveOne`, which is untouched: it checks the server first and returns early,
+which is what makes the table incapable of widening anything.
+
+**No migration is needed, and `createJournal` does not write the key.** A line
+saying `true` would change nothing, and this file already argues (about
+`visibility`) that the owner reading their own config should find the lines
+that are doing something. Writing it would also make journals created after
+this commit behave differently from every journal already on disk, which is
+precisely the difference that must not exist. The `mail: { enabled: true }`
+line an earlier draft of this task added to `createJournal` is therefore
+**reverted**.
+
+One consequence worth stating plainly: on the production data as it stands, no
+journal has an explicit `false`, so this changes nothing about what is
+delivered there. What changes is `/api/health`, which stops reporting `"not
+enabled by sevi"` for a journal that never said so — the same lie told the
+other way round — and the fact that writing `false` now works.
 
 ### What the switch means — the decision, and why
 
@@ -119,8 +162,13 @@ with a 404 rather than accepting it silently.
   disagree.
 - **`app/api/auth/request/route.ts`, `lib/deletions.ts`, `scripts/alert.mts`**
   — the three exempt call sites, each with its reason in prose above the call.
-- **`lib/journals.ts`** — `sendWelcome` gates on the journal; `createJournal`
-  writes `mail: { enabled: true }` (see correction 3).
+- **`lib/config.ts`** — `USER_DEFAULT_FEATURES`, and `parseFeatures` takes the
+  table to use. One entry differs from the server's; every other capability is
+  untouched.
+- **`lib/capabilities.ts`** — comment only. `resolveOne` still reads the server
+  first and returns early, so a user's `true` cannot widen anything.
+- **`lib/journals.ts`** — `sendWelcome` gates on the journal. `createJournal`
+  deliberately does *not* write a `mail` key (see the three states above).
 - **`lib/digest/index.ts`** — a second refusal naming the journal, kept
   separate from the server-wide one because the file to edit differs.
 - **`app/api/health/route.ts`** — a journal whose `mail` is narrowed off now
@@ -140,6 +188,8 @@ with a 404 rather than accepting it silently.
 
 - A journal with `features.mail.enabled: false` receives no mail of whatever
   classes the decision above says it should not, asserted by a test per class.
+- A journal whose config has no `features.mail` key is unaffected — its
+  welcome, digest and contact letters still go — asserted by a test.
 - Any class deliberately exempt is named in the test and in the docs, with the
   reason.
 - `/api/health`'s per-journal mail block agrees with what actually happens.
@@ -149,7 +199,13 @@ with a 404 rather than accepting it silently.
 ### Evidence
 
 `test/mail-journal-switch.test.ts` is the new file, one describe block per
-class; `test/alert-script.test.ts` carries the operator-alert exemption, where
-the script is run for real against the file transport. Five of the eleven new
-tests fail against the pre-fix `lib/`, checked by reverting the three gates and
-re-running.
+class, plus a block for the journal that never mentioned mail — a fixture whose
+config has no `features` key at all, asserting its welcome, its contact letters
+and its digest all still go, that a stated `false` beside it is still a no, and
+that it still cannot send when the server cannot. `test/alert-script.test.ts`
+carries the operator-alert exemption, where the script is run for real against
+the file transport.
+
+Checked by reverting rather than asserted: 5 of the 17 fail against the pre-fix
+`lib/` (the three gates and the health field), and a different 5 fail if the
+user default for mail is off — which is the shape this task nearly shipped as.

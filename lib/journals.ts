@@ -235,13 +235,15 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       // On, or the owner could never get a token to write to what they just
       // made — which would make this endpoint produce a journal nobody can use.
       auth: { enabled: true },
-      // On for the same reason, and written explicitly because the default is
-      // off: since B60 a journal's own `mail` switch really does govern the
-      // letters it sends — the welcome, and later the digest — so a journal
-      // created without this line would never greet its owner. It is an
-      // opt-in inside the server's ceiling, not a way past it: an instance
-      // with `features.mail.enabled: false` still sends nothing.
-      mail: { enabled: true },
+      // `mail` is deliberately *not* written here, even though B60 made a
+      // journal's own switch govern the letters it sends. Absent means "no
+      // opinion" and inherits the server's answer (see `USER_DEFAULT_FEATURES`
+      // in lib/config.ts), so a line saying `true` would change nothing — and
+      // the rule this file already follows for `visibility` is that the owner
+      // reading their own config should find the lines that are doing
+      // something. Writing it would also make journals created after this
+      // commit behave differently from every journal already on disk, which is
+      // the difference that has to not exist.
     },
   };
 
@@ -291,9 +293,9 @@ export async function sendWelcome(input: {
 }): Promise<boolean> {
   // The journal's own switch as well as the server's — this is a letter the
   // journal sends, not a code somebody asked for, so it is governed by
-  // `features.mail.enabled` in its config.json. `createJournal` writes that on
-  // for a journal it makes, for the same reason it writes `auth` on: a journal
-  // that cannot greet its own owner is not one anybody asked for. See B60.
+  // `features.mail.enabled` in its config.json. A journal that has never
+  // mentioned mail has not switched it off, and still gets its welcome: see
+  // `USER_DEFAULT_FEATURES` in lib/config.ts, and B60.
   if (!isEnabled("mail", input.username)) return false;
 
   const site = serverSite();

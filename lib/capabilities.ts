@@ -110,6 +110,14 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
   if (username) {
     const user = getUser(username);
     if (!user) return { name, enabled: false, reason: `no such user "${username}"` };
+    // Read after the server check above, never before it, which is what makes
+    // a user's `true` incapable of widening anything.
+    //
+    // "Not enabled by" covers two different situations and the config parser
+    // decides which: for an opt-in capability a journal that never mentioned
+    // it lands here, and for `mail` only a journal that wrote `false` does —
+    // absence there inherits the server's answer instead. `USER_DEFAULT_FEATURES`
+    // in lib/config.ts carries the reasoning; B60 is what it cost to get wrong.
     if (!user.features[name]?.enabled) {
       return { name, enabled: false, reason: `not enabled by ${username}` };
     }

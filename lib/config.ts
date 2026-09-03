@@ -168,6 +168,37 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   photobook: { enabled: false, provider: "dry-run" },
 };
 
+/**
+ * A journal's own defaults, which differ from the server's in exactly one
+ * entry — and that difference is the whole of B60's second half.
+ *
+ * Every other capability is an **opt-in**: the user's flag says "I want this
+ * on my journal", so absent means "I have not asked for it" and off is both
+ * the safe and the obvious reading. The failure mode is a feature that does
+ * not appear, which is visible and recoverable.
+ *
+ * `mail` is not that kind of switch. Since B60 a journal's `mail` means *do
+ * not write to my readers* — a mute button, not a request for a feature. Read
+ * absence as "no", and the failure mode inverts: letters that should go stop
+ * going, silently, for every journal that has never mentioned mail. That is
+ * every journal on disk today, because `scripts/migrate-users.ts` deliberately
+ * files `mail` under the *server* config and never the user's; the per-journal
+ * key exists at all only because one `parseFeatures` runs over both files.
+ *
+ * So absence here means **no opinion**, and it inherits the server's answer.
+ * The three states are: absent → whatever the server says; `true` → the same
+ * (a user can never widen past a server that has mail off); `false` → off.
+ * Which is to say a journal's mail flag can only ever narrow, and now it only
+ * narrows when somebody asked it to.
+ *
+ * `resolveCapabilities` needs no special case for any of this: it checks the
+ * server first and returns early, so this table cannot widen anything.
+ */
+const USER_DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
+  ...DEFAULT_FEATURES,
+  mail: { ...DEFAULT_FEATURES.mail, enabled: true },
+};
+
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -349,12 +380,17 @@ function parseUser(username: string, raw: unknown, problems: string[]): UserConf
     displayCurrencies,
     manualRates: readManualRates(src, problems),
     units,
-    features: parseFeatures(src.features, problems),
+    features: parseFeatures(src.features, problems, USER_DEFAULT_FEATURES),
     media: parseMediaLimits(src.media),
   };
 }
 
-function parseFeatures(raw: unknown, problems: string[]): Record<FeatureName, FeatureConfig> {
+function parseFeatures(
+  raw: unknown,
+  problems: string[],
+  /** Which table absence falls back to — see `USER_DEFAULT_FEATURES`. */
+  defaults: Record<FeatureName, FeatureConfig> = DEFAULT_FEATURES,
+): Record<FeatureName, FeatureConfig> {
   const out = {} as Record<FeatureName, FeatureConfig>;
   const src = isRecord(raw) ? raw : {};
   if (raw !== undefined && !isRecord(raw)) problems.push("features must be an object");
@@ -362,18 +398,20 @@ function parseFeatures(raw: unknown, problems: string[]): Record<FeatureName, Fe
   for (const name of FEATURE_NAMES) {
     const entry = src[name];
     if (entry === undefined) {
-      out[name] = { ...DEFAULT_FEATURES[name] };
+      out[name] = { ...defaults[name] };
       continue;
     }
     if (!isRecord(entry)) {
       problems.push(`features.${name} must be an object like { "enabled": false }`);
-      out[name] = { ...DEFAULT_FEATURES[name] };
+      out[name] = { ...defaults[name] };
       continue;
     }
     if (typeof entry.enabled !== "boolean") {
       problems.push(`features.${name}.enabled must be true or false`);
     }
-    out[name] = { ...DEFAULT_FEATURES[name], ...entry, enabled: entry.enabled === true };
+    // Stated wins over the default in both directions: this is the only place
+    // a journal's `mail: { "enabled": false }` becomes an actual no.
+    out[name] = { ...defaults[name], ...entry, enabled: entry.enabled === true };
   }
 
   for (const key of Object.keys(src)) {
