@@ -50,3 +50,59 @@ listing still sorts by time, which is what makes the folder readable.
 
 - Sending two identical messages in a tight loop leaves two `.eml` files.
 - A test asserts it, without relying on the clock advancing.
+
+## What was built
+
+**`flags: "wx"` plus a trailing counter**, not a random suffix. The Work
+section offered both; the deciding argument is that `wx` fails rather than
+truncating, so the collision becomes an `EEXIST` the function can answer
+instead of an event nobody observes. A random suffix would have made every
+filename noisier to solve a problem that occurs in a burst, and it would still
+have been a guess rather than a claim — two random names can collide, and
+nothing would have said so.
+
+The loop claims the name and writes it in one step, so there is no window
+between "this name is free" and "it is mine" for the next message to slip
+into. That is the reason not to `existsSync` first.
+
+- `lib/mail/index.ts` — `writeEml` builds `base` from timestamp, recipient and
+  subject as before, then tries `base.eml`, `base-2.eml`, … up to
+  `MAX_SAME_NAME` (100), writing with `wx` each time and treating only
+  `EEXIST` as "try the next one". Anything else still throws. Past 100 it
+  throws rather than returning somebody else's file: the contract is that a
+  message handed to this function is on disk when it returns.
+- **The timestamp stays in front and the counter trails it.** The task asked
+  for this and it is worth restating, because it is the one part a tidier
+  naming scheme would get wrong: sorting the folder by name is how a person
+  finds the mail they just triggered, and a counter in front would reorder
+  everything around it.
+
+### The test does not race the clock
+
+The acceptance asks for two files "without relying on the clock advancing",
+and that is the whole difficulty — a test that sends twice and hopes the
+millisecond does not tick over is the flake B50 is about, and it asserts
+nothing on the runs where it matters. Both new tests in `test/mail.test.ts`
+freeze the clock with `vi.setSystemTime` (already used elsewhere in the file),
+so the collision is forced on every machine and every run.
+
+Against the pre-change `writeEml`, both fail:
+
+```
+× two identical messages in one millisecond leave two files
+× the counter trails the timestamp, so the folder still sorts by time
+  Tests  2 failed | 23 passed (25)
+```
+
+### Not touched
+
+`slug()` at `lib/mail/index.ts:22` still has no NFD pass, so "Grüße vom Weg"
+becomes `gr-e-vom-weg`. That is **B86**'s "while there" note and was left
+alone deliberately: B86 was being built in a parallel worktree against this
+same file. The two do not interact — B86 is about what the slug contains and
+this is about what happens when two names come out identical — and a fix to
+either is unaffected by the other.
+
+The comment above `slug()` was corrected in passing: it claimed the slug was
+"kept unique by the timestamp it is joined to", which was the assumption this
+task disproves. Uniqueness is `writeEml`'s job and the comment now says so.

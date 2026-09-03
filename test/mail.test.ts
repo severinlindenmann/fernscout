@@ -185,6 +185,65 @@ describe("transports", () => {
     );
   });
 
+  /**
+   * B50 — two messages in one millisecond used to leave one file.
+   *
+   * The name was timestamp, recipient and subject, and `writeFileSync`
+   * truncates: a second message with all three the same overwrote the first,
+   * with no error and no log line. Found while writing B38's tests, where a
+   * pair of deletion confirmations passed about nine runs in ten.
+   *
+   * The clock is frozen rather than raced. Sending twice and hoping the
+   * millisecond ticks over is the flake this task exists to remove, so a test
+   * written that way would assert nothing on the runs that matter — it has to
+   * be the same millisecond every time, on every machine.
+   */
+  test("two identical messages in one millisecond leave two files", async () => {
+    writeConfig({ enabled: true, transport: "file" });
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-03T18:00:00.000Z"));
+    try {
+      const first = await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));
+      const second = await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));
+
+      expect(second!.reference).not.toBe(first!.reference);
+      expect(fs.readdirSync(path.join(dir, "ana", "mail"))).toHaveLength(2);
+      // Both are readable, and neither is a truncated remnant of the other.
+      for (const sent of [first, second]) {
+        expect(fs.readFileSync(sent!.reference, "utf8")).toContain("Subject: S");
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /**
+   * The timestamp stays in front. Sorting the folder by name is how a person
+   * finds the mail they just triggered, so a counter that led would reorder
+   * everything around it to solve a collision nobody saw.
+   */
+  test("the counter trails the timestamp, so the folder still sorts by time", async () => {
+    writeConfig({ enabled: true, transport: "file" });
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-09-03T18:00:00.000Z"));
+      await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));
+      await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));
+      vi.setSystemTime(new Date("2026-09-03T18:00:01.000Z"));
+      const last = await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));
+
+      // Sorting the names must put them in the order they were sent. A
+      // counter in front of the timestamp would sort the second message of
+      // 18:00:00 after the only message of 18:00:01.
+      const names = fs.readdirSync(path.join(dir, "ana", "mail")).sort();
+      expect(names).toHaveLength(3);
+      expect(names.at(-1)).toBe(path.basename(last!.reference));
+      expect(names.every((n) => n.startsWith("2026-09-03T18-00-0"))).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("the console transport sends nothing anywhere", async () => {
     const result = await sendMailWith("console", renderMail("r@example.test", "S", SAMPLE));
     expect(result.reference).toBe("console");
