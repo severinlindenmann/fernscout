@@ -7,8 +7,7 @@ complexity: low
 area: mail, ops, security
 found: "2026-09-03"
 started: "2026-09-03T19:20:43Z"
-session: d3574848-24a5-45ec-90ce-a52b8c8fe222
-claimed: "2026-09-03T19:20:43Z"
+merged: "2026-09-03T19:28:48Z"
 ---
 
 # B135 — Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working

@@ -138,7 +138,6 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B156](in-development/B156-the-mcp-door-still-tells-an.md) | The MCP door still tells an agent that publishing means editing a file, two tools away from publish_day | ISSUE | high | low | `ea97c35d` |
 | [B12](in-development/B12-a-finished-trip-still-offers-a.md) | A finished trip still offers a Today button | ISSUE | medium | low | `a4b53c2f` |
-| [B135](in-development/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low | `d3574848` |
 | [B19](in-development/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium | `0c03d994` |
 | [B44](in-development/B44-a-guest-who-arrives-without-their.md) | A guest who arrives without their link sees a complete-looking journal and no way to say who they are | ISSUE | medium | medium | `0c03d994` |
 | [B45](in-development/B45-the-access-panel-lists-guest-trips.md) | The access panel lists guest trips the reader cannot actually open | ISSUE | medium | low | `a4b53c2f` |
@@ -162,6 +161,7 @@ Do not edit them by hand; run the script.
 | [B114](testing/B114-one-unreadable-file-under-data-dir.md) | One unreadable file under DATA_DIR aborts the whole backup | ISSUE | medium | low | — |
 | [B116](testing/B116-a-test-day-inside-a-real.md) | A test day inside a real trip is unmarked in the day list and in MCP's readable summary | ISSUE | medium | low | — |
 | [B119](testing/B119-two-days-in-one-trip-can.md) | Two days in one trip can take the same slug, and the second becomes unreachable | ISSUE | medium | low | — |
+| [B135](testing/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low | — |
 | [B136](testing/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low | — |
 | [B145](testing/B145-task-stamps-record-only-a-date.md) | Task stamps record only a date, and nothing says which agent is on it | CHORE | medium | low | — |
 | [B28](testing/B28-publishing-a-draft-requires-editing-a.md) | Publishing a draft requires editing a file by hand, so an agent cannot close the loop it opened | FEATURE | medium | high | — |
