@@ -53,9 +53,48 @@ loudly. Worth fixing in the same change.
 - One test per door asserting the same day written through REST and through
   MCP ends up with the same frontmatter.
 
+## What building it found
+
+`create_trip` had the same gap, as the ticket suspected — fixed in the same
+change. Both `createDraft` (`lib/api/entries.ts:65`) and `createTrip`
+(`lib/tripWrite.ts:48`) already accepted `test` and already wrote it only when
+true. Nothing below the door was missing; the door simply never passed it on
+and never declared it.
+
+The `additionalProperties: false` half turned out to be the more interesting
+one, and it is *why* the first half failed quietly rather than loudly. Nothing
+enforced it anywhere — `callTool` (`lib/mcp/tools.ts`) handed `args` straight
+to the handler — so every schema in the file was making a promise none of them
+kept. Enforcement is now one function against the tool's own declared
+properties, so it holds for all fifteen tools rather than for `create_day`
+alone.
+
+Running the full suite with enforcement on found **no** handler that had been
+relying on an undeclared argument, which is the risk that made this worth
+checking before shipping rather than after.
+
+One test changed meaning: "a `status` argument is not a way in" previously
+asserted only that no day was published. It now also asserts the call is
+refused. The guarantee it guards is unchanged — nothing publishes — but an
+agent that mistypes now learns it, instead of being told it succeeded.
+
 ## Acceptance
 
 - An MCP agent can write a single `test: true` day into a trip that is not
   itself flagged, and read the flag back.
+  **Met** — "one day can be marked as content nobody lived, inside a trip that
+  is real", which also asserts the trip itself stays unflagged. Fails before
+  the change with `expected '---\ntitle: "Lanterns of Hoi An"…' to contain
+  'test: true'`. A companion test pins that an ordinary day carries no `test:`
+  line at all.
 - An unknown property sent to `create_day` is refused, not ignored.
+  **Met** — "an unknown property is refused, not ignored" sends `tset: true`,
+  expects the refusal to name it, and asserts no file was written.
 - The two doors produce identical frontmatter for identical input.
+  **Met** — "REST and MCP write identical frontmatter for the same test day"
+  writes the same day through both and compares the files byte for byte. This
+  is the one that fails most usefully against the old code.
+- `create_trip` checked for the same gap — it had it, and now takes `test` too.
+
+Verified with all four: `npx tsc --noEmit`, `npx eslint .` (0 errors),
+`npx vitest run` (1804 passed, 2 skipped), `npm run build`.

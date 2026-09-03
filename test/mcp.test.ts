@@ -747,8 +747,104 @@ describe("create_day writes a draft, and only a draft", () => {
   });
 
   test("a `status` argument is not a way in", async () => {
-    await call(anaToken, "create_day", { ...DAY, status: "published" });
+    const result = await call(anaToken, "create_day", { ...DAY, status: "published" });
     expect(getAllEntries("ana/ana-trip").map((e) => e.slug)).not.toContain("lanterns-of-hoi-an");
+    // B157: it used to be dropped in silence and the draft written anyway. The
+    // guarantee never changed — no argument publishes — but the agent now
+    // learns its argument was wrong instead of being told it succeeded.
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toMatch(/"status"/);
+  });
+
+  /**
+   * B157. `AGENTS.md` offers exactly one way to write something that did not
+   * happen, and calls the alternative out by name:
+   *
+   * > Writing "this is a test" into the prose instead is a convention, not a
+   * > guarantee — the next reader has no way to know whether you bothered.
+   *
+   * The REST door took `test` on both a trip and a day. This one took it on
+   * neither, so an MCP-only agent asked to invent a single day inside a real
+   * trip had only the fallback that paragraph rejects.
+   */
+  test("one day can be marked as content nobody lived, inside a trip that is real", async () => {
+    const result = await call(anaToken, "create_day", { ...DAY, test: true });
+    expect(result.isError).toBe(false);
+
+    const file = path.join(
+      dir, "ana", "trips", "ana-trip", "entries", "2026-01-05-lanterns-of-hoi-an.md",
+    );
+    expect(fs.readFileSync(file, "utf8")).toContain("test: true");
+
+    // The trip itself is untouched — the flag is the day's own, not inherited.
+    expect(fs.readFileSync(path.join(dir, "ana", "trips", "ana-trip", "trip.md"), "utf8"))
+      .not.toContain("test: true");
+  });
+
+  test("an ordinary day carries no test line at all", async () => {
+    await call(anaToken, "create_day", DAY);
+    const file = path.join(
+      dir, "ana", "trips", "ana-trip", "entries", "2026-01-05-lanterns-of-hoi-an.md",
+    );
+    // `test: false` on every real day would be noise in every file.
+    expect(fs.readFileSync(file, "utf8")).not.toContain("test:");
+  });
+
+  test("an unknown property is refused, not ignored", async () => {
+    const result = await call(anaToken, "create_day", { ...DAY, tset: true });
+    expect(result.isError).toBe(true);
+    // It names what it did not understand, so a typo is a question rather than
+    // a silent no-op.
+    expect(textOf(result)).toMatch(/"tset"/);
+    expect(textOf(result)).toMatch(/test/);
+
+    expect(fs.existsSync(path.join(
+      dir, "ana", "trips", "ana-trip", "entries", "2026-01-05-lanterns-of-hoi-an.md",
+    ))).toBe(false);
+  });
+
+  /**
+   * The two doors are "the same markdown files, not a second system", so the
+   * same input has to produce the same file. This is the assertion that keeps
+   * that true for the one field B157 found missing.
+   */
+  test("REST and MCP write identical frontmatter for the same test day", async () => {
+    const entries = path.join(dir, "ana", "trips", "ana-trip", "entries");
+
+    await call(anaToken, "create_day", { ...DAY, test: true });
+    const viaMcp = fs.readFileSync(
+      path.join(entries, "2026-01-05-lanterns-of-hoi-an.md"), "utf8",
+    );
+    fs.rmSync(path.join(entries, "2026-01-05-lanterns-of-hoi-an.md"));
+
+    const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/days/route");
+    const response = await POST(
+      new Request(`${SITE}/api/v1/ana/trips/ana-trip/days`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${anaToken}` },
+        body: JSON.stringify({ ...DAY, test: true }),
+      }),
+      { params: Promise.resolve({ user: "ana", trip: "ana-trip" }) },
+    );
+    expect(response.status).toBe(201);
+    const viaRest = fs.readFileSync(
+      path.join(entries, "2026-01-05-lanterns-of-hoi-an.md"), "utf8",
+    );
+
+    expect(viaMcp).toBe(viaRest);
+  });
+
+  test("create_trip can mark a whole trip as content nobody lived", async () => {
+    const result = await call(anaToken, "create_trip", {
+      id: "pipeline-check",
+      title: "Pipeline check",
+      start: "2026-03-01",
+      end: "2026-03-02",
+      test: true,
+    });
+    expect(result.isError).toBe(false);
+    expect(fs.readFileSync(path.join(dir, "ana", "trips", "pipeline-check", "trip.md"), "utf8"))
+      .toContain("test: true");
   });
 
   test("a missing required field is a tool error, not a written file", async () => {
