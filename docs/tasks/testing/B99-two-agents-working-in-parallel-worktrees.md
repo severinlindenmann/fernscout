@@ -7,6 +7,7 @@ complexity: low
 area: tasks, tooling, docs
 found: "2026-09-03"
 started: "2026-09-03"
+merged: "2026-09-03"
 ---
 
 # B99 — Two agents working in parallel worktrees are handed the same task id
