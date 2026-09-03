@@ -61,6 +61,7 @@ Do not edit them by hand; run the script.
 | [B112](backlog/B112-local-scripts-write-straight-to-content.md) | Local scripts write straight to content, bypassing the token, draft status and rate limits every network write goes through | FEATURE | medium | high |
 | [B113](backlog/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low |
 | [B13](backlog/B13-the-photobook-prints-from-the-web.md) | The photobook prints from the web derivatives, not the originals | ISSUE | medium | medium |
+| [B135](backlog/B135-ingest-disambiguates-a-colliding-slug-only.md) | Ingest disambiguates a colliding slug only within one date, so two days can still shadow each other | ISSUE | medium | low |
 | [B14](backlog/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B16](backlog/B16-the-day-photo-viewer-does-not.md) | The day photo viewer does not answer to touch and never says where you are | ISSUE | medium | low |
 | [B17](backlog/B17-how-a-trip-gets-its-rates.md) | How a trip gets its rates is written down nowhere a person will find it | CHORE | medium | low |
@@ -159,6 +160,7 @@ Do not edit them by hand; run the script.
 | [B74](testing/B74-the-access-panel-offers-the-owner.md) | The access panel offers the owner a contacts page the journal has switched off | ISSUE | medium | low |
 | [B75](testing/B75-an-owner-with-no-trips-is.md) | An owner with no trips is told to ask whoever sent them here for an invitation | ISSUE | medium | low |
 | [B76](testing/B76-an-empty-journal-renders-four-zeroes.md) | An empty journal renders four zeroes and no way forward | ISSUE | medium | medium |
+| [B78](testing/B78-how-a-leg-was-travelled-is.md) | How a leg was travelled is carried by colour alone, and its dash pattern breaks on a small map | ISSUE | medium | low |
 | [B79](testing/B79-the-owner-has-no-way-to.md) | The owner has no way to hand somebody an invite link from the site | FEATURE | medium | low |
 | [B80](testing/B80-the-access-panel-tells-the-owner.md) | The access panel tells the owner they were on every trip in their journal | ISSUE | medium | low |
 | [B99](testing/B99-two-agents-working-in-parallel-worktrees.md) | Two agents working in parallel worktrees are handed the same task id | CHORE | medium | low |
@@ -166,6 +168,8 @@ Do not edit them by hand; run the script.
 | [B30](testing/B30-a-url-upload-never-says-whether.md) | A URL upload never says whether an original was kept | ISSUE | low | low |
 | [B31](testing/B31-a-refused-url-does-not-say.md) | A refused URL does not say whether the host was checked or the check itself failed | ISSUE | low | low |
 | [B59](testing/B59-a-new-locale-string-renders-as.md) | A new locale string renders as its own key until the server is restarted | ISSUE | low | low |
+| [B61](testing/B61-the-markdown-twin-is-the-one.md) | The markdown twin is the one route that does not know a journal was deleted | ISSUE | low | low |
+| [B77](testing/B77-a-german-umlaut-loses-its-vowel.md) | A German umlaut loses its vowel in a slug, and two slugify functions disagree about the rest | ISSUE | low | low |
 
 ## completed
 
@@ -175,10 +179,7 @@ Do not edit them by hand; run the script.
 | [B56](completed/B56-deploying-ships-code-but-not-content.md) | Deploying ships code but not content/locales, so translations never reach the live site | ISSUE | high | low |
 | [B72](completed/B72-a-trip-whose-dates-have-passed.md) | A trip whose dates have passed still calls itself upcoming, and hides every day written to it | ISSUE | high | medium |
 | [B73](completed/B73-a-journal-with-no-current-trip.md) | A journal with no current trip answers 404 on three of the four pages its own nav offers | ISSUE | high | low |
-| [B78](completed/B78-how-a-leg-was-travelled-is.md) | How a leg was travelled is carried by colour alone, and its dash pattern breaks on a small map | ISSUE | medium | low |
 | [B54](completed/B54-an-upcoming-trip-s-map-is.md) | An upcoming trip's map is titled "Where we've been" | ISSUE | low | low |
-| [B61](completed/B61-the-markdown-twin-is-the-one.md) | The markdown twin is the one route that does not know a journal was deleted | ISSUE | low | low |
-| [B77](completed/B77-a-german-umlaut-loses-its-vowel.md) | A German umlaut loses its vowel in a slug, and two slugify functions disagree about the rest | ISSUE | low | low |
 <!-- generated:end -->
 
 ## Frontmatter

@@ -630,6 +630,13 @@ There is no \`gallery\` field and no \`status\` field. Photographs go to the med
 endpoint, which puts them in the day for you; and what this writes is always a
 draft.
 
+**The slug comes from the title, and no two days in a trip may share one.** A
+slug is a day's address inside its trip, so a second day holding one could
+never be served — the write is refused with \`409\` naming the day that already
+has it, rather than accepted and lost. Titles collide more easily than they
+look: punctuation and accents are folded, so \`Đà Lạt\` and \`Ðà Lạt\` are both
+\`da-lat\`. If you meant two days, give them titles that differ in a word.
+
 **\`idempotency_key\` works here, not only over MCP.** Send one on every write.
 The same key with the same body replays the first answer — \`200\` with
 \`"replayed": true\`, and nothing written twice. The same key with a *different*

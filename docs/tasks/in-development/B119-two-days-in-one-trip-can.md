@@ -73,6 +73,50 @@ same way is unverified.
 Not doing: changing the transliteration. Folding `đ` and `ð` to `d` is correct
 and B77 settled it.
 
+## What was found while building it
+
+The Why held exactly, reproduced locally in one call: `slugify("Đà Lạt")` and
+`slugify("Ðà Lạt")` both return `da-lat`.
+
+**Refused, as the Work section leaned.** `createDraft` now answers with the
+file that already holds the slug, and the REST route's existing prefix match
+turns that into a `409` rather than a `400` — the request was well-formed; the
+trip's contents are what make it impossible. Both doors write through
+`createDraft`, so MCP gets the same answer for free. Renaming to `da-lat-2` was
+the alternative and stays rejected: it would hand somebody a permalink they did
+not choose and could not predict, to fix what is almost always a typo.
+
+**The narrow check that was there is kept.** `fs.existsSync` on the exact
+`date-slug.md` still answers first, with its old wording, because an agent
+retrying a dropped request should be told it found its own earlier write rather
+than a stranger's collision. The new check is the general case behind it.
+
+**A draft holds a slug as firmly as a published day.** The check reads the
+directory rather than `getAllEntries`, which filters drafts out — and a draft
+holding the slug is exactly as much of a conflict, since publishing it later is
+the moment the shadow would appear. That is also the worst moment to find out.
+
+**Six copies of one rule, now one.** The "strip `.md`, strip the date prefix"
+derivation existed five times in `lib/api/entries.ts` and once in
+`lib/entries.ts`, and the collision check would have been the seventh. It is
+`entrySlugFromFile` in `lib/entries.ts` now. A rule about *identity* that
+disagrees with itself in one file is how a day becomes reachable down one code
+path and not another, which is this task.
+
+**Trip ids, the neighbouring question, are already safe** — and structurally,
+not by a check somebody remembered. A trip id is supplied by the caller and
+validated, never derived from a title, so there is no folding step for two
+inputs to survive; and the id is the directory name, which the filesystem will
+not issue twice. `createTrip` refuses a taken one with `trip_exists` → `409`.
+Pinned in the test file rather than left as a note.
+
+**Ingest has the same defect and is not fixed here — see B135.** Its naming
+loop keys `usedSlugs` on `${date}/${slug}`, so the same town on two different
+days collides exactly as the API did. It needs the opposite remedy: ingest is a
+batch import and must not refuse, and it *deliberately* joins an existing entry
+for the same date. A different decision, so a separate task rather than scope
+absorbed quietly.
+
 ## Acceptance
 
 - Writing a day whose slug already exists in that trip either fails with a
@@ -83,3 +127,23 @@ and B77 settled it.
   existing sentence stands, and if slugs are disambiguated, it is corrected.
 - A test writes two titles that slug identically and asserts both days remain
   addressable, or that the second was refused.
+
+### Evidence
+
+- **Refused, clearly.** `test/slug-collision.test.ts` writes `Đà Lạt` then
+  `Ðà Lạt` on a later date: the second is refused, the error names
+  `2026-01-11-da-lat.md`, one file is on disk, and `getAllEntries` returns one
+  slug. Also asserted while the holder is still a draft, and after it is
+  published.
+- **Both doors.** `test/mcp.test.ts` drives MCP `create_day` and the REST
+  route: the tool errors naming the slug and the file, and REST answers `409`
+  after a `201` for the first day. A genuinely different title still writes.
+- **`/agent.md` describes the real behaviour.** The existing "a slug is unique
+  within a trip" sentence stands and is now true; a paragraph under the day
+  fields says what happens on collision and why two titles collide.
+- **Not silently shadowed either way**, and nothing else regressed: 104 files,
+  1713 passing. Six of the new assertions fail against the previous code,
+  confirmed by stashing `lib/` and re-running.
+
+`npx tsc --noEmit`, `npx eslint .` (0 errors), `npx vitest run` and
+`npm run build` all pass.

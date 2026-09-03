@@ -35,6 +35,20 @@ function entriesDir(ref: string) {
   return path.join(tripDir(ref), "entries");
 }
 
+/**
+ * `2026-01-11-da-lat.md` → `da-lat`.
+ *
+ * The file name carries the date so a directory listing sorts chronologically;
+ * the slug is what is left, and it is a day's address inside its trip. This is
+ * the one place that rule is written down. It had been three — here, in
+ * `publishDraft`, and in the collision check that did not exist yet — and a
+ * rule about identity that disagrees with itself in one file is how a day ends
+ * up reachable by one code path and not another.
+ */
+export function entrySlugFromFile(file: string): string {
+  return file.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "");
+}
+
 function parseTranslations(raw: unknown): EntryTranslations | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const src = raw as Record<string, { title?: string; content?: string } | undefined>;
@@ -119,7 +133,7 @@ function readAllEntries(ref: string): Entry[] {
     const raw = fs.readFileSync(path.join(dir, file), "utf8");
     const { data, content } = matter(raw);
 
-    const slug = file.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "");
+    const slug = entrySlugFromFile(file);
     const country = data.country ?? "";
 
     return [{

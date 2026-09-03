@@ -2,7 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import { forgetEntries, getAllEntries, getDays, isDraft } from "../entries";
+import { entrySlugFromFile, forgetEntries, getAllEntries, getDays, isDraft } from "../entries";
 // The same splicer ingest uses. One way of writing a gallery into an entry
 // that already exists, so the two doors cannot drift apart in how they format
 // it or in what they preserve of a file somebody has since edited.
@@ -135,6 +135,25 @@ export function validateDraft(input: Partial<DraftInput>): string | null {
 }
 
 /**
+ * The entry file in this trip already holding `slug`, or null.
+ *
+ * Reads the directory rather than `getAllEntries`, for two reasons: drafts are
+ * filtered out of that (and a draft holding the slug is just as much of a
+ * conflict — publishing it later is what would shadow), and this runs on the
+ * write path, where the entry cache may not have been rebuilt yet.
+ */
+function entryFileWithSlug(dir: string, slug: string): string | null {
+  let files: string[];
+  try {
+    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
+  } catch {
+    // No entries directory yet — the first day in a trip collides with nothing.
+    return null;
+  }
+  return files.find((f) => entrySlugFromFile(f) === slug) ?? null;
+}
+
+/**
  * Create a draft entry.
  *
  * Refuses to overwrite: an agent retrying a request must not silently replace
@@ -153,6 +172,40 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
 
   if (fs.existsSync(file)) {
     return { ok: false, error: `an entry already exists at ${input.date}-${slug}` };
+  }
+
+  /*
+   * The same slug on a *different* date is the same collision, and used to be
+   * allowed (B119).
+   *
+   * A slug is a day's address within its trip — `getEntryBySlug` takes the
+   * first match and there is no tiebreak — so a second day holding one is
+   * written, is not a draft, and can never be served. Nothing said so: the
+   * write returned 201 and handed back a slug that already belonged to
+   * something else, while `/agent.md` promised "a slug is unique within a
+   * trip".
+   *
+   * It is easy to reach without doing anything strange. `Đà Lạt` (d-with-
+   * stroke) and `Ðà Lạt` (eth) both slug to `da-lat`, and that folding is
+   * correct — B77 settled it. So do any two titles differing only in
+   * punctuation or accents.
+   *
+   * Refused rather than renamed. Two days in one trip whose titles differ by
+   * an invisible codepoint is far more likely a mistake than an intention, and
+   * quietly issuing `da-lat-2` would make somebody's permalink something they
+   * never chose and would not predict. Refusing keeps the guide's sentence
+   * true, which is the sentence agents write against.
+   */
+  const taken = entryFileWithSlug(dir, slug);
+  if (taken) {
+    return {
+      ok: false,
+      error:
+        `an entry already exists with the slug "${slug}" in this trip — ${taken}. ` +
+        "A slug is a day's address within its trip and only one day can hold it, so a " +
+        "second would be written and never served. Two titles slug the same way when they " +
+        "differ only in punctuation or accents; give this day a title that differs in a word.",
+    };
   }
 
   const lines = [
@@ -229,7 +282,7 @@ export function attachGallery(
     return { ok: false, error: `no entry "${slug}" in this trip` };
   }
   const match = files.find(
-    (f) => f.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "") === slug,
+    (f) => entrySlugFromFile(f) === slug,
   );
   if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
 
@@ -283,7 +336,7 @@ export function publishDraft(
     return { ok: false, error: `no entry "${slug}" in this trip` };
   }
   const match = files.find(
-    (f) => f.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "") === slug,
+    (f) => entrySlugFromFile(f) === slug,
   );
   if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
 
@@ -332,7 +385,7 @@ export function listDrafts(ref: string): { slug: string; title: string; date: st
     const parsed = matter(fs.readFileSync(path.join(dir, file), "utf8"));
     if (parsed.data.status !== "draft") continue;
     drafts.push({
-      slug: file.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, ""),
+      slug: entrySlugFromFile(file),
       title: String(parsed.data.title ?? ""),
       date: String(parsed.data.date ?? ""),
     });
@@ -407,7 +460,7 @@ export function deleteEntry(
   }
 
   const match = files.find(
-    (f) => f.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "") === slug,
+    (f) => entrySlugFromFile(f) === slug,
   );
   if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
 
@@ -446,7 +499,7 @@ export function isPublished(ref: string, slug: string): boolean {
     return false;
   }
   const match = files.find(
-    (f) => f.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "") === slug,
+    (f) => entrySlugFromFile(f) === slug,
   );
   if (!match) return false;
   return !isDraft(matter(fs.readFileSync(path.join(dir, match), "utf8")).data);
