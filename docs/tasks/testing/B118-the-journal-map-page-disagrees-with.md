@@ -7,6 +7,7 @@ complexity: low
 area: i18n, trips, ui
 found: "2026-09-03"
 started: "2026-09-03"
+merged: "2026-09-03"
 ---
 
 # B118 — The journal map page disagrees with itself about tense
