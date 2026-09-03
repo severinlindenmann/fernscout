@@ -54,7 +54,7 @@ people:                       # who took it — 0 to 10. Empty means the owner,
   - name: "Alex Berger"       # alone. Everyone listed may write to the whole
     email: "alex@example.com" # trip, and may hold a token scoped to it.
 visibility: public            # private | public | guest
-listed: true                  # optional — whether it is advertised at all
+# listed: false               # optional, and only ever narrows — see below
 costsVisibility: public       # public | guests
 rates:                        # this trip's frozen local → baseCurrency rates
   JPY: 0.0057
@@ -98,9 +98,18 @@ Four fields decide behaviour rather than decoration:
   no line at all.
 
   `listed:` is a separate question — whether the trip is advertised in the
-  sitemap, the feed and the switcher. The two older words still parse:
-  `password` means a `guest` trip, and `unlisted` means `public` with
-  `listed: false`.
+  sitemap, the feed and the switcher. **It only ever narrows.** Leave it out
+  and `visibility` decides: a `public` trip is advertised, and a `guest` or
+  `private` one is not. Write `listed: false` on a public trip and you get the
+  old `unlisted` — readable by anybody holding the link, advertised nowhere,
+  which is the honest setting for a trip you will mail to the family and would
+  rather a search engine did not find. Writing `listed: true` on a trip that no
+  visibility advertises does not advertise it: the parser refuses it and says
+  so in the server log, because the field is about advertising and never about
+  access, and a key that quietly changed nothing is what B51 was.
+
+  The two older words still parse: `password` means a `guest` trip, and
+  `unlisted` means `public` with `listed: false`.
 - **`rates`** — how much one unit of a local currency was worth in the site's
   `baseCurrency` **on this trip**. Frozen per trip on purpose: a later trip to
   the same country carries its own table and never restates what this one cost.

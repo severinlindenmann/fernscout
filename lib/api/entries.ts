@@ -407,6 +407,11 @@ export function tripSummary(username: string, tripId: string) {
     end: trip.end,
     status: trip.status,
     visibility: trip.visibility,
+    // Beside visibility, because it is the other half of the same answer and
+    // `/openapi.json` has promised it since W27 without it ever being sent.
+    // An agent that asked for `listed: false` needs to be able to see that it
+    // took — which, until B51, it had not.
+    listed: trip.listed,
     // Echoed only when true, like every other flag here. Absent until B47,
     // which meant an agent that set it was never told it had been accepted and
     // could not see it afterwards — on the one field whose whole job is to say

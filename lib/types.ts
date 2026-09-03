@@ -272,8 +272,17 @@ export type Trip = {
    *
    * Its own axis, because being reachable by a link and being listed are
    * different questions. A `public` trip with `listed: false` is the old
-   * `unlisted`. A `private` or `guest` trip is never listed to a stranger
-   * regardless, so this only narrows.
+   * `unlisted`.
+   *
+   * Derived from `visibility:` and then **narrowed** by the frontmatter's own
+   * `listed:` key, which `parseVisibility` reads — a `listed: false` anywhere
+   * is honoured, a `listed: true` on a trip its visibility does not advertise
+   * is refused and logged (B51). So this is never wider than `visibility`
+   * allows, and a consumer may read it without re-deriving that: `private` and
+   * `guest` are always false here, whatever the file says.
+   *
+   * Never a *reading* right. Nothing about who may open the trip is decided
+   * here; that is `mayReadTrip` and `visibility` alone.
    */
   listed: boolean;
   /**

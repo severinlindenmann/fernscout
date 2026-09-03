@@ -71,8 +71,10 @@ export function GET() {
             listed: {
               type: "boolean",
               description:
-                "Whether the trip appears in listings. Separate from visibility " +
-                "since W27: what an unlisted-but-public trip used to mean.",
+                "Whether the trip is advertised — sitemap, feed, trip switcher. Separate " +
+                "from visibility since W27: what an unlisted-but-public trip used to mean. " +
+                "Read from the trip's `listed:` key where that narrows what visibility " +
+                "already implied, so a `guest` or `private` trip is always false here.",
             },
             days: { type: "integer" },
             entries: { type: "integer" },
@@ -494,7 +496,15 @@ export function GET() {
                     },
                     accent: { type: "string", enum: ["sky", "yellow", "green", "coral", "navy"] },
                     visibility: { type: "string", enum: ["private", "public", "guest"], default: "private" },
-                    listed: { type: "boolean" },
+                    listed: {
+                      type: "boolean",
+                      description:
+                        "Only ever narrows. `false` on a public trip is the old " +
+                        "`unlisted`: readable by anybody holding the link, and in no " +
+                        "sitemap, feed or switcher. `true` alongside a visibility that " +
+                        "advertises nothing is refused with `invalid_listed` rather " +
+                        "than written, since the reader would refuse it too.",
+                    },
                     test: {
                       type: "boolean",
                       description:

@@ -112,7 +112,10 @@ Two things about a trip are worth knowing before you open either.
 the owner), `public` (everyone), or `guest` (everyone the owner has let into
 the *journal*, and the people on the trip). An unrecognised value reads as
 `private`, never as `public`: a typo must not publish somebody's trip.
-`listed:` is the separate question of whether it is advertised at all.
+`listed:` is the separate question of whether it is advertised at all, and it
+only ever narrows: `listed: false` keeps a public trip out of the sitemap, the
+feed and the switcher, while `listed: true` on a trip no visibility advertises
+is refused and logged rather than obeyed (B51).
 
 The line between the two closed values is what a person gets wrong at the
 moment they create a trip: **`guest` means the people I let into this journal;

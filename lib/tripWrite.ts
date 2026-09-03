@@ -37,6 +37,12 @@ export type NewTrip = {
   status?: (typeof STATUSES)[number];
   accent?: (typeof ACCENTS)[number];
   visibility?: (typeof VISIBILITIES)[number];
+  /**
+   * Whether the trip is advertised — sitemap, feed, switcher. Only ever
+   * narrows: `false` on a public trip is the old `unlisted`, and `true` on a
+   * trip no visibility advertises is refused rather than written, because
+   * `lib/trips.ts` would refuse it on the way back in. B51.
+   */
   listed?: boolean;
   /**
    * A trip that exists to prove the software works, not to record anything.
@@ -145,6 +151,25 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     ? input.visibility!
     : "private";
 
+  /**
+   * `listed: true` on a trip nothing advertises is a request the reader will
+   * refuse, so refuse it here where somebody is listening.
+   *
+   * The alternative — write it anyway — is B51 again: the file would say one
+   * thing, `lib/trips.ts` would read another, and the caller would be told 201.
+   * Saying so costs one error and teaches the axis; only `public` advertises.
+   */
+  if (input.listed === true && visibility !== "public") {
+    return {
+      ok: false,
+      error: "invalid_listed",
+      message:
+        `listed: true asks for the trip to be advertised — in the sitemap, the feed and the ` +
+        `trip switcher — but visibility "${visibility}" does not put it in front of anybody. ` +
+        `Only a public trip is advertised. Drop listed, or set visibility to "public".`,
+    };
+  }
+
   const front: string[] = [
     "---",
     `id: ${id}`,
@@ -155,7 +180,12 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     `status: ${status}`,
     `accent: ${accent}`,
     `visibility: ${visibility}`,
-    `listed: ${input.listed === false ? "false" : "true"}`,
+    // Written only when it says something `visibility:` has not already said,
+    // for the same reason `test:` is. Every trip carrying `listed: true` made
+    // the key look like a routine part of a trip file, and it was the one key
+    // the reader ignored — so the line most often present was also the line
+    // least often true.
+    ...(input.listed === false ? ["listed: false"] : []),
     // Written only when true. Every trip carrying `test: false` would make the
     // flag look like a routine part of a trip file rather than the unusual
     // thing it is.

@@ -535,6 +535,52 @@ describe("creating a trip", () => {
     createTrip("wanderer", { ...DATES, id: "prose", title: "P", intro: "Two weeks, mostly by train." });
     expect(getTrip("wanderer/prose")?.intro).toContain("mostly by train");
   });
+
+  /**
+   * `listed:` — the key this endpoint has always accepted and written, and
+   * that the reader ignored until B51. Three properties, and the middle one is
+   * the whole reason the round trip is worth a test: what is written is what
+   * comes back.
+   */
+  describe("listed", () => {
+    test("an unadvertised public trip round-trips", () => {
+      const result = createTrip("wanderer", {
+        ...DATES, id: "quiet-one", title: "Q", visibility: "public", listed: false,
+      });
+      expect(result.ok).toBe(true);
+      const trip = getTrip("wanderer/quiet-one")!;
+      expect(trip.visibility).toBe("public");
+      expect(trip.listed).toBe(false);
+    });
+
+    /**
+     * Refused rather than written. The reader would refuse it anyway, and a
+     * `201` over a file whose `listed:` says the opposite of what the site
+     * does is exactly the disagreement this closes.
+     */
+    test("refuses listed: true on a trip no visibility advertises", () => {
+      const result = createTrip("wanderer", {
+        ...DATES, id: "loud-secret", title: "L", visibility: "private", listed: true,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBe("invalid_listed");
+        expect(result.message).toContain("public");
+      }
+      // And nothing was written: a refusal leaves no half-made trip behind.
+      expect(getTrip("wanderer/loud-secret")).toBeUndefined();
+    });
+
+    test("says nothing about listing when the caller did not", () => {
+      createTrip("wanderer", { ...DATES, id: "plain", title: "P", visibility: "public" });
+      const file = fs.readFileSync(
+        path.join(dir, "wanderer", "trips", "plain", "trip.md"), "utf8",
+      );
+      expect(file).not.toContain("listed:");
+      // Derived, and the same answer the key would have given.
+      expect(getTrip("wanderer/plain")?.listed).toBe(true);
+    });
+  });
 });
 
 /**

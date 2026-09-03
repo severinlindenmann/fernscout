@@ -218,7 +218,7 @@ function parseAccent(raw: unknown): TripAccent {
  * An unrecognised value reads as the **most private** option — a typo must
  * never be the thing that publishes somebody's trip.
  */
-function parseVisibility(
+function deriveVisibility(
   raw: unknown,
   folder: string,
 ): { visibility: TripVisibility; listed: boolean } {
@@ -243,6 +243,77 @@ function parseVisibility(
       );
       return { visibility: "private", listed: false };
   }
+}
+
+/**
+ * `listed:`, which may only ever **narrow** what `visibility:` already implied.
+ *
+ * The key was documented in three places and read in none: `visibility:` alone
+ * decided both axes, so `visibility: public` plus `listed: false` was a trip in
+ * the sitemap, and the only spelling that produced an unlisted public trip was
+ * the legacy `unlisted` the same documentation calls an older word. Worse, the
+ * write path *emits* the key — `createTrip` puts a `listed:` line in every
+ * trip.md it writes and `POST /api/v1/<user>/trips` takes one in the body — so
+ * an agent could ask for an unadvertised trip, be told 201, and read its own
+ * file back saying `listed: false` while the crawler had it. B51.
+ *
+ * One direction only, and that is the whole of the design. `listed: false` is
+ * honoured wherever it appears. `listed: true` is honoured only where the
+ * visibility already advertises the trip, where it is a harmless restatement;
+ * on a `private`, `guest` or `unlisted` trip it is refused and logged. Three
+ * consumers key off this field — `isIndexable`, `listableTrips` and
+ * `resolveViewer` — and each currently pairs it with `visibility === "public"`,
+ * so a `listed: true` that survived on a closed trip would be inert *today* and
+ * a leak the first time somebody read the field on its own. Making the parser
+ * the choke point means the invariant in `Trip.listed` ("this only narrows") is
+ * true of the value rather than of the four places that happen to consume it,
+ * which is the same reason an unrecognised `visibility:` reads as private here
+ * rather than being fixed up downstream.
+ *
+ * Refused, never silent: a key that is quietly dropped is the bug this closes.
+ */
+function parseListed(
+  raw: unknown,
+  visibility: unknown,
+  derived: boolean,
+  folder: string,
+): boolean {
+  if (raw === undefined || raw === null) return derived;
+
+  // `true`/`false` and nothing else. YAML reads `listed: no` as the *string*
+  // "no", which is truthy, so a loose check would advertise the trip its
+  // author was trying to hide.
+  if (typeof raw !== "boolean") {
+    console.warn(
+      `[trips] ${folder}/trip.md has listed "${raw}", which is not true or false — ` +
+        `ignoring it and reading the trip as ${derived ? "advertised" : "not advertised"}.`,
+    );
+    return derived;
+  }
+
+  if (raw && !derived) {
+    const word = visibility === undefined || visibility === null ? "public" : String(visibility);
+    console.warn(
+      `[trips] ${folder}/trip.md says listed: true, but visibility "${word}" does not ` +
+        `advertise the trip — ignoring it. listed: can only narrow; write ` +
+        `visibility: public to advertise a trip.`,
+    );
+    return false;
+  }
+
+  return raw;
+}
+
+function parseVisibility(
+  rawVisibility: unknown,
+  rawListed: unknown,
+  folder: string,
+): { visibility: TripVisibility; listed: boolean } {
+  const derived = deriveVisibility(rawVisibility, folder);
+  return {
+    visibility: derived.visibility,
+    listed: parseListed(rawListed, rawVisibility, derived.listed, folder),
+  };
 }
 
 /**
@@ -429,7 +500,7 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
     // that quietly accepted "no" or "false" as truthy would put a banner on
     // somebody's actual holiday.
     test: data.test === true || undefined,
-    ...parseVisibility(data.visibility, folder),
+    ...parseVisibility(data.visibility, data.listed, folder),
     costsVisibility: parseCostsVisibility(data.costsVisibility, folder),
     unknownFields: unknownFields(data),
   };
