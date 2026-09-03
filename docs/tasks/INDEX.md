@@ -58,6 +58,7 @@ Do not edit them by hand; run the script.
 | [B103](backlog/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | CHORE | high | medium |
 | [B196](backlog/B196-test-mail-test-ts-fails-on.md) | test/mail.test.ts fails on main — a kept-mail sweep test broke when the journal mail switch landed | ISSUE | high | low |
 | [B197](backlog/B197-an-unreadable-content-root-switches-every.md) | An unreadable content root switches every journal's mail off instead of warning | ISSUE | high | low |
+| [B201](backlog/B201-the-shared-main-checkout-can-be.md) | The shared main checkout can be left on a detached HEAD, stranding every session's commits | ISSUE | high | medium |
 | [B65](backlog/B65-the-deployed-server-has-no-backup.md) | The deployed server has no backup at all — restic, the units and the credentials were never installed | CHORE | high | medium |
 | [B02](backlog/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low |
 | [B06](backlog/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
