@@ -1,4 +1,5 @@
 import "server-only";
+import { isEnabled } from "./capabilities";
 import { loadServerConfig, type UserConfig } from "./config";
 import { getUser } from "./users";
 import type { Trip, TripPerson } from "./types";
@@ -87,13 +88,29 @@ export type SiteSummary = {
   /** Always "/<username>": that is the canonical form (W22). */
   base: string;
   /**
-   * Whether this reader has an access panel worth opening.
+   * Whether this reader holds a guest session on this journal.
    *
-   * False for a stranger, who would find one line telling them to follow the
-   * link they were sent — a menu entry that leads to "you have nothing" is
-   * worse than no menu entry. See app/[user]/me.
+   * It once decided whether the access panel was offered at all, and that was
+   * a closed loop — the panel exists for the reader who lost the mail she was
+   * let in with, so requiring a session meant only a reader who still had it
+   * could reach it. The entry is now offered to everyone (components/SiteNav),
+   * and this decides how it is *drawn*: a stranger is shown a door, somebody
+   * who is already in is shown the panel's own name. See app/[user]/me.
    */
   signedIn: boolean;
+  /**
+   * Whether this journal can issue a sign-in code at all — `features.auth`,
+   * resolved for this user by `isEnabled`.
+   *
+   * The header needs it (B44): the way back in is a door marked in words, and
+   * a door is only drawn where there is a form behind it. On a journal with
+   * `auth` off, `/<user>/me` has nothing to press and says so, and a control
+   * promising otherwise is the bug recorded at app/[user]/me/MePageContent.tsx.
+   *
+   * Deliberately journal-wide and viewer-independent: it comes from config and
+   * from nothing the reader is or is not allowed to see.
+   */
+  canSignIn: boolean;
 };
 
 export function siteSummaryFor(
@@ -111,6 +128,10 @@ export function siteSummaryFor(
     locales: user.locales,
     base: `/${user.username}`,
     signedIn,
+    // Asked here rather than threaded through as a fourth positional boolean:
+    // it is a property of the journal, so every caller would compute the same
+    // answer, and one of them would eventually forget to.
+    canSignIn: isEnabled("auth", user.username),
   };
 }
 

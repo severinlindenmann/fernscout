@@ -22,6 +22,7 @@ const site: SiteSummary = {
   locales: ["en"],
   base: "/alex",
   signedIn: false,
+  canSignIn: false,
 };
 
 const authors = ["Alex Berger", "Robin Berger"];
