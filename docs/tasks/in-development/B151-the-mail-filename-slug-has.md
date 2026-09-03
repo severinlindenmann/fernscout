@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: mail, slugs
 found: "2026-09-03"
+started: "2026-09-03T20:05:28Z"
+session: d6791268-ed45-4a69-acde-99f9e5f10516
+claimed: "2026-09-03T20:05:28Z"
 ---
 
 # B151 — The mail filename slug has no NFD pass
