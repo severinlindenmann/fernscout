@@ -52,21 +52,61 @@ right, and the confirmation binding holds over MCP including a cross-verb
 attempt with a `delete_day` code. A day was published through MCP end to end.
 It is one string and its comment.
 
+## What the grep found — it was six places, not five
+
+The instruction to grep before closing was the right one. The claim lives in
+**six** places on this door, and B28 updated three of them, not four:
+
+| Where | Verdict |
+| --- | --- |
+| `lib/mcp/tools.ts:787` — the `create_day` reply | **false**, fixed |
+| `lib/mcp/tools.ts:371` — the doc comment above it | **false**, fixed |
+| `lib/mcp/server.ts:35` — the server's `INSTRUCTIONS` | **false**, fixed — not in the ticket |
+| `lib/mcp/tools.ts:280` — the draft line in rendered markdown | true, left alone |
+| `lib/mcp/tools.ts:601` — `publishDayTool`'s own doc | true, past tense, left alone |
+| `lib/mcp/tools.ts:1132` — `create_day`'s description | true — says no *argument* publishes, which is accurate |
+
+The third is the one worth noting, because it is the worst of them and the
+ticket did not know about it. `INSTRUCTIONS` is commented "What every agent is
+told before it calls anything. It is the one rule", and it said:
+
+> There is no tool, argument or flag here that skips that step, and asking for
+> one will not produce one.
+
+So the false claim was not only in a reply an agent gets after writing a day —
+it was in the first thing every agent reads on connecting, before it calls
+anything at all. An agent that read the instructions and never called
+`create_day` still came away believing publishing had no mechanism here.
+
 ## Work
 
 - Replace the sentence at `lib/mcp/tools.ts:787-788` with the same rule the
-  other four artifacts state: publishing is a second, deliberate call —
-  `publish_day` — that the person has to ask for. Say it in the words
-  `/agent.md` uses, so the two doors do not drift again.
+  other artifacts state: publishing is a second, deliberate call —
+  `publish_day` — that the person has to ask for. Said in the words
+  `lib/api/documentation.ts:258` uses, so the two doors do not drift again.
 - Fix the doc comment at `:369-375`, which is the reasoning that kept the
-  string alive.
-- Grep MCP's other replies for the same claim before closing. A rule stated in
-  five places got updated in four.
+  string alive. It now records that it was the reasoning, so the next reader
+  does not restore it.
+- Fix `lib/mcp/server.ts` `INSTRUCTIONS`, which keeps the true half — nothing
+  you *write* publishes — and adds the half that was missing: `publish_day`
+  exists, is owner-only, is refused once, and holding both calls is not the
+  same as being told to make the second one.
+- Two tests in `test/mcp.test.ts`, pinning both surfaces an agent is handed.
 
 ## Acceptance
 
 - `create_day` over MCP tells the agent that a person publishes with
   `publish_day`, and does not mention editing a file.
+  **Met** — `test/mcp.test.ts`, "the reply names publish_day rather than
+  telling the agent to edit a file". Fails against the old string with
+  `expected 'Created lanterns-of-hoi-an as a draft…' to contain 'publish_day'`.
 - No reply from any MCP tool says there is no tool that publishes.
+  **Met** — "nothing the server hands an agent claims publishing has no tool"
+  asserts over the `initialize` instructions *and* the whole `tools/list`
+  response, so a future divergence in any tool description fails here too.
 - B28's last acceptance bullet — all the artifacts describing the same rule —
   is then true, and B28 can be re-tested.
+  **Ready to re-test.** Six places checked, three were wrong, three are fixed.
+
+Verified with all four: `npx tsc --noEmit`, `npx eslint .` (0 errors),
+`npx vitest run` (1787 passed, 2 skipped), `npm run build`.

@@ -32,9 +32,14 @@ export const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11
 const INSTRUCTIONS = `This is a travel journal. Its content is markdown and photographs in a folder
 the author owns; these tools read and write those files directly.
 
-Everything you create is a DRAFT. It is not on the site, and a person publishes
-it. There is no tool, argument or flag here that skips that step, and asking for
-one will not produce one.
+Everything you create is a DRAFT. It is not on the site. Nothing you write puts
+it there: no argument or flag on a write publishes, and asking for one will not
+produce one.
+
+Publishing is a separate, deliberate call — publish_day — and it is the person's
+to ask for. It is owner-only and refused once before it will do anything. Having
+both calls is not the same as being told to make the second one: ask them, in
+words, and wait for an answer.
 
 Write only what you were told. No weather nobody mentioned, no meals nobody ate,
 no feelings nobody expressed. If you do not know where a photograph was taken,
