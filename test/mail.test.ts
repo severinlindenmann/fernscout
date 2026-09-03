@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import { sendMail, sendMailWith, sendTransactional } from "@/lib/mail";
+import { sendMail, sendMailWith } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
 import { buildMessage } from "@/lib/mail/rfc822";
 
@@ -328,16 +328,13 @@ describe("transports", () => {
    */
   test("a username that would escape the content root is refused, not written", async () => {
     writeConfig({ enabled: true, transport: "file" });
-    // Through the exempt path on purpose. `sendMail` now declines anything
-    // whose journal is not a journal, which would make this test pass without
-    // the path guard ever running; `sendTransactional` is the one call that
-    // reaches `mailDir` regardless of what the journal says, so it is the one
-    // that has to be unable to escape.
+    // Back through `sendMail`, which is the call that matters. An earlier
+    // draft of B60 declined anything whose journal would not resolve, which
+    // made this pass without the path guard ever running; the gate now asks
+    // only whether the journal said no, so an unresolvable one reaches
+    // `mailDir` — where being unable to escape is the actual boundary.
     await expect(
-      sendTransactional(
-        renderMail("r@example.test", "S", SAMPLE, "../../elsewhere"),
-        "reaching the path guard is the point of this test",
-      ),
+      sendMail(renderMail("r@example.test", "S", SAMPLE, "../../elsewhere")),
     ).rejects.toThrow(/outside the content root/);
   });
 

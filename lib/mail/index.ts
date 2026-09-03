@@ -1,7 +1,7 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import { isEnabled } from "../capabilities";
+import { hasSwitchedOff, isEnabled } from "../capabilities";
 import { loadServerConfig } from "../config";
 import { contentRoot } from "../contentRoot";
 import { buildMessage } from "./rfc822";
@@ -329,13 +329,20 @@ function transportFor(name: string): MailTransport {
  * Send one message on a journal's behalf.
  *
  * **Gated by that journal's own `features.mail.enabled`, not only the
- * server's.** `mail.username` says whose letter this is, so it is also the
- * argument `isEnabled` needs; omitting it — which every call site used to do —
- * made a per-journal switch something `/api/health` reported and nothing
- * obeyed. Somebody switching mail off for their journal, which is the obvious
- * way to say *do not write to my readers*, got no indication it had not taken,
- * and with `keepCopy` on their folder filled with `.eml` copies of mail they
- * had asked not to send (B60).
+ * server's.** `mail.username` says whose letter this is; omitting it — which
+ * every call site used to do — made a per-journal switch something
+ * `/api/health` reported and nothing obeyed. Somebody switching mail off for
+ * their journal, which is the obvious way to say *do not write to my readers*,
+ * got no indication it had not taken, and with `keepCopy` on their folder
+ * filled with `.eml` copies of mail they had asked not to send (B60).
+ *
+ * Two questions, deliberately not one. "Can this server send" is
+ * `isEnabled("mail")`. "Has this journal said no" is `hasSwitchedOff`, which
+ * is narrower than `isEnabled("mail", username)` on purpose: the latter also
+ * answers false when the journal cannot be *resolved*, so an unreadable
+ * content root suppressed every journal's mail without a word. See
+ * `hasSwitchedOff` in lib/capabilities.ts for why "cannot tell" must not read
+ * as "no".
  *
  * A message with no `username` belongs to no journal — a signup code is
  * addressed to somebody who does not own a name yet — so the server switch is
@@ -350,7 +357,8 @@ function transportFor(name: string): MailTransport {
  * unconfigured has already failed the boot.
  */
 export async function sendMail(mail: Mail): Promise<SendResult | null> {
-  if (!isEnabled("mail", mail.username)) return null;
+  if (!isEnabled("mail")) return null;
+  if (mail.username && hasSwitchedOff("mail", mail.username)) return null;
   return deliver(mail);
 }
 
@@ -389,7 +397,7 @@ export async function sendTransactional(
   // switched mail off for a journal and then watched a sign-in code arrive
   // should find the line that explains it, and nobody needs a log entry for
   // the ordinary case where the journal has mail on anyway.
-  if (mail.username && !isEnabled("mail", mail.username)) {
+  if (mail.username && hasSwitchedOff("mail", mail.username)) {
     console.log(
       `[mail] ${mail.username} has mail switched off; sending anyway — ${reason}`,
     );
