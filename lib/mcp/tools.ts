@@ -775,6 +775,12 @@ const createDay: Handler = async (session, args) => {
     if (value !== undefined && value !== null) input[key2] = value as number;
   }
   if (Array.isArray(args.tags)) input.tags = args.tags.map(String);
+  // Only `true` is meaningful. `test: false` is the ordinary case and writing
+  // it would put a line in the frontmatter of every real day — see the note on
+  // NewTrip.test. B157: this door could not say it at all until now, so an
+  // agent asked to invent one day inside a real trip had only the fallback
+  // AGENTS.md names and rejects: writing "this is a test" into the prose.
+  if (args.test === true) input.test = true;
 
   const problems = validateEntry(input);
   if (problems.length > 0) {
@@ -886,6 +892,9 @@ const createTripTool: Handler = (session, args) => {
     accent: optionalString(args, "accent") as never,
     visibility: optionalString(args, "visibility") as never,
     intro: optionalString(args, "intro"),
+    // Inherited by every day of the trip, so somebody exercising the pipeline
+    // sets it once. Same gap as create_day carried — B157.
+    ...(args.test === true ? { test: true } : {}),
   });
   if (!created.ok) return { ok: false, error: created.message };
 
@@ -1117,6 +1126,14 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
         accent: { type: "string", enum: ["sky", "yellow", "green", "coral", "navy"], description: "Colour. Default sky." },
         visibility: { type: "string", enum: ["private", "public", "guest"], description: "Who is let in. Default private." },
         intro: { type: "string", description: "A paragraph introducing the trip. Only what you were told." },
+        test: {
+          type: "boolean",
+          description:
+            "TRUE only if this trip did not happen — a journey nobody took, created to prove " +
+            "the software works. Inherited by every day written into it, so set it here rather " +
+            "than on each entry. The site says so in a banner and keeps the trip out of the " +
+            "feed, the search index and the sitemap.",
+        },
       },
       required: ["id", "title", "start", "end"],
       additionalProperties: false,
@@ -1151,6 +1168,14 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
         lng: { type: "number" },
         content: { type: "string", description: "The entry itself, in markdown." },
         tags: { type: "array", items: { type: "string" } },
+        test: {
+          type: "boolean",
+          description:
+            "TRUE only if this day did not happen — content invented to prove the pipeline " +
+            "works. The page then says so in a banner, and the day is kept out of the feed, " +
+            "the search index and the sitemap. Writing \"this is a test\" into the prose " +
+            "instead is a convention the next reader cannot rely on; this is the guarantee.",
+        },
         idempotency_key: {
           type: "string",
           description:
@@ -1453,6 +1478,26 @@ export function toolDefinitions(session?: Session): ToolDefinition[] {
   }));
 }
 
+/**
+ * Make `additionalProperties: false` mean what it says.
+ *
+ * Every schema in this file declares it, and until B157 nothing enforced it:
+ * an unknown argument was dropped in silence and the call went through. That
+ * is a bad promise to hand an agent, because the failure it produces is the
+ * quiet kind — `create_day` accepted `test: true` for as long as the property
+ * was undeclared, ignored it, and answered "created as a draft", so an agent
+ * that did exactly what AGENTS.md asks came away believing a day nobody lived
+ * was flagged when it was not.
+ *
+ * Refusing is the whole fix. A mistyped argument an agent can see is a
+ * question it asks; one it cannot see is a wrong answer it repeats.
+ */
+function unknownProperties(tool: ToolDefinition, args: Args): string[] {
+  if (tool.inputSchema.additionalProperties !== false) return [];
+  const declared = new Set(Object.keys(tool.inputSchema.properties));
+  return Object.keys(args).filter((key) => !declared.has(key));
+}
+
 export async function callTool(
   name: string,
   session: Session,
@@ -1460,5 +1505,19 @@ export async function callTool(
 ): Promise<ToolOutcome | null> {
   const tool = toolsFor(session).find((t) => t.name === name);
   if (!tool) return null;
+
+  const unknown = unknownProperties(tool, args);
+  if (unknown.length > 0) {
+    const declared = Object.keys(tool.inputSchema.properties).join(", ");
+    return {
+      ok: false,
+      error:
+        `${name} does not take ${unknown.map((k) => JSON.stringify(k)).join(", ")}, and nothing ` +
+        `was written. This tool's schema says additionalProperties: false, so an argument it ` +
+        `does not know is refused rather than dropped — if you meant one of these, send that ` +
+        `instead: ${declared}.`,
+    };
+  }
+
   return tool.handler(session, args);
 }
