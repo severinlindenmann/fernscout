@@ -7,8 +7,7 @@ complexity: low
 area: tests, backup, ci
 found: "2026-09-03"
 started: "2026-09-03T19:43:08Z"
-session: 0c03d994-da58-4a02-ab85-107825393b1a
-claimed: "2026-09-03T19:43:08Z"
+merged: "2026-09-03T20:05:04Z"
 ---
 
 # B180 — The bounded-probe test never runs

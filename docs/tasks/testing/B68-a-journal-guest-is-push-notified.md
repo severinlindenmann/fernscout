@@ -115,3 +115,51 @@ the gate. The one deliberate disagreement between the two announcing surfaces �
 push reaches an unlisted `public` trip and the digest does not — is pinned by
 its own test, with the reasoning, so that "making them consistent" has to
 argue with something.
+
+## Note from live verification, 2026-09-03
+
+**The fix is compiled into what fernscout.ch is running, and its behaviour has
+never been exercised there.** Both halves of that sentence are evidenced.
+
+Present in the deployed artifact, checked two ways: `/srv/fernscout/lib/push.ts`
+at commit `3592ad3` (which `/api/health` reports) has `isTestContent` at :131
+and `if (trip.visibility === "private") return [];` at :135, both **ahead** of
+`isOpenToLink` at :138 and ahead of the contacts/`access_grants` queries — so an
+active, granted, subscribed contact can never be reached for a private trip.
+Not only the checkout: the running build's sourcemap
+`.next/server/chunks/_1vm3old._.js.map` carries the same lines in its
+`sourcesContent`.
+
+Also checked: an unrecognised `visibility:` cannot slip past the `=== "private"`
+compare, because `parseVisibility` normalises anything unknown to `private` at
+load time.
+
+Unobservable for three independent reasons, in increasing order of finality:
+
+1. Push is off server-wide — no `VAPID_*` in `/etc/fernscout/env`.
+2. `push_subscriptions` holds 0 rows and `POST /api/push/subscribe` answers
+   `404 push_disabled`, so the bug's precondition cannot be constructed.
+3. **`subscribersFor` has no HTTP surface at all.** Its only production caller
+   is `scripts/notify.mts:158`, a CLI. No request to fernscout.ch reveals its
+   return value under any configuration, so this ticket can never be closed over
+   the network.
+
+### What would close it
+
+A person on the VPS, in this order:
+
+1. `npm run notify -- --generate-keys`; put `VAPID_PUBLIC_KEY`,
+   `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` into `/etc/fernscout/env`; restart.
+2. Enable push in `content/config.json` **and** in the journal's own config —
+   `pushEnabledFor` requires the per-journal opt-in. See B153: a journal cannot
+   reach that state on its own.
+3. Sign in as an approved contact in a real browser and accept the push prompt,
+   so the subscription is stored with a non-null `contactId`. A hand-inserted
+   row would not prove the route binds the contact.
+4. A private trip with a **published** day. `b47-control` and `b39-closed` are
+   private but `b39-closed`'s only day is a draft.
+5. `npm run notify -- <trip> <day> --dry-run` twice — against a `guest` trip it
+   must say "would send to 1 subscriber(s)", against the private one "0". **The
+   guest arm is the control**, and it is what stops a 0 from being read as a
+   pass when the fixture is simply inert. The deployed unit test is written the
+   same way, at `test/push.test.ts:231`.
