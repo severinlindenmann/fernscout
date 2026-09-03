@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: api, entries, docs
 found: "2026-09-03"
+started: "2026-09-03"
 ---
 
 # B119 — Two days in one trip can take the same slug
