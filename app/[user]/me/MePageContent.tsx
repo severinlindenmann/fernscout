@@ -32,6 +32,7 @@ export default function MePageContent({
   canSignIn,
   codeMinutes,
   contactsEnabled,
+  signinNotice,
 }: {
   viewer: Viewer;
   username: string;
@@ -45,6 +46,16 @@ export default function MePageContent({
   /** Whether this journal keeps a guest list at all. Resolved on the server;
    * `isEnabled` reads server config and this file is a client component. */
   contactsEnabled: boolean;
+  /**
+   * Why they landed here rather than inside the journal (B142).
+   *
+   * `?signin=expired` has been redirected to for as long as the sign-in link
+   * has existed, and until now nothing on this page said anything about it —
+   * so somebody whose welcome link had been spent by their own mail provider
+   * arrived at an ordinary page with no explanation and every reason to think
+   * they had done something wrong.
+   */
+  signinNotice?: string;
 }) {
   const { t } = useI18n();
   const site = useSite();
@@ -66,6 +77,18 @@ export default function MePageContent({
         <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
           {t("me.title")}
         </h1>
+
+        {/* First thing on the page, above the fold and above the sign-in
+            control it tells them to use. It is the answer to the question they
+            arrived with. */}
+        {signinNotice && (
+          <p
+            role="status"
+            className="mt-5 rounded-2xl border-l-4 border-yellow-400 bg-cream-100 py-4 pl-5 pr-4 text-lg leading-8 text-navy-900"
+          >
+            {t(signinNotice as never)}
+          </p>
+        )}
 
         {!viewer.email ? (
           <>

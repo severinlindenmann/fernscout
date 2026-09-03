@@ -11,13 +11,14 @@ export const dynamic = "force-dynamic";
  * is the point of the whole design. Mail scanners, link previewers and
  * corporate security appliances follow links in mail; a `GET` that destroys a
  * journal will eventually be followed by a robot, and there is no undo. The
- * two places this repository has already reasoned about that landed either
- * side of the line — `app/[user]/s/[token]/route.ts` accepts a sign-in on GET,
- * because the worst a scanner can mint is a read session nobody uses, while
- * `app/[user]/u/[token]/route.ts` refuses to unsubscribe on GET, because the
- * loss is invisible and irreversible. Deletion is far past the second case, so
- * the link in the mail lands on a page (`app/[user]/delete/[token]`) and the
- * page's button arrives here.
+ * two places this repository has reasoned about it both land on the same side
+ * now: `app/[user]/u/[token]/route.ts` refuses to unsubscribe on GET, because
+ * the loss is invisible and irreversible, and `app/[user]/s/[token]` stopped
+ * signing anybody in on GET after B142 — the argument that it was harmless
+ * ("the worst a scanner can mint is a read session nobody uses") was tested in
+ * production and lost. Deletion was never near that line, so the link in the
+ * mail lands on a page (`app/[user]/delete/[token]`) and the page's button
+ * arrives here. This route is the one that was right first.
  *
  * No `Authorization` header, and that is not an oversight: the credential is
  * the token in the path, which reached the owner's mailbox and nowhere else.

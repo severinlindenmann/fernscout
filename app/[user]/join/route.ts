@@ -14,8 +14,8 @@ export const dynamic = "force-dynamic";
  *
  * The address survives as a redirect rather than a 404 because people already
  * sent it to their families. A dead end reads as "the journal is gone" — the
- * same reasoning `app/[user]/s/[token]/route.ts` gives for never landing an
- * expired link on a 404. `/{user}/me` says the true thing instead: ask the
+ * same reasoning `app/[user]/s/[token]` gives for never landing a spent link
+ * on a 404. `/{user}/me` says the true thing instead: ask the
  * person who sent you for a link.
  */
 export async function GET(_request: Request, context: RouteContext<"/[user]/join">) {
