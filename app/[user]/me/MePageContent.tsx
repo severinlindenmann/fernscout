@@ -3,6 +3,7 @@
 import Link from "next/link";
 import AgentHandover from "@/components/AgentHandover";
 import GuestSignIn from "@/components/GuestSignIn";
+import InviteLinks from "@/components/InviteLinks";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
@@ -192,6 +193,21 @@ export default function MePageContent({
             <p className="mt-2 border-l-2 border-coral-600 pl-3 text-base leading-7 text-navy-900">
               {t("me.tokenWarning")}
             </p>
+
+            {/*
+              B79. The door for people, beside the door for agents.
+
+              Gated on the same capability as the guest list below, and not on
+              a new one: `POST /api/v1/{user}/invites` answers 404 unless
+              `isEnabled("contacts", …)`, because a redemption has to land in
+              the owner's queue and a journal with contacts off has no queue.
+              Same rule as B74 — the control is absent rather than broken.
+            */}
+            {contactsEnabled && (
+              <div className="mt-6">
+                <InviteLinks username={username} trips={viewer.trips} />
+              </div>
+            )}
 
             {/*
               B74. Owning the journal is not enough: `/<user>/contacts` is a

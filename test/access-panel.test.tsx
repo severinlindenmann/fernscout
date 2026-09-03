@@ -51,6 +51,15 @@ const stranger: Viewer = { email: null, owner: false, guest: false, trips: [] };
 
 const owner: Viewer = { email: "owner@example.test", owner: true, guest: false, trips: [] };
 
+/** The same owner, with the journal's trips in the list — which is what
+ * `resolveViewer` hands an owner, and what the buddy link needs to name. */
+const ownerWithTrips: Viewer = {
+  ...owner,
+  trips: [
+    { id: "bus-2026", title: "The bus year", href: "/alex/trips/bus-2026", through: "owner" },
+  ],
+};
+
 function render(over: { canSignIn?: boolean; viewer?: Viewer; contactsEnabled?: boolean } = {}) {
   return renderToStaticMarkup(
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
@@ -176,6 +185,89 @@ describe("the access panel, for the owner", () => {
       // What an owner comes here for: the address and email to hand an agent.
       expect(html).toContain("https://example.test/documentation.txt");
       expect(html).toContain("owner@example.test");
+    }
+  });
+});
+
+
+/**
+ * B79 — the door for people, beside the door for agents.
+ *
+ * The panel could hand over the two lines an agent needs and nothing at all
+ * for a person: inviting somebody meant a trip password that could not be
+ * revoked for one of them, or opening `trip.md` in an editor. B33 built the
+ * endpoint; these are the controls, and what they are asserted on is the
+ * *copy*, because the mistake this feature can make is not a broken button.
+ * It is an owner who reads "invite" twice, sends the wrong one to a group
+ * chat, and finds out later that a buddy link leads to writing.
+ */
+describe("the two invite links, for the owner", () => {
+  test("offers both, and says in words what each one leads to", () => {
+    const html = render({ viewer: ownerWithTrips, contactsEnabled: true });
+    expect(html).toContain("Invite somebody");
+    // Two blocks, two verbs, on screen and not in a tooltip.
+    expect(html).toContain("A link for someone to read");
+    expect(html).toContain("A link for someone to write");
+    expect(html).toContain("they can write to that trip");
+    expect(html).toContain("Do not put this one in a group chat.");
+    // And the claim the API actually makes: a link is an invitation to ask.
+    expect(html).toContain("Neither link lets anybody in by itself.");
+    expect(html).toContain("they see nothing until you say yes");
+  });
+
+  test("names the trip a buddy link would be for, from the list already on the page", () => {
+    const html = render({ viewer: ownerWithTrips, contactsEnabled: true });
+    expect(html).toContain('id="invite-trip"');
+    expect(html).toContain('value="bus-2026"');
+    expect(html).toContain("The bus year");
+  });
+
+  /**
+   * A buddy link is a link to join one trip, and `POST …/invites` answers 404
+   * for a trip that does not exist. A journal with no trips has nothing to put
+   * in the select, so the block is absent rather than empty — the same rule
+   * B74 applied to the guest list. The reading link still stands: a journal
+   * with no trips yet is exactly when somebody tells their family where it is.
+   */
+  test("with no trips, offers the reading link and no writing link", () => {
+    const html = render({ viewer: owner, contactsEnabled: true });
+    expect(html).toContain("A link for someone to read");
+    expect(html).not.toContain("A link for someone to write");
+    expect(html).not.toContain('id="invite-trip"');
+  });
+
+  test("with contacts off, offers neither — the endpoint answers 404", () => {
+    const html = render({ viewer: ownerWithTrips, contactsEnabled: false });
+    expect(html).not.toContain("Invite somebody");
+    expect(html).not.toContain("A link for someone to read");
+    expect(html).not.toContain("A link for someone to write");
+  });
+
+  /**
+   * Nobody else, at all. A guest of the journal and a traveller on a trip are
+   * both signed in and both have a legitimate reason to be on this page; the
+   * ability to hand out access is the owner's alone, which is the same line
+   * `isOwner` draws on the endpoint.
+   */
+  test("and nobody but the owner sees any of it", () => {
+    const others: Viewer[] = [
+      stranger,
+      { email: "guest@example.test", owner: false, guest: true, trips: [] },
+      {
+        email: "buddy@example.test",
+        owner: false,
+        guest: false,
+        trips: [
+          { id: "bus-2026", title: "The bus year", href: "/alex/trips/bus-2026", through: "traveller" },
+        ],
+      },
+    ];
+    for (const viewer of others) {
+      const html = render({ viewer, contactsEnabled: true });
+      expect(html).not.toContain("Invite somebody");
+      expect(html).not.toContain("A link for someone to read");
+      expect(html).not.toContain("A link for someone to write");
+      expect(html).not.toContain('id="invite-trip"');
     }
   });
 });
