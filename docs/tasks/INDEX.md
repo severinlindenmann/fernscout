@@ -108,22 +108,22 @@ Do not edit them by hand; run the script.
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B111](open/B111-signup-codes-are-written-outside-the.md) | Signup codes are written outside the content directory, where nobody is looking for them | ISSUE | medium | low |
-| [B114](open/B114-one-unreadable-file-under-data-dir.md) | One unreadable file under DATA_DIR aborts the whole backup | ISSUE | medium | low |
-| [B116](open/B116-a-test-day-inside-a-real.md) | A test day inside a real trip is unmarked in the day list and in MCP's readable summary | ISSUE | medium | low |
 | [B19](open/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium |
 | [B45](open/B45-the-access-panel-lists-guest-trips.md) | The access panel lists guest trips the reader cannot actually open | ISSUE | medium | low |
 | [B51](open/B51-listed-in-a-trip-s-frontmatter.md) | A trip's listed frontmatter key is documented and never read | ISSUE | medium | low |
 | [B60](open/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low |
-| [B82](open/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low |
 | [B85](open/B85-an-upcoming-trip-with-no-plan.md) | An upcoming trip with no plan serialises a whole-world basemap into a page that draws no map | ISSUE | medium | low |
-| [B118](open/B118-the-journal-map-page-disagrees-with.md) | The journal map page disagrees with itself about tense between its heading and its tab title | ISSUE | low | low |
 
 ## in-development
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B111](in-development/B111-signup-codes-are-written-outside-the.md) | Signup codes are written outside the content directory, where nobody is looking for them | ISSUE | medium | low |
+| [B114](in-development/B114-one-unreadable-file-under-data-dir.md) | One unreadable file under DATA_DIR aborts the whole backup | ISSUE | medium | low |
+| [B116](in-development/B116-a-test-day-inside-a-real.md) | A test day inside a real trip is unmarked in the day list and in MCP's readable summary | ISSUE | medium | low |
+| [B82](in-development/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low |
 | [B98](in-development/B98-revoking-somebody-s-access-leaves-every.md) | Revoking somebody's access leaves every agent token already issued to them working until it expires | SECURITY | medium | medium |
+| [B118](in-development/B118-the-journal-map-page-disagrees-with.md) | The journal map page disagrees with itself about tense between its heading and its tab title | ISSUE | low | low |
 
 ## testing
 

@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: api, mcp, test-content
 found: "2026-09-03"
+started: "2026-09-03"
 ---
 
 # B116 — A test day inside a real trip is unmarked in two places

@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: mail, ops, security
 found: "2026-09-03"
+started: "2026-09-03"
 ---
 
 # B111 — Signup codes are written outside the content directory, where nobody is looking for them
