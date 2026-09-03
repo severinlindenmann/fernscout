@@ -314,6 +314,113 @@ describe.runIf(geodataAvailable())("places", () => {
   });
 });
 
+/**
+ * B141. A slug addresses a day inside its **trip**, not inside its date.
+ *
+ * `getEntryBySlug` takes the first match and has no tiebreak, so two entry
+ * files differing only in the date prefix produce one day that is served and
+ * one that is on disk, is not a draft, and never can be. B119 made
+ * `createDraft` refuse that, which covers REST and MCP; ingest writes its own
+ * names and kept `${date}/${slug}` as its collision key, so the third door
+ * stayed open.
+ *
+ * Nothing exotic is needed to reach it — one card holding two visits to the
+ * same town, which is what a return leg or a base town looks like. The
+ * reverse geocoder names both clusters the same thing and `slugify` is
+ * deterministic, so the second one lands on the first one's address.
+ */
+describe.runIf(geodataAvailable())("a slug is unique across the trip, not the day", () => {
+  const ref = `${USER}/${TRIP}`;
+
+  test("the same place on two dates gives two addressable days", async () => {
+    await photo("a.jpg", 40, "2026-08-14 09:00:00", CHIANG_MAI);
+    await photo("b.jpg", 41, "2026-08-18 09:00:00", CHIANG_MAI);
+
+    const result = await run();
+    expect(result.entries).toHaveLength(2);
+
+    // `includeDrafts` throughout: ingest writes `status: draft` like every
+    // other agent-facing writer, so these are exactly the entries a person is
+    // about to review and publish. That is what makes the shadow expensive —
+    // `publishDay` addresses a day by slug, so the file that cannot be looked
+    // up cannot be published either.
+    const { getAllEntries, getEntryBySlug } = await import("@/lib/entries");
+    const drafts = { includeDrafts: true };
+    const slugs = getAllEntries(ref, drafts).map((e) => e.slug);
+    expect(new Set(slugs).size).toBe(2);
+
+    // The assertion that matters: both days answer to their own address. Under
+    // the old key the second file existed and `getEntryBySlug` could never
+    // reach it, because the first match won.
+    for (const slug of slugs) {
+      expect(getEntryBySlug(ref, slug, drafts)?.slug).toBe(slug);
+    }
+    expect(getAllEntries(ref, drafts).map((e) => e.date).sort()).toEqual([
+      "2026-08-14",
+      "2026-08-18",
+    ]);
+  });
+
+  test("re-running joins the day it already imported rather than numbering beside it", async () => {
+    await photo("a.jpg", 42, "2026-08-14 09:00:00", CHIANG_MAI);
+    await photo("b.jpg", 43, "2026-08-18 09:00:00", CHIANG_MAI);
+    await run();
+
+    const first = fs.readdirSync(path.join(tripDir(), "entries")).sort();
+    expect(first).toHaveLength(2);
+
+    // A new photograph for a day already imported. The widened `usedSlugs`
+    // must not treat the day's own file as somebody else holding the name, or
+    // "I found six more photos from Tuesday" writes `chiang-mai-2` instead.
+    await photo("c.jpg", 44, "2026-08-14 17:30:00", CHIANG_MAI);
+    const second = await run();
+
+    expect(fs.readdirSync(path.join(tripDir(), "entries")).sort()).toEqual(first);
+    expect(second.entries.some((e) => e.date === "2026-08-14" && !e.created)).toBe(true);
+  });
+
+  test("a dry run prints the names a real run writes", async () => {
+    await photo("a.jpg", 45, "2026-08-14 09:00:00", CHIANG_MAI);
+    await photo("b.jpg", 46, "2026-08-18 09:00:00", CHIANG_MAI);
+
+    const planned = (await run({ dryRun: true })).entries.map((e) => e.file);
+    expect(fs.existsSync(path.join(tripDir(), "entries"))).toBe(false);
+
+    const written = (await run()).entries.map((e) => e.file);
+    expect(written).toEqual(planned);
+  });
+});
+
+/**
+ * The same rule, reached without the place index — a slug already held on disk
+ * by another date, whatever named it. Photographs with no coordinates get
+ * `day-<date>` for a base, so this half of B141 is deterministic wherever the
+ * suite runs rather than only where `places.bin.gz` was built.
+ */
+describe("a slug already on disk under another date", () => {
+  test("is not taken twice", async () => {
+    const entries = path.join(tripDir(), "entries");
+    fs.mkdirSync(entries, { recursive: true });
+    fs.writeFileSync(
+      path.join(entries, "2026-08-10-day-2026-08-14.md"),
+      `---\ntitle: "Squatter"\ndate: "2026-08-10"\nlocation: ""\ncountry: ""\n---\n`,
+    );
+
+    await photo("a.jpg", 47, "2026-08-14 09:00:00");
+    const result = await run();
+
+    expect(result.entries).toHaveLength(1);
+    const written = path.basename(result.entries[0].file);
+    expect(written).not.toBe("2026-08-14-day-2026-08-14.md");
+    expect(written).toMatch(/^2026-08-14-day-2026-08-14-/);
+
+    const { getAllEntries } = await import("@/lib/entries");
+    const slugs = getAllEntries(`${USER}/${TRIP}`, { includeDrafts: true }).map((e) => e.slug);
+    expect(slugs).toHaveLength(2);
+    expect(new Set(slugs).size).toBe(slugs.length);
+  });
+});
+
 describe("notes", () => {
   test("a dated text file becomes that day's prose", async () => {
     await photo("a.jpg", 22, "2026-08-14 09:00:00", BANGKOK);
