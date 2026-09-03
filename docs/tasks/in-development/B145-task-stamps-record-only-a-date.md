@@ -80,3 +80,25 @@ recorded, and the point of the change is provenance.
   index` leaves them untouched.
 - `test/tasks-script.test.ts` covers the stamp shape, the lease and its refusal.
 - `npx tsc --noEmit && npx eslint . && npx vitest run && npm run build`.
+
+## What it turned out to be
+
+Built as written. Three things worth recording, none of which changed the shape:
+
+- **The double-quoting was real.** `setField` quoted a value containing `:`,
+  and the caller passed stamps pre-quoted, so the first timestamp came out as
+  `merged: "\"2026-09-03T19:07:05Z\""`. Quoting is now `yaml()`'s job alone and
+  callers pass the bare value. `test/tasks-holds.test.ts` pins it.
+- **`--session` validates.** `--session --force` would otherwise have held the
+  task under the session id `"--force"`, and an empty `CLAUDE_CODE_SESSION_ID`
+  would have held it under the empty string. Both now read as absent or refuse.
+- **The holder column is per-lane.** `table()` emits `Held by` for
+  `in-development/` and `testing/` only. Sixty backlog rows of an em-dash is
+  the kind of noise that stops people reading a generated table at all.
+
+Docs that had to move with it: `manage-tasks` (a new section on the
+frontmatter, and one on the hold), `work-on-a-task` (the move *is* the claim;
+do not hold a ticket after it lands in `testing/`), `test-the-live-site` (each
+verification subagent claims before it starts — this is the skill the whole
+`testing/` half of the design is for), `AGENTS.md` and the prose in
+`docs/tasks/INDEX.md`.

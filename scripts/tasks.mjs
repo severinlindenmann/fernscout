@@ -16,7 +16,16 @@
 //   npm run tasks -- new --type ISSUE --priority high \
 //       --complexity low --title "…" [--area "…"]
 //   npm run tasks -- move B01 in-development
+//   npm run tasks -- claim B01             say you are on it, without moving it
+//   npm run tasks -- release B01           let go of it
 //   npm run tasks -- index                 rewrite INDEX.md only
+//
+// Two things are written into the frontmatter as work happens. **Stamps** are
+// whole instants — `found`, `started`, `merged`, `completed` — because several
+// agents run here in one afternoon and a date says only "a Tuesday". The
+// **hold** is `session` and `claimed`: which agent is on this task now, so a
+// parallel session can route around it rather than discovering the collision
+// at the merge.
 //
 // Frontmatter is edited line by line rather than round-tripped through a YAML
 // parser: a round trip reformats dates and drops the alignment, and a diff
@@ -36,8 +45,25 @@ const ROOT = path.join(process.cwd(), "docs", "tasks");
 const LANES = ["backlog", "open", "in-development", "testing", "completed"];
 /** Lanes only a person may move a task into. See .claude/skills/manage-tasks. */
 const HUMAN_ONLY = new Set(["open", "completed"]);
-/** The date each lane stamps on arrival. */
+/** The instant each lane stamps on arrival. */
 const STAMPS = { "in-development": "started", testing: "merged", completed: "completed" };
+/**
+ * Lanes where one agent is on a task and the others should keep off. These are
+ * the only lanes that display a holder, and the only ones `claim` will take.
+ */
+const HELD = new Set(["in-development", "testing"]);
+/**
+ * The one lane a `move` takes the hold on by itself — starting work *is* the
+ * claim, so nobody has to remember a second command.
+ *
+ * `testing` is deliberately not this, and the reason is easy to miss: the
+ * agent that merged is not the one that verifies. `test-the-live-site`
+ * dispatches a subagent per ticket, three in flight, and three siblings
+ * reading `testing/` need something that tells a ticket already being checked
+ * from a free one. So arriving in `testing` *releases* — the builder is done —
+ * and whoever verifies it claims.
+ */
+const CLAIMS_ON_MOVE = "in-development";
 /** Where `new` puts things. Never `open` — that lane is a person's review. */
 const INTAKE = "backlog";
 const TYPES = ["SECURITY", "ISSUE", "FEATURE", "CHORE"];
@@ -47,7 +73,36 @@ const COMPLEXITIES = ["low", "medium", "high"];
 const BEGIN = "<!-- generated:begin -->";
 const END = "<!-- generated:end -->";
 
-const today = () => new Date().toISOString().slice(0, 10);
+/**
+ * A whole instant, to the second, in UTC.
+ *
+ * Stamps were dates until B145, which in a repository that runs several agents
+ * in one afternoon says only "a Tuesday": B01 was found, started and merged on
+ * 2026-09-01 and the file cannot say in what order, or how long it sat waiting
+ * for somebody. UTC rather than local time because these are written from
+ * worktrees, subagents and the VPS, and one canonical spelling sorts.
+ *
+ * Tasks captured before this keep their date-only stamps. Widening
+ * `"2026-09-01"` to a midnight instant would invent a time nobody recorded,
+ * and provenance is the entire point.
+ */
+const now = () => `${new Date().toISOString().slice(0, 19)}Z`;
+
+/** Enough of a session id to recognise, which is all a table has room for. */
+const shortSession = (id) => id.slice(0, 8);
+
+/**
+ * How long a hold has stood, in words — for the message that refuses to break
+ * it, where "4h" is the difference between a live agent and a dead one.
+ */
+function heldFor(claimed) {
+  const since = Date.parse(claimed ?? "");
+  if (Number.isNaN(since)) return "unknown";
+  const minutes = Math.max(0, Math.round((Date.now() - since) / 60_000));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  return hours < 48 ? `${hours}h` : `${Math.round(hours / 24)}d`;
+}
 
 function die(message) {
   console.error(message);
@@ -76,11 +131,69 @@ function clearField(front, key) {
     .join("\n");
 }
 
+/**
+ * A frontmatter value, quoted only where it has to be. Callers pass the value
+ * itself and never its quotes — a timestamp contains `:` and would otherwise
+ * be quoted twice, once by the caller and once here.
+ */
+function yaml(value) {
+  return /[:#]/.test(value) ? JSON.stringify(value) : value;
+}
+
 /** Set a key, or add it at the end of the block if it is not there yet. */
 function setField(front, key, value) {
-  const line = `${key}: ${/[:#]/.test(value) ? JSON.stringify(value) : value}`;
+  const line = `${key}: ${yaml(value)}`;
   const existing = new RegExp(`^${key}:\\s*.*$`, "m");
   return existing.test(front) ? front.replace(existing, line) : `${front}\n${line}`;
+}
+
+/**
+ * Who is running this. `--session` wins so a wrapper or a subagent can say who
+ * it is; otherwise the Claude Code session id, which every agent here has and
+ * nobody typing at a shell does.
+ *
+ * Absent is a real answer, and it means "nobody is holding this". A person
+ * moving a task by hand is not a session another agent needs to route around,
+ * and pretending otherwise would leave holds nothing ever clears.
+ */
+function sessionId(argv) {
+  const given = flag(argv, "session");
+  // `--session` with nothing after it, or with the next flag after it, is a
+  // typo — and silently holding the task as "--force" would be worse than
+  // saying so.
+  if (given !== undefined && (given === "" || given.startsWith("--"))) {
+    die("--session needs a session id after it.");
+  }
+  return given || process.env.CLAUDE_CODE_SESSION_ID || undefined;
+}
+
+/** Write the hold: who has it, and since when. No session means let go. */
+function takeHold(front, session) {
+  if (!session) return releaseHold(front);
+  return setField(setField(front, "session", session), "claimed", now());
+}
+
+/** Drop the hold entirely. Both fields go, so neither outlives the other. */
+function releaseHold(front) {
+  return clearField(clearField(front, "session"), "claimed");
+}
+
+/**
+ * Refuse to take a task somebody else is already on.
+ *
+ * This is an error and not a warning on purpose. A warning is not a lock — an
+ * agent reads one, decides it is probably about somebody else, and carries on,
+ * which is exactly the afternoon B143 and B144 came out of. `--force` is the
+ * deliberate way past, for the ordinary case where the holder is a session
+ * that died; the message says how long the hold has stood so that call can be
+ * made on evidence.
+ */
+function refuseIfHeld(item, session, argv) {
+  if (!item.session || item.session === session || argv.includes("--force")) return;
+  die(
+    `${item.id} is held by session ${shortSession(item.session)}, for ${heldFor(item.claimed)}.\n` +
+      `If that session is gone, take it with --force.`,
+  );
 }
 
 function itemsIn(lane) {
@@ -101,6 +214,8 @@ function itemsIn(lane) {
         type: field(front, "type") ?? "ISSUE",
         priority: field(front, "priority") ?? "medium",
         complexity: field(front, "complexity") ?? "medium",
+        session: field(front, "session"),
+        claimed: field(front, "claimed"),
       };
     })
     .sort(
@@ -245,13 +360,18 @@ function slug(title) {
 function table(lane) {
   const items = itemsIn(lane);
   if (items.length === 0) return "_Nothing here._\n";
+  // Only the lanes where somebody can be on a task carry a holder column. Sixty
+  // backlog rows of an empty column is noise, and noise in a generated table is
+  // what stops people reading generated tables.
+  const held = HELD.has(lane);
   const rows = items.map(
     (i) =>
-      `| [${i.id}](${lane}/${i.filename}) | ${i.title} | ${i.type} | ${i.priority} | ${i.complexity} |`,
+      `| [${i.id}](${lane}/${i.filename}) | ${i.title} | ${i.type} | ${i.priority} | ${i.complexity} |` +
+      (held ? ` ${i.session ? `\`${shortSession(i.session)}\`` : "—"} |` : ""),
   );
   return [
-    "| # | Finding | Type | Priority | Complexity |",
-    "| --- | --- | --- | --- | --- |",
+    `| # | Finding | Type | Priority | Complexity |${held ? " Held by |" : ""}`,
+    `| --- | --- | --- | --- | --- |${held ? " --- |" : ""}`,
     ...rows,
     "",
   ].join("\n");
@@ -307,7 +427,7 @@ function create(argv) {
     `priority: ${priority}`,
     `complexity: ${complexity}`,
     ...(area ? [`area: ${area}`] : []),
-    `found: "${today()}"`,
+    `found: ${yaml(now())}`,
   ].join("\n");
 
   fs.writeFileSync(
@@ -321,11 +441,16 @@ function create(argv) {
 function move(argv) {
   const [id, lane] = argv;
   if (!id || !LANES.includes(lane)) {
-    die(`Usage: move <id> <${LANES.join("|")}>`);
+    die(`Usage: move <id> <${LANES.join("|")}> [--session <id>] [--force]`);
   }
   const item = allItems().find((i) => i.id.toLowerCase() === id.toLowerCase());
   if (!item) die(`No item with id ${id}.`);
   if (item.lane === lane) die(`${item.id} is already in ${lane}.`);
+
+  const session = sessionId(argv);
+  // Only taking it can collide. Every other move lets go, and letting go of
+  // somebody else's hold is what a person does when a session has died.
+  if (lane === CLAIMS_ON_MOVE) refuseIfHeld(item, session, argv);
 
   const { front, body } = split(item.file);
   let updated = front;
@@ -339,7 +464,11 @@ function move(argv) {
       if (LANES.indexOf(at) > LANES.indexOf(lane)) updated = clearField(updated, key);
     }
   }
-  if (STAMPS[lane]) updated = setField(updated, STAMPS[lane], `"${today()}"`);
+  if (STAMPS[lane]) updated = setField(updated, STAMPS[lane], now());
+
+  // Starting work is the claim. Arriving anywhere else lets go — including
+  // `testing`, where the next agent to touch the task is not this one.
+  updated = lane === CLAIMS_ON_MOVE ? takeHold(updated, session) : releaseHold(updated);
 
   // The lane directory may not exist yet — an empty lane keeps only a
   // .gitkeep, and a newly added lane keeps nothing at all. Renaming into a
@@ -350,6 +479,13 @@ function move(argv) {
   fs.writeFileSync(item.file, `---\n${updated}\n---\n${body}`);
   fs.renameSync(item.file, target);
   console.log(`${item.id}: ${item.lane} → ${lane}`);
+  if (lane === CLAIMS_ON_MOVE) {
+    console.log(
+      session
+        ? `  held by session ${shortSession(session)}.`
+        : `  note: no session to hold it with — another agent has no way to see it is taken.`,
+    );
+  }
   const skipped = LANES.indexOf(lane) - LANES.indexOf(item.lane);
   if (skipped > 1) {
     console.log(
@@ -364,12 +500,53 @@ function move(argv) {
   writeIndex();
 }
 
+/**
+ * Take a task, or let it go, **without moving it between lanes**.
+ *
+ * `move` covers the ordinary case, where starting work and claiming it are the
+ * same act. This is for the one that does not fit: a ticket in `testing/` has
+ * to stay in `testing/` while somebody verifies it — only a person moves it out
+ * — so there is no lane change to hang the claim on. Without this, three
+ * sibling verification agents have nothing to divide the lane between them.
+ */
+function hold(argv, take) {
+  const [id] = argv;
+  if (!id) die(`Usage: ${take ? "claim <id> [--session <id>] [--force]" : "release <id>"}`);
+  const item = allItems().find((i) => i.id.toLowerCase() === id.toLowerCase());
+  if (!item) die(`No item with id ${id}.`);
+
+  const session = take ? sessionId(argv) : undefined;
+  if (take) {
+    if (!session) {
+      die("Nothing to claim with. Pass --session <id>, or run where CLAUDE_CODE_SESSION_ID is set.");
+    }
+    if (!HELD.has(item.lane)) {
+      die(
+        `${item.id} is in ${item.lane}/, where nobody holds anything. ` +
+          `Claims live in ${[...HELD].map((l) => `${l}/`).join(" and ")}.`,
+      );
+    }
+    refuseIfHeld(item, session, argv);
+  }
+
+  const { front, body } = split(item.file);
+  const updated = take ? takeHold(front, session) : releaseHold(front);
+  fs.writeFileSync(item.file, `---\n${updated}\n---\n${body}`);
+  console.log(
+    take
+      ? `${item.id}: held by session ${shortSession(session)} in ${item.lane}/.`
+      : `${item.id}: released${item.session ? ` by session ${shortSession(item.session)}` : ""}.`,
+  );
+  writeIndex();
+}
+
 function list() {
   for (const lane of LANES) {
     const items = itemsIn(lane);
     console.log(`\n${lane} (${items.length})`);
     for (const i of items) {
-      console.log(`  ${i.id}  ${i.type.padEnd(8)} ${i.priority.padEnd(6)} ${i.title}`);
+      const holder = i.session ? `  ← ${shortSession(i.session)}, ${heldFor(i.claimed)}` : "";
+      console.log(`  ${i.id}  ${i.type.padEnd(8)} ${i.priority.padEnd(6)} ${i.title}${holder}`);
     }
   }
   console.log("");
@@ -390,9 +567,15 @@ switch (command) {
   case "move":
     move(rest);
     break;
+  case "claim":
+    hold(rest, true);
+    break;
+  case "release":
+    hold(rest, false);
+    break;
   case "index":
     writeIndex();
     break;
   default:
-    die(`Unknown command "${command}". Try: list, new, move, index.`);
+    die(`Unknown command "${command}". Try: list, new, move, claim, release, index.`);
 }

@@ -15,6 +15,18 @@ meeting a real mail scanner.
 finishes.** A ticket is a self-contained question; a fresh agent per ticket
 keeps one ticket's mess out of the next one's evidence.
 
+**Each agent claims its ticket before it starts**, because three siblings
+reading one lane otherwise have nothing to divide it between them:
+
+```bash
+npm run tasks -- claim B01      # holds it where it stands; no lane move
+npm run tasks -- release B01    # if you hand it back unverified
+```
+
+The builder let go when it merged, so every ticket in `testing/` starts free.
+A ticket that is already held is somebody's — take the next one. `npm run
+tasks` shows the holder and how long they have had it.
+
 ## Before spawning anything
 
 1. **Check what is deployed.** `curl -s https://fernscout.ch/api/health | jq`.
@@ -110,11 +122,12 @@ answer; an agent that drops a production database to close a ticket is not.
 
 - **PASS** → `npm run tasks -- move <id> completed`. `completed/` is a human
   gate; you are doing it because the user asked for this campaign, and only for
-  tickets that actually passed.
+  tickets that actually passed. The move drops the hold.
 - **FAIL** → leave it in `testing/` and open a **new** backlog ticket for what
-  was found. Never edit the original's verdict into a pass.
-- **BLOCKED** → leave it in `testing/`, and put the decision to the user with
-  the exact command that would clear it.
+  was found. Never edit the original's verdict into a pass. `release` it, so
+  the next campaign does not read it as still being checked.
+- **BLOCKED** → leave it in `testing/`, `release` it, and put the decision to
+  the user with the exact command that would clear it.
 - Findings **outside** a ticket's own acceptance are where most of the value
   turns up — file them in `backlog/` with the evidence. Check first that they
   are not already a ticket; if an existing one is now half-wrong, amend it with

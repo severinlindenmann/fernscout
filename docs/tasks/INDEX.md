@@ -32,6 +32,14 @@ The three lanes in between are ordinary bookkeeping and an agent moves through
 them on its own. `.claude/skills/work-on-a-task/` is the build loop;
 `.claude/skills/manage-tasks/` is the bookkeeping around it.
 
+**Where a task is taken, the table says by whom.** `in-development/` and
+`testing/` carry a holder — the agent session that is on it now — because
+several agents run here at once and the lane alone only says *somebody* is.
+The hold is taken by moving into `in-development/`, or by `npm run tasks --
+claim <id>` for a ticket that has to stay where it is while it is verified, and
+it is dropped by every other move. Taking a task somebody else holds is
+refused, not warned about.
+
 There is no `status:` field in the frontmatter. A status kept in two places
 disagrees with itself within a month — the same reason the entry and trip
 field lists live in one skill each rather than in `AGENTS.md` too.

@@ -22,9 +22,27 @@ docs/tasks/
 Building one is `work-on-a-task`. This skill is the bookkeeping around it.
 
 ```bash
-npm run tasks                          # what is in each lane
+npm run tasks                          # what is in each lane, and who is on what
 npm run tasks -- move B03 completed
 ```
+
+## What the frontmatter records as work happens
+
+Two things the script writes and you do not. Both exist because several agents
+run here at once.
+
+**When it moved.** `found:`, `started:`, `merged:` and `completed:` are whole
+instants in UTC — `2026-09-03T19:07:32Z` — one per lane arrival. They used to
+be dates, which in an afternoon that moves a task through three lanes said only
+"a Tuesday"; B01 was found, started and merged on `2026-09-01` and its file
+cannot say in what order. Tasks captured before B145 keep their date-only
+stamps and are deliberately not backfilled: a midnight instant would be a time
+nobody recorded.
+
+**Who is on it.** `session:` is the agent session holding the task now, and
+`claimed:` is when it took it. `move` and `claim` fill them in from
+`$CLAUDE_CODE_SESSION_ID`; you never type them. Nothing is a person's to hold —
+running the script by hand leaves both absent, which reads correctly as "free".
 
 ## The two gates
 
@@ -49,6 +67,38 @@ says what to look at; the last move is the author's.
 An agent runs `move … open` or `move … completed` only when told to, in that
 turn, for that id. The script prints a reminder when either lane is the
 target — it is a note, not a permission.
+
+## The hold, and why it is a refusal
+
+The lane says *somebody* is on a task. It has never said **which session**, and
+two agents reading `in-development/` could each decide the other's work was
+theirs to continue — B143 and B144 are one afternoon of exactly that.
+
+```bash
+npm run tasks -- move B03 in-development    # taking it is the claim
+npm run tasks -- claim B03                  # say you are on it, lane unchanged
+npm run tasks -- release B03                # let go
+```
+
+Moving into `in-development/` takes the hold. **Arriving anywhere else drops
+it**, `testing/` included — and that one is deliberate. The agent that merged
+is not the agent that verifies, so a hold left behind by the builder would tell
+every verification agent that the whole lane was taken. Whoever picks a ticket
+up in `testing/` runs `claim`, which is the only way to say so without moving
+a task out of a lane a person has to move it out of.
+
+Taking a task somebody else holds is **refused**, not warned about — a warning
+is not a lock, and an agent reads one and carries on. The refusal names the
+holder and how long the hold has stood:
+
+```
+B03 is held by session a4b53c2f, for 4h.
+If that session is gone, take it with --force.
+```
+
+`--force` is how a dead session's hold is broken. There is no timeout: a lease
+that expires on its own would need this repository to be right about how long
+an agent takes, and it would rather be asked.
 
 ## Steps
 
@@ -120,18 +170,25 @@ verify against the four checks and the task's own acceptance criteria, merge,
 and land in `testing/`.
 
 ```bash
-npm run tasks -- move B03 in-development     # stamps started:
-npm run tasks -- move B03 testing            # stamps merged:
+npm run tasks -- move B03 in-development     # stamps started:, takes the hold
+npm run tasks -- move B03 testing            # stamps merged:, lets go
 ```
 
-Move to `in-development` **when you begin**, not when you finish — the lane is
-how anybody else sees the task is taken. More than two or three at once means
+Move to `in-development` **when you begin**, not when you finish — the lane and
+the hold together are how anybody else sees the task is taken. More than two or three at once means
 they are not actually in development; move the rest back to `open/`.
 
 ### 4. The person tries it
 
-A task in `testing/` has merged and is waiting for somebody to look. When they
-are satisfied:
+A task in `testing/` has merged and is waiting for somebody to look. Nobody
+holds it — the builder let go at the merge — so an agent verifying one claims
+it first, and releases if it hands the ticket back:
+
+```bash
+npm run tasks -- claim B03
+```
+
+When they are satisfied:
 
 ```bash
 npm run tasks -- move B03 completed
@@ -142,6 +199,9 @@ task. Completed tasks are the record; they are not deleted.
 
 If it does not hold up, it goes back to `in-development/` with a line saying
 what was wrong. That is a normal outcome, not a failure of the process.
+Whoever moves it there takes the hold, so say in the task whether you are
+carrying on with it or leaving it for somebody else — and `release` it if you
+are not.
 
 ### 5. When the answer is "no"
 
@@ -175,3 +235,9 @@ leaves no trace gets proposed again in three months.
 - Reporting a task done when it is in `testing/` → it is merged, not verified.
 - Editing an `INDEX.md` table by hand → run the script.
 - A title that names a solution → rewrite it as the problem.
+- `--force` past somebody's hold because it looked stale → the message says how
+  long it has stood. Under an hour, assume the agent is alive.
+- Verifying a ticket in `testing/` without claiming it → two sibling agents are
+  about to do the same work and file contradictory verdicts.
+- Writing `session:` or `claimed:` into a file by hand → `move`, `claim` and
+  `release` own those two fields.

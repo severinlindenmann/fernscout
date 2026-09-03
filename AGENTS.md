@@ -223,11 +223,21 @@ backlog/ ──person──▶ open/ ──take──▶ in-development/ ──m
 ```
 
 ```bash
-npm run tasks                       # what is in each lane
+npm run tasks                       # what is in each lane, and who is on what
 npm run tasks -- new --type ISSUE --priority high --complexity low \
     --area "…" --title "…"          # always lands in backlog/
 npm run tasks -- move B01 testing
+npm run tasks -- claim B01          # say you are on it, without moving it
 ```
+
+**A task in flight says which agent is on it.** Moving into `in-development/`
+writes your session into `session:`, and taking a task another session holds is
+refused rather than warned about. Every other arrival drops the hold —
+`testing/` included, because the agent that merged is not the one that
+verifies. That is what `claim` is for: a ticket being verified has to stay in
+`testing/`, so there is no lane move to hang the claim on. The lane stamps
+(`found:`, `started:`, `merged:`, `completed:`) are whole UTC instants, since
+a task can cross three lanes in an afternoon here.
 
 **Anything you notice goes into `backlog/`, always.** A second problem found
 while building is a new capture referenced by id, never scope quietly absorbed
