@@ -8,6 +8,7 @@ area: backup, ops
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-03"
+completed: "2026-09-03"
 ---
 
 # B63 — A wrong RESTIC_REPOSITORY makes a new empty repo instead of failing

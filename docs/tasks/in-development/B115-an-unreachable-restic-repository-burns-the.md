@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: backup, ops
 found: "2026-09-01"
+started: "2026-09-03"
 ---
 
 # B115 — An unreachable restic repository burns the unit's whole 30-minute timeout

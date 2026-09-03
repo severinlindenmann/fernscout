@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: mail
 found: "2026-09-01"
+started: "2026-09-03"
 ---
 
 # B50 — Two mails in the same millisecond overwrite each other in development
