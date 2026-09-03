@@ -13,7 +13,22 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Keyed by content root, so pointing CONTENT_DIR somewhere else in a test
  * doesn't hand back the previous directory's trips. */
-const cache = new Map<string, { signature: string; trips: Trip[] }>();
+const cache = new Map<string, { signature: string; trips: Trip[]; malformed: MalformedTrip[] }>();
+
+/**
+ * A trip folder whose `trip.md` is present but cannot be trusted — the id does
+ * not match the folder, a date is not a date, the frontmatter will not parse.
+ * `readTrip` drops these from `getTrips` (a typo in one must not take the rest
+ * down), and until B83 the only trace was a `[trips]` line on the server's
+ * stdout, which is not where the owner is. This carries the *why* to a surface
+ * they can read.
+ */
+export type MalformedTrip = {
+  /** The folder under `content/<user>/trips/`. */
+  folder: string;
+  /** One sentence, owner-facing, naming what is wrong. */
+  problem: string;
+};
 
 /**
  * A trip's fully-qualified key: `<username>/<tripId>`.
@@ -288,13 +303,20 @@ function parseTranslations(raw: unknown): TripTranslations | undefined {
 }
 
 /**
- * One trip.md → a Trip, or null if it can't be trusted.
+ * One trip.md → a Trip, a MalformedTrip, or null.
  *
- * Returning null rather than throwing is deliberate and matches lib/plan.ts:
- * a typo in one trip's frontmatter must not take every other trip down with
- * it. The reason is logged so it isn't silent.
+ * - `Trip` — it parsed and is trustworthy.
+ * - `MalformedTrip` — the file is there but wrong, and would silently vanish.
+ *   Returned rather than thrown so a typo in one trip does not take every other
+ *   trip down with it (matching lib/plan.ts), and returned rather than dropped
+ *   so the reason reaches the owner, not just the server log (B83).
+ * - `null` — no `trip.md` at all. Not a trip; not an error either. A folder
+ *   that never claimed to be a trip is nothing to report.
+ *
+ * The `[trips]` warnings stay: the server log is still the right place for an
+ * operator tailing stdout, and this only *adds* a surface, it does not move one.
  */
-function readTrip(username: string, dir: string, folder: string): Trip | null {
+function readTrip(username: string, dir: string, folder: string): Trip | MalformedTrip | null {
   const file = path.join(dir, "trip.md");
   if (!fs.existsSync(file)) return null;
 
@@ -306,7 +328,7 @@ function readTrip(username: string, dir: string, folder: string): Trip | null {
     content = parsed.content;
   } catch (err) {
     console.warn(`[trips] ${folder}/trip.md is unparseable, skipping:`, err);
-    return null;
+    return { folder, problem: "its frontmatter could not be parsed" };
   }
 
   const id = String(data.id ?? "").trim();
@@ -316,15 +338,26 @@ function readTrip(username: string, dir: string, folder: string): Trip | null {
 
   if (id !== folder) {
     console.warn(`[trips] ${folder}/trip.md has id "${id}", expected "${folder}" — skipping.`);
-    return null;
+    return {
+      folder,
+      problem: id
+        ? `its id is "${id}", but the folder is named "${folder}" — the two must match`
+        : `it has no id (add \`id: ${folder}\` to match the folder)`,
+    };
   }
   if (!ID_RE.test(id)) {
     console.warn(`[trips] "${id}" is not a valid trip id (a-z, 0-9, dashes) — skipping.`);
-    return null;
+    return {
+      folder,
+      problem: `its id "${id}" is not valid — lowercase letters, numbers and dashes only`,
+    };
   }
   if (!title || !DATE_RE.test(start) || !DATE_RE.test(end)) {
     console.warn(`[trips] ${folder}/trip.md needs a title and ISO start/end dates — skipping.`);
-    return null;
+    return {
+      folder,
+      problem: "it needs a title and ISO start and end dates (YYYY-MM-DD)",
+    };
   }
 
   return {
@@ -386,7 +419,13 @@ function tripsSignature(root: string, folders: string[]): string {
     .join("|");
 }
 
-export function getTrips(username: string): Trip[] {
+/**
+ * The parsed trips of a journal, good and bad, computed once and cached
+ * together. `getTrips` and `getMalformedTrips` are both views onto this, so a
+ * malformed trip is discovered on the same parse that builds the good ones
+ * rather than re-reading every file a second time to find it.
+ */
+function loadTrips(username: string): { trips: Trip[]; malformed: MalformedTrip[] } {
   const root = tripsDir(username);
 
   let folders: string[] = [];
@@ -397,8 +436,9 @@ export function getTrips(username: string): Trip[] {
       .map((d) => d.name);
   } catch {
     // No content/trips yet — an empty site, not an error.
-    cache.set(root, { signature: "", trips: [] });
-    return [];
+    const empty = { signature: "", trips: [], malformed: [] };
+    cache.set(root, empty);
+    return empty;
   }
 
   // The date is part of the fingerprint because `status` is derived from it:
@@ -408,11 +448,11 @@ export function getTrips(username: string): Trip[] {
   // stop. One string comparison a call, and the cache turns over once a day.
   const signature = `${earliestTodayISO()}|${tripsSignature(root, folders)}`;
   const hit = cache.get(root);
-  if (hit && hit.signature === signature) return hit.trips;
+  if (hit && hit.signature === signature) return { trips: hit.trips, malformed: hit.malformed };
 
-  const trips = folders
-    .map((folder) => readTrip(username, path.join(root, folder), folder))
-    .filter((t): t is Trip => t !== null);
+  const parsed = folders.map((folder) => readTrip(username, path.join(root, folder), folder));
+  const malformed = parsed.filter((t): t is MalformedTrip => t !== null && "problem" in t);
+  const trips = parsed.filter((t): t is Trip => t !== null && "id" in t);
 
   // Exactly one trip may be current. If several declare it — easy to do when
   // you flip the new one before demoting the old — the one that started most
@@ -431,8 +471,29 @@ export function getTrips(username: string): Trip[] {
     return a.status === "upcoming" ? a.start.localeCompare(b.start) : b.end.localeCompare(a.end);
   });
 
-  cache.set(root, { signature, trips });
-  return trips;
+  // Named so a broken trip stays put whatever order the filesystem hands the
+  // folders back in — the owner's notice should not reshuffle on every call.
+  malformed.sort((a, b) => a.folder.localeCompare(b.folder));
+
+  cache.set(root, { signature, trips, malformed });
+  return { trips, malformed };
+}
+
+export function getTrips(username: string): Trip[] {
+  return loadTrips(username).trips;
+}
+
+/**
+ * The trips that are on disk but too broken to render, with the reason for each.
+ *
+ * Owner-facing: the caller is responsible for showing this only to somebody who
+ * may see the journal's insides. A stranger is told nothing — to them a
+ * malformed trip is simply not there, the same as it was before B83, because
+ * the parse error of somebody's `trip.md` and the folder names in their journal
+ * are not a visitor's business.
+ */
+export function getMalformedTrips(username: string): MalformedTrip[] {
+  return loadTrips(username).malformed;
 }
 
 export function getTripIds(username: string): string[] {

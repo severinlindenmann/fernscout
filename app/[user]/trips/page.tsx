@@ -5,7 +5,7 @@ import { PATH_HEADER } from "@/lib/requestKeys";
 import { basemapFor } from "@/lib/basemap";
 import { getPlaces, getTripStats } from "@/lib/entries";
 import { frameRoute } from "@/lib/mapFrame";
-import { getTrips } from "@/lib/trips";
+import { getMalformedTrips, getTrips } from "@/lib/trips";
 import { listableTrips } from "@/lib/tripGate";
 import { isOwner } from "@/lib/contacts/session";
 import { serverSite } from "@/lib/site";
@@ -61,9 +61,18 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
    * The owner's address is put in the payload only once `isOwner` has said
    * yes. A stranger's copy of this page does not contain it.
    */
+  const owner = await isOwner(user);
+
+  // Trips that are on disk but too broken to render. Shown to the owner only —
+  // a stranger sees a malformed trip as simply absent, the same as before B83.
+  // Asked before the empty state is decided, because a journal whose only trip
+  // is malformed is *not* empty: it must not be told to hand two lines to an
+  // agent when the trip it is missing is one it already wrote.
+  const malformed = owner ? getMalformedTrips(user) : [];
+
   let empty: EmptyJournal | null = null;
-  if (all.length === 0) {
-    empty = (await isOwner(user))
+  if (all.length === 0 && malformed.length === 0) {
+    empty = owner
       ? {
           owner: true,
           docUrl: `${serverSite().url}/documentation.txt`,
@@ -127,6 +136,7 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
       // the clip has to cover all of them too.
       basemap={basemapFor(frameRoute(routes.flatMap((r) => r.points)))}
       empty={empty}
+      malformed={malformed}
       lifetime={{
         countries: countries.size,
         days: travelled.reduce((n, t) => n + statsByTrip.get(t.ref)!.tripDays, 0),

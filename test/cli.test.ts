@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import { promisify } from "node:util";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -20,8 +20,20 @@ import path from "node:path";
 const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), "package.json"), "utf8"));
 const scripts: Record<string, string> = pkg.scripts;
 
-/** Scripts that read content through `lib/`, and so need the condition. */
-const CONTENT_READING = ["alert", "export", "photobook", "db:migrate", "db:status", "db:import"];
+/** Scripts that read content through `lib/`, and so need the condition.
+ * `ingest` was missing from this list, and from any check that ran it, which
+ * is how B84 happened: it was plain `node` on a `.ts` file — no condition, no
+ * extension resolution, top-level await under a CJS transform — and every
+ * static check below passed while `npm run ingest` could not start. */
+const CONTENT_READING = [
+  "ingest",
+  "alert",
+  "export",
+  "photobook",
+  "db:migrate",
+  "db:status",
+  "db:import",
+];
 
 describe("CLI wiring", () => {
   for (const name of CONTENT_READING) {
@@ -84,4 +96,74 @@ describe("CLI wiring", () => {
       );
     }
   }, 20_000);
+});
+
+/**
+ * The static checks above assert a script *names* the condition and *points* at
+ * a file. Neither can see a script that does both and still fails to load — the
+ * failure that stopped `ingest` (B84). Three shapes of it, none caught by a
+ * grep over the command string:
+ *
+ * - a relative import with no extension, which Node's ESM resolver will not
+ *   complete (the bundler and Vitest both add it, so nothing else here notices);
+ * - top-level await in a `.ts` file, which tsx transforms as CJS and rejects —
+ *   the reason the working scripts are `.mts`;
+ * - a `server-only` guard reached because the react-server condition was on the
+ *   wrong runner.
+ *
+ * So these actually run each entry point, with an argument that reaches its own
+ * validation and stops there — an info flag, or an unknown user. Every probe is
+ * side-effect-free: nothing is written, sent or downloaded. The command comes
+ * from `package.json`, so the runner under test is the one that ships.
+ */
+const LOAD_FAILURES = [
+  "ERR_MODULE_NOT_FOUND",
+  "Cannot find module",
+  "cannot be imported from a Client Component", // server-only, wrong runner
+  "Top-level await is currently not supported", // an ESM script transformed as CJS
+  "Transform failed",
+];
+
+/** name → an argument set that reaches the script's own code and does nothing. */
+const PROBES: Record<string, string[]> = {
+  ingest: ["--tools"],
+  postcard: ["--providers"],
+  export: ["fs-smoke-no-such-user"],
+  digest: ["--user", "fs-smoke-no-such-user", "--dry-run"],
+  "migrate:users": ["--user", "fs-smoke-no-such-user", "--dry-run"],
+  "migrate:owner": ["--user", "fs-smoke-no-such-user", "--dry-run"],
+};
+
+describe("CLI entry points load", () => {
+  // node_modules/.bin on PATH so the declared runner (`tsx`) resolves when the
+  // command is run directly rather than through `npm run`, which keeps the
+  // output to the script's own — no npm banner to make the emptiness check lie.
+  const env = {
+    ...process.env,
+    PATH: `${path.join(process.cwd(), "node_modules", ".bin")}${path.delimiter}${process.env.PATH ?? ""}`,
+  };
+
+  for (const [name, args] of Object.entries(PROBES)) {
+    test(`${name} starts without a load-time error`, () => {
+      const command = scripts[name];
+      expect(command, `${name} is missing from package.json scripts`).toBeDefined();
+
+      const run = spawnSync(`${command} ${args.join(" ")}`, {
+        shell: true,
+        cwd: process.cwd(),
+        encoding: "utf8",
+        env,
+        timeout: 60_000,
+      });
+
+      const output = `${run.stdout ?? ""}${run.stderr ?? ""}`;
+      // It reached its own code rather than dying on import: the probes print
+      // either their info output or a validation message, so silence means it
+      // never got that far.
+      expect(output.trim(), `${name} produced no output`).not.toBe("");
+      for (const signature of LOAD_FAILURES) {
+        expect(output, `${name} failed to load:\n${output}`).not.toContain(signature);
+      }
+    }, 60_000);
+  }
 });

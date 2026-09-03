@@ -1,6 +1,6 @@
 import { authenticate, errorResponse, ownsUser, writableTrips } from "@/lib/api/auth";
 import { tripSummary } from "@/lib/api/entries";
-import { getTrips } from "@/lib/trips";
+import { getMalformedTrips, getTrips } from "@/lib/trips";
 import { createTrip } from "@/lib/tripWrite";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { serverSite } from "@/lib/site";
@@ -19,6 +19,13 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
     return Response.json({ error: "out_of_scope" }, { status: 403 });
   }
 
+  // Trips that are on disk but too broken to load — surfaced so an agent that
+  // just wrote a `trip.md` can discover it did not take, rather than the write
+  // succeeding and every read pretending the trip is not there (B83). Owner
+  // tokens only: a trip-scoped token learns nothing about the rest of the
+  // journal, malformed or not, for the same reason it sees only its own trip.
+  const malformed = auth.session.scope === SESSION_SCOPE.agent ? getMalformedTrips(user) : [];
+
   // Only the trips this token can actually reach. A trip-scoped token listing
   // the whole journal would tell somebody who came on one trip what else its
   // owner has been doing.
@@ -27,6 +34,15 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
     trips: writableTrips(auth.session, getTrips(user))
       .map((t) => tripSummary(user, t.id))
       .filter(Boolean),
+    ...(malformed.length > 0
+      ? {
+          malformed,
+          next:
+            "One or more trips have a broken trip.md and are not visible on the site or here " +
+            "beyond this list. Fix the file named in each, then read this again to confirm it " +
+            "loads.",
+        }
+      : {}),
   });
 }
 

@@ -29,7 +29,7 @@
     "content:sync": "bash scripts/sync-shipped-content.sh",
     "migrate:users": "node scripts/migrate-users.ts",
     "migrate:owner": "node scripts/migrate-owner.ts",
-    "ingest": "node scripts/ingest.ts",
+    "ingest": "tsx --conditions=react-server scripts/ingest.mts",
     "i18n:keys": "node scripts/i18n-keys.mjs",
     "tasks": "node scripts/tasks.mjs"
   },

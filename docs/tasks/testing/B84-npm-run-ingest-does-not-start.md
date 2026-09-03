@@ -6,6 +6,8 @@ priority: high
 complexity: low
 area: ingest, scripts, esm
 found: "2026-09-01"
+started: "2026-09-03"
+merged: "2026-09-03"
 ---
 
 # B84 — npm run ingest does not start, because a lib import omits the extension Node needs
@@ -73,3 +75,46 @@ neighbours' for no reason a reader could reconstruct.
 - The same holds for every other `node scripts/*.ts` entry in `package.json`.
 - Something in the automated checks fails if a bare-extension import is
   reintroduced into that chain.
+
+## What it actually took (2026-09-03)
+
+The missing extension was the first wall, not the only one. Fixing it exposed a
+second the original report never reached: `scripts/ingest.ts`'s chain imports a
+module guarded by `server-only`, which throws under plain Node —
+`Error: This module cannot be imported from a Client Component module`. That is
+the reason the working neighbours run under `--conditions=react-server`, and it
+is not optional for ingest. A third wall sat behind it: `ingest.ts` has
+top-level await, which tsx transforms as CJS and rejects unless the file is
+`.mts` (which is why `digest.mts`, `export.mts` and the other tsx neighbours are
+`.mts`, not `.ts`).
+
+So "add the extension" was insufficient, and the note ruling out tsx was written
+without those two facts. The neighbours that work are `.mts` under
+`tsx --conditions=react-server`; plain-`node` `.ts` was the odd one out, not the
+norm. The fix makes ingest match them:
+
+- `scripts/ingest.ts` → `scripts/ingest.mts`.
+- `package.json` `ingest` → `tsx --conditions=react-server scripts/ingest.mts`.
+- No `.ts` extensions scattered through `lib/` — tsx resolves like the bundler,
+  so the 23 extension edits an error-driven pass produced were reverted as noise
+  that would have left `lib/` half-annotated and re-broken on the next import.
+
+The other four `node scripts/*.ts` entries were checked and start cleanly
+(`postcard`, `migrate:users`, `migrate:owner`, `build-geodata`) — their chains
+do not reach a `server-only` guard, so plain Node is fine for them. `ingest` was
+the only break.
+
+Durable guard: `test/cli.test.ts` gained `ingest` in its condition list and a
+new **"CLI entry points load"** block that actually spawns each user-facing
+script with a side-effect-free probe (`--tools`, `--providers`, an unknown user)
+and fails on any load-time signature — `ERR_MODULE_NOT_FOUND`, the `server-only`
+throw, the top-level-await transform error. The static checks alone passed all
+along; only running the thing catches this.
+
+**Deferred, per the person's instruction:** removing `npm run ingest` outright
+and routing ingest through the API/MCP is *not* done here. Ingest is offline by
+design — it reads a local folder and reverse-geocodes with no network call — and
+the API has no folder-clustering equivalent, so deleting the script would remove
+the `ingest-photos` skill with nothing replacing it. That is an architectural
+change with its own trade-offs; captured separately rather than folded into a
+bug fix. See B112.

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { FileWarning } from "lucide-react";
 import { mediaLoader } from "@/components/mediaLoader";
 import AgentHandover from "@/components/AgentHandover";
 import PageHeader from "@/components/PageHeader";
@@ -12,6 +13,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import { daysUntil } from "@/lib/tripTime";
+import type { MalformedTrip } from "@/lib/trips";
 import type { TripAccent, TripStatus, TripTranslations } from "@/lib/types";
 
 export type TripCardData = {
@@ -64,6 +66,7 @@ export default function TripsIndexContent({
   lifetime,
   basemap = null,
   empty = null,
+  malformed = [],
 }: {
   trips: TripCardData[];
   routes: RouteData[];
@@ -72,6 +75,9 @@ export default function TripsIndexContent({
   basemap?: Basemap | null;
   /** Set only when the journal has no trips whatsoever. See `EmptyJournal`. */
   empty?: EmptyJournal | null;
+  /** Trips on disk but too broken to render. Owner-only; the server sends an
+   * empty list to everyone else, so this component never has to gate it. */
+  malformed?: MalformedTrip[];
 }) {
   const { t, tn, localizedTrip } = useI18n();
 
@@ -91,6 +97,10 @@ export default function TripsIndexContent({
         <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
           {t("trips.title")}
         </h1>
+        {/* Owner-only, and independent of the empty state: a journal whose only
+            trip is malformed is not empty, and one with good trips beside a
+            broken one still needs to be told about the broken one. */}
+        {malformed.length > 0 && <MalformedNotice malformed={malformed} />}
         {/*
           An empty journal used to render the subtitle and the four tiles
           anyway: a promise to record everywhere its owner had been, under
@@ -140,6 +150,46 @@ export default function TripsIndexContent({
         )}
       </main>
     </div>
+  );
+}
+
+/**
+ * A trip that is on disk but did not load, named so the owner can fix it.
+ *
+ * The trip is real — its author wrote the file — but a mismatched id, a date
+ * that is not a date, or frontmatter that will not parse takes it out of every
+ * reading path (`lib/trips.ts`). Before B83 the only trace was a line on the
+ * server's stdout, so the owner was told the journal was empty while the trip
+ * sat in a folder. This is that line, moved to where the owner is. Owner-only:
+ * the server sends nobody else the folder names or the reasons.
+ */
+function MalformedNotice({ malformed }: { malformed: MalformedTrip[] }) {
+  const { tn } = useI18n();
+  return (
+    <section
+      role="alert"
+      className="mt-6 flex items-start gap-3 rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3"
+    >
+      <FileWarning className="mt-0.5 h-5 w-5 shrink-0 text-navy-900" aria-hidden />
+      <div className="min-w-0">
+        <p className="font-display text-base font-semibold text-navy-900">
+          {tn("trips.malformedTitle", malformed.length)}
+        </p>
+        <p className="mt-1 text-sm leading-6 text-navy-900">
+          {tn("trips.malformedIntro", malformed.length)}
+        </p>
+        <ul className="mt-3 space-y-2">
+          {malformed.map((m) => (
+            <li key={m.folder} className="text-sm text-navy-900">
+              <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs text-navy-900">
+                trips/{m.folder}/trip.md
+              </code>{" "}
+              — {m.problem}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }
 
