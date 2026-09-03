@@ -8,6 +8,7 @@ area: me, access, ui, i18n
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-03"
+completed: "2026-09-03T19:59:13Z"
 ---
 
 # B79 — The owner has no way to hand somebody an invite link from the site
