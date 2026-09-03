@@ -10,27 +10,42 @@ and a mailbox.
 printed to the console. Open the file in any mail client to see exactly what a
 reader would get, including the plain-text alternative.
 
+One kind of message has no user to be filed under. A **signup code** is
+addressed to somebody who does not own a journal yet, so it goes to
+`content/.mail/` instead — same format, same rules, also gitignored. That is
+the only directory involved besides the per-user ones, and everything
+`lib/mail` writes is under the content root: nothing is ever written next to
+the code (B111).
+
 That covers the whole flow: digests, one-time codes, approval notices. Nothing
 in this project requires a paid mailbox to build or test.
 
 ## Keeping copies on a server that really sends
 
 `features.mail.keepCopy: true` writes the same `.eml` under
-`content/<user>/mail/` *in addition to* sending the message for real. It works
-over any transport and is **off unless you set it**.
+`content/<user>/mail/` — or `content/.mail/`, for a signup code — *in addition
+to* sending the message for real. It works over any transport and is **off
+unless you set it**.
 
 It exists because on an instance sending real mail, the flows that matter most
 cannot be checked: a sign-in code and a journal-deletion link both arrive only
 in somebody's inbox, so whoever is testing the site can get as far as "the
 endpoint refuses me" and no further.
 
-**Turning it on writes sign-in codes, guest invitations and deletion links to
-disk in plaintext**, and they stay there until somebody deletes them. Anyone who
-can read the filesystem — a backup, a snapshot, another process on the box — can
-then sign in as any reader of that journal, or finish a deletion. That is the
+**Turning it on writes sign-in codes, signup codes, guest invitations and
+deletion links to disk in plaintext**, and they stay there until somebody
+deletes them. Anyone who can read the filesystem — a backup, a snapshot,
+another process on the box — can then sign in as any reader of that journal,
+start a journal at somebody else's address, or finish a deletion. That is the
 same exposure the `file` transport already has in development; the difference is
 that a server has real readers. Turn it on to debug something, and turn it off
 again.
+
+Clearing it out is two directories, not one:
+
+```bash
+rm -f "$CONTENT_DIR"/*/mail/*.eml "$CONTENT_DIR"/.mail/*.eml
+```
 
 `/api/health` reports it as `capabilities.mail.keepingCopies`, so you can tell
 from outside whether a server is doing this without reading its config.

@@ -13,8 +13,10 @@ import { getDatabase } from "../db";
  * credential that can rewrite it in your pocket.
  *
  * Nothing here is testable only in production. With no mail account at all, the
- * code is written to `content/<user>/mail/` and printed to the console, and
- * `AUTH_DEV_CODE` fixes it outright for end-to-end tests.
+ * code is written under the content root — `content/<user>/mail/`, or
+ * `content/.mail/` for a signup code, which belongs to no journal yet — and
+ * printed to the console, and `AUTH_DEV_CODE` fixes it outright for end-to-end
+ * tests.
  */
 
 /**

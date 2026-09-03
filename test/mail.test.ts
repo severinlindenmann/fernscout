@@ -133,6 +133,49 @@ describe("transports", () => {
     expect(result!.reference).toContain(path.join("ana", "mail"));
   });
 
+  /**
+   * B111 — the fallback used to be `process.cwd()`.
+   *
+   * A signup code is the mail you get *before* you own a name, so it carries no
+   * username. On the deployed server the working directory is the code
+   * checkout, so every one of them was written in plaintext to
+   * `/srv/fernscout/mail/`: outside `DATA_DIR`, outside the backup, and in a
+   * place no documentation named, so nobody knew there was anything to clear.
+   * Nothing about this is visible to a reader of the code, which is why it is
+   * asserted rather than left to be noticed.
+   */
+  test("mail with no journal lands in content/.mail/, not the working directory", async () => {
+    writeConfig({ enabled: true, transport: "file" });
+    const result = await sendMail(renderMail("newcomer@example.test", "Your code", SAMPLE));
+
+    expect(path.dirname(result!.reference)).toBe(path.join(dir, ".mail"));
+    expect(fs.readdirSync(path.join(dir, ".mail"))).toHaveLength(1);
+    expect(result!.reference.startsWith(path.join(process.cwd(), "mail"))).toBe(false);
+  });
+
+  test("every path the file transport can produce is under the content root", async () => {
+    writeConfig({ enabled: true, transport: "file" });
+
+    const withUser = await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));
+    const without = await sendMail(renderMail("r@example.test", "S", SAMPLE));
+    for (const result of [withUser, without]) {
+      expect(path.resolve(result!.reference).startsWith(path.resolve(dir) + path.sep)).toBe(true);
+    }
+  });
+
+  /**
+   * A username is a directory name and therefore a security boundary
+   * (AGENTS.md). Every caller passes one that has already been validated, so
+   * this cannot happen today — the point is that it stays impossible when a
+   * caller is added, rather than quietly writing somewhere else.
+   */
+  test("a username that would escape the content root is refused, not written", async () => {
+    writeConfig({ enabled: true, transport: "file" });
+    await expect(
+      sendMail(renderMail("r@example.test", "S", SAMPLE, "../../elsewhere")),
+    ).rejects.toThrow(/outside the content root/);
+  });
+
   test("MAIL_FROM sets the sender when it is configured", async () => {
     process.env.MAIL_FROM = "Trip <hello@example.test>";
     writeConfig({ enabled: true, transport: "file" });
@@ -253,6 +296,21 @@ describe("keeping a copy of mail that was really sent", () => {
     const decoded = parts.map((p) => Buffer.from(p, "base64").toString("utf8")).join("\n");
     expect(decoded).toContain("Three new days since you last looked");
     vi.useRealTimers();
+  });
+
+  test("a copy of mail that belongs to no journal is kept under the content root", async () => {
+    writeConfig({ enabled: true, transport: "console", keepCopy: true });
+
+    // Compared rather than asserted absent: a checkout that ran the old code
+    // may still have a stale `mail/` sitting in it, and this test is about
+    // what *this* send writes, not about what somebody forgot to delete.
+    const cwdMail = path.join(process.cwd(), "mail");
+    const before = fs.existsSync(cwdMail) ? fs.readdirSync(cwdMail) : [];
+
+    await sendMail(renderMail("newcomer@example.test", "Your code", SAMPLE));
+
+    expect(fs.readdirSync(path.join(dir, ".mail"))).toHaveLength(1);
+    expect(fs.existsSync(cwdMail) ? fs.readdirSync(cwdMail) : []).toEqual(before);
   });
 
   test("a copy that cannot be written does not fail the send", async () => {

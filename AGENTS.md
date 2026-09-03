@@ -71,6 +71,10 @@ content/
                               reserved and makes its old URLs answer 410.
                               Gitignored; an operator frees the name by
                               deleting the file. See lib/tombstones.ts.
+  .mail/                      mail that belongs to no journal yet — a signup
+                              code is addressed to somebody who does not own a
+                              name. Gitignored, and plaintext while it sits
+                              there, so clear it with the per-user folders.
   <username>/
     config.json               who this person is: title, tagline, owner,
                               locales, baseCurrency, per-user features
@@ -141,8 +145,11 @@ every journal written before W38 is.
 - **Local dev is SQLite, production is Postgres**, and nothing outside
   `lib/db/` knows which.
 - **No feature needs a paid account to develop or test.** Mail writes `.eml`
-  files under `content/<user>/mail/`, OTP codes are printed, and every print
-  provider has a `dry-run` backend that writes files.
+  files under `content/<user>/mail/` — or `content/.mail/` when it belongs to
+  no journal yet, which is signup codes — OTP codes are printed, and every
+  print provider has a `dry-run` backend that writes files. Every path
+  `lib/mail` can write to is under `contentRoot()`; nothing lands next to the
+  code (B111).
 - **Every optional capability is off by default** and must be *absent* rather
   than broken when disabled. `lib/capabilities.ts` decides, and `/api/health`
   explains why something is off.

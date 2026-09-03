@@ -39,9 +39,10 @@ example    usa-2026    current, public
 bea        one trip, a second journal, to prove isolation
 ```
 
-Mail is written to `content/<user>/mail/`; every emailed code is `123456`, and
-the testers are told that a person reads it to them — which is what happens in
-reality.
+Mail is written to `content/<user>/mail/` — and to `content/.mail/` when it
+belongs to no journal yet, which is a signup code; every emailed code is
+`123456`, and the testers are told that a person reads it to them — which is
+what happens in reality.
 
 ## The four roles
 
