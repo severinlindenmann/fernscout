@@ -68,3 +68,71 @@ which.
 - A test over the naming function covering a non-Latin name and two of them in
   one batch.
 - Recipients with Latin names keep the filenames they get today.
+
+## What was built
+
+**The fallback is the recipient's position in the batch**, one-based:
+
+```ts
+export function recipientBase(name: string, index: number): string {
+  return slug(name) || `recipient-${index + 1}`;
+}
+```
+
+The Work section offered `recipient` or the index and noted the index does not
+collide. That is the deciding argument and it is worth stating plainly: a
+shared constant fixes the *hidden dotfile* and leaves the *overwrite*, and the
+overwrite is the half that loses somebody's post. The dotfile is a nuisance;
+one card where there should be three is the defect.
+
+### It moved to `lib/postcard/filename.ts`
+
+The acceptance asks for "a test over the naming function", and the function
+could not be reached by one: `scripts/postcard.ts` parses `process.argv` and
+calls `process.exit` at import time, so importing it from a test runs the
+script. The function and its private `slug` now live in
+`lib/postcard/filename.ts` and the script imports them.
+
+This is **not** the merge B77 rejected. It is still a private copy with its own
+unparameterised fallback, sitting beside the other `lib/postcard/` modules; it
+did not become an option on `lib/slug.ts`. The comment in the new file records
+B77's reasoning so the next person does not undo it.
+
+### Evidence
+
+A real run, `--backend dry-run`, four recipients, three of them written in
+non-Latin scripts:
+
+```
+Rendering 4 postcard(s) with the dry-run backend.
+  Δημήτρης Παπαδόπουλος -> content/example/postcards/recipient-1.pdf
+  Владимир Ильин        -> content/example/postcards/recipient-2.pdf
+  山田 太郎               -> content/example/postcards/recipient-3.pdf
+  Ana Bergström         -> content/example/postcards/ana-bergstrom.pdf
+Wrote 12 file(s) to content/example/postcards/
+```
+
+Sixteen distinct files, none hidden, and the Latin name is unchanged from what
+it produced before. Against the pre-change function the three new naming tests
+fail:
+
+```
+× a name in a non-Latin script gets a name instead of nothing
+× two such names in one batch do not collide
+× a mixed batch numbers by position, so a name never moves another's file
+  Tests  3 failed | 19 passed (22)
+```
+
+### `lib/mail/index.ts` — left alone, and why
+
+The *While there* paragraph offered the third slug copy, which has no NFD pass
+at all. **Left alone**, as the task permitted, and the reason is not
+tidiness: **B50** was being built against `lib/mail/index.ts` in a parallel
+worktree at the same moment, and touching it here would have collided in one
+file for no gain. Captured as **B151** so the note is not lost.
+
+One thing found while building, captured rather than absorbed: **B150** — two
+recipients with the *same* Latin name still overwrite each other, because the
+fallback answers an empty slug and not a duplicate one. Same consequence,
+different trigger, and it lands on anyone with a common name rather than on
+non-Latin scripts.
