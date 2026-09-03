@@ -78,6 +78,7 @@ Do not edit them by hand; run the script.
 | [B154](backlog/B154-the-readme-describes-a-scroll-driven.md) | The README describes a scroll-driven map and a photo journal without showing one | CHORE | medium | low |
 | [B155](backlog/B155-nothing-in-the-repo-tells-a.md) | Nothing in the repo tells a reader that fernscout.ch will host their journal, or what it promises | FEATURE | medium | low |
 | [B16](backlog/B16-the-day-photo-viewer-does-not.md) | The day photo viewer does not answer to touch and never says where you are | ISSUE | medium | low |
+| [B165](backlog/B165-turning-the-costs-capability-off.md) | Turning the costs capability off leaves the costs pages fully rendered | ISSUE | medium | low |
 | [B17](backlog/B17-how-a-trip-gets-its-rates.md) | How a trip gets its rates is written down nowhere a person will find it | CHORE | medium | low |
 | [B177](backlog/B177-a-trip-map-s-basemap-is.md) | A trip map's basemap is half a megabyte for a route sixty-eight kilometres across | ISSUE | medium | medium |
 | [B178](backlog/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low |
@@ -143,7 +144,6 @@ Do not edit them by hand; run the script.
 | [B141](in-development/B141-ingest-disambiguates-a-colliding-slug-only.md) | Ingest disambiguates a colliding slug only within one date, so two days can still shadow each other | ISSUE | medium | low | `d6791268` |
 | [B180](in-development/B180-the-bounded-probe-test-never-runs.md) | The bounded-probe test never runs, because it needs a coreutils binary macOS does not have | CHORE | medium | low | `0c03d994` |
 | [B181](in-development/B181-the-postgres-dump-test-has-never.md) | The Postgres dump test has never run anywhere, so the production dialect is unexercised | CHORE | medium | medium | `0c03d994` |
-| [B19](in-development/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium | `0c03d994` |
 | [B44](in-development/B44-a-guest-who-arrives-without-their.md) | A guest who arrives without their link sees a complete-looking journal and no way to say who they are | ISSUE | medium | medium | `0c03d994` |
 | [B60](in-development/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | `a4b53c2f` |
 
@@ -168,6 +168,7 @@ Do not edit them by hand; run the script.
 | [B135](testing/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low | — |
 | [B136](testing/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low | — |
 | [B145](testing/B145-task-stamps-record-only-a-date.md) | Task stamps record only a date, and nothing says which agent is on it | CHORE | medium | low | — |
+| [B19](testing/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium | — |
 | [B28](testing/B28-publishing-a-draft-requires-editing-a.md) | Publishing a draft requires editing a file by hand, so an agent cannot close the loop it opened | FEATURE | medium | high | — |
 | [B32](testing/B32-a-taken-username-answers-409-with.md) | A taken username answers 409 with no route onward for somebody who already owns it | ISSUE | medium | low | — |
 | [B35](testing/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
