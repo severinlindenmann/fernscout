@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: tasks, agents, tooling
 found: "2026-09-03"
+started: "2026-09-03"
 ---
 
 # B145 — Task stamps record only a date, and nothing says which agent is on it
