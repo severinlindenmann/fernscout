@@ -326,7 +326,23 @@ function transportFor(name: string): MailTransport {
 }
 
 /**
- * Send one message.
+ * Send one message on a journal's behalf.
+ *
+ * **Gated by that journal's own `features.mail.enabled`, not only the
+ * server's.** `mail.username` says whose letter this is, so it is also the
+ * argument `isEnabled` needs; omitting it — which every call site used to do —
+ * made a per-journal switch something `/api/health` reported and nothing
+ * obeyed. Somebody switching mail off for their journal, which is the obvious
+ * way to say *do not write to my readers*, got no indication it had not taken,
+ * and with `keepCopy` on their folder filled with `.eml` copies of mail they
+ * had asked not to send (B60).
+ *
+ * A message with no `username` belongs to no journal — a signup code is
+ * addressed to somebody who does not own a name yet — so the server switch is
+ * the only one there is, and that is the whole answer rather than an omission.
+ *
+ * Letters the journal's switch must *not* govern go through
+ * `sendTransactional` instead, which names its reason.
  *
  * Returns null when mail is switched off, rather than throwing: a caller
  * announcing a new day should not fail because nobody configured mail. The
@@ -334,8 +350,55 @@ function transportFor(name: string): MailTransport {
  * unconfigured has already failed the boot.
  */
 export async function sendMail(mail: Mail): Promise<SendResult | null> {
+  if (!isEnabled("mail", mail.username)) return null;
+  return deliver(mail);
+}
+
+/**
+ * Send one message a journal's own mail switch does not govern.
+ *
+ * The exception, and deliberately harder to reach than `sendMail`: `reason`
+ * is a required argument because "why is this one exempt" has to be answered
+ * at the call site rather than inferred from its absence. Three things qualify,
+ * and the test in `test/mail-journal-switch.test.ts` names each of them:
+ *
+ * - **one-time sign-in and agent codes**, which the recipient asked for in
+ *   that moment and which are the only way back into the journal — suppress
+ *   them and the owner is locked out of their own writing by a setting about
+ *   letters to readers;
+ * - **deletion confirmations**, the second step of something the owner already
+ *   asked for and the safety mechanism itself (B38) — suppressing it leaves
+ *   `DELETE` answering 202 with nothing ever arriving;
+ * - **operator alerts** about the machine (`scripts/alert.mts`), which are not
+ *   the journal writing to anybody; they are the box saying its backup failed,
+ *   and B64 is what silence there costs.
+ *
+ * What they have in common: each is addressed to somebody exercising control
+ * of the journal, and withholding it removes control rather than granting it.
+ * The server-wide switch still applies — an instance that cannot send mail
+ * cannot send these either, and `lib/deletions.ts` refuses the whole flow up
+ * front for exactly that reason.
+ */
+export async function sendTransactional(
+  mail: Mail,
+  reason: string,
+): Promise<SendResult | null> {
   if (!isEnabled("mail")) return null;
 
+  // Only when the exemption is actually doing something. An operator who
+  // switched mail off for a journal and then watched a sign-in code arrive
+  // should find the line that explains it, and nobody needs a log entry for
+  // the ordinary case where the journal has mail on anyway.
+  if (mail.username && !isEnabled("mail", mail.username)) {
+    console.log(
+      `[mail] ${mail.username} has mail switched off; sending anyway — ${reason}`,
+    );
+  }
+  return deliver(mail);
+}
+
+/** The part that is the same either way: pick the transport, send, keep a copy. */
+async function deliver(mail: Mail): Promise<SendResult> {
   const name = transportName();
   const result = await transportFor(name).send(mail);
 

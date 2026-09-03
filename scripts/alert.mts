@@ -27,7 +27,7 @@
  * script supplies.
  */
 import { isEnabled } from "../lib/capabilities";
-import { sendMail } from "../lib/mail";
+import { sendTransactional } from "../lib/mail";
 import { loadServerConfig } from "../lib/config";
 import { getDefaultUsername, getUser } from "../lib/users";
 
@@ -123,7 +123,15 @@ if (!target) {
 }
 
 try {
-  const result = await sendMail({ to: target.to, subject, text, html, username: target.username });
+  // Transactional on purpose: this is the box saying its backup failed, not
+  // the journal writing to anybody. `username` here only decides which folder
+  // the `.eml` lands in, and a journal that has switched off letters to its
+  // readers has said nothing about whether the operator should hear that the
+  // backups stopped — B64 is what that silence costs. See B60.
+  const result = await sendTransactional(
+    { to: target.to, subject, text, html, username: target.username },
+    "an operator alert about the machine, not a letter from the journal",
+  );
   if (!result) {
     console.error(`[alert] mail declined to send for ${unit}.`);
     process.exit(1);

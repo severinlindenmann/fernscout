@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import { sendMail, sendMailWith } from "@/lib/mail";
+import { sendMail, sendMailWith, sendTransactional } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
 import { buildMessage } from "@/lib/mail/rfc822";
 
@@ -23,10 +23,33 @@ function writeConfig(mail: Record<string, unknown>) {
   clearUserCache();
 }
 
+/**
+ * A journal on disk, with its own answer to `features.mail`.
+ *
+ * The fixture used to be a bare `mkdir`, which was enough while `sendMail`
+ * asked only the server whether it could send. Since B60 it asks the journal
+ * too, and a directory with no `config.json` is not a journal at all — so
+ * "ana" has to be one, and saying whether her mail is on is the whole point of
+ * most of what follows.
+ */
+function writeJournal(username: string, mail: boolean) {
+  fs.mkdirSync(path.join(dir, username), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, username, "config.json"),
+    JSON.stringify({
+      title: "A journal",
+      owner: { name: "Ana", nickname: "Ana", email: "ana@example.test" },
+      features: { mail: { enabled: mail } },
+    }),
+  );
+  clearConfigCache();
+  clearUserCache();
+}
+
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-mail-"));
   process.env.CONTENT_DIR = dir;
-  fs.mkdirSync(path.join(dir, "ana"), { recursive: true });
+  writeJournal("ana", true);
   vi.spyOn(console, "log").mockImplementation(() => {});
 });
 
@@ -305,8 +328,16 @@ describe("transports", () => {
    */
   test("a username that would escape the content root is refused, not written", async () => {
     writeConfig({ enabled: true, transport: "file" });
+    // Through the exempt path on purpose. `sendMail` now declines anything
+    // whose journal is not a journal, which would make this test pass without
+    // the path guard ever running; `sendTransactional` is the one call that
+    // reaches `mailDir` regardless of what the journal says, so it is the one
+    // that has to be unable to escape.
     await expect(
-      sendMail(renderMail("r@example.test", "S", SAMPLE, "../../elsewhere")),
+      sendTransactional(
+        renderMail("r@example.test", "S", SAMPLE, "../../elsewhere"),
+        "reaching the path guard is the point of this test",
+      ),
     ).rejects.toThrow(/outside the content root/);
   });
 

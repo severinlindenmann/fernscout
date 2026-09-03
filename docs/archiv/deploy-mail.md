@@ -20,6 +20,83 @@ the code (B111).
 That covers the whole flow: digests, one-time codes, approval notices. Nothing
 in this project requires a paid mailbox to build or test.
 
+## What a journal's own mail switch governs
+
+`features.mail.enabled` in `content/config.json` says whether this instance can
+send at all. It is off unless you set it, because it is the server that holds
+the credentials.
+
+`features.mail` in `content/<user>/config.json` is a different kind of switch,
+and the only capability in this project that works this way. Every other one is
+an **opt-in** — absent means the journal has not asked for the feature, so it is
+off. Mail is a **mute button**: a journal does not opt in to being able to send,
+it opts out of being written to on its behalf. So it has three states, not two:
+
+| In `content/<user>/config.json` | Means |
+| --- | --- |
+| absent, or no `features` block at all | **No opinion.** Whatever the server says. This is every journal written before B60, and every journal `createJournal` writes — the line is not added, because a line that changes nothing does not belong in somebody's config. |
+| `"mail": { "enabled": true }` | The same. A journal can never widen past a server that has mail off. |
+| `"mail": { "enabled": false }` | **Off.** The only "no". |
+
+Which is to say a journal's mail flag can only ever *narrow*, and it narrows
+only when somebody asked it to. Reading absence as "no" instead would have
+silently stopped the letters of every journal already on disk — nobody's config
+would have changed and nothing would have said so, which is a worse failure
+than the one B60 fixes.
+
+Switching it off for a journal means **do not write to my readers**. It stops:
+
+- the digest,
+- the four contact letters — the join code, the "we have your details"
+  confirmation, the "you're in" approval, and the note to the owner that
+  somebody has asked,
+- the welcome letter a new journal's owner gets.
+
+It does **not** stop three things, and each is exempt for the same reason —
+they are addressed to somebody exercising control of the journal, so
+suppressing them takes control away rather than granting it:
+
+| Still sent | Why |
+| --- | --- |
+| One-time **sign-in and agent codes** | The recipient asked for one in that moment, and it is the only way back in. Suppressing it would make the setting unrecoverable: there would be nothing left to sign in with and switch it back on. |
+| The **deletion confirmation link** | It *is* the safety mechanism. `DELETE` removes nothing and answers 202; the button in that mail is the only thing that deletes (B38). Swallowing it would leave the API accepting deletions that can never happen. It goes to the owner's own address from `config.json`, never to a reader's. |
+| **Operator alerts** (`scripts/alert.mts`) | The box saying its backup failed is not the journal writing to anybody. B64 is what silence there costs. |
+
+In code the distinction is two functions in `lib/mail/index.ts`: `sendMail`,
+which is gated by `mail.username`'s journal, and `sendTransactional`, which is
+not and takes a written reason as a required argument. A **signup code** has no
+journal at all — it is addressed to somebody who does not own a name yet — so
+only the server switch applies to it.
+
+Note that switching mail *on* for a journal does not start anything: the digest
+and the contact letters have their own opt-in, `features.contacts`, which is an
+ordinary one and off unless asked for. Mail is the plumbing, not the tap.
+
+`/api/health` says both halves. A journal that has narrowed mail off appears
+under `journals` as:
+
+```json
+"someone": {
+  "mail": {
+    "enabled": false,
+    "reason": "not enabled by someone",
+    "stillSent": "sign-in codes, deletion confirmations and operator alerts are still sent — a journal's mail switch governs the letters it sends to its readers"
+  }
+}
+```
+
+A journal with no opinion is not narrowing anything, so it does not appear
+under `journals` at all — `/api/health` says nothing about it, which is the
+truthful answer.
+
+Before B60 none of this was true of the code: every call site asked
+`isEnabled("mail")` without the journal, so a per-journal switch narrowed what
+`/api/health` *reported* and nothing else. A journal that had said no still got
+sign-in codes, digests and — with `keepCopy` on — `.eml` copies of all of it in
+a folder whose owner had asked for none. `/api/health` also reported "not
+enabled by <name>" for journals that had never mentioned mail, which was the
+same lie told the other way round.
+
 ## Keeping copies on a server that really sends
 
 `features.mail.keepCopy: true` writes the same `.eml` under
