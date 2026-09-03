@@ -22,9 +22,22 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function MePage({ params }: PageProps<"/[user]/me">) {
+export default async function MePage({ params, searchParams }: PageProps<"/[user]/me">) {
   const { user } = await params;
   if (!getUser(user)) notFound();
+
+  // Why they are here rather than inside the journal. Both values are written
+  // by this codebase — `/api/auth/link` on a spent link, and the same route on
+  // a throttle — and anything else in the query is ignored rather than
+  // rendered, so the parameter cannot be used to put a sentence of somebody
+  // else's choosing on the page.
+  const signin = (await searchParams).signin;
+  const signinNotice =
+    signin === "expired"
+      ? "me.signinExpired"
+      : signin === "throttled"
+        ? "me.signinThrottled"
+        : undefined;
 
   const viewer = await resolveViewer(user);
 
@@ -60,6 +73,7 @@ export default async function MePage({ params }: PageProps<"/[user]/me">) {
       canSignIn={isEnabled("auth", user)}
       codeMinutes={CODE_TTL_MINUTES}
       contactsEnabled={contactsEnabled}
+      signinNotice={signinNotice}
     />
   );
 }

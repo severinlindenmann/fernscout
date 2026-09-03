@@ -17,9 +17,16 @@ import { closeDatabase, getDatabase } from "@/lib/db";
  * is exactly the bug being fixed.
  */
 
-/** The route sets a cookie. Nothing here reads one. */
+/**
+ * The route sets a cookie. Nothing here reads one.
+ *
+ * `headers` is mocked too since B142: the sign-in page picks its locale from
+ * `Accept-Language`, and a page that renders is now part of what this file
+ * asserts about.
+ */
 vi.mock("next/headers", () => ({
   cookies: async () => ({ set: () => {}, get: () => undefined }),
+  headers: async () => new Headers({ "accept-language": "en" }),
 }));
 
 const OWNER = "ana";
@@ -99,13 +106,26 @@ afterEach(async () => {
   clearUserCache();
 });
 
-/** Follow the link, and say where the browser was told to go. */
+/**
+ * Press the button, and say where the browser was told to go.
+ *
+ * B142 moved the redemption off the `GET` of `/<user>/s/<token>` and onto a
+ * POST, because a scanner at the reader's own mail host was following the link
+ * and spending it before they ever saw it. The destination rule this file
+ * exists for is unchanged and now lives beside the redemption, so these
+ * assertions follow it there.
+ */
 async function follow(linkToken: string): Promise<string | null> {
-  const route = await import("@/app/[user]/s/[token]/route");
-  const response = await route.GET(new Request(`${SITE}/${OWNER}/s/${linkToken}`), {
-    params: Promise.resolve({ user: OWNER, token: linkToken }),
-  });
-  return response.headers.get("location");
+  const route = await import("@/app/api/auth/link/route");
+  const response = await route.POST(
+    new Request(`${SITE}/api/auth/link`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-forwarded-for": "10.0.0.7" },
+      body: JSON.stringify({ user: OWNER, token: linkToken }),
+    }),
+  );
+  const body = (await response.json()) as { next?: string };
+  return body.next ? `${SITE}${body.next}` : null;
 }
 
 /** A code for the reader, optionally asked for from a particular page. */
@@ -169,5 +189,89 @@ describe("the one-tap sign-in link", () => {
     // Second time: the link is burned, and the destination must not turn an
     // expired-link message into a silent bounce to the trip.
     expect(await follow(token)).toBe(`${SITE}/${OWNER}/me?signin=expired`);
+  });
+});
+
+/**
+ * B142 — the scanner at the reader's own mail host.
+ *
+ * Observed in production, not inferred. Three journals were created on
+ * 2026-09-03 at 17:43–17:44 UTC and all three standing links were consumed at
+ * 17:59, twelve seconds apart, in descending order of creation — a sweep,
+ * before any human had opened anything. Each redemption minted a guest session
+ * valid for a year, and each owner following their own welcome link afterwards
+ * was redirected to `?signin=expired`.
+ *
+ * The standing link is deliberately permanent, so it cannot outlive a scanner
+ * by expiring: being *spent* is the terminal state. The fix is therefore about
+ * what counts as spending it.
+ */
+describe("a machine that fetches the link does not spend it", () => {
+  /** Everything a link-prefetcher does: a plain GET, following redirects. */
+  async function fetchAsScanner(linkToken: string) {
+    const page = await import("@/app/[user]/s/[token]/page");
+    return page.default({
+      params: Promise.resolve({ user: OWNER, token: linkToken }),
+      searchParams: Promise.resolve({}),
+    });
+  }
+
+  async function linkRowsConsumed(): Promise<number> {
+    const { db } = await getDatabase();
+    const rows = await db
+      .selectFrom("login_codes")
+      .select(["link_consumed_at"])
+      .execute();
+    return rows.filter((r) => r.link_consumed_at !== null).length;
+  }
+
+  async function sessionCount(): Promise<number> {
+    const { db } = await getDatabase();
+    return (await db.selectFrom("sessions").select(["id"]).execute()).length;
+  }
+
+  test("the fetch leaves the link live, and the person still gets in", async () => {
+    const token = await askFrom(`/${OWNER}/trips/vietnam-2026`);
+
+    // The scanner. It renders the page and touches nothing.
+    await fetchAsScanner(token);
+    expect(await linkRowsConsumed()).toBe(0);
+
+    // The owner, afterwards. This is the assertion the live instance failed
+    // three times out of three.
+    expect(await follow(token)).toBe(`${SITE}/${OWNER}/trips/vietnam-2026`);
+    expect(await linkRowsConsumed()).toBe(1);
+  });
+
+  test("no session is created by a fetch that did not press anything", async () => {
+    const token = await askFrom();
+    expect(await sessionCount()).toBe(0);
+
+    await fetchAsScanner(token);
+    // The year-long read session a machine used to be handed.
+    expect(await sessionCount()).toBe(0);
+
+    await follow(token);
+    expect(await sessionCount()).toBe(1);
+  });
+
+  test("a sweep of the whole inbox spends nothing", async () => {
+    const tokens = [await askFrom(), await askFrom(), await askFrom()];
+    for (const token of tokens) await fetchAsScanner(token);
+    expect(await linkRowsConsumed()).toBe(0);
+  });
+
+  test("the link is still single use once a person has pressed it", async () => {
+    const token = await askFrom();
+    expect(await follow(token)).toBe(`${SITE}/${OWNER}`);
+    // Second press: spent, and pointed at the page that can issue a fresh code.
+    expect(await follow(token)).toBe(`${SITE}/${OWNER}/me?signin=expired`);
+  });
+
+  test("the page renders without checking the token, so it says nothing about it", async () => {
+    // Whether a link is live is not a question an anonymous fetch should be
+    // able to ask. A made-up token gets the same page as a real one.
+    await expect(fetchAsScanner("not-a-real-token")).resolves.toBeTruthy();
+    expect(await linkRowsConsumed()).toBe(0);
   });
 });

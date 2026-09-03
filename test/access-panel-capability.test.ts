@@ -37,10 +37,17 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-async function propsOf(user = "alex") {
+/**
+ * `searchParams` is passed because Next always passes it, and since B142 the
+ * page reads it — `?signin=expired` is how somebody whose welcome link was
+ * spent by their own mail provider is told what happened. The cast is what
+ * kept this helper compiling while it was one prop short.
+ */
+async function propsOf(user = "alex", searchParams: Record<string, string> = {}) {
   const { default: MePage } = await import("@/app/[user]/me/page");
   const element = (await MePage({
     params: Promise.resolve({ user }),
+    searchParams: Promise.resolve(searchParams),
   } as Parameters<typeof MePage>[0])) as { props: Record<string, unknown> };
   return element.props;
 }
@@ -62,5 +69,31 @@ describe("what the me page tells the panel about contacts", () => {
     expect(props.contactsEnabled).toBe(false);
     // The other capability on the page is a separate question and unaffected.
     expect(props.canSignIn).toBe(true);
+  });
+});
+
+/**
+ * B142. `?signin=expired` has been redirected to since the sign-in link
+ * existed, and nothing on the page ever said anything about it — so somebody
+ * whose welcome link had been spent by their own mail provider landed on an
+ * ordinary page with no explanation and every reason to think they had done
+ * something wrong.
+ */
+describe("why the reader landed on /me rather than in the journal", () => {
+  test("a spent link is explained, and a throttle is a different sentence", async () => {
+    enabled.mockReturnValue(true);
+    expect((await propsOf("alex", { signin: "expired" })).signinNotice).toBe("me.signinExpired");
+    expect((await propsOf("alex", { signin: "throttled" })).signinNotice).toBe(
+      "me.signinThrottled",
+    );
+  });
+
+  test("an ordinary visit says nothing, and neither does an invented value", async () => {
+    enabled.mockReturnValue(true);
+    expect((await propsOf("alex")).signinNotice).toBeUndefined();
+    // The parameter selects one of two known keys or nothing at all — it never
+    // becomes text, so it cannot be used to put a sentence on somebody's page.
+    expect((await propsOf("alex", { signin: "<script>alert(1)</script>" })).signinNotice)
+      .toBeUndefined();
   });
 });
