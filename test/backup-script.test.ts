@@ -26,7 +26,11 @@ import { postgresConfigured } from "./support/dialects";
  *     which the unit's `OnFailure=` starts;
  *   - and, since B63, the repository probe: the two shapes of "no repository
  *     here" — *absent*, and *cannot see it* — must not be confused, because
- *     one may create a repository and the other must never be allowed to.
+ *     one may create a repository and the other must never be allowed to;
+ *   - and, since B114, a `DATA_DIR` with something unreadable in it: the run
+ *     stages what it can, names what it could not, and refuses to call that a
+ *     success — one stray file may cost neither the night's backup nor the
+ *     truth about it.
  *
  * What it deliberately does **not** cover, and cannot: the destroy-and-restore
  * drill against the deployed stack. Restoring here means "the files come back
@@ -581,6 +585,126 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
       expect(run.status).not.toBe(0);
     },
     120_000,
+  );
+
+  // --- B114: one file nobody needed may not cost the night's backup --------
+
+  /** Snapshots carrying restic's `partial` tag — the label a run puts on a
+   * snapshot it knows is missing paths. */
+  function partialSnapshotCount(): number {
+    const out = restic(["snapshots", "--tag", "partial", "--json"]);
+    if (out.status !== 0) return 0;
+    const parsed: unknown = JSON.parse(out.stdout || "[]");
+    return Array.isArray(parsed) ? parsed.length : 0;
+  }
+
+  // chmod is advisory to root: as root every file reads, so the case cannot be
+  // set up at all. Same guard, same reason, as the unwritable-repository test.
+  test.skipIf(IS_ROOT)(
+    "one unreadable file under DATA_DIR is named and skipped, not allowed to abort the run",
+    () => {
+      // A clean run first, so there is a success stamp for the partial run to
+      // be caught leaving alone.
+      expect(runBackup().status).toBe(0);
+      const stampBefore = readStamp(successStamp());
+      expect(stampBefore).not.toBeNull();
+      // The shape found on the live server on 2026-09-01: a root-owned stray
+      // an operator left in DATA_DIR. `cp -a` under `set -e` used to stop the
+      // whole run here, before anything had been pushed.
+      const stray = path.join(dataDir, "root-owned-stray.txt");
+      fs.writeFileSync(stray, "left behind by an operator\n");
+      fs.chmodSync(stray, 0o000);
+
+      try {
+        const run = runBackup();
+
+        // 1. The night's backup still happens. This is the whole point: the
+        //    journal's originals exist nowhere else, and losing them to a file
+        //    nobody needed is the worse of the two failures.
+        expect(run.stdout, "the snapshot must still be pushed").toContain("backing up to");
+        expect(run.stdout, "and be labelled as incomplete").toContain("will be tagged 'partial'");
+        expect(partialSnapshotCount()).toBeGreaterThan(0);
+
+        // 2. The offending path is named. Before this it was not: the run died
+        //    on cp's stderr and the journal never said which file.
+        expect(run.stdout).toContain(stray);
+        expect(run.stdout).toContain("1 path(s) under DATA_DIR could not be staged");
+
+        // 3. And it is not a success. Skipping is tolerated, being told it was
+        //    fine is not: non-zero exit so the unit's OnFailure= alert fires,
+        //    and the stamp /api/health reads stays at the last real success.
+        expect(run.status).not.toBe(0);
+        expect(run.stdout).toContain("path(s) are missing from it");
+        expect(readStamp(successStamp())?.at).toBe(stampBefore!.at);
+
+        // 4. Everything readable is in that snapshot — a partial backup that
+        //    quietly dropped its neighbours would be no better than none.
+        const staged = restoreLatest("partial");
+        expect(fs.existsSync(path.join(staged, "data", "reactions.json"))).toBe(true);
+        expect(fs.existsSync(path.join(staged, "data", "fernscout.db"))).toBe(true);
+        expect(fs.existsSync(path.join(staged, "data", "root-owned-stray.txt"))).toBe(false);
+        expect(
+          fs.existsSync(path.join(staged, "content", "alex", "trips", "kyrgyzstan-2026", "originals", "DSCF1234.RAF")),
+        ).toBe(true);
+      } finally {
+        fs.chmodSync(stray, 0o600);
+        fs.rmSync(stray, { force: true });
+      }
+    },
+    180_000,
+  );
+
+  test.skipIf(IS_ROOT)(
+    "an unreadable directory is named too, rather than staged as an empty one",
+    () => {
+      // The case a tree comparison alone cannot see: `cp` creates the
+      // directory at the destination and only then fails to read it, so both
+      // trees contain it and nothing looks wrong. What is inside it is not
+      // merely missing, it cannot even be enumerated — so the run says so.
+      const locked = path.join(dataDir, "locked-subdir");
+      fs.mkdirSync(locked, { recursive: true });
+      fs.writeFileSync(path.join(locked, "inside.json"), "{}");
+      fs.chmodSync(locked, 0o000);
+
+      try {
+        const run = runBackup();
+
+        expect(run.status).not.toBe(0);
+        expect(run.stdout).toContain(locked);
+        expect(run.stdout).toContain("its contents could not even be listed");
+        expect(run.stdout).toContain("backing up to");
+
+        // The snapshot holds the empty directory and not its contents, which
+        // is exactly why the warning has to exist.
+        const listed = restic(["ls", "latest"]);
+        expect(listed.status).toBe(0);
+        expect(listed.stdout).toContain("/data/locked-subdir");
+        expect(listed.stdout).not.toContain("locked-subdir/inside.json");
+      } finally {
+        fs.chmodSync(locked, 0o700);
+        fs.rmSync(locked, { recursive: true, force: true });
+      }
+    },
+    180_000,
+  );
+
+  test.skipIf(IS_ROOT)(
+    "fixing the permissions makes the next run a clean success again",
+    () => {
+      // The state is not sticky: nothing is remembered between runs, so the
+      // operator's fix shows up as a green run and a fresh stamp the same
+      // night, with no `partial` tag on the new snapshot.
+      fs.rmSync(successStamp(), { force: true });
+
+      const run = runBackup();
+
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+      expect(run.stdout).not.toContain("could not be staged");
+      expect(run.stdout).not.toContain("path(s) are missing from it");
+      expect(run.stdout).not.toContain("will be tagged 'partial'");
+      expect(readStamp(successStamp())).not.toBeNull();
+    },
+    180_000,
   );
 
   // The real database, behind the guard the other db suites use. Everything

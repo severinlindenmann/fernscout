@@ -39,6 +39,9 @@
 # $DATA_DIR/.backup-last-success. That file is the only thing outside the
 # journal that knows a backup worked; /api/health reads it (lib/backupStatus.ts)
 # and deploy/fernscout-alert@.service writes the matching .backup-last-failure.
+#
+# A file that cannot be read is *not* allowed to cost the night's backup, and
+# is *not* allowed to pass for a success either — see `stage_tree` below (B114).
 
 set -euo pipefail
 
@@ -64,6 +67,126 @@ log() { printf '[%s] %s\n' "$(date -u +%FT%TZ)" "$*"; }
 
 log "staging in $STAGING_DIR"
 
+# --- Staging a tree when part of it will not read (B114) -------------------
+#
+# `cp -a "$src/." "$dest/"` used to be one line, and under `set -e` one file
+# the service user could not read ended the run: a root-owned stray an
+# operator left behind, a socket, a file caught mid-rotation. Nothing had been
+# pushed at that point, so a night's backup was lost to a file nobody needed —
+# and `content/` originals exist nowhere else.
+#
+# The other obvious fix — refuse to start unless every byte under DATA_DIR
+# reads — was considered and rejected. It has the same outcome (no snapshot
+# tonight) for the same trivial cause, only earlier. So:
+#
+#   1. `cp` keeps going. It already does: it copies what it can, reports the
+#      rest on stderr and exits non-zero, and here that status is tolerated.
+#   2. Whatever did not make it is named, path by path, in the journal. That
+#      is the part that did not exist before at all.
+#   3. It is counted, and a run that skipped anything is NOT a success: no
+#      `.backup-last-success` stamp and a non-zero exit, so the unit's
+#      `OnFailure=` alert fires and /api/health reports `backup.state:
+#      "failing"`. The snapshot is still pushed first, and tagged `partial`.
+#
+# That is deliberately both halves. What is under DATA_DIR should all be
+# readable (the runbook's ownership rule), so an unreadable file is an
+# operator error somebody has to fix and the run says so by failing — but it
+# says so *after* saving everything it could, not instead of.
+SKIPPED_TOTAL=0
+
+# Every path under $1, relative and sorted. An unreadable directory cannot be
+# descended into, so what is inside one is not in this list — which is exactly
+# why `unreadable_paths` looks at directories themselves.
+list_tree() (
+  cd "$1" 2>/dev/null || exit 0
+  find . -mindepth 1 2>/dev/null | LC_ALL=C sort || true
+)
+
+# Every path under $1 this user cannot read. `-exec test -r` rather than GNU
+# find's `-readable`, because BSD find — macOS, where the test suite runs —
+# does not have the latter. Symlinks are excluded: `test -r` follows them, and
+# a broken link is not an unreadable file.
+unreadable_paths() (
+  cd "$1" 2>/dev/null || exit 0
+  find . -mindepth 1 ! -type l ! -exec test -r {} \; -print 2>/dev/null | LC_ALL=C sort || true
+)
+
+# stage_tree <label> <source> <destination>
+stage_tree() {
+  local label="$1" src="$2" dest="$3"
+  mkdir -p "$dest"
+
+  # Taken *before* the copy on purpose. A file the app creates while the copy
+  # is running would otherwise look like one the copy failed to take.
+  local before
+  before="$(list_tree "$src")"
+
+  local cp_error="" cp_status=0
+  cp_error="$(cp -a "$src/." "$dest/" 2>&1 >/dev/null)" || cp_status=$?
+
+  if (( cp_status == 0 )); then
+    return 0
+  fi
+
+  # cp's own words first: they say *why*, which a tree comparison cannot.
+  log "WARNING: cp exited $cp_status staging $label — it copies what it can and reports the rest:"
+  while IFS= read -r line; do
+    if [[ -n "$line" ]]; then log "WARNING:   $line"; fi
+  done <<< "$cp_error"
+
+  # cp copies a directory's mode even when it could not read what was inside
+  # it, so an unreadable source directory can leave an unreadable one sitting
+  # in the staging copy — which the EXIT trap's `rm -rf "$STAGING_DIR"`, and
+  # then tomorrow's, would trip over. Directories only, and only on this path:
+  # nothing rewrites the modes of a run that copied cleanly.
+  find "$dest" -type d ! -perm -0700 -exec chmod u+rwx {} + 2>/dev/null || true
+
+  # Two nets, because neither alone is enough. The readability scan catches an
+  # unreadable *directory*, which cp creates empty at the destination so a tree
+  # comparison sees nothing wrong. The tree comparison catches everything else
+  # that failed to copy — a socket, a device node, a full disk — without
+  # anybody having to parse cp's platform-specific wording.
+  local candidates=""
+  candidates="$( { unreadable_paths "$src"; comm -23 <(printf '%s\n' "$before") <(list_tree "$dest"); } | LC_ALL=C sort -u )" || true
+
+  local filtered="" rel abs
+  while IFS= read -r rel; do
+    if [[ -z "$rel" ]]; then continue; fi
+    abs="$src/${rel#./}"
+    # Gone between the copy and now: a temp file the app wrote and renamed
+    # away. That is not a file this run failed to back up.
+    if [[ ! -e "$abs" && ! -L "$abs" ]]; then continue; fi
+    filtered="$filtered$abs"$'\n'
+  done <<< "$candidates"
+
+  local missing=0
+  if [[ -n "$filtered" ]]; then
+    missing="$(printf '%s' "$filtered" | wc -l | tr -d ' ')"
+  fi
+  if (( missing == 0 )); then
+    log "WARNING: cp reported an error but every path under $label is present in the staged copy"
+    return 0
+  fi
+
+  log "WARNING: $missing path(s) under $label could not be staged and are NOT in tonight's snapshot:"
+  local shown=0
+  while IFS= read -r abs; do
+    if [[ -z "$abs" ]]; then continue; fi
+    if (( shown >= 25 )); then
+      log "WARNING:   … and $(( missing - shown )) more"
+      break
+    fi
+    if [[ -d "$abs" ]]; then
+      log "WARNING:   $abs  (a directory — its contents could not even be listed, so what is inside it is unknown)"
+    else
+      log "WARNING:   $abs"
+    fi
+    shown=$(( shown + 1 ))
+  done <<< "$filtered"
+
+  SKIPPED_TOTAL=$(( SKIPPED_TOTAL + missing ))
+}
+
 # --- 1. Database dump, if this deployment has one -------------------------
 # The prototype tier (docs/ROADMAP.md §2.2) has no DATABASE_URL and Postgres is
 # not even installed — that's not a failure, there is simply nothing to dump.
@@ -86,8 +209,7 @@ fi
 # --- 2. DATA_DIR (reactions, push subscriptions, sqlite file) -------------
 if [[ -d "$DATA_DIR" ]]; then
   log "staging DATA_DIR ($DATA_DIR)"
-  mkdir -p "$STAGING_DIR/data"
-  cp -a "$DATA_DIR/." "$STAGING_DIR/data/"
+  stage_tree "DATA_DIR" "$DATA_DIR" "$STAGING_DIR/data"
 else
   log "WARNING: DATA_DIR ($DATA_DIR) does not exist — nothing to back up there yet"
 fi
@@ -99,8 +221,7 @@ fi
 # would silently lose.
 if [[ -d "$CONTENT_DIR" ]]; then
   log "staging content/ ($CONTENT_DIR)"
-  mkdir -p "$STAGING_DIR/content"
-  cp -a "$CONTENT_DIR/." "$STAGING_DIR/content/"
+  stage_tree "content/" "$CONTENT_DIR" "$STAGING_DIR/content"
 else
   log "WARNING: content dir ($CONTENT_DIR) does not exist"
 fi
@@ -201,8 +322,17 @@ case "$repo_state" in
 esac
 
 log "backing up to $RESTIC_REPOSITORY"
+# A snapshot that is missing paths still goes off-site — half the journal
+# beats none of it — but it is labelled, so `restic snapshots` answers "was
+# this one complete?" years later without anybody having the journal to hand.
+partial_tag=()
+if (( SKIPPED_TOTAL > 0 )); then
+  log "WARNING: this snapshot is incomplete ($SKIPPED_TOTAL path(s) missing) and will be tagged 'partial'"
+  partial_tag=(--tag partial)
+fi
 restic backup "$STAGING_DIR" \
   --tag fernscout \
+  ${partial_tag[@]+"${partial_tag[@]}"} \
   --host "${HOSTNAME:-fernscout-vps}"
 
 log "pruning snapshots older than ${BACKUP_KEEP_DAILY} daily generations"
@@ -226,6 +356,18 @@ if [[ -n "$snapshot_count" ]]; then
       log "WARNING: this repository holds ${snapshot_count} snapshot(s) after a successful run. If you expected the last ${BACKUP_KEEP_DAILY} nights, this is not the repository you meant."
     fi
   fi
+fi
+
+# --- 4c. Did everything actually get in? -----------------------------------
+# Everything that could be saved is now off-site, which is the whole reason
+# staging tolerates an unreadable file rather than aborting on one. What must
+# not follow is a green light: a snapshot missing paths is not the backup
+# anybody thinks they have, and the only place that shows is here.
+if (( SKIPPED_TOTAL > 0 )); then
+  log "ERROR: the snapshot was pushed, but $SKIPPED_TOTAL path(s) are missing from it — the WARNING lines above name every one."
+  log "ERROR: not recording this run as a success: no .backup-last-success stamp, and a non-zero exit so the unit's OnFailure= alert fires and /api/health reports backup.state=failing."
+  log "ERROR: everything under DATA_DIR and content/ must be readable by the user this unit runs as (usually 'fernscout'). Fix the ownership on the paths above and re-run."
+  exit 1
 fi
 
 # --- 5. Record that it worked ----------------------------------------------
