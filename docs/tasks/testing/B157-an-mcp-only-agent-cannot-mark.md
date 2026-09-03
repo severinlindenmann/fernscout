@@ -7,8 +7,7 @@ complexity: low
 area: mcp, test-content
 found: "2026-09-03"
 started: "2026-09-03T19:34:18Z"
-session: ea97c35d-5c6a-4610-ab68-d1575d52ea4f
-claimed: "2026-09-03T19:34:18Z"
+merged: "2026-09-03T19:42:11Z"
 ---
 
 # B157 — MCP cannot flag one day as test content
