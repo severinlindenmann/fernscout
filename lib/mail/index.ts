@@ -24,9 +24,9 @@ export type { Mail, SendResult } from "./types";
  *
  * That one mints permanent public identifiers, and the rule it follows is the
  * point of it. What comes out of here is half of a local filename in a
- * gitignored folder, kept unique by the timestamp it is joined to, read by a
- * person hunting for the mail they just triggered and deleted afterwards.
- * Nothing resolves it, so nothing breaks if it changes.
+ * gitignored folder — uniqueness is `writeEml`'s job, not this function's —
+ * read by a person hunting for the mail they just triggered and deleted
+ * afterwards. Nothing resolves it, so nothing breaks if it changes.
  */
 function slug(text: string): string {
   return (
@@ -86,6 +86,12 @@ function mailDir(username?: string): string {
 }
 
 /**
+ * How many messages may share one timestamp, recipient and subject before the
+ * write gives up rather than looking for another name. See `writeEml`.
+ */
+const MAX_SAME_NAME = 100;
+
+/**
  * Write one message to disk, and return where it landed.
  *
  * Shared by the file transport, which is the only thing it does, and by
@@ -93,15 +99,50 @@ function mailDir(username?: string): string {
  * function rather than two so the copy is byte-identical to the original
  * rather than approximately like it — a debugging aid that differs from the
  * real thing in some detail nobody has written down is worse than none.
+ *
+ * **The name is timestamp first, then recipient, then subject, then — only
+ * when that is taken — a counter.** The timestamp leads because sorting the
+ * folder by name is how a person finds the mail they just triggered; the
+ * counter trails for the same reason, so a second message never displaces the
+ * ordering of everything around it.
+ *
+ * The counter is B50. The name used to be the first three parts alone, and
+ * `writeFileSync` truncates what is already there: two messages to one address
+ * with one subject inside the same millisecond left one file, with no error
+ * and no log line, and the second had eaten the first. Rare in a browser and
+ * ordinary in a test or a burst — a digest run, a deletion asked for twice, an
+ * ingest that notifies. Writing with `wx` turns that collision from data loss
+ * into an `EEXIST` this function can answer, which is why the retry is here
+ * rather than a random suffix on every filename: nothing about the common case
+ * changes, and the uncommon one stops being silent.
  */
 function writeEml(mail: Mail): string {
   const dir = mailDir(mail.username);
   fs.mkdirSync(dir, { recursive: true });
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const file = path.join(dir, `${stamp}-${slug(mail.to)}-${slug(mail.subject)}.eml`);
-  fs.writeFileSync(file, buildMessage(mail, senderAddress()));
-  return file;
+  const base = `${stamp}-${slug(mail.to)}-${slug(mail.subject)}`;
+  const body = buildMessage(mail, senderAddress());
+
+  // `wx` fails rather than truncating, so the loop claims a name and writes it
+  // in one step: there is no window between "this one is free" and "it is
+  // mine" for the next message to slip into.
+  for (let n = 1; n <= MAX_SAME_NAME; n++) {
+    const file = path.join(dir, n === 1 ? `${base}.eml` : `${base}-${n}.eml`);
+    try {
+      fs.writeFileSync(file, body, { flag: "wx" });
+      return file;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    }
+  }
+
+  // Only reachable if a hundred messages to one address, with one subject,
+  // were written inside a single millisecond. Loud, because the alternative
+  // is B50 again: this function's contract is that a message it was handed is
+  // on disk when it returns, and silently returning somebody else's file is
+  // how a mailbox comes to disagree with what was sent.
+  throw new Error(`Too many messages named ${base} in the same millisecond.`);
 }
 
 /**
