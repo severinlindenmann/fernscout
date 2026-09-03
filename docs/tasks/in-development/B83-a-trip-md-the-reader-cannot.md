@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: trips, validation, ui
 found: "2026-09-01"
+started: "2026-09-03"
 ---
 
 # B83 — A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same
