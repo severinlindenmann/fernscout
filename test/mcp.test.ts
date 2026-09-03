@@ -208,6 +208,40 @@ describe("authorisation", () => {
     expect(body.error).toBe("invalid_token");
   });
 
+  /**
+   * The MCP half of B98. `resolveTrip` used to ask `scopeAllows` — the scope
+   * string minted with the token — and nothing else, so a person taken off a
+   * trip kept writing to it through this door for the rest of the week.
+   */
+  test("a trip-scoped token stops working once the person is off the trip", async () => {
+    // Somebody named in people:, holding a token scoped to that trip alone.
+    writeTrip("ana", "shared-trip", ["people:", '  - name: "Robin"', '    email: "robin@example.test"']);
+    clearConfigCache();
+
+    await issueCode("ana", "robin@example.test", "agent");
+    const minted = await verifyCode(
+      "ana",
+      "robin@example.test",
+      "123456",
+      "agent",
+      "write:trip:shared-trip",
+    );
+    if (!minted.ok) throw new Error("expected a trip-scoped token");
+
+    const before = await call(minted.token, "list_trips");
+    expect(textOf(before)).toContain("shared-trip");
+
+    // The owner deletes the people: block.
+    writeTrip("ana", "shared-trip");
+    clearConfigCache();
+
+    const after = await call(minted.token, "get_day", { trip: "shared-trip", slug: "anything" });
+    expect(textOf(after)).toContain("access_revoked");
+    // And the trip stops being listed at all, rather than being listed and
+    // then refused.
+    expect(textOf(await call(minted.token, "list_trips"))).not.toContain("shared-trip");
+  });
+
   test("guessing tokens is bounded, and a good token is not", async () => {
     // Its own address, so this test cannot spend another test's budget.
     const from = { "X-Forwarded-For": "203.0.113.7" };

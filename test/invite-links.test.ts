@@ -570,8 +570,14 @@ describe("redeeming a buddy link", () => {
       const { mayWriteTrip } = await import("@/lib/api/auth");
       const session = await resolveSession(body.token, "agent");
       const trips = await tripsByRef();
-      expect(mayWriteTrip(session!, trips.get("bus-2026")!)).toBe(true);
-      expect(mayWriteTrip(session!, trips.get("secret-2026")!)).toBe(false);
+      expect(await mayWriteTrip(session!, trips.get("bus-2026")!)).toEqual({ ok: true });
+      // Not "revoked" — they were never on this one, and a trip they are not on
+      // has to answer exactly as a trip that does not exist (B98).
+      expect(await mayWriteTrip(session!, trips.get("secret-2026")!)).toEqual({
+        ok: false,
+        status: 404,
+        error: "unknown_trip",
+      });
     } finally {
       delete process.env.AUTH_DEV_CODE;
     }

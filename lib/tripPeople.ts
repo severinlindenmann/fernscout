@@ -183,6 +183,46 @@ export function scopeAllows(scope: string | undefined, trip: Trip): boolean {
 }
 
 /**
+ * Why a write is allowed or refused — the scope **and** whether the person
+ * behind it is still on the trip.
+ *
+ * `scopeAllows` alone is not enough, and B98 is why. The scope is a string
+ * baked into the `sessions` row when the token was minted and never looked at
+ * again, so revoking somebody — `revokeContact`, `deleteContact`, or a name
+ * deleted from `people:` in `trip.md` by hand — stopped them reading
+ * immediately and let them keep writing for the remaining seven days of the
+ * token. Reads asked the database on every request; writes asked a week-old
+ * string.
+ *
+ * The check happens **at use** rather than the revocations each remembering to
+ * sweep `sessions`, because a name removed from a file by hand has nothing to
+ * hang a sweep off: there is no request, no row, and no code path that runs.
+ * Checking here covers that case and the database ones together.
+ *
+ * `out_of_scope` and `revoked` are separated so the caller can answer them
+ * differently. They must be: "this is not your trip" has to be
+ * indistinguishable from "no such trip" or a trip-scoped token could
+ * enumerate a journal by guessing ids, while "you were removed from this trip"
+ * is about the one trip the token already names and gives away nothing.
+ *
+ * The owner's unqualified `write:content` returns without a query. It is the
+ * commonest write in the system by a wide margin, and an owner cannot revoke
+ * themselves.
+ */
+export type TripWriteVerdict = "allowed" | "out_of_scope" | "revoked";
+
+export async function tripWriteVerdict(
+  scope: string | undefined,
+  email: string | undefined | null,
+  trip: Trip,
+): Promise<TripWriteVerdict> {
+  if (!scope) return "out_of_scope";
+  if (scope === "write:content") return "allowed"; // the journal's owner
+  if (scope !== tripWriteScope(trip.id)) return "out_of_scope";
+  return (await isPersonOn(trip, email)) ? "allowed" : "revoked";
+}
+
+/**
  * Somebody redeemed a buddy link — B33.
  *
  * Writes a **request**, not a place: `granted_at` stays null, so nothing above

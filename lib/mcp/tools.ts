@@ -8,7 +8,7 @@ import { getAllEntries, getEntryBySlug } from "../entries";
 import { stripMarkdown } from "../markdownText";
 import { SEARCH_OPTIONS, type SearchDoc } from "../searchOptions";
 import { getTrip, getTrips, tripRef } from "../trips";
-import { scopeAllows } from "../tripPeople";
+import { tripWriteVerdict } from "../tripPeople";
 import { validateEntry, type Problem } from "../validate/entry";
 import { createJournal } from "../journals";
 import { createTrip } from "../tripWrite";
@@ -71,10 +71,11 @@ type Args = Record<string, unknown>;
 /**
  * A tool's implementation.
  *
- * Allowed to be async because one of them writes files — `add_media` decodes
- * and resizes a photograph, which sharp does off-thread. Every other handler
- * is still synchronous and stays that way; `callTool` awaits regardless, so a
- * handler's own shape is nobody else's problem.
+ * Allowed to be async because some of them do work off-thread: `add_media`
+ * decodes and resizes a photograph through sharp, and since B98 every handler
+ * that names a trip asks the database whether the session may still write to
+ * it. `callTool` awaits regardless, so a handler's own shape is nobody else's
+ * problem.
  */
 type Handler = (session: Session, args: Args) => ToolOutcome | Promise<ToolOutcome>;
 
@@ -97,7 +98,10 @@ function optionalString(args: Args, key: string): string | undefined {
  * but "unknown trip" is a confusing answer to an attempt to reach across a
  * boundary, and a confusing answer is one an agent works around.
  */
-function resolveTrip(session: Session, args: Args): { ok: true; ref: string } | { ok: false; error: string } {
+async function resolveTrip(
+  session: Session,
+  args: Args,
+): Promise<{ ok: true; ref: string } | { ok: false; error: string }> {
   const raw = optionalString(args, "trip");
   if (!raw) return { ok: false, error: "trip is required — the trip's id, as list_trips reports it" };
   if (raw.includes("/")) {
@@ -114,15 +118,33 @@ function resolveTrip(session: Session, args: Args): { ok: true; ref: string } | 
   // A token held by somebody who took one trip reaches that trip. The same
   // wording as an unknown trip on purpose: which other trips exist in this
   // journal is not something a guest of one of them gets to enumerate.
-  if (!scopeAllows(session.scope, trip)) {
-    return { ok: false, error: `unknown_trip: no trip "${raw}" in ${session.owner}` };
+  //
+  // Somebody who *was* on it and has been removed is told so instead (B98).
+  // They already know the trip exists — their token names it — so the reason
+  // gives nothing away, and "unknown trip" would send them off to re-check an
+  // id that was right all along.
+  switch (await tripWriteVerdict(session.scope, session.email, trip)) {
+    case "allowed":
+      return { ok: true, ref };
+    case "revoked":
+      return {
+        ok: false,
+        error:
+          `access_revoked: your access to "${raw}" has been withdrawn by the journal's owner. ` +
+          `This token can no longer write to it, and a new one will not be issued — ask them directly.`,
+      };
+    default:
+      return { ok: false, error: `unknown_trip: no trip "${raw}" in ${session.owner}` };
   }
-  return { ok: true, ref };
 }
 
 /** The trips this session may act on — the whole journal, or the one trip. */
-function reachableTrips(session: Session) {
-  return getTrips(session.owner).filter((trip) => scopeAllows(session.scope, trip));
+async function reachableTrips(session: Session) {
+  const trips = getTrips(session.owner);
+  const verdicts = await Promise.all(
+    trips.map((trip) => tripWriteVerdict(session.scope, session.email, trip)),
+  );
+  return trips.filter((_, at) => verdicts[at] === "allowed");
 }
 
 // ---------------------------------------------------------------------------
@@ -168,8 +190,8 @@ function describeProblems(problems: Problem[]): string {
 // The tools
 // ---------------------------------------------------------------------------
 
-const listTrips: Handler = (session) => {
-  const trips = reachableTrips(session)
+const listTrips: Handler = async (session) => {
+  const trips = (await reachableTrips(session))
     .map((trip) => tripSummary(session.owner, trip.id))
     .filter((t): t is NonNullable<typeof t> => t !== null);
 
@@ -186,8 +208,8 @@ const listTrips: Handler = (session) => {
   return { ok: true, text, data: { user: session.owner, trips } };
 };
 
-const getDay: Handler = (session, args) => {
-  const trip = resolveTrip(session, args);
+const getDay: Handler = async (session, args) => {
+  const trip = await resolveTrip(session, args);
   if (!trip.ok) return trip;
 
   const slug = optionalString(args, "slug");
@@ -235,7 +257,7 @@ const getDay: Handler = (session, args) => {
   };
 };
 
-const searchEntries: Handler = (session, args) => {
+const searchEntries: Handler = async (session, args) => {
   const query = optionalString(args, "query");
   if (!query) return { ok: false, error: "query is required" };
 
@@ -248,7 +270,7 @@ const searchEntries: Handler = (session, args) => {
   const index = new MiniSearch<SearchDoc>(SEARCH_OPTIONS);
   // Only what this token may reach, so search cannot be used to enumerate
   // the trips a scoped token is not on.
-  index.addAll(searchDocs(session.owner, reachableTrips(session)));
+  index.addAll(searchDocs(session.owner, (await reachableTrips(session))));
 
   const hits = index
     .search(query, { prefix: true, fuzzy: 0.2 })
@@ -272,16 +294,16 @@ const searchEntries: Handler = (session, args) => {
   return { ok: true, text, data: { query, count: hits.length, results: hits } };
 };
 
-const listDraftsTool: Handler = (session, args) => {
+const listDraftsTool: Handler = async (session, args) => {
   const requested = optionalString(args, "trip");
   let refs: string[];
 
   if (requested) {
-    const trip = resolveTrip(session, args);
+    const trip = await resolveTrip(session, args);
     if (!trip.ok) return trip;
     refs = [trip.ref];
   } else {
-    refs = reachableTrips(session).map((t) => t.ref);
+    refs = (await reachableTrips(session)).map((t) => t.ref);
   }
 
   const drafts = refs.flatMap((ref) =>
@@ -322,8 +344,8 @@ const listDraftsTool: Handler = (session, args) => {
  * agent reads the sentence and the code instead of seeing a transport failure
  * it might retry blindly.
  */
-const deleteDayTool: Handler = (session, args) => {
-  const trip = resolveTrip(session, args);
+const deleteDayTool: Handler = async (session, args) => {
+  const trip = await resolveTrip(session, args);
   if (!trip.ok) return trip;
 
   const slug = optionalString(args, "slug");
@@ -428,7 +450,7 @@ const createInviteTool: Handler = async (session, args) => {
 
   let tripId: string | null = null;
   if (kind === "buddy") {
-    const trip = resolveTrip(session, args);
+    const trip = await resolveTrip(session, args);
     if (!trip.ok) return trip;
     tripId = trip.ref.split("/")[1];
   } else if (optionalString(args, "trip")) {
@@ -539,8 +561,8 @@ const revokeInviteTool: Handler = async (session, args) => {
  * publish them: being on the trip is not the same as deciding what the journal
  * says.
  */
-const publishDayTool: Handler = (session, args) => {
-  const trip = resolveTrip(session, args);
+const publishDayTool: Handler = async (session, args) => {
+  const trip = await resolveTrip(session, args);
   if (!trip.ok) return trip;
 
   const slug = optionalString(args, "slug");
@@ -587,7 +609,7 @@ const publishDayTool: Handler = (session, args) => {
 };
 
 const addMedia: Handler = async (session, args) => {
-  const trip = resolveTrip(session, args);
+  const trip = await resolveTrip(session, args);
   if (!trip.ok) return trip;
 
   const day = optionalString(args, "day");
@@ -655,8 +677,8 @@ const addMedia: Handler = async (session, args) => {
   };
 };
 
-const createDay: Handler = (session, args) => {
-  const trip = resolveTrip(session, args);
+const createDay: Handler = async (session, args) => {
+  const trip = await resolveTrip(session, args);
   if (!trip.ok) return trip;
 
   const supplied = optionalString(args, "idempotency_key");

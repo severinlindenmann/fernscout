@@ -28,7 +28,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
     user,
     // Same scoping as the trip list: a trip-scoped token sees that trip's
     // drafts and no others.
-    drafts: writableTrips(auth.session, getTrips(user)).flatMap((trip) =>
+    drafts: (await writableTrips(auth.session, getTrips(user))).flatMap((trip) =>
       listDrafts(trip.ref).map((d) => ({
         ...d,
         trip: trip.ref,

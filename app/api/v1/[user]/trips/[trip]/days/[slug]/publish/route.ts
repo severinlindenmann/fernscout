@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, mayWriteTrip, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { publishDraft } from "@/lib/api/entries";
 import { confirmationMatches, confirmationRequired } from "@/lib/agentConfirm";
 import { SESSION_SCOPE } from "@/lib/auth";
@@ -67,9 +67,9 @@ export async function POST(
   const found = getTrip(ref);
   // The same answer for a trip that does not exist as for one this token may
   // not touch — see the days route.
-  if (!found || !mayWriteTrip(auth.session, found)) {
-    return Response.json({ error: "unknown_trip" }, { status: 404 });
-  }
+  if (!found) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  const gate = await mayWriteTrip(auth.session, found);
+  if (!gate.ok) return refuseWrite(gate);
 
   if (auth.session.scope !== SESSION_SCOPE.agent) {
     return Response.json(
