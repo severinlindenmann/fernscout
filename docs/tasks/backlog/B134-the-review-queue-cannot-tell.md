@@ -1,5 +1,5 @@
 ---
-id: B130
+id: B134
 title: The review queue cannot tell a person which drafts nobody lived
 type: ISSUE
 priority: medium
@@ -8,7 +8,7 @@ area: api, mcp, test-content
 found: "2026-09-03"
 ---
 
-# B130 — The review queue cannot tell a person which drafts nobody lived
+# B134 — The review queue cannot tell a person which drafts nobody lived
 
 ## Why
 

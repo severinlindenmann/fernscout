@@ -96,7 +96,7 @@ Found while here and **not** absorbed: `listDrafts` carries no flag either, so
 `GET /api/v1/<user>/drafts` and MCP `list_drafts` — the list an agent reads
 back to a person when asking what to publish — cannot say a draft is content
 nobody lived. Same class, third surface, and the one read at the moment of the
-decision. Captured as **B130**.
+decision. Captured as **B134**.
 
 ## Acceptance
 

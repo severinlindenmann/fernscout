@@ -8,6 +8,7 @@ area: map, ui
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-03"
 ---
 
 # B46 — A trip that stays inside one city draws as a single dot on a map thousands of kilometres wide
