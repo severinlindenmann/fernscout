@@ -323,6 +323,47 @@ describe("issuing a link", () => {
     as(null);
   });
 
+  /**
+   * B79 — the arm the copy-a-link control on `/{user}/me` stands on.
+   *
+   * That panel is a page the owner is *reading in a browser*, so its request
+   * carries the session cookie and no `Authorization` header at all. `isOwner`
+   * accepts either credential on purpose (decision 24 gives the owner both),
+   * and this asserts the cookie arm with the header genuinely absent rather
+   * than merely unused — drop it and the panel's two buttons both answer 403.
+   */
+  test("the owner's own browser, cookie only and no bearer, may issue both", async () => {
+    as(await signIn(OWNER, OWNER_EMAIL));
+    const { POST } = await import("@/app/api/v1/[user]/invites/route");
+
+    async function fromTheBrowser(body: Record<string, unknown>) {
+      const sent = headers();
+      expect(sent).not.toHaveProperty("authorization");
+      const response = await POST(
+        new Request("https://example.test/api/v1/ana/invites", {
+          method: "POST",
+          headers: sent,
+          body: JSON.stringify(body),
+        }),
+        { params: Promise.resolve({ user: OWNER }) },
+      );
+      return { status: response.status, body: (await response.json()) as InviteBody };
+    }
+
+    const guest = await fromTheBrowser({ kind: "guest" });
+    expect(guest.status).toBe(201);
+    expect(guest.body.invite?.url).toMatch(/\/ana\/invite\/guest\/fs_inv_/);
+    // Dated, which is what the panel reads back to say when it stops working.
+    expect(guest.body.invite?.expiresAt).toBeTruthy();
+
+    const buddy = await fromTheBrowser({ kind: "buddy", trip: "bus-2026" });
+    expect(buddy.status).toBe(201);
+    expect(buddy.body.invite?.scope).toBe("ana/bus-2026");
+    expect(buddy.body.invite?.url).toMatch(/\/ana\/invite\/buddy\/fs_inv_/);
+
+    as(null);
+  });
+
   test("a guest link cannot be narrowed to one trip, and a buddy link needs one", async () => {
     as(null);
     const token = await ownerToken();
