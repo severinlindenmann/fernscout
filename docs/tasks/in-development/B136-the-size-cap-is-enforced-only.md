@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: media, resources
 found: "2026-09-03"
+started: "2026-09-03T19:14:55Z"
+session: d3574848-24a5-45ec-90ce-a52b8c8fe222
+claimed: "2026-09-03T19:14:55Z"
 ---
 
 # B136 — The size cap is enforced after the download, not during it
