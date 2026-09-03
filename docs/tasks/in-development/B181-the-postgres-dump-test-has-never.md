@@ -114,7 +114,7 @@ was read from `actions/runner-images`, and the YAML parses — but whether the
 `backup-drill` job is green is unknown until the branch is pushed. **That is
 the thing to look at in testing.**
 
-Follow-ups captured: B197 (the dump is taken from a database no migration has
+Follow-ups captured: B200 (the dump is taken from a database no migration has
 touched, so `pg_restore -l` lists an almost empty archive), B198 (every
 `docs/…` link in README.md points one directory above where the file is).
 

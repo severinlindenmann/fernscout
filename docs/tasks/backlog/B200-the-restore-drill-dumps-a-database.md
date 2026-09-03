@@ -1,5 +1,5 @@
 ---
-id: B197
+id: B200
 title: The restore drill dumps a database no migration has touched, so the archive it proves restorable is empty
 type: CHORE
 priority: low
@@ -8,7 +8,7 @@ area: tests, db, postgres, backup
 found: "2026-09-03T20:05:00Z"
 ---
 
-# B197 — The restore drill dumps a database no migration has touched
+# B200 — The restore drill dumps a database no migration has touched
 
 ## Why
 
