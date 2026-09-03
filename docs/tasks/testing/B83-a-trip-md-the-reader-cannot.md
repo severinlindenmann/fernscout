@@ -115,3 +115,59 @@ Not done, deliberately: `readTrip` still does not return a partial trip — a
 trip with no valid `start` cannot be placed on a timeline, and half-rendering
 it would push the failure into every consumer. Held in one place, as the task's
 Work section argued.
+
+## Built twice, and what the second pass changed
+
+Two sessions were handed B83 at the same time and both built it — which is
+**B99**, the task about parallel worktrees being handed the same id, happening
+to the task list that contains it. The two implementations agreed on the shape
+almost exactly: return the refusal instead of dropping it, cache it with the
+trips, render a coral owner-only notice. What landed first is above. The second
+pass was folded in on top of it rather than replacing it, and changed five
+things.
+
+**The reason is translated.** This is the one that mattered. The heading and
+the intro were localised; the sentence under them — the half that says what to
+actually fix — was built in `lib/trips.ts` and was therefore English on a
+German or Hungarian journal, under a German or Hungarian heading. A
+`MalformedTripReason` code now travels beside the English `problem`, the panel
+translates it (`trips.malformed<Reason>`, six keys × three locales), and the
+English stays where its readers are: the server log and the API.
+
+**A folder with no `trip.md` is reported after all**, reversing the decision
+recorded above. The reasoning for staying quiet was that such a folder "never
+claimed to be a trip" — but nothing else lives directly under `trips/` (a
+trip's media are one level further down, at `trips/<id>/media/`), so the only
+way to make one is to be halfway through creating a trip. That is exactly the
+agent this task exists for: `mkdir` succeeded, the write of the file did not,
+and every read afterwards is indistinguishable from never having tried. The
+cost of being wrong is one owner-only line that clears when the folder is
+finished or removed.
+
+**MCP `list_trips` reports it too.** The REST list had it; MCP did not, and MCP
+is how an agent works when it is not making raw HTTP calls. Same owner-scope
+rule, said in the tool's text as well as its structured data — a tool result is
+read far more often than it is parsed.
+
+**The page stopped rendering four zeroes under a promise.** With `empty` null
+and no readable trips, the trip list fell through to the subtitle and the
+lifetime tiles: 0 · 0 · 0 · 0 under "everywhere we've been", which is precisely
+what B76 removed from the empty journal. It now renders the notice and stops.
+
+**Smaller:** `role="alert"` → `role="note"`, matching `DraftNotice` and
+`TestNotice` — an assertive live region interrupts a screen reader to announce
+something that was already on the page. `isOwner` is no longer awaited on every
+render of every journal's trip list, only when the journal is empty or
+something is broken. The English `problem` is dropped from the page payload,
+since the browser renders the translated reason and never reads it.
+`missing-fields` now names *which* of title/start/end are wrong rather than
+that one of them is, for the same reason `lib/validate/entry.ts` collects every
+problem rather than the first. And `add-a-trip` and the agent guide now tell a
+writer to read the list back, with a command that was run rather than assumed —
+the obvious `node -e` form does not start, for the reason B84 records.
+
+Verified: `npx tsc --noEmit`, `npx eslint .` (0 errors), `npx vitest run` (102
+files, 1694 passing), `npm run build`. Beyond the suite, the notice was read off
+a running dev server in both English and German, signed in as the owner, with a
+`wrecked-trip/` folder seeded into the demo journal — and the same page fetched
+with no session contains neither the folder name nor the notice.

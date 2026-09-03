@@ -164,6 +164,20 @@ route if `plan.md` exists, and the budget if `costs.md` does. If the trip does
 **not** appear at all, the cause is nearly always the id — folder name and `id:`
 must match, and both must satisfy the pattern above.
 
+Writing the file tells you nothing about that: it succeeds whatever is in it,
+and a `trip.md` the site refuses drops out of every read. Ask what the site
+made of it rather than assuming it took —
+
+```bash
+npx tsx --conditions=react-server \
+  -e 'import { getMalformedTrips } from "./lib/trips"; console.log(getMalformedTrips("<user>"))'
+```
+
+— or, against a running site, `GET /api/v1/<user>/trips`, where the same answer
+comes back under `malformed`. An empty list means the trip parsed. The owner is
+told on `/<user>/trips` as well, so somebody who runs neither still finds out
+(B83).
+
 Copy a demo trip if you want a working shape to edit rather than a blank page.
 `content/example/trips/alps-2024/` is the smallest — a `trip.md`, a `costs.md`
 and a `plan.md` to read side by side. For an **upcoming** trip copy

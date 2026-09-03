@@ -255,6 +255,73 @@ describe("authorisation", () => {
   });
 });
 
+/**
+ * A trip.md that will not load, from the writing end (B83).
+ *
+ * The REST list has reported these since B83 landed; MCP was the one caller
+ * still being told the folder simply was not there. That matters because MCP
+ * is how an agent works when it is not making raw HTTP calls, and writing a
+ * `trip.md` by hand — which `add-a-trip` does — succeeds against the
+ * filesystem whatever is in the file. Without this, the write reports success
+ * and every read afterwards is indistinguishable from never having tried.
+ */
+describe("list_trips reports a trip that will not load", () => {
+  /** Replaces a trip's frontmatter with something the reader will refuse. */
+  function wreck(username: string, tripId: string) {
+    fs.writeFileSync(
+      path.join(dir, username, "trips", tripId, "trip.md"),
+      ["---", `id: ${tripId}`, 'start: "the first of April"', "---", "", "Body."].join("\n"),
+    );
+  }
+
+  test("naming the folder and what is wrong with it", async () => {
+    wreck("ana", "ana-secret");
+    const result = await call(anaToken, "list_trips");
+
+    const { trips, malformed } = result.structuredContent as {
+      trips: { id: string }[];
+      malformed: { folder: string; reason: string; problem: string }[];
+    };
+    // Gone from the list, as it has always been — and now accounted for.
+    expect(trips.map((t) => t.id)).toEqual(["ana-trip"]);
+    expect(malformed).toHaveLength(1);
+    expect(malformed[0]).toMatchObject({ folder: "ana-secret", reason: "missing-fields" });
+
+    // And in the prose. A tool result is read far more often than it is parsed.
+    expect(textOf(result)).toContain("ana-secret/trip.md");
+    expect(textOf(result)).toContain("call list_trips again to confirm");
+  });
+
+  test("and says nothing at all when every trip reads", async () => {
+    const result = await call(anaToken, "list_trips");
+    expect(result.structuredContent).not.toHaveProperty("malformed");
+    expect(textOf(result)).not.toContain("broken trip.md");
+  });
+
+  /**
+   * A trip-scoped token is told about its own trip and nothing else in the
+   * journal — the same rule `reachableTrips` and the REST route both follow. A
+   * folder name is a fact about somebody's other journeys.
+   */
+  test("but tells a trip-scoped token nothing about the rest of the journal", async () => {
+    wreck("ana", "ana-secret");
+    const { tripWriteScope } = await import("@/lib/tripPeople");
+    await issueCode("ana", "buddy@example.test", "agent");
+    const verified = await verifyCode(
+      "ana",
+      "buddy@example.test",
+      "123456",
+      "agent",
+      tripWriteScope("ana-trip"),
+    );
+    if (!verified.ok) throw new Error("could not mint a trip-scoped token");
+
+    const listed = await call(verified.token, "list_trips");
+    expect(listed.structuredContent).not.toHaveProperty("malformed");
+    expect(textOf(listed)).not.toContain("ana-secret");
+  });
+});
+
 describe("one token cannot reach another journal", () => {
   test("list_trips returns only the token holder's trips", async () => {
     const ana = await call(anaToken, "list_trips");

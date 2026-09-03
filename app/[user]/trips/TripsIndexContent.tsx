@@ -13,7 +13,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import { daysUntil } from "@/lib/tripTime";
-import type { MalformedTrip } from "@/lib/trips";
+import type { MalformedTrip, MalformedTripReason } from "@/lib/trips";
 import type { TripAccent, TripStatus, TripTranslations } from "@/lib/types";
 
 export type TripCardData = {
@@ -54,6 +54,33 @@ export type RouteData = {
   points: { lat: number; lng: number; location: string }[];
 };
 
+/**
+ * What the notice needs from a `MalformedTrip`, and no more.
+ *
+ * `problem` is the English sentence, and the panel renders the translated
+ * `reason` instead — so shipping it would put a duplicate of every message in
+ * the payload for the browser to never read.
+ */
+export type BrokenFolder = Pick<MalformedTrip, "folder" | "reason">;
+
+/**
+ * One line per way a trip.md can be refused, in the reader's language.
+ *
+ * The parser hands over a code rather than its English sentence so that this
+ * table can exist. The owner is being told about their own file, on their own
+ * journal, and should be told in the language the rest of it is written in;
+ * the English `problem` on the same object is what the server log and the API
+ * carry, where the reader is an operator or an agent.
+ */
+const REASON_COPY: Record<MalformedTripReason, TranslationKey> = {
+  "no-file": "trips.malformedNoFile",
+  unparseable: "trips.malformedUnparseable",
+  "missing-id": "trips.malformedMissingId",
+  "id-mismatch": "trips.malformedIdMismatch",
+  "invalid-id": "trips.malformedInvalidId",
+  "missing-fields": "trips.malformedMissingFields",
+};
+
 const GROUPS: { status: TripStatus; key: TranslationKey }[] = [
   { status: "current", key: "trips.now" },
   { status: "upcoming", key: "trips.upcoming" },
@@ -77,7 +104,7 @@ export default function TripsIndexContent({
   empty?: EmptyJournal | null;
   /** Trips on disk but too broken to render. Owner-only; the server sends an
    * empty list to everyone else, so this component never has to gate it. */
-  malformed?: MalformedTrip[];
+  malformed?: BrokenFolder[];
 }) {
   const { t, tn, localizedTrip } = useI18n();
 
@@ -109,9 +136,17 @@ export default function TripsIndexContent({
           and it is the first page a new owner sees — `/<user>` redirects here.
           So the totals go, and the page says what is true instead (B76).
         */}
+        {/*
+          A journal whose only trip is malformed has no cards, no map and
+          nothing to total, so it must not render the subtitle and the four
+          zeroes either — that is the exact promise-over-0·0·0·0 B76 removed
+          from the empty journal, and the notice above has already said what is
+          actually wrong. `empty` is null here on purpose: the journal is not
+          empty, so the empty state would be a second untruth.
+        */}
         {empty ? (
           <EmptyState empty={empty} />
-        ) : (
+        ) : trips.length === 0 && malformed.length > 0 ? null : (
           <>
             <p className="mt-1 max-w-2xl text-sm text-navy-600">{t("trips.subtitle")}</p>
 
@@ -162,12 +197,19 @@ export default function TripsIndexContent({
  * server's stdout, so the owner was told the journal was empty while the trip
  * sat in a folder. This is that line, moved to where the owner is. Owner-only:
  * the server sends nobody else the folder names or the reasons.
+ *
+ * `role="note"`, not `role="alert"`. This is part of the page from the moment
+ * it renders, not something that has just happened to a reader sitting on it,
+ * and an assertive live region interrupts a screen reader mid-sentence to say
+ * so. The draft and test banners — the other two "your own content, only you
+ * see this" notices — settled the same way.
  */
-function MalformedNotice({ malformed }: { malformed: MalformedTrip[] }) {
-  const { tn } = useI18n();
+function MalformedNotice({ malformed }: { malformed: BrokenFolder[] }) {
+  const { t, tn } = useI18n();
   return (
     <section
-      role="alert"
+      role="note"
+      data-malformed-trips
       className="mt-6 flex items-start gap-3 rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3"
     >
       <FileWarning className="mt-0.5 h-5 w-5 shrink-0 text-navy-900" aria-hidden />
@@ -184,7 +226,10 @@ function MalformedNotice({ malformed }: { malformed: MalformedTrip[] }) {
               <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs text-navy-900">
                 trips/{m.folder}/trip.md
               </code>{" "}
-              — {m.problem}
+              {/* The reason, in the journal's language. `m.problem` is the
+                  English of the same thing and stays on the log and the API,
+                  where the reader is an operator or an agent. */}
+              — {t(REASON_COPY[m.reason])}
             </li>
           ))}
         </ul>

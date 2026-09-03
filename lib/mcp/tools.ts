@@ -7,7 +7,7 @@ import { isTestContent } from "../access";
 import { getAllEntries, getEntryBySlug } from "../entries";
 import { stripMarkdown } from "../markdownText";
 import { SEARCH_OPTIONS, type SearchDoc } from "../searchOptions";
-import { getTrip, getTrips, tripRef } from "../trips";
+import { getMalformedTrips, getTrip, getTrips, tripRef } from "../trips";
 import { scopeAllows } from "../tripPeople";
 import { validateEntry, type Problem } from "../validate/entry";
 import { createJournal } from "../journals";
@@ -173,7 +173,17 @@ const listTrips: Handler = (session) => {
     .map((trip) => tripSummary(session.owner, trip.id))
     .filter((t): t is NonNullable<typeof t> => t !== null);
 
-  const text = trips.length
+  /*
+   * Trips on disk that will not load (B83). The REST list already reports
+   * these; an agent working over MCP was the one caller still being told the
+   * folder simply was not there. Owner-scoped tokens only, matching that route
+   * and `reachableTrips` above — a token for one trip learns nothing about the
+   * rest of the journal, malformed or not.
+   */
+  const malformed =
+    session.scope === SESSION_SCOPE.agent ? getMalformedTrips(session.owner) : [];
+
+  const listed = trips.length
     ? trips
         .map(
           (t) =>
@@ -183,7 +193,24 @@ const listTrips: Handler = (session) => {
         .join("\n")
     : "No trips yet in this journal.";
 
-  return { ok: true, text, data: { user: session.owner, trips } };
+  // Said in the prose as well as the data. A tool result is read far more
+  // often than it is parsed, and an agent that only reads `text` would
+  // otherwise see the trip missing with no explanation — which is the whole
+  // bug, one layer up.
+  const text = malformed.length
+    ? `${listed}\n\nNot loading — ${malformed.length} folder` +
+      `${malformed.length === 1 ? "" : "s"} under trips/ with a broken trip.md:\n` +
+      `${malformed.map((m) => `- ${m.folder}/trip.md: ${m.problem}`).join("\n")}\n\n` +
+      "Fix the file named in each, then call list_trips again to confirm it loads."
+    : listed;
+
+  return {
+    ok: true,
+    text,
+    // Absent when there are none, like every other flag here: a `"malformed":
+    // []` on every reply reads as routine and stops being noticed.
+    data: { user: session.owner, trips, ...(malformed.length ? { malformed } : {}) },
+  };
 };
 
 const getDay: Handler = (session, args) => {
@@ -918,7 +945,9 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
     title: "List trips",
     description:
       "Every trip in this journal, including ones the public cannot see. Start here: " +
-      "the `id` of each trip is what every other tool wants.",
+      "the `id` of each trip is what every other tool wants. If you have just written a " +
+      "trip.md by hand, read this back — a folder whose frontmatter the site refused is " +
+      "reported under `malformed`, with what is wrong with it, rather than silently missing.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: READ_ONLY,
     handler: listTrips,

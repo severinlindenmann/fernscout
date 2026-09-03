@@ -23,10 +23,29 @@ const cache = new Map<string, { signature: string; trips: Trip[]; malformed: Mal
  * stdout, which is not where the owner is. This carries the *why* to a surface
  * they can read.
  */
+export type MalformedTripReason =
+  | "no-file"
+  | "unparseable"
+  | "missing-id"
+  | "id-mismatch"
+  | "invalid-id"
+  | "missing-fields";
+
 export type MalformedTrip = {
   /** The folder under `content/<user>/trips/`. */
   folder: string;
-  /** One sentence, owner-facing, naming what is wrong. */
+  /**
+   * Which way it failed, as a code the caller can translate.
+   *
+   * Two audiences read the same refusal and they do not want the same thing
+   * from it. The owner is reading a web page in whatever language their
+   * journal is written in; an operator tailing stdout and an agent reading the
+   * API want English. A sentence built here can only serve one of them, and
+   * the owner is the one who cannot change which — so the code travels and
+   * `trips.malformed<Reason>` in the locale files is what they see.
+   */
+  reason: MalformedTripReason;
+  /** The same thing in one English sentence, for the log and the API. */
   problem: string;
 };
 
@@ -302,23 +321,37 @@ function parseTranslations(raw: unknown): TripTranslations | undefined {
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+/** Refuses one folder, warns the server log, and carries the reason back. */
+function refuse(folder: string, reason: MalformedTripReason, problem: string): MalformedTrip {
+  console.warn(`[trips] ${folder}/: ${problem}`);
+  return { folder, reason, problem };
+}
+
 /**
- * One trip.md → a Trip, a MalformedTrip, or null.
+ * One trip.md → a Trip, or a MalformedTrip saying why not.
  *
  * - `Trip` — it parsed and is trustworthy.
- * - `MalformedTrip` — the file is there but wrong, and would silently vanish.
- *   Returned rather than thrown so a typo in one trip does not take every other
- *   trip down with it (matching lib/plan.ts), and returned rather than dropped
- *   so the reason reaches the owner, not just the server log (B83).
- * - `null` — no `trip.md` at all. Not a trip; not an error either. A folder
- *   that never claimed to be a trip is nothing to report.
+ * - `MalformedTrip` — the folder would silently vanish, and this is what to
+ *   tell whoever put it there. Returned rather than thrown so a typo in one
+ *   trip does not take every other trip down with it (matching lib/plan.ts),
+ *   and returned rather than dropped so the reason reaches the owner and the
+ *   agent that wrote the file, not just the server log (B83).
  *
- * The `[trips]` warnings stay: the server log is still the right place for an
- * operator tailing stdout, and this only *adds* a surface, it does not move one.
+ * A folder with **no `trip.md` at all** is one of those, not a null. It was
+ * first read as "a folder that never claimed to be a trip is nothing to
+ * report" — but nothing else lives directly under `trips/`, so the only way to
+ * make one is to be halfway through creating a trip. That is exactly the agent
+ * this task is about: it made the directory, its write of the file failed, and
+ * every read afterwards is indistinguishable from never having tried.
+ *
+ * The `[trips]` warnings stay. The server log is still the right place for an
+ * operator tailing stdout; it was only ever wrong as the *sole* place.
  */
-function readTrip(username: string, dir: string, folder: string): Trip | MalformedTrip | null {
+function readTrip(username: string, dir: string, folder: string): Trip | MalformedTrip {
   const file = path.join(dir, "trip.md");
-  if (!fs.existsSync(file)) return null;
+  if (!fs.existsSync(file)) {
+    return refuse(folder, "no-file", "there is no trip.md in it");
+  }
 
   let data: Record<string, unknown>;
   let content: string;
@@ -327,8 +360,10 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
     data = parsed.data as Record<string, unknown>;
     content = parsed.content;
   } catch (err) {
-    console.warn(`[trips] ${folder}/trip.md is unparseable, skipping:`, err);
-    return { folder, problem: "its frontmatter could not be parsed" };
+    // First line only: gray-matter quotes the offending source at length, and
+    // a web page is not a terminal.
+    const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    return refuse(folder, "unparseable", `its frontmatter could not be parsed: ${why}`);
   }
 
   const id = String(data.id ?? "").trim();
@@ -336,28 +371,39 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
   const start = String(data.start ?? "").trim();
   const end = String(data.end ?? "").trim();
 
+  if (!id) {
+    return refuse(folder, "missing-id", `it has no id (add \`id: ${folder}\`, matching the folder)`);
+  }
   if (id !== folder) {
-    console.warn(`[trips] ${folder}/trip.md has id "${id}", expected "${folder}" — skipping.`);
-    return {
+    return refuse(
       folder,
-      problem: id
-        ? `its id is "${id}", but the folder is named "${folder}" — the two must match`
-        : `it has no id (add \`id: ${folder}\` to match the folder)`,
-    };
+      "id-mismatch",
+      `its id is "${id}", but the folder is named "${folder}" — the two must match`,
+    );
   }
   if (!ID_RE.test(id)) {
-    console.warn(`[trips] "${id}" is not a valid trip id (a-z, 0-9, dashes) — skipping.`);
-    return {
+    return refuse(
       folder,
-      problem: `its id "${id}" is not valid — lowercase letters, numbers and dashes only`,
-    };
+      "invalid-id",
+      `its id "${id}" is not valid — lowercase letters, numbers and dashes only`,
+    );
   }
   if (!title || !DATE_RE.test(start) || !DATE_RE.test(end)) {
-    console.warn(`[trips] ${folder}/trip.md needs a title and ISO start/end dates — skipping.`);
-    return {
+    // Which of the three, not merely that one of them is wrong: an agent
+    // fixing its own file should not have to resubmit to find the next fault.
+    // Same reason lib/validate/entry.ts collects every problem rather than the
+    // first.
+    const missing = [
+      title ? null : "title",
+      DATE_RE.test(start) ? null : "start",
+      DATE_RE.test(end) ? null : "end",
+    ].filter((f): f is string => f !== null);
+    return refuse(
       folder,
-      problem: "it needs a title and ISO start and end dates (YYYY-MM-DD)",
-    };
+      "missing-fields",
+      `it needs a title and ISO start and end dates (YYYY-MM-DD); ` +
+        `${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} missing or malformed`,
+    );
   }
 
   return {
@@ -451,8 +497,8 @@ function loadTrips(username: string): { trips: Trip[]; malformed: MalformedTrip[
   if (hit && hit.signature === signature) return { trips: hit.trips, malformed: hit.malformed };
 
   const parsed = folders.map((folder) => readTrip(username, path.join(root, folder), folder));
-  const malformed = parsed.filter((t): t is MalformedTrip => t !== null && "problem" in t);
-  const trips = parsed.filter((t): t is Trip => t !== null && "id" in t);
+  const malformed = parsed.filter((t): t is MalformedTrip => "reason" in t);
+  const trips = parsed.filter((t): t is Trip => !("reason" in t));
 
   // Exactly one trip may be current. If several declare it — easy to do when
   // you flip the new one before demoting the old — the one that started most
