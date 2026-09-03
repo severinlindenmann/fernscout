@@ -542,6 +542,66 @@ describe("the read tools", () => {
   });
 });
 
+/**
+ * Both doors write days, so both have to refuse a slug that is taken (B119).
+ *
+ * The unit case is `test/slug-collision.test.ts`; this is the pair of surfaces
+ * an agent actually calls, and the status code REST answers with — 409 rather
+ * than 400, because the request was well-formed and the trip's contents are
+ * what make it impossible.
+ */
+describe("a slug already taken in the trip", () => {
+  // Two titles that differ only by an invisible codepoint: U+0110 and U+00D0.
+  // Both fold to `da-lat`, deliberately — B77 settled the transliteration.
+  const FIRST = { trip: "ana-trip", title: "Đà Lạt", date: "2026-01-11", content: "Pines." };
+  const SECOND = { trip: "ana-trip", title: "Ðà Lạt", date: "2026-01-12", content: "Cold." };
+
+  test("MCP refuses the second day rather than writing a shadow", async () => {
+    expect((await call(anaToken, "create_day", FIRST)).isError).toBe(false);
+
+    const second = await call(anaToken, "create_day", SECOND);
+    expect(second.isError).toBe(true);
+    expect(textOf(second)).toContain('slug "da-lat"');
+    expect(textOf(second)).toContain("2026-01-11-da-lat.md");
+
+    // One file, not two. The second used to be written and then never served.
+    const entries = fs
+      .readdirSync(path.join(dir, "ana", "trips", "ana-trip", "entries"))
+      .filter((f) => f.includes("da-lat"));
+    expect(entries).toEqual(["2026-01-11-da-lat.md"]);
+  });
+
+  test("REST answers 409, not 201 with a slug that belongs to something else", async () => {
+    const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/days/route");
+    const post = (body: Record<string, unknown>) =>
+      POST(
+        new Request(`${SITE}/api/v1/ana/trips/ana-trip/days`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${anaToken}`,
+          },
+          body: JSON.stringify(body),
+        }),
+        { params: Promise.resolve({ user: "ana", trip: "ana-trip" }) },
+      );
+
+    const first = await post(FIRST);
+    expect(first.status).toBe(201);
+    expect((await first.json()).slug).toBe("da-lat");
+
+    const second = await post(SECOND);
+    expect(second.status).toBe(409);
+    expect((await second.json()).error).toContain('slug "da-lat"');
+  });
+
+  test("but a day whose title really is different still writes", async () => {
+    await call(anaToken, "create_day", FIRST);
+    const other = await call(anaToken, "create_day", { ...SECOND, title: "Nha Trang" });
+    expect(other.isError).toBe(false);
+  });
+});
+
 describe("create_day writes a draft, and only a draft", () => {
   const DAY = {
     trip: "ana-trip",
