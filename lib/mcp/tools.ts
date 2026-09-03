@@ -369,10 +369,14 @@ const listDraftsTool: Handler = async (session, args) => {
 /**
  * Write a day. Always a draft.
  *
- * There is no argument here that publishes, and there is no second tool that
- * does. Removing `status: draft` is a person's edit to a file, on purpose:
- * one invented memory in front of somebody's family is not recoverable, and no
- * amount of care in a prompt is a control.
+ * There is no argument here that publishes. `publish_day` is the second half
+ * and is a separate, confirmed, owner-only call — the split is the control, not
+ * the absence of a mechanism: one invented memory in front of somebody's family
+ * is not recoverable, and no amount of care in a prompt is a control.
+ *
+ * This comment said "there is no second tool that does" until B156. It was the
+ * reasoning that kept the reply string below alive after B28 built the tool,
+ * two entries away in the same `tools/list` response.
  */
 /**
  * Photographs, over the protocol.
@@ -784,8 +788,9 @@ const createDay: Handler = async (session, args) => {
     ok: true,
     text:
       `Created ${result.slug} as a draft in ${trip.ref}.\n` +
-      "It is not on the site. A person publishes it by removing the `status: draft` " +
-      "line from the file — there is no tool, argument or flag here that does.",
+      "It is not on the site. Publishing is a second, deliberate call — `publish_day` — " +
+      "and it is the person's to ask for. Tell them it is waiting; do not call it because " +
+      "the day looks finished to you.",
     data: { trip: trip.ref, slug: result.slug, status: result.status, replayed: false },
   };
   remember(key, fingerprint, outcome);

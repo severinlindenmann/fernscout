@@ -641,6 +641,56 @@ describe("create_day writes a draft, and only a draft", () => {
   });
 
   /**
+   * B156. The reply used to end "a person publishes it by removing the
+   * `status: draft` line from the file — there is no tool, argument or flag
+   * here that does", which stopped being true the moment B28 added
+   * `publish_day` two entries away in the same `tools/list` response.
+   *
+   * It is not a stale sentence, it is a false one, and it is the exact wall
+   * B28 exists to remove: an agent driving a journal over MCP alone cannot
+   * show anybody a file, so "edit the file" is advice with nowhere to go.
+   */
+  test("the reply names publish_day rather than telling the agent to edit a file", async () => {
+    const result = await call(anaToken, "create_day", DAY);
+    const text = textOf(result);
+
+    expect(text).toContain("publish_day");
+    expect(text).toMatch(/not on the site/i);
+    // The retired rule, in any of the forms it was written in.
+    expect(text).not.toMatch(/status: draft/);
+    expect(text).not.toMatch(/from the file/i);
+    expect(text).not.toMatch(/no tool[^.]*that does/i);
+  });
+
+  /**
+   * The rule is stated in six places across this door — the server's own
+   * instructions, two tool descriptions, a doc comment, the markdown a draft
+   * renders as, and this reply. B28 updated four of them. This asserts on the
+   * two an agent is actually handed, so the next divergence fails here rather
+   * than reaching somebody's family.
+   */
+  test("nothing the server hands an agent claims publishing has no tool", async () => {
+    const { body: init } = await rpc(anaToken, "initialize", {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "test-client", version: "1.0" },
+    });
+    const instructions = (init.result as { instructions: string }).instructions;
+
+    const { body: listed } = await rpc(anaToken, "tools/list");
+    const tools = (listed.result as { tools: unknown[] }).tools;
+
+    const everythingSaid = [instructions, JSON.stringify(tools)].join("\n");
+
+    expect(everythingSaid).not.toMatch(/no tool[^.]*(publish|does)/i);
+    expect(everythingSaid).not.toMatch(/no second tool/i);
+    expect(everythingSaid).not.toMatch(/removing the `?status: draft/i);
+    // And the half that must still be said.
+    expect(instructions).toMatch(/publish_day/);
+    expect(instructions).toMatch(/DRAFT/);
+  });
+
+  /**
    * This used to assert that no tool published at all. B28 gave publishing an
    * endpoint, because the person the rule reserves it for often has no text
    * editor and no folder — so the guarantee is no longer "it cannot be done"
