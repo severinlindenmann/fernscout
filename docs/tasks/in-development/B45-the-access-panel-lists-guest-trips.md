@@ -38,25 +38,75 @@ condition. B35 did not change this: the arm it removed was dead, and the panel
 listed guest trips to active contacts before and after. The over-report is
 older than both.
 
+## Work as first written — superseded
+
+> Two shapes, and which one is right depends on B41 and B39. If neither lands
+> first, the narrow fix is for `resolveViewer` to ask the same question
+> `mayReadTrip` asks. Check the sibling surfaces while here: `listableTrips`
+> and the trip switcher draw a similar distinction and may have the same gap.
+
+B41 landed first, and took the first shape. What actually happened is below.
+
+## What was true when this was written, and what is true now
+
+The **Why** above was accurate on 2026-09-01 and is now history. B41 landed in
+between and took the first of the two shapes the Work section predicted:
+`mayReadTrip` (`lib/tripGate.ts:58`) asks `isJournalGuest`, which is the same
+call `resolveViewer` makes, so an approved contact opens a `visibility: guest`
+trip with nothing but a session cookie. B39 then removed the trip password, so
+`verifyTripToken` is gone entirely and the grant is the only door. The reported
+symptom — told about a trip, handed a password box — cannot happen any more.
+
+`test/access-gate.test.ts` already held the panel and the gate to a table over
+every viewer and every visibility, and derived the never-widens property from
+it. `test/viewer.test.ts`'s docstring was already rewritten to point at that
+table rather than merely claim the property.
+
+**So this task was closed by verification, and one thing the earlier note
+claimed was not actually true.** That note said the table "states that
+exception and asserts it is the only one" about `listableTrips`. It did not.
+`listableTrips` had no column in the table at all — it was spot-checked in two
+places (a stranger sees no more signed in than out; a journal guest is refused
+a private trip) and was otherwise unheld. The Work section named it explicitly
+as the sibling surface to check, so the remaining work was to check it the way
+the panel is checked.
+
 ## Work
 
-Two shapes, and which one is right depends on B41 and B39, so this is very
-likely their tail rather than its own change:
+Test-only. No production code changed; `lib/viewer.ts`, `lib/tripGate.ts` and
+`lib/digest/visibility.ts` are untouched, because none of them was wrong.
 
-- **B41** makes a guest a guest of the journal. If it also teaches
-  `mayReadTrip` that an active contact may open a `guest` trip, the panel
-  becomes correct without being touched, and this task is closed by
-  verification rather than by code.
-- **B39** removes trip passwords outright. `verifyTripToken` then stops being
-  the only door, and the same question is answered there.
+- **`switcher` is now a column of the table** in `test/access-gate.test.ts`,
+  filled for all seven viewers × seven trips and asserted against the real
+  `listableTrips` called the way `app/[user]/layout.tsx` calls it — once over
+  the whole journal, not once per trip, so the single grant lookup it does for
+  the list is the thing under test. Two derived assertions follow the panel's:
+  nothing the switcher advertises is refused by the gate, and the only trip the
+  gate opens without the switcher listing it is `quiet-2026`, the `public` trip
+  with `listed: false`. That exception is now asserted rather than described.
+- **A buddy-link reader is a new block.** Everything else in the file reaches a
+  trip through the file on disk or a journal-wide grant. A redeemed place
+  (B33) is the third door, and the panel and the gate reach it by *two
+  different queries* — `redeemedTripsFor` for the panel and the switcher,
+  `redeemedPeopleOf` for the gate. Two queries answering one question is the
+  exact shape this task reported, and nothing was holding them together. The
+  block asserts the positive (the one private trip opens, and the panel says
+  `traveller`, not `guest`), the negative that carries the weight (`robins-2026`,
+  the journal's *other* private trip, is refused and named by neither surface,
+  even though this reader holds a live journal grant *and* a live place
+  elsewhere), and revocation (revoking the place stops all three surfaces
+  together while the journal grant, and so the `guest` trip, survives).
 
-If neither lands first, the narrow fix is for `resolveViewer` to ask the same
-question `mayReadTrip` asks, rather than a different one that happens to be
-more generous — the panel exists to report an answer, not to compute a second
-one.
+## What that turned up
 
-Check the sibling surfaces while here: `listableTrips` and the trip switcher
-draw a similar distinction and may have the same gap.
+The buddy block is not decoration. Deleting the `revoked_at` filter from
+`redeemedTripsFor` (`lib/tripPeople.ts:140`) — so the panel and the switcher
+keep advertising a place the gate has stopped honouring, which is precisely
+this task's bug in the one place the two sides run different SQL — passes the
+entire pre-existing suite: 110 files, 1785 tests, 0 failures. With the new
+block it fails. The equivalent mutation on the read side (`listableTrips`
+forgetting that `private` is nobody else's) fails five tests, two of which are
+the new switcher column.
 
 ## Acceptance
 
@@ -68,36 +118,14 @@ draw a similar distinction and may have the same gap.
 - Closing this by verifying B41 or B39 already fixed it is a valid outcome, and
   the note saying so belongs in this file.
 
-## Closed by B41 — verification, not code
+## Not in scope, and checked
 
-B41 took the first of the two shapes above: `mayReadTrip` (`lib/tripGate.ts`)
-now asks `isJournalGuest`, which is the same call `resolveViewer` makes. An
-approved contact opens a `visibility: guest` trip with no password, so the trip
-the panel lists is a trip they can actually open, and the panel became correct
-without being touched.
+`listableTrips` does not filter `test: true` trips, so `proving-2026` and
+`proving-guest-2026` appear in the switcher for anyone who may read them. That
+matches the panel, which has always listed them, and it is consistent with the
+B70 decision: containment of invented content is about the surfaces that speak
+*unasked* — the digest, push, the feed, the sitemap — and the trip page carries
+a banner. The table now states it rather than leaving it unexamined. No task
+captured; nothing was found that needed one.
 
-The property `test/viewer.test.ts` states — *"the panel never widens access: it
-reports what `mayReadTrip` would already allow"* — is now asserted rather than
-merely claimed. `test/access-gate.test.ts` runs both functions over every
-viewer × every visibility and checks they agree, and derives the never-widens
-invariant from that table.
-
-The two sibling surfaces named above were checked and both changed:
-
-- **`listableTrips`** gained the same guest arm, so the trip switcher advertises
-  a `guest` trip to somebody who has been let into the journal. It also had a
-  second, opposite gap: it listed a `private` trip to anyone holding that trip's
-  password cookie, and `mayReadTrip` refuses a `private` trip before it ever
-  looks at a cookie. That was the same over-report this task reported, on a
-  different surface, and it is fixed.
-- **The trip switcher** is `listableTrips` — `app/[user]/layout.tsx:74` is its
-  only other caller besides `app/[user]/trips/page.tsx`, and both take what the
-  function returns.
-
-One thing this does **not** close: `listableTrips` deliberately stays narrower
-than `mayReadTrip` for a `public` trip with `listed: false`. That is the old
-`unlisted`, and not advertising a trip anybody could open is what the field is
-for, not a leak. The table test states that exception and asserts it is the only
-one.
-
-Leave this in `backlog/`. An agent does not move anything to `completed/`.
+An agent does not move anything to `completed/`.

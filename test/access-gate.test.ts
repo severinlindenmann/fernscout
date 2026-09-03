@@ -105,12 +105,16 @@ const TEST_TRIPS = TRIPS.filter((t) => t.test).map((t) => t.id);
  *   opens a page. Every other column is measured against it.
  * - `panel` is `resolveViewer`'s `through` value, or null for "not
  *   mentioned": what `/<user>/me` tells somebody who came looking.
+ * - `switcher` is `listableTrips` — the trip list `app/[user]/layout.tsx`
+ *   and `app/[user]/trips/page.tsx` both render, and the one that travels in
+ *   the RSC payload of every page whether the reader opened a menu or not
+ *   (B45).
  * - `digest` is `digestableTrips` — what arrives in their inbox uninvited.
  * - `push` is `subscribersFor` — what arrives on their lock screen (B68).
  *
  * The two halves are different questions and it is worth keeping them apart.
- * `read` and `panel` answer "may I", asked by somebody already here. `digest`
- * and `push` answer "should we say", asked by nobody — which is why those
+ * `read`, `panel` and `switcher` answer "may I", asked by somebody already
+ * here. `digest` and `push` answer "should we say", asked by nobody — which is why those
  * columns can be `false` where `read` is `true` (an unlisted trip, a trip
  * nobody lived) and **must never be `true` where `read` is `false`**. That
  * last relation is asserted below, derived from the table, for both.
@@ -133,6 +137,11 @@ const TEST_TRIPS = TRIPS.filter((t) => t.test).map((t) => t.id);
  */
 type Expectation = {
   panel: "public" | "owner" | "traveller" | "guest" | null;
+  /**
+   * Whether `listableTrips` puts it in the trip switcher — the list the user
+   * layout ships in the RSC payload of every page in the journal (B45).
+   */
+  switcher: boolean;
   read: boolean;
   /** Whether `digestableTrips` would put this trip in this reader's mail. */
   digest: boolean;
@@ -143,73 +152,73 @@ type Expectation = {
 const EXPECTED: Record<string, Record<string, Expectation>> = {
   // Nobody signed in.
   anonymous: {
-    "open-2026": { panel: "public", read: true, digest: true, push: true },
+    "open-2026": { panel: "public", switcher: true, read: true, digest: true, push: true },
     // unlisted, not locked — openable by link, advertised nowhere.
-    "quiet-2026": { panel: null, read: true, digest: false, push: true },
-    "invited-2026": { panel: null, read: false, digest: false, push: false },
-    "secret-2026": { panel: null, read: false, digest: false, push: false },
-    "robins-2026": { panel: null, read: false, digest: false, push: false },
+    "quiet-2026": { panel: null, switcher: false, read: true, digest: false, push: true },
+    "invited-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "secret-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "robins-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
     // Nobody lived it: openable, banner and all, and mailed to no one.
-    "proving-2026": { panel: "public", read: true, digest: false, push: false },
-    "proving-guest-2026": { panel: null, read: false, digest: false, push: false },
+    "proving-2026": { panel: "public", switcher: true, read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
   },
   // Signed in, and that is all. Never a contact, never invited. **Identical
   // to `anonymous` above, deliberately and forever**: signing in is an
   // identity claim, not a key. Any diff that makes this row differ from the
   // anonymous one has opened every closed trip on the instance.
   stranger: {
-    "open-2026": { panel: "public", read: true, digest: true, push: true },
-    "quiet-2026": { panel: null, read: true, digest: false, push: true },
-    "invited-2026": { panel: null, read: false, digest: false, push: false },
-    "secret-2026": { panel: null, read: false, digest: false, push: false },
-    "robins-2026": { panel: null, read: false, digest: false, push: false },
-    "proving-2026": { panel: "public", read: true, digest: false, push: false },
-    "proving-guest-2026": { panel: null, read: false, digest: false, push: false },
+    "open-2026": { panel: "public", switcher: true, read: true, digest: true, push: true },
+    "quiet-2026": { panel: null, switcher: false, read: true, digest: false, push: true },
+    "invited-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "secret-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "robins-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "proving-2026": { panel: "public", switcher: true, read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
   },
   // Signed in, confirmed, never approved. Reads no more than a stranger.
   pending: {
-    "open-2026": { panel: "public", read: true, digest: true, push: true },
-    "quiet-2026": { panel: null, read: true, digest: false, push: true },
-    "invited-2026": { panel: null, read: false, digest: false, push: false },
-    "secret-2026": { panel: null, read: false, digest: false, push: false },
-    "robins-2026": { panel: null, read: false, digest: false, push: false },
-    "proving-2026": { panel: "public", read: true, digest: false, push: false },
-    "proving-guest-2026": { panel: null, read: false, digest: false, push: false },
+    "open-2026": { panel: "public", switcher: true, read: true, digest: true, push: true },
+    "quiet-2026": { panel: null, switcher: false, read: true, digest: false, push: true },
+    "invited-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "secret-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "robins-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "proving-2026": { panel: "public", switcher: true, read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
   },
   // Approved. A guest of the journal — every `guest` trip, no `private` one.
   // The only reader whose digest goes beyond what the world may read (B52),
   // and the reason the test rows below matter: the guest test trip is one
   // they *can* open and must still never be mailed about (B70).
   approved: {
-    "open-2026": { panel: "public", read: true, digest: true, push: true },
-    "quiet-2026": { panel: null, read: true, digest: true, push: true },
-    "invited-2026": { panel: "guest", read: true, digest: true, push: true },
-    "secret-2026": { panel: null, read: false, digest: false, push: false },
-    "robins-2026": { panel: null, read: false, digest: false, push: false },
-    "proving-2026": { panel: "public", read: true, digest: false, push: false },
-    "proving-guest-2026": { panel: "guest", read: true, digest: false, push: false },
+    "open-2026": { panel: "public", switcher: true, read: true, digest: true, push: true },
+    "quiet-2026": { panel: null, switcher: false, read: true, digest: true, push: true },
+    "invited-2026": { panel: "guest", switcher: true, read: true, digest: true, push: true },
+    "secret-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "robins-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "proving-2026": { panel: "public", switcher: true, read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: "guest", switcher: true, read: true, digest: false, push: false },
   },
   // Approved and then revoked. Back to a stranger.
   revoked: {
-    "open-2026": { panel: "public", read: true, digest: true, push: true },
-    "quiet-2026": { panel: null, read: true, digest: false, push: true },
-    "invited-2026": { panel: null, read: false, digest: false, push: false },
-    "secret-2026": { panel: null, read: false, digest: false, push: false },
-    "robins-2026": { panel: null, read: false, digest: false, push: false },
-    "proving-2026": { panel: "public", read: true, digest: false, push: false },
-    "proving-guest-2026": { panel: null, read: false, digest: false, push: false },
+    "open-2026": { panel: "public", switcher: true, read: true, digest: true, push: true },
+    "quiet-2026": { panel: null, switcher: false, read: true, digest: false, push: true },
+    "invited-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "secret-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "robins-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "proving-2026": { panel: "public", switcher: true, read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
   },
   // On one trip's `people:`, and nothing else. Their own private trip, and
   // not the journal's other one — and no more than a stranger everywhere else,
   // because being on a trip is not being a guest of the journal.
   traveller: {
-    "open-2026": { panel: "public", read: true, digest: true, push: true },
-    "quiet-2026": { panel: null, read: true, digest: false, push: true },
-    "invited-2026": { panel: null, read: false, digest: false, push: false },
-    "secret-2026": { panel: null, read: false, digest: false, push: false },
-    "robins-2026": { panel: "traveller", read: true, digest: false, push: false },
-    "proving-2026": { panel: "public", read: true, digest: false, push: false },
-    "proving-guest-2026": { panel: null, read: false, digest: false, push: false },
+    "open-2026": { panel: "public", switcher: true, read: true, digest: true, push: true },
+    "quiet-2026": { panel: null, switcher: false, read: true, digest: false, push: true },
+    "invited-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "secret-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
+    "robins-2026": { panel: "traveller", switcher: true, read: true, digest: false, push: false },
+    "proving-2026": { panel: "public", switcher: true, read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: null, switcher: false, read: false, digest: false, push: false },
   },
   // The journal's owner reads their own journal, including the trip they did
   // not put themselves on `people:` for — and is told so in those words.
@@ -221,13 +230,13 @@ const EXPECTED: Record<string, Record<string, Expectation>> = {
   // fortnight written up in her journal, and the panel used to tell her she
   // had been there.
   owner: {
-    "open-2026": { panel: "owner", read: true, digest: true, push: true },
-    "quiet-2026": { panel: "owner", read: true, digest: false, push: true },
-    "invited-2026": { panel: "owner", read: true, digest: false, push: false },
-    "secret-2026": { panel: "owner", read: true, digest: false, push: false },
-    "robins-2026": { panel: "owner", read: true, digest: false, push: false },
-    "proving-2026": { panel: "owner", read: true, digest: false, push: false },
-    "proving-guest-2026": { panel: "owner", read: true, digest: false, push: false },
+    "open-2026": { panel: "owner", switcher: true, read: true, digest: true, push: true },
+    "quiet-2026": { panel: "owner", switcher: false, read: true, digest: false, push: true },
+    "invited-2026": { panel: "owner", switcher: true, read: true, digest: false, push: false },
+    "secret-2026": { panel: "owner", switcher: true, read: true, digest: false, push: false },
+    "robins-2026": { panel: "owner", switcher: true, read: true, digest: false, push: false },
+    "proving-2026": { panel: "owner", switcher: true, read: true, digest: false, push: false },
+    "proving-guest-2026": { panel: "owner", switcher: true, read: true, digest: false, push: false },
   },
 };
 
@@ -432,6 +441,16 @@ describe("the panel and the gate agree", () => {
     const trip = (await tripsByRef()).get(id);
     if (!trip) throw new Error(`no trip ${id}`);
     expect(await mayReadTrip(trip), "what the gate allows").toBe(expected.read);
+
+    // The switcher, asked over the whole journal exactly as the layout asks
+    // it — one call, not one per trip, because `listableTrips` does a single
+    // grant lookup for the list and asking per trip would not exercise that.
+    as(viewer);
+    const { listableTrips } = await import("@/lib/tripGate");
+    const listed = await listableTrips([...(await tripsByRef()).values()]);
+    expect(listed.some((t) => t.id === id), "what the switcher advertises").toBe(
+      expected.switcher,
+    );
   });
 
   /**
@@ -447,6 +466,38 @@ describe("the panel and the gate agree", () => {
         }
       }
     }
+  });
+
+  /**
+   * The same property for the switcher, which is the surface B45 named as
+   * worth checking alongside the panel. It is the stronger of the two: the
+   * panel is a page somebody navigated to, while the switcher is serialised
+   * into every page of the journal, so a trip named here is named to a reader
+   * who never asked. Derived from the table for the same reason.
+   */
+  test("nothing the switcher advertises is refused by the gate", () => {
+    for (const [viewer, rows] of Object.entries(EXPECTED)) {
+      for (const [id, { switcher, read }] of Object.entries(rows)) {
+        if (switcher) expect(read, `${viewer} is shown ${id} in the switcher`).toBe(true);
+      }
+    }
+  });
+
+  /**
+   * And the switcher's converse, with the same single exception the panel
+   * has. `listableTrips` is deliberately narrower than the gate for a
+   * `public` trip with `listed: false` — not advertising a trip anybody could
+   * open is what the field is for. Any *other* trip the gate opens and the
+   * switcher stays quiet about is a bug.
+   */
+  test("the only trip the gate opens without the switcher listing it is an unlisted public one", () => {
+    const quiet: string[] = [];
+    for (const [viewer, rows] of Object.entries(EXPECTED)) {
+      for (const [id, { switcher, read }] of Object.entries(rows)) {
+        if (read && !switcher) quiet.push(`${viewer}/${id}`);
+      }
+    }
+    expect(new Set(quiet.map((q) => q.split("/")[1]))).toEqual(new Set(["quiet-2026"]));
   });
 
   /**
@@ -930,6 +981,136 @@ describe("a grant that has expired is not a grant", () => {
         .set({ expires_at: null })
         .where("owner_id", "=", OWNER)
         .where("contact_id", "=", contactId)
+        .execute();
+    }
+  });
+});
+
+/**
+ * The other way onto a trip, held to the same relation. B45.
+ *
+ * Everything above reaches a trip through the file on disk or through a
+ * journal-wide grant. A **buddy link** is the third door (B33): the owner
+ * issues a link naming one trip, somebody redeems it, the owner approves them,
+ * and a row in `trip_people` puts them on that trip — a `private` one, which
+ * no grant can ever open.
+ *
+ * It is worth a block of its own because the panel and the gate reach that row
+ * by two *different queries*. `resolveViewer` and `listableTrips` call
+ * `redeemedTripsFor` (one query, every trip, keyed by address);
+ * `mayReadTrip` calls `isTravellerOn` → `isPersonOn` → `redeemedPeopleOf` (one
+ * query, one trip, keyed by trip id). Two queries answering one question is
+ * exactly the shape of the bug this task reported — a panel computing its own,
+ * more generous answer — so the thing to assert is that they agree, and
+ * especially that they agree about the trips this reader was *not* invited to.
+ *
+ * Approving a buddy does both halves at once (`approveContact` →
+ * `approveTripPlaces`), so this reader is a journal guest *and* on one private
+ * trip. That makes `robins-2026` the assertion that carries the weight: a
+ * second `private` trip in the same journal, which neither door opens.
+ */
+describe("somebody let onto one trip by a buddy link", () => {
+  const BUDDY = "buddy@example.test";
+  let buddyId: string;
+
+  beforeAll(async () => {
+    const { approveContact } = await import("@/lib/contacts");
+    const { claimTripPlace } = await import("@/lib/tripPeople");
+    await addContact(BUDDY);
+    buddyId = await contactIdFor(BUDDY);
+    // Redeeming the link writes a request, not a place; the approval below is
+    // what turns it into access, and it is the only thing that does.
+    await claimTripPlace(OWNER, "secret-2026", buddyId, null);
+    await approveContact(OWNER, buddyId);
+    tokens.buddy = await signIn(BUDDY);
+  });
+
+  test("the gate, the panel and the switcher all name the one trip", async () => {
+    const trips = await tripsByRef();
+    const { mayReadTrip, listableTrips } = await import("@/lib/tripGate");
+    const { resolveViewer } = await import("@/lib/viewer");
+
+    as("buddy");
+    expect(await mayReadTrip(trips.get("secret-2026")!)).toBe(true);
+
+    as("buddy");
+    const panel = (await resolveViewer(OWNER)).trips;
+    // `traveller` and not `guest`: a redeemed place reads the same as a name
+    // typed into `people:`, which is what `isPersonOnWith` is for.
+    expect(panel.find((t) => t.id === "secret-2026")?.through).toBe("traveller");
+
+    as("buddy");
+    const listed = (await listableTrips([...trips.values()])).map((t) => t.id);
+    expect(listed).toContain("secret-2026");
+  });
+
+  /**
+   * The negative, and the one that matters. `robins-2026` is the journal's
+   * other `private` trip: this reader holds a live journal grant and a live
+   * place on a different trip, and neither is a way in. If the two queries
+   * ever disagree — a place read as journal-wide, a grant read as a place —
+   * this is the row that says so.
+   */
+  test("is told nothing about the private trip they were not invited to", async () => {
+    const trips = await tripsByRef();
+    const { mayReadTrip, listableTrips, isGuestOf, mayViewCosts } = await import(
+      "@/lib/tripGate"
+    );
+    const { resolveViewer } = await import("@/lib/viewer");
+
+    as("buddy");
+    expect(await mayReadTrip(trips.get("robins-2026")!)).toBe(false);
+    as("buddy");
+    expect(await isGuestOf(trips.get("robins-2026")!)).toBe(false);
+    as("buddy");
+    expect(await mayViewCosts(trips.get("robins-2026")!)).toBe(false);
+
+    as("buddy");
+    expect((await resolveViewer(OWNER)).trips.map((t) => t.id)).not.toContain("robins-2026");
+
+    as("buddy");
+    const listed = (await listableTrips([...trips.values()])).map((t) => t.id);
+    expect(listed).not.toContain("robins-2026");
+  });
+
+  /**
+   * Revoking the place, and nothing else. The journal grant stays, so the
+   * `guest` trip still opens — which is what makes this an assertion about the
+   * place rather than about the contact being blocked. All three surfaces have
+   * to stop together; a panel or a switcher still naming the trip is B45 again
+   * in the one place the gate reads a different query.
+   */
+  test("loses the trip from all three surfaces when the place is revoked", async () => {
+    const { getDatabase } = await import("@/lib/db");
+    const { db } = await getDatabase();
+    const { revokeTripPlaces } = await import("@/lib/tripPeople");
+    await revokeTripPlaces(OWNER, buddyId);
+
+    try {
+      const trips = await tripsByRef();
+      const { mayReadTrip, listableTrips } = await import("@/lib/tripGate");
+      const { resolveViewer } = await import("@/lib/viewer");
+
+      as("buddy");
+      expect(await mayReadTrip(trips.get("secret-2026")!)).toBe(false);
+
+      as("buddy");
+      expect((await resolveViewer(OWNER)).trips.map((t) => t.id)).not.toContain("secret-2026");
+
+      as("buddy");
+      const listed = (await listableTrips([...trips.values()])).map((t) => t.id);
+      expect(listed).not.toContain("secret-2026");
+
+      // The journal grant is untouched, so this is the place being revoked and
+      // not the reader being blocked.
+      as("buddy");
+      expect(await mayReadTrip(trips.get("invited-2026")!)).toBe(true);
+    } finally {
+      await db
+        .updateTable("trip_people")
+        .set({ revoked_at: null })
+        .where("owner_id", "=", OWNER)
+        .where("contact_id", "=", buddyId)
         .execute();
     }
   });
