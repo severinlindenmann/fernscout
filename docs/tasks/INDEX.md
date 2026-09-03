@@ -138,7 +138,6 @@ Do not edit them by hand; run the script.
 | [B12](in-development/B12-a-finished-trip-still-offers-a.md) | A finished trip still offers a Today button | ISSUE | medium | low | `a4b53c2f` |
 | [B19](in-development/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium | `0c03d994` |
 | [B44](in-development/B44-a-guest-who-arrives-without-their.md) | A guest who arrives without their link sees a complete-looking journal and no way to say who they are | ISSUE | medium | medium | `0c03d994` |
-| [B45](in-development/B45-the-access-panel-lists-guest-trips.md) | The access panel lists guest trips the reader cannot actually open | ISSUE | medium | low | `a4b53c2f` |
 | [B51](in-development/B51-listed-in-a-trip-s-frontmatter.md) | A trip's listed frontmatter key is documented and never read | ISSUE | medium | low | `0c03d994` |
 | [B60](in-development/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | `a4b53c2f` |
 | [B85](in-development/B85-an-upcoming-trip-with-no-plan.md) | An upcoming trip with no plan serialises a whole-world basemap into a page that draws no map | ISSUE | medium | low | `a4b53c2f` |
@@ -172,6 +171,7 @@ Do not edit them by hand; run the script.
 | [B39](testing/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
 | [B40](testing/B40-a-six-digit-code-expires-in.md) | A six-digit code expires in ten minutes, which is shorter than people take to find the mail | CHORE | medium | low | — |
 | [B41](testing/B41-an-approved-contact-is-shown-a.md) | An approved contact is shown a trip in their own panel and then asked for a password nobody gave them | ISSUE | medium | medium | — |
+| [B45](testing/B45-the-access-panel-lists-guest-trips.md) | The access panel lists guest trips the reader cannot actually open | ISSUE | medium | low | — |
 | [B52](testing/B52-the-digest-still-refuses-a-guest.md) | The digest still refuses a guest trip to a reader who can now open it | FEATURE | medium | low | — |
 | [B55](testing/B55-a-signup-token-is-documented-as.md) | A signup token is documented as single-use and is not | SECURITY | medium | low | — |
 | [B57](testing/B57-a-journal-sending-real-mail-keeps.md) | A journal sending real mail keeps no copy, so nothing that went out can be read back | FEATURE | medium | low | — |
