@@ -570,7 +570,10 @@ Content-Type: application/json
 \`\`\`
 
 \`start\` and \`end\` are required: a trip without both is skipped when the site
-reads it, so it would exist on disk and nowhere a reader could find it. They
+reads it, so it would exist on disk and nowhere a reader could find it. If you
+wrote a \`trip.md\` yourself rather than posting here, read the list back — a
+folder the site refused comes back under \`malformed\`, saying what is wrong
+with it, instead of quietly not being there. They
 also decide the trip's status — a trip whose \`start\` has passed shows its days,
 one whose \`start\` is still ahead shows a countdown — so there is no
 \`"status"\` to send unless this is the trip the bare \`/${example}\` URLs should

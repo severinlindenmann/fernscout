@@ -61,14 +61,25 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
    * The owner's address is put in the payload only once `isOwner` has said
    * yes. A stranger's copy of this page does not contain it.
    */
-  const owner = await isOwner(user);
 
-  // Trips that are on disk but too broken to render. Shown to the owner only —
-  // a stranger sees a malformed trip as simply absent, the same as before B83.
-  // Asked before the empty state is decided, because a journal whose only trip
-  // is malformed is *not* empty: it must not be told to hand two lines to an
-  // agent when the trip it is missing is one it already wrote.
-  const malformed = owner ? getMalformedTrips(user) : [];
+  // Trips that are on disk but too broken to render. Read first, and used to
+  // decide whether the owner question is worth asking at all: on a journal
+  // where every trip parses and at least one exists — which is nearly all of
+  // them, nearly all the time — this page needs no session lookup, and the
+  // list is already in hand from the same parse `getTrips` just ran.
+  const broken = getMalformedTrips(user);
+  const owner = all.length === 0 || broken.length > 0 ? await isOwner(user) : false;
+
+  // Shown to the owner only: a stranger sees a malformed trip as simply
+  // absent, the same as before B83. Decided before the empty state, because a
+  // journal whose only trip is malformed is *not* empty — it must not be told
+  // to hand two lines to an agent when the trip it is missing is one it has
+  // already written.
+  // Folder and reason only. The English `problem` on each is what the log and
+  // the API carry; the page renders the reason translated, so sending the
+  // sentence too would put a second copy of every message in the payload for
+  // the browser to never read.
+  const malformed = owner ? broken.map(({ folder, reason }) => ({ folder, reason })) : [];
 
   let empty: EmptyJournal | null = null;
   if (all.length === 0 && malformed.length === 0) {
