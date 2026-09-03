@@ -32,7 +32,20 @@ export async function GET(
   const gate = await mayWriteTrip(auth.session, found);
   if (!gate.ok) return refuseWrite(gate);
 
-  return Response.json({ trip: ref, days: getAllEntries(ref).map(entrySummary) });
+  /**
+   * The trip is handed to `entrySummary` so each day can say whether it is
+   * content nobody lived — B116.
+   *
+   * It matters for one invented day inside an otherwise real trip, which the
+   * software allows and which this list is exactly where an agent would go
+   * looking for. Inherited too: a day in a `test` trip carries no flag of its
+   * own, and `GET .../days/<slug>` has resolved it that way since B47, so the
+   * list and the day read must not disagree about the same day.
+   */
+  return Response.json({
+    trip: ref,
+    days: getAllEntries(ref).map((entry) => entrySummary(entry, found)),
+  });
 }
 
 /**

@@ -10,6 +10,10 @@ import { buildSearchIndexJson } from "@/lib/search";
 import { getTrip } from "@/lib/trips";
 import { getAllEntries } from "@/lib/entries";
 import { tripSummary } from "@/lib/api/entries";
+import { closeDatabase, getDatabase } from "@/lib/db";
+import { migrateToLatest } from "@/lib/db/migrate";
+import { issueCode, verifyCode } from "@/lib/auth";
+import { GET as dayListRoute } from "@/app/api/v1/[user]/trips/[trip]/days/route";
 
 // `mayReadTrip` reads the guest cookie through `next/headers`, which throws
 // outside a request scope. An empty jar is the case that matters: a stranger
@@ -75,27 +79,66 @@ function writeTrip(id: string, extra: string[], entries: { slug: string; extra?:
   }
 }
 
-beforeEach(() => {
+const OWNER_EMAIL = "alex@example.test";
+
+/** A real agent token for alex, minted the way the auth route mints one. */
+async function agentToken(): Promise<string> {
+  const { code } = await issueCode("alex", OWNER_EMAIL, "agent");
+  const verified = await verifyCode("alex", OWNER_EMAIL, code, "agent");
+  if (!verified.ok) throw new Error(`could not mint a token: ${verified.reason}`);
+  return verified.token;
+}
+
+/** `GET /api/v1/alex/trips/<trip>/days`, through the route itself. */
+async function dayList(token: string, trip: string): Promise<Record<string, unknown>[]> {
+  const response = await dayListRoute(
+    new Request(`https://t.test/api/v1/alex/trips/${trip}/days`, {
+      headers: { authorization: `Bearer ${token}` },
+    }),
+    { params: Promise.resolve({ user: "alex", trip }) },
+  );
+  const body = (await response.json()) as { days: Record<string, unknown>[] };
+  if (response.status !== 200) throw new Error(`day list answered ${response.status}`);
+  return body.days;
+}
+
+beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-testflag-"));
   process.env.CONTENT_DIR = dir;
+  // The write API needs a session store and a signing key. Auth is on here
+  // only so the day list can be called the way an agent calls it.
+  process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
+  process.env.SESSION_SECRET = "test-secret-for-the-test-flag";
   fs.writeFileSync(
     path.join(dir, "config.json"),
-    JSON.stringify({ site: { name: "T", url: "https://t.test" }, features: {} }),
+    JSON.stringify({
+      site: { name: "T", url: "https://t.test" },
+      features: { auth: { enabled: true } },
+    }),
   );
   fs.mkdirSync(path.join(dir, "alex", "trips"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
-    JSON.stringify({ title: "Alex", tagline: "t", owner: { name: "A B", nickname: "A" } }),
+    JSON.stringify({
+      title: "Alex",
+      tagline: "t",
+      owner: { name: "A B", nickname: "A", email: OWNER_EMAIL },
+    }),
   );
   clearConfigCache();
   clearUserCache();
 
   writeTrip("real-2026", [], [{ slug: "realday" }, { slug: "fakeday", extra: ["test: true"] }]);
   writeTrip("proving-2026", ["test: true"], [{ slug: "provingday" }]);
+
+  await migrateToLatest(await getDatabase());
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await closeDatabase();
   delete process.env.CONTENT_DIR;
+  delete process.env.DATABASE_URL;
+  delete process.env.SESSION_SECRET;
   clearConfigCache();
   clearUserCache();
   fs.rmSync(dir, { recursive: true, force: true });
@@ -210,5 +253,57 @@ describe("reading the flag back", () => {
     const body = await (await markdownTwin("alex", "real-2026", "fakeday")).text();
     expect(body).toMatch(/^test: true$/m);
     expect(body).toContain("did not happen");
+  });
+});
+
+/**
+ * B116 — the day list, which is where an agent looks for one invented day
+ * inside an otherwise real trip.
+ *
+ * B47 fixed the trip summary, the day read and the markdown twin. This list
+ * still returned `slug`, `title`, `date`, `location`, `lat`, `lng` and
+ * `photos` and no `test`, so the one surface built for enumerating a trip's
+ * days was also the one surface that could not tell you which of them nobody
+ * lived.
+ */
+describe("the day list says which days did not happen", () => {
+  test("a day that inherits the flag from its trip is marked", async () => {
+    // The case that was silent: the operator marked the trip once, so the
+    // entry file carries nothing of its own.
+    expect(getAllEntries("alex/proving-2026")[0].test).toBeUndefined();
+
+    const days = await dayList(await agentToken(), "proving-2026");
+    expect(days).toHaveLength(1);
+    expect(days[0]).toMatchObject({ slug: "provingday", test: true });
+  });
+
+  test("a single invented day inside a real trip is marked, and its neighbour is not", async () => {
+    const days = await dayList(await agentToken(), "real-2026");
+    const bySlug = Object.fromEntries(days.map((d) => [d.slug as string, d]));
+
+    expect(bySlug.fakeday).toMatchObject({ test: true });
+    // Absent, not `false`: absent means real, which is what every other flag
+    // on these surfaces does.
+    expect(bySlug.realday).not.toHaveProperty("test");
+  });
+
+  test("and agrees with the day read about the same day", async () => {
+    // Two doors onto one day. `GET .../days/<slug>` has resolved the
+    // inherited flag since B47; the list must not answer differently.
+    const { GET: dayRoute } = await import(
+      "@/app/api/v1/[user]/trips/[trip]/days/[slug]/route"
+    );
+    const token = await agentToken();
+    const one = await dayRoute(
+      new Request("https://t.test/api/v1/alex/trips/proving-2026/days/provingday", {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+      { params: Promise.resolve({ user: "alex", trip: "proving-2026", slug: "provingday" }) },
+    );
+    const read = (await one.json()) as { test?: boolean };
+    const listed = (await dayList(token, "proving-2026"))[0];
+
+    expect(read.test).toBe(true);
+    expect(listed.test).toBe(read.test);
   });
 });
