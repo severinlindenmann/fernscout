@@ -315,6 +315,131 @@ describe("reading a response", () => {
     if (!result.ok) expect(result.problem.reason).toContain("larger than");
   });
 
+  /**
+   * B136. The cap has always been checked per chunk, but nothing asserted that
+   * the read actually *stops* — a version that buffered the whole body and
+   * judged it at the end passes every other test in this file, and costs the
+   * full size of whatever was sent.
+   *
+   * The body here is a stream that counts how many chunks were pulled out of
+   * it, so "stopped early" is observable rather than assumed.
+   */
+  test("a body over the cap is abandoned partway, not read to the end", async () => {
+    let pulled = 0;
+    globalThis.fetch = async () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          pull(controller) {
+            pulled += 1;
+            if (pulled > 100) return controller.close();
+            controller.enqueue(new Uint8Array(256));
+          },
+        }),
+        { headers: { "content-type": "image/jpeg" } },
+      );
+
+    const result = await fetchImage("https://example.com/a.jpg", 1024);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.problem.reason).toContain("larger than 0 MB");
+    // 1024 bytes at 256 a chunk: five reads settle it. The whole body is 100.
+    expect(pulled).toBeLessThan(10);
+  });
+
+  /**
+   * The other half of B136, and the one that cost the real time: a host that
+   * sends a little and then stops. It never trips the byte cap, so before the
+   * budget existed this held a connection and a request handler for as long as
+   * the remote end cared to keep it — and `urls` is a list, so a batch
+   * multiplies it.
+   */
+  test("a body that stalls is given up on, and the caller is told to retry", async () => {
+    let cancelled = false;
+    globalThis.fetch = async () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new Uint8Array(8));
+          },
+          // No pull: after that first chunk the stream simply never produces
+          // another, which is what a stalled socket looks like from here.
+          pull() {
+            return new Promise<void>(() => {});
+          },
+          cancel() {
+            cancelled = true;
+          },
+        }),
+        { headers: { "content-type": "image/jpeg" } },
+      );
+
+    const started = Date.now();
+    const result = await fetchImage("https://example.com/a.jpg", 1024, 150);
+    const elapsed = Date.now() - started;
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.problem.reason).toContain("took longer than");
+      // B31's vocabulary: a timeout is not a verdict about the URL, so the
+      // caller is told it may work next time rather than to stop asking.
+      expect(result.problem.reason).toContain("send the batch again");
+    }
+    expect(elapsed).toBeLessThan(3000);
+    expect(cancelled).toBe(true);
+  });
+
+  test("a body that arrives slowly but keeps arriving is not refused", async () => {
+    let sent = 0;
+    globalThis.fetch = async () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          async pull(controller) {
+            await new Promise((r) => setTimeout(r, 10));
+            sent += 1;
+            if (sent > 4) return controller.close();
+            controller.enqueue(new Uint8Array([sent]));
+          },
+        }),
+        { headers: { "content-type": "image/jpeg" } },
+      );
+
+    const result = await fetchImage("https://example.com/a.jpg", 1024, 2000);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect([...result.media.bytes]).toEqual([1, 2, 3, 4]);
+  });
+
+  /**
+   * A header that admits to being over the limit can be acted on immediately:
+   * the only way it is wrong is in our favour. The test above it — the one
+   * that hands over 5000 bytes behind a `content-length: 4` — is the guard
+   * that this stayed a shortcut and did not become the check.
+   */
+  test("a content-length already over the cap is refused, and the body let go", async () => {
+    let pulled = 0;
+    let cancelled = false;
+    globalThis.fetch = async () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          pull(controller) {
+            pulled += 1;
+            controller.enqueue(new Uint8Array(1024));
+          },
+          cancel() {
+            cancelled = true;
+          },
+        }),
+        { headers: { "content-type": "image/jpeg", "content-length": "40960" } },
+      );
+
+    const result = await fetchImage("https://example.com/a.jpg", 1024);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.problem.reason).toContain("larger than");
+    // The stream prefills one chunk when it is constructed, whoever reads it,
+    // so "before the body is read" is `cancel()` having been called with the
+    // rest of it undrained — not a pull count of zero.
+    expect(cancelled).toBe(true);
+    expect(pulled).toBeLessThanOrEqual(1);
+  });
+
   test("an error status is refused", async () => {
     globalThis.fetch = async () => respond({ status: 404 });
     const result = await fetchImage("https://example.com/a.jpg", 1024);

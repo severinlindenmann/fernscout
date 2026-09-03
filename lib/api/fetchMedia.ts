@@ -34,6 +34,22 @@ import net from "node:net";
 const TIMEOUT_MS = 15_000;
 const MAX_REDIRECTS = 3;
 
+/**
+ * How long the body may take to arrive, once the headers have.
+ *
+ * `TIMEOUT_MS` covers reaching the host and getting a response — it is cleared
+ * the moment `fetch()` resolves, which is before a single byte of image has
+ * been read. Until B136 nothing bounded the read itself, so a caller-chosen
+ * third party decided how long this server held a connection and a request
+ * handler: a host trickling 49 MB passes the byte cap, succeeds, and can take
+ * as long as it likes doing it.
+ *
+ * 60 seconds against a 50 MB ceiling is about 875 KB/s sustained. A host
+ * slower than that on a file that large is one this endpoint declines to wait
+ * for, and the caller is told to try again rather than told it was refused.
+ */
+const BODY_TIMEOUT_MS = 60_000;
+
 export type FetchedMedia = { filename: string; bytes: Buffer };
 
 export type FetchProblem = { url: string; reason: string };
@@ -233,11 +249,19 @@ function filenameFrom(url: URL, contentType: string): string {
  *
  * `maxBytes` is enforced while the body is read: `Content-Length` is a claim
  * by the same party that chose the URL, and a server that trusts it can be
- * handed a gigabyte by an endpoint that said 10 KB.
+ * handed a gigabyte by an endpoint that said 10 KB. An *overstated* header is
+ * still worth acting on — refusing before reading anything is free whenever it
+ * is honest — but it is a shortcut to the same answer, never the check itself.
+ *
+ * Two clocks, because they bound different things (B136): `TIMEOUT_MS` to get
+ * a response at all, and `bodyTimeoutMs` for the body that follows it.
  */
 export async function fetchImage(
   raw: string,
   maxBytes: number,
+  /** Overridable so a test can assert the budget without waiting a minute for
+   * it. Nothing in the application passes it. */
+  bodyTimeoutMs: number = BODY_TIMEOUT_MS,
 ): Promise<{ ok: true; media: FetchedMedia } | { ok: false; problem: FetchProblem }> {
   const refuse = (reason: string) => ({ ok: false as const, problem: { url: raw, reason } });
 
@@ -252,6 +276,11 @@ export async function fetchImage(
   }
 
   let response: Response;
+  // Declared out here so the body read below can abort the request that
+  // produced it. A controller scoped to the loop could only ever cancel the
+  // reader, which drops our end and leaves the connection to time out on its
+  // own schedule rather than ours.
+  let controller!: AbortController;
   let hops = 0;
   for (;;) {
     const verdict = await checkHost(url.hostname);
@@ -268,7 +297,7 @@ export async function fetchImage(
       );
     }
 
-    const controller = new AbortController();
+    controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
       response = await fetch(url, {
@@ -306,19 +335,61 @@ export async function fetchImage(
     return refuse(`is ${contentType || "of unknown type"}, not an image`);
   }
 
+  const tooBig = () => refuse(`is larger than ${(maxBytes / 1024 / 1024).toFixed(0)} MB`);
+
+  // A header that admits to being over the limit is taken at its word, because
+  // the only way it can be wrong is in our favour: a host that overstates gets
+  // refused something it was not going to be allowed to send anyway. An
+  // understated one buys nothing — the loop below is still the real check.
+  const declared = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    await response.body?.cancel().catch(() => {});
+    return tooBig();
+  }
+
   const reader = response.body?.getReader();
   if (!reader) return refuse("sent no body");
+
+  // One deadline for the whole read, raced against each chunk. A check between
+  // chunks would not help: the case that costs the most is a host that stops
+  // sending entirely, and `read()` on a stalled body simply never settles.
+  let budgetTimer: ReturnType<typeof setTimeout> | undefined;
+  const budget = new Promise<"timeout">((resolve) => {
+    budgetTimer = setTimeout(() => resolve("timeout"), bodyTimeoutMs);
+  });
+
   const chunks: Buffer[] = [];
   let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > maxBytes) {
-      await reader.cancel();
-      return refuse(`is larger than ${(maxBytes / 1024 / 1024).toFixed(0)} MB`);
+  try {
+    for (;;) {
+      const next = await Promise.race([reader.read(), budget]);
+      if (next === "timeout") {
+        // Abort first, cancel second: the abort is what actually lets go of
+        // the socket, and the cancel is only tidying up our reader.
+        controller.abort();
+        await reader.cancel().catch(() => {});
+        return refuse(
+          `took longer than ${(bodyTimeoutMs / 1000).toFixed(0)} seconds to send its body — ` +
+            "this may be temporary; send the batch again",
+        );
+      }
+      const { done, value } = next;
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        controller.abort();
+        await reader.cancel().catch(() => {});
+        return tooBig();
+      }
+      chunks.push(Buffer.from(value));
     }
-    chunks.push(Buffer.from(value));
+  } catch {
+    // A body that fails partway through is the same answer as one that never
+    // started, and for the same reason: we have no image and the caller may
+    // reasonably try again.
+    return refuse("could not be reached");
+  } finally {
+    clearTimeout(budgetTimer);
   }
 
   return { ok: true, media: { filename: filenameFrom(url, contentType), bytes: Buffer.concat(chunks) } };
