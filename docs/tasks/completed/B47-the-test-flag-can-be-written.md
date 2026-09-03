@@ -8,6 +8,7 @@ area: api, trips, test-flag
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-03"
 ---
 
 # B47 — The test flag can be written but never read back, so nothing can confirm it stuck

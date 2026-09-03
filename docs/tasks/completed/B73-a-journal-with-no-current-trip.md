@@ -8,6 +8,7 @@ area: routing, nav, trips
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-03"
 ---
 
 # B73 — A journal with no current trip answers 404 on three of the four pages its own nav offers
