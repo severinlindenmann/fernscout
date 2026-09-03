@@ -1,5 +1,5 @@
 ---
-id: B87
+id: B98
 title: Revoking somebody's access leaves every agent token already issued to them working until it expires
 type: SECURITY
 priority: medium
@@ -8,7 +8,7 @@ area: auth, contacts, api
 found: "2026-09-03"
 ---
 
-# B87 — Revoking somebody's access leaves every agent token already issued to them working until it expires
+# B98 — Revoking somebody's access leaves every agent token already issued to them working until it expires
 
 Found while building B33. Not caused by it — the same hole is there for a name
 removed from `people:` by hand — but B33 is what makes it matter, because

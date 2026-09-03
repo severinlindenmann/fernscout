@@ -252,7 +252,7 @@ needs. Showing a shared trip inside the buddy's *own* journal — that is B34.
   person adds themselves there, you cannot"* — was true and is not any more,
   and has been corrected rather than left.
 
-Found on the way and **not** absorbed: **B87**, revoking somebody's access
+Found on the way and **not** absorbed: **B98**, revoking somebody's access
 leaves every agent token already issued to them working until it expires.
 `mayWriteTrip` reads a scope string frozen into the session at issue time and
 never asks the database again, so a revoked buddy keeps writing for up to seven
