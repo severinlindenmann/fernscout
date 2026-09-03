@@ -69,6 +69,19 @@ fi
 log "building"
 as_service npm run build
 
+# The systemd units that ship with this release, into /etc/systemd/system.
+# Until B138 the only thing this script wrote there was the drop-in below, and
+# a unit was installed by a person running `cp` — so a unit change merged after
+# the last manual copy stayed behind while the deploy said "healthy". B64's
+# whole notification mechanism sat in git for two days that way.
+#
+# After the build and before the restart, on purpose: the units describe how to
+# run what was just built, and the restart below is what adopts them. A failure
+# here therefore aborts with the old site still serving, the same property the
+# build-before-restart order exists for.
+log "installing systemd units"
+"$APP_DIR/scripts/install-units.sh"
+
 # Which commit is actually serving, readable at /api/health. Written to a
 # drop-in rather than $ENV_FILE, because that file holds secrets and this is
 # the one value that changes on every deploy.
