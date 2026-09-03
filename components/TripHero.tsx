@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
-import { ArrowDown, LocateFixed, PlayCircle, Sparkles } from "lucide-react";
+import { ArrowDown, PlayCircle, Sparkles } from "lucide-react";
+import LatestDayButton from "./LatestDayButton";
 import MiniMap from "./MiniMap";
 import type { Basemap } from "@/lib/basemap";
 import PushInstallOnboarding from "./PushInstallOnboarding";
@@ -42,7 +43,7 @@ export default function TripHero({
   over,
   coverSrc,
   onStart,
-  onToday,
+  onLatest,
   onResume,
   resumeLabel,
   newDayCount = 0,
@@ -63,7 +64,9 @@ export default function TripHero({
   over: boolean;
   coverSrc?: string;
   onStart: () => void;
-  onToday: () => void;
+  /** Jump to the day the story lands on — today, or the last day of a trip
+   * that is over. `over` above is what decides which of the two it says. */
+  onLatest: () => void;
   onResume?: () => void;
   resumeLabel?: string;
   /** Days published since this reader was last here. 0 for a first visit. */
@@ -172,13 +175,11 @@ export default function TripHero({
                   {resumeLabel}
                 </button>
               )}
-              <button
-                onClick={onToday}
+              <LatestDayButton
+                tripOver={over}
+                onClick={onLatest}
                 className="inline-flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-yellow-400 px-4 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-              >
-                <LocateFixed className="h-4 w-4" />
-                {t("hero.jumpToToday")}
-              </button>
+              />
               <button
                 onClick={onStart}
                 className="inline-flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-navy-200 bg-white px-4 text-base font-semibold text-navy-700 transition-colors hover:border-navy-500"
