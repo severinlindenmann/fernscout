@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, mayWriteTrip, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { createDraft, deleteEntry, entrySummary, isPublished, type DraftInput } from "@/lib/api/entries";
 import { confirmationMatches, confirmationRequired } from "@/lib/agentConfirm";
 import { getAllEntries } from "@/lib/entries";
@@ -28,9 +28,9 @@ export async function GET(
   // that exist and 404 for the ones that do not let a token scoped to one trip
   // enumerate the journal's others by guessing ids — and /agent.md promises
   // they "answer as if it did not exist". MCP already did this correctly.
-  if (!found || !mayWriteTrip(auth.session, found)) {
-    return Response.json({ error: "unknown_trip" }, { status: 404 });
-  }
+  if (!found) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  const gate = await mayWriteTrip(auth.session, found);
+  if (!gate.ok) return refuseWrite(gate);
 
   return Response.json({ trip: ref, days: getAllEntries(ref).map(entrySummary) });
 }
@@ -58,9 +58,9 @@ export async function POST(
   const found = getTrip(ref);
   // Checked before the body is read, and answering the same way for a trip
   // that does not exist as for one that is not yours — see the GET above.
-  if (!found || !mayWriteTrip(auth.session, found)) {
-    return Response.json({ error: "unknown_trip" }, { status: 404 });
-  }
+  if (!found) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  const gate = await mayWriteTrip(auth.session, found);
+  if (!gate.ok) return refuseWrite(gate);
 
   const body = (await request.json().catch(() => null)) as Partial<DraftInput> | null;
   if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
@@ -163,9 +163,9 @@ export async function DELETE(
 
   const ref = tripRef(user, trip);
   const found = getTrip(ref);
-  if (!found || !mayWriteTrip(auth.session, found)) {
-    return Response.json({ error: "unknown_trip" }, { status: 404 });
-  }
+  if (!found) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  const gate = await mayWriteTrip(auth.session, found);
+  if (!gate.ok) return refuseWrite(gate);
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const slug = typeof body?.slug === "string" ? body.slug.trim() : "";

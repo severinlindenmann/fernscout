@@ -1,7 +1,7 @@
 import "server-only";
 import { resolveSession, type Session } from "../auth";
 import { isEnabled } from "../capabilities";
-import { scopeAllows } from "../tripPeople";
+import { tripWriteVerdict } from "../tripPeople";
 import type { Trip } from "../types";
 
 /**
@@ -61,6 +61,13 @@ const EXPLANATIONS: Record<string, string> = {
   missing_token: "Send the token as `Authorization: Bearer <token>`, and nowhere else.",
   invalid_token:
     "The token is unknown, revoked or expired. Ask for a new code at POST /api/auth/request.",
+  // Deliberately not the `invalid_token` wording above. That one says "ask for
+  // a new code", which is exactly wrong here: they would ask, and
+  // /api/auth/request would refuse them for the same reason this did. Saying
+  // so once is kinder than a loop.
+  access_revoked:
+    "Your access to this trip has been withdrawn by the journal's owner, so this token can no " +
+    "longer write to it. A new code will not be issued for it either — ask the owner directly.",
 };
 
 export function errorResponse(auth: Extract<ApiAuth, { ok: false }>): Response {
@@ -86,12 +93,51 @@ export function errorResponse(auth: Extract<ApiAuth, { ok: false }>): Response {
  * holds a scope naming it, and is refused on every other trip in the same
  * journal — being on somebody's Vietnam trip is not a reason to be able to
  * rewrite their honeymoon.
+ *
+ * Async since B98: a trip-scoped token is measured against who is on the trip
+ * *now*, not against the scope string it was minted with. See
+ * `tripWriteVerdict`.
  */
-export function mayWriteTrip(session: Session, trip: Trip): boolean {
-  return ownsUser(session, trip.username) && scopeAllows(session.scope, trip);
+export type TripWriteGate =
+  | { ok: true }
+  | { ok: false; status: 404; error: "unknown_trip" }
+  | { ok: false; status: 403; error: "access_revoked" };
+
+const UNKNOWN_TRIP: TripWriteGate = { ok: false, status: 404, error: "unknown_trip" };
+
+export async function mayWriteTrip(session: Session, trip: Trip): Promise<TripWriteGate> {
+  if (!ownsUser(session, trip.username)) return UNKNOWN_TRIP;
+  switch (await tripWriteVerdict(session.scope, session.email, trip)) {
+    case "allowed":
+      return { ok: true };
+    case "revoked":
+      return { ok: false, status: 403, error: "access_revoked" };
+    default:
+      return UNKNOWN_TRIP;
+  }
+}
+
+/**
+ * The refusal, as a response.
+ *
+ * A trip that does not exist and a trip that is not yours answer the same 404
+ * — /agent.md promises they "answer as if it did not exist", and answering 403
+ * for the ones that exist would let a token scoped to one trip enumerate the
+ * journal's others by guessing ids. Somebody whose access was revoked is the
+ * exception: the token already names that one trip, so naming the reason tells
+ * them nothing they did not know and saves them asking for a code that will
+ * not be issued.
+ */
+export function refuseWrite(gate: Extract<TripWriteGate, { ok: false }>): Response {
+  const message = EXPLANATIONS[gate.error];
+  return Response.json(
+    { error: gate.error, ...(message ? { message } : {}) },
+    { status: gate.status },
+  );
 }
 
 /** What a listing endpoint may show: every trip the session can reach. */
-export function writableTrips(session: Session, trips: Trip[]): Trip[] {
-  return trips.filter((trip) => mayWriteTrip(session, trip));
+export async function writableTrips(session: Session, trips: Trip[]): Promise<Trip[]> {
+  const gates = await Promise.all(trips.map((trip) => mayWriteTrip(session, trip)));
+  return trips.filter((_, at) => gates[at].ok);
 }

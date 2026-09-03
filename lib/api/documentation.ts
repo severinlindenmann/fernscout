@@ -999,6 +999,7 @@ what tells them apart.
 | \`400\` | \`invalid_entry\` | The body has a \`problems\` list: every problem at once, each naming the field, what arrived and what was expected. |
 | \`401\` | \`missing_token\`, \`invalid_token\` | No token, a wrong one, or an expired one. Ask for a new code. |
 | \`403\` | \`out_of_scope\` | The token is valid but belongs to a different journal, or is scoped to one trip and you asked about another. |
+| \`403\` | \`access_revoked\` | The person this token belongs to has been taken off the trip. The token stays valid for everything else it can reach, and **will not work on this trip again** — do not ask for a new code, it will be refused too. Tell the person to talk to the journal's owner. |
 | \`404\` | \`unknown_trip\` | No such trip, or not one this token may write to. **Fix the id.** |
 | \`404\` | \`auth_disabled\` | This server has authentication off entirely. Nothing you send will work; **stop** and tell the person. \`/api/health\` says which capabilities are on. |
 | \`409\` | — | That entry already exists, or an \`idempotency_key\` was reused for a different day. |

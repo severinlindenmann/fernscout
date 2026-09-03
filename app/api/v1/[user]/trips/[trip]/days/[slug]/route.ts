@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, mayWriteTrip, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { isTestContent } from "@/lib/access";
 import { getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -38,9 +38,9 @@ export async function GET(
 
   const ref = tripRef(user, trip);
   const found = getTrip(ref);
-  if (!found || !mayWriteTrip(auth.session, found)) {
-    return Response.json({ error: "unknown_trip" }, { status: 404 });
-  }
+  if (!found) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  const gate = await mayWriteTrip(auth.session, found);
+  if (!gate.ok) return refuseWrite(gate);
 
   const entry = getEntryBySlug(ref, slug, { includeDrafts: true });
   if (!entry) return Response.json({ error: "unknown_day" }, { status: 404 });

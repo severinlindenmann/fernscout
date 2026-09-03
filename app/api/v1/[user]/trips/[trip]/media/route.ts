@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, mayWriteTrip, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { attachGallery, isPublished } from "@/lib/api/entries";
 import { storeUploads, type KeptOriginal, type UploadCandidate } from "@/lib/api/media";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -118,9 +118,9 @@ export async function POST(
   const found = getTrip(ref);
   // Same answer whether the trip is missing or simply not this token's — see
   // the days route.
-  if (!found || !mayWriteTrip(auth.session, found)) {
-    return Response.json({ error: "unknown_trip" }, { status: 404 });
-  }
+  if (!found) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  const gate = await mayWriteTrip(auth.session, found);
+  if (!gate.ok) return refuseWrite(gate);
 
   // Two ways in. JSON carries a list of URLs for this server to fetch;
   // multipart carries the bytes. The first is the convenient one and the one

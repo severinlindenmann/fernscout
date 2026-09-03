@@ -31,7 +31,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
   // owner has been doing.
   return Response.json({
     user,
-    trips: writableTrips(auth.session, getTrips(user))
+    trips: (await writableTrips(auth.session, getTrips(user)))
       .map((t) => tripSummary(user, t.id))
       .filter(Boolean),
     ...(malformed.length > 0
