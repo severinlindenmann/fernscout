@@ -21,7 +21,7 @@ and left it open in the third.
 A slug is a day's address inside its trip — `getEntryBySlug` (`lib/entries.ts`)
 takes the first match and has no tiebreak — so two entry files whose names
 differ only in the date prefix produce one reachable day and one that is on
-disk, is not a draft, and can never be served. B119 made `createDraft` refuse
+disk, is a draft nobody can reach, and can never be served. B119 made `createDraft` refuse
 that, which covers REST and MCP because both write through it.
 
 `scripts/ingest.mts` does not. It has its own naming loop
@@ -79,3 +79,44 @@ should not be pre-empted here.
 - `--dry-run` prints the same names the real run writes.
 - A test drives `runIngest` over a fixture with the same place on two dates and
   asserts both days come back from `getEntryBySlug`.
+
+## What was built
+
+The Why was right about the mechanism and **wrong about one consequence**,
+which changes who the bug hurts rather than whether it is one.
+
+It says the shadowed file "is not a draft". It is: `renderEntry` writes
+`status: draft` unconditionally (`lib/ingest/entry.ts:95`), so ingest obeys the
+same rule as every other agent-facing writer. So nothing was ever silently
+*published* under a stolen address. What the shadow costs instead is the way
+back out: a person reviews drafts and publishes one by slug, and
+`getEntryBySlug` can only ever return the first match — so the second day
+cannot be looked up, cannot be published, and cannot be deleted through the
+API either. A day that can never leave the drafts folder, with no error
+anywhere saying why. That is the cost, and it is worth the fix.
+
+The Work section's approach held, including the subtlety it flagged, and the
+implementation splits "taken" in two rather than using one widened key:
+
+- **On disk**, a slug is taken only when some *other* date holds it. A slug
+  held on this date is the join case and stays available.
+- **In this run**, a slug is taken outright, whatever the date — two clusters
+  are two entries even on one day, which is what preserves the existing
+  `hoi-an` / `hoi-an-afternoon` behaviour.
+
+One widened key cannot express both: keying on the slug alone breaks the
+same-day split, and exempting the current date breaks it too, because the
+run's own earlier cluster shares that date.
+
+`entryDateFromFile` was added to `lib/entries.ts` beside `entrySlugFromFile`,
+for the reason that comment already gives: the two are one convention read
+from opposite ends, and the date half was about to be re-derived here with a
+private regex. It reads the date from the **name**, not the frontmatter,
+because the name is what decides which file a write lands in — which is the
+question ingest is asking when it joins a day.
+
+Tests in `test/ingest-run.test.ts`: the same place on two dates (needs the
+place index, like the `places` block beside it), and the same collision reached
+through an entry already on disk, which needs no index and so runs everywhere.
+Both fail before the change. The join and dry-run cases pass either way and are
+there as guards on what the fix must not break.

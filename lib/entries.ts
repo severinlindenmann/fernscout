@@ -49,6 +49,24 @@ export function entrySlugFromFile(file: string): string {
   return file.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "");
 }
 
+/**
+ * `2026-01-11-da-lat.md` → `2026-01-11`, and `about.md` → `null`.
+ *
+ * The other half of the same rule, and it lives here for the same reason: the
+ * two are one convention read from opposite ends, and splitting them across
+ * files is how they come to disagree. Null rather than a guess for a name that
+ * carries no date — a caller deciding whether two entries collide needs to
+ * know it does not know, not be handed a plausible date.
+ *
+ * The date in the *name* is deliberately what this reads, not the `date:` in
+ * the frontmatter. The name is what decides which file a write lands in; the
+ * frontmatter is what the page displays. Ingest joins an existing day by
+ * building the filename, so the name is the question it is asking.
+ */
+export function entryDateFromFile(file: string): string | null {
+  return /^(\d{4}-\d{2}-\d{2})-/.exec(file)?.[1] ?? null;
+}
+
 function parseTranslations(raw: unknown): EntryTranslations | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const src = raw as Record<string, { title?: string; content?: string } | undefined>;

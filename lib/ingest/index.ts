@@ -62,7 +62,7 @@ import {
 import { validateEntry } from "../validate/entry.ts";
 import { MAX_ITEMS_PER_DAY, validateMediaItem, type Problem as MediaProblem } from "../validate/media.ts";
 import { tripOriginalsDir } from "../media.ts";
-import { forgetEntries } from "../entries.ts";
+import { entryDateFromFile, entrySlugFromFile, forgetEntries } from "../entries.ts";
 
 export type IngestOptions = {
   username: string;
@@ -459,7 +459,41 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
       ? reverseGeocode(cluster.lat, cluster.lng)
       : null,
   );
+  // **A slug is a day's address inside its whole trip, not inside its date** —
+  // B141. `getEntryBySlug` takes the first match and has no tiebreak, so two
+  // entry files differing only in their date prefix produce one reachable day
+  // and one that is on disk, is not a draft, and can never be served. B119
+  // made `createDraft` refuse that, which covers REST and MCP; ingest writes
+  // its own names and did not.
+  //
+  // Ingest cannot refuse — it is a batch import of a folder somebody just
+  // handed over, and stopping the run because photograph 340 landed in a town
+  // visited on Tuesday would be worse than the bug. So the answer is a wider
+  // notion of "taken", in two parts, and the difference between them is the
+  // whole subtlety:
+  //
+  //   - **On disk**, a slug is taken only when some *other* date holds it. A
+  //     slug held on this same date is the join case and must stay available,
+  //     because re-running ingest over a day already imported has to land in
+  //     the same file rather than write `hoi-an-2` beside it.
+  //   - **In this run**, a slug is taken outright, whatever the date. Two
+  //     clusters are two entries even when they share a day, which is what
+  //     gives the same town twice on one afternoon `hoi-an` and
+  //     `hoi-an-afternoon`.
+  const datesOnDisk = new Map<string, Set<string | null>>();
+  if (fs.existsSync(entriesOut)) {
+    for (const file of fs.readdirSync(entriesOut)) {
+      if (!file.endsWith(".md")) continue;
+      const held = entrySlugFromFile(file);
+      const dates = datesOnDisk.get(held) ?? new Set<string | null>();
+      dates.add(entryDateFromFile(file));
+      datesOnDisk.set(held, dates);
+    }
+  }
   const usedSlugs = new Set<string>();
+  const slugTaken = (candidate: string, date: string): boolean =>
+    usedSlugs.has(candidate) ||
+    (datesOnDisk.has(candidate) && !datesOnDisk.get(candidate)!.has(date));
   let imported = 0;
   let previousStop: { lat?: number; lng?: number; takenAtMs: number; location: string } | undefined;
 
@@ -481,15 +515,14 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
       over.decoded?.dispose();
     }
 
-    // An entry file that already exists is joined, not avoided — that is how
-    // "I found six more photos from Tuesday" works. Only a collision inside
-    // this one run needs a different name, because two stops in the same town
-    // on the same day are two entries.
+    // An entry file that already exists *on this date* is joined, not avoided
+    // — that is how "I found six more photos from Tuesday" works. Anything
+    // else that already holds the name gets out of the way; see `slugTaken`.
     const hour = new Date(first.takenAtMs).getUTCHours();
     let slug = baseSlug;
-    if (usedSlugs.has(`${cluster.date}/${slug}`)) slug = `${baseSlug}-${partOfDay(hour)}`;
-    for (let n = 2; usedSlugs.has(`${cluster.date}/${slug}`); n++) slug = `${baseSlug}-${n}`;
-    usedSlugs.add(`${cluster.date}/${slug}`);
+    if (slugTaken(slug, cluster.date)) slug = `${baseSlug}-${partOfDay(hour)}`;
+    for (let n = 2; slugTaken(slug, cluster.date); n++) slug = `${baseSlug}-${n}`;
+    usedSlugs.add(slug);
 
     const entryFile = path.join(entriesOut, entryFileName(cluster.date, slug));
     const exists = fs.existsSync(entryFile);
