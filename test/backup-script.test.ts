@@ -30,7 +30,11 @@ import { postgresConfigured } from "./support/dialects";
  *   - and, since B114, a `DATA_DIR` with something unreadable in it: the run
  *     stages what it can, names what it could not, and refuses to call that a
  *     success — one stray file may cost neither the night's backup nor the
- *     truth about it.
+ *     truth about it;
+ *   - and, since B115, the bound on that probe: a repository that does not
+ *     answer must give up in seconds and read as *unreachable*, never as
+ *     absent. B180 made that case run on a machine with no coreutils, by
+ *     putting a `timeout` shim on PATH — see the block at the bottom.
  *
  * What it deliberately does **not** cover, and cannot: the destroy-and-restore
  * drill against the deployed stack. Restoring here means "the files come back
@@ -53,9 +57,56 @@ const PG_DUMP = haveBinary("pg_dump");
 const IS_ROOT = typeof process.getuid === "function" && process.getuid() === 0;
 // B115. `timeout` is coreutils: on the VPS, and not on macOS without
 // `brew install coreutils`. The script falls back to an unwrapped probe when
-// it is missing, so the two branches are tested by two tests, each skipping
-// where its branch cannot exist — the same shape as RESTIC and IS_ROOT above.
+// it is missing, so this decides which *fallback* branch the machine can show.
+// It no longer decides whether the bounded branch is tested at all — B180 put
+// a shim on PATH for that — only whether the real binary is also available to
+// check the shim against.
 const HAS_TIMEOUT = haveBinary("timeout", ["--version"]) || haveBinary("gtimeout", ["--version"]);
+
+/**
+ * A stand-in for coreutils `timeout(1)`, written onto PATH so the bounded
+ * probe can be exercised on a machine that has no coreutils (B180).
+ *
+ * **What this proves, and what it does not.** What is under test is
+ * `scripts/backup.sh`'s *handling* of a bounded probe — that an exit of 124
+ * classifies as `unreachable` and never as `absent`, because `restic init`
+ * over a repository that is merely slow is the disaster the whole probe
+ * exists to prevent. That behaviour belongs to the script. The shim does not
+ * test coreutils, and it is not a reimplementation of it: it takes no flags,
+ * knows nothing of `-k` or `--signal`, and is only as faithful as the two
+ * things the contract between these files rests on — **124 on expiry, and the
+ * command's own status otherwise**. Both are asserted below, the second so
+ * that a shim which simply always returned 124 could not pass.
+ *
+ * Where real coreutils *is* installed the same assertions are run again
+ * against the real binary, so the shim cannot drift from it unnoticed.
+ *
+ * `restic` itself is not stubbed: the shim wraps the real probe against a
+ * real unreachable address, exactly as the script does on the VPS.
+ */
+const TIMEOUT_SHIM = [
+  "#!/bin/sh",
+  "# A minimal timeout(1) for the test suite: timeout <seconds> <cmd> [args...]",
+  "# Exits 124 when the bound expires, and passes the command's own status",
+  "# through when it does not. See test/backup-script.test.ts.",
+  'secs="$1"; shift',
+  'marker="${TMPDIR:-/tmp}/fernscout-timeout-shim.$$"',
+  'rm -f "$marker"',
+  '"$@" &',
+  "child=$!",
+  "# The marker, rather than the child's exit status, is what makes this 124:",
+  "# a command killed by a signal nobody sent is not an expiry.",
+  '( sleep "$secs"; : > "$marker"; kill -TERM "$child" 2>/dev/null',
+  '  sleep 5; kill -KILL "$child" 2>/dev/null ) >/dev/null 2>&1 &',
+  "watcher=$!",
+  'wait "$child"; status=$?',
+  "# Redirected because the probe captures this process's stderr, and a job",
+  "# notification landing in it would be read as restic's own words.",
+  '{ kill -TERM "$watcher"; wait "$watcher"; } >/dev/null 2>&1',
+  'if [ -f "$marker" ]; then rm -f "$marker"; exit 124; fi',
+  'exit "$status"',
+  "",
+].join("\n");
 
 if (!RESTIC) {
   // Not a failure — but not a pass either: the whole file is skipped, loudly,
@@ -99,6 +150,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
   let repo: string;
   let staging: string;
   let stubBin: string;
+  let shimBin: string;
 
   const PASSWORD = "backup-drill-password";
 
@@ -194,6 +246,13 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     fs.rmSync(path.join(stubBin, "restic"), { force: true });
   }
 
+  /** PATH with the `timeout` shim on the front of it, and nothing else — the
+   * stub directory is kept separate so a shimmed probe cannot accidentally
+   * arrive in a test about `pg_dump` or an old restic. */
+  function withTimeoutShim(): Record<string, string> {
+    return { PATH: `${shimBin}${path.delimiter}${process.env.PATH ?? ""}` };
+  }
+
   beforeAll(() => {
     scratch = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-backup-"));
     dataDir = path.join(scratch, "data");
@@ -205,6 +264,9 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     staging = path.join(scratch, "fernscout-backup-staging");
     stubBin = path.join(scratch, "bin");
     fs.mkdirSync(stubBin, { recursive: true });
+    shimBin = path.join(scratch, "shim-bin");
+    fs.mkdirSync(shimBin, { recursive: true });
+    fs.writeFileSync(path.join(shimBin, "timeout"), TIMEOUT_SHIM, { mode: 0o755 });
 
     // DATA_DIR: what the app writes — reaction state, a push subscription, and
     // the SQLite file, which is binary and must survive as bytes.
@@ -553,22 +615,70 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
    */
   const UNREACHABLE = "rest:http://127.0.0.1:1/";
 
-  test.skipIf(!HAS_TIMEOUT)(
+  /** The assertions both bounded cases make — once against the shim, and,
+   * where coreutils is installed, once against the real binary. */
+  function expectGaveUpBounded(extra: Record<string, string>) {
+    const started = Date.now();
+    const run = runBackup({ RESTIC_REPOSITORY: UNREACHABLE, BACKUP_PROBE_TIMEOUT: "2", ...extra });
+    const elapsed = (Date.now() - started) / 1000;
+
+    expect(run.status, "an unreachable repository is not a successful backup").not.toBe(0);
+    expect(run.stdout).toContain("cannot read the repository");
+    // The 124 branch by name, not merely "something classified it as
+    // unreachable". Without this line the test passes with that branch
+    // deleted, because the text fallback underneath it reads restic's own
+    // "connection refused" and lands on unreachable anyway — for a reason
+    // that has nothing to do with the bound, and would not hold for a
+    // backend whose stall says nothing at all.
+    expect(run.stdout).toContain("no answer within 2s (BACKUP_PROBE_TIMEOUT)");
+    // The point of the task: bounded, and by the value asked for. Generous
+    // headroom over the 2s bound, because this also pays for staging the
+    // fixture and starting restic — it is asserting "seconds, not minutes".
+    expect(elapsed, `the probe took ${elapsed}s`).toBeLessThan(60);
+    // It must never read as absent. `restic init` over a repository that is
+    // merely slow to answer is the disaster the whole probe exists to stop.
+    expect(run.stdout).not.toContain("creating a NEW, EMPTY repository");
+  }
+
+  test(
     "an unreachable repository gives up within BACKUP_PROBE_TIMEOUT, not the unit timeout",
     () => {
-      const started = Date.now();
-      const run = runBackup({ RESTIC_REPOSITORY: UNREACHABLE, BACKUP_PROBE_TIMEOUT: "2" });
-      const elapsed = (Date.now() - started) / 1000;
+      // B180. This ran nowhere it was written: `timeout` is coreutils, the
+      // laptop this suite is edited on has none, and so the one branch B115
+      // existed to fix was the branch that skipped. The bound is supplied by
+      // TIMEOUT_SHIM instead — see its comment for what that is worth. restic
+      // and the unreachable address are real.
+      expectGaveUpBounded(withTimeoutShim());
+    },
+    120_000,
+  );
 
-      expect(run.status, "an unreachable repository is not a successful backup").not.toBe(0);
-      expect(run.stdout).toContain("cannot read the repository");
-      // The point of the task: bounded, and by the value asked for. Generous
-      // headroom over the 2s bound, because this also pays for staging the
-      // fixture and starting restic — it is asserting "seconds, not minutes".
-      expect(elapsed, `the probe took ${elapsed}s`).toBeLessThan(60);
-      // It must never read as absent. `restic init` over a repository that is
-      // merely slow to answer is the disaster the whole probe exists to stop.
-      expect(run.stdout).not.toContain("creating a NEW, EMPTY repository");
+  test.skipIf(!HAS_TIMEOUT)(
+    "…and the same holds with the real timeout(1), where coreutils is installed",
+    () => {
+      // The shim's keeper. Where the real binary exists it must reach the
+      // same verdict, or the shim has drifted from what runs on the VPS.
+      expectGaveUpBounded({});
+    },
+    120_000,
+  );
+
+  test(
+    "the shim exits 124 only on expiry, so the bounded case is not asserting a constant",
+    () => {
+      // If TIMEOUT_SHIM returned 124 for everything, the test above would pass
+      // against a script that had stopped bounding anything at all. A probe
+      // that ends quickly must therefore carry its own exit through: restic
+      // exits 10 for a repository that genuinely is not there, and the run
+      // must still read that as *absent* — the classification the bounded
+      // case is required never to reach.
+      const missing = path.join(scratch, "not-a-repository");
+      const run = runBackup({ RESTIC_REPOSITORY: missing, ...withTimeoutShim() });
+
+      expect(run.status, "an absent repository is refused, not created").not.toBe(0);
+      expect(run.stdout).toContain("there is no repository at");
+      expect(run.stdout).not.toContain("no answer within");
+      expect(run.stdout).not.toContain("cannot read the repository");
     },
     120_000,
   );
