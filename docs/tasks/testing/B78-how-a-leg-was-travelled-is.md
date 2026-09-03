@@ -87,6 +87,38 @@ way the leg was travelled; the draw-on was decoration, and information wins.
 only runs on the leg currently being travelled and *is* the meaning — the rest
 of its legs pass `initial={false}` and keep their dashes.
 
+### A flight bowed the wrong way, and there was nothing to notice it on
+
+The author asked for the Zurich flight to be added to the demo so the styling
+could be seen working. It could — and drawing it immediately showed that the
+arc swept **south over Africa**.
+
+The bow was a plain perpendicular to the leg, so which side it fell on depended
+on which way the leg happened to run. Every existing demo leg is short and
+roughly north–south, where the difference is invisible; the first long
+east–west leg made it obvious, and wrong in a way anyone who has taken that
+flight would notice. Legs now bend toward the nearer pole, which is the
+direction a great circle actually goes: Zurich–Bangkok arcs over the Caucasus
+and past K2, not over the Sahara.
+
+Three tests cover it, because the bug is a sign error and sign errors come back:
+the arc is north of the route in the northern hemisphere, south of it in the
+southern, and — the one that matters — the *same* side whichever end the leg
+starts from. An eastbound and a westbound flight bowing opposite ways is
+exactly what the old code did.
+
+**The demo content it was found with is committed**:
+`content/example/trips/asia-2023/entries/2023-01-08-leaving-zurich.md`, plus
+three `transportMode` lines on the Bangkok morning that follows it. The trip
+already declared `start: 2023-01-08`, a day before its first entry, so the
+departure day fits the metadata exactly.
+
+It carries **`test: true`**, per AGENTS.md — it is a day nobody lived, written
+to prove the pipeline works. That is not cosmetic: the day page shows a banner
+saying so, and the entry stays out of the feed and the search index. It still
+draws on the map, which is the point. Removing that one line would make it read
+as ordinary demo content, and that is the author's call rather than an agent's.
+
 ## Acceptance
 
 - Each mode is distinguishable from every other without reference to colour —
