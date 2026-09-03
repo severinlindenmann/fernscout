@@ -92,6 +92,74 @@ function mailDir(username?: string): string {
 const MAX_SAME_NAME = 100;
 
 /**
+ * How long a `.eml` stays on disk. Two days.
+ *
+ * B57 said these files "stay there until somebody removes them", on the
+ * reasoning that an operator turns `keepCopy` on to debug something and turns
+ * it off again. Two things made that weaker than it read: `keepCopy` has been
+ * on at fernscout.ch for days (B102), and since B111 these files live inside
+ * `CONTENT_DIR`, which `scripts/backup.sh` archives wholesale — so a plaintext
+ * credential now propagates into restic snapshots and lives for the retention
+ * period of the backup rather than the life of the directory.
+ *
+ * The window comes from what the files are *for*: somebody reading the message
+ * they just triggered. Two days covers a flow debugged on a Friday and looked
+ * at again on a Sunday, and nothing in the codebase ever reads an old one.
+ *
+ * It is deliberately not tied to how long the *contents* stay valid, which
+ * varies and is not this module's to know. A sign-in code expires in 30
+ * minutes and a stale one is worthless; a journal-deletion link and a guest
+ * invitation are single-use but long-lived, and those are the ones an old
+ * `.eml` turns into a live credential in a directory nobody revisits.
+ */
+const KEPT_MAIL_TTL_MS = 2 * 24 * 60 * 60 * 1000;
+
+/**
+ * Delete the `.eml` files in one directory that are past `KEPT_MAIL_TTL_MS`.
+ *
+ * Swept on write rather than on a schedule: the thing that writes mail is the
+ * only thing that needs to know mail exists, so this needs no cron, no systemd
+ * unit and no new capability — all three of which would be more machinery than
+ * the problem (B135).
+ *
+ * **Never throws.** A directory it cannot read is a warning and nothing more,
+ * for the same reason `keepCopyOf` swallows its own failures: the message is
+ * the point, and refusing to send mail because an old file would not delete
+ * would be a worse bug than the one this fixes.
+ *
+ * Only `.eml`, only files, only this directory. Mail folders are gitignored
+ * and shared with nothing, but "delete things older than two days" is the kind
+ * of line that wants its blast radius stated rather than assumed.
+ */
+function sweepExpiredMail(dir: string): void {
+  const cutoff = Date.now() - KEPT_MAIL_TTL_MS;
+  let removed = 0;
+  try {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith(".eml")) continue;
+      const file = path.join(dir, entry.name);
+      try {
+        if (fs.statSync(file).mtimeMs >= cutoff) continue;
+        fs.unlinkSync(file);
+        removed++;
+      } catch {
+        // Raced with something else, or not ours to remove. The next message
+        // written here tries again; one stubborn file is not worth a warning
+        // on every send.
+      }
+    }
+  } catch (error) {
+    console.warn(`[mail] could not sweep ${displayPath(dir)}: ${(error as Error).message}`);
+    return;
+  }
+  if (removed > 0) {
+    console.log(
+      `[mail] swept ${removed} expired .eml from ${displayPath(dir)} (older than 2 days)`,
+    );
+  }
+}
+
+/**
  * Write one message to disk, and return where it landed.
  *
  * Shared by the file transport, which is the only thing it does, and by
@@ -119,6 +187,13 @@ const MAX_SAME_NAME = 100;
 function writeEml(mail: Mail): string {
   const dir = mailDir(mail.username);
   fs.mkdirSync(dir, { recursive: true });
+
+  // Before the write, not after, so the message just written is never a
+  // candidate for its own sweep. Here rather than in the two callers because
+  // the file transport and `keepCopy` produce the same files for the same
+  // reasons, and a lifetime that applied to only one of them would be a
+  // difference nobody could justify later (B135).
+  sweepExpiredMail(dir);
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const base = `${stamp}-${slug(mail.to)}-${slug(mail.subject)}`;
@@ -278,10 +353,14 @@ export async function sendMail(mail: Mail): Promise<SendResult | null> {
  * **Absent means off, and that default is load-bearing.** Turning this on
  * writes sign-in codes, guest invitations and journal-deletion links to
  * `content/<user>/mail/` — and signup codes, which belong to no journal yet,
- * to `content/.mail/` — in plaintext, where they stay until somebody removes
- * them. Anyone who can read the filesystem — a backup, a snapshot, another
- * process on the box — can then sign in as any reader of that journal, or
- * finish a deletion.
+ * to `content/.mail/` — in plaintext. Anyone who can read the filesystem — a
+ * backup, a snapshot, another process on the box — can then sign in as any
+ * reader of that journal, or finish a deletion.
+ *
+ * They no longer stay forever: `KEPT_MAIL_TTL_MS` gives them two days, swept
+ * whenever the next message is written to the same directory (B135). That
+ * bounds the exposure and does not remove it — a file is readable for those
+ * two days, and a directory nothing writes to again is never swept at all.
  *
  * It exists because the alternative was worse in the case that actually
  * arose: on an instance sending real mail, the deletion-confirmation link and

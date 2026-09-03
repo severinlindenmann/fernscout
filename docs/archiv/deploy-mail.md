@@ -33,13 +33,33 @@ in somebody's inbox, so whoever is testing the site can get as far as "the
 endpoint refuses me" and no further.
 
 **Turning it on writes sign-in codes, signup codes, guest invitations and
-deletion links to disk in plaintext**, and they stay there until somebody
-deletes them. Anyone who can read the filesystem — a backup, a snapshot,
-another process on the box — can then sign in as any reader of that journal,
-start a journal at somebody else's address, or finish a deletion. That is the
-same exposure the `file` transport already has in development; the difference is
-that a server has real readers. Turn it on to debug something, and turn it off
-again.
+deletion links to disk in plaintext.** Anyone who can read the filesystem — a
+backup, a snapshot, another process on the box — can then sign in as any reader
+of that journal, start a journal at somebody else's address, or finish a
+deletion. That is the same exposure the `file` transport already has in
+development; the difference is that a server has real readers. Turn it on to
+debug something, and turn it off again.
+
+### How long they last
+
+**Two days.** A `.eml` older than that is deleted when the next message is
+written to the same directory — there is no cron, no timer and no capability
+to switch on, because the thing that writes mail is the only thing that has to
+know mail exists (B135). It applies to the `file` transport in development and
+to `keepCopy` on a server alike; they share the function that writes the file.
+
+The window comes from what the files are for: reading the message you just
+triggered. Nothing in the codebase ever reads an old one.
+
+Two limits worth knowing, because "two days" is easy to over-read:
+
+- **A file is readable for those two days**, and a sign-in code is worthless
+  long before then (30 minutes) while a deletion link and a guest invitation
+  are not. Bounded is not the same as safe.
+- **A directory nothing writes to again is never swept.** Sweeping happens on
+  write, so a journal that stops sending mail keeps whatever it had. If you
+  turned `keepCopy` on to debug something, turn it off *and* clear the two
+  directories below — that is still the reliable way to be rid of them.
 
 Clearing it out is two directories, not one:
 
