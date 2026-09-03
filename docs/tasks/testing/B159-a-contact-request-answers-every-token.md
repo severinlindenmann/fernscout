@@ -7,8 +7,7 @@ complexity: low
 area: contacts, api, timing
 found: "2026-09-03"
 started: "2026-09-03T19:48:58Z"
-session: d6791268-ed45-4a69-acde-99f9e5f10516
-claimed: "2026-09-03T19:48:58Z"
+merged: "2026-09-03T20:05:17Z"
 ---
 
 # B159 — The uniform 202 is uniform in everything but latency
@@ -129,10 +128,17 @@ access page — is already answered one step earlier and more bluntly, since
 only `GET` is exported and Next returns 405 before the handler runs. Exporting
 a redirect for POST would weaken that to serve a form that no longer exists.
 
-**Found and captured, not absorbed: B197.** `main` is red —
+**Captured B197, then withdrew it.** A full run on this branch found
 `test/mail.test.ts > a sweep that cannot read the directory still sends the
-message` has failed since B60 merged. B60's new `isEnabled("mail", username)`
-gate resolves the journal through `getUsernames()`, whose `readdirSync` catch
-turns an unreadable content root into "no such journal" into "mail is off".
-Silent suppression of every journal's mail, which is the failure mode B60's own
-commit message rules out. Unrelated to this task, filed at `high`.
+message` failing, traced to B60's new `isEnabled("mail", username)` gate
+resolving through `getUsernames()`, whose `readdirSync` catch turns an
+unreadable content root into "no such journal" into "mail is off". The
+diagnosis was right and the B60 session was making it at the same moment: they
+merged the fix in `2500704` about a minute after the capture was written.
+B197 is kept, marked as already fixed, and says so — an id has to mean one
+thing forever, but it must not go on claiming a bug that is closed.
+
+Worth recording as a hazard rather than a bug: that run was `npx vitest run` in
+the main checkout while another agent was merging into it, so it saw a tree
+that never existed. One of its two failures never reproduced at all. A full
+suite run on `main` is only trustworthy if nothing is landing under it.
