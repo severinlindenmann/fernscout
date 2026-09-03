@@ -57,6 +57,24 @@ expiry check when `link_standing === 1`), which is what makes the failure
 absolute: the link cannot outlive the scanner by simply not expiring, because
 being spent is the terminal state.
 
+
+## Scope, narrowed by B29's verification (2026-09-03)
+
+This affects the **standing** link that goes in the welcome mail, and not the
+**relay** link the journal-creation API returns as `signIn`. They are different
+tokens against the same door — `issueStandingLink` and `issueRelayLink`,
+`lib/auth/index.ts:466` and `:432` — stored as separate `login_codes` rows.
+Redemption consumes only the row it matched and `openSession` revokes nothing,
+so a scanner sweeping the inbox spends the mailed copy and leaves the relayed
+copy live. Confirmed on `xydhd-qa5`: the 201 carried `…/s/S0P6FxUm…` while the
+welcome mail written three seconds later carried a different token.
+
+That matters for the fix. **Whatever is done here must not break the relay
+link**, which works correctly today: short-lived, single-use, handed to a person
+by an agent rather than mailed, and never meeting a scanner. If the answer is
+"redeem on POST rather than GET", it belongs on the mailed link; applying it to
+both is harmless, but applying it only to the relay link would fix nothing.
+
 ## Work
 
 The link must survive being fetched by a machine. Standard approaches, roughly

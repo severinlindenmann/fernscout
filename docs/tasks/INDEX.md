@@ -49,6 +49,7 @@ Do not edit them by hand; run the script.
 | [B102](backlog/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | CHORE | high | medium |
 | [B103](backlog/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | CHORE | high | medium |
 | [B142](backlog/B142-a-mail-scanner-follows-the-welcome.md) | A mail scanner follows the welcome link, spending the owner's one-tap sign-in and minting a year-long session | SECURITY | high | medium |
+| [B153](backlog/B153-a-journal-created-through-the-api.md) | A journal created through the API can never invite anybody, because contacts is off and nothing can turn it on | ISSUE | high | low |
 | [B02](backlog/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low |
 | [B06](backlog/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B09](backlog/B09-links-to-docs-moved-into-archiv.md) | Links to docs moved into archiv no longer resolve | CHORE | medium | low |
@@ -68,6 +69,8 @@ Do not edit them by hand; run the script.
 | [B141](backlog/B141-ingest-disambiguates-a-colliding-slug-only.md) | Ingest disambiguates a colliding slug only within one date, so two days can still shadow each other | ISSUE | medium | low |
 | [B143](backlog/B143-task-ids-collide-when-parallel-sessions.md) | Task ids collide when parallel sessions capture by hand, which is what B99 was meant to prevent | ISSUE | medium | medium |
 | [B144](backlog/B144-enterworktree-refuses-for-a-dispatched-subagent.md) | EnterWorktree refuses for a dispatched subagent, so work-on-a-task's second step cannot be followed | ISSUE | medium | low |
+| [B154](backlog/B154-the-readme-describes-a-scroll-driven.md) | The README describes a scroll-driven map and a photo journal without showing one | CHORE | medium | low |
+| [B155](backlog/B155-nothing-in-the-repo-tells-a.md) | Nothing in the repo tells a reader that fernscout.ch will host their journal, or what it promises | FEATURE | medium | low |
 | [B16](backlog/B16-the-day-photo-viewer-does-not.md) | The day photo viewer does not answer to touch and never says where you are | ISSUE | medium | low |
 | [B17](backlog/B17-how-a-trip-gets-its-rates.md) | How a trip gets its rates is written down nowhere a person will find it | CHORE | medium | low |
 | [B20](backlog/B20-the-stranger-s-me-page-never.md) | The stranger's me page never says who to ask | ISSUE | medium | low |
@@ -99,6 +102,7 @@ Do not edit them by hand; run the script.
 | [B139](backlog/B139-the-costs-page-s-tab-title.md) | The costs page's tab title is English on a journal that is not | ISSUE | low | low |
 | [B140](backlog/B140-the-tab-title-can-be.md) | The tab title can be in a language the journal does not offer, while the page is not | ISSUE | low | low |
 | [B15](backlog/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium |
+| [B152](backlog/B152-the-guide-calls-the-relayed-sign.md) | The guide calls the relayed sign-in link the same link as the mailed one, and never says what kills it | CHORE | low | low |
 | [B23](backlog/B23-everything-in-docs-was-archived-and.md) | Everything in docs was archived and nobody decided what is still current | CHORE | low | low |
 | [B24](backlog/B24-nothing-notices-when-a-file-stops.md) | Nothing notices when a file stops being used | CHORE | low | low |
 | [B48](backlog/B48-nothing-says-what-ownernickname-should-be.md) | Nothing says what ownerNickname should be when the agent and the owner are the same person | CHORE | low | low |
@@ -173,7 +177,6 @@ Do not edit them by hand; run the script.
 | [B98](testing/B98-revoking-somebody-s-access-leaves-every.md) | Revoking somebody's access leaves every agent token already issued to them working until it expires | SECURITY | medium | medium |
 | [B99](testing/B99-two-agents-working-in-parallel-worktrees.md) | Two agents working in parallel worktrees are handed the same task id | CHORE | medium | low |
 | [B118](testing/B118-the-journal-map-page-disagrees-with.md) | The journal map page disagrees with itself about tense between its heading and its tab title | ISSUE | low | low |
-| [B29](testing/B29-an-agent-has-no-way-to.md) | An agent has no way to hand its owner a working sign-in link | FEATURE | low | medium |
 
 ## completed
 
@@ -189,6 +192,7 @@ Do not edit them by hand; run the script.
 | [B46](completed/B46-a-trip-that-stays-inside-one.md) | A trip that stays inside one city draws as a single dot on a map thousands of kilometres wide | ISSUE | medium | medium |
 | [B63](completed/B63-a-wrong-restic-repository-makes-a.md) | A wrong RESTIC_REPOSITORY makes a new empty repo instead of failing | ISSUE | medium | low |
 | [B78](completed/B78-how-a-leg-was-travelled-is.md) | How a leg was travelled is carried by colour alone, and its dash pattern breaks on a small map | ISSUE | medium | low |
+| [B29](completed/B29-an-agent-has-no-way-to.md) | An agent has no way to hand its owner a working sign-in link | FEATURE | low | medium |
 | [B30](completed/B30-a-url-upload-never-says-whether.md) | A URL upload never says whether an original was kept | ISSUE | low | low |
 | [B31](completed/B31-a-refused-url-does-not-say.md) | A refused URL does not say whether the host was checked or the check itself failed | ISSUE | low | low |
 | [B54](completed/B54-an-upcoming-trip-s-map-is.md) | An upcoming trip's map is titled "Where we've been" | ISSUE | low | low |

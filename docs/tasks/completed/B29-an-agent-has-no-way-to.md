@@ -8,6 +8,7 @@ area: auth, api, journals
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-03"
 ---
 
 # B29 — An agent has no way to hand its owner a working sign-in link
