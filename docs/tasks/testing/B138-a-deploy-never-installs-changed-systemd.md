@@ -7,6 +7,7 @@ complexity: low
 area: deploy, systemd, ops
 found: "2026-09-03"
 started: "2026-09-03"
+merged: "2026-09-03T19:13:35Z"
 ---
 
 # B138 — A deploy never installs changed systemd units
