@@ -933,4 +933,79 @@ describe("a grant that has expired is not a grant", () => {
         .execute();
     }
   });
+
+  /**
+   * B130. The writer's half of the same rule.
+   *
+   * The test above is about every *reader* agreeing that an expired row is not
+   * a grant. This one is about the one thing that can undo that: the owner
+   * clicking approve again. `approveContact` guarded its insert on the row
+   * merely existing, so the lapsed row stayed lapsed, the contact went
+   * `active`, and the person was still refused everywhere — the worst shape a
+   * bug can take, because the interface reported success.
+   *
+   * Asserted on all three surfaces, for the same reason the expiry case is:
+   * the answer has to change for the panel, the gate and push at once, or
+   * `lib/grants.ts` has stopped being the single place that decides.
+   */
+  test("approving again revives it, on all three surfaces", async () => {
+    const { getDatabase } = await import("@/lib/db");
+    const { db } = await getDatabase();
+    const { subscribersFor } = await import("@/lib/push");
+    const { approveContact } = await import("@/lib/contacts");
+    const { contactsWithReadGrant } = await import("@/lib/grants");
+    const contactId = await contactIdFor(GUEST);
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString();
+
+    await db
+      .updateTable("access_grants")
+      .set({ expires_at: yesterday })
+      .where("owner_id", "=", OWNER)
+      .where("contact_id", "=", contactId)
+      .execute();
+
+    try {
+      // Precondition: they really are shut out before the click, so what
+      // follows is the approval working rather than the expiry never landing.
+      expect([...(await contactsWithReadGrant(OWNER, new Date()))]).not.toContain(contactId);
+
+      await approveContact(OWNER, contactId);
+
+      // One grant, not two: reviving the row must not leave a second one
+      // behind for the readers to disagree over.
+      const rows = await db
+        .selectFrom("access_grants")
+        .select(["expires_at"])
+        .where("owner_id", "=", OWNER)
+        .where("contact_id", "=", contactId)
+        .where("scope", "=", "read")
+        .execute();
+      expect(rows).toHaveLength(1);
+      expect(rows[0].expires_at).toBe(null);
+
+      expect([...(await contactsWithReadGrant(OWNER, new Date()))]).toContain(contactId);
+
+      const trip = (await tripsByRef()).get("invited-2026")!;
+      as("approved");
+      const { mayReadTrip } = await import("@/lib/tripGate");
+      expect(await mayReadTrip(trip)).toBe(true);
+
+      as("approved");
+      const { resolveViewer } = await import("@/lib/viewer");
+      const viewer = await resolveViewer(OWNER);
+      expect(viewer.guest).toBe(true);
+      expect(viewer.trips.map((t) => t.id)).toContain("invited-2026");
+
+      expect((await subscribersFor(trip)).map((sub) => sub.endpoint)).toContain(
+        endpointFor("approved"),
+      );
+    } finally {
+      await db
+        .updateTable("access_grants")
+        .set({ expires_at: null })
+        .where("owner_id", "=", OWNER)
+        .where("contact_id", "=", contactId)
+        .execute();
+    }
+  });
 });
