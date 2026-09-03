@@ -96,6 +96,40 @@ describe("creating a journal", () => {
     expect(user?.features.auth?.enabled).toBe(true);
   });
 
+  /**
+   * B153. A journal that cannot be shared is not a finished journal.
+   *
+   * `createJournal` wrote `reactions`, `costs` and `auth` and stopped, the
+   * default for `contacts` is off, and **no endpoint, MCP tool or page
+   * anywhere writes a user's `features` block** — so the only way to switch it
+   * on was to hand-edit config.json over SSH. Every journal an agent made was
+   * in that state, and since B39 removed trip passwords an invite link is the
+   * only way to let anybody in at all.
+   *
+   * It went unnoticed because every test that exercises invites writes its own
+   * config.json with `contacts: { enabled: true }` in it — see
+   * `writeJournal` in test/invite-links.test.ts. The fixture had the feature
+   * the product did not. So this asserts on the thing an agent actually calls.
+   */
+  test("a journal it creates has contacts on, so it can be shared", () => {
+    expect(make("sharer").ok).toBe(true);
+    expect(getUser("sharer")?.features.contacts?.enabled).toBe(true);
+  });
+
+  /**
+   * And the server is still the ceiling. A journal asking for contacts on an
+   * instance that does not offer it gets nothing — `resolveOne` in
+   * lib/capabilities.ts refuses the opt-in above the ceiling, which is what
+   * keeps this default from being a way to switch on a capability the operator
+   * never configured.
+   */
+  test("but the journal's opt-in cannot switch on what the server does not offer", async () => {
+    expect(make("hopeful").ok).toBe(true);
+    const { isEnabled } = await import("@/lib/capabilities");
+    // The server config written in beforeEach has no `contacts` block.
+    expect(isEnabled("contacts", "hopeful")).toBe(false);
+  });
+
   test("the owner it was created with loads back through getUser", () => {
     const result = make("traveller", { ownerName: "Alex Rivera", ownerNickname: "Al" });
     expect(result.ok).toBe(true);

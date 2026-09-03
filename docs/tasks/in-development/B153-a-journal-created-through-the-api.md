@@ -87,11 +87,62 @@ Minor, same area, found alongside: MCP `tools/list` advertises `create_invite`,
 The refusal on call is clear, so this is cosmetic — but a capability-filtered
 tool list would be more honest.
 
+## What was built — option 1, and why not option 2
+
+`createJournal` now writes `contacts: { enabled: true }` alongside the other
+three (`lib/journals.ts`). The comment already sitting above `auth` — "On, or
+the owner could never get a token to write to what they just made" — is the
+identical argument, and this task is the evidence for it.
+
+Checked before flipping it, because it is the one real risk: **does contacts-on
+advertise a way into somebody's journal?** It does not. B37 removed the open
+request form, and the invite controls render inside `{viewer.owner && …}` at
+`app/[user]/me/MePageContent.tsx:168`. The server's own `features.contacts` is
+still the outer gate and stays off until an operator sets
+`CONTACTS_ENCRYPTION_KEY` and a `DATABASE_URL` — a journal opting in above the
+ceiling gets nothing, which is asserted directly.
+
+**Option 2 was not built**, and the reason is in the task already: no
+per-journal feature can be changed after creation, for any capability. That is
+a bigger problem than contacts and it is now **B182**, which also records that
+this fix does nothing for the journals that already exist — `sevi`, `sevi2`,
+`test1` and `xydhd-qa1` through `qa5` are still contacts-off with no way in but
+SSH.
+
+The `tools/list` note at the end of this task is **B183**.
+
+### Why the fixture hid it
+
+Worth recording, because it is the interesting part. `test/invite-links.test.ts`
+verifies all of B33 — and builds its journal with a `writeJournal` helper that
+writes `contacts: { enabled: true }` into config.json by hand. The fixture had
+the feature the product did not, so the whole feature could be green while
+being unreachable for every journal an agent could create. Both new tests go
+through `createJournal` for that reason.
+
 ## Acceptance
 
 - A journal created through `POST /api/v1/journals` can issue a guest link and
   a buddy link without anybody touching the server.
+  **Met** — `test/invite-links.test.ts`, "both link kinds, with nobody touching
+  the server": creates the journal with `createJournal`, creates a trip, mints
+  the owner's token, and posts to the real `/api/v1/<user>/invites` route for
+  both kinds. Against the old code it fails with `expected 404 to be 201` —
+  the exact response this task was filed for.
 - Whatever the mechanism, it is in `agent.md` next to the invite documentation.
+  **Not applicable as written.** The mechanism turned out to be a default, not
+  a call, so there is nothing for an agent to do differently and nothing to
+  document — the invite endpoints already work as `agent.md` describes them.
+  If B182 adds a way to toggle features, that is what needs documenting.
 - `/api/health` still reports the server-level switch as the outer gate.
+  **Met** — "but the journal's opt-in cannot switch on what the server does not
+  offer" asserts `isEnabled("contacts", …)` is false on an instance whose
+  server config has no contacts block, which is the same resolution
+  `/api/health` reports from.
 - B33's remaining acceptance bullets become checkable on a journal an agent
-  made — which is the real test that this is fixed.
+  made.
+  **Met for new journals.** Not for the eight that already exist on
+  fernscout.ch — see B182.
+
+Verified with all four: `npx tsc --noEmit`, `npx eslint .` (0 errors),
+`npx vitest run` (1828 passed, 2 skipped), `npm run build`.

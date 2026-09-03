@@ -776,3 +776,80 @@ describe("the documents that describe them", () => {
     expect(Object.keys(document.paths)).toContain("/api/v1/{user}/invites/{id}");
   });
 });
+
+/**
+ * B153 — the journal an agent actually makes.
+ *
+ * Everything above builds its journal with `writeJournal`, a fixture that
+ * writes `contacts: { enabled: true }` into config.json by hand. So the whole
+ * of B33 was verified against a journal no agent can create: `createJournal`
+ * wrote `reactions`, `costs` and `auth` and stopped, and nothing in the
+ * codebase could change a `features` block afterwards. Every journal made
+ * through the API answered `404 contacts_disabled` to the very next call.
+ *
+ * This is the same two links, issued on a journal created the way the guide
+ * tells an agent to create one.
+ */
+describe("a journal created through the API can share itself", () => {
+  const NEW_USER = "freshly";
+  const NEW_EMAIL = "freshly@example.test";
+
+  async function issueOn(
+    username: string,
+    token: string,
+    body: Record<string, unknown>,
+  ): Promise<{ status: number; body: InviteBody }> {
+    const { POST } = await import("@/app/api/v1/[user]/invites/route");
+    const response = await POST(
+      new Request(`https://example.test/api/v1/${username}/invites`, {
+        method: "POST",
+        headers: headers({ authorization: `Bearer ${token}` }),
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ user: username }) },
+    );
+    return { status: response.status, body: (await response.json()) as InviteBody };
+  }
+
+  test("both link kinds, with nobody touching the server", async () => {
+    const { createJournal } = await import("@/lib/journals");
+    const created = createJournal({
+      username: NEW_USER,
+      title: "Freshly Made",
+      ownerEmail: NEW_EMAIL,
+      ownerName: "Fresh Owner",
+      ownerNickname: "Fresh",
+    });
+    expect(created.ok).toBe(true);
+
+    // A trip for the buddy link to name, written the way create_trip does.
+    const { createTrip } = await import("@/lib/tripWrite");
+    expect(
+      createTrip(NEW_USER, {
+        id: "first-2026",
+        title: "First",
+        start: "2026-05-01",
+        end: "2026-05-10",
+      }).ok,
+    ).toBe(true);
+
+    const { issueCode, verifyCode } = await import("@/lib/auth");
+    const { code } = await issueCode(NEW_USER, NEW_EMAIL, "agent");
+    const verified = await verifyCode(NEW_USER, NEW_EMAIL, code, "agent");
+    if (!verified.ok) throw new Error("no token for the new journal's owner");
+
+    // This is the call that answered 404 for every journal an agent had ever
+    // made — the one the guide tells it to make immediately after creating one.
+    const guest = await issueOn(NEW_USER, verified.token, { kind: "guest" });
+    expect(guest.status).toBe(201);
+    expect(guest.body.invite?.url).toContain(`/${NEW_USER}/invite/guest/`);
+
+    const buddy = await issueOn(NEW_USER, verified.token, {
+      kind: "buddy",
+      trip: "first-2026",
+    });
+    expect(buddy.status).toBe(201);
+    expect(buddy.body.invite?.url).toContain(`/${NEW_USER}/invite/buddy/`);
+    expect(buddy.body.invite?.trip).toBe("first-2026");
+  });
+});
