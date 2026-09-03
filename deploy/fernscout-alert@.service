@@ -6,11 +6,14 @@
 # (including the .service suffix) as the instance, so %i below is
 # "fernscout-backup.service" and nothing has to be hardcoded here.
 #
-#   sudo cp deploy/fernscout-alert@.service /etc/systemd/system/
-#   sudo systemctl daemon-reload
+# Installed by scripts/deploy.sh, like every unit in this folder (B138) — it
+# used to say "copy this by hand", and the hand-copy is exactly what did not
+# happen on the server that then went two days without an alert handler.
+#
 #   sudo systemctl start fernscout-alert@fernscout-backup.service   # rehearse it
 #
 # Not enabled, and has no timer: it is started by systemd, on failure, only.
+# It cannot be enabled by bare name anyway — a template needs an instance.
 [Unit]
 Description=Alert that %i failed
 # The mail leaves this box, so do not race the network on a boot-time failure.

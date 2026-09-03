@@ -1,7 +1,10 @@
 # The Fernscout web server.
 #
-#   sudo cp deploy/fernscout.service /etc/systemd/system/
-#   sudo systemctl daemon-reload && sudo systemctl enable --now fernscout
+# Installed and reloaded by scripts/deploy.sh (B138). Enabling is still the
+# operator's, once, on a new machine — a deploy installs definitions and does
+# not decide what runs:
+#
+#   sudo systemctl enable --now fernscout
 #
 # Postgres is listed as a soft dependency on purpose: running with no database
 # at all is a supported deployment (ROADMAP §2.2), and the unit must still

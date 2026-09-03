@@ -163,12 +163,18 @@ before the first sync rather than rendering nothing.
 
 ```bash
 sudo -u fernscout npm run build
-sudo cp deploy/fernscout.service /etc/systemd/system/
-sudo systemctl daemon-reload
+sudo ./scripts/install-units.sh          # every unit in deploy/, + daemon-reload
 sudo systemctl enable --now fernscout
 systemctl status fernscout
 curl -s localhost:3000/api/health | head
 ```
+
+`install-units.sh` copies every `.service` and `.timer` in `deploy/` into
+`/etc/systemd/system` and reloads. It **does not enable anything** — that line
+above is yours, and stays yours, because `fernscout-worker.service` ships
+disabled on purpose. Every later deploy runs the same script, so from here on a
+unit change reaches the machine with the commit that made it (B138). It is not
+Caddy's config; see §TLS for that, and B66 for its drift.
 
 ### 7. TLS
 
@@ -207,7 +213,7 @@ Pull, `npm ci`, migrate if a database is configured, build, restart, wait for
 health. **The build runs before the restart**, so a broken build leaves the
 running site untouched instead of taking it down and then failing.
 
-Four things it does that are not obvious from the name:
+Five things it does that are not obvious from the name:
 
 - **It syncs the shipped half of `content/` into `CONTENT_DIR`** —
   `scripts/sync-shipped-content.sh`, run after the pull and before the build.
@@ -227,6 +233,13 @@ Four things it does that are not obvious from the name:
   root-owned files in `.next/` and `node_modules/`, under a service that is not
   root and needs to write its own build cache. If that has already happened:
   `sudo chown -R fernscout:fernscout /srv/fernscout`.
+- **It installs the systemd units** — `scripts/install-units.sh`, after the
+  build and before the restart. Any `.service` or `.timer` in `deploy/` that
+  differs from what is on the machine is copied over and reloaded, changed
+  timers are re-armed, and nothing is enabled or disabled. If it cannot write
+  `/etc/systemd/system` the deploy **fails**, naming the file — a deploy that
+  left a unit change behind used to be indistinguishable from one that had
+  none, which is the whole of B138.
 - **It records `GIT_SHA`** in a systemd drop-in, so `/api/health` answers
   "which build is actually running" rather than `"commit": null`.
 
@@ -439,16 +452,24 @@ with a randomised delay).
 
 ```bash
 sudo apt install -y restic
-sudo cp deploy/fernscout-backup.service deploy/fernscout-backup.timer \
-        deploy/fernscout-alert@.service /etc/systemd/system/
-sudo systemctl daemon-reload
+sudo ./scripts/install-units.sh                          # or just deploy
 sudo systemctl enable --now fernscout-backup.timer
 ```
 
 `fernscout-alert@.service` is not enabled and has no timer of its own — the
-backup unit's `OnFailure=` starts it. Copying it is not optional: without it a
-failed backup goes to a journal and nowhere else, which is exactly how this
-server managed three aborted nights in a row unnoticed.
+backup unit's `OnFailure=` starts it. It is not optional: without it a failed
+backup goes to a journal and nowhere else, which is exactly how this server
+managed three aborted nights in a row unnoticed.
+
+Since B138 it arrives with the deploy rather than with a `cp` somebody has to
+remember, which is the fix for how it went missing in the first place — B64
+shipped the `OnFailure=` line and the handler together in one commit, and for
+two days the server had neither. Check both landed:
+
+```bash
+systemctl show fernscout-backup.service -p OnFailure
+systemctl cat 'fernscout-alert@fernscout-backup.service' | head -3
+```
 
 Set `RESTIC_REPOSITORY` and `RESTIC_PASSWORD` in `/etc/fernscout/env`, and
 `BACKUP_ALERT_EMAIL` if the alert should go somewhere other than the default
