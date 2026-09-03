@@ -7,6 +7,7 @@ complexity: low
 area: digest, test-flag, push
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B70 — A test trip is mailed out in the digest as if somebody had lived it
@@ -67,6 +68,49 @@ question in that function.
 invented content does not go out by mail at all, which is simpler than making
 every channel able to disclaim it.
 
+### The decision the Work section asked for
+
+**A test day is dropped; the mail is not suppressed.** The trip is real and the
+reader wants to hear about it — only the Tuesday is invented, so only the
+Tuesday goes. Three consequences, all of them deliberate and all of them
+asserted:
+
+- It counts toward nothing: not `dayCount`, not the listing.
+- **It does not move the cursor.** This is the part that needed saying. A
+  watermark that advanced over a day the reader was never told about would
+  bury any *real* day written for the same date afterwards. So the cursor stops
+  at the last day that happened, and the invented one is skipped again on every
+  later run rather than swallowed once.
+- A reader whose only new days were test days therefore has `dayCount === 0`,
+  which `buildDigestContent` already answers with `null` — no mail, not an
+  empty one. The third acceptance line falls out of the first rather than
+  needing its own branch.
+
+Filtering happens at the **entry** level, not the day level, because a day may
+hold several updates and only some of them invented; the lead becomes the
+first update that actually happened.
+
+### What `subscribersFor` turned out to be
+
+The same gap, and worse in one respect: `isOpenToLink` returns *every*
+subscription in the journal before any other question is asked, and a trip
+written to prove the pipeline is normally `public`. So the test check goes
+first, ahead of `isOpenToLink`.
+
+Push also announces one *day*, not a trip — `scripts/notify.mts` resolves an
+entry and then asks `subscribersFor(trip)`. So the function now takes an
+optional `entry`, and the script passes it: a `test: true` day inside a real
+trip notifies nobody either, which is the push twin of the digest half above.
+The script says so on the console instead of silently sending to zero people.
+
+The `private` half of that function is **B68**, not this task.
+
+### Captured, not absorbed
+
+**B81** — `scripts/notify.mts` still tells the operator a closed trip is
+"password-protected". B39 removed trip passwords; the sentence outlived them.
+Wrong words, not a wrong filter, so it is its own task.
+
 ## Acceptance
 
 - A `test: true` trip appears in no reader's digest, with a live grant and with
@@ -76,3 +120,14 @@ every channel able to disclaim it.
 - A reader whose only new days were test days gets no mail, rather than an empty
   one.
 - The four checks.
+
+### Where it is asserted
+
+`test/access-gate.test.ts` gained `test: true` as a **second dimension of the
+table** rather than a test of its own — one `public` and one `guest` trip
+carrying the flag, beside the five visibilities already there, and a `digest`
+column beside `panel` and `read`. One table now answers "which surfaces may
+mention which trips to whom" for the gate, the panel and the digest; **B68 adds
+push as the fourth column.** Extending it was worth more than either fix: the
+table is what stops a fifth surface being written that forgets one of the two
+dimensions.

@@ -48,9 +48,9 @@ import {
   entryFileName,
   partOfDay,
   renderEntry,
-  slugify,
   type IngestGalleryItem,
 } from "./entry.ts";
+import { slugify } from "../slug.ts";
 import {
   ID_PATTERN,
   entriesDir,

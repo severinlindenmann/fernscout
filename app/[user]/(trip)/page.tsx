@@ -1,7 +1,7 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getAllEntries } from "@/lib/entries";
-import { currentTripRef, getTrip } from "@/lib/trips";
+import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { buildStoryProps } from "@/lib/tripView";
 import { BlogStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
@@ -14,18 +14,10 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   const { user } = await params;
   const site = siteSummary(user, getDefaultUsername() === user);
   if (!site) notFound();
-  /**
-   * The bare `/<user>` serves whichever trip is `current`. Having none is a
-   * normal state, not a missing journal: a new journal has no trips at all,
-   * and one whose trips are all `upcoming` or `past` is simply between
-   * journeys. Both used to answer 404 — so a journal created through the API
-   * was born broken, and its owner's first act was to look at a page that
-   * said it did not exist.
-   */
-  const tripId = currentTripRef(user);
-  if (!tripId) redirect(`/${user}/trips`);
-  const current = getTrip(tripId);
-  if (!current) notFound();
+  // No current trip is a normal state, not a missing journal — the four
+  // pages `SiteNav` offers all resolve it the same way. See lib/currentTrip.ts.
+  const current = currentTripOrRedirect(user);
+  const tripId = current.ref;
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.

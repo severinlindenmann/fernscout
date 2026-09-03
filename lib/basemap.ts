@@ -37,6 +37,8 @@ type Bundle = {
   version: number;
   attribution: string;
   borders: Shape[];
+  bordersMid: Shape[];
+  bordersCoarse: Shape[];
   admin1: Shape[];
   relief: Shape[];
   glaciers: Shape[];
@@ -102,6 +104,34 @@ const MAX_PEAKS = 8;
  */
 const WAYS_BELOW_KM = 800;
 
+/**
+ * How wide a frame may be before it drops to the coarse basemap.
+ *
+ * Resolution has to match scale, or a page pays for detail nobody can see. The
+ * clip had no ceiling: `asia-2023` was shipping 754 KB gzipped, and a route
+ * from Zurich to Vietnam — measured, not guessed — came to 7,448 shapes and
+ * thirteen megabytes of path text, because 10m coastline was being clipped to
+ * a frame sixteen thousand kilometres across where a whole island is one pixel.
+ *
+ * Above this, the map draws 1:110m country outlines and nothing else: no
+ * lakes, no rivers, no ice, no relief. All of those are invisible at that
+ * width and all of them are most of the weight. Two and a half thousand
+ * kilometres is about the width of a continent, which is the scale at which
+ * 10m stops being legible and starts being ballast.
+ */
+const DETAIL_BELOW_KM = 900;
+
+/**
+ * And where the middle level gives way to the coarsest.
+ *
+ * Three bands, not two, because two were not enough: `asia-2023` frames at
+ * 2,400 km, where 1:110m is visibly blocky along the Vietnamese coast but 1:10m
+ * was still 1.2 MB of path text — at that resolution one country polygon,
+ * Indonesia or China, is tens of kilobytes by itself. 1:50m is the level that
+ * looks right in between and weighs a tenth.
+ */
+const MID_BELOW_KM = 6000;
+
 function bundleFile(): string {
   return path.join(path.dirname(fileURLToPath(import.meta.url)), "mapdata", "basemap.json.gz");
 }
@@ -157,7 +187,14 @@ export function basemapFor(frame: Frame): Basemap | null {
   const data = bundle();
   if (!data) return null;
 
-  const ways = kmForUnits(frame.w) < WAYS_BELOW_KM;
+  const spanKm = kmForUnits(frame.w);
+  const ways = spanKm < WAYS_BELOW_KM;
+  const detailed = spanKm < DETAIL_BELOW_KM;
+  const outlines = detailed
+    ? data.borders
+    : spanKm < MID_BELOW_KM
+      ? (data.bordersMid ?? data.borders)
+      : (data.bordersCoarse ?? data.borders);
 
   // The frame is in corrected space; the bundle is not. Undo the correction to
   // get the box to test against, and pad it by half a frame so that panning a
@@ -205,19 +242,21 @@ export function basemapFor(frame: Frame): Basemap | null {
   );
 
   return {
-    borders: clip(data.borders, x0, y0, x1, y1),
-    admin1: clip(data.admin1 ?? [], x0, y0, x1, y1),
-    relief: clip(data.relief ?? [], x0, y0, x1, y1),
-    glaciers: clip(data.glaciers ?? [], x0, y0, x1, y1),
-    parks: clip(data.parks ?? [], x0, y0, x1, y1),
+    borders: clip(outlines, x0, y0, x1, y1),
+    // Everything below is detail that a continental frame cannot show and
+    // should not carry. See DETAIL_BELOW_KM.
+    admin1: detailed ? clip(data.admin1 ?? [], x0, y0, x1, y1) : [],
+    relief: detailed ? clip(data.relief ?? [], x0, y0, x1, y1) : [],
+    glaciers: detailed ? clip(data.glaciers ?? [], x0, y0, x1, y1) : [],
+    parks: detailed ? clip(data.parks ?? [], x0, y0, x1, y1) : [],
     // Roads and railways only once the frame is small enough for them to mean
     // something. On a map of Asia every motorway in China is a grey haze over
     // the route the trip actually took; on a map of one valley the road *is*
     // the trip. The threshold is the same one `isCloseRange` names.
     railroads: ways ? clip(data.railroads ?? [], x0, y0, x1, y1) : [],
     roads: ways ? clip(data.roads ?? [], x0, y0, x1, y1) : [],
-    lakes: clip(data.lakes, x0, y0, x1, y1),
-    rivers: clip(data.rivers, x0, y0, x1, y1),
+    lakes: detailed ? clip(data.lakes, x0, y0, x1, y1) : [],
+    rivers: detailed ? clip(data.rivers, x0, y0, x1, y1) : [],
     peaks: spread(peakCandidates, frame, MAX_PEAKS),
     towns: spread(townCandidates, frame, MAX_TOWNS),
     attribution: data.attribution,

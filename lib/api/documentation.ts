@@ -566,11 +566,15 @@ Authorization: Bearer fs_agent_…
 Content-Type: application/json
 
 {"id": "japan-2027", "title": "Japan", "start": "2027-04-01", "end": "2027-05-15",
- "visibility": "private", "status": "upcoming"}
+ "visibility": "private"}
 \`\`\`
 
 \`start\` and \`end\` are required: a trip without both is skipped when the site
-reads it, so it would exist on disk and nowhere a reader could find it.
+reads it, so it would exist on disk and nowhere a reader could find it. They
+also decide the trip's status — a trip whose \`start\` has passed shows its days,
+one whose \`start\` is still ahead shows a countdown — so there is no
+\`"status"\` to send unless this is the trip the bare \`/${example}\` URLs should
+serve, which is \`"status": "current"\`.
 
 A trip is created **private** unless you say otherwise. Publishing somebody's
 journey is their decision — ask before sending \`"visibility": "public"\`.

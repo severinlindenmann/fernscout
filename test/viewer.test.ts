@@ -46,11 +46,9 @@ function trip(over: Partial<Trip>): Trip {
 function through(
   t: Trip,
   opts: { owner: boolean; email: string | null; guest: boolean },
-): "public" | "traveller" | "guest" | null {
-  const onIt =
-    opts.owner ||
-    (opts.email !== null && t.people.some((p) => p.email === opts.email));
-  if (onIt) return "traveller";
+): "public" | "owner" | "traveller" | "guest" | null {
+  if (opts.owner) return "owner";
+  if (opts.email !== null && t.people.some((p) => p.email === opts.email)) return "traveller";
   if (t.visibility === "public" && t.listed) return "public";
   if (t.visibility === "guest" && opts.guest) return "guest";
   return null;
@@ -98,14 +96,38 @@ describe("which trips a reader is told about", () => {
       .toBeNull();
   });
 
-  test("the owner is told about all of them, as a traveller", () => {
+  /**
+   * B80. The owner is told about every trip in their journal, and the reason
+   * is that the journal is theirs — not that they were on it. The two were one
+   * arm until B80, so a trip the owner never travelled (somebody else's
+   * fortnight written up here, or a `test: true` one nobody lived) carried
+   * "you were on this trip".
+   */
+  test("the owner is told about all of them, as the owner", () => {
     const owner = { owner: true, email: "alex@e.com", guest: false };
-    expect(through(trip({ visibility: "private", listed: false }), owner)).toBe("traveller");
-    expect(through(trip({ visibility: "guest", listed: false }), owner)).toBe("traveller");
-    expect(through(trip({ listed: false }), owner)).toBe("traveller");
+    expect(through(trip({ visibility: "private", listed: false }), owner)).toBe("owner");
+    expect(through(trip({ visibility: "guest", listed: false }), owner)).toBe("owner");
+    expect(through(trip({ listed: false }), owner)).toBe("owner");
   });
 
-  /** Being on the trip is the better answer when both are true. */
+  /**
+   * Both true, one line — and the line is ownership. It is what actually opens
+   * the trip (`isPersonOn` counts the owner's address whatever `people:` says),
+   * and it is the answer that survives an edit to `people:`. Being on the trip
+   * is the more interesting fact and the less accurate reason, and this panel
+   * is answering "why may I read this?".
+   */
+  test("owning the journal beats having been on the trip", () => {
+    const t = trip({
+      visibility: "private",
+      listed: false,
+      people: [{ name: "Alex", email: "alex@e.com" }],
+    });
+    expect(through(t, { owner: true, email: "alex@e.com", guest: false })).toBe("owner");
+  });
+
+  /** Being on the trip is the better answer when it and an invitation are
+   * both true. */
   test("having been there beats having been invited", () => {
     const t = trip({ visibility: "guest", listed: false, ...withRobin });
     expect(through(t, { ...robin, guest: true })).toBe("traveller");
@@ -148,7 +170,7 @@ describe("resolveViewer, against a database", () => {
     );
   }
 
-  function writeTrip(id: string, visibility: "public" | "guest") {
+  function writeTrip(id: string, visibility: "public" | "guest" | "private", people: string[] = []) {
     const root = path.join(dir, OWNER, "trips", id);
     fs.mkdirSync(path.join(root, "entries"), { recursive: true });
     fs.writeFileSync(
@@ -161,7 +183,10 @@ describe("resolveViewer, against a database", () => {
         'end: "2026-08-26"',
         'status: "past"',
         `visibility: "${visibility}"`,
-        ...(visibility === "guest" ? ["listed: false"] : []),
+        ...(visibility === "public" ? [] : ["listed: false"]),
+        ...(people.length > 0
+          ? ["people:", ...people.map((e) => `  - { name: "Ana", email: "${e}" }`)]
+          : []),
         "---",
         "",
         "Intro.",
@@ -185,6 +210,9 @@ describe("resolveViewer, against a database", () => {
     writeConfigs();
     writeTrip("open-2026", "public");
     writeTrip("invited-2026", "guest");
+    // The one trip the owner put herself on `people:` for. Private, so it
+    // changes nothing about what the readers below are told.
+    writeTrip("ours-2026", "private", [OWNER_EMAIL]);
     const { clearConfigCache } = await import("@/lib/config");
     const { clearUserCache } = await import("@/lib/users");
     clearConfigCache();
@@ -274,5 +302,31 @@ describe("resolveViewer, against a database", () => {
     const viewer = await resolveViewer(OWNER);
     expect(viewer.email).toBeNull();
     expect(viewer.trips.map((t) => t.id)).toEqual(["open-2026"]);
+  });
+
+  /**
+   * B80, against the real resolver rather than the mirror above.
+   *
+   * Ana is on `people:` for `ours-2026` and for neither of the others, and all
+   * three read the same: the journal is hers. That is both halves of the
+   * decision in one assertion — the trips she did not travel are no longer
+   * claimed as hers to have been on, and the one she did travel still shows
+   * ownership, because ownership is what opens it.
+   */
+  test("the owner reads her own journal as its owner, travelled or not", async () => {
+    const { issueCode, verifyCode } = await import("@/lib/auth");
+    const { code } = await issueCode(OWNER, OWNER_EMAIL, "guest");
+    const session = await verifyCode(OWNER, OWNER_EMAIL, code, "guest");
+    if (!session.ok) throw new Error("owner sign-in failed");
+    jar.token = session.token;
+
+    const { resolveViewer } = await import("@/lib/viewer");
+    const viewer = await resolveViewer(OWNER);
+    expect(viewer.owner).toBe(true);
+    expect(Object.fromEntries(viewer.trips.map((t) => [t.id, t.through]))).toEqual({
+      "open-2026": "owner",
+      "invited-2026": "owner",
+      "ours-2026": "owner",
+    });
   });
 });

@@ -59,7 +59,14 @@ export function GET() {
             title: { type: "string" },
             start: { type: "string", format: "date" },
             end: { type: "string", format: "date" },
-            status: { type: "string", enum: ["current", "upcoming", "past"] },
+            status: {
+              type: "string",
+              enum: ["current", "upcoming", "past"],
+              description:
+                "`current` is declared in the trip; `past` and `upcoming` are derived " +
+                "from `start` on every read, so this reports the calendar's answer " +
+                "rather than whatever the file says.",
+            },
             visibility: { type: "string", enum: ["public", "guest", "private"] },
             listed: {
               type: "boolean",
@@ -206,6 +213,15 @@ export function GET() {
                       description:
                         "For somebody who is on a trip but does not own the journal. The " +
                         "token then writes to that trip and nothing else.",
+                    },
+                    destination: {
+                      type: "string",
+                      description:
+                        "Where the one-tap link in the mail should land, for the browser " +
+                        "sign-in form: the path the reader was on. Guest codes only — an " +
+                        "agent code has no link. It is stored with the code and never " +
+                        "appears in the mailed URL, and anything that is not a path inside " +
+                        "`/{user}/` is ignored, landing the reader on the journal instead.",
                     },
                   },
                 },
@@ -468,7 +484,14 @@ export function GET() {
                     start: { type: "string", description: "2027-04-01. Required — a trip without dates is never read." },
                     end: { type: "string", description: "2027-05-15. Required." },
                     tagline: { type: "string" },
-                    status: { type: "string", enum: ["upcoming", "current", "past"] },
+                    status: {
+                      type: "string",
+                      enum: ["upcoming", "current", "past"],
+                      description:
+                        "Optional, and usually omitted: `past`/`upcoming` are derived " +
+                        "from `start` when the trip is read. Set `current` for the trip " +
+                        "served at the bare /{user} URL.",
+                    },
                     accent: { type: "string", enum: ["sky", "yellow", "green", "coral", "navy"] },
                     visibility: { type: "string", enum: ["private", "public", "guest"], default: "private" },
                     listed: { type: "boolean" },

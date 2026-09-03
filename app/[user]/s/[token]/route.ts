@@ -3,6 +3,7 @@ import { GUEST_COOKIE, SESSION_TTL_MS, verifyLink } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
+import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -62,5 +63,31 @@ export async function GET(request: Request, context: RouteContext<"/[user]/s/[to
 
   // 303, so the browser follows with a GET and a reload does not re-run a
   // link that has already been spent.
-  return Response.redirect(`${site}/${username}`, 303);
+  return Response.redirect(`${site}${landing(username, result.destination)}`, 303);
+}
+
+/**
+ * Where to put the reader down.
+ *
+ * `result.destination` is the page they were on when they asked for the code,
+ * already checked by `safeDestination` to be a path inside this journal —
+ * there is nothing in the URL that sets it, and nothing here that widens it.
+ * Null means nobody said, which is every mail sent from somewhere other than a
+ * gate, and the answer is the journal's front page as it always was.
+ *
+ * The one thing left to decide is a destination that has gone stale. Half an
+ * hour is long enough for the owner to delete the trip the reader was looking
+ * at, and a link that signs somebody in and then shows them a 404 is a worse
+ * ending than the front page. A trip that still exists but has closed to them
+ * is *not* stale: that lands on the gate, which is the page that explains
+ * itself and offers the way on. Only a trip that is gone falls back.
+ */
+function landing(username: string, destination: string | null): string {
+  const home = `/${username}`;
+  if (!destination) return home;
+
+  const [, , section, id] = destination.split("/");
+  if (section === "trips" && id && !getTrip(tripRef(username, id))) return home;
+
+  return destination;
 }

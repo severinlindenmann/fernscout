@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import CopyLine from "@/components/CopyLine";
+import AgentHandover from "@/components/AgentHandover";
 import GuestSignIn from "@/components/GuestSignIn";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
@@ -30,6 +30,7 @@ export default function MePageContent({
   manageHref,
   canSignIn,
   codeMinutes,
+  contactsEnabled,
 }: {
   viewer: Viewer;
   username: string;
@@ -40,12 +41,19 @@ export default function MePageContent({
   canSignIn: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
   codeMinutes: string;
+  /** Whether this journal keeps a guest list at all. Resolved on the server;
+   * `isEnabled` reads server config and this file is a client component. */
+  contactsEnabled: boolean;
 }) {
   const { t } = useI18n();
   const site = useSite();
 
+  // One line beside each trip, saying why it is open to this reader. The
+  // wording is `resolveViewer`'s answer and never this component's: the panel
+  // computing anything of its own about access is B41.
   const reason: Record<Viewer["trips"][number]["through"], TranslationKey> = {
     public: "me.viaPublic",
+    owner: "me.viaOwner",
     traveller: "me.viaTraveller",
     guest: "me.viaGuest",
   };
@@ -104,8 +112,25 @@ export default function MePageContent({
         {viewer.email && (
           <section className="mt-8">
             <h2 className="font-display text-xl font-semibold text-navy-900">{t("me.canRead")}</h2>
+            {/*
+              Two empty states, because there are two people who can reach one.
+
+              For a guest it means the invitation has not arrived, and the
+              answer is to ask whoever sent them. Said to the **owner** of a
+              journal with no trips in it yet, that is nonsense — nobody sent
+              them, and there is nothing to be invited to (B75).
+
+              `resolveViewer` puts every trip in the journal into the list for
+              an owner, so an empty list has exactly one meaning for them: the
+              journal has no trips. The answer is how one gets made — an agent,
+              per decision 24 — and the two lines to hand it are already in the
+              owner block below, so the copy points down the page rather than
+              repeating the handover here.
+            */}
             {viewer.trips.length === 0 ? (
-              <p className="mt-2 text-lg leading-8 text-navy-700">{t("me.nothing")}</p>
+              <p className="mt-2 text-lg leading-8 text-navy-700">
+                {t(viewer.owner ? "me.ownerNoTrips" : "me.nothing")}
+              </p>
             ) : (
               <ul className="mt-3 divide-y divide-navy-200 overflow-hidden rounded-2xl border border-navy-200 bg-white">
                 {viewer.trips.map((trip) => (
@@ -144,18 +169,10 @@ export default function MePageContent({
             <h2 className="font-display text-xl font-semibold text-navy-900">
               {t("me.ownerTitle")}
             </h2>
-            <h3 className="mt-4 font-display text-base font-semibold text-navy-900">
-              {t("me.agentTitle")}
-            </h3>
-            <p className="mt-1 text-base leading-7 text-navy-700">{t("me.agentBody")}</p>
-            <p className="mt-3 font-mono text-sm text-navy-900">{docUrl}</p>
-            <p className="font-mono text-sm text-navy-600">{viewer.email}</p>
-            <div className="mt-3">
-              <CopyLine
-                value={`${docUrl}\n${viewer.email}`}
-                label={t("landing.copy")}
-                copiedLabel={t("landing.copied")}
-              />
+            {/* Shared with the empty trip list, which is where a new owner
+                actually lands first — see components/AgentHandover.tsx. */}
+            <div className="mt-4">
+              <AgentHandover docUrl={docUrl} email={viewer.email} />
             </div>
             {/*
               What the code actually becomes.
@@ -176,12 +193,21 @@ export default function MePageContent({
               {t("me.tokenWarning")}
             </p>
 
-            <Link
-              href={`${site.base}/contacts`}
-              className="mt-5 inline-flex min-h-11 items-center text-base font-semibold text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-4"
-            >
-              {t("me.contacts")}
-            </Link>
+            {/*
+              B74. Owning the journal is not enough: `/<user>/contacts` is a
+              capability, and it answers 404 when the journal has not opened
+              it. Absent rather than disabled — an owner with contacts off has
+              no guest list to manage, and a greyed control explaining an
+              operator switch would be noise.
+            */}
+            {contactsEnabled && (
+              <Link
+                href={`${site.base}/contacts`}
+                className="mt-5 inline-flex min-h-11 items-center text-base font-semibold text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-4"
+              >
+                {t("me.contacts")}
+              </Link>
+            )}
           </section>
         )}
 

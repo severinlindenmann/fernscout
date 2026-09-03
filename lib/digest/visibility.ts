@@ -1,5 +1,5 @@
 import "server-only";
-import { isIndexable } from "../access";
+import { isIndexable, isTestContent } from "../access";
 import type { Trip } from "../types";
 
 /**
@@ -11,7 +11,19 @@ import type { Trip } from "../types";
  * something private exists and then refuses them, which is the one thing a
  * private trip is for.
  *
- * Four cases, and the interesting ones are the trips that are *not*
+ * Before any of that there is a question that is not about access at all:
+ * **`test: true` is nobody's, however open it says it is.** A trip carrying it
+ * is content nobody lived, written to prove the pipeline works, and AGENTS.md
+ * promises it stays out of the feed, the search index and the sitemap. The
+ * mail is the surface where breaking that promise costs the most: the page a
+ * test trip renders says in a banner that none of it happened, and a digest
+ * line — a date, a title, a location, a link — has nowhere to put the caveat.
+ * So it is excluded here rather than disclaimed there (B70). Note that
+ * `isIndexable` already refuses a test trip, but only into the branch below,
+ * which reads "not advertised, so grant-holders only" — the right answer for
+ * an unlisted trip and the wrong one for a fabricated one.
+ *
+ * Four cases after that, and the interesting ones are the trips that are *not*
  * advertised:
  *
  * - **public and listed** (`isIndexable`) — anyone may see it in the sitemap,
@@ -62,6 +74,10 @@ export function digestableTrips(trips: Trip[], granted: boolean): Trip[] {
   return trips.filter((trip) => {
     // First, and whatever else changes: `private` is nobody's to be told about.
     if (trip.visibility === "private") return false;
+    // And for an unrelated reason, neither is a trip nobody lived. Not a
+    // question of access — a `public` test trip is refused here and still
+    // opens for anyone with the link, wearing its banner (B70).
+    if (isTestContent(trip)) return false;
     // Already advertised to the world, so a mail advertises nothing new.
     if (isIndexable(trip)) return true;
     // Everything left is a trip the owner keeps off the listings — a `guest`

@@ -47,7 +47,8 @@ title: "Japan 2027"
 tagline: "Six weeks, mostly by train"
 start: "2027-04-01"
 end: "2027-05-15"
-status: upcoming              # upcoming | current | past
+# status: current             # optional, and only for the one trip served at
+                              # the bare /<user> URL — see below
 accent: sky                   # sky | yellow | green | coral | navy
 people:                       # who took it — 0 to 10. Empty means the owner,
   - name: "Alex Berger"       # alone. Everyone listed may write to the whole
@@ -65,7 +66,13 @@ A paragraph about what this trip is. It renders as the trip's introduction.
 Four fields decide behaviour rather than decoration:
 
 - **`status`** — exactly one trip should be `current`. That is the one served at
-  the bare `/<user>` URLs; the rest live under `/<user>/trips/<id>`.
+  the bare `/<user>` URLs; the rest live under `/<user>/trips/<id>`. It is the
+  only value worth writing: `past` and `upcoming` are worked out from `start`
+  each time the site reads the trip, so a trip that has begun shows its days
+  and one that has not shows a countdown, whatever the file says. Writing
+  `upcoming` into a trip whose dates have passed does nothing — which is
+  deliberate, because until B72 that one word hid every day published into
+  such a trip.
 - **`people`** — everyone listed may write to the *whole* trip and may obtain an
   agent token scoped to it and to nothing else in the journal. Up to ten. Leave
   it out for a trip somebody took alone. Everyone listed is also **published**

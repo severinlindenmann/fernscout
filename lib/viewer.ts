@@ -23,8 +23,16 @@ export type ViewerTrip = {
   id: string;
   title: string;
   href: string;
-  /** Why they can see it — what the panel says beside each one. */
-  through: "public" | "traveller" | "guest";
+  /**
+   * Why they can see it — what the panel says beside each one.
+   *
+   * `owner` and `traveller` are two different facts and were one arm until
+   * B80: the journal is yours, or you were on this particular trip. They come
+   * apart in the ordinary case — a trip in your journal you did not travel,
+   * or a `test: true` one nobody did — and the panel was asserting the second
+   * whenever the first was true.
+   */
+  through: "public" | "owner" | "traveller" | "guest";
 };
 
 export type Viewer = {
@@ -69,9 +77,24 @@ export async function resolveViewer(username: string): Promise<Viewer> {
 
   const visible: ViewerTrip[] = [];
   for (const trip of trips) {
-    // The order matters: it decides which reason the panel shows, and being
-    // on a trip is a better answer than "you were invited to it".
-    if (owner || isPersonOnWith(trip, email, redeemed)) {
+    // The order matters: it decides which reason the panel shows, and the
+    // truest answer goes first. Owning the journal beats having been on the
+    // trip, which beats having been invited to it.
+    //
+    // Owner first, and not only because both can be true at once: it is the
+    // fact that actually opens the trip. `isPersonOn` counts the owner's
+    // address whatever `people:` says (lib/tripPeople.ts), so an owner
+    // dropping themselves from `people:` tomorrow changes nothing about their
+    // access — and a reason that would survive that edit is the one to print.
+    // B80; before it these two shared an arm and every trip in the owner's own
+    // journal, travelled or not, read "you were on this trip".
+    //
+    // The traveller arm asks `isPersonOnWith`, so somebody who arrived by a
+    // buddy link (B33) reads the same as somebody typed into `people:` — the
+    // redeemed rows come from the one query above, not one per trip.
+    if (owner) {
+      visible.push(describe(trip, "owner", current));
+    } else if (isPersonOnWith(trip, email, redeemed)) {
       visible.push(describe(trip, "traveller", current));
     } else if (trip.visibility === "public" && trip.listed) {
       visible.push(describe(trip, "public", current));

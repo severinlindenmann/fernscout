@@ -1,6 +1,6 @@
 import "server-only";
 import { basemapFor } from "./basemap";
-import { getDays, getDefaultDay, getTripStats } from "./entries";
+import { getAllEntries, getDays, getDefaultDay, getTripStats } from "./entries";
 import { frameRoute } from "./mapFrame";
 import { costForDay, getCostSummary } from "./costs";
 import { getTrip } from "./trips";
@@ -42,6 +42,23 @@ export type StoryProps = {
    */
   basemap: ReturnType<typeof basemapFor>;
 };
+
+/**
+ * Whether a trip's page draws the countdown instead of the story.
+ *
+ * Two conditions, and the second is the one B72 was missing. `status` is
+ * already reconciled against the dates (`effectiveStatus`), so a trip that has
+ * begun cannot reach here as `upcoming` — but a countdown whose closing line
+ * is a hardcoded "no days yet" must not be drawn over published days under any
+ * status scheme, and this is what says so.
+ *
+ * Drafts deliberately do not count. A future-dated draft is how an upcoming
+ * trip's planned route is written (lib/plan.ts), so an owner drafting ahead
+ * keeps the countdown — which is the page that shows them the plan.
+ */
+export function showsCountdown(trip: Pick<Trip, "ref" | "status">): boolean {
+  return trip.status === "upcoming" && getAllEntries(trip.ref).length === 0;
+}
 
 /** The navigation's view of one day. */
 function summarise(day: Day, cost: number): DaySummary {

@@ -7,6 +7,7 @@ complexity: medium
 area: trips, tripWrite, feed, search, ui
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-01"
 ---
 
 # B72 — A trip whose dates have passed still calls itself upcoming, and hides every day written to it
@@ -95,6 +96,90 @@ non-`past` trip can render: if days exist, show them. A component that says
 Not in scope: changing what `current` means, or `getCurrentTrip`'s fallback to
 the most recent past trip. **B73** covers the 404s that follow from having no
 current trip, and stands whether or not this task lands.
+
+## Built
+
+**Option 1, and the closing paragraph of it as well** — the two are belt and
+braces rather than alternatives, and the second is the one that will still be
+right under a status scheme nobody has thought of yet.
+
+Every claim in *Why* was checked against the code before anything was changed
+and every one of them held, line numbers included. Two things it did not say,
+found on the way:
+
+- `isOver` (`lib/tripTime.ts`) returns early on `status: "upcoming"`, so a
+  stale `upcoming` was also enough to keep a finished trip from ever reading as
+  over. Nothing visible followed from it here, but it is the same word doing
+  the same damage a third time.
+- `getTrips` caches parsed trips against a fingerprint of the trip files. A
+  status derived from today's date and cached against a file's mtime would
+  have gone stale at midnight and stayed stale until somebody edited a trip or
+  restarted the server — the same "a change that needs a restart" the
+  fingerprint exists to prevent. The date is now part of the fingerprint.
+
+### The line is `start`, not `end`
+
+`calendarStatus` (`lib/tripTime.ts`) answers `past` / `upcoming` from `start`
+alone. Everything the two words decide is really "is there anything to read
+yet?", and that flips on the day a trip begins.
+
+The cost is a trip that is *under way* and not declared `current`: it reads as
+`past`, which is the wrong word and the right bucket — `past` shows its days,
+`upcoming` hides them. Deriving `current` for it would have been the third
+option and is what *Not in scope* rules out, so the wrong word stands and the
+days are readable. If it ever matters, it is a display question — the trips
+index heading — not a data one.
+
+### What changed
+
+- `lib/tripTime.ts` — `calendarStatus(trip, now)` and
+  `effectiveStatus(trip, now)`, next to `isOver`, which is the module that
+  already reconciles a trip against the calendar. `current` passes through
+  untouched.
+- `lib/trips.ts` — `readTrip` runs the declared status through
+  `effectiveStatus`; the loser of a two-`current` fight is re-derived rather
+  than being set to `past` outright; `earliestTodayISO()` joins the cache
+  fingerprint.
+- `lib/tripWrite.ts` — the `upcoming` default is gone. An unstated status is
+  taken from `start`, so a trip.md is not born contradicting its own dates. An
+  explicit value is still written as asked; it is a hint, and reading overrules
+  it.
+- `lib/tripView.ts` — `showsCountdown(trip)`: `upcoming` **and** no published
+  day. Drafts deliberately do not count, because a future-dated draft is how an
+  upcoming trip's planned route is written (`lib/plan.ts`), and the countdown
+  is the page that draws it. `app/[user]/trips/[trip]/page.tsx` calls it
+  instead of testing `status` itself.
+- `lib/feed.ts`, `lib/search.ts`, `app/sitemap.ts` — unchanged behaviour, but
+  the comment that stated the false assumption ("nothing written yet") now says
+  why the assumption is true.
+- The write surfaces that documented the old default: `lib/mcp/tools.ts`,
+  `app/openapi.json/route.ts`, `lib/api/documentation.ts` and
+  `.claude/skills/add-a-trip/SKILL.md` now say that `past`/`upcoming` are
+  derived and that `current` is the only value worth writing.
+
+### Evidence
+
+`test/trip-status.test.ts` reconstructs the incident: a trip.md dated
+24–26 August 2026 carrying `status: upcoming`, one day written and published
+through `createDraft` + `publishDraft`. Ten of its thirteen tests fail on the
+code as it was.
+
+The live check ran `next dev` against a copy of the example journal with that
+trip added, `/example/trips/testreise`, before and after:
+
+- before — 0 occurrences of the day's title, and the page's closing line is
+  `No days written yet — this one hasn't happened.`
+- after — the day renders; no countdown.
+
+### Found, not fixed
+
+The countdown branch builds `basemapFor(frameRoute(plan.stops))` before it
+knows whether there are any stops, and `frameRoute([])` is `WHOLE_WORLD`
+(`lib/mapFrame.ts:147`). A trip with no `plan.md` therefore serialises a
+whole-world basemap into a page that never draws a map: the before-state
+response above was **17.5 MB**, against 78 KB for the same trip's story page.
+Unrelated to status, and still reachable by any genuinely upcoming trip that
+has no planned route yet.
 
 ## Acceptance
 

@@ -71,6 +71,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       if (!isCurrent) {
         out.push({ url: tripBase, lastModified, changeFrequency: "yearly", priority: 0.6 });
       }
+      // A trip that has not begun has no gallery, map, costs or days worth
+      // offering a crawler. `upcoming` is derived from `start` (B72), so this
+      // cannot hide a trip that is under way.
       if (trip.status === "upcoming") continue;
 
       for (const page of ["/gallery", "/map", "/costs"]) {

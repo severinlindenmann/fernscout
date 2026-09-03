@@ -225,6 +225,28 @@ async function main() {
   const borders = feature(countries, countries.objects.countries);
   console.log(`  countries-10m … ok (${borders.features.length} countries)`);
 
+  // The same countries at 1:110m, for frames too wide to benefit from 10m.
+  //
+  // Resolution has to match scale or the page pays for detail nobody can see:
+  // clipping 10m data to a frame spanning Europe to Vietnam returned 7,400
+  // shapes and thirteen megabytes of path text, and even the Asia trip alone
+  // was shipping 754 KB gzipped. At that width a 1.6 km coastline is a rounding
+  // error on a single pixel. This layer is a twentieth of the size and
+  // indistinguishable above a couple of thousand kilometres.
+  const coarse = (await import("world-atlas/countries-110m.json", { with: { type: "json" } }))
+    .default;
+  const bordersCoarse = feature(coarse, coarse.objects.countries);
+  console.log(`  countries-110m … ok (${bordersCoarse.features.length} countries)`);
+
+  // And 1:50m in between. Two levels turned out not to be enough: `asia-2023`
+  // frames at 2,400 km, where 110m is visibly blocky along the Vietnamese coast
+  // but 10m was still shipping 1.2 MB of path text, because at that resolution
+  // a single country polygon — Indonesia, China — is tens of kilobytes on its
+  // own. 50m is the level that looks right and weighs a tenth.
+  const mid = (await import("world-atlas/countries-50m.json", { with: { type: "json" } })).default;
+  const bordersMid = feature(mid, mid.objects.countries);
+  console.log(`  countries-50m … ok (${bordersMid.features.length} countries)`);
+
   const lakes = await fetchJson(`${NE}/ne_10m_lakes.geojson`);
   const rivers = await fetchJson(`${NE}/ne_10m_rivers_lake_centerlines.geojson`);
   const peaks = await fetchJson(`${NE}/ne_10m_geography_regions_elevation_points.geojson`);
@@ -246,6 +268,8 @@ async function main() {
     // thousands of them. The old bake made the same call by a cruder rule —
     // "fewer than eight points" (scripts/build-world-map.mjs).
     borders: collectionToShapes(borders, { close: true, minSpanUnits: unitsForKm(2) }),
+    bordersMid: collectionToShapes(bordersMid, { close: true, minSpanUnits: unitsForKm(8) }),
+    bordersCoarse: collectionToShapes(bordersCoarse, { close: true }),
     lakes: collectionToShapes(lakes, {
       close: true,
       minSpanUnits: MIN_LAKE_KM / 111.32 / (360 / 1000),

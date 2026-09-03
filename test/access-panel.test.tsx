@@ -49,7 +49,9 @@ const site = {
 
 const stranger: Viewer = { email: null, owner: false, guest: false, trips: [] };
 
-function render(over: { canSignIn?: boolean } = {}) {
+const owner: Viewer = { email: "owner@example.test", owner: true, guest: false, trips: [] };
+
+function render(over: { canSignIn?: boolean; viewer?: Viewer; contactsEnabled?: boolean } = {}) {
   return renderToStaticMarkup(
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
       <SiteProvider value={site}>
@@ -59,11 +61,12 @@ function render(over: { canSignIn?: boolean } = {}) {
         <CurrencyProvider options={{ base: "CHF", currencies: ["CHF"], rates: { CHF: 1 } }}>
           <TripListProvider trips={[]}>
         <MePageContent
-          viewer={stranger}
+          viewer={over.viewer ?? stranger}
           username="alex"
           docUrl="https://example.test/documentation.txt"
           canSignIn={over.canSignIn ?? false}
           codeMinutes={CODE_TTL_MINUTES}
+          contactsEnabled={over.contactsEnabled ?? false}
         />
           </TripListProvider>
         </CurrencyProvider>
@@ -107,5 +110,72 @@ describe("the access panel, for somebody not signed in", () => {
 
   test("and then says why there is nothing to press", () => {
     expect(render({ canSignIn: false })).toMatch(/nothing to fill in/i);
+  });
+});
+
+/**
+ * The line beside each trip — the panel's whole claim about why this reader
+ * may open that trip, and the reason the page exists.
+ *
+ * B80: `resolveViewer` had one arm for "owns the journal" and "was on the
+ * trip", so the owner was told they had been on every trip in their own
+ * journal — including one somebody else travelled and a `test: true` one
+ * nobody did. The strings are asserted here rather than the key, because the
+ * bug was a sentence a reader believed.
+ */
+describe("the reason beside each trip", () => {
+  function seeing(through: Viewer["trips"][number]["through"], owner: boolean): string {
+    const viewer: Viewer = {
+      email: "reader@example.test",
+      owner,
+      guest: false,
+      trips: [{ id: "t", title: "A trip", href: "/alex/trips/t", through }],
+    };
+    return render({ viewer });
+  }
+
+  test("an owner is told the journal is theirs, not that they were there", () => {
+    const html = seeing("owner", true);
+    expect(html).toContain("it is in your journal");
+    expect(html).not.toContain("you were on this trip");
+  });
+
+  test("a traveller who is not the owner still reads that they were on it", () => {
+    const html = seeing("traveller", false);
+    expect(html).toContain("you were on this trip");
+    expect(html).not.toContain("it is in your journal");
+  });
+});
+
+/**
+ * B74. The owner block ends in a link to the guest list, and that page is a
+ * capability: `/<user>/contacts` calls `notFound()` when the journal has
+ * contacts off. The link was drawn on ownership alone, so the owner of a
+ * journal that never opened the door followed their own page into a 404 —
+ * which teaches them the journal is unreliable, not that a feature is off.
+ *
+ * The rule is the same one the rest of this file tests: a control is shown
+ * only when it can work, and when it cannot it is absent rather than broken.
+ */
+describe("the access panel, for the owner", () => {
+  test("with contacts on, offers the guest list", () => {
+    const html = render({ viewer: owner, contactsEnabled: true });
+    expect(html).toContain('href="/alex/contacts"');
+    expect(html).toContain("Manage who can read this");
+  });
+
+  test("with contacts off, does not — the page would answer 404", () => {
+    const html = render({ viewer: owner, contactsEnabled: false });
+    expect(html).not.toContain("/alex/contacts");
+    expect(html).not.toContain("Manage who can read this");
+  });
+
+  test("and the rest of the owner block is untouched either way", () => {
+    for (const contactsEnabled of [true, false]) {
+      const html = render({ viewer: owner, contactsEnabled });
+      // What an owner comes here for: the address and email to hand an agent.
+      expect(html).toContain("https://example.test/documentation.txt");
+      expect(html).toContain("owner@example.test");
+    }
   });
 });

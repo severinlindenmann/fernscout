@@ -3,10 +3,9 @@ import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
 import { mayReadTrip } from "@/lib/tripGate";
-import { notFound } from "next/navigation";
 import GalleryPageContent from "./GalleryPageContent";
 import { getAllMedia, getPlaces } from "@/lib/entries";
-import { currentTripRef, getTrip } from "@/lib/trips";
+import { currentTripOrRedirect } from "@/lib/currentTrip";
 import TripProvider from "@/components/TripProvider";
 
 /**
@@ -34,10 +33,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function GalleryPage({ params }: PageProps<"/[user]/gallery">) {
   const { user } = await params;
-  const tripId = currentTripRef(user);
-  if (!tripId) notFound();
-  const trip = getTrip(tripId);
-  if (!trip) notFound();
+  // No current trip is a normal state, not a missing page. See lib/currentTrip.ts.
+  const trip = currentTripOrRedirect(user);
+  const tripId = trip.ref;
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.

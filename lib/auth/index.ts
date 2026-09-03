@@ -130,6 +130,69 @@ export function signInUrl(base: string, username: string, linkToken: string): st
   return `${base.replace(/\/$/, "")}/${username}/s/${linkToken}`;
 }
 
+/** The longest destination worth keeping. Real ones are a trip id or a day
+ * slug; anything past this is somebody filling a column. */
+const MAX_DESTINATION = 512;
+
+/** A base no host on earth resolves to, used only to normalise a path. */
+const NOWHERE = "https://fernscout.invalid";
+
+/**
+ * The one place that decides whether a stored destination may be redirected to.
+ *
+ * **A redirect target is only ever as safe as the check in front of it.** The
+ * value reaching here was written by whoever filled in the sign-in form, so it
+ * is attacker input with a delay on it, and the failure to avoid is a link
+ * that signs somebody in and then forwards them to a page dressed up as this
+ * journal. That is strictly worse than the papercut this exists to fix.
+ *
+ * Two questions, both of which must answer yes:
+ *
+ * 1. **Is it a path on this origin?** It must start with a single `/` — no
+ *    scheme, no `//host` and no `/\host`, both of which browsers read as
+ *    protocol-relative. It is then resolved against a base that exists
+ *    nowhere, and the result must still be on that base: a `..` segment, or
+ *    the `%2e%2e` the URL parser also treats as one, can otherwise climb out
+ *    of the journal after every string check has passed.
+ * 2. **Is it inside this journal?** `/<username>` exactly, or `/<username>/…`.
+ *    A username is a directory name and therefore a boundary, so one reader's
+ *    sign-in cannot land inside somebody else's journal — the account taking
+ *    a username being the way that would be arranged.
+ *
+ * Query strings and fragments are dropped rather than validated. Nothing that
+ * sets a destination has one, and a redirect is not the place to find out
+ * which parameters a page will act on.
+ *
+ * Returns the path to redirect to, or null — and null means the journal home,
+ * which is where this always went.
+ */
+export function safeDestination(username: string, value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const raw = value.trim();
+  if (raw.length === 0 || raw.length > MAX_DESTINATION) return null;
+  if (!raw.startsWith("/")) return null;
+  // Whitespace, control characters and backslashes: none belongs in a path we
+  // wrote, and each is a way of confusing one parser while satisfying another.
+  if (/[\s\\]/.test(raw)) return null;
+  if ([...raw].some((c) => c.charCodeAt(0) < 0x20 || c.charCodeAt(0) === 0x7f)) return null;
+  if (raw.startsWith("//")) return null;
+  if (raw.includes("?") || raw.includes("#")) return null;
+  if (!username || username.includes("/")) return null;
+
+  let url: URL;
+  try {
+    url = new URL(raw, NOWHERE);
+  } catch {
+    return null;
+  }
+  if (url.origin !== NOWHERE) return null;
+
+  const path = url.pathname;
+  const prefix = `/${username}`;
+  if (path !== prefix && !path.startsWith(`${prefix}/`)) return null;
+  return path;
+}
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -190,6 +253,13 @@ export async function issueCode(
   owner: string,
   email: string,
   kind: SessionKind,
+  /**
+   * Where redeeming the link should land, when the caller knows — the page the
+   * reader was looking at when they asked. Checked here as well as at
+   * redemption, so a rejected value is never written down in the first place;
+   * the check that matters is still the one on the way out.
+   */
+  destination?: string | null,
 ): Promise<IssuedCode> {
   const { db } = await getDatabase();
   const address = normaliseEmail(email);
@@ -212,6 +282,10 @@ export async function issueCode(
       code_hash: hashSecret(code),
       link_hash: linkToken ? hashSecret(linkToken) : null,
       link_consumed_at: null,
+      // No link, nowhere to land. An agent code that carried a destination
+      // would be a path nothing ever reads, kept where a reader's browsing
+      // shows up in a database dump.
+      link_dest: linkToken ? safeDestination(owner, destination) : null,
       kind,
       created_at: now.toISOString(),
       expires_at: expiresAt,
@@ -230,6 +304,17 @@ export async function issueCode(
 export type VerifyResult =
   | { ok: true; token: string; expiresAt: string; scope: string; userId: string }
   | { ok: false; reason: "no-code" | "expired" | "wrong" | "burned" };
+
+/**
+ * What redeeming a *link* gives you: a session, plus where to send the reader.
+ *
+ * `destination` is a path inside this journal or null, never a URL and never a
+ * value the caller may substitute — see `safeDestination`. Null means the
+ * journal's front page.
+ */
+export type VerifyLinkResult =
+  | (Extract<VerifyResult, { ok: true }> & { destination: string | null })
+  | Extract<VerifyResult, { ok: false }>;
 
 /**
  * Redeem a code for a session token.
@@ -406,6 +491,9 @@ async function insertLinkRow(
       code_hash: hashSecret(generateLinkToken()),
       link_hash: hashSecret(linkToken),
       link_consumed_at: null,
+      // Neither of these is sent from a page, so neither has a page to return
+      // to. The welcome mail's link and the relay link both open the journal.
+      link_dest: null,
       kind: "guest",
       created_at: nowIso(),
       // Read for a relay link, and the thing that makes it expire. For a
@@ -437,7 +525,7 @@ export async function verifyLink(
   owner: string,
   linkToken: string,
   kind: SessionKind = "guest",
-): Promise<VerifyResult> {
+): Promise<VerifyLinkResult> {
   const { db } = await getDatabase();
 
   const row = await db
@@ -474,7 +562,16 @@ export async function verifyLink(
     .where("id", "=", row.id)
     .execute();
 
-  return openSession(owner, row.email, kind);
+  const session = await openSession(owner, row.email, kind);
+  if (!session.ok) return session;
+
+  /**
+   * Checked here, on the way out, against the username the link was redeemed
+   * for — not when it was stored. The stored value is the input; anything
+   * that could put a row in this table (a future bug, a restored dump, a
+   * migration written in a hurry) would otherwise be handed a redirect.
+   */
+  return { ...session, destination: safeDestination(owner, row.link_dest) };
 }
 
 /**

@@ -222,7 +222,7 @@ needs. Showing a shared trip inside the buddy's *own* journal — that is B34.
 
 ## What was built
 
-- `009-invite-links`: `contact_invites.trip_id` comes back — deliberately, and
+- `010-invite-links`: `contact_invites.trip_id` comes back — deliberately, and
   the migration argues with 007, which dropped it. 007 was right about the
   column it removed (a per-trip *read* grant, a dimension nothing wrote and
   B41 settled the other way); this one says which trip a **buddy** link joins,

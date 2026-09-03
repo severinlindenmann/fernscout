@@ -216,6 +216,94 @@ describe("subscribersFor — closed trips", () => {
   });
 });
 
+/**
+ * B68. A `read` grant is journal-wide and means *this person may read the
+ * journal's `guest` trips*. It has never meant a `private` one — `mayReadTrip`
+ * refuses that to a journal guest before it asks anything else — and this
+ * function never asked which kind of closed trip it had.
+ *
+ * So the approved family member with the PWA installed was pushed a title and
+ * a link to a page that then refused them: the digest's stated harm ("it tells
+ * somebody something private exists and then refuses them, which is the one
+ * thing a private trip is for") arriving by the channel that interrupts.
+ */
+describe("subscribersFor — a private trip", () => {
+  test("notifies nobody, even an active contact holding a live read grant", async () => {
+    const contact = await signUpAndConfirm("ana", "family@example.com");
+    await approveContact("ana", contact.id); // approval is the grant
+    const sub = fakeSub({ contactId: contact.id });
+    await saveSubscription(sub);
+
+    // The same contact, the same grant, the same subscription: the `guest`
+    // trip reaches them and the `private` one does not. Asserted together, so
+    // this cannot pass because the fixture stopped granting anything.
+    expect((await subscribersFor(fakeTrip({ visibility: "guest" }))).map((x) => x.endpoint)).toEqual(
+      [sub.endpoint],
+    );
+    expect(await subscribersFor(fakeTrip({ visibility: "private" }))).toEqual([]);
+  });
+
+  test("notifies nobody when the device cannot be identified either", async () => {
+    await saveSubscription(fakeSub({ contactId: null }));
+    expect(await subscribersFor(fakeTrip({ visibility: "private" }))).toEqual([]);
+  });
+
+  /**
+   * The cost of the line, asserted rather than left to be rediscovered: the
+   * people who were actually on the trip get nothing either. They can open it
+   * — the gate lets them through on their address — but a subscription carries
+   * a `contactId` and `isPersonOn` matches an address, and resolving one to
+   * the other here would mean importing `lib/contacts` into the notify path.
+   * Refusing is the fail-safe direction and the same one the digest takes.
+   */
+  test("notifies nobody on `people:` either, which is the accepted cost", async () => {
+    const contact = await signUpAndConfirm("ana", "robin@example.com");
+    await approveContact("ana", contact.id);
+    await saveSubscription(fakeSub({ contactId: contact.id }));
+
+    const trip = fakeTrip({
+      visibility: "private",
+      people: [{ name: "Robin", email: "robin@example.com" }],
+    });
+    expect(await subscribersFor(trip)).toEqual([]);
+  });
+});
+
+/**
+ * B70. The same rule the digest was taught, in the surface that sits even
+ * closer to the reader.
+ *
+ * A `test: true` trip is content nobody lived. Every reading surface contains
+ * it by wearing a banner; a notification is a title and a link on a lock
+ * screen and has nowhere to put one — so the answer is not to notify at all.
+ * `public` is the case that matters, because that is what a trip written to
+ * prove the pipeline usually is, and because `isOpenToLink` would otherwise
+ * hand it every subscription in the journal before any other question is
+ * asked.
+ */
+describe("subscribersFor — a trip nobody lived", () => {
+  test("a public test trip notifies nobody, unidentified device or approved contact", async () => {
+    const trip = fakeTrip({ visibility: "public", test: true });
+    const contact = await signUpAndConfirm("ana", "family@example.com");
+    await approveContact("ana", contact.id);
+    await saveSubscription(fakeSub());
+    await saveSubscription(fakeSub({ contactId: contact.id }));
+
+    // The same two subscriptions on the same trip without the flag: both.
+    expect(await subscribersFor(fakeTrip({ visibility: "public" }))).toHaveLength(2);
+    expect(await subscribersFor(trip)).toEqual([]);
+  });
+
+  test("a guest test trip notifies nobody either", async () => {
+    const contact = await signUpAndConfirm("ana", "family@example.com");
+    await approveContact("ana", contact.id); // approval is the grant
+    await saveSubscription(fakeSub({ contactId: contact.id }));
+
+    expect(await subscribersFor(fakeTrip({ visibility: "guest" }))).toHaveLength(1);
+    expect(await subscribersFor(fakeTrip({ visibility: "guest", test: true }))).toEqual([]);
+  });
+});
+
 describe("subscribersFor — no database", () => {
   beforeEach(() => {
     delete process.env.DATABASE_URL;

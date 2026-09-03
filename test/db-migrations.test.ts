@@ -376,7 +376,7 @@ describe.each(dialectCases())("schema on $name", ({ target }) => {
    * journal — so the column that said *which trip* is gone.
    *
    * `contact_invites.trip_id` went with it and has since come back
-   * (`009-invite-links`), which is why that half of this assertion is now the
+   * (`010-invite-links`), which is why that half of this assertion is now the
    * other way round. It is not the old column returning: 007 removed a
    * dimension that would have narrowed *reading* to one trip, which B41
    * settled the other way and which nothing ever wrote. What 009 added says

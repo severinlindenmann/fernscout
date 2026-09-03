@@ -397,7 +397,14 @@ while travelling, you cannot debug what you cannot see.
 
 ## Backups
 
-> ### Not set up on fernscout.ch — deliberately, and still true
+> ### Not set up on fernscout.ch — superseded on 2026-09-01
+>
+> **This is history now.** restic, both units and the credentials were
+> installed while preparing the restore drill below, and one verified snapshot
+> exists. What is *not* yet written down is the repository's location and where
+> the password is kept off-machine — that is the rest of B65. The block is left
+> standing because the reasoning in it is still the right reasoning, and because
+> "we knew we had none" is the part worth keeping.
 >
 > **Decided 2026-08-31, at the first deploy.** No off-VPS storage had been
 > chosen yet, and a backup written to the machine it protects is not a backup.
@@ -432,13 +439,90 @@ with a randomised delay).
 
 ```bash
 sudo apt install -y restic
-sudo cp deploy/fernscout-backup.service deploy/fernscout-backup.timer /etc/systemd/system/
+sudo cp deploy/fernscout-backup.service deploy/fernscout-backup.timer \
+        deploy/fernscout-alert@.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now fernscout-backup.timer
-systemctl list-timers fernscout-backup
 ```
 
-Set `RESTIC_REPOSITORY` and `RESTIC_PASSWORD` in `/etc/fernscout/env`.
+`fernscout-alert@.service` is not enabled and has no timer of its own — the
+backup unit's `OnFailure=` starts it. Copying it is not optional: without it a
+failed backup goes to a journal and nowhere else, which is exactly how this
+server managed three aborted nights in a row unnoticed.
+
+Set `RESTIC_REPOSITORY` and `RESTIC_PASSWORD` in `/etc/fernscout/env`, and
+`BACKUP_ALERT_EMAIL` if the alert should go somewhere other than the default
+journal's owner.
+
+**Then initialise the repository, once, by hand.** The nightly run will not do
+it for you, on purpose:
+
+```bash
+set -a; . /etc/fernscout/env; set +a
+sudo -u fernscout -E restic init
+```
+
+A run that finds no repository **fails** rather than creating one, because the
+two reasons it might find none are a genuine first run and a typo in
+`RESTIC_REPOSITORY` — and the second used to make a brand new empty repository,
+back into it, prune it and exit 0. A perfectly green backup protecting nothing,
+while every real snapshot sat in the repository nobody was writing to any more
+(B63). `BACKUP_INIT_IF_MISSING=1` allows it for one run if you would rather not
+type `restic init`; do not put it in `/etc/fernscout/env`, where the timer would
+read it every night.
+
+The script also refuses to run `restic init` when it *cannot see* the
+repository — permission denied, wrong password, storage unreachable — and says
+which of the two it found. That is the case this server hit: the repository was
+root-owned, the service runs as `fernscout`, and the old probe read
+permission-denied as "not initialised yet".
+
+Each run logs how many snapshots the repository holds, and warns when that is
+one. A repository you believe holds a fortnight and which holds one is not the
+repository you meant.
+
+Two things the drill learned the hard way, both worth checking before the first
+run: `RESTIC_REPOSITORY` must be under a path listed in the unit's
+`ReadWritePaths=`, and the repository must be **owned by `fernscout`**, the
+user the service runs as.
+
+### Is the backup working?
+
+Not `systemctl list-timers`. That reports the schedule and never the result —
+a timer whose every run has aborted since March still prints a healthy
+next-elapse, and the runbook used to send people to it. Three that do answer
+the question:
+
+```bash
+systemctl status fernscout-backup            # how the LAST run ended
+cat /var/lib/fernscout/.backup-last-success  # when it last finished
+curl -s https://<domain>/api/health | jq .backup
+```
+
+The third works from anywhere, needs no shell on the box, and is what an uptime
+monitor should assert on:
+
+```json
+"backup": { "state": "ok", "lastSuccessAt": "2026-09-01T03:20:14.000Z",
+            "ageHours": 9.4, "lastFailureAt": null, "maxAgeHours": 36 }
+```
+
+`state` is `ok`, `stale` (nothing succeeded within `BACKUP_MAX_AGE_HOURS`,
+36 by default), `failing` (a run failed since the last success) or `unknown`
+(nothing has ever succeeded in this `DATA_DIR` — the state an instance with no
+backups at all reports, which is the point). Anything other than `ok` carries a
+`reason`. It deliberately does **not** change the endpoint's status code: a
+stale backup must not take an instance out of a load balancer or fail a deploy.
+`scripts/deploy.sh` prints the state on every deploy instead.
+
+A failure also *arrives*: `OnFailure=` runs `scripts/alert.sh`, which writes
+`$DATA_DIR/.backup-last-failure` and mails the operator through the app's own
+transport. Rehearse it without breaking anything:
+
+```bash
+sudo systemctl start fernscout-alert@fernscout-backup.service
+journalctl -u fernscout-alert@fernscout-backup.service -n 20
+```
 
 **Contents:** the Postgres dump (only when `DATABASE_URL` is `postgres://…`),
 `$DATA_DIR` (which includes the SQLite file if that is the dialect), and
@@ -536,12 +620,17 @@ this machine at all (B65):
   (`/var/backups/fernscout`). Anywhere else and systemd refuses to start the
   service with `Failed at step NAMESPACE`, before `backup.sh` runs at all.
 - The repository must be **owned by the service user**. Root-owned, the
-  script's `restic snapshots` probe fails on permissions, the script reads that
-  as "not initialised yet", runs `restic init`, and dies on `config file
-  already exists`. See B63 — the probe cannot tell the two apart.
+  script's probe fails on permissions — which the old probe read as "not
+  initialised yet", so it ran `restic init` and died on `config file already
+  exists`. **Fixed in B63:** the probe is `restic cat config` now, and it
+  distinguishes *absent* from *cannot see it*; the ownership requirement is
+  unchanged, but getting it wrong now produces a message that says so.
 - A single unreadable file anywhere under `DATA_DIR` aborts the whole backup:
-  `cp -a` fails, `set -e` stops the script, and per B64 nobody is told. One
-  root-owned stray file left by an operator is enough.
+  `cp -a` fails, `set -e` stops the script, and nobody was told. One root-owned
+  stray file left by an operator is enough. **The "nobody was told" half is
+  fixed** — B64 added the `OnFailure=` alert, the stamp files and the
+  `/api/health` `.backup` block described above. The `cp -a` fragility itself
+  is not.
 
 ---
 

@@ -5,7 +5,7 @@ import { basemapFor } from "@/lib/basemap";
 import { getAllEntries } from "@/lib/entries";
 import { frameRoute } from "@/lib/mapFrame";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
-import { buildStoryProps } from "@/lib/tripView";
+import { buildStoryProps, showsCountdown } from "@/lib/tripView";
 import { getPlan } from "@/lib/plan";
 import { getBudgetInBase } from "@/lib/costs";
 import { BlogStructuredData } from "@/components/StructuredData";
@@ -65,10 +65,14 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(trip))) return null;
 
-  if (trip.status === "upcoming") {
+  const owner = await isOwner(user);
+
+  // Not `status === "upcoming"` alone: see `showsCountdown` for why a
+  // published day settles it whatever the status says (B72).
+  if (showsCountdown(trip)) {
     // The countdown draws the same merged route as the map — see
     // app/[user]/(trip)/map/page.tsx for why this is gated on ownership.
-    const plan = getPlan(trip.ref, { includeDrafts: await isOwner(user) });
+    const plan = getPlan(trip.ref, { includeDrafts: owner });
     return (
       <TripProvider trip={trip} isCurrent={false}>
         <TripCountdown
@@ -83,7 +87,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
 
   const { index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(trip.ref, {
     showCosts: await mayViewCosts(trip),
-    includeDrafts: await isOwner(user),
+    includeDrafts: owner,
   });
   const userConfig = getUser(user);
   if (!userConfig) notFound();

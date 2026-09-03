@@ -19,7 +19,8 @@ export const TRANSPORT_MODES = ["flight", "train", "bus", "motorbike", "boat", "
 
 /** A short slug: lowercase words joined by single hyphens, no leading,
  * trailing or doubled hyphen. The same shape a filename slug is held to
- * elsewhere in this codebase (see `slugify` in lib/api/entries.ts). */
+ * elsewhere in this codebase (see `slugify` in lib/slug.ts, which is the one
+ * that mints every day slug). */
 const TAG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export const TAG_MAX_LENGTH = 30;
 

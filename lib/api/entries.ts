@@ -7,6 +7,10 @@ import { forgetEntries, getAllEntries, getDays, isDraft } from "../entries";
 // that already exists, so the two doors cannot drift apart in how they format
 // it or in what they preserve of a file somebody has since edited.
 import { appendGallery } from "../ingest/entry";
+// One slugify for the whole codebase (B77). This module used to carry its
+// own, which stripped a German umlaut down to its bare vowel and disagreed
+// with the one ingest used — the same title, two permanent URLs.
+import { slugify } from "../slug.ts";
 import { getTrip, tripDir, tripRef } from "../trips";
 import type { Entry, GalleryItem } from "../types";
 
@@ -77,18 +81,6 @@ export type DeleteResult =
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
-
-export function slugify(text: string): string {
-  return (
-    text
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 60) || "entry"
-  );
-}
 
 /** YAML-safe double-quoted scalar. */
 function quote(value: string): string {
