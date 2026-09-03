@@ -111,7 +111,7 @@ Send signup mail to a directory that is inside the content root, and say where.
 
 Not doing: retention or automatic expiry of mail copies. That is a real gap and
 it applies to every `.eml` the instance keeps, not just these — worth its own
-task rather than being smuggled in here. Captured as **B130**, which also
+task rather than being smuggled in here. Captured as **B135**, which also
 records the consequence this change has for it: once mail is inside
 `CONTENT_DIR` it is inside the backup, so never deleting it costs more than it
 did. Nor is this a reason to reconsider `keepCopy`, which is doing what it was

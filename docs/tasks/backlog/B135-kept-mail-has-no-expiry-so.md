@@ -1,5 +1,5 @@
 ---
-id: B130
+id: B135
 title: Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working
 type: ISSUE
 priority: medium
@@ -8,7 +8,7 @@ area: mail, ops, security
 found: "2026-09-03"
 ---
 
-# B130 — Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working
+# B135 — Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working
 
 ## Why
 
