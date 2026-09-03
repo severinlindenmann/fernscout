@@ -216,12 +216,14 @@ describe("budget against actual, with mixed currencies", () => {
     expect(budget.days).toBe(10);
     // (1000 planned − 300 already spent on preparation) / 10 days
     expect(budget.perDay).toBeCloseTo(70, 9);
-    // Two days logged, so 300 + 2 × 70 if we were exactly on plan.
-    expect(budget.expectedToDate).toBeCloseTo(440, 9);
-    expect(budget.deltaToDate).toBeCloseTo(summary.total - 440, 9);
     expect(budget.remaining).toBeCloseTo(1000 - summary.total, 9);
+    // The trip has happened, so there is a pace to compare against. Two days
+    // logged, so 300 + 2 × 70 if we were exactly on plan.
+    const pace = budget.pace!;
+    expect(pace.expectedToDate).toBeCloseTo(440, 9);
+    expect(pace.deltaToDate).toBeCloseTo(summary.total - 440, 9);
     // Under plan — which it is not if the raw baht are added in as francs.
-    expect(budget.deltaToDate).toBeLessThan(0);
+    expect(pace.deltaToDate).toBeLessThan(0);
   });
 
   test("a budget written in a foreign currency is converted before it is shown", () => {

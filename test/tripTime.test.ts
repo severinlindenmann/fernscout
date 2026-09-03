@@ -4,6 +4,7 @@ import {
   daysUntil,
   earliestTodayISO,
   effectiveStatus,
+  hasBegun,
   hasHappened,
   isOver,
   isReaderToday,
@@ -172,5 +173,57 @@ describe("isOver", () => {
   test("a current trip with nothing written yet is over once its end date has passed", () => {
     const trip = { end: "2026-03-10", status: "current" as const };
     expect(isOver(trip, [], new Date("2026-03-16T00:00:00Z"))).toBe(true);
+  });
+});
+
+/**
+ * B19 — the other end of `isOver`.
+ *
+ * Everything phrased as "so far" needs this answered first: spend per day,
+ * pace against a budget, a projected total. The costs page asked none of it
+ * and computed all of it anyway, over an empty set.
+ */
+describe("hasBegun", () => {
+  test("a trip whose start is still ahead has not begun", () => {
+    const trip = { start: "2027-04-02", status: "upcoming" as const };
+    expect(hasBegun(trip, [], new Date("2026-06-01T00:00:00Z"))).toBe(false);
+  });
+
+  test("a trip whose start has come has begun, whatever its frontmatter says", () => {
+    // The B72 case, asked the other way round: `status: upcoming` left in a
+    // trip.md nobody has edited since the trip was created.
+    const trip = { start: "2026-08-24", status: "upcoming" as const };
+    expect(hasBegun(trip, [], new Date("2026-09-01T00:00:00Z"))).toBe(true);
+  });
+
+  test("the trip under way has begun, and its dates are not consulted", () => {
+    const trip = { start: "2099-01-01", status: "current" as const };
+    expect(hasBegun(trip, [], new Date("2026-03-14T00:00:00Z"))).toBe(true);
+  });
+
+  test("a finished trip has begun", () => {
+    const trip = { start: "2023-05-01", status: "past" as const };
+    expect(hasBegun(trip, [], new Date("2026-03-14T00:00:00Z"))).toBe(true);
+  });
+
+  test("a day already written and already happened settles it", () => {
+    // The mirror of the guard in `isOver`: the flight moved forward, the trip
+    // started a week early, and nobody edited `start:`.
+    const trip = { start: "2026-03-20", status: "upcoming" as const };
+    const days = [{ date: "2026-03-13" }];
+    expect(hasBegun(trip, days, new Date("2026-03-14T00:00:00Z"))).toBe(true);
+  });
+
+  test("a day dated ahead of today is still a plan", () => {
+    const trip = { start: "2027-04-02", status: "upcoming" as const };
+    const days = [{ date: "2027-04-14" }];
+    expect(hasBegun(trip, days, new Date("2026-06-01T00:00:00Z"))).toBe(false);
+  });
+
+  test("turns over in the earliest calendar, like hasHappened", () => {
+    // 17:30 UTC on the 14th is already the 15th in Kiritimati.
+    const now = new Date("2026-03-14T17:30:00Z");
+    expect(hasBegun({ start: "2026-03-15", status: "upcoming" }, [], now)).toBe(true);
+    expect(hasBegun({ start: "2026-03-16", status: "upcoming" }, [], now)).toBe(false);
   });
 });

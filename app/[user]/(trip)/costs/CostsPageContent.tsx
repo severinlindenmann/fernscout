@@ -9,6 +9,7 @@ import { useMoney } from "@/components/CurrencyProvider";
 import { flagFor } from "@/lib/flags";
 import {
   CATEGORY_STYLE,
+  type BudgetPace,
   type BudgetStatus,
   type CostSummary,
   type CostCategory,
@@ -29,6 +30,18 @@ export default function CostsPageContent({
 
   const catLabel = (c: CostCategory) => t(`cost.cat.${c}` as TranslationKey);
 
+  /**
+   * Which page this is: the one about a trip that is happening, or the one
+   * about a trip that is planned.
+   *
+   * Decided once, from the summary's own flag, and never re-derived from a
+   * length or a zero further down — that is how the same bug comes back for
+   * the next field that happens to be empty (B19). Everything conditional
+   * below hangs off this line and off `budget.pace`, which is the same
+   * decision made in the type.
+   */
+  const planned = !summary.hasBegun;
+
   const slices = summary.byCategory.map((c) => ({
     key: c.category,
     label: catLabel(c.category),
@@ -43,23 +56,40 @@ export default function CostsPageContent({
         <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
           {t("cost.title")}
         </h1>
+        {/* Which of the two pages this is, said in a sentence, so a reader
+            never has to work it out from a zero. */}
         <p className="mt-1 max-w-2xl text-sm text-navy-600">
-          {t("cost.subtitle", { currency })}
+          {planned ? t("cost.subtitlePlanned", { currency }) : t("cost.subtitle", { currency })}
         </p>
 
         {/* What the totals had to leave out, before the totals themselves. */}
         <UnconvertedNotice items={summary.unconverted} />
 
-        {/* Headline numbers */}
-        <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label={t("cost.total")} value={money(summary.total)} hero />
-          <Stat label={t("cost.perDay")} value={money(summary.perDay)} />
-          <Stat label={t("cost.onTheRoad")} value={money(summary.onTheRoad)} />
-          <Stat label={t("cost.prep")} value={money(summary.preparation)} />
-        </dl>
+        {/* Headline numbers. Before departure the two rates — what a day
+            costs, and what has gone on the road — are zero because there are
+            no days yet, not because the trip is cheap. */}
+        {planned ? (
+          <dl className="mt-6 grid grid-cols-2 gap-3">
+            <Stat label={t("cost.total")} value={money(summary.total)} hero />
+            <Stat label={t("cost.prep")} value={money(summary.preparation)} />
+          </dl>
+        ) : (
+          <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label={t("cost.total")} value={money(summary.total)} hero />
+            <Stat label={t("cost.perDay")} value={money(summary.perDay)} />
+            <Stat label={t("cost.onTheRoad")} value={money(summary.onTheRoad)} />
+            <Stat label={t("cost.prep")} value={money(summary.preparation)} />
+          </dl>
+        )}
 
-        {/* Against the budget */}
-        {summary.budget && <BudgetPanel budget={summary.budget} spent={summary.total} />}
+        {/* The budget: how it is going, or — before there is a "going" — what
+            it is. `pace` is present exactly when the trip has begun. */}
+        {summary.budget &&
+          (summary.budget.pace ? (
+            <BudgetPanel budget={summary.budget} pace={summary.budget.pace} spent={summary.total} />
+          ) : (
+            <PlannedBudgetPanel budget={summary.budget} spent={summary.total} />
+          ))}
 
         {/* Where the money went */}
         <Section title={t("cost.byCategory")}>
@@ -82,31 +112,37 @@ export default function CostsPageContent({
           </Section>
         )}
 
-        {/* Day by day */}
-        <Section title={t("cost.perDayChart")}>
-          <DailyColumns
-            data={summary.byDay}
-            average={summary.perDay}
-            format={(n) => money(n)}
-            formatDate={formatShortDate}
-            accent={CATEGORY_STYLE.accommodation.color}
-          />
-        </Section>
+        {/* Day by day, and the running total. Both plot the days the trip
+            has, so before departure there is nothing to draw — omitted the
+            way `byCountry` above is, rather than drawn as empty axes under a
+            heading promising a breakdown. */}
+        {!planned && (
+          <>
+            <Section title={t("cost.perDayChart")}>
+              <DailyColumns
+                data={summary.byDay}
+                average={summary.perDay}
+                format={(n) => money(n)}
+                formatDate={formatShortDate}
+                accent={CATEGORY_STYLE.accommodation.color}
+              />
+            </Section>
 
-        {/* Running total */}
-        <Section title={t("cost.cumulative")} note={t("cost.cumulativeNote")}>
-          <CumulativeArea
-            data={summary.byDay}
-            format={(n) => money(n)}
-            formatDate={formatShortDate}
-            accent={CATEGORY_STYLE.flights.color}
-            reference={
-              summary.budget
-                ? { values: summary.budget.curve, label: t("cost.plannedSpend") }
-                : undefined
-            }
-          />
-        </Section>
+            <Section title={t("cost.cumulative")} note={t("cost.cumulativeNote")}>
+              <CumulativeArea
+                data={summary.byDay}
+                format={(n) => money(n)}
+                formatDate={formatShortDate}
+                accent={CATEGORY_STYLE.flights.color}
+                reference={
+                  summary.budget?.pace
+                    ? { values: summary.budget.pace.curve, label: t("cost.plannedSpend") }
+                    : undefined
+                }
+              />
+            </Section>
+          </>
+        )}
 
         {/* Everything, itemised — also the accessible fallback for the charts */}
         <section className="mt-10">
@@ -265,10 +301,64 @@ function Section({
   );
 }
 
-function BudgetPanel({ budget, spent }: { budget: BudgetStatus; spent: number }) {
+/**
+ * The budget before departure: a plan, not a scoreboard.
+ *
+ * The same three numbers the author wrote down — what the trip is budgeted
+ * at, what a day of it is allowed, how many days it was drawn for — and what
+ * preparation has already taken out of it. No delta, no projection, no
+ * colour: there is nothing yet to be over or under. See B19.
+ */
+function PlannedBudgetPanel({ budget, spent }: { budget: BudgetStatus; spent: number }) {
   const { t } = useI18n();
   const { money } = useMoney();
-  const delta = budget.deltaToDate;
+  // Preparation is real money and it is really gone, so the bar is honest —
+  // it is only the *pace* that has no meaning yet. Neutral, for the same
+  // reason: a colour here would be a verdict.
+  const used = budget.total > 0 ? Math.min(1, spent / budget.total) : 0;
+
+  return (
+    <section className="mt-8 rounded-2xl border border-navy-200 bg-white p-5 shadow-sm sm:p-6">
+      <h2 className="font-display text-lg font-semibold text-navy-900">{t("cost.budgetPlan")}</h2>
+
+      <div className="mt-4">
+        <div className="h-3 w-full overflow-hidden rounded-full bg-navy-200/50">
+          <div
+            className="h-full rounded-full transition-[width] duration-700"
+            style={{ width: `${used * 100}%`, background: "#5a6a80" }}
+          />
+        </div>
+        <p className="mt-1.5 text-[11px] text-navy-600">
+          {Math.round(used * 100)}% {t("cost.ofBudget")} · {money(spent)} / {money(budget.total)}
+        </p>
+      </div>
+
+      <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label={t("cost.budgetTotal")} value={money(budget.total)} />
+        <Stat label={t("cost.budgetPerDay")} value={money(budget.perDay)} />
+        <Stat label={t("cost.budgetDays")} value={String(budget.days)} />
+        <Stat label={t("cost.remaining")} value={money(budget.remaining)} />
+      </dl>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-navy-600">
+        {t("cost.budgetNotePlanned")}
+      </p>
+    </section>
+  );
+}
+
+function BudgetPanel({
+  budget,
+  pace,
+  spent,
+}: {
+  budget: BudgetStatus;
+  pace: BudgetPace;
+  spent: number;
+}) {
+  const { t } = useI18n();
+  const { money } = useMoney();
+  const delta = pace.deltaToDate;
   // Anything inside a single day's allowance is noise, not a trend worth colouring.
   const onPace = Math.abs(delta) < budget.perDay;
   const under = delta < 0;
@@ -312,7 +402,7 @@ function BudgetPanel({ budget, spent }: { budget: BudgetStatus; spent: number })
       <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label={t("cost.budgetTotal")} value={money(budget.total)} />
         <Stat label={t("cost.budgetPerDay")} value={money(budget.perDay)} />
-        <Stat label={t("cost.projected")} value={money(budget.projectedTotal)} />
+        <Stat label={t("cost.projected")} value={money(pace.projectedTotal)} />
         <Stat label={t("cost.remaining")} value={money(budget.remaining)} />
       </dl>
 

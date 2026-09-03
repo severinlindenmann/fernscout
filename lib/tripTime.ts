@@ -142,6 +142,39 @@ export function effectiveStatus(
 }
 
 /**
+ * Whether a trip has started — whether there is any "so far" to talk about.
+ *
+ * The mirror of `isOver`, and the question every "how are we doing" figure
+ * quietly assumes an answer to: spend per day, pace against a budget, a
+ * projected total. Before departure each of those is arithmetic over an empty
+ * set, and the zero it produces reads as a measurement rather than as an
+ * absence — B19 is a costs page for a trip fourteen months away reporting a
+ * daily average, a percentage of the budget used and a projected total an
+ * order of magnitude below the budget itself.
+ *
+ * `status` settles it the way it settles `isOver`, through the same
+ * reconciliation: `current` is the author's own word and is honoured as
+ * written, while `past` and `upcoming` are `effectiveStatus`'s reading of
+ * `start` rather than a field nobody has edited since the trip was created
+ * (B72).
+ *
+ * `days` is the guard against the opposite error, and the counterpart of the
+ * one in `isOver`: an author who left early — the flight moved, and nobody
+ * edited the frontmatter — is travelling whatever `start` claims, and a day
+ * already written to the trip says so. Days *dated ahead* do not count, in the
+ * earliest calendar in use anywhere on earth: an entry for a day that has not
+ * arrived is still a plan, whoever wrote it.
+ */
+export function hasBegun(
+  trip: { start: string; status: TripStatus },
+  days: { date: string }[] = [],
+  now: Date = new Date(),
+): boolean {
+  if (effectiveStatus(trip, now) !== "upcoming") return true;
+  return days.some((day) => hasHappened(day.date, now));
+}
+
+/**
  * Whether a trip is done — nothing more coming, only what's already written.
  *
  * `status` settles the question outright at both ends, and by the time a

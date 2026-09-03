@@ -72,7 +72,28 @@ export type Unconverted = {
   count: number;
 };
 
-/** What was set aside, and how the real spend compares so far. */
+/**
+ * How the trip is going against its budget: every figure that is measured
+ * against the days already logged.
+ *
+ * Split out of `BudgetStatus`, and optional there, because none of it means
+ * anything before departure — "so far" needs a "so far" to be about. Absent
+ * rather than zero: a zero is indistinguishable from a real reading, and the
+ * page duly drew one as "exactly on plan so far", beside a projected total of
+ * a tenth of the budget, for a trip nobody had left for yet (B19).
+ */
+export type BudgetPace = {
+  /** What we'd have spent by now if we were exactly on plan. */
+  expectedToDate: number;
+  /** Real spend so far minus that — negative means under budget. */
+  deltaToDate: number;
+  /** Where the trip lands if the current daily rate holds. */
+  projectedTotal: number;
+  /** Planned cumulative spend, one entry per logged day, for the chart. */
+  curve: number[];
+};
+
+/** What was set aside, and — once the trip is under way — how it is going. */
 export type BudgetStatus = {
   /** Planned total for the whole trip, in the base currency. */
   total: number;
@@ -80,21 +101,25 @@ export type BudgetStatus = {
   days: number;
   /** Daily allowance once actual preparation spend is taken off the top. */
   perDay: number;
-  /** What we'd have spent by now if we were exactly on plan. */
-  expectedToDate: number;
-  /** Real spend so far minus that — negative means under budget. */
-  deltaToDate: number;
-  /** Where the trip lands if the current daily rate holds. */
-  projectedTotal: number;
-  /** Budget left, which can go negative. */
+  /** Budget left, which can go negative. Real before departure too: it is
+   * the plan minus what preparation has already cost. */
   remaining: number;
-  /** Planned cumulative spend, one entry per logged day, for the chart. */
-  curve: number[];
+  /** Absent until the trip has begun. See `BudgetPace`. */
+  pace?: BudgetPace;
 };
 
 export type CostSummary = {
   /** The currency every number below is expressed in. */
   baseCurrency: string;
+  /**
+   * Whether the trip has started, from `hasBegun` in `lib/tripTime.ts`.
+   *
+   * The one flag the page needs, decided once here rather than re-derived
+   * from `byDay.length` at each place that would otherwise draw a zero. False
+   * means `perDay`, `onTheRoad`, `byDay` and `budget.pace` describe nothing
+   * that has happened yet.
+   */
+  hasBegun: boolean;
   total: number;
   onTheRoad: number;
   preparation: number;
