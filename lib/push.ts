@@ -1,6 +1,7 @@
 import "server-only";
 import { isOpenToLink, isTestContent } from "./access";
 import { getDatabaseOrNull } from "./db";
+import { contactsWithReadGrant } from "./grants";
 import { pushRepo } from "./repos";
 import type { StoredSubscription } from "./repos/types";
 import type { Trip } from "./types";
@@ -97,8 +98,18 @@ export async function findActiveContactId(
  * - **`guest`** — a device merely being subscribed says nothing about who is
  *   holding it, so only a subscription tied to a signed-in, active contact
  *   (`contactId`, set at subscribe time — see `findActiveContactId`) who holds
- *   a `read` grant on this journal qualifies. The grant is journal-wide and
- *   there is no other kind.
+ *   a **live** `read` grant on this journal qualifies. The grant is
+ *   journal-wide and there is no other kind.
+ *
+ *   *Live* is `lib/grants.ts`'s question and not this file's (B82). This
+ *   function used to run its own `access_grants` query and take a row's
+ *   existence for a grant, which made it the only reader of that table that
+ *   never asked `grantIsLive` — so an expiry that closed the panel and the
+ *   gate left the lock screen open. `lib/grants.ts` reads `access_grants` and
+ *   nothing else; importing it is not the `lib/contacts` dependency this file
+ *   avoids, and it brings no encrypted contact field into the notify path.
+ *   The active-contact question is still asked first and separately, in
+ *   `planDigest`'s order.
  *
  * Everyone else — including every subscriber at all, when there is no database
  * — is left out rather than guessed into an audience that may not be able to
@@ -140,28 +151,24 @@ export async function subscribersFor(
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
 
-  const eligible: StoredSubscription[] = [];
-  for (const sub of all) {
-    if (!sub.contactId) continue;
-
-    const contact = await handle.db
+  // Two questions, two queries, asked once for the whole fan-out rather than
+  // twice per subscription — which is what this was, and what turns a notify
+  // run over fifty devices into a hundred round trips. Active first, then
+  // granted: `planDigest` asks them in that order and so does this.
+  const [activeRows, granted] = await Promise.all([
+    handle.db
       .selectFrom("contacts")
-      .select(["status"])
-      .where("owner_id", "=", trip.username)
-      .where("id", "=", sub.contactId)
-      .executeTakeFirst();
-    if (!contact || contact.status !== "active") continue;
-
-    const grant = await handle.db
-      .selectFrom("access_grants")
       .select(["id"])
       .where("owner_id", "=", trip.username)
-      .where("contact_id", "=", sub.contactId)
-      .where("scope", "=", "read")
-      .executeTakeFirst();
-    if (grant) eligible.push(sub);
-  }
-  return eligible;
+      .where("status", "=", "active")
+      .execute(),
+    contactsWithReadGrant(trip.username, new Date()),
+  ]);
+  const active = new Set(activeRows.map((row) => row.id));
+
+  return all.filter(
+    (sub) => sub.contactId != null && active.has(sub.contactId) && granted.has(sub.contactId),
+  );
 }
 
 /**

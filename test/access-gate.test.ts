@@ -870,17 +870,35 @@ describe("costs marked for guests", () => {
  * The expiry decision, recorded in B41 and enforced in one place.
  *
  * `access_grants.expires_at` is the record of *until when* somebody was let
- * in, and it is the question both the panel and the gate ask — the same
+ * in, and it is the question the panel, the gate and push all ask — the same
  * question `contactsWithReadGrant` has always asked for the digest. Nothing
  * writes a non-null expiry today, so this reaches into the row directly: the
- * point is that the answer changes for both surfaces at once.
+ * point is that the answer changes for every surface at once.
+ *
+ * Push is here because of B82. It was the one reader of `access_grants` that
+ * ran its own query and treated *a row exists* as *the person is let in*,
+ * which made an expired grant keep interrupting somebody's lock screen long
+ * after the panel and the gate had stopped letting them in. It now asks
+ * `lib/grants.ts` like everybody else, and the way to keep it that way is for
+ * the expiry case to cover all three surfaces rather than two.
  */
 describe("a grant that has expired is not a grant", () => {
-  test("the panel stops listing the trip and the gate stops opening it", async () => {
+  test("the panel, the gate and push all stop, together", async () => {
     const { getDatabase } = await import("@/lib/db");
     const { db } = await getDatabase();
+    const { subscribersFor } = await import("@/lib/push");
     const contactId = await contactIdFor(GUEST);
     const yesterday = new Date(Date.now() - 86_400_000).toISOString();
+
+    // While the grant is live, all three say yes — so nothing below passes
+    // because the fixture stopped being eligible for anything.
+    const live = (await tripsByRef()).get("invited-2026")!;
+    as("approved");
+    const { mayReadTrip } = await import("@/lib/tripGate");
+    expect(await mayReadTrip(live)).toBe(true);
+    expect((await subscribersFor(live)).map((sub) => sub.endpoint)).toContain(
+      endpointFor("approved"),
+    );
 
     await db
       .updateTable("access_grants")
@@ -892,7 +910,6 @@ describe("a grant that has expired is not a grant", () => {
     try {
       const trip = (await tripsByRef()).get("invited-2026")!;
       as("approved");
-      const { mayReadTrip } = await import("@/lib/tripGate");
       expect(await mayReadTrip(trip)).toBe(false);
 
       as("approved");
@@ -900,6 +917,13 @@ describe("a grant that has expired is not a grant", () => {
       const viewer = await resolveViewer(OWNER);
       expect(viewer.guest).toBe(false);
       expect(viewer.trips.map((t) => t.id)).not.toContain("invited-2026");
+
+      // And the channel that interrupts. The device is still subscribed and
+      // its contact is still `active`; only the grant has run out (B82).
+      expect((await subscribersFor(trip)).map((sub) => sub.endpoint)).not.toContain(
+        endpointFor("approved"),
+      );
+      expect(await subscribersFor(trip)).toEqual([]);
     } finally {
       await db
         .updateTable("access_grants")
