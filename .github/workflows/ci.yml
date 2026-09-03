@@ -94,9 +94,96 @@ jobs:
       - run: npm ci
       - run: npx vitest run
 
+  # B181. `test/backup-script.test.ts` is the restore drill, and the `test` job
+  # above has never run a line of it: the whole file is `describe.runIf(RESTIC)`
+  # and nothing in CI installed restic. Its last test — the one that proves the
+  # dump the VPS takes each night is one `pg_restore` can read — additionally
+  # wants a real Postgres and the two client binaries. Three preconditions that
+  # exist together nowhere else, so they get their own job rather than more
+  # conditionals inside the test matrix. This is the only environment where
+  # that test runs at all; on a laptop it skips and says what to start.
+  backup-drill:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: fernscout
+          POSTGRES_PASSWORD: fernscout
+          POSTGRES_DB: fernscout_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fernscout"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Same image, credentials and database name as the recipe the skip
+      # message prints (test/support/dialects.ts), so a developer reproducing a
+      # failure here is talking to the same Postgres this job was.
+      POSTGRES_TEST_URL: "postgres://fernscout:fernscout@localhost:5432/fernscout_test"
+      # Pinned to the version `brew install restic` currently gives, rather
+      # than taken from apt, because this suite reads restic's own behaviour
+      # and not just its exit codes: `restoreLatest()` matches its "Restored"
+      # summary, and scripts/backup.sh:252 classifies a missing repository by
+      # the structured exit status restic only grew in 0.17 — Ubuntu 24.04
+      # packages 0.16.4, which takes the message-reading fallback instead. That
+      # is a different code path from the one a developer and the VPS exercise.
+      # Pin it so CI and a laptop are testing the same program. Bump both lines
+      # together; the checksum is from the release's SHA256SUMS.
+      RESTIC_VERSION: "0.19.1"
+      RESTIC_SHA256: "f415415624dcc452f2a02b8c33641791a8c6d6d3b65bbb3543fcf9a25151585c"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install restic
+        run: |
+          set -euo pipefail
+          url="https://github.com/restic/restic/releases/download/v${RESTIC_VERSION}/restic_${RESTIC_VERSION}_linux_amd64.bz2"
+          curl -fsSL "$url" -o restic.bz2
+          echo "${RESTIC_SHA256}  restic.bz2" | sha256sum -c -
+          bunzip2 restic.bz2
+          sudo install -m 0755 restic /usr/local/bin/restic
+          rm -f restic
+      - name: Install a pg_dump that can dump this server
+        # The runner image ships PostgreSQL 16 and the service container above
+        # is 17. pg_dump refuses to dump a server newer than itself — "aborting
+        # because of server version mismatch" — so the drill would fail on the
+        # tooling rather than on the backup. Take the matching client from
+        # PGDG and put its bin directory first on PATH: /usr/bin/pg_dump is
+        # postgresql-common's version-dispatching wrapper, and this leaves it
+        # nothing to guess. The repo may already be configured on the runner,
+        # which is why adding it is allowed to fail; the install that follows
+        # is the step that has to succeed.
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y || true
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - name: The drill is only worth running with the right binaries
+        # A skip here is silent by construction, so assert the preconditions
+        # instead of hoping. Without this the job could go green having run
+        # nothing at all, which is exactly the failure B181 exists to end.
+        run: |
+          set -euo pipefail
+          restic version
+          pg_dump --version
+          pg_restore --version
+          pg_dump --version | grep -qE ' 17(\.|$)' \
+            || { echo "pg_dump is not 17 and cannot dump the postgres:17 service"; exit 1; }
+      - run: npm ci
+      - run: npx vitest run test/backup-script.test.ts
+
   build:
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test]
+    needs: [lint, typecheck, test, backup-drill]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

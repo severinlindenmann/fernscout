@@ -4,7 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { postgresConfigured } from "./support/dialects";
+import { POSTGRES_HOWTO, postgresConfigured } from "./support/dialects";
+import { announceSkip } from "./support/announce";
 
 /**
  * `scripts/backup.sh`, exercised end to end against a **local filesystem
@@ -39,7 +40,13 @@ import { postgresConfigured } from "./support/dialects";
  *
  * `pg_dump` is stubbed on PATH for the branch tests — that proves the script's
  * plumbing, not Postgres. The one test that wants a real database is behind
- * `POSTGRES_TEST_URL`, the same guard the db suites use.
+ * `POSTGRES_TEST_URL`, the same guard the db suites use, plus the two binaries
+ * the script shells out to.
+ *
+ * That last test runs in CI and, until B181, nowhere else: the `backup-drill`
+ * job in `.github/workflows/ci.yml` is the only environment that has restic, a
+ * Postgres, and a `pg_dump` new enough to talk to it all at once. On a laptop
+ * it skips, and says what to start.
  */
 
 const BACKUP_SH = path.join(process.cwd(), "scripts", "backup.sh");
@@ -50,6 +57,7 @@ function haveBinary(bin: string, args: string[] = ["--version"]): boolean {
 
 const RESTIC = haveBinary("restic", ["version"]);
 const PG_DUMP = haveBinary("pg_dump");
+const PG_RESTORE = haveBinary("pg_restore");
 const IS_ROOT = typeof process.getuid === "function" && process.getuid() === 0;
 // B115. `timeout` is coreutils: on the VPS, and not on macOS without
 // `brew install coreutils`. The script falls back to an unwrapped probe when
@@ -59,8 +67,40 @@ const HAS_TIMEOUT = haveBinary("timeout", ["--version"]) || haveBinary("gtimeout
 
 if (!RESTIC) {
   // Not a failure — but not a pass either: the whole file is skipped, loudly,
-  // rather than asserting nothing. `brew install restic` / `apt install restic`.
-  console.warn("[test] restic is not installed — the backup.sh suite is being skipped entirely.");
+  // rather than asserting nothing.
+  announceSkip(
+    "[test] restic is not installed — the whole backup.sh suite is being skipped.\n" +
+      "       That is every test of the thing that would get your photographs\n" +
+      "       back. Install it and run again:\n" +
+      "  brew install restic          # macOS\n" +
+      "  sudo apt install -y restic   # Debian/Ubuntu\n" +
+      "  npx vitest run test/backup-script.test.ts",
+  );
+}
+
+if (RESTIC && !(postgresConfigured() && PG_DUMP && PG_RESTORE)) {
+  // The one test in this file that talks to a real database. Name whichever of
+  // its three preconditions is actually missing — "skipped" on its own sent
+  // people looking for a Postgres they already had running (B181).
+  const missing = [
+    postgresConfigured() ? null : "POSTGRES_TEST_URL is not set",
+    PG_DUMP ? null : "pg_dump is not on PATH",
+    PG_RESTORE ? null : "pg_restore is not on PATH",
+  ].filter((m): m is string => m !== null);
+  announceSkip(
+    "[test] the real-Postgres dump test is being skipped: " +
+      missing.join("; ") +
+      ".\n" +
+      "       Everything else here stubs pg_dump, so nothing below proves the\n" +
+      "       dump the VPS takes each night is one pg_restore can read.\n" +
+      "       Start a database:\n" +
+      POSTGRES_HOWTO +
+      "\n" +
+      "       and have the client binaries, at or above the server's major\n" +
+      "       (pg_dump refuses to dump a newer server than itself):\n" +
+      "  brew install libpq && brew link --force libpq   # macOS\n" +
+      "  sudo apt install -y postgresql-client-17        # Debian/Ubuntu",
+  );
 }
 
 type Run = { status: number; stdout: string; stderr: string };
@@ -767,7 +807,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
   // The real database, behind the guard the other db suites use. Everything
   // above proves the script's branches; this proves the dump it takes is one
   // `pg_restore` will actually read.
-  const realPg = postgresConfigured() && PG_DUMP && haveBinary("pg_restore");
+  const realPg = postgresConfigured() && PG_DUMP && PG_RESTORE;
   test.runIf(realPg)(
     "the dump taken from a real Postgres is one pg_restore can list",
     () => {

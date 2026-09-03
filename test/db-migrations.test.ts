@@ -13,7 +13,8 @@ import {
 import { Migrator } from "kysely/migration";
 import { migrationProvider } from "@/lib/db/migrations";
 import { createDatabase } from "@/lib/db";
-import { dialectCases, dropEverything, freshDatabase, postgresConfigured } from "./support/dialects";
+import { POSTGRES_HOWTO, dialectCases, dropEverything, freshDatabase, postgresConfigured } from "./support/dialects";
+import { announceSkip } from "./support/announce";
 
 const migrationsDir = path.join(process.cwd(), "lib/db/migrations");
 
@@ -42,9 +43,16 @@ describe("migration sources", () => {
 });
 
 if (!postgresConfigured()) {
-  // Not a failure: the suite must be green on a laptop with no Postgres.
-  // Set POSTGRES_TEST_URL to a database this suite may wipe to include it.
-  console.warn("[test] POSTGRES_TEST_URL is not set — the Postgres dialect is being skipped.");
+  // Not a failure: the suite must be green on a laptop with no Postgres. But
+  // naming the unset variable and stopping there leaves the reader to work out
+  // what to do about it, so say what to run (B181). CI always has one, so this
+  // never prints there.
+  announceSkip(
+    "[test] POSTGRES_TEST_URL is not set — the Postgres dialect is being skipped.\n" +
+      "       Postgres is the dialect production runs. To include it, start one\n" +
+      "       this suite may WIPE, and point the run at it:\n" +
+      POSTGRES_HOWTO,
+  );
 }
 
 /**
