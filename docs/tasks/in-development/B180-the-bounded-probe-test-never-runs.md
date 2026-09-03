@@ -144,7 +144,12 @@ where coreutils does not.
 
 ### Captured while here
 
-**B182** — the mirror image. Now that the bounded branch runs everywhere, the
+**B195** — the mirror image. Now that the bounded branch runs everywhere, the
 *fallback* branch is the one that skips wherever coreutils is installed, which
 is every machine this ships to. Not absorbed into this task: it wants a pruned
 `PATH` rather than a shim, and it is about a different branch.
+
+The id is B195 and not B182, which this session was allocated: by the time the
+work was committed, `main` already carried a different B182, B183 and B184,
+written after this branch was cut. A gap in the numbering costs nothing; two
+tasks answering to one id costs the only way tasks refer to each other.
