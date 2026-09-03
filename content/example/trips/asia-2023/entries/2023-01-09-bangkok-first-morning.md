@@ -7,6 +7,9 @@ country: "Thailand"
 countryCode: "TH"
 lat: 13.7563
 lng: 100.5018
+transportMode: "flight"
+transportFrom: "Zurich"
+transportTo: "Bangkok"
 gallery:
   - src: "/media/asia-2023/bangkok-first-morning/01.jpg"
     type: "image"

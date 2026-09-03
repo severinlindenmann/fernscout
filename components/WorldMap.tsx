@@ -6,6 +6,7 @@ import { mediaLoader } from "./mediaLoader";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Plus, Minus, Maximize2 } from "lucide-react";
 import { frameRoute, frameSpanKm, place as placeIn, type Frame } from "@/lib/mapFrame";
+import { MAP_VIEWBOX } from "@/lib/mapProjection";
 import { useWorldLand } from "./useWorldLand";
 import { TRANSPORT_STYLE, dashFor } from "@/lib/transport";
 import { flagFor } from "@/lib/flags";
@@ -454,8 +455,18 @@ export default function WorldMap({
             // not touch the ground, a walk is a straight line because it is
             // one. Capped so that a very long leg does not swing off the map.
             const bow = Math.min(px(140), len * style.bow);
-            const cx = mx - (dy / len) * bow;
-            const cy = my + (dx / len) * bow;
+            // Bowed toward the nearer pole, which is the direction a long
+            // route actually goes. The perpendicular alone bows whichever way
+            // the leg happens to run, so a Zurich–Bangkok flight came out
+            // sweeping south over Africa — the opposite of the great circle
+            // every such flight follows, and wrong in a way anyone who has
+            // taken one would notice. `y` grows southward here, so "toward the
+            // pole" is negative in the north and positive in the south.
+            const northern = my < MAP_VIEWBOX.height / 2;
+            const toward = northern ? -1 : 1;
+            const side = Math.sign(dx / len) === toward || dx === 0 ? 1 : -1;
+            const cx = mx - (dy / len) * bow * side;
+            const cy = my + (dx / len) * bow * side;
             return (
               // Fades in rather than drawing itself on.
               //
