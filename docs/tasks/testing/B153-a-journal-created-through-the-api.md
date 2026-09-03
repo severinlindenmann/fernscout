@@ -7,8 +7,7 @@ complexity: low
 area: contacts, journals, api
 found: "2026-09-03"
 started: "2026-09-03T19:42:15Z"
-session: ea97c35d-5c6a-4610-ab68-d1575d52ea4f
-claimed: "2026-09-03T19:42:15Z"
+merged: "2026-09-03T19:48:49Z"
 ---
 
 # B153 — A new journal cannot share itself, and cannot be made to
