@@ -84,6 +84,7 @@ Do not edit them by hand; run the script.
 | [B178](backlog/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low |
 | [B179](backlog/B179-one-failed-read-of-the-basemap.md) | One failed read of the basemap bundle turns every map on the instance blank until restart | ISSUE | medium | low |
 | [B182](backlog/B182-a-journal-s-features-cannot-be.md) | A journal's features cannot be changed after it is created, so every journal made before today is stuck as it was | ISSUE | medium | medium |
+| [B184](backlog/B184-the-digest-cannot-be-exercised-end.md) | The digest cannot be exercised end to end, because everything an agent may write is filtered out of it | CHORE | medium | low |
 | [B20](backlog/B20-the-stranger-s-me-page-never.md) | The stranger's me page never says who to ask | ISSUE | medium | low |
 | [B22](backlog/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | SECURITY | medium | medium |
 | [B25](backlog/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low |
@@ -143,7 +144,6 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B153](in-development/B153-a-journal-created-through-the-api.md) | A journal created through the API can never invite anybody, because contacts is off and nothing can turn it on | ISSUE | high | low | `ea97c35d` |
-| [B141](in-development/B141-ingest-disambiguates-a-colliding-slug-only.md) | Ingest disambiguates a colliding slug only within one date, so two days can still shadow each other | ISSUE | medium | low | `d6791268` |
 | [B180](in-development/B180-the-bounded-probe-test-never-runs.md) | The bounded-probe test never runs, because it needs a coreutils binary macOS does not have | CHORE | medium | low | `0c03d994` |
 | [B181](in-development/B181-the-postgres-dump-test-has-never.md) | The Postgres dump test has never run anywhere, so the production dialect is unexercised | CHORE | medium | medium | `0c03d994` |
 | [B44](in-development/B44-a-guest-who-arrives-without-their.md) | A guest who arrives without their link sees a complete-looking journal and no way to say who they are | ISSUE | medium | medium | `0c03d994` |
@@ -169,6 +169,7 @@ Do not edit them by hand; run the script.
 | [B12](testing/B12-a-finished-trip-still-offers-a.md) | A finished trip still offers a Today button | ISSUE | medium | low | — |
 | [B135](testing/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low | — |
 | [B136](testing/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low | — |
+| [B141](testing/B141-ingest-disambiguates-a-colliding-slug-only.md) | Ingest disambiguates a colliding slug only within one date, so two days can still shadow each other | ISSUE | medium | low | — |
 | [B145](testing/B145-task-stamps-record-only-a-date.md) | Task stamps record only a date, and nothing says which agent is on it | CHORE | medium | low | — |
 | [B19](testing/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium | — |
 | [B28](testing/B28-publishing-a-draft-requires-editing-a.md) | Publishing a draft requires editing a file by hand, so an agent cannot close the loop it opened | FEATURE | medium | high | — |
@@ -186,7 +187,6 @@ Do not edit them by hand; run the script.
 | [B68](testing/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
 | [B69](testing/B69-the-one-tap-sign-in-link.md) | The one-tap sign-in link always lands on the journal home, losing the page you were trying to read | ISSUE | medium | medium | — |
 | [B70](testing/B70-a-test-trip-is-mailed-out.md) | A test trip is mailed out in the digest as if somebody had lived it | ISSUE | medium | low | — |
-| [B74](testing/B74-the-access-panel-offers-the-owner.md) | The access panel offers the owner a contacts page the journal has switched off | ISSUE | medium | low | — |
 | [B75](testing/B75-an-owner-with-no-trips-is.md) | An owner with no trips is told to ask whoever sent them here for an invitation | ISSUE | medium | low | — |
 | [B79](testing/B79-the-owner-has-no-way-to.md) | The owner has no way to hand somebody an invite link from the site | FEATURE | medium | low | — |
 | [B80](testing/B80-the-access-panel-tells-the-owner.md) | The access panel tells the owner they were on every trip in their journal | ISSUE | medium | low | — |
@@ -216,6 +216,7 @@ Do not edit them by hand; run the script.
 | [B37](completed/B37-anybody-who-finds-a-journal-can.md) | Anybody who finds a journal can put themselves on its guest list uninvited | FEATURE | medium | low |
 | [B46](completed/B46-a-trip-that-stays-inside-one.md) | A trip that stays inside one city draws as a single dot on a map thousands of kilometres wide | ISSUE | medium | medium |
 | [B63](completed/B63-a-wrong-restic-repository-makes-a.md) | A wrong RESTIC_REPOSITORY makes a new empty repo instead of failing | ISSUE | medium | low |
+| [B74](completed/B74-the-access-panel-offers-the-owner.md) | The access panel offers the owner a contacts page the journal has switched off | ISSUE | medium | low |
 | [B76](completed/B76-an-empty-journal-renders-four-zeroes.md) | An empty journal renders four zeroes and no way forward | ISSUE | medium | medium |
 | [B78](completed/B78-how-a-leg-was-travelled-is.md) | How a leg was travelled is carried by colour alone, and its dash pattern breaks on a small map | ISSUE | medium | low |
 | [B29](completed/B29-an-agent-has-no-way-to.md) | An agent has no way to hand its owner a working sign-in link | FEATURE | low | medium |

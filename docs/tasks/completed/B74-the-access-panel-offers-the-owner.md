@@ -8,6 +8,7 @@ area: me, contacts, capabilities
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-03T19:47:09Z"
 ---
 
 # B74 — The access panel offers the owner a contacts page the journal has switched off
