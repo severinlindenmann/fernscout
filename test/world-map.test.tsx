@@ -136,6 +136,64 @@ describe("a day inside one city", () => {
   });
 });
 
+/**
+ * Which way a long leg bends.
+ *
+ * The perpendicular alone bows whichever way the leg happens to run, so the
+ * demo's Zurich–Bangkok flight came out sweeping south over Africa — the
+ * opposite of the great circle every such flight follows, and wrong in a way
+ * anyone who has taken one would notice.
+ */
+describe("a long leg bends toward the nearer pole", () => {
+  /** The control point of the one quadratic path on the map. */
+  function control(html: string): { x: number; y: number } | null {
+    const match = html.match(/d="M[-\d.]+,[-\d.]+ Q([-\d.]+),([-\d.]+) /);
+    return match ? { x: Number(match[1]), y: Number(match[2]) } : null;
+  }
+
+  function flightBetween(a: PlaceView, b: PlaceView) {
+    const arriving: PlaceView = {
+      ...b,
+      entries: [{ slug: b.key, date: "2023-01-09", transport: { mode: "flight", from: a.location, to: b.location } } as unknown as Entry],
+    };
+    return renderToStaticMarkup(
+      <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+        <WorldMap places={[a, arriving]} />
+      </LocaleProvider>,
+    );
+  }
+
+  const zurich = stop("Zurich", 47.3769, 8.5417);
+  const bangkok = stop("Bangkok", 13.7563, 100.5018);
+
+  test("northern hemisphere: the arc goes north of the straight line", () => {
+    const c = control(flightBetween(zurich, bangkok));
+    expect(c).not.toBeNull();
+    // y grows southward, so north of the midpoint means a smaller y.
+    const midY = (47.3769 + 13.7563) / 2;
+    const midYUnits = (90 - midY) / 180 * 500;
+    expect(c!.y).toBeLessThan(midYUnits);
+  });
+
+  test("it bends the same way whichever end it starts from", () => {
+    const there = control(flightBetween(zurich, bangkok));
+    const back = control(flightBetween(bangkok, zurich));
+    // Both arcs sit on the same side of the route; a sign flip here is the
+    // bug where an eastbound and a westbound flight bow opposite ways.
+    const midYUnits = (90 - (47.3769 + 13.7563) / 2) / 180 * 500;
+    expect(there!.y).toBeLessThan(midYUnits);
+    expect(back!.y).toBeLessThan(midYUnits);
+  });
+
+  test("southern hemisphere: the arc goes south", () => {
+    const perth = stop("Perth", -31.95, 115.86);
+    const joburg = stop("Johannesburg", -26.2, 28.05);
+    const c = control(flightBetween(joburg, perth));
+    const midYUnits = (90 - (-31.95 + -26.2) / 2) / 180 * 500;
+    expect(c!.y).toBeGreaterThan(midYUnits);
+  });
+});
+
 describe("a trip across a continent", () => {
   test("still frames the whole route", () => {
     const [, , w] = viewBox(render(continental));
