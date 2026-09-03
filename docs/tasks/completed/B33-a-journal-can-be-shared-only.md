@@ -8,6 +8,7 @@ area: auth, api, contacts, trips, docs
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-03"
+completed: "2026-09-03T19:41:15Z"
 ---
 
 # B33 — A journal can be shared only by password or by hand-edited frontmatter, so an agent cannot invite anybody
