@@ -235,6 +235,21 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       // On, or the owner could never get a token to write to what they just
       // made — which would make this endpoint produce a journal nobody can use.
       auth: { enabled: true },
+      // On, for the same reason one line up, and B153 is the evidence: with it
+      // off, an agent that had just built somebody their journal got
+      // `404 contacts_disabled` on the very next call, and there was no
+      // endpoint, tool or page anywhere that could change it — the only way in
+      // was to hand-edit this file over SSH. B39 removed trip passwords, so an
+      // invite link is now the *only* way to let anybody into a journal, and a
+      // journal that cannot be shared is not a finished journal.
+      //
+      // This is not the gate. The server's own `features.contacts` is, and it
+      // stays off until an operator sets CONTACTS_ENCRYPTION_KEY and a
+      // DATABASE_URL — `resolveOne` in lib/capabilities.ts treats the server as
+      // a ceiling and this as the opt-in underneath it. Nothing here is
+      // advertised to a stranger either: B37 removed the open request form, and
+      // the invite controls render inside `{viewer.owner && …}` on /<user>/me.
+      contacts: { enabled: true },
     },
   };
 
