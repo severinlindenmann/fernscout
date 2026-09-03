@@ -48,9 +48,16 @@ npm run tasks -- move B01 in-development
 git add -A && git commit -m "B01: taken"
 ```
 
-Commit the lane move **on main, before branching.** The lane is how a parallel
-session sees the task is taken, and a move that only exists on your branch is
-invisible until you merge — by which time it has stopped being useful.
+That move does two things: it stamps `started:` with the instant, and it writes
+your own session into `session:`. **That is the claim** — you do not run
+`claim` as well. If the script refuses because another session holds the task,
+it is taken; pick something else rather than reaching for `--force`, unless you
+can see the holding session is gone.
+
+Commit the lane move **on main, before branching.** The lane and the hold are
+how a parallel session sees the task is taken, and a move that only exists on
+your branch is invisible until you merge — by which time it has stopped being
+useful.
 
 ### 2. Branch and worktree, named for the task
 
@@ -133,6 +140,11 @@ git worktree remove .claude/worktrees/b01-forwarded-for-trust
 git branch -d b01-forwarded-for-trust
 ```
 
+Landing in `testing/` **drops your hold**, and that is correct: you are done,
+and whoever verifies it is somebody else — often another agent. Do not claim it
+back to keep an eye on it. A held ticket in `testing/` reads as "being
+verified right now" to the next agent that looks.
+
 If you entered with `EnterWorktree`, leave with `ExitWorktree` and
 `action: "keep"` — it will not remove a worktree entered by path, so remove it
 with git as above.
@@ -154,5 +166,7 @@ command to run, the behaviour to try. That request is the deliverable.
 - Merging with a failing check, intending to fix it after.
 - Working directly in the main worktree because the change "is small".
 - Absorbing a second problem into this task instead of capturing it.
+- `--force` past another session's hold because you wanted that task.
+- Holding on to a task after it lands in `testing/`.
 - Finishing without touching the task file — you learned nothing worth
   recording, which is almost never true.
