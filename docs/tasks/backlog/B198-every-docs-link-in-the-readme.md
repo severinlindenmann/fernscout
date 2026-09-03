@@ -1,5 +1,5 @@
 ---
-id: B186
+id: B198
 title: Every docs link in the README points one directory above where the file is
 type: ISSUE
 priority: low
@@ -8,7 +8,7 @@ area: docs
 found: "2026-09-03T20:06:00Z"
 ---
 
-# B186 — Every docs link in the README points one directory above where the file is
+# B198 — Every docs link in the README points one directory above where the file is
 
 ## Why
 

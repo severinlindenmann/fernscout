@@ -1,6 +1,6 @@
 ---
 id: B181
-title: The Postgres dump test has never run anywhere, so the production dialect is unexercised
+title: The restore drill has never run in CI, because nothing there installs restic
 type: CHORE
 priority: medium
 complexity: medium
@@ -114,8 +114,8 @@ was read from `actions/runner-images`, and the YAML parses — but whether the
 `backup-drill` job is green is unknown until the branch is pushed. **That is
 the thing to look at in testing.**
 
-Follow-ups captured: B185 (the dump is taken from a database no migration has
-touched, so `pg_restore -l` lists an almost empty archive), B186 (every
+Follow-ups captured: B197 (the dump is taken from a database no migration has
+touched, so `pg_restore -l` lists an almost empty archive), B198 (every
 `docs/…` link in README.md points one directory above where the file is).
 
 ## Acceptance
