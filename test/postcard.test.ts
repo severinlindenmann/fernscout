@@ -10,6 +10,7 @@ import {
 } from "@/lib/postcard/spec";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { renderPostcard, type PostalAddress } from "@/lib/postcard/render";
+import { recipientBase } from "@/lib/postcard/filename";
 
 const PHOTO = path.join(
   process.cwd(),
@@ -160,5 +161,48 @@ describe("rendering", () => {
     const withGuides = Buffer.from(render({ guides: true }).pdf).toString("latin1");
     const without = Buffer.from(render().pdf).toString("latin1");
     expect(withGuides.length).toBeGreaterThan(without.length);
+  });
+});
+
+/**
+ * B86 — the files a run leaves behind must be one per recipient.
+ *
+ * These names are invented. `test/depersonalised.test.ts` fails the build on a
+ * real name appearing outside `content/`, and a recipient list is exactly the
+ * shape that rule exists for.
+ */
+describe("naming a recipient's files", () => {
+  test("a Latin name keeps the name it has today", () => {
+    expect(recipientBase("Ana Bergström", 0)).toBe("ana-bergstrom");
+    expect(recipientBase("Jean-Luc O'Hara", 3)).toBe("jean-luc-o-hara");
+  });
+
+  test("a name in a non-Latin script gets a name instead of nothing", () => {
+    // Empty base names produced `.pdf` and `-front.pdf`: dotfiles, invisible
+    // to a plain `ls` in the folder the author sends to a printer.
+    for (const name of ["Δημήτρης", "Владимир", "山田 太郎", "אברהם", "김민준"]) {
+      const base = recipientBase(name, 0);
+      expect(base).not.toBe("");
+      expect(base.startsWith(".")).toBe(false);
+    }
+  });
+
+  test("two such names in one batch do not collide", () => {
+    // The defect, and the reason the fallback is the batch position rather
+    // than a shared constant: a constant fixes the dotfile and still loses
+    // one of the two cards.
+    const batch = ["Δημήτρης Παπαδόπουλος", "Владимир Ильин", "山田 太郎"];
+    const names = batch.map((name, index) => recipientBase(name, index));
+    expect(new Set(names).size).toBe(batch.length);
+  });
+
+  test("a mixed batch numbers by position, so a name never moves another's file", () => {
+    const batch = ["Ana Bergström", "山田 太郎", "Bo Lind", "Владимир Ильин"];
+    expect(batch.map((name, index) => recipientBase(name, index))).toEqual([
+      "ana-bergstrom",
+      "recipient-2",
+      "bo-lind",
+      "recipient-4",
+    ]);
   });
 });

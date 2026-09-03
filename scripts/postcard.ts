@@ -17,6 +17,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { renderPostcard, type PostalAddress } from "../lib/postcard/render.ts";
 import { availableProviders, buildStannpRequest } from "../lib/postcard/providers.ts";
+import { recipientBase } from "../lib/postcard/filename.ts";
 
 type Args = Record<string, string | boolean>;
 
@@ -58,21 +59,6 @@ function readRecipients(file: string): PostalAddress[] {
     }
     return entry as unknown as PostalAddress;
   });
-}
-
-/**
- * The base name of one recipient's PDFs — not `slugify` from lib/slug.ts, for
- * the same reason as the mail transport: this names generated output in a
- * gitignored folder that is rewritten on every run, not something anybody
- * links to.
- */
-function slug(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -120,7 +106,7 @@ fs.mkdirSync(outDir, { recursive: true });
 console.log(`Rendering ${recipients.length} postcard(s) with the ${backend} backend.\n`);
 
 let lowResolution = false;
-for (const to of recipients) {
+for (const [index, to] of recipients.entries()) {
   const result = renderPostcard({
     photo,
     message,
@@ -129,7 +115,7 @@ for (const to of recipients) {
     guides: args.guides === true,
   });
 
-  const base = path.join(outDir, slug(to.name));
+  const base = path.join(outDir, recipientBase(to.name, index));
   fs.writeFileSync(`${base}.pdf`, result.pdf);
   fs.writeFileSync(
     `${base}-front.pdf`,
