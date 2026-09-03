@@ -235,7 +235,6 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       // On, or the owner could never get a token to write to what they just
       // made — which would make this endpoint produce a journal nobody can use.
       auth: { enabled: true },
-<<<<<<< HEAD
       // On, for the same reason one line up, and B153 is the evidence: with it
       // off, an agent that had just built somebody their journal got
       // `404 contacts_disabled` on the very next call, and there was no
@@ -251,7 +250,6 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       // advertised to a stranger either: B37 removed the open request form, and
       // the invite controls render inside `{viewer.owner && …}` on /<user>/me.
       contacts: { enabled: true },
-=======
       // `mail` is deliberately *not* written here, even though B60 made a
       // journal's own switch govern the letters it sends. Absent means "no
       // opinion" and inherits the server's answer (see `USER_DEFAULT_FEATURES`
@@ -261,7 +259,6 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       // something. Writing it would also make journals created after this
       // commit behave differently from every journal already on disk, which is
       // the difference that has to not exist.
->>>>>>> b60-mail-off-still-sends
     },
   };
 
