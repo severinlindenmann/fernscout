@@ -1,13 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ChevronUp,
-  ChevronDown,
-  LocateFixed,
-  LayoutDashboard,
-} from "lucide-react";
+import { ChevronUp, ChevronDown, LayoutDashboard } from "lucide-react";
 import GamePath from "@/components/GamePath";
+import LatestDayButton from "@/components/LatestDayButton";
 import MobileDaySheet from "@/components/MobileDaySheet";
 import PageHeader from "@/components/PageHeader";
 import PagerNav, { type PagerNavState } from "@/components/PagerNav";
@@ -56,7 +52,9 @@ export default function TripStory({
   days: Day[];
   /** Where `days[0]` sits in `index`. */
   windowStart: number;
-  /** Today's date — what the "Today" button targets. */
+  /** The day the story lands on when no day was asked for: today while the
+   * trip is running, its last day once it is over. `getDefaultDay` decides —
+   * see lib/entries.ts. */
   initialDate?: string;
   /** A specific day to open at, from the /day/<slug> route. */
   openAtDate?: string;
@@ -97,7 +95,9 @@ export default function TripStory({
     [steps],
   );
 
-  const todayIndex = Math.max(
+  /** Where `initialDate` sits in `index`. Not necessarily today — on a
+   * finished trip it is the last day of the trip. */
+  const landingIndex = Math.max(
     0,
     index.findIndex((d) => d.date === initialDate),
   );
@@ -293,7 +293,7 @@ export default function TripStory({
 
   const progress =
     index.length > 0 ? ((activeIndex + 1) / index.length) * 100 : 0;
-  const awayFromToday = initialDate ? activeIndex !== todayIndex : false;
+  const awayFromLanding = initialDate ? activeIndex !== landingIndex : false;
 
   const jumpToDay = useCallback(
     (date: string) => {
@@ -312,10 +312,10 @@ export default function TripStory({
   }, []);
   const onOverview = stepIndex === 0;
 
-  const jumpToToday = useCallback(() => {
+  const jumpToLanding = useCallback(() => {
     directionRef.current = 0;
-    setStepIndex(stepForDay(todayIndex));
-  }, [stepForDay, todayIndex]);
+    setStepIndex(stepForDay(landingIndex));
+  }, [stepForDay, landingIndex]);
 
   const goStep = useCallback(
     (delta: number) => {
@@ -327,9 +327,9 @@ export default function TripStory({
     [stepIndex, steps.length],
   );
 
-  // For a finished trip, `todayDay` (below) is already its last day — see
-  // `getDefaultDay` — so this just decides how the hero and pager talk about
-  // it, not which day they show.
+  // For a finished trip, `landingDay` (below) is already its last day — see
+  // `getDefaultDay` — so this just decides how the hero, the pager and the
+  // jump button talk about it, not which day they show.
   const over = trip ? isOver(trip.trip, index) : false;
 
   // Said the way the reader thinks about it, not the way the pager is built.
@@ -370,14 +370,14 @@ export default function TripStory({
     );
   }
 
-  const todayDay = index[todayIndex];
+  const landingDay = index[landingIndex];
   // The hero's cover comes from the window the server sent, which is centred
   // on today — so it is there on a normal visit and simply absent if a reader
   // deep-linked to the far end of the trip.
-  const heroCover = loaded[todayIndex]?.lead.gallery.find((g) => g.type === "image")?.src;
+  const heroCover = loaded[landingIndex]?.lead.gallery.find((g) => g.type === "image")?.src;
 
   const resumeIndex = resumeSlug ? index.findIndex((d) => d.slug === resumeSlug) : -1;
-  const canResume = resumeIndex >= 0 && resumeIndex !== todayIndex;
+  const canResume = resumeIndex >= 0 && resumeIndex !== landingIndex;
 
   // Days published since their last visit — see lib/whatsNew.ts for when this
   // says nothing at all.
@@ -417,14 +417,12 @@ export default function TripStory({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
-            {awayFromToday && (
-              <button
-                onClick={jumpToToday}
+            {awayFromLanding && (
+              <LatestDayButton
+                tripOver={over}
+                onClick={jumpToLanding}
                 className="flex min-h-11 items-center gap-1.5 rounded-full bg-yellow-400 px-4 py-2 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-              >
-                <LocateFixed className="h-4 w-4" />
-                {t("day.today")}
-              </button>
+              />
             )}
             <button
               onClick={() => stepDay(-1)}
@@ -498,11 +496,11 @@ export default function TripStory({
               }, 900);
             }}
             hero={
-              todayDay && (
+              landingDay && (
                 <TripHero
                   stats={stats}
                   route={index.map((d) => ({ lat: d.lat, lng: d.lng }))}
-                  current={todayDay}
+                  current={landingDay}
                   basemap={basemap}
                   over={over}
                   coverSrc={heroCover}
@@ -510,7 +508,7 @@ export default function TripStory({
                     directionRef.current = 0;
                     setStepIndex(stepForDay(0));
                   }}
-                  onToday={jumpToToday}
+                  onLatest={jumpToLanding}
                   onResume={
                     canResume ? () => jumpToDay(index[resumeIndex].date) : undefined
                   }
@@ -541,10 +539,11 @@ export default function TripStory({
         days={index}
         currentIndex={activeIndex}
         onSelect={jumpToDay}
-        onToday={jumpToToday}
+        onLatest={jumpToLanding}
         onOverview={goToOverview}
         onOverviewActive={onOverview}
-        showToday={awayFromToday}
+        showLatest={awayFromLanding}
+        tripOver={over}
         nav={nav}
       />
     </div>

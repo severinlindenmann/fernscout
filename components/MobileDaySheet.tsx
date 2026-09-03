@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronUp, ChevronDown, LocateFixed, Check, LayoutDashboard } from "lucide-react";
+import { ChevronUp, ChevronDown, Check, LayoutDashboard } from "lucide-react";
+import LatestDayButton from "./LatestDayButton";
 import PagerNav, { type PagerNavState } from "./PagerNav";
 import { useI18n } from "./LocaleProvider";
 import { flagFor } from "@/lib/flags";
@@ -24,19 +25,25 @@ export default function MobileDaySheet({
   days,
   currentIndex,
   onSelect,
-  onToday,
+  onLatest,
   onOverview,
-  showToday,
+  showLatest,
   onOverviewActive,
+  tripOver,
   nav,
 }: {
   days: DaySummary[];
   currentIndex: number;
   onSelect: (date: string) => void;
-  onToday: () => void;
+  /** Jump to the day the story lands on — today, or the last day of a trip
+   * that is over. See LatestDayButton. */
+  onLatest: () => void;
   onOverview: () => void;
-  showToday: boolean;
+  showLatest: boolean;
   onOverviewActive: boolean;
+  /** Whether the trip has finished, which is all that decides what the jump
+   * button above the day list calls itself. */
+  tripOver: boolean;
   nav: PagerNavState;
 }) {
   const { t, formatShortDate } = useI18n();
@@ -93,17 +100,16 @@ export default function MobileDaySheet({
                 <LayoutDashboard className="h-3.5 w-3.5" />
                 {t("nav.overview")}
               </button>
-              {showToday && (
-                <button
+              {showLatest && (
+                <LatestDayButton
+                  tripOver={tripOver}
                   onClick={() => {
-                    onToday();
+                    onLatest();
                     setOpen(false);
                   }}
                   className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-yellow-400 px-3 py-2 text-xs font-semibold text-yellow-950"
-                >
-                  <LocateFixed className="h-3.5 w-3.5" />
-                  {t("day.today")}
-                </button>
+                  iconClassName="h-3.5 w-3.5"
+                />
               )}
             </div>
             <div
