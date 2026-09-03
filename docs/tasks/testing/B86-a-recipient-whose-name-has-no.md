@@ -7,6 +7,7 @@ complexity: low
 area: postcards, scripts, slugs
 found: "2026-09-01"
 started: "2026-09-03"
+merged: "2026-09-03T19:17:45Z"
 ---
 
 # B86 — A recipient whose name has no ASCII gets an empty postcard filename, and each one overwrites the last
