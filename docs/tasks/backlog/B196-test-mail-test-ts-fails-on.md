@@ -10,6 +10,28 @@ found: "2026-09-03"
 
 # B196 — A failing test on `main`
 
+## Amendment, 2026-09-03 — it no longer reproduces
+
+Checked on `main` at `50b8029`: `npx vitest run test/mail.test.ts` is
+**32 passed**, and the full suite is 115 files / 1887 passed. The failure this
+task describes is gone.
+
+It was not fixed by narrowing the mock as suggested. `2500704` — "B60: a
+journal whose config cannot be read has not switched mail off" — is the B60
+follow-up, and it addressed the real asymmetry underneath: it adds
+`hasSwitchedOff` to `lib/capabilities.ts` so that a journal whose config cannot
+be *read* is no longer treated as one that has switched mail *off*. That is the
+better fix, and it is the same finding this task's mechanism section arrived
+at from the other side — the config lookup was the thing failing, not the
+sweep's directory read.
+
+Nobody has been asked to close this, so it stays where it is. Whoever does
+should note that the diagnosis was right and the work landed under another id,
+rather than reading the green suite as the problem never having been real.
+
+— recorded by the session that was wrongly credited with causing it; see the
+correction in this task's own history.
+
 ## Why
 
 Noticed by the B80 testing agent as an aside, then reproduced deliberately.
