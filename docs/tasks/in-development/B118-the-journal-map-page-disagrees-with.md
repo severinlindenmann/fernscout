@@ -98,12 +98,12 @@ functions under `app/[user]/(trip)/`:
   `t("cost.title")` while `generateMetadata` returns the English literals
   `"Costs"` and `"What the trip costs"` and never calls `translateIn` at all,
   so a German journal's costs tab is English while the page is not. Separate
-  problem, separate capture: **B130**. Its tense stays with B19.
+  problem, separate capture: **B139**. Its tense stays with B19.
 - **The journal front page** (`app/[user]/(trip)/page.tsx`) exports no
-  `generateMetadata`. Noted in B130.
+  `generateMetadata`. Noted in B139.
 
 **A second title/page disagreement, with a different cause.** Verifying the
-reader/journal split on a running server turned up **B131**: `requestLocale()`
+reader/journal split on a running server turned up **B140**: `requestLocale()`
 accepts any locale the *project* maintains (`installedLocales()`), while
 `app/[user]/layout.tsx` accepts only the ones this *journal* offers
 (`user.locales`). A reader carrying `fs.locale=de` onto an English-only journal

@@ -1,5 +1,5 @@
 ---
-id: B131
+id: B140
 title: The tab title can be in a language the journal does not offer, while the page is not
 type: ISSUE
 priority: low
@@ -8,7 +8,7 @@ area: i18n, ui
 found: "2026-09-03"
 ---
 
-# B131 — The tab title can be in a language the journal does not offer
+# B140 — The tab title can be in a language the journal does not offer
 
 ## Why
 

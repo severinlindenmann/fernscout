@@ -1,5 +1,5 @@
 ---
-id: B130
+id: B139
 title: The costs page's tab title is English on a journal that is not
 type: ISSUE
 priority: low
@@ -8,7 +8,7 @@ area: i18n, costs, ui
 found: "2026-09-03"
 ---
 
-# B130 — The costs page's tab title is English on a journal that is not
+# B139 — The costs page's tab title is English on a journal that is not
 
 ## Why
 
