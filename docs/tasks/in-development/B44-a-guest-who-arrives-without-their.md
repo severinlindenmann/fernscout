@@ -98,6 +98,48 @@ session, and suppressed for the owner. Copy goes in all three of
 front of the journal; changing what `listableTrips` returns; anything that
 sends mail. Those are B35, B41 and B43.
 
+### What was built, and where it differs from the above
+
+The first candidate, with two decisions the sketch above did not make.
+
+**It is the chrome, not a page.** The second candidate had nowhere to live:
+the journal's front page is the story pager, a full-viewport component with no
+prose column to put a sentence beside, and there is no site footer. The only
+thing every page of a journal shares is `PageHeader` → `SiteNav`, which is also
+where a reader looks for a way in. So the `/me` entry keeps its href and its
+page and changes only how it is *drawn*: for a reader with no session on a
+journal that runs `auth`, it becomes a bordered pill reading **"Sign in"**,
+labelled at every width, and moves to the end of the row — an outlined pill
+between two icon tabs reads as a broken tab; at the end of the row it reads as
+a control. Every other reader gets exactly the icon they got before.
+
+**Gated on `auth` alone, not on `auth` or `contacts`.** With `contacts` on and
+`auth` off there is still no form behind that page — only `me.askOwner`, a line
+saying to ask whoever writes the journal for a link. A control marked "Sign in"
+leading to that is the bug recorded at `app/[user]/me/MePageContent.tsx:76–84`,
+so the narrower gate is the honest one. This is stricter than the acceptance
+line below asks for, not looser: a journal with both off shows nothing, and so
+does a journal with only `contacts`.
+
+The constant-ness the Why demands is structural rather than careful. The flag
+is `SiteSummary.canSignIn`, resolved in `lib/site.ts` from `isEnabled("auth",
+username)`, and `SiteNav` reads it and the session and nothing else. Neither
+`siteSummaryFor` nor `SiteNav` is ever handed a trip list, so there is no value
+in scope that could vary with what `listableTrips` removed — `test/access-door.test.ts`
+pins the first and `test/site-nav.test.tsx` the second by rendering the nav for
+a journal with two hidden trips and one with none and comparing the markup.
+
+Two things found while measuring, both in a real browser at real widths:
+
+- The nav now wraps (`flex-wrap justify-end`). At 320px, and in German at
+  390px, seven entries no longer fit across the header's content box, and
+  without wrapping the row overflowed its container *to the left* and pushed
+  the first icon off the screen — while the document itself still reported no
+  horizontal overflow, so nothing looked wrong from the outside.
+- At exactly 1280, where the other five labels turn on, the journal's own title
+  truncates. Pre-existing and made slightly better by this change, not worse
+  (the nav is 27/5/55px narrower in en/de/hu than before). Captured as **B170**.
+
 ## Acceptance
 
 - From a fresh browser with no cookies, on a 390px-wide viewport, a reader can

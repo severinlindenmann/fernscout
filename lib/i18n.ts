@@ -408,6 +408,7 @@ export type TranslationKey =
   | "nav.map"
   | "nav.overview"
   | "nav.search"
+  | "nav.signIn"
   | "nav.story"
   | "nav.toJournal"
   | "nav.trips"
