@@ -8,6 +8,7 @@ area: contacts, ui, i18n
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-03T19:22:55Z"
 ---
 
 # B37 — Anybody who finds a journal can put themselves on its guest list uninvited

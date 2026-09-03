@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: story-nav, tripTime
 found: "2026-09-01"
+started: "2026-09-03T19:23:10Z"
+session: a4b53c2f-00e4-4e62-bc65-91f1f227b1e1
+claimed: "2026-09-03T19:23:10Z"
 ---
 
 # B12 — A finished trip still offers a Today button
