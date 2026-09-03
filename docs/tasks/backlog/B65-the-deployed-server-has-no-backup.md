@@ -10,6 +10,37 @@ found: "2026-09-01"
 
 # B65 — The deployed server has no backup at all
 
+
+## Amendment, 2026-09-03 — the title is now half wrong
+
+Checked on the live server while verifying B21, B63 and B64. **The installation
+half of this task has since been done.** Anyone picking it up should not go
+looking for the absence it describes:
+
+- `restic 0.18.0` at `/usr/bin/restic`.
+- `fernscout-backup.service` and `fernscout-backup.timer` are installed and the
+  timer is enabled; next elapse Fri 2026-09-04 03:26:49 CEST.
+- The repository at `/var/backups/fernscout` is real and populated — `config`,
+  `data/` (258 dirs), `index`, `keys`, `locks`, `snapshots/` — 307 MB, owned by
+  `fernscout`, holding three snapshots dated 09-01, 09-02 and 09-03. The
+  2026-09-03 03:36 run succeeded: snapshot `548c2a4c`, 4457 files, 486 MiB.
+
+**What remains true is this file's second point, and it is the important one.**
+`df -h /var/backups /var/lib/fernscout /srv` returns `/dev/md2` for all three:
+one filesystem, one machine. There is no copy of anything off this host. The
+bullet already in this task — *"a path on the same machine … protects against a
+bad deploy or an accidental deletion, but not against losing the machine, which
+is the case a backup is usually for"* — is exactly right and is still
+unactioned.
+
+One thing to fold in while doing it: `scripts/backup.sh:3` describes the backup
+as *"pushed off-VPS with restic"* and its example at `:22` is an S3 URL. On this
+deployment neither is true, so the script's own header misdescribes what it
+does — which is how somebody comes to believe there is an off-site copy.
+
+Retitling this task would help: what is left is not "no backup at all" but "the
+backup is on the machine it protects".
+
 ## Why
 
 B21 says the backup *"runs nightly from `deploy/fernscout-backup.timer`"* and

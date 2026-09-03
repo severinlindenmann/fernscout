@@ -8,6 +8,7 @@ area: mail, i18n, journals
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-03"
 ---
 
 # B26 — The welcome mail is English only, and nobody is asked which language the journal is in
