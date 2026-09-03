@@ -62,6 +62,41 @@ Give kept mail a lifetime, without inventing a scheduler.
   development. It should — same files, same reason — and it keeps the two paths
   from diverging.
 
+## Built
+
+`sweepExpiredMail()` in `lib/mail/index.ts`, called from `writeEml` after the
+`mkdir` and **before** the write, so the message being written is never a
+candidate for its own sweep. `KEPT_MAIL_TTL_MS` is **two days**.
+
+- **In `writeEml`, not in its two callers.** The file transport and `keepCopy`
+  produce the same files for the same reasons, so they get the same lifetime —
+  a window that applied to only one of them is a difference nobody could
+  justify later. That also answers the last Work bullet: development is swept
+  on identical terms.
+- **Two days**, from what the files are for rather than from how long their
+  contents stay valid. The latter varies and is not this module's to know: a
+  sign-in code is worthless after 30 minutes, and a deletion link and a guest
+  invitation are single-use but long-lived, which is what makes an old `.eml` a
+  live credential. Two days covers a flow debugged on a Friday and looked at
+  again on a Sunday.
+- **Never throws, and is quiet about one stubborn file.** An unreadable
+  directory warns once and gives up; a single file that will not unlink is
+  skipped silently, because the next message tries again and a warning on every
+  send is how a log stops being read. `keepCopyOf` already sets that precedent.
+- **Only `.eml`, only files, only that one directory.** Mail folders are
+  gitignored and shared with nothing, but a line that deletes things by age
+  should have its blast radius stated rather than assumed.
+
+Two limits, written into `docs/archiv/deploy-mail.md` rather than left for a
+reader to discover, because "two days" reads safer than it is:
+
+- a file is readable for those two days, so this bounds the exposure and does
+  not remove it;
+- **a directory nothing writes to again is never swept.** Sweep-on-write means
+  a journal that stops sending mail keeps whatever it had. Clearing the two
+  directories by hand is still the reliable way to be rid of them, and the doc
+  still says so.
+
 Not doing: excluding mail from the backup. Two directories under `CONTENT_DIR`
 that the backup deliberately skips is a rule somebody has to remember, and the
 files should not be old enough to matter in the first place. Nor is this a

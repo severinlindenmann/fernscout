@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: trips, content
 found: "2026-09-01"
+started: "2026-09-03T19:24:38Z"
+session: 0c03d994-da58-4a02-ab85-107825393b1a
+claimed: "2026-09-03T19:24:38Z"
 ---
 
 # B51 — A trip's `listed` frontmatter key is documented and never read
