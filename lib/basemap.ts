@@ -4,7 +4,7 @@ import path from "node:path";
 import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { placesInBox } from "./ingest/geo";
-import { DEG_PER_UNIT, kmForUnits, type Frame } from "./mapFrame";
+import { DEG_PER_UNIT, frameRoute, kmForUnits, type Frame, type Point } from "./mapFrame";
 import { MAP_VIEWBOX } from "./mapProjection.mjs";
 
 /**
@@ -261,6 +261,25 @@ export function basemapFor(frame: Frame): Basemap | null {
     towns: spread(townCandidates, frame, MAX_TOWNS),
     attribution: data.attribution,
   };
+}
+
+/**
+ * The basemap for a route, or null when there is no route to draw one under.
+ *
+ * `frameRoute([])` frames the whole world, deliberately (lib/mapFrame.ts), and
+ * clipping the bundle to the whole world clips almost nothing — 160 KB of 1:110m
+ * country outlines and thirty labels, serialised into the page. That is the
+ * right answer for a map of the world and the wrong one for a page that draws
+ * no map at all, which is what an upcoming trip with no `plan.md` is (B85).
+ *
+ * The bug was the *distance* between two conditions: every component here is
+ * already guarded on having something to draw, and every server call site
+ * built the basemap before asking. This is the pair, in one place, so the next
+ * call site cannot separate them again. `frameRoute` is unchanged — the caller
+ * is what must not ask.
+ */
+export function basemapForRoute(points: readonly Point[]): Basemap | null {
+  return points.length > 0 ? basemapFor(frameRoute(points)) : null;
 }
 
 /**

@@ -4,9 +4,8 @@ import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
 import { mayReadTrip } from "@/lib/tripGate";
 import MapPageContent from "./MapPageContent";
-import { basemapFor } from "@/lib/basemap";
+import { basemapForRoute } from "@/lib/basemap";
 import { getPlaces, getTripStats } from "@/lib/entries";
-import { frameRoute } from "@/lib/mapFrame";
 import { getPlan } from "@/lib/plan";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { currentTripRef } from "@/lib/trips";
@@ -81,7 +80,7 @@ export default async function MapPage({ params }: PageProps<"/[user]/map">) {
   const places = getPlaces(tripId);
   // Clipped here so the reader gets their own trip's worth of map rather than
   // the whole bundle — see the same two lines in the trip-scoped route.
-  const basemap = basemapFor(frameRoute(places.length > 0 ? places : plan.stops));
+  const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
   return (
     <TripProvider trip={trip} isCurrent>
       <MapPageContent

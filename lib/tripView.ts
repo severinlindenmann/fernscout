@@ -1,7 +1,6 @@
 import "server-only";
-import { basemapFor } from "./basemap";
+import { basemapFor, basemapForRoute } from "./basemap";
 import { getAllEntries, getDays, getDefaultDay, getTripStats } from "./entries";
-import { frameRoute } from "./mapFrame";
 import { costForDay, getCostSummary } from "./costs";
 import { getTrip } from "./trips";
 import type { Day, DaySummary, Trip } from "./types";
@@ -170,8 +169,10 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
     trip,
     index,
     // Framed on the same points MiniMap frames on, so the clip covers what is
-    // actually drawn. `frameRoute` is pure, so the two agree.
-    basemap: basemapFor(frameRoute(index)),
+    // actually drawn. `frameRoute` is pure, so the two agree — and an empty
+    // index draws no hero and therefore no map, so it gets no basemap either
+    // (B85). `basemapFor` stays in the type above as the shape of the result.
+    basemap: basemapForRoute(index),
     days: showCosts ? days.slice(from, to) : days.slice(from, to).map(withoutCosts),
     windowStart: from,
     initialDate,

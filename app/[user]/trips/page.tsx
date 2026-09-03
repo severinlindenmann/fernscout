@@ -145,7 +145,13 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
       routes={routes}
       // Every trip's points at once: the lifetime map frames all of them, so
       // the clip has to cover all of them too.
-      basemap={basemapFor(frameRoute(routes.flatMap((r) => r.points)))}
+      //
+      // Guarded on `routes`, not on the points, because that is the condition
+      // the map itself is drawn on (TripsIndexContent) — a journal of trips
+      // that were never geotagged still gets a world map, and a basemap for
+      // it. A journal with nothing but upcoming trips draws no map, and was
+      // paying 160 KB of clipped-to-nothing world for it (B85).
+      basemap={routes.length > 0 ? basemapFor(frameRoute(routes.flatMap((r) => r.points))) : null}
       empty={empty}
       malformed={malformed}
       lifetime={{

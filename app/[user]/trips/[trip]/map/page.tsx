@@ -3,9 +3,8 @@ import { requestLocale, translateIn } from "@/lib/locales";
 import { mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import MapPageContent from "@/app/[user]/(trip)/map/MapPageContent";
-import { basemapFor } from "@/lib/basemap";
+import { basemapForRoute } from "@/lib/basemap";
 import { getPlaces, getTripStats } from "@/lib/entries";
-import { frameRoute } from "@/lib/mapFrame";
 import { getPlan } from "@/lib/plan";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUsernames } from "@/lib/users";
@@ -63,7 +62,7 @@ export default async function TripMapPage({ params }: PageProps<"/[user]/trips/[
   // The frame is worked out here as well as in the component, so that only the
   // few dozen kilobytes this trip covers cross the wire rather than the eleven
   // megabytes of the baked bundle. `frameRoute` is pure, so the two agree.
-  const basemap = basemapFor(frameRoute(places.length > 0 ? places : plan.stops));
+  const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
   return (
     <TripProvider trip={trip} isCurrent={false}>
       <MapPageContent
