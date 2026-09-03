@@ -69,6 +69,42 @@ That is why this is `CHORE` rather than `SECURITY`, and why the drill was run
 without first solving it. It stops being true the moment a real journal lands
 there, and journal deletion (B38) is already live and irreversible.
 
+## What is actually left, as of 2026-09-03
+
+**Most of this task has already happened, and the title now overstates it.**
+`docs/archiv/runbook.md` §Backups records that restic, `fernscout-backup.service`
+and `fernscout-backup.timer`, and the two credentials were all installed on
+2026-09-01 while preparing the restore drill, and that one verified snapshot
+exists. The "no backup at all" the title names stopped being true that day.
+
+Two things are still open, and one of them is new:
+
+1. **The last unit was missing anyway.** B138's evidence from the live server
+   shows `fernscout-backup.service` there carrying no `OnFailure=`, and
+   `fernscout-alert@fernscout-backup.service` not resolving — so "both units"
+   in the runbook meant the service and the timer, and the *alert template*
+   never arrived. A backup was running with no way to report its own failure.
+   B138 has since merged and makes `scripts/deploy.sh` install it, so **this
+   resolves on the next deploy** rather than needing a hand-copy here.
+
+2. **The two things nobody has written down**, which is the whole of the
+   remainder and cannot be done by an agent:
+   - where the repository lives, and whether it is off-box. A path on the same
+     machine protects against a bad deploy and an accidental deletion, and not
+     against losing the machine — which is the case a backup is usually for.
+   - that `RESTIC_PASSWORD` is stored somewhere that is not this machine. It is
+     unrecoverable by design, so this is a fact about the world, not about the
+     repository, and only the operator can make it true.
+
+The fourth Work bullet — "make the absence detectable" — was **done by B64**:
+`/api/health` carries a `.backup` block with the last success, `scripts/backup.sh`
+writes the `.backup-last-success` stamp, and `scripts/deploy.sh` prints the
+state on every deploy. Acceptance line 3 is therefore already satisfied.
+
+**Blocked for an agent in this session:** every remaining check is `ssh` to the
+VPS, which this environment refuses. Whoever picks this up needs the server, and
+needs to answer the two questions in (2) before the runbook can record them.
+
 ## Work
 
 - Install `restic` and the two units, and set `RESTIC_REPOSITORY` /

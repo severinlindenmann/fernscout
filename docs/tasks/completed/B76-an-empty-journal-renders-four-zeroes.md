@@ -8,6 +8,7 @@ area: trips, ui, onboarding
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-03T19:14:06Z"
 ---
 
 # B76 — An empty journal renders four zeroes and no way forward
