@@ -2,6 +2,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { hashSecret, resolveSession, revokeSession, verifyCode } from "../auth";
 import { getDatabase, newId, nowIso } from "../db";
+import { grantIsLive } from "../grants";
 import type { Locale } from "../types";
 import {
   addressAad,
@@ -644,9 +645,16 @@ export async function approveContact(
     .where("id", "=", id)
     .execute();
 
+  // **A row is not a grant; a live row is** — B130. Asking only whether the
+  // row exists is the test `lib/push.ts` carried until B82, in the other
+  // direction: a grant whose `expires_at` has passed is refused by every
+  // reader, but it is still a row, so guarding the insert on existence alone
+  // means the owner clicks approve, the contact goes `active`, and the person
+  // is still shut out — with the UI reporting success. `grantIsLive` is the
+  // one place that decides, so this writer asks it too.
   const grant = await db
     .selectFrom("access_grants")
-    .select(["id"])
+    .select(["id", "expires_at"])
     .where("owner_id", "=", owner)
     .where("contact_id", "=", id)
     .where("scope", "=", "read")
@@ -668,6 +676,19 @@ export async function approveContact(
         granted_by: owner,
         expires_at: null,
       })
+      .execute();
+  } else if (!grantIsLive(grant.expires_at, new Date(now))) {
+    // Approving is the owner saying *let them in now*, so the lapsed row is
+    // revived rather than left standing: the expiry is cleared and the stamps
+    // are rewritten, because this is a fresh decision and the old
+    // `granted_at` describes a grant that has since run out. Writing a new
+    // expiry instead would need a caller that supplies one, and nothing
+    // issues time-limited grants yet — that is the feature this waits for,
+    // not this fix.
+    await db
+      .updateTable("access_grants")
+      .set({ granted_at: now, granted_by: owner, expires_at: null })
+      .where("id", "=", grant.id)
       .execute();
   }
 

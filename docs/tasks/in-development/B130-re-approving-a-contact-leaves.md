@@ -64,6 +64,35 @@ Only expiry-without-revoke reaches this.
   that sets an expiry, and adding one is the feature this bug is waiting for,
   not the fix.
 
+## What was built
+
+The Why held up in full — the guard, the file, the line and the reasoning were
+all still accurate, and the fix is the one the Work section named.
+
+The row is **revived rather than replaced**: `expires_at` is cleared and
+`granted_at` / `granted_by` are restamped on the existing row, instead of
+deleting it and inserting a fresh one. Two reasons. A second insert would
+leave two `read` rows for one contact, and `hasReadGrant` takes
+`executeTakeFirst()` with no ordering — so which grant answers the gate would
+depend on what the database felt like returning. And `granted_at` on
+`access_grants` is written by exactly one line and read by nothing, so
+restamping costs no information: it makes the row say when the owner actually
+decided, which for a lapsed grant is the honest answer.
+
+**Found next door and captured, not absorbed: B161.** `approveTripPlaces`
+(`lib/tripPeople.ts:286`) has the identical defect in `trip_people` — it
+selects the rows to open with `granted_at is null`, so an expired place is
+passed over while its own readers three lines above already run `grantIsLive`.
+Same rule, different table, so it is a separate id rather than an extra hunk
+here.
+
+Worth stating for whoever verifies: this is still unreachable in production.
+Nothing writes a non-null `expires_at` to either table, so the test reaches
+into the row directly, exactly as the B41/B82 expiry case beside it does. The
+value is that the writer now agrees with the readers *before* the first
+time-limited invitation ships, rather than after somebody spends an afternoon
+on why approve does nothing.
+
 ## Acceptance
 
 - A contact whose `read` grant has `expires_at` in the past, put back through
