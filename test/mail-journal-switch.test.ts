@@ -180,7 +180,7 @@ describe("letters the journal writes to its readers — governed by its own swit
   test("the digest refuses, and names the file to change", async () => {
     // Loud, so this is the journal's own answer and not the server's — the two
     // are separate errors because the fix is a different file in each case.
-    await expect(runDigest(QUIET)).rejects.toThrow(/not enabled for "quiet"/);
+    await expect(runDigest(QUIET)).rejects.toThrow(/"quiet" has switched mail off/);
     expect(mailFor(QUIET)).toEqual([]);
   });
 
@@ -349,6 +349,39 @@ describe("a journal that has never mentioned mail has not switched it off", () =
       sendMail(renderMail("r@example.test", "S", SAMPLE, SILENT)),
     ).resolves.toBeNull();
     expect(mailFor(SILENT)).toEqual([]);
+  });
+
+  /**
+   * The fourth state, which is not a state at all: **cannot tell.**
+   *
+   * `getUser` returns null for an unreadable content root as readily as for a
+   * name that was never a journal — `getUsernames` catches its own
+   * `readdirSync` failure and returns an empty list — so gating on
+   * `isEnabled("mail", username)` made an I/O fault suppress every journal's
+   * letters without a word. It surfaced on main as B135's sweep test, whose
+   * `readdirSync` mock is broader than the sweep it means to break; but strip
+   * the mock away and it reads "when the config cannot be read, mail is
+   * silently suppressed", which is the same failure mode as reading absence as
+   * a no. An unreadable directory is not somebody saying no.
+   *
+   * Failing open costs at most one letter to a journal that had said no,
+   * during an outage in which its config is unreadable. Failing closed costs
+   * every journal's mail for as long as the fault lasts, silently.
+   */
+  test("an unreadable content root does not silently suppress a journal's mail", async () => {
+    const readdir = vi.spyOn(fs, "readdirSync").mockImplementation(() => {
+      throw new Error("EACCES");
+    });
+    try {
+      clearUserCache();
+      // Not resolvable, therefore not a refusal.
+      expect(getUser(SILENT)).toBeNull();
+      await expect(
+        sendMail(renderMail("r@example.test", "S", SAMPLE, SILENT)),
+      ).resolves.not.toBeNull();
+    } finally {
+      readdir.mockRestore();
+    }
   });
 
   test("the three states, at the parser", () => {

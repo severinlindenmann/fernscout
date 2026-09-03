@@ -166,6 +166,37 @@ export function isEnabled(name: FeatureName, username?: string): boolean {
 }
 
 /**
+ * Whether this journal has **said no** to a capability.
+ *
+ * Narrower than `!isEnabled(name, username)`, and the difference is the point:
+ * that asks "is this on for them", which folds in the server's answer and
+ * whether the journal can be resolved at all. This asks only whether the
+ * journal's own config states a refusal.
+ *
+ * The three answers it distinguishes for `mail`, whose user-level default is
+ * on (`USER_DEFAULT_FEATURES` in lib/config.ts): a stated `false` is a no;
+ * absence is not; and **a journal that cannot be read is not a no either.**
+ * That last one is why this function exists. `getUser` returns null for an
+ * unreadable content root as readily as for a name that was never a journal —
+ * `getUsernames` catches its own `readdirSync` failure and returns an empty
+ * list — so gating mail on `isEnabled` meant an I/O fault silently suppressed
+ * every journal's letters. Silent suppression on "cannot tell" is the same
+ * failure B60 was sent back to remove, one layer down.
+ *
+ * Failing open here costs at most one letter to a journal that had said no,
+ * during an outage in which its config is unreadable. Failing closed costs
+ * every journal's mail, silently, for as long as the fault lasts. Note also
+ * that nothing about *where* a message may be written rests on this: the
+ * content-root guard in `mailDir` is that boundary and is unchanged.
+ *
+ * For an opt-in capability this answers the same as `isEnabled` minus the
+ * server check, because absence there really is a no.
+ */
+export function hasSwitchedOff(name: FeatureName, username: string): boolean {
+  return getUser(username)?.features[name]?.enabled === false;
+}
+
+/**
  * Fail the boot when a capability is switched on but cannot work.
  *
  * The alternative — starting anyway — means finding out at 3am when someone

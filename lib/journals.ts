@@ -1,7 +1,7 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import { isEnabled } from "./capabilities";
+import { hasSwitchedOff, isEnabled } from "./capabilities";
 import { clearConfigCache, type JournalVisibility } from "./config";
 import { contentRoot } from "./contentRoot";
 import { issueStandingLink, signInUrl } from "./auth";
@@ -292,11 +292,13 @@ export async function sendWelcome(input: {
   locale?: string;
 }): Promise<boolean> {
   // The journal's own switch as well as the server's — this is a letter the
-  // journal sends, not a code somebody asked for, so it is governed by
-  // `features.mail.enabled` in its config.json. A journal that has never
-  // mentioned mail has not switched it off, and still gets its welcome: see
-  // `USER_DEFAULT_FEATURES` in lib/config.ts, and B60.
-  if (!isEnabled("mail", input.username)) return false;
+  // journal sends, not a code somebody asked for. Asked as the same two
+  // questions `sendMail` asks, so there is one way to put it: can the server
+  // send, and has this journal said no. A journal that has never mentioned
+  // mail has not said no, and neither has one whose config cannot be read.
+  // See `hasSwitchedOff` in lib/capabilities.ts, and B60.
+  if (!isEnabled("mail")) return false;
+  if (hasSwitchedOff("mail", input.username)) return false;
 
   const site = serverSite();
   const url = `${site.url}/${input.username}`;

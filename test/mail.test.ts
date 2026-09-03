@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import { sendMail, sendMailWith, sendTransactional } from "@/lib/mail";
+import { sendMail, sendMailWith } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
 import { buildMessage } from "@/lib/mail/rfc822";
 
@@ -73,6 +73,140 @@ const SAMPLE = {
   footer: "You are getting this because you asked to follow the trip.",
   unsubscribeUrl: "https://x.test/stop?t=abc",
 };
+
+/**
+ * B135. Nothing in the codebase ever deleted a `.eml`. B57 accepted that on the
+ * reasoning that an operator turns `keepCopy` on to debug something and turns
+ * it off again — but it has been on at fernscout.ch for days, and since B111
+ * these files live inside `CONTENT_DIR`, which `scripts/backup.sh` archives
+ * wholesale. A journal-deletion link or a guest invitation is single-use but
+ * long-lived, so an old copy is a live credential in a directory nobody
+ * revisits, now also propagating into every snapshot.
+ *
+ * The lifetime is enforced by the only thing that has to know mail exists: the
+ * function that writes it.
+ */
+describe("kept mail expires", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  /** Backdate a file the way age is actually judged — by mtime. */
+  function age(file: string, ms: number) {
+    const when = new Date(Date.now() - ms);
+    fs.utimesSync(file, when, when);
+  }
+
+  async function sendOne(subject: string) {
+    writeConfig({ enabled: true, transport: "file" });
+    const result = await sendMail(renderMail("ana@example.test", subject, SAMPLE, "ana"));
+    if (!result) throw new Error("mail was not sent");
+    return result;
+  }
+
+  test("a stale .eml is gone after the next message, and a fresh one is not", async () => {
+    const first = await sendOne("the old one");
+    const mailDir = path.dirname(first.reference);
+
+    const fresh = path.join(mailDir, "fresh.eml");
+    fs.writeFileSync(fresh, "still wanted");
+    age(first.reference, 3 * DAY);
+    age(fresh, 1 * DAY);
+
+    await sendOne("the new one");
+
+    expect(fs.existsSync(first.reference)).toBe(false);
+    expect(fs.existsSync(fresh)).toBe(true);
+  });
+
+  test("the message just written is never swept by its own write", async () => {
+    const result = await sendOne("keep me");
+    expect(fs.existsSync(result.reference)).toBe(true);
+  });
+
+  test("only .eml files are touched", async () => {
+    const first = await sendOne("one");
+    const mailDir = path.dirname(first.reference);
+
+    const bystander = path.join(mailDir, "notes.txt");
+    fs.writeFileSync(bystander, "not mail");
+    age(bystander, 30 * DAY);
+    age(first.reference, 30 * DAY);
+
+    await sendOne("two");
+
+    expect(fs.existsSync(first.reference)).toBe(false);
+    expect(fs.existsSync(bystander)).toBe(true);
+  });
+
+  test("only this directory — a stale copy under another journal is left alone", async () => {
+    const first = await sendOne("ana's");
+    age(first.reference, 30 * DAY);
+
+    const otherDir = path.join(dir, "bo", "mail");
+    fs.mkdirSync(otherDir, { recursive: true });
+    const other = path.join(otherDir, "old.eml");
+    fs.writeFileSync(other, "bo's");
+    age(other, 30 * DAY);
+
+    await sendOne("ana's again");
+
+    expect(fs.existsSync(first.reference)).toBe(false);
+    // Swept on write, so another journal's folder waits for its own next
+    // message. That is the accepted limit of the approach, not an oversight.
+    expect(fs.existsSync(other)).toBe(true);
+  });
+
+  test("a sweep that cannot read the directory still sends the message", async () => {
+    const first = await sendOne("one");
+    const mailDir = path.dirname(first.reference);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const readdir = vi.spyOn(fs, "readdirSync").mockImplementation(() => {
+      throw new Error("EACCES");
+    });
+
+    try {
+      const result = await sendOne("two");
+      expect(fs.existsSync(result.reference)).toBe(true);
+      expect(path.dirname(result.reference)).toBe(mailDir);
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      readdir.mockRestore();
+    }
+  });
+
+  test("a file it cannot delete costs neither the send nor a warning", async () => {
+    const first = await sendOne("one");
+    age(first.reference, 30 * DAY);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const unlink = vi.spyOn(fs, "unlinkSync").mockImplementation(() => {
+      throw new Error("EPERM");
+    });
+
+    try {
+      const result = await sendOne("two");
+      expect(fs.existsSync(result.reference)).toBe(true);
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      unlink.mockRestore();
+    }
+  });
+
+  /** The copy path and the file transport share `writeEml`, so they share the
+   * lifetime. A window that applied to only one of them would be a difference
+   * nobody could justify later. */
+  test("a kept copy is swept on the same terms", async () => {
+    writeConfig({ enabled: true, transport: "console", keepCopy: true });
+    await sendMail(renderMail("ana@example.test", "first", SAMPLE, "ana"));
+
+    const mailDir = path.join(dir, "ana", "mail");
+    const [stale] = fs.readdirSync(mailDir).map((f) => path.join(mailDir, f));
+    age(stale, 5 * DAY);
+
+    await sendMail(renderMail("ana@example.test", "second", SAMPLE, "ana"));
+
+    expect(fs.existsSync(stale)).toBe(false);
+    expect(fs.readdirSync(mailDir).filter((f) => f.endsWith(".eml"))).toHaveLength(1);
+  });
+});
 
 describe("the message format", () => {
   test("is a multipart message with both alternatives", () => {
@@ -194,16 +328,13 @@ describe("transports", () => {
    */
   test("a username that would escape the content root is refused, not written", async () => {
     writeConfig({ enabled: true, transport: "file" });
-    // Through the exempt path on purpose. `sendMail` now declines anything
-    // whose journal is not a journal, which would make this test pass without
-    // the path guard ever running; `sendTransactional` is the one call that
-    // reaches `mailDir` regardless of what the journal says, so it is the one
-    // that has to be unable to escape.
+    // Back through `sendMail`, which is the call that matters. An earlier
+    // draft of B60 declined anything whose journal would not resolve, which
+    // made this pass without the path guard ever running; the gate now asks
+    // only whether the journal said no, so an unresolvable one reaches
+    // `mailDir` — where being unable to escape is the actual boundary.
     await expect(
-      sendTransactional(
-        renderMail("r@example.test", "S", SAMPLE, "../../elsewhere"),
-        "reaching the path guard is the point of this test",
-      ),
+      sendMail(renderMail("r@example.test", "S", SAMPLE, "../../elsewhere")),
     ).rejects.toThrow(/outside the content root/);
   });
 

@@ -126,6 +126,64 @@ delivered there. What changes is `/api/health`, which stops reporting `"not
 enabled by sevi"` for a journal that never said so — the same lie told the
 other way round — and the fact that writing `false` now works.
 
+### "Cannot tell" is not a no either
+
+Found after the merge: main went red on `test/mail.test.ts > kept mail expires
+> a sweep that cannot read the directory still sends the message`, a B135 test
+that did not exist when this branch was cut.
+
+The mechanism is one layer below the three states above. B135's test mocks
+`fs.readdirSync` to throw `EACCES`, meaning to break the kept-mail sweep. The
+gate here called `isEnabled("mail", username)`, which reaches `getUser` →
+`getUsernames` → the same `fs.readdirSync` (`lib/users.ts:117`), which catches
+its own failure and returns an empty list. So the journal could not be
+resolved, `resolveOne` answered `no such user "ana"`, and the send was declined.
+
+**The mock is broader than the sweep it means to break, but that is not the
+defect.** Strip the mock away and the behaviour reads: *when a journal's config
+cannot be read, its mail is silently suppressed.* An unreadable directory is
+not somebody saying no. That is the same silent-suppression failure this task
+was already sent back once to remove — absence read as refusal — one level
+down, with "cannot tell" in place of "did not say".
+
+So the gate was narrowed rather than the mock. It now asks the two questions
+separately:
+
+- **Can this server send?** `isEnabled("mail")`.
+- **Has this journal said no?** `hasSwitchedOff("mail", username)`, new in
+  `lib/capabilities.ts` — `getUser(username)?.features[name]?.enabled === false`.
+  A stated `false` is a no; absence is not (the user default is on); an
+  unresolvable journal is not.
+
+Why this and not the other options:
+
+- **`resolveOne` is untouched.** Returning false for an unresolvable user is
+  long-standing and shared with every capability; changing it has a blast
+  radius well past mail. The narrower question belongs at the gate that needs
+  it.
+- **It is a smaller change than what was merged, not a larger one.** Before
+  B60, `sendMail` never consulted the user at all, so an unresolvable journal
+  always reached the transport. This restores exactly that and adds only the
+  stated refusal.
+- **Nothing about where a message may be written rests on it.** The
+  content-root guard in `mailDir` is that boundary and is unchanged — which is
+  why `test/mail.test.ts`'s escape test could go back to calling `sendMail`
+  rather than the exempt path, as it did before this branch touched it.
+- **The trade, stated plainly.** Failing open costs at most one letter to a
+  journal that had said no, during an outage in which its config is
+  unreadable. Failing closed costs every journal's mail, silently, for as long
+  as the fault lasts.
+
+`/api/health` still agrees with behaviour: it iterates `getUsernames()`, so it
+can only ever report on journals it can resolve, and for those the gate and
+`resolveOne` give the same answer. A journal it cannot resolve is not reported
+at all, so there is no disagreement to observe.
+
+B135's test is left with its broad mock deliberately. It now pins a property
+worth having beyond the sweep — an I/O fault in the readdir path does not
+swallow a message — and `test/mail-journal-switch.test.ts` names that property
+directly rather than leaving it incidental to a test about expiry.
+
 ### What the switch means — the decision, and why
 
 **A journal's `features.mail.enabled` governs the letters that journal writes
@@ -165,8 +223,10 @@ with a 404 rather than accepting it silently.
 - **`lib/config.ts`** — `USER_DEFAULT_FEATURES`, and `parseFeatures` takes the
   table to use. One entry differs from the server's; every other capability is
   untouched.
-- **`lib/capabilities.ts`** — comment only. `resolveOne` still reads the server
-  first and returns early, so a user's `true` cannot widen anything.
+- **`lib/capabilities.ts`** — `hasSwitchedOff(name, username)`, the narrow
+  question the mail gate asks, plus a comment at `resolveOne`. `resolveOne`
+  itself is unchanged: it still reads the server first and returns early, so a
+  user's `true` cannot widen anything.
 - **`lib/journals.ts`** — `sendWelcome` gates on the journal. `createJournal`
   deliberately does *not* write a `mail` key (see the three states above).
 - **`lib/digest/index.ts`** — a second refusal naming the journal, kept
@@ -190,6 +250,8 @@ with a 404 rather than accepting it silently.
   classes the decision above says it should not, asserted by a test per class.
 - A journal whose config has no `features.mail` key is unaffected — its
   welcome, digest and contact letters still go — asserted by a test.
+- A journal whose config cannot be *read* is likewise not treated as a refusal,
+  asserted by a test that mocks `readdirSync` into failing.
 - Any class deliberately exempt is named in the test and in the docs, with the
   reason.
 - `/api/health`'s per-journal mail block agrees with what actually happens.

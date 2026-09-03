@@ -1,5 +1,5 @@
 import "server-only";
-import { isEnabled } from "../capabilities";
+import { hasSwitchedOff, isEnabled } from "../capabilities";
 import {
   listContacts,
   manageTokenFor,
@@ -282,11 +282,11 @@ export async function runDigest(
         "content/config.json to write .eml files locally, or run with --dry-run.",
     );
   }
-  if (!dryRun && !isEnabled("mail", owner)) {
+  if (!dryRun && hasSwitchedOff("mail", owner)) {
     throw new Error(
-      `Mail is not enabled for "${owner}", so this journal sends nothing to its readers. ` +
-        'Set features.mail to { "enabled": true } in ' +
-        `content/${owner}/config.json, or run with --dry-run.`,
+      `"${owner}" has switched mail off, so this journal sends nothing to its readers. ` +
+        'Remove features.mail, or set it to { "enabled": true }, in ' +
+        `content/${owner}/config.json — or run with --dry-run.`,
     );
   }
   if (!isEnabled("contacts", owner)) {
