@@ -48,9 +48,7 @@ Do not edit them by hand; run the script.
 | [B101](backlog/B101-nobody-has-attacked-a-running-instance.md) | Nobody has attacked a running instance from the outside with the source in hand | SECURITY | high | high |
 | [B102](backlog/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | CHORE | high | medium |
 | [B103](backlog/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | CHORE | high | medium |
-| [B138](backlog/B138-a-deploy-never-installs-changed-systemd.md) | A deploy never installs changed systemd units, so unit changes stay in git and nobody notices | ISSUE | high | low |
 | [B142](backlog/B142-a-mail-scanner-follows-the-welcome.md) | A mail scanner follows the welcome link, spending the owner's one-tap sign-in and minting a year-long session | SECURITY | high | medium |
-| [B65](backlog/B65-the-deployed-server-has-no-backup.md) | The deployed server has no backup at all — restic, the units and the credentials were never installed | CHORE | high | medium |
 | [B02](backlog/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low |
 | [B06](backlog/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B09](backlog/B09-links-to-docs-moved-into-archiv.md) | Links to docs moved into archiv no longer resolve | CHORE | medium | low |
@@ -66,8 +64,6 @@ Do not edit them by hand; run the script.
 | [B131](backlog/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
 | [B132](backlog/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
 | [B134](backlog/B134-the-review-queue-cannot-tell.md) | The review queue cannot tell a person which drafts nobody lived | ISSUE | medium | low |
-| [B135](backlog/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low |
-| [B136](backlog/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low |
 | [B14](backlog/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B141](backlog/B141-ingest-disambiguates-a-colliding-slug-only.md) | Ingest disambiguates a colliding slug only within one date, so two days can still shadow each other | ISSUE | medium | low |
 | [B143](backlog/B143-task-ids-collide-when-parallel-sessions.md) | Task ids collide when parallel sessions capture by hand, which is what B99 was meant to prevent | ISSUE | medium | medium |
@@ -117,7 +113,11 @@ Do not edit them by hand; run the script.
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B138](open/B138-a-deploy-never-installs-changed-systemd.md) | A deploy never installs changed systemd units, so unit changes stay in git and nobody notices | ISSUE | high | low |
+| [B65](open/B65-the-deployed-server-has-no-backup.md) | The deployed server has no backup at all — restic, the units and the credentials were never installed | CHORE | high | medium |
 | [B12](open/B12-a-finished-trip-still-offers-a.md) | A finished trip still offers a Today button | ISSUE | medium | low |
+| [B135](open/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low |
+| [B136](open/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low |
 | [B19](open/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium |
 | [B44](open/B44-a-guest-who-arrives-without-their.md) | A guest who arrives without their link sees a complete-looking journal and no way to say who they are | ISSUE | medium | medium |
 | [B45](open/B45-the-access-panel-lists-guest-trips.md) | The access panel lists guest trips the reader cannot actually open | ISSUE | medium | low |
