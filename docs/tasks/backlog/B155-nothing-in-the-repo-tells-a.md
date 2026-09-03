@@ -56,21 +56,65 @@ uptime, backup or retention guarantee. Immediately followed by the export and
 the fact that self-hosting the same content is the documented alternative, not
 a downgrade.
 
-**What is switched on.** A short, honest list of the capabilities the managed
-instance actually runs, separated from the capabilities the software has. The
-live state is readable at `/api/health` — use it rather than writing from
-memory, and consider whether the README should point at that URL instead of
-restating a list that will drift the first time a flag changes. Drift is the
-predictable failure here: a hand-written feature list in the README and a
-`features` block in `content/config.json` disagree within a month, which is the
-same reason `AGENTS.md` refuses to repeat the entry field list.
+**What is switched on, and what each switch means.** Two separate lists,
+because they answer different questions and the README currently blurs them
+into one line ("mail, sign-in, guests, push, print").
 
-Open question for the author, needed before writing: **"extra features
-available"** — whether that means (a) the optional capabilities a self-hoster
-can switch on, which the README half-covers today, or (b) extras offered on
-the managed instance beyond the free journal, including whether postcards and
-photobooks — which cost real money to print — are meant to be available there
-at all, and on what terms. The two produce different paragraphs.
+*The software's switches.* `FEATURE_NAMES` in `lib/config.ts:8-18` is the
+complete set — nine, and that file is "the only place it gets named". The
+README should carry a table of all of them, because a self-hoster deciding what
+to run has nowhere else to look: `lib/capabilities.ts` is source, and
+`docs/` no longer holds the runbook it used to (B62, B9). For each: what it
+enables, what it costs to turn on, and what the site does without it.
+
+| Feature | Needs | Off means |
+| --- | --- | --- |
+| `reactions` | — | no reactions on days |
+| `costs` | — | no cost pages or totals (`lib/photobook/source.ts:51` also drops costs from a book) |
+| `push` | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | no web-push notifications |
+| `mail` | transport-specific — `file`/`console` need nothing, `smtp` needs `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | nothing is sent; note `keepCopy` writes plaintext copies to disk and `/api/health` reports it as `keepingCopies` |
+| `auth` | `SESSION_SECRET` + `DATABASE_URL` | no agent tokens at all — the whole write path is gone (see below) |
+| `signup` | `SESSION_SECRET` + `DATABASE_URL`, and mail, checked in the route rather than in `REQUIREMENTS` | nobody can create a journal on the instance |
+| `contacts` | `CONTACTS_ENCRYPTION_KEY` + `DATABASE_URL` | no guests, no invite links, no buddy write-access, no approval queue |
+| `postcards` | provider-specific — `dry-run` needs nothing; `stannp`, `swisspost` need keys — + `DATABASE_URL` | no postcard ordering |
+| `photobook` | provider-specific — `dry-run`, `peecho`, `gelato`, `cloudprinter`, `lulu` | no photobook ordering |
+
+Three rules govern all nine and belong in the same section, because each one
+answers a question a self-hoster will otherwise ask in an issue:
+
+- **Off by default, and absent rather than broken.** A disabled capability's
+  routes 404; they do not error.
+- **Enabling one is a promise the server has to keep.** `assertCapabilities()`
+  (`lib/capabilities.ts:170`) refuses to boot when a flag is on and its
+  credentials are missing, with the reason. The comment says why: the
+  alternative is finding out at 3am when somebody presses send.
+- **Server config is a ceiling, a journal's own `config.json` opts in
+  underneath it** (`resolveOne`, `lib/capabilities.ts:103`). A user can never
+  switch on something the server cannot do. On a multi-journal instance this is
+  the difference between "the server offers guests" and "this journal uses
+  them", and `/api/health` reports the per-journal *differences* only.
+
+**Verified, so the README can say it plainly: disabling `auth` leaves the
+public site whole.** Booted at the repo's shipped defaults — `auth`,
+`contacts`, `mail`, `signup` all false, no `DATABASE_URL` — every reading
+surface answered 200: `/`, `/example`, `/example/trips`,
+`/example/trips/asia-2023`, `.../map`, `.../gallery`, `.../costs`,
+`.../day/<slug>`, `/example/search`, `/documentation.txt`, `/agent.md`,
+`/sitemap.xml`. `/api/auth/request`, `/api/mcp` and `/api/v1/...` answered 404,
+and the server log was clean. The mechanism is `mayReadTrip`
+(`lib/tripGate.ts:27`): `isOpenToLink(trip)` returns before anything touches
+the database, so a public trip never needs a session or a DB. That is the
+concrete form of the README's existing claim that "no database is needed to run
+a public journal", and it is worth stating as *what you lose* — writing, and
+guests — rather than as a list of flags.
+
+*The managed instance's switches.* Which of the nine fernscout.ch actually
+runs, kept separate from the above. Today: `reactions`, `costs`, `mail`,
+`auth`, `signup`, `contacts` on; `push`, `postcards`, `photobook` off. Read it
+from `/api/health` on the day of writing rather than from this ticket, and
+consider pointing the README at that URL instead of restating a list that
+drifts the first time a flag changes — the same reason `AGENTS.md` refuses to
+repeat the entry field list.
 
 Not in scope: a pricing page, a signup web form, terms of service or a privacy
 policy as separate documents. If the disclaimer needs to be more than a
@@ -83,6 +127,14 @@ paragraph, that is its own task.
   of uptime or data retention.
 - The same section says how to actually get a journal — an agent, the
   `documentation.txt` address — rather than implying a sign-up page exists.
+- All nine names in `FEATURE_NAMES` (`lib/config.ts:8-18`) appear in the README
+  with what they enable and what they require, and the list is checked against
+  that constant rather than written from memory.
+- The README states that capabilities are off by default, that a wrongly
+  configured one fails the boot, and that a journal's config narrows the
+  server's and never widens it.
+- The README says what a journal with `auth` off still does — the whole public
+  site — rather than only what it loses.
 - Any capability the README claims the managed instance offers is `enabled:true`
   in `https://fernscout.ch/api/health` on the day it is written, or the README
   points at that endpoint instead of listing them.
