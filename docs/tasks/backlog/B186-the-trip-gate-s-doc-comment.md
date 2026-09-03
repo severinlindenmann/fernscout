@@ -1,5 +1,5 @@
 ---
-id: B160
+id: B186
 title: The trip gate's doc comment points at a route group that no longer exists
 type: CHORE
 priority: low
@@ -8,7 +8,7 @@ area: docs, trips, auth
 found: "2026-09-03"
 ---
 
-# B160 — The trip gate's doc comment points at a route group that no longer exists
+# B186 — The trip gate's doc comment points at a route group that no longer exists
 
 ## Why
 

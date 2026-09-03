@@ -57,6 +57,36 @@ digest work, can only ever be verified in unit tests. The digest is a thing
 that sends real mail to real people, which is precisely the category where a
 live check is worth most.
 
+
+## Confirmed again by B70, plus two things B70 added (2026-09-03)
+
+B70 hit the same wall from the opposite direction and is BLOCKED on it too, so
+this task now unblocks two tickets rather than one. Its agent was offered the
+publish authorisation and **declined to use it**, correctly: the only fixture
+that would close B70's day-level bullet is a trip *without* `test: true`
+holding a published test day, and creating an unflagged trip is precisely what
+`AGENTS.md` forbids — "writing 'this is a test' into the prose instead is a
+convention, not a guarantee". An `--include-test` dry-run flag makes that
+fixture unnecessary, which is the strongest argument for building it.
+
+**A skip reason for suppressed test content.** `DigestSkipReason` has five
+values and none of them is about test content, so a reader excluded *solely*
+because every trip in the journal is fiction is reported identically to a
+reader in a genuinely quiet journal: `nothing-new — since <date>`. An operator
+dry-running the pipeline against a test trip — the only thing they can safely
+dry-run against — gets no signal that anything was deliberately suppressed.
+Add a reason, or say it in the line. Cheap, and it is what turns a silent zero
+into a legible one.
+
+**No positive control exists on this instance.** Nothing in either
+contacts-enabled journal is non-test, so nobody has yet demonstrated that the
+digest emits a mail *at all* against fernscout.ch — only that it emits none.
+The pipeline is provably alive up to content building (it distinguished
+`no-consent`, `not-approved` and `nothing-new` correctly across eight
+contacts), so the deductive gap is narrow, but "0 digests" is not by itself
+proof that the test filter is the cause rather than something upstream. The
+same flag closes this gap too.
+
 ## Work
 
 Give the digest a way to be driven over test content **without ever mailing

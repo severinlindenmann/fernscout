@@ -8,6 +8,7 @@ area: me, i18n, viewer
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-03T19:50:04Z"
 ---
 
 # B75 — An owner with no trips is told to ask whoever sent them here for an invitation
