@@ -125,7 +125,7 @@ Two things beyond the task, both small and both in the same block: the
 `.env.example` backup section had no entry for B64's `BACKUP_ALERT_EMAIL` or
 `BACKUP_MAX_AGE_HOURS` either, so all three are documented together.
 
-**Captured, not absorbed:** B82 — an unreachable repository still takes the
+**Captured, not absorbed:** B115 — an unreachable repository still takes the
 unit's whole `TimeoutStartSec=30min` to give up, because restic retries with no
 overall deadline (measured: still retrying after 3 minutes against a refused
 port). B63 makes the *diagnosis* correct; it does not make it fast. Bounding it

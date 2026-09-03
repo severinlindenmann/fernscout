@@ -131,7 +131,7 @@ every deploy (never fatally). It is the command this deployment's operator
 actually runs, and the failure mode here is by definition one nobody went
 looking for.
 
-**Found while building, captured not absorbed:** B78 — one unreadable file
+**Found while building, captured not absorbed:** B114 — one unreadable file
 anywhere under `DATA_DIR` makes `cp -a` fail and costs the whole night's
 backup. B64 fixes the half of that which was about silence; the veto itself is
 still there.

@@ -21,7 +21,13 @@
 // Frontmatter is edited line by line rather than round-tripped through a YAML
 // parser: a round trip reformats dates and drops the alignment, and a diff
 // full of churn is a diff nobody reads.
+//
+// Everything here reads the checkout it is run in — except the allocation of a
+// new id, which asks every worktree as well. See taskRoots(): a snapshot of
+// docs/tasks taken when a branch was created is exactly how two agents end up
+// writing the same number.
 
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -108,9 +114,122 @@ function allItems() {
   return LANES.flatMap(itemsIn);
 }
 
+/** A path as the filesystem sees it, so two spellings of one directory dedupe. */
+function real(p) {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return p;
+  }
+}
+
+/**
+ * Every `docs/tasks` an id could already be claimed in — this checkout, the
+ * main one, and every other worktree.
+ *
+ * Allocation used to read the current working directory alone, which inside
+ * `.claude/worktrees/<branch>` is that worktree's own snapshot of `docs/tasks`,
+ * taken when the branch was created. Two sessions branching from the same
+ * commit were therefore each told the same number was free, and both wrote it:
+ * B99 counts three collisions and a near miss in one afternoon. A task id has
+ * to mean one thing forever, because tasks reference each other by it and
+ * nothing else.
+ *
+ * Only allocation looks this wide. Listing, moving and INDEX.md stay local to
+ * the checkout they are run in — a worktree's index is that worktree's.
+ */
+function taskRoots() {
+  const roots = new Set([real(ROOT)]);
+  const add = (checkout) => {
+    const tasks = path.join(checkout, "docs", "tasks");
+    if (fs.existsSync(tasks)) roots.add(real(tasks));
+  };
+
+  let checkouts = [];
+  try {
+    const listed = execFileSync("git", ["worktree", "list", "--porcelain"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    checkouts = listed
+      .split("\n")
+      .filter((line) => line.startsWith("worktree "))
+      .map((line) => line.slice("worktree ".length).trim());
+  } catch {
+    // No git on PATH, or not a repository. The sweep below still finds
+    // whatever is on disk beside us, and a local-only answer is what the
+    // script did before this existed.
+  }
+
+  for (const checkout of [process.cwd(), ...checkouts]) {
+    add(checkout);
+    // A directory under .claude/worktrees/ that git no longer knows about —
+    // removed from the registry, or copied there by hand — still holds task
+    // files, and an id claimed in one of them is an id somebody is using.
+    const nested = path.join(checkout, ".claude", "worktrees");
+    if (!fs.existsSync(nested)) continue;
+    for (const entry of fs.readdirSync(nested)) add(path.join(nested, entry));
+  }
+  return [...roots];
+}
+
+/**
+ * Every id claimed in every checkout, read off the filenames — the whole point
+ * is to be cheap enough to run on every `new`, and parsing the frontmatter of
+ * a thousand files across five worktrees is not. The local checkout is read
+ * properly as well, so its frontmatter stays authoritative for its own ids.
+ */
+function claimedIds() {
+  const ids = new Set(allItems().map((i) => i.id));
+  for (const root of taskRoots()) {
+    for (const lane of LANES) {
+      const dir = path.join(root, lane);
+      if (!fs.existsSync(dir)) continue;
+      for (const filename of fs.readdirSync(dir)) {
+        const match = /^(B\d+)-.*\.md$/.exec(filename);
+        if (match) ids.add(match[1]);
+      }
+    }
+  }
+  return ids;
+}
+
+/**
+ * One past the highest id anywhere. Deliberately not the lowest free number:
+ * an abandoned branch leaves a gap, and a gap is harmless where a reused id is
+ * not — `manage-tasks` is explicit that a number means one thing forever.
+ */
 function nextId() {
-  const numbers = allItems().map((i) => Number.parseInt(i.id.replace(/\D/g, ""), 10) || 0);
+  const numbers = [...claimedIds()].map((id) => Number.parseInt(id.replace(/\D/g, ""), 10) || 0);
   return `B${String(Math.max(0, ...numbers) + 1).padStart(2, "0")}`;
+}
+
+/** Ids claimed by more than one file in this checkout, with where they are. */
+function duplicateIds() {
+  const byId = new Map();
+  for (const item of allItems()) {
+    const at = byId.get(item.id) ?? [];
+    at.push(`${item.lane}/${item.filename}`);
+    byId.set(item.id, at);
+  }
+  return [...byId].filter(([, at]) => at.length > 1);
+}
+
+/**
+ * Say it out loud. INDEX.md renders both rows without complaint and `move`
+ * picks whichever the directory listing yields first, so a collision is
+ * invisible until a reference to it silently resolves to the wrong task.
+ * Allocation cannot be the only defence: the next one will arrive through a
+ * merge, a cherry-pick, or a file copied by hand.
+ */
+function warnDuplicates() {
+  const duplicates = duplicateIds();
+  if (duplicates.length === 0) return;
+  console.error(`\nWARNING: ${duplicates.length === 1 ? "an id is" : "ids are"} claimed twice.`);
+  for (const [id, at] of duplicates) {
+    console.error(`  ${id}  ${at.join("   ")}`);
+  }
+  console.error("Renumber one of each pair — prefer whichever is referenced less. See B99.\n");
 }
 
 function slug(title) {
@@ -153,6 +272,7 @@ function writeIndex() {
   ].join("\n");
   fs.writeFileSync(file, raw.slice(0, start) + generated + raw.slice(end));
   console.log(`docs/tasks/INDEX.md — ${allItems().length} tasks across ${LANES.length} lanes.`);
+  warnDuplicates();
 }
 
 function flag(argv, name) {
@@ -176,6 +296,10 @@ function create(argv) {
 
   const id = nextId();
   const file = path.join(ROOT, INTAKE, `${id}-${slug(title)}.md`);
+  // nextId() asked every checkout, so this cannot normally happen. It still
+  // can between two `new` calls in the same second, and overwriting somebody
+  // else's capture is the one outcome worth refusing outright.
+  if (fs.existsSync(file)) die(`${path.relative(process.cwd(), file)} already exists.`);
   const front = [
     `id: ${id}`,
     `title: ${title}`,
@@ -249,6 +373,7 @@ function list() {
     }
   }
   console.log("");
+  warnDuplicates();
 }
 
 const [command, ...rest] = process.argv.slice(2);
