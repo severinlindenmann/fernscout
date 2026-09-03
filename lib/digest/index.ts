@@ -271,11 +271,22 @@ export async function runDigest(
   if (!user) throw new Error(`No such user: "${owner}".`);
 
   const dryRun = options.dryRun === true;
+  // Both switches, and they are answered separately because the remedy is a
+  // different file in each case. The digest is the archetypal letter-to-readers
+  // — if any mail is what a journal's `features.mail.enabled: false` means to
+  // stop, it is this one (B60).
   if (!dryRun && !isEnabled("mail")) {
     throw new Error(
       "Mail is not enabled on this server, so nothing can be sent. Set " +
         'features.mail to { "enabled": true, "transport": "file" } in ' +
         "content/config.json to write .eml files locally, or run with --dry-run.",
+    );
+  }
+  if (!dryRun && !isEnabled("mail", owner)) {
+    throw new Error(
+      `Mail is not enabled for "${owner}", so this journal sends nothing to its readers. ` +
+        'Set features.mail to { "enabled": true } in ' +
+        `content/${owner}/config.json, or run with --dry-run.`,
     );
   }
   if (!isEnabled("contacts", owner)) {

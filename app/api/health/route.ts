@@ -3,6 +3,7 @@ import { readBackupStatus } from "@/lib/backupStatus";
 import { resolveCapabilities } from "@/lib/capabilities";
 import { loadServerConfig } from "@/lib/config";
 import { FEATURE_NAMES } from "@/lib/config";
+import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
 import { getUsernames } from "@/lib/users";
 import pkg from "@/package.json";
 
@@ -33,6 +34,13 @@ export const dynamic = "force-dynamic";
  * "enabled" while `/<user>/contacts` answered 404, because that journal had
  * never switched it on. The person reading this page at 2am concluded the routing
  * was broken. `journals` gives the answer they were actually looking for.
+ *
+ * A journal whose `mail` is narrowed off also carries `stillSent`, because
+ * that block is only true of the letters the journal writes to its readers:
+ * sign-in codes, deletion confirmations and operator alerts go out anyway.
+ * Reporting `enabled: false` and nothing else is what sent somebody hunting
+ * for a routing bug when a code arrived for a journal that said mail was off
+ * (B60).
  */
 export async function GET() {
   const startedAt = Date.now();
@@ -70,17 +78,31 @@ export async function GET() {
   // Only the differences: on a single-user instance, or one where nobody has
   // narrowed anything, this is empty and the server-level block above is the
   // whole truth.
-  const journals: Record<string, Record<string, { enabled: boolean; reason?: string }>> = {};
+  const journals: Record<
+    string,
+    Record<string, { enabled: boolean; reason?: string; stillSent?: string }>
+  > = {};
   if (configOk) {
     for (const username of getUsernames()) {
       const resolved = resolveCapabilities(username);
-      const narrowed: Record<string, { enabled: boolean; reason?: string }> = {};
+      const narrowed: Record<
+        string,
+        { enabled: boolean; reason?: string; stillSent?: string }
+      > = {};
       for (const name of FEATURE_NAMES) {
         const state = resolved[name];
         if (state.enabled === capabilities[name].enabled) continue;
         narrowed[name] = state.enabled
           ? { enabled: true }
           : { enabled: false, reason: state.reason };
+        // `mail: { enabled: false }` for a journal is true of its letters to
+        // readers and false of everything else, and reporting only the first
+        // half was the lie B60 started as: the operator read "off", and
+        // sign-in codes kept arriving. Named here rather than left implied,
+        // from the same constant the docs quote.
+        if (name === "mail" && !state.enabled && capabilities.mail?.enabled) {
+          narrowed[name].stillSent = TRANSACTIONAL_MAIL_NOTE;
+        }
       }
       if (Object.keys(narrowed).length > 0) journals[username] = narrowed;
     }

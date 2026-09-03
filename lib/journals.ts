@@ -235,6 +235,13 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       // On, or the owner could never get a token to write to what they just
       // made — which would make this endpoint produce a journal nobody can use.
       auth: { enabled: true },
+      // On for the same reason, and written explicitly because the default is
+      // off: since B60 a journal's own `mail` switch really does govern the
+      // letters it sends — the welcome, and later the digest — so a journal
+      // created without this line would never greet its owner. It is an
+      // opt-in inside the server's ceiling, not a way past it: an instance
+      // with `features.mail.enabled: false` still sends nothing.
+      mail: { enabled: true },
     },
   };
 
@@ -282,7 +289,12 @@ export async function sendWelcome(input: {
    */
   locale?: string;
 }): Promise<boolean> {
-  if (!isEnabled("mail")) return false;
+  // The journal's own switch as well as the server's — this is a letter the
+  // journal sends, not a code somebody asked for, so it is governed by
+  // `features.mail.enabled` in its config.json. `createJournal` writes that on
+  // for a journal it makes, for the same reason it writes `auth` on: a journal
+  // that cannot greet its own owner is not one anybody asked for. See B60.
+  if (!isEnabled("mail", input.username)) return false;
 
   const site = serverSite();
   const url = `${site.url}/${input.username}`;

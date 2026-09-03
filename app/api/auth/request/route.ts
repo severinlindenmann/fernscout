@@ -8,7 +8,7 @@ import {
   signInUrl,
   type SessionKind,
 } from "@/lib/auth";
-import { sendMail } from "@/lib/mail";
+import { sendTransactional } from "@/lib/mail";
 import { renderMail, type MailBlock } from "@/lib/mail/template";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
@@ -157,7 +157,17 @@ export async function POST(request: Request) {
    * about the address, which is the thing the uniform 202 exists to protect.
    */
   try {
-    await sendMail(
+    /**
+     * Sent whatever the journal's own `features.mail.enabled` says.
+     *
+     * A one-time code is not a letter to a reader — it is the door. A journal
+     * that has switched its mail off has said "do not write to my readers",
+     * and reading that as "and lock me out of my own journal" would make the
+     * setting unrecoverable: the code is the only way to get a session or a
+     * token, so there would be nothing left to switch it back on with. See
+     * `sendTransactional` in lib/mail, and B60.
+     */
+    await sendTransactional(
       renderMail(
         email,
         kind === "agent" ? "Your Fernscout agent code" : `Sign in to ${user.title}`,
@@ -183,6 +193,7 @@ export async function POST(request: Request) {
         },
         username,
       ),
+      "a one-time sign-in code the recipient just asked for",
     );
   } catch (err) {
     console.error(`[auth] ${kind} code for ${username} could not be sent:`, err);

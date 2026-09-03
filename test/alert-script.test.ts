@@ -97,6 +97,14 @@ afterAll(() => {
 });
 
 describe("npm run alert", () => {
+  /**
+   * Also the operator-alert half of B60's exemption, asserted rather than
+   * assumed: `writeContent` gives the journal `features: {}`, which is to say
+   * its own mail is **off**. A backup alert goes anyway, because it is the box
+   * saying its backup failed and not the journal writing to a reader —
+   * `sendTransactional` in lib/mail, and the table in docs/deploy-mail.md.
+   * Turn that back into `sendMail` and this test fails on the file count.
+   */
   test(
     "mails the journal owner, with the unit and what to look at",
     () => {

@@ -20,6 +20,57 @@ the code (B111).
 That covers the whole flow: digests, one-time codes, approval notices. Nothing
 in this project requires a paid mailbox to build or test.
 
+## What a journal's own mail switch governs
+
+Mail is a **server ceiling and a journal opt-in**, like every other capability:
+`features.mail.enabled` in `content/config.json` says whether this instance can
+send at all, and `features.mail.enabled` in `content/<user>/config.json` says
+whether that journal has asked it to. A journal can never widen the server's
+answer, only narrow it.
+
+Switching it off for a journal means **do not write to my readers**. It stops:
+
+- the digest,
+- the four contact letters — the join code, the "we have your details"
+  confirmation, the "you're in" approval, and the note to the owner that
+  somebody has asked,
+- the welcome letter a new journal's owner gets.
+
+It does **not** stop three things, and each is exempt for the same reason —
+they are addressed to somebody exercising control of the journal, so
+suppressing them takes control away rather than granting it:
+
+| Still sent | Why |
+| --- | --- |
+| One-time **sign-in and agent codes** | The recipient asked for one in that moment, and it is the only way back in. Suppressing it would make the setting unrecoverable: there would be nothing left to sign in with and switch it back on. |
+| The **deletion confirmation link** | It *is* the safety mechanism. `DELETE` removes nothing and answers 202; the button in that mail is the only thing that deletes (B38). Swallowing it would leave the API accepting deletions that can never happen. It goes to the owner's own address from `config.json`, never to a reader's. |
+| **Operator alerts** (`scripts/alert.mts`) | The box saying its backup failed is not the journal writing to anybody. B64 is what silence there costs. |
+
+In code the distinction is two functions in `lib/mail/index.ts`: `sendMail`,
+which is gated by `mail.username`'s journal, and `sendTransactional`, which is
+not and takes a written reason as a required argument. A **signup code** has no
+journal at all — it is addressed to somebody who does not own a name yet — so
+only the server switch applies to it.
+
+`/api/health` says both halves. A journal that has narrowed mail off appears
+under `journals` as:
+
+```json
+"someone": {
+  "mail": {
+    "enabled": false,
+    "reason": "not enabled by someone",
+    "stillSent": "sign-in codes, deletion confirmations and operator alerts are still sent — a journal's mail switch governs the letters it sends to its readers"
+  }
+}
+```
+
+Before B60 none of this was true of the code: every call site asked
+`isEnabled("mail")` without the journal, so a per-journal switch narrowed what
+`/api/health` *reported* and nothing else. A journal that had said no still got
+sign-in codes, digests and — with `keepCopy` on — `.eml` copies of all of it in
+a folder whose owner had asked for none.
+
 ## Keeping copies on a server that really sends
 
 `features.mail.keepCopy: true` writes the same `.eml` under

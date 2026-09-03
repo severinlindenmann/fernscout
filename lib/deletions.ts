@@ -9,7 +9,7 @@ import { contentRoot } from "./contentRoot";
 import { getDatabase, TABLE_NAMES } from "./db";
 import type { TranslationKey } from "./i18n";
 import { translateIn } from "./locales";
-import { sendMail } from "./mail";
+import { sendTransactional } from "./mail";
 import { renderMail, type MailBlock } from "./mail/template";
 import { serverSite } from "./site";
 import { writeTombstone } from "./tombstones";
@@ -350,7 +350,19 @@ async function sendDeletionMail(input: {
     { kind: "paragraph", text: t("del.notYou") },
   ];
 
-  await sendMail(
+  /**
+   * Sent whatever the journal's own `features.mail.enabled` says.
+   *
+   * This letter *is* the safety mechanism (B38): `DELETE` removes nothing and
+   * answers 202, and the button in this mail is the only thing that deletes.
+   * Letting a per-journal mail preference swallow it would leave the API
+   * accepting deletions that can never happen, which is worse than refusing
+   * them — and the address it goes to is the owner's own, out of
+   * `config.json`, never a reader's. The server-wide check above is the one
+   * that can stop this flow, and it stops it up front with a 404 rather than
+   * silently. See `sendTransactional` in ./mail, and B60.
+   */
+  await sendTransactional(
     renderMail(
       input.email,
       t(isJournal ? "del.journalSubject" : "del.tripSubject", counts),
@@ -362,6 +374,7 @@ async function sendDeletionMail(input: {
       },
       summary.username,
     ),
+    "the confirmation link for a deletion the owner has already asked for",
   );
 }
 
