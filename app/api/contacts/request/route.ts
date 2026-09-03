@@ -1,3 +1,4 @@
+import { afterResponse } from "@/lib/afterResponse";
 import { isEmail, issueCode } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { requestContact } from "@/lib/contacts";
@@ -31,6 +32,11 @@ export const dynamic = "force-dynamic";
  *   token that was revoked yesterday. Anything else turns the form into a way
  *   of asking who else is on the list, or into an oracle for testing whether a
  *   link is still live.
+ *
+ *   **Uniform in the clock as well as the body** (B159). The body was already
+ *   byte-identical; a live token took ten times as long to send it, because
+ *   everything a live token causes happened before the response. It happens
+ *   after it now — see `afterResponse` below.
  *
  * Nothing here grants anything. The row it writes is `pending`, and the only
  * thing that happens next is a six-digit code. A person still approves it by
@@ -126,21 +132,34 @@ export async function POST(request: Request) {
     user.defaultLocale,
   );
 
-  const result = await requestContact(username, {
-    name,
-    email,
-    locale,
-    address: addressToStore,
-    wantsEmailDigest: digestPreference(body) === true,
-    wantsPostcard,
-    createdVia: `invite:${invite.id}`,
-    inviteId: invite.id,
-  });
+  // **Off the response path** — B159. Everything above this line is work a
+  // dead token does too, so the two branches now cost about the same; the
+  // insert, the code and the mail below are what made a live token take ten
+  // times as long and turned the clock into the oracle the body refuses to be.
+  //
+  // Nothing is lost by deferring it. This route answers `202 accepted` and
+  // documents that it says nothing about what happened — no id, no outcome,
+  // not even whether a row was written. A caller that waited learned nothing
+  // for the wait. It also removes a second, louder signal: `sendCodeMail`
+  // throwing used to surface as a 500, which only a live token could ever
+  // produce.
+  afterResponse("contacts", async () => {
+    const result = await requestContact(username, {
+      name,
+      email,
+      locale,
+      address: addressToStore,
+      wantsEmailDigest: digestPreference(body) === true,
+      wantsPostcard,
+      createdVia: `invite:${invite.id}`,
+      inviteId: invite.id,
+    });
 
-  if (result.outcome !== "ignored") {
-    const { code } = await issueCode(username, email, "guest");
-    await sendCodeMail(username, user, email, locale, code);
-  }
+    if (result.outcome !== "ignored") {
+      const { code } = await issueCode(username, email, "guest");
+      await sendCodeMail(username, user, email, locale, code);
+    }
+  });
 
   return Response.json({ status: "accepted" }, { status: 202 });
 }
