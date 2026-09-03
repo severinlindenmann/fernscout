@@ -34,7 +34,7 @@ export async function generateMetadata({
   if (!site) notFound();
   const trip = getTrip(tripRef(user, id));
   if (!trip) return {};
-  if (!(await mayReadTrip(trip))) return lockedMetadata(trip);
+  if (!(await mayReadTrip(trip))) return lockedMetadata();
   const description = trip.tagline ?? trip.intro.replace(/\s+/g, " ").slice(0, 160);
   return {
     title: trip.title,

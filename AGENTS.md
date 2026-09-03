@@ -122,6 +122,13 @@ it, at once and for as long as the approval lasts. A trip that must be held
 back from people who are otherwise let in is `private`, and that is the only
 mechanism; there is deliberately no narrower one.
 
+**A closed trip does not name itself.** The sign-in gate an uninvited reader
+meets carries the journal's title and nothing of the trip — not in the heading,
+not in the browser tab. Trip ids are chosen by hand and guessable, so whatever
+the gate says is readable by anyone who tries `alps-2024`; somebody you did
+invite learns which trip it is from the invitation, which is where that
+belongs. B117.
+
 **`people:` is who took it** — up to ten, each a name and an email. Everyone
 listed may write to the whole trip, and may hold an agent token scoped to it
 and to nothing else in the journal. It is also who the trip is credited to.

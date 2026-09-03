@@ -33,7 +33,7 @@ export async function generateMetadata({
   if (!trip) return {};
   // Before the entry is even looked up: the description below is the day's own
   // prose, and the title names the place. Neither may leave a locked trip.
-  if (!(await mayReadTrip(trip))) return lockedMetadata(trip);
+  if (!(await mayReadTrip(trip))) return lockedMetadata();
   const entry = getEntryBySlug(ref!, slug);
   if (!entry) return {};
 

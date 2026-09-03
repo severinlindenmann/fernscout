@@ -49,7 +49,6 @@ export default async function TripLayout({
   if (await mayReadTrip(trip)) return children;
   return (
     <TripGate
-      tripTitle={trip.title}
       username={user}
       journalTitle={getUser(user)?.title ?? user}
       signedInAs={await signedInAs(user)}

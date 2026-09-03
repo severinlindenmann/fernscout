@@ -90,6 +90,14 @@ Four fields decide behaviour rather than decoration:
   people who were there.** Approving one contact opens every `guest` trip in the
   journal to them; a trip that has to be held back from them is `private`.
 
+  **A closed trip is not named to whoever asks for its URL.** The sign-in gate
+  carries the journal's title and nothing of the trip, in the browser tab as
+  well as on the page (B117). What a guessed id still reveals is that *a* trip
+  exists at that address, and that is deliberate — a person who was invited and
+  meets a 404 has nowhere to go. So choose ids for the people who will type
+  them, and choose titles as if only the people in `people:` will ever read
+  them.
+
   There is no password, and no other door. A closed trip asks the reader for
   their e-mail address and mails them a way in; whether that lets them read it
   is decided by the trip's `people:` list and by the owner having approved

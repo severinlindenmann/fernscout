@@ -76,16 +76,33 @@ export async function isTravellerOn(trip: Trip): Promise<boolean> {
 }
 
 /**
- * The only metadata a locked trip may emit.
+ * The only metadata a locked trip may emit — which is none of the trip's.
  *
- * The trip's own title, because the gate says which trip it is guarding and
- * the browser tab should agree. Nothing else: no day title, no description
- * drawn from the day's prose, no Open Graph image. `noindex` on top, so a
- * crawler that reaches the URL is asked to forget it.
+ * It used to carry the trip's own title, on the reasoning that the gate says
+ * which trip it is guarding and the browser tab should agree. B117 reversed
+ * that. Trip ids are human-chosen and guessable by construction — `alps-2024`,
+ * `japan-2027` — and the journal name is public, so the title was readable by
+ * anyone willing to try a short dictionary against a URL. A private trip's
+ * title is often the sensitive part of it: a surname, a place that says who
+ * was there, `Divorce trip 2026`.
+ *
+ * The asymmetry settled it. A reader who signs in and is *still* refused has
+ * never been told the title — the gate answers "this trip is not shared with
+ * you" — so the site was naming the trip only to the reader who had proved
+ * nothing at all. Both cannot be right, and `visibility` fails closed
+ * everywhere else it is read.
+ *
+ * Omitting `title` rather than inventing one lets the journal layout's own
+ * default stand, so the tab reads the journal's public name. Nothing else
+ * either: no day title, no description drawn from the day's prose, no Open
+ * Graph image. `noindex` on top, so a crawler that reaches the URL is asked to
+ * forget it.
+ *
+ * Takes no trip on purpose. A function that is never handed the title cannot
+ * be edited into leaking it again.
  */
-export function lockedMetadata(trip: Trip): Metadata {
+export function lockedMetadata(): Metadata {
   return {
-    title: trip.title,
     description: undefined,
     robots: { index: false, follow: false },
     openGraph: undefined,
