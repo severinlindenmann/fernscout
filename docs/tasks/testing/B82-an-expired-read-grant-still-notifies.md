@@ -7,6 +7,7 @@ complexity: low
 area: push, grants
 found: "2026-09-01"
 started: "2026-09-03"
+merged: "2026-09-03"
 ---
 
 # B82 — An expired read grant still notifies, because push does not ask lib/grants
