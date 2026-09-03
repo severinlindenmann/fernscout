@@ -188,7 +188,7 @@ The open-source promise: everything works, the mail lands in a folder.
 
 | # | Scenario | Pass |
 | --- | --- | --- |
-| K1 | Every mail the app sends, with `transport: file` | `.eml` under `content/<user>/mail/`, one file per message |
+| K1 | Every mail the app sends, with `transport: file` | `.eml` under `content/<user>/mail/` — or `content/.mail/` for a signup code, which belongs to no journal yet — one file per message, and nothing outside the content root |
 | K2 | Open one in a mail client | Valid MIME, readable, links absolute |
 | K3 | An invite link the owner issued, `/<user>/i/<token>` | A form: name, email, optional postal address. `/<user>/join` redirects to `/<user>/me` and offers nothing (B37) |
 | K4 | Submitting it | Confirmation code by `.eml`; entering it confirms |

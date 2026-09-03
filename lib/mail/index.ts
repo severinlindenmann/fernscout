@@ -39,14 +39,54 @@ function slug(text: string): string {
 }
 
 /**
- * Writes the message to disk instead of sending it.
+ * Where mail that belongs to no journal goes: `content/.mail/`.
+ *
+ * A signup code is the mail you get *before* you own a name, so it has no
+ * `username` to be filed under. It is still this instance's data, and it still
+ * carries a live one-time code, so it belongs under the content root with
+ * everything else — not in whatever directory the process happened to be
+ * started from. That is what this used to be, and B111 is what it cost: on the
+ * deployed server the working directory is the code checkout, so every signup
+ * code ever issued was sitting in plaintext in `/srv/fernscout/mail/` — outside
+ * `DATA_DIR`, therefore outside the backup, in the directory `git pull` runs
+ * in, and in a place no documentation mentioned and so nobody thought to clear.
+ *
+ * The leading dot follows `content/.deleted/` (`lib/tombstones.ts`): an
+ * instance directory rather than a person's, skipped by the journal scan in
+ * `lib/users.ts`, and impossible to collide with a journal because
+ * `USERNAME_RE` admits no dot.
+ */
+const NO_JOURNAL_DIR = ".mail";
+
+/**
+ * The directory one message's `.eml` goes in — always inside `contentRoot()`.
  *
  * Files land under the user the mail belongs to (decision 23) — a digest names
  * every recipient, so it is not something to leave in a directory shared by
- * everyone on the instance. `content/<user>/mail/` is gitignored.
+ * everyone on the instance. Both `content/<user>/mail/` and `content/.mail/`
+ * are gitignored.
  */
+function mailDir(username?: string): string {
+  const root = contentRoot();
+  const dir = username
+    ? path.join(root, username, "mail")
+    : path.join(root, NO_JOURNAL_DIR);
+
+  // A username reaches the filesystem as a directory name, which makes it a
+  // security boundary (AGENTS.md). Every caller passes one that has already
+  // been through `isValidUsername`; this is what keeps "every path this module
+  // can produce is under the content root" a property rather than a habit, and
+  // it is cheap enough to run on every message.
+  const resolved = path.resolve(dir);
+  const base = path.resolve(root);
+  if (resolved !== base && !resolved.startsWith(base + path.sep)) {
+    throw new Error(`Refusing to write mail outside the content root: ${dir}`);
+  }
+  return dir;
+}
+
 /**
- * Write one message to `content/<user>/mail/`, and return where it landed.
+ * Write one message to disk, and return where it landed.
  *
  * Shared by the file transport, which is the only thing it does, and by
  * `keepCopy`, which layers it over a transport that really sends. One
@@ -55,15 +95,27 @@ function slug(text: string): string {
  * real thing in some detail nobody has written down is worse than none.
  */
 function writeEml(mail: Mail): string {
-  const dir = mail.username
-    ? path.join(contentRoot(), mail.username, "mail")
-    : path.join(process.cwd(), "mail");
+  const dir = mailDir(mail.username);
   fs.mkdirSync(dir, { recursive: true });
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const file = path.join(dir, `${stamp}-${slug(mail.to)}-${slug(mail.subject)}.eml`);
   fs.writeFileSync(file, buildMessage(mail, senderAddress()));
   return file;
+}
+
+/**
+ * How to name the file in a log line.
+ *
+ * Relative while the content root is inside the working directory, which is
+ * the development case and the only one where a relative path is the shorter
+ * read. On a server the two are far apart — `/srv/fernscout` and
+ * `/var/lib/fernscout` — and `../../var/lib/fernscout/content/…` is a path an
+ * operator has to mentally re-join before they can cd to it.
+ */
+function displayPath(file: string): string {
+  const relative = path.relative(process.cwd(), file);
+  return relative.startsWith("..") || path.isAbsolute(relative) ? file : relative;
 }
 
 class FileTransport implements MailTransport {
@@ -74,7 +126,7 @@ class FileTransport implements MailTransport {
 
     // Printed as well as written: when a test or a script is waiting on a
     // one-time code, reading it out of the terminal beats hunting for a file.
-    console.log(`[mail] ${mail.to} — "${mail.subject}" -> ${path.relative(process.cwd(), file)}`);
+    console.log(`[mail] ${mail.to} — "${mail.subject}" -> ${displayPath(file)}`);
     return { transport: this.name, reference: file };
   }
 }
@@ -184,7 +236,8 @@ export async function sendMail(mail: Mail): Promise<SendResult | null> {
  *
  * **Absent means off, and that default is load-bearing.** Turning this on
  * writes sign-in codes, guest invitations and journal-deletion links to
- * `content/<user>/mail/` in plaintext, where they stay until somebody removes
+ * `content/<user>/mail/` — and signup codes, which belong to no journal yet,
+ * to `content/.mail/` — in plaintext, where they stay until somebody removes
  * them. Anyone who can read the filesystem — a backup, a snapshot, another
  * process on the box — can then sign in as any reader of that journal, or
  * finish a deletion.
@@ -204,7 +257,7 @@ function keepsCopy(): boolean {
 function keepCopyOf(mail: Mail): void {
   try {
     const file = writeEml(mail);
-    console.log(`[mail] copy kept -> ${path.relative(process.cwd(), file)}`);
+    console.log(`[mail] copy kept -> ${displayPath(file)}`);
   } catch (error) {
     console.warn(`[mail] could not keep a copy for ${mail.to}: ${(error as Error).message}`);
   }

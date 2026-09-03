@@ -226,6 +226,7 @@ rates. It fails on a bad connection and passes on a retry.
 | `content/` | everything a person owns: the markdown and the photographs |
 | `.data/` | reader data — reaction counts, push subscriptions, the SQLite file. `DATA_DIR` moves it, and on a server it **must** point outside the repo so a `git pull` cannot delete it |
 | `content/<user>/mail/` | messages, when `transport: "file"`. Delete freely |
+| `content/.mail/` | the same, for mail that belongs to no journal yet — signup codes. Delete freely |
 | `content/.cache/media/` | resized photographs, rebuilt on demand. Delete freely |
 | `.next/` | the build. Delete freely; `npm run build` remakes it |
 | `exports/` | `npm run export` output. Gitignored — it holds private trips |

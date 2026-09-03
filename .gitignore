@@ -45,7 +45,10 @@ next-env.d.ts
 # On the VPS this lives in DATA_DIR outside the repo instead.
 .data/
 
-# Local development artefacts
+# Local development artefacts.
+# `/mail` is where signup mail used to land, from a `process.cwd()` fallback
+# that B111 removed. Still ignored so an old checkout's plaintext codes cannot
+# be committed by somebody who has not cleared the directory out yet.
 /mail
 
 # Agent worktrees and local agent state — but .claude/skills/ is part of the
@@ -60,6 +63,8 @@ next-env.d.ts
 content/*/postcards/
 content/*/photobooks/
 content/*/mail/
+# Mail that belongs to no journal yet — signup codes. See lib/mail/index.ts.
+content/.mail/
 # The files exactly as the camera wrote them. Kept so the photobook has
 # something better than a 2000px derivative to print from, gitignored because
 # a repository is the wrong place for a hundred 40 MB originals.
