@@ -61,3 +61,77 @@ already available within a couple of seconds of the first refusal.
 - The bound is exercised in `test/backup-script.test.ts`, skipped cleanly where
   no `timeout` binary exists — the same shape as the existing `restic`
   and root-user guards.
+
+## What was built
+
+`restic cat config` is now run under `timeout "${BACKUP_PROBE_TIMEOUT:-120}"`,
+and exit **124** is classified as `unreachable` with a message that says what
+happened: `no answer within 120s (BACKUP_PROBE_TIMEOUT), so the probe was
+stopped`.
+
+### The portability call: fall back, do not require
+
+`timeout` is coreutils — present on the VPS, absent on macOS without
+`brew install coreutils`. Neither `timeout` nor `gtimeout` exists on the
+machine this was built on. **The script falls back to running the probe
+unwrapped and says so once in the journal**, rather than being declared
+Linux-only.
+
+The deciding argument is not portability for its own sake. `test/backup-script.test.ts`
+runs on a maintainer's laptop, and a backup script that cannot be exercised on
+the machine where it is edited is worse than an unbounded probe on a machine
+that has no repository to reach. The bound protects an unattended nightly run
+on the VPS; the fallback costs a developer nothing, because a developer
+watching a terminal can press ^C — which is precisely what the unattended run
+cannot do.
+
+The warning is logged, not silent, so a machine that has quietly lost coreutils
+says so rather than appearing bounded.
+
+### restic's own options were not a cleaner bound
+
+The task asked. They are not:
+
+- **`--retry-lock`** bounds waiting for a repository *lock*, which is a wait
+  that happens *after* the repository has been reached. It cannot bound the
+  case where it never is.
+- The backend retry settings bound individual requests, not the call, which is
+  the whole shape of the problem: restic retries with exponential backoff and
+  no overall deadline.
+
+Wrapping the process is the smaller mechanism and it composes with the case
+statement B63 already wrote.
+
+### 124 must not read as absent
+
+Worth stating because it is the failure this probe exists to prevent: a
+timed-out probe classified as `absent` would let `BACKUP_INIT_IF_MISSING=1`
+run `restic init` over a repository that was merely slow to answer. The new
+branch sits with the other `unreachable` cases, and both tests assert the run
+never says `creating a NEW, EMPTY repository`.
+
+### What ran here, and what did not
+
+Both branches have a test, each skipping where its branch cannot exist — the
+same shape as the existing `RESTIC` and `IS_ROOT` guards.
+
+- `an unreachable repository gives up within BACKUP_PROBE_TIMEOUT` —
+  **skipped on this machine**, which has no `timeout`. The bounded path was
+  therefore *not* exercised locally; it will run on the VPS and on any CI with
+  coreutils.
+- `with no timeout binary the probe still runs, and says it is unbounded` —
+  **ran, and passes.** It is deliberately pointed at the reachable fixture
+  repository rather than at `127.0.0.1:1`: driving the unbounded probe at an
+  unreachable host would sit in restic's backoff for minutes, which is the
+  defect itself, inside the suite meant to run quickly.
+
+That asymmetry is the honest state of it. The fallback is proven here; the
+bound is proven where the bound exists.
+
+### Line numbers
+
+The Why cited `scripts/backup.sh` positions that **B114** moved when it added
+`stage_tree()` earlier the same day. Corrected. Nothing else in the Why was
+wrong: the probe is still announced before it is made (B64), and B63's case
+statement does still handle `unreachable` correctly — verified rather than
+assumed, since B63 moved to `completed/` mid-run.

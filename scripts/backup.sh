@@ -260,15 +260,53 @@ fi
 # repository, and an unreachable one makes restic retry with exponential
 # backoff for minutes. Without this line the journal shows the staging lines,
 # then nothing at all, and the only bound is TimeoutStartSec=30min.
+# B115 — and bounded, because "a long pause" had no end to it.
+#
+# restic retries with exponential backoff and no overall deadline: measured
+# against a port with nothing listening, `restic cat config` was still going
+# after three minutes. The only bound was TimeoutStartSec=30min, and the cost
+# is not the wasted half hour — it is that the OnFailure= alert cannot fire
+# until the timeout does, so a repository that went unreachable at 03:20 tells
+# nobody until 03:50. At the moment the probe is made, "cannot reach it" is
+# already available within a couple of seconds of the first refusal.
+#
+# Wrapping the process rather than asking restic to bound itself: restic has no
+# overall deadline option. `--retry-lock` bounds waiting for a *lock*, which is
+# a different wait that happens after the repository has been reached, and the
+# backend retry settings bound individual requests rather than the call.
+#
+# `timeout` is coreutils. It is on the VPS and is NOT on macOS without
+# `brew install coreutils`, so a missing one falls back to running unwrapped
+# and says so, rather than making this script Linux-only — the suite in
+# test/backup-script.test.ts runs on a maintainer's laptop, and a backup script
+# that cannot be exercised where it is edited is worse than an unbounded probe
+# on a machine that has no repository to reach.
+probe_timeout="${BACKUP_PROBE_TIMEOUT:-120}"
+probe_runner=()
+if command -v timeout >/dev/null 2>&1; then
+  probe_runner=(timeout "$probe_timeout")
+elif command -v gtimeout >/dev/null 2>&1; then
+  probe_runner=(gtimeout "$probe_timeout")
+else
+  log "WARNING: neither timeout nor gtimeout is installed, so the repository probe below is unbounded — on Debian this is coreutils, on macOS 'brew install coreutils'"
+fi
+
 log "checking the repository at $RESTIC_REPOSITORY (first call to reach it — a long pause here means it cannot be)"
 probe_error=""
 probe_status=0
-probe_error="$(restic cat config 2>&1 >/dev/null)" || probe_status=$?
+probe_error="$(${probe_runner[@]+"${probe_runner[@]}"} restic cat config 2>&1 >/dev/null)" || probe_status=$?
 
 if (( probe_status == 0 )); then
   repo_state="present"
 elif (( probe_status == 10 )); then
   repo_state="absent"
+elif (( probe_status == 124 )); then
+  # timeout(1) killed it. "Still retrying after $probe_timeout seconds" is the
+  # plainest possible evidence of unreachable, and it must never read as absent
+  # — `restic init` over a repository that is merely slow is the disaster this
+  # whole probe exists to prevent.
+  repo_state="unreachable"
+  probe_error="no answer within ${probe_timeout}s (BACKUP_PROBE_TIMEOUT), so the probe was stopped"
 elif (( probe_status == 12 )); then
   repo_state="unreachable"   # wrong password: something IS there, we cannot open it
 else
