@@ -135,7 +135,6 @@ Do not edit them by hand; run the script.
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B156](in-development/B156-the-mcp-door-still-tells-an.md) | The MCP door still tells an agent that publishing means editing a file, two tools away from publish_day | ISSUE | high | low | `ea97c35d` |
 | [B12](in-development/B12-a-finished-trip-still-offers-a.md) | A finished trip still offers a Today button | ISSUE | medium | low | `a4b53c2f` |
 | [B19](in-development/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium | `0c03d994` |
 | [B44](in-development/B44-a-guest-who-arrives-without-their.md) | A guest who arrives without their link sees a complete-looking journal and no way to say who they are | ISSUE | medium | medium | `0c03d994` |
@@ -152,6 +151,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B01](testing/B01-forwarded-for-trust.md) | X-Forwarded-For is taken on trust, so every rate limit is bypassable | SECURITY | high | low | — |
 | [B138](testing/B138-a-deploy-never-installs-changed-systemd.md) | A deploy never installs changed systemd units, so unit changes stay in git and nobody notices | ISSUE | high | low | — |
+| [B156](testing/B156-the-mcp-door-still-tells-an.md) | The MCP door still tells an agent that publishing means editing a file, two tools away from publish_day | ISSUE | high | low | — |
 | [B18](testing/B18-a-planned-trip-s-map-page.md) | A planned trip's map page draws no map | ISSUE | high | low | — |
 | [B21](testing/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | CHORE | high | medium | — |
 | [B64](testing/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
