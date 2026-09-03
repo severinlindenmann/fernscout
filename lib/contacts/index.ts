@@ -14,6 +14,7 @@ import {
   type PostalAddress,
 } from "./crypto";
 import { countInviteUse } from "./invites";
+import { approveTripPlaces, revokeTripPlaces } from "../tripPeople";
 import { parseLocale } from "./locale";
 
 /**
@@ -149,6 +150,18 @@ export type ContactRequestInput = {
   name: string;
   email: string;
   locale: Locale;
+  /**
+   * What to store as their postal address.
+   *
+   * Three values, and they are three different instructions. An **object** is
+   * "this is their address now". **`null`** is "they were asked and gave
+   * nothing", which erases what was there. **`undefined`** is "they were not
+   * asked", and leaves the stored address and the postcard consent exactly as
+   * they are — the same distinction `updateContactSelf` draws, for the same
+   * reason: a form that never showed somebody their address must not be able
+   * to delete it. B33's redemption is the caller that needs it; it asks for a
+   * name and an address to reach, and for nothing else.
+   */
   address?: Partial<PostalAddress> | null;
   wantsEmailDigest: boolean;
   wantsPostcard: boolean;
@@ -184,8 +197,11 @@ export async function requestContact(
   const now = nowIso();
   const name = input.name.trim().slice(0, 120);
 
+  // "Not asked" — see the field's own note. Nothing below it may run for such
+  // a call, because every line of it decides what to *write* over an address
+  // that was never shown to anybody.
+  const untouched = input.address === undefined;
   const address = normaliseAddress(input.address);
-  const wantsPostcard = input.wantsPostcard && isPostable(address);
 
   const existing = await db
     .selectFrom("contacts")
@@ -216,7 +232,15 @@ export async function requestContact(
   const mergedAddress =
     existingAddress && address.tel.trim() === "" ? { ...address, tel: existingAddress.tel } : address;
 
-  const cipher = hasAnyDetail(mergedAddress)
+  // A postcard needs somewhere to send it, and a caller that did not ask about
+  // the address cannot have changed the answer either way.
+  const wantsPostcard = untouched
+    ? (toBool(existing?.wants_postcard) && input.wantsPostcard)
+    : input.wantsPostcard && isPostable(address);
+
+  const cipher = untouched
+    ? (existing?.postal_cipher ?? null)
+    : hasAnyDetail(mergedAddress)
     ? encryptAddress(mergedAddress, addressAad(owner, id))
     : // Nothing at all was given — not even a phone number — so there is
       // nothing to keep. Unticking the postcard box and clearing every field
@@ -310,6 +334,60 @@ export async function confirmContact(
 
   // A valid code with no contact behind it means somebody signed in through
   // the auth route and then posted here. Nothing to confirm.
+  if (!row) return { ok: false };
+  if (toStatus(row.status) === "blocked") return { ok: false };
+
+  const manageToken = manageTokenFor(owner, row.id);
+  const now = nowIso();
+  const firstConfirmation = row.confirmed_at === null;
+
+  await db
+    .updateTable("contacts")
+    .set({
+      confirmed_at: row.confirmed_at ?? now,
+      manage_token_hash: hashSecret(manageToken),
+      last_seen_at: now,
+      updated_at: now,
+    })
+    .where("id", "=", row.id)
+    .execute();
+
+  const fresh = { ...row, confirmed_at: row.confirmed_at ?? now, last_seen_at: now };
+  return { ok: true, contact: toRecord(owner, fresh), manageToken, firstConfirmation };
+}
+
+/**
+ * Confirming without a code, because a session already is one — B33.
+ *
+ * Somebody redeeming an invite link in a browser they are already signed into
+ * has proved this exact address to this exact journal: the cookie was minted
+ * by `verifyCode`, against a six-digit code mailed to it, and `resolveSession`
+ * refuses it for any other journal. Mailing them a second code to type would
+ * be asking them to prove the same thing twice — which is the friction the
+ * personal link exists to remove, and the people this is for are the ones who
+ * give up at it.
+ *
+ * **The caller must have resolved the session itself**, and must pass the
+ * address off that session and never one out of a request body. Called with a
+ * submitted address this would confirm anybody who typed one in, which is the
+ * whole of the double opt-in.
+ *
+ * Everything else is `confirmContact`'s behaviour, including refusing a
+ * blocked row and leaving an existing `confirmed_at` alone.
+ */
+export async function confirmContactFromSession(
+  owner: string,
+  sessionEmail: string,
+): Promise<ConfirmResult> {
+  const address = normaliseEmail(sessionEmail);
+  const { db } = await getDatabase();
+  const row = await db
+    .selectFrom("contacts")
+    .selectAll()
+    .where("owner_id", "=", owner)
+    .where("email_key", "=", address)
+    .executeTakeFirst();
+
   if (!row) return { ok: false };
   if (toStatus(row.status) === "blocked") return { ok: false };
 
@@ -535,6 +613,19 @@ export async function getContact(owner: string, id: string): Promise<ContactReco
  * Approval is the only thing that creates an `access_grants` row, and it is
  * refused for an address that has not been confirmed — otherwise the owner
  * could be talked into approving an address nobody has proved they can read.
+ *
+ * **One approval, two effects, since B33.** It writes the journal-wide read
+ * grant it always has, *and* it turns any outstanding buddy-link request from
+ * this person into a place on the trip they asked to join. Deliberately one
+ * click rather than two: the owner is deciding about a person, and a second
+ * button they could forget would leave somebody who followed a buddy link
+ * approved as a reader and silently still not on the trip.
+ *
+ * The cost is stated rather than hidden: approving somebody who came through a
+ * **buddy** link therefore also lets them read every `guest` trip in the
+ * journal. That is why a buddy link is documented everywhere as the stronger
+ * of the two and not the one to paste into a group chat. `private` is still
+ * the way to hold a trip back from everyone who is otherwise let in.
  */
 export async function approveContact(
   owner: string,
@@ -580,11 +671,16 @@ export async function approveContact(
       .execute();
   }
 
+  // Every trip they asked to join, opened by the same click. Returns the ids
+  // rather than nothing so a caller can say which trips were opened.
+  await approveTripPlaces(owner, id);
+
   return getContact(owner, id);
 }
 
-/** Take it back. The grants go; the record stays, so they cannot simply
- * re-request their way back in through the form. */
+/** Take it back. The grants go — including every place on a trip, so a buddy
+ * loses the trip as well as the journal; the record stays, so they cannot
+ * simply re-request their way back in through the form. */
 export async function revokeContact(owner: string, id: string): Promise<ContactRecord | null> {
   const { db } = await getDatabase();
   await db
@@ -598,6 +694,7 @@ export async function revokeContact(owner: string, id: string): Promise<ContactR
     .where("owner_id", "=", owner)
     .where("contact_id", "=", id)
     .execute();
+  await revokeTripPlaces(owner, id);
   return getContact(owner, id);
 }
 
@@ -700,6 +797,11 @@ export async function updateContactByOwner(
       .where("owner_id", "=", owner)
       .where("contact_id", "=", id)
       .execute();
+    // And their places on trips, for exactly the same reason: `peopleOf` reads
+    // this row's address, so leaving a granted place behind would put a new,
+    // unproved address on somebody's trip with write access to it — the
+    // escalation this whole branch exists to close, one table along.
+    await revokeTripPlaces(owner, id);
   }
 
   return getContact(owner, id);

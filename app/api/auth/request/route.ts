@@ -95,7 +95,7 @@ export async function POST(request: Request) {
    * already tells its own owner and which the rate limit below makes slow to
    * enumerate.
    */
-  if (kind === "agent" && !mayRequestAgentToken(user, tripId, email)) {
+  if (kind === "agent" && !(await mayRequestAgentToken(user, tripId, email))) {
     console.warn(`[auth] agent code refused for ${username}: not the owner or on that trip`);
     return Response.json(
       {
@@ -222,14 +222,17 @@ function requestedAt(): string {
  * request — the code is one address plus one journal, so the trip has to be
  * stated before the token exists rather than chosen afterwards.
  */
-function mayRequestAgentToken(
+async function mayRequestAgentToken(
   user: { username: string; owner: { email?: string } },
   tripId: string,
   email: string,
-): boolean {
+): Promise<boolean> {
   const address = email.trim().toLowerCase();
   if (user.owner.email === address) return true;
   if (!tripId) return false;
   const trip = getTrip(tripRef(user.username, tripId));
+  // `isPersonOn` reads the trip's `people:` block **and** the buddy places the
+  // owner has approved (B33), so somebody who joined by link asks for a token
+  // through this same door rather than needing to be typed into a file first.
   return trip ? isPersonOn(trip, address) : false;
 }

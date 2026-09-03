@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { isOpenToLink, maySeeCosts } from "./access";
 import { GUEST_COOKIE, resolveSession } from "./auth";
 import { isJournalGuest, journalReader } from "./contacts/session";
-import { isPersonOn } from "./tripPeople";
+import { isPersonOn, isPersonOnWith, redeemedTripsFor } from "./tripPeople";
 import type { Trip } from "./types";
 
 /**
@@ -62,8 +62,11 @@ export async function mayReadTrip(trip: Trip): Promise<boolean> {
  * Whether the signed-in reader took this trip.
  *
  * A guest session carries the address it was issued to, which is the same
- * address `people:` lists. That is the whole mechanism — no separate
- * membership store, because the trip's own frontmatter is the record.
+ * address `people:` lists. The frontmatter was once the whole mechanism; since
+ * B33 it is the first of two sources, the other being a buddy link the owner
+ * issued and then approved. `isPersonOn` merges them, and this asks it exactly
+ * one question so that a redeemed place and a typed-in name are the same
+ * answer here.
  */
 export async function isTravellerOn(trip: Trip): Promise<boolean> {
   const jar = await cookies();
@@ -136,13 +139,16 @@ export async function listableTrips(trips: Trip[]): Promise<Trip[]> {
   // in to — the switcher renders on every page, including for strangers.
   const owner = session?.owner;
   const guest = owner !== undefined && (await isJournalGuest(owner));
+  // The trips this reader holds a redeemed place on, in one query rather than
+  // one per trip — the switcher renders on every page.
+  const redeemed = owner === undefined ? new Set<string>() : await redeemedTripsFor(owner, session?.email);
 
   return trips.filter((trip) => {
     // `listed: false` is the old `unlisted` — reachable by link, never
     // advertised, not even to somebody who could open it.
     if (trip.visibility === "public") return trip.listed;
     // A trip you were on is listed for you: it is yours to find again.
-    if (session?.owner === trip.username && isPersonOn(trip, session.email)) return true;
+    if (session?.owner === trip.username && isPersonOnWith(trip, session.email, redeemed)) return true;
     // `private` is nobody else's — not even a guest of the journal's, which
     // `mayReadTrip` refuses before it asks anything else. Listing it here
     // would advertise a trip the switcher cannot open.

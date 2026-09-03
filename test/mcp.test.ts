@@ -336,14 +336,17 @@ describe("the protocol", () => {
     expect(tools.map((t) => t.name).sort()).toEqual([
       "add_media",
       "create_day",
+      "create_invite",
       "create_trip",
       "delete_day",
       "delete_journal",
       "delete_trip",
       "get_day",
       "list_drafts",
+      "list_invites",
       "list_trips",
       "publish_day",
+      "revoke_invite",
       "search_entries",
     ]);
     // Not `create_journal`. This token belongs to a journal, and a journal's

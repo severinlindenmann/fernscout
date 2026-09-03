@@ -17,6 +17,14 @@ import { storeUploads, type KeptOriginal, type UploadCandidate } from "../api/me
 import { fetchImage } from "../api/fetchMedia";
 import { getUser } from "../users";
 import { confirmationMatches, confirmationRequired } from "../agentConfirm";
+import { isEnabled } from "../capabilities";
+import {
+  createInvite,
+  inviteExpiry,
+  inviteLinkUrl,
+  listInvites,
+  revokeInvite,
+} from "../contacts/invites";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "../deletions";
 import { fingerprintOf, idempotencyKey, recall, remember } from "./idempotency";
 
@@ -370,6 +378,154 @@ function keptSummary(kept: KeptOriginal[]): string {
         `those, not from the resized copies the site serves.`
     : "The originals are kept untouched, and the photobook prints from those.";
 }
+
+/**
+ * The links that let other people in — B33.
+ *
+ * **Owner only, and the refusal is the same shape as `publish_day`'s.** A
+ * `write:trip:<id>` token belongs to somebody who came on one trip: they may
+ * write days into it, and inviting other people to it is not the same
+ * authority. Approving a buddy also lets that person read the journal's guest
+ * trips, which is not a companion's to offer.
+ */
+function ownerOnly(session: Session, what: string): ToolOutcome | null {
+  if (session.owner === SIGNUP_OWNER) {
+    return { ok: false, error: "This token belongs to no journal yet." };
+  }
+  if (session.scope !== SESSION_SCOPE.agent) {
+    return {
+      ok: false,
+      error:
+        `This token is scoped to one trip, so it can write days into that trip but cannot ${what}. ` +
+        "Only the journal's owner can invite people.",
+    };
+  }
+  if (!isEnabled("contacts", session.owner)) {
+    return {
+      ok: false,
+      error:
+        "This journal does not have contacts switched on, so it has no queue for a " +
+        "redemption to land in and no way to approve anybody.",
+    };
+  }
+  return null;
+}
+
+const createInviteTool: Handler = async (session, args) => {
+  const refused = ownerOnly(session, "hand out invitations");
+  if (refused) return refused;
+
+  const kind = optionalString(args, "kind");
+  if (kind !== "guest" && kind !== "buddy") {
+    return {
+      ok: false,
+      error:
+        'kind must be "guest" (let somebody read the journal) or "buddy" (put somebody on ' +
+        "one trip, which lets them write to it). Ask the person which they mean rather " +
+        "than guessing: a buddy link grants write access and is not the one for a group chat.",
+    };
+  }
+
+  let tripId: string | null = null;
+  if (kind === "buddy") {
+    const trip = resolveTrip(session, args);
+    if (!trip.ok) return trip;
+    tripId = trip.ref.split("/")[1];
+  } else if (optionalString(args, "trip")) {
+    return {
+      ok: false,
+      error:
+        "A guest link is journal-wide: being let in opens every trip marked " +
+        '`visibility: guest` and never one marked `private`. There is no per-trip guest ' +
+        "link. To hold one trip back from the people you have let in, mark it `private`.",
+    };
+  }
+
+  const days = typeof args.days === "number" ? args.days : undefined;
+  const created = await createInvite(session.owner, {
+    kind,
+    tripId,
+    name: optionalString(args, "name"),
+    locale: optionalString(args, "locale"),
+    expiresAt: inviteExpiry(days),
+  });
+  const url = inviteLinkUrl(serverSite().url, session.owner, kind, created.token);
+
+  return {
+    ok: true,
+    text:
+      `${url}\n\n` +
+      (kind === "buddy"
+        ? `This puts somebody on "${tripId}". Following it does NOT let them in — they prove ` +
+          "their address and land in the owner's queue, and the owner approves by hand. Once " +
+          "approved they can write to that trip and read the journal's guest trips, so send " +
+          "it only to the people who were actually there, never to a group chat."
+        : "Safe to forward. Following it does NOT let anybody in — each person proves their " +
+          "own address and the owner approves them by hand. It opens every trip marked " +
+          "`guest`, and never a `private` one.") +
+      `\n\nGive the person the link and say which kind it is. It expires ${created.expiresAt ? `on ${created.expiresAt.slice(0, 10)}` : "never"}, and can be revoked with revoke_invite (id ${created.id}).`,
+    data: {
+      id: created.id,
+      kind,
+      scope: tripId ? tripRef(session.owner, tripId) : session.owner,
+      trip: tripId,
+      url,
+      expiresAt: created.expiresAt,
+    },
+  };
+};
+
+const listInvitesTool: Handler = async (session) => {
+  const refused = ownerOnly(session, "list invitations");
+  if (refused) return refused;
+
+  const invites = await listInvites(session.owner);
+  const rows = invites.map((invite) => ({
+    id: invite.id,
+    kind: invite.kind,
+    scope: invite.tripId ? tripRef(session.owner, invite.tripId) : session.owner,
+    name: invite.name,
+    createdAt: invite.createdAt,
+    expiresAt: invite.expiresAt,
+    revokedAt: invite.revokedAt,
+    uses: invite.uses,
+  }));
+  return {
+    ok: true,
+    text:
+      rows.length === 0
+        ? "No invite links have been issued."
+        : rows
+            .map(
+              (row) =>
+                `${row.id} — ${row.kind} to ${row.scope}, used ${row.uses}×` +
+                (row.revokedAt ? ", revoked" : row.expiresAt ? `, until ${row.expiresAt.slice(0, 10)}` : ""),
+            )
+            .join("\n") +
+          "\n\nThe links themselves are not here and cannot be: only their hashes were " +
+          "stored, so one that was lost has to be reissued rather than looked up.",
+    data: { invites: rows },
+  };
+};
+
+const revokeInviteTool: Handler = async (session, args) => {
+  const refused = ownerOnly(session, "revoke invitations");
+  if (refused) return refused;
+
+  const id = optionalString(args, "id");
+  if (!id) return { ok: false, error: "id is required — as list_invites reports it" };
+  const invite = (await listInvites(session.owner)).find((row) => row.id === id);
+  if (!invite) return { ok: false, error: `unknown_invite: no link "${id}" in ${session.owner}` };
+
+  await revokeInvite(session.owner, id);
+  return {
+    ok: true,
+    text:
+      "The link stops working. Everybody already approved stays exactly where they are — " +
+      "revoking a link takes nothing back from anybody who is already in.",
+    data: { id, revoked: true },
+  };
+};
 
 /**
  * Put a draft on the site — the other half of the draft rule.
@@ -993,6 +1149,96 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
       openWorldHint: false,
     },
     handler: addMedia,
+  },
+  {
+    name: "create_invite",
+    title: "Make a link that lets somebody in",
+    description:
+      "Make a link the owner can send to a person. TWO KINDS, and they are not " +
+      "interchangeable: `guest` leads to reading the journal (every trip marked `guest`, " +
+      "never a `private` one) and is safe to forward; `buddy` needs a `trip` and leads to " +
+      "WRITE ACCESS to that trip, plus the journal's guest trips — it is for the people who " +
+      "were actually on it and is NOT the one for a group chat. Ask which the person means " +
+      "rather than guessing. NEITHER LINK GRANTS ANYTHING: whoever opens it proves their " +
+      "own address and lands in the owner's queue, and the owner lets each person in by " +
+      "hand — so report a link as an invitation to ask, never as \"they now have access\". " +
+      "The link is returned once and stored only hashed; a lost one is reissued, not looked " +
+      "up. Owner only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        kind: {
+          type: "string",
+          enum: ["guest", "buddy"],
+          description: "`buddy` grants write access to one trip once approved.",
+        },
+        trip: {
+          type: "string",
+          description:
+            "Required for `buddy`, refused for `guest` — a guest is a guest of the journal " +
+            "and never of one trip.",
+        },
+        name: {
+          type: "string",
+          description: "Whom it is for. Greets them on the landing page; never identity.",
+        },
+        locale: { type: "string", description: "The language the landing page opens in." },
+        days: {
+          type: "number",
+          description: "How long it stays live. Thirty days if you do not say.",
+        },
+      },
+      required: ["kind"],
+      additionalProperties: false,
+    },
+    annotations: {
+      readOnlyHint: false,
+      // It creates a way of asking, and takes nothing away.
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    handler: createInviteTool,
+  },
+  {
+    name: "list_invites",
+    title: "Every invite link this journal has issued",
+    description:
+      "What has been handed out, with its kind, what it opens, how often it has been used " +
+      "and whether it is still live. Never the links themselves: only their hashes were " +
+      "stored. Owner only.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    handler: listInvitesTool,
+  },
+  {
+    name: "revoke_invite",
+    title: "Stop one invite link working",
+    description:
+      "Kill a link. Everybody already approved STAYS IN — this takes nothing back from " +
+      "anybody, which is the whole reason links replaced a shared password that could only " +
+      "be changed for everyone at once. Owner only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "The link's id, as list_invites reports it." },
+      },
+      required: ["id"],
+      additionalProperties: false,
+    },
+    annotations: {
+      readOnlyHint: false,
+      // It removes a way of asking, not anybody's access.
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    handler: revokeInviteTool,
   },
   {
     name: "publish_day",

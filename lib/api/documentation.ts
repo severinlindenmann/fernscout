@@ -459,8 +459,10 @@ the trip to both calls:
 
 The token you get back then writes to **that trip only** — every day of it, not
 just theirs — and every other trip in the journal answers as if it did not
-exist. Who is on a trip is the \`people:\` block in its \`trip.md\`; a person
-adds themselves there, you cannot.
+exist. Who is on a trip is the \`people:\` block in its \`trip.md\`, plus anyone
+the owner has let on with a **buddy link** (below). You cannot add either;
+a person types the name into the file, or the owner issues the link and
+approves whoever follows it.
 
 \`\`\`http
 POST ${site.url}/api/auth/verify
@@ -496,6 +498,57 @@ URL carries its trip. The search index identifies entries as
 within a journal. The short form works too and falls back to the journal's
 other trips when the current one has no such day — but if you have the trip id,
 use it. A miss answers plain-text \`404\`, never an HTML error page.
+
+## Letting other people in
+
+A journal has no public sign-up form, on purpose. Two links get somebody in,
+and **only the journal's owner can issue either** — not a token scoped to one
+trip.
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/invites
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"kind": "guest"}
+\`\`\`
+
+\`\`\`json
+{"ok": true, "invite": {
+  "id": "…", "kind": "guest", "scope": "${example}", "trip": null,
+  "expiresAt": "…",
+  "url": "${site.url}/${example}/invite/guest/fs_inv_…"
+}}
+\`\`\`
+
+| | \`guest\` | \`buddy\` |
+| --- | --- | --- |
+| URL | \`/${example}/invite/guest/<token>\` | \`/${example}/invite/buddy/<token>\` |
+| Leads to | reading the journal | **writing to one trip** |
+| Scope | the whole journal | one trip — \`{"kind": "buddy", "trip": "<trip-id>"}\` |
+| Opens | every trip marked \`guest\`, never a \`private\` one | that trip, and the journal's \`guest\` trips |
+
+**Say out loud which one you are handing over.** A guest link is for the
+family: safe to forward, safe in a group chat, and everyone who opens it asks
+separately. A **buddy link grants write access** once approved — it is for the
+people who were actually on the bus, and it is not the one to paste into a
+group chat. If the person has not said which they meant, ask.
+
+**Neither link grants anything by itself.** Whoever opens one proves their own
+address and lands in the owner's queue at \`${site.url}/${example}/contacts\`;
+the owner approves each person by hand. So report a link as *an invitation to
+ask*, never as "your sister now has access".
+
+The token is in the response **once**. Only its hash is stored, so a link that
+is lost is reissued, never looked up — do not save it anywhere the person did
+not ask for, and do not read it back to them as a credential.
+
+\`GET /api/v1/${example}/invites\` lists what has been issued, without the
+tokens. \`DELETE /api/v1/${example}/invites/<id>\` revokes one: the link stops
+working and **everybody already approved stays in**. That is the whole reason
+these exist rather than a shared password, which could only be changed for
+everyone at once. Every link is dated; ask for a different window with
+\`{"days": 7}\`.
 
 ## Writing
 

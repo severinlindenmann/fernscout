@@ -5,7 +5,13 @@ import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { getTrip, tripRef, MAX_TRIP_PEOPLE } from "@/lib/trips";
-import { isPersonOn, peopleOf, scopeAllows, tripWriteScope } from "@/lib/tripPeople";
+import {
+  isPersonOn,
+  peopleNamedIn,
+  peopleOf,
+  scopeAllows,
+  tripWriteScope,
+} from "@/lib/tripPeople";
 
 /**
  * Who took the trip, and therefore who may write it up.
@@ -75,18 +81,30 @@ afterEach(() => {
 const trip = (id: string) => getTrip(tripRef("alex", id))!;
 
 describe("the people block", () => {
-  test("a solo trip names nobody, and the owner is still on it", () => {
+  /**
+   * No `DATABASE_URL` in this file, deliberately. `peopleOf` reads the
+   * frontmatter *and* the redeemed places (B33), and the property that matters
+   * here is that the first half stands entirely on its own: with no database
+   * at all — a supported way to run this site — a hand-written `people:` block
+   * behaves exactly as it did before any of that existed.
+   */
+  test("a solo trip names nobody, and the owner is still on it", async () => {
     writeTrip("solo-2026", []);
     expect(trip("solo-2026").people).toEqual([]);
-    expect(peopleOf(trip("solo-2026"))).toEqual(["alex@example.com"]);
-    expect(isPersonOn(trip("solo-2026"), "alex@example.com")).toBe(true);
-    expect(isPersonOn(trip("solo-2026"), "robin@example.com")).toBe(false);
+    expect(await peopleOf(trip("solo-2026"))).toEqual(["alex@example.com"]);
+    expect(await isPersonOn(trip("solo-2026"), "alex@example.com")).toBe(true);
+    expect(await isPersonOn(trip("solo-2026"), "robin@example.com")).toBe(false);
   });
 
-  test("addresses are lower-cased, because that is how they are compared", () => {
+  test("the file's own list is the whole answer when there is no database", () => {
+    writeTrip("solo-2026", []);
+    expect(peopleNamedIn(trip("solo-2026"))).toEqual(["alex@example.com"]);
+  });
+
+  test("addresses are lower-cased, because that is how they are compared", async () => {
     writeTrip("shared-2026", ['  - { name: "Robin", email: "Robin@Example.COM" }']);
     expect(trip("shared-2026").people).toEqual([{ name: "Robin", email: "robin@example.com" }]);
-    expect(isPersonOn(trip("shared-2026"), "  ROBIN@example.com ")).toBe(true);
+    expect(await isPersonOn(trip("shared-2026"), "  ROBIN@example.com ")).toBe(true);
   });
 
   test("ten is allowed", () => {
@@ -187,7 +205,7 @@ describe("what a scope reaches", () => {
  * decision the route makes rather than the route itself.
  */
 describe("a narrow request", () => {
-  test("narrows the scope for the owner too, not only for a companion", () => {
+  test("narrows the scope for the owner too, not only for a companion", async () => {
     // Both trips written before either is read: lib/trips.ts memoises per
     // content root, so a trip created after the first read is not seen.
     writeTrip("vietnam-2026", ['  - { name: "Robin", email: "robin@e.com" }']);
@@ -196,7 +214,7 @@ describe("a narrow request", () => {
 
     // Both addresses may write here; either may ask for this trip alone.
     for (const email of ["alex@example.com", "robin@e.com"]) {
-      expect(isPersonOn(t, email), email).toBe(true);
+      expect(await isPersonOn(t, email), email).toBe(true);
     }
     const scope = tripWriteScope(t.id);
     expect(scopeAllows(scope, t)).toBe(true);

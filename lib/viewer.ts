@@ -1,6 +1,6 @@
 import "server-only";
 import { isOwner, journalReader } from "./contacts/session";
-import { isPersonOn } from "./tripPeople";
+import { isPersonOnWith, redeemedTripsFor } from "./tripPeople";
 import { getTrips } from "./trips";
 import { getUser } from "./users";
 import type { Trip } from "./types";
@@ -70,6 +70,10 @@ export async function resolveViewer(username: string): Promise<Viewer> {
 
   const trips = getTrips(username);
   const current = trips.find((t) => t.status === "current")?.id;
+  // Every trip this reader was let onto by a buddy link, in one query. Asking
+  // per trip inside the loop below would be a round trip per row of a list
+  // that renders on an ordinary page view.
+  const redeemed = await redeemedTripsFor(username, email);
 
   const visible: ViewerTrip[] = [];
   for (const trip of trips) {
@@ -84,9 +88,13 @@ export async function resolveViewer(username: string): Promise<Viewer> {
     // access — and a reason that would survive that edit is the one to print.
     // B80; before it these two shared an arm and every trip in the owner's own
     // journal, travelled or not, read "you were on this trip".
+    //
+    // The traveller arm asks `isPersonOnWith`, so somebody who arrived by a
+    // buddy link (B33) reads the same as somebody typed into `people:` — the
+    // redeemed rows come from the one query above, not one per trip.
     if (owner) {
       visible.push(describe(trip, "owner", current));
-    } else if (isPersonOn(trip, email)) {
+    } else if (isPersonOnWith(trip, email, redeemed)) {
       visible.push(describe(trip, "traveller", current));
     } else if (trip.visibility === "public" && trip.listed) {
       visible.push(describe(trip, "public", current));

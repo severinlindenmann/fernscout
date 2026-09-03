@@ -122,6 +122,13 @@ mechanism; there is deliberately no narrower one.
 listed may write to the whole trip, and may hold an agent token scoped to it
 and to nothing else in the journal. It is also who the trip is credited to.
 
+Since B33 the file is no longer the only way onto a trip: a **buddy link** the
+owner issues, and then approves somebody through, adds a row that `peopleOf()`
+merges with this block. Write access is therefore the file *plus* those rows;
+the byline is still the file alone, because credit is the owner's editorial
+statement about whose trip it was and is rendered from disk. Hand-written
+`people:` is unchanged and is never contradicted by a row.
+
 A **journal** has a `visibility` too, in its own `config.json`, and it is a
 different question: `public` or `private`, meaning only whether this instance
 advertises the journal — on `/documentation.txt`, on the landing page, in
@@ -184,6 +191,9 @@ every task.
 | `GET /<user>/day/<slug>.md` | a day's markdown source |
 | `POST /api/auth/request` + `/verify` | a six-digit code → a 7-day agent token |
 | `/api/v1/<user>/…` | REST: trips, days, drafts |
+| `/api/v1/<user>/invites` | issue, list and revoke the two invite links — see below |
+| `/<user>/invite/guest/<token>` | where a guest link lands |
+| `/<user>/invite/buddy/<token>` | where a buddy link lands |
 | `DELETE /api/v1/<user>` and `…/trips/<trip>` | ask to delete — see below |
 | `POST /api/mcp` | MCP over Streamable HTTP — see `docs/providers/mcp.md` |
 
@@ -191,6 +201,17 @@ Agent tokens arrive in `Authorization: Bearer` and nowhere else; guest sessions
 arrive in a cookie and nowhere else. The two are not interchangeable, and
 `resolveSession()` enforces it. That is decision 24: reading the site on your
 phone must not put a credential that can rewrite it in your pocket.
+
+**Two links let other people in, and only one of them is safe to forward.**
+`POST /api/v1/<user>/invites` (owner only; `create_invite` over MCP) makes
+either a **guest** link — leads to reading the journal's `guest` trips — or a
+**buddy** link, which names a trip and leads to **write access** to it. Say
+which you are handing over: a guest link belongs in a family group chat and a
+buddy link does not. Neither grants anything on its own. Whoever opens one
+proves their own address and lands in the owner's approval queue, and
+`approveContact` is still the only thing in the codebase that creates a grant —
+so report a link as an invitation to *ask*, never as "they now have access".
+The token is in the response once and stored only hashed. `lib/contacts/invites.ts`.
 
 **Deleting is the one thing an agent cannot finish.** `DELETE` on a journal or
 a trip removes nothing and answers `202`: the server mails the address in that
