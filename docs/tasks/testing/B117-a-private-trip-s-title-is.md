@@ -7,8 +7,7 @@ complexity: low
 area: privacy, trips, auth
 found: "2026-09-03"
 started: "2026-09-03T19:24:37Z"
-session: 0c03d994-da58-4a02-ab85-107825393b1a
-claimed: "2026-09-03T19:24:37Z"
+merged: "2026-09-03T19:39:12Z"
 ---
 
 # B117 — A private trip's title is shown to anyone who guesses its id
