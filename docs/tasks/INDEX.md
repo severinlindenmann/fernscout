@@ -116,11 +116,12 @@ Do not edit them by hand; run the script.
 | [B60](open/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low |
 | [B85](open/B85-an-upcoming-trip-with-no-plan.md) | An upcoming trip with no plan serialises a whole-world basemap into a page that draws no map | ISSUE | medium | low |
 | [B98](open/B98-revoking-somebody-s-access-leaves-every.md) | Revoking somebody's access leaves every agent token already issued to them working until it expires | SECURITY | medium | medium |
-| [B99](open/B99-two-agents-working-in-parallel-worktrees.md) | Two agents working in parallel worktrees are handed the same task id | CHORE | medium | low |
 
 ## in-development
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B99](in-development/B99-two-agents-working-in-parallel-worktrees.md) | Two agents working in parallel worktrees are handed the same task id | CHORE | medium | low |
 
 ## testing
 
