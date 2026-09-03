@@ -162,6 +162,99 @@ npm run build
 All four, every time. The dev server must boot with a capability both on and
 off.
 
+## Where the work happens
+
+**The main checkout stays on `main`, and stays clean.** Do not branch it, do
+not switch it, do not leave changes sitting in it. Everything else follows
+from that:
+
+| In the main checkout | Anywhere else |
+| --- | --- |
+| Task files — capture, lane moves, editing a task's own markdown. **Commit them freely, as often as you like; no ceremony, no branch.** | Every other change. Code, tests, docs, skills, config, content. |
+
+Anything that is not a task file is built in a **worktree on its own branch**
+and merged back:
+
+```bash
+git worktree add .claude/worktrees/<branch> -b <branch>
+# … build it there, verify it there …
+git merge --no-ff <branch>          # from the main checkout
+git worktree remove .claude/worktrees/<branch>
+git branch -d <branch>
+```
+
+This repository is set up to run several agents at once, which is the whole
+reason for the rule. Two of them editing one checkout is not a merge conflict —
+it is one of them silently building on the other's half-finished work, or a
+`git merge` refusing to start because somebody else's uncommitted change is in
+the way. Both have happened here.
+
+Task files are the exception because they are how parallel sessions *see* each
+other: a lane move that only exists on your branch is invisible until you
+merge, by which time it has stopped being useful. That is also why they are
+committed straight to `main` rather than held back — an uncommitted task file
+in the main checkout blocks the next agent's merge.
+
+Two things that follow, and are easy to get wrong:
+
+- **A worktree has no `node_modules`.** `npx tsc`, `eslint` and `vitest`
+  resolve upward and appear to work; `npm run build` does not. Run `npm ci` in
+  the worktree before trusting a green run.
+- **`.claude/worktrees/` already holds other sessions' work.** Never work in
+  one you did not create, and never assume `main` is ahead of them — an id or
+  a change captured in a sibling worktree has not reached `main` yet.
+
+## Tasks
+
+Everything to build and everything found broken is a markdown file in
+`docs/tasks/`. **The folder it sits in is its status** — there is no `status:`
+field, because a status kept in two places disagrees with itself within a
+month.
+
+```
+backlog/ ──person──▶ open/ ──take──▶ in-development/ ──merge──▶ testing/ ──person──▶ completed/
+```
+
+```bash
+npm run tasks                       # what is in each lane
+npm run tasks -- new --type ISSUE --priority high --complexity low \
+    --area "…" --title "…"          # always lands in backlog/
+npm run tasks -- move B01 testing
+```
+
+**Anything you notice goes into `backlog/`, always.** A second problem found
+while building is a new capture referenced by id, never scope quietly absorbed
+into the task you are on.
+
+**Two lanes are a person's, and an agent moves a task into them only when told
+to, in that turn, for that id.** `open/` is the way in: it is the reviewed
+queue that makes "find yourself something useful" a safe instruction, so
+promoting your own capture and then starting it skips the only review step in
+the loop. `completed/` is the way out: a task is done when a person has seen it
+working, not when its tests pass. **An agent stops at `testing/`** and says
+what to look at.
+
+If `open/` is empty and you were asked to pick something up: say so, show what
+is in `backlog/`, and stop.
+
+The id is the only way tasks refer to each other, so it means one thing
+forever: task files are moved, never deleted, and `nextId()` allocates against
+every checkout rather than the one you are standing in (B99). Reference other
+tasks **by id in prose** — `see B01` — never by relative path, because files
+move between lanes and a path link breaks when one does. Never hand-edit the
+tables in `INDEX.md`; they are generated between the markers by `npm run tasks`.
+
+A task's **title is the problem, not the fix** — "X-Forwarded-For is taken on
+trust" survives being wrong about the remedy, "Add header_up to the Caddyfile"
+decides the solution before anyone has looked. Its body is **Why** (with
+`file:line`, and what it costs), **Work** (including what you are *not* doing)
+and **Acceptance** (a command, a behaviour, a test that fails now). Update the
+file as you learn: a Work section describing something nobody built is worse
+than none.
+
+`manage-tasks` and `work-on-a-task` in `.claude/skills/` are the two skills
+that carry all of this in full.
+
 ## Skills
 
 `.claude/skills/` holds the tasks the author actually performs. Each is a
@@ -176,6 +269,8 @@ off.
 | `send-postcards` | A photo + a message → print-ready postcards |
 | `apply-the-brand` | The mark, the palette, and what not to do to them |
 | `deploy` | Ship it to the VPS, and know it is healthy |
+| `manage-tasks` | Capture something, and move it between lanes |
+| `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
 
 Prose about the software — how it is built, how to run it, how to deploy it —
 is in `docs/`, indexed from the README. This file is only what applies to
