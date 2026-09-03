@@ -1,5 +1,5 @@
 ---
-id: B78
+id: B114
 title: One unreadable file under DATA_DIR aborts the whole backup
 type: ISSUE
 priority: medium
@@ -8,7 +8,11 @@ area: backup, ops
 found: "2026-09-01"
 ---
 
-# B78 — One unreadable file under DATA_DIR aborts the whole backup
+# B114 — One unreadable file under DATA_DIR aborts the whole backup
+
+> Renumbered from **B78** on 2026-09-03. That id was already carried by the
+> transport-styling task now in `testing/`; two sessions in parallel worktrees
+> were handed it on the same afternoon. B99 is the fix.
 
 ## Why
 

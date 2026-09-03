@@ -1,5 +1,5 @@
 ---
-id: B82
+id: B115
 title: An unreachable restic repository burns the unit's whole 30-minute timeout
 type: ISSUE
 priority: low
@@ -8,7 +8,11 @@ area: backup, ops
 found: "2026-09-01"
 ---
 
-# B82 — An unreachable restic repository burns the unit's whole 30-minute timeout
+# B115 — An unreachable restic repository burns the unit's whole 30-minute timeout
+
+> Renumbered from **B82** on 2026-09-03. That id was already carried by the
+> expired-read-grant task; two sessions in parallel worktrees were handed it on
+> the same afternoon. B99 is the fix.
 
 ## Why
 

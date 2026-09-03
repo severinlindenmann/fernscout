@@ -81,6 +81,70 @@ colliding, or reordering the lanes. Also not doing anything that makes ids
 reusable — `manage-tasks` is explicit that task files are moved and never
 deleted precisely so a number means one thing forever.
 
+## What was built
+
+The third option, with the second folded into it, and the first turned out to
+be the weakest of the three once the code was open.
+
+`taskRoots()` (`scripts/tasks.mjs`) collects every `docs/tasks` an id could
+already be claimed in: this checkout, plus every path `git worktree list
+--porcelain` reports, plus every directory sitting under each of those
+checkouts' `.claude/worktrees/` — which catches a worktree git no longer knows
+about, or one copied there by hand. `claimedIds()` reads the ids off the
+**filenames** across that set, because parsing the frontmatter of a thousand
+files in five checkouts on every `new` is not a cost worth paying; the local
+checkout is still read properly through `allItems()`, so its own frontmatter
+stays authoritative for its own ids. `nextId()` is then `max + 1` over the lot.
+
+Aiming at the main checkout alone (the first option) is not enough, and the
+reason is the one this task's own Why already records: B79's agent avoided a
+fourth collision by grepping *every sibling worktree* before choosing B97, not
+by consulting main. A capture that has been written in another worktree and not
+yet merged is invisible to main, so main is a floor on what is taken and never
+a ceiling. Reading every checkout costs one `git worktree list` and a handful
+of `readdir`s, which is cheap enough that there is no reason to accept the
+narrower answer.
+
+(At the time of writing, main happens to be *ahead* of both live worktrees —
+B113 against B110. That is luck, not a property: it is the state that holds
+right up until the next agent captures something.)
+
+`create()` also refuses to overwrite an existing file rather than assuming
+`nextId()` was right, which is the only part of this that still covers two
+`new` calls inside the same second.
+
+`warnDuplicates()` runs at the end of `list()` and `writeIndex()` — so `npm run
+tasks` and every `new`/`move` say it — and prints each id claimed twice with
+both paths. It reads this checkout only: a duplicate is fixed where it lives,
+and the two worktrees a collision spans are usually not both yours.
+
+**The two collisions on disk were cleaned up by renumbering the less-referenced
+file of each pair**, which is what the paragraph above asks for:
+
+- **B78** — `one-unreadable-file-under-data-dir` → **B114**. The other B78
+  (transport styling) is merged, named in commit `6a069f6`, referenced from
+  B88 and from a comment in `test/transport-style.test.ts`; this one had a
+  single reference, in B64.
+- **B82** — `an-unreachable-restic-repository-burns-the` → **B115**. The other
+  B82 (expired read grant still notifies) is referenced from B68 and three
+  times from B106; this one had a single reference, in B63.
+
+Both renumbered files carry a note saying where they came from, so an old
+reference in a commit message still leads somewhere. B64 and B63 were
+repointed in the same commit.
+
+`test/tasks-script.test.ts` is new and covers all of it: the on-disk sweep, the
+git-worktree case (a temp repository with a linked worktree whose `docs/tasks`
+is deliberately stale), and the duplicate warning. Three of its five tests fail
+against the previous script and pass against this one, which is the only
+version of that claim worth making.
+
+**Noticed, not absorbed:** the verification order in `AGENTS.md` runs
+`npx tsc --noEmit` before `npm run build`, and on a fresh checkout tsc then
+fails on `RouteContext` and `LayoutProps` — types Next.js only writes during a
+build. It is already captured as **B100**; hit here for real, on a worktree
+with no `node_modules` yet.
+
 ## Acceptance
 
 - `ls docs/tasks/*/ | grep -oE "^B[0-9]+" | sort | uniq -d` prints nothing.
