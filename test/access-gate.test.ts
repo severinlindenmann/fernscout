@@ -773,7 +773,8 @@ describe("a signed-in stranger", () => {
    * And the page itself. `mayReadTrip` being false is what makes every gated
    * page return `null` and answer `lockedMetadata` — see `test/trip-gate.ts`,
    * which asserts each of them actually calls it. Here: the metadata a refused
-   * trip is allowed to emit carries nothing of the trip but its title.
+   * trip is allowed to emit carries nothing of the trip at all — not even its
+   * title, which B117 took out of the browser tab.
    */
   test("gets locked metadata, with no prose in it", async () => {
     as("stranger");
@@ -781,10 +782,12 @@ describe("a signed-in stranger", () => {
     const { mayReadTrip, lockedMetadata } = await import("@/lib/tripGate");
     expect(await mayReadTrip(trip)).toBe(false);
 
-    const meta = lockedMetadata(trip);
+    const meta = lockedMetadata();
     expect(meta.description).toBeUndefined();
     expect(meta.openGraph).toBeUndefined();
     expect(meta.robots).toEqual({ index: false, follow: false });
+    // Not even the trip's name, since B117 — see lib/tripGate.ts.
+    expect(JSON.stringify(meta)).not.toContain(trip.title);
   });
 
   /**
@@ -843,10 +846,11 @@ describe("a journal guest is refused a private trip", () => {
     expect(viewer.trips.map((t) => t.id)).not.toContain("secret-2026");
 
     // And the metadata a locked trip is allowed to emit carries no prose.
-    const meta = lockedMetadata(secret);
+    const meta = lockedMetadata();
     expect(meta.description).toBeUndefined();
     expect(meta.openGraph).toBeUndefined();
     expect(meta.robots).toEqual({ index: false, follow: false });
+    expect(JSON.stringify(meta)).not.toContain(secret.title);
   });
 });
 

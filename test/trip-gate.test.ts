@@ -74,11 +74,36 @@ describe("every page behind the trip gate", () => {
 describe("lockedMetadata", () => {
   test("emits no description, no Open Graph, and asks not to be indexed", async () => {
     const { lockedMetadata } = await import("@/lib/tripGate");
-    const meta = lockedMetadata({ title: "Four days round the Alps" } as never);
-    expect(meta.title).toBe("Four days round the Alps");
+    const meta = lockedMetadata();
     expect(meta.description).toBeUndefined();
     expect(meta.openGraph).toBeUndefined();
     expect(meta.twitter).toBeUndefined();
     expect(meta.robots).toEqual({ index: false, follow: false });
+  });
+
+  /**
+   * The `<title>` half of B117.
+   *
+   * This is the copy most likely to be missed, because nothing on the page
+   * shows it: it is the browser tab, the entry in a history list, the text a
+   * link preview quotes, and the first line of a shared screenshot. It used to
+   * be the trip's own title, so a guessed id put a private trip's name into
+   * all four.
+   *
+   * Setting no title at all is what makes the journal layout's own
+   * `title.default` stand — `<journal> — <tagline>`, both already public.
+   * Naming a key here, even as `undefined`, would be a place for the title to
+   * come back.
+   */
+  test("sets no title, so a guessed id names no trip in the tab", async () => {
+    const { lockedMetadata } = await import("@/lib/tripGate");
+    expect("title" in lockedMetadata()).toBe(false);
+    expect(JSON.stringify(lockedMetadata())).not.toMatch(/title/i);
+  });
+
+  /** It is handed no trip, so no later edit can reach one. */
+  test("takes no trip to leak", async () => {
+    const { lockedMetadata } = await import("@/lib/tripGate");
+    expect(lockedMetadata).toHaveLength(0);
   });
 });

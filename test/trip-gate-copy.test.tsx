@@ -33,7 +33,6 @@ function render(
   return renderToStaticMarkup(
     <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
       <TripGate
-        tripTitle="Four days round the Alps"
         username="alex"
         journalTitle="Alex's journal"
         signedInAs={over.signedInAs ?? null}
@@ -52,8 +51,28 @@ describe("a reader who is not signed in", () => {
     expect(html).not.toContain('type="password"');
   });
 
-  test("is told which trip it is, so the tab and the page agree", () => {
-    expect(render()).toContain("Four days round the Alps");
+  /**
+   * B117, and the reason the `<h1>` is the journal's name rather than the
+   * trip's.
+   *
+   * The gate used to head the page with the trip's own title. It read well —
+   * "sign in to see *Honeymoon, Kerala*" is kinder than "sign in to see
+   * something" — but the reader it was written for is not the only one who
+   * gets it. Trip ids are chosen by hand and guessable by construction
+   * (`alps-2024`, `japan-2027`), the journal name is public, and a private
+   * trip's title is often the sensitive part of it.
+   *
+   * What settled it is one line up: a reader who signs in and is *still*
+   * refused has never been shown the title. The site was naming the trip only
+   * to whoever had proved nothing at all.
+   *
+   * The journal's name stays, because it is already public and it is what
+   * tells a reader whose sign-in form this is. Somebody who followed a buddy
+   * or guest link still learns the trip's name from the invitation page, which
+   * takes a token — see `components/InviteRedeem.tsx`.
+   */
+  test("is told whose journal it is, and never which trip", () => {
+    expect(render()).toContain("Alex&#x27;s journal");
   });
 
   /** A door that leads nowhere is worse than no door: the endpoints 404. */
@@ -111,5 +130,71 @@ describe("the password copy", () => {
     const keys = Object.keys(dictionaryFor(locale));
     expect(keys.filter((k) => k.startsWith("access."))).toEqual([]);
     expect(keys.filter((k) => k.includes("passwordChanged"))).toEqual([]);
+  });
+});
+
+/**
+ * The gate as the layout actually mounts it — the `<h1>` half of B117.
+ *
+ * Asserting on `TripGate` alone cannot prove this: once the prop is gone the
+ * component has nothing to leak, and the test passes for the wrong reason. The
+ * question is whether the *layout*, which holds the trip and therefore its
+ * title, hands it over. So this renders the shipped layout for a refused trip
+ * with a title no other string in the page resembles, and looks for it.
+ */
+describe("the layout that draws the gate", () => {
+  const SECRET = "Divorce trip 2026";
+
+  test("hands the gate no trip title, so an anonymous reader sees none", async () => {
+    vi.doMock("@/lib/tripGate", () => ({
+      mayReadTrip: async () => false,
+      signedInAs: async () => null,
+    }));
+    vi.doMock("@/lib/trips", () => ({
+      tripRef: (user: string, id: string) => `${user}/${id}`,
+      getTrip: () => ({
+        id: "secret-2026",
+        ref: "alex/secret-2026",
+        username: "alex",
+        title: SECRET,
+        visibility: "private",
+        listed: false,
+      }),
+    }));
+    vi.doMock("@/lib/users", () => ({ getUser: () => ({ title: "Alex journal" }) }));
+    vi.doMock("@/lib/capabilities", () => ({ isEnabled: () => true }));
+    vi.resetModules();
+
+    const { default: TripLayout } = await import("@/app/[user]/trips/[trip]/layout");
+    const tree = await TripLayout({
+      children: <p>the trip itself</p>,
+      params: Promise.resolve({ user: "alex", trip: "secret-2026" }),
+    } as never);
+
+    // From the same module graph the layout just pulled `TripGate` out of:
+    // `resetModules` gave it a fresh React context, and the copy imported at
+    // the top of this file is no longer the one it reads.
+    const { default: Provider } = await import("@/components/LocaleProvider");
+    const html = renderToStaticMarkup(
+      <Provider locale="en" dictionary={dictionaryFor("en")}>
+        {tree}
+      </Provider>,
+    );
+
+    // The gate is what rendered, not the trip.
+    expect(html).not.toContain("the trip itself");
+    expect(html).toContain("signin-email");
+
+    // And it names the journal, not the trip. Both spellings of the trip's
+    // title, because React escapes what it prints.
+    expect(html).not.toContain(SECRET);
+    expect(html).not.toMatch(/divorce/i);
+    expect(html).toContain("Alex journal");
+
+    vi.doUnmock("@/lib/tripGate");
+    vi.doUnmock("@/lib/trips");
+    vi.doUnmock("@/lib/users");
+    vi.doUnmock("@/lib/capabilities");
+    vi.resetModules();
   });
 });

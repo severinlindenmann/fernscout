@@ -28,6 +28,8 @@ import { useI18n } from "@/components/LocaleProvider";
  * afterwards by `mayReadTrip`, from the trip's `people:` list and the owner's
  * grant. A stranger who signs in here sees exactly this page again.
  *
+ * **It never names the trip.** See B117, and the `<h1>` below.
+ *
  * Which is why there are three states and not one:
  *
  * - **not signed in** — the form, and an honest sentence about who it is for.
@@ -39,14 +41,12 @@ import { useI18n } from "@/components/LocaleProvider";
  *   what to do instead rather than offering a door that leads nowhere.
  */
 export default function TripGate({
-  tripTitle,
   username,
   journalTitle,
   signedInAs,
   canSignIn,
   codeMinutes,
 }: {
-  tripTitle: string;
   username: string;
   journalTitle: string;
   /** The address on this journal's session cookie, or null for a stranger. */
@@ -77,8 +77,14 @@ export default function TripGate({
       tabIndex={-1}
       className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-6 py-16"
     >
+      {/* Never the trip's title — B117. The gate used to name the trip to a
+          reader with no session at all, which made a private trip's title
+          readable to anyone who guessed its id, while a reader who had signed
+          in and been refused was told nothing. The journal's name is public,
+          is what a reader needs in order to know whose sign-in form this is,
+          and is already the tab's title on this page. */}
       <h1 className="font-display text-2xl text-navy-900">
-        {signedInAs ? t("gate.refusedTitle") : tripTitle}
+        {signedInAs ? t("gate.refusedTitle") : journalTitle}
       </h1>
 
       {signedInAs ? (
