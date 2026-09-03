@@ -18,9 +18,22 @@ import {
  * doesn't. That keeps `npx vitest run` green on a laptop with no Postgres and
  * still lets CI prove the migrations are portable.
  *
- *   POSTGRES_TEST_URL=postgres://localhost:5432/fernscout_test npx vitest run
+ * The skip is deliberate, but "a variable is unset" is not a thing anybody can
+ * act on, so `POSTGRES_HOWTO` below is the command that would make it run. It
+ * lives here, once, because it is quoted from three test files (B181).
  */
 export type DialectCase = { name: string; target: DatabaseTarget };
+
+/** The container the CI workflow starts, written as the two commands a person
+ * would run on their own machine. Kept in step with `.github/workflows/ci.yml`
+ * — same image, same credentials, same database name — so that a developer
+ * reproducing a CI failure is talking to the same Postgres CI was. */
+export const POSTGRES_HOWTO = [
+  "  docker run --rm -d --name fernscout-pg -p 5432:5432 \\",
+  "    -e POSTGRES_USER=fernscout -e POSTGRES_PASSWORD=fernscout \\",
+  "    -e POSTGRES_DB=fernscout_test postgres:17-alpine",
+  "  POSTGRES_TEST_URL=postgres://fernscout:fernscout@localhost:5432/fernscout_test npx vitest run",
+].join("\n");
 
 export function dialectCases(): DialectCase[] {
   const cases: DialectCase[] = [

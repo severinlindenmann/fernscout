@@ -219,6 +219,36 @@ is a property that only breaks in one of those two states.
 One known flake: `test/cli.test.ts` runs `update-rates`, which fetches live ECB
 rates. It fails on a bad connection and passes on a retry.
 
+### What a green run on your laptop did not check
+
+Two things skip when the machine cannot provide them, and both now say so on
+stderr with the command that would change it. A skip is not a pass, so read
+them:
+
+- **Postgres.** SQLite is what you develop against; Postgres is what the VPS
+  runs. `test/db-migrations.test.ts` and `test/db-repos.test.ts` run their
+  whole suite against both dialects when `POSTGRES_TEST_URL` points at a
+  database they may **wipe**:
+
+  ```bash
+  docker run --rm -d --name fernscout-pg -p 5432:5432 \
+    -e POSTGRES_USER=fernscout -e POSTGRES_PASSWORD=fernscout \
+    -e POSTGRES_DB=fernscout_test postgres:17-alpine
+  POSTGRES_TEST_URL=postgres://fernscout:fernscout@localhost:5432/fernscout_test npx vitest run
+  ```
+
+- **The restore drill.** `test/backup-script.test.ts` needs `restic` on PATH
+  (`brew install restic`) or it skips entirely — every test of the thing that
+  would get your photographs back. Its last test additionally needs the
+  Postgres above *and* `pg_dump`/`pg_restore` at or above the server's major,
+  because pg_dump refuses to dump a server newer than itself. On macOS:
+  `brew install libpq && brew link --force libpq`.
+
+None of this is required before pushing: the `backup-drill` job in
+`.github/workflows/ci.yml` is the environment where all three exist at once,
+and it is where that last test is expected to run (B181). Setting it up locally
+is for when CI has failed and you need to see why.
+
 ## Where things are while it runs
 
 | | |
