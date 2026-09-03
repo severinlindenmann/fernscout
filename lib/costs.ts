@@ -4,6 +4,7 @@ import path from "node:path";
 import matter from "gray-matter";
 import { getAllEntries, getDays } from "./entries";
 import { getTrip, tripDir } from "./trips";
+import { hasBegun } from "./tripTime";
 import { loadUserConfig } from "./config";
 import { normalizeCurrency, toBase, type RateTable } from "./currency";
 import {
@@ -123,7 +124,15 @@ function mergeUnconverted(...lists: Unconverted[][]): Unconverted[] {
   return Array.from(byCurrency.values()).sort((a, b) => a.currency.localeCompare(b.currency));
 }
 
-export function getCostSummary(tripId: string): CostSummary {
+/**
+ * Every number the costs page draws, for one trip.
+ *
+ * `now` is an argument for the same reason it is one throughout
+ * `lib/tripTime.ts`: whether the trip has begun is a reading of a clock, and
+ * a summary that reads it privately cannot be tested on either side of a
+ * departure date.
+ */
+export function getCostSummary(tripId: string, now: Date = new Date()): CostSummary {
   const { base } = conversionFor(tripId);
   const items = getAllCosts(tripId);
   const preparationItems = getPreparationCosts(tripId);
@@ -177,6 +186,13 @@ export function getCostSummary(tripId: string): CostSummary {
 
   const daysWithSpend = byDay.filter((d) => d.amount > 0).length;
 
+  // Has this trip started? Asked once, of the trip's own dates rather than of
+  // `byDay.length`, and answered where the rest of the journal's tense lives.
+  // An unknown trip has no dates to ask about; it also has no costs, so the
+  // reading of a zero does not arise.
+  const trip = getTrip(tripId);
+  const begun = trip ? hasBegun(trip, byDay, now) : true;
+
   // Budget. Preparation is treated as spent up front rather than spread across
   // the trip, because that's when it actually leaves the account — so the
   // daily allowance is what's left divided by the planned number of days.
@@ -188,6 +204,11 @@ export function getCostSummary(tripId: string): CostSummary {
   const planned = getBudget(tripId);
   const plannedTotal = getBudgetInBase(tripId)?.total;
 
+  // Pace — everything measured against the days elapsed — is attached only
+  // once the trip has begun. Before that `elapsed` is 0 and every one of
+  // those figures collapses to a statement about an empty set: the trip is
+  // "exactly on plan", the projected total is the preparation spend, and the
+  // daily rate is zero. See `BudgetPace`, and B19.
   let budget: BudgetStatus | undefined;
   if (planned && plannedTotal !== undefined) {
     const perDay = Math.max(0, (plannedTotal - preparation) / planned.days);
@@ -198,11 +219,17 @@ export function getCostSummary(tripId: string): CostSummary {
       total: plannedTotal,
       days: planned.days,
       perDay,
-      expectedToDate,
-      deltaToDate: total - expectedToDate,
-      projectedTotal: preparation + actualPerDay * planned.days,
       remaining: plannedTotal - total,
-      curve: byDay.map((_, i) => preparation + perDay * (i + 1)),
+      ...(begun
+        ? {
+            pace: {
+              expectedToDate,
+              deltaToDate: total - expectedToDate,
+              projectedTotal: preparation + actualPerDay * planned.days,
+              curve: byDay.map((_, i) => preparation + perDay * (i + 1)),
+            },
+          }
+        : {}),
     };
   }
 
@@ -215,6 +242,7 @@ export function getCostSummary(tripId: string): CostSummary {
 
   return {
     baseCurrency: base,
+    hasBegun: begun,
     budget,
     total,
     onTheRoad,
