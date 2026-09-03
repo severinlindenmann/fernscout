@@ -51,6 +51,11 @@ function haveBinary(bin: string, args: string[] = ["--version"]): boolean {
 const RESTIC = haveBinary("restic", ["version"]);
 const PG_DUMP = haveBinary("pg_dump");
 const IS_ROOT = typeof process.getuid === "function" && process.getuid() === 0;
+// B115. `timeout` is coreutils: on the VPS, and not on macOS without
+// `brew install coreutils`. The script falls back to an unwrapped probe when
+// it is missing, so the two branches are tested by two tests, each skipping
+// where its branch cannot exist — the same shape as RESTIC and IS_ROOT above.
+const HAS_TIMEOUT = haveBinary("timeout", ["--version"]) || haveBinary("gtimeout", ["--version"]);
 
 if (!RESTIC) {
   // Not a failure — but not a pass either: the whole file is skipped, loudly,
@@ -534,6 +539,58 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
       const push = run.stdout.indexOf("backing up to");
       expect(probe, "the probe must announce itself").toBeGreaterThan(-1);
       expect(probe).toBeLessThan(push);
+    },
+    180_000,
+  );
+
+  // --- B115: an unreachable repository may not burn the whole unit timeout ---
+
+  /**
+   * `rest:http://127.0.0.1:1/` — a reserved port with nothing listening, the
+   * fastest possible "unreachable". Without a bound, `restic cat config` was
+   * measured still retrying after three minutes; the only limit was
+   * TimeoutStartSec=30min, which is also how long the OnFailure= alert waited.
+   */
+  const UNREACHABLE = "rest:http://127.0.0.1:1/";
+
+  test.skipIf(!HAS_TIMEOUT)(
+    "an unreachable repository gives up within BACKUP_PROBE_TIMEOUT, not the unit timeout",
+    () => {
+      const started = Date.now();
+      const run = runBackup({ RESTIC_REPOSITORY: UNREACHABLE, BACKUP_PROBE_TIMEOUT: "2" });
+      const elapsed = (Date.now() - started) / 1000;
+
+      expect(run.status, "an unreachable repository is not a successful backup").not.toBe(0);
+      expect(run.stdout).toContain("cannot read the repository");
+      // The point of the task: bounded, and by the value asked for. Generous
+      // headroom over the 2s bound, because this also pays for staging the
+      // fixture and starting restic — it is asserting "seconds, not minutes".
+      expect(elapsed, `the probe took ${elapsed}s`).toBeLessThan(60);
+      // It must never read as absent. `restic init` over a repository that is
+      // merely slow to answer is the disaster the whole probe exists to stop.
+      expect(run.stdout).not.toContain("creating a NEW, EMPTY repository");
+    },
+    120_000,
+  );
+
+  test.skipIf(HAS_TIMEOUT)(
+    "with no timeout binary the probe still runs, and says it is unbounded",
+    () => {
+      // The macOS case. Making the script Linux-only would have been the other
+      // legitimate answer, but it would stop this very suite running on the
+      // machine the script is edited on.
+      //
+      // Deliberately against the *reachable* fixture repository. Pointing this
+      // at UNREACHABLE would exercise the unbounded probe for real, which is
+      // to say it would sit in restic's backoff for minutes — the defect
+      // itself, inside the suite that is supposed to run quickly. What is
+      // being asserted is that the fallback announces itself and does not
+      // otherwise change the run.
+      const run = runBackup();
+
+      expect(run.status, "the fallback must not break an ordinary backup").toBe(0);
+      expect(run.stdout).toContain("neither timeout nor gtimeout is installed");
+      expect(run.stdout).toContain("checking the repository at");
     },
     180_000,
   );
