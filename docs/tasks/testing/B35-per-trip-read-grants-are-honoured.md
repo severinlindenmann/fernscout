@@ -231,3 +231,29 @@ test file states the opposite as its guarantee. Older than this task and
 untouched by it — the arm B35 removed was dead — but it was found by reading
 `resolveViewer` closely enough to delete part of it, and it is very likely B41
 or B39's tail rather than its own change.
+
+## Note from live verification, 2026-09-03
+
+Acceptance bullet 1 reads as failing and is not. `contact_invites.trip_id` is
+back on the live database and back in `lib/contacts/invites.ts:169,223` — but
+that is **B33's column, re-added deliberately**, and
+`lib/db/migrations/010-invite-links.ts` argues the point in full: "007 dropped
+this column, with reasoning that was right at the time… The old column was
+going to narrow *reading* to one trip. This one says which trip a **buddy**
+link is a link to *join*", and "`access_grants` is deliberately left alone."
+
+What B35 was actually about — per-trip *read* grants — is gone and stays gone,
+verified against the running system: `access_grants` on live Postgres has no
+`trip_id` column, and its unique index is
+`(owner_id, contact_id, scope)`. Migration 007 is in `kysely_migration`.
+
+The `resolveViewer` arm — what this ticket calls "the whole risk of this
+change" — passed in both directions on the live site. From a single
+journal-wide grant, one contact could open **both** `guest` trips; a contact
+without one could open neither; revoking the grant closed both immediately in
+the same session.
+
+Still unchecked, and why the verdict was BLOCKED: the **digest** arm needs a
+published day inside a guest trip, and **push** is off server-wide
+(`/api/health`: "not enabled on this server", no VAPID configuration), so
+`subscribersFor` cannot be exercised without changing server config.
