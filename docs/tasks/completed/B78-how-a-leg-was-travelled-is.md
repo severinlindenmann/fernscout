@@ -8,6 +8,7 @@ area: map, transport
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-03"
 ---
 
 # B78 — How a leg was travelled is carried by colour alone, and its dash pattern breaks on a small map

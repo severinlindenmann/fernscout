@@ -8,6 +8,7 @@ area: api, ingest, slugs
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-03"
 ---
 
 # B77 — A German umlaut loses its vowel in a slug, and two slugify functions disagree about the rest

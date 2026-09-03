@@ -65,6 +65,35 @@ so it sits on the wrong side of a line drawn for good reasons. That is the
 mechanism; the question this task asks is what *should* happen to a demo
 journal that ships in the repository but lives under the operator's half.
 
+
+## A second instance of the same gap, found later the same day
+
+`japan-2027` is not the only thing missing. Verifying **B78** turned up that
+`content/example/trips/asia-2023/entries/` has **8** entry files in the
+repository and **5** on the live server:
+
+```
+$ ssh 95.216.112.173 "ls /var/lib/fernscout/content/example/trips/asia-2023/entries/"
+```
+
+The three absent ones include `2023-01-08-leaving-zurich.md`, which B78 added
+specifically so that a **flight** leg would be visible on the demo map.
+`https://fernscout.ch/example/trips/asia-2023/day/leaving-zurich` answers 404,
+and the asia-2023 legend on the live site lists Train, Boat and Motorbike — no
+Flight. So the feature B78 shipped is invisible on the journal that exists to
+demonstrate it.
+
+This makes the pattern clear: it is not one forgotten trip, it is that **every
+change to `content/example/` since the server was first seeded has stayed on
+the author's disk.** Two tickets in one day landed demo content that never
+arrived, and neither build could have noticed, because both verified against a
+local checkout where the content was present.
+
+That strengthens the first of the two options in Work below. A demo journal
+that ships in the repository and is only ever edited there is shipped content
+by every practical test, and the current arrangement means any task that
+improves it silently fails to reach the thing it was improving.
+
 ## Work
 
 Decide what `content/example/` is, then make the live instance match it.

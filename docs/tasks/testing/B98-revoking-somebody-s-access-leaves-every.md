@@ -7,6 +7,7 @@ complexity: medium
 area: auth, contacts, api
 found: "2026-09-03"
 started: "2026-09-03"
+merged: "2026-09-03"
 ---
 
 # B98 — Revoking somebody's access leaves every agent token already issued to them working until it expires
