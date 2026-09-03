@@ -486,6 +486,29 @@ run: `RESTIC_REPOSITORY` must be under a path listed in the unit's
 `ReadWritePaths=`, and the repository must be **owned by `fernscout`**, the
 user the service runs as.
 
+**Everything under `DATA_DIR` and `content/` must be readable by that same
+user**, and a run that finds something it cannot read tells you so by name:
+
+```
+WARNING: 1 path(s) under DATA_DIR could not be staged and are NOT in tonight's snapshot:
+WARNING:   /var/lib/fernscout/root-owned-stray.txt
+ERROR: the snapshot was pushed, but 1 path(s) are missing from it — …
+```
+
+That run **does both things** (B114). It stages and pushes everything it could
+read, because a night with no backup at all is the worse of the two failures
+and the journal's originals exist nowhere else — the snapshot is real, and is
+tagged `partial` so `restic snapshots` still says which nights were complete.
+And it **exits non-zero anyway**: no `.backup-last-success` stamp, the
+`OnFailure=` alert fires, `/api/health` reports `backup.state: "failing"`.
+Skipping a file is tolerated; being told the backup was fine is not.
+
+The fix is on the machine, not in the script: `chown fernscout:fernscout` (or
+delete) each path the log names, and the next run is green again. Before this,
+one root-owned stray file was enough to abort the whole run at `cp -a` with
+`set -e`, before anything had been pushed — and the journal never said which
+file it was.
+
 ### Is the backup working?
 
 Not `systemctl list-timers`. That reports the schedule and never the result —
@@ -625,12 +648,14 @@ this machine at all (B65):
   exists`. **Fixed in B63:** the probe is `restic cat config` now, and it
   distinguishes *absent* from *cannot see it*; the ownership requirement is
   unchanged, but getting it wrong now produces a message that says so.
-- A single unreadable file anywhere under `DATA_DIR` aborts the whole backup:
-  `cp -a` fails, `set -e` stops the script, and nobody was told. One root-owned
-  stray file left by an operator is enough. **The "nobody was told" half is
-  fixed** — B64 added the `OnFailure=` alert, the stamp files and the
-  `/api/health` `.backup` block described above. The `cp -a` fragility itself
-  is not.
+- A single unreadable file anywhere under `DATA_DIR` aborted the whole backup:
+  `cp -a` failed, `set -e` stopped the script, and nobody was told. One
+  root-owned stray file left by an operator was enough. **Both halves are fixed
+  now.** B64 added the `OnFailure=` alert, the stamp files and the
+  `/api/health` `.backup` block described above, so somebody is told; **B114**
+  stopped the file from vetoing the run — staging keeps going, names every path
+  it could not take, pushes the snapshot it *could* take, and then still exits
+  non-zero so the run is never recorded as a success. See §Backups above.
 
 ---
 
