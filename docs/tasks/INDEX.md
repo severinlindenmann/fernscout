@@ -79,7 +79,9 @@ Do not edit them by hand; run the script.
 | [B155](backlog/B155-nothing-in-the-repo-tells-a.md) | Nothing in the repo tells a reader that fernscout.ch will host their journal, or what it promises | FEATURE | medium | low |
 | [B16](backlog/B16-the-day-photo-viewer-does-not.md) | The day photo viewer does not answer to touch and never says where you are | ISSUE | medium | low |
 | [B17](backlog/B17-how-a-trip-gets-its-rates.md) | How a trip gets its rates is written down nowhere a person will find it | CHORE | medium | low |
+| [B177](backlog/B177-a-trip-map-s-basemap-is.md) | A trip map's basemap is half a megabyte for a route sixty-eight kilometres across | ISSUE | medium | medium |
 | [B178](backlog/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low |
+| [B179](backlog/B179-one-failed-read-of-the-basemap.md) | One failed read of the basemap bundle turns every map on the instance blank until restart | ISSUE | medium | low |
 | [B20](backlog/B20-the-stranger-s-me-page-never.md) | The stranger's me page never says who to ask | ISSUE | medium | low |
 | [B22](backlog/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | SECURITY | medium | medium |
 | [B25](backlog/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low |
@@ -139,6 +141,8 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B153](in-development/B153-a-journal-created-through-the-api.md) | A journal created through the API can never invite anybody, because contacts is off and nothing can turn it on | ISSUE | high | low | `ea97c35d` |
 | [B141](in-development/B141-ingest-disambiguates-a-colliding-slug-only.md) | Ingest disambiguates a colliding slug only within one date, so two days can still shadow each other | ISSUE | medium | low | `d6791268` |
+| [B180](in-development/B180-the-bounded-probe-test-never-runs.md) | The bounded-probe test never runs, because it needs a coreutils binary macOS does not have | CHORE | medium | low | `0c03d994` |
+| [B181](in-development/B181-the-postgres-dump-test-has-never.md) | The Postgres dump test has never run anywhere, so the production dialect is unexercised | CHORE | medium | medium | `0c03d994` |
 | [B19](in-development/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium | `0c03d994` |
 | [B44](in-development/B44-a-guest-who-arrives-without-their.md) | A guest who arrives without their link sees a complete-looking journal and no way to say who they are | ISSUE | medium | medium | `0c03d994` |
 | [B60](in-development/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | `a4b53c2f` |
