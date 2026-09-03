@@ -69,6 +69,7 @@ Do not edit them by hand; run the script.
 | [B60](backlog/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low |
 | [B62](backlog/B62-every-docs-link-in-the-readme.md) | Every docs/ link in the README points at a file that moved to docs/archiv | CHORE | medium | low |
 | [B66](backlog/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium |
+| [B87](backlog/B87-revoking-somebody-s-access-leaves-every.md) | Revoking somebody's access leaves every agent token already issued to them working until it expires | SECURITY | medium | medium |
 | [B03](backlog/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium |
 | [B04](backlog/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium |
 | [B05](backlog/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |

@@ -109,7 +109,16 @@ export async function POST(request: Request) {
   // caller cannot tell the four apart from each other or from success, which
   // is the point: otherwise this route answers "is that link still live?" for
   // anybody who asks.
-  if (!invite) return Response.json({ status: "accepted" }, { status: 202 });
+  //
+  // A **buddy** token joins them (B33), and for a different reason. This form
+  // records nothing about a trip, so accepting one here would quietly turn a
+  // request to come along on the bus into a request to read the journal — the
+  // person would be approved, find they still could not write, and have no way
+  // to tell what went wrong. Buddy links have their own door,
+  // `/api/contacts/redeem`, and this one is not it.
+  if (!invite || invite.kind === "buddy") {
+    return Response.json({ status: "accepted" }, { status: 202 });
+  }
 
   const locale = pickLocale(
     typeof body.locale === "string" ? body.locale : null,

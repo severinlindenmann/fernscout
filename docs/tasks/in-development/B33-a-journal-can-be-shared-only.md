@@ -28,6 +28,14 @@ here, and the word is `pinecone`*, and everyone who ever received it holds the
 same secret forever. Changing the password is the only revocation there is
 (`lib/tripGate.ts:75`, in prose), and it cuts off everybody at once.
 
+*Corrected while building this: B39 has since removed the trip password
+outright, and B41 made an approved contact the only way into a `guest` trip. So
+the password half of this paragraph describes code that is gone. It does not
+change what this task is for — it sharpens it. Before B39 there was a bad way
+to share a journal; now there is **no** way at all, short of the owner adding a
+contact by hand and typing somebody's address into the admin form. The guest
+link is not an improvement on the password, it is the only door there is.*
+
 **A travel companion** — somebody who was actually on the bus. They get in by
 being in `people:`, which `isPersonOn` reads out of the trip's frontmatter
 (`lib/tripPeople.ts:30`). The only way into that list is a person opening
@@ -109,13 +117,82 @@ what a redemption actually needs (an address, proved; a display name for
 to being let into a journal. Signed in already? Then redemption should be one
 confirmation, not a form.
 
+### The two that were left open, and how they were answered
+
+**A buddy link may be created by the owner and by nobody else.** Not by
+somebody already on the trip, which is the alternative the task left open.
+Three reasons, and the first is the one that decides it. The queue a redemption
+lands in is the *owner's*: B37 removed the open guestbook precisely because a
+journal should not put decisions about strangers in front of the person who
+owns it, and letting a companion issue links would put them back — the owner
+would be approving people they had never heard of, sent by somebody else, with
+no way to tell which. Second, approving a buddy also lets that person read the
+journal's `guest` trips (see the next paragraph but one), and that is not a
+companion's to offer. Third, the codebase already draws this line in the same
+place and says why: `POST /api/v1/{user}/trips` refuses a trip-scoped token
+with "a guest writing in the book is not a guest starting a new book". Handing
+out invitations is the same shape of thing. If this turns out to be wrong the
+symptom will be specific and easy to hear — somebody saying "I was on the trip
+and I still had to ask you to invite Sam" — and widening it later is a one-line
+change to `ownerOnly`; narrowing it afterwards would not be.
+
+**A redemption asks for exactly two things: an address it can prove, and a name
+to put beside it.** Nothing else. No postal address, no phone number, no digest
+tick — those belong to postcards and the mailing list, they have their own page
+at `/{user}/c/<token>`, and a redemption that touched them would be a form
+silently rewriting choices somebody made elsewhere. `requestContact` gained a
+third meaning for its `address` field to make that possible: an object is "this
+is their address now", `null` is "they were asked and gave nothing", and
+`undefined` is "they were not asked" and leaves the stored address and the
+postcard consent exactly as they are. That is the same distinction
+`updateContactSelf` already drew, for the same reason.
+
+Each of the two is then skipped when it is already known:
+
+- **Signed in to this journal already?** The address is proved — the cookie was
+  minted by `verifyCode` against a code mailed to it — so there is no email box,
+  no second code and no mail. One button. `confirmContactFromSession` is that
+  path, and it takes the address off the session and never out of a request
+  body, which is the whole of the double opt-in.
+- **Known here already?** The name on the existing record stands, prefilled and
+  correctable; an empty submission never overwrites it. And there is no second
+  record, because `requestContact` is keyed on the address — so somebody who
+  already owns a journal on this instance updates the one row this journal has
+  for them, and their own journal gets nothing at all.
+
+A session for a **different** journal on this instance is deliberately *not*
+treated as proof. Sessions belong to one journal — that is what the
+`session.owner` check guards everywhere — and accepting one here would be
+inventing an instance-wide identity that nothing else in this codebase has, to
+save one email. Such a visitor gets the ordinary form and one code, which is
+not a re-registration.
+
+### One consequence, stated rather than buried
+
+**Approving somebody who came through a buddy link also lets them read the
+journal's `guest` trips.** There is one approval, not two: the owner is
+deciding about a person, and a second button they could forget would leave
+somebody who followed a buddy link approved as a reader and silently still not
+on the trip. The cost is that a buddy link is the stronger of the two by more
+than it looks, so every document that mentions it says so and says it is not
+the one to paste into a group chat. Holding a trip back from everyone who is
+otherwise let in is still `visibility: private`, and still the only mechanism.
+
+**A redeemed place grants write access, not credit.** `travellersOf`
+(`lib/site.ts`) still reads `people:` alone, so a buddy who joined by link
+writes to the trip and does not appear in its byline. That is deliberate:
+credit is the owner's editorial statement about whose trip it was, made by
+typing a name into their own file, and it renders on every page straight from
+disk with no database in the path. Write access and credit were one list before
+this task and are now two — worth knowing rather than papering over. An owner
+who wants a buddy in the byline types them into `people:`, which is exactly the
+act the credit is supposed to represent.
+
 ### To build
 
-- `POST /api/v1/{user}/invites` — owner-authenticated; buddy links may also be
-  createable by somebody already on the trip (decide, and say why in this
-  file). Returns the URL, the kind, the scope (the journal, or a trip ref),
-  the expiry and the id. The token is returned once and stored hashed, as
-  `createInvite` already does.
+- `POST /api/v1/{user}/invites` — owner-authenticated. Returns the URL, the
+  kind, the scope (the journal, or a trip ref), the expiry and the id. The
+  token is returned once and stored hashed, as `createInvite` already does.
 - `GET` and `DELETE` alongside it, to list and revoke — the point of leaving
   the shared password behind is cutting one person off without cutting off
   everyone.
@@ -142,6 +219,45 @@ Not doing: trip passwords, untouched here and removed by B39. The `guest` /
 `private` semantics and the gate itself, which are B41. The contacts invites in
 `lib/contacts/invites.ts`. Owner-facing management UI beyond what a redemption
 needs. Showing a shared trip inside the buddy's *own* journal — that is B34.
+
+## What was built
+
+- `009-invite-links`: `contact_invites.trip_id` comes back — deliberately, and
+  the migration argues with 007, which dropped it. 007 was right about the
+  column it removed (a per-trip *read* grant, a dimension nothing wrote and
+  B41 settled the other way); this one says which trip a **buddy** link joins,
+  and there is nowhere else to put it, because the token is the only thing the
+  recipient holds. `access_grants` is left journal-wide, untouched.
+- `trip_people`: the second source `peopleOf()` merges. `granted_at` null is a
+  *request*, which reads as no access at all; `approveContact` fills it in.
+- `lib/tripPeople.ts` is now async, and the sync half is exported separately as
+  `peopleNamedIn` — the file's own list, documented as **not** the access
+  check. `isPersonOn` reads the file first and only queries when the file says
+  no, so the owner's own pages cost nothing. Two list renderers (`resolveViewer`,
+  `listableTrips`) use `redeemedTripsFor` instead, one query for a whole page.
+- `POST/GET /api/v1/{user}/invites` and `DELETE …/{id}`, guarded by `isOwner`,
+  which takes the owner's bearer token **or** their session cookie — the two
+  credentials decision 24 gives them. The cookie is what B79's copy-a-link
+  control will use, and `SameSite=lax` is what makes it safe to accept.
+- `POST /api/contacts/redeem`, and the two landing pages. `/api/contacts/confirm`
+  is reused for the six digits, so there is one code mechanism on the site.
+- A buddy token is refused at `/{user}/i/<token>` and at
+  `/api/contacts/request`. That door records nothing about a trip, so accepting
+  one there would have quietly turned "come along on the bus" into "add me to
+  the mailing list" — approved, still unable to write, and nothing to say why.
+- `create_invite`, `list_invites` and `revoke_invite` over MCP; the two
+  endpoints in `openapi.json`; a section in `agentGuide()`; the network-doors
+  table and the `people:` note in `AGENTS.md`. The guide's old sentence — *"a
+  person adds themselves there, you cannot"* — was true and is not any more,
+  and has been corrected rather than left.
+
+Found on the way and **not** absorbed: **B87**, revoking somebody's access
+leaves every agent token already issued to them working until it expires.
+`mayWriteTrip` reads a scope string frozen into the session at issue time and
+never asks the database again, so a revoked buddy keeps writing for up to seven
+days. Not caused by this task — a name removed from `people:` by hand has
+always had the same effect — but this task is what makes it matter, because
+revoking is now one click and an owner will expect it to have happened.
 
 ## Acceptance
 

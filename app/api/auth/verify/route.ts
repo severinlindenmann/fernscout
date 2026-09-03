@@ -52,7 +52,13 @@ export async function POST(request: Request) {
 
   // The trip named at request time decides how wide the token is. The owner
   // gets the journal; anybody else gets the one trip they are listed on.
-  const result = await verifyCode(username, email, code, kind, agentScope(username, tripId, email));
+  const result = await verifyCode(
+    username,
+    email,
+    code,
+    kind,
+    await agentScope(username, tripId, email),
+  );
   if (!result.ok) {
     // One answer for every failure. Which of "no code", "expired", "wrong" and
     // "burned" applies is exactly what an attacker would like to know.
@@ -98,11 +104,17 @@ export async function POST(request: Request) {
  * `/api/auth/request` has already refused to send a code to an address that is
  * neither the owner nor on the named trip, so this only decides the width.
  */
-function agentScope(username: string, tripId: string, email: string): string | undefined {
+async function agentScope(
+  username: string,
+  tripId: string,
+  email: string,
+): Promise<string | undefined> {
   if (!tripId) return undefined;
   const trip = getTrip(tripRef(username, tripId));
   if (!trip) return undefined;
   const owner = getUser(username)?.owner.email;
   const isOwnerAddress = owner === email.trim().toLowerCase();
-  return isOwnerAddress || isPersonOn(trip, email) ? tripWriteScope(trip.id) : undefined;
+  return isOwnerAddress || (await isPersonOn(trip, email))
+    ? tripWriteScope(trip.id)
+    : undefined;
 }

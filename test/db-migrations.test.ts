@@ -373,19 +373,28 @@ describe.each(dialectCases())("schema on $name", ({ target }) => {
 
   /**
    * `007-journal-wide-grants`. A grant is one bit — this contact may read this
-   * journal — so the column that said *which trip* is gone, and with it the
-   * `trip_id` on `contact_invites` that was only ever written null.
+   * journal — so the column that said *which trip* is gone.
+   *
+   * `contact_invites.trip_id` went with it and has since come back
+   * (`009-invite-links`), which is why that half of this assertion is now the
+   * other way round. It is not the old column returning: 007 removed a
+   * dimension that would have narrowed *reading* to one trip, which B41
+   * settled the other way and which nothing ever wrote. What 009 added says
+   * which trip a **buddy** link is a link to join — a different question, on
+   * a table whose rows grant nothing either way. The one that must stay gone
+   * is `access_grants.trip_id`, and that is asserted here as it always was.
    */
-  test("007 leaves no trip_id on access_grants or contact_invites", async () => {
+  test("a read grant still says nothing about which trip", async () => {
     const tables = await handle.db.introspection.getTables();
     const columns = (name: string) =>
       tables.find((t) => t.name === name)!.columns.map((c) => c.name);
     expect(columns("access_grants")).not.toContain("trip_id");
-    expect(columns("contact_invites")).not.toContain("trip_id");
     // The rest of the row is untouched — this dropped a dimension, not a table.
     expect(columns("access_grants")).toEqual(
       expect.arrayContaining(["owner_id", "contact_id", "scope", "granted_at", "expires_at"]),
     );
+    // And the invite table carries one again, for the other question.
+    expect(columns("contact_invites")).toContain("trip_id");
   });
 
   test("007 narrows access_grants_unique to one read grant per contact", async () => {

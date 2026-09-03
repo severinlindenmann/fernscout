@@ -47,7 +47,14 @@ export default async function InvitePage({ params }: PageProps<"/[user]/i/[token
   const accept = (await headers()).get("accept-language");
   const locale = pickLocale(invite?.locale, fromAcceptLanguage(accept), user.defaultLocale);
 
-  if (!invite) {
+  // A **buddy** token pasted here reads as a dead link, and that is the honest
+  // answer (B33). This form is the guestbook: it asks for a postal address and
+  // two consents, and it records nothing about a trip — so filling it in would
+  // silently turn "come along on the trip" into "add me to the mailing list",
+  // and the endpoint behind it refuses such a token anyway. The buddy link has
+  // its own address, `/{user}/invite/buddy/<token>`, and the kind is in the
+  // path precisely so that the two cannot be confused.
+  if (!invite || invite.kind === "buddy") {
     return (
       <NoticeShell
         lang={locale}

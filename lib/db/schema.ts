@@ -132,21 +132,34 @@ export type ContactsTable = {
 };
 
 /**
- * A personal invitation link — decision 19.
+ * An invitation link — decision 19, as extended by B33.
  *
  * It holds a name and a language and no email, because it is an invitation to
  * *request*, not a grant. Forwarding it can therefore only ever prefill a form
- * for whoever opens it; identity still comes from confirming an address.
+ * for whoever opens it; identity still comes from confirming an address. That
+ * is true of all three kinds below, and it is what makes a link safe to put in
+ * a group chat.
  */
 export type ContactInvitesTable = {
   id: string;
   owner_id: string;
-  /** `personal`. The only kind: the open link that had no row at all, because
-   * it carried no secret, was removed in B37. */
+  /**
+   * `personal` | `guest` | `buddy`.
+   *
+   * `personal` is decision 19's original link, `/{user}/i/<token>`, and every
+   * row written before B33 is one. `guest` is the same door at a name that
+   * says what it opens — `/{user}/invite/guest/<token>` — and leads to being
+   * let into the journal. `buddy` leads to being on one trip: writing to it,
+   * and holding an agent token scoped to it. The open link that had no row at
+   * all, because it carried no secret, was removed in B37.
+   */
   kind: Generated<string>;
   token_hash: string;
   name: string | null;
   locale: string | null;
+  /** The trip a `buddy` link is a link to join. Null for every other kind.
+   * See `009-invite-links` for why this column exists again after 007. */
+  trip_id: string | null;
   created_at: string;
   expires_at: string | null;
   revoked_at: string | null;
@@ -171,6 +184,35 @@ export type AccessGrantsTable = {
   scope: Generated<string>;
   granted_at: string;
   granted_by: string | null;
+  expires_at: string | null;
+};
+
+/**
+ * One row: this contact was let onto this trip — B33.
+ *
+ * The second source `peopleOf()` reads, beside the `people:` block in
+ * `trip.md`. **Additive, never authoritative**: a hand-written `people:` entry
+ * works exactly as it always has, and nothing here can take one away.
+ *
+ * `granted_at` is the whole distinction. A row with it null is a *request* —
+ * somebody redeemed a buddy link and is waiting — and reads as no access at
+ * all, the same way a `pending` contact does. The owner approving the contact
+ * is what fills it in. Expiry is honoured through `grantIsLive` in
+ * `lib/grants.ts`, so "live" means one thing across this table and
+ * `access_grants`.
+ */
+export type TripPeopleTable = {
+  id: string;
+  owner_id: string;
+  trip_id: string;
+  contact_id: string;
+  /** The invite the person came through, when they came through one. */
+  invite_id: string | null;
+  requested_at: string;
+  /** Null while this is only a request. */
+  granted_at: string | null;
+  granted_by: string | null;
+  revoked_at: string | null;
   expires_at: string | null;
 };
 
@@ -314,6 +356,7 @@ export type Database = {
   contacts: ContactsTable;
   contact_invites: ContactInvitesTable;
   access_grants: AccessGrantsTable;
+  trip_people: TripPeopleTable;
   digest_sends: DigestSendsTable;
   push_subscriptions: PushSubscriptionsTable;
   reactions: ReactionsTable;
@@ -332,6 +375,7 @@ export const TABLE_NAMES = [
   "contacts",
   "contact_invites",
   "access_grants",
+  "trip_people",
   "digest_sends",
   "push_subscriptions",
   "reactions",

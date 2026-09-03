@@ -330,6 +330,114 @@ export function GET() {
           },
         },
       },
+      /**
+       * The two links that let other people in — B33.
+       *
+       * Listed with the write API rather than under authentication, because
+       * that is what they are: an owner-only write that produces a URL. The
+       * description has to carry one warning the schema cannot, and it is the
+       * only warning that matters here — a buddy link ends in write access.
+       */
+      "/api/v1/{user}/invites": {
+        get: {
+          summary: "Every invite link this journal has issued",
+          description:
+            "Never the tokens: only their hashes were stored, so a link that was lost has to " +
+            "be reissued rather than looked up. Owner only.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": { description: "Links, with their kind, scope, expiry, uses and revocation" },
+            "403": { description: "Not this journal's owner" },
+            "404": { description: "No such journal, or contacts are off on it" },
+          },
+        },
+        post: {
+          summary: "Issue a guest link or a buddy link",
+          description:
+            "**Neither link grants anything.** Whoever opens one proves their own address and " +
+            "lands in the owner's approval queue; the owner lets each person in by hand. So a " +
+            "link is an invitation to ask, and reporting one as \"they now have access\" is " +
+            "false.\n\n" +
+            "`guest` leads to reading the journal — every trip marked `visibility: guest`, and " +
+            "never one marked `private`. It is journal-wide; there is no per-trip guest link. " +
+            "Safe to forward.\n\n" +
+            "`buddy` needs a `trip` and leads to **write access** to that trip, plus the " +
+            "journal's guest trips once approved. It is for the people who were actually on " +
+            "the trip and **is not the one to paste into a group chat** — say which kind you " +
+            "are handing over.\n\n" +
+            "The token appears in this response once and is stored only hashed. Owner only: a " +
+            "trip-scoped token may write days into its trip and may not invite people to it.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["kind"],
+                  properties: {
+                    kind: {
+                      type: "string",
+                      enum: ["guest", "buddy"],
+                      description: "`buddy` grants write access to one trip once approved.",
+                    },
+                    trip: {
+                      type: "string",
+                      description:
+                        "Required for `buddy`, and refused for `guest` — being let into a " +
+                        "journal is never narrowed to one trip. Hold a trip back from the " +
+                        "people you have let in by marking it `private`.",
+                    },
+                    name: {
+                      type: "string",
+                      description:
+                        "Whom it is for. Prefill for the greeting on the landing page, never " +
+                        "identity: whoever opens the link types their own address.",
+                    },
+                    locale: { type: "string", description: "The language the page opens in." },
+                    days: {
+                      type: "integer",
+                      default: 30,
+                      description:
+                        "How long the link stays live. There is no never — a link that does " +
+                        "not expire is the shared password again, wearing a URL.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description:
+                "The link. `url` is present exactly once, in this response; `scope` is the " +
+                "journal, or a `<user>/<trip>` ref for a buddy link.",
+            },
+            "400": { description: "No kind, a guest link with a trip, or a buddy link without" },
+            "403": { description: "Not this journal's owner" },
+            "404": { description: "No such journal or trip, or contacts are off" },
+          },
+        },
+      },
+      "/api/v1/{user}/invites/{id}": {
+        delete: {
+          summary: "Revoke one link",
+          description:
+            "The link stops working and **everybody already approved stays in** — which is the " +
+            "whole reason these exist rather than a shared password, which could only be " +
+            "changed for everyone at once. Nothing anybody wrote is removed, so unlike " +
+            "deleting a journal or a trip this needs no mailed confirmation.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Revoked" },
+            "403": { description: "Not this journal's owner" },
+            "404": { description: "No such link in this journal" },
+          },
+        },
+      },
       "/api/v1/{user}/trips": {
         get: {
           summary: "Every trip in this journal",
