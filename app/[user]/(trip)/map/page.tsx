@@ -9,8 +9,10 @@ import { getPlaces, getTripStats } from "@/lib/entries";
 import { frameRoute } from "@/lib/mapFrame";
 import { getPlan } from "@/lib/plan";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
+import { currentTripRef } from "@/lib/trips";
 import TripProvider from "@/components/TripProvider";
 import { isOwner } from "@/lib/contacts/session";
+import type { TranslationKey } from "@/lib/i18n";
 
 /**
  * Two languages on purpose.
@@ -20,14 +22,42 @@ import { isOwner } from "@/lib/contacts/session";
  * getting "Gallery" there while the page in front of them said "Galerie".
  * The sharing card follows the *journal*, because the people who see one are
  * not this reader and their language is not knowable from this request.
+ *
+ * And one tense, also on purpose (B118). B54 gave the heading a choice between
+ * "Where we've been" and "Where we're going" and left this function saying the
+ * first unconditionally, on the reasoning that a *current* trip with no days
+ * written is a brief window. It is not: `getCurrentTrip` falls back to the most
+ * recent past trip when nothing is current, so every journal between trips
+ * whose newest trip has no entries served `<h1>Where we're going</h1>` under
+ * `<title>Where we've been</title>` — one page, two tenses, about one trip.
+ *
+ * Asked here the same way `MapPageContent` asks it — on whether `getPlaces`
+ * returns anything, not on `trip.status` — so the two cannot drift apart again.
+ * `getPlaces` is cached per directory (lib/entries.ts), so the page below does
+ * not read the trip a second time.
  */
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps<"/[user]/map">): Promise<Metadata> {
+  const { user } = await params;
   const reader = await requestLocale();
   const journal = localeForPath((await headers()).get(PATH_HEADER));
-  const description = translateIn(journal, "map.subtitle");
-  const shared = translateIn(journal, "map.title");
+  // Not `currentTripOrRedirect`: metadata is resolved alongside the page, and
+  // the page is the one that decides where a journal with no current trip goes.
+  // A journal with nothing in it has been nowhere and is going nowhere; the
+  // planned wording is the one that claims less. Same shape as the day
+  // permalink's metadata, which resolves the trip this way too.
+  const ref = currentTripRef(user);
+  const visited = ref !== undefined && getPlaces(ref).length > 0;
+  // The subtitle switches with it. It is the `<meta name="description">` and
+  // the sharing card's blurb, and "Tap any stop to see how long we stayed" is
+  // the same false claim as the heading, one line further down.
+  const heading: TranslationKey = visited ? "map.title" : "map.titlePlanned";
+  const blurb: TranslationKey = visited ? "map.subtitle" : "map.subtitlePlanned";
+  const description = translateIn(journal, blurb);
+  const shared = translateIn(journal, heading);
   return {
-    title: translateIn(reader, "map.title"),
+    title: translateIn(reader, heading),
     description,
     alternates: { canonical: "/[user]/map" },
     openGraph: { type: "website", title: shared, description, url: "/map" },
