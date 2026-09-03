@@ -2,6 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { isTestContent } from "../access";
 import { forgetEntries, getAllEntries, getDays, isDraft } from "../entries";
 // The same splicer ingest uses. One way of writing a gallery into an entry
 // that already exists, so the two doors cannot drift apart in how they format
@@ -12,7 +13,7 @@ import { appendGallery } from "../ingest/entry";
 // with the one ingest used — the same title, two permanent URLs.
 import { slugify } from "../slug.ts";
 import { getTrip, tripDir, tripRef } from "../trips";
-import type { Entry, GalleryItem } from "../types";
+import type { Entry, GalleryItem, Trip } from "../types";
 
 /**
  * Writing content through the API.
@@ -364,7 +365,20 @@ export function tripSummary(username: string, tripId: string) {
   };
 }
 
-export function entrySummary(entry: Entry) {
+/**
+ * The shape the API returns for one day in a list.
+ *
+ * The trip is a **required** argument rather than an optional one, and that is
+ * the whole point of B116. `test` is inherited: a day inside a trip marked
+ * `test: true` carries no flag of its own, so a summary built from the entry
+ * alone reports invented content as though somebody had lived it. Requiring
+ * the trip means a caller that has not answered the question does not compile,
+ * instead of quietly answering it wrong.
+ *
+ * Only when true, like every other flag on these surfaces — absent means real,
+ * which is what `tripSummary` above already says.
+ */
+export function entrySummary(entry: Entry, trip: Trip | undefined) {
   return {
     slug: entry.slug,
     title: entry.title,
@@ -375,6 +389,7 @@ export function entrySummary(entry: Entry) {
     lat: entry.lat,
     lng: entry.lng,
     photos: entry.gallery.length,
+    ...(isTestContent(trip, entry) ? { test: true } : {}),
   };
 }
 

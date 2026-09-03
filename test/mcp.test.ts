@@ -701,3 +701,49 @@ describe("reading a draft back", () => {
     expect(read.isError).toBe(true);
   });
 });
+
+/**
+ * B116 — a trip nobody took has to say so in the text, not only in the data.
+ *
+ * `list_trips` answers in two channels: `structuredContent` for a parser, and
+ * a text block for everything else. The flag reached the first and not the
+ * second, so an agent reading the summary — which is the channel the format
+ * exists to be read through — saw a trip that looked lived. `get_day` had it
+ * right; the two now share one sentence.
+ */
+describe("test content is stated in the readable text", () => {
+  const NOTICE = "did not happen.** It exists to check the software.";
+
+  beforeEach(() => {
+    // The day carries no flag of its own: the operator marked the trip once,
+    // which is the case that was silent.
+    writeTrip("ana", "ana-proving", ["test: true"]);
+    writeEntry("ana", "ana-proving", "2026-01-06", "proving-day", "Nobody was here.");
+  });
+
+  test("list_trips says it on the trip's own line, and not on a real trip's", async () => {
+    const result = await call(anaToken, "list_trips");
+    const lines = textOf(result).split("\n");
+    const proving = lines.find((l) => l.startsWith("ana-proving"))!;
+    const real = lines.find((l) => l.startsWith("ana-trip"))!;
+
+    expect(proving).toContain(`**Test content — this trip ${NOTICE}`);
+    expect(real).not.toContain("did not happen");
+  });
+
+  test("and still says it in the structured data", async () => {
+    const result = await call(anaToken, "list_trips");
+    const trips = (result.structuredContent as { trips: { id: string; test?: boolean }[] }).trips;
+    expect(trips.find((t) => t.id === "ana-proving")?.test).toBe(true);
+    expect(trips.find((t) => t.id === "ana-trip")).not.toHaveProperty("test");
+  });
+
+  test("get_day says it in the same words, for a day that inherits the flag", async () => {
+    const result = await call(anaToken, "get_day", { trip: "ana-proving", slug: "proving-day" });
+    expect(result.isError).toBe(false);
+    expect(textOf(result)).toContain(`**Test content — this day ${NOTICE}`);
+    // Inherited: `test: true` is on the trip, and nowhere in the entry file.
+    expect(getAllEntries("ana/ana-proving")[0].test).toBeUndefined();
+    expect((result.structuredContent as { test?: boolean }).test).toBe(true);
+  });
+});

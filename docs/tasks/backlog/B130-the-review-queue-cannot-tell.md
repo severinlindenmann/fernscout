@@ -1,0 +1,61 @@
+---
+id: B130
+title: The review queue cannot tell a person which drafts nobody lived
+type: ISSUE
+priority: medium
+complexity: low
+area: api, mcp, test-content
+found: "2026-09-03"
+---
+
+# B130 — The review queue cannot tell a person which drafts nobody lived
+
+## Why
+
+Found while building B116, which fixed the same gap on two other surfaces and
+deliberately did not absorb this one.
+
+`listDrafts` (`lib/api/entries.ts:322`) returns `{ slug, title, date }` and
+nothing else. Everything built on it inherits that:
+
+- `GET /api/v1/<user>/drafts`
+- MCP `list_drafts`, whose text ends *"Tell them what is here and ask which
+  they want on the site; `publish_day` is the tool that acts on the answer."*
+
+So the one list an agent is instructed to read back to a person **at the moment
+they decide what goes on the site** cannot say that a draft is content nobody
+lived — neither for a day carrying `test: true` itself nor, more likely, for
+one inheriting it from a `test` trip.
+
+This is the same class of failure as B47 and B116: the flag is on disk and
+correct, and a readable surface omits it. It is arguably the worst instance of
+the three, because the others are read while an agent is orienting itself and
+this one is read while a person is being asked to publish. An agent that lists
+five drafts and does not mention that two of them are inventions has handed
+somebody a decision without the fact that decides it.
+
+Not a data-loss bug. `publish_day` on a test day is still a person's deliberate
+call, and the published page carries the banner.
+
+## Work
+
+- Carry the flag out of `listDrafts`, resolved the way every other surface
+  resolves it: `isTestContent(trip, entry)`, so a day inheriting it from its
+  trip is flagged. `listDrafts` reads files with `matter` directly rather than
+  going through `getAllEntries`, so it does not currently have the trip — this
+  is the part with a decision in it.
+- Show it in `GET /api/v1/<user>/drafts` (present only when true, as B116 and
+  B47 established) and say it in `list_drafts`'s text rendering, reusing
+  `testContentNotice()` in `lib/mcp/tools.ts` rather than writing a third
+  phrasing.
+- One test per surface, on the inherited case.
+
+Not doing: `test: false` on unflagged drafts. Absent means real.
+
+## Acceptance
+
+- `GET /api/v1/<user>/drafts` marks a draft that is test content, including one
+  that inherits the flag from its trip.
+- MCP `list_drafts`'s text says so, in the same words `get_day` and
+  `list_trips` use.
+- `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.

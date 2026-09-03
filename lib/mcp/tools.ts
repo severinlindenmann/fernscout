@@ -164,6 +164,20 @@ function describeProblems(problems: Problem[]): string {
   return problems.map((p) => `${p.field}: got ${p.got}, expected ${p.expected}`).join("; ");
 }
 
+/**
+ * The sentence that says this is content nobody lived — written once.
+ *
+ * `get_day` has said it in its text block since B47; `list_trips` said it only
+ * in `structuredContent`, so an agent reading the summary — which is the
+ * channel the format exists to be read through — saw a trip that looked lived
+ * (B116). Both now render this, and the noun is the only thing that varies:
+ * one sentence appearing in two forms is the thing that drifts, and this is
+ * the one sentence the whole convention rests on.
+ */
+function testContentNotice(subject: "day" | "trip"): string {
+  return `**Test content — this ${subject} did not happen.** It exists to check the software.`;
+}
+
 // ---------------------------------------------------------------------------
 // The tools
 // ---------------------------------------------------------------------------
@@ -178,7 +192,13 @@ const listTrips: Handler = (session) => {
         .map(
           (t) =>
             `${t.id} — ${t.title} (${t.status}, ${t.start} to ${t.end}) · ` +
-            `${t.entries} entries, ${t.drafts} draft${t.drafts === 1 ? "" : "s"}`,
+            `${t.entries} entries, ${t.drafts} draft${t.drafts === 1 ? "" : "s"}` +
+            // Said in the text as well as the data, for the same reason
+            // `get_day` says it: an agent summarising this list to a person
+            // must not describe a trip nobody took as though it recorded
+            // something. On the same line, so the format stays one line per
+            // trip. B116.
+            (t.test ? ` · ${testContentNotice("trip")}` : ""),
         )
         .join("\n")
     : "No trips yet in this journal.";
@@ -212,9 +232,7 @@ const getDay: Handler = (session, args) => {
     // Said in the text as well as the data, for the same reason as the draft
     // line above: an agent summarising this must not describe a day nobody
     // lived as though it recorded something.
-    ...(isTestContent(getTrip(trip.ref), entry)
-      ? ["", "**Test content — this day did not happen.** It exists to check the software."]
-      : []),
+    ...(isTestContent(getTrip(trip.ref), entry) ? ["", testContentNotice("day")] : []),
     "",
     entry.content,
   ].join("\n");
@@ -224,11 +242,12 @@ const getDay: Handler = (session, args) => {
     text,
     data: {
       trip: trip.ref,
-      ...entrySummary(entry),
+      // The trip, so `test` is inherited rather than read off the entry alone
+      // — `entrySummary` decides it now, in one place for both doors (B116).
+      ...entrySummary(entry, getTrip(trip.ref)),
       tags: entry.tags,
       costs: entry.costs,
       ...(entry.transport ? { transport: entry.transport } : {}),
-      ...(isTestContent(getTrip(trip.ref), entry) ? { test: true } : {}),
       content: entry.content,
       status: entry.draft ? "draft" : "published",
     },
