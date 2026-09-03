@@ -7,6 +7,7 @@ complexity: low
 area: backup, ops
 found: "2026-09-01"
 started: "2026-09-01"
+merged: "2026-09-03"
 ---
 
 # B63 — A wrong RESTIC_REPOSITORY makes a new empty repo instead of failing
@@ -171,3 +172,35 @@ restic repository.
 - **The count is not a false alarm.** "a healthy repository with a history draws
   no low-count warning" asserts the warning is absent once there is more than
   one snapshot.
+
+## Verification
+
+The agent that built this hit a session limit before verifying it. The code was
+already merged; what follows was run afterwards against `scripts/backup.sh` on
+main, by hand, and is why the task moved to `testing/` rather than being left
+in `in-development/` looking half-finished.
+
+Four checks: `tsc` clean, `eslint` 0 errors / 4 warnings (the standing four),
+`vitest` 1656 passed + 1 skipped across 100 files, `npm run build` exit 0.
+`test/backup-script.test.ts` on its own: 16 passed, 1 skipped.
+
+Behaviour, driven against the real script with a temporary `DATA_DIR`,
+`CONTENT_DIR` and filesystem repository:
+
+| case | result |
+| --- | --- |
+| absent repo, no opt-in | refuses, names the typo risk, **creates nothing**, exit 1 |
+| absent repo, `BACKUP_INIT_IF_MISSING=1` | creates it, backs up, exit 0 — and warns that one snapshot is *also* what a wrong path looks like |
+| unreadable repo (mode 000), **with** the opt-in | `cannot read the repository … (restic exit 1)`, creates nothing, exit 1 |
+| wrong password, with the opt-in | `cannot read … (restic exit 12)`, creates nothing, exit 1 |
+| healthy repo | exit 0 |
+
+The two failure shapes are distinguished as intended: the permission and
+password cases both report *cannot read*, never *no repository*, so the
+original bug cannot be reintroduced by a fallback matching the shared
+"unable to open config file" wording. Every failing case exits non-zero, which
+is what makes B64's alerting fire and what systemd records.
+
+The unreadable-with-opt-in case is the one the restore drill hit on the live
+server on 2026-09-01, where the old probe read permission-denied as absence and
+died in `restic init`.
