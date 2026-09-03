@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: mcp, docs, publishing
 found: "2026-09-03"
+started: "2026-09-03T19:27:30Z"
+session: ea97c35d-5c6a-4610-ab68-d1575d52ea4f
+claimed: "2026-09-03T19:27:30Z"
 ---
 
 # B156 — MCP still hands out the rule B28 retired
