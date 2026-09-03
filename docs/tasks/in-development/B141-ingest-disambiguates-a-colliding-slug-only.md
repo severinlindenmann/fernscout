@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: ingest, slugs
 found: "2026-09-03"
+started: "2026-09-03T19:40:39Z"
+session: d6791268-ed45-4a69-acde-99f9e5f10516
+claimed: "2026-09-03T19:40:39Z"
 ---
 
 # B141 — Ingest disambiguates a colliding slug only within one date, so two days can still shadow each other
