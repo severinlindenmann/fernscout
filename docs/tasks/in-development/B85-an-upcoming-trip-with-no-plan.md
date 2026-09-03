@@ -91,8 +91,9 @@ trip whose every day is still a draft as a stranger sees it, both reached the
 empty state carrying 159 KB.
 
 Not done, deliberately: whether a whole-world basemap should be 159 KB at all,
-and whether the 519 KB an Alpine frame ships is right. Both are about a payload
-somebody can see, which is a different question from this one.
+and whether the 518,867 bytes an Alpine frame ships is right. Both are about a
+payload somebody can *see*, which is a different question from this one — see
+B177, captured with the measurements.
 
 ## Acceptance
 
