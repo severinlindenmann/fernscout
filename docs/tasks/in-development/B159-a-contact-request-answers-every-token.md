@@ -83,3 +83,56 @@ Fix the comment or export the redirect for POST too.
 - The body and headers stay identical, as B37 established.
 - A test guards the timing property.
 - `app/[user]/join/route.ts`'s comment matches what the route does.
+
+## What was built
+
+The Why held up and the **real fix** was taken, not the padding fallback: the
+insert, `issueCode` and `sendCodeMail` now run after the response instead of
+before it. Everything still on the response path is work a dead token does too,
+so the branches converge on the fast case rather than the slow one — which is
+the whole reason to prefer this shape to padding.
+
+It also closes a **second, louder signal the ticket did not name**:
+`sendCodeMail` throwing used to surface as a 500, and only a live token could
+ever produce one. A failed send is now a log line, which is right — by the time
+it happens the response is gone, and the caller was never promised the mail.
+
+**`lib/afterResponse.ts` is new**, and its existence is the one thing worth
+arguing with. Next's `after` is the correct primitive and is supported on the
+Node server this deploys to, but it throws outside a request scope, and this
+repository tests route handlers by importing `POST` and calling it. A bare
+`after` would have meant the timing property could only be tested by standing
+up a server. So the helper uses `after` when there is a request scope and
+otherwise starts the task detached and tracks it, which `flushAfterResponse()`
+waits on. Both paths swallow failures into the log.
+
+That has a visible cost in the suite, and it is the honest one: eleven existing
+assertions in `test/contacts.test.ts` read the database immediately after
+`POST` returned. They now `await flushAfterResponse()` in the three helpers
+that post. A test that asserts on work the route no longer waits for has to
+wait for it itself.
+
+**The guard is an ordering assertion, not a stopwatch.** The primary test
+holds the mocked send open and asserts the `202` is in hand while the mail is
+still unsent, then that it is sent afterwards and the contact row exists.
+Wall-clock comparison proves the property only for whatever the machine was
+doing that second; this fails deterministically if the work moves back onto
+the response path — before the fix both timing tests hang for five seconds and
+time out. A median-over-three-samples case follows it for the shape of the
+original measurement, with a deliberately loose bound: it exists to catch the
+order-of-magnitude regression B159 measured, not a millisecond between one
+database read and none.
+
+**The join route:** the comment was fixed rather than `POST` exported. The
+concern it describes — a stray POST quietly becoming a GET of somebody's
+access page — is already answered one step earlier and more bluntly, since
+only `GET` is exported and Next returns 405 before the handler runs. Exporting
+a redirect for POST would weaken that to serve a form that no longer exists.
+
+**Found and captured, not absorbed: B197.** `main` is red —
+`test/mail.test.ts > a sweep that cannot read the directory still sends the
+message` has failed since B60 merged. B60's new `isEnabled("mail", username)`
+gate resolves the journal through `getUsernames()`, whose `readdirSync` catch
+turns an unreadable content root into "no such journal" into "mail is off".
+Silent suppression of every journal's mail, which is the failure mode B60's own
+commit message rules out. Unrelated to this task, filed at `high`.

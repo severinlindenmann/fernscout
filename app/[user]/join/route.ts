@@ -22,8 +22,15 @@ export async function GET(_request: Request, context: RouteContext<"/[user]/join
   const { user: username } = await context.params;
   if (!getUser(username)) return new Response("Not found", { status: 404 });
 
-  // 308: it is gone for good, and the method is preserved so a stray POST is
-  // not quietly turned into a GET of somebody's access page.
+  // 308 rather than 302: it is gone for good, and a permanent redirect is what
+  // says so to a cache and to a search engine.
+  //
+  // The concern a 308 would answer — a stray POST from somebody's stale form
+  // being quietly turned into a GET of an access page — is answered one step
+  // earlier here, and more bluntly: only `GET` is exported, so Next refuses
+  // any other method with a 405 before this handler runs. The comment used to
+  // claim the 308 preserved the method, which described a redirect that never
+  // happens (B159).
   //
   // A relative `Location` rather than `serverSite().url`: this stays on the
   // host the reader is already on, so a self-hoster whose configured site URL

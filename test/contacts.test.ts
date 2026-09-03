@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { flushAfterResponse } from "@/lib/afterResponse";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
@@ -300,7 +301,7 @@ describe("a guest's phone number, given through the invite form", () => {
   // below rely on having to themselves.
   async function post(body: Record<string, unknown>) {
     const { POST } = await import("@/app/api/contacts/request/route");
-    return POST(
+    const response = await POST(
       new Request("https://example.test/api/contacts/request", {
         method: "POST",
         headers: {
@@ -316,6 +317,13 @@ describe("a guest's phone number, given through the invite form", () => {
         }),
       }),
     );
+    // Since B159 the row, the code and the mail happen *after* the response —
+    // the endpoint's `202` promises nothing about them, and waiting for them
+    // was what let a caller time the difference between a live token and a
+    // dead one. Everything below asserts on what the route caused, so it has
+    // to wait for what the route no longer waits for.
+    await flushAfterResponse();
+    return response;
   }
 
   test("a tel with no postcard is stored, and the contact is not postable", async () => {
@@ -378,7 +386,7 @@ describe("a guest's phone number, given through the invite form", () => {
   describe("a returning guest's blank tel must not erase a recorded number", () => {
     async function postReturning(body: Record<string, unknown>) {
       const { POST } = await import("@/app/api/contacts/request/route");
-      return POST(
+      const response = await POST(
         new Request("https://example.test/api/contacts/request", {
           method: "POST",
           headers: {
@@ -394,6 +402,8 @@ describe("a guest's phone number, given through the invite form", () => {
           }),
         }),
       );
+      await flushAfterResponse();
+      return response;
     }
 
     test("no postcard, blank tel: the owner's recorded tel survives and the contact stays unpostable", async () => {
@@ -569,7 +579,7 @@ describe("the request endpoint, with no invitation", () => {
   let ip = 0;
   async function post(body: Record<string, unknown>) {
     const { POST } = await import("@/app/api/contacts/request/route");
-    return POST(
+    const response = await POST(
       new Request("https://example.test/api/contacts/request", {
         method: "POST",
         headers: {
@@ -579,6 +589,8 @@ describe("the request endpoint, with no invitation", () => {
         body: JSON.stringify({ user: "ana", name: "A Reader", locale: "en", ...body }),
       }),
     );
+    await flushAfterResponse();
+    return response;
   }
 
   async function contactCount() {
@@ -1414,6 +1426,7 @@ describe("the digest preference's name", () => {
       }),
     );
     expect(response.status).toBe(202);
+    await flushAfterResponse();
     const [contact] = (await listContacts("ana")).filter((c) => c.email === body.email);
     return contact;
   }
