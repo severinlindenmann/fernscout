@@ -27,7 +27,14 @@ import { getUser } from "@/lib/users";
  */
 export const dynamic = "force-dynamic";
 
-/** See app/(current)/layout.tsx — the same gate, for trips at /trips/<id>. */
+/**
+ * `noindex` for a trip that is not indexable, and nothing else.
+ *
+ * The gate itself is below. Its sibling is `app/[user]/(trip)/layout.tsx` —
+ * the same gate, over the pages that render the *current* trip at the bare
+ * `/<user>` URLs. The two have to be kept in step, so read one before
+ * changing the other.
+ */
 export async function generateMetadata({
   params,
 }: LayoutProps<"/[user]/trips/[trip]">): Promise<Metadata> {
