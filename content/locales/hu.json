@@ -56,6 +56,7 @@
   "contact.adminWantsPostcard": "Igazi képeslapot szeretne az útról",
   "contact.code": "A kód",
   "contact.codeIntro": "Küldtünk egy hatjegyű kódot ide: {email}. Írd be, és kész is vagy.",
+  "contact.codeServerError": "Ez a mi hibánk volt, nem a kódodé. A címed már megerősítve van — nincs mit megismételned.",
   "contact.codeSubmit": "Ez én vagyok",
   "contact.codeTitle": "Nézd meg a postaládád",
   "contact.codeWrong": "Ez a kód nem jó. Nézd meg még egyszer.",

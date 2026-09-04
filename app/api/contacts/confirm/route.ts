@@ -1,6 +1,6 @@
 import { isEmail } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
-import { confirmContact, manageUrl } from "@/lib/contacts";
+import { confirmContact, manageUrl, markOwnerNotified } from "@/lib/contacts";
 import { notifyOwnerOfRequest, sendConfirmedMail } from "@/lib/contacts/mail";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
@@ -51,10 +51,19 @@ export async function POST(request: Request) {
   // what an attacker would like to be told.
   if (!result.ok) return Response.json({ error: "invalid_code" }, { status: 401 });
 
+  // Both best-effort (B272): neither mail may fail this confirmation. The
+  // code was right and the row is already updated — an SMTP hiccup from here
+  // on is not this reader's problem.
   await sendConfirmedMail(username, user, result.contact, result.manageToken);
-  // Only the first time. Somebody re-confirming to recover their link should
-  // not put a second request in front of the owner.
-  if (result.firstConfirmation) await notifyOwnerOfRequest(username, user, result.contact);
+  // Only while the owner has not actually been told. That is `needsOwnerNotice`
+  // rather than `firstConfirmation`: a re-confirmation whose earlier owner
+  // mail failed still needs one, and `notified_at` only turns true once the
+  // send actually lands — so this never puts a *second* request in front of
+  // the owner, only retries a first one that never arrived.
+  if (result.needsOwnerNotice) {
+    const notified = await notifyOwnerOfRequest(username, user, result.contact);
+    if (notified) await markOwnerNotified(username, result.contact.id);
+  }
 
   return Response.json({
     ok: true,

@@ -147,6 +147,11 @@ export type ContactsTable = {
   last_seen_at: string | null;
   /** sha-256 of the self-serve edit/unsubscribe token in the mail footer. */
   manage_token_hash: string | null;
+  /** When `notifyOwnerOfRequest` actually reached the owner, or null while
+   * that mail is still owed — B272. Set only on a successful send, so a
+   * failure leaves it null and a later re-confirmation retries it rather than
+   * the notice being lost for good. See `012-contact-notified`. */
+  notified_at: string | null;
 };
 
 /**

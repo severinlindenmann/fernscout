@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { codeConfirmErrorKey } from "@/lib/contacts/codeConfirmError";
 import { LOCALE_LABEL, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
@@ -173,8 +174,9 @@ export default function ContactForm({
     if (!response) return setError("contact.error");
     if (response.status === 429) return setError("contact.tooMany");
     if (!response.ok) {
-      setCode("");
-      return setError("contact.codeWrong");
+      // Only a rejected code (401) is worth retyping — see codeConfirmError.ts.
+      if (response.status === 401) setCode("");
+      return setError(codeConfirmErrorKey(response.status));
     }
     const body = (await response.json()) as { manageUrl?: string; status?: string };
     setManage(body.manageUrl ?? null);

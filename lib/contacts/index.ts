@@ -126,6 +126,7 @@ type ContactRow = {
   approved_at: string | null;
   last_seen_at: string | null;
   manage_token_hash: string | null;
+  notified_at: string | null;
 };
 
 function toRecord(owner: string, row: ContactRow): ContactRecord {
@@ -299,7 +300,17 @@ export async function requestContact(
 }
 
 export type ConfirmResult =
-  | { ok: true; contact: ContactRecord; manageToken: string; firstConfirmation: boolean }
+  | {
+      ok: true;
+      contact: ContactRecord;
+      manageToken: string;
+      firstConfirmation: boolean;
+      /** Whether the owner still needs telling — `notified_at === null`.
+       * True on a first confirmation, and also true on a re-confirmation
+       * whose earlier notification mail failed (B272): distinct from
+       * `firstConfirmation`, which stays about the address, not the mail. */
+      needsOwnerNotice: boolean;
+    }
   | { ok: false };
 
 /**
@@ -341,6 +352,7 @@ export async function confirmContact(
   const manageToken = manageTokenFor(owner, row.id);
   const now = nowIso();
   const firstConfirmation = row.confirmed_at === null;
+  const needsOwnerNotice = row.notified_at === null;
 
   await db
     .updateTable("contacts")
@@ -354,7 +366,7 @@ export async function confirmContact(
     .execute();
 
   const fresh = { ...row, confirmed_at: row.confirmed_at ?? now, last_seen_at: now };
-  return { ok: true, contact: toRecord(owner, fresh), manageToken, firstConfirmation };
+  return { ok: true, contact: toRecord(owner, fresh), manageToken, firstConfirmation, needsOwnerNotice };
 }
 
 /**
@@ -395,6 +407,7 @@ export async function confirmContactFromSession(
   const manageToken = manageTokenFor(owner, row.id);
   const now = nowIso();
   const firstConfirmation = row.confirmed_at === null;
+  const needsOwnerNotice = row.notified_at === null;
 
   await db
     .updateTable("contacts")
@@ -408,7 +421,27 @@ export async function confirmContactFromSession(
     .execute();
 
   const fresh = { ...row, confirmed_at: row.confirmed_at ?? now, last_seen_at: now };
-  return { ok: true, contact: toRecord(owner, fresh), manageToken, firstConfirmation };
+  return { ok: true, contact: toRecord(owner, fresh), manageToken, firstConfirmation, needsOwnerNotice };
+}
+
+/**
+ * The owner has now actually been told about this confirmation — B272.
+ *
+ * A write of its own, separate from `confirmContact`'s, so it only happens
+ * once `notifyOwnerOfRequest` has returned success. That is what makes a
+ * failed send recoverable instead of silent: the column stays null, and the
+ * next time this address confirms — a fresh code, or the same signed-in
+ * session — `needsOwnerNotice` is true again and the caller retries, without
+ * a second request ever appearing in front of the owner.
+ */
+export async function markOwnerNotified(owner: string, contactId: string): Promise<void> {
+  const { db } = await getDatabase();
+  await db
+    .updateTable("contacts")
+    .set({ notified_at: nowIso() })
+    .where("id", "=", contactId)
+    .where("owner_id", "=", owner)
+    .execute();
 }
 
 /**
