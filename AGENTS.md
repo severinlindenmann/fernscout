@@ -379,6 +379,28 @@ here is done rather than merely being available:
 `security-guidance` needs no invoking: it warns on the edit and reviews the
 diff when a session stops. Treat what it says as a capture, not a blocker.
 
+**The code graph is a tool rather than a skill, and it needs a binary.**
+`typescript-lsp` answers go-to-definition, find-references and the call
+hierarchy over the whole checkout, which is the question `grep` cannot reach:
+`findReferences` on `tripRef()` returns 89 uses across 31 files where grep
+finds 61, the difference being every import site. The plugin ships no server of
+its own, so without
+
+```bash
+npm install -g typescript-language-server typescript
+```
+
+every call fails with `ENOENT` and the tool looks broken rather than
+unconfigured. It was installed and unusable here for a week before anybody
+tried it.
+
+**Ask it twice.** The first call after a cold start answers before it has
+finished indexing, and it answers with no hedge: `tripRef()` came back as *2
+references in 1 file*, then as 89 across 31 a moment later. That is the
+dangerous shape of wrong — an unused-looking symbol invites exactly the
+refactor its 89 callers cannot survive. Call again, or check the first answer
+against `grep`, before concluding anything from a small number.
+
 **None of this is in the repository.** Plugins are installed per user and
 `.claude/settings.json` is gitignored, so a fresh clone has the ten skills
 above and nothing else. That is deliberate — the repository must not require
