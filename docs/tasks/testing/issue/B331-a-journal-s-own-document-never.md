@@ -7,8 +7,7 @@ complexity: low
 area: agent docs, invites
 found: "2026-09-04T18:53:16Z"
 started: "2026-09-04T19:26:10Z"
-session: cae3e4fb-d628-4a89-89b7-43a581bc7e71
-claimed: "2026-09-04T19:26:10Z"
+merged: "2026-09-04T19:36:00Z"
 ---
 
 # B331 — A journal's own document never mentions invites, so an agent told its owner to use a dashboard that does not exist
