@@ -73,10 +73,10 @@ export default function TripSwitcher() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t("trips.switch")}
-        className="flex min-h-11 items-center gap-1 rounded-full border border-navy-200 bg-white px-3 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500 sm:max-w-[14rem]"
+        className="flex min-h-11 items-center gap-1 rounded-full border border-navy-200 bg-white px-3 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500 sm:w-[14rem] sm:justify-between"
       >
         {/* The icon carries the meaning when the label cannot.
-            
+
             Below sm there isn't room for both this label and the nav's icons
             without the header itself overflowing (max-w-[10rem] still forced
             it wide enough to push the total past 375px), so the label is
@@ -84,8 +84,17 @@ export default function TripSwitcher() {
             buttons, saying nothing about what it opens. A chevron is a
             direction, not a subject. The `aria-label` had it right all along;
             this gives a sighted reader the same sentence. */}
-        <Luggage className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-        <span className="hidden truncate sm:inline">{label}</span>
+        <span className="flex min-w-0 items-center gap-1">
+          <Luggage className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+          <span className="hidden truncate sm:inline">{label}</span>
+        </span>
+        {/* A fixed width (B286) rather than a cap: the button's width used to
+            follow the active trip's own title, so two trips with different
+            name lengths made the header wrap the nav to its own line at
+            different desktop widths — the row's fit calculation depends on
+            every child's width, this one included. `justify-between` keeps
+            the chevron pinned to the fixed box's right edge on a short title
+            rather than drifting in next to a short label. */}
         <ChevronDown className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
       </button>
 
