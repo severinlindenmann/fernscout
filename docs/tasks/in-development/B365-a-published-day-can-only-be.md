@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: lib/whatsapp, lib/contacts, lib/digest, publish route, contact forms
 found: "2026-09-04T20:43:09Z"
+started: "2026-09-04T20:43:40Z"
+session: eec89d07-7ecf-4192-80f6-04b56f1c63c6
+claimed: "2026-09-04T20:43:40Z"
 ---
 
 # B365 — A published day can only be announced by email
