@@ -17,6 +17,11 @@ import { COST_CATEGORIES, type CostCategory } from "../costFormat";
  * rejected, correct value. */
 export const TRANSPORT_MODES = ["flight", "train", "bus", "motorbike", "boat", "car", "walk"] as const;
 
+/** Mirrors `TravelSceneVariant` in lib/types.ts, the same split as
+ * `TRANSPORT_MODES` above. Kept as the list an agent can discover — it is
+ * not, on its own, what refuses a bad value: see `checkTravelScene`. */
+export const TRAVEL_SCENE_VARIANTS = ["default", "quick", "skip"] as const;
+
 /** A short slug: lowercase words joined by single hyphens, no leading,
  * trailing or doubled hyphen. The same shape a filename slug is held to
  * elsewhere in this codebase (see `slugify` in lib/slug.ts, which is the one
@@ -73,6 +78,8 @@ export type EntryInput = {
   lat?: unknown;
   lng?: unknown;
   transportMode?: unknown;
+  /** The travel scene's variant. See `checkTravelScene`. */
+  travelScene?: unknown;
   costs?: unknown;
   tags?: unknown;
   /** Content nobody lived. See the note on `Entry.test` in lib/types.ts. */
@@ -172,6 +179,29 @@ function checkTransportMode(input: EntryInput, problems: Problem[]): void {
       field: "transportMode",
       got: describe(input.transportMode),
       expected: `one of ${TRANSPORT_MODES.join(", ")}`,
+    });
+  }
+}
+
+/**
+ * Unlike `checkTransportMode`, a value outside `TRAVEL_SCENE_VARIANTS` is not
+ * refused here — only a non-string is. That is deliberate, and the same rule
+ * `visibility:` on a trip already follows for a typo: the write is accepted,
+ * the string round-trips into the file exactly as sent, and it is
+ * `parseTravelSceneVariant` in lib/entries.ts — a read-time fallback, not a
+ * gate on the way in — that reads anything unrecognised as the default rather
+ * than refusing the day or crashing the page. The set is still published here
+ * so an agent can discover the values that actually change anything.
+ */
+function checkTravelScene(input: EntryInput, problems: Problem[]): void {
+  if (input.travelScene === undefined) return;
+  if (typeof input.travelScene !== "string") {
+    problems.push({
+      field: "travelScene",
+      got: describe(input.travelScene),
+      expected:
+        `a string — one of ${TRAVEL_SCENE_VARIANTS.join(", ")} changes anything; any other ` +
+        "string is written as sent and read back as the default",
     });
   }
 }
@@ -404,6 +434,7 @@ export function validateEntry(
   checkTime(input, problems);
   checkCoordinates(input, problems);
   checkTransportMode(input, problems);
+  checkTravelScene(input, problems);
   checkCosts(input, problems);
   checkTags(input, problems);
   checkTest(input, problems);
@@ -445,6 +476,7 @@ export function validateEntryEdit(
   checkTime(input, problems);
   checkCoordinates(input, problems);
   checkTransportMode(input, problems);
+  checkTravelScene(input, problems);
   checkCosts(input, problems);
   checkTags(input, problems);
   checkTest(input, problems);

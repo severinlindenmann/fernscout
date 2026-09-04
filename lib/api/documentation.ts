@@ -11,7 +11,7 @@ import {
   VIDEO_MAX_BYTES,
   VIDEO_MAX_SECONDS,
 } from "../validate/media";
-import { TAG_MAX_LENGTH, TRANSPORT_MODES } from "../validate/entry";
+import { TAG_MAX_LENGTH, TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "../validate/entry";
 import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
 import { isIndexable } from "../access";
@@ -1019,6 +1019,7 @@ one. The full schema, with the shape of each nested item, is in
 | \`tags\` | Lowercase letters, digits and single hyphens. |
 | \`costs\` | \`[{"label": "Coffee", "amount": 4.5, "currency": "EUR", "category": "food"}]\` — \`label\` and \`amount\` required. No \`currency\` means the journal's base currency; amounts are never converted on the way in. |
 | \`transportMode\`, \`transportFrom\`, \`transportTo\` | How the day was travelled. The modes are in the table further down. |
+| \`travelScene\` | How the arrival scene between the previous day and this one plays: ${TRAVEL_SCENE_VARIANTS.join(", ")} — absent plays the default, timed to the distance covered. \`skip\` leaves the leg out of the story pager entirely, for a leg a reader has already seen many times over. Anything else is written as sent and read back as the default rather than refused. |
 | \`test\` | \`true\` when this day did not happen. See **The one rule**. |
 | \`idempotency_key\` | Names this one write — see below. |
 
@@ -1410,6 +1411,7 @@ bytes instead.
 | per journal | whatever this instance's \`media.perUserBytes\` says, if anything |
 | tags | lowercase letters, digits and single hyphens, up to ${TAG_MAX_LENGTH} characters |
 | transport | ${TRANSPORT_MODES.join(", ")} |
+| travel scene | ${TRAVEL_SCENE_VARIANTS.join(", ")} — absent plays the default |
 
 These are this instance's defaults, from lib/validate/. An operator can change
 any of them in the \`media\` block of \`content/config.json\`, and a journal may

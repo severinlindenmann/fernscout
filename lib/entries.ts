@@ -7,7 +7,8 @@ import { loadUserConfig } from "./config";
 import { normalizeCurrency } from "./currency";
 import { mediaWithOwner, parseTripRef, tripDir } from "./trips";
 import { hasHappened } from "./tripTime";
-import type { Day, Entry, EntryTranslations, GalleryItem } from "./types";
+import type { Day, Entry, EntryTranslations, GalleryItem, TravelSceneVariant } from "./types";
+import { TRAVEL_SCENE_VARIANTS } from "./validate/entry";
 
 /**
  * Forgets one trip's parsed entries.
@@ -83,6 +84,19 @@ function parseTranslations(raw: unknown): EntryTranslations | undefined {
     }
   }
   return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
+ * `travelScene:` read back — the same fallback `visibility:` gets on a trip.
+ * A value outside `TRAVEL_SCENE_VARIANTS` is not refused at write time (see
+ * `checkTravelScene`), so this is the one place that has to cope with a typo:
+ * it reads as `undefined`, which the page plays as the default, rather than
+ * throwing or drawing a scene nothing asked for.
+ */
+function parseTravelSceneVariant(raw: unknown): TravelSceneVariant | undefined {
+  return typeof raw === "string" && (TRAVEL_SCENE_VARIANTS as readonly string[]).includes(raw)
+    ? (raw as TravelSceneVariant)
+    : undefined;
 }
 
 /**
@@ -180,6 +194,7 @@ function readAllEntries(ref: string): Entry[] {
             to: data.transportTo ?? "",
           }
         : undefined,
+      travelScene: parseTravelSceneVariant(data.travelScene),
       // Trip-relative like everything else under media/ — see mediaWithOwner
       // in lib/trips.ts for why frontmatter keeps it that way.
       cover: data.cover ? mediaWithOwner(data.cover, owner) : undefined,

@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
+import { TRAVEL_SCENE_VARIANTS } from "@/lib/validate/entry";
 
 /**
  * The machine contract for the same API `/agent.md` describes in prose.
@@ -170,6 +171,14 @@ export function openApiDocument() {
             },
             transportFrom: { type: "string" },
             transportTo: { type: "string" },
+            travelScene: {
+              type: "string",
+              description:
+                `How the travel scene into this day plays. One of ${TRAVEL_SCENE_VARIANTS.join(", ")} ` +
+                "changes anything; \"skip\" leaves the leg out of the story pager entirely. " +
+                "Absent plays the default scene, timed to the distance covered. Any other " +
+                "string is written as sent and read back as the default rather than refused.",
+            },
             test: {
               type: "boolean",
               description:
@@ -214,6 +223,10 @@ export function openApiDocument() {
             transportMode: { type: "string" },
             transportFrom: { type: "string" },
             transportTo: { type: "string" },
+            travelScene: {
+              type: "string",
+              description: `Same meaning as on creation. One of ${TRAVEL_SCENE_VARIANTS.join(", ")}.`,
+            },
             test: {
               type: "boolean",
               description: "Same meaning as on creation. `false` removes the flag.",
