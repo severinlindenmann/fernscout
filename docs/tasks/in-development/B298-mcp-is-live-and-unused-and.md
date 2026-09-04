@@ -6,6 +6,9 @@ priority: medium
 complexity: high
 area: mcp, api, docs, tests
 found: "2026-09-04T13:55:45Z"
+started: "2026-09-04T13:57:38Z"
+session: 4d93d34d-feff-4223-abb1-cd70e03244f3
+claimed: "2026-09-04T13:57:38Z"
 ---
 
 # B298 — MCP is live and unused, and costs maintenance surface nobody exercises
