@@ -3,7 +3,14 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { isTestContent } from "../access";
-import { entrySlugFromFile, forgetEntries, getAllEntries, getDays, isDraft } from "../entries";
+import {
+  clearMatterCache,
+  entrySlugFromFile,
+  forgetEntries,
+  getAllEntries,
+  getDays,
+  isDraft,
+} from "../entries";
 // The same splicer ingest uses. One way of writing a gallery into an entry
 // that already exists, so the two doors cannot drift apart in how they format
 // it or in what they preserve of a file somebody has since edited.
@@ -842,7 +849,19 @@ export function listDrafts(
   const trip = getTrip(ref);
   const drafts: { slug: string; title: string; date: string; test?: true }[] = [];
   for (const file of files) {
-    const parsed = matter(fs.readFileSync(path.join(dir, file), "utf8"));
+    let parsed: ReturnType<typeof matter>;
+    try {
+      parsed = matter(fs.readFileSync(path.join(dir, file), "utf8"));
+    } catch (err) {
+      // Same failure `readAllEntries` guards against (B236): a file that
+      // will not parse must not blank out the review queue for every other
+      // draft in the trip. Skipped and logged rather than thrown; see
+      // `clearMatterCache` in lib/entries.ts for why that call is needed too.
+      clearMatterCache();
+      const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
+      console.warn(`[entries] ${ref}/entries/${file}: its frontmatter could not be parsed: ${why}`);
+      continue;
+    }
     if (parsed.data.status !== "draft") continue;
     drafts.push({
       slug: entrySlugFromFile(file),
@@ -986,5 +1005,17 @@ export function isPublished(ref: string, slug: string): boolean {
     (f) => entrySlugFromFile(f) === slug,
   );
   if (!match) return false;
-  return !isDraft(matter(fs.readFileSync(path.join(dir, match), "utf8")).data);
+  try {
+    return !isDraft(matter(fs.readFileSync(path.join(dir, match), "utf8")).data);
+  } catch (err) {
+    // A file that will not parse carries no readable `status: draft` line,
+    // and `isDraft` already treats anything other than exactly that line as
+    // published (see its own comment) — so "cannot be read" is answered the
+    // same way "read, and not a draft" is, rather than thrown. B236. See
+    // `clearMatterCache` in lib/entries.ts for why that call is needed too.
+    clearMatterCache();
+    const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    console.warn(`[entries] ${ref}/entries/${match}: its frontmatter could not be parsed: ${why}`);
+    return true;
+  }
 }

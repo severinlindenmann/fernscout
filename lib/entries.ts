@@ -11,6 +11,26 @@ import type { Day, Entry, EntryTranslations, GalleryItem, MediaTile, TravelScene
 import { TRAVEL_SCENE_VARIANTS } from "./validate/entry";
 
 /**
+ * Forgets gray-matter's own parse cache — not this module's, gray-matter's.
+ *
+ * `matter()` memoizes a parse *by raw content*, globally, for the life of the
+ * process, and it writes that cache entry before it parses rather than after
+ * — so a call that throws leaves a half-built, non-throwing result sitting
+ * under the failing text's key. The next caller to hand it the same bytes
+ * (the same broken entry, read again after some other file in the trip
+ * changed and forced a re-read) gets that stale result back instead of the
+ * same failure repeating, which is exactly the silent success this guard
+ * exists to prevent. Every catch around a `matter()` call in this file and in
+ * lib/api/entries.ts clears it for that reason. B236.
+ *
+ * Not in gray-matter's own `.d.ts` — `clearCache` exists on the runtime
+ * export but is absent from its published types — hence the cast.
+ */
+export function clearMatterCache(): void {
+  (matter as unknown as { clearCache: () => void }).clearCache();
+}
+
+/**
  * Forgets one trip's parsed entries.
  *
  * The cache is keyed by directory and lives for the life of the process, which
@@ -163,7 +183,25 @@ function readAllEntries(ref: string): Entry[] {
 
   const entries = files.flatMap((file) => {
     const raw = fs.readFileSync(path.join(dir, file), "utf8");
-    const { data, content } = matter(raw);
+
+    // One file that will not parse must not take the rest of the trip down
+    // with it — the same failure `readTrip` in lib/trips.ts guards against
+    // for a malformed `trip.md`. Skipped and logged rather than thrown, so
+    // `getAllEntries` and everything built on it (the trip page, the feed,
+    // the sitemap, the search index) keep serving every other day. B236.
+    let parsed: ReturnType<typeof matter>;
+    try {
+      parsed = matter(raw);
+    } catch (err) {
+      // See `clearMatterCache` above for why this call is here too.
+      clearMatterCache();
+      // First line only: gray-matter quotes the offending source at length,
+      // and a server log is not a terminal either.
+      const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
+      console.warn(`[entries] ${ref}/entries/${file}: its frontmatter could not be parsed: ${why}`);
+      return [];
+    }
+    const { data, content } = parsed;
 
     const slug = entrySlugFromFile(file);
     const country = data.country ?? "";
