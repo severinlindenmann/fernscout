@@ -8,6 +8,8 @@ import { clearUserCache, getUser, listedUsernames } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { SIGNUP_OWNER, issueCode, verifyCode } from "@/lib/auth";
 import { instanceDocumentation } from "@/lib/api/documentation";
+import { firstQuestions } from "@/lib/api/agentCopy";
+import { MAINTAINED_LOCALES } from "@/lib/i18n";
 
 /**
  * B263 — visibility and defaultLocale must be asked, never assumed. B277 —
@@ -239,5 +241,51 @@ describe("what happens once both are answered", () => {
     // The German rendering of `welcome.title` — see test/journals.test.ts,
     // which asserts the same string against `sendWelcome` directly.
     expect(body).toContain("Dein Reisetagebuch ist bereit");
+  });
+});
+
+/**
+ * B307's drift guard. The onboarding script in `firstQuestions()`
+ * (lib/api/agentCopy.ts) tells an agent exactly which values it may offer for
+ * `visibility`, `defaultLocale` and `locales` — the whole point of naming them
+ * inline is that an agent never has to guess and never sends one this route
+ * refuses. This is what keeps that promise true: it reads the same values the
+ * script reads (rather than retyping them) and posts each one for real, so a
+ * change to either side that leaves the other behind fails here first.
+ */
+describe("the journal script cannot offer a value this route refuses", () => {
+  test('the visibility question still asks "public or guest", and this route accepts both', async () => {
+    const question = firstQuestions("https://t.test").find((q) => q.ask.includes("visibility"));
+    expect(question?.ask, "the script must still name the field").toContain("`visibility`");
+    expect(question?.ask, "the script must still ask exactly this").toMatch(/Public or guest/);
+
+    for (const visibility of ["public", "guest"]) {
+      const token = await signupToken(`script-visibility-${visibility}@example.test`);
+      const response = await create(token, {
+        ...BASE,
+        username: `script-vis-${visibility}`,
+        visibility,
+        defaultLocale: "en",
+        locales: ["en"],
+      });
+      expect(response.status, `visibility "${visibility}" must be accepted`).toBe(201);
+    }
+  });
+
+  test("every locale the script names is accepted as defaultLocale and in locales", async () => {
+    // MAINTAINED_LOCALES is the same array `LOCALE_LIST` — and so the
+    // script's fifth and sixth questions — are built from, so this reads the
+    // one source rather than typing the codes a second time.
+    for (const code of MAINTAINED_LOCALES) {
+      const token = await signupToken(`script-locale-${code}@example.test`);
+      const response = await create(token, {
+        ...BASE,
+        username: `script-locale-${code}`,
+        visibility: "public",
+        defaultLocale: code,
+        locales: [code],
+      });
+      expect(response.status, `locale "${code}" must be accepted`).toBe(201);
+    }
   });
 });

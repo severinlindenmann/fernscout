@@ -19,22 +19,32 @@ import { CODE_TTL_MINUTES } from "../auth";
 // The sentences these documents share with /openapi.json, kept in one place so
 // they cannot come to disagree. See the note at the top of that file.
 import {
-  BUDGET_QUESTION,
-  COORDINATES_QUESTION,
   LOCALE_LIST,
-  MEDIA_ENDPOINT_PATH,
   NOT_WRITABLE,
   TITLE_COLLISION_EXAMPLE,
+  PHOTOS_SECOND_CALL,
   PRIVATE_SHUTS_OUT_GUESTS,
-  TRANSLATIONS_REQUIRED,
-  VISIBILITY_CHOICE,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
   asSentence,
+  dayQuestions,
   firstQuestions,
   numeral,
+  scriptIntro,
+  tripQuestions,
   wrap,
+  type FirstQuestion,
 } from "./agentCopy";
+
+// The numbered/tabled rendering of a question script is the same shape for
+// all three flows — see the journal one just below — so it is written once
+// here rather than three times.
+function scriptLines(questions: FirstQuestion[]): string[] {
+  return questions.flatMap((q, i) => {
+    const [head, ...rest] = wrap(`${i + 1}. ${asSentence(q)}`, 78);
+    return [head, ...rest.map((line) => `   ${line}`)];
+  });
+}
 
 /**
  * The document an owner hands to their agent.
@@ -104,19 +114,12 @@ export function instanceDocumentation(): string {
     "",
     "## Before you call anything, ask",
     "",
-    ...wrap(
-      `${numeral(questions.length)} questions. They decide things the person lives with, ` +
-        "and none of them has a default you should pick for them.",
-      78,
-    ),
+    ...wrap(scriptIntro(questions.length), 78),
     "",
     // Rendered from the same list the guide renders as a table — see
     // lib/api/agentCopy.ts. Two hand-written copies of this is how the two
     // documents come to disagree about what an agent should ask.
-    ...questions.flatMap((q, i) => {
-      const [head, ...rest] = wrap(`${i + 1}. ${asSentence(q)}`, 78);
-      return [head, ...rest.map((line) => `   ${line}`)];
-    }),
+    ...scriptLines(questions),
     "",
     // The lead-in exists to give "Neither" an antecedent: after a list whose
     // last item is about somebody's name, a bare pronoun points at nothing.
@@ -200,9 +203,15 @@ export function instanceDocumentation(): string {
       "A fresh journal holds nothing to read yet. Three more calls — a trip, a " +
         "day, and the publish that puts it on the site — are the minimum that gets " +
         "something onto it, worth having here rather than only behind a second " +
-        "fetch:",
+        "fetch. Ask before the first two; here is what to ask.",
       78,
     ),
+    "",
+    ...wrap(scriptIntro(tripQuestions().length), 78),
+    "",
+    ...scriptLines(tripQuestions()),
+    "",
+    ...wrap(NOT_WRITABLE, 78),
     "",
     "```http",
     `POST ${base()}/api/v1/their-name/trips`,
@@ -212,21 +221,11 @@ export function instanceDocumentation(): string {
     '{"id": "japan-2027", "title": "Japan", "start": "2027-04-01", "end": "2027-05-15"}',
     "```",
     "",
-    ...wrap(
-      "`id`, `title`, `start` and `end` are all required — a trip without dates " +
-        "would sit on disk and nowhere a reader could find it. Created at this " +
-        "journal's own default — never wider than that — unless you say otherwise; " +
-        "ask before making somebody's journey more open than the journal already is.",
-      78,
-    ),
+    ...wrap(scriptIntro(dayQuestions().length), 78),
     "",
-    ...wrap(BUDGET_QUESTION, 78),
+    ...scriptLines(dayQuestions()),
     "",
-    ...wrap(COORDINATES_QUESTION, 78),
-    "",
-    ...wrap(TRANSLATIONS_REQUIRED, 78),
-    "",
-    ...wrap(NOT_WRITABLE, 78),
+    ...wrap(PHOTOS_SECOND_CALL, 78),
     "",
     "```http",
     `POST ${base()}/api/v1/their-name/trips/japan-2027/days`,
@@ -238,9 +237,7 @@ export function instanceDocumentation(): string {
     "```",
     "",
     ...wrap(
-      "`title`, `date` and `content` are required; location, cost and photographs " +
-        `(\`POST ${base()}${MEDIA_ENDPOINT_PATH}\`) are optional and are in the guide. ` +
-        "This always writes a **draft**: there is no `\"status\"` field you can send, " +
+      "This always writes a **draft**: there is no `\"status\"` field you can send, " +
         "and nothing here is on the site yet. The reply carries the `slug` the day " +
         "was filed under — take it from there rather than guessing it from the " +
         `title, which is not always what a title reduces to. ${TITLE_COLLISION_EXAMPLE} ` +
@@ -493,8 +490,7 @@ into anything else as fact.
 
 ## Ask these ${numeral(questions.length).toLowerCase()} things first
 
-Before any call. Each decides something the person lives with, and none has a
-default you should pick for them.
+${scriptIntro(questions.length)}
 
 | Ask | Because |
 | --- | --- |
@@ -923,7 +919,15 @@ Authorization: Bearer fs_agent_…
 \`\`\`
 
 A day needs a trip to live in. If there is none yet, make one — only the
-journal's owner can, and a trip-scoped token cannot:
+journal's owner can, and a trip-scoped token cannot. ${scriptIntro(tripQuestions().length)}
+
+| Ask | Because |
+| --- | --- |
+${tripQuestions().map((q) => `| ${q.ask} | ${q.because} |`).join("\n")}
+
+${wrap(PRIVATE_SHUTS_OUT_GUESTS).join("\n")}
+
+${wrap(NOT_WRITABLE).join("\n")}
 
 \`\`\`http
 POST ${site.url}/api/v1/${example}/trips
@@ -934,35 +938,12 @@ Content-Type: application/json
  "visibility": "private"}
 \`\`\`
 
-\`start\` and \`end\` are required: a trip without both is skipped when the site
-reads it, so it would exist on disk and nowhere a reader could find it. If you
-wrote a \`trip.md\` yourself rather than posting here, read the list back — a
-folder the site refused comes back under \`malformed\`, saying what is wrong
-with it, instead of quietly not being there. They
-also decide the trip's status — a trip whose \`start\` has passed shows its days,
-one whose \`start\` is still ahead shows a countdown — so there is no
-\`"status"\` to send unless this is the trip the bare \`/${example}\` URLs should
-serve, which is \`"status": "current"\`.
-
-${wrap(VISIBILITY_CHOICE).join("\n")}
-
-${wrap(PRIVATE_SHUTS_OUT_GUESTS).join("\n")}
-
-Omit \`visibility\` and the trip inherits this journal's own answer —
-\`public\` in a \`public\` journal, \`guest\` in a \`guest\` one — so a forgotten
-field is never wider than the journal already is. A value this server does
-not recognise falls back to \`private\` instead, the narrowest state there is.
-Neither is an answer: ask, and send what they chose. Publishing somebody's
-journey is their decision, so never send \`"visibility": "public"\` without
-having asked for it in words.
-
-${wrap(BUDGET_QUESTION).join("\n")}
-
-${wrap(TRANSLATIONS_REQUIRED).join("\n")}
-
-${wrap(NOT_WRITABLE).join("\n")}
-
-${wrap(COORDINATES_QUESTION).join("\n")}
+If you wrote a \`trip.md\` yourself rather than posting here, read the list
+back — a folder the site refused comes back under \`malformed\`, saying what is
+wrong with it, instead of quietly not being there. \`start\` also decides the
+trip's status — passed shows its days, still ahead shows a countdown — so
+there is no \`"status"\` to send unless this is the trip the bare
+\`/${example}\` URLs should serve, which is \`"status": "current"\`.
 
 \`"costsVisibility": "guests"\` is the separate question of the money, and only
 of the money: among the readers already allowed to open the trip, it keeps what
@@ -989,6 +970,14 @@ told.
 There is no \`cover\`. A trip has no photographs when it is created — media is
 attached to a day, and there are no days yet — so a cover is a line somebody
 adds to \`trip.md\` once the pictures are in.
+
+${scriptIntro(dayQuestions().length)}
+
+| Ask | Because |
+| --- | --- |
+${dayQuestions().map((q) => `| ${q.ask} | ${q.because} |`).join("\n")}
+
+${wrap(PHOTOS_SECOND_CALL).join("\n")}
 
 \`\`\`http
 POST ${site.url}/api/v1/${example}/trips/<trip-id>/days
@@ -1031,9 +1020,8 @@ one. The full schema, with the shape of each nested item, is in
 | \`test\` | \`true\` when this day did not happen. See **The one rule**. |
 | \`idempotency_key\` | Names this one write — see below. |
 
-There is no \`gallery\` field and no \`status\` field. Photographs go to
-\`POST ${site.url}${MEDIA_ENDPOINT_PATH}\` (below), which puts them in the day
-for you; and what this writes is always a draft.
+There is no \`gallery\` field and no \`status\` field — photographs are attached
+separately, above, and what this writes is always a draft.
 
 **The slug comes from the title, and no two days in a trip may share one.** A
 slug is a day's address inside its trip, so a second day holding one could
