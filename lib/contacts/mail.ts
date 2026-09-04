@@ -238,11 +238,15 @@ export async function notifyOwnerOfRequest(
   const trip = await buddyTripFor(username, contact);
   const bodyVars = { name: contact.name ?? contact.email, email: contact.email, trip: trip?.title ?? "" };
   const bodyKey = trip ? "contact.mailRequestBuddyBody" : "contact.mailRequestBody";
+  // B362 — the subject calling this a follow request was the other half of
+  // what B349 fixed in the body; a buddy link is asking to write, not to
+  // follow.
+  const subjectKey = trip ? "contact.mailRequestBuddySubject" : "contact.mailRequestSubject";
   try {
     const result = await sendMail(
       renderMail(
         user.owner.email,
-        translateIn(locale, "contact.mailRequestSubject", { title: user.title }),
+        translateIn(locale, subjectKey, { title: user.title, trip: trip?.title ?? "" }),
         {
           preheader: translateIn(locale, bodyKey, bodyVars),
           title: translateIn(locale, "contact.mailRequestTitle"),

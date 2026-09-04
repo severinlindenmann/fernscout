@@ -132,6 +132,8 @@ export default async function ContactsAdminPage({
         // address, so the form stops asking for one — `lib/capabilities.ts`
         // decides, same as everywhere else this reads.
         postcardsEnabled={isEnabled("postcards", username)}
+        // B376: same reasoning, for the phone hint's own mention of WhatsApp.
+        whatsappEnabled={isEnabled("whatsapp", username)}
       />
     </div>
   );

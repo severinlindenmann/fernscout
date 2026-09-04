@@ -124,6 +124,8 @@ export default async function RedeemPage({
       // address, so the form stops asking for one — the same check every
       // other capability on this site is gated on.
       postcardsEnabled={isEnabled("postcards", username)}
+      // B376: same reasoning, for the phone hint's own mention of WhatsApp.
+      whatsappEnabled={isEnabled("whatsapp", username)}
     />
   );
 }

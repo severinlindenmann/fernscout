@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { codeConfirmErrorKey } from "@/lib/contacts/codeConfirmError";
-import { LOCALE_LABEL, translate, type TranslationKey } from "@/lib/i18n";
+import { LOCALE_LABEL, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
 /**
@@ -50,6 +50,7 @@ export default function ContactForm({
   initialName = "",
   inviteToken,
   postcardsEnabled = true,
+  whatsappEnabled = true,
 }: {
   username: string;
   journalTitle: string;
@@ -69,6 +70,10 @@ export default function ContactForm({
    * the one test that predates this capability check keeps rendering the
    * fieldset it asserts against. */
   postcardsEnabled?: boolean;
+  /** B376: whether this server can act on a WhatsApp update at all —
+   * `isEnabled("whatsapp", username)`. Only changes the phone hint's wording;
+   * the checkbox itself is unconditional (see the note above it). */
+  whatsappEnabled?: boolean;
 }) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [step, setStep] = useState<Step>("form");
@@ -271,7 +276,9 @@ export default function ContactForm({
               value={address.tel}
               onChange={(e) => setTel(e.target.value)}
             />
-            <p className="mt-2 text-base text-navy-600">{t("contact.telHint")}</p>
+            <p className="mt-2 text-base text-navy-600">
+              {t(telHintKey("reader", postcardsEnabled, whatsappEnabled))}
+            </p>
           </div>
 
           {postcardsEnabled && (
