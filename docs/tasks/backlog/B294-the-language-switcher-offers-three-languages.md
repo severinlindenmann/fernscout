@@ -43,27 +43,49 @@ Two honest readings, and choosing between them is the work:
 
 ## Work
 
-Decide which, then do the smaller thing that follows. Do not build translation
-before the decision — a `translations` block on every entry is a large change
-to the content model and to every reading path, and it is the wrong first move
-if the answer is that prose stays in one language.
+**Decided by the owner on 2026-09-04: a day carries its prose in every language
+the journal declares.** If a journal enables three languages, a day is written
+in three. The switcher stops over-promising by the content catching up, not by
+the promise being trimmed.
 
-If **the switcher over-promises**: say what `locales` covers, in both generated
-documents and in B277's creation question, so an owner choosing three languages
-knows what they are choosing. Consider whether the switcher should say so too —
-a reader who switches and sees German prose currently has no explanation.
+This resolves the tension in the Why in the only way that does not licence
+invention. An agent still may not translate a person's memoir — the rule is
+unchanged and absolute: **the other languages come from the owner, in their own
+words, or they do not come.** What changes is that a journal declaring three
+languages is understood as a commitment to write three, and the remedy for an
+owner who writes only German is to declare only German — `PATCH
+/api/v1/<user>/config` accepts `locales`, so that is a one-call correction
+rather than a rebuild (B277 made it a deliberate choice at creation, and B220
+made it changeable afterwards).
 
-If **days should be translatable**: it is a `translations` block per entry
-mirroring the trip's, refused for a language the journal does not declare (as
-`lib/tripWrite.ts:324` already does), plus a reading path that falls back to
-the written language rather than showing nothing. And the rule that matters
-more than the schema: an agent writes a translation only from words the owner
-gave it in that language. An empty translation beats an invented one — the same
-rule as every other field.
+- **A `translations` block per entry**, mirroring the trip's in
+  `lib/tripWrite.ts:315-340`: keyed by locale, refused for a language the
+  journal does not declare — that refusal already exists for trips and should
+  read the same way here.
+- **Which fields.** `title` and `content` at least, since those are the prose.
+  Decide about `location` and `tags` by reading how they are rendered and
+  searched; a tag translated in one language and not another may break the tag
+  index, so check before including them.
+- **Reading path with a fallback.** A reader on a language a day does not carry
+  sees the language it was written in, never an empty page. Say which language
+  they are reading if it is not the one they asked for — a reader who switched
+  and got German prose with no explanation is the defect this ticket opened
+  with.
+- **Refusing a day that omits a declared language is a decision, not an
+  obvious yes.** B263 and B277 both showed that what an agent may omit, it
+  omits — which argues for requiring all declared locales. Against: a day
+  half-written at the roadside, in one language, is a real thing an owner
+  wants saved. Weigh a refusal against accepting the day and reporting plainly
+  which languages are missing, in the write response, so the agent tells its
+  owner rather than the gap being silent. Whichever is chosen, write the
+  reasoning down — and if the answer is "accept and report", the reporting is
+  not optional, because it is the whole safeguard.
+- **Both documents**, including the day-fields table and the creation question
+  B277 added, so an owner choosing three languages is told what it commits them
+  to at the moment they choose.
 
-Check what `lib/entries.ts` and the day reading paths would need before
-estimating either; the schema is the small part.
-
+Read `lib/entries.ts` and every day reading path before estimating. The schema
+is the small part; the fallback and the search and feed paths are not.
 ## Acceptance
 
 Either the documents and the creation question say plainly what `locales`
