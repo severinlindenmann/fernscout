@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BookOpen } from "lucide-react";
 import CopyLine from "@/components/CopyLine";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
@@ -210,17 +211,28 @@ export default function Landing({
             {t("landing.selfHost")}
           </h2>
           <p className="mt-2 text-sm leading-6 text-navy-700">{t("landing.selfHostBody")}</p>
-          {repository && (
-            <a
-              href={repository}
-              className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-navy-900
+          <div className="mt-3 flex flex-col gap-2">
+            {repository && (
+              <a
+                href={repository}
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-navy-900
+                           underline decoration-blue-500 decoration-2 underline-offset-4
+                           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              >
+                <GithubMark className="h-4 w-4" />
+                {t("landing.source")}
+              </a>
+            )}
+            <Link
+              href="/api/docs"
+              className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-navy-900
                          underline decoration-blue-500 decoration-2 underline-offset-4
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             >
-              <GithubMark className="h-4 w-4" />
-              {t("landing.source")}
-            </a>
-          )}
+              <BookOpen className="h-4 w-4" />
+              {t("landing.apiDocs")}
+            </Link>
+          </div>
         </div>
       </section>
 

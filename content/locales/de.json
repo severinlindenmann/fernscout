@@ -291,6 +291,7 @@
   "invite.submit": "Um Zutritt bitten",
   "invite.waitingBody": "{title} weiß Bescheid. Du bekommst eine E-Mail, sobald du freigeschaltet bist.",
   "invite.waitingTitle": "Du stehst auf der Liste",
+  "landing.apiDocs": "API-Referenz",
   "landing.copied": "Kopiert",
   "landing.copy": "Link kopieren",
   "landing.copyInstruction": "Anweisung kopieren",
