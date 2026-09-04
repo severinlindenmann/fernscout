@@ -33,10 +33,12 @@ export async function generateMetadata({
 
   // Two independent reasons not to be indexed, and either is enough. The trip
   // on show may be private or unlisted; and the whole journal may be, in which
-  // case no page of it is advertised whatever its trips say.
+  // case no page of it is advertised whatever its trips say. `user.visibility`
+  // is already normalised by `lib/config.ts` — a journal on disk still saying
+  // the old `private` reads back here as `guest`.
   const trip = getCurrentTrip(username);
   const robots =
-    user.visibility === "private" || (trip && !isIndexable(trip))
+    user.visibility === "guest" || (trip && !isIndexable(trip))
       ? { index: false, follow: false }
       : undefined;
 

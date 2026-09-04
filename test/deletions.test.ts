@@ -93,8 +93,8 @@ function makeJournal(username = "anna") {
   return created.username;
 }
 
-function makeTrip(username: string, id = "japan-2027") {
-  const created = createTrip(username, { id, title: "Japan", ...DATES });
+function makeTrip(username: string, id = "japan-2027", visibility?: "public" | "guest" | "private") {
+  const created = createTrip(username, { id, title: "Japan", ...DATES, ...(visibility ? { visibility } : {}) });
   if (!created.ok) throw new Error(created.message);
   return id;
 }
@@ -436,7 +436,11 @@ describe("the link", () => {
 
   test("it hands over the complete export, private trips and drafts included", async () => {
     const user = makeJournal();
-    const trip = makeTrip(user);
+    // Explicit, so this test proves what it claims regardless of B306: a
+    // trip's default now follows its journal (`makeJournal` above leaves it
+    // `public`), so this has to ask for `private` to be the thing an
+    // anonymous export would not otherwise have carried.
+    const trip = makeTrip(user, "japan-2027", "private");
     writeDay(user, trip, "kyoto-in-the-rain");
     await requestDeletion({ kind: "journal", username: user });
     const token = takeToken(user);
@@ -447,8 +451,6 @@ describe("the link", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("application/zip");
     const bytes = Buffer.from(await response.arrayBuffer());
-    // A trip created through the API is private by default, so an anonymous
-    // export would not have carried it at all.
     expect(getTrip(tripRef(user, trip))?.visibility).toBe("private");
     expect(bytes.toString("latin1")).toContain(`trips/${trip}/entries/`);
     // Reading the copy does not spend the link.

@@ -151,11 +151,24 @@ statement about whose trip it was and is rendered from disk. Hand-written
 `people:` is unchanged and is never contradicted by a row.
 
 A **journal** has a `visibility` too, in its own `config.json`, and it is a
-different question: `public` or `private`, meaning only whether this instance
+different question: `public` or `guest`, meaning only whether this instance
 advertises the journal — on `/documentation.txt`, on the landing page, in
-`sitemap.xml`. A private journal is unlisted, not locked; who may read a
+`sitemap.xml`. A `guest` journal is unlisted, not locked; who may read a
 *journey* is still the trip's own gate. Absent means `public`, which is what
 every journal written before W38 is.
+
+It used to be called `private` (B306), and that word is exactly the trap: the
+trip level already has a `private` that means something narrower — only the
+people who were there — and reusing it one level up, for "not advertised",
+is how an owner answers a journal-visibility question with the trip's word
+and an agent has to explain why that was wrong. `guest` reads correctly for
+what the value actually does now, too: it is this journal's own answer for a
+new trip's default (see `add-a-trip` and `lib/tripWrite.ts`), so a `guest`
+journal's trips start out `guest` unless a create call says otherwise, and a
+`public` journal's start out `public`. `"private"` still parses wherever this
+is read from a file or a request — nothing rewrites a journal nobody has
+touched since before the rename — but nothing writes it back out; ask for
+`public` or `guest`.
 
 ## Working in this repository
 

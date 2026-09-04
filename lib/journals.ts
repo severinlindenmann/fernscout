@@ -2,7 +2,14 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { hasSwitchedOff, isEnabled, resolveCapabilities } from "./capabilities";
-import { clearConfigCache, FEATURE_NAMES, type FeatureName, type JournalVisibility, type UserConfig } from "./config";
+import {
+  clearConfigCache,
+  FEATURE_NAMES,
+  normalizeJournalVisibility,
+  type FeatureName,
+  type JournalVisibility,
+  type UserConfig,
+} from "./config";
 import { contentRoot } from "./contentRoot";
 import { normalizeCurrency, type RateTable } from "./currency";
 import { issueStandingLink, signInUrl } from "./auth";
@@ -46,10 +53,14 @@ export type NewJournal = {
   ownerNickname: string;
   /**
    * Whether the journal is advertised — see `JournalVisibility` in
-   * lib/config.ts. Anything unrecognised, including nothing at all, is
-   * `public`: that is what every journal made before the field existed is, and
-   * quietly unlisting somebody who did not ask to be unlisted is its own kind
-   * of surprise. An agent is told to ask; asking is the mechanism.
+   * lib/config.ts. Widened to accept `"private"` too, the word this field
+   * used before B306, normalised the same way it is everywhere else
+   * (`normalizeJournalVisibility`) so this function behaves identically
+   * whichever a caller sends and never writes the old word back out.
+   * Anything unrecognised, including nothing at all, is `public`: that is
+   * what every journal made before the field existed is, and quietly
+   * unlisting somebody who did not ask to be unlisted is its own kind of
+   * surprise. An agent is told to ask; asking is the mechanism.
    *
    * That default is for a direct caller of this function — the caller that
    * reaches it in production, `POST /api/v1/journals`, refuses a request
@@ -57,7 +68,7 @@ export type NewJournal = {
    * Silence reaching this default at all would mean that caller stopped
    * asking.
    */
-  visibility?: JournalVisibility;
+  visibility?: JournalVisibility | "private";
   startLocation?: string;
   /**
    * The owner's own language. Falls back to `"en"` here for the same reason
@@ -123,6 +134,11 @@ export function journalsOwnedBy(email: string): string[] {
 
 export function createJournal(input: NewJournal): CreateJournalResult {
   const username = input.username.trim().toLowerCase();
+  // Normalised once, here, so every later use of `input.visibility` in this
+  // function — the file written, and the value handed back — agrees, and so
+  // a caller that still sends the old word gets exactly what one sending
+  // `"guest"` gets. See `normalizeJournalVisibility`.
+  const visibility = normalizeJournalVisibility(input.visibility) ?? "public";
 
   if (!isValidUsername(username)) {
     return {
@@ -240,11 +256,13 @@ export function createJournal(input: NewJournal): CreateJournalResult {
     // split mangles any name whose given name is not first, so there is no
     // safe guess to fall back to — the caller must ask.
     owner: { name: ownerName, nickname: ownerNickname, email: ownerEmail },
-    // Written only when it is `private`. A file that says `"visibility":
-    // "public"` on every journal makes the field look like something you set,
-    // when the interesting half is the other one — and the owner reading their
-    // own config should find the line that is doing something.
-    ...(input.visibility === "private" ? { visibility: "private" } : {}),
+    // Written only when it is `guest`, and never as the old word `private`
+    // even when that is what the caller sent — see `normalizeJournalVisibility`.
+    // A file that says `"visibility": "public"` on every journal makes the
+    // field look like something you set, when the interesting half is the
+    // other one — and the owner reading their own config should find the
+    // line that is doing something.
+    ...(visibility === "guest" ? { visibility: "guest" } : {}),
     ...(input.startLocation?.trim() ? { startLocation: input.startLocation.trim() } : {}),
     defaultLocale: input.defaultLocale ?? "en",
     locales: input.locales?.length ? input.locales : [input.defaultLocale ?? "en"],
@@ -300,7 +318,7 @@ export function createJournal(input: NewJournal): CreateJournalResult {
   clearUserCache();
   clearConfigCache();
 
-  return { ok: true, username, visibility: input.visibility === "private" ? "private" : "public" };
+  return { ok: true, username, visibility };
 }
 
 /**
@@ -350,8 +368,8 @@ export async function sendWelcome(input: {
    *
    * Without a session this mail invited its reader to look at a page that
    * shows them none of the work that prompted it: an agent has just written
-   * drafts, into a trip that is private by default, and both are invisible to
-   * an anonymous visitor. "You can see what is waiting at any time" followed
+   * drafts, which stay invisible to an anonymous visitor whatever the trip's
+   * own visibility is. "You can see what is waiting at any time" followed
    * by a link that cannot is the wrong first impression to give somebody about
    * their own journal.
    *
@@ -399,7 +417,11 @@ export async function sendWelcome(input: {
             { kind: "paragraph", text: t(signIn ? "welcome.linkNote" : "welcome.addressNote", { url }) },
             {
               kind: "paragraph",
-              text: t(input.visibility === "private" ? "welcome.private" : "welcome.public"),
+              // The translation keys keep their old names — they are
+              // internal identifiers, not the copy a reader sees — but the
+              // copy itself has been reworded for `guest`. See
+              // content/locales/*.json.
+              text: t(input.visibility === "guest" ? "welcome.private" : "welcome.public"),
             },
             { kind: "heading", text: t("welcome.draftsHeading") },
             { kind: "paragraph", text: t("welcome.draftsRule") },
@@ -852,16 +874,22 @@ export function setJournalProfile(
       }
 
       case "visibility": {
-        if (value !== "public" && value !== "private") {
+        // `"private"` — the word this field used before B306 — is still
+        // accepted here and normalised to `guest`, the same as everywhere
+        // else this level's visibility is read or written. See
+        // `normalizeJournalVisibility`.
+        const normalized = normalizeJournalVisibility(value);
+        if (normalized === undefined) {
           return refuse(
             "invalid_visibility",
-            'visibility is "public" or "private", and it decides only whether this server ' +
+            'visibility is "public" or "guest", and it decides only whether this server ' +
               "advertises the journal — on the landing page, in /documentation.txt and in the " +
-              "sitemap. A private journal is unlisted, not locked: who may read a journey is " +
-              "still that trip's own visibility. Ask the person before making a journal public.",
+              "sitemap. A guest journal is unlisted, not locked: who may read a journey is " +
+              "still that trip's own visibility, though it is also this journal's answer for " +
+              "a new trip's own default. Ask the person before making a journal public.",
           );
         }
-        patch.visibility = value;
+        patch.visibility = normalized;
         break;
       }
 

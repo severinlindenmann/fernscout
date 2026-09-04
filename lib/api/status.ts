@@ -88,7 +88,8 @@ function nextStep(drafts: number, trips: number, scoped: boolean): string {
     return scoped
       ? "This token is scoped to a trip that has no days yet. Ask what happened, then write one."
       : "There is no trip to write into yet. Ask about the journey, then POST to " +
-          "`/trips` to make one. A trip is not a draft; its visibility defaults to private.";
+          "`/trips` to make one. A trip is not a draft; if you omit its visibility it " +
+          "defaults to this journal's own answer, never wider — ask rather than relying on it.";
   }
   return (
     "Nothing is waiting. Ask what happened, write it as a draft, and report back — " +

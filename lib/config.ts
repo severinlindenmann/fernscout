@@ -46,20 +46,55 @@ export type Owner = { name: string; nickname: string; email?: string };
  * Whether a journal is advertised at all.
  *
  * `public` is a journal anyone may come across: it is on the instance's
- * `documentation.txt`, on the landing page, and in `sitemap.xml`. `private` is
- * a journal you have to be sent the address of — off all three, and `noindex`.
+ * `documentation.txt`, on the landing page, and in `sitemap.xml`. `guest` is a
+ * journal you have to be sent the address of — off all three, and `noindex`.
+ *
+ * It used to be called `private`, and that is exactly what B306 is about: the
+ * trip level already had a `private` with a stronger, narrower meaning —
+ * "only the people who were there" — and reusing the word one level up for
+ * "not advertised" meant an owner asked which their journal should be heard
+ * `guest`, twice, before an agent worked out the two questions were different.
+ * `guest` is also the more honest name for what the value actually does now:
+ * it is this journal's answer for its trips' own default, the same way a
+ * `guest` trip means "the people let into the journal" (see `lib/tripWrite.ts`).
+ *
+ * `private` is still read, forever, wherever this is parsed from a file or a
+ * request — every journal already on disk may say it, and there is no
+ * migration that rewrites somebody's `config.json` out from under them — but
+ * nothing here ever writes it back out. See `normalizeJournalVisibility`.
  *
  * It is deliberately **not** an authentication wall in front of `/<user>`.
  * Whether a stranger with the URL can read a *journey* is the trip's own
  * `visibility` — `guest` for the people let into the journal, `private` for
  * only the people who were there; putting a second, weaker gate above it would be a
  * privacy control that looks stronger than the one doing the work. What
- * `private` does change is the default a trip created in this journal gets, so
+ * `guest` does change is the default a trip created in this journal gets, so
  * an agent that omits `visibility` cannot put a journey on the open web.
  *
  * Absent means `public`, which is what every journal written before W38 is.
  */
-export type JournalVisibility = "public" | "private";
+export type JournalVisibility = "public" | "guest";
+
+/**
+ * The one place a raw `visibility` value — off a request body or a
+ * `config.json` — becomes one of the two states this level actually has.
+ *
+ * `"private"` is accepted here and nowhere writes it: every caller that reads
+ * this level's visibility, from `lib/config.ts`'s own parser to the create and
+ * patch routes, goes through this function so the three cannot disagree about
+ * what the old word still means (B306's own harm, arriving through a rename,
+ * was exactly three copies of a rule agreeing on two of three cases).
+ *
+ * Returns `undefined` for anything else, including `undefined` itself —
+ * deliberately: silence and a typo are different problems, and a caller that
+ * treats them differently (the parser defaults silence to `public`; a POST
+ * body refuses it) has to be able to tell them apart.
+ */
+export function normalizeJournalVisibility(raw: unknown): JournalVisibility | undefined {
+  if (raw === "public" || raw === "guest") return raw;
+  if (raw === "private") return "guest";
+  return undefined;
+}
 
 export type UserConfig = {
   username: string;
@@ -358,18 +393,21 @@ function parseUser(username: string, raw: unknown, problems: string[]): UserConf
   }
 
   // Absent is `public`, because that is what every journal written before the
-  // field existed is. A value that is neither is a config problem — as `units`
-  // is — and a config problem takes the journal off the site until it is
-  // fixed. The `private` assignment is what the value would be if it ever were
-  // read anyway: a misspelling must never be the thing that advertises
-  // somebody's journal.
+  // field existed is. `"private"` is the word this field used before B306 and
+  // is accepted forever — see `normalizeJournalVisibility` — so a journal
+  // nobody has touched since keeps meaning exactly what it always meant. A
+  // value that is neither is a config problem — as `units` is — and a config
+  // problem takes the journal off the site until it is fixed. The `guest`
+  // fallback below is what the value would be if it ever were read anyway: a
+  // misspelling must never be the thing that advertises somebody's journal.
   const rawVisibility = src.visibility;
   let visibility: JournalVisibility = "public";
   if (rawVisibility !== undefined) {
-    if (rawVisibility === "public" || rawVisibility === "private") visibility = rawVisibility;
+    const normalized = normalizeJournalVisibility(rawVisibility);
+    if (normalized !== undefined) visibility = normalized;
     else {
-      problems.push(`visibility must be "public" or "private", got ${JSON.stringify(rawVisibility)}`);
-      visibility = "private";
+      problems.push(`visibility must be "public" or "guest", got ${JSON.stringify(rawVisibility)}`);
+      visibility = "guest";
     }
   }
 

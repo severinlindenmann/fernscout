@@ -62,8 +62,8 @@ export default function Root() {
   const site = serverSite();
 
   // listedUsernames() rather than getUsernames(): a journal whose config says
-  // `visibility: "private"` is not advertised, and the landing page is the most
-  // advertised surface there is.
+  // `visibility: "guest"` (or the old word, `"private"`) is not advertised,
+  // and the landing page is the most advertised surface there is.
   const journals: PublicJournal[] = listedUsernames().flatMap((username) => {
     const user = getUser(username);
     if (!user) return [];

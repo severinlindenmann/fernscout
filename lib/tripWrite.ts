@@ -496,18 +496,25 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     : calendarStatus({ start: input.start });
   const accent = ACCENTS.includes(input.accent as never) ? input.accent! : "sky";
   /**
-   * Private unless asked otherwise, and this is the one default that is not a
-   * matter of taste.
+   * Silence and a typo are answered differently, and only one of them may
+   * ever come out more open than the journal itself is — B306.
    *
-   * `lib/trips.ts` already reads an unrecognised visibility as private so that
-   * a typo cannot publish somebody's trip. A creation endpoint that defaulted
-   * to public would walk straight past that care: an agent that omits the
-   * field — or misspells it — would put a stranger's journey on the open web,
-   * and there is no un-publishing something a crawler has already read.
+   * Omitting the field inherits the journal's own answer: a `guest` journal
+   * makes `guest` trips, a `public` one makes `public` trips, unless this
+   * call says otherwise. That is a deliberate change from "always private" —
+   * the owner who set their journal to `public` has already said they want
+   * things found, and a trip silently held back from that is its own kind of
+   * surprise (the mirror image of B263). A *typo*, though, is not silence and
+   * gets no such benefit: `lib/trips.ts` already reads an unrecognised
+   * visibility as `private` so that a misspelling cannot publish somebody's
+   * trip, and this falls back the same way — never to the journal's default,
+   * which could be `public`.
    */
   const visibility = VISIBILITIES.includes(input.visibility as never)
     ? input.visibility!
-    : "private";
+    : input.visibility === undefined
+      ? (user.visibility === "guest" ? "guest" : "public")
+      : "private";
 
   /**
    * An unrecognised `costsVisibility` is **refused, not defaulted** — the one
