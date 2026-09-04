@@ -183,12 +183,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B352](in-development/B352-a-trip-s-rates-cannot-be.md) | A trip's rates cannot be set after it is created, but the costs page tells the owner to edit trip.md | ISSUE | high | medium | `62683d95` |
 | [B353](in-development/B353-a-trip-whose-currency-has-no.md) | A trip whose currency has no rate shows CHF 0 everywhere except the costs page | ISSUE | high | low | `62683d95` |
+| [B364](in-development/B364-the-lifetime-map-draws-a-bare.md) | The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries | FEATURE | medium | low | `e8e2ddef` |
 
 ## testing (148)
 
