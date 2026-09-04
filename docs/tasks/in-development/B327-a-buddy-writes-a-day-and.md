@@ -6,8 +6,9 @@ priority: high
 complexity: medium
 area: entries, access, drafts, ui
 found: "2026-09-04T20:34:41Z"
-started: "2026-09-04T18:36:02Z"
-merged: "2026-09-04T18:50:06Z"
+started: "2026-09-04T18:54:18Z"
+session: cae3e4fb-d628-4a89-89b7-43a581bc7e71
+claimed: "2026-09-04T18:54:18Z"
 ---
 
 # B327 — A buddy writes a day and can see it nowhere on the site, because every reading path gates drafts on ownership
