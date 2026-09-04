@@ -7,8 +7,7 @@ complexity: low
 area: contacts, invites
 found: "2026-09-04T19:24:36Z"
 started: "2026-09-04T19:25:01Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T19:25:01Z"
+merged: "2026-09-04T19:36:46Z"
 ---
 
 # B338 — A mailed invitation knows the address it was sent to and asks the reader to type it again
