@@ -7,8 +7,7 @@ complexity: low
 area: api, entries
 found: "2026-09-04T13:48:47Z"
 started: "2026-09-04T13:49:17Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T13:49:17Z"
+merged: "2026-09-04T13:54:57Z"
 ---
 
 # B296 — The days listing hides drafts from the only caller allowed to see them, so an agent cannot audit its own writes
