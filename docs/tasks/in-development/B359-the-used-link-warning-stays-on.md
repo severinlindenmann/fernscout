@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: auth
 found: "2026-09-04T19:57:28Z"
+started: "2026-09-04T21:05:05Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-04T21:05:05Z"
 ---
 
 # B359 — The used-link warning stays on the access page after a successful sign-in

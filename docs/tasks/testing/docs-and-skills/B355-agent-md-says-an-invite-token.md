@@ -7,8 +7,7 @@ complexity: low
 area: agent guide
 found: "2026-09-04T19:57:27Z"
 started: "2026-09-04T20:56:15Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-04T20:56:15Z"
+merged: "2026-09-04T21:05:02Z"
 ---
 
 # B355 — agent.md says an invite token is only stored hashed and can never be shown again, which B280 changed

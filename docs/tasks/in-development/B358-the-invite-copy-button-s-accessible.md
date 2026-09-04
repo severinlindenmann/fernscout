@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: a11y
 found: "2026-09-04T19:57:28Z"
+started: "2026-09-04T21:05:04Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-04T21:05:04Z"
 ---
 
 # B358 — The invite copy button's accessible name ends in two dangling em-dashes and reports no success

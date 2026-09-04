@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: api
 found: "2026-09-04T19:57:27Z"
+started: "2026-09-04T21:05:03Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-04T21:05:03Z"
 ---
 
 # B356 — Reading a day back omits its translations, so an agent cannot verify the ones it wrote
