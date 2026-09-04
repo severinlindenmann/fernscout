@@ -8,6 +8,7 @@ area: journals, api, signup
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-04T06:38:46Z"
 ---
 
 # B32 — A taken username answers 409 with no route onward for somebody who already owns it

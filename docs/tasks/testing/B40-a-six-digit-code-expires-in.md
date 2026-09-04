@@ -84,3 +84,41 @@ change is one line.
   six digits safe.
 - The existing auth tests pass unchanged — none of them should depend on the
   specific TTL, and if one does, that is worth knowing.
+
+## Live verification, 2026-09-04 (deployed d564bce) — FAILS on one stale string
+
+The behaviour is right. Two agent codes were issued in the same second and
+verified at different offsets:
+
+```
++25 min  POST /api/auth/verify (xydhd-qa2, code 567992)  -> 200, token issued
++35 min  POST /api/auth/verify (xydhd-qa1, code 449032)  -> 401 invalid_code
+```
+
+A clean 25-yes / 35-no. The mail says "It works for 30 minutes", `/agent.md:210`
+says 30, the locale strings are parameterised on `{minutes}` and rendered from
+`CODE_TTL_MINUTES`, and `generateCode`'s comment now credits the attempt counter
+rather than the clock.
+
+**One document still says ten minutes, and it is the machine-readable one:**
+
+```
+app/openapi.json/route.ts:259
+  code: { type: "string", description: "Six digits. Ten minutes, single use." }
+```
+
+Served live at `https://fernscout.ch/openapi.json`, under
+`POST /api/auth/verify` → `requestBody` → `code`.
+
+That is the acceptance bullet "no mail or document still tells anybody the code
+lasts ten minutes", unmet. It matters more than its size suggests: the OpenAPI
+document is what an agent reads to decide how long it may wait before telling a
+person their code is dead — and the stated point of this fix was that the number
+is published from the constant that enforces it. A hard-coded literal in the
+schema defeats exactly that. **Interpolate it from `CODE_TTL_MINUTES`** rather
+than correcting the digit, or the next change to the TTL will miss it again;
+this is already the third sweep to leave a literal behind.
+
+Secondary, in-repo and not served: `docs/archiv/providers/mcp.md:163` still says
+"it lasts ten minutes". Archived, but it is the MCP guide `AGENTS.md` names.
+
