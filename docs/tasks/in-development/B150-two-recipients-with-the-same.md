@@ -79,3 +79,54 @@ slug rule.
   cards, and the run says so.
 - A batch with no repeated names produces exactly the filenames it does today.
 - A test covering both, alongside the B86 cases in `test/postcard.test.ts`.
+
+## What was built
+
+**The narrow fix, and the Work section's two options are the reason.**
+Numbering every card `01-anna-meier.pdf` was the honest option and it renames
+every file anybody has generated; B86's acceptance — "recipients with Latin
+names keep the filenames they get today" — is the promise kept instead, and
+B202 lands in the same function with the same promise. So a name is claimed by
+whoever holds it first in the list, and only a second claimant is numbered.
+
+`recipientBases(names: string[])` in `lib/postcard/filename.ts` is the new
+entry point: it names a *batch* rather than one recipient, because collision is
+a property of the batch and `recipientBase` cannot see one. It returns the
+name, the base, the base that was wanted, and whether the two differ.
+`recipientBase` stays exactly as it was, and is what the batch function asks
+for each name; its docstring now says which of the two a run should call.
+
+The suffix counts up past whatever is taken rather than stopping at `-2`, so a
+hand-written "Anna Meier 2" further down the list is pushed to
+`anna-meier-2-2` rather than being written over. Ugly and rare, and the
+alternative is the defect this task is about. Deterministic: the same JSON in
+produces the same filenames out, which is what somebody re-rendering a batch
+after fixing one address needs.
+
+**The run says so**, which the Work section asked for:
+
+```
+  Anna Meier -> content/example/postcards/anna-meier.pdf
+  Anna Meier -> content/example/postcards/anna-meier-2.pdf
+      ~ renamed: another recipient in this batch is already anna-meier.pdf
+  Anna Straßer -> content/example/postcards/anna-strasser.pdf
+  Δημήτρης Παπαδόπουλος -> content/example/postcards/recipient-4.pdf
+
+1 card(s) were renamed because two recipients share a name.
+Check the lines marked ~ above before posting them: the files are distinct,
+but only the address inside says which card belongs to whom.
+```
+
+That is a real `npm run postcard` against the example journal with the
+`dry-run` backend — sixteen files for four recipients, where the old code left
+twelve and reported four names.
+
+Five tests in `test/postcard.test.ts`, all red before the change: the
+collision, the untouched batch (asserted against `recipientBase` itself, so
+the B86 promise cannot drift), the suffix walking past a taken name, the
+same-list-twice determinism, and two empty slugs still not colliding.
+
+**Found while here, filed rather than absorbed:** B218 (the run reports three
+files per recipient and writes four) and B219 (this script and the photobook
+one write to `process.cwd()/content` rather than `contentRoot()`, which on the
+deployed server puts postal addresses outside the backup — B111's shape).

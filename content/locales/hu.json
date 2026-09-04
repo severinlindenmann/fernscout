@@ -2,6 +2,7 @@
   "a11y.closePhoto": "Bezárás",
   "a11y.nextPhoto": "Következő fénykép",
   "a11y.openPhoto": "Fénykép megnyitása",
+  "a11y.photoPosition": "{count} fénykép közül a(z) {index}.",
   "a11y.photoViewer": "Fényképnézegető",
   "a11y.prevPhoto": "Előző fénykép",
   "a11y.skipToContent": "Ugrás a tartalomra",

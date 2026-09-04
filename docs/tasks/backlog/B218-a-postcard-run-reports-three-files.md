@@ -1,0 +1,41 @@
+---
+id: B218
+title: A postcard run reports three files per recipient and writes four
+type: ISSUE
+priority: low
+complexity: low
+area: postcards, scripts
+found: "2026-09-04T06:40:11Z"
+---
+
+# B218 — A postcard run reports three files per recipient and writes four
+
+## Why
+
+Noticed while building **B150**, and deliberately not absorbed into it.
+
+`scripts/postcard.ts` writes four files for every recipient — `<base>.pdf`,
+`-front.pdf`, `-back.pdf` and `-stannp-request.json` — and then says:
+
+```
+Wrote 12 file(s) to content/example/postcards/
+```
+
+for a batch of four. The count is `recipients.length * 3` and has been since
+the request JSON was added beside the PDFs. `ls` shows sixteen.
+
+Small, and worth saying how small: nothing is lost and nothing is misfiled.
+The cost is that the one line a person uses to check a run against the folder
+they are about to hand to a printer does not match the folder, which is the
+one job that line has. It is also the line somebody would check first if a
+card really were missing — which is the failure B86 and B150 both describe.
+
+## Work
+
+Count what was written rather than multiplying, so the number cannot drift
+again the next time a file joins the set.
+
+## Acceptance
+
+- A run of N recipients reports the number of files `ls` finds in the output
+  folder for that run.

@@ -2,6 +2,7 @@
   "a11y.closePhoto": "Close",
   "a11y.nextPhoto": "Next photo",
   "a11y.openPhoto": "Open the photo",
+  "a11y.photoPosition": "Photo {index} of {count}",
   "a11y.photoViewer": "Photo viewer",
   "a11y.prevPhoto": "Previous photo",
   "a11y.skipToContent": "Skip to content",

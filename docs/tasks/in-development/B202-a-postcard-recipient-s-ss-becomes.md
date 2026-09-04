@@ -63,3 +63,37 @@ the other two already have.
 - The B86 promise holds: recipients with plain Latin names keep the filenames
   they get today.
 - A case alongside the B86 and B150 ones in `test/postcard.test.ts`.
+
+## What was built
+
+One line, where B151 put its: `.replace(/ß/g, "ss")` after `toLowerCase()` and
+before the NFD pass in `lib/postcard/filename.ts`. `slug("Straße")` was
+`stra-e` and is `strasse`; a recipient called Anna Straßer gets
+`anna-strasser.pdf` rather than `anna-stra-er.pdf`, verified by an actual
+dry-run batch:
+
+```
+  Anna Straßer -> content/example/postcards/anna-strasser.pdf
+```
+
+The test is red against the old function and green against the new one —
+`expected 'stra-e' to be 'strasse'` — and it sits with the B86 cases in
+`test/postcard.test.ts`. A second test pins the divergence the Why says to
+leave alone: `slug("Grüße vom Weg")` is `grusse-vom-weg` and must not contain
+`gruesse`, so a later well-meant unification with `lib/slug.ts` has to argue
+with a test rather than slip through. The docstring now carries that reasoning
+where the next reader will be standing, as B151's does.
+
+**The shared helper was considered and not built.** B150 and this task are the
+same function seen twice, so the two are fixed together, but `lib/mail/index.ts`
+and this file are still two copies of one rule. Merging them would be the
+fourth time the question is asked and the fourth answer would be the same:
+B77 rejected it, B86 and B151 restated why, and the copies genuinely differ —
+mail falls back to `"mail"` and truncates at 60, a postcard falls back to its
+position in the batch (B86) and does not truncate. A shared function would
+take both as parameters, which is the weaker guarantee B77 named. What the
+copies now share is the *rule* — spell `ß`, then strip the accents — and each
+docstring says the other exists.
+
+`recipientBase("ANNA STRAßER", 0)` is covered too: `toLowerCase()` runs first,
+so a capital `ẞ` reaches the expansion as `ß`.

@@ -3,9 +3,10 @@
 import { useCallback, useState } from "react";
 import Image from "next/image";
 import { mediaLoader } from "./mediaLoader";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { useI18n } from "./LocaleProvider";
-import { useLightbox } from "./useLightbox";
+import FullPhoto from "./FullPhoto";
+import Lightbox from "./Lightbox";
 import type { GalleryItem } from "@/lib/types";
 
 // Alternating tilt gives the polaroid grid a scattered, hand-placed feel
@@ -26,7 +27,7 @@ export default function Gallery({ items }: { items: GalleryItem[] }) {
     [items.length],
   );
 
-  const dialog = useLightbox({ open: openIndex !== null, onClose: close, onPrev: prev, onNext: next });
+  const open = openIndex === null ? null : items[openIndex];
 
   if (items.length === 0) return null;
 
@@ -89,79 +90,27 @@ export default function Gallery({ items }: { items: GalleryItem[] }) {
         ))}
       </div>
 
-      <AnimatePresence>
-        {openIndex !== null && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            {...dialog}
-            aria-label={t("a11y.photoViewer")}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-navy-900/95 p-4 outline-none backdrop-blur-sm"
-            onClick={close}
-          >
-            <button
-              aria-label={t("a11y.closePhoto")}
-              className="absolute right-4 top-4 text-3xl text-white/80 hover:text-white"
-              onClick={close}
-            >
-              ×
-            </button>
-            <button
-              aria-label={t("a11y.prevPhoto")}
-              className="absolute left-2 top-1/2 -translate-y-1/2 px-3 py-6 text-3xl text-white/70 hover:text-white sm:left-4"
-              onClick={(e) => {
-                e.stopPropagation();
-                prev();
-              }}
-            >
-              ‹
-            </button>
-            <button
-              aria-label={t("a11y.nextPhoto")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-6 text-3xl text-white/70 hover:text-white sm:right-4"
-              onClick={(e) => {
-                e.stopPropagation();
-                next();
-              }}
-            >
-              ›
-            </button>
-
-            <motion.div
-              key={openIndex}
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2 }}
-              className="relative max-h-[80vh] w-full max-w-4xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {items[openIndex].type === "video" ? (
-                <video
-                  src={items[openIndex].src}
-                  className="max-h-[80vh] w-full rounded-lg"
-                  controls
-                  autoPlay
-                />
-              ) : (
-                // Full-bleed lightbox image at unknown intrinsic ratio — plain img keeps this simple.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={items[openIndex].src}
-                  // The caption is printed below the picture.
-                  alt=""
-                  className="max-h-[80vh] w-full rounded-lg object-contain"
-                />
-              )}
-              {items[openIndex].caption && (
-                <p className="mt-3 text-center font-display text-base italic text-white/90">
-                  {items[openIndex].caption}
-                </p>
-              )}
-            </motion.div>
-          </motion.div>
+      <Lightbox
+        index={openIndex}
+        count={items.length}
+        onClose={close}
+        onPrev={prev}
+        onNext={next}
+        // A clip owns the pointer: dragging across it is dragging its scrubber.
+        swipeable={open?.type !== "video"}
+      >
+        {open && (
+          <>
+            <FullPhoto item={open} />
+            {open.caption && (
+              <p className="mt-3 text-center font-display text-base italic text-white/90">
+                {open.caption}
+              </p>
+            )}
+          </>
         )}
-      </AnimatePresence>
+      </Lightbox>
+
     </div>
   );
 }
