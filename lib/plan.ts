@@ -2,7 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import { getAllEntries, getPlaces, type ReadOptions } from "./entries";
+import { clearMatterCache, getAllEntries, getPlaces, type ReadOptions } from "./entries";
 import { hasHappened } from "./tripTime";
 import { tripDir } from "./trips";
 import type { PlanProgress, PlannedStop } from "./types";
@@ -66,7 +66,25 @@ export function getPlan(tripId: string, options: ReadOptions = {}): PlanProgress
 
 /** The hand-written route from plan.md, each stop marked reached or not. */
 function readPlanFile(file: string, tripId: string): PlannedStop[] {
-  const { data } = matter(fs.readFileSync(file, "utf8"));
+  // A plan.md whose frontmatter will not parse must not take the trip page,
+  // the map, or the photobook down with it — the plan is a nice-to-have
+  // layer over them, per getPlan's own doc comment above. Skipped and
+  // logged rather than thrown, same shape as readAllEntries (lib/entries.ts,
+  // B236).
+  let parsed: ReturnType<typeof matter>;
+  try {
+    parsed = matter(fs.readFileSync(file, "utf8"));
+  } catch (err) {
+    // See `clearMatterCache`'s doc comment (lib/entries.ts) for why this
+    // call is not optional here: matter() caches a parse by raw content
+    // before it parses, so a throwing call leaves a stale, non-throwing
+    // result under this file's bytes for the next reader to find. B312.
+    clearMatterCache();
+    const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    console.warn(`[plan] ${file}: its frontmatter could not be parsed: ${why}`);
+    return [];
+  }
+  const { data } = parsed;
   const raw = Array.isArray(data.route) ? (data.route as RawStop[]) : [];
 
   // A plan.md that parses to nothing is the failure worth naming: the file

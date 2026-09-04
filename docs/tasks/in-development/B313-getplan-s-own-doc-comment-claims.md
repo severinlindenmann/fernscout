@@ -57,3 +57,28 @@ already ruled out.
   `getPlan` returns `{ stops: [], reachedCount: 0, next: undefined }` rather
   than throwing, and that a warning was logged.
 - `npm run verify` passes.
+
+## Done
+
+Fixed as specified: `readPlanFile` (`lib/plan.ts`) now wraps the `matter()`
+call in `try`/`catch`, calls `clearMatterCache()` and `console.warn`s with the
+file path and gray-matter's first error line, then returns `[]` — same shape
+as `readAllEntries` (B236). The existing "no usable `route:` list" warning
+below it is untouched; it only fires once parsing has already succeeded, so
+the two never both fire for the same file.
+
+New test `test/malformed-plan.test.ts`, following the naming and shape of
+`test/malformed-entries.test.ts` / `test/malformed-trips.test.ts`: a
+`plan.md` with unterminated YAML now reads as `{ stops: [], reachedCount: 0,
+next: undefined }` with a warning logged, a good `plan.md` is unaffected, and
+fixing the file clears the failure without a restart (the cache-clearing
+check B312 cares about). Confirmed the new test throws
+(`YAMLException: unexpected end of the stream...`) against the pre-fix
+`readPlanFile` and passes against the fix.
+
+`npm run verify` passes (build, tsc, eslint, 179 test files / 2629 tests).
+
+While checking the rest of the codebase for the same shape, found a second,
+separate instance in `lib/costs.ts`'s `readCostsFile` — wider blast radius
+than this one, since it also gates the nav's Costs tab across every page of a
+journal. Captured separately as B342 rather than absorbed here.
