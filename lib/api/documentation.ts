@@ -15,11 +15,11 @@ import { TAG_MAX_LENGTH, TRANSPORT_MODES } from "../validate/entry";
 import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
 import { isIndexable } from "../access";
-import { MAINTAINED_LOCALES } from "../i18n";
 import { CODE_TTL_MINUTES } from "../auth";
 // The sentences these documents share with /openapi.json, kept in one place so
 // they cannot come to disagree. See the note at the top of that file.
 import {
+  LOCALE_LIST,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
   asSentence,
@@ -90,11 +90,71 @@ export function instanceDocumentation(): string {
     "",
     "## Then",
     "",
-    "1. Read the guide at " + `${base()}/agent.md` + " — it lists every call, with examples.",
-    "2. If they have no journal yet, make one: signup is in the guide, under",
-    "   **Starting from nothing**. If they have one, request a code for the",
-    "   address that owns it.",
-    "3. Exchange the code for a token. It can write for seven days.",
+    ...wrap(
+      "If they have no journal yet, make one. Three calls, and the first two " +
+        "exist only to prove they can read their own email.",
+      78,
+    ),
+    "",
+    "```http",
+    `POST ${base()}/api/auth/signup/request`,
+    "Content-Type: application/json",
+    "",
+    '{"email": "them@example.com"}',
+    "```",
+    "",
+    "```http",
+    `POST ${base()}/api/auth/signup/verify`,
+    "Content-Type: application/json",
+    "",
+    '{"email": "them@example.com", "code": "123456"}',
+    "```",
+    "",
+    ...wrap(
+      "That returns a token which creates exactly one journal and is spent by " +
+        "doing so — it cannot do anything else, so a taken username is worth " +
+        "correcting rather than starting over:",
+      78,
+    ),
+    "",
+    "```http",
+    `POST ${base()}/api/v1/journals`,
+    "Authorization: Bearer fs_signup_…",
+    "Content-Type: application/json",
+    "",
+    '{"username": "their-name", "title": "Their journal",',
+    ' "ownerName": "Robin Delacroix-Mbeki", "ownerNickname": "Robin",',
+    ' "visibility": "public", "defaultLocale": "de", "locales": ["de", "en"]}',
+    "```",
+    "",
+    "```json",
+    '{"ok": true, "user": "their-name", "url": "' + base() + '/their-name",',
+    ' "token": "fs_agent_…", "expires": "…", "scope": ["write:content"],',
+    ' "next": "POST /api/v1/their-name/trips to create your first trip."}',
+    "```",
+    "",
+    ...wrap(
+      "`username`, `title`, `ownerName` and `ownerNickname` are all required, " +
+        "and none is guessable — ask. The reply carries a write token for the " +
+        "journal it just made, so there is no second code. (It also carries " +
+        "`signIn`: a one-time link for the person, not for you — read the guide " +
+        "before doing anything with it.)",
+      78,
+    ),
+    "",
+    ...wrap(
+      "If they already have a journal, request a code for the address that owns " +
+        `it instead: POST ${base()}/api/auth/request with {"user": "<username>", ` +
+        '"email": "…", "kind": "agent"}, then exchange it the same way, at ' +
+        "/api/auth/verify.",
+      78,
+    ),
+    "",
+    ...wrap(
+      `Read ${base()}/agent.md for everything past this — trips, days, ` +
+        "publishing, deleting, photographs — with a worked example for each.",
+      78,
+    ),
     "",
     "You are the editor here: you write, you publish, you correct. Anything you",
     "create arrives as a **draft** first — not to hold you back, but so the person",
@@ -310,6 +370,12 @@ So "private journal" means *unlisted*, not *locked*. If what they want is a
 journal only invited people can read at all, the answer today is a journal of
 private or guest trips — say that plainly rather than implying more.
 
+**The username is worth the same slowing down.** It is the journal's own
+name, never a trip's, and it is permanent. Never invent one, and never
+illustrate it either — an example inside the question you ask is a
+suggestion, and "asia-2025" is a trip's name that somebody would be stuck
+with as their journal's address.
+
 ## Starting from nothing
 
 If the person you are working for has no journal yet, make one. Three calls,
@@ -344,6 +410,7 @@ Content-Type: application/json
  "ownerNickname": "Robin",
  "visibility": "public",
  "defaultLocale": "de",
+ "locales": ["de", "en"],
  "tagline": "optional"}
 \`\`\`
 
@@ -399,11 +466,20 @@ they can answer instantly. There is no default and there will not be one.
 \`visibility\` is \`"public"\` unless you say otherwise. Ask which they want; see
 the table above for what the two mean.
 
-\`defaultLocale\` is the journal's language — \`${MAINTAINED_LOCALES.join("\`, \`")}\` on this
-instance — and it decides the language of the site's chrome **and of the
-welcome mail this server sends the owner the moment the journal exists**. It
-defaults to \`en\`, so a German journal created without it greets its owner in
-English. Ask, and pass it.
+\`defaultLocale\` is **their** language — ${LOCALE_LIST} on this instance —
+and it decides the language of the site's chrome **and of the welcome mail
+this server sends the owner the moment the journal exists**. It defaults to
+\`en\`, so a German journal created without it greets its owner in English.
+Ask, and pass it.
+
+\`locales\` is a different question: which of those same languages **a
+reader** may switch the journal into — \`["de", "en"]\` above, meaning the
+journal reads in Deutsch or English depending who is looking. It is not the
+owner's own language repeated; their audience is not necessarily the same.
+**Left out, the journal offers only the one language in \`defaultLocale\` —
+no switcher at all**, which is right for an audience who all read that
+language and wrong for one that does not. Ask both; they are not the same
+answer.
 
 The reply carries an **agent token for the journal it just made**, so you can
 go straight on to creating a trip — no second code. It also carries
@@ -411,9 +487,10 @@ go straight on to creating a trip — no second code. It also carries
 created, and if that says \`false\` the mail did not go and you should give them
 the URL yourself.
 
-**Ask them for the username.** It is the address of their site and cannot be
-changed afterwards; picking one for them is the sort of thing they will live
-with for years. Lowercase letters, digits and dashes.
+**Ask them for the username, and never invent or illustrate one.** It is the
+address of their site and cannot be changed afterwards — picking one for
+them, or even offering an example, is the sort of thing they will live with
+for years. Lowercase letters, digits and dashes.
 
 One address may own three journals on this server.
 
