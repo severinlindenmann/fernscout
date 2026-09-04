@@ -11,7 +11,7 @@ import { getTrips } from "@/lib/trips";
 import { isIndexable } from "@/lib/access";
 import { dictionaryFor, installedLocales } from "@/lib/locales";
 import LocaleProvider from "@/components/LocaleProvider";
-import { LOCALE_LABEL } from "@/lib/i18n";
+import { LOCALE_LABEL, translate } from "@/lib/i18n";
 
 /**
  * The landing page.
@@ -196,7 +196,31 @@ describe("the landing page", () => {
    */
   test("the copy button reads in the reader's language", () => {
     const html = renderLanding("de");
-    expect(html).toContain(dictionaryFor("de")["landing.copy"]);
+    expect(html).toContain(dictionaryFor("de")["landing.copyInstruction"]);
     expect(html).not.toContain("Copy link");
+  });
+
+  /**
+   * B254 — what the clipboard hands over has to stand on its own.
+   *
+   * The copied value used to be the bare documentation URL, which pasted into
+   * an agent is an ambiguous instruction: it may fetch it, summarise it, or
+   * ask what to do with it, and the email requirement was page prose that a
+   * copy-paste leaves behind. The clipboard value is inside the click handler
+   * and this suite renders to static markup, so the sentence is asserted from
+   * the dictionary the component interpolates, and the button from the markup.
+   */
+  test("hands over an instruction, not a bare link", () => {
+    const instruction = translate(dictionaryFor("en"), "landing.instruction", {
+      url: "https://fernscout.test/documentation.txt",
+    });
+    expect(instruction).toContain("https://fernscout.test/documentation.txt");
+    expect(instruction).toMatch(/email address I control/i);
+
+    const html = renderLanding();
+    expect(html).toContain("Copy instruction");
+    // The name says what it copies rather than reciting the sentence — the
+    // host, the path and the email line are page text above it. B199.
+    expect(html).toContain('aria-label="Copy instruction"');
   });
 });
