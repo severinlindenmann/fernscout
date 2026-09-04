@@ -10,6 +10,8 @@ import TripProvider from "@/components/TripProvider";
 import { siteSummary, travellersOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripStory from "@/app/TripStory";
+import { defaultLocaleFor, requestLocale } from "@/lib/locales";
+import { localizedEntryTitle } from "@/lib/i18n";
 
 /** Per-day permalinks for every non-current trip. Each entry gets a real,
  * shareable, indexable URL that renders the same scrolling story, opened at
@@ -41,7 +43,13 @@ export async function generateMetadata({
 
   const image = entry.gallery.find((g) => g.type === "image")?.src;
   const description = entry.content.replace(/\s+/g, " ").slice(0, 160);
-  const title = `${entry.title} — ${entry.location}`;
+  const shared = `${entry.title} — ${entry.location}`;
+  // The tab follows the *reader*, same as the heading below it; the share
+  // card keeps the written title (`entry.location` has no translation slot
+  // either way).
+  const locale = await requestLocale();
+  const writtenLocale = defaultLocaleFor(user);
+  const title = `${localizedEntryTitle(entry, locale, writtenLocale)} — ${entry.location}`;
   const url = `/${user}/trips/${trip.id}/day/${entry.slug}`;
 
   return {
@@ -50,7 +58,7 @@ export async function generateMetadata({
     alternates: { canonical: url },
     openGraph: {
       type: "article",
-      title,
+      title: shared,
       description,
       url,
       publishedTime: entry.date,
@@ -58,7 +66,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: shared,
       description,
       images: image ? [image] : undefined,
     },
