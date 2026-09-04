@@ -5,7 +5,7 @@ import MePageContent from "./MePageContent";
 import { manageTokenFor, listContacts, normaliseEmail } from "@/lib/contacts";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
-import { serverSite } from "@/lib/site";
+import { ownerShortName, serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
 import { getUser } from "@/lib/users";
 
@@ -24,7 +24,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MePage({ params, searchParams }: PageProps<"/[user]/me">) {
   const { user } = await params;
-  if (!getUser(user)) notFound();
+  const journal = getUser(user);
+  if (!journal) notFound();
 
   // Why they are here rather than inside the journal. Both values are written
   // by this codebase — `/api/auth/link` on a spent link, and the same route on
@@ -73,6 +74,17 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       canSignIn={isEnabled("auth", user)}
       codeMinutes={CODE_TTL_MINUTES}
       contactsEnabled={contactsEnabled}
+      // B20. The stranger's half of this page told somebody to ask for a link
+      // and never said whom to ask, on a site they may have reached without
+      // knowing whose it is.
+      //
+      // One string, picked here: `journal.owner` also carries the owner's
+      // email address, and the rule is that the field is chosen at the server
+      // boundary rather than in the component, so that a later edit to the
+      // component cannot leak a value it was never handed. Nothing narrower
+      // than the whole object would do — this is the whole object minus the
+      // address, computed to a single word.
+      ownerName={ownerShortName(journal)}
       signinNotice={signinNotice}
     />
   );

@@ -72,3 +72,56 @@ code one.
 - A journal whose owner has no `nickname` gets a sensible short name rather
   than a blank or a full "Firstname Lastname" where a first name was meant.
 - `npm run i18n:keys` passes.
+
+## What was built
+
+`ownerShortName(user)` in `lib/site.ts` — the nickname, falling back to the
+first word of `name`, and `undefined` when the config names nobody.
+`app/[user]/me/page.tsx` calls it and passes the **string** down as `ownerName`;
+`journal.owner` never leaves the server, which is the line the Why draws.
+
+The stranger's branch of `MePageContent` now names that person in **both** of
+its sentences, with the unnamed originals kept as the fallback for a journal
+whose config has no owner name:
+
+- `me.strangerBodyNamed` — "This journal is kept by {name}. If somebody sent you
+  a link to it, follow it. To be added properly, ask {name} to invite you."
+- `me.askOwnerNamed` — "There is nothing to fill in here — this journal keeps no
+  guestbook. It is kept by {name}: the link {name} sends you is what lets you
+  in."
+
+Three locale files plus `npm run i18n:keys`.
+
+**One correction to the Why:** `me.askOwner` is shown when `canSignIn` is false
+— that is, when **auth** is off — not when contacts and auth are both off. The
+observation still held for the demo journal, which has both off, but the branch
+a stranger lands in on a journal with auth *on* was the more common one and was
+equally anonymous, which is why the name is in `strangerBody` too rather than
+only in the sentence the Why quotes. That was left open as "a copy decision";
+this is the decision.
+
+The name and nothing else, per B117's discipline: the page says who to write to
+without saying anything a stranger could not already see. No address, no phone
+number, and nothing about what trips exist.
+
+## Evidence
+
+`/alex/me` on a dev server, no session, **auth on**:
+
+> You are not signed in. This journal is kept by Robin. If somebody sent you a
+> link to it, follow it. To be added properly, ask Robin to invite you.
+
+the same page with **auth off**, where the sign-in form is absent:
+
+> … There is nothing to fill in here — this journal keeps no guestbook. It is
+> kept by Robin: the link Robin sends you is what lets you in.
+
+`owner@example.test` appears nowhere in either response — asserted on the served
+HTML including its RSC payload, and again in
+`test/access-panel.test.tsx` and `test/access-panel-capability.test.ts`, which
+now also assert that the page hands down a name and never the object it came
+from. `test/site-travellers.test.ts` covers the nickname, the first-word
+fallback and the nameless config.
+
+`npm run i18n:keys`, `npm run build`, `npx tsc --noEmit`, `npx eslint .` (0
+errors), `npx vitest run` (130 files, 2098 passed).

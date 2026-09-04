@@ -19,13 +19,24 @@ const enabled = vi.fn<(name: FeatureName, username?: string) => boolean>(() => t
 vi.mock("@/lib/capabilities", () => ({
   isEnabled: (name: FeatureName, username?: string) => enabled(name, username),
 }));
-vi.mock("@/lib/users", () => ({
-  getUser: () => ({ title: "Alex's journal", owner: { email: "owner@example.test" } }),
-}));
+/** The journal as its config holds it — a name, a short form, and the address
+ * that must not travel with them (B20). */
+const JOURNAL = {
+  title: "Alex's journal",
+  owner: { name: "Robin Berger", nickname: "Robin", email: "owner@example.test" },
+};
+vi.mock("@/lib/users", () => ({ getUser: () => JOURNAL }));
 vi.mock("@/lib/viewer", () => ({
   resolveViewer: async () => ({ email: null, owner: true, guest: false, trips: [] }),
 }));
-vi.mock("@/lib/site", () => ({ serverSite: () => ({ url: "https://example.test" }) }));
+/** Spied rather than reimplemented: what this file asserts is that the page
+ * asks for the owner's short name and passes *that* down, not what the answer
+ * is. `test/site-travellers.test.ts` owns the answer. */
+const shortName = vi.hoisted(() => vi.fn((_user: unknown) => "Robin"));
+vi.mock("@/lib/site", () => ({
+  serverSite: () => ({ url: "https://example.test" }),
+  ownerShortName: (user: unknown) => shortName(user),
+}));
 vi.mock("@/lib/contacts", () => ({
   listContacts: async () => [],
   manageTokenFor: () => "t",
@@ -95,5 +106,30 @@ describe("why the reader landed on /me rather than in the journal", () => {
     // becomes text, so it cannot be used to put a sentence on somebody's page.
     expect((await propsOf("alex", { signin: "<script>alert(1)</script>" })).signinNotice)
       .toBeUndefined();
+  });
+});
+
+/**
+ * B20 — the stranger is told who to ask, and nothing more about them.
+ *
+ * The name is picked here, at the server boundary, rather than by handing the
+ * component the config object and choosing inside it: `owner.email` sits in
+ * the same object, and a later edit to a client component should not be able
+ * to reach a field it was never meant to have.
+ */
+describe("what the me page tells the panel about its owner", () => {
+  test("hands down a short name, asked for by the page itself", async () => {
+    enabled.mockReturnValue(true);
+    const props = await propsOf();
+    expect(props.ownerName).toBe("Robin");
+    expect(shortName).toHaveBeenCalledWith(JOURNAL);
+  });
+
+  test("and nothing else about them — the address never becomes a prop", async () => {
+    enabled.mockReturnValue(true);
+    const props = await propsOf();
+    expect(JSON.stringify(props)).not.toContain("owner@example.test");
+    expect(props).not.toHaveProperty("owner");
+    expect(props).not.toHaveProperty("ownerEmail");
   });
 });

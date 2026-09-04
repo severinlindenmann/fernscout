@@ -60,7 +60,15 @@ const ownerWithTrips: Viewer = {
   ],
 };
 
-function render(over: { canSignIn?: boolean; viewer?: Viewer; contactsEnabled?: boolean } = {}) {
+function render(
+  over: {
+    canSignIn?: boolean;
+    viewer?: Viewer;
+    contactsEnabled?: boolean;
+    /** `undefined` means the journal names nobody — see the B20 block below. */
+    ownerName?: string;
+  } = {},
+) {
   return renderToStaticMarkup(
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
       <SiteProvider value={site}>
@@ -76,6 +84,7 @@ function render(over: { canSignIn?: boolean; viewer?: Viewer; contactsEnabled?: 
           canSignIn={over.canSignIn ?? false}
           codeMinutes={CODE_TTL_MINUTES}
           contactsEnabled={over.contactsEnabled ?? false}
+          ownerName={"ownerName" in over ? over.ownerName : "Robin"}
         />
           </TripListProvider>
         </CurrencyProvider>
@@ -269,5 +278,53 @@ describe("the two invite links, for the owner", () => {
       expect(html).not.toContain("A link for someone to write");
       expect(html).not.toContain('id="invite-trip"');
     }
+  });
+});
+
+/**
+ * B20 — "ask them" — ask whom?
+ *
+ * The stranger's half of this page is the one written for the reader least
+ * comfortable with software on the site: somebody who opens the journal once a
+ * month from a link in an email and, when she loses the email, has no way back
+ * in. It told her that the only way in is to ask a person, and never said
+ * which person, on a site she may have reached without knowing whose it is.
+ *
+ * The name and nothing else. `owner.email` is one property away in the same
+ * config object, which is why the field is picked at the server boundary
+ * (`ownerShortName`) rather than handed over whole and chosen from here — and
+ * why the assertion below is that the address is nowhere in the markup rather
+ * than that nobody wrote the JSX for it.
+ */
+describe("who a stranger is told to ask", () => {
+  test("names the owner, whether or not there is a sign-in form", () => {
+    for (const canSignIn of [true, false]) {
+      const html = render({ canSignIn, ownerName: "Robin" });
+      expect(html, `canSignIn=${canSignIn}`).toContain("Robin");
+    }
+  });
+
+  test("and says it in the sentence about asking, not only in passing", () => {
+    expect(render({ canSignIn: true, ownerName: "Robin" })).toContain("ask Robin to invite you");
+    expect(render({ canSignIn: false, ownerName: "Robin" })).toContain(
+      "the link Robin sends you is what lets you in",
+    );
+  });
+
+  test("never an address, a number or a way to reach them off this site", () => {
+    for (const canSignIn of [true, false]) {
+      const html = render({ canSignIn, ownerName: "Robin" });
+      expect(html).not.toContain("owner@example.test");
+      expect(html).not.toMatch(/mailto:/);
+      expect(html).not.toMatch(/@example/);
+    }
+  });
+
+  test("a journal that names nobody keeps the sentences that name nobody", () => {
+    // Not "Ask ." — a config with no owner name in it is malformed, and the
+    // page falls back rather than rendering a hole.
+    const html = render({ canSignIn: false, ownerName: undefined });
+    expect(html).toMatch(/nothing to fill in/i);
+    expect(html).not.toMatch(/Ask \./);
   });
 });
