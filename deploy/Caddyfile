@@ -39,42 +39,8 @@
 	email {$CADDY_ACME_EMAIL}
 }
 
-<<<<<<< HEAD
-{$CADDY_DOMAIN} {
-	encode gzip zstd
-
-	# Next.js sets its own cache headers per-route (see next.config.ts and
-	# the API routes' `cache-control: no-store`); Caddy just proxies. The app
-	# runs on this host — there is no container to address by name.
-	#
-	# It sets its own security headers too, in the `headers()` block of
-	# next.config.ts: Content-Security-Policy, Referrer-Policy,
-	# X-Content-Type-Options, X-Frame-Options and Strict-Transport-Security.
-	# Caddy passes all five through unchanged. **Do not add a `header` directive
-	# repeating them here** — Caddy's `header` replaces rather than appends, so a
-	# second HSTS or CSP line silently becomes the only one, and the app's stays
-	# behind. If this proxy is ever replaced by one that strips response headers,
-	# the replacement has to carry them instead. See B02.
-	reverse_proxy 127.0.0.1:3000 {
-		# Overwrite, never append — and this line is load-bearing.
-		#
-		# Caddy's default is to *append* the real client address to whatever
-		# `X-Forwarded-For` arrived. `clientIp()` in lib/rateLimit.ts reads the
-		# first value, so without this a client that sends its own
-		# `X-Forwarded-For: 203.0.113.9` is rate-limited as 203.0.113.9 —
-		# rotate the header per request and every limit on this server resets.
-		# That includes the eight-guess limit in front of a trip's password.
-		#
-		# The app trusts the first value *because* of this line. If Caddy is
-		# ever replaced, the replacement has to overwrite the header too, or
-		# `clientIp()` has to stop trusting it. See B01.
-		header_up X-Forwarded-For {remote_host}
-	}
-}
-=======
 # Adjust the path if the checkout is not at /srv/fernscout. Caddy reads it as
 # root, and it must stay readable to root — an import Caddy cannot open is a
 # config error and the reload is refused, which is the loud failure and the
 # right one.
 import /srv/fernscout/deploy/fernscout.caddy
->>>>>>> g11-backup-systemd-and-tests

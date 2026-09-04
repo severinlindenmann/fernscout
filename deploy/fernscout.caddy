@@ -31,6 +31,15 @@
 	# Next.js sets its own cache headers per-route (see next.config.ts and
 	# the API routes' `cache-control: no-store`); Caddy just proxies. The app
 	# runs on this host — there is no container to address by name.
+	#
+	# It sets its own security headers too, in the `headers()` block of
+	# next.config.ts: Content-Security-Policy, Referrer-Policy,
+	# X-Content-Type-Options, X-Frame-Options and Strict-Transport-Security.
+	# Caddy passes all five through unchanged. **Do not add a `header` directive
+	# repeating them here** — Caddy's `header` replaces rather than appends, so a
+	# second HSTS or CSP line silently becomes the only one, and the app's stays
+	# behind. If this proxy is ever replaced by one that strips response headers,
+	# the replacement has to carry them instead. See B02.
 	reverse_proxy 127.0.0.1:{$PORT:3000} {
 		# Overwrite, never append — and this line is load-bearing.
 		#
