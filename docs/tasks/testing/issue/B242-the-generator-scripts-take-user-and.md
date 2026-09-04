@@ -7,8 +7,7 @@ complexity: low
 area: postcards, photobook, scripts
 found: "2026-09-04T08:32:00Z"
 started: "2026-09-04T16:07:52Z"
-session: 46daaba3-3210-4263-85a6-d285caefd837
-claimed: "2026-09-04T16:07:52Z"
+merged: "2026-09-04T16:17:54Z"
 ---
 
 # B242 — The generator scripts take --user and --trip as directory names without checking them
