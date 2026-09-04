@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: agent docs, onboarding
 found: "2026-09-04T15:33:58Z"
+started: "2026-09-04T16:10:28Z"
+session: 986bc24c-6a18-473f-a506-aa8c4efb475c
+claimed: "2026-09-04T16:10:28Z"
 ---
 
 # B307 — Onboarding is prose, so an agent asks a different set of questions in a different order every time

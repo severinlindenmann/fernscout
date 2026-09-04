@@ -64,12 +64,12 @@ Do not edit them by hand; run the script.
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B307](backlog/issue/B307-onboarding-is-prose-so-an-agent.md) | Onboarding is prose, so an agent asks a different set of questions in a different order every time | ISSUE | high | medium |
 | [B228](backlog/issue/B228-the-guest-list-issues-a-link.md) | The guest list issues a link that never expires | ISSUE | medium | low |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
 | [B252](backlog/issue/B252-the-trip-gate-says-a-journal.md) | The trip gate says a journal has no sign-in while /api/auth still issues it sessions | ISSUE | medium | low |
 | [B308](backlog/issue/B308-the-entry-document-has-tripled-and.md) | The entry document has tripled and the guide is 56KB, which is the property they were valued for | ISSUE | medium | medium |
+| [B309](backlog/issue/B309-the-gallery-page-s-rsc-payload.md) | The gallery page's RSC payload carries every entry's full prose for a slideshow nobody has opened | ISSUE | medium | medium |
 | [B310](backlog/issue/B310-the-main-checkout-guard-watches-edit.md) | The main-checkout guard watches Edit and Write, and a heredoc walks straight past it | ISSUE | medium | medium |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
@@ -161,10 +161,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (6)
+## in-development (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B307](in-development/B307-onboarding-is-prose-so-an-agent.md) | Onboarding is prose, so an agent asks a different set of questions in a different order every time | ISSUE | high | medium | `986bc24c` |
 | [B236](in-development/B236-one-entry-file-that-does-not.md) | One entry file that does not parse throws out of getAllEntries, so the whole trip stops reading rather than that one day | ISSUE | medium | low | `46daaba3` |
 | [B242](in-development/B242-the-generator-scripts-take-user-and.md) | The generator scripts take --user and --trip as directory names without checking them | ISSUE | medium | low | `46daaba3` |
 | [B304](in-development/B304-a-day-s-costs-still-accept.md) | A day's costs still accept a zero amount and an unrecognised currency, and drop both silently | ISSUE | medium | low | `46daaba3` |
