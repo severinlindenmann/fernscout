@@ -60,8 +60,43 @@ their cards went.
 that has not been created yet is a reasonable thing to do, and B219 is about
 where files land, not who may run the script.
 
+### Built as
+
+Exactly as scoped above, nothing more:
+
+- `scripts/postcard.ts` imports `ID_PATTERN` from `lib/ingest/paths.ts` and
+  checks `owner` against it immediately after the existing `--to`/
+  `--from-contacts` checks, before `hasContactsKey()`, the backend check, or
+  anything in `main()` — so the refusal lands before the photo is even read.
+- `scripts/photobook.ts` imports `parseTripRef` from `lib/trips.ts` directly
+  (it already goes through `--conditions=react-server`, the same as
+  `lib/photobook/source.ts`'s own imports of `lib/trips.ts`, so this adds no
+  new constraint). The check runs immediately after the "no `--trip`" usage
+  check and before the backend/size/binding checks and the `mkdirSync`. The
+  parsed `{ username, tripId }` also replaces the old hand-sliced `bookOwner`
+  and `bookSlug` — one parse instead of two ad hoc string slices agreeing with
+  it by luck.
+- Neither script checks the user or trip *exists* — a run for a journal not
+  yet on disk still works, unchanged.
+
 ## Acceptance
 
 - `npm run postcard -- --user ../../escaped …` refuses and writes nothing.
+  Verified directly: `CONTENT_DIR=<scratch> npm run postcard -- --user
+  ../../escaped --photo … --message hi --to /dev/null` exits 1 with
+  `--user "../../escaped" is not a username: lowercase letters, digits and
+  dashes, and not starting with a dash.` on stderr, and nothing appears
+  anywhere outside `<scratch>` (checked with `find`).
 - `npm run photobook -- --trip ../../x/y` refuses and writes nothing.
-- A test covers both, alongside the ones in `test/generator-output.test.ts`.
+  Verified directly: exits 1 with `--trip "../../x/y" is not
+  <username>/<trip-id> — both need to be lowercase letters, digits and dashes,
+  and not start with a dash.` on stderr, nothing written.
+- A test covers both, alongside the ones in `test/generator-output.test.ts`:
+  `"--user is a directory name, and a traversal in it is refused before
+  anything is written (B242)"` and `"--trip is a directory name, and a
+  traversal in it is refused before anything is written (B242)"`. Each asserts
+  the *exact* directory the pre-fix code would have written to (mirroring the
+  vulnerable expression literally) does not exist afterwards.
+- `npm run verify` passes in the worktree: build → tsc (0 errors) → eslint (0
+  errors, 4 pre-existing unrelated warnings) → vitest (169 files, 2477 passed,
+  3 skipped — Postgres-only, no local Postgres in this environment).
