@@ -7,8 +7,7 @@ complexity: medium
 area: docs, api, mcp, i18n
 found: "2026-09-04T07:30:42Z"
 started: "2026-09-04T07:32:24Z"
-session: 3d5344ea-a112-4651-8b3b-eb8226300451
-claimed: "2026-09-04T07:32:24Z"
+merged: "2026-09-04T07:56:56Z"
 ---
 
 # B223 — The draft rule is stated three different ways since the publish endpoint shipped

@@ -7,8 +7,7 @@ complexity: medium
 area: api, mcp, drafts
 found: "2026-09-04T07:31:05Z"
 started: "2026-09-04T07:32:25Z"
-session: 3d5344ea-a112-4651-8b3b-eb8226300451
-claimed: "2026-09-04T07:32:25Z"
+merged: "2026-09-04T07:56:56Z"
 ---
 
 # B224 — Publishing a day costs a confirmation round trip the new doctrine does not want
