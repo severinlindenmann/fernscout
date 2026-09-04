@@ -1,6 +1,7 @@
 import "server-only";
 import crypto from "node:crypto";
 import { hashSecret } from "../auth";
+import { decryptString, encryptString, hasContactsKey, inviteAad } from "./crypto";
 import { getDatabase, newId, nowIso } from "../db";
 import type { Locale } from "../types";
 import { parseLocale } from "./locale";
@@ -168,6 +169,11 @@ export async function createInvite(
       // a link to join something.
       trip_id: kind === "buddy" ? (input.tripId ?? null) : null,
       token_hash: hashSecret(token),
+      // Beside the hash, never instead of it — B280 and
+      // `013-invite-token-cipher`. Null when there is no key, which is the
+      // same state as every row written before that migration: the link still
+      // works, it just cannot be shown again.
+      token_cipher: hasContactsKey() ? encryptString(token, inviteAad(owner, id)) : null,
       name: input.name?.trim() ? input.name.trim().slice(0, 120) : null,
       locale: parseLocale(input.locale),
       created_at: nowIso(),
@@ -198,7 +204,7 @@ export async function resolveInvite(owner: string, token: string): Promise<Invit
 
   if (!row) return null;
   if (row.revoked_at) return null;
-  if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) return null;
+  if (isExpired(row.expires_at)) return null;
 
   return toInvite(row);
 }
@@ -251,9 +257,62 @@ export async function listInvites(owner: string): Promise<Invite[]> {
     .orderBy("created_at", "desc")
     .execute();
 
-  // The token itself is not here and cannot be: only its hash was stored, so
-  // a link that was lost has to be reissued rather than looked up.
+  // The token itself is deliberately not here. B280 made it recoverable, and
+  // `listInvitesWithLinks` below is the only reader that recovers it: this one
+  // answers `GET /api/v1/<user>/invites`, which an agent token reaches, and an
+  // agent that can list invites has no need to be able to re-send them.
   return rows.map(toInvite);
+}
+
+/**
+ * The same list, with each link the owner can send again — B280.
+ *
+ * Separate from `listInvites` rather than a flag on it, because the two have
+ * different audiences and a boolean argument is how the wrong one gets passed:
+ * this is for the owner's own page, server-side, behind `isOwner`, and the
+ * plain list is for everything else. Postal addresses are decrypted under
+ * exactly this rule (`app/[user]/contacts/page.tsx`), and this follows it.
+ *
+ * `url` is null for a row with no ciphertext — every row written before the
+ * migration, and any row created while `CONTACTS_ENCRYPTION_KEY` was unset —
+ * and for one that will not decrypt. The caller renders no copy action rather
+ * than an empty one; a link that cannot be shown is not an error, it is the
+ * old behaviour.
+ */
+export async function listInvitesWithLinks(
+  owner: string,
+  base: string,
+): Promise<(Invite & { url: string | null })[]> {
+  const { db } = await getDatabase();
+  const rows = await db
+    .selectFrom("contact_invites")
+    .selectAll()
+    .where("owner_id", "=", owner)
+    .orderBy("created_at", "desc")
+    .execute();
+
+  return rows.map((row) => {
+    const invite = toInvite(row);
+    const token = row.token_cipher
+      ? decryptString(row.token_cipher, inviteAad(owner, row.id), "invite token")
+      : null;
+    return {
+      ...invite,
+      // A revoked or expired link is shown but not offered: copying it would
+      // hand somebody a URL that refuses them, which reads as the journal
+      // being broken rather than the link being dead.
+      url:
+        token && !invite.revokedAt && !isExpired(invite.expiresAt)
+          ? inviteLinkUrl(base, owner, invite.kind, token)
+          : null,
+    };
+  });
+}
+
+/** Shared by `resolveInvite` and the owner's list, so "still usable" means one
+ * thing. */
+function isExpired(expiresAt: string | null): boolean {
+  return Boolean(expiresAt && new Date(expiresAt).getTime() < Date.now());
 }
 
 export async function revokeInvite(owner: string, id: string): Promise<void> {

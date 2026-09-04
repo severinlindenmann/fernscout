@@ -178,6 +178,16 @@ export type ContactInvitesTable = {
    */
   kind: Generated<string>;
   token_hash: string;
+  /**
+   * The token itself, AES-256-GCM under `CONTACTS_ENCRYPTION_KEY` — B280, and
+   * `013-invite-token-cipher` for why it is here and what it costs.
+   *
+   * Null on every row written before that migration, and on any row created
+   * while the key is unset. Redemption never reads it: that is `token_hash`,
+   * which is indexed. This is only ever decrypted to show an owner the link
+   * they already sent.
+   */
+  token_cipher: string | null;
   name: string | null;
   locale: string | null;
   /** The trip a `buddy` link is a link to join. Null for every other kind.

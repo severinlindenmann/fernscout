@@ -111,6 +111,19 @@ export function addressAad(owner: string, contactId: string): string {
   return `${owner}:${contactId}`;
 }
 
+/**
+ * The same, for an invite link's token — B280.
+ *
+ * A distinct prefix rather than the bare `<owner>:<id>` an address uses, so
+ * that the two namespaces cannot collide: ids come from `newId()` in both
+ * tables, and an AAD that happened to match would let a blob move between a
+ * contact row and an invite row and still decrypt. It never could in practice;
+ * the prefix means it never can in principle.
+ */
+export function inviteAad(owner: string, inviteId: string): string {
+  return `invite:${owner}:${inviteId}`;
+}
+
 function b64(buffer: Buffer): string {
   return buffer.toString("base64url");
 }
@@ -167,13 +180,23 @@ export function normaliseAddress(input: Partial<PostalAddress> | null | undefine
  * a parser branch and not an archaeology exercise.
  */
 export function encryptAddress(address: PostalAddress, aad: string): string {
+  return encryptString(JSON.stringify(address), aad);
+}
+
+/**
+ * One string, in the stored form above.
+ *
+ * Extracted from `encryptAddress` when B280 needed the same scheme for an
+ * invite token, which is a string rather than a record. The wire format, the
+ * version prefix and the AAD discipline are therefore shared by construction:
+ * two copies of this would be two schemes to keep in step, and the day they
+ * drifted would be a day of unreadable rows.
+ */
+export function encryptString(plain: string, aad: string): string {
   const iv = crypto.randomBytes(IV_BYTES);
   const cipher = crypto.createCipheriv(ALGORITHM, contactsKey(), iv);
   cipher.setAAD(Buffer.from(aad, "utf8"));
-  const body = Buffer.concat([
-    cipher.update(JSON.stringify(address), "utf8"),
-    cipher.final(),
-  ]);
+  const body = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
   return [VERSION, b64(iv), b64(cipher.getAuthTag()), b64(body)].join(".");
 }
 
@@ -185,10 +208,34 @@ export function encryptAddress(address: PostalAddress, aad: string): string {
  * offline. The warning carries no data, only the reason.
  */
 export function decryptAddress(stored: string | null, aad: string): PostalAddress | null {
+  const plain = decryptString(stored, aad, "address");
+  if (plain === null) return null;
+  try {
+    return normaliseAddress(JSON.parse(plain) as Partial<PostalAddress>);
+  } catch {
+    console.warn("[contacts] a stored address decrypted to something that is not an address");
+    return null;
+  }
+}
+
+/**
+ * One string back, or `null`.
+ *
+ * Null rather than a throw, because one unreadable row — a key rotated without
+ * re-encrypting, a blob edited by hand — must not take the whole guest list
+ * offline. `what` names the kind of value in the warning so the two callers are
+ * distinguishable in a log; it is a constant at every call site and never
+ * anything read from a row.
+ */
+export function decryptString(
+  stored: string | null,
+  aad: string,
+  what: "address" | "invite token",
+): string | null {
   if (!stored) return null;
   const parts = stored.split(".");
   if (parts.length !== 4 || parts[0] !== VERSION) {
-    console.warn("[contacts] a stored address is not in a format this build understands");
+    console.warn(`[contacts] a stored ${what} is not in a format this build understands`);
     return null;
   }
   try {
@@ -200,15 +247,14 @@ export function decryptAddress(stored: string | null, aad: string): PostalAddres
     );
     decipher.setAAD(Buffer.from(aad, "utf8"));
     decipher.setAuthTag(Buffer.from(tag, "base64url"));
-    const plain = Buffer.concat([
+    return Buffer.concat([
       decipher.update(Buffer.from(body, "base64url")),
       decipher.final(),
     ]).toString("utf8");
-    return normaliseAddress(JSON.parse(plain) as Partial<PostalAddress>);
   } catch {
     // Wrong key, tampered row, or a ciphertext that belongs to a different
-    // contact. Never log the value — that would undo the point of the column.
-    console.warn("[contacts] a stored address could not be decrypted with this key");
+    // row. Never log the value — that would undo the point of the column.
+    console.warn(`[contacts] a stored ${what} could not be decrypted with this key`);
     return null;
   }
 }
