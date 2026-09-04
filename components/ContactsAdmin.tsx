@@ -160,6 +160,21 @@ function viaLabel(
     : kind;
 }
 
+/**
+ * Whether a still-unconfirmed row has a live invite behind it to resend —
+ * B384. `viaLabel` above already does the same `invite:<id>` lookup, for a
+ * sentence rather than an aliveness check; kept separate because the two
+ * callers want different things out of one row and neither is a special case
+ * of the other.
+ */
+function resendableInvite(createdVia: string | null, invites: AdminInvite[]): AdminInvite | null {
+  if (!createdVia?.startsWith("invite:")) return null;
+  const invite = invites.find((candidate) => candidate.id === createdVia.slice("invite:".length));
+  if (!invite || invite.revokedAt) return null;
+  if (invite.expiresAt && new Date(invite.expiresAt).getTime() < Date.now()) return null;
+  return invite;
+}
+
 const STATUS_KEY: Record<AdminContact["status"], TranslationKey> = {
   pending: "contact.statusPending",
   active: "contact.statusActive",
@@ -192,6 +207,7 @@ type Translate = (key: TranslationKey, vars?: Record<string, string>) => string;
 function ContactRow({
   contact,
   via,
+  canResend = false,
   t,
   busy,
   act,
@@ -202,6 +218,10 @@ function ContactRow({
   /** How they came to be here, already in words — see `viaLabel`. Resolved by
    * the caller, which is where the invite list and the trip titles are. */
   via: string | null;
+  /** Whether an invitation this contact hasn't opened yet can be mailed
+   * again — B384. Only ever true for a `pending`, unconfirmed row; false for
+   * anything else, including the ordinary case of nothing to resend. */
+  canResend?: boolean;
   t: Translate;
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
@@ -274,7 +294,24 @@ function ContactRow({
           </>
         )}
       </dl>
+      {canResend && (
+        // Said before the click, honestly — B384's own acceptance line. This
+        // is the only state that used to be a dead end: `confirmedAt` is
+        // null, so the Approve button below never appears, and Edit/Delete
+        // were the only thing left to press.
+        <p className="mt-3 text-base text-navy-600">{t("contact.adminInvitePending")}</p>
+      )}
       <div className="mt-4 flex flex-wrap gap-2">
+        {canResend && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => act({ action: "resend", id: contact.id })}
+            className="rounded-xl border border-navy-200 px-4 py-2 text-base text-navy-900 disabled:opacity-50"
+          >
+            {t("contact.adminResendInvite")}
+          </button>
+        )}
         {contact.status !== "active" && contact.confirmedAt && (
           <button
             type="button"
@@ -681,6 +718,7 @@ function ContactGroup({
   title,
   rows,
   via,
+  canResend,
   t,
   busy,
   act,
@@ -693,6 +731,10 @@ function ContactGroup({
    * groups share one resolution and neither row component has to know that
    * provenance is stored as an id. */
   via: (contact: AdminContact) => string | null;
+  /** Same shape, for `resendableInvite` — B384. Optional because only the
+   * pending group has any use for it; the other two never render a row that
+   * could answer true. */
+  canResend?: (contact: AdminContact) => boolean;
   t: Translate;
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
@@ -710,6 +752,7 @@ function ContactGroup({
             <ContactRow
               contact={contact}
               via={via(contact)}
+              canResend={canResend?.(contact) ?? false}
               t={t}
               busy={busy}
               act={act}
@@ -936,6 +979,14 @@ export default function ContactsAdmin({
   // to be re-fetched for it.
   const contactVia = (contact: AdminContact) => viaLabel(contact.createdVia, invites, trips, t);
 
+  // Same lookup, different question — B384. Only ever true for a `pending`
+  // row that has never confirmed: a confirmed or active row has nothing left
+  // to resend, whatever its invite says.
+  const contactCanResend = (contact: AdminContact) =>
+    contact.status === "pending" &&
+    !contact.confirmedAt &&
+    resendableInvite(contact.createdVia, invites) !== null;
+
   // Put the highlighted request in view rather than merely marked — B319.
   // Runs once per id: `refresh()` after an approve or a revoke reloads every
   // row, and a highlighted request that the owner has just acted on should
@@ -998,6 +1049,7 @@ export default function ContactsAdmin({
       <ContactGroup
         title={t("contact.adminPending")}
         via={contactVia}
+        canResend={contactCanResend}
         rows={pending}
         t={t}
         busy={busy}
