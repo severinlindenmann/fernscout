@@ -130,8 +130,16 @@ export function place(frame: Frame, point: Point): [number, number] {
 /**
  * How wide the frame is on the ground, in kilometres.
  *
- * The number the "is this too close in to draw a coastline" question is asked
- * of — see `hasUsableBasemap` in lib/mapBasemap.ts.
+ * Used for the zoom ceiling in `components/WorldMap.tsx`: a map of one valley
+ * may be zoomed much further in than a map of a continent, and the span is what
+ * says which one this is.
+ *
+ * The same number — computed there as `kmForUnits(frame.w)` rather than through
+ * this function — chooses the basemap band in `basemapFor` (`lib/basemap.ts`):
+ * which resolution of Natural Earth is worth sending at this width. Note that
+ * nothing asks in advance whether the basemap has anything to say about a
+ * place; `lib/basemap.ts` explains why, and an empty clip draws the clean
+ * background by itself.
  */
 export function frameSpanKm(frame: Frame): number {
   return kmForUnits(frame.w);
