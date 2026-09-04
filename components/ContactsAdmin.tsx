@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import CopyLine from "./CopyLine";
+import TelField, { joinTel, splitTel } from "./TelField";
 import { LOCALE_LABEL, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
@@ -318,6 +319,11 @@ type GuestFields = {
   name: string;
   email: string;
   locale: string;
+  /** The dialling code, held apart from `tel` for the same reason
+   * `ContactForm` keeps its own `cc` state (B385): re-parsing it from `tel`
+   * on every render would lose the selection the moment the digits are
+   * cleared. */
+  cc: string;
   tel: string;
   addressName: string;
   line1: string;
@@ -330,13 +336,25 @@ type GuestFields = {
   wantsWhatsapp: boolean;
 };
 
-function fieldsFor(contact: AdminContact | null, fallbackLocale: Locale): GuestFields {
+function fieldsFor(
+  contact: AdminContact | null,
+  fallbackLocale: Locale,
+  defaultCountryCode?: string,
+): GuestFields {
   const postal = contact?.postalAddress;
+  const tel = postal?.tel ?? "";
+  // Reading an existing row back into the form: a leading `+<cc>` this
+  // picker recognises splits into the two parts, and anything else — a
+  // legacy `076 561 31 50`, or no record at all — is never guessed at.
+  // `defaultCountryCode` only seeds a *brand-new* guest's blank number,
+  // never a contact's actual (if unparseable) one — B385.
+  const parsed = splitTel(tel);
   return {
     name: contact?.name ?? "",
     email: contact?.email ?? "",
     locale: contact?.locale ?? fallbackLocale,
-    tel: postal?.tel ?? "",
+    cc: parsed.cc || (contact === null && tel.trim() === "" ? (defaultCountryCode ?? "") : ""),
+    tel: parsed.national,
     addressName: postal?.name ?? "",
     line1: postal?.line1 ?? "",
     line2: postal?.line2 ?? "",
@@ -388,6 +406,7 @@ export function GuestForm({
   onClose,
   postcardsEnabled = true,
   whatsappEnabled = true,
+  defaultCountryCode,
 }: {
   /** The row being corrected, or `null` to add a new one. */
   contact: AdminContact | null;
@@ -405,9 +424,14 @@ export function GuestForm({
   /** B376: whether this server can act on a WhatsApp update at all —
    * `isEnabled("whatsapp", username)`. Only changes the phone hint's wording. */
   whatsappEnabled?: boolean;
+  /** B385: `whatsappCountryCode()`, seeding only a brand-new guest's blank
+   * dialling code — see `fieldsFor`. */
+  defaultCountryCode?: string;
 }) {
   const editingId = contact?.id ?? null;
-  const [form, setForm] = useState<GuestFields>(() => fieldsFor(contact, fallbackLocale));
+  const [form, setForm] = useState<GuestFields>(() =>
+    fieldsFor(contact, fallbackLocale, defaultCountryCode),
+  );
   const [error, setError] = useState<string | null>(null);
 
   // Changing the email of an already-active contact knocks them back to
@@ -440,7 +464,7 @@ export function GuestForm({
         postcode: form.postcode,
         city: form.city,
         country: form.country,
-        tel: form.tel,
+        tel: joinTel(form.cc, form.tel),
       },
     });
     if (!response?.ok) {
@@ -513,12 +537,12 @@ export function GuestForm({
         <label className={LABEL} htmlFor="guest-tel">
           {`${t("contact.tel")} (${t("contact.optional")})`}
         </label>
-        <input
+        <TelField
           id="guest-tel"
-          className={FIELD}
-          type="tel"
-          value={form.tel}
-          onChange={(e) => field("tel", e.target.value)}
+          cc={form.cc}
+          national={form.tel}
+          onChange={(cc, national) => setForm((previous) => ({ ...previous, cc, tel: national }))}
+          labelCountry={t("contact.telCountry")}
         />
         <p className="mt-2 text-base text-navy-600">
           {t(telHintKey("admin", postcardsEnabled, whatsappEnabled))}
@@ -834,6 +858,7 @@ export default function ContactsAdmin({
   highlightId,
   postcardsEnabled = true,
   whatsappEnabled = true,
+  defaultCountryCode,
 }: {
   username: string;
   locale: Locale;
@@ -868,6 +893,9 @@ export default function ContactsAdmin({
   /** B376: whether this server can act on a WhatsApp update at all —
    * `isEnabled("whatsapp", username)`, from the page. Same default reasoning. */
   whatsappEnabled?: boolean;
+  /** B385: `whatsappCountryCode()` — passed through to `GuestForm`'s own
+   * default, unrelated to whether WhatsApp itself is on. */
+  defaultCountryCode?: string;
 }) {
   const [contacts, setContacts] = useState(initialContacts);
   const [invites, setInvites] = useState(initialInvites);
@@ -974,6 +1002,7 @@ export default function ContactsAdmin({
             busy={busy}
             act={act}
             onClose={() => setFormTarget(null)}
+            defaultCountryCode={defaultCountryCode}
             postcardsEnabled={postcardsEnabled}
             whatsappEnabled={whatsappEnabled}
           />

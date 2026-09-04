@@ -12,6 +12,7 @@ import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 
 import { dictionaryFor, localesFor, translateIn } from "@/lib/locales";
 import { getUser } from "@/lib/users";
+import { whatsappCountryCode } from "@/lib/whatsapp/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -98,6 +99,8 @@ export default async function ManagePage({ params }: PageProps<"/[user]/c/[token
               wantsWhatsapp: contact.wantsWhatsapp,
               address: contact.postalAddress ?? EMPTY_ADDRESS,
             }}
+            // B385: same fallback `toE164` reads at send time.
+            defaultCountryCode={whatsappCountryCode()}
           />
         </main>
       </div>

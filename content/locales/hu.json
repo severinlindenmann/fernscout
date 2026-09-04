@@ -132,6 +132,7 @@
   "contact.statusPending": "Jóváhagyásra vár",
   "contact.submit": "Beírom magam a vendégkönyvbe",
   "contact.tel": "Telefonszám",
+  "contact.telCountry": "Országhívószám",
   "contact.telHint": "képeslapokhoz – és WhatsApp-értesítésekhez, ha bejelölöd lent a négyzetet",
   "contact.telHintNone": "csak eltároljuk – egyelőre semmi nem küld ide semmit",
   "contact.telHintPostcardsOnly": "képeslapokhoz",

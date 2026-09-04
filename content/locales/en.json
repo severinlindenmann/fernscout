@@ -132,6 +132,7 @@
   "contact.statusPending": "Waiting to be let in",
   "contact.submit": "Sign the guestbook",
   "contact.tel": "Phone number",
+  "contact.telCountry": "Country code",
   "contact.telHint": "for postcards, and for WhatsApp updates if you tick the box below",
   "contact.telHintNone": "kept on file for the owner — nothing on this site sends to it yet",
   "contact.telHintPostcardsOnly": "for postcards",

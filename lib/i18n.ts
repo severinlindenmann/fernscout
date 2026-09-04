@@ -202,6 +202,7 @@ export type TranslationKey =
   | "contact.statusPending"
   | "contact.submit"
   | "contact.tel"
+  | "contact.telCountry"
   | "contact.telHint"
   | "contact.telHintNone"
   | "contact.telHintPostcardsOnly"

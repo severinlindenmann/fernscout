@@ -66,3 +66,65 @@ entered as `+41` + `765613150` round-trips: saved, reopened for edit as the
 same two parts, and `toE164` returns `41765613150` with no
 `defaultCountryCode` configured. A test covers the parse-back of a stored
 `+41 76 561 31 50` and of a legacy `076 561 31 50`.
+
+## Built
+
+One shared component, `components/TelField.tsx`: a `<select>` of dialling
+codes (`DIAL_CODES` — the neighbours of Switzerland, the UK, North America,
+and Hungary, which already has its own WhatsApp template; honestly not the
+whole ITU list, see the doc comment) beside the digits `<input>`, plus
+`splitTel`/`joinTel` — the only new surface. Storage is unchanged: still one
+`PostalAddress.tel` string, `+<cc> <national>`, still read by `toE164`'s `+`
+branch.
+
+Wired into all four forms — `ContactForm.tsx`, `ContactsAdmin.tsx`'s
+`GuestForm`, `InviteRedeem.tsx`, `ContactManage.tsx` — each keeping the
+dialling code in its own `useState` (or, for `ContactsAdmin`, a `cc` field on
+`GuestFields`) rather than re-deriving it from the stored string on every
+render: deriving it fresh would lose the selection the instant the digits are
+cleared, since `joinTel` correctly refuses to store a bare `+cc` with nothing
+after it.
+
+The default: `lib/whatsapp/settings.ts`'s existing `whatsappCountryCode()` —
+the operator's own configured fallback, already used by `toE164` for legacy
+rows — threaded through from each server page
+(`app/[user]/i/[token]/page.tsx`, `app/[user]/invite/redeemPage.tsx`,
+`app/[user]/contacts/page.tsx`, `app/[user]/c/[token]/page.tsx`,
+`app/[user]/me/page.tsx`) as a `defaultCountryCode` prop. It only seeds a
+field that starts with no number at all; an existing (even unparseable)
+value is always parsed back by `splitTel`, never overridden — this is what
+"the journal's own country if there is one" resolved to, since no such field
+exists on a journal's `config.json` and inventing a currency-to-country guess
+would have been exactly the kind of guess the ticket warns against.
+
+Evidence, acceptance line by line:
+
+- **Country is a separate control, all four forms**: `components/TelField.tsx`
+  renders the `<select id="{id}-cc">` beside `<input id="{id}">`; wired at
+  `ContactForm.tsx` (`contact-tel`), `ContactsAdmin.tsx`'s `GuestForm`
+  (`guest-tel`), `InviteRedeem.tsx` (`invite-tel`), `ContactManage.tsx`
+  (`manage-tel`). `test/contact-tel-hint.test.tsx` (predates this ticket,
+  asserts on those exact ids) still passes unmodified.
+- **`+41` + `765613150` round-trips, `toE164` → `41765613150`, no
+  `defaultCountryCode`**: `test/tel-field.test.ts`, "round-trips through
+  storage with no defaultCountryCode needed" — `joinTel("41", "765613150")`
+  → `splitTel` back to `{ cc: "41", national: "765613150" }`, and
+  `toE164(stored)` (no second argument) → `"41765613150"`.
+- **Parse-back of `+41 76 561 31 50`**: same file, "parses back a stored
+  value written as typed with spaces" → `{ cc: "41", national: "76 561 31
+  50" }`.
+- **Parse-back of legacy `076 561 31 50`**: same file, "a legacy national
+  number has no country to find, and is shown as typed" → `{ cc: "",
+  national: "076 561 31 50" }` — shown in the digits box, select left
+  unselected, exactly as the ticket asks.
+
+`npm run verify`: build → tsc → eslint → vitest, all four green (2784
+passed, 3 skipped for the Postgres dialect nobody started here, same as
+before this change).
+
+New capture from this work: B389 (see backlog) — a contact whose stored
+number this picker cannot parse (a legacy row, or a country outside
+`DIAL_CODES`) is shown correctly in the form but the owner's read-only guest
+list (`ContactsAdmin.tsx`'s row view) still prints the bare string with no
+flag that it is unmessageable, so the same "quietly skipped at send time"
+problem this ticket closes for the *form* still stands for the *list*.

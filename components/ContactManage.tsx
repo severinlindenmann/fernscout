@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import TelField, { joinTel, splitTel } from "./TelField";
 import { LOCALE_LABEL, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
@@ -60,6 +61,7 @@ export default function ContactManage({
   locales,
   dictionary,
   className = PAGE_CLASS,
+  defaultCountryCode,
 }: {
   username: string;
   /** The languages this journal offers, from its config. */
@@ -67,6 +69,10 @@ export default function ContactManage({
   dictionary: Record<string, string>;
   token: string;
   contact: ManageContact;
+  /** B385: `whatsappCountryCode()` — seeds the dialling code only when this
+   * reader has never given a number at all; an existing one is always
+   * parsed back (see `splitTel`), never overridden. */
+  defaultCountryCode?: string;
   /**
    * The outer element's spacing and width. Defaults to a page's own centred
    * column — the standalone `/c/<token>` page every mail footer points at.
@@ -77,7 +83,23 @@ export default function ContactManage({
 }) {
   const [locale, setLocale] = useState<Locale>(contact.locale);
   const [name, setName] = useState(contact.name);
-  const [address, setAddress] = useState<ManageAddress>(contact.address);
+  // `address.tel` holds only the national digits once this loads — the
+  // dialling code is split out into its own state below (B385), so
+  // `address.tel` is never the whole stored string here. `joinTel` puts the
+  // two back together at save time.
+  const [address, setAddress] = useState<ManageAddress>(() => ({
+    ...contact.address,
+    tel: splitTel(contact.address.tel).national,
+  }));
+  // The dialling code, held apart from `address.tel` for the same reason
+  // `ContactForm` keeps its own `cc` state — re-deriving it on every render
+  // would lose the selection the moment the digits are cleared.
+  // `defaultCountryCode` only seeds a reader who has never given a number at
+  // all; an existing (even unparseable) one is never overridden.
+  const [cc, setCc] = useState(() => {
+    const parsed = splitTel(contact.address.tel);
+    return parsed.cc || (contact.address.tel.trim() === "" ? (defaultCountryCode ?? "") : "");
+  });
   const [wantsDigest, setWantsDigest] = useState(contact.wantsEmailDigest);
   const [wantsPostcard, setWantsPostcard] = useState(contact.wantsPostcard);
   const [wantsWhatsapp, setWantsWhatsapp] = useState(contact.wantsWhatsapp);
@@ -123,7 +145,16 @@ export default function ContactManage({
         onSubmit={async (event) => {
           event.preventDefault();
           await post(
-            { action: "update", name, locale, address, wantsEmailDigest: wantsDigest, wantsPostcard, wantsWhatsapp },
+            {
+              action: "update",
+              name,
+              locale,
+              // Rejoined here — see the note on `address` above.
+              address: { ...address, tel: joinTel(cc, address.tel) },
+              wantsEmailDigest: wantsDigest,
+              wantsPostcard,
+              wantsWhatsapp,
+            },
             "contact.saved",
           );
         }}
@@ -160,13 +191,15 @@ export default function ContactManage({
           <label className={LABEL} htmlFor="manage-tel">
             {`${t("contact.tel")} (${t("contact.optional")})`}
           </label>
-          <input
+          <TelField
             id="manage-tel"
-            className={FIELD}
-            type="tel"
-            autoComplete="tel"
-            value={address.tel}
-            onChange={(e) => setAddress((previous) => ({ ...previous, tel: e.target.value }))}
+            cc={cc}
+            national={address.tel}
+            onChange={(newCc, national) => {
+              setCc(newCc);
+              setAddress((previous) => ({ ...previous, tel: national }));
+            }}
+            labelCountry={t("contact.telCountry")}
           />
           <p className="mt-2 text-base text-navy-600">{t("contact.telHint")}</p>
         </div>
