@@ -46,6 +46,17 @@ export type Problem = {
   got: string;
   /** What would have been accepted, in plain words. */
   expected: string;
+  /**
+   * A sentence, where the triple above is not enough on its own.
+   *
+   * B292 found an agent reading straight past `{field, got, expected}` and
+   * reporting that the field had not been named at all. B294's refusals lean
+   * on this hardest: "send the words the owner gave you, and if the journal
+   * is written in one language, fix the journal" is guidance a triple cannot
+   * carry, and without it an agent satisfies the validator by translating
+   * somebody's prose itself.
+   */
+  hint?: string;
 };
 
 export type EntryCostInput = {
@@ -68,6 +79,8 @@ export type EntryInput = {
   test?: unknown;
   /** The prose body — "content" is what the REST route calls it. */
   content?: unknown;
+  /** The day's title and content in the journal's other languages. B294. */
+  translations?: unknown;
 };
 
 /**
@@ -254,8 +267,138 @@ function checkTitle(input: EntryInput, problems: Problem[]): void {
  * not duplicate; everything else is optional frontmatter, validated only
  * when present so a bare-minimum entry (date, content) still passes.
  */
-export function validateEntry(input: EntryInput): Problem[] {
+/**
+ * The `translations:` block on a day — B294.
+ *
+ * A journal declares the languages it is readable in (`locales`, asked for at
+ * creation since B277 and changeable since B220), and until now that promise
+ * covered the site's chrome and a trip's title and nothing else: a reader who
+ * switched to English got English furniture around German prose, with no
+ * explanation and no way to get the prose. The owner's decision was that the
+ * content should catch up rather than the promise be trimmed — a day is
+ * written in every language its journal declares.
+ *
+ * **Refused, not defaulted, and that is the whole point.** B263 and B277 each
+ * shipped a field an agent was asked to send and allowed to omit; both were
+ * omitted, and in both cases the owner was told otherwise. This is the third
+ * of that pattern and the first caught before shipping, so a day missing a
+ * declared language is a `400` naming the language rather than a day quietly
+ * saved in one.
+ *
+ * The refusal names the *journal's* languages as the remedy on purpose. An
+ * agent stuck at a validator will look for a way to satisfy it, and the only
+ * one available without the owner is to translate the prose itself — which is
+ * inventing what somebody said, the one thing this software forbids outright.
+ * So the message says the fix is `locales`, not the day.
+ */
+function checkTranslations(
+  input: EntryInput,
+  problems: Problem[],
+  locales: readonly string[],
+  writtenLocale: string,
+): void {
+  const raw = input.translations;
+
+  // Which languages a day owes, beyond the one its own `title` and `content`
+  // are already in.
+  const owed = locales.filter((code) => code !== writtenLocale);
+
+  if (raw === undefined || raw === null) {
+    if (owed.length === 0) return;
+    problems.push({
+      field: "translations",
+      got: "nothing",
+      expected: `this journal is read in ${locales.join(", ")}, so a day carries its title and content in ${owed.join(", ")} as well`,
+      hint:
+        `Send them as translations: {"${owed[0]}": {"title": "…", "content": "…"}}. The words ` +
+        `must come from the person whose journal this is — never translate their prose ` +
+        `yourself. If this journal is written in one language only, that is the journal's ` +
+        `to fix and not the day's: PATCH the journal's config with ` +
+        `locales: ["${writtenLocale}"].`,
+    });
+    return;
+  }
+
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    problems.push({
+      field: "translations",
+      got: describe(raw),
+      expected: 'an object keyed by language code, e.g. {"de": {"title": "…", "content": "…"}}',
+    });
+    return;
+  }
+
+  const given = raw as Record<string, unknown>;
+
+  for (const [code, value] of Object.entries(given)) {
+    if (!locales.includes(code)) {
+      problems.push({
+        field: `translations.${code}`,
+        got: code,
+        expected: `one of ${locales.join(", ")} — this journal declares those and nothing else`,
+        hint:
+          `A translation into a language nothing renders would land, read back, and never ` +
+          `reach a reader. To offer ${code}, add it to the journal's locales first.`,
+      });
+      continue;
+    }
+    if (code === writtenLocale) {
+      problems.push({
+        field: `translations.${code}`,
+        got: code,
+        expected: `not ${code} — that is the language the day's own title and content are in`,
+      });
+      continue;
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      problems.push({
+        field: `translations.${code}`,
+        got: describe(value),
+        expected: 'an object with "title" and "content"',
+      });
+      continue;
+    }
+    const tr = value as { title?: unknown; content?: unknown };
+    for (const part of ["title", "content"] as const) {
+      const v = tr[part];
+      if (typeof v !== "string" || v.trim() === "") {
+        problems.push({
+          field: `translations.${code}.${part}`,
+          got: v === undefined ? "nothing" : describe(v),
+          expected: `the day's ${part} in ${code}, as the owner wrote it`,
+        });
+      }
+    }
+  }
+
+  const missing = owed.filter((code) => {
+    const tr = given[code] as { title?: unknown; content?: unknown } | undefined;
+    return !tr || typeof tr.title !== "string" || typeof tr.content !== "string";
+  });
+  if (missing.length > 0 && !problems.some((p) => p.field.startsWith("translations."))) {
+    problems.push({
+      field: "translations",
+      got: `${Object.keys(given).join(", ") || "nothing"}`,
+      expected: `every language this journal is read in: ${owed.join(", ")}`,
+      hint:
+        `Missing ${missing.join(", ")}. Ask the person for those words rather than ` +
+        `translating their prose yourself. If the journal is written in one language, ` +
+        `PATCH its config with locales: ["${writtenLocale}"].`,
+    });
+  }
+}
+
+export function validateEntry(
+  input: EntryInput,
+  /** The journal's declared languages and the one its prose is written in.
+   * Omitted by callers that have no journal to hand — the shape checks still
+   * run, the completeness one cannot. */
+  languages?: { locales: readonly string[]; writtenLocale: string },
+): Problem[] {
   const problems: Problem[] = [];
+  if (languages) {
+    checkTranslations(input, problems, languages.locales, languages.writtenLocale);
+  }
   checkTitle(input, problems);
   checkDate(input, problems);
   checkTime(input, problems);
@@ -283,8 +426,20 @@ export function validateEntry(input: EntryInput): Problem[] {
  * creation. ponytail: send both if you want either changed; teach this check
  * the file's existing values if that turns out to matter in practice.
  */
-export function validateEntryEdit(input: EntryInput): Problem[] {
+export function validateEntryEdit(
+  input: EntryInput,
+  languages?: { locales: readonly string[]; writtenLocale: string },
+): Problem[] {
   const problems: Problem[] = [];
+  // An edit that rewrites the prose in one language and leaves the others
+  // standing is the drift B294 exists to stop, so `title` and `content`
+  // bring the completeness check with them. An edit to a coordinate or a tag
+  // does not.
+  if (languages && (input.title !== undefined || input.content !== undefined)) {
+    checkTranslations(input, problems, languages.locales, languages.writtenLocale);
+  } else if (languages && input.translations !== undefined) {
+    checkTranslations(input, problems, languages.locales, languages.writtenLocale);
+  }
   checkTitle(input, problems);
   checkDate(input, problems, false);
   checkTime(input, problems);

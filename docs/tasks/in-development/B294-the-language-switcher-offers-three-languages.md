@@ -115,3 +115,50 @@ got to first: if `lib/mcp/tools.ts` is gone, there is one door to change rather
 than two, and half the work in the Work section above disappears. If it is not
 gone yet, coordinate rather than writing tool schemas that are about to be
 deleted.
+
+## Built
+
+2026-09-04. **Most of this already existed**, which the ticket did not know:
+`EntryTranslations` was in `lib/types.ts:41`, `parseTranslations` read the
+block off the frontmatter (`lib/entries.ts:70`), and `LocaleProvider`'s
+`localized()` already fell back to the written language. The gap was the write
+path — no call could put a day's words in a second language — plus one bug in
+the reading path nobody had hit yet.
+
+- **`translations` accepted on write.** `DraftInput.translations`, emitted by
+  `createDraft` through a new `translationLines`, and in
+  `EDITABLE_DAY_FIELDS` with a `spliceTranslations` modelled on `spliceCosts`.
+  Block style with a `|-` literal scalar for `content`, because the values are
+  prose: flow style would put a paragraph on one line, and a newline inside
+  somebody's writing has to survive the round trip.
+- **`title` and `content` only.** Not `location`, not `tags` — the ticket
+  asked the question and `EntryTranslations` had already answered it, and a
+  tag translated in one language and not another would split the tag index.
+- **Refused, naming the language.** `checkTranslations` in
+  `lib/validate/entry.ts`, wired into `validateEntry` (create) and
+  `validateEntryEdit` (edit). `Problem` gained a `hint`, because the guidance
+  that matters — *ask the owner, never translate their prose, and if the
+  journal is written in one language fix the journal* — is not something a
+  `{field, got, expected}` triple can carry.
+- **On an edit, `title` or `content` brings the check with it**; a change to a
+  coordinate or a tag does not. Rewriting the prose in one language and
+  leaving the others standing is the drift this exists to stop; changing a
+  latitude is not.
+- **The reading-path bug.** `localized()` short-circuited on
+  `locale === "en"`, which is only right for a journal whose prose is English.
+  viki's is German, so an English reader was handed the German while
+  `translations.en` sat unread. Now compared against the journal's own
+  `defaultLocale`, passed from `app/[user]/layout.tsx` and defaulting to `en`
+  for the ninety-odd call sites outside a journal.
+  `test/written-locale.test.tsx` was checked against the old code and fails
+  on it.
+- **The creation question now says what the answer commits an owner to** —
+  three languages is a promise to write everything three times, and it can be
+  widened later.
+
+## Deliberately not built
+
+**The visible "you are reading this in German" notice.** The ticket asked for
+it, and with translations now required it is a legacy-only path: only a day
+written before today can lack a language. It is also a wording decision in
+three languages rather than a mechanism. Captured rather than guessed at.

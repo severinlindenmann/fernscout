@@ -25,6 +25,7 @@ import {
   MEDIA_ENDPOINT_PATH,
   NOT_WRITABLE,
   TITLE_COLLISION_EXAMPLE,
+  TRANSLATIONS_REQUIRED,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
   asSentence,
@@ -211,6 +212,8 @@ export function instanceDocumentation(): string {
     ...wrap(BUDGET_QUESTION, 78),
     "",
     ...wrap(COORDINATES_QUESTION, 78),
+    "",
+    ...wrap(TRANSLATIONS_REQUIRED, 78),
     "",
     ...wrap(NOT_WRITABLE, 78),
     "",
@@ -930,6 +933,8 @@ A trip is created **private** unless you say otherwise. Publishing somebody's
 journey is their decision — ask before sending \`"visibility": "public"\`.
 
 ${wrap(BUDGET_QUESTION).join("\n")}
+
+${wrap(TRANSLATIONS_REQUIRED).join("\n")}
 
 ${wrap(NOT_WRITABLE).join("\n")}
 

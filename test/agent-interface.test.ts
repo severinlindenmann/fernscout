@@ -14,6 +14,7 @@ import {
   COORDINATES_QUESTION,
   MEDIA_ENDPOINT_PATH,
   NOT_WRITABLE,
+  TRANSLATIONS_REQUIRED,
   TITLE_COLLISION_EXAMPLE,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
@@ -504,6 +505,23 @@ describe("what the guide has to tell an agent before it starts", () => {
       expect(asSentence(question)).not.toMatch(/[?!][*`_]*\.\s/);
     }
     expect(instanceDocumentation()).not.toMatch(/\?\*\*\./);
+  });
+
+  test("both documents say a day owes the journal's other languages", () => {
+    // B294: and they must carry the prohibition as loudly as the requirement,
+    // or an agent satisfies the refusal by translating somebody's prose.
+    expect(flat(agentGuide())).toContain(flat(TRANSLATIONS_REQUIRED));
+    expect(flat(instanceDocumentation())).toContain(flat(TRANSLATIONS_REQUIRED));
+    expect(TRANSLATIONS_REQUIRED).toContain("never translate their prose yourself");
+  });
+
+  test("the languages question says what answering it commits an owner to", () => {
+    // B294 again: three languages is a promise to write everything three
+    // times, and an owner choosing at creation had no way to know that.
+    const asked = firstQuestions("https://x.test")
+      .map((q) => q.because)
+      .join(" ");
+    expect(asked).toContain("every day of every trip");
   });
 
   test("both documents say what no call changes", () => {
