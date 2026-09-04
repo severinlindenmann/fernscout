@@ -7,8 +7,7 @@ complexity: low
 area: entries, reading
 found: "2026-09-04T08:04:38Z"
 started: "2026-09-04T16:07:51Z"
-session: 46daaba3-3210-4263-85a6-d285caefd837
-claimed: "2026-09-04T16:07:51Z"
+merged: "2026-09-04T16:25:43Z"
 ---
 
 # B236 — One entry file that does not parse throws out of getAllEntries, so the whole trip stops reading rather than that one day
