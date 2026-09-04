@@ -76,6 +76,44 @@ export const TITLE_COLLISION_EXAMPLE =
  */
 export const MEDIA_ENDPOINT_PATH = "/api/v1/<user>/trips/<trip-id>/media";
 
+/**
+ * The question nothing asked before B267: whether this trip accounts for its
+ * money at all. `costs.md` is optional (AGENTS.md, the content model) and
+ * `features.costs` is on by default at creation (lib/journals.ts), so a trip
+ * ended up with the capability on and nobody ever having been asked for a
+ * figure — the costs page rendered anyway, with nothing in it. Saying what
+ * "yes" costs the person, and what "no" costs the page, is the fix: a
+ * decision put to them instead of left to a default.
+ */
+export const BUDGET_QUESTION =
+  "Ask whether this trip tracks its money. Saying yes means a `costs.md` — a budget, and " +
+  "a figure per day, both supplied by the person and never guessed at by you — and it is " +
+  "the only thing that puts a costs page on the site: no `costs.md` means no page and no " +
+  "nav entry, and writing one is what brings both.";
+
+/**
+ * The other question B267 found nothing asking: a day is written to hold
+ * `lat`/`lng`, and nothing ever said so. Fifteen days went out with neither,
+ * at which point there was no coordinate to add after the fact (B266) and no
+ * reason for an agent reading a journal's prose to have thought they were
+ * wanted.
+ *
+ * The line this sentence has to hold, deliberately: *propose*, do not invent.
+ * An agent reading "we had lunch in Hoi An" may reasonably know where Hoi An
+ * is and offer it — but only as something put to the person, never as
+ * something written on the strength of its own guess. "An empty field beats
+ * an invented location" is the same rule AGENTS.md states for every other
+ * fact a day might carry, said again here because a weak model reading only
+ * "propose coordinates" could otherwise read that as permission to geocode
+ * and write in the same breath.
+ */
+export const COORDINATES_QUESTION =
+  "A day is expected to carry `lat` and `lng` — they are what puts it on the map, and a " +
+  "day written without them is a day the map cannot show. Ask for them, and where the " +
+  "prose you are working from names a real place, propose coordinates for the person to " +
+  "confirm rather than leaving the field empty. An unconfirmed guess is never written: an " +
+  "empty field beats an invented location.";
+
 // Read from the constant rather than typed into prose: a fourth language would
 // otherwise be maintained everywhere except in the sentence that tells an agent
 // it exists. The media limits table already works this way.

@@ -46,6 +46,14 @@ function journal(trips: { id: string; status: string; start: string; end: string
       `---\nid: ${t.id}\ntitle: "${t.id}"\nstart: "${t.start}"\nend: "${t.end}"\n` +
         `status: ${t.status}\nvisibility: public\n---\n\nSomething.\n`,
     );
+    // A `costs.md` per trip: this file is about B73's redirect logic, not
+    // about B267's "no budget anywhere" 404, and the two must not tangle —
+    // every trip here has a budget so the costs page's own emptiness never
+    // enters into what these assertions are checking.
+    fs.writeFileSync(
+      path.join(dir, "alex", "trips", t.id, "costs.md"),
+      "---\nbudget:\n  total: 100\n  days: 10\n---\n\nBefore we left.\n",
+    );
   }
   process.env.CONTENT_DIR = dir;
   clearConfigCache();

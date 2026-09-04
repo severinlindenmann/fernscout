@@ -68,7 +68,14 @@ vi.mock("@/lib/users", () => ({
   getUser: () => ({ username: "alex", title: "Alex's journal", baseCurrency: "CHF" }),
   getUsernames: () => ["alex", "robin"],
 }));
-vi.mock("@/lib/costs", () => ({ getCostSummary: () => ({ total: 1234 }) }));
+// The pages ask `hasCostsData` alongside the capability now (B267). This file
+// is about the capability half alone, so the mock answers as if the trip
+// always had a `costs.md` — the data half gets its own file,
+// test/costs-availability.test.ts.
+vi.mock("@/lib/costs", () => ({
+  getCostSummary: () => ({ total: 1234 }),
+  hasCostsData: () => true,
+}));
 vi.mock("@/lib/site", () => ({ travellerNamesOf: () => [] }));
 vi.mock("@/lib/locales", () => ({
   requestLocale: async () => "en",

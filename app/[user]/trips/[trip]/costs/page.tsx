@@ -4,7 +4,7 @@ import { mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import CostsPageContent from "@/app/[user]/(trip)/costs/CostsPageContent";
 import CostsPrivate from "@/components/CostsPrivate";
-import { getCostSummary } from "@/lib/costs";
+import { getCostSummary, hasCostsData } from "@/lib/costs";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUser, getUsernames } from "@/lib/users";
 import { isEnabled } from "@/lib/capabilities";
@@ -18,7 +18,11 @@ export function generateStaticParams() {
     if (!isEnabled("costs", user)) return [];
     const current = getCurrentTrip(user)?.id;
     return getTrips(user)
-    .filter((t) => t.id !== current && t.status !== "upcoming")
+      .filter((t) => t.id !== current && t.status !== "upcoming")
+      // And a trip that never got a `costs.md` has no page of its own to
+      // prerender either — the capability being on says nothing about this
+      // one trip. B267.
+      .filter((t) => hasCostsData(tripRef(user, t.id)))
       .map((t) => ({ user, trip: t.id }));
   });
 }
@@ -31,6 +35,9 @@ export async function generateMetadata({
   if (!isEnabled("costs", user)) return {};
   const trip = getTrip(tripRef(user, id));
   if (!trip) return {};
+  // Nor of a trip that has the capability but never wrote a `costs.md` — the
+  // page below 404s for it. B267.
+  if (!hasCostsData(trip.ref)) return {};
   const locale = await requestLocale();
   return {
     // The section name follows the reader; the trip's own title is the
@@ -64,6 +71,13 @@ export default async function TripCostsPage({ params }: PageProps<"/[user]/trips
   if (!isEnabled("costs", user)) notFound();
   const trip = getTrip(tripRef(user, id));
   if (!trip) notFound();
+  /**
+   * A trip that never got a `costs.md` has the same "not there" answer as one
+   * with the capability off: the capability being on says nothing about this
+   * one trip, since `costs` defaults to on at creation (lib/journals.ts) and
+   * `costs.md` is written separately, or not at all. B267.
+   */
+  if (!hasCostsData(trip.ref)) notFound();
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.

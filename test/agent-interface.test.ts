@@ -10,6 +10,8 @@ import { agentGuide, instanceDocumentation, userDocumentation } from "@/lib/api/
 import { getAllEntries } from "@/lib/entries";
 import { validateEntry } from "@/lib/validate/entry";
 import {
+  BUDGET_QUESTION,
+  COORDINATES_QUESTION,
   MEDIA_ENDPOINT_PATH,
   TITLE_COLLISION_EXAMPLE,
   VISIBILITY_MEANING,
@@ -517,6 +519,23 @@ describe("what the guide has to tell an agent before it starts", () => {
     // consequence for how to name a second "Bangkok" was not.
     expect(flat(agentGuide())).toContain(flat(TITLE_COLLISION_EXAMPLE));
     expect(flat(instanceDocumentation())).toContain(flat(TITLE_COLLISION_EXAMPLE));
+  });
+
+  test("both documents ask whether a trip tracks its money", () => {
+    // B267: `costs.md` is optional and the capability is on by default at
+    // creation, so nothing ever put the question to the person — the page
+    // rendered anyway, with nothing in it.
+    expect(flat(agentGuide())).toContain(flat(BUDGET_QUESTION));
+    expect(flat(instanceDocumentation())).toContain(flat(BUDGET_QUESTION));
+  });
+
+  test("both documents ask for a day's coordinates, and only as a proposal", () => {
+    // B267: fifteen days went out with no lat/lng because nothing ever asked
+    // for them. The sentence has to survive being read by a weak model as
+    // permission to geocode silently, so it says "propose" and "never
+    // written" in the same breath.
+    expect(flat(agentGuide())).toContain(flat(COORDINATES_QUESTION));
+    expect(flat(instanceDocumentation())).toContain(flat(COORDINATES_QUESTION));
   });
 
   test("a journal's own document shows a twin URL with a real trip in it", () => {
