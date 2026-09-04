@@ -7,8 +7,7 @@ complexity: medium
 area: trips, access, i18n
 found: "2026-09-04T11:26:21Z"
 started: "2026-09-04T11:27:17Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T11:27:17Z"
+merged: "2026-09-04T11:42:02Z"
 ---
 
 # B264 — A reader who may see nothing in a journal is told there are no trips yet
