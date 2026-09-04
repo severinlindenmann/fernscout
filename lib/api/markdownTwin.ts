@@ -5,6 +5,7 @@ import { journalTombstone, tripTombstone, type Tombstone } from "../tombstones";
 import { mayReadTrip } from "../tripGate";
 import { currentTripRef, getTrip, getTrips, tripRef } from "../trips";
 import type { Entry, Trip } from "../types";
+import { translationLines } from "./entries";
 
 /**
  * The markdown twin of a day page.
@@ -166,6 +167,7 @@ function notFound(user: string, tripId: string | null, slug: string): Response {
  */
 function render(entry: Entry, trip: Trip): string {
   const invented = isTestContent(trip, entry);
+  const codes = Object.keys(entry.translations ?? {});
   return [
     "---",
     `title: ${JSON.stringify(entry.title)}`,
@@ -177,6 +179,21 @@ function render(entry: Entry, trip: Trip): string {
     ...(Number.isFinite(entry.lng) ? [`lng: ${entry.lng}`] : []),
     ...(entry.gallery.length ? [`photos: ${entry.gallery.length}`] : []),
     ...(invented ? ["test: true"] : []),
+    // B371: the twin is sold as the source that produced the page, so a day
+    // written in several languages has to carry the rest of them too — same
+    // shape `translationLines` writes to disk, missing halves defaulted to ""
+    // rather than crashing on a hand-edited file with only a title or only a
+    // body for some locale.
+    ...(codes.length > 0
+      ? translationLines(
+          Object.fromEntries(
+            codes.map((code) => {
+              const tr = entry.translations![code];
+              return [code, { title: tr.title ?? "", content: tr.content ?? "" }];
+            }),
+          ),
+        )
+      : []),
     "---",
     "",
     // Above the prose, not below it: something that reads only the first

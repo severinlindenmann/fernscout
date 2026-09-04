@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import matter from "gray-matter";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 
@@ -85,6 +86,31 @@ beforeEach(() => {
   writeTrip("now-2026", "current", "public", ["today"]);
   writeTrip("parks-2025", "past", "public", ["zion-narrows", "today"]);
   writeTrip("secret-2024", "past", "private", ["hidden-day"]);
+
+  // B371 — a day written in German with an English translation, in the same
+  // block-scalar shape lib/api/entries.ts's translationLines writes to disk.
+  const tripPath = path.join(dir, "alex", "trips", "now-2026");
+  fs.writeFileSync(
+    path.join(tripPath, "entries", "2026-01-03-zwei-sprachen.md"),
+    [
+      "---",
+      'title: "Ankunft"',
+      'date: "2026-01-03"',
+      'location: "Somewhere"',
+      'country: "Nowhere"',
+      "translations:",
+      "  en:",
+      '    title: "Arrival"',
+      "    content: |-",
+      "      In English, over two",
+      "",
+      "      paragraphs.",
+      "---",
+      "",
+      "Auf Deutsch.",
+      "",
+    ].join("\n"),
+  );
 });
 
 afterEach(() => {
@@ -129,6 +155,19 @@ describe("the bare twin", () => {
   test("does not walk into a private trip on the way past", async () => {
     const response = await markdownTwin("alex", null, "hidden-day");
     expect(response.status).toBe(404);
+  });
+});
+
+describe("B371: a translated day", () => {
+  test("carries every translation, and still parses as frontmatter plus body", async () => {
+    const response = await markdownTwin("alex", "now-2026", "zwei-sprachen");
+    const body = await response.text();
+
+    const { data, content } = matter(body);
+    expect(data.translations.en.title).toBe("Arrival");
+    expect(data.translations.en.content).toContain("In English, over two");
+    expect(data.translations.en.content).toContain("paragraphs.");
+    expect(content.trim()).toBe("Auf Deutsch.");
   });
 });
 
