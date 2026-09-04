@@ -81,6 +81,9 @@ function render(
               lifetime={{ countries: 0, days: 0, photos: 0, trips: 0 }}
               empty={null}
               malformed={over.malformed ?? []}
+              // Unused here — `empty` is always null in this file — but
+              // required on the type; see TripsIndexContent (B278).
+              codeMinutes="30"
             />
           </TripListProvider>
         </CurrencyProvider>
@@ -259,6 +262,9 @@ describe("the page decides who sees it", () => {
     // To them the journal really is empty: there is no trip they could read.
     // Byte-identical to a genuinely empty journal — B264 — which is why this
     // is `signedIn: false` rather than any hint that a trip exists at all.
-    expect(props.empty).toEqual({ owner: false, signedIn: false });
+    // `ownerName` is safe alongside it — B278 — because it is the journal's
+    // own constant (`owner.nickname` from the fixture above), the same for
+    // every reader regardless of what this one may see.
+    expect(props.empty).toEqual({ owner: false, signedIn: false, ownerName: "A" });
   });
 });
