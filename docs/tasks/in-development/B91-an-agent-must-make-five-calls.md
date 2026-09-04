@@ -154,3 +154,22 @@ lists what the response carries and that is not on it.
 
 Left for B89, as this task asked: the `credits` and `pricing` block. It slots in
 beside `features` in `journalStatus`; the comment there says so.
+
+### One process slip, recorded because it is the interesting part
+
+The first merge of this branch failed `npx tsc --noEmit` on `main`:
+`test/status.test.ts` passed `{ tripId: trip }` to `issueCode`, whose option is
+`trip` (`IssueCodeOptions`, `lib/auth/index.ts:273`). It had not been caught in
+the worktree because the four checks were run in order — build, tsc, eslint,
+vitest — **before** the test file existed, and only vitest was re-run after.
+Vitest transpiles without typechecking, so the unknown key was silently
+dropped.
+
+Which means the trip-scoped test was passing without the code being bound to
+its trip at all — B230's binding was not being exercised, and the assertion
+about a slice was true for the wrong reason. Fixed on the branch and re-merged;
+the test now goes through the real path.
+
+The lesson is the order, not the typo: the four checks are a gate on the final
+tree, and running them before the last file is written is running them on a
+different tree.

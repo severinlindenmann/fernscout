@@ -91,7 +91,7 @@ async function ownerToken(): Promise<string> {
 async function tripToken(email: string, trip: string): Promise<string> {
   const { issueCode, verifyCode } = await import("@/lib/auth");
   const { tripWriteScope } = await import("@/lib/tripPeople");
-  const { code } = await issueCode(OWNER, email, "agent", { tripId: trip });
+  const { code } = await issueCode(OWNER, email, "agent", { trip });
   const result = await verifyCode(OWNER, email, code, "agent", tripWriteScope(trip));
   if (!result.ok) throw new Error(`no token for ${email} on ${trip}`);
   return result.token;
