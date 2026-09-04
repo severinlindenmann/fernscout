@@ -62,6 +62,62 @@ Lower stakes than the first: nothing is promised to an owner here, and a grant
 that never expires is a defensible product decision. It is worth deciding on
 purpose rather than by omission.
 
+## What was built
+
+The Why is accurate on both halves. One thing it implies is worth stating
+plainly, because it decided the design: `parseCostsVisibility` reads an
+unrecognised value as **`guests`**, which is the opposite fail-safe direction
+from `visibility`. That is right for a reader — the quiet end of the money axis
+is the safe one — and it is what makes a *write* that silently defaults
+unacceptable in either direction.
+
+- **`costsVisibility` is accepted on both doors** — the REST body and MCP
+  `create_trip`'s `inputSchema` — and written into `trip.md`.
+- **Written only when it narrows.** `costsVisibility: guests` appears in the
+  file; `public` does not, because an absent key already reads as `public` and
+  a line that never says anything is furniture in a file a person is meant to
+  open and read straight. Same reasoning the file already applies to `listed:`
+  and `test:`.
+- **An unrecognised value is refused, not defaulted** — `invalid_costs_visibility`,
+  and nothing is written. Defaulting to `public` would widen what the caller
+  asked for *and* disagree with the reader about the same file; defaulting to
+  `guests` would hide the money of everybody who typed "publik". Neither is a
+  thing to decide silently about somebody's trip. This is the one field in
+  `createTrip` that does not fall back to a default, and the note in the code
+  says why.
+- **Documented where it is now reachable**: the trip field list in
+  `add-a-trip` (a fifth behaviour field, with the fail-closed default spelled
+  out), and the trip-creation section of `/agent.md` (`lib/api/documentation.ts`).
+
+### The `expires_at` decision
+
+**Grants are permanent until the owner revokes them**, and neither door takes
+an expiry. Written down at `grantIsLive` in `lib/grants.ts`, which is the one
+place the rule is enforced, so the decision and the enforcement are read
+together.
+
+The reasoning, recorded there: approving somebody is the owner saying "you are
+welcome here", not "you are welcome here until March", and an access list that
+silently empties itself is a worse surprise than one the owner has to prune.
+The column stays and stays enforced, so "let them in until Christmas" is one
+writer away rather than one migration and one writer away. The consequence to
+know is the one the Why names — no expired grant can exist on a running
+instance, so B41's "a contact whose grant has expired is refused" is
+observable only in `test/access-gate.test.ts`, and that is now on purpose
+rather than by omission.
+
+### The rest of the parsed frontmatter
+
+Checked, as the Work section asked. There are **four** more fields in
+`KNOWN_TRIP_FIELDS` that are read and that nothing can write: `people`,
+`cover`, `rates` and `translations`. `people` is the one with a real
+consequence — it grants write access and is the byline — and accepting it on a
+create is a decision worth taking on its own rather than inside this ticket.
+Captured as **B207**.
+
+Also captured: **B206**, MCP `create_trip` has no `listed` property while REST
+does, found while checking the two doors accept the same body.
+
 ## Work
 
 - Accept `costsVisibility` on the trip write path — REST and MCP both, since
@@ -84,3 +140,22 @@ purpose rather than by omission.
   finally checkable.
 - The two doors write identical frontmatter for identical input.
 - The decision on grant expiry is written down, and matches what the code does.
+
+### Evidence
+
+- `test/journals.test.ts` → "costsVisibility": guests-only round-trips through
+  `createTrip` and reads back as `guests`; an omitted field writes no line and
+  reads as `public`; an unknown value is refused with `invalid_costs_visibility`
+  and writes nothing.
+- `test/mcp.test.ts` → "create_trip and REST write identical frontmatter for
+  guests-only costs": the same body through both doors produces byte-identical
+  `trip.md`. That is the two-doors bullet, asserted rather than reasoned.
+- The half this cannot prove from here is B41's own: *an approved contact sees
+  the costs where a stranger does not.* That gate is already covered by
+  `test/access-gate.test.ts` → "costs marked for guests"; what was missing was
+  a fixture it could run against on a live instance, and that is what this
+  makes creatable. Verifying it end-to-end belongs to whoever tests B41.
+- Grant expiry: `lib/grants.ts`, the paragraph beginning "Decided, rather than
+  left open (B178)". It matches the code — `approveContact` writes
+  `expires_at: null` on insert and clears it when reviving a lapsed row, and
+  nothing else inserts.

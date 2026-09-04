@@ -617,6 +617,53 @@ describe("creating a trip", () => {
   });
 
   /**
+   * B178 — the field that was read, typed, gated and documented, and that
+   * nothing could write. Every trip on every instance had public costs, so
+   * `maySeeCosts`'s guests-only branch had no data to act on and an owner who
+   * works through an agent — which is the only way this product is written —
+   * could not reach a feature the site says it has.
+   */
+  describe("costsVisibility", () => {
+    test("guests-only money round-trips", () => {
+      const result = createTrip("wanderer", {
+        ...DATES, id: "quiet-money", title: "Q", visibility: "public", costsVisibility: "guests",
+      });
+      expect(result.ok).toBe(true);
+      expect(getTrip("wanderer/quiet-money")?.costsVisibility).toBe("guests");
+    });
+
+    test("says nothing about costs when the caller did not, and that reads as public", () => {
+      createTrip("wanderer", { ...DATES, id: "open-money", title: "O" });
+      const file = fs.readFileSync(
+        path.join(dir, "wanderer", "trips", "open-money", "trip.md"), "utf8",
+      );
+      expect(file).not.toContain("costsVisibility:");
+      expect(getTrip("wanderer/open-money")?.costsVisibility).toBe("public");
+    });
+
+    test("an explicit public is the same file as none", () => {
+      createTrip("wanderer", { ...DATES, id: "said-public", title: "S", costsVisibility: "public" });
+      expect(getTrip("wanderer/said-public")?.costsVisibility).toBe("public");
+    });
+
+    /**
+     * Refused, not defaulted — the one field here where a typo does not fall
+     * back. Defaulting to `public` would widen what the caller asked for and
+     * disagree with `parseCostsVisibility`, which reads an unknown value as
+     * `guests`; defaulting to `guests` would hide the money of everybody who
+     * typed "publik". Neither is a thing to decide silently.
+     */
+    test("refuses a value it does not read, and writes nothing", () => {
+      const result = createTrip("wanderer", {
+        ...DATES, id: "typo-money", title: "T", costsVisibility: "everyone" as never,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBe("invalid_costs_visibility");
+      expect(getTrip("wanderer/typo-money")).toBeUndefined();
+    });
+  });
+
+  /**
    * B204 — a title that closes the frontmatter block from inside the value.
    *
    * `q()` escaped `"` and `\\` and not a newline, so `"a\n---\nb"` wrote a

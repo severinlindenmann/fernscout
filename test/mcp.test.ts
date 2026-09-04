@@ -848,6 +848,41 @@ describe("create_day writes a draft, and only a draft", () => {
   });
 
   /**
+   * B178 — the two doors, on the field neither of them could write until now.
+   * A trip whose money is guests-only had no way of being created, so
+   * `maySeeCosts` had nothing to act on anywhere outside the unit suite.
+   */
+  test("create_trip and REST write identical frontmatter for guests-only costs", async () => {
+    const body = {
+      id: "quiet-money",
+      title: "Quiet money",
+      start: "2026-03-01",
+      end: "2026-03-02",
+      visibility: "public",
+      costsVisibility: "guests",
+    };
+    const file = path.join(dir, "ana", "trips", "quiet-money", "trip.md");
+
+    const result = await call(anaToken, "create_trip", body);
+    expect(result.isError).toBe(false);
+    const viaMcp = fs.readFileSync(file, "utf8");
+    expect(viaMcp).toContain("costsVisibility: guests");
+    fs.rmSync(path.join(dir, "ana", "trips", "quiet-money"), { recursive: true });
+
+    const { POST } = await import("@/app/api/v1/[user]/trips/route");
+    const response = await POST(
+      new Request(`${SITE}/api/v1/ana/trips`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${anaToken}` },
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ user: "ana" }) },
+    );
+    expect(response.status).toBe(201);
+    expect(fs.readFileSync(file, "utf8")).toBe(viaMcp);
+  });
+
+  /**
    * B204 — the same call that bricked a trip id on the live instance, through
    * the other door. What matters is not only the refusal but that the folder
    * is gone: every delete path resolves the trip first, so a trip left behind

@@ -29,6 +29,16 @@ import { getDatabase } from "./db";
  * a rule that is only honoured by whichever reader remembered it is worse than
  * no rule. Compared as ISO strings: that is what the schema stores and what
  * sorts correctly.
+ *
+ * **Decided, rather than left open (B178).** A grant is permanent until the
+ * owner revokes it, and neither REST nor MCP takes an expiry — approving
+ * somebody is the owner saying "you are welcome here", not "you are welcome
+ * here until March", and an access list that silently empties itself is a
+ * worse surprise than one the owner has to prune. The column stays, and stays
+ * enforced, so that "let them in until Christmas" is one writer away rather
+ * than one migration and one writer away; the consequence to know is that no
+ * expired grant can exist on a running instance, so this rule is observable
+ * only in `test/access-gate.test.ts` and that is not a gap.
  */
 export function grantIsLive(expiresAt: string | null, now: Date): boolean {
   return expiresAt === null || expiresAt > now.toISOString();

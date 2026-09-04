@@ -63,7 +63,7 @@ rates:                        # this trip's frozen local → baseCurrency rates
 A paragraph about what this trip is. It renders as the trip's introduction.
 ```
 
-Four fields decide behaviour rather than decoration:
+Five fields decide behaviour rather than decoration:
 
 - **`status`** — exactly one trip should be `current`. That is the one served at
   the bare `/<user>` URLs; the rest live under `/<user>/trips/<id>`. It is the
@@ -118,6 +118,20 @@ Four fields decide behaviour rather than decoration:
 
   The two older words still parse: `password` means a `guest` trip, and
   `unlisted` means `public` with `listed: false`.
+- **`costsVisibility`** — who, among the readers already allowed to open the
+  trip, may see what it cost. `public` (the default, and what leaving the key
+  out means) shows the numbers to everybody who can read the trip; `guests`
+  narrows them to the people in `people:` and the readers the owner has
+  approved into the journal. It is not a second `visibility:` — it decides
+  nothing about who may open the trip, only whether the money is drawn once
+  they are in, and on a `private` trip it changes nothing because everyone who
+  can read it was already on it.
+
+  An unrecognised value reads as **`guests`**, not as public: the fail-closed
+  end of this axis is the quiet one. Writing it through the API — `POST
+  /api/v1/<user>/trips`, or `create_trip` over MCP — a value neither word is
+  refused rather than defaulted, because both defaults would be a silent
+  decision about somebody's money (B178).
 - **`rates`** — how much one unit of a local currency was worth in the site's
   `baseCurrency` **on this trip**. Frozen per trip on purpose: a later trip to
   the same country carries its own table and never restates what this one cost.
