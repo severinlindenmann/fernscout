@@ -61,3 +61,39 @@ anything whose licence has to be explained.
 - `npm run demo:build` still works with no account and no key.
 - Whatever is decided about the other four trips is written down, so the next
   person does not re-derive it.
+
+## Held deliberately (2026-09-04)
+
+Raised with the owner during the backlog-issue campaign and **left in
+`backlog/` on purpose**: choosing photographs is a matter of taste, and this
+one waits for a session where a person picks them. Not stale, not blocked —
+held.
+
+One correction to the Work section above, which the decision does not depend
+on but the next reader should not have to re-derive. It weighs committed
+photographs against "the 339 KB budget `docs/screenshots/README.md` sets for
+the screenshots themselves". That budget governs the four README screenshots
+only. The demo journal's photographs are **already committed** —
+
+```
+$ git ls-files content/example | grep -cE '\.(jpg|jpeg|png|mp4|webp)$'
+92
+$ … | xargs stat -f '%z' | awk '{s+=$1} END {print s}'
+17635849        # 16.8 MB
+```
+
+— so replacing them changes the repository's weight hardly at all, and the
+"where it sits against the budget" question does not arise. What the decision
+actually costs is sourcing and licence-checking, which is the thing to weigh.
+
+The three ends considered, so they do not have to be reconstructed:
+
+1. Replace only the photographs the README screenshots show (`parks-2025`),
+   leave the rest random, and say so in the demo. The ticket's own
+   "cheap, and honest if the demo says so somewhere".
+2. Replace all 92, which also fixes the second cost — `content/example/` is
+   what an agent reads to learn the content model, and a geotagged entry whose
+   gallery contradicts its coordinates teaches that the two are unrelated.
+3. Keep Picsum and name it as a placeholder in the README and the demo. Costs
+   nothing and removes the surprise, but the screenshots still show a seascape
+   captioned as a national park.
