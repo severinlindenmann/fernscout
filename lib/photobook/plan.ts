@@ -48,14 +48,20 @@ import { formatDate, formatDateRange, wrap } from "./text.ts";
 // ---------------------------------------------------------------------------
 
 export type BookPhoto = {
-  /** Opaque to the planner; the renderer resolves it to bytes. */
+  /** Opaque to the planner; the renderer resolves it to bytes. The source
+   * writes it relative to the content root, so it is also readable enough to
+   * be the label in a warning — see `bookFile` in `source.ts` for why it is
+   * not an absolute path. */
   file: string;
-  /** What to call this photograph in a warning. `file` is an absolute path,
-   * which is useless in a message a person has to read. */
+  /** Overrides `file` in a warning, for a caller that has a better name. */
   label?: string;
   width: number;
   height: number;
   caption?: string;
+  /** Set when this is the web derivative because the kept original could not
+   * be printed. The planner says so in any low-resolution warning, so a soft
+   * page is never explained by resolution alone (B13). */
+  fallbackReason?: string;
 };
 
 export function labelOf(photo: BookPhoto): string {
@@ -102,6 +108,10 @@ export type BookSource = {
    * clock so that a plan is reproducible and testable. */
   madeOn: string;
   siteUrl?: string;
+  /** Warnings raised while the source was assembled — a photograph printed
+   * from its web copy, for instance. Whoever built the source knows things
+   * the planner cannot see, and they belong in the same list. */
+  notes?: BookWarning[];
 };
 
 // ---------------------------------------------------------------------------
@@ -204,6 +214,7 @@ export type BookVolume = {
 export type BookWarning = {
   code:
     | "low-resolution"
+    | "no-original"
     | "no-photos"
     | "split-into-volumes"
     | "text-truncated"
@@ -672,7 +683,10 @@ function materialise(
             detail:
               `${labelOf(p.photo)} is ${p.photo.width}px wide but is printed ` +
               `${p.draw.width.toFixed(0)}mm wide, which needs ${need}px — it will print ` +
-              `at about ${p.dpi} DPI.`,
+              `at about ${p.dpi} DPI.` +
+              // Resolution alone reads as "the photograph is small", which
+              // sends somebody looking for a bigger one they may already have.
+              (p.photo.fallbackReason ? ` This is the web copy: ${p.photo.fallbackReason}.` : ""),
           });
         }
       }
@@ -891,7 +905,7 @@ function cutBlock(block: Draft[], capacity: number): Draft[][] {
 }
 
 export function planBook(source: BookSource, spec: BookSpec): Photobook {
-  const warnings: BookWarning[] = [];
+  const warnings: BookWarning[] = [...(source.notes ?? [])];
   const photoCount = source.days.reduce((n, d) => n + d.photos.length, 0);
   if (photoCount === 0) {
     warnings.push({

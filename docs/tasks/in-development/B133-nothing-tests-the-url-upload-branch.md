@@ -68,3 +68,42 @@ that it is advisory.
   original's dimensions off disk, not `storeUploads` in isolation.
 - Changing the URL branch to resize before storing makes that test fail.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.
+
+## What was built
+
+`test/media-url-upload.test.ts`. The real route handler
+(`app/api/v1/[user]/trips/[trip]/media/route.ts`), a real owner token from
+`verifyCode`, a stubbed remote host, and the assertion taken **off the disk**:
+
+- `201` carrying `kept: [{ width: 3000, height: 2000 }]` while `items` is the
+  2000px derivative;
+- `originals/<day>/01.jpg` read back with `sharp` at 3000×2000, and its byte
+  count equal to the `bytes` the response reported;
+- the served file asserted separately at 2000px, so the two are demonstrably
+  different files rather than one path checked twice.
+
+DNS is stubbed alongside `fetch`. `test/fetch-media.test.ts` leaves it real
+because resolution is what it is testing; here it is scaffolding, and a build
+that needs `example.com` to resolve is a build that fails on a machine with no
+resolver.
+
+Two more tests came with it: the all-or-nothing rule through the route (a URL
+pointing at loopback answers `400 could_not_fetch` and writes nothing), and
+`kept.filename`.
+
+**On `kept.filename`, the scope note's second half:** documented as advisory
+rather than derived from something better. There is nothing better to derive —
+the URL is all this door is given, and inventing a name would be a third name
+for a file that already has two. The guide now says so, and says what to
+correlate by instead: `kept[n]` is `items[n]` is the n-th URL sent. The test
+pins the observed behaviour (`…/seed/x/3000/2000` → `"2000.jpg"`) so it is a
+documented fact rather than an accident.
+
+## Evidence
+
+- `npx vitest run test/media-url-upload.test.ts` → 3 passed.
+- The second acceptance line, demonstrated rather than asserted: with a
+  temporary `sharp(...).resize({ width: 2000 })` inserted into the route's
+  `urls` branch immediately before `storeUploads`, the test fails with
+  `expected { filename: '2000.jpg', … } to match object { width: 3000, height:
+  2000 }`. The sabotage was reverted; `git diff` on the route is empty.

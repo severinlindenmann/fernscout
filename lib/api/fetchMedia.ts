@@ -181,7 +181,7 @@ export function isPublicAddress(ip: string): boolean {
 }
 
 /**
- * The three answers a hostname check can have, kept apart.
+ * The four answers a hostname check can have, kept apart.
  *
  * `private` and `unresolvable` used to be the same `false`, and so shared one
  * refusal — "that host does not resolve to a public address". For a genuinely
@@ -195,10 +195,18 @@ export function isPublicAddress(ip: string): boolean {
  * is blocked. The all-or-nothing batch rule makes it louder: one flaky lookup
  * discards a whole upload, explained in words that say resending is pointless.
  *
+ * B31 split those two and stopped there, which left the opposite mistake:
+ * **a name that does not exist was told to try again.** A typo is permanent,
+ * and an agent that believes "this may be temporary" resends it forever. So
+ * `nonexistent` is now its own answer. Telling it apart from a resolver that
+ * did not answer leaks nothing — "there is no such name" says nothing about
+ * anybody's network, which is the property the uniform private wording exists
+ * to protect (B137).
+ *
  * So the distinction exposed is permanent-versus-transient, and nothing more.
  * Which range, which resolver and how it failed stay unsaid.
  */
-type HostVerdict = "public" | "private" | "unresolvable";
+type HostVerdict = "public" | "private" | "unresolvable" | "nonexistent";
 
 async function checkHost(hostname: string): Promise<HostVerdict> {
   /**
@@ -222,14 +230,21 @@ async function checkHost(hostname: string): Promise<HostVerdict> {
   let addresses: { address: string }[];
   try {
     addresses = await dns.lookup(hostname, { all: true });
-  } catch {
-    return "unresolvable";
+  } catch (err) {
+    // `getaddrinfo` distinguishes "the resolver answered, and there is no such
+    // name" from "the resolver did not answer", and the two mean opposite
+    // things to the caller. ENOTFOUND is NXDOMAIN or a name with no address
+    // records; EAI_NONAME is the same answer under a different libc. Anything
+    // else — EAI_AGAIN above all — is a resolver that failed, not a name that
+    // is wrong.
+    const code = (err as NodeJS.ErrnoException).code;
+    return code === "ENOTFOUND" || code === "EAI_NONAME" ? "nonexistent" : "unresolvable";
   }
   // No answers at all is a name that does not exist, which is the caller's
-  // mistake rather than a reason to retry — but it is also not evidence about
-  // anybody's private network, so it reads as unresolvable rather than as
-  // private.
-  if (addresses.length === 0) return "unresolvable";
+  // mistake rather than a reason to retry — and it is not evidence about
+  // anybody's private network either, so it reads as nonexistent rather than
+  // as private.
+  if (addresses.length === 0) return "nonexistent";
   return addresses.every((a) => isPublicAddress(a.address)) ? "public" : "private";
 }
 
@@ -262,6 +277,8 @@ export async function fetchImage(
   /** Overridable so a test can assert the budget without waiting a minute for
    * it. Nothing in the application passes it. */
   bodyTimeoutMs: number = BODY_TIMEOUT_MS,
+  /** The other clock, overridable for the same reason. */
+  responseTimeoutMs: number = TIMEOUT_MS,
 ): Promise<{ ok: true; media: FetchedMedia } | { ok: false; problem: FetchProblem }> {
   const refuse = (reason: string) => ({ ok: false as const, problem: { url: raw, reason } });
 
@@ -289,6 +306,15 @@ export async function fetchImage(
       // map somebody's network one hostname at a time.
       return refuse("that host does not resolve to a public address");
     }
+    if (verdict === "nonexistent") {
+      // Permanent, and says so. No invitation to retry: the retry is what an
+      // agent does forever with a typo. Says nothing about any network.
+      return refuse(
+        "could not be looked up — there is no such name. That is permanent, so check " +
+          "the spelling rather than resending. It is not a refusal for pointing somewhere " +
+          "private",
+      );
+    }
     if (verdict === "unresolvable") {
       // Deliberately different words, and they say what to do. See `checkHost`.
       return refuse(
@@ -298,7 +324,15 @@ export async function fetchImage(
     }
 
     controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    // Which of the two it was matters to the caller: a host that took too long
+    // to answer is as transient as a resolver that did not, and until B137 it
+    // was the one transient case with no retry-shaped wording at all. A
+    // connection that was refused outright keeps the neutral answer.
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, responseTimeoutMs);
     try {
       response = await fetch(url, {
         redirect: "manual",
@@ -306,6 +340,12 @@ export async function fetchImage(
         headers: { accept: "image/*" },
       });
     } catch {
+      if (timedOut) {
+        return refuse(
+          `took longer than ${(responseTimeoutMs / 1000).toFixed(0)} seconds to answer — ` +
+            "this may be temporary; send the batch again",
+        );
+      }
       return refuse("could not be reached");
     } finally {
       clearTimeout(timer);

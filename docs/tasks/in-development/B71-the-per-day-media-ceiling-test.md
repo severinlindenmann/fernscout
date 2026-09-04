@@ -63,3 +63,53 @@ If it does not come back, the tidier assertion is the whole of it.
 - No assertion in `test/media-upload.test.ts` depends on the order in which
   `storeUploads` appends problems.
 - `npx vitest run` green, and the four checks.
+
+## What was built
+
+All five order-dependent assertions in `test/media-upload.test.ts` are gone —
+the ceiling one the task names, and the four others found by the "check the
+rest of the file" line: two `.format` assertions, the not-really-an-image one,
+and the `day` one. They go through one helper:
+
+```ts
+function only(problems: Problem[], what: string, match: (p: Problem) => boolean): Problem
+```
+
+It asserts **exactly one** match and puts the whole array into the failure
+message, because "which problem came first" is the answer to the flake if it
+ever recurs and the original output was not kept.
+
+Two things make the ceiling test itself deterministic rather than merely
+correct:
+
+- Every one of the `MAX_ITEMS_PER_DAY` writes is now asserted to have landed,
+  and the day's media directory is asserted to hold exactly that many files
+  before the over-limit call. `existing` is a `readdirSync` count
+  (`lib/api/media.ts:200`), so a short write would previously have produced a
+  pass, not a failure — the test would simply have stopped testing the ceiling.
+- The 60px square is encoded once and reused instead of forty times. Nothing
+  depended on forty distinct files, and this was the slowest test in the file.
+
+## What the flake was not
+
+Not chased further than the assertion, per the task, but three candidates were
+ruled out cheaply while reading:
+
+- **Cross-file `CONTENT_DIR` interference.** Vitest 4's default pool is
+  `forks`, so `process.env` is per-process; the shared-env hazard belongs to
+  the `threads` pool, which this repo does not use.
+- **A second limit firing.** With one 60×60 JPEG there is nothing else to
+  break: format is `jpeg`, size is tiny, `kindOf` says image so ffmpeg is not
+  consulted, and the fixture sets no `perUserBytes`.
+- **`validateMediaBatch`'s own per-day problem** (`lib/validate/media.ts:135`),
+  which carries the *same* `expected` string and would have satisfied the old
+  `toContain`. It needs `items.length > 40` in one request, and the test sends
+  one. It is a real confusion for a caller, though, and is captured as **B209**.
+
+Ten consecutive full `npx vitest run` passes after the change; see the report.
+
+## Evidence
+
+- `grep -n "problems\[" test/media-upload.test.ts` → no matches.
+- `npx vitest run test/media-upload.test.ts` → 27 passed, 1.36s of test time
+  (was ~2.5s).

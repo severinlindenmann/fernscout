@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
+import dns from "node:dns/promises";
 import { fetchImage, isPublicAddress } from "@/lib/api/fetchMedia";
 
 /**
@@ -179,8 +180,12 @@ describe("what fetchImage refuses outright", () => {
    * one `false` and one refusal. The first is permanent and its wording must
    * stay uniform; the second means try again, and an agent told the permanent
    * words drops the image and reports the host as blocked.
+   *
+   * B137 is the other half of the same idea: a name that **does not exist** is
+   * every bit as permanent as a private one, and B31 told it to retry. A typo
+   * resent forever is the cost.
    */
-  test("a name that does not resolve is refused differently, and says to retry", async () => {
+  test("a name that does not exist is not told the failure may be temporary", async () => {
     // A .invalid name can never resolve — RFC 2606 reserves it for exactly
     // this, so the test needs no resolver stub and cannot flake on a machine
     // whose DNS answers wildcards.
@@ -189,9 +194,58 @@ describe("what fetchImage refuses outright", () => {
     if (result.ok) return;
 
     expect(result.problem.reason).toContain("could not be looked up");
-    expect(result.problem.reason).toMatch(/temporary|again/i);
-    // And it is not mistakable for the permanent one.
+    expect(result.problem.reason).toContain("there is no such name");
+    // The whole point: no invitation to send it again.
+    expect(result.problem.reason).not.toMatch(/temporary|send the batch again/i);
+    // And it is still not mistakable for the private one, nor does it say
+    // anything about a network — B31's rule, which this must not weaken.
     expect(result.problem.reason).not.toBe("that host does not resolve to a public address");
+    expect(result.problem.reason).not.toMatch(/\d+\.\d+\.\d+\.\d+|ENOTFOUND|EAI_|resolver/);
+  });
+
+  /**
+   * The transient half, driven through the resolver rather than through a real
+   * name: `dns.lookup` failing with anything other than ENOTFOUND is a resolver
+   * that did not answer, and that one keeps B31's retry-shaped wording.
+   */
+  test("a resolver that does not answer still says to retry", async () => {
+    const real = dns.lookup;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dns as any).lookup = async () => {
+      const err: NodeJS.ErrnoException = new Error("resolver timed out");
+      err.code = "EAI_AGAIN";
+      throw err;
+    };
+    try {
+      const result = await fetchImage("https://example.com/a.jpg", 1024);
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.problem.reason).toContain("the name did not resolve");
+      expect(result.problem.reason).toMatch(/temporary|send the batch again/i);
+    } finally {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (dns as any).lookup = real;
+    }
+  });
+
+  /**
+   * And a name whose resolver answers with no addresses at all: the same
+   * permanent answer, reached by a different branch.
+   */
+  test("a name that resolves to nothing is permanent too", async () => {
+    const real = dns.lookup;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dns as any).lookup = async () => [];
+    try {
+      const result = await fetchImage("https://example.com/a.jpg", 1024);
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.problem.reason).toContain("there is no such name");
+      expect(result.problem.reason).not.toMatch(/temporary|send the batch again/i);
+    } finally {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (dns as any).lookup = real;
+    }
   });
 
   /**
@@ -385,6 +439,43 @@ describe("reading a response", () => {
     }
     expect(elapsed).toBeLessThan(3000);
     expect(cancelled).toBe(true);
+  });
+
+  /**
+   * B137. A host that never answers is as transient as a resolver that never
+   * answers, and it was the one transient case with no retry-shaped wording:
+   * `could not be reached`, full stop, which reads like a verdict on the URL.
+   */
+  test("a host that never answers is told to try again, not that it is unreachable", async () => {
+    globalThis.fetch = (_url, init) =>
+      new Promise<Response>((_resolve, reject) => {
+        // What fetch does on abort: rejects, and never settles otherwise.
+        (init?.signal as AbortSignal).addEventListener("abort", () =>
+          reject(new DOMException("aborted", "AbortError")),
+        );
+      });
+
+    const started = Date.now();
+    const result = await fetchImage("https://example.com/a.jpg", 1024, 60_000, 150);
+    expect(Date.now() - started).toBeLessThan(3000);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.problem.reason).toContain("took longer than");
+    expect(result.problem.reason).toContain("send the batch again");
+    expect(result.problem.reason).not.toBe("could not be reached");
+  });
+
+  /** And a connection that fails for some other reason keeps the neutral
+   * answer, so the retry advice stays attached to the timeout alone. */
+  test("a connection that simply fails is not told to try again", async () => {
+    globalThis.fetch = async () => {
+      throw new TypeError("fetch failed");
+    };
+    const result = await fetchImage("https://example.com/a.jpg", 1024);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.problem.reason).toBe("could not be reached");
   });
 
   test("a body that arrives slowly but keeps arriving is not refused", async () => {

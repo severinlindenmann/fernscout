@@ -98,3 +98,45 @@ test needs a fixture with an original that is genuinely bigger.
   gets wrong.
 - `npm run photobook -- --trip example/parks-2025` still completes and writes
   all nine files.
+
+## What was built
+
+The Why held up in full: `mediaFileFor` was the only resolver and it only ever
+looked in `media/`. Reproduced before touching anything — 43 photographs, 43
+`low-resolution` warnings, the full-page plates at 125 DPI.
+
+`printSourceFor()` in `lib/photobook/source.ts` now decides which copy is
+printed, and it is the only place that can, because it is the only module in
+`lib/photobook/` that knows `originals/` is a sibling of `media/`. It matches
+on **basename, any extension, case-insensitively**, preferring a JPEG when a
+day holds both `01.jpg` and `01.heic`.
+
+**Decision on step 3: only a JPEG original is printed.** Transcoding on demand
+would put a decoder for every camera raw format into the print path, and
+`readJpeg` embeds DCTDecode bytes verbatim precisely so it needs no decoder at
+all. A HEIC or RAW original therefore falls back to the derivative — and says
+so, which is the half that was actually missing. Two things carry it:
+
+- `BookPhoto.fallbackReason`, which the planner appends to the DPI warning:
+  "…at about 125 DPI. This is the web copy: no original was kept for it."
+  Resolution alone reads as "the photograph is small", which sends somebody
+  hunting for a bigger file they may already have on disk.
+- a `no-original` warning per reason, once per book rather than once per plate,
+  so a trip with no originals at all is one line rather than forty-three.
+
+The dimensions now come from the original's own JPEG header. The frontmatter
+records the *derivative's* size by construction, so believing it would have
+planned the layout from 1600px while printing 6400 — this is why the fix is not
+only a path change.
+
+## Evidence
+
+- `npm run photobook -- --trip example/parks-2025` — nine files, and 43
+  `low-resolution` warnings, each now naming the missing original.
+- The same trip with `originals/` seeded at 4× (upscaled from the derivatives,
+  written as `01.JPEG` so the extension mismatch is under test): **zero
+  warnings**, interior 7.9 MB → 48.3 MB, and the plan names
+  `example/trips/parks-2025/originals/vegas-and-a-cooler/01.JPEG` at 6400px.
+  The seeded originals were deleted afterwards; the demo ships none on purpose.
+- `test/photobook-source.test.ts` — nine tests, eight of which fail against the
+  code as it was.
