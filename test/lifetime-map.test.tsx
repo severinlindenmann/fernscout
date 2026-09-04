@@ -27,6 +27,82 @@ function render(routes: TripRoute[]) {
   );
 }
 
+/** Two continents apart — the case that made a dot cover the coastline it
+ * was meant to mark, because `size()` grows the marker with the frame. */
+const continental: TripRoute["points"] = [
+  { lat: 47.3769, lng: 8.5417, location: "Zurich" },
+  { lat: 13.7563, lng: 100.5018, location: "Bangkok" },
+];
+
+function viewBox(html: string): number[] {
+  const match = html.match(/viewBox="([-\d. ]+)"/);
+  return match![1].split(" ").map(Number);
+}
+
+/** Every pin's path, tip at its own local origin, translated onto the map. */
+function pins(html: string): { x: number; y: number; headRadius: number }[] {
+  return [
+    ...html.matchAll(
+      /<path d="M0,0[^"]*A([\d.]+),[\d.]+[^"]*" transform="translate\(([-\d.]+) ([-\d.]+)\)"/g,
+    ),
+  ].map((m) => ({ headRadius: Number(m[1]), x: Number(m[2]), y: Number(m[3]) }));
+}
+
+/**
+ * B88. A dot is centred on the coordinate and covers it; a pin's tip is the
+ * coordinate and its body sits above the ground, so the map underneath the
+ * point stays visible.
+ */
+describe("stops drawn as pins, not dots", () => {
+  const route: TripRoute = {
+    id: "alps-2024",
+    title: "Alps 2024",
+    accent: "sky",
+    points: [
+      { lat: 46.1161, lng: 8.2939, location: "Domodossola" },
+      { lat: 46.5614, lng: 8.3372, location: "Grimsel" },
+    ],
+  };
+
+  test("a pin's tip sits on the coordinate the route line joins", () => {
+    const html = render([route]);
+    const found = pins(html);
+    expect(found).toHaveLength(route.points.length);
+    const line = html.match(/<polyline points="([^"]+)"/)![1];
+    const joined = line.split(" ").map((pair) => pair.split(",").map(Number));
+    for (const [i, pin] of found.entries()) {
+      expect(pin.x).toBeCloseTo(joined[i][0], 6);
+      expect(pin.y).toBeCloseTo(joined[i][1], 6);
+    }
+  });
+
+  test("a pin is the same size on screen for a one-city journal and a two-continent one", () => {
+    const oneCity = render([route]);
+    const twoContinents = render([{ ...route, points: continental }]);
+    const cityBox = viewBox(oneCity);
+    const worldBox = viewBox(twoContinents);
+    // The radius is a viewBox-unit constant; what makes it the same *on
+    // screen* is that it stays the same fraction of a viewBox rendered at a
+    // fixed width — not that the raw units match.
+    const cityFraction = pins(oneCity)[0].headRadius / cityBox[2];
+    const worldFraction = pins(twoContinents)[0].headRadius / worldBox[2];
+    expect(worldFraction).toBeCloseTo(cityFraction, 6);
+  });
+
+  test("the legend still pairs each trip's colour with its title", () => {
+    const html = render([route]);
+    expect(html).toContain("Alps 2024");
+    expect(html).toContain("#3fa9c4"); // ACCENT_HEX.sky
+  });
+
+  test("keeps its role=img and aria-label rather than becoming markers a screen reader enumerates", () => {
+    const html = render([route]);
+    expect(html).toContain('role="img"');
+    expect(html).toMatch(/aria-label="[^"]*Alps 2024[^"]*"/);
+    expect(html).not.toContain("role=\"button\"");
+  });
+});
+
 describe("a trip with a day that has no coordinates", () => {
   const route: TripRoute = {
     id: "alps-2024",

@@ -53,3 +53,39 @@ files; whoever takes one should take the other in the same change.
 Opening the slideshow on a trip where some days have no coordinates draws the
 located days and no console error. A test covering `SlideMap` with a mixed
 point list.
+
+## Resolution
+
+Added the `isPlottable` guard: `pts` is now `(readonly [number, number] |
+null)[]`, `null` for a place without finite coordinates, and every consumer
+(route legs, markers, the travelling vehicle) skips a `null` rather than
+drawing `NaN`. The camera (`cameraTarget`) holds the last located stop when
+the active place has no coordinates, rather than jumping to `(NaN, NaN)` or
+snapping straight to the world's centre — falling back further only if
+nothing behind it is located either.
+
+**Decision: `SlideMap` keeps its own `project()` call, does not move to
+`frameRoute`.** Read both before deciding, per the Work section. The two are
+different coordinate spaces on purpose:
+
+- `SlideMap`'s viewBox is the **whole, uncorrected** world (`MAP_VIEWBOX`,
+  1000×500) — the same space `useWorldLand`'s baked coastline paths are
+  authored in. It never crops to a bounding box; the camera pans and zooms
+  across the fixed whole-world viewBox with a `motion.g` transform instead.
+- `frameRoute`'s `Frame` is a **cropped, latitude-corrected** (`lngScale`)
+  space built for a static viewBox sized to the route. Projecting through
+  `place()` would scale x by `cos(latitude)`, which would misalign every
+  marker and the vehicle icon against the (uncorrected) coastline paths drawn
+  alongside them — exactly the kind of drift `lib/mapFrame.ts`'s own doc
+  comment warns `place()` exists to prevent, just in the other direction.
+
+So a fourth map with its own projection is not an oversight here — the
+`isPlottable` guard was the actual gap, and it is now imported from
+`lib/mapFrame.ts` rather than reimplemented. This reasoning is also written
+into a doc comment directly above `SlideMap` in `components/SlideShow.tsx`,
+so the next reader does not have to reconstruct it from this file.
+
+`test/slide-map.test.tsx` covers a mixed list (some located, some not) with
+the active index on a located stop, on the unlocated one, and with the
+unlocated stop between two located ones, plus a route with nothing located at
+all — none put `NaN` into the rendered SVG.

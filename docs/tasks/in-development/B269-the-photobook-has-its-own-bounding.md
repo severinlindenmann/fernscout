@@ -57,3 +57,52 @@ files; whoever takes one should take the other in the same change.
 A photobook generated from a trip where some days have no coordinates produces
 a map of the located days, and no `NaN` reaches the PDF. A test on `routeView`
 with a mixed point list.
+
+## Resolution
+
+`routeView` now filters `route` through `isPlottable` (imported from
+`lib/mapFrame.ts`) before it does anything with it, and returns the
+whole-world rectangle when nothing is left — same shape as `frameRoute`'s own
+empty case.
+
+That closes half the hole. The other half was not in `routeView` at all: the
+`"route"` case in `materialise()` (`lib/photobook/plan.ts`) built its
+`MappedPoint[]` — the per-stop dots and the connecting line
+`lib/photobook/render.ts`'s `drawRoutePage` actually draws into the PDF —
+straight from `source.route`, via `projectEquirectangular`, without going
+through `routeView` at all. Fixing only the bounding box would have left a
+`NaN` point drawn on an otherwise-correctly-framed map. That case now filters
+`source.route` through `isPlottable` once and reuses the same filtered list
+for both `routeView` and the point projection, with a comment at the call site
+saying why the filtering can't live in `routeView` alone.
+
+**Decision: the photobook keeps its own bounding-box code; it does not move to
+`frameRoute`.** Read both, per the Work section, and there are two real
+constraints `frameRoute` doesn't share:
+
+- `frameRoute`'s frame is **latitude-corrected** (`lngScale = cos(latitude)`),
+  which only means something once every coastline path and every projected
+  point in the same drawing agree to apply it. The photobook's map
+  (`mapProjector`, `drawRoutePage`'s window-culling, `MAP_SPACE`) all work in
+  the **same, uncorrected** equirectangular space `lib/worldLand.json`'s
+  coastlines are baked in. Introducing `lngScale` in `routeView` alone would
+  shift the route's bounding box out of registration with the coastline
+  window every other part of the print map still culls and draws uncorrected.
+- The book's map is a **fixed 2:1 spread** (two trim widths across one trim
+  height) — a physical-paper constraint `frameRoute`'s `TARGET_ASPECT` (1.6,
+  chosen for a browser layout) has no reason to share, and the padding floor
+  here is sized in the same uncorrected units for the same reason
+  `KM_PER_UNIT` can't be borrowed without the correction that makes it
+  meaningful.
+
+Consolidating for real would mean teaching `mapProjector` and the renderer's
+window-culling to work in a corrected space, or giving `frameRoute` a second,
+uncorrected mode — both larger than the NaN hole this task exists to close.
+The full reasoning is written as a doc comment directly above `routeView` in
+`lib/photobook/plan.ts`.
+
+`test/photobook.test.ts` adds: a mixed list dropped from `routeView` rather
+than poisoning it (and matching the all-located result exactly), an
+all-unlocated list framing the whole world, and a full `planBook()` run
+whose rendered `"route"` page carries exactly the located stops with no `NaN`
+in either the view or any point.

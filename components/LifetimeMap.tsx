@@ -26,6 +26,26 @@ export const ACCENT_HEX: Record<TripAccent, string> = {
 };
 
 /**
+ * A pin's outline, in local units with its **tip at the origin** — a
+ * teardrop: a circular head above the tip, joined to it by the two lines
+ * tangent to that circle. Built from the tangent-line geometry rather than a
+ * copied icon path, so every length in it is a multiple of `r` and it stays
+ * the right shape at whatever radius `size()` hands it — a Bezier pin traced
+ * at one fixed radius would not survive being scaled up or down (B46).
+ *
+ * `h` (tip-to-head-centre) is fixed at `2.2r`: big enough that the head reads
+ * as a circle rather than an almond, small enough that the tail stays a
+ * visible point rather than a sliver.
+ */
+function pinPath(r: number): string {
+  const h = r * 2.2;
+  const phi = Math.acos(r / h);
+  const tx = r * Math.sin(phi);
+  const ty = r * Math.cos(phi) - h;
+  return `M0,0 L${tx},${ty} A${r},${r} 0 1,0 ${-tx},${ty} Z`;
+}
+
+/**
  * Every trip's route on one map. Deliberately read-only: no clustering, no
  * zoom, no detail panel — that is what the per-trip WorldMap is for, and
  * this only has to answer "where have we been".
@@ -122,15 +142,20 @@ export default function LifetimeMap({
                   opacity={0.85}
                 />
               )}
+              {/* A pin, tip on the coordinate, rather than a dot centred on
+                  it (B88): a dot both covers the ground it marks — worse the
+                  wider the frame, since size() grows it with the map — and
+                  merges into its neighbours as soon as two are close, where a
+                  pin's head can overlap and still leave both tips readable. */}
               {pts.map(([x, y], i) => (
-                <circle
+                <path
                   key={i}
-                  cx={x}
-                  cy={y}
-                  r={size(2.2)}
+                  d={pinPath(size(2.6))}
+                  transform={`translate(${x} ${y})`}
                   fill={colour}
                   stroke="#fffaf0"
                   strokeWidth={size(0.7)}
+                  strokeLinejoin="round"
                 />
               ))}
             </g>
