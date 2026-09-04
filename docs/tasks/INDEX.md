@@ -180,13 +180,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (5)
+## in-development (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B356](in-development/B356-reading-a-day-back-omits-its.md) | Reading a day back omits its translations, so an agent cannot verify the ones it wrote | ISSUE | medium | low | `62683d95` |
 | [B357](in-development/B357-a-translated-page-keeps-its-tab.md) | A translated page keeps its tab title in the journal's default language | ISSUE | medium | low | `62683d95` |
 | [B360](in-development/B360-the-invite-landing-page-offers-a.md) | The invite landing page offers a postcard on a server with postcards switched off | ISSUE | medium | low | `62683d95` |
+| [B370](in-development/B370-country-names-written-across-the-lifetime.md) | Country names written across the lifetime map are unreadable, and one hue for every country makes the map say little | FEATURE | medium | medium | `e8e2ddef` |
 | [B358](in-development/B358-the-invite-copy-button-s-accessible.md) | The invite copy button's accessible name ends in two dangling em-dashes and reports no success | ISSUE | low | low | `62683d95` |
 | [B359](in-development/B359-the-used-link-warning-stays-on.md) | The used-link warning stays on the access page after a successful sign-in | ISSUE | low | low | `62683d95` |
 
