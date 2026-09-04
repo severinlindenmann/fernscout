@@ -284,7 +284,6 @@
   "landing.copied": "Copied",
   "landing.copy": "Copy link",
   "landing.copyInstruction": "Copy instruction",
-  "landing.handEmail": "and an email address you control",
   "landing.handTitle": "Hand this to your agent",
   "landing.hero": "A travel journal your agent writes for you.",
   "landing.instruction": "Guide me through creating my own travel journal, following the documentation at {url}. You will need an email address I control.",
