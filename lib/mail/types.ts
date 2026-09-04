@@ -1,3 +1,19 @@
+/**
+ * One file carried inline in the message, referenced from the HTML part by
+ * `cid:<contentId>` — never a linked `<img src="https://…">`. A mail client
+ * has no session cookie, so a URL into `/media/…` is a 404 in the inbox for
+ * every trip that is not fully public (B345). The bytes travel with the
+ * message instead.
+ */
+export type MailAttachment = {
+  /** Shown to a client that offers to save it; cosmetic only. */
+  filename: string;
+  contentType: string;
+  data: Buffer;
+  /** The `<img src="cid:…">` this attachment answers. */
+  contentId: string;
+};
+
 /** One message, independent of how it gets sent. */
 export type Mail = {
   to: string;
@@ -10,6 +26,9 @@ export type Mail = {
   headers?: Record<string, string>;
   /** Whose mail this is. Determines where the file transport writes it. */
   username?: string;
+  /** Inline images, referenced by `cid:` from `html`. Absent for every
+   * letter but the day-published one. */
+  attachments?: MailAttachment[];
 };
 
 export type SendResult = {

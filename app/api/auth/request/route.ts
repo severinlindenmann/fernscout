@@ -197,13 +197,23 @@ export async function POST(request: Request) {
         { kind: "button", text: `Open ${user.title}`, href: `${base}/${username}` },
       ];
 
+  /**
+   * The same trip `issueCode` just put on the row, resolved to a title —
+   * B348. `mayRequestAgentToken` already checked this address may write to
+   * it, so a trip named here is one this code really is scoped to.
+   */
+  const scopedTrip = kind === "agent" && tripId ? getTrip(tripRef(username, tripId)) : null;
+
   const agentBlocks: MailBlock[] = [
     { kind: "paragraph", text: `Your code is ${code}. It works for ${CODE_TTL_MINUTES} minutes.` },
     {
       kind: "paragraph",
-      text:
-        "Give this code to the agent that asked for it. It will exchange the code " +
-        "for a token that can write to your journal for seven days.",
+      text: scopedTrip
+        ? `Give this code to the agent that asked for it. It will exchange the code for a ` +
+          `token that can write to one trip in ${user.title} — ${scopedTrip.title} — for seven ` +
+          `days, and nothing else in the journal.`
+        : "Give this code to the agent that asked for it. It will exchange the code " +
+          "for a token that can write to your journal for seven days.",
     },
   ];
 

@@ -981,7 +981,14 @@ export function openApiDocument() {
             "that is PATCH .../days/{slug}. A day already published answers 409 here rather " +
             "than accepting new content under the name \"publish\".\n\n" +
             "It does not really come back. Taking a day down removes it from the journal, " +
-            "the feed and the search index, not from the people who have read it.",
+            "the feed and the search index, not from the people who have read it.\n\n" +
+            "**`send_mail: true` sends a letter about this day** to every reader who may see " +
+            "it, in their own language — B345. Its absence means no letter, and that default " +
+            "never changes: publishing several days must not mail one letter per day to " +
+            "everybody the owner knows. The response's `mail` field reports how many went, " +
+            "never who to. A failed send never fails the publish; it shows up in `mail` " +
+            "instead. Owner only, same as the publish itself. See " +
+            "`/api/v1/{user}/trips/{trip}/days/{slug}/send-mail` to send it again afterwards.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
@@ -990,7 +997,19 @@ export function openApiDocument() {
           requestBody: {
             required: false,
             content: {
-              "application/json": { schema: { type: "object" } },
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    send_mail: {
+                      type: "boolean",
+                      description:
+                        "Mail every entitled reader about this day once it is published. " +
+                        "Absent or false sends nothing.",
+                    },
+                  },
+                },
+              },
             },
           },
           responses: {
@@ -1004,6 +1023,43 @@ export function openApiDocument() {
             },
             "404": { description: "No such trip, or no such day" },
             "409": { description: "That day is already on the site" },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}/days/{slug}/send-mail": {
+        post: {
+          summary: "Send the letter for a published day, again",
+          description:
+            "B345's second trigger: mail every entitled reader about a day that is " +
+            "**already** on the site, whether this is the first attempt or a repeat. " +
+            "Owner only, for the same reason `/publish` is — a token scoped to one trip may " +
+            "write days into it and must not be able to mail the journal's whole " +
+            "readership.\n\n" +
+            "**Not idempotent, on purpose.** Every call sends to everybody who currently " +
+            "qualifies, whatever an earlier attempt sent — the owner asking again is the " +
+            "whole of the safeguard, so ask in words before calling it a second time, the " +
+            "same discipline as `/publish` itself. The response says `resend: true` and how " +
+            "many letters went; never who to. A `test: true` day, or one still a draft, " +
+            "refuses outright rather than sending nothing quietly.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+            { name: "slug", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Sent (or attempted) — the body carries the count" },
+            "400": {
+              description:
+                "Content nobody lived, or mail/contacts is not enabled here — the body says which",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "Another journal's token, or one scoped to a single trip — which may write " +
+                "days but not mail readers about them",
+            },
+            "404": { description: "No such trip, or no such day" },
+            "409": { description: "That day is still a draft — nothing to send a letter about" },
           },
         },
       },

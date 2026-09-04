@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: contacts
 found: "2026-09-04T19:57:18Z"
+started: "2026-09-04T20:17:23Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-04T20:17:23Z"
 ---
 
 # B351 — The pre-approved invite page still speaks the queue's language and contradicts itself
