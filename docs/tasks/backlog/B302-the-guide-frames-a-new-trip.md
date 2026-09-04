@@ -77,9 +77,13 @@ agent working from the schema alone has less than one working from the prose.
   hand-written copy — that is what `lib/api/agentCopy.ts` exists for, and
   AGENTS.md is explicit that a reference kept in two files disagrees with
   itself within a month.
-- **Check `/<user>/documentation.txt` and the MCP `create_trip` tool
-  description** carry it too. `lib/mcp/tools.ts` is a fifth door and an agent
-  over MCP never reads the guide.
+- **Check `/<user>/documentation.txt` carries it too** — it is generated per
+  journal and an agent may read only that.
+
+  *Corrected after capture:* this bullet also named the MCP `create_trip` tool
+  and `lib/mcp/tools.ts` as a fifth door. **MCP is gone** — a sibling session
+  removed it entirely in B298 (`lib/mcp/`, `app/api/mcp/` and 1,835 lines of
+  tests), so there are four doors, not five, and no tool description to update.
 
 **The default stays `private`, and the author has confirmed it — decided
 2026-09-04.** The request was for the *presentation order* (public, then guest,
@@ -116,7 +120,6 @@ two-value axis.
   guest cannot read a `private` trip.
 - `POST /api/v1/{user}/trips` in `openapi.json` has a description enumerating
   the three, sourced from `lib/api/agentCopy.ts`.
-- The MCP `create_trip` tool description says the same.
 - `test/agent-interface.test.ts` still passes, and gains an assertion that the
   three-way choice reaches every door that offers trip creation.
 - The four checks pass.
