@@ -86,8 +86,8 @@ Do not edit them by hand; run the script.
 | [B269](backlog/B269-the-photobook-has-its-own-bounding.md) | The photobook has its own bounding-box code with the same NaN hole B265 closed for the web maps | ISSUE | medium | low |
 | [B275](backlog/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
 | [B287](backlog/B287-the-contacts-page-carries-addresses-and.md) | The contacts page carries addresses and now invite links, and nothing in the repo pins its cache headers | SECURITY | medium | low |
-| [B293](backlog/B293-a-journal-s-features-cannot-be.md) | A journal's features cannot be changed by any door, and the route that refuses says only 405 | ISSUE | medium | medium |
 | [B294](backlog/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high |
+| [B304](backlog/B304-a-day-s-costs-still-accept.md) | A day's costs still accept a zero amount and an unrecognised currency, and drop both silently | ISSUE | medium | low |
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B42](backlog/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B43](backlog/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
@@ -137,8 +137,8 @@ _Nothing here._
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B295](in-development/B295-a-trip-budget-can-only-be.md) | A trip budget can only be written by hand, so an agent cannot give a trip its costs page | FEATURE | high | medium | `986bc24c` |
 | [B273](in-development/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium | `a3370c43` |
+| [B293](in-development/B293-a-journal-s-features-cannot-be.md) | A journal's features cannot be changed by any door, and the route that refuses says only 405 | ISSUE | medium | medium | `986bc24c` |
 
 ## testing
 
@@ -169,6 +169,7 @@ _Nothing here._
 | [B272](testing/B272-a-transient-mail-failure-tells-a.md) | A transient mail failure tells a reader their code was wrong and loses the owner's notification for good | ISSUE | high | medium | — |
 | [B277](testing/B277-the-reader-languages-stay-optional-at.md) | The reader languages stay optional at creation, so a journal asked for three gets one | ISSUE | high | low | — |
 | [B279](testing/B279-a-page-rendered-its-raw-locale.md) | A page rendered its raw locale keys to a reader instead of any text at all | ISSUE | high | medium | — |
+| [B295](testing/B295-a-trip-budget-can-only-be.md) | A trip budget can only be written by hand, so an agent cannot give a trip its costs page | FEATURE | high | medium | — |
 | [B296](testing/B296-the-days-listing-hides-drafts-from.md) | The days listing hides drafts from the only caller allowed to see them, so an agent cannot audit its own writes | ISSUE | high | low | — |
 | [B300](testing/B300-approving-a-guest-opens-nothing-when.md) | Approving a guest opens nothing when every trip is private, and neither the owner nor the guest is told | ISSUE | high | low | — |
 | [B64](testing/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |

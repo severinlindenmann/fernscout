@@ -7,8 +7,7 @@ complexity: medium
 area: api, costs
 found: "2026-09-04T13:43:56Z"
 started: "2026-09-04T14:24:04Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T14:24:04Z"
+merged: "2026-09-04T14:41:39Z"
 ---
 
 # B295 — A trip budget can only be written by hand, so an agent cannot give a trip its costs page
