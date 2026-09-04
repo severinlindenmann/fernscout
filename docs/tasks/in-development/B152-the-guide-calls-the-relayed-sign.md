@@ -61,6 +61,50 @@ question nobody can answer from the docs.
 Not doing: changing any of the behaviour. Fifteen minutes, single use, and the
 revoke-on-new-code rule are all right; only the description is off.
 
+## What was done
+
+Confirmed against the code before writing anything. `issueRelayLink`
+(`lib/auth/index.ts:445`) and `issueStandingLink` (`:412`) each insert their own
+`login_codes` row through `insertLinkRow`, so they are two tokens, and they
+differ in exactly one property: `link_standing`. `verifyLink:552` skips the
+expiry check for a standing row, so the mailed link has no expiry and the
+relayed one dies after `RELAY_LINK_TTL_MS` = fifteen minutes. Both are single
+use — `link_consumed_at` is set on the way through for either. `revokeCodes:244`
+excludes `link_standing = 1`, so a new sign-in code sweeps the relayed link and
+spares the mailed one, which is what `test/auth.test.ts:331` asserts. The Why
+was accurate; nothing in it needed correcting.
+
+Three places said it wrongly, and all three are fixed:
+
+- **`/agent.md`** (`lib/api/documentation.ts`) — "the same door is in their
+  welcome mail if they miss it" is replaced by a paragraph of its own: the
+  welcome mail carries a *second* link, same destination, different token, and
+  the mailed one is standing while the one the agent holds expires in fifteen
+  minutes. Stated as "true about the destination and false about this link",
+  because "same door" was a fair description of where it leads and that is
+  worth keeping rather than contradicting.
+- The first of the three rules is now **"Give it to the person, once,
+  immediately"**, and carries the revoke rule: asking for an ordinary sign-in
+  code for that address invalidates an unused relayed link, one live code per
+  address being the invariant, and the mailed link surviving that being the
+  other half of why the two are not the same link. This is the place an agent
+  meets it — it is a rule about what to *do* with the link, so it belongs next
+  to the other two rather than in a note further down.
+- **The live `signInNote`** (`app/api/v1/journals/route.ts`) said "The same
+  link is in their welcome mail if they miss it." It now says the welcome mail
+  carries a second, standing link to the same place, a different token that
+  does not expire, and that the code-invalidates-it rule is why to hand it over
+  now.
+- **`openapi.json`** — the 201 description gains the lifetime distinction, the
+  revoke rule, and a sentence naming `signInNote` for what it is.
+
+On the third work item: **added to both, not dropped.** `signInNote` is now in
+the `agent.md` example JSON (elided, since the full sentence is longer than the
+example line) and named in the openapi 201. Dropping it was the other option
+and is the wrong one — it exists so the instruction survives being pasted into
+a log without the surrounding prose, which is precisely the failure mode the
+fifteen-minute expiry was designed around.
+
 ## Acceptance
 
 - `agent.md` distinguishes the relayed link from the mailed one by lifetime,
