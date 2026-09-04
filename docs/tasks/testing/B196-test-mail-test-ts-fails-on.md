@@ -7,33 +7,48 @@ complexity: low
 area: mail, test
 found: "2026-09-03"
 started: "2026-09-04T05:58:31Z"
-session: 2b6d1969-424a-4788-9497-eb5e151a5391
-claimed: "2026-09-04T05:58:31Z"
+merged: "2026-09-04T06:14:50Z"
 ---
 
 # B196 — A failing test on `main`
 
-## Amendment, 2026-09-03 — it no longer reproduces
+## Closed: nothing to build — 2026-09-04
 
-Checked on `main` at `50b8029`: `npx vitest run test/mail.test.ts` is
-**32 passed**, and the full suite is 115 files / 1887 passed. The failure this
-task describes is gone.
+Re-checked at the head of `g03-mail-and-its-capability`, branched from `main`
+at `eb86f5f`:
 
-It was not fixed by narrowing the mock as suggested. `2500704` — "B60: a
-journal whose config cannot be read has not switched mail off" — is the B60
-follow-up, and it addressed the real asymmetry underneath: it adds
-`hasSwitchedOff` to `lib/capabilities.ts` so that a journal whose config cannot
-be *read* is no longer treated as one that has switched mail *off*. That is the
-better fix, and it is the same finding this task's mechanism section arrived
-at from the other side — the config lookup was the thing failing, not the
-sweep's directory read.
+```
+npx vitest run test/mail.test.ts    →  33 passed
+npx vitest run                      →  115 files, 1888 passed, 2 skipped
+```
 
-Nobody has been asked to close this, so it stays where it is. Whoever does
-should note that the diagnosis was right and the work landed under another id,
-rather than reading the green suite as the problem never having been real.
+The failure does not reproduce, and the *diagnosis in this file was right*: it
+was the config lookup, not the sweep's directory read. It was fixed under
+another id. `2500704` — "B60: a journal whose config cannot be read has not
+switched mail off" — added `hasSwitchedOff` to `lib/capabilities.ts`, so a
+journal that cannot be *resolved* is no longer treated as one that has switched
+mail *off*. `sendMail` now asks two questions instead of one: `isEnabled("mail")`
+for whether the server can send, `hasSwitchedOff("mail", username)` for whether
+the journal said no. Read the green suite as "somebody else fixed it", never as
+"the failure was never real".
 
-— recorded by the session that was wrongly credited with causing it; see the
-correction in this task's own history.
+The **Work** section below asked which of the two readings is right. The answer
+that shipped is the first one: a message with no `username` belongs to no
+journal, so the server switch is the whole answer and B135's test needed no
+username after all. That is now asserted directly rather than incidentally —
+`test/mail-journal-switch.test.ts`, *"a signup code answers to the server switch
+alone"*, and `test/mail.test.ts`, *"mail with no journal lands in content/.mail/,
+not the working directory"*.
+
+**What is left for a person**, and the reason this goes to `testing/` rather
+than straight out: the third acceptance line. Signup codes have no journal to
+consult, so confirm on the deployed instance that one still arrives. The
+deployed instance was on `3592ad3` when this was captured, which predates both
+commits, so nothing in production ever had the bug.
+
+See also **B197**, which was the same finding captured a minute later from the
+other side, and now carries the half that was still missing: an unreadable
+content root is *reported* rather than merely survived.
 
 ## Why
 
