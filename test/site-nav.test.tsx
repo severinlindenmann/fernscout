@@ -44,6 +44,7 @@ const site: SiteSummary = {
   base: "/alex",
   signedIn: false,
   canSignIn: false,
+  costsEnabled: true,
 };
 
 const trip = {
@@ -99,6 +100,35 @@ describe("SiteNav", () => {
     // The story link is the journal itself, not a trailing slash.
     expect(hrefs).toContain("/alex");
     expect(hrefs.some((h) => !h.startsWith("/alex"))).toBe(false);
+  });
+
+  /**
+   * B165 — costs is an optional capability, so the tab is one too.
+   *
+   * With `features.costs` off for this journal both costs pages answer 404,
+   * and a tab leading to one is the same failure B44 fixed for the sign-in
+   * door: a control that promises something that is not there. Absent rather
+   * than broken.
+   */
+  describe("the costs tab follows the capability", () => {
+    test("is gone when the journal does not do spending", () => {
+      site.costsEnabled = false;
+      try {
+        const hrefs = render(false);
+        expect(hrefs).not.toContain("/alex/costs");
+        // And nothing else in the row went with it.
+        expect(hrefs).toContain("/alex/gallery");
+        expect(hrefs).toContain("/alex/map");
+        expect(hrefs).toContain("/alex/trips");
+      } finally {
+        site.costsEnabled = true;
+      }
+    });
+
+    test("and is there when it does, in a trip's own context too", () => {
+      expect(render(false)).toContain("/alex/costs");
+      expect(render(true, true)).toContain("/alex/costs");
+    });
   });
 
   test("on the current trip, the bare URLs", () => {

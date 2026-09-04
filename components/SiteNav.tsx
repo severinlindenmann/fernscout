@@ -70,6 +70,16 @@ export default function SiteNav() {
   // sign in either — and an owner without one is, from here, indistinguishable
   // from any other reader with no cookie, which is the honest answer.
   const strangerDoor = site.canSignIn && !site.signedIn;
+
+  /**
+   * Costs is a capability, so the tab is one too. B165.
+   *
+   * With `features.costs` off for this journal both costs pages answer 404,
+   * and a tab pointing at a 404 is the same failure the paragraph above
+   * describes for the sign-in door: an optional capability must be absent
+   * rather than broken. Nothing else in this row is optional today.
+   */
+  const links = site.costsEnabled ? LINKS : LINKS.filter((l) => l.href !== "/costs");
   const meLabel = strangerDoor ? t("nav.signIn") : t("me.title");
   const meHref = userHref("/me");
   const meActive = pathname === meHref;
@@ -85,7 +95,7 @@ export default function SiteNav() {
        scrolled sideways, so nothing looked wrong from the outside.
     */
     <nav className="flex flex-wrap items-center justify-end gap-1">
-      {LINKS.map(({ href: path, key, Icon }) => {
+      {links.map(({ href: path, key, Icon }) => {
         const target = href(path);
         const label = t(key);
         // The story page is the base itself, so "active" is an exact match

@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getAllEntries, getDays } from "@/lib/entries";
 import { getCurrentTrip, getTrips } from "@/lib/trips";
 import { isIndexable } from "@/lib/access";
+import { isEnabled } from "@/lib/capabilities";
 import { serverSite } from "@/lib/site";
 import { listedUsernames } from "@/lib/users";
 import { defaultLocaleFor, localesFor } from "@/lib/locales";
@@ -76,7 +77,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       // cannot hide a trip that is under way.
       if (trip.status === "upcoming") continue;
 
-      for (const page of ["/gallery", "/map", "/costs"]) {
+      // A journal with spending switched off has no costs page, so nothing
+      // offers a crawler one. B165 — absent, not a 404 in the sitemap.
+      const pages = isEnabled("costs", username)
+        ? ["/gallery", "/map", "/costs"]
+        : ["/gallery", "/map"];
+      for (const page of pages) {
         out.push({
           url: `${tripBase}${page}`,
           lastModified,
