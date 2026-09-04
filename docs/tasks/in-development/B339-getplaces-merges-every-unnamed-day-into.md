@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: maps, entries
 found: "2026-09-04T19:30:00Z"
+started: "2026-09-04T19:29:30Z"
+session: e8e2ddef-3ce3-473a-9308-388259ef4452
+claimed: "2026-09-04T19:29:30Z"
 ---
 
 # B339 — `getPlaces` merges every unnamed day into one place, collapsing a whole trip's coordinates to a single point
