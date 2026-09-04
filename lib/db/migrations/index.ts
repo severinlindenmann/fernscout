@@ -11,6 +11,7 @@ import * as signinDestination from "./009-signin-destination";
 import * as inviteLinks from "./010-invite-links";
 import * as codeTripBinding from "./011-code-trip-binding";
 import * as contactNotified from "./012-contact-notified";
+import * as inviteTokenCipher from "./013-invite-token-cipher";
 
 /**
  * Every migration, listed by hand.
@@ -37,6 +38,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "010-invite-links": inviteLinks,
   "011-code-trip-binding": codeTripBinding,
   "012-contact-notified": contactNotified,
+  "013-invite-token-cipher": inviteTokenCipher,
 };
 
 export const migrationProvider: MigrationProvider = {

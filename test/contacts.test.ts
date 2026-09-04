@@ -41,7 +41,13 @@ import {
   isPostable,
   normaliseAddress,
 } from "@/lib/contacts/crypto";
-import { createInvite, listInvites, resolveInvite, revokeInvite } from "@/lib/contacts/invites";
+import {
+  createInvite,
+  listInvites,
+  listInvitesWithLinks,
+  resolveInvite,
+  revokeInvite,
+} from "@/lib/contacts/invites";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 
 /**
@@ -1072,6 +1078,102 @@ describe("the personal link", () => {
     const rows = await db.selectFrom("contact_invites").selectAll().execute();
     expect(rows[0].token_hash).not.toBe(token);
     expect(rows[0].token_hash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  /**
+   * B280 — the link can be sent again, and what that must not cost.
+   *
+   * The owner could send a link exactly once: the URL was shown and gone, so
+   * one more cousin meant one more row. Making it recoverable puts a live
+   * credential at rest, which is a real cost, so the plaintext is not what is
+   * stored — it is AES-256-GCM under `CONTACTS_ENCRYPTION_KEY`, bound to its
+   * own row. These tests are the receipts for that, not for the button.
+   */
+  test("can be shown to its owner again, and is the same link", async () => {
+    const { id, token } = await createInvite("ana", { kind: "guest", name: "Familie" });
+    const [row] = await listInvitesWithLinks("ana", "https://example.test");
+    expect(row.id).toBe(id);
+    expect(row.url).toBe(`https://example.test/ana/invite/guest/${token}`);
+    // And it is still the token redemption accepts — not a re-encoded copy.
+    expect((await resolveInvite("ana", token))?.name).toBe("Familie");
+  });
+
+  test("is not in the database in the clear, even though it can be shown again", async () => {
+    const { token } = await createInvite("ana", { kind: "guest", name: "Familie" });
+    const { db } = await getDatabase();
+    const rows = await db.selectFrom("contact_invites").selectAll().execute();
+    expect(rows[0].token_cipher).not.toBeNull();
+    expect(rows[0].token_cipher).not.toContain(token);
+    expect(JSON.stringify(rows[0])).not.toContain(token);
+  });
+
+  test("cannot be moved from one invite to another", async () => {
+    const a = await createInvite("ana", { kind: "guest", name: "A" });
+    const b = await createInvite("ana", { kind: "guest", name: "B" });
+    const { db } = await getDatabase();
+    const rowA = await db
+      .selectFrom("contact_invites")
+      .selectAll()
+      .where("id", "=", a.id)
+      .executeTakeFirstOrThrow();
+
+    // A's ciphertext in B's row: the AAD binds it, so it must not decrypt.
+    await db
+      .updateTable("contact_invites")
+      .set({ token_cipher: rowA.token_cipher })
+      .where("id", "=", b.id)
+      .execute();
+
+    const rows = await listInvitesWithLinks("ana", "https://example.test");
+    expect(rows.find((r) => r.id === b.id)?.url).toBeNull();
+    expect(rows.find((r) => r.id === a.id)?.url).toContain(a.token);
+  });
+
+  test("a row written before the migration still redeems, and offers no link", async () => {
+    const { id, token } = await createInvite("ana", { kind: "guest", name: "Alt" });
+    const { db } = await getDatabase();
+    // Exactly what an older row looks like: hash present, cipher absent.
+    await db
+      .updateTable("contact_invites")
+      .set({ token_cipher: null })
+      .where("id", "=", id)
+      .execute();
+
+    expect((await resolveInvite("ana", token))?.name).toBe("Alt");
+    expect((await listInvitesWithLinks("ana", "https://example.test"))[0].url).toBeNull();
+  });
+
+  test("a revoked link is listed but not offered for copying", async () => {
+    const { id } = await createInvite("ana", { kind: "guest", name: "Weg" });
+    await revokeInvite("ana", id);
+    const [row] = await listInvitesWithLinks("ana", "https://example.test");
+    expect(row.revokedAt).not.toBeNull();
+    expect(row.url).toBeNull();
+  });
+
+  test("an expired link is listed but not offered for copying", async () => {
+    await createInvite("ana", {
+      kind: "guest",
+      name: "Alt",
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+    });
+    expect((await listInvitesWithLinks("ana", "https://example.test"))[0].url).toBeNull();
+  });
+
+  test("with no encryption key the link still works and simply cannot be shown", async () => {
+    delete process.env.CONTACTS_ENCRYPTION_KEY;
+    const { token } = await createInvite("ana", { kind: "guest", name: "Ohne Schlüssel" });
+    expect((await resolveInvite("ana", token))?.name).toBe("Ohne Schlüssel");
+    const [row] = await listInvitesWithLinks("ana", "https://example.test");
+    expect(row.url).toBeNull();
+  });
+
+  test("the plain list an agent token reaches carries no token at all", async () => {
+    const { token } = await createInvite("ana", { kind: "guest", name: "Familie" });
+    const listed = await listInvites("ana");
+    expect(listed).toHaveLength(1);
+    expect(JSON.stringify(listed)).not.toContain(token);
+    expect(JSON.stringify(listed)).not.toContain("url");
   });
 
   /**
