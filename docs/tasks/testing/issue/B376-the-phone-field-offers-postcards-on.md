@@ -7,8 +7,7 @@ complexity: low
 area: contacts
 found: "2026-09-04T21:23:37Z"
 started: "2026-09-04T21:24:47Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-04T21:24:47Z"
+merged: "2026-09-04T21:42:58Z"
 ---
 
 # B376 — The phone field offers postcards on a server with postcards switched off

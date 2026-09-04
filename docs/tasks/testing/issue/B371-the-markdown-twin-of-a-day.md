@@ -7,8 +7,7 @@ complexity: low
 area: api
 found: "2026-09-04T21:10:30Z"
 started: "2026-09-04T21:24:46Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-04T21:24:46Z"
+merged: "2026-09-04T21:42:57Z"
 ---
 
 # B371 — The markdown twin of a day carries only the default locale, so a translated day has no readable source
