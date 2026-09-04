@@ -12,7 +12,7 @@ import { renderMail } from "@/lib/mail/template";
 import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
 import { sendWelcome } from "@/lib/journals";
 import { sendCodeMail } from "@/lib/contacts/mail";
-import { runDigest } from "@/lib/digest";
+import { sendDayLetter } from "@/lib/digest/dayLetter";
 import { requestDeletion } from "@/lib/deletions";
 import { POST as authRequest } from "@/app/api/auth/request/route";
 import { GET as health } from "@/app/api/health/route";
@@ -24,7 +24,7 @@ import { GET as health } from "@/app/api/health/route";
  * `isEnabled("mail")` without naming the journal, so a per-journal switch
  * narrowed what `/api/health` *reported* and left the feature running: a
  * journal that had said "do not write to my readers" still had sign-in codes,
- * digests and welcome letters sent on its behalf, and with `keepCopy` on it
+ * day letters and welcome letters sent on its behalf, and with `keepCopy` on it
  * accumulated `.eml` copies of all of it.
  *
  * The fix is not "suppress everything", because two kinds of letter are not
@@ -108,6 +108,40 @@ function writeBareJournal(username: string) {
 }
 
 /** Every `.eml` filed under one journal. The evidence, in both directions. */
+/**
+ * One trip with one published day, for the journal named — the least a
+ * `sendDayLetter` call needs to reach the mail gate this file is about.
+ *
+ * It has to be real content on disk: the letter answers `unknown_trip` and
+ * `not_published` *before* it looks at any switch, so a fixture without these
+ * would pass the assertions below for entirely the wrong reason. B387.
+ */
+function publishADay(username: string): void {
+  const root = path.join(dir, username, "trips", "trip");
+  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "trip.md"),
+    [
+      "---",
+      'id: "trip"',
+      'title: "A trip"',
+      'start: "2026-09-01"',
+      'end: "2026-09-10"',
+      'status: "current"',
+      'visibility: "public"',
+      "---",
+      "",
+      "Intro.",
+      "",
+    ].join("\n"),
+  );
+  fs.writeFileSync(
+    path.join(root, "entries", "2026-09-02-a-day.md"),
+    ["---", 'title: "A day"', 'date: "2026-09-02"', "---", "", "It happened.", ""].join("\n"),
+  );
+  clearUserCache();
+}
+
 function mailFor(username: string): string[] {
   const folder = path.join(dir, username, "mail");
   if (!fs.existsSync(folder)) return [];
@@ -178,17 +212,30 @@ describe("letters the journal writes to its readers — governed by its own swit
     expect(mailFor(LOUD)).toHaveLength(1);
   });
 
-  test("the digest refuses, and names the file to change", async () => {
-    // Loud, so this is the journal's own answer and not the server's — the two
-    // are separate errors because the fix is a different file in each case.
-    await expect(runDigest(QUIET)).rejects.toThrow(/"quiet" has switched mail off/);
+  /*
+   * These two were the weekly digest's until B387 deleted it. The property is
+   * the digest's only by accident — it is "a journal that switched mail off
+   * gets no reader letters" — so they are asserted against `sendDayLetter`,
+   * which is the reader-facing letter that remains. Deleting them with the
+   * digest would have quietly dropped the coverage B60 exists for.
+   */
+  test("a day letter refuses, and says which switch stopped it", async () => {
+    // Loud server, quiet journal: this is the journal's own answer and not the
+    // server's — two separate reasons, because the fix is a different file in
+    // each case.
+    publishADay(QUIET);
+    const outcome = await sendDayLetter(QUIET, `${QUIET}/trip`, "a-day");
+    expect(outcome).toMatchObject({ ok: false, reason: "mail_off" });
     expect(mailFor(QUIET)).toEqual([]);
   });
 
-  test("a --dry-run digest still plans, because it sends nothing", async () => {
-    await expect(runDigest(QUIET, { dryRun: true })).resolves.toMatchObject({
-      dryRun: true,
-    });
+  test("the same call on a journal that has not switched mail off gets past that gate", async () => {
+    publishADay(LOUD);
+    const outcome = await sendDayLetter(LOUD, `${LOUD}/trip`, "a-day");
+    // Not `mail_off`. It stops at `contacts_off` or sends, depending on the
+    // fixture — either way the mail switch let it through, which is the whole
+    // assertion.
+    if (!outcome.ok) expect(outcome.reason).not.toBe("mail_off");
   });
 });
 
@@ -425,11 +472,14 @@ describe("a journal that has never mentioned mail has not switched it off", () =
     expect(mailFor(SILENT)).toHaveLength(1);
   });
 
-  test("its digest is not refused over mail", async () => {
+  test("its day letter is not refused over mail", async () => {
     // It is refused over `contacts`, which really is an opt-in and really is
-    // absent here. Asserting the *other* message is what proves the mail gate
-    // let it through rather than that nothing was checked.
-    await expect(runDigest(SILENT)).rejects.toThrow(/Contacts are not enabled/);
+    // absent here. Asserting the *other* reason is what proves the mail gate
+    // let it through rather than that nothing was checked. (Was the digest's
+    // until B387; the property is the letter's just as much.)
+    publishADay(SILENT);
+    const outcome = await sendDayLetter(SILENT, `${SILENT}/trip`, "a-day");
+    expect(outcome).toMatchObject({ ok: false, reason: "contacts_off" });
   });
 
   test("a stated false is still a no, beside it", async () => {

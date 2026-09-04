@@ -260,31 +260,6 @@ export type TripPeopleTable = {
   expires_at: string | null;
 };
 
-/**
- * One digest, as it was sent to one reader — see `004-digest`.
- *
- * `cursor` is the high-water mark (the newest day date the mail covered), and
- * it is what makes a second run a no-op instead of a duplicate. `status` is
- * `sending` | `sent` | `failed`; a row left at `sending` is an attempt whose
- * outcome nobody knows, and counts as delivered.
- */
-export type DigestSendsTable = {
-  id: string;
-  owner_id: string;
-  contact_id: string;
-  status: Generated<string>;
-  /** `YYYY-MM-DD` — the newest day reported to this reader. */
-  cursor: string;
-  day_count: Generated<number>;
-  /** JSON, as text: what went out, for the human reading this later. */
-  trips: Generated<string>;
-  locale: string | null;
-  mail_ref: string | null;
-  error: string | null;
-  created_at: string;
-  sent_at: string | null;
-};
-
 export type PushSubscriptionsTable = {
   id: string;
   owner_id: string;
@@ -441,7 +416,6 @@ export type Database = {
   contact_invites: ContactInvitesTable;
   access_grants: AccessGrantsTable;
   trip_people: TripPeopleTable;
-  digest_sends: DigestSendsTable;
   push_subscriptions: PushSubscriptionsTable;
   reactions: ReactionsTable;
   jobs: JobsTable;
@@ -462,7 +436,6 @@ export const TABLE_NAMES = [
   "contact_invites",
   "access_grants",
   "trip_people",
-  "digest_sends",
   "push_subscriptions",
   "reactions",
   "jobs",

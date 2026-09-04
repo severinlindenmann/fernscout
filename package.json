@@ -18,7 +18,6 @@
     "build:countries": "node scripts/build-country-codes.mjs",
     "alert": "tsx --conditions=react-server scripts/alert.mts",
     "notify": "tsx --conditions=react-server scripts/notify.mts",
-    "digest": "tsx --conditions=react-server scripts/digest.mts",
     "test": "vitest run",
     "test:watch": "vitest",
     "verify": "node scripts/verify.mjs",
