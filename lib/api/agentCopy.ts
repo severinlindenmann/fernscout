@@ -196,6 +196,85 @@ export const NOT_WRITABLE =
  * "propose coordinates" could otherwise read that as permission to geocode
  * and write in the same breath.
  */
+// The seven categories, read from the definition rather than typed out here:
+// an eighth would otherwise be listed everywhere except in the sentence that
+// tells an agent which ones exist.
+import { COST_CATEGORIES } from "../costFormat";
+
+/**
+ * One day with every field an agent should have asked for, filled in — B335.
+ *
+ * The two documents each carried a two-field example (`title`, `date`,
+ * `content`), which is the *minimum* a day is refused for lacking and reads
+ * as the *target*. An agent that copies it writes a day with no place on the
+ * map, no money and no leg on the story pager, and every one of those is a
+ * second call to fix later. Defined once and rendered by both documents so
+ * the two cannot drift.
+ *
+ * `status` and `gallery` are absent because they are not fields: a day is
+ * always a draft, and photographs are their own call.
+ */
+export const PERFECT_DAY_EXAMPLE = [
+  "{",
+  '  "title": "Lanterns of Hoi An",',
+  '  "date": "2026-08-26",',
+  '  "time": "16:45",',
+  '  "location": "Hoi An",',
+  '  "country": "Vietnam",',
+  '  "lat": 15.8801,',
+  '  "lng": 108.338,',
+  '  "transportMode": "bus",',
+  '  "transportFrom": "Da Lat",',
+  '  "transportTo": "Hoi An",',
+  '  "content": "The whole old town hangs with lanterns...",',
+  '  "tags": ["vietnam"],',
+  '  "costs": [',
+  '    {"label": "Sleeper bus", "amount": 320000, "currency": "VND", "category": "transport"},',
+  '    {"label": "Dinner", "amount": 180000, "currency": "VND", "category": "food"}',
+  "  ],",
+  '  "idempotency_key": "one-key-per-day-you-write"',
+  "}",
+];
+
+/**
+ * What the example above is for — B335. Said in words, because a block of
+ * JSON with no sentence over it reads as one of several shapes rather than
+ * as the one to aim at.
+ */
+export const PERFECT_DAY_INTRO =
+  "This is what a finished day looks like — the shape to aim at, not the minimum. Only " +
+  "`title`, `date` and `content` are required; everything else here is a question worth " +
+  "asking, because each one omitted is something the site cannot show and a second call " +
+  "to correct later. Send what you were actually told and leave the rest out: an empty " +
+  "field beats an invented one, and this example is a form to fill from what the person " +
+  "said, never a set of plausible values to copy.";
+
+/**
+ * What a day's spending owes, before it is written — B335.
+ *
+ * `dayQuestions()` asked about coordinates and never about money, so `costs`
+ * was the field an agent simply did not think of: the validator
+ * (`checkCosts`, lib/validate/entry.ts) is strict about it and only ever got
+ * to say so to the callers that had guessed the field existed.
+ *
+ * The three refusals worth naming ahead of the write are the ones whose
+ * failure is silent if they are not caught here — a zero amount and an
+ * unrecognisable currency were both stored and then dropped when the page
+ * rendered, before B304, and a currency the trip has no rate for is still
+ * reported unconverted rather than counted wrong.
+ */
+export const DAY_MONEY_QUESTION =
+  "Ask what the day cost, and record each thing separately rather than as one total: " +
+  "`costs: [{label, amount, currency, category}]`. `label` and `amount` are required, and " +
+  "the amount is a positive number — zero or less is refused. **The currency is the one " +
+  "the money was actually spent in**, as three letters (`VND`, not `\u20ab` and not the " +
+  "converted figure); nothing is converted on the way in, and a currency this trip's " +
+  "`rates:` block does not carry is reported unconverted rather than guessed at. Omitting " +
+  "`currency` means the journal's base currency, so omit it only when that is true. " +
+  "`category` is one of " + COST_CATEGORIES.join(", ") + ". Amounts are the person's to " +
+  "state: an approximate figure they gave you is fine, one you inferred from what things " +
+  "usually cost is not.";
+
 export const COORDINATES_QUESTION =
   "A day is expected to carry `lat` and `lng` — they are what puts it on the map, and a " +
   "day written without them is a day the map cannot show. Ask for them, and where the " +
@@ -443,6 +522,10 @@ export function dayQuestions(): FirstQuestion[] {
     {
       ask: "**Coordinates**, if the prose names a real place (`lat`, `lng`)",
       because: COORDINATES_QUESTION,
+    },
+    {
+      ask: "**What the day cost** (`costs`)",
+      because: DAY_MONEY_QUESTION,
     },
   ];
 }
