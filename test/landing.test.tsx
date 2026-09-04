@@ -115,6 +115,7 @@ function renderLanding(locale = "en") {
       <Landing
         siteName="Fernscout"
         docUrl="https://fernscout.test/documentation.txt"
+        agentUrl="https://fernscout.test/agent.md"
         journals={journals}
         locales={installedLocales()}
       />
@@ -131,10 +132,11 @@ describe("the landing page", () => {
     expect(html).toContain("No journals yet");
   });
 
-  test("carries the exact link somebody hands to an agent", () => {
+  test("carries the exact links somebody hands to an agent", () => {
     const html = renderLanding();
     expect(html).toContain("fernscout.test");
     expect(html).toContain("/documentation.txt");
+    expect(html).toContain("/agent.md");
   });
 
   test("lists every journal with something public, as a link", () => {
@@ -212,7 +214,8 @@ describe("the landing page", () => {
    */
   test("hands over an instruction, not a bare link", () => {
     const instruction = translate(dictionaryFor("en"), "landing.instruction", {
-      url: "https://fernscout.test/documentation.txt",
+      docUrl: "https://fernscout.test/documentation.txt",
+      agentUrl: "https://fernscout.test/agent.md",
     });
     expect(instruction).toContain("https://fernscout.test/documentation.txt");
     expect(instruction).toMatch(/email address I control/i);
@@ -226,5 +229,26 @@ describe("the landing page", () => {
     // visible and copied text now identical it is no longer covering a
     // mismatch, but stays for the same reason as before (B199).
     expect(html).toContain('aria-label="Copy instruction"');
+  });
+
+  /**
+   * B261 — a fetcher that refuses a URL discovered *inside* a fetched
+   * document still reaches `/agent.md` if it arrived in the same pasted
+   * sentence as `/documentation.txt`. Both must carry the instruction's own
+   * provenance, and the paragraph must read as one instruction rather than a
+   * list of links.
+   */
+  test("names both documents in the same instruction", () => {
+    const instruction = translate(dictionaryFor("en"), "landing.instruction", {
+      docUrl: "https://fernscout.test/documentation.txt",
+      agentUrl: "https://fernscout.test/agent.md",
+    });
+    expect(instruction).toContain("https://fernscout.test/documentation.txt");
+    expect(instruction).toContain("https://fernscout.test/agent.md");
+    // One sentence, not a bulleted list — no line breaks or bullet markers.
+    expect(instruction).not.toMatch(/\n|^[-*]/);
+
+    const html = renderLanding();
+    expect(html).toContain("fernscout.test/agent.md");
   });
 });

@@ -39,6 +39,7 @@ export type PublicJournal = {
 export default function Landing({
   siteName,
   docUrl,
+  agentUrl,
   journals,
   locales,
   repository,
@@ -46,6 +47,11 @@ export default function Landing({
 }: {
   siteName: string;
   docUrl: string;
+  /** The full guide, with every call. B261: named alongside `docUrl` in the
+   * same instruction so a fetcher that only follows URLs it was handed
+   * directly — never one discovered inside a fetched page — can still reach
+   * it, because both arrived in the sentence the owner pasted. */
+  agentUrl: string;
   journals: PublicJournal[];
   /** The interface languages this instance offers. Outside a journal there is
    * nobody whose list to use, so it is the maintained set — see
@@ -108,7 +114,7 @@ export default function Landing({
               thing than the clipboard carried. `break-words` keeps the long
               URL from forcing horizontal scroll at phone width. */}
           <p className="mt-3 break-words font-mono text-base leading-7 text-navy-900 sm:text-lg">
-            {t("landing.instruction", { url: docUrl })}
+            {t("landing.instruction", { docUrl, agentUrl })}
           </p>
           <div className="mt-4">
             {/* With visible and copied text identical, `name` is no longer
@@ -116,7 +122,7 @@ export default function Landing({
                 name that recites a whole sentence is worse than one that says
                 what the button does (B199). B254. */}
             <CopyLine
-              value={t("landing.instruction", { url: docUrl })}
+              value={t("landing.instruction", { docUrl, agentUrl })}
               label={t("landing.copyInstruction")}
               copiedLabel={t("landing.copied")}
               name={t("landing.copyInstruction")}

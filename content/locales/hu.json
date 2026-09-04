@@ -286,7 +286,7 @@
   "landing.copyInstruction": "Utasítás másolása",
   "landing.handTitle": "Ezt add az ügynöködnek",
   "landing.hero": "Útinapló, amit az ügynököd ír helyetted.",
-  "landing.instruction": "Vezess végig a saját útinaplóm létrehozásán az itt található útmutató szerint: {url}. Szükséged lesz egy e-mail-címre, ami az enyém.",
+  "landing.instruction": "Vezess végig a saját útinaplóm létrehozásán az áttekintés szerint itt: {docUrl}, és a teljes útmutató szerint itt: {agentUrl}. Szükséged lesz egy e-mail-címre, ami az enyém.",
   "landing.lede": "A naplód markdown fájlokból és fényképekből áll, egy mappában, ami a tiéd. Böngészőben olvasod. Egy ügynök írja meg helyetted — csak egy linket és egy e-mail-címet adsz neki.",
   "landing.madeBy": "Szeretettel készült itt: {flag} — {name}",
   "landing.metaDescription": "Markdown fájlok és fényképek egy mappában, ami a tiéd. Böngészőben olvasod; egy ügynök írja.",

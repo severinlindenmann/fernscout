@@ -286,7 +286,7 @@
   "landing.copyInstruction": "Copy instruction",
   "landing.handTitle": "Hand this to your agent",
   "landing.hero": "A travel journal your agent writes for you.",
-  "landing.instruction": "Guide me through creating my own travel journal, following the documentation at {url}. You will need an email address I control.",
+  "landing.instruction": "Guide me through creating my own travel journal, following the overview at {docUrl} and the full guide at {agentUrl}. You will need an email address I control.",
   "landing.lede": "Your journal is markdown and photographs in a folder you own. You read it in a browser. An agent writes it — you hand it a link and an email address.",
   "landing.madeBy": "Made in {flag} with love by {name}",
   "landing.metaDescription": "Markdown and photographs in a folder you own. Read it in a browser; write it through an agent.",

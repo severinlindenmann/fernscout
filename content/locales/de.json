@@ -286,7 +286,7 @@
   "landing.copyInstruction": "Anweisung kopieren",
   "landing.handTitle": "Gib das deinem Agenten",
   "landing.hero": "Ein Reisetagebuch, das dein Agent für dich schreibt.",
-  "landing.instruction": "Führe mich durch das Anlegen meines eigenen Reisetagebuchs, nach der Anleitung unter {url}. Du brauchst dafür eine E-Mail-Adresse, die mir gehört.",
+  "landing.instruction": "Führe mich durch das Anlegen meines eigenen Reisetagebuchs, nach der Übersicht unter {docUrl} und der vollständigen Anleitung unter {agentUrl}. Du brauchst dafür eine E-Mail-Adresse, die mir gehört.",
   "landing.lede": "Dein Reisetagebuch besteht aus Markdown-Dateien und Fotos in einem Ordner, der dir gehört. Du liest es im Browser. Ein Agent schreibt es — du gibst ihm nur einen Link und eine E-Mail-Adresse.",
   "landing.madeBy": "Mit Liebe gemacht in {flag} von {name}",
   "landing.metaDescription": "Markdown-Dateien und Fotos in einem Ordner, der dir gehört. Du liest es im Browser; ein Agent schreibt es.",

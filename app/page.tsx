@@ -85,6 +85,7 @@ export default function Root() {
     <Landing
       siteName={site.name}
       docUrl={`${site.url}/documentation.txt`}
+      agentUrl={`${site.url}/agent.md`}
       journals={journals}
       // No journal owns this page, so the choice is every language this build
       // ships chrome for rather than one person's `locales:` list.
