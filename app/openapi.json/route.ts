@@ -264,7 +264,14 @@ export function GET() {
                     email: { type: "string", format: "email" },
                     code: { type: "string", description: "Six digits. Ten minutes, single use." },
                     kind: { type: "string", enum: ["agent", "guest"], default: "guest" },
-                    trip: { type: "string", description: "The same trip named in the request." },
+                    trip: {
+                      type: "string",
+                      description:
+                        "Optional, and only ever the same trip named at /api/auth/request: the " +
+                        "trip travels on the code, and the token is scoped to it whether or not " +
+                        "this is sent. Naming a different one is refused with 401. The journal's " +
+                        "owner may name one here to narrow a code they asked for unqualified.",
+                    },
                   },
                 },
               },

@@ -534,7 +534,7 @@ describe("the sign-in link", () => {
     // The whole reason B69 puts the destination in the database. A redirect
     // target that travels in the link is a redirect target anybody can edit
     // before following it.
-    const { linkToken } = await issueCode("ana", "reader@example.test", "guest", "/ana/trips/x");
+    const { linkToken } = await issueCode("ana", "reader@example.test", "guest", { destination: "/ana/trips/x" });
     expect(signInUrl("https://x.test", "ana", linkToken!)).toBe(
       `https://x.test/ana/s/${linkToken}`,
     );
@@ -557,7 +557,7 @@ describe("where the sign-in link lands", () => {
       "ana",
       "reader@example.test",
       "guest",
-      "/ana/trips/vietnam-2026",
+      { destination: "/ana/trips/vietnam-2026" },
     );
     const result = await verifyLink("ana", linkToken!);
     expect(result.ok).toBe(true);
@@ -576,7 +576,7 @@ describe("where the sign-in link lands", () => {
   test("a destination is never stored for an agent code", async () => {
     // No link to follow, so nowhere to land — and no reason to keep a note of
     // what somebody was reading.
-    await issueCode("ana", "reader@example.test", "agent", "/ana/trips/vietnam-2026");
+    await issueCode("ana", "reader@example.test", "agent", { destination: "/ana/trips/vietnam-2026" });
     const { db } = await getDatabase();
     const row = await db
       .selectFrom("login_codes")
@@ -619,7 +619,7 @@ describe("where the sign-in link lands", () => {
   });
 
   test("the form's own value is refused before it is written down", async () => {
-    await issueCode("ana", "reader@example.test", "guest", "https://evil.test/ana");
+    await issueCode("ana", "reader@example.test", "guest", { destination: "https://evil.test/ana" });
     const { db } = await getDatabase();
     const row = await db.selectFrom("login_codes").selectAll().executeTakeFirstOrThrow();
     expect(row.link_dest).toBeNull();

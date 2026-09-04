@@ -131,7 +131,7 @@ async function follow(linkToken: string): Promise<string | null> {
 /** A code for the reader, optionally asked for from a particular page. */
 async function askFrom(destination?: string): Promise<string> {
   const { issueCode } = await import("@/lib/auth");
-  const { linkToken } = await issueCode(OWNER, READER, "guest", destination);
+  const { linkToken } = await issueCode(OWNER, READER, "guest", { destination });
   if (!linkToken) throw new Error("a guest code should carry a link");
   return linkToken;
 }

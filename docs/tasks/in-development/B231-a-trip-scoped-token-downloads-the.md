@@ -15,18 +15,6 @@ claimed: "2026-09-04T08:08:58Z"
 
 ## Why
 
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
-
-## Why
-
 `app/[user]/export.zip/route.ts:33`:
 
 ```ts
@@ -100,3 +88,59 @@ and is correct to — that token is single-purpose, hour-lived, and mailed to
   gets the `open-to-link` archive. Both are already asserted in
   `test/export.test.ts`.
 - All four checks pass.
+
+## What was built
+
+Branch `g16-token-scope-escalation`.
+
+`app/[user]/export.zip/route.ts` now asks both questions: `ownsUser` (which
+journal this token belongs to) **and** `auth.session.scope ===
+SESSION_SCOPE.agent` (that it is the owner's unqualified `write:content`,
+rather than a `write:trip:<id>` one). The local is renamed `isOwner` →
+`wholeJournal`, which is what it actually tests and was half the bug; the
+`Cache-Control` line reads the same variable, so a trip-scoped token's archive
+is now the cacheable public one rather than being marked `private, no-store`
+for content it no longer contains.
+
+The scope check rather than `isOwner()` from `lib/contacts/session.ts`: it is
+the line `PATCH /api/v1/<user>/config`, `DELETE /api/v1/<user>` and `publish`
+already draw, and one idiom across every journal-wide route is worth more here
+than the marginally stronger address test. The reasoning is in the route, since
+the next reader will meet `ownsUser` again. Whether *all* of them should ask
+the address instead is captured as **B240** rather than decided here.
+
+A trip-scoped token falls through to `open-to-link`, exactly as an anonymous
+caller does — refusing outright would say something about the journal it need
+not say, and the public archive is content that token could already fetch. A
+per-trip archive is a feature, not this fix.
+
+Folded in as the ticket asked: `GET /api/v1/<user>/config` had the same gap on
+a smaller payload and now carries the same check as its own `PATCH`.
+`lib/exportZip.ts`'s docstring said the `"all"` scope was "not exposed over
+HTTP", which stopped being true when this route learned to serve it; it now
+names both routes that serve it and states that anything reaching for it must
+establish ownership, not mere membership.
+
+`app/[user]/delete/[token]/export.zip` is untouched and still serves `"all"` —
+that token is single-use, hour-lived and mailed to `owner.email`.
+
+## Evidence
+
+`test/scope-escalation.test.ts`, B231 cases. The trip-scoped token is minted
+directly through `verifyCode` with an explicit scope, so this case stands on
+its own and does not depend on B230's fix.
+
+Before: the archive contained `trips/honeymoon-2026/trip.md` and
+`2026-08-25-the-quiet-week.md`, an unpublished draft in a private trip the
+holder was never on. After: it contains neither, nor `trips/alps-2026/`; the
+owner's token still gets all three; an anonymous request is unchanged; and a
+trip-scoped token gets `403 out_of_scope` from `GET .../config`.
+`test/export.test.ts` passes unchanged. Full run: 137 files / 2161 tests green.
+
+**Audit of every other `ownsUser` call site** (13 in all, asked for in the
+ticket's spirit): the eleven in `app/api/v1/` each pair it with something —
+`mayWriteTrip` on the four trip-scoped write routes plus media and publish,
+`writableTrips` on `/trips` and `/drafts`, and `scope !== SESSION_SCOPE.agent`
+on trip create, both DELETEs and config PATCH. Only this route and config GET
+were unpaired, and both are fixed here. No further instance found, so there is
+nothing new to file for it.

@@ -477,19 +477,32 @@ is live**: nothing was consumed and nothing is waiting in their inbox. Retry.
 That is different from \`429\`, which means wait, and from \`404\`, which means
 this server does not do tokens.
 
-**If the person is not the journal's owner but came on one of its trips**, add
-the trip to both calls:
+**If the person is not the journal's owner but came on one of its trips**, name
+the trip when you ask for the code:
 
 \`\`\`json
 {"user": "${example}", "email": "robin@example.com", "kind": "agent", "trip": "asia-2026"}
 \`\`\`
 
-The token you get back then writes to **that trip only** — every day of it, not
+**The trip is decided there and travels on the code.** Verifying takes it from
+the code, so you may repeat it below or leave it out and get the same token
+either way — what you cannot do is change it. A verify that names a *different*
+trip is refused with the ordinary \`401 invalid_code\` and spends nothing: ask
+for a fresh code naming the trip you actually want. (Until this was fixed,
+leaving the field out returned the owner's own journal-wide token to somebody
+who had been let onto one trip.)
+
+The token you get back writes to **that trip only** — every day of it, not
 just theirs — and every other trip in the journal answers as if it did not
 exist. Who is on a trip is the \`people:\` block in its \`trip.md\`, plus anyone
 the owner has let on with a **buddy link** (below). You cannot add either;
 a person types the name into the file, or the owner issues the link and
 approves whoever follows it.
+
+The journal's **owner** may name a trip at either call, and gets a token for
+that trip alone — a deliberately limited credential to hand to somebody, or to
+bound what you yourself can reach. Naming no trip is what produces the
+unqualified \`write:content\` below.
 
 \`\`\`http
 POST ${site.url}/api/auth/verify

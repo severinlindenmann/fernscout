@@ -63,6 +63,29 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
     return Response.json({ error: "out_of_scope" }, { status: 403 });
   }
 
+  /**
+   * The same gate as the PATCH below, and for the same reason — B231.
+   *
+   * `ownsUser` says which journal a token belongs to, not what it may do
+   * inside it, so on its own it let a token scoped to one trip read the
+   * journal's whole `features` block: which capabilities its owner has
+   * switched on, for a journal the holder can otherwise see one trip of. Small
+   * beside the archive that ticket is about, and the same mistake in the same
+   * idiom, so it is fixed in the same pass rather than left as the last
+   * instance of it.
+   */
+  if (auth.session.scope !== SESSION_SCOPE.agent) {
+    return Response.json(
+      {
+        error: "out_of_scope",
+        message:
+          "This token is scoped to one trip. What the journal around it can do is the owner's " +
+          "to read and to change.",
+      },
+      { status: 403 },
+    );
+  }
+
   const features = view(user);
   if (!features) return Response.json({ error: "no_such_journal" }, { status: 404 });
 

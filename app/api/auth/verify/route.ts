@@ -3,6 +3,8 @@ import {
   GUEST_COOKIE,
   SESSION_TTL_MS,
   isEmail,
+  pendingCodeTrip,
+  tripWriteScope,
   verifyCode,
   type SessionKind,
 } from "@/lib/auth";
@@ -10,7 +12,6 @@ import { isEnabled } from "@/lib/capabilities";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
 import { getTrip, tripRef } from "@/lib/trips";
-import { isPersonOn, tripWriteScope } from "@/lib/tripPeople";
 
 export const dynamic = "force-dynamic";
 
@@ -50,15 +51,40 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  // The trip named at request time decides how wide the token is. The owner
-  // gets the journal; anybody else gets the one trip they are listed on.
-  const result = await verifyCode(
-    username,
-    email,
-    code,
-    kind,
-    await agentScope(username, tripId, email),
-  );
+  /**
+   * How wide the token is, decided **before** anything is redeemed.
+   *
+   * A guest session reads and has nothing to narrow, so it skips this
+   * entirely. For an agent token the answer comes off the code's own row —
+   * see `agentScope`.
+   */
+  let scope: string | undefined;
+  if (kind === "agent") {
+    const decided = await agentScope(username, email, tripId);
+    if (!decided.ok) {
+      /**
+       * **The same answer as a wrong code, deliberately.**
+       *
+       * A friendlier body here would say which of "your code was issued for a
+       * different trip", "this address does not own this journal" and "no such
+       * trip" applied — and each of those is a question about somebody else's
+       * journal that a caller holding no code could ask by sending this
+       * request. The first in particular would turn an outstanding code into
+       * something enumerable: name trip after trip until the answer changes.
+       *
+       * So the refusal is the endpoint's one uniform answer, and the
+       * explanation goes where it costs nothing: `/agent.md` says the trip is
+       * decided when the code is issued, and the operator gets the line below.
+       * Refused before `verifyCode` runs, so a caller that sent the wrong body
+       * has not spent the code the person is still holding.
+       */
+      console.warn(`[auth] agent token refused for ${username}: ${decided.why}`);
+      return Response.json({ error: "invalid_code" }, { status: 401 });
+    }
+    scope = decided.scope;
+  }
+
+  const result = await verifyCode(username, email, code, kind, scope);
   if (!result.ok) {
     // One answer for every failure. Which of "no code", "expired", "wrong" and
     // "burned" applies is exactly what an attacker would like to know.
@@ -91,30 +117,59 @@ export async function POST(request: Request) {
 /**
  * How wide an agent token should be.
  *
- * `undefined` means the default — the whole journal.
+ * **The trip is read off the code, never off the request** — B230, and the
+ * whole of the fix. `/api/auth/request` refuses an agent code to an address
+ * that is neither the journal's owner nor on the trip it named; that check was
+ * then thrown away, because the trip was not written down and was re-supplied
+ * here. `agentScope` returned `undefined` for every value it did not
+ * recognise, `undefined` means "no narrowing", and so **leaving the field out
+ * handed somebody who had been let onto one trip the owner's unqualified
+ * `write:content`**. Naming a trip they were not on did the same thing by the
+ * same branch.
  *
- * **Naming a trip narrows the token, whoever asks.** It used to be ignored for
- * the owner, who silently received `write:content` for the entire journal even
- * when they had explicitly asked for one trip. An owner wanting to hand a
- * helper a limited credential, or to bound what an agent could reach, could not
- * get one and was not told. Honouring the request is the only defensible
- * answer: quietly granting more than was asked for is the one option that
- * cannot be argued for.
+ * Now the code carries its trip (`login_codes.trip_id`) and this reads it:
  *
- * `/api/auth/request` has already refused to send a code to an address that is
- * neither the owner nor on the named trip, so this only decides the width.
+ * - **A bound code opens its own trip and nothing else.** The `trip` field in
+ *   the body may repeat it or be left out; anything else is refused rather
+ *   than resolved. Whether the holder is *still* on that trip is asked at
+ *   every write by `tripWriteVerdict`, not here — a token outlives the
+ *   answer (B98).
+ * - **An unbound code is the journal owner's**, because that is the only way
+ *   `/api/auth/request` issues one. Confirmed against `owner.email` rather
+ *   than assumed: an unbound code held by anybody else is refused, so a row
+ *   written by some future path cannot become a journal-wide token by
+ *   default.
+ * - **The owner may still narrow at verify time**, which is the behaviour this
+ *   function was written for and it survives intact: naming a trip gets that
+ *   trip's scope, whoever asks. A trip that does not exist is refused, where
+ *   it used to widen — the one direction this must never move in.
+ *
+ * `undefined` still means the whole journal in `verifyCode`, and it is now
+ * returned from exactly one branch: the owner's address, with no trip named
+ * and no trip on the code.
  */
 async function agentScope(
   username: string,
-  tripId: string,
   email: string,
-): Promise<string | undefined> {
-  if (!tripId) return undefined;
-  const trip = getTrip(tripRef(username, tripId));
-  if (!trip) return undefined;
+  requestedTrip: string,
+): Promise<{ ok: true; scope?: string } | { ok: false; why: string }> {
+  const bound = await pendingCodeTrip(username, email, "agent");
+
+  if (bound) {
+    if (requestedTrip && requestedTrip !== bound) {
+      return { ok: false, why: "the code was issued for a different trip than the one named" };
+    }
+    return { ok: true, scope: tripWriteScope(bound) };
+  }
+
   const owner = getUser(username)?.owner.email;
-  const isOwnerAddress = owner === email.trim().toLowerCase();
-  return isOwnerAddress || (await isPersonOn(trip, email))
-    ? tripWriteScope(trip.id)
-    : undefined;
+  if (!owner || owner !== email.trim().toLowerCase()) {
+    return { ok: false, why: "an agent code with no trip on it, for an address that is not the owner" };
+  }
+
+  if (!requestedTrip) return { ok: true, scope: undefined };
+
+  const trip = getTrip(tripRef(username, requestedTrip));
+  if (!trip) return { ok: false, why: "the owner asked to narrow to a trip that does not exist" };
+  return { ok: true, scope: tripWriteScope(trip.id) };
 }
