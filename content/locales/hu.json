@@ -298,6 +298,7 @@
   "landing.apiDocs": "API-referencia",
   "landing.copied": "Másolva",
   "landing.copyInstruction": "Utasítás másolása",
+  "landing.docs": "Dokumentáció",
   "landing.handTitle": "Ezt add az ügynöködnek",
   "landing.hero": "Útinapló, amit az ügynököd ír helyetted.",
   "landing.instruction": "Vezess végig a saját útinaplóm létrehozásán az áttekintés szerint itt: {docUrl}, és a teljes útmutató szerint itt: {agentUrl}. Szükséged lesz egy e-mail-címre, ami az enyém.",
