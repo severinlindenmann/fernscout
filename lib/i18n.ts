@@ -33,6 +33,7 @@ export type TranslationKey =
   | "a11y.closePhoto"
   | "a11y.nextPhoto"
   | "a11y.openPhoto"
+  | "a11y.photoPosition"
   | "a11y.photoViewer"
   | "a11y.prevPhoto"
   | "a11y.skipToContent"
