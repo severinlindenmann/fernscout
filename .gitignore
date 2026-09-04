@@ -56,6 +56,14 @@ next-env.d.ts
 # actually does (ROADMAP G1); they are source, not local state.
 .claude/*
 !.claude/skills/
+# One exception in the other direction: this instance's own deploy path — its
+# host, its ssh alias, its one command. The shipped software's deploy is
+# scripts/deploy.sh and the `deploy` skill, which work on anybody's VPS; a
+# skill that hardcodes ours is local state wearing a skill's clothes.
+.claude/skills/vps/
+
+# What scripts/deploy.sh last brought up healthy, written on the server (B258).
+.deploy-state
 
 # Generated per-user output. Postcards carry postal addresses and mail carries
 # an email list, so none of it belongs in git — with content/example the
