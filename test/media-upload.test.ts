@@ -8,7 +8,7 @@ import { clearUserCache } from "@/lib/users";
 import { storeUploads } from "@/lib/api/media";
 import { attachGallery } from "@/lib/api/entries";
 import { getEntryBySlug } from "@/lib/entries";
-import { MAX_ITEMS_PER_DAY } from "@/lib/validate/media";
+import { MAX_ITEMS_PER_DAY, type Problem } from "@/lib/validate/media";
 
 /**
  * Media arriving over the network.
@@ -83,6 +83,28 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+/**
+ * The problem a test is about, wherever `storeUploads` happened to append it.
+ *
+ * `problems` is built by appending — `validateMediaBatch` first, then the
+ * missing-ffmpeg case, then the per-day ceiling, then the journal byte quota —
+ * and **nothing promises which of them fires**. `problems[0]` says where a
+ * problem sits today, so a fixture that trips a second limit, or a check added
+ * ahead of it, fails with a message about the wrong rule. The ceiling test did
+ * fail exactly that way once, in a full run (B71).
+ *
+ * The whole array goes into the failure message, because which problem came
+ * first is the answer to that question if it ever recurs.
+ */
+function only(problems: Problem[], what: string, match: (p: Problem) => boolean): Problem {
+  const found = problems.filter(match);
+  expect(
+    found.length,
+    `expected exactly one problem about ${what}, got:\n${JSON.stringify(problems, null, 2)}`,
+  ).toBe(1);
+  return found[0];
+}
+
 describe("storing an upload", () => {
   test("writes a resized derivative and keeps the original", async () => {
     const result = await storeUploads(REF, "lanterns-of-hoi-an", [
@@ -150,8 +172,9 @@ describe("what it refuses", () => {
     ]);
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.problems[0]).toMatchObject({ field: "notes.txt.format", got: "txt" });
-    expect(result.problems[0].expected).toContain("heic");
+    const format = only(result.problems, "notes.txt's format", (p) => p.field === "notes.txt.format");
+    expect(format.got).toBe("txt");
+    expect(format.expected).toContain("heic");
   });
 
   /** A refused batch must leave no half-imported day behind. */
@@ -165,12 +188,28 @@ describe("what it refuses", () => {
   });
 
   test("the per-day ceiling counts what is already on disk", async () => {
-    const one = async () => [{ filename: "a.jpg", bytes: await jpeg(60, 60) }];
-    for (let i = 0; i < MAX_ITEMS_PER_DAY; i++) await storeUploads(REF, "day-one", await one());
-    const over = await storeUploads(REF, "day-one", await one());
+    // One encode, reused. The loop below is the slowest thing in this file and
+    // re-encoding the same 60px square forty times bought nothing.
+    const bytes = await jpeg(60, 60);
+    const one = () => [{ filename: "a.jpg", bytes }];
+
+    for (let i = 0; i < MAX_ITEMS_PER_DAY; i++) {
+      const landed = await storeUploads(REF, "day-one", one());
+      expect(landed.ok, `upload ${i + 1} of ${MAX_ITEMS_PER_DAY} did not land`).toBe(true);
+    }
+    // Stated rather than assumed: the ceiling counts `readdirSync(mediaOut)`,
+    // so a short write here would be a failure about the wrong thing.
+    expect(fs.readdirSync(path.join(tripPath(), "media", "day-one"))).toHaveLength(
+      MAX_ITEMS_PER_DAY,
+    );
+
+    const over = await storeUploads(REF, "day-one", one());
     expect(over.ok).toBe(false);
     if (over.ok) return;
-    expect(over.problems[0].expected).toContain(`at most ${MAX_ITEMS_PER_DAY} per day`);
+    const ceiling = only(over.problems, "the per-day ceiling", (p) =>
+      p.expected.includes(`at most ${MAX_ITEMS_PER_DAY} per day`),
+    );
+    expect(ceiling.got).toBe(`${MAX_ITEMS_PER_DAY + 1} items in this day`);
   });
 
   test("an empty request, and a day slug that is not one", async () => {
@@ -194,8 +233,10 @@ describe("a file that is not the image it says it is", () => {
     ]);
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.problems[0].field).toBe("holiday.jpg.format");
-    expect(result.problems[0].expected).toContain("heic");
+    const format = only(result.problems, "holiday.jpg's format", (p) =>
+      p.field === "holiday.jpg.format",
+    );
+    expect(format.expected).toContain("heic");
   });
 
   test("does not leave a broken half-written day behind", async () => {
@@ -221,8 +262,8 @@ describe("the day a photograph belongs to", () => {
     ]);
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.problems[0].field).toBe("day");
-    expect(result.problems[0].expected).toContain("write the day first");
+    const day = only(result.problems, "the day", (p) => p.field === "day");
+    expect(day.expected).toContain("write the day first");
   });
 
   /** A day awaiting approval is the normal thing to attach photographs to. */
