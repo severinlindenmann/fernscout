@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
-import { mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { draftsVisibleTo, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { notFound } from "next/navigation";
 import CostsPageContent from "./CostsPageContent";
 import CostsPrivate from "@/components/CostsPrivate";
@@ -16,7 +16,6 @@ import TripProvider from "@/components/TripProvider";
 import { getUser } from "@/lib/users";
 import { isEnabled } from "@/lib/capabilities";
 import { travellerNamesOf } from "@/lib/site";
-import { isOwner } from "@/lib/contacts/session";
 
 /**
  * Two languages on purpose — the same split the map and gallery pages carry,
@@ -131,8 +130,16 @@ export default async function CostsPage({ params }: PageProps<"/[user]/costs">) 
    * B296, B318 and B322. `read` below is the owner's own view; every other
    * reader gets the default, drafts excluded.
    */
-  const owner = await isOwner(user);
-  const read = { includeDrafts: owner };
+  /**
+   * Who may see this trip's unpublished days is the *trip's* question, not
+   * "is this the owner" — B327 established that and `test/draft-audience.test.ts`
+   * pins it: somebody named in a trip's `people:` may read their own writing
+   * back, and a guest let into the journal may not. B328 arrived at the same
+   * moment and reached for `isOwner`, which was the pattern B318 had used an
+   * hour earlier and which B327 replaced everywhere else.
+   */
+  const drafts = await draftsVisibleTo(trip);
+  const read = { includeDrafts: drafts.visible };
   if (!hasCostsData(tripId, read)) notFound();
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC

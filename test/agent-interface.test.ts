@@ -608,6 +608,18 @@ describe("what the guide has to tell an agent before it starts", () => {
     expect(asked).toContain("every day of every trip");
   });
 
+  test("neither document claims deleting a budget removes the costs page", () => {
+    // B332: B328 widened `hasCostsData` to ask whether the trip has any costs
+    // at all, so the old "DELETE it and the page goes" became false wherever a
+    // day still logs spend — and an agent following it would have reported the
+    // page gone when it was not.
+    expect(NOT_WRITABLE).toContain("both have to go");
+    expect(NOT_WRITABLE).not.toMatch(/DELETE it and the page goes/);
+    for (const doc of [agentGuide(), instanceDocumentation()]) {
+      expect(flat(doc)).not.toMatch(/DELETE it and the page goes/);
+    }
+  });
+
   test("both documents say what no call changes", () => {
     // B293: an agent that could not find a way to turn a costs page off told
     // its owner to use a web UI that does not exist. The documents now say
