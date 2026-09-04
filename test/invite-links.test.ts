@@ -1048,3 +1048,106 @@ describe("a journal created through the API can share itself", () => {
     expect(buddy.body.invite?.trip).toBe("first-2026");
   });
 });
+
+/**
+ * B315 — the digest tick, on the same side of B273's split.
+ *
+ * The form asked "send me a real postcard" and never "tell me when there is a
+ * new day", and the route answered the unasked question *no*:
+ * `wantsEmailDigest: known?.wantsEmailDigest ?? false`, where a brand-new
+ * reader has no `known`. So somebody who followed an invite, proved their
+ * address and was approved got nothing, ever, unless they later found the
+ * manage link at the bottom of a mail and ticked a box nobody had shown them.
+ *
+ * These assert what is **stored**, not what renders — the markup half is
+ * `test/invite-redeem-address.test.tsx`. The pairing that matters is the last
+ * two: a brand-new reader's answer is honoured, and a returning reader's is
+ * untouchable even by a request built by hand.
+ */
+describe("redeeming a guest link, and the digest tick", () => {
+  let link = "";
+
+  const ADDRESS = {
+    name: "A Reader",
+    line1: "Bahnhofstrasse 1",
+    line2: "",
+    postcode: "8001",
+    city: "Zurich",
+    country: "Switzerland",
+    tel: "",
+  };
+
+  test("a brand-new reader who leaves it ticked is stored as wanting the digest", async () => {
+    as(null);
+    const token = await ownerToken();
+    const created = await createLink(token, { kind: "guest" });
+    const url = created.body.invite!.url!;
+    link = url.slice(url.lastIndexOf("/") + 1);
+
+    as(null);
+    const email = "wants-digest@example.test";
+    const result = await redeem({
+      token: link,
+      kind: "guest",
+      name: "Reader",
+      email,
+      address: ADDRESS,
+      wantsPostcard: false,
+      wantsEmailDigest: true,
+    });
+    expect(result.status).toBe(202);
+    expect((await contactFor(email))?.wantsEmailDigest).toBe(true);
+  });
+
+  test("and one who unticks it is stored as not wanting it — the box is read, not assumed", async () => {
+    as(null);
+    const email = "no-digest@example.test";
+    const result = await redeem({
+      token: link,
+      kind: "guest",
+      name: "Reader",
+      email,
+      address: ADDRESS,
+      wantsPostcard: false,
+      wantsEmailDigest: false,
+    });
+    expect(result.status).toBe(202);
+    expect((await contactFor(email))?.wantsEmailDigest).toBe(false);
+  });
+
+  /**
+   * The half that is not about the checkbox at all. A returning reader is
+   * shown no box, so any `wantsEmailDigest` in the body was written by hand —
+   * and the route must ignore it rather than let a redemption rewrite a
+   * choice somebody already made. Gated on `addressProvided`, which is false
+   * for a known address, for exactly this reason: the client is not the
+   * boundary.
+   */
+  test("a returning reader's stored choice survives a hand-built body that contradicts it", async () => {
+    as(null);
+    const email = "already-chose@example.test";
+    await redeem({
+      token: link,
+      kind: "guest",
+      name: "Reader",
+      email,
+      address: ADDRESS,
+      wantsPostcard: false,
+      wantsEmailDigest: true,
+    });
+    expect((await contactFor(email))?.wantsEmailDigest).toBe(true);
+
+    // Same address, redeeming again, with the field flipped and no address —
+    // the shape of the "confirm" step, plus a value it never sends.
+    as(null);
+    const again = await redeem({
+      token: link,
+      kind: "guest",
+      name: "Reader",
+      email,
+      wantsEmailDigest: false,
+    });
+    expect(again.status).toBe(202);
+    expect((await contactFor(email))?.wantsEmailDigest).toBe(true);
+  });
+});

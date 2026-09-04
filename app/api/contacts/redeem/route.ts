@@ -34,10 +34,13 @@ export const dynamic = "force-dynamic";
  * Two things it always needs. **An address, proved**, and **a name to put
  * beside it**. That is the whole of what being let into a journal needs, and
  * a returning reader — one already known to this journal, by a session or by
- * email — is asked for nothing beyond them: no digest tick, and (since B273)
- * no postal address or phone number either, because a redemption that quietly
- * rewrote a choice somebody already made would be a form doing something
- * nobody asked it to. Those still have their own page,
+ * email — is asked for nothing beyond them: no digest tick, no postal address
+ * and no phone number, because a redemption that quietly rewrote a choice
+ * somebody already made would be a form doing something nobody asked it to.
+ * **A brand-new reader is the other case and always was**: B273 gave them the
+ * address and the phone number, B315 the digest tick, because there is no
+ * earlier answer of theirs to overwrite. Both are read only when
+ * `addressProvided` — see below. A returning reader's own page is still
  * `/{user}/c/<token>`, where they can be added, corrected or removed in the
  * open.
  *
@@ -209,6 +212,22 @@ export async function POST(request: Request) {
   const addressProvided =
     !sessionEmail && typeof body.address === "object" && body.address !== null;
   const wantsPostcard = body.wantsPostcard === true;
+  /**
+   * The digest tick, on the same terms — B315.
+   *
+   * Gated on `addressProvided` rather than on the body carrying the field,
+   * for the reason the block above gives: the confirm step must never answer
+   * for a reader who already chose, and that has to hold against a
+   * hand-built request as much as against this component's. So a body that
+   * sends `wantsEmailDigest` on the confirm path is ignored, not honoured.
+   *
+   * The form step's box is ticked by default, so the common answer here is
+   * `true`; it is still read from the body rather than assumed, because a
+   * reader who unticked it means it.
+   */
+  const wantsEmailDigest = addressProvided
+    ? body.wantsEmailDigest === true
+    : (known?.wantsEmailDigest ?? false);
   const submittedAddress = normaliseAddress(
     addressProvided ? (body.address as Record<string, unknown>) : null,
   );
@@ -234,7 +253,7 @@ export async function POST(request: Request) {
     // never answered, exactly as before B273. A brand-new reader's form step
     // sent an address (see `addressProvided` above), so it is written.
     address: addressProvided ? addressToStore : undefined,
-    wantsEmailDigest: known?.wantsEmailDigest ?? false,
+    wantsEmailDigest,
     wantsPostcard: addressProvided ? wantsPostcard : (known?.wantsPostcard ?? false),
     createdVia: `invite:${invite.id}`,
     inviteId: invite.id,
