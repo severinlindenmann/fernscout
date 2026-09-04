@@ -127,6 +127,7 @@ Do not edit them by hand; run the script.
 | [B289](backlog/B289-nothing-records-that-a-hungarian-string.md) | Nothing records that a Hungarian string cannot take a case suffix on an interpolated name | CHORE | low | low |
 | [B290](backlog/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 | [B291](backlog/B291-the-day-markdown-twins-are-the.md) | The day markdown twins are the one agent-facing route the request log does not cover | CHORE | low | low |
+| [B297](backlog/B297-a-nul-byte-in-the-idempotency.md) | A NUL byte in the idempotency key separator makes git treat the whole file as binary | CHORE | low | low |
 | [B88](backlog/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low |
 | [B90](backlog/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
@@ -140,7 +141,6 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B296](in-development/B296-the-days-listing-hides-drafts-from.md) | The days listing hides drafts from the only caller allowed to see them, so an agent cannot audit its own writes | ISSUE | high | low | `986bc24c` |
 | [B283](in-development/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high | `a3370c43` |
-| [B292](in-development/B292-four-things-an-agent-had-to.md) | Four things an agent had to learn by failing are documented somewhere it was not looking | ISSUE | medium | low | `986bc24c` |
 
 ## testing
 
@@ -204,6 +204,7 @@ _Nothing here._
 | [B281](testing/B281-the-invite-panel-asks-who-a.md) | The invite panel asks who a link is for and then shows neither that nor the language, and offers a third link kind nobody needs | FEATURE | medium | medium | — |
 | [B282](testing/B282-the-access-panel-creates-a-guest.md) | The access panel creates a guest link itself, so link management lives on two pages and the page is long enough to scroll past what matters | ISSUE | medium | low | — |
 | [B285](testing/B285-the-header-s-language-currency-chip.md) | The header's language/currency chip drifts to the middle of the row on desktop | ISSUE | medium | low | — |
+| [B292](testing/B292-four-things-an-agent-had-to.md) | Four things an agent had to learn by failing are documented somewhere it was not looking | ISSUE | medium | low | — |
 | [B35](testing/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
 | [B39](testing/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
 | [B40](testing/B40-a-six-digit-code-expires-in.md) | A six-digit code expires in ten minutes, which is shorter than people take to find the mail | CHORE | medium | low | — |

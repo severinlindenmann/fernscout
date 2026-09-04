@@ -7,8 +7,7 @@ complexity: low
 area: agent docs, api errors
 found: "2026-09-04T13:35:46Z"
 started: "2026-09-04T13:37:08Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T13:37:08Z"
+merged: "2026-09-04T13:50:43Z"
 ---
 
 # B292 — Four things an agent had to learn by failing are documented somewhere it was not looking
