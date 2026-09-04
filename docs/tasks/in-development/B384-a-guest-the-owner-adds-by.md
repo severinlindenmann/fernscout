@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: contacts, mail
 found: "2026-09-04T21:57:31Z"
+started: "2026-09-04T22:00:21Z"
+session: 39691533-1e0d-44dd-a2e5-b2a7ce844518
+claimed: "2026-09-04T22:00:21Z"
 ---
 
 # B384 — A guest the owner adds by hand is a dead end: a bare code, no link, no way to be approved

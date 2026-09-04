@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: contacts, whatsapp
 found: "2026-09-04T22:00:00Z"
+started: "2026-09-04T22:00:21Z"
+session: 39691533-1e0d-44dd-a2e5-b2a7ce844518
+claimed: "2026-09-04T22:00:21Z"
 ---
 
 # B385 — A phone number typed into any of the four guest forms has no country, and only the sender finds out

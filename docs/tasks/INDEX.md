@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (91)
+## backlog (88)
 
 ### security (6)
 
@@ -62,13 +62,12 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (29)
+### issue (27)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B329](backlog/issue/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium |
 | [B380](backlog/issue/B380-the-weekly-digest-mails-every-reader.md) | The weekly digest mails every reader without spending a credit | ISSUE | high | low |
-| [B384](backlog/issue/B384-a-guest-the-owner-adds-by.md) | A guest the owner adds by hand is a dead end: a bare code, no link, no way to be approved | ISSUE | high | medium |
 | [B228](backlog/issue/B228-the-guest-list-issues-a-link.md) | The guest list issues a link that never expires | ISSUE | medium | low |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
@@ -81,7 +80,6 @@ Do not edit them by hand; run the script.
 | [B342](backlog/issue/B342-readcostsfile-has-no-guard-around-matter.md) | readCostsFile has no guard around matter() and throws on a malformed costs.md | ISSUE | medium | low |
 | [B378](backlog/issue/B378-the-whatsapp-checkbox-is-offered-on.md) | The WhatsApp checkbox is offered on a journal with WhatsApp switched off, one line under a hint saying nothing sends there | ISSUE | medium | low |
 | [B379](backlog/issue/B379-publishing-a-test-day-is-refused.md) | Publishing a test day is refused for want of credits, though sending it would cost none | ISSUE | medium | low |
-| [B383](backlog/issue/B383-the-owner-s-address-book-loses.md) | The owner's address book loses the postal address when postcards are off | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
@@ -113,7 +111,7 @@ Do not edit them by hand; run the script.
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 | [B90](backlog/big-feature/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
-### small-feature (13)
+### small-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -121,7 +119,6 @@ Do not edit them by hand; run the script.
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
 | [B324](backlog/small-feature/B324-an-owner-in-the-browser-cannot.md) | An owner in the browser cannot send an invitation by mail, only an agent can | FEATURE | medium | low |
-| [B385](backlog/small-feature/B385-a-phone-number-typed-into-any.md) | A phone number typed into any of the four guest forms has no country, and only the sender finds out | FEATURE | medium | low |
 | [B42](backlog/small-feature/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
@@ -186,11 +183,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B381](in-development/B381-a-day-with-no-coordinates-becomes.md) | A day with no coordinates becomes a nameless place, inflating the stop and country counts a page contradicts itself about | ISSUE | high | low | `62683d95` |
+| [B384](in-development/B384-a-guest-the-owner-adds-by.md) | A guest the owner adds by hand is a dead end: a bare code, no link, no way to be approved | ISSUE | high | medium | `39691533` |
+| [B383](in-development/B383-the-owner-s-address-book-loses.md) | The owner's address book loses the postal address when postcards are off | ISSUE | medium | low | `39691533` |
+| [B385](in-development/B385-a-phone-number-typed-into-any.md) | A phone number typed into any of the four guest forms has no country, and only the sender finds out | FEATURE | medium | low | `39691533` |
 | [B214](in-development/B214-the-costs-page-s-meta-description.md) | The costs page's meta description is present-tense on a trip that has not started | ISSUE | low | low | `62683d95` |
 | [B382](in-development/B382-the-costs-page-meta-description-names.md) | The costs page meta description names the journal by its URL slug instead of its title | ISSUE | low | low | `62683d95` |
 
