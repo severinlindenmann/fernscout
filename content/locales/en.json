@@ -268,6 +268,7 @@
   "invite.guestTitle": "Come and read {title}",
   "invite.inBody": "Nothing left to do — open {title} and have a look.",
   "invite.inTitle": "You're already in",
+  "invite.noMail": "This journal cannot send email at the moment, so there is no way to send you the code this needs. Nothing has been saved. Tell whoever runs the site, and try again once it is fixed.",
   "invite.notYet": "This doesn't let you in on its own — somebody has to say yes first.",
   "invite.ownerBody": "You made this link. Send it to somebody else — following it yourself changes nothing.",
   "invite.ownerTitle": "This is your own journal",

@@ -60,11 +60,64 @@ is worth a separate argument about how to do it without re-timing the endpoint.
 - Refuse before `issueCode`, not after.
 - Not this task: `/api/contacts/request`, for the reason above.
 
+## What was built
+
+`503 mail_disabled`, as the Work section proposed, in
+`app/api/contacts/redeem/route.ts` — placed immediately after the session is
+resolved and **before `requestContact` as well as before `issueCode`**. The
+Work section only asked for the second; refusing before the first as well means
+a redemption that cannot finish also does not leave a `pending` row in the
+owner's queue for somebody who was never able to prove their address.
+
+Two corrections to the Why, both found while building:
+
+- **The condition is not only `isEnabled("mail")`.** `sendCodeMail` goes
+  through `sendMail`, which honours the server switch *and* the journal's own
+  `features.mail.enabled: false` (`hasSwitchedOff`, B60). Checking only the
+  server switch would have left the identical broken promise standing for a
+  journal that had switched mail off, which is the obvious way somebody says
+  "do not write to my readers". The guard asks both questions.
+- **The 503 discloses nothing this route was keeping.** Worth stating because
+  it looks at first like a token oracle: a dead token is answered `202
+  {"status":"expired"}` and a live one now gets a 503. But the 202/expired
+  answer is itself a deliberate disclosure — the comment above it says so, and
+  the landing page has already said it in words. What the new answer does not
+  vary with is the *address*, so it is not a way to ask who is known here or
+  who has been blocked.
+
+The signed-in branch is left to proceed, as the Work section suggested: it
+issues no code, promises no inbox, and the request it files is real work that
+mail being off does not undo.
+
+The reader-facing half: `components/InviteRedeem.tsx` mapped an unrecognised
+error to `contact.error` ("something went wrong"). It now says what happened —
+`invite.noMail`, added to `en`, `de` and `hu` — because there is nothing the
+reader can do differently and the previous answer left them waiting.
+
 ## Acceptance
 
 - With `features.mail.enabled: false` and `contacts` on, redeeming a valid
   guest link answers something other than `{"status": "code"}` — a test that
-  fails today.
-- A code that was already live for that address is still live afterwards.
+  fails today. ✅ — `test/redeem-mail-off.test.ts`, "is refused rather than
+  promised a code". Before the fix: `expected 'code' not to be 'code'`.
+- A code that was already live for that address is still live afterwards. ✅ —
+  "leaves a code that was already live alone" issues a code, redeems, and then
+  verifies the first code. Before the fix it was consumed.
 - `/api/contacts/request` answers exactly as it does now, with the same work
-  off the response path.
+  off the response path. ✅ — `app/api/contacts/request/route.ts` is not in the
+  diff, and the test file asserts a live token and a dead one get the byte-
+  identical `202 {"status":"accepted"}` with mail off.
+
+## Evidence
+
+```
+$ npx vitest run test/redeem-mail-off.test.ts    # with the route stashed
+  × is refused rather than promised a code
+  × leaves a code that was already live alone
+  × writes no contact
+  Tests  3 failed | 3 passed (6)
+$ npx vitest run test/redeem-mail-off.test.ts    # with the fix
+  Tests  6 passed (6)
+$ git diff --stat app/api/contacts/request/route.ts
+  (no output — untouched)
+```

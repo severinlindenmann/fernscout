@@ -268,6 +268,7 @@
   "invite.guestTitle": "Lies mit bei {title}",
   "invite.inBody": "Es ist nichts mehr zu tun — öffne einfach {title}.",
   "invite.inTitle": "Du bist schon dabei",
+  "invite.noMail": "Dieses Journal kann gerade keine E-Mails verschicken, deshalb lässt sich der nötige Code nicht senden. Es wurde nichts gespeichert. Sag der Person Bescheid, die die Seite betreibt, und versuch es später noch einmal.",
   "invite.notYet": "Damit bist du noch nicht drin — jemand muss erst Ja sagen.",
   "invite.ownerBody": "Diesen Link hast du selbst erstellt. Schick ihn jemand anderem — für dich ändert er nichts.",
   "invite.ownerTitle": "Das ist dein eigenes Journal",

@@ -299,6 +299,7 @@ export type TranslationKey =
   | "invite.guestTitle"
   | "invite.inBody"
   | "invite.inTitle"
+  | "invite.noMail"
   | "invite.notYet"
   | "invite.ownerBody"
   | "invite.ownerTitle"
