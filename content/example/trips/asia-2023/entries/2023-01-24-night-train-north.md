@@ -9,6 +9,7 @@ lng: 98.9853
 transportMode: "train"
 transportFrom: "Bangkok"
 transportTo: "Chiang Mai"
+travelScene: "quick"
 gallery:
   - src: "/media/asia-2023/night-train-north/01.jpg"
     type: "image"

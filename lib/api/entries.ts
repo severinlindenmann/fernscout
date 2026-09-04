@@ -66,6 +66,11 @@ export type DraftInput = {
   transportFrom?: string;
   transportTo?: string;
   /**
+   * How this day's arrival scene plays — see `TRAVEL_SCENE_VARIANTS` in
+   * lib/validate/entry.ts. Absent plays today's scene, unchanged.
+   */
+  travelScene?: string;
+  /**
    * A day nobody lived, written to prove the pipeline works.
    *
    * Set it when you were asked to invent content — the page then says so in a
@@ -322,6 +327,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
           `transportTo: ${quote(input.transportTo ?? "")}`,
         ]
       : []),
+    ...(input.travelScene ? [`travelScene: ${quote(input.travelScene)}`] : []),
     ...translationLines(input.translations),
     ...costLines(input.costs),
     // Written only when true — see the note on NewTrip.test.
@@ -457,6 +463,7 @@ export const EDITABLE_DAY_FIELDS = [
   "transportMode",
   "transportFrom",
   "transportTo",
+  "travelScene",
   "test",
   "translations",
 ] as const;
@@ -586,6 +593,9 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
   }
   if (input.transportTo !== undefined) {
     set("transportTo", input.transportTo ? `transportTo: ${quote(input.transportTo)}` : null);
+  }
+  if (input.travelScene !== undefined) {
+    set("travelScene", input.travelScene ? `travelScene: ${quote(input.travelScene)}` : null);
   }
   // Written only when true, like every other flag here — see the note on
   // NewTrip.test. `test: false` unsets it rather than writing a line nobody

@@ -58,6 +58,17 @@ export type Transport = {
   to: string;
 };
 
+/**
+ * How the travel scene between the previous day and this one plays — see
+ * `components/TravelScene.tsx`. Mirrored at runtime by `TRAVEL_SCENE_VARIANTS`
+ * in `lib/validate/entry.ts`, the same split `TransportMode` uses.
+ *
+ * Absent means `"default"`: today's scene, unchanged. `"skip"` leaves the leg
+ * out of the story pager entirely, for a trip whose fortieth identical hop a
+ * reader has already seen thirty-nine times.
+ */
+export type TravelSceneVariant = "default" | "quick" | "skip";
+
 /** Optional per-locale overrides for an entry's prose. Whatever is missing
  * falls back to the entry's own `title` / `content`. */
 /** Keyed by locale code. Open on purpose (ROADMAP §1.2): an author may write
@@ -86,6 +97,10 @@ export type Entry = {
   lat: number;
   lng: number;
   transport?: Transport;
+  /** How the arrival scene for this day should play. Absent means the
+   * default. An unrecognised value on disk is never carried this far — see
+   * `parseTravelSceneVariant` in lib/entries.ts. */
+  travelScene?: TravelSceneVariant;
   cover?: string;
   gallery: GalleryItem[];
   tags: string[];
@@ -150,6 +165,8 @@ export type DaySummary = {
   lng: number;
   /** The leg that arrived here, which is enough to play the travel scene. */
   transport?: Transport;
+  /** How this leg's travel scene should play. Absent means the default. */
+  travelScene?: TravelSceneVariant;
   /** How many updates were written that day. */
   updates: number;
   /** Spend that day in the base currency; 0 when nothing was logged. */

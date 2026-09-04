@@ -177,6 +177,21 @@ describe("editEntry: everything else about the file survives", () => {
     expect(after).toContain("status: draft\nlat: 46.19\nlng: 9.02");
   });
 
+  test("travelScene can be set, then cleared back to the default", () => {
+    const made = createDraft(REF, DRAFT);
+    if (!made.ok) throw new Error("expected the draft to be written");
+
+    editEntry(REF, "erster-tag", { travelScene: "skip" });
+    expect(fs.readFileSync(made.file, "utf8")).toContain('travelScene: "skip"');
+    expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })?.travelScene).toBe("skip");
+
+    // An empty string clears the line, the same as transportMode does —
+    // absent means the default scene again.
+    editEntry(REF, "erster-tag", { travelScene: "" });
+    expect(fs.readFileSync(made.file, "utf8")).not.toContain("travelScene");
+    expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })?.travelScene).toBeUndefined();
+  });
+
   test("editing content leaves the frontmatter alone", () => {
     const made = createDraft(REF, DRAFT);
     if (!made.ok) throw new Error("expected the draft to be written");

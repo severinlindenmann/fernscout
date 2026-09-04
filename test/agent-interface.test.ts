@@ -252,6 +252,25 @@ describe("what a day can actually carry", () => {
     expect(entry.transport).toEqual({ mode: "train", from: "Hue", to: "Hoi An" });
   });
 
+  test("travelScene survives into the file", () => {
+    const result = createDraft("ana/ana-trip", { ...DRAFT, travelScene: "quick" });
+    if (!result.ok) throw new Error("expected the draft to be written");
+    expect(fs.readFileSync(result.file, "utf8")).toContain("travelScene: \"quick\"");
+    const entry = getAllEntries("ana/ana-trip", { includeDrafts: true })[0];
+    expect(entry.travelScene).toBe("quick");
+  });
+
+  test("an unrecognised travelScene round-trips into the file but reads back as the default", () => {
+    // Unlike transportMode, a typo here is not refused at write time (B15) —
+    // it is written as sent, the same way an unrecognised trip `visibility:`
+    // is, and it is the read side that falls back rather than the write.
+    const result = createDraft("ana/ana-trip", { ...DRAFT, travelScene: "epic-flyover" });
+    if (!result.ok) throw new Error("expected the draft to be written");
+    expect(fs.readFileSync(result.file, "utf8")).toContain("travelScene: \"epic-flyover\"");
+    const entry = getAllEntries("ana/ana-trip", { includeDrafts: true })[0];
+    expect(entry.travelScene).toBeUndefined();
+  });
+
   test("a quote in a cost label does not break the frontmatter", () => {
     createDraft("ana/ana-trip", {
       ...DRAFT,
@@ -451,7 +470,7 @@ describe("what the guide has to tell an agent before it starts", () => {
 
   test("lists the optional day fields the write example does not show", () => {
     const guide = agentGuide();
-    for (const field of ["costs", "transportMode", "test"]) {
+    for (const field of ["costs", "transportMode", "travelScene", "test"]) {
       expect(guide, `${field} must be documented`).toContain(field);
     }
   });

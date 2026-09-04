@@ -39,7 +39,12 @@ export type Step =
 export function buildSteps(days: DaySummary[]): Step[] {
   const steps: Step[] = [{ kind: "hero" }];
   days.forEach((day, i) => {
-    if (i > 0 && day.transport) steps.push({ kind: "travel", dayIndex: i });
+    // `travelScene: "skip"` leaves the leg out of the pager entirely — the
+    // one thing a reader on their fortieth identical hop can actually ask
+    // for, since a scene that never gets a step can never stall on `onDone`.
+    if (i > 0 && day.transport && day.travelScene !== "skip") {
+      steps.push({ kind: "travel", dayIndex: i });
+    }
     steps.push({ kind: "day", dayIndex: i });
   });
   return steps;
@@ -115,10 +120,16 @@ export default function StoryPager({
             {step.kind === "hero" && hero}
 
             {/* A leg needs only where it went and how — all of which the index
-                carries, so travel never waits for a fetch. */}
+                carries, so travel never waits for a fetch. `from` is the day
+                before it, in the same index, so the scene can measure the
+                distance it just crossed. */}
             {step.kind === "travel" && (
               <div className="py-4">
-                <TravelScene leg={index[step.dayIndex]} onDone={onLegDone} />
+                <TravelScene
+                  leg={index[step.dayIndex]}
+                  from={index[step.dayIndex - 1]}
+                  onDone={onLegDone}
+                />
               </div>
             )}
 

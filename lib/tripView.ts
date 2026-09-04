@@ -71,6 +71,7 @@ function summarise(day: Day, cost: number): DaySummary {
     lat: lead.lat,
     lng: lead.lng,
     transport: lead.transport,
+    travelScene: lead.travelScene,
     updates: day.entries.length,
     cost,
   };

@@ -9,6 +9,7 @@ lng: 108.338
 transportMode: "motorbike"
 transportFrom: "Hue"
 transportTo: "Hoi An"
+travelScene: "skip"
 gallery:
   - src: "/media/asia-2023/hue-to-hoi-an/01.jpg"
     type: "image"

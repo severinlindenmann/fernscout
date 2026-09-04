@@ -103,6 +103,24 @@ describe("transport", () => {
   });
 });
 
+describe("travelScene", () => {
+  test("every documented variant is accepted", () => {
+    for (const variant of ["default", "quick", "skip"]) {
+      expect(validateEntry({ ...ok, travelScene: variant }), variant).toEqual([]);
+    }
+  });
+
+  test("a non-string is refused", () => {
+    expect(only({ travelScene: 3 })).toMatchObject({ field: "travelScene", got: "3" });
+  });
+
+  test("an unrecognised string is accepted — unlike transportMode, a typo here is not a 400", () => {
+    // It still has to round-trip and fall back at render time, which is
+    // lib/entries.ts's job (parseTravelSceneVariant) and not this module's.
+    expect(validateEntry({ ...ok, travelScene: "epic-flyover" })).toEqual([]);
+  });
+});
+
 describe("costs", () => {
   test("the problem names which item, not just 'costs'", () => {
     const problems = validateEntry({
