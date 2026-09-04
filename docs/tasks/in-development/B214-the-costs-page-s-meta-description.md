@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: i18n, costs, metadata
 found: "2026-09-04T06:32:41Z"
+started: "2026-09-04T09:30:24Z"
+session: 7d30451d-0304-4631-8484-d96036fb11b4
+claimed: "2026-09-04T09:30:24Z"
 ---
 
 # B214 — The costs page's meta description is present-tense on a trip that has not started

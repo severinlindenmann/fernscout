@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: frontend, header
 found: "2026-09-04T06:15:57Z"
+started: "2026-09-04T09:30:25Z"
+session: 7d30451d-0304-4631-8484-d96036fb11b4
+claimed: "2026-09-04T09:30:25Z"
 ---
 
 # B212 — A journal's title is truncated to five characters in the trip header on a 1440px desktop

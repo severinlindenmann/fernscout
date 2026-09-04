@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: docs, qa
 found: "2026-09-04T06:33:34Z"
+started: "2026-09-04T09:30:25Z"
+session: 7d30451d-0304-4631-8484-d96036fb11b4
+claimed: "2026-09-04T09:30:25Z"
 ---
 
 # B215 — The manual privacy tests still walk an operator through a trip password
