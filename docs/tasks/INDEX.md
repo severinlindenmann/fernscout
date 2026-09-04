@@ -168,14 +168,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B319](in-development/B319-letting-somebody-in-means-handing-them.md) | Letting somebody in means handing them a link by hand, and approving means being at a browser | FEATURE | high | high | `986bc24c` |
-| [B321](in-development/B321-a-contact-row-shows-the-raw.md) | A contact row shows the raw invite id it came from, not which link or which trip | ISSUE | low | low | `cae3e4fb` |
 
-## testing (139)
+## testing (140)
 
 ### security (12)
 
@@ -194,7 +193,7 @@ _Nothing here._
 | [B233](testing/security/B233-the-https-only-rule-is-not.md) | The https-only rule is not re-applied after a redirect | SECURITY | low | low | — |
 | [B234](testing/security/B234-an-unauthenticated-health-check-discloses-server.md) | An unauthenticated health check discloses server paths and journal names | SECURITY | low | low | — |
 
-### issue (82)
+### issue (83)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -279,6 +278,7 @@ _Nothing here._
 | [B270](testing/issue/B270-an-owner-whose-only-trip-is.md) | An owner whose only trip is public but unlisted sees four zeroes and no empty state | ISSUE | low | low | — |
 | [B286](testing/issue/B286-the-trip-nav-wraps-to-one.md) | The trip nav wraps to one row on one trip and two rows on another at the same width | ISSUE | low | medium | — |
 | [B303](testing/issue/B303-the-phone-number-field-on-the.md) | The phone number field on the guestbook and the admin guest form never says what it is for | ISSUE | low | low | — |
+| [B321](testing/issue/B321-a-contact-row-shows-the-raw.md) | A contact row shows the raw invite id it came from, not which link or which trip | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
 ### big-feature (3)
