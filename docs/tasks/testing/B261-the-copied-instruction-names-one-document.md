@@ -7,8 +7,7 @@ complexity: low
 area: landing page
 found: "2026-09-04T11:00:53Z"
 started: "2026-09-04T11:01:16Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T11:01:16Z"
+merged: "2026-09-04T11:08:30Z"
 ---
 
 # B261 — The copied instruction names one document, so the agent discovers the other one and is refused it
