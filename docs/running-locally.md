@@ -204,14 +204,23 @@ request with no restart and no rebuild.
 
 ## Checking a change before you push
 
-The four that must pass, in the order that fails fastest:
+The four that must pass:
 
 ```bash
+npm run build          # first — it writes .next/types, which tsc reads
 npx tsc --noEmit
 npx eslint .
 npx vitest run
-npm run build
 ```
+
+The build looks like the expensive one to run first, and it is. It still goes
+first, because Next writes the typed-route definitions into `.next/types` while
+it builds and `PageProps`, `LayoutProps` and `RouteContext` resolve against
+them. Run `tsc` on a checkout that has never been built — a fresh clone, a new
+worktree, `main` after a merge that added routes — and you get an error on
+every route file, none of them yours. `.github/workflows/ci.yml` builds before
+it typechecks for exactly this reason. Once `.next` is warm the order stops
+mattering and you can put `tsc` first again if you prefer the faster failure.
 
 Then boot it with a capability both on and off, because "absent when disabled"
 is a property that only breaks in one of those two states.

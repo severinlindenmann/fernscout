@@ -32,7 +32,7 @@
 #      journal, which is a worse bug than the one being fixed.
 #
 # An instance that deliberately overrides a shipped directory — the supported
-# way to reword the UI, see docs/archiv/runbook.md — marks it by putting a file
+# way to reword the UI, see docs/runbook.md — marks it by putting a file
 # called `.keep-local` inside it. This script then leaves it alone and says so.
 #
 # Env:
@@ -56,7 +56,7 @@ log() { printf '\033[36m==>\033[0m %s\n' "$*"; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
 [ -d "$SRC_DIR" ] || fail "no content/ in $APP_DIR — is APP_DIR the repository?"
-[ -d "$DEST_DIR" ] || fail "CONTENT_DIR=$DEST_DIR does not exist (create and seed it first — docs/archiv/runbook.md)"
+[ -d "$DEST_DIR" ] || fail "CONTENT_DIR=$DEST_DIR does not exist (create and seed it first — docs/runbook.md)"
 
 SRC_REAL="$(cd "$SRC_DIR" && pwd -P)"
 DEST_REAL="$(cd "$DEST_DIR" && pwd -P)"

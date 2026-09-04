@@ -17,7 +17,7 @@ import { announceSkip } from "./support/announce";
  *     into a scratch directory byte-for-byte (including a file that exists in
  *     neither git nor the journal export: an `originals/` photograph);
  *   - the restore path the runbook actually documents — the snapshot keeps the
- *     staging directory's absolute path, so `docs/archiv/runbook.md` step 2
+ *     staging directory's absolute path, so `docs/runbook.md` step 2
  *     locates it by name;
  *   - the failure paths: a `pg_dump` that fails must abort *without* pushing a
  *     snapshot, and an unwritable repository must exit non-zero so the systemd
@@ -238,7 +238,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
   }
 
   /** Restore the newest snapshot and return the staged tree inside it, found
-   * the way `docs/archiv/runbook.md` step 2 finds it: by directory name. */
+   * the way `docs/runbook.md` step 2 finds it: by directory name. */
   function restoreLatest(label: string): string {
     const target = path.join(scratch, `restore-${label}`);
     fs.mkdirSync(target, { recursive: true });
