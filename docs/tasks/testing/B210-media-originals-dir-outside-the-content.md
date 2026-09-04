@@ -7,8 +7,7 @@ complexity: low
 area: photobook, media
 found: "2026-09-04T06:14:25Z"
 started: "2026-09-04T08:20:03Z"
-session: 7d30451d-0304-4631-8484-d96036fb11b4
-claimed: "2026-09-04T08:20:03Z"
+merged: "2026-09-04T08:38:39Z"
 ---
 
 # B210 — MEDIA_ORIGINALS_DIR outside the content root writes a ../ chain into the photobook plan
