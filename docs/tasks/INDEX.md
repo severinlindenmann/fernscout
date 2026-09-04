@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (90)
+## backlog (92)
 
 ### security (6)
 
@@ -62,12 +62,13 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (29)
+### issue (31)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B329](backlog/issue/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium |
 | [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
+| [B393](backlog/issue/B393-photographs-cannot-be-added-to-a.md) | Photographs cannot be added to a published day, and the refusal tells the agent to ask somebody who has no way to do it | ISSUE | high | medium |
 | [B228](backlog/issue/B228-the-guest-list-issues-a-link.md) | The guest list issues a link that never expires | ISSUE | medium | low |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
@@ -95,6 +96,7 @@ Do not edit them by hand; run the script.
 | [B388](backlog/issue/B388-resending-a-mailed-guest-invitation-has.md) | Resending a mailed guest invitation has no rate limit | ISSUE | low | low |
 | [B389](backlog/issue/B389-a-contact-s-stored-phone-number.md) | A contact's stored phone number that toE164 cannot parse is shown to the owner as if it were fine | ISSUE | low | low |
 | [B391](backlog/issue/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low |
+| [B394](backlog/issue/B394-media-is-served-as-webp-whatever.md) | Media is served as WebP whatever the client says it accepts, and Vary does not mention Accept | ISSUE | low | low |
 
 ### big-feature (12)
 
