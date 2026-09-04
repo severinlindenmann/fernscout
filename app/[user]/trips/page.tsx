@@ -7,7 +7,7 @@ import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { getPlaces, getTripStats } from "@/lib/entries";
 import { frameRoute } from "@/lib/mapFrame";
 import { getMalformedTrips, getTrips } from "@/lib/trips";
-import { listableTrips, signedInAs } from "@/lib/tripGate";
+import { draftsVisibleTo, listableTrips, signedInAs } from "@/lib/tripGate";
 import { isOwner } from "@/lib/contacts/session";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
@@ -144,14 +144,37 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
   // the lifetime totals — only a card with a countdown.
   const travelled = trips.filter((t) => t.status !== "upcoming");
 
+  // Who may see *this* trip's drafts — per trip, never per journal (B327), so
+  // a traveller on one trip does not pull another trip's unfinished days onto
+  // the lifetime map. B336: `getPlaces` used to be called below with no
+  // options at all, always published-only, while the trip-scoped map and the
+  // journal home page had long since widened for the owner and for
+  // travellers — so the same viewer got a different marker count here than on
+  // either of those pages, for the same days.
+  const draftsByTrip = new Map(
+    await Promise.all(
+      travelled.map(async (t) => [t.ref, (await draftsVisibleTo(t)).visible] as const),
+    ),
+  );
+
   // getPlaces/getTripStats each re-read and re-derive from every entry file,
   // so each travelled trip is computed once here and reused below, rather
   // than once per card plus twice more for the lifetime totals.
   // Keyed and looked up by `ref` — `getPlaces`/`getTripStats` resolve a
   // directory from `<user>/<tripId>`, and a bare id silently reads nothing,
   // which showed here as every trip having 0 days, 0 countries and no route.
-  const placesByTrip = new Map(travelled.map((t) => [t.ref, getPlaces(t.ref)]));
-  const statsByTrip = new Map(travelled.map((t) => [t.ref, getTripStats(t.ref)]));
+  const placesByTrip = new Map(
+    travelled.map((t) => {
+      const read = { includeDrafts: draftsByTrip.get(t.ref) ?? false };
+      return [t.ref, getPlaces(t.ref, read)] as const;
+    }),
+  );
+  const statsByTrip = new Map(
+    travelled.map((t) => {
+      const read = { includeDrafts: draftsByTrip.get(t.ref) ?? false };
+      return [t.ref, getTripStats(t.ref, read)] as const;
+    }),
+  );
 
   const routes = travelled.map((trip) => ({
     id: trip.id,

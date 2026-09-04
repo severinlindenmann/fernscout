@@ -356,6 +356,8 @@
   "map.stillToCome": "Still to come",
   "map.stops": "Stops",
   "map.stops.one": "Stop",
+  "map.stopsFromDrafts": "· some of these are drafts, visible only to you",
+  "map.stopsFromDraftsShared": "· some of these are drafts, visible only to the people on this trip",
   "map.subtitle": "Tap any stop to see how long we stayed and what we shot there.",
   "map.subtitlePlanned": "The route we mean to take, and the places we mean to sleep.",
   "map.title": "Where we've been",

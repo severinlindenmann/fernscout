@@ -356,6 +356,8 @@
   "map.stillToCome": "Kommt noch",
   "map.stops": "Orte",
   "map.stops.one": "Ort",
+  "map.stopsFromDrafts": "· einige davon sind Entwürfe, nur für dich sichtbar",
+  "map.stopsFromDraftsShared": "· einige davon sind Entwürfe, nur für die Leute auf dieser Reise sichtbar",
   "map.subtitle": "Tippe auf einen Ort, um zu sehen, wie lange wir dort waren.",
   "map.subtitlePlanned": "Die Route, die wir vorhaben, und die Orte, an denen wir schlafen wollen.",
   "map.title": "Wo wir waren",

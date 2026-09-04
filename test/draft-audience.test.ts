@@ -380,7 +380,8 @@ describe("nothing under app/[user] decides drafts for itself", () => {
   const sources = sourcesUnder(root);
 
   /**
-   * The one file where `isOwner` beside a draft is correct.
+   * The files where `isOwner` beside a draft is correct — because the two
+   * are not about each other.
    *
    * `export.zip` hands over the **whole journal** — private journeys,
    * unpublished drafts and photographs, as `del.export` says in as many words.
@@ -388,8 +389,16 @@ describe("nothing under app/[user] decides drafts for itself", () => {
    * may read: somebody on one trip must not be able to download the journal
    * because of it. Named here with the reason rather than left to a looser
    * pattern, so the next file that wants an exemption has to argue for one.
+   *
+   * `app/[user]/trips/page.tsx` (B336) reads `isOwner(user)` for a question
+   * with nothing to do with any trip's drafts: whether *this* reader gets the
+   * malformed-trip debug list, a courtesy for the person who owns the folder
+   * on disk. Its actual draft question — which of the lifetime map's markers
+   * and stats this reader may see, per trip — goes through `draftsVisibleTo`,
+   * same as everywhere else. The file merely contains both words; it decides
+   * drafts from neither `isOwner` nor a copy of it.
    */
-  const OWNER_ONLY = new Set(["app/[user]/export.zip/route.ts"]);
+  const OWNER_ONLY = new Set(["app/[user]/export.zip/route.ts", "app/[user]/trips/page.tsx"]);
 
   /** Comments say `isOwner` when explaining why it is *not* used any more —
    * this file's own history is written into the media route — so the rule is

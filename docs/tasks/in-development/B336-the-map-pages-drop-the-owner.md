@@ -72,3 +72,66 @@ still a draft is plotted on one surface and silently absent from two others.
 - A test that fails today: assert marker counts match across the three surfaces
   for an owner session on such a trip.
 - `npm run verify`.
+
+## Resolution
+
+**Decided rule: the solid markers follow `draftsVisibleTo(trip)` — the same
+audience `getPlan` and the journal home page already use.** Not the other
+reading (home page is the odd one out). Two of the three existing call sites
+had *already* widened past "owner only" for this exact reason (B327): `getPlan`
+says so in its own comment ("somebody on the trip is not that reader"), and the
+home page's `buildStoryProps(tripId, { includeDrafts: drafts.visible })` has
+been doing this since B327 landed. The bare `getPlaces` calls were the outlier,
+not the rule. Narrowing everything back to published-only instead would have
+undone B327 in three more places — the exact bug that ticket was written to
+stop recurring — so it was rejected.
+
+**Applied to every `getPlaces` caller named in Work, plus the `getTripStats`
+call sitting next to each one** (not in the original list, but computing the
+same trip's day/place/country counts from a different audience than the
+markers beside them on the same page reintroduces this ticket's own bug one
+line over — `stats.places` disagreeing with `places.length` on the page we
+were fixing):
+
+- `app/[user]/(trip)/map/page.tsx` — `getTripStats`/`getPlaces` now share one
+  `{ includeDrafts: drafts.visible }`; `generateMetadata`'s `visited` (line 49)
+  now resolves the trip and asks `draftsVisibleTo` too, so the tab title and
+  the page it labels can no longer disagree.
+- `app/[user]/trips/[trip]/map/page.tsx` — the same shape, trip-scoped.
+- `app/[user]/trips/page.tsx` (lifetime map) — one trip's drafts are not
+  another's (B327's "per trip, never per journal"), so each `travelled` trip's
+  `draftsVisibleTo` is resolved individually (`Promise.all`) before
+  `getPlaces`/`getTripStats` are called per trip.
+
+**The banner**: `MapPageContent` gained `hasDraftPlaces` (some place's
+`entries` include a draft), rendered as a caption next to the stats block —
+same shape and audience-aware wording (`canPublish`) as the existing
+`hasDraftStops` caption for the planned route, not a second loud notice. Two
+new keys, `map.stopsFromDrafts` / `map.stopsFromDraftsShared`, added to
+en/de/hu and regenerated into `lib/i18n.ts` via `npm run i18n:keys`.
+
+**Test**: `test/map-draft-places.test.ts` — one `status: past` trip (so it is
+both the fallback "current" trip for `/<user>/map` and reachable directly at
+`/<user>/trips/<id>/map` without the current-trip redirect) with a published
+day and a draft day in different locations. Confirmed red on the pre-fix code
+(`git stash` of the three page files) — all three owner-session assertions
+failed at 1 marker instead of 2 — then green after. A signed-out reader gets 1
+on all three, unchanged.
+
+**Collateral**: `test/draft-audience.test.ts`'s blunt `isOwner`-beside-`draft`
+grep now also matches `app/[user]/trips/page.tsx`, which legitimately calls
+both — `isOwner` there decides whether to show malformed-trip debug info
+(unrelated to drafts), while the draft question goes through
+`draftsVisibleTo` like everywhere else. Added to that test's `OWNER_ONLY`
+exemption set, with the reason written next to the existing one.
+`test/map-tense.test.tsx`'s cookie-jar mock returned its locale-test cookie for
+*any* cookie name, including `fs_session`; once `generateMetadata` started
+reading that cookie (via `draftsVisibleTo`), the mock handed it a bogus
+session token and the test failed on a missing database. Fixed to key on the
+cookie name, matching how every other mock in the suite already behaves.
+
+No second, unrelated problem was found while doing this — everything touched
+was inside the inconsistency the ticket describes.
+
+`npm run verify` passes (build, tsc, eslint — pre-existing warnings only,
+vitest 2632 passed / 3 skipped for Postgres).

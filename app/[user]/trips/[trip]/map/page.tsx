@@ -31,7 +31,12 @@ export async function generateMetadata({
   // on whether there are days rather than on `trip.status`, so the two can
   // never disagree. `getPlaces` is cached per directory (lib/entries.ts), so
   // this does not re-read the trip a second time.
-  const visited = getPlaces(trip.ref).length > 0;
+  //
+  // And, since B336, the same audience the page asks it for — see the sibling
+  // route's `generateMetadata` for why a bare `getPlaces` call here drifted
+  // from what the page itself renders.
+  const drafts = await draftsVisibleTo(trip);
+  const visited = getPlaces(trip.ref, { includeDrafts: drafts.visible }).length > 0;
   return {
     // The section name follows the reader; the trip's own title is the
     // author's and is never translated. See the note in the gallery page.
@@ -54,12 +59,15 @@ export default async function TripMapPage({ params }: PageProps<"/[user]/trips/[
   if (!(await mayReadTrip(trip))) return null;
   if (trip.status === "current") redirect(`/${user}/map`);
 
-  const stats = getTripStats(trip.ref);
   // See app/[user]/(trip)/map/page.tsx — drafted stops are the owner's alone.
-  // B327 — see the sibling route for why this widened past the owner.
+  // B327 — see the sibling route for why this widened past the owner. B336:
+  // the solid markers and the stats block below now ask the same question,
+  // rather than the bare, always-published-only calls they used to be.
   const drafts = await draftsVisibleTo(trip);
   const plan = getPlan(trip.ref, { includeDrafts: drafts.visible });
-  const places = getPlaces(trip.ref);
+  const read = { includeDrafts: drafts.visible };
+  const stats = getTripStats(trip.ref, read);
+  const places = getPlaces(trip.ref, read);
   // The frame is worked out here as well as in the component, so that only the
   // few dozen kilobytes this trip covers cross the wire rather than the eleven
   // megabytes of the baked bundle. `frameRoute` is pure, so the two agree.

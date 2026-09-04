@@ -42,6 +42,12 @@ export default function MapPageContent({
   // this is no longer only ever true for the owner, and the caption below has
   // to say which reader it is talking to.
   const hasDraftStops = plan.some((s) => s.fromDraft);
+  // B336: `places` may now itself hold draft-derived markers, for the same
+  // reader `hasDraftStops` already covers — the owner, or somebody on the
+  // trip. Without this, an owner's own screenshot of the map could be handed
+  // to family as a record of the trip while some of its markers are days
+  // nobody but that reader can actually open.
+  const hasDraftPlaces = places.some((p) => p.entries.some((e) => e.draft));
   // Everything on this page is one of two kinds: a record of travel already
   // made, or the route still intended. An upcoming trip has only the second,
   // and asked as `places.length > 0` in four separate places the first kind
@@ -91,6 +97,14 @@ export default function MapPageContent({
             <Stat label={tn("map.countries", stats.countries)} value={stats.countries} />
             <Stat label={t("map.media")} value={stats.totalMedia} />
           </dl>
+        )}
+        {hasDraftPlaces && (
+          // Visible only to somebody who may see the drafts themselves (see
+          // `hasDraftPlaces`) — the same audience, and the same wording shape,
+          // as the planned route's own note below.
+          <p className="mt-2 text-xs text-navy-600">
+            {t(canPublish ? "map.stopsFromDrafts" : "map.stopsFromDraftsShared")}
+          </p>
         )}
 
         {/* A planned route is a map. `WorldMap` has framed one since it was
