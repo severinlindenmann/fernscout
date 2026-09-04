@@ -71,6 +71,13 @@ export default async function ContactsAdminPage({ params }: PageProps<"/[user]/c
     lastSeenAt: contact.lastSeenAt,
   }));
 
+  // One read, two questions: the trips a buddy link can name, and whether
+  // approving somebody opens anything at all (B300) — a `guest` trip is the
+  // only kind an approval reaches. `getTrips` was already loaded here for
+  // B281's writing-link selector; a second call would be the same answer,
+  // fetched twice.
+  const trips = getTrips(username);
+
   return (
     // The header is the way back, and this page needs one more than most: it is
     // where the approval email lands, so the owner arrives in a fresh tab with
@@ -101,7 +108,12 @@ export default async function ContactsAdminPage({ params }: PageProps<"/[user]/c
         // The trips a buddy link can name. From disk rather than a fetch: the
         // panel needs the list to render its own form, and a second answer
         // arriving later is a select that changes under the owner's cursor.
-        trips={getTrips(username).map((trip) => ({ id: trip.id, title: trip.title }))}
+        trips={trips.map((trip) => ({ id: trip.id, title: trip.title }))}
+        // B300. Approving somebody opens every `guest` trip in the journal —
+        // and nothing else. If none exists, that approval opens nothing at
+        // all, and the owner needs to be told before they act on it rather
+        // than discover it from a family member's dead-end.
+        hasGuestTrip={trips.some((trip) => trip.visibility === "guest")}
       />
     </div>
   );

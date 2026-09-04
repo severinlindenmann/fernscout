@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import TripGate from "@/components/TripGate";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
-import { mayReadTrip, signedInAs } from "@/lib/tripGate";
+import { guestBlockedByPrivateTrip, mayReadTrip, signedInAs } from "@/lib/tripGate";
 import { getCurrentTrip } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 
@@ -33,6 +33,7 @@ export default async function TripPagesLayout({
         signedInAs={await signedInAs(username)}
         canSignIn={isEnabled("auth", username)}
         codeMinutes={CODE_TTL_MINUTES}
+        guestBlockedByPrivate={await guestBlockedByPrivateTrip(current)}
       />
     );
   }

@@ -912,6 +912,62 @@ describe("a journal guest is refused a private trip", () => {
   });
 });
 
+/**
+ * B300. `guestBlockedByPrivateTrip` is the sibling `TripGate` asks to tell
+ * this refusal apart from an ordinary one — see `lib/tripGate.ts`. Nothing
+ * covered it: the row above proves the gate, the costs, the switcher and the
+ * panel all say no, but not *why*, which is the whole of what this function
+ * answers.
+ */
+describe("why an approved guest was refused (B300)", () => {
+  test("true for the case it exists for: an approved guest, on a private trip", async () => {
+    as("approved");
+    const secret = (await tripsByRef()).get("secret-2026")!;
+    const { guestBlockedByPrivateTrip } = await import("@/lib/tripGate");
+    expect(await guestBlockedByPrivateTrip(secret)).toBe(true);
+  });
+
+  test("false for a stranger — never widens who is told anything", async () => {
+    as("stranger");
+    const secret = (await tripsByRef()).get("secret-2026")!;
+    const { guestBlockedByPrivateTrip } = await import("@/lib/tripGate");
+    expect(await guestBlockedByPrivateTrip(secret)).toBe(false);
+  });
+
+  test("false for an approved guest on a trip they may read — nothing to explain", async () => {
+    as("approved");
+    const invited = (await tripsByRef()).get("invited-2026")!;
+    const { guestBlockedByPrivateTrip } = await import("@/lib/tripGate");
+    expect(await guestBlockedByPrivateTrip(invited)).toBe(false);
+  });
+
+  test("false for the trip's own traveller, even though the trip is private", async () => {
+    as("traveller");
+    const robins = (await tripsByRef()).get("robins-2026")!;
+    const { guestBlockedByPrivateTrip, mayReadTrip } = await import("@/lib/tripGate");
+    // Sanity: the traveller reads this trip fine, so there is nothing here to
+    // explain — this function must agree, not merely happen to.
+    expect(await mayReadTrip(robins)).toBe(true);
+    expect(await guestBlockedByPrivateTrip(robins)).toBe(false);
+  });
+
+  test("false for the owner, on their own private trip", async () => {
+    as("owner");
+    const secret = (await tripsByRef()).get("secret-2026")!;
+    const { guestBlockedByPrivateTrip } = await import("@/lib/tripGate");
+    expect(await guestBlockedByPrivateTrip(secret)).toBe(false);
+  });
+
+  test("false for a pending or revoked contact — being confirmed is not being a guest", async () => {
+    const secret = (await tripsByRef()).get("secret-2026")!;
+    const { guestBlockedByPrivateTrip } = await import("@/lib/tripGate");
+    for (const viewer of ["pending", "revoked"]) {
+      as(viewer);
+      expect(await guestBlockedByPrivateTrip(secret), viewer).toBe(false);
+    }
+  });
+});
+
 describe("costs marked for guests", () => {
   test("render for an approved contact and not for a stranger", async () => {
     const trip = (await tripsByRef()).get("invited-2026")!;

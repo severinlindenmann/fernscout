@@ -55,6 +55,9 @@ function render(
       contacts={[]}
       invites={invites}
       trips={trips}
+      // Not what this file is testing — B300 is `test/contacts-admin-guest-trip.test.tsx`.
+      // True keeps the new warning banner out of these assertions.
+      hasGuestTrip={true}
     />,
   );
 }

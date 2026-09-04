@@ -27,7 +27,12 @@ vi.mock("next/link", () => ({
 }));
 
 function render(
-  over: { signedInAs?: string | null; canSignIn?: boolean; locale?: string } = {},
+  over: {
+    signedInAs?: string | null;
+    canSignIn?: boolean;
+    locale?: string;
+    guestBlockedByPrivate?: boolean;
+  } = {},
 ) {
   const locale = over.locale ?? "en";
   return renderToStaticMarkup(
@@ -38,6 +43,7 @@ function render(
         signedInAs={over.signedInAs ?? null}
         canSignIn={over.canSignIn ?? true}
         codeMinutes={CODE_TTL_MINUTES}
+        guestBlockedByPrivate={over.guestBlockedByPrivate ?? false}
       />
     </LocaleProvider>,
   );
@@ -106,6 +112,43 @@ describe("a reader who is signed in and still refused", () => {
 });
 
 /**
+ * B300. An approved journal guest, refused this one trip because it is
+ * `private` — the case the bug report was about. `guestBlockedByPrivate` is
+ * the only thing that tells this state apart from the ordinary "signed in
+ * and still refused" one above; `TripGate` never sees the trip's visibility,
+ * its id or its title, so nothing here can assert on any of those without
+ * the component having leaked something it was never handed.
+ */
+describe("an approved journal guest refused a private trip", () => {
+  const html = render({ signedInAs: "oma@example.test", guestBlockedByPrivate: true });
+
+  test("is not shown the sign-in form again", () => {
+    expect(html).not.toContain("signin-email");
+    expect(html).not.toContain("signin-code");
+  });
+
+  /** The sentence B300 exists for: not "ask to be let in", which they already
+   * did, and were. */
+  test("is told the trip is closed to its travellers, and not to ask to be let in", () => {
+    expect(html).toMatch(/travell/i);
+    expect(html).not.toMatch(/ask whoever writes this journal to let you in/i);
+    expect(html).not.toMatch(/ask.*let you in/i);
+  });
+
+  /** Told apart from the ordinary refusal, which names the address instead. */
+  test("differs from the ordinary refusal shown to a reader with the wrong address", () => {
+    const ordinary = render({ signedInAs: "oma@example.test", guestBlockedByPrivate: false });
+    expect(html).not.toEqual(ordinary);
+    expect(html).not.toMatch(/not shared with you/i);
+  });
+
+  /** Still given somewhere to go, same as the ordinary refusal. */
+  test("is given somewhere to go", () => {
+    expect(html).toContain("/alex/me");
+  });
+});
+
+/**
  * All three, because a reader who needs this page is the least likely to be
  * reading it in English — and a missing string renders as its own key, which
  * is exactly what a gate must not do.
@@ -116,6 +159,7 @@ describe("every maintained locale", () => {
       render({ locale }),
       render({ locale, canSignIn: false }),
       render({ locale, signedInAs: "oma@example.test" }),
+      render({ locale, signedInAs: "oma@example.test", guestBlockedByPrivate: true }),
     ]) {
       expect(html).not.toContain("gate.");
       expect(html).not.toContain("me.signIn");
@@ -149,6 +193,10 @@ describe("the layout that draws the gate", () => {
     vi.doMock("@/lib/tripGate", () => ({
       mayReadTrip: async () => false,
       signedInAs: async () => null,
+      // Not what this test is about — B300's own describe block above covers
+      // it — but the layout calls it in the same branch as the other two, so
+      // a mock missing it throws rather than exercising anything.
+      guestBlockedByPrivateTrip: async () => false,
     }));
     vi.doMock("@/lib/trips", () => ({
       tripRef: (user: string, id: string) => `${user}/${id}`,
