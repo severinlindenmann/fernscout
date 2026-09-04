@@ -8,6 +8,7 @@ area: i18n, costs, ui
 found: "2026-09-03"
 started: "2026-09-04T06:22:42Z"
 merged: "2026-09-04T07:11:28Z"
+completed: "2026-09-04T07:24:28Z"
 ---
 
 # B139 — The costs page's tab title is English on a journal that is not
