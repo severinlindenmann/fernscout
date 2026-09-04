@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: api, entries, agent docs
 found: "2026-09-04T11:35:51Z"
+started: "2026-09-04T11:53:17Z"
+session: 986bc24c-6a18-473f-a506-aa8c4efb475c
+claimed: "2026-09-04T11:53:17Z"
 ---
 
 # B266 — A day cannot be edited after it is written, and the agent that tried published fifteen of them

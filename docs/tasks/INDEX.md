@@ -56,7 +56,6 @@ Do not edit them by hand; run the script.
 | [B101](backlog/B101-nobody-has-attacked-a-running-instance.md) | Nobody has attacked a running instance from the outside with the source in hand | SECURITY | high | high |
 | [B102](backlog/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | CHORE | high | medium |
 | [B103](backlog/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | CHORE | high | medium |
-| [B266](backlog/B266-a-day-cannot-be-edited-after.md) | A day cannot be edited after it is written, and the agent that tried published fifteen of them | ISSUE | high | medium |
 | [B65](backlog/B65-the-deployed-server-has-no-backup.md) | The deployed server has no backup at all — restic, the units and the credentials were never installed | CHORE | high | medium |
 | [B06](backlog/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B10](backlog/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
@@ -83,6 +82,8 @@ Do not edit them by hand; run the script.
 | [B260](backlog/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |
 | [B262](backlog/B262-writing-to-a-journal-requires-bringing.md) | Writing to a journal requires bringing your own agent, so an owner without one cannot write at all | FEATURE | medium | high |
 | [B267](backlog/B267-nothing-tells-an-agent-that-a.md) | Nothing tells an agent that a trip decides its own budget and coordinates, and an empty costs page is offered anyway | ISSUE | medium | medium |
+| [B268](backlog/B268-the-slideshow-map-projects-coordinates-without.md) | The slideshow map projects coordinates without mapFrame, so a coordinate-less day breaks it the same way | ISSUE | medium | low |
+| [B269](backlog/B269-the-photobook-has-its-own-bounding.md) | The photobook has its own bounding-box code with the same NaN hole B265 closed for the web maps | ISSUE | medium | low |
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B42](backlog/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B43](backlog/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
@@ -114,6 +115,7 @@ Do not edit them by hand; run the script.
 | [B250](backlog/B250-the-trip-scoped-costs-page-describes.md) | The trip-scoped costs page describes an upcoming trip in the past tense, in English only | ISSUE | low | low |
 | [B251](backlog/B251-the-404-page-s-tab-title.md) | The 404 page's tab title is the bare site name, because not-found.tsx exports metadata Next never asks for | ISSUE | low | medium |
 | [B253](backlog/B253-the-demo-journal-s-tagline-says.md) | The demo journal's tagline says four journeys and the count beside it says five | ISSUE | low | low |
+| [B270](backlog/B270-an-owner-whose-only-trip-is.md) | An owner whose only trip is public but unlisted sees four zeroes and no empty state | ISSUE | low | low |
 | [B88](backlog/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low |
 | [B90](backlog/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
@@ -123,7 +125,9 @@ _Nothing here._
 
 ## in-development
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B266](in-development/B266-a-day-cannot-be-edited-after.md) | A day cannot be edited after it is written, and the agent that tried published fifteen of them | ISSUE | high | medium | `986bc24c` |
 
 ## testing
 
