@@ -96,7 +96,11 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
           English on the server and the reader's choice after hydration, which
           is why no German page had a URL of its own and search engines only
           ever saw English. */}
-      <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
+      <LocaleProvider
+        locale={locale}
+        dictionary={dictionaryFor(locale)}
+        writtenLocale={user.defaultLocale}
+      >
         <HtmlLang locale={locale} />
       <TripListProvider trips={trips}>
         {/* Currency options are per user: two people on one server may budget

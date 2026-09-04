@@ -42,6 +42,14 @@ export type DraftInput = {
   content: string;
   tags?: string[];
   /**
+   * The day's title and content in the journal's other declared languages —
+   * B294. Required, in the sense that `validateEntry` refuses a day missing
+   * one: a journal readable in three languages writes its days in three. The
+   * words are the owner's; an agent that translates them itself is inventing
+   * what somebody said.
+   */
+  translations?: Record<string, { title: string; content: string }>;
+  /**
    * Spend logged against this day, each in the currency it was actually spent
    * in. Never converted at write time — see lib/costs.ts.
    *
@@ -128,6 +136,37 @@ export function costLines(costs: DraftInput["costs"]): string[] {
       return `  - { ${fields.join(", ")} }`;
     }),
   ];
+}
+
+/**
+ * The `translations:` block — B294.
+ *
+ * Block style rather than flow, unlike `costs:` one function up, because the
+ * values are prose: a day's content in another language is a paragraph, and
+ * `{ title: …, content: … }` on one line would be a line hundreds of
+ * characters long that no owner opening the file could read. `content` goes
+ * out as a literal block scalar (`|-`) for the same reason and so that a
+ * newline inside somebody's writing survives a round trip.
+ */
+export function translationLines(
+  translations: DraftInput["translations"],
+): string[] {
+  const codes = Object.keys(translations ?? {}).sort();
+  if (codes.length === 0) return [];
+  const lines = ["translations:"];
+  for (const code of codes) {
+    const tr = translations![code];
+    lines.push(`  ${code}:`);
+    lines.push(`    title: ${quote(tr.title)}`);
+    lines.push("    content: |-");
+    // Indented under the block scalar, every line of it. A blank line inside
+    // the prose stays blank rather than becoming six spaces, which YAML reads
+    // as trailing whitespace and a reader sees as a stray indent.
+    for (const line of tr.content.replace(/\r\n/g, "\n").split("\n")) {
+      lines.push(line.trim() === "" ? "" : `      ${line}`);
+    }
+  }
+  return lines;
 }
 
 export function validateDraft(input: Partial<DraftInput>): string | null {
@@ -283,6 +322,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
           `transportTo: ${quote(input.transportTo ?? "")}`,
         ]
       : []),
+    ...translationLines(input.translations),
     ...costLines(input.costs),
     // Written only when true — see the note on NewTrip.test.
     ...(input.test === true ? ["test: true"] : []),
@@ -418,6 +458,7 @@ export const EDITABLE_DAY_FIELDS = [
   "transportFrom",
   "transportTo",
   "test",
+  "translations",
 ] as const;
 
 /** A partial `DraftInput` — every field optional, since a PATCH names only
@@ -479,6 +520,33 @@ function spliceCosts(lines: string[], closing: number, costs: DraftInput["costs"
 }
 
 /**
+ * `translations:` is a nested block, so it is replaced wholesale like
+ * `costs:` — the same reasoning, and the same consequence: an edit that
+ * names it must carry every language, which is exactly what
+ * `validateEntryEdit` already refuses to let through half-done.
+ */
+function spliceTranslations(
+  lines: string[],
+  closing: number,
+  translations: DraftInput["translations"],
+): number {
+  const at = frontmatterLineOf(lines, closing, "translations");
+  if (at >= 0) {
+    let end = at + 1;
+    // Anything indented belongs to the block, blank lines inside a literal
+    // scalar included — a paragraph break in somebody's prose must not be
+    // read as the end of the key.
+    while (end < closing && (/^\s+/.test(lines[end]) || lines[end] === "")) end++;
+    lines.splice(at, end - at);
+    closing -= end - at;
+  }
+  const block = translationLines(translations);
+  if (block.length === 0) return closing;
+  lines.splice(at >= 0 ? at : closing, 0, ...block);
+  return closing + block.length;
+}
+
+/**
  * Splice `input`'s fields into `markdown`, textually — parsed and re-emitted
  * for nothing. A field the day already has is replaced in place, so a
  * comment or a hand-chosen key order two lines away survives; a field new to
@@ -524,6 +592,9 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
   // wants to read.
   if (input.test !== undefined) set("test", input.test === true ? "test: true" : null);
   if (input.costs !== undefined) closing = spliceCosts(lines, closing, input.costs);
+  if (input.translations !== undefined) {
+    closing = spliceTranslations(lines, closing, input.translations);
+  }
 
   if (input.content !== undefined) {
     lines.splice(closing + 1, lines.length - (closing + 1), "", input.content.trim(), "");

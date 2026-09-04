@@ -92,6 +92,32 @@ export const BUDGET_QUESTION =
   "nav entry, and writing one is what brings both.";
 
 /**
+ * What a day owes its journal's other languages — B294.
+ *
+ * The complaint: a journal declaring `de`, `en` and `hu` gave a reader who
+ * switched to English an English switcher, an English trip title, and German
+ * prose. `translations` covered a trip's title and tagline and nothing else,
+ * so no call could put a day's words in a second language.
+ *
+ * The owner chose to require them. The sentence has to carry the prohibition
+ * as loudly as the requirement, because an agent that meets a validator it
+ * cannot satisfy will reach for the one thing that would satisfy it — and
+ * here that is translating somebody's memoir, which is inventing what they
+ * said.
+ */
+export const TRANSLATIONS_REQUIRED =
+  "**`translations` — the day's title and content in the journal's other languages.** A " +
+  "journal readable in three languages writes its days in three: a day missing one is " +
+  "refused, and the refusal names which. Send it as " +
+  '`{"en": {"title": "…", "content": "…"}}`, keyed by language code, for every language ' +
+  "the journal declares except the one the day is already written in. **The words are the " +
+  "owner's.** Ask them for each language and write what they give you; never translate " +
+  "their prose yourself, and never machine-translate to get past the refusal — that is " +
+  "inventing what somebody said, which is the one thing you may not do. If they write in " +
+  "one language only, the fix is the journal's `locales`, not the day: one `PATCH` to the " +
+  "journal's config, and nothing is owed.";
+
+/**
  * What is not writable, said once so nobody has to discover it by guessing.
  *
  * B293. An agent asked to turn a trip's costs page off tried `PATCH` on the
@@ -243,7 +269,11 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
         `everyone their audience reads in. Choose from the same ${LOCALE_LIST}, including ` +
         "`defaultLocale` itself, and send it as `locales`, e.g. `[\"de\", \"en\"]`. Required " +
         "— a journal created without it has no language switcher at all, which is how one " +
-        "asked for three languages ended up with one (B277).",
+        "asked for three languages ended up with one (B277). **Tell them what the answer " +
+        "commits them to**: every day of every trip is then written in all of them, in " +
+        "their own words, and a day missing one is refused (B294). Two languages is a " +
+        "promise to write everything twice; if they are not going to, one is the honest " +
+        "answer and it can be widened later.",
     },
   ];
 }

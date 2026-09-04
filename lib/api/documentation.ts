@@ -26,6 +26,7 @@ import {
   NOT_WRITABLE,
   TITLE_COLLISION_EXAMPLE,
   PRIVATE_SHUTS_OUT_GUESTS,
+  TRANSLATIONS_REQUIRED,
   VISIBILITY_CHOICE,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
@@ -220,6 +221,8 @@ export function instanceDocumentation(): string {
     ...wrap(BUDGET_QUESTION, 78),
     "",
     ...wrap(COORDINATES_QUESTION, 78),
+    "",
+    ...wrap(TRANSLATIONS_REQUIRED, 78),
     "",
     ...wrap(NOT_WRITABLE, 78),
     "",
@@ -946,6 +949,8 @@ somebody's journey is their decision, so never send \`"visibility": "public"\`
 without having asked for it in words.
 
 ${wrap(BUDGET_QUESTION).join("\n")}
+
+${wrap(TRANSLATIONS_REQUIRED).join("\n")}
 
 ${wrap(NOT_WRITABLE).join("\n")}
 

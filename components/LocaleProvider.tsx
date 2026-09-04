@@ -47,10 +47,19 @@ function parseUTC(date: string) {
 export default function LocaleProvider({
   locale,
   dictionary,
+  writtenLocale = "en",
   children,
 }: {
   locale: string;
   dictionary: Record<string, string>;
+  /**
+   * The language this journal's prose is written in — its own
+   * `defaultLocale`. Defaults to `en` so the ninety-odd call sites outside a
+   * journal (the landing page, the invite pages, every test) need not care;
+   * `app/[user]/layout.tsx` passes the real one, which is the only place a
+   * day is ever rendered. B294.
+   */
+  writtenLocale?: string;
   children: React.ReactNode;
 }) {
 
@@ -88,8 +97,24 @@ export default function LocaleProvider({
       return `${nights} ${nights === 1 ? t("stay.night") : t("stay.nights")}`;
     };
 
+    /**
+     * A day in the language being read, falling back to the language it was
+     * written in.
+     *
+     * The shortcut here used to be `locale === "en"`, which assumed every
+     * journal's prose is English. It is not: viki's is German with
+     * `defaultLocale: "de"`, and a reader on `en` was handed `entry.title`
+     * — the German — while `translations.en` sat in the file unread. B294.
+     * `writtenLocale` is the journal's own `defaultLocale`, so the shortcut
+     * now skips the lookup for exactly the readers who cannot benefit from
+     * it, which is what it was always for.
+     *
+     * The fallback stays a fallback rather than becoming an error: a day
+     * written before B294 required every language still reads, in the
+     * language it has, for everybody.
+     */
     const localized = (entry: Entry) => {
-      if (locale === "en") return { title: entry.title, content: entry.content };
+      if (locale === writtenLocale) return { title: entry.title, content: entry.content };
       const tr = entry.translations?.[locale];
       return {
         title: tr?.title ?? entry.title,
@@ -113,7 +138,7 @@ export default function LocaleProvider({
       localized,
       localizedTrip,
     };
-  }, [locale, dictionary]);
+  }, [locale, dictionary, writtenLocale]);
 
   // `reducedMotion="user"` is the whole of this project's answer to somebody
   // who has asked their system for less movement. Motion does not read that

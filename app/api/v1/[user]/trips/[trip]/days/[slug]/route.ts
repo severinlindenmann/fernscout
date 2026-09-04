@@ -5,7 +5,25 @@ import { getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntryEdit } from "@/lib/validate/entry";
 
+import { getUser } from "@/lib/users";
+
 export const dynamic = "force-dynamic";
+
+/**
+ * The journal's declared languages, for B294's completeness refusal.
+ *
+ * `locales` is what a reader may switch into and `defaultLocale` is the
+ * language the prose itself is in — so a day owes a translation for every
+ * locale except that one. Read per request rather than cached: an owner can
+ * change both with one `PATCH .../config` (B220), and a day written a minute
+ * later must be judged against what the journal says now.
+ */
+function languagesOf(user: string): { locales: readonly string[]; writtenLocale: string } | undefined {
+  const journal = getUser(user);
+  if (!journal) return undefined;
+  return { locales: journal.locales, writtenLocale: journal.defaultLocale };
+}
+
 
 /**
  * One day, in full — including a draft.
@@ -156,7 +174,7 @@ export async function PATCH(
     );
   }
 
-  const problems = validateEntryEdit(body);
+  const problems = validateEntryEdit(body, languagesOf(user));
   if (problems.length > 0) {
     return Response.json({ error: "invalid_entry", problems }, { status: 400 });
   }

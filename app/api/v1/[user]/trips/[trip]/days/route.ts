@@ -6,7 +6,25 @@ import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempoten
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntry } from "@/lib/validate/entry";
 
+import { getUser } from "@/lib/users";
+
 export const dynamic = "force-dynamic";
+
+/**
+ * The journal's declared languages, for B294's completeness refusal.
+ *
+ * `locales` is what a reader may switch into and `defaultLocale` is the
+ * language the prose itself is in — so a day owes a translation for every
+ * locale except that one. Read per request rather than cached: an owner can
+ * change both with one `PATCH .../config` (B220), and a day written a minute
+ * later must be judged against what the journal says now.
+ */
+function languagesOf(user: string): { locales: readonly string[]; writtenLocale: string } | undefined {
+  const journal = getUser(user);
+  if (!journal) return undefined;
+  return { locales: journal.locales, writtenLocale: journal.defaultLocale };
+}
+
 
 export async function GET(
   request: Request,
@@ -84,7 +102,7 @@ export async function POST(
 
   // Every problem at once, named and with what was expected — not the first
   // one, and not a 500 from a malformed cost line further down the pipeline.
-  const problems = validateEntry(body);
+  const problems = validateEntry(body, languagesOf(user));
   if (problems.length > 0) {
     return Response.json({ error: "invalid_entry", problems }, { status: 400 });
   }
