@@ -1,4 +1,4 @@
-import { isEmail, issueCode } from "@/lib/auth";
+import { isEmail } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import {
   approveContact,
@@ -18,11 +18,19 @@ import {
   normaliseAddress,
   type PostalAddress,
 } from "@/lib/contacts/crypto";
-import { listInvitesWithLinks, revokeInvite, type Invite } from "@/lib/contacts/invites";
+import {
+  createInvite,
+  inviteExpiry,
+  inviteLinkUrl,
+  listInvitesWithLinks,
+  revokeInvite,
+  type Invite,
+} from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
-import { sendApprovedMail, sendCodeMail } from "@/lib/contacts/mail";
+import { sendApprovedMail, sendInviteMail } from "@/lib/contacts/mail";
 import { isOwner } from "@/lib/contacts/session";
 import { serverSite } from "@/lib/site";
+import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -160,9 +168,10 @@ export async function POST(request: Request) {
 
       // Refuse rather than silently rewrite: `requestContact`'s existing-row
       // branch overwrites locale and consents, NULLs the postal address, and
-      // this route mails a fresh code — an owner typing an address they don't
-      // realise is already an approved guest would delete that guest's
-      // address, unsubscribe them and confuse them with an unexpected code.
+      // this route is about to mail a fresh invitation — an owner typing an
+      // address they don't realise is already an approved guest would delete
+      // that guest's address, unsubscribe them and confuse them with a link
+      // they never asked for.
       const normalisedEmail = normaliseEmail(email);
       const already = (await listContacts(username)).some((c) => c.email === normalisedEmail);
       if (already) {
@@ -186,9 +195,29 @@ export async function POST(request: Request) {
         user.defaultLocale,
       );
 
-      // `pending`, like every other route into this table. The owner typing an
-      // address is not the address proving it can be read, and approveContact
-      // refuses an unconfirmed one for a reason.
+      // B384 — a bare code mailed straight here had nowhere to be typed: the
+      // recipient is not standing in front of the public form the way the
+      // guestbook's own reader is, so `confirmedAt` stayed null forever and
+      // `approveContact` refused for good (`not_confirmed`, above). The owner
+      // typing an address by hand is exactly the case `createInvite` +
+      // `sendInviteMail` already exist for — a link the server mails on the
+      // owner's behalf rather than one they copy out themselves (B319) —
+      // reused here so the same address is pre-approved and one click, in the
+      // recipient's own inbox, finishes what the owner started.
+      const invite = await createInvite(username, {
+        kind: "guest",
+        name,
+        locale,
+        expiresAt: inviteExpiry(),
+        email,
+      });
+
+      // `pending`, like every other route into this table. The owner typing
+      // an address is not the address proving it can be read, and
+      // `approveContact` refuses an unconfirmed one for a reason. `createdVia`
+      // points at the invite just made, which is what makes the row
+      // pre-approved the moment that exact address confirms — see
+      // `preapprovedEmailFor`.
       //
       // The address is passed whether or not a postcard was asked for, unlike
       // the public form, which passes it only with the tick. This is the
@@ -202,19 +231,61 @@ export async function POST(request: Request) {
         wantsEmailDigest: body.wantsEmailDigest === true,
         wantsPostcard,
         wantsWhatsapp: body.wantsWhatsapp === true,
-        createdVia: "owner",
+        createdVia: `invite:${invite.id}`,
       });
       if (result.outcome === "ignored") {
         return Response.json({ error: "blocked_contact" }, { status: 409 });
       }
-      // The same six-digit code the public form sends. Without it the row can
-      // never be confirmed and so can never be approved, and an owner-created
-      // contact would be a dead end.
-      const { code } = await issueCode(username, email, "guest");
-      await sendCodeMail(username, user, email, locale, code);
+
+      // Best effort (B272): the invite and its pre-approval already exist by
+      // the time this runs, so a send failure here must not undo either — the
+      // row still has `case "resend"` below to try the same link again.
+      await sendInviteMail(username, user, {
+        email,
+        locale,
+        kind: "guest",
+        url: inviteLinkUrl(serverSite().url, username, "guest", invite.token),
+      });
 
       const contact = await getContact(username, result.contactId);
       return Response.json({ ok: true, contact: contact ? ownerView(contact) : null });
+    }
+    case "resend": {
+      // The button next to a row that is still `pending` and unconfirmed —
+      // B384. Reuses the invite `create` above already made rather than
+      // minting a second one: same token, same pre-approval, just mailed
+      // again for a recipient who has not opened it yet (or lost it).
+      const contact = await getContact(username, id);
+      if (!contact) return Response.json({ error: "unknown_contact" }, { status: 404 });
+      if (contact.confirmedAt) {
+        return Response.json({ error: "already_confirmed" }, { status: 409 });
+      }
+      const via = contact.createdVia ?? "";
+      if (!via.startsWith("invite:")) {
+        return Response.json({ error: "no_invite" }, { status: 409 });
+      }
+      const invite = (await listInvitesWithLinks(username, serverSite().url)).find(
+        (candidate) => candidate.id === via.slice("invite:".length),
+      );
+      // Revoked, expired, or written before B280 gave links a recoverable
+      // token — `resolveInvite` would refuse a redemption of it too, so there
+      // is nothing here worth mailing a second time.
+      if (!invite || !invite.url) {
+        return Response.json({ error: "invite_unavailable" }, { status: 409 });
+      }
+      const user = getUser(username)!;
+      const tripTitle = invite.tripId
+        ? (getTrip(tripRef(username, invite.tripId))?.title ?? null)
+        : null;
+      const sent =
+        (await sendInviteMail(username, user, {
+          email: contact.email,
+          locale: pickLocale(contact.locale, user.defaultLocale),
+          kind: invite.kind,
+          url: invite.url,
+          tripTitle,
+        })) !== null;
+      return Response.json({ ok: true, sent });
     }
     case "update": {
       // `create` runs the address through `isEmail`; `update` did not, and
