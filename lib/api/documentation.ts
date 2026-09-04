@@ -19,11 +19,13 @@ import { CODE_TTL_MINUTES } from "../auth";
 // The sentences these documents share with /openapi.json, kept in one place so
 // they cannot come to disagree. See the note at the top of that file.
 import {
+  GUEST_LINK_OFFER,
   LOCALE_LIST,
   NOT_WRITABLE,
   TITLE_COLLISION_EXAMPLE,
   PHOTOS_SECOND_CALL,
   PRIVATE_SHUTS_OUT_GUESTS,
+  PUBLISH_OFFER,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
   asSentence,
@@ -259,6 +261,10 @@ export function instanceDocumentation(): string {
         "not before.",
       78,
     ),
+    "",
+    ...wrap(PUBLISH_OFFER, 78),
+    "",
+    ...wrap(GUEST_LINK_OFFER, 78),
     "",
     ...wrap(
       "**`publish` is not an update.** It does exactly one thing — remove the line " +
@@ -1131,6 +1137,11 @@ Three things worth knowing:
 When you have finished writing, end your report with what is waiting:
 \`GET /api/v1/${example}/drafts\` lists it, and this is the call that acts on
 their answer.
+
+${wrap(PUBLISH_OFFER).join("\n")}
+
+${wrap(GUEST_LINK_OFFER).join("\n")} See **Letting other people in**, above,
+for the two links and what each does.
 
 ### Deleting, and anything that costs money
 

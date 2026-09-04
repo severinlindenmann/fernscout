@@ -13,8 +13,11 @@ import { validateEntry } from "@/lib/validate/entry";
 import {
   BUDGET_QUESTION,
   COORDINATES_QUESTION,
+  GUEST_LINK_OFFER,
   MEDIA_ENDPOINT_PATH,
   NOT_WRITABLE,
+  PHOTOS_SECOND_CALL,
+  PUBLISH_OFFER,
   TRANSLATIONS_REQUIRED,
   TITLE_COLLISION_EXAMPLE,
   PRIVATE_SHUTS_OUT_GUESTS,
@@ -649,6 +652,45 @@ describe("what the guide has to tell an agent before it starts", () => {
     // reader to guess that the URL has a trip in it. It does.
     const doc = userDocumentation("ana")!;
     expect(doc).toContain("/ana/trips/ana-trip/day/<slug>.md");
+  });
+
+  /**
+   * B317: a question script said what to ask and never what to offer once
+   * the answers were in, so an owner had to think of photographs,
+   * publishing and a guest link unprompted. These assert the three offers
+   * survive in both documents, and that the photographs offer names the
+   * real field names rather than leaving an agent to guess them.
+   */
+  test("both documents offer photographs, naming the field names, once a day is written", () => {
+    expect(flat(agentGuide())).toContain(flat(PHOTOS_SECOND_CALL));
+    expect(flat(instanceDocumentation())).toContain(flat(PHOTOS_SECOND_CALL));
+  });
+
+  test("the photographs offer names the real media field names", () => {
+    // A rename of the media field should break this document rather than
+    // silently making it wrong — so assert the actual field names the route
+    // reads, not a paraphrase of them.
+    expect(PHOTOS_SECOND_CALL).toContain("`multipart/form-data`");
+    expect(PHOTOS_SECOND_CALL).toContain("`day`");
+    expect(PHOTOS_SECOND_CALL).toContain("`files`");
+  });
+
+  test("both documents offer to publish once a trip's days are written", () => {
+    expect(flat(agentGuide())).toContain(flat(PUBLISH_OFFER));
+    expect(flat(instanceDocumentation())).toContain(flat(PUBLISH_OFFER));
+  });
+
+  test("both documents offer a guest link once a trip is published", () => {
+    expect(flat(agentGuide())).toContain(flat(GUEST_LINK_OFFER));
+    expect(flat(instanceDocumentation())).toContain(flat(GUEST_LINK_OFFER));
+  });
+
+  test("the guest-link offer describes the link without asserting how it is delivered", () => {
+    // B319 is adding a mailed invitation and pre-approval on top of this same
+    // call. This offer must survive that: it says what the link is and that
+    // the owner may want it sent, and stops there.
+    expect(GUEST_LINK_OFFER).toMatch(/ask whether they want one sent/i);
+    expect(GUEST_LINK_OFFER).not.toMatch(/email|mail|paste/i);
   });
 });
 

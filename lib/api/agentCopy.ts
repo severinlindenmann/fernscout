@@ -188,6 +188,40 @@ export const COORDINATES_QUESTION =
   "confirm rather than leaving the field empty. An unconfirmed guess is never written: an " +
   "empty field beats an invented location.";
 
+/**
+ * What follows a trip's days, once they exist — B317.
+ *
+ * Every day script already says a single day arrives as a draft and asks the
+ * person before publishing it. What none of it said was the moment that
+ * matters once several days of a trip are sitting there: nothing prompted an
+ * agent to go back and offer to put them up. This is that offer, not a new
+ * rule — AGENTS.md's "ask, in words, and wait" already governs every call it
+ * describes, which is why this is phrased as one to make, not one to
+ * default to.
+ */
+export const PUBLISH_OFFER =
+  "Once a trip's days are written, say so plainly: they are still only drafts, and nothing " +
+  "is on the site yet. Then offer to publish — one call per day, and the owner's decision " +
+  "every time, never assumed because a day merely looks finished.";
+
+/**
+ * What follows a trip going live — B317.
+ *
+ * An owner with a freshly published trip has no reason to know
+ * `POST /api/v1/<user>/invites` exists; this is the sentence that tells an
+ * agent to offer it, once. Deliberately silent on *how* the link then
+ * reaches the person it is for: B319 is adding a mailed invitation in the
+ * recipient's own language, and pre-approval, on top of this same call —
+ * this sentence describes what the link is and that the owner may want it
+ * sent, and stops there, so B319's mechanism is an answer to "how" rather
+ * than a rewrite of this offer.
+ */
+export const GUEST_LINK_OFFER =
+  "Once a trip is published, offer a guest link — `POST /api/v1/<user>/invites` with " +
+  '`{"kind": "guest"}`. Say what it is: leads to reading the journal\'s `guest` trips, safe ' +
+  "to forward, and grants nothing until the owner approves whoever opens it. Ask whether " +
+  "they want one sent.";
+
 // Read from the constant rather than typed into prose: a fourth language would
 // otherwise be maintained everywhere except in the sentence that tells an agent
 // it exists. The media limits table already works this way.
@@ -403,10 +437,24 @@ export function dayQuestions(): FirstQuestion[] {
  * are not a field on the call above, they are a call of their own, made once
  * the day exists — B307, closing the "Writing a day" bullet the ticket asked
  * for.
+ *
+ * B317 added the second sentence. A day script that only named the endpoint
+ * still left an agent to fetch the guide for the field names before it could
+ * act — `multipart/form-data`, `day`, `files`, all one line away in
+ * `app/api/v1/[user]/trips/[trip]/media/route.ts` — and the transcripts this
+ * ticket came from show an agent that had just written a day with photos
+ * described to it, and did not think to ask for them. The coordinates clause
+ * beside it is the same gap: `COORDINATES_QUESTION` asks before the day is
+ * written, but an owner who answered "I don't know" or was never asked — an
+ * older flow, a day imported some other way — still has a real place sitting
+ * in the prose with nothing on the map for it.
  */
 export const PHOTOS_SECOND_CALL =
-  "Photographs are never part of this call. They are a second one, once the day exists: " +
-  `${MEDIA_ENDPOINT_PATH}. There is nothing to paste into the entry itself.`;
+  "Photographs are never part of this call. They are a second one, once the day exists — " +
+  `offer it, naming the call: ${MEDIA_ENDPOINT_PATH}, sent as \`multipart/form-data\` with ` +
+  "`day` (the slug) and `files` (the bytes). There is nothing to paste into the entry " +
+  "itself. Offer coordinates too, if the day names a real place and carries no `lat`/`lng` " +
+  "yet — the same `PATCH` the day itself takes, not a new call.";
 
 /**
  * Greedy wrap to a column, for the documents that are assembled as arrays of
