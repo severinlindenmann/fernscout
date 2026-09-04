@@ -49,15 +49,16 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (76)
+## backlog (77)
 
-### security (4)
+### security (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B276](backlog/security/B276-self-service-journal-creation-is-open.md) | Self-service journal creation is open to anyone on fernscout.ch, and B104 records it as never having run | SECURITY | high | low |
 | [B240](backlog/security/B240-every-owner-only-gate-is-one.md) | Every owner-only gate is one scope string away from opening | SECURITY | medium | medium |
 | [B287](backlog/security/B287-the-contacts-page-carries-addresses-and.md) | The contacts page carries addresses and now invite links, and nothing in the repo pins its cache headers | SECURITY | medium | low |
+| [B330](backlog/security/B330-story-json-varies-by-cookie-and.md) | story.json varies by cookie and does not say so, so a browser cache can serve one reader's drafts to the next | SECURITY | medium | low |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
 ### issue (25)
@@ -171,14 +172,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B327](in-development/B327-a-buddy-writes-a-day-and.md) | A buddy writes a day and can see it nowhere on the site, because every reading path gates drafts on ownership | ISSUE | high | medium | `cae3e4fb` |
 | [B328](in-development/B328-a-trip-with-fifteen-days-of.md) | A trip with fifteen days of costs and no budget file has no costs page | ISSUE | high | low | `986bc24c` |
 
-## testing (142)
+## testing (143)
 
 ### security (12)
 
@@ -197,7 +197,7 @@ _Nothing here._
 | [B233](testing/security/B233-the-https-only-rule-is-not.md) | The https-only rule is not re-applied after a redirect | SECURITY | low | low | — |
 | [B234](testing/security/B234-an-unauthenticated-health-check-discloses-server.md) | An unauthenticated health check discloses server paths and journal names | SECURITY | low | low | — |
 
-### issue (84)
+### issue (85)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -223,6 +223,7 @@ _Nothing here._
 | [B318](testing/issue/B318-a-draft-day-shows-three-of.md) | A draft day shows three of its nine photographs and all nine once published | ISSUE | high | medium | — |
 | [B320](testing/issue/B320-a-buddy-on-a-trip-is.md) | A buddy on a trip is told the journal is not theirs to write, and never learns they hold write access | ISSUE | high | medium | — |
 | [B326](testing/issue/B326-nothing-says-which-language-a-day.md) | Nothing says which language a day's own title and content must be in, so an agent sent the wrong one fifteen times | ISSUE | high | low | — |
+| [B327](testing/issue/B327-a-buddy-writes-a-day-and.md) | A buddy writes a day and can see it nowhere on the site, because every reading path gates drafts on ownership | ISSUE | high | medium | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
