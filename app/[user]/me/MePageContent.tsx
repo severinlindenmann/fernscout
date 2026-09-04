@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import AgentHandover from "@/components/AgentHandover";
 import AgentKeys from "@/components/AgentKeys";
+import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
 import SignOut from "@/components/SignOut";
@@ -99,6 +100,29 @@ export default function MePageContent({
     traveller: "me.viaTraveller",
     guest: "me.viaGuest",
   };
+
+  /**
+   * The trips this reader may *write* — B320.
+   *
+   * `resolveViewer` has told this page apart from B80 onwards, and until now
+   * the distinction bought one sentence in the list above. It is the whole
+   * answer to a second question the page never asked: somebody named in a
+   * trip's `people:`, or approved through a buddy link, may write days into
+   * that trip and may hold a token scoped to it. Everything on this page that
+   * said so was inside `{viewer.owner && …}`, so they were told they could
+   * read and nothing else.
+   *
+   * **Excluded for the owner, deliberately.** An owner who also travelled has
+   * `traveller` trips in this list, and the block below would offer them the
+   * narrow, mail-a-code flow beside their own button for a journal-wide key —
+   * two ways to do one job, to a reader with no basis for choosing, which is
+   * exactly what B301 removed from the owner block.
+   *
+   * Nothing here grants anything: this decides what to *say*, and
+   * `mayRequestAgentToken` in `/api/auth/request` is still the only thing that
+   * decides whether a code is issued.
+   */
+  const writableTrips = viewer.owner ? [] : viewer.trips.filter((t) => t.through === "traveller");
 
   return (
     <div className="min-h-screen">
@@ -227,7 +251,22 @@ export default function MePageContent({
         {manage && (
           <section className="mt-6">
             <h2 className="font-display text-xl font-semibold text-navy-900">{t("me.details")}</h2>
-            <p className="mt-2 text-lg leading-8 text-navy-700">{t("me.detailsBody")}</p>
+            {/*
+              Two sentences, because the shorter one is false to half its
+              readers — B320.
+
+              "Nothing else on this site can be edited here — the journal is
+              written by an agent" is exactly right for a guest. Said to
+              somebody on a trip it reads as a closed door, and they are one of
+              the people that agent writes for; it was the only thing on the
+              page that addressed their write access at all, and it denied it.
+              The traveller's version keeps the true half — there is still no
+              form, and it is still an agent that writes — and points at the
+              block that tells them how.
+            */}
+            <p className="mt-2 text-lg leading-8 text-navy-700">
+              {t(writableTrips.length > 0 ? "me.detailsBodyTraveller" : "me.detailsBody")}
+            </p>
             {/* A native `<details>` rather than a link to `/c/<token>`: the
                 same form, opened in place instead of on a second page — see
                 `ManagePanel` above for why the data now travels down instead
@@ -247,6 +286,31 @@ export default function MePageContent({
                 />
               </div>
             </details>
+          </section>
+        )}
+
+        {/*
+          The buddy's half of the page — B320. Same place as the owner block
+          below and the same shape, because it is the same job: what to hand an
+          agent, and what that agent can then do. Never both, and the two
+          cannot both render — `writableTrips` is empty for an owner.
+
+          Gated on `viewer.email` only through `writableTrips`, which is empty
+          for anybody not signed in, so this needs no separate check.
+        */}
+        {writableTrips.length > 0 && viewer.email && (
+          <section className="mt-6 rounded-2xl border border-navy-200 bg-cream-100 p-5 sm:p-6">
+            <h2 className="font-display text-xl font-semibold text-navy-900">
+              {t("me.buddyTitle")}
+            </h2>
+            <div className="mt-4">
+              <BuddyHandover
+                siteUrl={siteUrl}
+                username={username}
+                email={viewer.email}
+                trips={writableTrips}
+              />
+            </div>
           </section>
         )}
 

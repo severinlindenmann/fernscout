@@ -401,3 +401,135 @@ describe("the details panel, inline", () => {
     expect(html).toContain('value="Fam. Peter"');
   });
 });
+
+/**
+ * B320 — the buddy's half of the page.
+ *
+ * Somebody named in a trip's `people:`, or approved through a buddy link
+ * (B33), may write days into that trip and may hold a token scoped to it —
+ * `AGENTS.md` says so, and `mayRequestAgentToken` in `/api/auth/request`
+ * enforces it. Nothing they could reach said it. Every sentence on this page
+ * about writing sat inside `{viewer.owner && …}`, and the details panel beside
+ * it told them the journal was written by an agent and nothing here could be
+ * edited — which reads as a closed door to one of the people that agent writes
+ * for.
+ *
+ * The assertions are on the *copy* and on the *prompt*, not on a credential:
+ * the failure this block exists to prevent is a person concluding they have no
+ * write access, and the failure it could newly cause is a prompt that names
+ * the wrong trip.
+ */
+describe("what somebody on a trip is told they can write", () => {
+  const buddy: Viewer = {
+    email: "kevin@example.test",
+    owner: false,
+    guest: true,
+    trips: [
+      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller" },
+      // Readable, not writable — a public trip they were not on. It must not
+      // acquire a prompt merely by being in the list.
+      { id: "open-road", title: "Open road", href: "/alex/trips/open-road", through: "public" },
+    ],
+  };
+
+  const guestOnly: Viewer = {
+    email: "gran@example.test",
+    owner: false,
+    guest: true,
+    trips: [
+      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "guest" },
+    ],
+  };
+
+  /** Enough of one for the details panel to render; the panel's own behaviour
+   * is tested above and what matters here is which sentence sits over it. */
+  const record: ManagePanel = {
+    token: "fs_manage_test",
+    locales: ["en"],
+    dictionary: dictionaryFor("en"),
+    contact: {
+      name: "Kevin",
+      email: "kevin@example.test",
+      locale: "en",
+      status: "active",
+      wantsEmailDigest: true,
+      wantsPostcard: false,
+      address: { name: "", line1: "", line2: "", postcode: "", city: "", country: "", tel: "" },
+    },
+  };
+
+  test("is told at all, which is the whole of the bug", () => {
+    const html = render({ viewer: buddy });
+    expect(html).toContain(dictionaryFor("en")["me.buddyTitle"]);
+    // A fragment rather than the whole string: the sentence contains an
+    // apostrophe, and `renderToStaticMarkup` escapes it to `&#x27;`.
+    expect(html).toContain("You were on the trip, so you can add days to it");
+  });
+
+  test("gets a prompt naming the trip they were on, and only that trip", () => {
+    const html = render({ viewer: buddy });
+    expect(html).toContain("https://example.test/alex/trips/asia-2025");
+    expect(html).toContain("&quot;trip&quot;:&quot;asia-2025&quot;");
+    // The public trip is readable and not writable, so it belongs in the list
+    // above and in no prompt — a code request for it is one the server
+    // refuses, with nothing on the page to explain why. Asserted on the
+    // request body and on the per-trip heading rather than on the bare id,
+    // which is legitimately in the markup as a link to the trip itself.
+    expect(html).not.toContain("&quot;trip&quot;:&quot;open-road&quot;");
+    expect(html).not.toContain("For Open road");
+  });
+
+  test("the prompt asks for a code for their own address and nobody else's", () => {
+    const html = render({ viewer: buddy });
+    expect(html).toContain("kevin@example.test");
+    expect(html).toContain("/api/auth/request");
+    expect(html).toContain("/api/auth/verify");
+  });
+
+  /**
+   * The limit is the point. A buddy's token cannot publish — that call is the
+   * owner's (B28) — and an agent that does not know will read the refusal as a
+   * fault and go looking for a way round it, which is how B293's invented "web
+   * UI" happened.
+   */
+  test("and says what the key cannot do, in the prompt and on the page", () => {
+    const html = render({ viewer: buddy });
+    expect(html).toContain("stays a draft");
+    expect(html).toContain(dictionaryFor("en")["me.buddyKeyBody"]);
+  });
+
+  test("no longer reads that nothing here can be edited", () => {
+    const html = render({ viewer: buddy, contactsEnabled: true, manage: record });
+    expect(html).toContain(dictionaryFor("en")["me.detailsBodyTraveller"]);
+    expect(html).not.toContain(dictionaryFor("en")["me.detailsBody"]);
+  });
+
+  test("a guest of the journal gets none of it, and the sentence is unchanged", () => {
+    const html = render({ viewer: guestOnly, contactsEnabled: true, manage: record });
+    expect(html).not.toContain(dictionaryFor("en")["me.buddyTitle"]);
+    expect(html).not.toContain("/api/auth/verify");
+    expect(html).toContain(dictionaryFor("en")["me.detailsBody"]);
+  });
+
+  test("and neither does a stranger, who has no address to ask for a code with", () => {
+    const html = render({ viewer: stranger, canSignIn: true });
+    expect(html).not.toContain(dictionaryFor("en")["me.buddyTitle"]);
+    expect(html).not.toContain("/api/auth/verify");
+  });
+
+  /**
+   * An owner who also travelled has `traveller` trips in this list. Offering
+   * them the mail-a-code flow beside their own button is two ways to do one
+   * job for a reader with no basis for choosing — which is what B301 removed
+   * from the owner block, and it must not come back through this door.
+   */
+  test("an owner who was on the trip keeps their own button and gets no second flow", () => {
+    const html = render({
+      viewer: { ...owner, trips: [...buddy.trips] },
+      contactsEnabled: true,
+    });
+    expect(html).toContain(dictionaryFor("en")["me.handoverCreate"]);
+    expect(html).not.toContain(dictionaryFor("en")["me.buddyTitle"]);
+    expect(html).not.toContain("/api/auth/verify");
+  });
+});

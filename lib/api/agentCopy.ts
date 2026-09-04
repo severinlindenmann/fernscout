@@ -551,3 +551,83 @@ export const VISIBILITY_ENUM_NOTE =
   "forgotten field is never wider than the journal already is; a value this server does " +
   "not recognise falls back to private instead. Ask rather than relying on either, and " +
   "recommend public or guest.";
+
+/**
+ * Shell-safe single quoting, for the JSON bodies in the prompt below.
+ *
+ * The prompt carries a person's own email address inside a `curl -d '…'`, and
+ * an apostrophe in a local part — `o'brien@example.test` is a real address —
+ * would otherwise end the quoting and hand somebody a command that fails in a
+ * way they have no reason to understand. Three lines, once, rather than a
+ * caveat nobody reads.
+ */
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
+/**
+ * The prompt somebody on a trip pastes into an agent — B320.
+ *
+ * The owner's equivalent is `handoverPrompt`, and this is deliberately **not**
+ * that. `issueHandover` refuses anybody but the owner, on purpose
+ * (lib/auth/index.ts) — a handover credential is exchanged for a token whose
+ * scope is the whole journal, and a buddy's write access is one trip. So this
+ * prompt drives the flow that was already built for exactly this person: an
+ * agent code bound to a trip (B230), redeemed for a token that
+ * `tripWriteScope` narrows to it.
+ *
+ * The consequence for the shape of the prompt is the step in the middle: the
+ * code is mailed to the buddy, not printed on the page, so the agent has to
+ * ask and the person has to read six digits across. That is a worse experience
+ * than the owner's button and it is the honest one — printing a credential
+ * here would mean minting a journal-wide one first.
+ *
+ * English regardless of the reader's locale, for the reason `handoverPrompt`
+ * gives: the reader is an agent, and every agent-facing document on this
+ * instance is English.
+ *
+ * The last paragraph is not decoration. A buddy's token cannot publish, and an
+ * agent that does not know that will read a refusal as a fault and go looking
+ * for another way — which is the failure mode B293 recorded, where "no correct
+ * call available and nothing saying so" ended in an invented web UI.
+ */
+export function buddyPrompt(input: {
+  siteUrl: string;
+  username: string;
+  tripId: string;
+  email: string;
+}): string {
+  const { siteUrl, username, tripId, email } = input;
+  const request = JSON.stringify({ user: username, email, kind: "agent", trip: tripId });
+  const verify = JSON.stringify({ user: username, email, kind: "agent", code: "<the six digits>" });
+  return [
+    `You are writing one trip in a Fernscout travel journal: ${siteUrl}/${username}/trips/${tripId}`,
+    "",
+    "1. Ask for a code. It is emailed to me, and I will read it to you — this",
+    "   call tells you nothing on its own:",
+    "",
+    `   curl -X POST ${siteUrl}/api/auth/request \\`,
+    `     -H "content-type: application/json" \\`,
+    `     -d ${shellQuote(request)}`,
+    "",
+    "2. Exchange the six digits for your own 7-day token. The trip was decided",
+    "   when the code was issued, so there is nothing more to name here:",
+    "",
+    `   curl -X POST ${siteUrl}/api/auth/verify \\`,
+    `     -H "content-type: application/json" \\`,
+    `     -d ${shellQuote(verify)}`,
+    "",
+    "3. Then, before anything else, read where the journal stands:",
+    "",
+    `   GET ${siteUrl}/api/v1/${username}/status`,
+    "",
+    `4. The full guide is at ${siteUrl}/agent.md — writing a day, photographs,`,
+    "   and a worked example of each.",
+    "",
+    `Your token writes days into ${tripId} and nothing else in this journal.`,
+    "It cannot put a day on the site: everything you write stays a draft until",
+    "the person whose journal this is asks for it, and that call is theirs and",
+    "not mine. Write what I tell you and nothing I did not — no weather I did",
+    "not mention, no meals I did not eat.",
+  ].join("\n");
+}
