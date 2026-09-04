@@ -40,18 +40,41 @@ Nothing is broken locally, where the two paths are the same string, which is
 why it has gone unnoticed. AGENTS.md already states the rule these violate:
 "Nothing user-owned is written anywhere else."
 
+The Why was read back against the code before anything changed, and it is
+accurate line for line. Confirmed by running both scripts with `CONTENT_DIR`
+pointed outside the checkout: both wrote into `content/` beside the code and
+neither touched the content root.
+
 ## Work
 
-- Build both output directories from `contentRoot()`.
+- Build both output directories from `contentRoot()`. **Done** —
+  `scripts/postcard.ts:110` and `scripts/photobook.ts:130`.
 - Check the `--out` override in `scripts/photobook.ts` still means what it
-  says once the default moves.
+  says once the default moves. **Done, and unchanged:** `--out` is still
+  `path.resolve()`d against the working directory, which is what somebody
+  typing a relative path means. Only the default moved. There is a test for
+  it, because moving the default is exactly the change that would have
+  quietly redirected an explicit `--out` too.
 - While there: the same two scripts print progress as
   `path.relative(process.cwd(), …)`, which is a path a person can paste only
   while the two roots agree. Decide what a run should print when they do not.
+  **Decided:** relative when the file really is under the working directory,
+  absolute otherwise — `lib/displayPath.ts`. Never a ladder of `..`, which is
+  true and useless, and reads as though the file had landed beside the code.
+  Every path either script prints is now a path that finds the file, and there
+  is a test asserting exactly that for both.
+
+One thing the Why did not mention and which the fix improves: the photobook
+preview HTML references its photographs as `path.relative(outDir, …)`
+(`lib/photobook/preview.ts:218`). With the output folder inside the content
+root those become `../trips/…` — short, and portable with the folder.
 
 **Not doing:** the plan JSON's own paths — B25 made those content-root
 relative already, and this is about where the files land, not what is
 recorded in them.
+
+**Found and captured, not absorbed:** `npm run seed:example` has the same
+defect and creates a whole journal beside the code. That is **B238**.
 
 ## Acceptance
 
@@ -60,3 +83,8 @@ recorded in them.
   directory beside the code.
 - The example journal still renders to the same place with `CONTENT_DIR`
   unset.
+
+Both are `test/generator-output.test.ts`, which runs the two scripts for real
+against a content root outside the checkout — the bug is invisible unless the
+two roots actually differ, which is the one condition no unit test of a helper
+reproduces. Five of its ten tests fail against the code as it was.
