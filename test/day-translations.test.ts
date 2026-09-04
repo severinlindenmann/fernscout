@@ -10,7 +10,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { getEntryBySlug } from "@/lib/entries";
 import { POST as writeDay } from "@/app/api/v1/[user]/trips/[trip]/days/route";
-import { PATCH as editDay } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/route";
+import { GET as getDay, PATCH as editDay } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/route";
 
 /**
  * B294 — a day carries its prose in every language its journal declares.
@@ -81,6 +81,16 @@ async function post(body: unknown) {
     { params: Promise.resolve({ user: "viki", trip: "asien" }) },
   );
   return { status: response.status, body: (await response.json()) as { problems?: Problem[]; slug?: string } };
+}
+
+async function get(slug: string) {
+  const response = await getDay(
+    new Request(`https://t.test/api/v1/viki/trips/asien/days/${slug}`, {
+      headers: { authorization: `Bearer ${await token()}` },
+    }),
+    { params: Promise.resolve({ user: "viki", trip: "asien", slug }) },
+  );
+  return { status: response.status, body: (await response.json()) as { translations?: unknown } };
 }
 
 async function patch(slug: string, body: unknown) {
@@ -170,6 +180,18 @@ describe("a journal read in three languages", () => {
     expect(entry?.translations?.en?.title).toBe(OTHERS.en.title);
     expect(entry?.translations?.en?.content).toBe(OTHERS.en.content);
     expect(entry?.translations?.hu?.content).toBe(OTHERS.hu.content);
+  });
+
+  test("B356: reading the day back reports the translations it was written with", async () => {
+    const { status } = await post({ ...GERMAN, translations: OTHERS });
+    expect(status).toBe(201);
+
+    const { status: getStatus, body } = await get("ankunft-in-bangkok");
+    expect(getStatus).toBe(200);
+    const translations = body.translations as Record<string, { title: string; content: string }>;
+    expect(translations.en.title).toBe(OTHERS.en.title);
+    expect(translations.en.content).toBe(OTHERS.en.content);
+    expect(translations.hu.content).toBe(OTHERS.hu.content);
   });
 
   test("prose with a paragraph break survives the round trip", async () => {

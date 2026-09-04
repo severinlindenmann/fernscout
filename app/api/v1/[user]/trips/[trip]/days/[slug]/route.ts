@@ -83,6 +83,13 @@ export async function GET(
     // telling somebody it is ready, could confirm the prose and the costs and
     // not the rest. A field the API takes is a field it has to show.
     ...(entry.transport ? { transport: entry.transport } : {}),
+    // The other half of B294: a journal with two or more locales refuses a day
+    // without every translation, so an agent has to be able to read back what
+    // it wrote to check it stuck. Same shape it is written in — `{title,
+    // content}` per locale — so a read-back could be fed straight into a PATCH.
+    ...(entry.translations && Object.keys(entry.translations).length > 0
+      ? { translations: entry.translations }
+      : {}),
     /**
      * The flag the *page* will act on, not just the entry's own.
      *
