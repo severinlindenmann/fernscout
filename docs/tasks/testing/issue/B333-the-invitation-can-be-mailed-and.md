@@ -7,8 +7,7 @@ complexity: low
 area: agent docs, invites
 found: "2026-09-04T19:11:03Z"
 started: "2026-09-04T19:11:30Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T19:11:30Z"
+merged: "2026-09-04T19:20:54Z"
 ---
 
 # B333 — The invitation can be mailed and pre-approved, and nothing anywhere says so
