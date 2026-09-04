@@ -105,3 +105,34 @@ export async function DELETE(
     { status: 202 },
   );
 }
+
+/**
+ * A wrong verb, answered in words — B293.
+ *
+ * `PATCH` here was a real guess by a real agent, twice: once trying to turn a
+ * trip's costs page off, once trying to change a trip's own fields. Next
+ * answers an unimplemented method with a bare `405` and no body, which leaves
+ * a caller unable to tell "wrong verb" from "wrong path" from "not built" —
+ * and the agent that could not tell went on to invent a web interface for its
+ * owner to use instead (there isn't one). So this route says what it has, and
+ * where the two likely intentions actually live.
+ *
+ * Not a framework: two handlers on the two routes agents were observed
+ * guessing at. When a third turns up, it gets the same treatment.
+ */
+export async function PATCH(_request: Request, { params }: RouteContext<"/api/v1/[user]/trips/[trip]">) {
+  const { user, trip } = await params;
+  return Response.json(
+    {
+      error: "method_not_allowed",
+      message:
+        `This route takes DELETE and nothing else. A trip's own fields — title, dates, ` +
+        `visibility, people — are not writable through an API: they are trip.md, and ` +
+        `changing them is the owner's own edit. What is writable lives one level down: ` +
+        `the budget at /api/v1/${user}/trips/${trip}/costs (DELETE there removes the ` +
+        `costs page), a day at /api/v1/${user}/trips/${trip}/days/<slug>, and ` +
+        `photographs at /api/v1/${user}/trips/${trip}/media.`,
+    },
+    { status: 405, headers: { Allow: "DELETE" } },
+  );
+}
