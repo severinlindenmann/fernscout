@@ -145,3 +145,14 @@ address, two of which disagree).
   test, or a sentence saying why the field stays file-only and where a person
   is told to hand-edit it.
 - Nothing in `KNOWN_TRIP_FIELDS` is left undecided.
+
+---
+
+**2026-09-04, checked on fernscout.ch (e85248d): one of the four is now
+writable.** B352 added `GET`/`PATCH /api/v1/<user>/trips/<trip>/rates`, so
+`rates` has a door. The rest still have none — `PATCH /api/v1/<user>/trips/<trip>`
+answers `method_not_allowed` ("This route takes DELETE and nothing else"), which
+is also why **B178** still stands: `costsVisibility` is read from `trip.md` and
+no call writes it.
+
+Left in `testing/`: the ticket is three fields now, not four.
