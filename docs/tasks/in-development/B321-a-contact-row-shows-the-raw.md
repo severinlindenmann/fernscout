@@ -63,9 +63,32 @@ behind something, not as the value of the line.
 Not doing: any change to what is stored — `createdVia` stays as it is, this is
 a rendering fix.
 
+**Two things learned while building.**
+
+*No server change was needed at all.* `ContactsAdmin` already holds the
+contacts, the invites **and** the trip titles in its own state — the invites
+because B97 put them there, the titles because the form that makes a buddy link
+offers them in a dropdown. So the resolution is a lookup in the component, and
+`refresh()` keeps it current when a link is revoked. Nothing new is fetched and
+no route changed.
+
+*The id was decided against, and the title used instead.* The Work above said
+"which trip" without saying in whose words. The owner picks a trip from a
+dropdown of **titles** and was then shown `asien-2025` everywhere afterwards,
+so the title is the answer, falling back to the id when a trip has been renamed
+or deleted since.
+
+That made the invite list one line's worth of inconsistent — it has printed the
+bare id since B97 — so it now uses the same `tripLabel`. One substitution,
+taken here rather than captured, because the inconsistency would have been
+*introduced by this change*: two lists on one page naming one trip two
+different ways is worse than what either said before.
+
 ## Acceptance
 
-- A contact who arrived on a buddy link shows which trip that link was for.
+- A contact who arrived on a buddy link shows which trip that link was for,
+  by its title.
 - A contact who arrived on a guest link says so, without a UUID.
 - A contact whose invite has since been revoked or deleted still renders a
   sentence rather than an id or an empty line.
+- The invite list beside it names the same trip the same way.
