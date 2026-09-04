@@ -348,6 +348,55 @@ describe("transports", () => {
   });
 
   /**
+   * B151 — an umlaut used to take its vowel with it.
+   *
+   * The `.eml` name's slug never normalised, so a composed character was not
+   * folded to its base letter but deleted outright: "Grüße vom Weg" became
+   * `gr-e-vom-weg`, with both the `ü` and the `ß` gone and the word with them.
+   * Nothing resolves these names — they are development filenames in a
+   * gitignored folder, and since B50 they cannot collide — so the cost is
+   * exactly one thing: a person debugging a German or Hungarian mail flow
+   * reads a filename that has silently dropped the word they are looking for.
+   *
+   * **Which expansion, and why not the other one.** `ß` is spelled out and the
+   * accents come off, but `lib/slug.ts`'s transliteration table is
+   * deliberately not carried over — `ü` is `u` here and `ue` there, so this
+   * subject is `grusse-vom-weg` on disk and `gruesse-vom-weg` in a permalink.
+   * The table's job is keeping "Rückfahrt" and a jolt apart in an address
+   * somebody has already shared. Nothing here is shared, resolved or
+   * permanent, so the guarantee is not worth coupling the two rules — B77
+   * rejected unifying them and B86 restated why. Recognisable is the whole
+   * requirement.
+   *
+   * Asserted on the two letters that behave differently: `ü`, which NFD can
+   * decompose, and `ß`, which it cannot, so it needs the line of its own that
+   * `lib/postcard/filename.ts` does not have either.
+   */
+  test("a subject's umlauts and ß survive into the filename", async () => {
+    writeConfig({ enabled: true, transport: "file" });
+
+    const sent = await sendMail(renderMail("r@example.test", "Grüße vom Weg", SAMPLE, "ana"));
+    expect(path.basename(sent!.reference)).toContain("grusse-vom-weg");
+
+    // The accent folds to its base letter rather than being dropped …
+    const zurich = await sendMail(renderMail("r@example.test", "Zürich", SAMPLE, "ana"));
+    expect(path.basename(zurich!.reference)).toContain("zurich");
+
+    // … and not to the two-letter form the public slug rule uses.
+    expect(path.basename(zurich!.reference)).not.toContain("zuerich");
+
+    // Vietnamese keeps its vowels for the same reason German does.
+    const hoiAn = await sendMail(renderMail("r@example.test", "Hội An", SAMPLE, "ana"));
+    expect(path.basename(hoiAn!.reference)).toContain("hoi-an");
+
+    // A subject with no ASCII left in it still names a file rather than
+    // producing an empty component — the fallback this copy has and
+    // `lib/slug.ts` spells `entry`.
+    const greek = await sendMail(renderMail("r@example.test", "Καλημέρα", SAMPLE, "ana"));
+    expect(path.basename(greek!.reference)).toContain("mail");
+  });
+
+  /**
    * B50 — two messages in one millisecond used to leave one file.
    *
    * The name was timestamp, recipient and subject, and `writeFileSync`
