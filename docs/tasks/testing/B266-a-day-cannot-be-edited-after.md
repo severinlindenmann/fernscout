@@ -7,8 +7,7 @@ complexity: medium
 area: api, entries, agent docs
 found: "2026-09-04T11:35:51Z"
 started: "2026-09-04T11:53:17Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T11:53:17Z"
+merged: "2026-09-04T12:18:26Z"
 ---
 
 # B266 — A day cannot be edited after it is written, and the agent that tried published fifteen of them
@@ -95,3 +94,27 @@ the first place.
 - No request to any endpoint can move a day between draft and published except
   `.../publish`, asserted by a test.
 - `npm run build`, `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`.
+
+## Decided while building
+
+**A trip-scoped token may edit a published day** — the owner's decision on
+2026-09-04, asked because it was not obvious and is not what the neighbouring
+endpoint does.
+
+It is worth writing down that this is a deliberate asymmetry rather than an
+oversight. `.../publish` refuses a trip-scoped token in so many words — *"being
+on the bus is not the same as deciding what the journal says"* (B28) — and
+`PATCH` does not. So somebody on the trip cannot decide that a day goes up, and
+can rewrite it once it has: the line is drawn at *putting it on the site*, not
+at what it says afterwards. The reasoning is that the people on a trip are the
+people who were there, and a wrong date or a misspelled village is theirs to
+fix without waiting for the owner — which is the same argument that lets them
+write the day in the first place.
+
+Two consequences to keep in view, neither a defect today:
+
+- Nothing tells the owner that a published day changed. If that becomes
+  uncomfortable, the answer is a notice, not a narrower gate.
+- A guard was drafted and deliberately not merged. Reinstating it is one
+  condition in the `PATCH` handler, beside the `isPublished` read the response
+  already makes.

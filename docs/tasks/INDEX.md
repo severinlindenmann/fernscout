@@ -128,9 +128,7 @@ _Nothing here._
 
 ## in-development
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B266](in-development/B266-a-day-cannot-be-edited-after.md) | A day cannot be edited after it is written, and the agent that tried published fifteen of them | ISSUE | high | medium | `986bc24c` |
+_Nothing here._
 
 ## testing
 
@@ -157,6 +155,7 @@ _Nothing here._
 | [B263](testing/B263-journal-creation-silently-defaults-visibility-and.md) | Journal creation silently defaults visibility and language, so a journal asked to be private was created public | SECURITY | high | low | — |
 | [B264](testing/B264-a-reader-who-may-see-nothing.md) | A reader who may see nothing in a journal is told there are no trips yet | ISSUE | high | medium | — |
 | [B265](testing/B265-a-day-with-no-coordinates-puts.md) | A day with no coordinates puts NaN through every map on the site | ISSUE | high | low | — |
+| [B266](testing/B266-a-day-cannot-be-edited-after.md) | A day cannot be edited after it is written, and the agent that tried published fifteen of them | ISSUE | high | medium | — |
 | [B272](testing/B272-a-transient-mail-failure-tells-a.md) | A transient mail failure tells a reader their code was wrong and loses the owner's notification for good | ISSUE | high | medium | — |
 | [B64](testing/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
