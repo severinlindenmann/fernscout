@@ -544,16 +544,38 @@ export type TranslationKey =
  * instance rather than to the software — who is travelling, which currency
  * they budget in — without those values being baked into the dictionary.
  * An unknown token is left visible rather than blanked, so it shows up.
+ *
+ * `dictionary` is normally already the requested locale merged over English
+ * (`dictionaryFor()` in lib/locales.ts does that merge), so most callers never
+ * exercise `english` at all — it is there for callers that can tell the two
+ * apart, so a miss that lands on English rather than on the requested locale
+ * is a distinguishable, logged event rather than an invisible one
+ * (`translateIn` is the one that does; see lib/locales.ts).
+ *
+ * This runs on every string of every render, so both checks below are a
+ * property lookup and nothing more: no I/O, no allocation, on the path where
+ * `dictionary` already has the answer.
  */
 export function translate(
   dictionary: Record<string, string>,
   key: TranslationKey,
   vars?: Record<string, string>,
+  english?: Record<string, string>,
 ): string {
-  // The key itself is the last resort: a missing string shows up as
-  // "nav.gallery" on the page, which is ugly and unmistakable — better than a
-  // blank where a word should be.
-  const raw = dictionary[key] ?? key;
+  let raw: string | undefined = dictionary[key];
+  if (raw === undefined) {
+    raw = english?.[key];
+    if (raw === undefined) {
+      // Genuinely missing everywhere we know to look. A key rendered to a
+      // reader — "nav.gallery" in place of a sentence — is certainly wrong
+      // for everybody who sees it, so it is loud in the log rather than only
+      // visible on the page (B279).
+      console.error(`[i18n] "${key}" has no string in any dictionary — rendering the key.`);
+      raw = key;
+    } else {
+      console.error(`[i18n] "${key}" is missing from the requested locale — using English.`);
+    }
+  }
   if (!vars) return raw;
   return raw.replace(/\{(\w+)\}/g, (match, name: string) => vars[name] ?? match);
 }
@@ -603,10 +625,11 @@ export function plural(
   key: TranslationKey,
   count: number,
   vars?: Record<string, string>,
+  english?: Record<string, string>,
 ): string {
   const one = `${key}.one`;
   if (count === 1 && dictionary[one]) {
-    return translate({ ...dictionary, [key]: dictionary[one] }, key, vars);
+    return translate({ ...dictionary, [key]: dictionary[one] }, key, vars, english);
   }
-  return translate(dictionary, key, vars);
+  return translate(dictionary, key, vars, english);
 }

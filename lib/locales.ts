@@ -128,6 +128,50 @@ function dictionarySignature(files: string[]): string {
     .join("|");
 }
 
+/**
+ * B279: a guest invite page once rendered all eight of its own keys — not one
+ * missing string, every namespace it touched — and by the time anybody
+ * looked, the same URL rendered correct German with no deploy or restart in
+ * between. Not reproduced, despite trying. What follows is what was ruled out
+ * and the one mechanism left standing, so the next person chasing this does
+ * not repeat the same dead ends.
+ *
+ * **Ruled out: B59's bug come back.** That was a cache populated once and
+ * never invalidated; this function's staleness check (above) already closes
+ * it, and nothing here calls `clearLocaleCache()` except tests — creating a
+ * journal touches `clearUserCache()`/`clearConfigCache()` (lib/journals.ts)
+ * and never this cache, so "shortly after the journal was created" is
+ * coincidental timing, not a shared invalidation path.
+ *
+ * **Ruled out: the deploy sync's directory swap.**
+ * `scripts/sync-shipped-content.sh` replaces `$CONTENT_DIR/locales/` by
+ * renaming the old directory out and the new one in — two renames, so there
+ * is a real window where that directory does not exist. But `localeFiles()`
+ * reads the *shipped* copy under `process.cwd()/content/locales/` first,
+ * which that script never touches, and only reads `$CONTENT_DIR/locales/` as
+ * a second, optional override — so the window can only blank an override
+ * that most journals do not have, never the baseline English or shipped
+ * strings. The one setup where `$CONTENT_DIR` *is* the repository's own
+ * `content/` — where the swap would matter — is exactly the one the script
+ * detects and skips ("nothing to copy") before it ever runs.
+ *
+ * **Not ruled out, and the leading hypothesis:** every read below is
+ * try/caught and, before this task, every failure — a missing file, a
+ * permission error, a file caught mid-write — was treated alike and cached
+ * alike. A transient, non-ENOENT failure (an EMFILE/EACCES blip, a network
+ * volume hiccup) on *one* server process would produce an empty dictionary
+ * for that process, and — because the cache key is the *file's* signature,
+ * not whether the read succeeded — that empty result is what a signature
+ * match would keep serving from that process for as long as the file itself
+ * does not change, which a plain restart is not required to fix if the
+ * process recycles on its own (a health check, a container replacing itself)
+ * or a later edit anywhere in the file changes its signature. A reader hitting
+ * a different, unaffected process in the meantime would see it render
+ * correctly, which is exactly what was reported. This is now at least
+ * loud — see the `console.warn` calls in `readDictionary` below — where
+ * before it was silent, so the next occurrence should leave a line to
+ * confirm or rule this out for real.
+ */
 function readDictionary(code: string): Dictionary {
   const files = localeFiles(code);
   const key = `${contentRoot()}::${code}`;
@@ -139,16 +183,31 @@ function readDictionary(code: string): Dictionary {
   // may replace a handful of strings without restating all 284.
   const parsed: Dictionary = {};
   for (const file of files) {
+    let raw: string;
     try {
-      const raw = JSON.parse(fs.readFileSync(file, "utf8")) as unknown;
-      if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-        for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+      raw = fs.readFileSync(file, "utf8");
+    } catch (err) {
+      // ENOENT is the expected, unremarkable case: no override for this
+      // instance, or a locale (like Croatian in the tests) that ships no
+      // chrome of its own — English chrome is still a usable site. Anything
+      // else — a permission error, a file mid-write when we got to it — is
+      // not, and was previously indistinguishable from "absent" (B279).
+      if ((err as NodeJS.ErrnoException)?.code !== "ENOENT") {
+        console.warn(`[locales] could not read ${file}:`, err);
+      }
+      continue;
+    }
+    try {
+      const obj = JSON.parse(raw) as unknown;
+      if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+        for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
           if (typeof v === "string") parsed[k] = v;
         }
       }
-    } catch {
-      // A missing dictionary is not fatal: English chrome is a usable site,
-      // and a locale with only content translations is a supported case.
+    } catch (err) {
+      // Valid bytes on disk, invalid JSON: most plausibly this file caught
+      // mid-write — see the B279 note below. Loud rather than silent.
+      console.warn(`[locales] ${file} did not parse as JSON:`, err);
     }
   }
   cache.set(key, { signature, dictionary: parsed });
@@ -192,7 +251,13 @@ export function translateIn(
   key: TranslationKey,
   vars?: Record<string, string>,
 ): string {
-  return translate(dictionaryFor(locale), key, vars);
+  // The requested locale and English are kept apart here, rather than handed
+  // to `translate()` pre-merged as `dictionaryFor()` would, so a miss that
+  // lands on English is a distinguishable, logged event and not simply
+  // whatever `dictionaryFor()`'s spread happened to produce (B279).
+  const english = readDictionary(FALLBACK_LOCALE);
+  const requested = locale === FALLBACK_LOCALE ? english : readDictionary(locale);
+  return translate(requested, key, vars, english);
 }
 
 /** Every dictionary a journal offers, for a form that switches language
