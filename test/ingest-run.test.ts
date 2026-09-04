@@ -320,8 +320,8 @@ describe.runIf(geodataAvailable())("places", () => {
  * `getEntryBySlug` takes the first match and has no tiebreak, so two entry
  * files differing only in the date prefix produce one day that is served and
  * one that is on disk, is not a draft, and never can be. B119 made
- * `createDraft` refuse that, which covers REST and MCP; ingest writes its own
- * names and kept `${date}/${slug}` as its collision key, so the third door
+ * `createDraft` refuse that, which covers REST; ingest writes its own
+ * names and kept `${date}/${slug}` as its collision key, so the second door
  * stayed open.
  *
  * Nothing exotic is needed to reach it — one card holding two visits to the

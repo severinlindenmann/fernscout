@@ -4,7 +4,7 @@ title: Local scripts write straight to content, bypassing the token, draft statu
 type: FEATURE
 priority: medium
 complexity: high
-area: scripts, api, mcp, security
+area: scripts, api, security
 found: "2026-09-03"
 ---
 
@@ -17,6 +17,10 @@ ingest`, make sure all requests have to go through MCP/API — no direct local
 access with functions like that."* B84 fixed the ingest bug but deliberately did
 **not** remove the script, because doing so blind would delete a capability with
 no replacement. This is where that decision gets made properly.
+
+**Note (B298):** MCP was removed 2026-09-04 as unused overhead. The quote
+above is the record of what was actually said and stays as written, but "the
+network path" in this ticket now means the REST API alone.
 
 The concern is real and larger than ingest. `AGENTS.md` describes "two doors,
 the same content behind them": the network doors (`/api/v1`, `/api/mcp`) and the
@@ -74,7 +78,7 @@ reasoning, between at least:
   write a published day or an invalid one. Ingest stays offline. Smallest change
   to how the project works; closes the guarantee gap without closing the door.
 - **Close the repo door.** Remove the write scripts (`ingest`, `postcard`,
-  `photobook`, …), expose their capability through the API/MCP, and make the
+  `photobook`, …), expose their capability through the API, and make the
   in-repo skills call the network path like a remote agent would. Honours the
   instruction literally; costs offline ingest and is a large build. Decide what
   replaces folder-clustering ingest, and whether the operator loses the ability

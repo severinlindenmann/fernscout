@@ -9,9 +9,9 @@
  * through photo ingest and `r-sk-bing` through the API. Same title, two
  * permanent URLs (B77). This is the only one.
  *
- * Pure on purpose — no fs, no `server-only`. The REST route, the MCP tool and
- * `npm run ingest` all call it, and the last of those runs under plain
- * `node`, which is why every import of this file names the `.ts` extension.
+ * Pure on purpose — no fs, no `server-only`. The REST route and
+ * `npm run ingest` both call it, and the latter runs under plain `node`,
+ * which is why every import of this file names the `.ts` extension.
  */
 
 /**

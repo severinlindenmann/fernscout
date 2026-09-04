@@ -352,8 +352,7 @@ export async function storeUploads(
 
       // Decoding is where a file that merely *claims* to be an image gives up,
       // and it throws. Uncaught, that reached the route as a bare 500 with an
-      // empty body — nothing for an agent to act on, while MCP's path answered
-      // the same bytes with a usable error.
+      // empty body — nothing for an agent to act on.
       let source;
       try {
         source = await decodeSource(kept);

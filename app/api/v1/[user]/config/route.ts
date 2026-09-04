@@ -50,9 +50,7 @@ export const dynamic = "force-dynamic";
  * A body naming `features` *and* a profile field is refused rather than
  * half-applied. Each call edits `config.json` once — read, change, write, read
  * back, restore if it does not load — and doing that twice in one request
- * means a request that can succeed halfway. Over MCP the same line falls out
- * of the shape: `set_journal_features` and `set_journal_profile` are two
- * tools.
+ * means a request that can succeed halfway.
  *
  * ## What it cannot do
  *

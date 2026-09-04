@@ -85,3 +85,57 @@ door that no longer exists.
   (excluding `docs/plans/`, `docs/security/`, `docs/tasks/completed/`, and
   the unrelated chrome-devtools-mcp plugin) returns nothing outside the
   explicitly-left-alone categories.
+
+## Built
+
+All six phases of `docs/plans/2026-09-04-remove-mcp.md`, in order:
+
+1. `lib/mcp/idempotency.ts` → `lib/idempotency.ts`; the one surviving import
+   (`app/api/v1/[user]/trips/[trip]/days/route.ts`) repointed.
+2. Deleted `app/api/mcp/route.ts`, `app/api/well-known/oauth-protected-resource/route.ts`,
+   `lib/mcp/http.ts`, `lib/mcp/server.ts`, `lib/mcp/tools.ts`; dropped the two
+   OAuth-metadata rewrites from `next.config.ts`. `lib/mcp/` no longer exists.
+3. Deleted `test/mcp.test.ts` and `test/mcp-create-journal.test.ts` whole;
+   trimmed three MCP-parity test blocks out of `test/journal-features.test.ts`;
+   rewrote the two MCP-dependent assertions in `test/agent-interface.test.ts`.
+4. Trimmed `lib/api/documentation.ts` — the two-doors sentence, the two
+   machine-readable listing rows, the `add_media`/`get_day` MCP asides, and
+   the whole `## The same thing as MCP` section.
+5. Dropped MCP from comments in 12 `lib`/`app` files (found ~15 in the plan;
+   a couple had already gone with the sections they sat in) and, found
+   during execution and not in the original plan table, 5 more in
+   `test/journals.test.ts`, `test/media-upload.test.ts`,
+   `test/test-content.test.ts`, `test/entry-cache.test.ts` and
+   `test/ingest-run.test.ts`.
+6. Deleted `docs/providers/mcp.md`; edited `AGENTS.md`, `README.md`,
+   `docs/README.md`, `docs/architecture.md`, `docs/runbook.md`,
+   `docs/running-locally.md`, `docs/TESTING.md`, `docs/qa/SCENARIOS.md`
+   (dropped section J, left the letter gap per this repo's own precedent —
+   see `docs/plans/INDEX.md` on W34/W35), both skill files, and amended
+   `docs/ROADMAP.md`'s decision log in place (G5 noted as removed, the "MCP
+   server" proof point dropped from the positioning copy).
+
+**Found during execution, not in the plan:** `lib/idempotency.ts`'s own
+header comment was written entirely in MCP's terms and cited
+`docs/providers/mcp.md` — `test/docs-links.test.ts` caught the dead citation
+immediately. Rewrote the comment to describe REST's own retry mechanism.
+
+**One thing beyond the plan's scope, done anyway:** patched **B112**'s own
+Work section (not its quoted Why, which is a verbatim record and stays) to
+drop "/MCP" from its own paraphrase, plus its `area:` tag, plus a short note
+pointing at this ticket — it's an active, unbuilt backlog item, not history,
+so leaving it to mislead the next builder would be worse than the one-line
+edit. **B260, B175 and B206 were not touched** — those need a person to
+close them in `completed/`, named here for that purpose.
+
+## Evidence
+
+- `npm run build && npx tsc --noEmit && npx eslint . && npx vitest run` — all
+  green (158 test files, 2335 passed, 3 skipped unrelated Postgres tests, 4
+  pre-existing unrelated lint warnings).
+- Real server (`next start`): `POST /api/mcp` → 404; `GET
+  /.well-known/oauth-protected-resource` → 404; `curl .../agent.md`,
+  `curl .../documentation.txt` and `curl .../example/documentation.txt`
+  each `grep -ic mcp` → 0.
+
+Merged via `b298-remove-mcp`.

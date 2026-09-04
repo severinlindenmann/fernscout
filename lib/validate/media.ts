@@ -5,7 +5,7 @@
 // second decoding or transcoding it, and what lets the agent guide quote
 // these same numbers instead of retyping them (see lib/api/documentation.ts).
 //
-// Photographs never arrive through the REST API or MCP (see AGENTS.md — they
+// Photographs never arrive through the REST API (see AGENTS.md — they
 // come in through `npm run ingest`), so ingest is this module's one caller
 // today. The shape is kept general anyway: a future upload path gets the
 // same rules for free instead of a fourth copy.

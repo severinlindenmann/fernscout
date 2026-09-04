@@ -80,11 +80,8 @@ export function instanceDocumentation(): string {
     ),
     "",
     ...wrap(
-      "Two doors actually do it: a harness or client that can send an arbitrary " +
-        `HTTP request with a header of its own choosing, or ${base()}/api/mcp added ` +
-        "as an MCP connector — though a connector still needs its owner to hand it " +
-        "a token by hand today; nothing here issues one to a connector on its own " +
-        "(tracked, not fixed, as B260).",
+      "One thing actually does it: a harness or client that can send an " +
+        "arbitrary HTTP request with a header of its own choosing.",
       78,
     ),
     "",
@@ -305,8 +302,6 @@ export function instanceDocumentation(): string {
     "",
     `- [Agent guide](${base()}/agent.md): how to authenticate and write, with worked examples`,
     `- [OpenAPI](${base()}/openapi.json): the same API as a machine contract`,
-    `- [MCP endpoint](${base()}/api/mcp): the same operations as MCP tools, over Streamable HTTP`,
-    `- [Resource metadata](${base()}/.well-known/oauth-protected-resource): RFC 9728, for an MCP client`,
     "",
   );
 
@@ -383,7 +378,6 @@ export function userDocumentation(username: string): string | null {
     `- [Drafts](${base()}/api/v1/${username}/drafts): everything waiting for a person to approve`,
     `- Trips: POST to [the same URL](${base()}/api/v1/${username}/trips) to create one (owner only; private by default)`,
     `- Deleting: DELETE [a trip](${base()}/api/v1/${username}/trips/<trip-id>) or [the journal](${base()}/api/v1/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it, so a 202 means the mail was sent`,
-    `- [MCP](${base()}/api/mcp): the same operations as tools — list_trips, get_day, search_entries, list_drafts, create_day, edit_day, publish_day`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,
     `- [Export](${root}/export.zip): the whole journal as markdown and photographs`,
@@ -1003,7 +997,7 @@ has it, rather than accepted and lost. Titles collide more easily than they
 look: punctuation and accents are folded, so \`Đà Lạt\` and \`Ðà Lạt\` are both
 \`da-lat\`. ${TITLE_COLLISION_EXAMPLE}
 
-**\`idempotency_key\` works here, not only over MCP.** Send one on every write.
+**\`idempotency_key\` works here.** Send one on every write.
 The same key with the same body replays the first answer — \`200\` with
 \`"replayed": true\`, and nothing written twice. The same key with a *different*
 body is refused with \`409\` and nothing is written, because answering your new
@@ -1235,10 +1229,6 @@ a URL it is the last path segment, so \`…/seed/x/3000/2000\` reports
 **published** day is refused with \`409\`: adding photographs to something people
 have already read changes what they read, and that is a person's decision.
 
-Over MCP the same thing is \`add_media\`, taking base64 — fine for a handful, but
-base64 costs a third more than the bytes themselves, so use this endpoint for a
-real card full.
-
 **Send the largest file you have.** Two files are written from each one you
 send: a resized copy at 2000px which is what the site serves, and **the
 original, untouched**, which is what a printed photobook is made from.
@@ -1339,63 +1329,7 @@ The whole entry, and a \`status\` of \`draft\` or \`published\`. **Read your own
 work back before you tell somebody it is ready.** You are asked not to invent
 anything, and this is how you check that you did not — that the date is the one
 you were given, that the place is right, that nothing has been rounded into a
-plausible shape. Over MCP the same thing is \`get_day\`, which now returns drafts
-too and says in its reply when a day is one.
-
-## The same thing as MCP
-
-If you speak the Model Context Protocol, everything above is also available as
-tools at \`${site.url}/api/mcp\` — **Streamable HTTP**, one endpoint, JSON-RPC
-over POST. It is a second door onto the same markdown files, not a second
-system, and the draft rule holds through it exactly as it does here.
-
-| Tool | |
-| --- | --- |
-| \`list_trips\` | every trip in the journal, including private ones |
-| \`get_day\` | one day, as the markdown that made the page — drafts included |
-| \`search_entries\` | full-text across the journal, private trips included |
-| \`list_drafts\` | what is waiting for a person, and which of it nobody lived |
-| \`create_day\` | write a day — **as a draft**, always |
-| \`edit_day\` | correct a day that already exists — never \`status\`; a draft stays a draft and a published day stays published |
-| \`publish_day\` | put a draft on the site, once the person has said so — not an update, and not how you edit one |
-| \`set_journal_features\` | switch one of the journal's capabilities on or off |
-
-The list is filtered by what this journal can actually do: a tool whose
-capability is switched off is **absent** from \`tools/list\` rather than offered
-and then refused. So the tools you are shown are the tools that work.
-
-Authenticate with the same agent token, in the same header. There is no
-separate OAuth authorization server to log in to; the token you already have is
-the credential. The server describes itself at
-\`${site.url}/.well-known/oauth-protected-resource\` (RFC 9728), and
-\`docs/providers/mcp.md\` in the repository says plainly what that does and does
-not amount to.
-
-\`\`\`http
-POST ${site.url}/api/mcp
-Authorization: Bearer fs_agent_…
-Content-Type: application/json
-Accept: application/json, text/event-stream
-
-{"jsonrpc":"2.0","id":1,"method":"tools/call",
- "params":{"name":"create_day","arguments":{
-   "trip":"<trip-id>","title":"…","date":"2026-08-26","content":"…",
-   "idempotency_key":"one-key-per-day-you-write"}}}
-\`\`\`
-
-Pass \`idempotency_key\` on every write, over this door or the REST one — both
-accept it and both mean the same thing by it. If you retry and the first
-attempt had already landed, you get the first result back instead of a conflict
-— which is the difference between "already written" and "write it again under a
-different title".
-
-**A new key for every day.** The key names one write, not your session or your
-connection. Send the same key with the same arguments and you get the first
-answer back; send it with *different* arguments and the call is refused and
-nothing is written — because the alternative is answering your new day with the
-old day's result and reporting success, and there is no way for you to notice
-that. If a refusal says the key was already used, you have reused one: pick a
-new key and send the day again.
+plausible shape.
 
 ## A folder of photographs, all at once
 

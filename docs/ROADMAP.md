@@ -9,7 +9,7 @@ Researched and written in August 2026, before any of it existed, and cut back on
 has shipped, and the research feeding decisions already taken — domain
 availability, print pricing, object-storage comparisons — went with it. Where
 that detail still matters it now lives closer to the code: `docs/providers/` for
-print and MCP, `docs/runbook.md` for hosting, `docs/architecture.md` for shape.
+print, `docs/runbook.md` for hosting, `docs/architecture.md` for shape.
 
 **Section numbers and task IDs are kept even where the work is done**, because
 source comments cite them (`ROADMAP §1.1`, `§2.2`, `§3.1`, `decision 24`). A
@@ -54,7 +54,7 @@ anything still open is in §15.
 | 25 | Agent doc name | **`/documentation.txt`**, not `llms.txt` — named for the person handing over the link. `llms.txt` stays an off-by-default alias. Kept out of search with `X-Robots-Tag: noindex`, never a `robots.txt` rule (plan W23) |
 | 27 | No Docker | **Native install on the VPS** — Node, Caddy, systemd, and Postgres only when a feature needs it. The backend is Next.js route handlers plus a Node worker; **no second framework** (§2.3) |
 | 26 | Landing page | **A landing page at `/`** (or `/welcome` when a `defaultUser` owns the root): what this is, how to point an agent at it, and a link to the live `/example` user (plan W24) |
-| 28 | Publishing | **The agent is the editor: it writes, it publishes, it corrects.** Decision 24 said browsers never edit; this says who does. What an agent writes still arrives as a draft and `POST .../days` still cannot publish — the two calls exist so the owner can read a day back before anyone else — but putting it up is `POST .../days/<slug>/publish` (`publish_day` over MCP), owner-only, and the agent's to make when asked. Supersedes the older rule that a person publishes by deleting `status: draft` from a file, which was advice with nowhere to go for the owner of a journal an agent created (B28, restated B223; B224 dropped the confirmation handshake, which never established consent because the agent held both calls) |
+| 28 | Publishing | **The agent is the editor: it writes, it publishes, it corrects.** Decision 24 said browsers never edit; this says who does. What an agent writes still arrives as a draft and `POST .../days` still cannot publish — the two calls exist so the owner can read a day back before anyone else — but putting it up is `POST .../days/<slug>/publish`, owner-only, and the agent's to make when asked. Supersedes the older rule that a person publishes by deleting `status: draft` from a file, which was advice with nowhere to go for the owner of a journal an agent created (B28, restated B223; B224 dropped the confirmation handshake, which never established consent because the agent held both calls) |
 ### 0.5 What "clean seams" concretely means
 
 Cheap now, expensive to retrofit. This is the whole cost of keeping §12 alive:
@@ -91,8 +91,9 @@ act and requires their own credentials; a hosted tier would supply them instead
 and `/api/health` explains why something is off.
 
 **Off means absent, not broken.** A disabled capability must not render a dead
-button, a 500 or a half-page — the feature is simply not there. `lib/mcp/http.ts`
-and `docs/providers/mcp.md` both turn on this rule.
+button, a 500 or a half-page — the feature is simply not there. `components/SiteNav.tsx`'s
+costs tab (B165) turns on this rule: with `features.costs` off, the tab is gone
+rather than pointing at a page that answers 404.
 
 **Secrets never appear in `config.json`** — SMTP passwords, print-provider keys,
 VAPID keys and the cookie secret are environment variables only. A config file
@@ -252,7 +253,10 @@ structurally cannot offer is: *your content is plain markdown and photos in a
 folder you own, and any agent can read and write it.* Lean all the way in.
 
 G1 (skills + `AGENTS.md`), G4 (REST), G5 (MCP), G6 (direct file access) and
-**G7 — agent-written content is always a draft** shipped in W18 and W23. G7 is
+**G7 — agent-written content is always a draft** shipped in W18 and W23. *G5 was
+removed 2026-09-04 (B298) — no client was exercising it, and it cost real
+maintenance surface. REST (G4) is the only agent-write door now; MCP may come
+back if a real client shows up.* G7 is
 enforced in `lib/entries.ts` and is not a setting. What it means changed in
 decision 28: a draft is the state a day is written into so that somebody can
 read it back, not a lock only a person can open. Publishing is an agent call
@@ -330,9 +334,9 @@ positioning is worth having before it is needed.
 > photos in a folder you own. Talk to it, write it by voice, export it, print
 > it, self-host it. No lock-in, no feed, no algorithm.
 
-The proof points are all things a closed competitor structurally cannot say: MCP
-server, open API, plain-file export, AGPL self-hosting, and "your data leaves as
-easily as it arrived."
+The proof points are all things a closed competitor structurally cannot say:
+open API, plain-file export, AGPL self-hosting, and "your data leaves as easily
+as it arrived."
 
 | ID | Task | Effort |
 | --- | --- | --- |

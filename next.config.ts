@@ -133,18 +133,6 @@ const nextConfig: NextConfig = {
       },
       { source: "/:user/day/:slug.md", destination: "/api/md/:user/:slug" },
       { source: "/:user/day/:slug([^/]+)\\.md", destination: "/api/md/:user/:slug" },
-      // RFC 9728 protected-resource metadata for the MCP endpoint. Rewritten
-      // rather than routed because a dot-prefixed segment is not an App Router
-      // path, and served at both forms because the RFC builds the URL by
-      // inserting the well-known segment *before* the resource's own path.
-      {
-        source: "/.well-known/oauth-protected-resource",
-        destination: "/api/well-known/oauth-protected-resource",
-      },
-      {
-        source: "/.well-known/oauth-protected-resource/:path*",
-        destination: "/api/well-known/oauth-protected-resource",
-      },
     ];
   },
   /**

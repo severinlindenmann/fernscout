@@ -13,7 +13,7 @@ maintained guidance for an agent; this folder is the long form for a person.
 | [currencies.md](currencies.md) | how money is stored, converted and refused |
 | [config-upgrades.md](config-upgrades.md) | moving a config file forward a version |
 | [deploy-mail.md](deploy-mail.md) | mail, and the file transport that needs no SMTP |
-| [providers/](providers/) | MCP, and the print providers |
+| [providers/](providers/) | the print providers |
 | [TESTING.md](TESTING.md) · [qa/](qa/) | the manual walkthrough, and the scenario catalogue |
 | [ROADMAP.md](ROADMAP.md) | the decision log |
 | [branding/](branding/) | the mark, the palette, and what not to do to them |
@@ -28,9 +28,8 @@ folder was moved to `docs/archiv/`; on 2026-09-04 it was moved back, because a
 directory called *archive* answers the wrong question. "Nobody has reviewed
 this" is a fact about provenance. *Archive* is read as a fact about currency —
 historical, superseded, safe to ignore — and none of these files are that. The
-runbook holds the live restore procedure; `providers/mcp.md` is what
-`AGENTS.md` cites as the MCP reference; `config-upgrades.md` is the only place
-`configVersion` is explained. Thirty-odd citations in `lib/`, `scripts/`,
+runbook holds the live restore procedure; `config-upgrades.md` is the only
+place `configVersion` is explained. Thirty-odd citations in `lib/`, `scripts/`,
 `test/` and `.claude/skills/` never stopped pointing here, and the handful that
 were repointed into `archiv/` ended up telling an operator that the backup
 procedure was archived. See B23.

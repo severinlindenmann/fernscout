@@ -314,9 +314,9 @@ describe("the day list says which days did not happen", () => {
  *
  * B47 fixed the trip summary, the day read and the markdown twin; B116 fixed
  * the day list. `listDrafts` returned `{ slug, title, date }` and nothing else,
- * so `GET /api/v1/<user>/drafts` and MCP's `list_drafts` — the one list an
- * agent is *instructed* to read back before asking "which of these do you
- * want up?" — could not say that a draft was content nobody lived. An agent
+ * so `GET /api/v1/<user>/drafts` — the one list an agent is *instructed* to
+ * read back before asking "which of these do you want up?" — could not say
+ * that a draft was content nobody lived. An agent
  * that names five drafts without mentioning that two are inventions has handed
  * somebody a decision without the fact that decides it.
  */

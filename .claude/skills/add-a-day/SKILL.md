@@ -111,8 +111,7 @@ If you are not in the repository, the same operation is one call:
 
 ```
 POST /api/v1/<user>/trips/<trip-id>/days     (REST — see /agent.md)
-tools/call create_day                        (MCP  — see docs/providers/mcp.md)
 ```
 
-Both refuse to overwrite an existing entry for the same date and title: a
+It refuses to overwrite an existing entry for the same date and title: a
 `409` means you are retrying, not that you need a different title.

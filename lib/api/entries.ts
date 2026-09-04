@@ -637,9 +637,9 @@ export function editEntry(
  * because that is what is actually the case: the page goes up wearing a banner
  * that says it did not happen, and nothing goes looking for it.
  *
- * One function, because REST and MCP report the same act and a sentence kept
- * in two files disagrees with itself within a month — which is exactly how the
- * two copies of this one came to differ before B158 merged them.
+ * One function, because a sentence kept in two files disagrees with itself
+ * within a month — which is exactly how the two copies of this one came to
+ * differ before B158 merged them.
  */
 export function publishNotice(input: {
   title: string;

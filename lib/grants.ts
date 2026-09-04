@@ -31,7 +31,7 @@ import { getDatabase } from "./db";
  * sorts correctly.
  *
  * **Decided, rather than left open (B178).** A grant is permanent until the
- * owner revokes it, and neither REST nor MCP takes an expiry — approving
+ * owner revokes it, and REST takes no expiry — approving
  * somebody is the owner saying "you are welcome here", not "you are welcome
  * here until March", and an access list that silently empties itself is a
  * worse surprise than one the owner has to prune. The column stays, and stays

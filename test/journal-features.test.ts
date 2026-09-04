@@ -8,8 +8,6 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { setJournalFeatures } from "@/lib/journals";
-import { callTool } from "@/lib/mcp/tools";
-import { resolveSession } from "@/lib/auth";
 
 /**
  * B182 — a journal's capabilities after the day it was created.
@@ -142,16 +140,6 @@ describe("switching a capability on", () => {
     const { status, body } = await patch({ features: { contacts: true } });
     expect(status).toBe(200);
     expect(body).toMatchObject({ ok: true, changed: ["contacts"] });
-    expect(isEnabled("contacts", "ana")).toBe(true);
-  });
-
-  test("and through MCP, because the two doors are the same operation", async () => {
-    const session = await resolveSession(token, "agent");
-    if (!session) throw new Error("no session");
-    const result = await callTool("set_journal_features", session, {
-      features: { contacts: true },
-    });
-    expect(result?.ok).toBe(true);
     expect(isEnabled("contacts", "ana")).toBe(true);
   });
 
@@ -298,24 +286,13 @@ describe("who may call it", () => {
  *    effect is inert or a self-narrowing nobody asked for.
  */
 describe("what a journal says about itself", () => {
-  test("a title typoed at signup can be fixed, through both doors identically", async () => {
+  test("a title typoed at signup can be fixed", async () => {
     const { status, body } = await patch({ title: "Ana's Slow Loop" });
     expect(status).toBe(200);
     expect(body).toMatchObject({ ok: true, changed: ["title"] });
     // Read back off disk, not echoed: the point is the file.
     expect(rawConfig().title).toBe("Ana's Slow Loop");
     expect(getUser("ana")?.title).toBe("Ana's Slow Loop");
-    const viaRest = fs.readFileSync(path.join(dir, "ana", "config.json"), "utf8");
-
-    // The same change over MCP produces the same bytes. B178 and B175 asserted
-    // it this way for trip fields; a second door that writes a different file
-    // is two products.
-    writeUserConfig();
-    const session = await resolveSession(token, "agent");
-    if (!session) throw new Error("no session");
-    const result = await callTool("set_journal_profile", session, { title: "Ana's Slow Loop" });
-    expect(result?.ok).toBe(true);
-    expect(fs.readFileSync(path.join(dir, "ana", "config.json"), "utf8")).toBe(viaRest);
   });
 
   test("a tagline can be cleared, and clearing it removes the key rather than emptying it", async () => {
@@ -444,17 +421,6 @@ describe("the three fields it will not write", () => {
     expect(String(body.message)).toContain("operator");
   });
 
-  test("MCP does not offer them either — the schema has no property for them", async () => {
-    const { toolsFor } = await import("@/lib/mcp/tools");
-    const session = await resolveSession(token, "agent");
-    if (!session) throw new Error("no session");
-    const tool = toolsFor(session).find((t) => t.name === "set_journal_profile");
-    const properties = Object.keys(tool?.inputSchema.properties ?? {});
-    expect(properties).not.toContain("baseCurrency");
-    expect(properties).not.toContain("owner");
-    expect(properties).not.toContain("media");
-    expect(tool?.inputSchema.additionalProperties).toBe(false);
-  });
 });
 
 describe("one kind of change per call", () => {

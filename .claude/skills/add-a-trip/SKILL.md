@@ -129,9 +129,9 @@ Five fields decide behaviour rather than decoration:
 
   An unrecognised value reads as **`guests`**, not as public: the fail-closed
   end of this axis is the quiet one. Writing it through the API — `POST
-  /api/v1/<user>/trips`, or `create_trip` over MCP — a value neither word is
-  refused rather than defaulted, because both defaults would be a silent
-  decision about somebody's money (B178).
+  /api/v1/<user>/trips` — a value neither word is refused rather than
+  defaulted, because defaulting it would be a silent decision about
+  somebody's money (B178).
 - **`rates`** — how much one unit of a local currency was worth in the site's
   `baseCurrency` **on this trip**. Frozen per trip on purpose: a later trip to
   the same country carries its own table and never restates what this one cost.

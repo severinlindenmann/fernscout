@@ -51,11 +51,11 @@ export type NewJournal = {
    * quietly unlisting somebody who did not ask to be unlisted is its own kind
    * of surprise. An agent is told to ask; asking is the mechanism.
    *
-   * That default is for a direct caller of this function — the two doors that
-   * reach it in production, `POST /api/v1/journals` and the MCP
-   * `create_journal` tool, both refuse a request that omits it rather than
-   * ever passing `undefined` down to here (B263). Silence reaching this
-   * default at all would mean one of those doors stopped asking.
+   * That default is for a direct caller of this function — the caller that
+   * reaches it in production, `POST /api/v1/journals`, refuses a request
+   * that omits it rather than ever passing `undefined` down to here (B263).
+   * Silence reaching this default at all would mean that caller stopped
+   * asking.
    */
   visibility?: JournalVisibility;
   startLocation?: string;

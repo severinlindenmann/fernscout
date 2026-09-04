@@ -423,10 +423,8 @@ describe("what the guide has to tell an agent before it starts", () => {
     expect(guide).not.toMatch(/paste (it|this|the .gallery)/i);
   });
 
-  test("documents idempotency_key for REST, not only for MCP", () => {
-    const guide = agentGuide();
-    const restSection = guide.slice(0, guide.indexOf("## The same thing as MCP"));
-    expect(restSection).toContain("idempotency_key");
+  test("documents idempotency_key for REST", () => {
+    expect(agentGuide()).toContain("idempotency_key");
   });
 
   test("the markdown twin it documents carries the trip", () => {
@@ -550,13 +548,10 @@ describe("the entry document tells an agent whether it can write here", () => {
     expect(section).toContain("Authorization: Bearer");
   });
 
-  test("names the two real doors, and does not overclaim the MCP one", () => {
+  test("names the one real door", () => {
     const summary = instanceDocumentation();
     expect(summary).toMatch(/arbitrary\s+HTTP\s+request/i);
-    expect(summary).toContain("/api/mcp");
-    expect(summary).toMatch(/connector/i);
-    // B260 is the gap, not the fix — a connector still needs a hand-carried token.
-    expect(summary).toContain("B260");
+    expect(summary).not.toContain("/api/mcp");
   });
 
   test("forbids the two observed workarounds by name", () => {

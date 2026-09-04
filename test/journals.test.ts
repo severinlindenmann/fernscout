@@ -100,8 +100,8 @@ describe("creating a journal", () => {
    * B153. A journal that cannot be shared is not a finished journal.
    *
    * `createJournal` wrote `reactions`, `costs` and `auth` and stopped, the
-   * default for `contacts` is off, and **no endpoint, MCP tool or page
-   * anywhere writes a user's `features` block** — so the only way to switch it
+   * default for `contacts` is off, and **no endpoint or page anywhere writes
+   * a user's `features` block** — so the only way to switch it
    * on was to hand-edit config.json over SSH. Every journal an agent made was
    * in that state, and since B39 removed trip passwords an invite link is the
    * only way to let anybody in at all.
