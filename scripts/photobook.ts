@@ -22,7 +22,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 
-import { buildBookSource } from "../lib/photobook/source.ts";
+import { buildBookSource, resolvePrintFile } from "../lib/photobook/source.ts";
 import { outline, planBook, type Photobook } from "../lib/photobook/plan.ts";
 import { renderCover, renderVolume } from "../lib/photobook/render.ts";
 import { renderPreview } from "../lib/photobook/preview.ts";
@@ -177,7 +177,9 @@ const document = {
 
 // ---- render ----------------------------------------------------------------
 
-const loadImage = (file: string) => new Uint8Array(fs.readFileSync(file));
+// `BookPhoto.file` is content-root-relative so the plan is the same JSON on
+// every machine (B25); this is where it becomes a file again.
+const loadImage = (file: string) => new Uint8Array(fs.readFileSync(resolvePrintFile(file)));
 const written: string[] = [];
 const md5 = (bytes: Uint8Array) => crypto.createHash("md5").update(bytes).digest("hex");
 
@@ -218,7 +220,7 @@ for (const volume of book.volumes) {
   for (const miss of [...interior.missing, ...cover.missing]) console.log(`      ! ${miss}`);
 }
 
-write(`${bookSlug}-preview.html`, renderPreview(book, outDir));
+write(`${bookSlug}-preview.html`, renderPreview(book, outDir, resolvePrintFile));
 write(
   `${bookSlug}-plan.json`,
   JSON.stringify({ spec: book.spec, warnings: book.warnings, volumes: book.volumes }, null, 2) + "\n",
@@ -293,10 +295,9 @@ for (const file of written) console.log(`  ${file}`);
 
 if (book.warnings.length > 0) {
   console.log("\nWarnings:");
-  const here = `${process.cwd()}${path.sep}`;
-  for (const w of book.warnings) {
-    console.log(`  ! [${w.code}] ${w.detail.split(here).join("")}`);
-  }
+  // No stripping of the working directory: the paths in these are already
+  // relative to the content root, because the plan they came from is.
+  for (const w of book.warnings) console.log(`  ! [${w.code}] ${w.detail}`);
 }
 
 console.log("\nColour:");

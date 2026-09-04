@@ -9,6 +9,10 @@
  *
  * The output is one self-contained HTML file next to the PDFs, with the photos
  * referenced by relative path so it can be opened straight from the folder.
+ *
+ * `BookPhoto.file` is a handle rather than a path — the source writes it
+ * relative to the content root so the plan stays machine-independent (B25) —
+ * so the caller passes in whatever turns one back into a real file.
  */
 
 import path from "node:path";
@@ -134,7 +138,12 @@ function textBlock(spec: BookSpec, page: BookPage, html: string, klass = "copy")
   return `<div class="${klass}" style="${style(spec, c)}">${html}</div>`;
 }
 
-function pageHtml(spec: BookSpec, page: BookPage, outDir: string): string {
+function pageHtml(
+  spec: BookSpec,
+  page: BookPage,
+  outDir: string,
+  resolveFile: (file: string) => string,
+): string {
   const type = typeScale(spec);
   const scale = 100 / (spec.size.trimHeightMm + spec.bleedMm * 2);
   const pt = (size: number) => `font-size:${(size * scale * 0.352778).toFixed(3)}cqh`;
@@ -206,7 +215,7 @@ function pageHtml(spec: BookSpec, page: BookPage, outDir: string): string {
 
     case "photos":
       for (const p of page.placements) {
-        const src = path.relative(outDir, p.photo.file).split(path.sep).join("/");
+        const src = path.relative(outDir, resolveFile(p.photo.file)).split(path.sep).join("/");
         parts.push(
           `<div class="slot" style="${style(spec, p.clip)}">` +
             `<img src="${escape(src)}" alt="" style="${imgStyle(p.clip, p.draw)}">` +
@@ -269,7 +278,13 @@ function imgStyle(clip: RectMm, draw: RectMm): string {
   ].join(";");
 }
 
-export function renderPreview(book: Photobook, outDir: string): string {
+export function renderPreview(
+  book: Photobook,
+  outDir: string,
+  /** `BookPhoto.file` → a real path. Identity for a source that already
+   * hands over absolute ones, which is what a test usually does. */
+  resolveFile: (file: string) => string = (file) => file,
+): string {
   const spec = book.spec;
   const ratio = (spec.size.trimWidthMm + spec.bleedMm * 2) / (spec.size.trimHeightMm + spec.bleedMm * 2);
   const volumes = book.volumes
@@ -277,7 +292,7 @@ export function renderPreview(book: Photobook, outDir: string): string {
       (volume: BookVolume) =>
         `<section><h2>${escape(volume.title)} — ${volume.interiorPages} pages, ` +
         `spine ${volume.spineWidthMm.toFixed(1)} mm</h2>` +
-        `<div class="spreads">${volume.pages.map((p) => pageHtml(spec, p, outDir)).join("")}</div>` +
+        `<div class="spreads">${volume.pages.map((p) => pageHtml(spec, p, outDir, resolveFile)).join("")}</div>` +
         `</section>`,
     )
     .join("");

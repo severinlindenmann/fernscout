@@ -10,6 +10,10 @@
  * its dimensions. The planner cannot choose a layout without knowing whether a
  * picture is tall or wide, and guessing gets it wrong on the pages where it
  * matters most.
+ *
+ * It also decides **which copy of each photograph is printed** — see
+ * `printSourceFor` — and it is the only place that can, because it is the only
+ * place that knows `originals/` is a sibling of `media/`.
  */
 
 import fs from "node:fs";
@@ -21,10 +25,18 @@ import { contentRoot } from "../contentRoot";
 import { getDays, getPlaces } from "../entries";
 import { getPlan } from "../plan";
 import { getCostSummary } from "../costs";
+import { tripMediaDir, tripOriginalsDir } from "../media";
 import { getTrip, tripDir } from "../trips";
 import { readJpeg } from "../postcard/pdf.ts";
 import { paragraphsOf } from "./text.ts";
-import type { BookCosts, BookDay, BookPhoto, BookSource, RoutePoint } from "./plan.ts";
+import type {
+  BookCosts,
+  BookDay,
+  BookPhoto,
+  BookSource,
+  BookWarning,
+  RoutePoint,
+} from "./plan.ts";
 
 /** `/media/<trip>/a/b.jpg` → the file on disk inside that trip. */
 export function mediaFileFor(ref: string, src: string): string {
@@ -36,6 +48,106 @@ export function mediaFileFor(ref: string, src: string): string {
   const prefix = prefixes.find((p) => src.startsWith(p)) ?? `/media/${tripId}/`;
   const relative = src.startsWith(prefix) ? src.slice(prefix.length) : src.replace(/^\/+/, "");
   return path.join(tripDir(ref), "media", relative);
+}
+
+/**
+ * How a `BookPhoto.file` is written down, and how it is read back.
+ *
+ * **Relative to the content root, with forward slashes**, because the plan is
+ * a file somebody keeps: an absolute path makes the JSON machine-specific, so
+ * two people generating the same book from the same input get different bytes
+ * — and it drags a home directory, and therefore a person's name, into a
+ * generated artefact (B25).
+ *
+ * `resolvePrintFile` is the other half. Everything downstream of the source —
+ * the planner, the renderer, the preview — treats `file` as an opaque handle,
+ * so the two functions below are the only place the string is a path.
+ */
+function bookFile(absolute: string): string {
+  return path.relative(contentRoot(), absolute).split(path.sep).join("/");
+}
+
+export function resolvePrintFile(file: string): string {
+  return path.resolve(contentRoot(), file);
+}
+
+/** JPEG-first, so `01.jpg` beside `01.heic` prints rather than falls back. */
+const PRINTABLE = /\.jpe?g$/i;
+
+/**
+ * The kept original for a derivative, matched on **basename, any extension**.
+ *
+ * Ingest names the original after the derivative rather than after the camera
+ * (`lib/ingest/index.ts`), so `01.jpg` in `media/` is `01.<whatever the camera
+ * wrote>` in `originals/` — `.heic`, `.cr2`, `.jpeg`. A path join on the
+ * derivative's own extension finds nothing for exactly the files that most
+ * need finding.
+ */
+function findOriginal(originalsDir: string, relative: string): string | null {
+  const dir = path.join(originalsDir, path.dirname(relative));
+  const stem = path.basename(relative, path.extname(relative)).toLowerCase();
+  let names: string[];
+  try {
+    names = fs.readdirSync(dir);
+  } catch {
+    return null;
+  }
+  const matches = names
+    .filter((n) => path.basename(n, path.extname(n)).toLowerCase() === stem)
+    .sort((a, b) => Number(PRINTABLE.test(b)) - Number(PRINTABLE.test(a)) || a.localeCompare(b));
+  return matches.length > 0 ? path.join(dir, matches[0]) : null;
+}
+
+export type PrintSource = {
+  /** What the plan records: content-root-relative. See `bookFile`. */
+  file: string;
+  /** The same file, absolute, for reading it here and now. */
+  absolute: string;
+  /** The original's own dimensions, when the original is what will be printed.
+   * The frontmatter's are the *derivative's* and would understate it. */
+  size?: { width: number; height: number };
+  /** Set when the derivative is being printed because the original could not
+   * be. Never absent for a fallback: a book printed soft has to say why. */
+  fallbackReason?: string;
+};
+
+/**
+ * Which copy of a photograph the book prints.
+ *
+ * The originals exist for this and nothing else — `lib/media.ts` says so, both
+ * write paths honour it, and `lib/exportZip.ts` leaves them out of an export
+ * because "they are what the photobook needs". Until B13 the photobook looked
+ * for a better version of `01.jpg` in the one folder that holds the worse one,
+ * so every plate in a 210mm book printed at about 125 DPI.
+ *
+ * **Only a JPEG original is used.** The PDF writer embeds JPEG bytes verbatim
+ * as a DCTDecode stream (`readJpeg`, `lib/postcard/pdf.ts`) and can do nothing
+ * with a HEIC or a RAW; transcoding one on demand would put a decoder for
+ * every camera format in the print path. So a non-JPEG original falls back to
+ * the derivative *and says so*, which is the part that matters — a silent
+ * fallback is how the low-resolution warning came to be the only symptom.
+ */
+export function printSourceFor(ref: string, src: string): PrintSource {
+  const derivative = mediaFileFor(ref, src);
+  const relative = path.relative(tripMediaDir(ref), derivative);
+  const served = { file: bookFile(derivative), absolute: derivative };
+  // A src that escapes `media/` is not one we go looking for a better copy of.
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) return served;
+
+  const original = findOriginal(tripOriginalsDir(ref), relative);
+  if (!original) {
+    return { ...served, fallbackReason: "no original was kept for it" };
+  }
+  const size = dimensionsOf(original);
+  if (!size) {
+    return {
+      ...served,
+      fallbackReason:
+        `its original (${path.basename(original)}) is not a JPEG, and a JPEG is all the ` +
+        "PDF writer can embed",
+    };
+  }
+  return { file: bookFile(original), absolute: original, size };
 }
 
 function dimensionsOf(file: string): { width: number; height: number } | null {
@@ -109,24 +221,37 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
     .map((p) => p.nickname || p.name)
     .filter(Boolean);
 
+  // Photographs printed from the web copy, and why. Reported once for the
+  // book rather than once per plate; the per-photograph half rides along on
+  // any low-resolution warning, where a reader is already looking.
+  const fallbacks = new Map<string, string[]>();
+
   const days: BookDay[] = getDays(tripId).map((day) => {
     const photos: BookPhoto[] = [];
     for (const entry of day.entries) {
       for (const item of entry.gallery) {
         if (item.type !== "image") continue;
-        const file = mediaFileFor(tripId, item.src);
+        const print = printSourceFor(tripId, item.src);
+        // The original's own header wins: the frontmatter records what the
+        // browser is served, which is the smaller of the two by construction.
         const size =
-          item.width && item.height
+          print.size ??
+          (item.width && item.height
             ? { width: item.width, height: item.height }
-            : dimensionsOf(file);
+            : dimensionsOf(print.absolute));
         if (!size) continue;
         if (options.minPixelWidth && size.width < options.minPixelWidth) continue;
+        if (print.fallbackReason) {
+          const seen = fallbacks.get(print.fallbackReason) ?? [];
+          seen.push(print.file);
+          fallbacks.set(print.fallbackReason, seen);
+        }
         photos.push({
-          file,
-          label: path.relative(contentRoot(), file),
+          file: print.file,
           width: size.width,
           height: size.height,
           caption: item.caption,
+          fallbackReason: print.fallbackReason,
         });
       }
     }
@@ -152,6 +277,15 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
     };
   });
 
+  const photoCount = days.reduce((n, d) => n + d.photos.length, 0);
+  const notes: BookWarning[] = [...fallbacks.entries()].map(([reason, files]) => ({
+    code: "no-original",
+    detail:
+      `${files.length} of ${photoCount} photographs printed from the web copy because ` +
+      `${reason}: ${files.slice(0, 3).join(", ")}${files.length > 3 ? ", …" : ""}. ` +
+      "The web copy is capped at 2000px, which is soft on a full page.",
+  }));
+
   return {
     trip: {
       id: trip.id,
@@ -163,6 +297,7 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
     },
     travellers,
     days,
+    notes,
     route: routeFor(tripId),
     costs: costsFor(tripId),
     madeOn: options.madeOn ?? new Date().toISOString().slice(0, 10),

@@ -1,0 +1,265 @@
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import sharp from "sharp";
+
+import { clearConfigCache } from "@/lib/config";
+import { clearUserCache } from "@/lib/users";
+import { buildBookSource, printSourceFor, resolvePrintFile } from "@/lib/photobook/source";
+import { planBook } from "@/lib/photobook/plan";
+import { defaultSpec, BOOK_SIZES } from "@/lib/photobook/spec";
+
+/**
+ * Which copy of a photograph a book is built from, and how the plan says so.
+ *
+ * Two tasks meet here. **B13**: the originals exist so a plate can be printed
+ * at 300 dpi, and the photobook looked for a better version of `01.jpg` in the
+ * one folder that holds the worse one — so every page of a 210mm book came out
+ * at about 125 DPI. **B25**: the plan wrote absolute paths, which made the JSON
+ * machine-specific, and on a maintainer's own laptop dragged a home directory
+ * — and therefore a person's name — into a generated file the depersonalisation
+ * test walks.
+ */
+
+let dir: string;
+const REF = "alex/asia-2026";
+const SPEC = defaultSpec(BOOK_SIZES["square-210"]);
+
+const tripPath = () => path.join(dir, "alex", "trips", "asia-2026");
+
+async function jpeg(width: number, height: number): Promise<Buffer> {
+  return sharp({ create: { width, height, channels: 3, background: { r: 10, g: 90, b: 140 } } })
+    .jpeg()
+    .toBuffer();
+}
+
+function write(file: string, contents: string | Buffer) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, contents);
+}
+
+/** One day, one photograph per `names` entry, numbered as ingest numbers them. */
+function writeDay(slug: string, date: string, images: { width: number; height: number }[]) {
+  write(
+    path.join(tripPath(), "entries", `${date}-${slug}.md`),
+    [
+      "---",
+      `title: "${slug}"`,
+      `date: "${date}"`,
+      'location: "Hoi An"',
+      'country: "Vietnam"',
+      'countryCode: "VN"',
+      "lat: 15.88",
+      "lng: 108.33",
+      "gallery:",
+      ...images.flatMap((image, i) => [
+        `  - src: "/media/asia-2026/${slug}/${String(i + 1).padStart(2, "0")}.jpg"`,
+        '    type: "image"',
+        // Deliberately the *derivative's* numbers, which is what both writers
+        // record. A book built from the original must not believe them.
+        `    width: ${image.width}`,
+        `    height: ${image.height}`,
+      ]),
+      "---",
+      "",
+      "Words about the day.",
+      "",
+    ].join("\n"),
+  );
+}
+
+beforeEach(() => {
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-book-"));
+  process.env.CONTENT_DIR = dir;
+  delete process.env.MEDIA_ORIGINALS_DIR;
+  write(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "F", url: "https://example.test", defaultUser: "alex" },
+      users: {},
+      features: {},
+    }),
+  );
+  write(
+    path.join(dir, "alex", "config.json"),
+    JSON.stringify({
+      title: "Alex",
+      tagline: "t",
+      owner: { name: "A B", nickname: "A" },
+      startLocation: "X",
+      defaultLocale: "en",
+      locales: ["en"],
+      baseCurrency: "CHF",
+      displayCurrencies: ["CHF"],
+      units: "metric",
+      features: {},
+    }),
+  );
+  write(
+    path.join(tripPath(), "trip.md"),
+    [
+      "---",
+      "id: asia-2026",
+      'title: "Asia"',
+      'start: "2026-01-01"',
+      'end: "2026-01-05"',
+      "status: past",
+      "visibility: public",
+      "---",
+      "",
+      "Intro.",
+      "",
+    ].join("\n"),
+  );
+  clearConfigCache();
+  clearUserCache();
+});
+
+afterEach(() => {
+  delete process.env.CONTENT_DIR;
+  clearConfigCache();
+  clearUserCache();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+describe("which copy of a photograph gets printed", () => {
+  test("the kept original, not the 2000px copy the browser is served", async () => {
+    writeDay("day-one", "2026-01-01", [{ width: 2000, height: 1333 }]);
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
+    write(path.join(tripPath(), "originals", "day-one", "01.jpg"), await jpeg(4200, 2800));
+
+    const source = buildBookSource(REF, { madeOn: "2026-02-01" });
+    const photo = source.days[0].photos[0];
+
+    expect(photo.file).toBe("alex/trips/asia-2026/originals/day-one/01.jpg");
+    // The frontmatter said 2000×1333 — the derivative's numbers. Believing them
+    // is what made every plate print soft.
+    expect(photo.width).toBe(4200);
+    expect(photo.height).toBe(2800);
+    expect(photo.fallbackReason).toBeUndefined();
+    expect(fs.existsSync(resolvePrintFile(photo.file))).toBe(true);
+  });
+
+  /**
+   * The case a naive path join gets wrong. Ingest names the original after the
+   * derivative but keeps the camera's own extension, so `01.jpg` in `media/` is
+   * `01.jpeg`, `01.HEIC` or `01.cr2` next door.
+   */
+  test("matches on the basename, whatever extension the camera wrote", async () => {
+    writeDay("day-one", "2026-01-01", [{ width: 2000, height: 1333 }]);
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
+    write(path.join(tripPath(), "originals", "day-one", "01.JPEG"), await jpeg(3600, 2400));
+
+    const photo = buildBookSource(REF, { madeOn: "2026-02-01" }).days[0].photos[0];
+    expect(photo.file).toBe("alex/trips/asia-2026/originals/day-one/01.JPEG");
+    expect(photo.width).toBe(3600);
+  });
+
+  test("an original the PDF writer cannot embed falls back, and says which", async () => {
+    writeDay("day-one", "2026-01-01", [{ width: 2000, height: 1333 }]);
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
+    // A real HEIC, as far as this matters: bytes that are not a JPEG.
+    write(path.join(tripPath(), "originals", "day-one", "01.HEIC"), Buffer.from("ftypheic…"));
+
+    const source = buildBookSource(REF, { madeOn: "2026-02-01" });
+    const photo = source.days[0].photos[0];
+
+    expect(photo.file).toBe("alex/trips/asia-2026/media/day-one/01.jpg");
+    expect(photo.width).toBe(2000);
+    expect(photo.fallbackReason).toContain("01.HEIC");
+    expect(photo.fallbackReason).toContain("not a JPEG");
+    // Silently falling back is the thing this is not allowed to do.
+    expect(source.notes?.map((n) => n.code)).toContain("no-original");
+  });
+
+  test("a JPEG original beside a HEIC one is preferred", async () => {
+    writeDay("day-one", "2026-01-01", [{ width: 2000, height: 1333 }]);
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
+    write(path.join(tripPath(), "originals", "day-one", "01.heic"), Buffer.from("not a jpeg"));
+    write(path.join(tripPath(), "originals", "day-one", "01.jpg"), await jpeg(3000, 2000));
+
+    const photo = buildBookSource(REF, { madeOn: "2026-02-01" }).days[0].photos[0];
+    expect(photo.file).toBe("alex/trips/asia-2026/originals/day-one/01.jpg");
+    expect(photo.width).toBe(3000);
+  });
+
+  test("a trip with no originals behaves as before, plus a warning saying so", async () => {
+    writeDay("day-one", "2026-01-01", [{ width: 2000, height: 1333 }]);
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
+
+    const source = buildBookSource(REF, { madeOn: "2026-02-01" });
+    const photo = source.days[0].photos[0];
+    expect(photo.file).toBe("alex/trips/asia-2026/media/day-one/01.jpg");
+    expect(photo.width).toBe(2000);
+    expect(photo.fallbackReason).toBe("no original was kept for it");
+
+    const book = planBook(source, SPEC);
+    const missing = book.warnings.filter((w) => w.code === "no-original");
+    expect(missing).toHaveLength(1);
+    expect(missing[0].detail).toContain("no original was kept for it");
+
+    // And the DPI warning names the reason rather than only the resolution, so
+    // nobody goes hunting for a bigger photograph that does not exist.
+    const soft = book.warnings.filter((w) => w.code === "low-resolution");
+    expect(soft.length).toBeGreaterThan(0);
+    expect(soft[0].detail).toContain("no original was kept for it");
+  });
+
+  test("printSourceFor leaves a src that escapes media/ alone", () => {
+    const print = printSourceFor(REF, "/media/asia-2026/../../../etc/passwd");
+    expect(print.fallbackReason).toBeUndefined();
+    expect(path.isAbsolute(print.absolute)).toBe(true);
+  });
+});
+
+describe("what the plan writes down", () => {
+  async function seed() {
+    writeDay("day-one", "2026-01-01", [
+      { width: 2000, height: 1333 },
+      { width: 1333, height: 2000 },
+    ]);
+    writeDay("day-two", "2026-01-02", [{ width: 2000, height: 1333 }]);
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
+    write(path.join(tripPath(), "media", "day-one", "02.jpg"), await jpeg(1333, 2000));
+    write(path.join(tripPath(), "media", "day-two", "01.jpg"), await jpeg(2000, 1333));
+    write(path.join(tripPath(), "originals", "day-one", "01.jpg"), await jpeg(4200, 2800));
+    write(path.join(tripPath(), "originals", "day-two", "01.jpg"), await jpeg(4200, 2800));
+  }
+
+  /** B25's first two acceptance lines, together: the plan is the JSON the
+   * script writes into `content/<user>/photobooks/`. */
+  test("no absolute path reaches the plan JSON", async () => {
+    await seed();
+    const book = planBook(buildBookSource(REF, { madeOn: "2026-02-01" }), SPEC);
+    const json = JSON.stringify({ spec: book.spec, warnings: book.warnings, volumes: book.volumes });
+
+    expect(json).not.toContain(dir);
+    expect(json).not.toContain(os.homedir());
+    // Nothing that looks like a rooted path, in either separator.
+    expect(json).not.toMatch(/"[A-Za-z]:[\\/]/);
+    expect(json).not.toMatch(/"\/(Users|home|var|tmp|private)\//);
+  });
+
+  test("two runs of the same input produce byte-identical JSON", async () => {
+    await seed();
+    const plan = () =>
+      JSON.stringify(planBook(buildBookSource(REF, { madeOn: "2026-02-01" }), SPEC), null, 2);
+    expect(plan()).toBe(plan());
+  });
+
+  test("the recorded file is the one that was actually read", async () => {
+    await seed();
+    const book = planBook(buildBookSource(REF, { madeOn: "2026-02-01" }), SPEC);
+    const files = book.volumes
+      .flatMap((v) => v.pages)
+      .flatMap((p) => (p.kind === "photos" ? p.placements.map((x) => x.photo.file) : []));
+
+    expect(files.length).toBeGreaterThan(0);
+    for (const file of files) {
+      expect(path.isAbsolute(file), `${file} is absolute`).toBe(false);
+      expect(fs.existsSync(resolvePrintFile(file)), `${file} does not exist`).toBe(true);
+    }
+    expect(files).toContain("alex/trips/asia-2026/originals/day-one/01.jpg");
+  });
+});
