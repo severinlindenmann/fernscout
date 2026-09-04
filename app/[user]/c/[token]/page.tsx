@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import ContactManage from "@/components/ContactManage";
 import NoticeShell from "@/components/NoticeShell";
+import PageHeader from "@/components/PageHeader";
 import { isEnabled } from "@/lib/capabilities";
 import { resolveManageToken } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
@@ -42,41 +43,50 @@ export default async function ManagePage({ params }: PageProps<"/[user]/c/[token
     const accept = (await headers()).get("accept-language");
     const locale = pickLocale(fromAcceptLanguage(accept), user.defaultLocale);
     return (
-      <NoticeShell
-        lang={locale}
-        title={translateIn(locale, "err.linkExpiredTitle")}
-        body={translateIn(locale, "err.linkExpiredBody")}
-        // It used to offer the open guestbook here, as the way to get a fresh
-        // link. There is no open guestbook any more (B37), and the body now
-        // says the true thing instead: ask whoever invited you. Still not a
-        // 404 — see the note above.
-        actions={[
-          {
-            href: `/${username}`,
-            label: translateIn(locale, "err.goToJournal", { title: user.title }),
-          },
-        ]}
-      />
+      <div className="min-h-screen">
+        {/* Same reasoning as `/contacts` (B271): this page is a fresh tab with
+            no history behind it, and the header is the way back to the
+            journal — `useTrip()` is null here, so the title links there. */}
+        <PageHeader />
+        <NoticeShell
+          lang={locale}
+          title={translateIn(locale, "err.linkExpiredTitle")}
+          body={translateIn(locale, "err.linkExpiredBody")}
+          // It used to offer the open guestbook here, as the way to get a fresh
+          // link. There is no open guestbook any more (B37), and the body now
+          // says the true thing instead: ask whoever invited you. Still not a
+          // 404 — see the note above.
+          actions={[
+            {
+              href: `/${username}`,
+              label: translateIn(locale, "err.goToJournal", { title: user.title }),
+            },
+          ]}
+        />
+      </div>
     );
   }
 
   const locale = pickLocale(contact.locale, user.defaultLocale);
 
   return (
-    <ContactManage
-      locales={localesFor(username)}
-      dictionary={dictionaryFor(locale)}
-      username={username}
-      token={token}
-      contact={{
-        name: contact.name ?? "",
-        email: contact.email,
-        locale,
-        status: contact.status,
-        wantsEmailDigest: contact.wantsEmailDigest,
-        wantsPostcard: contact.wantsPostcard,
-        address: contact.postalAddress ?? EMPTY_ADDRESS,
-      }}
-    />
+    <div className="min-h-screen">
+      <PageHeader />
+      <ContactManage
+        locales={localesFor(username)}
+        dictionary={dictionaryFor(locale)}
+        username={username}
+        token={token}
+        contact={{
+          name: contact.name ?? "",
+          email: contact.email,
+          locale,
+          status: contact.status,
+          wantsEmailDigest: contact.wantsEmailDigest,
+          wantsPostcard: contact.wantsPostcard,
+          address: contact.postalAddress ?? EMPTY_ADDRESS,
+        }}
+      />
+    </div>
   );
 }
