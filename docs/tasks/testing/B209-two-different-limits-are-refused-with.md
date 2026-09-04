@@ -7,8 +7,7 @@ complexity: low
 area: media, api
 found: "2026-09-04T06:14:20Z"
 started: "2026-09-04T07:52:18Z"
-session: 7d30451d-0304-4631-8484-d96036fb11b4
-claimed: "2026-09-04T07:52:18Z"
+merged: "2026-09-04T08:19:52Z"
 ---
 
 # B209 — Two different limits are refused with the same sentence, so an agent cannot tell which it broke

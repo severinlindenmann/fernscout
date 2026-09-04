@@ -74,6 +74,7 @@ Do not edit them by hand; run the script.
 | [B215](backlog/B215-the-manual-privacy-tests-still-walk.md) | The manual privacy tests still walk an operator through a trip password | ISSUE | medium | low |
 | [B222](backlog/B222-the-rate-limit-sweep-judged-every.md) | The rate-limit sweep judged every bucket by the default window, resetting the longer ones | SECURITY | medium | low |
 | [B228](backlog/B228-the-guest-list-issues-a-link.md) | The guest list issues a link that never expires | ISSUE | medium | low |
+| [B236](backlog/B236-one-entry-file-that-does-not.md) | One entry file that does not parse throws out of getAllEntries, so the whole trip stops reading rather than that one day | ISSUE | medium | low |
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B42](backlog/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B43](backlog/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
@@ -99,7 +100,9 @@ Do not edit them by hand; run the script.
 | [B220](backlog/B220-the-rest-of-a-journal-s.md) | The rest of a journal's config.json still cannot be changed after it is created | ISSUE | low | medium |
 | [B225](backlog/B225-the-landing-page-s-tab-title.md) | The landing page's tab title is English over a translated page | ISSUE | low | low |
 | [B226](backlog/B226-two-new-deploy-time-checks-run.md) | Two new deploy-time checks run only where a binary happens to exist, and CI may have neither | CHORE | low | low |
+| [B229](backlog/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B235](backlog/B235-seventy-one-exports-and-fifty-nine.md) | Seventy-one exports and fifty-nine exported types are used only inside their own file | CHORE | low | medium |
+| [B237](backlog/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B88](backlog/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low |
 | [B90](backlog/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
@@ -113,13 +116,9 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B230](in-development/B230-a-code-issued-for-one-trip.md) | A code issued for one trip is verified into a journal-wide token | SECURITY | high | low | `2b6d1969` |
 | [B231](in-development/B231-a-trip-scoped-token-downloads-the.md) | A trip-scoped token downloads the whole journal from export.zip | SECURITY | high | low | `2b6d1969` |
-| [B205](in-development/B205-redeeming-an-invite-promises-a-code.md) | Redeeming an invite promises a code the server may have no way to send | ISSUE | medium | low | `7d30451d` |
-| [B217](in-development/B217-a-refused-journal-creation-still-burns.md) | A refused journal creation still burns a rate-limit slot, so correcting a typo can lock the person out for an hour | ISSUE | medium | low | `7d30451d` |
 | [B219](in-development/B219-the-postcard-and-photobook-scripts-write.md) | The postcard and photobook scripts write beside the code, not into the content root | ISSUE | medium | low | `2b6d1969` |
 | [B227](in-development/B227-nothing-notices-a-conflict-marker-in.md) | Nothing notices a conflict marker in deploy/Caddyfile, because every check greps for a line rather than parsing the file | ISSUE | medium | low | `2b6d1969` |
 | [B232](in-development/B232-the-reactions-endpoint-answers-for-a.md) | The reactions endpoint answers for a trip nobody may read | SECURITY | medium | low | `2b6d1969` |
-| [B208](in-development/B208-createdraft-never-reads-its-entry-back.md) | createDraft never reads its entry back, so an unwritable day is reported as written | ISSUE | low | low | `7d30451d` |
-| [B209](in-development/B209-two-different-limits-are-refused-with.md) | Two different limits are refused with the same sentence, so an agent cannot tell which it broke | ISSUE | low | low | `7d30451d` |
 | [B218](in-development/B218-a-postcard-run-reports-three-files.md) | A postcard run reports three files per recipient and writes four | ISSUE | low | low | `2b6d1969` |
 | [B221](in-development/B221-a-comment-in-mapframe-points-at.md) | A comment in mapFrame points at a file and a helper that do not exist | ISSUE | low | low | `2b6d1969` |
 | [B233](in-development/B233-the-https-only-rule-is-not.md) | The https-only rule is not re-applied after a redirect | SECURITY | low | low | `2b6d1969` |
@@ -155,6 +154,8 @@ _Nothing here._
 | [B179](testing/B179-one-failed-read-of-the-basemap.md) | One failed read of the basemap bundle turns every map on the instance blank until restart | ISSUE | medium | low | — |
 | [B184](testing/B184-the-digest-cannot-be-exercised-end.md) | The digest cannot be exercised end to end, because everything an agent may write is filtered out of it | CHORE | medium | low | — |
 | [B20](testing/B20-the-stranger-s-me-page-never.md) | The stranger's me page never says who to ask | ISSUE | medium | low | — |
+| [B205](testing/B205-redeeming-an-invite-promises-a-code.md) | Redeeming an invite promises a code the server may have no way to send | ISSUE | medium | low | — |
+| [B217](testing/B217-a-refused-journal-creation-still-burns.md) | A refused journal creation still burns a rate-limit slot, so correcting a typo can lock the person out for an hour | ISSUE | medium | low | — |
 | [B22](testing/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | SECURITY | medium | medium | — |
 | [B25](testing/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low | — |
 | [B35](testing/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
@@ -188,6 +189,8 @@ _Nothing here._
 | [B199](testing/B199-the-agent-handover-copy-control-has.md) | The agent-handover copy control has two values and a newline in one accessible name | ISSUE | low | low | — |
 | [B200](testing/B200-the-restore-drill-dumps-a-database.md) | The restore drill dumps a database no migration has touched, so the archive it proves restorable is empty | CHORE | low | low | — |
 | [B202](testing/B202-a-postcard-recipient-s-ss-becomes.md) | A postcard recipient's ß becomes a hyphen, so a German surname loses a letter | CHORE | low | low | — |
+| [B208](testing/B208-createdraft-never-reads-its-entry-back.md) | createDraft never reads its entry back, so an unwritable day is reported as written | ISSUE | low | low | — |
+| [B209](testing/B209-two-different-limits-are-refused-with.md) | Two different limits are refused with the same sentence, so an agent cannot tell which it broke | ISSUE | low | low | — |
 | [B24](testing/B24-nothing-notices-when-a-file-stops.md) | Nothing notices when a file stops being used | CHORE | low | low | — |
 | [B53](testing/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 | [B71](testing/B71-the-per-day-media-ceiling-test.md) | The per-day media ceiling test asserts on problems[0], and failed once in a full run | CHORE | low | low | — |

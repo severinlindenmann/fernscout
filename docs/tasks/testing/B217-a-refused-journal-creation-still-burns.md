@@ -7,8 +7,7 @@ complexity: low
 area: api, rate-limiting, journals
 found: "2026-09-04"
 started: "2026-09-04T07:52:18Z"
-session: 7d30451d-0304-4631-8484-d96036fb11b4
-claimed: "2026-09-04T07:52:18Z"
+merged: "2026-09-04T08:19:52Z"
 ---
 
 # B217 — The token survives a mistake; the IP budget does not
