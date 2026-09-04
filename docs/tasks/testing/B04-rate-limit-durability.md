@@ -7,8 +7,7 @@ complexity: medium
 area: rate-limiting
 found: "2026-09-01"
 started: "2026-09-04T06:50:26Z"
-session: 2b6d1969-424a-4788-9497-eb5e151a5391
-claimed: "2026-09-04T06:50:26Z"
+merged: "2026-09-04T07:42:56Z"
 ---
 
 # B04 — Rate-limit state does not survive, and is swept unevenly

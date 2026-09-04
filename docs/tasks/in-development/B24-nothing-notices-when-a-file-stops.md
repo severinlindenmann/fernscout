@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: repo-hygiene
 found: "2026-09-01"
+started: "2026-09-04T07:43:09Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T07:43:09Z"
 ---
 
 # B24 — Nothing notices when a file stops being used

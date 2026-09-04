@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: tasks, git, agents
 found: "2026-09-03T20:03:00Z"
+started: "2026-09-04T07:43:09Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T07:43:09Z"
 ---
 
 # B201 — The shared main checkout can be left on a detached HEAD, stranding every session's commits
