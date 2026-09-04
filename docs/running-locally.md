@@ -219,10 +219,7 @@ with no restart and no rebuild.
 The four that must pass:
 
 ```bash
-npm run build          # first — it writes .next/types, which tsc reads
-npx tsc --noEmit
-npx eslint .
-npx vitest run
+npm run verify         # build → tsc → eslint → vitest, stopping at the first failure
 ```
 
 The build looks like the expensive one to run first, and it is. It still goes

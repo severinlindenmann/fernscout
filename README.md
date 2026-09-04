@@ -138,7 +138,7 @@ visibility: `private`, `public` or `guest`. An unrecognised value reads as
 | | |
 | --- | --- |
 | `npm run dev` · `npm run build` · `npm start` | the site |
-| `npm run build` · `npx tsc --noEmit` · `npx eslint .` · `npx vitest run` | the gate, all four before pushing — build **first**, it writes the route types `tsc` reads |
+| `npm run verify` | the gate before pushing — build, `tsc`, `eslint`, tests, in that order, stopping at the first failure |
 | `npm run ingest -- --user <u> --trip <id> <folder>` | a card of photos → dated, geotagged draft days |
 | `npm run rates:update` | refresh the cached ECB rates |
 | `npm run export -- <username>` | the whole journal as a zip |

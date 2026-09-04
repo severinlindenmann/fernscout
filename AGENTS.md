@@ -177,31 +177,44 @@ every journal written before W38 is.
 ### Verifying a change
 
 ```bash
-npm run build          # first — it writes .next/types, which tsc reads
-npx tsc --noEmit
-npx eslint .
-npx vitest run
+npm run verify         # build → tsc → eslint → vitest, stopping at the first failure
+npm run verify -- --quick   # the same without the build; see below for when that is honest
 ```
 
-All four, every time. The dev server must boot with a capability both on and
-off.
+**One command, and it is the whole gate.** It was four typed by hand, in an
+order that matters, and running them separately is how the order gets lost. The
+dev server must still boot with a capability both on and off; nothing automates
+that.
 
-**The build goes first, and the order is not cosmetic.** Next generates the
-typed-route definitions in `.next/types` during a build, and `PageProps`,
-`LayoutProps` and `RouteContext` resolve against them. On a checkout where no
-build has run since a route appeared — a fresh worktree, or `main` right after
-a merge that added routes — `npx tsc --noEmit` reports dozens of errors in
-files you never opened, and the honest readings available to you are "the merge
-is broken" or "the documentation is wrong". Neither is true; the types have not
-been generated yet. `.github/workflows/ci.yml` builds before it typechecks for
-the same reason. B100.
+**While you are iterating, run the one test file** — `npx vitest run
+test/thing.test.ts` — and keep `verify` for the end. The full suite is fifty
+seconds and the build seventy, and a change is usually wrong in one file at a
+time.
+
+**Why the build goes first, since the script no longer makes you think about
+it.** Next generates the typed-route definitions in `.next/types` during a
+build, and `PageProps`, `LayoutProps` and `RouteContext` resolve against them.
+On a checkout where no build has run since a route appeared — a fresh worktree,
+or `main` right after a merge that added routes — `npx tsc --noEmit` reports
+dozens of errors in files you never opened, and the honest readings available
+to you are "the merge is broken" or "the documentation is wrong". Neither is
+true; the types have not been generated yet. `.github/workflows/ci.yml` builds
+before it typechecks for the same reason. B100.
+
+**`--quick` skips the build, and is honest in exactly one situation:** you have
+already built in this checkout and have not added, moved or deleted a route
+since. Editing a component's body does not invalidate `.next/types`; adding
+`app/foo/page.tsx` does. It refuses outright when nothing has been built here,
+rather than handing you the confusing failure above. When in doubt leave it
+off — seventy seconds is cheaper than an afternoon spent misreading `tsc`.
 
 **A fifth command, and it is not one of the four.** `npm run unused` (knip)
 answers the question the other four do not — *is anything here for nothing* —
 and it is CI's job rather than yours, because the answer changes rarely and the
 day it changes is a day you were not looking. It fails on a file nothing
 reaches, a dependency nothing imports, or an import of something undeclared.
-Unused *exports* it prints without failing; there are 130 and they are B235's.
+Unused *exports* it prints without failing; there are about a hundred and
+thirty and they are B235's.
 Run it when you delete a module or drop a dependency. `knip.jsonc` carries the
 entry points, which are the whole configuration — nearly nothing here is
 imported by name. B24.
@@ -239,8 +252,18 @@ merge, by which time it has stopped being useful. That is also why they are
 committed straight to `main` rather than held back — an uncommitted task file
 in the main checkout blocks the next agent's merge.
 
-Three things that follow, and are easy to get wrong:
+Four things that follow, and are easy to get wrong:
 
+- **One git command per shell call, when your session is worktree-isolated.**
+  The harness checks that a command cannot escape the worktree, and it refuses
+  what it cannot verify rather than guessing — `cd <worktree> && git log … &&
+  git diff …` comes back as *"too complex to verify that it stays inside the
+  worktree"*, and so does anything that `cd`s to the shared checkout. Forty-
+  eight commands of that shape were written across ten sessions on 2026-09-03
+  and 04; twelve were refused, each one a wasted turn. Chaining reads with
+  `&&` is a habit worth keeping everywhere else and dropping here: run
+  `git log --oneline main..HEAD`, then run `git diff --stat`, and let the merge
+  into the shared checkout be its own call from the shared checkout.
 - **A worktree has no `node_modules`.** `npx tsc`, `eslint` and `vitest`
   resolve upward and appear to work; `npm run build` does not. Run `npm ci` in
   the worktree before trusting a green run.
@@ -395,6 +418,7 @@ that carry all of this in full.
 | `deploy` | Ship it to the VPS, and know it is healthy |
 | `manage-tasks` | Capture something, and move it between lanes |
 | `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
+| `test-the-live-site` | Empty `testing/` against the deployed instance, one subagent per ticket |
 
 ### Skills that are not this repository's
 
@@ -435,7 +459,11 @@ against `grep`, before concluding anything from a small number.
 
 **None of this is in the repository.** Plugins are installed per user and
 `.claude/settings.json` is gitignored, so a fresh clone has the ten skills
-above and nothing else. That is deliberate — the repository must not require
+above and nothing else. An eleventh may be on disk and is deliberately not in
+that table: `.claude/skills/vps/` is this instance's own deploy — it knows a
+host, a directory and a domain — and is gitignored for that reason. Where it
+exists it is the answer to "deploy", and `deploy` is the procedure for somebody
+else's server. That is deliberate — the repository must not require
 somebody else's plugin list to be workable — but it means a recommendation
 resting on one of these has to name it. Install with:
 

@@ -103,6 +103,12 @@ It is a discipline rather than a guarantee, so treat it as one:
   worktree. The parent session does those, serially, from the main checkout.
 - Reading a file in the main checkout is fine. Writing one is not.
 
+**Dispatch the subagent on Sonnet.** A ticket with a written Why, Work and
+Acceptance is execution rather than judgement, and the parent has already done
+the deciding. Inheriting Opus for it is slower and costs more for the same
+diff; pass `model: "sonnet"` on the Agent call. Keep Opus for the ticket that
+turns out to be a design question rather than a change.
+
 **What the parent does before dispatching**, because it is half the protocol
 and was nowhere written down:
 
@@ -179,17 +185,27 @@ environment, nothing personal outside `content/`.
 
 ### 5. Verify, against the task's own words
 
-All four, every time, in this order:
+One command, every time:
 
 ```bash
-npm run build && npx tsc --noEmit && npx eslint . && npx vitest run
+npm run verify
 ```
 
-The build is first because it writes `.next/types`, which is where Next puts
-the typed-route definitions `PageProps`, `LayoutProps` and `RouteContext`
-resolve against. A worktree that has never been built fails `tsc` on every
-route file for that reason alone — sixty errors in code you did not write. Run
-`npm ci` in the worktree first, or the build fails too. B100.
+It runs the build, `tsc`, `eslint` and the suite in that order and stops at the
+first failure. The build is first because it writes `.next/types`, which is
+where Next puts the typed-route definitions `PageProps`, `LayoutProps` and
+`RouteContext` resolve against. A worktree that has never been built fails
+`tsc` on every route file for that reason alone — sixty errors in code you did
+not write. B100.
+
+`verify` refuses before it starts if the worktree has no `node_modules`, which
+is the other half of that trap: `tsc`, `eslint` and `vitest` resolve upward to
+the main checkout's copy and appear to work, and only the build fails.
+
+**While you are iterating, run the one test file** and keep `verify` for the
+end — `npx vitest run test/thing.test.ts`. The full gate is two minutes and a
+change is usually wrong in one file at a time. `npm run verify -- --quick`
+skips the build once you have built here and touched no route since.
 
 Then the task's **Acceptance** section, line by line. Each line either has
 evidence — a command and its output, a test that failed before and passes now
