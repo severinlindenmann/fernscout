@@ -190,6 +190,8 @@
   "cost.subtitle": "Everything we spend, in {currency} — from the visas and jabs before we left to today's coffee. Kept honest so you can judge what a trip like this really takes.",
   "cost.subtitlePlanned": "This trip has not started yet, so this is what getting ready has cost and what we have budgeted, in {currency}. Nothing has been spent on the road, and nothing here is a pace or a projection.",
   "cost.title": "What the trip costs",
+  "cost.tripDescription": "What {trip} actually cost, itemised in {currency}.",
+  "cost.tripDescriptionPlanned": "What {trip} is budgeted to cost, itemised in {currency}.",
   "cost.today": "Spent this day",
   "cost.total": "Total so far",
   "cost.unconverted": "Not counted in these totals: {amounts}. This trip’s rate table has no rate for them, so they are shown as they were paid rather than folded into a number that would look right and be wrong. Ask an agent working on this journal to add the missing rates.",

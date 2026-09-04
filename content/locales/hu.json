@@ -190,6 +190,8 @@
   "cost.subtitle": "Minden kiadásunk {currency} pénznemben — az indulás előtti vízumtól és oltásoktól a mai kávéig. Őszintén vezetve, hogy lássátok, mennyibe kerül valójában egy ilyen út.",
   "cost.subtitlePlanned": "Ez az út még nem kezdődött el, így itt az áll, mennyibe került a készülődés és mennyit terveztünk rá — {currency} pénznemben. Úton még semmit nem költöttünk, és semmi sem napi átlag vagy előrejelzés.",
   "cost.title": "Mennyibe kerül az út",
+  "cost.tripDescription": "Mennyibe került valójában {trip}, {currency} pénznemben.",
+  "cost.tripDescriptionPlanned": "Mennyibe tervezzük {trip} költségét, {currency} pénznemben.",
   "cost.today": "Ezen a napon",
   "cost.total": "Eddig összesen",
   "cost.unconverted": "Nincs beleszámítva ezekbe az összegekbe: {amounts}. Ehhez az úthoz nincs árfolyam a táblázatban, ezért úgy jelennek meg, ahogy kifizettük őket — nem pedig egy hihetőnek látszó, de hibás összegben. Kérd meg a naplón dolgozó ügynököt, hogy pótolja a hiányzó árfolyamokat.",
