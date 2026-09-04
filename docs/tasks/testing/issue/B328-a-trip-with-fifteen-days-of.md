@@ -7,8 +7,7 @@ complexity: low
 area: costs, viewer
 found: "2026-09-04T18:41:32Z"
 started: "2026-09-04T18:42:19Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T18:42:19Z"
+merged: "2026-09-04T18:56:12Z"
 ---
 
 # B328 — A trip with fifteen days of costs and no budget file has no costs page
