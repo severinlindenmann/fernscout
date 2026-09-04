@@ -1165,6 +1165,57 @@ Three things worth knowing:
   journal, the feed and the search index — not from the people who have already
   read it.
 
+### Telling people, when they say so too
+
+Publishing puts a day on the site; it does not tell anybody it is there.
+Nobody hears about a new day until the next scheduled digest, unless you ask
+for a letter now — B345.
+
+**On publish**, add \`"send_mail": true\`. Its absence means no letter, and
+that default does not change: publishing fifteen days must not mail fifteen
+letters to everybody the owner knows, so ask about this the same way you ask
+about publishing itself.
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/trips/<trip-id>/days/<slug>/publish
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"send_mail": true}
+\`\`\`
+
+\`\`\`json
+{"ok": true, "slug": "lanterns-of-hoi-an", "status": "published",
+ "url": "${site.url}/${example}/day/lanterns-of-hoi-an",
+ "mail": {"attempted": true, "resend": false, "sent": 6, "failed": 0}}
+\`\`\`
+
+**Afterwards**, for a day already on the site — sent it the first time and it
+is worth trying again, or nobody asked for it at publish and now they have:
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/trips/<trip-id>/days/<slug>/send-mail
+Authorization: Bearer fs_agent_…
+\`\`\`
+
+\`\`\`json
+{"ok": true, "slug": "lanterns-of-hoi-an", "attempted": true, "resend": true,
+ "sent": 6, "failed": 0}
+\`\`\`
+
+**Owner only, both of them** — the same reason \`publish\` is: a token scoped
+to one trip may write days into it and must not be able to mail the journal's
+whole readership. Only the owner's approved, opted-in readers get one — the
+letter reaches nobody a guest link or a buddy link would not already reach,
+and a \`test: true\` day sends nothing at all, whatever the flag says. The
+count comes back, never the addresses; a send that failed shows up as a
+count and a reason, not only in a server log a person never opens (B272).
+
+**The resend is not idempotent, on purpose.** \`/send-mail\` mails everybody
+again, every time — the owner asking twice is the only guard there is, so ask
+in words before you call it a second time, the same discipline as
+\`/publish\` itself.
+
 When you have finished writing, end your report with what is waiting:
 \`GET /api/v1/${example}/drafts\` lists it, and this is the call that acts on
 their answer.

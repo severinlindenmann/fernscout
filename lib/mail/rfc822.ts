@@ -18,25 +18,14 @@ function foldBase64(input: string): string {
   return (input.match(/.{1,76}/g) ?? []).join("\r\n");
 }
 
-export function buildMessage(mail: Mail, from: string, date = new Date()): string {
-  const boundary = `fs-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
-  const headers: Record<string, string> = {
-    From: from,
-    To: mail.to,
-    Subject: encodeHeader(mail.subject),
-    Date: date.toUTCString(),
-    "MIME-Version": "1.0",
-    "Content-Type": `multipart/alternative; boundary="${boundary}"`,
-    ...mail.headers,
-  };
+function newBoundary(): string {
+  return `fs-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
+}
 
-  const head = Object.entries(headers)
-    .map(([k, v]) => `${k}: ${v}`)
-    .join("\r\n");
-
-  // Base64 for both parts: it survives any transport without worrying about
-  // line length, trailing whitespace or non-ASCII.
-  const body = [
+/** The text and HTML parts, as a `multipart/alternative` body — unchanged
+ * from before attachments existed. */
+function alternativeBody(mail: Mail, boundary: string): string {
+  return [
     "",
     `--${boundary}`,
     "Content-Type: text/plain; charset=UTF-8",
@@ -51,8 +40,65 @@ export function buildMessage(mail: Mail, from: string, date = new Date()): strin
     foldBase64(Buffer.from(mail.html, "utf8").toString("base64")),
     "",
     `--${boundary}--`,
-    "",
   ].join("\r\n");
+}
+
+export function buildMessage(mail: Mail, from: string, date = new Date()): string {
+  const attachments = mail.attachments ?? [];
+  const altBoundary = newBoundary();
+  const headers: Record<string, string> = {
+    From: from,
+    To: mail.to,
+    Subject: encodeHeader(mail.subject),
+    Date: date.toUTCString(),
+    "MIME-Version": "1.0",
+    ...mail.headers,
+  };
+
+  let contentType: string;
+  let body: string;
+
+  if (attachments.length === 0) {
+    // The shape every letter but the day-published one has always had.
+    contentType = `multipart/alternative; boundary="${altBoundary}"`;
+    body = alternativeBody(mail, altBoundary) + "\r\n";
+  } else {
+    /*
+     * `multipart/related` wrapping the text/html alternative, with one part
+     * per inline image — the standard shape for a `cid:` reference (RFC
+     * 2387). The alternative stays nested rather than flattened so a client
+     * that does not understand `related` at all still finds a normal
+     * text-or-html choice inside it.
+     */
+    const relBoundary = newBoundary();
+    contentType = `multipart/related; boundary="${relBoundary}"`;
+    const parts = [
+      "",
+      `--${relBoundary}`,
+      `Content-Type: multipart/alternative; boundary="${altBoundary}"`,
+      alternativeBody(mail, altBoundary),
+      "",
+    ];
+    for (const attachment of attachments) {
+      parts.push(
+        `--${relBoundary}`,
+        `Content-Type: ${attachment.contentType}`,
+        "Content-Transfer-Encoding: base64",
+        `Content-ID: <${attachment.contentId}>`,
+        `Content-Disposition: inline; filename="${attachment.filename}"`,
+        "",
+        foldBase64(attachment.data.toString("base64")),
+        "",
+      );
+    }
+    parts.push(`--${relBoundary}--`, "");
+    body = parts.join("\r\n");
+  }
+
+  headers["Content-Type"] = contentType;
+  const head = Object.entries(headers)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join("\r\n");
 
   return head + "\r\n" + body;
 }
