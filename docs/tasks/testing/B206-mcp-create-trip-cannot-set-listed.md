@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: trips, api, mcp
 found: "2026-09-04T06:14:09Z"
+merged: "2026-09-04T08:40:12Z"
 ---
 
 # B206 — MCP create_trip cannot set listed, so the two doors do not accept the same trip
@@ -60,3 +61,20 @@ that and this is only about a door that cannot ask for it.
   `trip.md` byte-identical to the one REST writes for the same body.
 - `create_trip` with `listed: true` on a private trip is a tool error, not a
   written trip — the same refusal REST gives.
+
+## Verified closed (2026-09-04)
+
+Checked against `main` rather than taken on the note above:
+
+- `listed` is a boolean property of `create_trip`'s `inputSchema`
+  (`lib/mcp/tools.ts:1320`) and is read by the handler (`:1025`), which passes
+  only a real boolean through so a missing argument stays `undefined`.
+- Both acceptance lines have a test. `test/mcp.test.ts:1346` — "a public trip
+  narrowed to unlisted reads back that way, and both doors write it
+  identically" — is the parity assertion this task asked for, and it passes:
+  `npx vitest run test/mcp.test.ts -t "narrowed to unlisted"` → 1 passed.
+  `:1381` covers the `invalid_listed` refusal on a private trip and `:1395`
+  that an ordinary public trip still writes no `listed:` line.
+
+No work was done under this id. Moved to `testing/` so a person can close it
+alongside B175, which carried the fix.
