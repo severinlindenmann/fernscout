@@ -85,7 +85,6 @@ Do not edit them by hand; run the script.
 | [B269](backlog/B269-the-photobook-has-its-own-bounding.md) | The photobook has its own bounding-box code with the same NaN hole B265 closed for the web maps | ISSUE | medium | low |
 | [B275](backlog/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
 | [B287](backlog/B287-the-contacts-page-carries-addresses-and.md) | The contacts page carries addresses and now invite links, and nothing in the repo pins its cache headers | SECURITY | medium | low |
-| [B294](backlog/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high |
 | [B304](backlog/B304-a-day-s-costs-still-accept.md) | A day's costs still accept a zero amount and an unrecognised currency, and drop both silently | ISSUE | medium | low |
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B42](backlog/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
@@ -138,6 +137,7 @@ _Nothing here._
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B302](in-development/B302-the-guide-frames-a-new-trip.md) | The guide frames a new trip as private-or-public, so an agent never offers guest and its user ends up with an approved reader who cannot read | ISSUE | high | low | `a3370c43` |
+| [B294](in-development/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high | `986bc24c` |
 
 ## testing
 
