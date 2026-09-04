@@ -1,5 +1,6 @@
 import "server-only";
 import crypto from "node:crypto";
+import { cache } from "react";
 import { getDatabase } from "../db";
 
 /**
@@ -678,8 +679,12 @@ export type Session = {
  * `expected` is what the *channel* implies: a cookie means guest, an
  * Authorization header means agent. Presenting one down the other's channel
  * fails here rather than being quietly accepted.
+ *
+ * Wrapped in `cache()` below. Everything this function does — including the
+ * kind check that is decision 24 — happens on the first call of a request and
+ * is what the rest of that request is handed.
  */
-export async function resolveSession(
+async function lookUpSession(
   token: string | undefined,
   expected: SessionKind,
 ): Promise<Session | null> {
@@ -722,6 +727,46 @@ export async function resolveSession(
     email: row.email,
   };
 }
+
+/**
+ * The same lookup, memoised for the duration of one request. B53.
+ *
+ * It is not a read. It ends in `UPDATE sessions SET last_seen_at`, so every
+ * call is a write transaction — and one page render for a signed-in reader
+ * looking at a gated trip called it five times, from five call sites that all
+ * legitimately need to know who is asking: the layout's `signedIn` flag,
+ * `listableTrips`, `isJournalGuest` from inside it, `isTravellerOn` from
+ * `mayReadTrip`, and `isJournalGuest` again from the same place. Five indexed
+ * queries are invisible on SQLite with one reader and are not on Postgres with
+ * fifty. No call site changed; none of them knows this is here.
+ *
+ * **`cache()` is per request and nothing else, which is the only reason it is
+ * safe here.** Three properties, and all three are load-bearing:
+ *
+ * - **It cannot outlive a request.** `cache` reads a dispatcher off React's
+ *   internals; Next installs one per request and it goes with the request.
+ *   There is no module-level map here and there must never be one — a session
+ *   revoked on `/<user>/me` has to stop working on the next page view, not on
+ *   the next deploy.
+ * - **It cannot blur the wall between the two credentials.** `expected` is the
+ *   second argument, and `cache` keys on *every* argument, so
+ *   `(token, "guest")` and `(token, "agent")` are separate entries that never
+ *   see each other's answer. The `row.kind !== expected` check is still run for
+ *   each of them. An agent bearer token presented as a cookie is refused
+ *   before and after this change, and `test/session-cache.test.ts` asserts it
+ *   in both directions.
+ * - **Outside a request it does nothing at all.** With no dispatcher installed
+ *   — a script, a background job, the test suite — React's server build calls
+ *   straight through and memoises nothing. That is what keeps
+ *   `test/access-gate.test.ts` honest: it flips the mocked cookie jar between
+ *   assertions in one process, and a cache that survived that would answer the
+ *   previous viewer's question.
+ *
+ * `last_seen_at` is still written, once per request rather than five times.
+ * That column is what the owner's sessions list shows, and one stamp per page
+ * view is what it was always meant to mean.
+ */
+export const resolveSession = cache(lookUpSession);
 
 export async function revokeSession(id: string): Promise<void> {
   const { db } = await getDatabase();

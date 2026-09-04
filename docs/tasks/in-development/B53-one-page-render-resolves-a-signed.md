@@ -40,30 +40,64 @@ reader and expensive on Postgres with fifty.
 
 ## Work
 
-The App Router already has the mechanism: `cache()` from `react` memoises a call
-for the duration of one request. Wrapping `resolveSession` — or a thin
-`currentSession()` in front of it — would collapse all five into one lookup and
-one `last_seen_at` write, with no call site changing.
+Done. `resolveSession`'s body became a private `lookUpSession`, and the export
+is `cache(lookUpSession)` from `react`. No call site changed and none of them
+knows the memoisation is there.
 
-Two things to get right:
+**What `cache()` does outside a render was checked in the source rather than
+assumed**, because the Work section was right to insist on it. React's server
+build:
 
-- **`last_seen_at` must still be written**, once per request rather than five
-  times. That column is what the owner's sessions list shows.
-- **The test suite calls these functions outside any request**, flipping the
-  mocked cookie jar between calls in the same process — `test/access-gate.test.ts`
-  does exactly this. A cache that outlives a request would make those tests
-  answer the previous viewer's question. Check what `cache()` does outside a
-  render before relying on it, and if it does not scope cleanly, do nothing:
-  five indexed queries is a smaller problem than a gate that caches the wrong
-  reader.
+```js
+var dispatcher = ReactSharedInternals.A;
+if (!dispatcher) return fn.apply(null, arguments);
+```
 
-Not doing: changing what any of the five callers ask, or how.
+Next installs that dispatcher per request and it goes with the request. With no
+dispatcher — a script, a background job, the test suite — the call goes
+straight through and memoises nothing. The client build, which is what vitest
+resolves because it does not set the `react-server` condition, defines `cache`
+as the identity wrapper outright. So `test/access-gate.test.ts` and
+`test/viewer.test.ts` are untouched by this: they flip the mocked cookie jar
+between assertions in one process and there is no cache in that process to
+answer the previous viewer's question.
+
+### How the wall is guaranteed
+
+The risk of this change is decision 24 — a bearer token and a guest cookie are
+not interchangeable — so three properties, each asserted rather than argued:
+
+1. **Per request, and never module-level.** There is no map in `lib/auth`. The
+   only state is React's per-request cache, which is created and discarded with
+   the request. A session revoked on `/<user>/me` stops working on the next
+   page view, not on the next deploy.
+2. **The kind is part of the key.** `cache` keys on *every* argument, and
+   `expected` is the second one, so `(token, "guest")` and `(token, "agent")`
+   are separate entries that never see each other's answer. The
+   `row.kind !== expected` check still runs for each.
+3. **Nothing outside a request is cached at all**, per the source quoted above.
 
 ## Acceptance
 
-- A single page render for a signed-in reader issues one session lookup and one
-  `last_seen_at` write, demonstrated by counting queries rather than by
-  inspection.
-- `test/access-gate.test.ts` and `test/viewer.test.ts` still pass, including the
-  cases that change viewer between assertions in one process.
-- No call site had to learn that the lookup is cached.
+`test/session-cache.test.ts`, eight cases. It installs and removes a real cache
+dispatcher by hand, so "one request" is a scope with a beginning and an end
+rather than a stand-in, and it counts queries at the Kysely executor rather
+than inspecting the code.
+
+- **One lookup, one write.** Five `resolveSession` calls in one request →
+  exactly one `select … from sessions` and one `update … last_seen_at`, and all
+  five answers are the same session. Against the code as it stood: five selects.
+- **The wall, both directions.** A guest token asked as `"agent"` in the same
+  request that just resolved it as `"guest"` returns `null`, and the reverse.
+- **Two tokens in one request are two lookups**, so the cache keys on the
+  argument and not on "a session was resolved earlier".
+- **Nothing outlives the request.** Two scopes → two selects and two
+  `last_seen_at` writes; and a session revoked between two scopes is refused by
+  the second, which is the test that would fail if this were ever moved to a
+  module-level map.
+- **Outside a request there is no cache**: three calls, three selects.
+- **No call site had to learn** — the signature and the shape are unchanged.
+
+`test/access-gate.test.ts` (and `viewer`, `auth`, `write-revocation`) still
+pass: 185 cases, including the ones that change viewer between assertions in
+one process.

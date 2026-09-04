@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, test } from "vitest";
 import dns from "node:dns/promises";
-import { fetchImage, isPublicAddress } from "@/lib/api/fetchMedia";
+import dnsCallback from "node:dns";
+import net from "node:net";
+import { fetchImage, isPublicAddress, type Transport } from "@/lib/api/fetchMedia";
+
+/** Kept because the block below shadows `fetchImage` with a wrapper. */
+const directFetchImage = fetchImage;
 
 /**
  * Downloading an image from a URL an agent chose.
@@ -306,10 +311,25 @@ describe("what fetchImage refuses outright", () => {
  * publicly, which is the branch under test.
  */
 describe("reading a response", () => {
-  const realFetch = globalThis.fetch;
+  /**
+   * Stubbed at the transport rather than at `globalThis.fetch`.
+   *
+   * Since B03 the request is not made by `fetch` at all: `fetch` takes no
+   * `lookup`, so it cannot be told which address to connect to, and the pin is
+   * the fix. `node:https` can, so that is what the default transport uses —
+   * and the seam these tests hold moved with it. Every assertion below is the
+   * one it was before; only the thing being stubbed changed.
+   */
+  let transport: Transport | undefined;
   afterEach(() => {
-    globalThis.fetch = realFetch;
+    transport = undefined;
   });
+  const fetchImage = (
+    url: string,
+    maxBytes: number,
+    bodyTimeoutMs?: number,
+    responseTimeoutMs?: number,
+  ) => directFetchImage(url, maxBytes, bodyTimeoutMs, responseTimeoutMs, transport);
 
   function respond(init: {
     status?: number;
@@ -327,7 +347,7 @@ describe("reading a response", () => {
 
   test("an image comes back with its bytes and a usable filename", async () => {
     const bytes = new Uint8Array([1, 2, 3, 4]);
-    globalThis.fetch = async () =>
+    transport = async () =>
       respond({ headers: { "content-type": "image/jpeg" }, body: bytes });
 
     const result = await fetchImage("https://example.com/photos/sunset.jpg", 1024);
@@ -338,7 +358,7 @@ describe("reading a response", () => {
   });
 
   test("a URL with no usable extension gets one from the content type", async () => {
-    globalThis.fetch = async () =>
+    transport = async () =>
       respond({ headers: { "content-type": "image/webp" }, body: new Uint8Array([1]) });
     const result = await fetchImage("https://example.com/render?id=42", 1024);
     if (!result.ok) throw new Error(result.problem.reason);
@@ -346,7 +366,7 @@ describe("reading a response", () => {
   });
 
   test("something that is not an image is refused, whatever the URL said", async () => {
-    globalThis.fetch = async () =>
+    transport = async () =>
       respond({ headers: { "content-type": "text/html" }, body: new Uint8Array([1]) });
     const result = await fetchImage("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(false);
@@ -359,7 +379,7 @@ describe("reading a response", () => {
    * can hand over a gigabyte.
    */
   test("the size cap is enforced on the bytes, not on the header", async () => {
-    globalThis.fetch = async () =>
+    transport = async () =>
       respond({
         headers: { "content-type": "image/jpeg", "content-length": "4" },
         body: new Uint8Array(5000),
@@ -380,7 +400,7 @@ describe("reading a response", () => {
    */
   test("a body over the cap is abandoned partway, not read to the end", async () => {
     let pulled = 0;
-    globalThis.fetch = async () =>
+    transport = async () =>
       new Response(
         new ReadableStream<Uint8Array>({
           pull(controller) {
@@ -408,7 +428,7 @@ describe("reading a response", () => {
    */
   test("a body that stalls is given up on, and the caller is told to retry", async () => {
     let cancelled = false;
-    globalThis.fetch = async () =>
+    transport = async () =>
       new Response(
         new ReadableStream<Uint8Array>({
           start(controller) {
@@ -447,10 +467,10 @@ describe("reading a response", () => {
    * `could not be reached`, full stop, which reads like a verdict on the URL.
    */
   test("a host that never answers is told to try again, not that it is unreachable", async () => {
-    globalThis.fetch = (_url, init) =>
+    transport = (_url, _addresses, signal) =>
       new Promise<Response>((_resolve, reject) => {
-        // What fetch does on abort: rejects, and never settles otherwise.
-        (init?.signal as AbortSignal).addEventListener("abort", () =>
+        // What a socket does on abort: rejects, and never settles otherwise.
+        signal.addEventListener("abort", () =>
           reject(new DOMException("aborted", "AbortError")),
         );
       });
@@ -469,7 +489,7 @@ describe("reading a response", () => {
   /** And a connection that fails for some other reason keeps the neutral
    * answer, so the retry advice stays attached to the timeout alone. */
   test("a connection that simply fails is not told to try again", async () => {
-    globalThis.fetch = async () => {
+    transport = async () => {
       throw new TypeError("fetch failed");
     };
     const result = await fetchImage("https://example.com/a.jpg", 1024);
@@ -480,7 +500,7 @@ describe("reading a response", () => {
 
   test("a body that arrives slowly but keeps arriving is not refused", async () => {
     let sent = 0;
-    globalThis.fetch = async () =>
+    transport = async () =>
       new Response(
         new ReadableStream<Uint8Array>({
           async pull(controller) {
@@ -507,7 +527,7 @@ describe("reading a response", () => {
   test("a content-length already over the cap is refused, and the body let go", async () => {
     let pulled = 0;
     let cancelled = false;
-    globalThis.fetch = async () =>
+    transport = async () =>
       new Response(
         new ReadableStream<Uint8Array>({
           pull(controller) {
@@ -532,7 +552,7 @@ describe("reading a response", () => {
   });
 
   test("an error status is refused", async () => {
-    globalThis.fetch = async () => respond({ status: 404 });
+    transport = async () => respond({ status: 404 });
     const result = await fetchImage("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toContain("404");
@@ -545,7 +565,7 @@ describe("reading a response", () => {
    */
   test("a redirect into a private address is refused at the second hop", async () => {
     let hop = 0;
-    globalThis.fetch = async () => {
+    transport = async () => {
       hop += 1;
       return hop === 1
         ? respond({ status: 302, location: "https://169.254.169.254/latest/meta-data/" })
@@ -559,24 +579,48 @@ describe("reading a response", () => {
   });
 
   /**
-   * Asserted directly, because a stub cannot show the difference: with
-   * `redirect: "follow"` the runtime chases the hop itself and this code never
-   * sees the 302 — so the address check between hops never runs, and a public
-   * host redirecting to the metadata endpoint gets there. The option *is* the
-   * defence.
+   * This used to assert `redirect: "manual"` on the `fetch` init, because with
+   * `redirect: "follow"` the runtime chases the hop itself, this code never
+   * sees the 302, and the address check between hops never runs. Since B03
+   * there is no such option to get wrong — `node:https` has no redirect logic
+   * at all — so the property is asserted where it now lives: **each hop is a
+   * separate request this file makes**, with its own URL, and therefore its
+   * own host check and its own pin.
    */
-  test("asks fetch not to follow redirects itself", async () => {
-    const seen: RequestInit[] = [];
-    globalThis.fetch = async (_url, init) => {
-      seen.push(init as RequestInit);
-      return respond({ headers: { "content-type": "image/jpeg" }, body: new Uint8Array([1]) });
+  test("every hop is a request this code makes itself, at that hop's own URL", async () => {
+    const seen: string[] = [];
+    transport = async (url) => {
+      seen.push(url.href);
+      return seen.length === 1
+        ? respond({ status: 302, location: "https://example.net/real.png" })
+        : respond({ headers: { "content-type": "image/jpeg" }, body: new Uint8Array([1]) });
     };
     await fetchImage("https://example.com/a.jpg", 1024);
-    expect(seen[0].redirect).toBe("manual");
+    expect(seen).toEqual(["https://example.com/a.jpg", "https://example.net/real.png"]);
+  });
+
+  /**
+   * And the pin travels with each of them. A redirect that lands on a new host
+   * must be connected to at *that* host's vetted address, never at the
+   * previous hop's — the loop re-checks, so it has to re-pin as well.
+   */
+  test("each hop carries the addresses that hop was checked at", async () => {
+    const seen: string[][] = [];
+    transport = async (_url, addresses) => {
+      seen.push(addresses);
+      return seen.length === 1
+        ? respond({ status: 301, location: "https://example.net/real.png" })
+        : respond({ headers: { "content-type": "image/png" }, body: new Uint8Array([9]) });
+    };
+    await fetchImage("https://example.com/a.jpg", 1024);
+    expect(seen).toHaveLength(2);
+    // Real DNS, so the addresses themselves are whatever the resolver says;
+    // what matters is that each hop got a non-empty, separately obtained set.
+    for (const addresses of seen) expect(addresses.length).toBeGreaterThan(0);
   });
 
   test("a redirect loop gives up rather than spinning", async () => {
-    globalThis.fetch = async () => respond({ status: 302, location: "https://example.com/again" });
+    transport = async () => respond({ status: 302, location: "https://example.com/again" });
     const result = await fetchImage("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toContain("too many redirects");
@@ -584,7 +628,7 @@ describe("reading a response", () => {
 
   test("a redirect to another public host is followed", async () => {
     let hop = 0;
-    globalThis.fetch = async () => {
+    transport = async () => {
       hop += 1;
       return hop === 1
         ? respond({ status: 301, location: "https://example.net/real.png" })
@@ -593,5 +637,78 @@ describe("reading a response", () => {
     const result = await fetchImage("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.media.filename).toBe("real.png");
+  });
+});
+
+/**
+ * B03 — the window between checking a name and fetching it.
+ *
+ * `checkHost` does its own lookup. Before this fix `fetch()` then did a
+ * *second*, independent one, and a name whose first answer is public and whose
+ * second is loopback passed the check and was fetched at the private address.
+ * The module's comment claimed the ordering defeated rebinding; it defeats it
+ * across redirects, where each hop is re-checked before its own request, and it
+ * did nothing within a single hop.
+ *
+ * Driven end to end rather than through a spy, because the thing being asserted
+ * is which address the socket went to. The two resolvers are stubbed apart:
+ * `node:dns/promises` is what the check consults, `node:dns` is what the
+ * connection consults — which is the whole shape of the attack.
+ */
+describe("a name that changes its answer between the check and the request", () => {
+  test("is connected to at the address that was checked, and nowhere else", async () => {
+    // Stands in for the attacker's private target: a real listener on
+    // loopback, so "did the connection land here" is a fact rather than an
+    // inference from an error message.
+    let landed = 0;
+    const decoy = net.createServer((socket) => {
+      landed += 1;
+      socket.destroy();
+    });
+    await new Promise<void>((resolve) => decoy.listen(0, "127.0.0.1", resolve));
+    const port = (decoy.address() as net.AddressInfo).port;
+
+    // The first answer, and the only one this code is entitled to act on.
+    // 203.0.113.0/24 is TEST-NET-3: public by every rule in `isPublicAddress`,
+    // and routed nowhere, so a request pinned to it can only time out.
+    const realCheck = dns.lookup;
+    let checks = 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dns as any).lookup = async () => {
+      checks += 1;
+      return [{ address: "203.0.113.9", family: 4 }];
+    };
+
+    // The second answer. Node's `net.connect` reads `dns.lookup` off the
+    // callback module at connect time, so this is genuinely what an
+    // unpinned request would resolve to.
+    const realConnect = dnsCallback.lookup;
+    let reresolutions = 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dnsCallback as any).lookup = (_hostname: string, options: unknown, cb: unknown) => {
+      reresolutions += 1;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (realConnect as any).call(dnsCallback, "127.0.0.1", options, cb);
+    };
+
+    try {
+      const result = await fetchImage(`https://rebind.test:${port}/a.jpg`, 1024, 500, 500);
+
+      // The pin is the assertion. The request must never have asked DNS a
+      // second question, and must never have reached the decoy.
+      expect(reresolutions, "the hostname was resolved again at connect time").toBe(0);
+      expect(landed, "the request reached the private address").toBe(0);
+      // One check, and it is the one whose answer was used.
+      expect(checks).toBe(1);
+      // TEST-NET-3 answers nothing, so the only honest outcome is a refusal —
+      // and never a success, which is what the unpinned version produced.
+      expect(result.ok).toBe(false);
+    } finally {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (dns as any).lookup = realCheck;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (dnsCallback as any).lookup = realConnect;
+      await new Promise<void>((resolve) => decoy.close(() => resolve()));
+    }
   });
 });
