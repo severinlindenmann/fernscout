@@ -568,7 +568,7 @@ export function openApiDocument() {
           },
         },
         post: {
-          summary: "Create a trip (owner only; private unless asked otherwise)",
+          summary: "Create a trip (owner only; defaults to this journal's own visibility)",
           // B302: the summary said which value you get by *default* and never
           // which to ask for, so an agent reading only the schema had less to
           // go on than one reading the prose. Both sentences come from
@@ -602,10 +602,10 @@ export function openApiDocument() {
                     visibility: {
                       type: "string",
                       // Most open first, which is the order a person decides
-                      // in — B302. `default` stays `private`: a field an agent
-                      // forgets must not publish somebody's journey.
+                      // in — B302. No `default` here any more (B306): the
+                      // actual default is not one fixed value, it is this
+                      // journal's own visibility — see VISIBILITY_ENUM_NOTE.
                       enum: ["public", "guest", "private"],
-                      default: "private",
                       description: VISIBILITY_ENUM_NOTE,
                     },
                     listed: {
@@ -772,7 +772,11 @@ export function openApiDocument() {
                     },
                     visibility: {
                       type: "string",
-                      enum: ["public", "private"],
+                      // `guest`, not `private` — B306 renamed this level's closed
+                      // value so it stops borrowing the trip's word for a
+                      // different meaning. `"private"` is still accepted on the
+                      // wire (normalizeJournalVisibility) but is not offered here.
+                      enum: ["public", "guest"],
                       // No `default`: silence used to be read as `public`, which is
                       // exactly the field that decides whether a stranger can come
                       // across somebody's journal (B263). Required — ask.
@@ -1373,11 +1377,11 @@ export function openApiDocument() {
                     },
                     visibility: {
                       type: "string",
-                      enum: ["public", "private"],
-                      description:
-                        "Whether this server advertises the journal — landing page, " +
-                        "/documentation.txt, sitemap. A private journal is unlisted, not " +
-                        "locked: who may read a journey is still that trip's own visibility.",
+                      // `"private"` — the word before B306 — is still accepted
+                      // and normalised to `guest` (normalizeJournalVisibility),
+                      // but is not offered here.
+                      enum: ["public", "guest"],
+                      description: `Whether this server advertises the journal: ${VISIBILITY_MEANING}`,
                     },
                     startLocation: {
                       type: "string",

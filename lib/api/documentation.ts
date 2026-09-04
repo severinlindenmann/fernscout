@@ -59,9 +59,10 @@ function base(): string {
 export function instanceDocumentation(): string {
   const site = serverSite();
   const questions = firstQuestions(base());
-  // Only the journals that asked to be advertised. A `private` journal is
-  // reachable by anyone sent its address and appears on no list, and this
-  // document is the first list anybody reads.
+  // Only the journals that asked to be advertised. A `guest` journal — or
+  // one still saying the old word, `private` (B306) — is reachable by anyone
+  // sent its address and appears on no list, and this document is the first
+  // list anybody reads.
   const users = listedUsernames();
   const defaultUser = getDefaultUsername();
 
@@ -213,8 +214,9 @@ export function instanceDocumentation(): string {
     "",
     ...wrap(
       "`id`, `title`, `start` and `end` are all required — a trip without dates " +
-        "would sit on disk and nowhere a reader could find it. Created **private** " +
-        "unless you say otherwise; ask before making somebody's journey public.",
+        "would sit on disk and nowhere a reader could find it. Created at this " +
+        "journal's own default — never wider than that — unless you say otherwise; " +
+        "ask before making somebody's journey more open than the journal already is.",
       78,
     ),
     "",
@@ -397,7 +399,7 @@ export function userDocumentation(username: string): string | null {
     `- [Days](${base()}/api/v1/${username}/trips/<trip-id>/days): read them, or POST to add one as a draft`,
     `- Editing a day: PATCH the day's own URL (${base()}/api/v1/${username}/trips/<trip-id>/days/<slug>) with the field you are correcting — never \`/publish\`, which is not an update and cannot be used to change one`,
     `- [Drafts](${base()}/api/v1/${username}/drafts): everything waiting for a person to approve`,
-    `- Trips: POST to [the same URL](${base()}/api/v1/${username}/trips) to create one (owner only; private by default)`,
+    `- Trips: POST to [the same URL](${base()}/api/v1/${username}/trips) to create one (owner only; defaults to this journal's own visibility)`,
     `- Deleting: DELETE [a trip](${base()}/api/v1/${username}/trips/<trip-id>) or [the journal](${base()}/api/v1/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it, so a 202 means the mail was sent`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,
@@ -498,16 +500,19 @@ default you should pick for them.
 | --- | --- |
 ${questions.map((q) => `| ${q.ask} | ${q.because} |`).join("\n")}
 
-**Public or private** is the one nobody thinks to ask, so ask it. To say it
+**Public or guest** is the one nobody thinks to ask, so ask it. To say it
 once more, because the table above is easy to skim past:
 
 ${wrap(VISIBILITY_MEANING.charAt(0).toUpperCase() + VISIBILITY_MEANING.slice(1)).join("\n")}
 
 ${wrap(VISIBILITY_NOT_A_LOCK).join("\n")}
 
-So "private journal" means *unlisted*, not *locked*. If what they want is a
-journal only invited people can read at all, the answer today is a journal of
-private or guest trips — say that plainly rather than implying more.
+So "guest journal" means *unlisted*, not *locked* — and if this reads as the
+same question the trip's own \`visibility\` asks, it should: \`guest\` used to be
+called \`private\` here too, one level up from where it means something
+narrower, and that was the confusion B306 exists to fix. If what they want is
+a journal only invited people can read at all, the answer today is a journal
+of private or guest trips — say that plainly rather than implying more.
 
 **The username is worth the same slowing down.** It is the journal's own
 name, never a trip's, and it is permanent. Never invent one, and never
@@ -604,10 +609,10 @@ above still holds — it forbids *deriving* a nickname, not asking for one, and
 "what should the site call you?" is one short question about themselves that
 they can answer instantly. There is no default and there will not be one.
 
-\`visibility\` has no default either — send \`"public"\` or \`"private"\` and
+\`visibility\` has no default either — send \`"public"\` or \`"guest"\` and
 nothing else, and get one of those two answers from the person before you
 call this. See the table above for what the two mean. This document used to
-say silence read as \`"public"\`; it did, and a journal asked to be private
+say silence read as \`"public"\`; it did, and a journal asked to be unlisted
 was created public because of it (B263). It no longer does — the request is
 refused instead.
 
@@ -905,9 +910,10 @@ reconvert the money, it would change what every amount already recorded means.
 over it. All three are an edit at the file, by whoever runs the server.
 
 A journal's \`visibility\` is only whether this instance *advertises* it — the
-landing page, \`/documentation.txt\`, the sitemap. A private journal is unlisted,
-not locked; who may read a journey is still that trip's own visibility. **Ask
-before making one public.**
+landing page, \`/documentation.txt\`, the sitemap. A \`guest\` journal (\`private\`
+before B306, still accepted) is unlisted, not locked; who may read a journey
+is still that trip's own visibility, though this is also the answer a new
+trip in it gets by default. **Ask before making one public.**
 
 ## Writing
 
@@ -942,11 +948,13 @@ ${wrap(VISIBILITY_CHOICE).join("\n")}
 
 ${wrap(PRIVATE_SHUTS_OUT_GUESTS).join("\n")}
 
-Omit \`visibility\` and the trip is created **private** — the default is the
-closed value so that a field you forget never publishes anything. That is a
-safety net and not an answer: ask, and send what they chose. Publishing
-somebody's journey is their decision, so never send \`"visibility": "public"\`
-without having asked for it in words.
+Omit \`visibility\` and the trip inherits this journal's own answer —
+\`public\` in a \`public\` journal, \`guest\` in a \`guest\` one — so a forgotten
+field is never wider than the journal already is. A value this server does
+not recognise falls back to \`private\` instead, the narrowest state there is.
+Neither is an answer: ask, and send what they chose. Publishing somebody's
+journey is their decision, so never send \`"visibility": "public"\` without
+having asked for it in words.
 
 ${wrap(BUDGET_QUESTION).join("\n")}
 

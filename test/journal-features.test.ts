@@ -356,6 +356,32 @@ describe("what a journal says about itself", () => {
     expect(body.error).toBe("invalid_locales");
   });
 
+  // B306: renamed this level's closed value from `private` to `guest`.
+  test("visibility can be set to guest, and read back as guest", async () => {
+    const { status, body } = await patch({ visibility: "guest" });
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ ok: true, changed: ["visibility"] });
+    expect(rawConfig().visibility).toBe("guest");
+    expect(getUser("ana")?.visibility).toBe("guest");
+  });
+
+  test("the old word `private` is still accepted, and written as `guest`", async () => {
+    const { status, body } = await patch({ visibility: "private" });
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ ok: true, changed: ["visibility"] });
+    // Never the old word on disk, even though it was accepted as input.
+    expect(rawConfig().visibility).toBe("guest");
+    expect(getUser("ana")?.visibility).toBe("guest");
+  });
+
+  test("an unrecognised visibility is refused, naming public and guest", async () => {
+    const { status, body } = await patch({ visibility: "hidden" });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_visibility");
+    expect(String(body.message)).toMatch(/"public" or "guest"/);
+    expect(getUser("ana")?.visibility).toBe("public");
+  });
+
   test("saying the same thing twice changes nothing and is not an error", async () => {
     const { status, body } = await patch({ title: "Ana" });
     expect(status).toBe(200);

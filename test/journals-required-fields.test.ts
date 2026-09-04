@@ -112,7 +112,10 @@ describe("visibility is required", () => {
     });
     expect(response.status).toBe(400);
     const body = (await response.json()) as { message?: string };
-    expect(body.message).toMatch(/visibility must be "public" or "private"/i);
+    // B306: renamed from "public or private" — the trip level already has a
+    // narrower `private`, and reusing the word here is the bug this refusal
+    // used to walk an agent straight into.
+    expect(body.message).toMatch(/visibility must be "public" or "guest"/i);
   });
 });
 
@@ -191,7 +194,10 @@ describe("locales is required", () => {
 });
 
 describe("what happens once both are answered", () => {
-  test("a journal created private stays off the instance index", async () => {
+  // B306 renamed this level's closed value from `private` to `guest`, but a
+  // request still sending the old word must keep working — `private` is
+  // accepted forever (normalizeJournalVisibility) and never written back out.
+  test("a journal created with the old word `private` is created guest, and stays off the instance index", async () => {
     const token = await signupToken("private-owner@example.test");
     const response = await create(token, {
       ...BASE,
@@ -201,7 +207,7 @@ describe("what happens once both are answered", () => {
       locales: ["en"],
     });
     expect(response.status).toBe(201);
-    expect(getUser("quiet-f")?.visibility).toBe("private");
+    expect(getUser("quiet-f")?.visibility).toBe("guest");
     expect(listedUsernames()).not.toContain("quiet-f");
     expect(instanceDocumentation()).not.toContain("/quiet-f/");
   });

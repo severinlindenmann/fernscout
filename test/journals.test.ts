@@ -292,10 +292,14 @@ describe("journal visibility", () => {
     expect(listedUsernames()).toContain("open");
   });
 
-  test("a private journal is not advertised, but is still there", () => {
-    make("quiet", { visibility: "private" });
+  // B306 renamed this level's closed value from `private` to `guest` — the
+  // trip level already had a narrower `private`, and reusing the word one
+  // level up was the whole of the bug. `"private"` is still accepted as
+  // input, forever, and is normalised to `guest`; nothing writes it back out.
+  test("a guest journal is not advertised, but is still there", () => {
+    make("quiet", { visibility: "guest" });
 
-    expect(getUser("quiet")?.visibility).toBe("private");
+    expect(getUser("quiet")?.visibility).toBe("guest");
     // Off every list…
     expect(listedUsernames()).not.toContain("quiet");
     expect(instanceDocumentation()).not.toContain("/quiet/");
@@ -305,6 +309,17 @@ describe("journal visibility", () => {
     expect(getUser("quiet")?.title).toBe("A journal");
   });
 
+  test("the old word `private` still works as input, and is written as `guest`", () => {
+    make("hush", { visibility: "private" });
+
+    expect(getUser("hush")?.visibility).toBe("guest");
+    expect(listedUsernames()).not.toContain("hush");
+    const written = JSON.parse(
+      fs.readFileSync(path.join(dir, "hush", "config.json"), "utf8"),
+    ) as Record<string, unknown>;
+    expect(written.visibility).toBe("guest");
+  });
+
   test("`public` is not written into the file — only the interesting half is", () => {
     make("open");
     const written = JSON.parse(
@@ -312,11 +327,11 @@ describe("journal visibility", () => {
     ) as Record<string, unknown>;
     expect(written.visibility).toBeUndefined();
 
-    make("quiet", { visibility: "private" });
+    make("quiet", { visibility: "guest" });
     const hidden = JSON.parse(
       fs.readFileSync(path.join(dir, "quiet", "config.json"), "utf8"),
     ) as Record<string, unknown>;
-    expect(hidden.visibility).toBe("private");
+    expect(hidden.visibility).toBe("guest");
   });
 
   test("a journal written before the field existed reads as public", () => {
@@ -329,10 +344,63 @@ describe("journal visibility", () => {
     expect(listedUsernames()).toContain("legacy");
   });
 
-  test("a private journal's trips are still private by default", () => {
-    make("quiet", { visibility: "private" });
+  // The two tests B306 exists to protect: every journal on disk today says
+  // `public`, `private`, or nothing, and all three must keep reading exactly
+  // as they did before the rename.
+  test("a config.json already saying `private` is still unlisted after the rename", () => {
+    fs.mkdirSync(path.join(dir, "vintage", "trips"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "vintage", "config.json"),
+      JSON.stringify({
+        title: "Old and quiet",
+        owner: { name: "O", nickname: "O", email: OWNER },
+        visibility: "private",
+      }),
+    );
+    expect(getUser("vintage")?.visibility).toBe("guest");
+    expect(listedUsernames()).not.toContain("vintage");
+    expect(instanceDocumentation()).not.toContain("/vintage/");
+    // Still resolvable for anybody sent the address — unlisted, not gone.
+    expect(getUsernames()).toContain("vintage");
+    expect(userExists("vintage")).toBe(true);
+  });
+
+  test("an absent visibility is still public after the rename", () => {
+    fs.mkdirSync(path.join(dir, "untouched", "trips"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "untouched", "config.json"),
+      JSON.stringify({ title: "Untouched", owner: { name: "O", nickname: "O", email: OWNER } }),
+    );
+    const written = JSON.parse(
+      fs.readFileSync(path.join(dir, "untouched", "config.json"), "utf8"),
+    ) as Record<string, unknown>;
+    expect(written.visibility).toBeUndefined();
+    expect(getUser("untouched")?.visibility).toBe("public");
+    expect(listedUsernames()).toContain("untouched");
+  });
+
+  test("a guest journal's trips default to guest too, not the old private", () => {
+    make("quiet", { visibility: "guest" });
     createTrip("quiet", { id: "trip", title: "T", ...DATES });
-    expect(getTrip("quiet/trip")?.visibility).toBe("private");
+    expect(getTrip("quiet/trip")?.visibility).toBe("guest");
+  });
+
+  test("a public journal's trips default to public too", () => {
+    make("open");
+    createTrip("open", { id: "trip", title: "T", ...DATES });
+    expect(getTrip("open/trip")?.visibility).toBe("public");
+  });
+
+  test("an explicit visibility on the create call still wins over the journal's default", () => {
+    make("open");
+    createTrip("open", { id: "held-back", title: "T", ...DATES, visibility: "private" });
+    expect(getTrip("open/held-back")?.visibility).toBe("private");
+  });
+
+  test("a misspelled trip visibility falls back to private, never to the journal's default", () => {
+    make("open");
+    createTrip("open", { id: "typo", title: "T", ...DATES, visibility: "publik" as never });
+    expect(getTrip("open/typo")?.visibility).toBe("private");
   });
 });
 
@@ -367,7 +435,7 @@ describe("the welcome mail", () => {
       title: "A journal",
       email: OWNER,
       nickname: "Robin",
-      visibility: "private",
+      visibility: "guest",
     });
     expect(sent).toBe(true);
 
@@ -379,7 +447,7 @@ describe("the welcome mail", () => {
     expect(raw).toContain(OWNER);
     expect(body).toContain("https://t.test/wanderer");
     expect(body).toContain("draft");
-    // The private wording, not the public one.
+    // The guest wording, not the public one.
     expect(body).toContain("appears on no list");
   });
 
@@ -520,11 +588,16 @@ describe("creating a trip", () => {
     expect(trip?.title).toBe("Japan");
   });
 
-  test("is private unless the caller says otherwise", () => {
-    // The default that matters most: an agent that omits the field must not
-    // put somebody's journey on the open web.
+  // B306: the default used to be a flat "private" regardless of the journal.
+  // It now follows the journal's own answer instead — "wanderer" here is a
+  // public journal (created by `make()` with no visibility override), so an
+  // omitted field is created public too, never wider than the journal
+  // already is. See the "journal visibility" describe block above for the
+  // guest-journal half of this, and the typo-safety test just below for what
+  // still falls back to `private`.
+  test("inherits the journal's own visibility unless the caller says otherwise", () => {
     createTrip("wanderer", { id: "quiet", title: "Quiet", ...DATES });
-    expect(getTrip("wanderer/quiet")?.visibility).toBe("private");
+    expect(getTrip("wanderer/quiet")?.visibility).toBe("public");
   });
 
   test("an unrecognised visibility reads as private, never as public", () => {

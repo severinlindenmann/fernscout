@@ -31,15 +31,26 @@
  * Written as one sentence rather than a paragraph so it can be dropped into a
  * numbered list, a prose section and a JSON `description` without any of the
  * three needing to rephrase it.
+ *
+ * The word for the closed state is `guest`, not `private` — B306. This level
+ * used to borrow the trip's `private`, and an owner asked which their journal
+ * should be answered `guest` twice before an agent worked out that the two
+ * questions meant different things: the trip's `private` is the narrowest of
+ * three read-access values, and this one is only ever about being found.
+ * `"private"` still parses here, forever, on a `config.json` nobody has
+ * touched since before the rename — see `normalizeJournalVisibility` in
+ * lib/config.ts — but this sentence is what an agent asking the question
+ * should say, and it says the current word.
  */
 export const VISIBILITY_MEANING =
   "public is listed on this server's own index, on its landing page and in its sitemap; " +
-  "private is on none of them and asks search engines not to index it — anyone sent the " +
-  "address can still open it.";
+  "guest is on none of them and asks search engines not to index it — anyone sent the " +
+  "address can still open it. It is also this journal's own answer for a new trip's " +
+  "default, unless the create call says otherwise.";
 
 /**
  * The half of it that gets misread, and the reason it must travel with the
- * sentence above wherever that goes: "private journal" sounds like a lock and
+ * sentence above wherever that goes: "private journey" sounds like a lock and
  * is not one. A person told otherwise will put something in it they should
  * not.
  *
@@ -50,12 +61,17 @@ export const VISIBILITY_MEANING =
  * distinction between the two closed values is the thing a person gets wrong
  * at the moment they create a trip, so it is what the sentence now spends its
  * words on.
+ *
+ * The final clause used to say a new trip is `private` whichever kind of
+ * journal it is in — true before B306, and no longer: a new trip's default
+ * now follows the journal's own answer, `public` in a `public` journal and
+ * `guest` in a `guest` one, unless the create call says otherwise.
  */
 export const VISIBILITY_NOT_A_LOCK =
   "Neither decides who may read a particular journey: that is the trip's own `visibility` " +
   "— `guest` means the people the owner has let into this journal, `private` means only " +
-  "the people who were there, `public` means anyone — and a new trip is private whichever " +
-  "kind of journal it is in.";
+  "the people who were there, `public` means anyone — and a new trip's default follows " +
+  "the journal's own answer, unless the call that creates it says otherwise.";
 
 /**
  * The consequence of the slug rule, which the rule alone does not carry.
@@ -204,7 +220,7 @@ export function numeral(n: number): string {
  * The join is a full stop unless `ask` already ends in punctuation — "Public or
  * private?." is the kind of seam that makes a generated document look
  * generated. Trailing markdown emphasis is looked past to find that
- * punctuation: the question mark in `**Public or private?**` is real, and the
+ * punctuation: the question mark in `**Public or guest?**` is real, and the
  * asterisks after it are not characters a reader sees.
  */
 export function asSentence(question: FirstQuestion): string {
@@ -242,7 +258,7 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
         "their journal's address.",
     },
     {
-      ask: "**Public or private?**",
+      ask: "**Public or guest?**",
       because: `Whether this server advertises the journal at all — ${VISIBILITY_MEANING}`,
     },
     {
@@ -367,8 +383,10 @@ export function handoverPrompt(input: {
  * Three things have to hold at once without contradicting each other, which is
  * why this is one constant rather than three:
  *
- * - **the default is `private`**, because a field an agent forgets must never
- *   publish somebody's journey;
+ * - **the default follows the journal** — `public` in a `public` journal,
+ *   `guest` in a `guest` one (B306), never wider than that, and a
+ *   misspelled value still falls back to `private`, the narrowest state
+ *   there is;
  * - **do not rely on the default** — ask, and recommend `public` or `guest`;
  * - **`private` is the narrow tool**, for one journey held back from readers
  *   who are welcome to the rest.
@@ -405,9 +423,17 @@ export const PRIVATE_SHUTS_OUT_GUESTS =
  *
  * Short enough for an OpenAPI `description`, where the paragraph above would
  * be a wall. Both come from here so the two cannot drift.
+ *
+ * Used to say "omitted means private, so a forgotten field publishes
+ * nothing" — true before B306, when a trip's default did not look at its
+ * journal at all. It now does, so the safe half of that sentence has to be
+ * said differently: a forgotten field is never wider than the journal it is
+ * in, not always closed.
  */
 export const VISIBILITY_ENUM_NOTE =
   "public (anyone, and listed) · guest (the journal's approved guests, plus the trip's own " +
-  "people) · private (only the trip's own people, not approved guests). Omitted means " +
-  "private, so that a forgotten field publishes nothing — but ask rather than relying on " +
-  "that, and recommend public or guest.";
+  "people) · private (only the trip's own people, not approved guests). Omitted means this " +
+  "journal's own answer — public in a public journal, guest in a guest one — so a " +
+  "forgotten field is never wider than the journal already is; a value this server does " +
+  "not recognise falls back to private instead. Ask rather than relying on either, and " +
+  "recommend public or guest.";

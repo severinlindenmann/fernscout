@@ -218,11 +218,12 @@ export function userExists(username: string): boolean {
 
 /**
  * The journals this instance advertises: everything `getUsernames()` returns,
- * minus the ones whose config says `visibility: "private"`.
+ * minus the ones whose config says `visibility: "guest"` — or the old word,
+ * `"private"`, which `getUser()` already reads as `guest` (B306).
  *
  * Use this for anything that *hands out* the existence of a journal — the
  * instance documentation, the landing page, the sitemap. Never for resolving a
- * request: a private journal is unlisted, not gone, and `/<user>` must still
+ * request: an unlisted journal is unlisted, not gone, and `/<user>` must still
  * serve it to somebody who was sent the address. What a stranger with that
  * address can then read is the per-trip gate's business.
  *

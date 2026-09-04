@@ -402,7 +402,9 @@ describe("what the guide has to tell an agent before it starts", () => {
   test("names the four things to ask the person", () => {
     const guide = agentGuide();
     expect(guide).toMatch(/email address/i);
-    expect(guide).toMatch(/public or private/i);
+    // B306: renamed from "public or private", which borrowed the trip
+    // level's word for a different meaning.
+    expect(guide).toMatch(/public or guest/i);
     // The nickname rule, which is invisible to anyone reading only the prose.
     expect(guide).toMatch(/never (derived|guessed)/i);
   });
@@ -527,11 +529,14 @@ describe("what the guide has to tell an agent before it starts", () => {
     expect(
       post.requestBody.content["application/json"].schema.properties.visibility.enum,
     ).toEqual(["public", "guest", "private"]);
-    // And the default is still the closed value, so a forgotten field
-    // publishes nothing.
+    // B306: there is no longer one fixed default to name in the schema — a
+    // forgotten field now takes the journal's own answer, never wider than
+    // that, and a misspelling still falls back to the closed value. The
+    // schema says so in prose (VISIBILITY_ENUM_NOTE, asserted above) rather
+    // than in a `default` key, because the value is not fixed.
     expect(
-      post.requestBody.content["application/json"].schema.properties.visibility.default,
-    ).toBe("private");
+      "default" in post.requestBody.content["application/json"].schema.properties.visibility,
+    ).toBe(false);
   });
 
   test("the index and the guide ask for the same things, in their own shapes", () => {

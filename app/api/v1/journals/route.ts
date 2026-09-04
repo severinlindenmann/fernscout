@@ -1,6 +1,7 @@
 import { LOCALE_LIST } from "@/lib/api/agentCopy";
 import { SESSION_SCOPE, SIGNUP_OWNER, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
+import { normalizeJournalVisibility } from "@/lib/config";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 import { createJournal, sendWelcome } from "@/lib/journals";
 import { clientIp, rateLimitFor, rateLimitStatus } from "@/lib/rateLimit";
@@ -144,18 +145,19 @@ export async function POST(request: Request) {
   // Required rather than defaulted: this is the field that decides whether a
   // stranger can come across somebody's journal, and silence must not decide
   // it on their behalf any more than an unrecognised value may (B263 — a
-  // journal asked to be private was created public because nothing here
+  // journal asked to be unlisted was created public because nothing here
   // insisted on an answer).
-  const visibility = str("visibility");
-  if (visibility === undefined) {
+  const rawVisibility = str("visibility");
+  if (rawVisibility === undefined) {
     return refuse(
       {
         error: "invalid_request",
         message:
-          'visibility is required — "public" or "private". public is listed on this ' +
-          "server's own index, its landing page and its sitemap; private is on none of " +
-          "them and reachable by anyone sent the address. There is no default worth " +
-          "picking for somebody: ask which they want.",
+          'visibility is required — "public" or "guest". public is listed on this ' +
+          "server's own index, its landing page and its sitemap; guest is on none of " +
+          "them and reachable by anyone sent the address. It also sets the default a " +
+          "new trip in this journal gets, unless a create call says otherwise. There " +
+          "is no default worth picking for somebody: ask which they want.",
       },
       400,
     );
@@ -163,13 +165,17 @@ export async function POST(request: Request) {
   // Refused rather than quietly read as `public`: this is the field that
   // decides whether a stranger can come across somebody's journal, and an
   // agent that sent "hidden" or "unlisted" meant to ask for something.
-  if (visibility !== "public" && visibility !== "private") {
+  // `"private"` — the word this field used before B306 — is accepted and
+  // normalised to `guest`, the same as everywhere else this level's
+  // visibility is handled; see `normalizeJournalVisibility`.
+  const visibility = normalizeJournalVisibility(rawVisibility);
+  if (visibility === undefined) {
     return refuse(
       {
         error: "invalid_request",
         message:
-          `visibility must be "public" or "private", got ${JSON.stringify(visibility)}. ` +
-          "public is listed on this server's own index; private is reachable by anyone " +
+          `visibility must be "public" or "guest", got ${JSON.stringify(rawVisibility)}. ` +
+          "public is listed on this server's own index; guest is reachable by anyone " +
           "sent the address and appears on no list. Neither decides who may read a trip — " +
           "that is the trip's own visibility.",
       },

@@ -98,8 +98,9 @@ export const dynamic = "force-dynamic";
  *
  * **`journals` is filtered by `listedUsernames()`**, which is the function
  * whose docstring already says "use this for anything that hands out the
- * existence of a journal". A journal whose config says `visibility: private`
- * is meant to be absent from `/documentation.txt`, the landing page and
+ * existence of a journal". A journal whose config says `visibility: guest`
+ * (or the old word, `private`) is meant to be absent from `/documentation.txt`,
+ * the landing page and
  * `sitemap.xml`; it had its name here instead, as soon as it narrowed a
  * capability. `journalsWithheld` counts what the filter dropped, so the
  * redaction is visible to the operator debugging a 404 rather than silently
