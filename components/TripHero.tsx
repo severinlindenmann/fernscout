@@ -10,13 +10,14 @@ import type { Basemap } from "@/lib/basemap";
 import PushInstallOnboarding from "./PushInstallOnboarding";
 import PushOptIn from "./PushOptIn";
 import Travelers from "./Travelers";
+import UnconvertedNotice from "./UnconvertedNotice";
 import { StackedShareBar, BarList } from "./charts/Charts";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
 import { flagFor } from "@/lib/flags";
 import { useSite } from "@/components/SiteProvider";
 import { useMoney } from "./CurrencyProvider";
-import { CATEGORY_STYLE, type CostCategory } from "@/lib/costFormat";
+import { CATEGORY_STYLE, type CostCategory, type Unconverted } from "@/lib/costFormat";
 import type { TranslationKey } from "@/lib/i18n";
 import type { DaySummary } from "@/lib/types";
 
@@ -34,6 +35,13 @@ export type HeroStats = {
   byCategory?: { category: CostCategory; amount: number }[];
   /** Nights and spend per country. */
   byCountry?: { country: string; countryCode?: string; nights: number; amount: number }[];
+  /**
+   * Spend `totalSpend` and `spendPerDay` had to leave out, for want of a
+   * rate — same list the costs page's own totals carry. B353: a total built
+   * from converted costs while this is non-empty is not the whole trip, and
+   * must not render as a plain, confident figure.
+   */
+  unconverted?: Unconverted[];
 };
 
 export default function TripHero({
@@ -242,13 +250,24 @@ export default function TripHero({
         <Stat label={tn("map.countries", stats.countries)} value={String(stats.countries)} big />
         <Stat label={tn("map.stops", stats.places)} value={String(stats.places)} big />
         <Stat label={t("map.media")} value={String(stats.totalMedia)} big />
+        {/* A dash, never a confident number, when some spend had no rate to
+            convert with — CHF 0 for a trip that spent EUR 80 is a wrong
+            figure, not an honest absence of one. See UnconvertedNotice
+            below, and B353. */}
         {stats.totalSpend !== undefined && (
-          <Stat label={t("cost.total")} value={money(stats.totalSpend)} />
+          <Stat
+            label={t("cost.total")}
+            value={(stats.unconverted?.length ?? 0) > 0 ? "—" : money(stats.totalSpend)}
+          />
         )}
         {stats.spendPerDay !== undefined && (
-          <Stat label={t("cost.perDay")} value={money(stats.spendPerDay)} />
+          <Stat
+            label={t("cost.perDay")}
+            value={(stats.unconverted?.length ?? 0) > 0 ? "—" : money(stats.spendPerDay)}
+          />
         )}
       </dl>
+      {stats.unconverted && <UnconvertedNotice items={stats.unconverted} />}
 
       {/* Where the money goes */}
       {slices.length > 0 && (

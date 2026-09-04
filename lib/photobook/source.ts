@@ -209,6 +209,11 @@ function costsFor(tripId: string): BookCosts | undefined {
   if (!isEnabled("costs", getTrip(tripId)?.username)) return undefined;
   const summary = getCostSummary(tripId);
   if (summary.total <= 0) return undefined;
+  // A printed page has no room for the costs page's own caveat, and no way to
+  // update itself once a rate is added later — so rather than mail somebody a
+  // number that looks complete and is not (B353), the costs spread is left
+  // out entirely whenever any spend had no rate to convert with.
+  if (summary.unconverted.length > 0) return undefined;
   return {
     baseCurrency: summary.baseCurrency,
     total: summary.total,

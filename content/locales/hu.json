@@ -181,7 +181,7 @@
   "cost.title": "Mennyibe kerül az út",
   "cost.today": "Ezen a napon",
   "cost.total": "Eddig összesen",
-  "cost.unconverted": "Nincs beleszámítva ezekbe az összegekbe: {amounts}. Ehhez az úthoz nincs árfolyam a táblázatban, ezért úgy jelennek meg, ahogy kifizettük őket — nem pedig egy hihetőnek látszó, de hibás összegben. Pótold a hiányzó árfolyamokat itt: {file}.",
+  "cost.unconverted": "Nincs beleszámítva ezekbe az összegekbe: {amounts}. Ehhez az úthoz nincs árfolyam a táblázatban, ezért úgy jelennek meg, ahogy kifizettük őket — nem pedig egy hihetőnek látszó, de hibás összegben. Kérd meg a naplón dolgozó ügynököt, hogy pótolja a hiányzó árfolyamokat.",
   "cost.underBudget": "eddig terv alatt",
   "cost.what": "Mi",
   "cost.when": "Mikor",
