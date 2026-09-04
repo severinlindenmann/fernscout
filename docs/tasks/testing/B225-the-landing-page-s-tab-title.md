@@ -7,8 +7,7 @@ complexity: low
 area: i18n, landing, metadata
 found: "2026-09-04"
 started: "2026-09-04T09:30:23Z"
-session: 7d30451d-0304-4631-8484-d96036fb11b4
-claimed: "2026-09-04T09:30:23Z"
+merged: "2026-09-04T10:00:32Z"
 ---
 
 # B225 — The front door's tab title is not translated
