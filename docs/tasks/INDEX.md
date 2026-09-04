@@ -117,12 +117,9 @@ _Nothing here._
 | [B201](in-development/B201-the-shared-main-checkout-can-be.md) | The shared main checkout can be left on a detached HEAD, stranding every session's commits | ISSUE | high | medium | `2b6d1969` |
 | [B143](in-development/B143-task-ids-collide-when-parallel-sessions.md) | Task ids collide when parallel sessions capture by hand, which is what B99 was meant to prevent | ISSUE | medium | medium | `2b6d1969` |
 | [B144](in-development/B144-enterworktree-refuses-for-a-dispatched-subagent.md) | EnterWorktree refuses for a dispatched subagent, so work-on-a-task's second step cannot be followed | ISSUE | medium | low | `2b6d1969` |
-| [B20](in-development/B20-the-stranger-s-me-page-never.md) | The stranger's me page never says who to ask | ISSUE | medium | low | `2b6d1969` |
 | [B205](in-development/B205-redeeming-an-invite-promises-a-code.md) | Redeeming an invite promises a code the server may have no way to send | ISSUE | medium | low | `7d30451d` |
 | [B217](in-development/B217-a-refused-journal-creation-still-burns.md) | A refused journal creation still burns a rate-limit slot, so correcting a typo can lock the person out for an hour | ISSUE | medium | low | `7d30451d` |
 | [B22](in-development/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | SECURITY | medium | medium | `2b6d1969` |
-| [B97](in-development/B97-the-guest-list-cannot-tell-a.md) | The guest list cannot tell a reading link from a writing link | ISSUE | medium | low | `2b6d1969` |
-| [B161](in-development/B161-an-expired-place-on-a-trip.md) | An expired place on a trip is not restored by re-approving the contact | ISSUE | low | low | `2b6d1969` |
 | [B208](in-development/B208-createdraft-never-reads-its-entry-back.md) | createDraft never reads its entry back, so an unwritable day is reported as written | ISSUE | low | low | `7d30451d` |
 | [B209](in-development/B209-two-different-limits-are-refused-with.md) | Two different limits are refused with the same sentence, so an agent cannot tell which it broke | ISSUE | low | low | `7d30451d` |
 | [B24](in-development/B24-nothing-notices-when-a-file-stops.md) | Nothing notices when a file stops being used | CHORE | low | low | `2b6d1969` |
@@ -153,6 +150,7 @@ _Nothing here._
 | [B178](testing/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low | — |
 | [B179](testing/B179-one-failed-read-of-the-basemap.md) | One failed read of the basemap bundle turns every map on the instance blank until restart | ISSUE | medium | low | — |
 | [B184](testing/B184-the-digest-cannot-be-exercised-end.md) | The digest cannot be exercised end to end, because everything an agent may write is filtered out of it | CHORE | medium | low | — |
+| [B20](testing/B20-the-stranger-s-me-page-never.md) | The stranger's me page never says who to ask | ISSUE | medium | low | — |
 | [B25](testing/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low | — |
 | [B35](testing/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
 | [B39](testing/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
@@ -164,6 +162,7 @@ _Nothing here._
 | [B68](testing/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
 | [B70](testing/B70-a-test-trip-is-mailed-out.md) | A test trip is mailed out in the digest as if somebody had lived it | ISSUE | medium | low | — |
 | [B82](testing/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
+| [B97](testing/B97-the-guest-list-cannot-tell-a.md) | The guest list cannot tell a reading link from a writing link | ISSUE | medium | low | — |
 | [B98](testing/B98-revoking-somebody-s-access-leaves-every.md) | Revoking somebody's access leaves every agent token already issued to them working until it expires | SECURITY | medium | medium | — |
 | [B03](testing/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium | — |
 | [B04](testing/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium | — |
@@ -174,6 +173,7 @@ _Nothing here._
 | [B150](testing/B150-two-recipients-with-the-same.md) | Two recipients with the same Latin name overwrite each other's postcards | ISSUE | low | low | — |
 | [B152](testing/B152-the-guide-calls-the-relayed-sign.md) | The guide calls the relayed sign-in link the same link as the mailed one, and never says what kills it | CHORE | low | low | — |
 | [B158](testing/B158-the-publish-confirmation-promises-feed-and.md) | The publish confirmation promises feed and search for a day that is excluded from both | ISSUE | low | low | — |
+| [B161](testing/B161-an-expired-place-on-a-trip.md) | An expired place on a trip is not restored by re-approving the contact | ISSUE | low | low | — |
 | [B170](testing/B170-the-journal-title-is-clipped.md) | The journal's title is clipped in the header at exactly the width where the nav labels appear | ISSUE | low | low | — |
 | [B175](testing/B175-create_trip-over-mcp-cannot-ask.md) | create_trip over MCP cannot ask for an unadvertised trip, because it has no listed field | ISSUE | low | low | — |
 | [B185](testing/B185-a-locale-cookie-the-journal-does.md) | A locale cookie the journal does not list translates the tab title but not the page under it | ISSUE | low | low | — |
