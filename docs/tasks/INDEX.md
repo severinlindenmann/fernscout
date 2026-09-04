@@ -182,12 +182,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B384](in-development/B384-a-guest-the-owner-adds-by.md) | A guest the owner adds by hand is a dead end: a bare code, no link, no way to be approved | ISSUE | high | medium | `39691533` |
 | [B385](in-development/B385-a-phone-number-typed-into-any.md) | A phone number typed into any of the four guest forms has no country, and only the sender finds out | FEATURE | medium | low | `39691533` |
+| [B387](in-development/B387-the-weekly-digest-was-never-scheduled.md) | The weekly digest was never scheduled or wanted, and is a second mail system to keep correct | CHORE | medium | medium | `3d8b93dd` |
 
 ## testing (160)
 
