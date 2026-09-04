@@ -6,6 +6,7 @@ import Image from "next/image";
 import { FileWarning } from "lucide-react";
 import { mediaLoader } from "@/components/mediaLoader";
 import AgentHandover from "@/components/AgentHandover";
+import GuestSignIn from "@/components/GuestSignIn";
 import PageHeader from "@/components/PageHeader";
 import LifetimeMap, { ACCENT_HEX, type TripRoute } from "@/components/LifetimeMap";
 import type { Basemap } from "@/lib/basemap";
@@ -52,9 +53,16 @@ export type TripCardData = {
  *
  * A union rather than nullable fields throughout, so that the owner's address
  * simply is not in the payload of a page a stranger asked for.
+ *
+ * `ownerName` (B278) travels on the `owner: false` branch for the same reason
+ * `docUrl`/`ownerEmail` travel on the `owner: true` one: it is a fact about
+ * the *journal*, computed once in `page.tsx` from `config.json`, and constant
+ * whatever this reader's trips filter to — so, unlike `trips.length`, it is
+ * safe to hand to a stranger. `page.tsx` already falls back to the journal's
+ * title when the config has no nickname, so this is never an empty string.
  */
 export type EmptyJournal =
-  | { owner: false; signedIn: boolean }
+  | { owner: false; signedIn: boolean; ownerName: string }
   | { owner: true; docUrl: string; ownerEmail: string | null };
 
 export type RouteData = {
@@ -105,6 +113,7 @@ export default function TripsIndexContent({
   basemap = null,
   empty = null,
   malformed = [],
+  codeMinutes,
 }: {
   trips: TripCardData[];
   routes: RouteData[];
@@ -116,6 +125,9 @@ export default function TripsIndexContent({
   /** Trips on disk but too broken to render. Owner-only; the server sends an
    * empty list to everyone else, so this component never has to gate it. */
   malformed?: BrokenFolder[];
+  /** How long a requested code lasts, from `CODE_TTL_MINUTES` — passed down
+   * to the code-request form the empty state may offer. See `EmptyState`. */
+  codeMinutes: string;
 }) {
   const { t, tn, localizedTrip } = useI18n();
 
@@ -156,7 +168,7 @@ export default function TripsIndexContent({
           empty, so the empty state would be a second untruth.
         */}
         {empty ? (
-          <EmptyState empty={empty} />
+          <EmptyState empty={empty} codeMinutes={codeMinutes} />
         ) : trips.length === 0 && malformed.length > 0 ? null : (
           <>
             <p className="mt-1 max-w-2xl text-sm text-navy-600">{t("trips.subtitle")}</p>
@@ -267,26 +279,51 @@ function MalformedNotice({ malformed }: { malformed: BrokenFolder[] }) {
  * to *this* journal and still empty-handed is told the truer thing — their
  * address is not the problem, coverage is — because "sign in" to somebody
  * already signed in reads as a broken page.
+ *
+ * B278 adds the owner's name to both of the stranger's sentences, and — only
+ * when nobody has a session yet — the same code-request form the trip gate
+ * already offers (`GuestSignIn`, reused rather than rebuilt). Both additions
+ * are safe for the byte-identity `EmptyJournal` exists to protect: the name
+ * is the journal's own constant (see `EmptyJournal`), and the form's
+ * presence turns only on `empty.signedIn` and on `useSite().canSignIn` — a
+ * reader's own cookie and a journal-wide capability, neither of which is the
+ * fact B264 closed off (whether there is anything to actually read). Nothing
+ * here asks that question.
  */
-function EmptyState({ empty }: { empty: EmptyJournal }) {
+function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: string }) {
   const { t } = useI18n();
+  const { username, canSignIn } = useSite();
   const title = empty.owner ? t("trips.emptyTitle") : t("trips.hiddenTitle");
   const body = empty.owner
     ? t("trips.emptyOwnerBody")
     : empty.signedIn
-      ? t("trips.hiddenSignedInBody")
-      : t("trips.hiddenBody");
+      ? t("trips.hiddenSignedInBody", { name: empty.ownerName })
+      : t("trips.hiddenBody", { name: empty.ownerName });
 
   return (
-    <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-      <h2 className="font-display text-xl font-semibold text-navy-900">{title}</h2>
-      <p className="mt-2 max-w-2xl text-lg leading-8 text-navy-700">{body}</p>
-      {empty.owner && (
-        <div className="mt-6 border-t border-navy-200 pt-5">
-          <AgentHandover docUrl={empty.docUrl} email={empty.ownerEmail} />
-        </div>
+    <>
+      <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+        <h2 className="font-display text-xl font-semibold text-navy-900">{title}</h2>
+        <p className="mt-2 max-w-2xl text-lg leading-8 text-navy-700">{body}</p>
+        {empty.owner && (
+          <div className="mt-6 border-t border-navy-200 pt-5">
+            <AgentHandover docUrl={empty.docUrl} email={empty.ownerEmail} />
+          </div>
+        )}
+      </section>
+      {/* A sibling card, not nested in the one above — GuestSignIn draws its
+          own box, the same way MePageContent places it beside the panel
+          rather than inside it. Not shown once signed in — TripGate makes
+          the same call for the same reason (see its own three-state
+          comment): somebody already carrying a session for this journal
+          does not need to sign in again, they need coverage, which the
+          sentence above already says. Not shown either when this journal
+          cannot issue codes at all (`canSignIn`); `me`'s panel makes the
+          same call, for the same journal-wide reason. */}
+      {!empty.owner && !empty.signedIn && canSignIn && (
+        <GuestSignIn username={username} codeMinutes={codeMinutes} />
       )}
-    </section>
+    </>
   );
 }
 

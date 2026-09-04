@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
 import { basemapFor } from "@/lib/basemap";
+import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { getPlaces, getTripStats } from "@/lib/entries";
 import { frameRoute } from "@/lib/mapFrame";
 import { getMalformedTrips, getTrips } from "@/lib/trips";
@@ -110,7 +111,20 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
       // above. `signedIn` is safe to tell apart: it is read off this
       // reader's own cookie, not probed from the journal, and only asked once
       // we already know there is nothing to show them.
-      empty = { owner: false, signedIn: (await signedInAs(user)) !== null };
+      //
+      // `ownerName` (B278) is a third value that is safe for the same reason
+      // `docUrl`/`ownerEmail` are safe above: it is the journal's own
+      // constant, read off `config.json`, and does not vary with what this
+      // reader may or may not see. Nickname first — it is the short form the
+      // journal already keeps for exactly this (B20) — and the title when a
+      // journal has none, because a journal written before nicknames existed
+      // must not turn "ask {name}" into "ask ".
+      const journal = getUser(user);
+      empty = {
+        owner: false,
+        signedIn: (await signedInAs(user)) !== null,
+        ownerName: journal?.owner.nickname?.trim() || journal?.title || user,
+      };
     }
   }
   // Upcoming trips have no entries, so they contribute nothing to the map or
@@ -176,6 +190,11 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
       basemap={routes.length > 0 ? basemapFor(frameRoute(routes.flatMap((r) => r.points))) : null}
       empty={empty}
       malformed={malformed}
+      // The code-request form the empty state may show — see EmptyState.
+      // Passed unconditionally, like every other page that offers it: it is
+      // a global constant, not a per-reader or per-journal fact, so handing
+      // it over costs nothing on the pages that never render the form.
+      codeMinutes={CODE_TTL_MINUTES}
       lifetime={{
         countries: countries.size,
         days: travelled.reduce((n, t) => n + statsByTrip.get(t.ref)!.tripDays, 0),
