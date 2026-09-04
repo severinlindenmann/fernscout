@@ -7,8 +7,7 @@ complexity: medium
 area: animation, api
 found: "2026-09-01"
 started: "2026-09-04T15:49:34Z"
-session: 67c9cca1-5b74-49e7-b1a4-dbee6bf7ce21
-claimed: "2026-09-04T15:49:34Z"
+merged: "2026-09-04T16:23:22Z"
 ---
 
 # B15 — The travel scene plays one fixed sequence
