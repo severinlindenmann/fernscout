@@ -197,6 +197,15 @@ export type ContactInvitesTable = {
   expires_at: string | null;
   revoked_at: string | null;
   uses: Generated<number>;
+  /**
+   * The address this invite was mailed to, case-folded — B319 and
+   * `014-invite-preapproval`. Null for every link an owner still copies by
+   * hand. Compared against a confirming contact's own `email` (also
+   * case-folded) to decide whether the owner's typing the address in counts as
+   * having vouched for it: a match skips the owner's queue, a mismatch — the
+   * link forwarded to somebody else — does not.
+   */
+  email_key: string | null;
 };
 
 /**

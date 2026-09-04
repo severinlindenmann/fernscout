@@ -31,8 +31,18 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * returning a 404: the owner arriving from an email on a phone that has been
  * signed out needs to be told to sign in, not shown a dead end.
  */
-export default async function ContactsAdminPage({ params }: PageProps<"/[user]/contacts">) {
+export default async function ContactsAdminPage({
+  params,
+  searchParams,
+}: PageProps<"/[user]/contacts">) {
   const { user: username } = await params;
+  // Which request the owner's approval mail was about — B319. Read
+  // server-side, like `me.tsx`'s `?signin=` handling, rather than with
+  // `useSearchParams` in the client component: that hook needs a `Suspense`
+  // boundary this page has no other reason to add, and the id is nothing an
+  // owner would ever type by hand, so there is no form to preserve across a
+  // reload.
+  const highlight = (await searchParams).contact;
   const user = getUser(username);
   if (!user || !isEnabled("contacts", username)) notFound();
 
@@ -114,6 +124,9 @@ export default async function ContactsAdminPage({ params }: PageProps<"/[user]/c
         // all, and the owner needs to be told before they act on it rather
         // than discover it from a family member's dead-end.
         hasGuestTrip={trips.some((trip) => trip.visibility === "guest")}
+        // B319: the notification mail's own request, so the page can put it
+        // in front of the owner rather than leave them to find it in a list.
+        highlightId={typeof highlight === "string" ? highlight : undefined}
       />
     </div>
   );

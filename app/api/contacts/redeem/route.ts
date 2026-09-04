@@ -1,15 +1,16 @@
 import { isEmail, issueCode } from "@/lib/auth";
 import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import {
+  approveContact,
   confirmContactFromSession,
   getContactByEmail,
   markOwnerNotified,
   requestContact,
 } from "@/lib/contacts";
 import { EMPTY_ADDRESS, isPostable, normaliseAddress } from "@/lib/contacts/crypto";
-import { resolveInvite } from "@/lib/contacts/invites";
+import { preapprovedEmailFor, resolveInvite } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
-import { notifyOwnerOfRequest, sendCodeMail, sendConfirmedMail } from "@/lib/contacts/mail";
+import { notifyOwnerOfRequest, sendApprovedMail, sendCodeMail, sendConfirmedMail } from "@/lib/contacts/mail";
 import { journalReader } from "@/lib/contacts/session";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -64,6 +65,14 @@ export const dynamic = "force-dynamic";
  * would be inventing an instance-wide identity that nothing else here has.
  * What such a visitor gets is a prefilled form and one code, not a second
  * registration.
+ *
+ * **One exception to "redeeming is asking" — B319.** When the invite names an
+ * address the owner asked to have it mailed to, and the session's own address
+ * matches it exactly, `approveContact` runs the moment this branch confirms
+ * rather than waiting for the owner. See `preapprovedEmailFor` and the
+ * confirming branch below. A session for any other address — including a
+ * forwarded copy of the same link — is unaffected by this and asks exactly as
+ * it always has.
  */
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
@@ -253,23 +262,38 @@ export async function POST(request: Request) {
   const confirmed = await confirmContactFromSession(username, sessionEmail);
   if (!confirmed.ok) return Response.json({ status: "waiting" }, { status: 202 });
 
+  // B319: the same address check `/api/contacts/confirm` makes — see there
+  // for why comparing to the invite's own `email_key` is safe against a
+  // forwarded link.
+  const preapproved =
+    (await preapprovedEmailFor(username, confirmed.contact.createdVia)) === confirmed.contact.email;
+  const status = preapproved
+    ? ((await approveContact(username, confirmed.contact.id))?.status ?? confirmed.contact.status)
+    : confirmed.contact.status;
+
   // Both best-effort (B272), same as `/api/contacts/confirm` — see there.
-  await sendConfirmedMail(username, user, confirmed.contact, confirmed.manageToken);
-  // Only while the owner has not actually been told, not only the first time:
-  // a re-following of the link whose earlier notification mail failed still
-  // needs one, and `notified_at` only turns true once it lands — so this
-  // never puts a second request in front of the owner.
-  if (confirmed.needsOwnerNotice) {
-    const notified = await notifyOwnerOfRequest(username, user, confirmed.contact);
-    if (notified) await markOwnerNotified(username, confirmed.contact.id);
+  if (preapproved) {
+    await sendApprovedMail(username, user, confirmed.contact);
+  } else {
+    await sendConfirmedMail(username, user, confirmed.contact, confirmed.manageToken);
+    // Only while the owner has not actually been told, not only the first
+    // time: a re-following of the link whose earlier notification mail
+    // failed still needs one, and `notified_at` only turns true once it
+    // lands — so this never puts a second request in front of the owner.
+    if (confirmed.needsOwnerNotice) {
+      const notified = await notifyOwnerOfRequest(username, user, confirmed.contact);
+      if (notified) await markOwnerNotified(username, confirmed.contact.id);
+    }
   }
 
   return Response.json(
     {
-      // `active` means the owner had already let them in and there is nothing
-      // to wait for. They proved this address to get here, so telling them the
-      // truth about their own row discloses nothing.
-      status: confirmed.contact.status === "active" ? "in" : "waiting",
+      // `active` means the owner had already let them in — whether they
+      // already had, or the pre-approval above just did it in this same
+      // request — and there is nothing to wait for. They proved this address
+      // to get here, so telling them the truth about their own row discloses
+      // nothing.
+      status: status === "active" ? "in" : "waiting",
     },
     { status: 202 },
   );
