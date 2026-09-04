@@ -102,22 +102,19 @@ export default function Landing({
           >
             {t("landing.handTitle")}
           </h2>
-          {/* Two lines, the way an address is: postal, and it stops a long
-              host wrapping mid-word on a phone. */}
-          <p className="mt-3 font-mono text-base leading-7 text-navy-900 sm:text-lg">
-            <span className="block text-navy-600">{new URL(docUrl).host}</span>
-            <span className="block">{new URL(docUrl).pathname}</span>
+          {/* The instruction itself, visible — the same string, from the same
+              key, that the button below copies. B255: a postal-style address
+              and a sentence fragment used to sit here, showing a different
+              thing than the clipboard carried. `break-words` keeps the long
+              URL from forcing horizontal scroll at phone width. */}
+          <p className="mt-3 break-words font-mono text-base leading-7 text-navy-900 sm:text-lg">
+            {t("landing.instruction", { url: docUrl })}
           </p>
-          <p className="mt-1 font-mono text-sm text-navy-600">{t("landing.handEmail")}</p>
           <div className="mt-4">
-            {/* A bare URL pasted into an agent is an ambiguous instruction: it
-                may fetch it, summarise it, or ask what to do with it, and the
-                email requirement is the half of the page that does not survive
-                a copy-paste. So the clipboard gets a sentence, and the label
-                stops saying "link". The visible host, path and email line stay
-                as they are — which is where they are readable one at a time,
-                so `name` says what the button copies instead of reciting the
-                whole sentence (B199). B254. */}
+            {/* With visible and copied text identical, `name` is no longer
+                covering a mismatch — it stays anyway, because an accessible
+                name that recites a whole sentence is worse than one that says
+                what the button does (B199). B254. */}
             <CopyLine
               value={t("landing.instruction", { url: docUrl })}
               label={t("landing.copyInstruction")}

@@ -218,9 +218,13 @@ describe("the landing page", () => {
     expect(instruction).toMatch(/email address I control/i);
 
     const html = renderLanding();
+    // B255 — the block renders the instruction itself as its visible text,
+    // the same string the button copies, not a postal-style host/path split.
+    expect(html).toContain(instruction);
     expect(html).toContain("Copy instruction");
-    // The name says what it copies rather than reciting the sentence — the
-    // host, the path and the email line are page text above it. B199.
+    // The name says what it copies rather than reciting the sentence — with
+    // visible and copied text now identical it is no longer covering a
+    // mismatch, but stays for the same reason as before (B199).
     expect(html).toContain('aria-label="Copy instruction"');
   });
 });

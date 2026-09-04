@@ -315,7 +315,6 @@ export type TranslationKey =
   | "landing.copied"
   | "landing.copy"
   | "landing.copyInstruction"
-  | "landing.handEmail"
   | "landing.handTitle"
   | "landing.hero"
   | "landing.instruction"
