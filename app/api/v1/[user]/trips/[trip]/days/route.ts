@@ -109,9 +109,10 @@ export async function POST(
       {
         error: "idempotency_key_reused",
         message:
-          `idempotency_key ${JSON.stringify(supplied)} was already used for a different day, ` +
-          "so nothing was written. The key identifies one write, not your session: reuse it " +
-          "only to retry the same call after a dropped connection. For a new day, send a new key.",
+          `idempotency_key ${JSON.stringify(supplied)} was already used for a different day. ` +
+          `That write succeeded — it created "${previous.value.slug}" — and nothing was written ` +
+          "this time. The key identifies one write, not your session: reuse it only to retry " +
+          "the same call after a dropped connection. For a new day, send a new key.",
       },
       { status: 409 },
     );
