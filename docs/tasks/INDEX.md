@@ -174,11 +174,12 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B336](in-development/B336-the-map-pages-drop-the-owner.md) | The map pages drop the owner's draft days while the same page's planned route keeps them | ISSUE | medium | low | `cae3e4fb` |
+| [B344](in-development/B344-the-lifetime-map-joins-every-trip.md) | The lifetime map joins every trip's stops with a line, reading as a route when it is an overview of everywhere somebody has been | FEATURE | medium | low | `e8e2ddef` |
 
 ## testing (154)
 
