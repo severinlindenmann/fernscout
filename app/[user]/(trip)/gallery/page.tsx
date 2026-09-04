@@ -7,6 +7,7 @@ import GalleryPageContent from "./GalleryPageContent";
 import { getAllMedia, getPlaces } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import TripProvider from "@/components/TripProvider";
+import { isOwner } from "@/lib/contacts/session";
 
 /**
  * Two languages on purpose.
@@ -40,9 +41,16 @@ export default async function GalleryPage({ params }: PageProps<"/[user]/gallery
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(trip))) return null;
+
+  // B318: this page called getAllMedia/getPlaces with no options at all, so
+  // it filtered drafts out for every viewer, owner included — the one
+  // reading path in the trip that never checked who was asking.
+  const owner = await isOwner(user);
+  const read = { includeDrafts: owner };
+
   return (
     <TripProvider trip={trip} isCurrent>
-      <GalleryPageContent media={getAllMedia(tripId)} places={getPlaces(tripId)} />
+      <GalleryPageContent media={getAllMedia(tripId, read)} places={getPlaces(tripId, read)} />
     </TripProvider>
   );
 }

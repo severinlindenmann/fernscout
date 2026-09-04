@@ -7,6 +7,7 @@ import { getAllMedia, getPlaces } from "@/lib/entries";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUsernames } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
+import { isOwner } from "@/lib/contacts/session";
 
 export function generateStaticParams() {
   return getUsernames().flatMap((user) => {
@@ -48,9 +49,15 @@ export default async function TripGalleryPage({
   if (!(await mayReadTrip(trip))) return null;
   if (trip.status === "current") redirect(`/${user}/gallery`);
 
+  // B318: this page called getAllMedia/getPlaces with no options at all, so
+  // it filtered drafts out for every viewer, owner included — the one
+  // reading path in the trip that never checked who was asking.
+  const owner = await isOwner(user);
+  const read = { includeDrafts: owner };
+
   return (
     <TripProvider trip={trip} isCurrent={false}>
-      <GalleryPageContent media={getAllMedia(trip.ref)} places={getPlaces(trip.ref)} />
+      <GalleryPageContent media={getAllMedia(trip.ref, read)} places={getPlaces(trip.ref, read)} />
     </TripProvider>
   );
 }
