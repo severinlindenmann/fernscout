@@ -8,6 +8,7 @@ area: ingest, slugs
 found: "2026-09-03"
 started: "2026-09-03T19:40:39Z"
 merged: "2026-09-03T19:48:47Z"
+completed: "2026-09-04T04:54:25Z"
 ---
 
 # B141 — Ingest disambiguates a colliding slug only within one date, so two days can still shadow each other

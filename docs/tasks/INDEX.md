@@ -164,7 +164,6 @@ _Nothing here._
 | [B21](testing/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | CHORE | high | medium | — |
 | [B64](testing/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
-| [B84](testing/B84-npm-run-ingest-does-not-start.md) | npm run ingest does not start, because a lib import omits the extension Node needs | ISSUE | high | low | — |
 | [B111](testing/B111-signup-codes-are-written-outside-the.md) | Signup codes are written outside the content directory, where nobody is looking for them | ISSUE | medium | low | — |
 | [B114](testing/B114-one-unreadable-file-under-data-dir.md) | One unreadable file under DATA_DIR aborts the whole backup | ISSUE | medium | low | — |
 | [B116](testing/B116-a-test-day-inside-a-real.md) | A test day inside a real trip is unmarked in the day list and in MCP's readable summary | ISSUE | medium | low | — |
@@ -172,7 +171,6 @@ _Nothing here._
 | [B12](testing/B12-a-finished-trip-still-offers-a.md) | A finished trip still offers a Today button | ISSUE | medium | low | — |
 | [B135](testing/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low | — |
 | [B136](testing/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low | — |
-| [B141](testing/B141-ingest-disambiguates-a-colliding-slug-only.md) | Ingest disambiguates a colliding slug only within one date, so two days can still shadow each other | ISSUE | medium | low | — |
 | [B145](testing/B145-task-stamps-record-only-a-date.md) | Task stamps record only a date, and nothing says which agent is on it | CHORE | medium | low | — |
 | [B159](testing/B159-a-contact-request-answers-every-token.md) | A contact request answers every token identically but takes ten times longer for a live one | SECURITY | medium | low | — |
 | [B180](testing/B180-the-bounded-probe-test-never-runs.md) | The bounded-probe test never runs, because it needs a coreutils binary macOS does not have | CHORE | medium | low | — |
@@ -203,7 +201,6 @@ _Nothing here._
 | [B130](testing/B130-re-approving-a-contact-leaves.md) | Re-approving a contact leaves an expired grant expired, so the approval does nothing | ISSUE | low | low | — |
 | [B151](testing/B151-the-mail-filename-slug-has.md) | The mail filename slug has no NFD pass, so a German umlaut loses its vowel | CHORE | low | low | — |
 | [B50](testing/B50-two-mails-in-the-same-millisecond.md) | Two mails in the same millisecond overwrite each other in development | ISSUE | low | low | — |
-| [B86](testing/B86-a-recipient-whose-name-has-no.md) | A recipient whose name has no ASCII gets an empty postcard filename, and each one overwrites the last | ISSUE | low | low | — |
 
 ## completed
 
@@ -213,6 +210,8 @@ _Nothing here._
 | [B56](completed/B56-deploying-ships-code-but-not-content.md) | Deploying ships code but not content/locales, so translations never reach the live site | ISSUE | high | low |
 | [B72](completed/B72-a-trip-whose-dates-have-passed.md) | A trip whose dates have passed still calls itself upcoming, and hides every day written to it | ISSUE | high | medium |
 | [B73](completed/B73-a-journal-with-no-current-trip.md) | A journal with no current trip answers 404 on three of the four pages its own nav offers | ISSUE | high | low |
+| [B84](completed/B84-npm-run-ingest-does-not-start.md) | npm run ingest does not start, because a lib import omits the extension Node needs | ISSUE | high | low |
+| [B141](completed/B141-ingest-disambiguates-a-colliding-slug-only.md) | Ingest disambiguates a colliding slug only within one date, so two days can still shadow each other | ISSUE | medium | low |
 | [B26](completed/B26-the-welcome-mail-is-english-only.md) | The welcome mail is English only, and nobody is asked which language the journal is in | FEATURE | medium | low |
 | [B27](completed/B27-the-welcome-mail-s-link-opens.md) | The welcome mail's link opens the public view, so the owner cannot see their own drafts | FEATURE | medium | medium |
 | [B33](completed/B33-a-journal-can-be-shared-only.md) | A journal can be shared only by password or by hand-edited frontmatter, so an agent cannot invite anybody | FEATURE | medium | medium |
@@ -235,6 +234,7 @@ _Nothing here._
 | [B59](completed/B59-a-new-locale-string-renders-as.md) | A new locale string renders as its own key until the server is restarted | ISSUE | low | low |
 | [B61](completed/B61-the-markdown-twin-is-the-one.md) | The markdown twin is the one route that does not know a journal was deleted | ISSUE | low | low |
 | [B77](completed/B77-a-german-umlaut-loses-its-vowel.md) | A German umlaut loses its vowel in a slug, and two slugify functions disagree about the rest | ISSUE | low | low |
+| [B86](completed/B86-a-recipient-whose-name-has-no.md) | A recipient whose name has no ASCII gets an empty postcard filename, and each one overwrites the last | ISSUE | low | low |
 <!-- generated:end -->
 
 ## Frontmatter

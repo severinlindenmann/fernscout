@@ -8,6 +8,7 @@ area: ingest, scripts, esm
 found: "2026-09-01"
 started: "2026-09-03"
 merged: "2026-09-03"
+completed: "2026-09-04T04:54:25Z"
 ---
 
 # B84 — npm run ingest does not start, because a lib import omits the extension Node needs
