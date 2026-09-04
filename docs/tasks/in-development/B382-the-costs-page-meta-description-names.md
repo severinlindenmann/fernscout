@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: i18n
 found: "2026-09-04T21:53:19Z"
+started: "2026-09-04T21:54:32Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-04T21:54:32Z"
 ---
 
 # B382 — The costs page meta description names the journal by its URL slug instead of its title

@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: maps
 found: "2026-09-04T21:53:18Z"
+started: "2026-09-04T21:54:31Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-04T21:54:31Z"
 ---
 
 # B381 — A day with no coordinates becomes a nameless place, inflating the stop and country counts a page contradicts itself about
