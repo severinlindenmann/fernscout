@@ -85,6 +85,8 @@ Do not edit them by hand; run the script.
 | [B110](backlog/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | CHORE | low | low |
 | [B15](backlog/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium |
 | [B176](backlog/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
+| [B211](backlog/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | ISSUE | low | low |
+| [B212](backlog/B212-a-journal-s-title-is-truncated.md) | A journal's title is truncated to five characters in the trip header on a 1440px desktop | ISSUE | low | low |
 | [B88](backlog/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low |
 | [B90](backlog/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 

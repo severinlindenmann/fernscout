@@ -74,3 +74,69 @@ screenshots in any document other than `README.md`.
   passes with the new files present.
 - The total added weight is stated in the task's closing line, so the next
   person adding a screenshot knows the budget.
+
+---
+
+## Resolution — 2026-09-04
+
+Four screenshots, in a new **What it looks like** section between the intro and
+*Running it*. Committed under `docs/screenshots/`, which the task named as the
+obvious home and which is right for the reason it gave: `public/` is served to
+browsers and these are repository documentation.
+
+| File | View |
+| --- | --- |
+| `trip-story.jpg` | `/example/trips/parks-2025` — the day rail, the day card, the route map |
+| `day-entry.jpg` | `…/day/arches-at-dusk` — prose, a three-photo gallery, the reaction row |
+| `trip-map.jpg` | `…/map` — eighteen stops and the baked base map |
+| `gallery.jpg` | `…/gallery` — the grid, filtered by place |
+
+**Total added weight: 339 KB** (74 / 93 / 57 / 115). That is the budget, and
+`docs/screenshots/README.md` says so, along with how they were captured so the
+next set matches.
+
+On the four things the task said would otherwise go wrong:
+
+- **Production build.** `npm run build && PORT=3700 npm start`, not `npm run dev`.
+- **The scroll animation.** Not faked and not GIF'd. The composed state was
+  picked deliberately — the day rail with the map beneath it — and the README
+  says in words that scrolling walks the travellers between stops and that a
+  still cannot show it. A GIF was considered and rejected on weight.
+- **Themes.** Light, all four, and `docs/screenshots/README.md` states it.
+- **Size.** Captured at a 1440 × 900 viewport in CSS pixels (not device
+  pixels — retina would have quadrupled the bytes for nothing), resized to
+  1280 wide, JPEG q80 with mozjpeg and no chroma subsampling, which keeps the
+  UI text crisp.
+
+One thing worth knowing for the next capture, now written down in
+`docs/screenshots/README.md`: the demo journal offers `en`, `de` and `hu`, and
+a browser that asks for German gets German. The first pass was captured
+entirely in German before anybody noticed. Set `fs.locale=en`.
+
+## Acceptance — met
+
+- `README.md` shows four images of the demo journal above *Running it*; all
+  four are repository-relative links that render on github.com and on a clone.
+- Every file is committed under a documented path — `docs/screenshots/`, with
+  its own README listing what each one is.
+- `npx eslint .` and `npm run build` pass; `test/depersonalised.test.ts`
+  passes. (It scans `lib app components scripts public`, so `docs/` is outside
+  its reach either way — but the rule it enforces was still obeyed: only
+  `content/example/` was photographed, never `sevi`, `sevi2`, `test1` or the
+  `xydhd-qa*` journals.)
+- Added weight stated above: **339 KB**.
+
+### Noticed, not absorbed
+
+Two things the screenshots made visible, both captured rather than quietly
+fixed:
+
+- **B211** — the demo journal's photographs come from Lorem Picsum and have
+  nothing to do with the places they are captioned with. `gallery.jpg` labels a
+  seascape "Wind Cave National Park"; the Arches day shows a building facade, a
+  slot canyon and a sand dune. It is a deliberate trade-off
+  (`scripts/build-demo-content.mjs:18` — nothing to license) that only starts
+  to cost something now that these pictures are the README.
+- **B212** — the journal title truncates to "Ferns…" in the trip header at
+  1440 px, with empty space beside it. Visible in `trip-story.jpg` and
+  `day-entry.jpg`. The screenshots were left honest rather than doctored.
