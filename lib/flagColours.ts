@@ -1,23 +1,29 @@
 /**
- * A country's flag, reduced to two colours — B370.
+ * A country's flag, reduced to two colours — B370, retuned by B375.
  *
  * The lifetime map fills each visited country in its own flag's colour, so a
- * reader recognises Japan or Italy without reading a word. Two colours rather
- * than one because flags collide badly and the map is the place it shows:
- * France, the Netherlands, Czechia, Norway, Slovakia, the United Kingdom and
- * the United States are all red-white-blue, and a great deal of Africa is
- * green-yellow-red. `assignFlagColours` hands out the first that is still free
- * and falls back to the second, which turns a row of five identical European
- * shapes into a mix. It does not fully solve it — nothing does — and the owner
- * accepted that when choosing flag colours over a single hue (B370).
+ * reader recognises Japan or Italy without reading a word.
  *
- * **White is never used.** A white country is a hole in the map: the land
- * underneath is pale green and the fill would read as "not visited". Flags
- * whose dominant colour is white (Japan, Poland, Finland) take their coloured
- * band instead — which is also the colour people actually picture.
+ * **Only the hue survives.** Every fill is normalised to one saturation and
+ * lightness (`toFill` below), because the first attempt shipped the flags' own
+ * values and the map became scattered ink: deep navy and near-black on pale
+ * green land, with six European countries — France, Czechia, Estonia, Finland,
+ * Sweden and the United States — arriving as six different hex strings and one
+ * colour to the eye. Italy is still green and Japan still red; they simply sit
+ * in the same tonal band as everything else, which is what lets a country the
+ * size of Belgium read at all.
  *
- * Colours are the flag's own where a specification gives one, and darkened
- * where the official shade is too pale to sit on pale-green land. They are
+ * Two colours per flag because hue is now the only channel carrying identity,
+ * and flags share hues: the alternate is what a country falls back to when its
+ * neighbour got there first.
+ *
+ * **Black and white are both refused.** A white country is a hole in the map —
+ * the land beneath is pale green and the fill would read as unvisited — and a
+ * black one reads as a rendering fault. Neither has a usable hue anyway, so
+ * `toFill` rejects them and the flag's coloured band is used instead. That is
+ * why Germany is red rather than black, and Japan red rather than white.
+ *
+ * Colours are the flag's own where a specification gives one. They are
  * decoration, not a source of truth about anybody's flag.
  */
 
@@ -228,6 +234,95 @@ export const FLAG_COLOURS: Record<string, [string, string]> = {
 };
 
 /**
+ * The tonal band every fill is forced into.
+ *
+ * Chosen against what the map actually is: pale green land (`#dff3e0`) and a
+ * blue sea. Saturated enough to be obviously deliberate, light enough that a
+ * country is a colour rather than a blot, and dark enough to hold an outline.
+ */
+const FILL_SATURATION = 62;
+
+/**
+ * Three tones, and why a second channel is needed at all.
+ *
+ * Hue alone cannot separate a well-travelled journal: 23 countries on a 360°
+ * wheel is 15° each, below what anybody can tell apart on a shape the size of
+ * Belgium — and forcing them apart by rotating hue is worse than the problem.
+ * Tried, and it turned Czechia red, Sweden yellow and Italy teal; a country
+ * that is not its flag's colour has lost the only thing this encoding was for.
+ *
+ * So hue stays faithful to the flag, always, and countries that share one are
+ * separated by tone instead. Mid first, so a journal of a few countries uses
+ * one consistent weight and only a crowded one reaches for the others.
+ */
+const FILL_LIGHTNESS = [55, 40, 70, 47, 63] as const;
+
+/**
+ * How far apart two fills must be on the colour wheel, in degrees.
+ *
+ * The whole point of B375: the previous check compared hex strings, so six
+ * near-identical blues passed it. 24° is about the smallest difference that
+ * survives being painted on a country the size of Belgium.
+ */
+const MIN_HUE_GAP = 24;
+
+/** Below this saturation a colour has no hue worth keeping — black, white and
+ * every grey. Above/below these lightnesses likewise. */
+const MIN_CHROMA = 0.12;
+const MIN_LIGHT = 0.12;
+const MAX_LIGHT = 0.94;
+
+/** The flag colour's hue, or null when it has none to give. */
+function hueOf(hex: string): number | null {
+  const n = parseInt(hex.slice(1), 16);
+  const r = ((n >> 16) & 255) / 255;
+  const g = ((n >> 8) & 255) / 255;
+  const b = (n & 255) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const light = (max + min) / 2;
+  const chroma = max - min;
+
+  // Black, white and grey have no hue — and neither belongs on this map.
+  if (chroma < MIN_CHROMA || light < MIN_LIGHT || light > MAX_LIGHT) return null;
+
+  const h =
+    max === r
+      ? ((g - b) / chroma) % 6
+      : max === g
+        ? (b - r) / chroma + 2
+        : (r - g) / chroma + 4;
+  return ((h * 60) % 360 + 360) % 360;
+}
+
+/** A hue, at one of the shared tones. */
+function toFill(hue: number, lightness: number): string {
+  const s = FILL_SATURATION / 100;
+  const l = lightness / 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = l - c / 2;
+  const [r, g, b] =
+    hue < 60 ? [c, x, 0]
+    : hue < 120 ? [x, c, 0]
+    : hue < 180 ? [0, c, x]
+    : hue < 240 ? [0, x, c]
+    : hue < 300 ? [x, 0, c]
+    : [c, 0, x];
+  const hex = (v: number) =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
+}
+
+/** Degrees between two hues the short way round: 350° and 10° are 20° apart. */
+function hueGap(a: number, b: number): number {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+}
+
+/**
  * When a country has no entry above. Brand coral, the fill B361 used for
  * everything — a country nobody has a colour for is still visited, and must
  * not read as unvisited land.
@@ -235,17 +330,29 @@ export const FLAG_COLOURS: Record<string, [string, string]> = {
 export const FLAG_FALLBACK = "#c2334a";
 
 /**
- * One colour per country, avoiding the obvious collisions.
+ * One colour per country: its flag's hue, and a tone that keeps it apart from
+ * its neighbours.
  *
  * Greedy and order-dependent, so the caller passes a stable order — the same
  * journal has to colour the same way on every render, and iterating a `Map`
- * built from disk reads is not a promise of that. Each country takes its
- * preferred colour unless another has already taken it, then its alternate,
- * then its preferred anyway: a repeat is better than dropping the country.
+ * built from disk reads is not a promise of that.
+ *
+ * A country offers its flag's two hues and takes the first whose (hue, tone)
+ * is not already spoken for; failing that it keeps its own hue and steps down
+ * the tones. **The hue is never rotated** — see `FILL_LIGHTNESS`. Where even
+ * that runs out, a repeat ships: two countries the same colour is a legend
+ * lookup, where a country in the wrong colour is a lie.
+ *
+ * B375. The first version compared hex strings, which is how France, Czechia,
+ * Estonia, Finland, Sweden and the United States passed a collision test as
+ * six distinct values and arrived on the map as one blue.
  */
 export function assignFlagColours(codes: readonly string[]): Map<string, string> {
-  const taken = new Set<string>();
+  const taken: { hue: number; tone: number }[] = [];
   const out = new Map<string, string>();
+
+  const clear = (hue: number, tone: number) =>
+    taken.every((t) => t.tone !== tone || hueGap(t.hue, hue) >= MIN_HUE_GAP);
 
   for (const code of codes) {
     const pair = FLAG_COLOURS[code];
@@ -253,10 +360,49 @@ export function assignFlagColours(codes: readonly string[]): Map<string, string>
       out.set(code, FLAG_FALLBACK);
       continue;
     }
-    const [first, second] = pair;
-    const pick = !taken.has(first) ? first : !taken.has(second) ? second : first;
-    taken.add(pick);
-    out.set(code, pick);
+
+    // Achromatic candidates drop out here: a black or white flag has no hue,
+    // and neither colour may be painted on this map.
+    const hues = pair.map(hueOf).filter((h): h is number => h !== null);
+    if (hues.length === 0) {
+      out.set(code, FLAG_FALLBACK);
+      continue;
+    }
+
+    let chosen: { hue: number; tone: number } | undefined;
+    for (const tone of FILL_LIGHTNESS) {
+      const hue = hues.find((h) => clear(h, tone));
+      if (hue !== undefined) {
+        chosen = { hue, tone };
+        break;
+      }
+    }
+    // Every slot spoken for. Rather than take the flag's hue at the default
+    // tone — which is how France arrived as an exact copy of Czechia — pick
+    // the combination that sits furthest from everything already used. Still a
+    // near-duplicate on a crowded map, but the least bad one available.
+    if (!chosen) {
+      let best: { hue: number; tone: number; room: number } = {
+        hue: hues[0],
+        tone: FILL_LIGHTNESS[0],
+        room: -1,
+      };
+      for (const tone of FILL_LIGHTNESS) {
+        for (const hue of hues) {
+          const room = Math.min(
+            ...taken
+              .filter((t) => t.tone === tone)
+              .map((t) => hueGap(t.hue, hue)),
+            360,
+          );
+          if (room > best.room) best = { hue, tone, room };
+        }
+      }
+      chosen = { hue: best.hue, tone: best.tone };
+    }
+
+    taken.push(chosen);
+    out.set(code, toFill(chosen.hue, chosen.tone));
   }
 
   return out;

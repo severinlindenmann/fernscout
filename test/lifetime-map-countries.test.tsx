@@ -32,6 +32,14 @@ function render(visits: CountryVisit[]) {
 }
 
 /** Real outlines from the baked data, so the test exercises what ships. */
+/** Every country the colour table knows, for the sweeps below. */
+const EVERY_CODE = Object.keys(FLAG_COLOURS);
+
+function rgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
 function shapeOf(code: string) {
   const c = (countries as { code: string | null; name: string; path: string }[]).find(
     (x) => x.code === code,
@@ -98,11 +106,43 @@ describe("countries visited", () => {
     expect(html).toContain("×2"); // visited by two trips
   });
 
-  test("two flags sharing a colour are not filled identically", () => {
-    // France, the Netherlands, Czechia, Norway and the USA are all
-    // red-white-blue; the map is where that shows.
-    const got = assignFlagColours(["FR", "NL", "CZ", "NO", "US"]);
-    expect(new Set(got.values()).size).toBe(5);
+  /**
+   * B375. The test this replaces asserted `new Set(...).size`, which is string
+   * identity — France `#0055A4`, Czechia `#11457E`, Estonia `#0072CE`, Finland
+   * `#003580`, Sweden `#006AA7` and the USA `#3C3B6E` are six distinct strings
+   * and one colour to the eye. It passed while the map was unreadable.
+   */
+  test("countries whose flags share a hue are still told apart", () => {
+    const codes = ["FR", "CZ", "EE", "FI", "SE", "US", "NL", "NO"];
+    const got = [...assignFlagColours(codes).values()].map(rgb);
+
+    for (let i = 0; i < got.length; i++) {
+      for (let j = i + 1; j < got.length; j++) {
+        // Manhattan distance in RGB — crude, but it catches what string
+        // inequality cannot: two blues four units apart.
+        const apart =
+          Math.abs(got[i][0] - got[j][0]) +
+          Math.abs(got[i][1] - got[j][1]) +
+          Math.abs(got[i][2] - got[j][2]);
+        expect(apart).toBeGreaterThan(40);
+      }
+    }
+  });
+
+  test("no country is filled near-black, near-white or grey", () => {
+    // A white country is a hole in the map and a black one reads as a fault.
+    for (const [r, g, b] of [...assignFlagColours(EVERY_CODE).values()].map(rgb)) {
+      const light = (Math.max(r, g, b) + Math.min(r, g, b)) / 2 / 255;
+      const chroma = (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
+      expect(light).toBeGreaterThan(0.2);
+      expect(light).toBeLessThan(0.9);
+      expect(chroma).toBeGreaterThan(0.15);
+    }
+  });
+
+  test("a flag with no usable hue falls back rather than painting black", () => {
+    // Germany's black band has no hue; it must come out red, not #111111.
+    expect(assignFlagColours(["DE"]).get("DE")).not.toBe("#111111");
   });
 
   test("the same journal colours the same way twice", () => {
