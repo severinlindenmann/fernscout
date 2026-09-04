@@ -35,10 +35,10 @@ software — so the fix is density, not deletion.
 
 ## Work
 
-- **Remove `InviteLinks` from `/me`.** Link creation moves to the contacts panel
-  in B281; delete `components/InviteLinks.tsx` there rather than here, so this
-  task does not leave an unreferenced file (`npm run unused` would catch it).
-  This task's half is the removal from the page and the button below.
+- **Remove `InviteLinks` from `/me` and delete the component.** Link creation
+  moves to the contacts panel in B281, which must be merged first — otherwise
+  there is a commit on `main` with no way to make a link at all. This task owns
+  both the mount and the file, so `npm run unused` stays clean in one step.
 - **Promote the existing contacts link to a proper button** — the primary
   control in that section, worded as what it leads to: create and manage who
   reads along, and the links that let them ask. `me.contacts` already says
@@ -61,6 +61,7 @@ file; whichever lands second rebases.
 
 - `/<user>/me` has no link-creating control, and one button leading to
   `/<user>/contacts`.
+- `components/InviteLinks.tsx` is gone and `npm run unused` is clean.
 - With `contacts` off, the button is absent rather than dead — the rule
   `MePageContent.tsx:265` already states for the old link.
 - The owner section is measurably shorter at 390px wide (record the before and

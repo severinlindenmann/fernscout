@@ -66,9 +66,10 @@ B280, which this task depends on for the copy action.
   person deciding which to revoke. Keep the kind visible: B97's finding was that
   a reading link and a writing link must never look alike.
 - **A copy action per row**, from B280. And a revoke, which exists.
-- **Move `guest` and `buddy` creation here** from `components/InviteLinks.tsx`,
-  and delete that component when `/me` links here instead (B282). One place
-  that issues links, or the two disagree about wording within a month —
+- **Move `guest` and `buddy` creation here** from `components/InviteLinks.tsx`.
+  Add it here; **B282 removes the `/me` mount and deletes the component**, in
+  that order, so there is never a commit on `main` with no way to make a link.
+  One place that issues links, or the two disagree about wording within a month —
   `INVITE_KIND_KEY` in `components/ContactsAdmin.tsx:87` already exists to keep
   the vocabulary shared with the `/me` panel, and after this there is only one
   panel to keep it shared with.
@@ -91,7 +92,6 @@ redemption does.
 - An invite created before this task still renders, with a label rather than a
   blank, and still redeems.
 - Each row copies (B280) and revokes.
-- `components/InviteLinks.tsx` is gone and `npm run unused` is clean.
 - All three locales carry the new strings; no English leaks into the German
   page.
 - The four checks pass, and `claude-security` has been run over the branch.
