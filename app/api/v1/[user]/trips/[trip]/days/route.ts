@@ -41,10 +41,16 @@ export async function GET(
    * looking for. Inherited too: a day in a `test` trip carries no flag of its
    * own, and `GET .../days/<slug>` has resolved it that way since B47, so the
    * list and the day read must not disagree about the same day.
+   *
+   * `includeDrafts: true` — the gate above already establishes the caller may
+   * see them: owner, or somebody on the trip. Everything this API writes
+   * lands as a draft, so without this an agent that had just created fifteen
+   * days asked for the trip's days and was handed an empty array (B296).
+   * `entrySummary` marks which is which so the two are not confused.
    */
   return Response.json({
     trip: ref,
-    days: getAllEntries(ref).map((entry) => entrySummary(entry, found)),
+    days: getAllEntries(ref, { includeDrafts: true }).map((entry) => entrySummary(entry, found)),
   });
 }
 
@@ -109,9 +115,10 @@ export async function POST(
       {
         error: "idempotency_key_reused",
         message:
-          `idempotency_key ${JSON.stringify(supplied)} was already used for a different day, ` +
-          "so nothing was written. The key identifies one write, not your session: reuse it " +
-          "only to retry the same call after a dropped connection. For a new day, send a new key.",
+          `idempotency_key ${JSON.stringify(supplied)} was already used for a different day. ` +
+          `That write succeeded — it created "${previous.value.slug}" — and nothing was written ` +
+          "this time. The key identifies one write, not your session: reuse it only to retry " +
+          "the same call after a dropped connection. For a new day, send a new key.",
       },
       { status: 409 },
     );

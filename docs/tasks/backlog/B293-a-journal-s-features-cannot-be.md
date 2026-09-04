@@ -48,35 +48,42 @@ no budget at all.
 
 ## Work
 
-Two halves, and the first is safe to do immediately.
+**Decided by the owner on 2026-09-04, and it makes most of this task go away:
+the costs page follows the data, not a switch.** No budget written means the
+page and its nav entry are not there; a `costs.md` means they are. So there is
+nothing for an agent to toggle, and the authority question below — may a token
+disable a journal's capabilities — does not need answering to close the
+complaint that produced this ticket.
+
+That presence-driven behaviour is **B267's third Work item** and stays there
+rather than being duplicated here. B267 also carries the related half the same
+owner reported: the nav offering *Costs* on a journal with no trips at all.
+
+What is left for this task:
 
 1. **Make `405` say something.** A route that refuses a verb should name the
-   verbs it has and, where it is a common wrong guess, the route that does have
-   it. Find how Next surfaces an unimplemented method here and whether it can
-   carry a body at all; if it cannot, the answer may be an explicit handler on
-   the routes agents demonstrably guess at. Keep it cheap — this is a message,
-   not a framework.
-2. **Decide whether an agent may change a journal's capabilities**, and record
-   the decision either way. It is genuinely open, which is why this is not
-   already built:
-   - *For:* the agent is the editor and there is no other interface. A setting
-     no door can reach is a setting only SSH can fix, which is B153's complaint
-     and not a good place to be.
-   - *Against:* capabilities decide what the software *is* for that journal —
-     turning `auth` or `contacts` off can lock an owner out of their own
-     journal, which is precisely why those two are forced on at creation. A
-     token that can disable authentication is a token that can strand its
-     owner.
-   - A middle answer worth weighing: allow the harmless subset (`costs`,
-     `reactions`, `photobook`, `postcards`) and refuse the two that gate access
-     (`auth`, `contacts`) with a sentence saying why — which is the same shape
-     as `JOURNAL_FIELD_REFUSALS` already uses for `owner.email` and
-     `baseCurrency`.
-3. Whatever is decided, **document it**: an agent asked to turn a page off must
-   find either the call or the sentence saying it cannot, and must never again
-   have "tell them to use the web UI" as its best remaining move. Both
-   documents.
+   verbs it has, and where it is a common wrong guess, the route that does have
+   it — `PATCH /api/v1/<user>/trips/<trip>` and `PATCH /api/v1/<user>` were both
+   guessed here, and the second is `…/config`. Find how Next surfaces an
+   unimplemented method and whether it can carry a body; if it cannot, an
+   explicit handler on the routes agents demonstrably guess at is the answer.
+   Keep it a message, not a framework.
+2. **Say in both documents that a journal's `features` are not agent-writable,
+   and that the costs page follows the data.** An agent asked to turn a page
+   off must find the sentence rather than guess two routes and then invent a
+   web UI, which is what happened. Name that failure the way the guide already
+   names *"manually upload"* — an interface that does not exist is not a
+   fallback.
+3. `features` **stays unwritable**, deliberately, and the reason is worth one
+   line where the next person will ask: turning `auth` or `contacts` off can
+   lock an owner out of their own journal, which is why B153 forces both on at
+   creation. A token issued because of an address must not be able to sever the
+   path back to it.
 
+Not in scope, and no longer needed for this complaint: an API for capabilities.
+If a future case genuinely needs one, the shape to weigh is the harmless subset
+(`reactions`, `photobook`, `postcards`) with `auth` and `contacts` refused in
+the manner of `JOURNAL_FIELD_REFUSALS` — but do not build it on speculation.
 ## Acceptance
 
 - A wrong verb on the trip and journal routes returns a body naming what is

@@ -57,6 +57,7 @@ Do not edit them by hand; run the script.
 | [B102](backlog/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | CHORE | high | medium |
 | [B103](backlog/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | CHORE | high | medium |
 | [B276](backlog/B276-self-service-journal-creation-is-open.md) | Self-service journal creation is open to anyone on fernscout.ch, and B104 records it as never having run | SECURITY | high | low |
+| [B295](backlog/B295-a-trip-budget-can-only-be.md) | A trip budget can only be written by hand, so an agent cannot give a trip its costs page | FEATURE | high | medium |
 | [B65](backlog/B65-the-deployed-server-has-no-backup.md) | The deployed server has no backup at all — restic, the units and the credentials were never installed | CHORE | high | medium |
 | [B06](backlog/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B10](backlog/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
@@ -81,7 +82,6 @@ Do not edit them by hand; run the script.
 | [B252](backlog/B252-the-trip-gate-says-a-journal.md) | The trip gate says a journal has no sign-in while /api/auth still issues it sessions | ISSUE | medium | low |
 | [B260](backlog/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |
 | [B262](backlog/B262-writing-to-a-journal-requires-bringing.md) | Writing to a journal requires bringing your own agent, so an owner without one cannot write at all | FEATURE | medium | high |
-| [B267](backlog/B267-nothing-tells-an-agent-that-a.md) | Nothing tells an agent that a trip decides its own budget and coordinates, and an empty costs page is offered anyway | ISSUE | medium | medium |
 | [B268](backlog/B268-the-slideshow-map-projects-coordinates-without.md) | The slideshow map projects coordinates without mapFrame, so a coordinate-less day breaks it the same way | ISSUE | medium | low |
 | [B269](backlog/B269-the-photobook-has-its-own-bounding.md) | The photobook has its own bounding-box code with the same NaN hole B265 closed for the web maps | ISSUE | medium | low |
 | [B273](backlog/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium |
@@ -126,20 +126,21 @@ Do not edit them by hand; run the script.
 | [B289](backlog/B289-nothing-records-that-a-hungarian-string.md) | Nothing records that a Hungarian string cannot take a case suffix on an interpolated name | CHORE | low | low |
 | [B290](backlog/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 | [B291](backlog/B291-the-day-markdown-twins-are-the.md) | The day markdown twins are the one agent-facing route the request log does not cover | CHORE | low | low |
+| [B297](backlog/B297-a-nul-byte-in-the-idempotency.md) | A NUL byte in the idempotency key separator makes git treat the whole file as binary | CHORE | low | low |
 | [B88](backlog/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low |
 | [B90](backlog/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
 ## open
 
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B283](open/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high |
+_Nothing here._
 
 ## in-development
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B292](in-development/B292-four-things-an-agent-had-to.md) | Four things an agent had to learn by failing are documented somewhere it was not looking | ISSUE | medium | low | `986bc24c` |
+| [B267](in-development/B267-nothing-tells-an-agent-that-a.md) | Nothing tells an agent that a trip decides its own budget and coordinates, and an empty costs page is offered anyway | ISSUE | medium | medium | `986bc24c` |
+| [B283](in-development/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high | `a3370c43` |
+| [B298](in-development/B298-mcp-is-live-and-unused-and.md) | MCP is live and unused, and costs maintenance surface nobody exercises | CHORE | medium | high | `4d93d34d` |
 
 ## testing
 
@@ -170,6 +171,7 @@ Do not edit them by hand; run the script.
 | [B272](testing/B272-a-transient-mail-failure-tells-a.md) | A transient mail failure tells a reader their code was wrong and loses the owner's notification for good | ISSUE | high | medium | — |
 | [B277](testing/B277-the-reader-languages-stay-optional-at.md) | The reader languages stay optional at creation, so a journal asked for three gets one | ISSUE | high | low | — |
 | [B279](testing/B279-a-page-rendered-its-raw-locale.md) | A page rendered its raw locale keys to a reader instead of any text at all | ISSUE | high | medium | — |
+| [B296](testing/B296-the-days-listing-hides-drafts-from.md) | The days listing hides drafts from the only caller allowed to see them, so an agent cannot audit its own writes | ISSUE | high | low | — |
 | [B64](testing/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B02](testing/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low | — |
@@ -203,6 +205,7 @@ Do not edit them by hand; run the script.
 | [B281](testing/B281-the-invite-panel-asks-who-a.md) | The invite panel asks who a link is for and then shows neither that nor the language, and offers a third link kind nobody needs | FEATURE | medium | medium | — |
 | [B282](testing/B282-the-access-panel-creates-a-guest.md) | The access panel creates a guest link itself, so link management lives on two pages and the page is long enough to scroll past what matters | ISSUE | medium | low | — |
 | [B285](testing/B285-the-header-s-language-currency-chip.md) | The header's language/currency chip drifts to the middle of the row on desktop | ISSUE | medium | low | — |
+| [B292](testing/B292-four-things-an-agent-had-to.md) | Four things an agent had to learn by failing are documented somewhere it was not looking | ISSUE | medium | low | — |
 | [B35](testing/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
 | [B39](testing/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
 | [B40](testing/B40-a-six-digit-code-expires-in.md) | A six-digit code expires in ten minutes, which is shorter than people take to find the mail | CHORE | medium | low | — |

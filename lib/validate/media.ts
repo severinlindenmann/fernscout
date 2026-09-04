@@ -34,6 +34,10 @@ export type Problem = {
   field: string;
   got: string;
   expected: string;
+  /** A sentence, for the rare problem where naming the field in `field` is
+   * not enough — see the empty-`files` refusal in lib/api/media.ts, which an
+   * agent read past once the field name was carried only there (B292). */
+  hint?: string;
 };
 
 export type MediaCandidate = {

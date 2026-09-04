@@ -57,6 +57,25 @@ export const VISIBILITY_NOT_A_LOCK =
   "the people who were there, `public` means anyone — and a new trip is private whichever " +
   "kind of journal it is in.";
 
+/**
+ * The consequence of the slug rule, which the rule alone does not carry.
+ *
+ * "The slug comes from the title, and no two days in a trip may share one" is
+ * already documented — this is what an agent titling several days from one
+ * journal actually needs at that moment: a worked example of the fix, not
+ * just the name of the failure mode. B292.
+ */
+export const TITLE_COLLISION_EXAMPLE =
+  "Two days at the same place, titled the same way, collide: give each a distinguishing " +
+  "title instead — `Bangkok — Arrival`, `Bangkok — Night Market`.";
+
+/**
+ * Where photographs actually go, named rather than left as "the media
+ * endpoint" for an agent to guess at — it guessed `.../days/{slug}/photos`,
+ * got a 404, and went hunting. B292.
+ */
+export const MEDIA_ENDPOINT_PATH = "/api/v1/<user>/trips/<trip-id>/media";
+
 // Read from the constant rather than typed into prose: a fourth language would
 // otherwise be maintained everywhere except in the sentence that tells an agent
 // it exists. The media limits table already works this way.

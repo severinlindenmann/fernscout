@@ -256,7 +256,11 @@ describe("what it refuses", () => {
   });
 
   test("an empty request, and a day slug that is not one", async () => {
-    expect((await storeUploads(REF, "day-one", [])).ok).toBe(false);
+    const empty = await storeUploads(REF, "day-one", []);
+    expect(empty.ok).toBe(false);
+    // B292: the `field` key already named it, and an agent read past that —
+    // so the refusal also carries a sentence naming the form field.
+    if (!empty.ok) expect(empty.problems[0].hint).toContain("files");
     expect((await storeUploads(REF, "///", [{ filename: "a.jpg", bytes: await jpeg(60, 60) }])).ok).toBe(false);
   });
 });

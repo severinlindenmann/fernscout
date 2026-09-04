@@ -20,6 +20,8 @@ import { CODE_TTL_MINUTES } from "../auth";
 // they cannot come to disagree. See the note at the top of that file.
 import {
   LOCALE_LIST,
+  MEDIA_ENDPOINT_PATH,
+  TITLE_COLLISION_EXAMPLE,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
   asSentence,
@@ -216,13 +218,14 @@ export function instanceDocumentation(): string {
     "```",
     "",
     ...wrap(
-      "`title`, `date` and `content` are required; location, photographs and cost " +
-        "are optional and are in the guide. This always writes a **draft**: there " +
-        'is no `"status"` field you can send, and nothing here is on the site yet. ' +
-        "The reply carries the `slug` the day was filed under — take it from there " +
-        "rather than guessing it from the title, which is not always what a title " +
-        "reduces to. Read the day back, tell the person what you wrote, and wait " +
-        "for them to say yes. Only then, with that slug:",
+      "`title`, `date` and `content` are required; location, cost and photographs " +
+        `(\`POST ${base()}${MEDIA_ENDPOINT_PATH}\`) are optional and are in the guide. ` +
+        "This always writes a **draft**: there is no `\"status\"` field you can send, " +
+        "and nothing here is on the site yet. The reply carries the `slug` the day " +
+        "was filed under — take it from there rather than guessing it from the " +
+        `title, which is not always what a title reduces to. ${TITLE_COLLISION_EXAMPLE} ` +
+        "Read the day back, tell the person what you wrote, and wait for them to " +
+        "say yes. Only then, with that slug:",
       78,
     ),
     "",
@@ -989,16 +992,16 @@ one. The full schema, with the shape of each nested item, is in
 | \`test\` | \`true\` when this day did not happen. See **The one rule**. |
 | \`idempotency_key\` | Names this one write — see below. |
 
-There is no \`gallery\` field and no \`status\` field. Photographs go to the media
-endpoint, which puts them in the day for you; and what this writes is always a
-draft.
+There is no \`gallery\` field and no \`status\` field. Photographs go to
+\`POST ${site.url}${MEDIA_ENDPOINT_PATH}\` (below), which puts them in the day
+for you; and what this writes is always a draft.
 
 **The slug comes from the title, and no two days in a trip may share one.** A
 slug is a day's address inside its trip, so a second day holding one could
 never be served — the write is refused with \`409\` naming the day that already
 has it, rather than accepted and lost. Titles collide more easily than they
 look: punctuation and accents are folded, so \`Đà Lạt\` and \`Ðà Lạt\` are both
-\`da-lat\`. If you meant two days, give them titles that differ in a word.
+\`da-lat\`. ${TITLE_COLLISION_EXAMPLE}
 
 **\`idempotency_key\` works here, not only over MCP.** Send one on every write.
 The same key with the same body replays the first answer — \`200\` with
