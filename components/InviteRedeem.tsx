@@ -11,7 +11,11 @@ import type { Locale } from "@/lib/types";
  * Two things it always needs — **a name, and an address it can prove** —
  * because being let into somebody's journal needs nothing else, and a
  * redemption must never quietly rewrite a choice an already-known reader
- * already made: no digest tick, and (until B273) no postal address either.
+ * already made: no digest tick, and no postal address either. **That is the
+ * returning reader's rule and not the whole story** — B273 gave a brand-new
+ * reader the address and the phone number, and B315 the digest tick, on the
+ * reasoning that somebody with no existing choice has nothing to overwrite,
+ * only a first one to make. Both are on the "form" step alone.
  * Those still belong on the reader's own manage page, `/{username}/c/<token>`,
  * where they can be added, corrected or removed in the open — never here,
  * for somebody who is signed in already or whose email this journal already
@@ -91,6 +95,16 @@ export default function InviteRedeem({
   // (B273). Untouched on "confirm": an already-known reader is never shown
   // these, and the request body below reflects that by leaving them out
   // entirely rather than sending them empty.
+  //
+  // The digest starts ticked and the postcard does not — B315, and the same
+  // split `ContactForm` has always had. A travel journal's guest expects to be
+  // told when there is a new day; a postcard is the rarer, more involved
+  // thing, and it asks for a street address. Ticking by default is safe here
+  // in a way it would not be on a form that could itself cause mail: nothing
+  // is sent on the strength of this box. The address still has to be
+  // confirmed by code and then approved by the owner before a single digest
+  // goes out, and every digest carries a one-click unsubscribe.
+  const [wantsDigest, setWantsDigest] = useState(true);
   const [wantsPostcard, setWantsPostcard] = useState(false);
   const [address, setAddress] = useState({
     name: "",
@@ -154,7 +168,7 @@ export default function InviteRedeem({
         // are the same story: sent only on the "form" step, where they were
         // actually asked for — the confirm step must never answer for an
         // already-known reader (B273's doc comment above explains why).
-        ...(knownEmail ? {} : { email, address, wantsPostcard }),
+        ...(knownEmail ? {} : { email, address, wantsPostcard, wantsEmailDigest: wantsDigest }),
       }),
     }).catch(() => null);
     setBusy(false);
@@ -382,15 +396,31 @@ export default function InviteRedeem({
                 </div>
               </fieldset>
 
-              <label className="mt-6 flex items-start gap-3 text-lg text-navy-900">
-                <input
-                  type="checkbox"
-                  className="mt-1.5 size-5"
-                  checked={wantsPostcard}
-                  onChange={(e) => setWantsPostcard(e.target.checked)}
-                />
-                <span>{t("contact.wantsPostcard")}</span>
-              </label>
+              {/* Two questions, two boxes. "Write to me" and "post me
+                  something" have different consequences and are never
+                  answered at once — the same block, in the same order, as
+                  `ContactForm`: one contacts table should not be filled by two
+                  forms that disagree about what was asked. B315. */}
+              <div className="mt-8 space-y-4">
+                <label className="flex items-start gap-3 text-lg text-navy-900">
+                  <input
+                    type="checkbox"
+                    className="mt-1.5 size-5"
+                    checked={wantsDigest}
+                    onChange={(e) => setWantsDigest(e.target.checked)}
+                  />
+                  <span>{t("contact.wantsDigest")}</span>
+                </label>
+                <label className="flex items-start gap-3 text-lg text-navy-900">
+                  <input
+                    type="checkbox"
+                    className="mt-1.5 size-5"
+                    checked={wantsPostcard}
+                    onChange={(e) => setWantsPostcard(e.target.checked)}
+                  />
+                  <span>{t("contact.wantsPostcard")}</span>
+                </label>
+              </div>
             </>
           )}
 
