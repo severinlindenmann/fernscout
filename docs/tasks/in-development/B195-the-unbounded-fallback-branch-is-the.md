@@ -58,3 +58,46 @@ assertions that quietly test nothing.
 - `with no timeout binary the probe still runs, and says it is unbounded`
   passes on a machine that *does* have coreutils.
 - The suite reports no skip for it on either kind of machine.
+
+## What was built
+
+`test/backup-script.test.ts`:
+
+- `withoutTimeout()` — a scratch directory of symlinks to exactly the binaries
+  `scripts/backup.sh` shells out to (`BACKUP_NEEDS`: restic, cp, find, test,
+  sort, mkdir, rm, chmod, dirname, date, du, cut, wc, tr, grep, bash, sh, env),
+  and `PATH` set to that directory alone. No `timeout`, no `gtimeout`, and
+  nothing simulated: the script takes the fallback for the real reason,
+  `command -v timeout` finding nothing.
+- `with no timeout binary the probe still runs, and says it is unbounded` is no
+  longer `test.skipIf(HAS_TIMEOUT)`. It runs everywhere, still against the
+  reachable fixture repository, for the reason the existing comment gives.
+
+`test` is in the binary list because `unreadable_paths()` runs
+`find … ! -exec test -r {} \;` and find execs the binary, not a shell builtin.
+A wrong list fails the run loudly on the missing command, which is the outcome
+the task asked for.
+
+## Evidence
+
+A machine with coreutils was simulated by putting a `timeout` on PATH (the
+laptop this was built on has none), and the same single test was run against
+the file as it was before the change and after it:
+
+```
+# before — git show HEAD:test/backup-script.test.ts
+PATH=/tmp/faketimeout:$PATH npx vitest run … -t "unbounded"
+  Test Files  1 skipped (1)
+  Tests  24 skipped (24)
+
+# after
+PATH=/tmp/faketimeout:$PATH npx vitest run test/backup-script.test.ts -t "unbounded"
+  Test Files  1 passed (1)
+  Tests  1 passed | 23 skipped (24)
+```
+
+And the whole file, unfiltered, on this machine: 23 passed, 1 skipped — the one
+skip being `…and the same holds with the real timeout(1)`, which is correct
+here and runs on the VPS and in CI.
+
+Nothing about this needs the server.

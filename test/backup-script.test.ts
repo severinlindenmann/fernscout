@@ -4,7 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { POSTGRES_HOWTO, postgresConfigured } from "./support/dialects";
+import { POSTGRES_HOWTO, freshDatabase, postgresConfigured } from "./support/dialects";
+import { TABLE_NAMES, parseDatabaseUrl } from "@/lib/db";
 import { announceSkip } from "./support/announce";
 
 /**
@@ -291,6 +292,49 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
    * arrive in a test about `pg_dump` or an old restic. */
   function withTimeoutShim(): Record<string, string> {
     return { PATH: `${shimBin}${path.delimiter}${process.env.PATH ?? ""}` };
+  }
+
+  /**
+   * Everything `scripts/backup.sh` shells out to on the path this suite drives
+   * it down. Used to build a PATH with no `timeout` on it (B195) — which means
+   * naming what the script does need, because "PATH minus one binary" is not
+   * something a PATH can express.
+   *
+   * `test` is here because `unreadable_paths()` runs `find … -exec test -r`,
+   * and find execs the binary rather than any shell builtin. If this list is
+   * ever wrong the pruned run fails loudly on the missing command, which is
+   * the outcome B195 asks for: say so rather than work around it.
+   */
+  const BACKUP_NEEDS = [
+    "bash", "sh", "env", "restic",
+    "cp", "find", "test", "sort", "mkdir", "rm", "chmod", "dirname",
+    "date", "du", "cut", "wc", "tr", "grep",
+  ];
+
+  /**
+   * A PATH holding exactly those binaries and **no `timeout` or `gtimeout`**,
+   * so the unbounded fallback runs on a machine that has coreutils (B195).
+   *
+   * The mirror of B180's shim, and the cheaper half of it: nothing is
+   * simulated here. The script takes its real fallback branch, for the real
+   * reason — `command -v timeout` finds nothing — and the only artifice is the
+   * directory it is allowed to look in.
+   */
+  function withoutTimeout(): Record<string, string> {
+    const dir = path.join(scratch, "no-timeout-bin");
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      for (const bin of BACKUP_NEEDS) {
+        const found = spawnSync("sh", ["-c", `command -v ${bin}`], { encoding: "utf8" });
+        const resolved = (found.stdout ?? "").trim();
+        expect(resolved, `scripts/backup.sh needs ${bin}, and it is not on this machine's PATH`).not.toBe("");
+        fs.symlinkSync(resolved, path.join(dir, bin));
+      }
+      for (const absent of ["timeout", "gtimeout"]) {
+        expect(fs.existsSync(path.join(dir, absent)), "the pruned PATH is the whole point").toBe(false);
+      }
+    }
+    return { PATH: dir };
   }
 
   beforeAll(() => {
@@ -723,12 +767,21 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     120_000,
   );
 
-  test.skipIf(HAS_TIMEOUT)(
+  test(
     "with no timeout binary the probe still runs, and says it is unbounded",
     () => {
       // The macOS case. Making the script Linux-only would have been the other
       // legitimate answer, but it would stop this very suite running on the
       // machine the script is edited on.
+      //
+      // B195. This used to be `test.skipIf(HAS_TIMEOUT)`, which is to say it
+      // ran on the maintainer's laptop and nowhere else — not on the VPS, not
+      // in CI, not on any Debian machine, all of which have coreutils. That is
+      // the same accident B180 was filed about, pointing the other way: the
+      // branch that decides whether this script works at all on a machine
+      // without coreutils was the branch nothing checked. The PATH below has
+      // no `timeout` on it, so the fallback is entered for the real reason on
+      // every machine.
       //
       // Deliberately against the *reachable* fixture repository. Pointing this
       // at UNREACHABLE would exercise the unbounded probe for real, which is
@@ -736,7 +789,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
       // itself, inside the suite that is supposed to run quickly. What is
       // being asserted is that the fallback announces itself and does not
       // otherwise change the run.
-      const run = runBackup();
+      const run = runBackup(withoutTimeout());
 
       expect(run.status, "the fallback must not break an ordinary backup").toBe(0);
       expect(run.stdout).toContain("neither timeout nor gtimeout is installed");
@@ -916,21 +969,79 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
 
   // The real database, behind the guard the other db suites use. Everything
   // above proves the script's branches; this proves the dump it takes is one
-  // `pg_restore` will actually read.
+  // `pg_restore` will actually read, and that there is something in it.
+  //
+  // B200. This test used to point `DATABASE_URL` at `POSTGRES_TEST_URL` and
+  // assert that `pg_restore -l` exited 0 and printed "Archive created at" —
+  // and nothing in this file had ever migrated that database. In the
+  // `backup-drill` CI job, which runs this file and nothing else against a
+  // fresh service container, the schema was therefore *nothing at all*, and
+  // `pg_dump -Fc` of an empty database still writes a perfectly valid archive
+  // with a header. The assertions passed against a dump of no tables and no
+  // rows: a dump that had dropped every table on the VPS would have passed
+  // them too.
+  //
+  // So the database is migrated and seeded first, and the archive is now
+  // required to contain the schema and the row. Reading the archive rather
+  // than listing it (`pg_restore -f -`, which emits the SQL) is what makes the
+  // second half real: `pg_restore -l` names a TABLE DATA entry whether or not
+  // any rows are in it.
   const realPg = postgresConfigured() && PG_DUMP && PG_RESTORE;
   test.runIf(realPg)(
-    "the dump taken from a real Postgres is one pg_restore can list",
-    () => {
+    "the dump taken from a real Postgres holds the schema and the rows",
+    async () => {
       const url = process.env.POSTGRES_TEST_URL ?? "";
+
+      // Distinctive enough to find in a COPY block, and obviously nobody:
+      // test/depersonalised.test.ts is the other reason it is not a name.
+      const sentinel = `restore-drill-${Date.now()}@example.invalid`;
+      const target = parseDatabaseUrl(url);
+      expect(target, "POSTGRES_TEST_URL must parse").not.toBeNull();
+      const handle = await freshDatabase(target!);
+      try {
+        const now = new Date().toISOString();
+        await handle.db
+          .insertInto("users")
+          .values({
+            id: `restore-drill-${crypto.randomUUID()}`,
+            owner_id: "restore-drill",
+            email: sentinel,
+            name: null,
+            role: "reader",
+            locale: null,
+            created_at: now,
+            updated_at: now,
+            last_login_at: null,
+          })
+          .execute();
+      } finally {
+        await handle.destroy();
+      }
+
       const run = runBackup({ DATABASE_URL: url });
       expect(run.status).toBe(0);
 
       const staged = restoreLatest("realpg");
       const dump = path.join(staged, "db", "postgres.dump");
       expect(fs.statSync(dump).size).toBeGreaterThan(0);
+
       const listed = spawnSync("pg_restore", ["-l", dump], { encoding: "utf8" });
       expect(listed.status).toBe(0);
       expect(listed.stdout).toContain("Archive created at");
+      // Every table the migrations create, by name. An archive of an empty
+      // database has none of them, which is the state this test spent its
+      // whole life asserting nothing about.
+      for (const table of TABLE_NAMES) {
+        expect(listed.stdout, `${table} is missing from the archive's table of contents`).toContain(
+          `TABLE public ${table}`,
+        );
+      }
+
+      // And the data. `-f -` restores to stdout as SQL rather than into a
+      // database, so this reads the archive without needing a second one.
+      const restored = spawnSync("pg_restore", ["-f", "-", dump], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      expect(restored.status, restored.stderr).toBe(0);
+      expect(restored.stdout, "the archive must carry the row, not just the empty table").toContain(sentinel);
     },
     180_000,
   );
