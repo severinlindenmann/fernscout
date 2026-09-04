@@ -51,11 +51,20 @@ import { getDatabaseOrNull, newId, nowIso } from "./db";
 
 /** `grant` is one of these too, but it is deliberately not in the union a
  * send can pass — see `SpendReason`. */
-export type LedgerReason = "grant" | "day_mail" | "day_whatsapp" | "refund";
+export type LedgerReason = "grant" | "day_mail" | "day_whatsapp" | "digest" | "refund";
 
-/** What a *send* may charge for. Narrower than `LedgerReason` on purpose: it
- * is the type that makes `spend(owner, n, "grant")` not compile. */
-export type SpendReason = "day_mail" | "day_whatsapp";
+/**
+ * What a *send* may charge for. Narrower than `LedgerReason` on purpose: it is
+ * the type that makes `spend(owner, n, "grant")` not compile.
+ *
+ * `digest` is its own value rather than reusing `day_mail`, even though both
+ * are one credit per email through the same transport. The ledger is the
+ * audit trail an operator reconciles a card statement against, and "forty
+ * credits went on mail last week" is not an answer to "was that one busy trip
+ * or four weekly digests" — a distinction that costs one string here and
+ * cannot be recovered later from rows that never carried it.
+ */
+export type SpendReason = "day_mail" | "day_whatsapp" | "digest";
 
 export type LedgerRow = {
   id: string;

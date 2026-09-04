@@ -54,3 +54,26 @@ posture that lets a real regression through.
 - Its cause is stated: timing, ordering, shared state, or a real defect.
 - After the fix, twenty consecutive `npx vitest run` — at least some under
   concurrent load — are green.
+
+## 2026-09-05 — one named flake found and fixed, which may or may not be this one
+
+While verifying B379/B380, `npx vitest run` reported `1 failed | 2781 passed`
+and this time the name survived: `test/contacts.test.ts > postal addresses > a
+tampered ciphertext does not decrypt to something plausible`. Five reruns of
+that file passed, which is the same shape this ticket describes.
+
+The cause is real and is now fixed in that test. It tampered with the
+ciphertext by overwriting the last two base64url characters with `"AA"` — a
+no-op on the runs where they already were `"AA"`, leaving the value
+byte-identical, decrypting perfectly, and failing the assertion for the one
+reason the test was never about. The IV is random per run, so it was a coin
+flip: **measured at 9 in 20,000 runs (0.045%)** by re-encrypting that fixture
+in a loop. It now flips a character to one the value demonstrably is not, and
+asserts that the substitution actually changed something.
+
+**This ticket stays open**, for two reasons. The rate does not match: 0.045%
+is one run in roughly 2,200, and this ticket describes one in six, so the
+original failure was very probably a different test. And the second problem it
+names — that the failing run was piped through `tail -5`, which discarded the
+reporter line naming the file — is untouched by any of this and is the half
+that made the first one unfindable.

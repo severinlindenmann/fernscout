@@ -140,10 +140,11 @@ describe.each(dialectCases().map((c) => c.name))("with credits switched on (%s)"
     await spend("alice", 500, "day_mail", "alice/t/b"); // refused, writes nothing
     await refund("alice", 4, "alice/t/a");
     await spend("alice", 12, "day_whatsapp", "alice/t/c");
+    await spend("alice", 2, "digest", "alice/digest/2026-09-04");
     await grant("alice", 7, "invoice 2");
 
     const audit = await auditOwner("alice");
-    expect(audit.balance).toBe(100 - 30 + 4 - 12 + 7);
+    expect(audit.balance).toBe(100 - 30 + 4 - 12 - 2 + 7);
     expect(audit.ledger).toBe(audit.balance);
     expect(audit.ok).toBe(true);
   });

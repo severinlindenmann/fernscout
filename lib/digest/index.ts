@@ -399,7 +399,7 @@ export async function runDigest(
    */
   const needed = plan.ready.length;
   const ledgerRef = `${owner}/digest/${plan.now.toISOString()}`;
-  if (!(await spend(owner, needed, "day_mail", ledgerRef))) {
+  if (!(await spend(owner, needed, "digest", ledgerRef))) {
     return {
       owner,
       dryRun,

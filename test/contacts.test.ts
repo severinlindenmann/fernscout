@@ -176,7 +176,22 @@ describe("postal addresses", () => {
     const aad = addressAad("ana", "c1");
     const cipher = encryptAddress(ADDRESS, aad);
     const parts = cipher.split(".");
-    parts[3] = `${parts[3].slice(0, -2)}AA`;
+    // Flip the ciphertext's first character to one it demonstrably is not.
+    //
+    // This used to overwrite the last two base64url characters with "AA",
+    // which is not a tamper at all on the runs where they already were "AA":
+    // the ciphertext came back byte-identical, decrypted perfectly, and the
+    // assertion failed for the one reason the test was never about. The IV is
+    // random per run, so it was a genuine coin-flip — measured at 9 in 20,000
+    // runs (0.045%) against this fixture, which is rare enough to be blamed on
+    // anything but the test and frequent enough to have been seen.
+    //
+    // The `expect` below is not decoration: it is what makes the tamper a
+    // tamper, and it fails loudly if a future encoding change makes this
+    // substitution a no-op again.
+    const body = parts[3];
+    parts[3] = (body[0] === "A" ? "B" : "A") + body.slice(1);
+    expect(parts[3]).not.toBe(body);
     expect(decryptAddress(parts.join("."), aad)).toBeNull();
   });
 

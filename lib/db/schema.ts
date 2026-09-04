@@ -425,7 +425,7 @@ export type CreditLedgerTable = {
   id: string;
   owner_id: string;
   delta: number;
-  /** `grant` | `day_mail` | `day_whatsapp` | `refund`. */
+  /** `grant` | `day_mail` | `day_whatsapp` | `digest` | `refund`. */
   reason: string;
   /** `<username>/<trip-id>/<slug>` for a spend, null for a grant. */
   ref: string | null;
