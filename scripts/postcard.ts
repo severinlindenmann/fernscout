@@ -17,7 +17,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { renderPostcard, type PostalAddress } from "../lib/postcard/render.ts";
 import { availableProviders, buildStannpRequest } from "../lib/postcard/providers.ts";
-import { recipientBase } from "../lib/postcard/filename.ts";
+import { recipientBases } from "../lib/postcard/filename.ts";
 
 type Args = Record<string, string | boolean>;
 
@@ -105,7 +105,13 @@ fs.mkdirSync(outDir, { recursive: true });
 
 console.log(`Rendering ${recipients.length} postcard(s) with the ${backend} backend.\n`);
 
+// Named as a batch rather than one at a time: two people called the same
+// thing slug to the same filename, and one card used to be written over the
+// other with nothing but a short folder to show for it (B150).
+const files = recipientBases(recipients.map((to) => to.name));
+
 let lowResolution = false;
+let renamed = 0;
 for (const [index, to] of recipients.entries()) {
   const result = renderPostcard({
     photo,
@@ -115,7 +121,8 @@ for (const [index, to] of recipients.entries()) {
     guides: args.guides === true,
   });
 
-  const base = path.join(outDir, recipientBase(to.name, index));
+  const file = files[index];
+  const base = path.join(outDir, file.base);
   fs.writeFileSync(`${base}.pdf`, result.pdf);
   fs.writeFileSync(
     `${base}-front.pdf`,
@@ -127,6 +134,14 @@ for (const [index, to] of recipients.entries()) {
   );
 
   console.log(`  ${to.name} -> ${path.relative(process.cwd(), base)}.pdf`);
+  if (file.renamed) {
+    // Said out loud, because the author is about to hand these to a printer
+    // and has to know which card is whose.
+    renamed++;
+    console.log(
+      `      ~ renamed: another recipient in this batch is already ${file.wanted}.pdf`,
+    );
+  }
   for (const warning of result.warnings) {
     if (warning.code === "low-resolution") lowResolution = true;
     console.log(`      ! ${warning.detail}`);
@@ -139,6 +154,13 @@ for (const [index, to] of recipients.entries()) {
 
 console.log(`\nWrote ${recipients.length * 3} file(s) to content/${owner}/postcards/`);
 console.log("Front and back are also written separately — Stannp takes them as two files.");
+if (renamed) {
+  console.log(
+    `\n${renamed} card(s) were renamed because two recipients share a name.\n` +
+      "Check the lines marked ~ above before posting them: the files are distinct,\n" +
+      "but only the address inside says which card belongs to whom.",
+  );
+}
 if (lowResolution) {
   console.log(
     "\nAt least one photo is below 300 DPI for this size. It will print soft.\n" +

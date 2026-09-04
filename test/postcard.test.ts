@@ -10,7 +10,7 @@ import {
 } from "@/lib/postcard/spec";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { renderPostcard, type PostalAddress } from "@/lib/postcard/render";
-import { recipientBase } from "@/lib/postcard/filename";
+import { recipientBase, recipientBases, slug } from "@/lib/postcard/filename";
 
 const PHOTO = path.join(
   process.cwd(),
@@ -204,5 +204,82 @@ describe("naming a recipient's files", () => {
       "bo-lind",
       "recipient-4",
     ]);
+  });
+
+  /**
+   * B202 — `ß` has no decomposition, so NFD cannot reach it and the character
+   * class after it turned the letter into a hyphen: `stra-er`, one letter
+   * short of the name on the envelope. Spelled out before the accents come
+   * off, which is the line B151 put in `lib/mail/index.ts`.
+   */
+  test("a German ß keeps its word instead of becoming a hyphen", () => {
+    expect(slug("Straße")).toBe("strasse");
+    expect(recipientBase("Anna Straßer", 0)).toBe("anna-strasser");
+    // Capital ẞ arrives at the expansion already lowercased.
+    expect(recipientBase("ANNA STRAßER", 0)).toBe("anna-strasser");
+  });
+
+  test("the umlaut rule stays where it is, and differs from lib/slug.ts on purpose", () => {
+    // `ü` is `u` here and `ue` in a permalink. The transliteration table earns
+    // its keep in a permanent shared address and this is a gitignored
+    // filename — B77, restated by B86 and B151. A later unification has to
+    // argue with this line.
+    expect(slug("Grüße vom Weg")).toBe("grusse-vom-weg");
+    expect(slug("Grüße vom Weg")).not.toContain("gruesse");
+  });
+});
+
+/**
+ * B150 — two recipients who are called the same thing.
+ *
+ * B86 answered for a name that slugs to nothing. This is a name that slugs to
+ * the same *something* as somebody else's: a mother and a daughter both called
+ * Anna Meier wrote both cards to `anna-meier.pdf`, second over first, and the
+ * run printed two lines for one file.
+ */
+describe("two recipients with the same name", () => {
+  test("each gets a file of its own, and the run is told which moved", () => {
+    const files = recipientBases(["Anna Meier", "Bo Lind", "Anna Meier"]);
+    expect(files.map((f) => f.base)).toEqual(["anna-meier", "bo-lind", "anna-meier-2"]);
+    expect(files.map((f) => f.renamed)).toEqual([false, false, true]);
+    // What the run prints, so the author knows whose card is whose.
+    expect(files[2].wanted).toBe("anna-meier");
+  });
+
+  test("a batch with no repeated name keeps the filenames it has today", () => {
+    const batch = ["Ana Bergström", "山田 太郎", "Bo Lind", "Jean-Luc O'Hara"];
+    expect(recipientBases(batch).map((f) => f.base)).toEqual(
+      batch.map((name, index) => recipientBase(name, index)),
+    );
+    expect(recipientBases(batch).every((f) => !f.renamed)).toBe(true);
+  });
+
+  test("the suffix counts past a name already in the list", () => {
+    // Written by hand as "Anna Meier 2", so the obvious suffix is taken.
+    const files = recipientBases(["Anna Meier", "Anna Meier", "Anna Meier 2"]);
+    expect(new Set(files.map((f) => f.base)).size).toBe(3);
+    expect(files.map((f) => f.base)).toEqual([
+      "anna-meier",
+      "anna-meier-2",
+      "anna-meier-2-2",
+    ]);
+  });
+
+  test("the same list twice produces the same names, so a re-run renumbers nobody", () => {
+    const batch = ["Anna Meier", "Δημήτρης", "Anna Meier", "Anna Straßer"];
+    expect(recipientBases(batch)).toEqual(recipientBases(batch));
+    expect(recipientBases(batch).map((f) => f.base)).toEqual([
+      "anna-meier",
+      "recipient-2",
+      "anna-meier-2",
+      "anna-strasser",
+    ]);
+  });
+
+  test("two names that slug to nothing still do not collide", () => {
+    // The B86 fallback is the batch position, so it is unique before this
+    // function sees it — but the rule has to hold through it.
+    const files = recipientBases(["Δημήτρης", "Владимир", "山田 太郎"]);
+    expect(new Set(files.map((f) => f.base)).size).toBe(3);
   });
 });
