@@ -561,7 +561,7 @@ describe("the payment section", () => {
     expect(html).toContain(dictionaryFor("en")["me.paymentTitle"]);
     expect(html).toContain("You have 12 credits.");
     expect(html).toContain(
-      "Up to 5 people are opted in for email right now — a full send would cost up to 5 credits.",
+      "A full send would reach up to 5 people — you included — and cost up to 5 credits.",
     );
     expect(html).toContain(
       "Up to 2 people are opted in for WhatsApp right now — a full send would cost up to 2 credits.",
@@ -586,7 +586,7 @@ describe("the payment section", () => {
       viewer: owner,
       payment: { ...payment, whatsappRecipients: null },
     });
-    expect(html).toContain("Up to 5 people are opted in for email");
+    expect(html).toContain("A full send would reach up to 5 people");
     expect(html).not.toContain("opted in for WhatsApp");
   });
 

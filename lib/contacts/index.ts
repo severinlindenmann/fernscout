@@ -689,10 +689,35 @@ export async function listContacts(owner: string): Promise<ContactRecord[]> {
  * — never a second, diverging definition of "opted in" to keep in step with
  * the first.
  */
-export function optedInCounts(contacts: ContactRecord[]): { email: number; whatsapp: number } {
+export function optedInCounts(
+  contacts: ContactRecord[],
+  /**
+   * The journal owner's own address, when they have one.
+   *
+   * Passed in because the two channels differ, and the difference is a credit
+   * per send: `recipientsFor` in `dayLetter.ts` **always** adds the owner's
+   * own copy of the letter ("it is their journal and their record that it
+   * went"), skipping them if they also appear among the contacts. Its
+   * WhatsApp counterpart adds nobody — there is no `owner.tel` and inventing
+   * one would be this codebase deciding somebody's phone number belongs to
+   * it.
+   *
+   * So the email count is contacts-minus-the-owner **plus one**, and leaving
+   * the owner out entirely understates the price of every mail send by
+   * exactly one credit. Understating is the wrong direction to be wrong in on
+   * a page somebody reads before deciding whether they can afford to publish.
+   */
+  ownerEmail?: string | null,
+): { email: number; whatsapp: number } {
   const isActive = (c: ContactRecord) => c.status === "active";
+  const owner = ownerEmail ? normaliseEmail(ownerEmail) : null;
+  const optedInEmail = contacts.filter((c) => isActive(c) && c.wantsEmailDigest);
   return {
-    email: contacts.filter((c) => isActive(c) && c.wantsEmailDigest).length,
+    // Never twice: a contact at the owner's own address is the same recipient
+    // as the owner's copy, and `recipientsFor`'s `seen` set already treats it
+    // that way.
+    email:
+      optedInEmail.filter((c) => normaliseEmail(c.email) !== owner).length + (owner ? 1 : 0),
     whatsapp: contacts.filter((c) => isActive(c) && c.wantsWhatsapp).length,
   };
 }
