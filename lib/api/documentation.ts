@@ -241,6 +241,21 @@ export function instanceDocumentation(): string {
     ),
     "",
     ...wrap(
+      "**`publish` is not an update.** It does exactly one thing — remove the line " +
+        "holding a day back — and nothing else. To change a day you already wrote, " +
+        "PATCH the same URL as the day itself, not /publish: " +
+        `${base()}/api/v1/their-name/trips/japan-2027/days/lanterns-of-hoi-an, with only ` +
+        "the field you are correcting in the body. It leaves a draft a draft and a " +
+        "published day published — there is no way to change that through this call. " +
+        "An earlier agent had no edit endpoint at all, reached for /publish because it " +
+        "was the only verb that touched an existing day, and put fifteen unreviewed " +
+        "days on somebody's site while reporting them as drafts. If the call you want " +
+        "does not exist, stop and say so — do not reach for the nearest verb that " +
+        "touches the file.",
+      78,
+    ),
+    "",
+    ...wrap(
       `Read ${base()}/agent.md for everything past this — deleting, photographs, ` +
         "letting other people in, and the fields left out above — with a worked " +
         "example for each. If your tools cannot fetch it — the same limit as " +
@@ -361,10 +376,11 @@ export function userDocumentation(username: string): string | null {
     "",
     `- [Trips](${base()}/api/v1/${username}/trips): every trip, including ones the public cannot see`,
     `- [Days](${base()}/api/v1/${username}/trips/<trip-id>/days): read them, or POST to add one as a draft`,
+    `- Editing a day: PATCH the day's own URL (${base()}/api/v1/${username}/trips/<trip-id>/days/<slug>) with the field you are correcting — never \`/publish\`, which is not an update and cannot be used to change one`,
     `- [Drafts](${base()}/api/v1/${username}/drafts): everything waiting for a person to approve`,
     `- Trips: POST to [the same URL](${base()}/api/v1/${username}/trips) to create one (owner only; private by default)`,
     `- Deleting: DELETE [a trip](${base()}/api/v1/${username}/trips/<trip-id>) or [the journal](${base()}/api/v1/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it, so a 202 means the mail was sent`,
-    `- [MCP](${base()}/api/mcp): the same operations as tools — list_trips, get_day, search_entries, list_drafts, create_day, publish_day`,
+    `- [MCP](${base()}/api/mcp): the same operations as tools — list_trips, get_day, search_entries, list_drafts, create_day, edit_day, publish_day`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,
     `- [Export](${root}/export.zip): the whole journal as markdown and photographs`,
@@ -416,6 +432,17 @@ is a thing that cannot be done at all.
 that changes that. Not to hold you back — so that there is a moment where the
 person can read a day back before it is on the site. Publishing is the second
 call, \`POST .../days/<slug>/publish\`, and it is yours to make.
+
+**\`publish\` is not an update, and there is no other way to change a day
+except \`PATCH .../days/<slug>\`.** An agent that had written fifteen days and
+was then asked to add coordinates found no editing endpoint, reached for
+\`/publish\` because it was the only verb that touched an existing file, and
+put all fifteen on the site while reporting them as drafts. \`publish\` does
+exactly one thing — remove the line holding a day back — never more and never
+less; \`PATCH\` is what corrects a day, and it cannot publish or unpublish
+one, whatever you send it (see **Editing a day**, below). If neither call does
+what you need, say so and stop — do not reach for the nearest verb that
+touches the file.
 
 **Which is why the asking is on you.** Nothing here can tell whether they
 actually said yes, so: **ask them, in words, and wait for an answer.** "It
@@ -949,6 +976,46 @@ resubmitting for each:
 ]}
 \`\`\`
 
+### Editing a day
+
+A wrong date, a misspelled place, a coordinate that was missing — correcting
+a day is the ordinary case, not the exception, and it is a different call from
+writing one in the first place.
+
+\`\`\`http
+PATCH ${site.url}/api/v1/${example}/trips/<trip-id>/days/lanterns-of-hoi-an
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"lat": 15.8801, "lng": 108.338}
+\`\`\`
+
+\`\`\`json
+{"ok": true, "slug": "lanterns-of-hoi-an", "status": "draft",
+ "changed": ["lat", "lng"],
+ "note": "Still a draft — not on the site. This call cannot publish it; ..."}
+\`\`\`
+
+**Send only what is changing.** Every other field — and the file's own
+formatting — is left exactly as it was; this is a textual splice, the same
+one \`publish\` uses to remove its one line, not a rewrite of the whole file.
+It takes the same fields as \`POST .../days\` — see the table above — plus
+\`content\`, which replaces the entry's whole body.
+
+**\`status\` is not among them, and cannot be.** This call moves nothing
+between draft and published, whatever is in the body — sending \`"status"\` is
+refused outright, named in the response, with nothing written. **\`status\` in
+the reply is always the truth, not an intention**: a draft you edit is still a
+draft, and a **published** day you edit stays published and visible to
+whoever has already read it — editing one changes what its readers see, so
+treat it the way you would treat writing it in the first place. The only call
+that moves a day between draft and published is \`.../publish\`, above.
+
+Same authority as writing the day: whoever may \`POST\` a day into this trip
+may \`PATCH\` one, trip-scoped tokens included. Deciding whether it goes on
+the site — or comes back off — stays the owner's, through \`publish\` and
+\`DELETE\`.
+
 ### Publishing, when they say so
 
 One call, and the day is on the site. This is ordinary work: the person told
@@ -1240,7 +1307,8 @@ system, and the draft rule holds through it exactly as it does here.
 | \`search_entries\` | full-text across the journal, private trips included |
 | \`list_drafts\` | what is waiting for a person, and which of it nobody lived |
 | \`create_day\` | write a day — **as a draft**, always |
-| \`publish_day\` | put a draft on the site, once the person has said so |
+| \`edit_day\` | correct a day that already exists — never \`status\`; a draft stays a draft and a published day stays published |
+| \`publish_day\` | put a draft on the site, once the person has said so — not an update, and not how you edit one |
 | \`set_journal_features\` | switch one of the journal's capabilities on or off |
 
 The list is filtered by what this journal can actually do: a tool whose

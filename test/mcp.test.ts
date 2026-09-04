@@ -444,6 +444,7 @@ describe("the protocol", () => {
       "delete_day",
       "delete_journal",
       "delete_trip",
+      "edit_day",
       "get_day",
       "list_drafts",
       "list_trips",
@@ -1560,5 +1561,108 @@ describe("create_trip writes the trip fields nothing could reach", () => {
     // is created, so a cover could only name a file that is not there. B245.
     expect(properties).not.toContain("cover");
     expect(tool?.inputSchema.additionalProperties).toBe(false);
+  });
+});
+
+/**
+ * `edit_day` — the MCP half of B266. REST got its own fix in the same
+ * ticket; this is the check that MCP was not the door left unfixed, the
+ * exact shape B263 already caught once.
+ */
+describe("edit_day", () => {
+  test("changes a field on a published day, and it is still published", async () => {
+    const result = await call(anaToken, "edit_day", {
+      trip: "ana-trip",
+      slug: "lanterns",
+      location: "Hoi An, at night",
+    });
+    expect(result.isError).toBe(false);
+    expect((result.structuredContent as { status: string }).status).toBe("published");
+    expect(getAllEntries("ana/ana-trip").map((e) => e.slug)).toContain("lanterns");
+
+    const file = path.join(dir, "ana", "trips", "ana-trip", "entries", "2026-01-02-lanterns.md");
+    expect(fs.readFileSync(file, "utf8")).toContain('location: "Hoi An, at night"');
+  });
+
+  test("changes a field on a draft, and it is still a draft", async () => {
+    await call(anaToken, "create_day", {
+      trip: "ana-trip",
+      title: "Fresh draft",
+      date: "2026-01-06",
+      content: "Not on the site yet.",
+    });
+    const result = await call(anaToken, "edit_day", {
+      trip: "ana-trip",
+      slug: "fresh-draft",
+      lat: 15.88,
+      lng: 108.34,
+    });
+    expect(result.isError).toBe(false);
+    expect((result.structuredContent as { status: string }).status).toBe("draft");
+    expect(getAllEntries("ana/ana-trip").map((e) => e.slug)).not.toContain("fresh-draft");
+  });
+
+  /**
+   * `additionalProperties: false` on this tool's schema is what refuses
+   * `status` — `callTool`'s `unknownProperties` check, exercised here rather
+   * than assumed from the schema alone.
+   */
+  test("status is refused, named, before the handler ever runs", async () => {
+    const result = await call(anaToken, "edit_day", {
+      trip: "ana-trip",
+      slug: "lanterns",
+      status: "draft",
+    });
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('"status"');
+
+    // Nothing changed — the published day is exactly as it was.
+    const file = path.join(dir, "ana", "trips", "ana-trip", "entries", "2026-01-02-lanterns.md");
+    expect(fs.readFileSync(file, "utf8")).not.toMatch(/^status:/m);
+    expect(getAllEntries("ana/ana-trip").map((e) => e.slug)).toContain("lanterns");
+  });
+
+  test("a trip-scoped token may edit its own draft, the same authority it writes with", async () => {
+    // Same story as create_day: somebody named in people: may write and
+    // correct a day on that trip. Publishing and unpublishing stay the
+    // owner's, through their own endpoint, untouched by this.
+    writeTrip("ana", "shared-trip", ["people:", '  - name: "Robin"', '    email: "robin@example.test"']);
+    clearConfigCache();
+
+    await issueCode("ana", "robin@example.test", "agent");
+    const minted = await verifyCode(
+      "ana",
+      "robin@example.test",
+      "123456",
+      "agent",
+      "write:trip:shared-trip",
+    );
+    if (!minted.ok) throw new Error("expected a trip-scoped token");
+
+    await call(minted.token, "create_day", {
+      trip: "shared-trip",
+      title: "Written by a buddy",
+      date: "2026-01-07",
+      content: "A day on the shared trip.",
+    });
+
+    const result = await call(minted.token, "edit_day", {
+      trip: "shared-trip",
+      slug: "written-by-a-buddy",
+      location: "Corrected by the same buddy",
+    });
+    expect(result.isError).toBe(false);
+    expect((result.structuredContent as { status: string }).status).toBe("draft");
+  });
+
+  test("a wrong token lands nowhere", async () => {
+    const result = await call(beaToken, "edit_day", {
+      trip: "ana-trip",
+      slug: "lanterns",
+      location: "Should not land",
+    });
+    expect(result.isError).toBe(true);
+    const file = path.join(dir, "ana", "trips", "ana-trip", "entries", "2026-01-02-lanterns.md");
+    expect(fs.readFileSync(file, "utf8")).not.toContain("Should not land");
   });
 });
