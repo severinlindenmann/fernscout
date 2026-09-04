@@ -40,12 +40,21 @@ on `/<user>/me`. So the page titled "Einladungslinks" cannot make the two links
 an owner actually hands out, and the page that can is the one about the owner's
 own access. B282 is the other half of this.
 
-**The form asks a question the list then throws away.** "Für wen ist er?" fills
-`Invite.name`, and the row renders kind, usage and expiry — not the name, not
-the language. The owner types who it was for and is shown "Ein Link zum
-Mitlesen · 0× benutzt". B97 already fixed the worse version of this (two
-identical rows, one of which led to write access) by putting the *kind* on the
-row; the name and language are still missing.
+**The form asks a question the list then throws away — and the reason is not
+the list.** *Corrected while building; the capture had this wrong.* `InviteRow`
+(`components/ContactsAdmin.tsx:597`) has rendered the note, the language, the
+kind, the usage and the expiry since B97. The screenshot above shows none of
+the first two because the link in it was made on `/me`, by
+`components/InviteLinks.tsx`, which posts `{ kind: "guest" }` and collects
+neither — B97's own doc comment says exactly this: "issued from the access
+panel, which is how they are normally issued, neither carries a name or a
+language".
+
+So the two halves are one problem. **The form that collects a note makes the
+wrong kind of link, and the form that makes the right kinds collects nothing.**
+Every real link therefore has null in both columns and the list is one row
+repeated, which is the state B97 was trying to get out of. Moving creation here
+is what fills the columns that already exist.
 
 **Every send needs a new link,** because the token is stored hashed — that is
 B280, which this task depends on for the copy action.
@@ -98,3 +107,46 @@ redemption does.
 - All three locales carry the new strings; no English leaks into the German
   page.
 - The four checks pass, and `claude-security` has been run over the branch.
+
+## Verified
+
+All four green: `npm run build` compiled, `npx tsc --noEmit` clean, `npx eslint .`
+0 errors (4 pre-existing warnings, none in these files), `npx vitest run` 159
+files / 2426 tests. `npm run unused` reports no unused files, dependencies or
+unresolved imports.
+
+`test/invite-panel.test.tsx`, twelve tests: both kinds offered with the sentence
+saying what each leads to; no personal link; the note asked for and "who is it
+for" gone; the reading link is the default and comes first, asserted on the
+markup rather than on intent, because write access one un-read radio away is the
+B97 mistake made earlier; the writing option refused with a reason on a journal
+with no trip and offered normally with one; a live link with a recoverable token
+copyable; a pre-B280 link, a revoked link and an expired link each offering no
+copy control; the copy control not reciting the URL as its accessible name; and
+an old `personal` row still rendering with a label rather than a blank.
+
+**The change that made this small: the panel posts to `POST /api/v1/{user}/invites`
+rather than growing its own validation.** `/api/contacts/admin`'s `invite` action
+is deleted — it was the `personal`-link maker — because the v1 route already
+refuses a writing link with no trip, a reading link *with* a trip, and a trip
+that does not exist, and always dates the link. Two routes that both create
+invites would be two sets of rules to keep in step, and `InviteLinks` on `/me`
+was already calling the v1 one. Redemption of existing `personal` links is
+untouched.
+
+`/api/contacts/admin`'s GET now returns each link's `url` (from
+`listInvitesWithLinks`), so the list still offers copy after a refresh. That
+route is owner-only on the same `isOwner` guard, cookie or token, as it has
+always been; `GET /api/v1/{user}/invites`, which an agent bearer token also
+reaches, still carries no token. The cache-header question over a page that now
+holds credentials is **B287**, captured during B280.
+
+One design decision made while building, worth stating: the "no trip yet" case
+says so **on the writing-link option itself** and refuses the radio, rather than
+letting the owner select it and then explaining. A control you can pick that
+then tells you it will not work is the dead-button shape this project's
+capability rule exists to avoid.
+
+Still open, and B282's: `components/InviteLinks.tsx` and its mount on `/me`.
+This task deliberately leaves both in place so there is no commit on `main`
+where a link cannot be made at all.

@@ -52,8 +52,13 @@ vi.mock("@/lib/users", () => ({
 }));
 vi.mock("@/lib/capabilities", () => ({ isEnabled: () => true }));
 vi.mock("@/lib/contacts", () => ({ listContacts: async () => [] }));
-vi.mock("@/lib/contacts/invites", () => ({ listInvites: async () => [] }));
+// `listInvitesWithLinks` since B281 — the page recovers each link so the owner
+// can send it again, which this test does not exercise and only has to stub.
+vi.mock("@/lib/contacts/invites", () => ({ listInvitesWithLinks: async () => [] }));
 vi.mock("@/lib/contacts/session", () => ({ isOwner: async () => true }));
+// The trips a writing link could name. None: the subject here is the header.
+vi.mock("@/lib/trips", () => ({ getTrips: () => [] }));
+vi.mock("@/lib/site", () => ({ serverSite: () => ({ url: "https://example.test" }) }));
 vi.mock("@/lib/locales", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/locales")>()),
   localesFor: () => ["en"],

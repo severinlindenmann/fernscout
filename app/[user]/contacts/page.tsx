@@ -6,11 +6,13 @@ import PageHeader from "@/components/PageHeader";
 import { isEnabled } from "@/lib/capabilities";
 import { listContacts } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
-import { listInvites } from "@/lib/contacts/invites";
+import { listInvitesWithLinks } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
 import { isOwner } from "@/lib/contacts/session";
 
 import { dictionaryFor, localesFor, translateIn } from "@/lib/locales";
+import { serverSite } from "@/lib/site";
+import { getTrips } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -91,7 +93,15 @@ export default async function ContactsAdminPage({ params }: PageProps<"/[user]/c
         username={username}
         locale={locale}
         contacts={contacts}
-        invites={await listInvites(username)}
+        // `listInvitesWithLinks` rather than `listInvites` — B280 and B281.
+        // The link an owner already sent is theirs to send again, and this is
+        // the one place it is recovered: server-side, on a page behind
+        // `isOwner`, exactly as the postal addresses above are.
+        invites={await listInvitesWithLinks(username, serverSite().url)}
+        // The trips a buddy link can name. From disk rather than a fetch: the
+        // panel needs the list to render its own form, and a second answer
+        // arriving later is a select that changes under the owner's cursor.
+        trips={getTrips(username).map((trip) => ({ id: trip.id, title: trip.title }))}
       />
     </div>
   );
