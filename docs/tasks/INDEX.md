@@ -74,6 +74,7 @@ Do not edit them by hand; run the script.
 | [B215](backlog/B215-the-manual-privacy-tests-still-walk.md) | The manual privacy tests still walk an operator through a trip password | ISSUE | medium | low |
 | [B222](backlog/B222-the-rate-limit-sweep-judged-every.md) | The rate-limit sweep judged every bucket by the default window, resetting the longer ones | SECURITY | medium | low |
 | [B228](backlog/B228-the-guest-list-issues-a-link.md) | The guest list issues a link that never expires | ISSUE | medium | low |
+| [B240](backlog/B240-every-owner-only-gate-is-one.md) | Every owner-only gate is one scope string away from opening | SECURITY | medium | medium |
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B42](backlog/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B43](backlog/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
@@ -99,6 +100,7 @@ Do not edit them by hand; run the script.
 | [B220](backlog/B220-the-rest-of-a-journal-s.md) | The rest of a journal's config.json still cannot be changed after it is created | ISSUE | low | medium |
 | [B225](backlog/B225-the-landing-page-s-tab-title.md) | The landing page's tab title is English over a translated page | ISSUE | low | low |
 | [B226](backlog/B226-two-new-deploy-time-checks-run.md) | Two new deploy-time checks run only where a binary happens to exist, and CI may have neither | CHORE | low | low |
+| [B241](backlog/B241-an-agent-code-can-be-issued.md) | An agent code can be issued for a trip that does not exist | ISSUE | low | low |
 | [B88](backlog/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low |
 | [B90](backlog/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
