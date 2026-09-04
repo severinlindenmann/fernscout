@@ -175,3 +175,119 @@ not make the browser an editor. That is B262 and a separate decision.
 - `claude-security` has been run over the branch; every finding fixed or
   captured by id.
 - The four checks pass.
+
+## Verified
+
+All four green: `npm run build` compiled, `npx tsc --noEmit` clean, `npx eslint .`
+0 errors (4 pre-existing warnings, none in these files), `npx vitest run` 160
+files / 2451 tests. `npm run unused` reports no unused files, dependencies or
+unresolved imports — and `listSessions`, which had existed since W06 with no
+caller, now has one.
+
+### What was built
+
+| | |
+| --- | --- |
+| `handover` session kind | 20 min, scope `exchange:token`, beside the other three in `SESSION_TTL_MS` / `SESSION_SCOPE` |
+| `POST /api/v1/<user>/handover` | owner only (`isOwner`, cookie or bearer): issues one |
+| `POST /api/auth/handover` | an agent spends it for its own 7-day token |
+| `GET`/`POST /api/v1/<user>/keys` | the live write keys, and revoke one |
+| `handoverPrompt()` in `lib/api/agentCopy.ts` | the pasteable prompt |
+| `components/AgentKeys.tsx` | the list, on `/me` |
+
+The prompt is **English regardless of the owner's locale**, because its reader
+is an agent and every other agent-facing document here is English. The chrome
+around it is translated in all three.
+
+### `test/handover.test.ts` — 25 tests
+
+The refusal matrix is the point, and it is per route family rather than one
+test: a handover credential is refused on `/status`, on a write, on the drafts
+queue, on the trip list, on the issue route itself, and by `resolveSession` for
+all three other kinds while resolving for its own. Plus: the owner's cookie
+gets one (that is the whole feature) and a trip person does not; the expiry is
+asserted against `SESSION_TTL_MS.handover` rather than a literal; spending it
+works once and the second attempt says "already used" rather than answering a
+bare 401; and revoking a key stops the token it was minted from, immediately.
+
+### End to end, against a real server
+
+Built, served with `auth`/`contacts`/`mail` on and SQLite, signed in as the
+example journal's owner in a browser:
+
+```
+click "Get a key and the instructions"
+  → the prompt renders with a live fs_handover_… and its expiry
+  → the key list gains "A key waiting to be picked up · not used yet"
+
+POST /api/auth/handover  (Bearer fs_handover_…)   200
+  → {"token":"fs_agent_…","expiresAt":"2026-09-11T…","scope":"write:content"}
+
+GET /api/v1/example/status  (Bearer fs_agent_…)   200
+  → journal Fernscout Demo · 5 trips · 2 drafts · postcards/photobook off
+  → next: "2 days are written and not on the site…"
+
+POST /api/auth/handover  (same handover again)    401
+GET  /api/v1/example/status  (the handover)       401
+
+then, on the page: the agent key is listed as
+  "A seven-day writing key · works until 11/09 15:58 · last used 04/09 15:58"
+click Revoke → the row goes
+GET /api/v1/example/status  (the revoked token)   401
+```
+
+### Two things found in the browser that the tests could not see
+
+**The key list did not refresh after minting one.** `AgentKeys` loads on mount,
+the button is pressed afterwards, so the key it created was absent until the
+owner reloaded — and a key you cannot see is a key you cannot revoke, which is
+the whole reason the list exists. Fixed with a `reloadOn` counter the handover
+block bumps. This is exactly the class of defect a unit test on either
+component passes through, because each was correct on its own.
+
+**An eslint rule caught a real race**, not just a style point:
+`react-hooks/set-state-in-effect` on the load-on-mount. Restructuring it to
+return the rows and set state behind an `active` flag also drops a response
+that arrives after the effect is cleaned up — which would otherwise have shown
+one journal's keys under another's name for as long as the request took.
+
+### Security pass over the branch
+
+No introduced vulnerability found. What was checked, and why each is settled:
+
+- **A cookie session now mints a bearer credential.** That is the amendment,
+  bounded to 20 minutes and to one exchange, and refused everywhere else by
+  `lookUpSession`'s `kind !== expected` — the property that makes a fourth kind
+  refused by default rather than allowed by default.
+- **CSRF on the issue route.** The guest cookie is `SameSite=lax`, so a
+  cross-site POST does not carry it; the route is POST-only. Same guard and
+  same reasoning as `POST /api/v1/<user>/invites`, which has relied on this
+  since B79.
+- **Guessing a handover credential.** `generateToken` is 32 bytes of
+  `crypto.randomBytes`, prefixed `fs_handover_`. The prefix is deliberate: it
+  makes one identifiable in a leak and therefore revocable.
+- **Logging.** `formatRequestLine` (`lib/requestLog.ts`, B257) records method,
+  path and user agent — no headers, no bodies. The credential travels in a
+  header and never in a URL, which is why it must stay a header.
+- **Cross-journal revoke.** `POST .../keys` checks the id is one of *this*
+  journal's rows before revoking. A UUID is unguessable, but unguessable is not
+  checked; there is a test.
+- **The prompt in the page.** Fetched by script after a click, so it never
+  enters the server-rendered HTML or the RSC payload. The cache-header question
+  for `/me` is **B287**, captured during B280.
+
+### Documents amended, not left standing
+
+`docs/ROADMAP.md` decision 24 (with the `SESSION_TTL_MS` reasoning for why 20
+minutes and not 7 days), the "network doors" paragraph and table in
+`AGENTS.md`, `openAgentSession`'s comment — which said "nothing else may use
+this" and now names its second caller — `me.tokenBody` and `me.tokenWarning` in
+all three locales, a new section in `agentGuide()` before "Authenticating", and
+both routes in `openapi.json`.
+
+### One acceptance line was missing when I first thought this was done
+
+"The owner can see live agent sessions and revoke one, from the page" — the
+`keys` route and `AgentKeys` did not exist. Built rather than dropped, because
+it is what makes the rest safe to use: a credential a person cannot take back
+is one they cannot hand out carefully, which is this task's own argument.

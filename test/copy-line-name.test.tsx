@@ -46,7 +46,7 @@ function names(html: string): string[] {
 
 describe("the agent-handover copy control", () => {
   test("names what it copies instead of reciting two values", () => {
-    const html = render(<AgentHandover docUrl={DOC} email={EMAIL} />);
+    const html = render(<AgentHandover docUrl={DOC} email={EMAIL} username="alex" siteUrl="https://example.test" />);
     const dict = dictionaryFor("en");
 
     expect(names(html)).toContain(dict["me.agentCopy"]);
@@ -59,7 +59,7 @@ describe("the agent-handover copy control", () => {
   });
 
   test("no accessible name on the block carries a newline", () => {
-    const html = render(<AgentHandover docUrl={DOC} email={EMAIL} />);
+    const html = render(<AgentHandover docUrl={DOC} email={EMAIL} username="alex" siteUrl="https://example.test" />);
     for (const name of names(html)) {
       expect(name).not.toMatch(/[\n\r]|&#10;|&#xa;/i);
     }
@@ -68,7 +68,7 @@ describe("the agent-handover copy control", () => {
 
   test("and it is translated, not English on a journal that is not", () => {
     for (const locale of MAINTAINED_LOCALES) {
-      const html = render(<AgentHandover docUrl={DOC} email={EMAIL} />, locale);
+      const html = render(<AgentHandover docUrl={DOC} email={EMAIL} username="alex" siteUrl="https://example.test" />, locale);
       const expected = dictionaryFor(locale)["me.agentCopy"];
       expect(expected).toBeTruthy();
       expect(names(html)).toContain(expected);

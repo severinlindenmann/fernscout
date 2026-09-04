@@ -206,3 +206,53 @@ export function wrap(text: string, width = 78, indent = ""): string[] {
   if (line !== indent) out.push(line);
   return out;
 }
+
+/**
+ * The prompt an owner pastes into an agent — B283.
+ *
+ * Written here rather than in the component that renders it, and in **English
+ * regardless of the owner's locale**, because the reader is an agent and every
+ * other agent-facing document on this instance is English: `/agent.md`,
+ * `/documentation.txt`, the `next` line on every API response. A German owner
+ * sees German chrome around it, which is the two-layer split in AGENTS.md §1.2
+ * working as designed — the UI is translated, the content is in whatever
+ * language it was written in, and this is content addressed to a machine.
+ *
+ * Three instructions and nothing else, in the order they have to happen. It is
+ * deliberately not a summary of the guide: an agent that follows step 3 has the
+ * guide, and a prompt that tried to teach the API would be stale the first time
+ * the API changed.
+ *
+ * The credential is on its own line so that a person can see what they are
+ * handing over, and the expiry is beside it so they can see it is short.
+ */
+export function handoverPrompt(input: {
+  siteUrl: string;
+  username: string;
+  handover: string;
+  minutes: number;
+}): string {
+  const { siteUrl, username, handover, minutes } = input;
+  return [
+    `You are writing for a Fernscout travel journal that already exists: ${siteUrl}/${username}`,
+    "",
+    `1. Exchange this key for your own 7-day token. It works once, for ${minutes} minutes:`,
+    "",
+    `   curl -X POST ${siteUrl}/api/auth/handover \\`,
+    `     -H "Authorization: Bearer ${handover}"`,
+    "",
+    "2. Then, before anything else, read where the journal stands:",
+    "",
+    `   GET ${siteUrl}/api/v1/${username}/status`,
+    "",
+    "   It says what is waiting for approval, which trips you may write to, and",
+    "   what this server can do. Do not write until you have read it.",
+    "",
+    `3. The full guide is at ${siteUrl}/agent.md — deleting, photographs, letting`,
+    "   people in, and a worked example of each.",
+    "",
+    "Everything you write arrives as a draft. Putting a day on the site is a",
+    "second call, and it is mine to ask for — never publish because something",
+    "looks finished. Write what I tell you and nothing I did not.",
+  ].join("\n");
+}

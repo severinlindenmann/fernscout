@@ -64,6 +64,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       viewer={viewer}
       username={user}
       docUrl={`${serverSite().url}/documentation.txt`}
+      siteUrl={serverSite().url}
       manageHref={manageHref}
       // Resolved here rather than guessed in the component: a capability is a
       // server ceiling and a journal opt-in, and the page was offering a door

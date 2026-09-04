@@ -26,7 +26,7 @@ import { getDatabase } from "../db";
  * journal for it to belong to. It can do exactly one thing — create one — and
  * it expires in twenty minutes.
  */
-export type SessionKind = "guest" | "agent" | "signup";
+export type SessionKind = "guest" | "agent" | "signup" | "handover";
 
 /**
  * The owner a signup code is filed under.
@@ -71,12 +71,40 @@ export const SESSION_TTL_MS: Record<SessionKind, number> = {
   // Long enough to finish the call it was issued for, short enough that a
   // token which can create journals is not lying around afterwards.
   signup: 20 * 60 * 1000,
+  /**
+   * Twenty minutes, for the same reason `signup` gets twenty — B283.
+   *
+   * This is the credential the owner's own page prints so they can paste a
+   * ready-made prompt into an agent. Printing the seven-day agent token there
+   * instead was the first design and this replaced it, because of the numbers
+   * above: a guest cookie lasts a **year** and an agent token seven days, so a
+   * page that minted the agent token directly would let a year-old read cookie
+   * on a phone in a drawer issue write credentials indefinitely — the ceiling
+   * would have been the cookie, not the token.
+   *
+   * Twenty minutes does not remove that (the cookie can still ask for
+   * another). What it buys is that **nothing durable is ever displayed**: the
+   * clipboard, the screenshot and the terminal scrollback all go stale, where
+   * a seven-day token pasted into a chat log is a seven-day exposure.
+   */
+  handover: 20 * 60 * 1000,
 };
 
 export const SESSION_SCOPE: Record<SessionKind, string> = {
   agent: "write:content",
   guest: "read",
   signup: "create:journal",
+  /**
+   * It exchanges, and that is all it does — B283.
+   *
+   * Nothing reads this string to decide anything: `lookUpSession` refuses a
+   * `handover` row to every caller asking for `"guest"` or `"agent"`, which is
+   * every read and every write in the codebase. The scope is here so that the
+   * owner's session list says what the row is for in the same vocabulary as
+   * the others, and so that a future caller that *does* branch on scope cannot
+   * mistake it for content access.
+   */
+  handover: "exchange:token",
 };
 
 export const GUEST_COOKIE = "fs_session";
@@ -692,18 +720,73 @@ export async function verifyLink(
 /**
  * An agent session for a journal, without a code round trip.
  *
- * The one caller is `POST /api/v1/journals`: the address has just been proved
- * by the signup code, and sending its owner back for a second code — to a
- * journal created a millisecond ago, by them — would be ceremony rather than
- * security. Nothing else may use this; every other path goes through a code.
+ * **Two callers, and both of them have already proved the address.**
+ *
+ * `POST /api/v1/journals`: the address was proved by the signup code, and
+ * sending its owner back for a second code — to a journal created a
+ * millisecond ago, by them — would be ceremony rather than security.
+ *
+ * `POST /api/auth/handover` (B283): the address was proved when the owner
+ * signed in, and again by holding a `handover` credential their own page
+ * printed twenty minutes ago at most. That call spends the handover session by
+ * doing this, so the exchange happens once.
+ *
+ * Nothing else may use this. Every other path goes through a code, and the
+ * two exceptions above are the two places where a code has *just* been used.
  */
 export async function openAgentSession(
   owner: string,
   email: string,
 ): Promise<{ token: string; expiresAt: string }> {
   const result = await openSession(owner, email, "agent");
-  if (!result.ok) throw new Error("could not open a session for a journal just created");
+  if (!result.ok) throw new Error("could not open an agent session");
   return { token: result.token, expiresAt: result.expiresAt };
+}
+
+/**
+ * The twenty-minute credential the owner's own page prints — B283.
+ *
+ * What an owner is handed to start an agent used to be two lines and a
+ * promise: a URL, their email address, and the expectation that the agent
+ * would ask for a six-digit code which they would then read out. This replaces
+ * the reading-out, not the proving: the owner is already signed in, and this
+ * turns that into something pasteable.
+ *
+ * It can do exactly one thing — be exchanged, at `POST /api/auth/handover`,
+ * for a seven-day agent token. It is refused on every content route, because
+ * `lookUpSession` compares `kind` against what the caller asked for and every
+ * read and write in this codebase asks for `"guest"` or `"agent"`. That is the
+ * property that makes a fourth kind safe to add: a new kind is refused
+ * everywhere by default, and has to be let in deliberately, once.
+ *
+ * The caller establishes that this is the journal's owner — `isOwner`, cookie
+ * or bearer, the same guard the invite endpoint uses. Never a guest, and never
+ * somebody on a trip: a buddy holds a trip-scoped token and gets it the way
+ * they got it before.
+ */
+export async function issueHandover(
+  owner: string,
+  email: string,
+): Promise<{ token: string; expiresAt: string }> {
+  const result = await openSession(owner, email, "handover");
+  if (!result.ok) throw new Error("could not open a handover session");
+  return { token: result.token, expiresAt: result.expiresAt };
+}
+
+/**
+ * Spend a handover credential for the agent token it stands for — B283.
+ *
+ * Revoked before the agent session is opened rather than after, so a failure
+ * between the two leaves the handover spent and no token issued. That is the
+ * safe direction to fail: the owner presses the button again, where the other
+ * order would leave a live handover credential beside a live agent token and
+ * no record of which call had actually succeeded.
+ */
+export async function exchangeHandover(
+  session: Session,
+): Promise<{ token: string; expiresAt: string }> {
+  await revokeSession(session.id);
+  return openAgentSession(session.owner, session.email);
 }
 
 /** Mint the session both redemption paths end at. */

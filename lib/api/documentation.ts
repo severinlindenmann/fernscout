@@ -653,6 +653,26 @@ which addresses own which names — so the answer has to come from the person.
 creation says \`username\`. Same value: the journal's address, the thing between
 the domain and the rest of the URL.
 
+## If you were handed a key rather than told to ask for a code
+
+An owner can copy a whole prompt out of their journal's access page, and it
+carries a **handover credential**: twenty minutes, single use, and good for
+exactly one call. Spend it first and it becomes a seven-day token of your own.
+
+\`\`\`http
+POST ${site.url}/api/auth/handover
+Authorization: Bearer fs_handover_…
+\`\`\`
+
+The answer carries \`token\` — that is yours for seven days, on that journal and
+nothing else — and the \`status\` URL to read next. A **401 \`invalid_handover\`**
+means it has expired or was already spent: ask the person to press the button
+again. Nothing is wrong with the journal, and there is nothing to retry.
+
+Do not try to use a handover credential on anything else. Every read and every
+write refuses it, by design, and it is not a fallback for a token you have
+mislaid — for that, go through the code below.
+
 ## First, get your bearings
 
 Two calls before you do anything, in this order, and the first one is free.

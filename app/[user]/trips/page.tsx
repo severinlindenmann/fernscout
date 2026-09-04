@@ -103,6 +103,10 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
           owner: true,
           docUrl: `${serverSite().url}/documentation.txt`,
           ownerEmail: getUser(user)?.owner.email ?? null,
+          // For the handover prompt B283 renders here: the exchange call and
+          // the status call both name this instance's own address, not
+          // whatever host the owner reached it through.
+          siteUrl: serverSite().url,
         };
       }
     } else if (trips.length === 0) {

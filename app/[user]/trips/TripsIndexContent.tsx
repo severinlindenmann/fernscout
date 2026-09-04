@@ -63,7 +63,7 @@ export type TripCardData = {
  */
 export type EmptyJournal =
   | { owner: false; signedIn: boolean; ownerName: string }
-  | { owner: true; docUrl: string; ownerEmail: string | null };
+  | { owner: true; docUrl: string; ownerEmail: string | null; siteUrl: string };
 
 export type RouteData = {
   id: string;
@@ -307,7 +307,12 @@ function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: 
         <p className="mt-2 max-w-2xl text-lg leading-8 text-navy-700">{body}</p>
         {empty.owner && (
           <div className="mt-6 border-t border-navy-200 pt-5">
-            <AgentHandover docUrl={empty.docUrl} email={empty.ownerEmail} />
+            <AgentHandover
+              docUrl={empty.docUrl}
+              email={empty.ownerEmail}
+              username={username}
+              siteUrl={empty.siteUrl}
+            />
           </div>
         )}
       </section>
