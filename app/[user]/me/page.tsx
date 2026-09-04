@@ -35,14 +35,22 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
   // rendered, so the parameter cannot be used to put a sentence of somebody
   // else's choosing on the page.
   const signin = (await searchParams).signin;
-  const signinNotice =
-    signin === "expired"
+  const viewer = await resolveViewer(user);
+
+  // Only shown to a reader still without a session: B359 found it sitting
+  // above "Signed in as …" once the fresh code from the same page had
+  // worked, because the parameter that drives it survives the sign-in
+  // unread. `GuestSignIn` reloads rather than navigating, so the
+  // query string is still `?signin=expired` on the request that renders the
+  // new session — this is where that request learns the session exists and
+  // stops repeating a notice about a link that no longer matters.
+  const signinNotice = viewer.email
+    ? undefined
+    : signin === "expired"
       ? "me.signinExpired"
       : signin === "throttled"
         ? "me.signinThrottled"
         : undefined;
-
-  const viewer = await resolveViewer(user);
 
   // Asked once, for both doors this page opens into contacts. B74: the
   // guest-details link below was gated on it and the owner's guest-list link

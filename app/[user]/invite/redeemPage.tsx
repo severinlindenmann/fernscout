@@ -120,6 +120,10 @@ export default async function RedeemPage({
       // editable either way; nothing here is hidden.
       invitedEmail={invite.email}
       alreadyIn={alreadyIn}
+      // B360: a server with no postcard provider cannot act on a postal
+      // address, so the form stops asking for one — the same check every
+      // other capability on this site is gated on.
+      postcardsEnabled={isEnabled("postcards", username)}
     />
   );
 }

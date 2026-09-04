@@ -86,6 +86,50 @@ describe("the guest invite form's postal address fields", () => {
 });
 
 /**
+ * B360 — a server with no postcard provider was still asking for a home
+ * address and offering to post something it could not send. `/api/health`
+ * reports `postcards: {"enabled": false}` and the form did not read it.
+ */
+describe("the postal block, on a server with postcards switched off", () => {
+  const dictionaries = { en: dictionaryFor("en") };
+
+  function render(postcardsEnabled: boolean) {
+    return renderToStaticMarkup(
+      <InviteRedeem
+        username="ana"
+        journalTitle="Ana's journal"
+        kind="guest"
+        tripTitle={null}
+        token="tok"
+        initialLocale="en"
+        locales={["en"]}
+        dictionaries={dictionaries}
+        knownEmail={null}
+        initialName=""
+        invitedEmail={null}
+        alreadyIn={false}
+        postcardsEnabled={postcardsEnabled}
+      />,
+    );
+  }
+
+  test("is omitted when postcards is off", () => {
+    const html = render(false);
+    expect(html).not.toContain('id="invite-addr-line1"');
+    expect(html).not.toContain(dictionaries.en["contact.wantsPostcard"]);
+    // Everything else a brand-new reader is offered stays.
+    expect(html).toContain('id="invite-tel"');
+    expect(html).toContain(dictionaries.en["contact.wantsDigest"]);
+  });
+
+  test("is offered when postcards is on", () => {
+    const html = render(true);
+    expect(html).toContain('id="invite-addr-line1"');
+    expect(html).toContain(dictionaries.en["contact.wantsPostcard"]);
+  });
+});
+
+/**
  * B338 — a mailed invite prefills the address it was sent to; a link the
  * owner copied by hand prefills nothing, exactly as before this ticket. The
  * explanation of what changing the address costs is shown in the one case

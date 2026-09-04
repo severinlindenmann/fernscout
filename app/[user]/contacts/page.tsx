@@ -128,6 +128,10 @@ export default async function ContactsAdminPage({
         // B319: the notification mail's own request, so the page can put it
         // in front of the owner rather than leave them to find it in a list.
         highlightId={typeof highlight === "string" ? highlight : undefined}
+        // B360: a server with no postcard provider cannot act on a postal
+        // address, so the form stops asking for one — `lib/capabilities.ts`
+        // decides, same as everywhere else this reads.
+        postcardsEnabled={isEnabled("postcards", username)}
       />
     </div>
   );

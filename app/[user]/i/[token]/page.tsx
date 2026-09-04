@@ -82,6 +82,9 @@ export default async function InvitePage({ params }: PageProps<"/[user]/i/[token
       // through — and, since B37, so the submission is accepted at all. It is
       // provenance and admissibility, never identity.
       inviteToken={token}
+      // B360: a server with no postcard provider cannot act on a postal
+      // address, so the form stops asking for one.
+      postcardsEnabled={isEnabled("postcards", username)}
     />
   );
 }

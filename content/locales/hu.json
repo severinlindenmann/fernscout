@@ -22,6 +22,7 @@
   "contact.adminContactExists": "Ez a cím már vendégként szerepel — inkább szerkeszd.",
   "contact.adminCopiedLink": "Link kimásolva",
   "contact.adminCopyLink": "Link másolása",
+  "contact.adminCopyLinkKind": "{kind} másolása",
   "contact.adminCopyLinkNamed": "{kind} másolása — {name}",
   "contact.adminCreate": "Link létrehozása",
   "contact.adminDelete": "Törlés",

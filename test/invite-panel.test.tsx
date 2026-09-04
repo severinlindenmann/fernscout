@@ -157,6 +157,20 @@ describe("copying a link that was already sent", () => {
     expect(labels.some((label) => label.includes("secret-token"))).toBe(false);
     expect(labels.some((label) => label.includes("Family"))).toBe(true);
   });
+
+  /**
+   * B358 — an invite with no note used to fill the missing half with an
+   * em-dash placeholder, so the name ended "— —" and a screen reader
+   * announced the separator with nothing after it.
+   */
+  test("an unlabelled link's accessible name has no dangling separator", () => {
+    const html = render([invite({ url: "https://example.test/alex/invite/guest/tok", name: null })]);
+    const labels = [...html.matchAll(/aria-label="([^"]*)"/g)].map((m) => m[1]);
+    const copyLabel = labels.find((label) => label.includes(dict["me.inviteGuestTitle"]));
+    expect(copyLabel).toBeTruthy();
+    expect(copyLabel).not.toMatch(/—\s*—/);
+    expect(copyLabel).not.toMatch(/[—-]\s*$/);
+  });
 });
 
 describe("a link written before this task", () => {

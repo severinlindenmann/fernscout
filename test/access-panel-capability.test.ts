@@ -15,6 +15,9 @@ import type { FeatureName } from "@/lib/config";
  */
 
 const enabled = vi.fn<(name: FeatureName, username?: string) => boolean>(() => true);
+/** Overridden per-test by `test/access-panel-capability.test.ts`'s B359 block,
+ * so `resolveViewer` can answer "signed in" without a second mock file. */
+const viewerEmail = vi.hoisted(() => vi.fn<() => string | null>(() => null));
 
 vi.mock("@/lib/capabilities", () => ({
   isEnabled: (name: FeatureName, username?: string) => enabled(name, username),
@@ -27,7 +30,7 @@ const JOURNAL = {
 };
 vi.mock("@/lib/users", () => ({ getUser: () => JOURNAL }));
 vi.mock("@/lib/viewer", () => ({
-  resolveViewer: async () => ({ email: null, owner: true, guest: false, trips: [] }),
+  resolveViewer: async () => ({ email: viewerEmail(), owner: true, guest: false, trips: [] }),
 }));
 /** Spied rather than reimplemented: what this file asserts is that the page
  * asks for the owner's short name and passes *that* down, not what the answer
@@ -65,6 +68,8 @@ async function propsOf(user = "alex", searchParams: Record<string, string> = {})
 
 beforeEach(() => {
   enabled.mockReset();
+  viewerEmail.mockReset();
+  viewerEmail.mockReturnValue(null);
 });
 
 describe("what the me page tells the panel about contacts", () => {
@@ -106,6 +111,18 @@ describe("why the reader landed on /me rather than in the journal", () => {
     // becomes text, so it cannot be used to put a sentence on somebody's page.
     expect((await propsOf("alex", { signin: "<script>alert(1)</script>" })).signinNotice)
       .toBeUndefined();
+  });
+
+  /**
+   * B359 — the notice used to survive its own fix. `GuestSignIn` reloads
+   * rather than navigating, so `?signin=expired` is still on the request
+   * that renders the new session, and the page told the reader they were not
+   * signed in directly above "Signed in as owner@severin.io".
+   */
+  test("and is gone once the session that answers it exists", async () => {
+    enabled.mockReturnValue(true);
+    viewerEmail.mockReturnValue("owner@example.test");
+    expect((await propsOf("alex", { signin: "expired" })).signinNotice).toBeUndefined();
   });
 });
 
