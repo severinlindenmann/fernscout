@@ -193,6 +193,14 @@ If a line cannot be demonstrated, the task is not finished. Say which line,
 leave it in `in-development/`, and stop. Do not rewrite the acceptance criteria
 to match what you built.
 
+**One more pass if the change touched a door.** Auth, tokens, grants,
+visibility, an API route, anything that decides who sees what: run the
+`claude-security` skill over the branch before merging. The four commands above
+prove the code runs, not that it keeps its secrets, and the bug this repository
+keeps finding is the second kind — G17 was three of them at once (B232, B233,
+B234). Its findings are captures for `backlog/`, by id, not scope to absorb
+here; a finding you disagree with gets a sentence in the task file saying why.
+
 ### 6. Merge, then hand over
 
 **Check what you are merging into before you merge.** The main checkout is

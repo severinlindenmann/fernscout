@@ -364,6 +364,31 @@ that carry all of this in full.
 | `manage-tasks` | Capture something, and move it between lanes |
 | `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
 
+### Skills that are not this repository's
+
+Installed plugins add skills alongside these, and four of them change how work
+here is done rather than merely being available:
+
+| Skill | When it applies |
+| --- | --- |
+| `ponytail` | Any change. The laziest thing that actually works — question whether the task needs to exist, reach for the standard library before a dependency, one line before fifty. This codebase is written to be read, so the smallest diff that answers the ticket is the right one |
+| `claude-security` | Before merging anything that touches auth, tokens, grants, visibility or an API route. Run it and read the findings; each one is a `backlog/` capture or an argument for why it is not |
+| `chrome-devtools` | A page is wrong and `curl` says nothing. Console errors with source-mapped traces, real network timings, and an a11y pass — the questions Playwright can drive but not answer |
+| `hookify` | A rule in this file that agents keep breaking. Turn it into a hook and the harness enforces it instead of the prose asking nicely |
+
+`security-guidance` needs no invoking: it warns on the edit and reviews the
+diff when a session stops. Treat what it says as a capture, not a blocker.
+
+**None of this is in the repository.** Plugins are installed per user and
+`.claude/settings.json` is gitignored, so a fresh clone has the ten skills
+above and nothing else. That is deliberate — the repository must not require
+somebody else's plugin list to be workable — but it means a recommendation
+resting on one of these has to name it. Install with:
+
+```bash
+claude plugin install <name>@claude-plugins-official
+```
+
 Prose about the software — how it is built, how to run it, how to deploy it —
 is in `docs/`, indexed from `docs/README.md` and from the README. This file is
 only what applies to every task.
