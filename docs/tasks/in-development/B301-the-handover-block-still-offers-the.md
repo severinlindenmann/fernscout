@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: me-page, agents
 found: "2026-09-04T14:22:00Z"
+started: "2026-09-04T14:16:23Z"
+session: a3370c43-40d9-471c-a3d3-1a30c49b5302
+claimed: "2026-09-04T14:16:23Z"
 ---
 
 # B301 — The handover block still offers the read-out-a-code route beside the key, which is two ways to do one thing

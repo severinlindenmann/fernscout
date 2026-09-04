@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: contacts, access, tripGate, i18n
 found: "2026-09-04T14:20:00Z"
+started: "2026-09-04T14:16:22Z"
+session: a3370c43-40d9-471c-a3d3-1a30c49b5302
+claimed: "2026-09-04T14:16:22Z"
 ---
 
 # B300 — Approving a guest opens nothing when every trip is private, and neither the owner nor the guest is told
