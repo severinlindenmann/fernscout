@@ -7,8 +7,7 @@ complexity: medium
 area: agent onboarding docs
 found: "2026-09-04T10:59:16Z"
 started: "2026-09-04T11:00:01Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T11:00:01Z"
+merged: "2026-09-04T11:10:02Z"
 ---
 
 # B259 — Nothing tells an agent it lacks the tools to write here, so it invents workarounds instead
