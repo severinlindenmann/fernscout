@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { frameRoute, isPlottable, place as placeIn } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import { useI18n } from "./LocaleProvider";
+import { flagFromCode } from "@/lib/flags";
 import type { Basemap } from "@/lib/basemap";
 import type { TripAccent } from "@/lib/types";
 
@@ -31,31 +32,11 @@ export type CountryVisit = {
    * handful actually visited is also far less than the 143 KB of all 177.
    */
   path: string;
+  /** The colour this country is filled in — its flag's, resolved on the
+   * server so collisions between neighbours can be avoided. B370. */
+  colour: string;
   trips: { id: string; title: string }[];
 };
-
-/**
- * How often a country was visited, as fill.
- *
- * One hue in three steps rather than a colour per trip — decided with the
- * owner, B361. A country reached by two trips has no single trip colour, and
- * the alternatives were both worse: letting the most recent trip win hides
- * that you went twice, and striping two colours together is unreadable on a
- * small country and hopeless at three. Depth answers "how often", which is the
- * question a lifetime map is actually being asked, and the trips themselves
- * are named on hover.
- *
- * Warm, because the map is not: the land is pale green and the sea is blue, so
- * a blue or green ramp would fight the basemap it sits on. This is the brand
- * coral (`--color-coral-500`, the `coral` accent) and two tints of it.
- */
-const VISIT_FILL = ["#f0bcc4", "#dc7185", "#c2334a"] as const;
-
-/** Three steps, so four visits and seven both read as "often". Past the third
- * the difference stops being legible anyway, and the legend says `3+`. */
-function fillFor(visits: number): string {
-  return VISIT_FILL[Math.min(visits, VISIT_FILL.length) - 1];
-}
 
 /** The five palette hues from app/globals.css, as literals — this is an SVG
  * stroke, which Tailwind classes can't reach. Exported so the trip cards can
@@ -98,7 +79,6 @@ const PIN_RING_WIDTH = 0.55;
 export default function LifetimeMap({
   routes,
   visits = [],
-  labels = [],
   userPath = "",
   basemap = null,
 }: {
@@ -114,9 +94,6 @@ export default function LifetimeMap({
    * B361.
    */
   visits?: CountryVisit[];
-  /** Which visited countries have room to be named — chosen on the server by
-   * the same `spread` that keeps town labels apart. B364. */
-  labels?: { code: string; name: string; x: number; y: number }[];
   /** `/<user>`, for linking a country to the trip that reached it. */
   userPath?: string;
   /** Clipped to every trip's combined frame on the server — lib/basemap.ts. */
@@ -197,7 +174,7 @@ export default function LifetimeMap({
                   const shape = (
                     <path
                       d={v.path}
-                      fill={fillFor(v.trips.length)}
+                      fill={v.colour}
                       vectorEffect="non-scaling-stroke"
                       className="cursor-pointer transition-opacity duration-150 hover:opacity-70"
                     >
@@ -261,31 +238,6 @@ export default function LifetimeMap({
             </g>
           )}
         </g>
-        {/* Outside the `scale(lngScale 1)` group above, with the scale applied
-            to the position instead: inside it the glyphs themselves would be
-            squashed horizontally along with the geometry. The halo is a second
-            copy of the same text painted underneath as a fat stroke — the
-            standard way to keep a label legible over whatever it lands on,
-            here a fill that ranges from pale pink to deep coral. */}
-        {labels.map((l) => (
-          <text
-            key={l.code}
-            x={l.x * view.lngScale}
-            y={l.y}
-            textAnchor="middle"
-            fontSize={size(3.4)}
-            className="pointer-events-none select-none font-semibold"
-            aria-hidden
-          >
-            <tspan stroke="#fffaf0" strokeWidth={size(1)} strokeLinejoin="round" fill="none">
-              {l.name}
-            </tspan>
-            <tspan x={l.x * view.lngScale} y={l.y} fill="#1e293b">
-              {l.name}
-            </tspan>
-          </text>
-        ))}
-
         {/* The pins are the fallback, not a layer over the fill: drawing both
             would put fifteen Thai stems back on top of a filled Thailand,
             which is the smear this replaced. */}
@@ -344,18 +296,21 @@ export default function LifetimeMap({
           there. */}
       <figcaption className="flex flex-wrap gap-x-4 gap-y-1.5 border-t border-navy-200 bg-white px-4 py-3 text-xs text-navy-700">
         {filling
-          ? VISIT_FILL.map((hex, i) => (
-              <span key={hex} className="flex items-center gap-1.5">
+          ? visits.map((v) => (
+              <span key={v.code} className="flex items-center gap-1.5">
                 <span
                   aria-hidden
                   className="inline-block h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: hex }}
+                  style={{ backgroundColor: v.colour }}
                 />
-                {i === VISIT_FILL.length - 1
-                  ? t("trips.visitsMany", { count: String(i + 1) })
-                  : i === 0
-                    ? t("trips.visitOne")
-                    : t("trips.visits", { count: String(i + 1) })}
+                {/* The flag is decoration beside a name that already says the
+                    country — `aria-hidden`, or a screen reader reads the
+                    country twice, once as a flag emoji. */}
+                <span aria-hidden>{flagFromCode(v.code)}</span>
+                {v.name}
+                {v.trips.length > 1 && (
+                  <span className="text-navy-600">×{v.trips.length}</span>
+                )}
               </span>
             ))
           : routes.map((r) => (
