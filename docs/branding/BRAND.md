@@ -71,6 +71,19 @@ changing its geometry again; do not eyeball it.
 | `fernscout-wordmark.svg` | where the mark already appears nearby |
 | `fernscout-mark.svg` | 96px — app icon, avatar, favicon source |
 | `icon-waymark.svg` | 32px viewBox — the wired favicon |
+| `fernscout-avatar-640.png` | **derived** — for slots that refuse SVG |
+
+**The PNG is the one file here that is not a source.** Some slots refuse SVG
+— a WhatsApp Business profile picture is the case that forced it — and they
+also crop to a circle, so it is flattened onto the plate's own navy rather
+than left transparent. The mark's extremities sit 44.9 units from centre
+against a 48 radius, so nothing is clipped by that crop.
+
+Regenerate it with `npm run avatar`, **in the same commit that changes the
+mark**. It is a fourth copy of geometry that BRAND.md otherwise keeps in one
+place, it cannot be diffed, and it will not complain when it goes stale —
+which is exactly how a logo update ships everywhere except the avatar nobody
+thought to re-export.
 
 **Clear space:** one lozenge half-diagonal (23 units at 96 scale) on all four
 sides. Nothing enters it, including page edges.
