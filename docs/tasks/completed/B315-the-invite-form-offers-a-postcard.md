@@ -9,6 +9,7 @@ found: "2026-09-04T16:49:39Z"
 related: B273
 started: "2026-09-04T19:14:57Z"
 merged: "2026-09-04T19:20:58Z"
+completed: "2026-09-04T20:01:42Z"
 ---
 
 # B315 — The invite form offers a postcard but never asks about email updates, so a new reader is silently opted out

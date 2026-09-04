@@ -8,6 +8,7 @@ area: contacts, invites, web, i18n
 found: "2026-09-04T12:41:00Z"
 started: "2026-09-04T13:11:35Z"
 merged: "2026-09-04T13:24:19Z"
+completed: "2026-09-04T20:01:44Z"
 ---
 
 # B281 — The invite panel asks who a link is for and then shows neither that nor the language, and offers a third link kind nobody needs

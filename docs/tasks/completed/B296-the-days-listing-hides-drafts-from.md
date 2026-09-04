@@ -8,6 +8,7 @@ area: api, entries
 found: "2026-09-04T13:48:47Z"
 started: "2026-09-04T13:49:17Z"
 merged: "2026-09-04T13:54:57Z"
+completed: "2026-09-04T20:01:39Z"
 ---
 
 # B296 — The days listing hides drafts from the only caller allowed to see them, so an agent cannot audit its own writes

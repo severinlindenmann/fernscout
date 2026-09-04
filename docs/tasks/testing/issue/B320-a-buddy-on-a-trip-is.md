@@ -136,3 +136,15 @@ Not doing: any change to who may publish, any narrowing of a grant to one trip
   against a running instance, and the resulting token is confirmed to write a
   draft into its trip and to be refused on a second trip in the same journal
   (B231 already covers the refusal; this is the buddy reaching it).
+
+---
+
+**2026-09-04, verified on fernscout.ch (b393df5): half.** The site half passed
+and passed well — a buddy approved onto one trip sees "What you can write" on
+`/<user>/me`, with a complete, correctly trip-scoped agent prompt and an honest
+account of what the token cannot do.
+
+Nothing sends her there. Her approval mail says only "{title} let you in.
+Follow along whenever you like." Left in `testing/`; the mail half is **B347**,
+with B348 and B349 for the two other messages that describe a writer as a
+reader.

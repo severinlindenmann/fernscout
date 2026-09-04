@@ -8,6 +8,7 @@ area: api, mcp, drafts
 found: "2026-09-04T07:31:05Z"
 started: "2026-09-04T07:32:25Z"
 merged: "2026-09-04T07:56:56Z"
+completed: "2026-09-04T20:01:38Z"
 ---
 
 # B224 — Publishing a day costs a confirmation round trip the new doctrine does not want

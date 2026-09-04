@@ -8,6 +8,7 @@ area: contacts, ui, access
 found: "2026-09-03"
 started: "2026-09-04T07:30:32Z"
 merged: "2026-09-04T07:57:03Z"
+completed: "2026-09-04T20:01:43Z"
 ---
 
 # B97 — The guest list cannot tell a reading link from a writing link

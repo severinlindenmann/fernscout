@@ -8,6 +8,7 @@ area: api, export
 found: "2026-09-04T07:59:28Z"
 started: "2026-09-04T08:08:58Z"
 merged: "2026-09-04T08:29:11Z"
+completed: "2026-09-04T20:01:42Z"
 ---
 
 # B231 — A trip-scoped token downloads the whole journal from export.zip

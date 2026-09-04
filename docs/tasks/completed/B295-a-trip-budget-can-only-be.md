@@ -8,6 +8,7 @@ area: api, costs
 found: "2026-09-04T13:43:56Z"
 started: "2026-09-04T14:24:04Z"
 merged: "2026-09-04T14:41:39Z"
+completed: "2026-09-04T20:01:38Z"
 ---
 
 # B295 — A trip budget can only be written by hand, so an agent cannot give a trip its costs page

@@ -8,6 +8,7 @@ area: api, costs, validation
 found: "2026-09-04T14:41:15Z"
 started: "2026-09-04T16:07:51Z"
 merged: "2026-09-04T16:21:30Z"
+completed: "2026-09-04T20:01:39Z"
 ---
 
 # B304 — A day's costs still accept a zero amount and an unrecognised currency, and drop both silently

@@ -8,6 +8,7 @@ area: me, contacts
 found: "2026-09-01"
 started: "2026-09-04T07:30:32Z"
 merged: "2026-09-04T07:57:03Z"
+completed: "2026-09-04T20:01:43Z"
 ---
 
 # B20 — "Ask them" — ask whom?

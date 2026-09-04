@@ -8,6 +8,7 @@ area: entries, access, drafts, ui
 found: "2026-09-04T20:34:41Z"
 started: "2026-09-04T18:54:18Z"
 merged: "2026-09-04T19:09:34Z"
+completed: "2026-09-04T20:01:40Z"
 ---
 
 # B327 — A buddy writes a day and can see it nowhere on the site, because every reading path gates drafts on ownership

@@ -9,6 +9,7 @@ found: "2026-09-04T14:33:46Z"
 related: B274
 started: "2026-09-04T16:07:52Z"
 merged: "2026-09-04T16:19:29Z"
+completed: "2026-09-04T20:01:41Z"
 ---
 
 # B303 — The phone number field on the guestbook and the admin guest form never says what it is for

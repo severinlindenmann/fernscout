@@ -8,6 +8,7 @@ area: contacts, ui
 found: "2026-09-04T17:02:11Z"
 started: "2026-09-04T17:16:18Z"
 merged: "2026-09-04T17:24:37Z"
+completed: "2026-09-04T20:01:40Z"
 ---
 
 # B321 — A contact row shows the raw invite id it came from, not which link or which trip

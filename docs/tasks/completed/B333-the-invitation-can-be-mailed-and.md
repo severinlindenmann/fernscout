@@ -8,6 +8,7 @@ area: agent docs, invites
 found: "2026-09-04T19:11:03Z"
 started: "2026-09-04T19:11:30Z"
 merged: "2026-09-04T19:20:54Z"
+completed: "2026-09-04T20:01:41Z"
 ---
 
 # B333 — The invitation can be mailed and pre-approved, and nothing anywhere says so
