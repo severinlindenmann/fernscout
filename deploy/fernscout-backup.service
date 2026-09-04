@@ -4,6 +4,18 @@ Description=Fernscout backup
 After=network-online.target postgresql.service
 Wants=network-online.target
 
+# The failure is told to somebody. Without this the unit simply sits in
+# `failed` until a person thinks to ask — which on this server meant three
+# aborted nights in a row that only a human tailing journalctl noticed (B64).
+# %n is this unit's full name, so the handler needs nothing hardcoded.
+#
+# In [Unit], and not in [Service] where it sat from B64 until B203: systemd
+# reads OnFailure= only here, and a copy in [Service] is logged once as
+# "Unknown key" and then ignored for the life of the unit. The file looked
+# right, `systemctl show -p OnFailure` was empty, and the backup could not
+# report its own failure for weeks.
+OnFailure=fernscout-alert@%n.service
+
 [Service]
 Type=oneshot
 User=fernscout
@@ -13,12 +25,6 @@ EnvironmentFile=/etc/fernscout/env
 ExecStart=/srv/fernscout/scripts/backup.sh
 # A backup that hangs must not block the next one forever.
 TimeoutStartSec=30min
-
-# The failure is told to somebody. Without this the unit simply sits in
-# `failed` until a person thinks to ask — which on this server meant three
-# aborted nights in a row that only a human tailing journalctl noticed (B64).
-# %n is this unit's full name, so the handler needs nothing hardcoded.
-OnFailure=fernscout-alert@%n.service
 
 NoNewPrivileges=true
 PrivateTmp=true

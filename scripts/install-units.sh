@@ -24,13 +24,22 @@
 # Units that are installed but not enabled are named at the end instead, which
 # is the note an operator can act on and a script cannot.
 #
+# B203: it now also asks systemd whether it *understood* what was installed.
+# `OnFailure=` sat in `[Service]` in the backup unit for weeks — a `[Unit]`
+# directive, so systemd logged "Unknown key 'OnFailure' in section [Service],
+# ignoring" and loaded a backup that could not report its own failure. The file
+# was right by every check anybody had, because every check asked whether the
+# line was present rather than whether systemd had read it.
+#
 # Env:
-#   UNIT_SRC     where the units ship from. Default: <repo>/deploy
-#   SYSTEMD_DIR  where they are installed. Default: /etc/systemd/system
-#   SYSTEMCTL    the systemctl to drive. Default: systemctl
+#   UNIT_SRC          where the units ship from. Default: <repo>/deploy
+#   SYSTEMD_DIR       where they are installed. Default: /etc/systemd/system
+#   SYSTEMCTL         the systemctl to drive. Default: systemctl
+#   SYSTEMD_ANALYZE   the verifier. Default: systemd-analyze
 #
 # Exit 1 when a unit differs and cannot be written. That is the point of the
 # task: a deploy that could not install a changed unit must not report success.
+# Exit 1, too, when systemd rejected a key in a unit this run installed.
 
 set -euo pipefail
 
@@ -39,15 +48,19 @@ APP_DIR="${APP_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 UNIT_SRC="${UNIT_SRC:-$APP_DIR/deploy}"
 SYSTEMD_DIR="${SYSTEMD_DIR:-/etc/systemd/system}"
 SYSTEMCTL="${SYSTEMCTL:-systemctl}"
+SYSTEMD_ANALYZE="${SYSTEMD_ANALYZE:-systemd-analyze}"
 
 log() { printf '\033[36m==>\033[0m %s\n' "$*"; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
 [ -d "$UNIT_SRC" ] || fail "no unit source at $UNIT_SRC — is APP_DIR the repository?"
 
-# Only units. deploy/Caddyfile lives in the same folder and is not systemd's
-# and not this script's: Caddy has one shared config file on the host, so
-# copying it over is a different and more dangerous act. Its drift is B66.
+# Only units. deploy/Caddyfile and deploy/fernscout.caddy live in the same
+# folder and are not systemd's and not this script's: Caddy has one shared
+# config file on the host, so copying it over is a different and more dangerous
+# act. Since B66 the proxy keeps up by being imported out of the checkout
+# rather than copied anywhere, and scripts/check-caddy.mts reports it when it
+# has not.
 shopt -s nullglob
 UNITS=("$UNIT_SRC"/*.service "$UNIT_SRC"/*.timer)
 shopt -u nullglob
@@ -95,6 +108,45 @@ done
 
 "$SYSTEMCTL" daemon-reload
 log "daemon-reload"
+
+# --- Did systemd understand the files? (B203) ------------------------------
+#
+# A directive in the wrong section is the quietest defect systemd has. The unit
+# parses, it loads, `systemctl status` is green, and the directive is simply
+# not there — the only trace is one line in the journal at reload time.
+#
+# `daemon-reload`'s own output is not that trace and never was: the parse
+# warnings come from PID 1 and go to the journal, so the process this script
+# runs and reads exits silently whatever it just refused to understand. Asking
+# `systemd-analyze verify` is what actually surfaces them, and it reads the
+# installed copies rather than the repository's, so it also catches a unit
+# somebody edited in /etc/systemd/system by hand.
+#
+# Only the unknown-key class is fatal. The rest of what `verify` says about
+# these units is expected on a machine that is not yet fully set up — a user
+# that has not been created, a WorkingDirectory that does not exist yet — and
+# failing a deploy on those would mean failing every first deploy.
+if command -v "$SYSTEMD_ANALYZE" >/dev/null 2>&1; then
+  verify_paths=()
+  for name in "${changed[@]}"; do verify_paths+=("$SYSTEMD_DIR/$name"); done
+  # verify exits non-zero for the tolerated diagnostics too, so its status is
+  # deliberately discarded and only its words are read.
+  verify_out="$("$SYSTEMD_ANALYZE" verify "${verify_paths[@]}" 2>&1 || true)"
+  rejected="$(printf '%s\n' "$verify_out" | grep -Ei 'Unknown key|Unknown lvalue|Unknown section' || true)"
+  if [ -n "$rejected" ]; then
+    {
+      printf 'ERROR: systemd rejected a key in a unit this deploy just installed:\n'
+      printf '%s\n' "$rejected" | sed 's/^/  /'
+      printf '\nA directive systemd does not read is a directive that does nothing, and\n'
+      printf 'nothing downstream can notice — the unit still loads and still looks fine.\n'
+      printf 'Fix the section it sits in (man systemd.directives) and deploy again.\n'
+    } >&2
+    exit 1
+  fi
+  log "systemd-analyze verify: no unknown keys"
+else
+  log "note: no $SYSTEMD_ANALYZE on PATH — a misplaced directive would be installed unnoticed (B203)"
+fi
 
 for name in "${changed[@]}"; do
   case "$name" in
