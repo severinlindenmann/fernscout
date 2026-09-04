@@ -7,8 +7,7 @@ complexity: low
 area: docs, api
 found: "2026-09-04T13:59:26Z"
 started: "2026-09-04T13:59:42Z"
-session: 546ea4e5-e2bc-48a0-b03f-108ef263a927
-claimed: "2026-09-04T13:59:42Z"
+merged: "2026-09-04T14:14:10Z"
 ---
 
 # B299 — No visual page to browse the API endpoints
