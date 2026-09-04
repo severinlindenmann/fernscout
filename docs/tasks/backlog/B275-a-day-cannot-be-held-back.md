@@ -67,23 +67,61 @@ somebody's private day, silently, on a page nobody thought was involved.
 
 ### What still leaks after the content is hidden
 
-Hiding an entry is not hiding that it existed, and the trip pages are built to
-tell you:
+Hiding an entry is not hiding that it existed, and this codebase is built to
+tell you. A full sweep of every path that reads a day found five places where a
+filter on `visible()` alone would not be enough, and one of them is the whole
+design problem:
 
-- **The day pager and the day counter.** `/day/<slug>` has next/previous and
-  "day 14 of 22"; a gap is a statement.
-- **The aggregates.** `getTripStats`, `getPlaces`, `lib/costs.ts`,
-  `lib/basemap.ts` and `lib/mapFrame.ts` fold entries into counts, a route line
-  and a spend total. A route that visibly detours through a town whose day is
-  missing has published the location, if not the words.
-- **The gallery.** `getAllMedia` is entry-derived, so it follows the filter,
-  but the count beside it may not.
+**`buildStoryProps` always sends every day.** `lib/tripView.ts:157` builds
+`index` from *all* days — date, slug, location, country, coordinates, transport,
+cost per day — and returns it in full while only `days.slice(from, to)` carries
+prose. Every story render, on the home page and both day permalinks, ships the
+complete day index to the browser. Filtering the prose and not this publishes a
+lossy copy of the withheld day: its title (via the slug), where it was, and what
+it cost.
+
+**Costs cannot be told who is asking.** `getAllCosts` at `lib/costs.ts:105`
+calls `getAllEntries(tripId)` with **no `ReadOptions` argument at all** — the
+function has no parameter for it. So `getCostSummary`, `byDay`, `byCategory`,
+`byCountry` and the budget pace curve are sums over every published entry, and
+a withheld day's spend stays in the trip total. Signature change, not a filter.
+
+**Reactions are keyed by day slug.** `app/api/reactions/route.ts:103` returns
+`getAllCounts` for the whole trip, and the route's own comment records that this
+exact mechanism has leaked day titles once already at trip level. Its `POST`
+uses the same trip gate deliberately — "writing a row against a day is how the
+day's slug got published in the first place" — so both halves need the per-day
+check, or a prober confirms a hidden day by voting on it.
+
+**`export.zip` filters drafts and nothing else.** `isDraftEntry` at
+`lib/exportZip.ts:74` is the only per-file rule the `open-to-link` scope
+applies, so an anonymous export of a public trip would hand over the withheld
+day's markdown and its media.
+
+**The landing page picks the first photograph it can find.** `coverFor` at
+`app/page.tsx:51` walks `getAllEntries` across every indexable trip and returns
+the first image — which could be the withheld day's, as the instance's public
+teaser card.
+
+Smaller, same shape: `getPlaces`/`getTripStats` (`lib/entries.ts:291`, `:339`)
+fold every day into place, night, country and media counts; `lib/plan.ts:75`
+marks a planned stop "reached" from `getPlaces`, so a hidden day still moves a
+pin on the map for everyone; `basemapForRoute` frames the map tile on those same
+coordinates; the day pager and "day 14 of 22" make a gap legible;
+`generateStaticParams` (`app/[user]/(trip)/day/[slug]/page.tsx:17`) prerenders a
+route per entry; and `generateMetadata` on the day pages puts a per-day photo
+into `openGraph.images` under the trip gate only.
 
 Whether a hidden day should be *invisible* or *visibly withheld* ("this day is
-for friends — sign in") is the real design question, and it is a different
-answer for the two audiences. Deciding it is what the plan is for; B117 is the
-precedent for the reasoning — a closed trip's gate deliberately does not name
-the trip.
+for friends — sign in") is the real design question, and the answer differs by
+audience. Deciding it is what the plan is for; B117 is the precedent for the
+reasoning — a closed trip's gate deliberately does not name the trip.
+
+Two existing precedents to build on rather than invent past:
+`isTestContent(trip, entry?)` (`lib/access.ts:67`) and
+`subscribersFor(trip, entry?)` (`lib/push.ts:132`) are already trip-level
+functions taking an optional entry, which is the shape a `mayReadEntry` beside
+`mayReadTrip` would take.
 
 Related: **B43** wants the digest to mail a day's content to guests, so it
 inherits whatever this decides about who may read a day; **B178** is the same
@@ -102,11 +140,15 @@ code, and this task points at it. What it has to settle:
 - **`ReadOptions` becomes a viewer** rather than one boolean, and `visible()`
   is the only thing that reads it. Restrictive by default, as above.
 - **The media route** gains the visibility check beside `isDraftDay`.
-- **Existence.** What the pager, the counter, the map, the costs and the
-  gallery say about a day that is there and not for you.
-- **Writing it.** The REST and MCP write paths need to be able to set it —
-  `POST .../days` and `lib/mcp/tools.ts` — or the field is unreachable, which
-  is exactly B178.
+- **Existence.** What the pager, the counter, the map, the costs, the
+  gallery, the reaction counts and the landing-page cover say about a day that
+  is there and not for you. `lib/tripView.ts:157` and `lib/costs.ts:105` are
+  the two that need signatures changed rather than a filter added.
+- **Writing it.** `EntryInput` (`lib/validate/entry.ts:58`) validates no
+  `status` and no visibility today — the draft flag is written by `createDraft`
+  in `lib/api/entries.ts:218`, not by validation. So the field needs a
+  `checkVisibility` there plus wiring through `createDraft`, `POST .../days`
+  and `lib/mcp/tools.ts`, or it is unreachable — which is exactly B178.
 - **`/agent.md` and `/documentation.txt`** have to describe it, and `AGENTS.md`
   and the ROADMAP visibility decisions (11, 12) need the amendment.
 
@@ -119,7 +161,13 @@ of this journal" — no per-person allow-lists on an entry.
 - A day in a `public` trip marked `visibility: guest` is absent, for a signed-out
   reader, from: the trip page, `/day/<slug>` (404, not 403), the markdown twin
   `/<user>/day/<slug>.md`, `feed.xml`, `sitemap.xml`, `search-index.json`,
-  `story.json`, `export.zip`, and every media URL under that day's slug.
+  `story.json` — **including its `index` array** — `export.zip`, the reaction
+  counts, and every media URL under that day's slug.
+- Its spend is absent from the trip total, `byDay`, `byCategory`, `byCountry`
+  and the pace curve; its coordinates do not move a planned stop to "reached",
+  do not frame the basemap, and its photograph is not the landing page's cover.
+- `POST /api/reactions` against that day's slug refuses, so the slug cannot be
+  confirmed by voting on it.
 - The same day is readable, in all of the above, by an approved guest of the
   journal and by a person listed on the trip.
 - The rest of the trip is unchanged for everybody: still public, still listed,
