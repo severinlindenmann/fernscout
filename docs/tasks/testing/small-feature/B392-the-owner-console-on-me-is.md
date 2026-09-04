@@ -7,8 +7,7 @@ complexity: medium
 area: me page, design
 found: "2026-09-05T01:00:00Z"
 started: "2026-09-04T22:37:41Z"
-session: 3d8b93dd-e447-4c3c-bcd1-fa37e2bd17f9
-claimed: "2026-09-04T22:37:41Z"
+merged: "2026-09-04T22:54:57Z"
 ---
 
 # B392 — The owner console on /me is a flat wall of same-weight headings
