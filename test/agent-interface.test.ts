@@ -13,6 +13,7 @@ import {
   BUDGET_QUESTION,
   COORDINATES_QUESTION,
   MEDIA_ENDPOINT_PATH,
+  NOT_WRITABLE,
   TITLE_COLLISION_EXAMPLE,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
@@ -503,6 +504,14 @@ describe("what the guide has to tell an agent before it starts", () => {
       expect(asSentence(question)).not.toMatch(/[?!][*`_]*\.\s/);
     }
     expect(instanceDocumentation()).not.toMatch(/\?\*\*\./);
+  });
+
+  test("both documents say what no call changes", () => {
+    // B293: an agent that could not find a way to turn a costs page off told
+    // its owner to use a web UI that does not exist. The documents now say
+    // which of the two things it was reaching for is writable and which is not.
+    expect(flat(agentGuide())).toContain(flat(NOT_WRITABLE));
+    expect(flat(instanceDocumentation())).toContain(flat(NOT_WRITABLE));
   });
 
   test("both documents name the media endpoint where they mention photographs", () => {

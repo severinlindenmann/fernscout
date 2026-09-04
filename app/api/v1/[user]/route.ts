@@ -99,3 +99,24 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/v1
     { status: 202 },
   );
 }
+
+/**
+ * A wrong verb, answered in words — B293. See the twin on the trip route.
+ *
+ * `PATCH /api/v1/<user>` is the natural guess for "change something about this
+ * journal", and the real door is one segment further on. A bare `405` told
+ * nobody that.
+ */
+export async function PATCH(_request: Request, { params }: RouteContext<"/api/v1/[user]">) {
+  const { user } = await params;
+  return Response.json(
+    {
+      error: "method_not_allowed",
+      message:
+        `This route takes DELETE and nothing else. To change a journal's title, tagline, ` +
+        `visibility, languages or currencies, use PATCH /api/v1/${user}/config. A journal's ` +
+        `features are not writable through any door — see /agent.md.`,
+    },
+    { status: 405, headers: { Allow: "DELETE" } },
+  );
+}

@@ -23,6 +23,7 @@ import {
   COORDINATES_QUESTION,
   LOCALE_LIST,
   MEDIA_ENDPOINT_PATH,
+  NOT_WRITABLE,
   TITLE_COLLISION_EXAMPLE,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
@@ -210,6 +211,8 @@ export function instanceDocumentation(): string {
     ...wrap(BUDGET_QUESTION, 78),
     "",
     ...wrap(COORDINATES_QUESTION, 78),
+    "",
+    ...wrap(NOT_WRITABLE, 78),
     "",
     "```http",
     `POST ${base()}/api/v1/their-name/trips/japan-2027/days`,
@@ -927,6 +930,8 @@ A trip is created **private** unless you say otherwise. Publishing somebody's
 journey is their decision — ask before sending \`"visibility": "public"\`.
 
 ${wrap(BUDGET_QUESTION).join("\n")}
+
+${wrap(NOT_WRITABLE).join("\n")}
 
 ${wrap(COORDINATES_QUESTION).join("\n")}
 

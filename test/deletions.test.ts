@@ -22,8 +22,8 @@ import {
   resolveDeletionToken,
   summarise,
 } from "@/lib/deletions";
-import { DELETE as deleteJournalRoute } from "@/app/api/v1/[user]/route";
-import { DELETE as deleteTripRoute } from "@/app/api/v1/[user]/trips/[trip]/route";
+import { DELETE as deleteJournalRoute, PATCH as patchJournalRoute } from "@/app/api/v1/[user]/route";
+import { DELETE as deleteTripRoute, PATCH as patchTripRoute } from "@/app/api/v1/[user]/trips/[trip]/route";
 import * as confirmRoute from "@/app/api/v1/[user]/deletions/[token]/route";
 import DeletePage from "@/app/[user]/delete/[token]/page";
 import { GET as deletionExport } from "@/app/[user]/delete/[token]/export.zip/route";
@@ -677,5 +677,40 @@ describe("the mail is the gate", () => {
     expect(row?.token_hash).not.toBe(token);
     expect(row?.requested_by).toBe(asking.id);
     expect(userExists(user)).toBe(true);
+  });
+});
+
+/**
+ * B293 — the two verbs a real agent guessed, and what they say now.
+ *
+ * Both routes answered a bare `405` with no body. The agent that got one could
+ * not tell "wrong verb" from "wrong path" from "not built", and went on to
+ * offer its owner a web interface that does not exist. These are not
+ * deletion tests; they live here because this is the file that already holds
+ * these two route modules.
+ */
+describe("a verb these routes do not have", () => {
+  test("PATCH on a journal points at the config door", async () => {
+    const response = await patchJournalRoute(new Request("https://x.test/api/v1/alex"), {
+      params: Promise.resolve({ user: "alex" }),
+    } as never);
+    expect(response.status).toBe(405);
+    expect(response.headers.get("Allow")).toBe("DELETE");
+    const body = (await response.json()) as { error: string; message: string };
+    expect(body.error).toBe("method_not_allowed");
+    expect(body.message).toContain("/api/v1/alex/config");
+    expect(body.message).toContain("features are not writable");
+  });
+
+  test("PATCH on a trip points at the budget, the day and the media doors", async () => {
+    const response = await patchTripRoute(new Request("https://x.test/api/v1/alex/trips/alps"), {
+      params: Promise.resolve({ user: "alex", trip: "alps" }),
+    } as never);
+    expect(response.status).toBe(405);
+    expect(response.headers.get("Allow")).toBe("DELETE");
+    const body = (await response.json()) as { error: string; message: string };
+    expect(body.message).toContain("/api/v1/alex/trips/alps/costs");
+    expect(body.message).toContain("/api/v1/alex/trips/alps/days/<slug>");
+    expect(body.message).toContain("/api/v1/alex/trips/alps/media");
   });
 });
