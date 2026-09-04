@@ -7,8 +7,7 @@ complexity: low
 area: maps, entries
 found: "2026-09-04T11:35:50Z"
 started: "2026-09-04T11:36:57Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T11:36:57Z"
+merged: "2026-09-04T11:52:04Z"
 ---
 
 # B265 — A day with no coordinates puts NaN through every map on the site
