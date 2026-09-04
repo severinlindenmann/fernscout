@@ -7,8 +7,7 @@ complexity: medium
 area: contacts, mail
 found: "2026-09-04T11:56:49Z"
 started: "2026-09-04T11:57:53Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T11:57:53Z"
+merged: "2026-09-04T12:15:58Z"
 ---
 
 # B272 — A transient mail failure tells a reader their code was wrong and loses the owner's notification for good
