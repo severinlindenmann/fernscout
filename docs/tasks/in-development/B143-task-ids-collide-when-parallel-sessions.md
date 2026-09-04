@@ -47,6 +47,51 @@ removed, or one merged while another session held an older `main`, is invisible
 to a scan of the filesystem at that moment. The 2026-09-03 run only avoided
 this because the parent session merged serially and checked `uniq -d` each time.
 
+### Checked against the record, 2026-09-04
+
+The git history of `docs/tasks/backlog/` for 2026-09-03 and 2026-09-04 settles
+which half of this was actually happening, and the answer is exactly the half
+this ticket claims.
+
+**Four ids were issued twice**, all of them repaired by renaming afterwards:
+
+| id | the two claimants | repaired in |
+| --- | --- | --- |
+| B182 | the unbounded-fallback capture, and a journal's features | `aee6959` → B195 |
+| B185 | the restore drill, and a locale cookie | `2821437` → B197 |
+| B186 | the README links, and the trip gate's doc comment | `2821437` → B198 |
+| B197 | the restore drill again, and an unreadable content root | `a034f64` → B200 |
+
+**Every one of them was hand-written, and none came from the script.** The
+tell is the `found:` stamp: `now()` writes a whole instant to the second, and
+all eight of the colliding files carry either a bare date (`found:
+"2026-09-03"`) or an instant with a round `:00` in the seconds field
+(`19:58:00`, `20:05:00`, `20:06:00`) — a time a person types, not one a clock
+produces.
+
+Against that, **twenty-three captures did go through `npm run tasks -- new`**
+(B205–B222 and others, `found:` stamps like `06:14:14Z`, `07:29:26Z`), from at
+least six different worktrees merging as groups G01 through G10 plus the main
+checkout, interleaved across the same two hours. **Not one of them collided.**
+Two pairs share an exact second — B207/B208 at `06:14:14Z`, B211/B212 at
+`06:15:57Z` — and still got distinct ids, because the first file was on disk
+before the second call scanned.
+
+So: **B99's fix holds, and holds under real parallel load.** The risk is
+entirely in the bypass path, which is what this ticket says. One correction to
+the Why, though, and it matters for the design: the reason agents hand-wrote
+files was not that `npm run tasks -- new` is unavailable from a worktree — it
+works there — but that running it *rewrote `INDEX.md`*, and a regenerated index
+from a stale snapshot conflicts on merge. It did, on all ten merges of
+2026-09-04. That is a fixable objection rather than a reason to write files by
+hand, and fixing it is what makes the sanctioned path usable.
+
+The one gap the record does *not* show, because it was never exercised
+concurrently enough, is the same-second race between two `new` processes: both
+scan, both conclude the same number is free, and their captures have different
+titles and so different filenames, so nothing on disk collides and nothing
+complains. That is real, reproducible in a test, and now closed.
+
 Two costs, and the second is the one that lasts:
 
 - **The renumbering itself.** Mechanical, but it edits prose in a second file,
@@ -82,6 +127,38 @@ checking `uniq -d` after every merge.
 
 **Not doing:** revisiting B99. Its fix is correct and this builds on it rather
 than replacing it.
+
+## What was built
+
+- **`reserveId()`** in `scripts/tasks.mjs`. `nextId()` as before, then an
+  exclusive create (`flag: "wx"`) of a marker under
+  `<git-common-dir>/fernscout-task-ids/<id>`. The shared git directory is the
+  one place every worktree and the main checkout all see. The loser of a race
+  gets `EEXIST`, asks again, and by then the winner's reservation is in
+  `claimedIds()` — so the second answer is a different number. Reservations are
+  never cleaned up: a stale one only pushes the next id higher, and `nextId()`
+  is already explicit that a gap is harmless where a reused id is not. It also
+  covers the quieter case in the Why — an id claimed on a branch whose worktree
+  has since been removed is invisible to a filesystem scan, but its reservation
+  is not.
+- **`writeIndex()` does nothing in a linked worktree** unless `--index` says
+  otherwise, and says why. This is the change that makes `new` safe to run from
+  a worktree, which was the whole objection. See B201 for the merge evidence.
+- **`test/task-ids.test.ts`** — the check that turns a duplicate into a red
+  build rather than something a person finds by reading the index. Three
+  assertions over the real lane folders: no id claimed by two files; every
+  filename matching the `id:` in its own frontmatter; no prose reference to an
+  id that does not exist. It runs in `npx vitest run` and in CI, which is to
+  say before a merge can land.
+- Two of those three were already violated. `B154` and `B155` referred to
+  `B9`, which is not how the script spells `B09` — the dangling-reference half
+  of exactly the renumbering damage this ticket is about. Both corrected. The
+  check matches `B\d{2,3}` only, because the roadmap has a numbering of its own
+  that overlaps at one digit (`docs/plans/W20-tracking.md` cites "F1–F4, E4, E6,
+  B7", and B06 quotes that line).
+- **`AGENTS.md`, `manage-tasks` and `work-on-a-task` all now name the path**:
+  take the id from `npm run tasks -- new`, from inside your worktree, and never
+  by reading the folder and adding one.
 
 ## Acceptance
 

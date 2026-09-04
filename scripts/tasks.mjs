@@ -20,6 +20,10 @@
 //   npm run tasks -- release B01           let go of it
 //   npm run tasks -- index                 rewrite INDEX.md only
 //
+// `new`, `move`, `claim` and `release` rewrite INDEX.md as they go — except in
+// a linked worktree, where they say so and leave it alone. Add `--index` to
+// write it there anyway.
+//
 // Two things are written into the frontmatter as work happens. **Stamps** are
 // whole instants — `found`, `started`, `merged`, `completed` — because several
 // agents run here in one afternoon and a date says only "a Tuesday". The
@@ -35,6 +39,21 @@
 // new id, which asks every worktree as well. See taskRoots(): a snapshot of
 // docs/tasks taken when a branch was created is exactly how two agents end up
 // writing the same number.
+//
+// Two things this script says about the *repository* rather than about a task,
+// because it is the one command every session runs and so the only place a
+// warning reliably lands in front of somebody. Both come out of the same
+// afternoon: several agents sharing one checkout, and nothing announcing when
+// that checkout is in a state their next command will make worse.
+//
+//   - warnDetached()    a checkout on no branch at all, and how many commits
+//                       are stranded there. B201.
+//   - warnUnfinished()  this checkout is mid-merge, mid-rebase or
+//                       mid-cherry-pick, so a lane move committed now lands
+//                       inside somebody else's operation. B201.
+//
+// And one about where INDEX.md may be written: not from a linked worktree, by
+// default. See writeIndex().
 
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -239,6 +258,66 @@ function real(p) {
 }
 
 /**
+ * A read-only question put to git, answered from this checkout.
+ *
+ * `undefined` rather than a throw, because every way this can fail is an
+ * ordinary answer here — no git on PATH, not a repository at all, a ref that
+ * does not exist, a temporary directory in a test. None of them is a reason to
+ * refuse to move a task file, so every caller treats "I could not find out" as
+ * "say nothing".
+ *
+ * A command that succeeds and prints nothing — `merge-base --is-ancestor`, for
+ * one — answers with the empty string, which is why callers compare against
+ * `undefined` and not for truthiness.
+ */
+function git(args) {
+  try {
+    return execFileSync("git", args, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Every checkout of this repository as git knows them — the shared one and
+ * each linked worktree — with the branch each is on.
+ *
+ * `branch` absent is the whole point: `git worktree list --porcelain` writes
+ * `detached` instead of a `branch` line, and a detached checkout is a checkout
+ * whose commits belong to no branch. See warnDetached().
+ */
+function checkouts() {
+  const listed = git(["worktree", "list", "--porcelain"]);
+  if (!listed) return [];
+  return listed
+    .split("\n\n")
+    .map((block) => ({
+      path: /^worktree (.*)$/m.exec(block)?.[1],
+      head: /^HEAD (.*)$/m.exec(block)?.[1],
+      branch: /^branch refs\/heads\/(.*)$/m.exec(block)?.[1],
+    }))
+    .filter((c) => c.path);
+}
+
+/**
+ * True when this is a linked worktree rather than the shared checkout.
+ *
+ * In a worktree `--git-dir` is `<repo>/.git/worktrees/<name>` while
+ * `--git-common-dir` is `<repo>/.git`; in the shared checkout the two are the
+ * same directory. Both can come back relative to the working directory, so
+ * they are resolved before they are compared.
+ */
+function inLinkedWorktree() {
+  const own = git(["rev-parse", "--git-dir"]);
+  const shared = git(["rev-parse", "--git-common-dir"]);
+  if (!own || !shared) return false;
+  return real(path.resolve(process.cwd(), own)) !== real(path.resolve(process.cwd(), shared));
+}
+
+/**
  * Every `docs/tasks` an id could already be claimed in — this checkout, the
  * main one, and every other worktree.
  *
@@ -260,23 +339,12 @@ function taskRoots() {
     if (fs.existsSync(tasks)) roots.add(real(tasks));
   };
 
-  let checkouts = [];
-  try {
-    const listed = execFileSync("git", ["worktree", "list", "--porcelain"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    checkouts = listed
-      .split("\n")
-      .filter((line) => line.startsWith("worktree "))
-      .map((line) => line.slice("worktree ".length).trim());
-  } catch {
-    // No git on PATH, or not a repository. The sweep below still finds
-    // whatever is on disk beside us, and a local-only answer is what the
-    // script did before this existed.
-  }
+  // No git on PATH, or not a repository, leaves this empty. The sweep below
+  // still finds whatever is on disk beside us, and a local-only answer is what
+  // the script did before this existed.
+  const known = checkouts().map((c) => c.path);
 
-  for (const checkout of [process.cwd(), ...checkouts]) {
+  for (const checkout of [process.cwd(), ...known]) {
     add(checkout);
     // A directory under .claude/worktrees/ that git no longer knows about —
     // removed from the registry, or copied there by hand — still holds task
@@ -289,10 +357,39 @@ function taskRoots() {
 }
 
 /**
+ * Where an id is written down the instant it is handed out, before the file
+ * that will carry it exists.
+ *
+ * The shared git directory, because `--git-common-dir` is the same path seen
+ * from the main checkout and from every worktree, and nothing else is. It has
+ * to be somewhere shared: taskRoots() closes the gap between two *branches*,
+ * but not the one between two *processes*. Two `new` runs a millisecond apart
+ * both scan the same files, both conclude the same number is free, and their
+ * captures have different titles and so different filenames — nothing collides
+ * on disk and nothing complains. Four agents branched from one commit agree on
+ * the answer every time; on 2026-09-03 four of them did.
+ *
+ * It also covers the quieter version: an id claimed on a branch whose worktree
+ * has since been removed is invisible to a scan of the filesystem, but its
+ * reservation is still here.
+ *
+ * Reservations are never cleaned up, and that is deliberate. A stale one only
+ * ever pushes the next id higher, and nextId() is already explicit that a gap
+ * is harmless where a reused id is not. A fresh clone has none of them, which
+ * is also fine — the task files remain the authority and this only ever adds
+ * to what they say. B143.
+ */
+function reservationDir() {
+  const shared = git(["rev-parse", "--git-common-dir"]);
+  return shared ? path.resolve(process.cwd(), shared, "fernscout-task-ids") : undefined;
+}
+
+/**
  * Every id claimed in every checkout, read off the filenames — the whole point
  * is to be cheap enough to run on every `new`, and parsing the frontmatter of
  * a thousand files across five worktrees is not. The local checkout is read
  * properly as well, so its frontmatter stays authoritative for its own ids.
+ * Reservations count too: an id handed out one second ago has no file yet.
  */
 function claimedIds() {
   const ids = new Set(allItems().map((i) => i.id));
@@ -306,6 +403,12 @@ function claimedIds() {
       }
     }
   }
+  const reserved = reservationDir();
+  if (reserved && fs.existsSync(reserved)) {
+    for (const name of fs.readdirSync(reserved)) {
+      if (/^B\d+$/.test(name)) ids.add(name);
+    }
+  }
   return ids;
 }
 
@@ -317,6 +420,37 @@ function claimedIds() {
 function nextId() {
   const numbers = [...claimedIds()].map((id) => Number.parseInt(id.replace(/\D/g, ""), 10) || 0);
   return `B${String(Math.max(0, ...numbers) + 1).padStart(2, "0")}`;
+}
+
+/**
+ * An id, and nobody else can be given it.
+ *
+ * Ask for the next free number, then claim it with an exclusive create — `wx`
+ * fails rather than overwriting, so exactly one of two racing processes wins.
+ * The loser asks again, and by then the winner's reservation is in
+ * claimedIds(), so the second answer is a different number. This is the step
+ * that turns "no two branches" into "no two processes"; see reservationDir().
+ *
+ * Without a git directory to share — a tarball, a test fixture — this is just
+ * nextId(), which is what the script has always done.
+ */
+function reserveId() {
+  const dir = reservationDir();
+  if (!dir) return nextId();
+  fs.mkdirSync(dir, { recursive: true });
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const id = nextId();
+    try {
+      fs.writeFileSync(path.join(dir, id), `${now()} ${process.cwd()}\n`, { flag: "wx" });
+      return id;
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+    }
+  }
+  // Fifty consecutive losses is not contention, it is something wrong — a
+  // read-only reservation directory, or a clock that has stopped. Say so
+  // rather than handing out a number that was not reserved.
+  return die("Could not reserve a task id: fifty numbers in a row were already taken.");
 }
 
 /** Ids claimed by more than one file in this checkout, with where they are. */
@@ -345,6 +479,104 @@ function warnDuplicates() {
     console.error(`  ${id}  ${at.join("   ")}`);
   }
   console.error("Renumber one of each pair — prefer whichever is referenced less. See B99.\n");
+}
+
+/**
+ * The branch the shared checkout is supposed to be on, if it exists here.
+ * `main` in this repository; `master` is only a courtesy to a fork.
+ */
+function trunk() {
+  return ["main", "master"].find(
+    (name) => git(["rev-parse", "--verify", "--quiet", `refs/heads/${name}`]) !== undefined,
+  );
+}
+
+/**
+ * Say when a checkout of this repository is on no branch at all.
+ *
+ * Found on 2026-09-03: the shared checkout was on a detached HEAD with
+ * eighteen commits on it — six merges and a dozen lane moves, from four
+ * sessions — while `refs/heads/main` still pointed eleven hours back. Nothing
+ * announced it, because nothing has to: `git commit`, `git merge` and this
+ * script all keep working while detached. The commits are real and reachable
+ * from HEAD. They are simply on no branch, and the next `git checkout main`
+ * anybody runs there silently rewinds past all of them, leaving the reflog —
+ * which is per-checkout, expires, and is the last place anybody looks.
+ *
+ * So it is said here, from every checkout, about every checkout: an agent
+ * standing in its own worktree is exactly who should learn that the shared one
+ * has come off its branch, because it is about to merge into it.
+ *
+ * The recovery is printed only when it is safe — when trunk is an ancestor of
+ * the stranded HEAD, so `git branch -f` is a fast-forward and loses nothing.
+ * When the two have diverged, this stops at naming it. Re-pointing a branch
+ * that has commits of its own is a person's call, and a script that guesses
+ * wrong there destroys more than the problem it was fixing. B201.
+ */
+function warnDetached() {
+  const detached = checkouts().filter((c) => !c.branch);
+  if (detached.length === 0) return;
+  const base = trunk();
+
+  console.error("");
+  for (const { path: where, head } of detached) {
+    const at = head ?? "HEAD";
+    const stranded = base === undefined ? undefined : Number(git(["rev-list", "--count", `${base}..${at}`]));
+    const count = Number.isFinite(stranded) ? stranded : undefined;
+    console.error(
+      // No count when there is nothing stranded — "0 commits are on no branch"
+      // reads as a contradiction of the sentence before it, and the checkout
+      // being detached at all is still the thing worth saying.
+      `WARNING: ${where} is on a detached HEAD` +
+        (count
+          ? `; ${count} commit${count === 1 ? "" : "s"} ${count === 1 ? "is" : "are"} on no branch.`
+          : "."),
+    );
+    if (base === undefined) continue;
+    // Empty string is the success of a command that prints nothing; undefined
+    // is the non-zero exit that means "not an ancestor".
+    const fastForward = git(["merge-base", "--is-ancestor", base, at]) !== undefined;
+    console.error(
+      fastForward
+        ? `  Recover there:  git branch -f ${base} ${at.slice(0, 7)} && git checkout ${base}`
+        : `  ${base} has diverged from it. Do not check out a branch there — a person decides this one.`,
+    );
+  }
+  console.error("");
+}
+
+/**
+ * Say when this checkout is halfway through a merge, rebase, cherry-pick or
+ * revert.
+ *
+ * Lane moves are committed straight to the shared checkout without a branch,
+ * which is the one exception `AGENTS.md` makes and is right. It also means a
+ * `move` run during somebody else's half-finished merge writes a task file
+ * into that operation's index, and it comes out inside their merge commit —
+ * or, worse, is staged next to conflict markers nobody has resolved yet. The
+ * same afternoon produced the other half of this: another session's
+ * uncommitted task files stopped a `git merge` before it started, twice.
+ *
+ * Only this checkout, not every one. A sibling worktree mid-rebase is its
+ * session's business and not something to shout about here. B201.
+ */
+function warnUnfinished() {
+  const operations = [
+    ["MERGE_HEAD", "a merge"],
+    ["rebase-merge", "a rebase"],
+    ["rebase-apply", "a rebase"],
+    ["CHERRY_PICK_HEAD", "a cherry-pick"],
+    ["REVERT_HEAD", "a revert"],
+  ];
+  for (const [marker, what] of operations) {
+    const at = git(["rev-parse", "--git-path", marker]);
+    if (!at || !fs.existsSync(path.resolve(process.cwd(), at))) continue;
+    console.error(
+      `\nWARNING: this checkout is in the middle of ${what}.\n` +
+        "  Finish or abort it before moving tasks — a lane move committed now lands inside it.\n",
+    );
+    return;
+  }
 }
 
 function slug(title) {
@@ -377,7 +609,39 @@ function table(lane) {
   ].join("\n");
 }
 
-function writeIndex() {
+/**
+ * Rewrite the generated block of INDEX.md from the lanes on disk.
+ *
+ * **Not from a linked worktree, unless asked.** A worktree's `docs/tasks` is
+ * the snapshot taken when its branch was cut, so the table regenerated there
+ * describes a lane layout that has since moved on: tasks that merged, holds
+ * that were dropped, rows for files now in another folder. Committing that
+ * block and merging it does two things, and the second is the expensive one —
+ * it reinstates stale rows, and it conflicts, because every other branch in
+ * flight regenerated the same block from its own snapshot. Eleven branches
+ * merged on 2026-09-04 and INDEX.md conflicted on every one of them; nothing
+ * else did.
+ *
+ * The index is a rendering of the folders and is worth exactly one command to
+ * rebuild, so the honest place to rebuild it is the checkout that has the
+ * folders: `npm run tasks -- index` on main, after the merge. `--index` forces
+ * it here for the rare case somebody wants the worktree's own view, and the
+ * `index` command is always explicit enough to mean it.
+ *
+ * This is also what makes `npm run tasks -- new` safe to run from a worktree,
+ * which is the whole point: capture needs an id from nextId(), and the only
+ * reason agents were hand-writing files instead was that `new` rewrote this
+ * table. B143, and the merge evidence in B201.
+ */
+function writeIndex({ force = false } = {}) {
+  if (!force && inLinkedWorktree()) {
+    console.log(
+      "docs/tasks/INDEX.md not rewritten — this is a linked worktree, and its lanes are a\n" +
+        "snapshot. Run `npm run tasks -- index` in the main checkout after merging, or pass\n" +
+        "--index to write it here anyway.",
+    );
+    return;
+  }
   const file = path.join(ROOT, "INDEX.md");
   const raw = fs.readFileSync(file, "utf8");
   const start = raw.indexOf(BEGIN);
@@ -392,7 +656,6 @@ function writeIndex() {
   ].join("\n");
   fs.writeFileSync(file, raw.slice(0, start) + generated + raw.slice(end));
   console.log(`docs/tasks/INDEX.md — ${allItems().length} tasks across ${LANES.length} lanes.`);
-  warnDuplicates();
 }
 
 function flag(argv, name) {
@@ -414,11 +677,11 @@ function create(argv) {
     die(`--complexity must be one of ${COMPLEXITIES.join(", ")}.`);
   }
 
-  const id = nextId();
+  const id = reserveId();
   const file = path.join(ROOT, INTAKE, `${id}-${slug(title)}.md`);
-  // nextId() asked every checkout, so this cannot normally happen. It still
-  // can between two `new` calls in the same second, and overwriting somebody
-  // else's capture is the one outcome worth refusing outright.
+  // reserveId() asked every checkout and then claimed the number, so this
+  // cannot normally happen. Overwriting somebody else's capture is still the
+  // one outcome worth refusing outright.
   if (fs.existsSync(file)) die(`${path.relative(process.cwd(), file)} already exists.`);
   const front = [
     `id: ${id}`,
@@ -435,7 +698,7 @@ function create(argv) {
     `---\n${front}\n---\n\n# ${id} — ${title}\n\n## Why\n\nTODO — the problem, not the fix.\n\n## Work\n\nTODO\n\n## Acceptance\n\nTODO\n`,
   );
   console.log(`Created ${path.relative(process.cwd(), file)}`);
-  writeIndex();
+  writeIndex({ force: argv.includes("--index") });
 }
 
 function move(argv) {
@@ -497,7 +760,7 @@ function move(argv) {
       `  note: ${lane}/ is a human gate — an agent moves a task here only when asked to, in that turn.`,
     );
   }
-  writeIndex();
+  writeIndex({ force: argv.includes("--index") });
 }
 
 /**
@@ -537,7 +800,7 @@ function hold(argv, take) {
       ? `${item.id}: held by session ${shortSession(session)} in ${item.lane}/.`
       : `${item.id}: released${item.session ? ` by session ${shortSession(item.session)}` : ""}.`,
   );
-  writeIndex();
+  writeIndex({ force: argv.includes("--index") });
 }
 
 function list() {
@@ -550,7 +813,6 @@ function list() {
     }
   }
   console.log("");
-  warnDuplicates();
 }
 
 const [command, ...rest] = process.argv.slice(2);
@@ -574,8 +836,16 @@ switch (command) {
     hold(rest, false);
     break;
   case "index":
-    writeIndex();
+    // Asked for by name, so it is meant — write it wherever it was run.
+    writeIndex({ force: true });
     break;
   default:
     die(`Unknown command "${command}". Try: list, new, move, claim, release, index.`);
 }
+
+// Said once, after whatever was asked for, and on stderr so it survives being
+// piped. Every one of these is about the repository rather than about a task,
+// and this is the only command every session runs.
+warnDuplicates();
+warnDetached();
+warnUnfinished();

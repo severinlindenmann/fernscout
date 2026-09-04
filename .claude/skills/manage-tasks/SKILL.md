@@ -124,6 +124,24 @@ The script assigns the next id, writes into `backlog/` and regenerates
 moved and never deleted — delete one and the next task takes its number, and
 every reference to the old id now points at something else.
 
+**Run this even when you are in a worktree, and never choose an id by hand.**
+Writing the markdown file yourself is easy — the frontmatter is six fields and
+the shape is obvious from any neighbour — and it is how the ids collide. Your
+worktree's `docs/tasks/` is the snapshot taken when the branch was cut, so
+every sibling session reading it reaches the same answer: on 2026-09-03 four
+agents branched from one commit all called their capture B130, and the
+renumbering had to touch each capture *and* the prose in the task that raised
+it. The script does what a reading of one folder cannot — it asks every
+checkout (B99), and then reserves the number in the shared git directory so two
+processes in the same second cannot both be handed it (B143).
+
+From a linked worktree it writes the capture and **leaves `INDEX.md` alone**,
+saying so. That is deliberate: a worktree's lanes are stale, so the block
+regenerated there reinstates rows for tasks that have since moved, and every
+branch in flight regenerates the same block and conflicts with the others.
+`npm run tasks -- index` in the main checkout after merging is what puts it
+right; `--index` forces it here if you really mean it.
+
 | Field | Values | Means |
 | --- | --- | --- |
 | `type` | SECURITY · ISSUE · FEATURE · CHORE | what kind of thing it is |
@@ -234,6 +252,10 @@ leaves no trace gets proposed again in three months.
 - Moving anything to `completed/` yourself → that gate is a person's, always.
 - Reporting a task done when it is in `testing/` → it is merged, not verified.
 - Editing an `INDEX.md` table by hand → run the script.
+- Writing a capture's markdown yourself and picking the next free number →
+  `npm run tasks -- new` is the only thing that can promise nobody else gets it.
+- Committing an `INDEX.md` regenerated in a worktree → it is a stale rendering,
+  and it is what conflicts on every merge.
 - A title that names a solution → rewrite it as the problem.
 - `--force` past somebody's hold because it looked stale → the message says how
   long it has stood. Under an hour, assume the agent is alive.

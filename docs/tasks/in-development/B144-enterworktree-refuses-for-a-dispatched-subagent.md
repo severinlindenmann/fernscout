@@ -58,6 +58,32 @@ What is not yet known, and should be established before writing anything: this
 may be a constraint of the harness rather than something the repository can
 change. If it is, the fix is documentation, not code.
 
+### Established, 2026-09-04
+
+**It is a constraint of the harness, and the fix is documentation.** The guard
+lives in the tool, not in this repository — nothing here can widen it, and
+nothing here should try. The two questions the Work section asks, answered:
+
+- *Can a dispatched subagent be launched with its cwd already inside the
+  worktree?* No. A subagent inherits the parent's working directory, and there
+  is no parameter on the dispatch that changes it. `EnterWorktree` then refuses
+  for the same reason it refused on 2026-09-03.
+- *So does step 2 need to say both?* Yes, and it now does.
+
+**The workaround is no longer a workaround; it is the supported path for a
+dispatched agent, and it is proven.** A second factory ran on 2026-09-04 —
+eleven groups, each one a subagent handed an absolute worktree path created for
+it by the parent. Sixteen dispatched agents across the two days, none of which
+called `EnterWorktree`, and the main checkout was not written to by any of
+them. Absolute paths held.
+
+The Why's second concern stands and is worth keeping: this is a discipline
+rather than a structural guarantee, and `AGENTS.md` argues against that trade
+everywhere else. What can be done about it is to make the discipline explicit
+and checkable rather than left to each agent to invent — which is what the
+skill now spells out, item by item, rather than leaving it as an unwritten
+convention sixteen agents each rediscovered.
+
 ## Work
 
 Find out which of these is true, in this order:
@@ -81,6 +107,33 @@ and `npm ci` was never run.
 
 **Not doing:** removing the worktree rule, or letting agents build in the main
 checkout. The rule is right; this is about how an agent gets into one.
+
+## What was built
+
+Documentation only, which is the answer this turned out to have.
+
+`work-on-a-task` step 2 now has two named branches instead of one instruction
+that fails for the common case:
+
+- **Interactive session** — `EnterWorktree` with `path`, unchanged.
+- **Dispatched subagent** — the refusal quoted verbatim so the next agent
+  recognises it rather than retrying, then the absolute-path discipline stated
+  as the requirement it is: `cd <abs worktree>` at the head of every `bash`
+  call because an agent thread resets its working directory between them; no
+  `merge`, `checkout`, `push`, or worktree creation or removal; reading the
+  main checkout is fine and writing it is not.
+
+**What the parent does before dispatching** is written down for the first
+time — `git worktree add`, then `cp -Rc node_modules <worktree>/node_modules`
+(copy-on-write on APFS, near-instant, almost no disk, against minutes for
+`npm ci` in each), then hand over the absolute path together with the task
+file's contents and its acceptance criteria.
+
+Step 6 says a dispatched agent has no `ExitWorktree` to call and does not run
+that step at all — it reports, and the parent merges. `AGENTS.md` "Where the
+work happens" names the constraint and points at the skill. Two entries added
+to the red flags: retrying `EnterWorktree` after it refused, and merging into a
+main checkout nobody checked is on `main` (B201).
 
 ## Acceptance
 

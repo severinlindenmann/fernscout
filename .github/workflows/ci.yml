@@ -31,6 +31,26 @@ jobs:
       - run: npm ci
       - run: npx eslint .
 
+  # "Is anything here for nothing" — the question none of the other four jobs
+  # asks. A file that stops being imported keeps compiling and keeps passing,
+  # and this codebase is written to be read, so a comment explaining a design
+  # in a file nothing calls any more is worse than no comment. B24.
+  #
+  # Fails on an unreachable file, an unused dependency or an import of
+  # something undeclared. Unused *exports* are printed and do not fail; there
+  # are 130 of them and they are B235's. See knip.jsonc, which carries the
+  # entry points and the reasoning for the split.
+  unused:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run unused
+
   typecheck:
     runs-on: ubuntu-latest
     steps:
