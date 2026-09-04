@@ -100,12 +100,17 @@ export const MEDIA_ENDPOINT_PATH = "/api/v1/<user>/trips/<trip-id>/media";
  * figure — the costs page rendered anyway, with nothing in it. Saying what
  * "yes" costs the person, and what "no" costs the page, is the fix: a
  * decision put to them instead of left to a default.
+ *
+ * B328 corrected the last clause: a `costs.md` was said to be the only thing
+ * that brings the page, which stopped being true the day per-day `costs:`
+ * became writable on a day itself (W38, B292) — a trip with fifteen costed
+ * days and no `costs.md` had a page with nothing to show it.
  */
 export const BUDGET_QUESTION =
   "Ask whether this trip tracks its money. Saying yes means a `costs.md` — a budget, and " +
-  "a figure per day, both supplied by the person and never guessed at by you — and it is " +
-  "the only thing that puts a costs page on the site: no `costs.md` means no page and no " +
-  "nav entry, and writing one is what brings both.";
+  "a figure per day, both supplied by the person and never guessed at by you. That is one " +
+  "way to bring a costs page onto the site, not the only one: a day carrying its own " +
+  "`costs:` block does too, and either is enough for the page and its nav entry to appear.";
 
 /**
  * What a day owes its journal's other languages — B294, corrected by B316.

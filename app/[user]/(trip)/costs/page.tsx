@@ -16,6 +16,7 @@ import TripProvider from "@/components/TripProvider";
 import { getUser } from "@/lib/users";
 import { isEnabled } from "@/lib/capabilities";
 import { travellerNamesOf } from "@/lib/site";
+import { isOwner } from "@/lib/contacts/session";
 
 /**
  * Two languages on purpose — the same split the map and gallery pages carry,
@@ -124,8 +125,15 @@ export default async function CostsPage({ params }: PageProps<"/[user]/costs">) 
    * anyway, with every figure zero — the same "absent rather than broken"
    * failure the capability check above exists to prevent, reached by way of
    * missing data instead of a switched-off feature. B267.
+   *
+   * `hasCostsData` also asks the days now (B328), so a draft day's costs
+   * must not count for a reader who cannot see that day — the same leak as
+   * B296, B318 and B322. `read` below is the owner's own view; every other
+   * reader gets the default, drafts excluded.
    */
-  if (!hasCostsData(tripId)) notFound();
+  const owner = await isOwner(user);
+  const read = { includeDrafts: owner };
+  if (!hasCostsData(tripId, read)) notFound();
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
@@ -136,7 +144,7 @@ export default async function CostsPage({ params }: PageProps<"/[user]/costs">) 
     <TripProvider trip={trip} isCurrent>
       {(await mayViewCosts(trip)) ? (
         <CostsPageContent
-          summary={getCostSummary(tripId)}
+          summary={getCostSummary(tripId, undefined, read)}
           travellers={travellerNamesOf(userConfig, trip)}
         />
       ) : (

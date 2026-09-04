@@ -92,6 +92,10 @@ vi.mock("@/lib/tripGate", () => ({
   mayReadTrip: async () => true,
   mayViewCosts: async () => true,
 }));
+// Nor is ownership, since B328: the page now asks `isOwner` to decide whether
+// `hasCostsData`/`getCostSummary` may see draft days' costs, and the mocked
+// `getUser` above carries no `owner` field for the real `isOwner` to read.
+vi.mock("@/lib/contacts/session", () => ({ isOwner: async () => true }));
 
 beforeEach(() => {
   enabled.mockReset();
