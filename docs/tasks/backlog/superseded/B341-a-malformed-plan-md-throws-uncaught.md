@@ -6,9 +6,25 @@ priority: medium
 complexity: low
 area: plan, trips
 found: "2026-09-04T19:30:41Z"
+superseded: "B313 — the same defect, fixed and merged the same hour"
 ---
 
 # B341 — A malformed plan.md throws uncaught out of getPlan, crashing the trip and map pages
+
+> **Superseded by B313, and never worked.** B313 is the same finding, captured
+> earlier the same day and fixed in the same hour this was written:
+> `readPlanFile` now catches the `matter()` failure, calls `clearMatterCache()`
+> and returns no stops. The analysis below is correct and was correct when
+> written — it is kept because it reached the conclusion independently and adds
+> the direct node repro B313 did not have.
+>
+> **Why it was written at all is the part worth keeping.** Four tickets were
+> built in parallel worktrees branched from one commit. This one and B313 both
+> found the unguarded `matter()` in `lib/plan.ts`; B313 was already
+> `in-development` in the shared checkout, but a worktree's `docs/tasks/` is
+> the snapshot from when its branch was cut, so neither agent could see the
+> other. AGENTS.md's rule — *never open a second task for something already
+> listed* — is only as good as the listing each session can actually read.
 
 ## Why
 
