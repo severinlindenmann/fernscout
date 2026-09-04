@@ -7,8 +7,7 @@ complexity: low
 area: api, costs, validation
 found: "2026-09-04T14:41:15Z"
 started: "2026-09-04T16:07:51Z"
-session: 46daaba3-3210-4263-85a6-d285caefd837
-claimed: "2026-09-04T16:07:51Z"
+merged: "2026-09-04T16:21:30Z"
 ---
 
 # B304 — A day's costs still accept a zero amount and an unrecognised currency, and drop both silently
