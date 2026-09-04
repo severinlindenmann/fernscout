@@ -431,6 +431,9 @@ the record and never corrected, so do not update one to match what shipped.
 | `GET /agent.md` | the full guide: authenticate, read, write |
 | `GET /<user>/day/<slug>.md` | a day's markdown source |
 | `POST /api/auth/request` + `/verify` | a six-digit code → a 7-day agent token |
+| `POST /api/v1/<user>/handover` | owner only: a 20-minute credential to paste into an agent |
+| `POST /api/auth/handover` | an agent spends that credential for its own 7-day token |
+| `GET /api/v1/<user>/status` | where an agent stands: drafts waiting, trips, capabilities |
 | `/api/v1/<user>/…` | REST: trips, days, drafts |
 | `/api/v1/<user>/invites` | issue, list and revoke the two invite links — see below |
 | `/<user>/invite/guest/<token>` | where a guest link lands |
@@ -440,8 +443,22 @@ the record and never corrected, so do not update one to match what shipped.
 
 Agent tokens arrive in `Authorization: Bearer` and nowhere else; guest sessions
 arrive in a cookie and nowhere else. The two are not interchangeable, and
-`resolveSession()` enforces it. That is decision 24: reading the site on your
-phone must not put a credential that can rewrite it in your pocket.
+`resolveSession()` enforces it — it compares a row's `kind` against what the
+caller asked for, which is also what makes a *new* kind refused everywhere by
+default. That is decision 24: reading the site on your phone must not put a
+credential that can rewrite it in your pocket.
+
+**One thing crosses that line, deliberately, in one direction only.** Since
+B283 the owner's own page — a cookie session — can mint a **`handover`
+credential**: twenty minutes, scope `exchange:token`, refused on every route
+except `POST /api/auth/handover`, which spends it for an agent token the agent
+then holds itself. The browser still cannot read or write with it, and the page
+never sees the seven-day token. It exists so an owner can paste a whole prompt
+into an agent instead of reading a six-digit code down a phone. The code flow
+is unchanged and still works. Why twenty minutes rather than printing the
+seven-day token: a guest cookie lasts a **year** (`SESSION_TTL_MS`), so the
+cookie — not the token — would have been the ceiling, and a week-long
+credential would have sat in a clipboard, a screenshot and a scrollback.
 
 **Two links let other people in, and only one of them is safe to forward.**
 `POST /api/v1/<user>/invites` (owner only; `create_invite` over MCP) makes

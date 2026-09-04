@@ -109,7 +109,7 @@ function statTiles(html: string): string[] {
 describe("a journal with no trips", () => {
   test("renders no lifetime stat tiles at all", () => {
     expect(statTiles(render({ empty: { owner: false, signedIn: false, ownerName: OWNER_NAME } }))).toEqual([]);
-    expect(statTiles(render({ empty: { owner: true, docUrl: DOC_URL, ownerEmail: OWNER_EMAIL } })))
+    expect(statTiles(render({ empty: { owner: true, docUrl: DOC_URL, ownerEmail: OWNER_EMAIL, siteUrl: "https://example.test" } })))
       .toEqual([]);
   });
 
@@ -120,7 +120,7 @@ describe("a journal with no trips", () => {
 });
 
 describe("and its owner", () => {
-  const owner: EmptyJournal = { owner: true, docUrl: DOC_URL, ownerEmail: OWNER_EMAIL };
+  const owner: EmptyJournal = { owner: true, docUrl: DOC_URL, ownerEmail: OWNER_EMAIL, siteUrl: "https://example.test" };
 
   test("says there are no trips yet, in the journal's language", () => {
     expect(render({ empty: owner })).toContain("No trips yet");

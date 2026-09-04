@@ -81,6 +81,7 @@ function render(
           viewer={over.viewer ?? stranger}
           username="alex"
           docUrl="https://example.test/documentation.txt"
+          siteUrl="https://example.test"
           canSignIn={over.canSignIn ?? false}
           codeMinutes={CODE_TTL_MINUTES}
           contactsEnabled={over.contactsEnabled ?? false}

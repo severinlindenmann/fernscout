@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import AgentHandover from "@/components/AgentHandover";
+import AgentKeys from "@/components/AgentKeys";
 import GuestSignIn from "@/components/GuestSignIn";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
@@ -27,6 +29,7 @@ export default function MePageContent({
   viewer,
   username,
   docUrl,
+  siteUrl,
   manageHref,
   canSignIn,
   codeMinutes,
@@ -37,6 +40,11 @@ export default function MePageContent({
   viewer: Viewer;
   username: string;
   docUrl: string;
+  /** This instance's public base URL. Threaded from the server rather than
+   * read off `location`, so the prompt an agent is handed names the address
+   * the journal actually answers on rather than whatever host the owner
+   * happens to have reached it through. */
+  siteUrl: string;
   /** Present only when this reader has a contact record to edit. */
   manageHref?: string;
   /** Whether codes can be issued at all, which is what signing in needs. */
@@ -69,6 +77,9 @@ export default function MePageContent({
 }) {
   const { t } = useI18n();
   const site = useSite();
+  // Bumped when the handover block mints a key, so the list of live keys below
+  // it reads itself again rather than showing the state from page load.
+  const [keysChanged, setKeysChanged] = useState(0);
 
   // One line beside each trip, saying why it is open to this reader. The
   // wording is `resolveViewer`'s answer and never this component's: the panel
@@ -225,7 +236,13 @@ export default function MePageContent({
             {/* Shared with the empty trip list, which is where a new owner
                 actually lands first — see components/AgentHandover.tsx. */}
             <div className="mt-4">
-              <AgentHandover docUrl={docUrl} email={viewer.email} />
+              <AgentHandover
+                docUrl={docUrl}
+                email={viewer.email}
+                username={username}
+                siteUrl={siteUrl}
+                onIssued={() => setKeysChanged((n) => n + 1)}
+              />
             </div>
             {/*
               What the code actually becomes.
@@ -245,6 +262,13 @@ export default function MePageContent({
             <p className="mt-2 border-l-2 border-coral-600 pl-3 text-base leading-7 text-navy-900">
               {t("me.tokenWarning")}
             </p>
+
+            {/* And the way to take one back — B283. Handing an agent a
+                seven-day key is now a two-second act, so revoking one has to
+                be as well; the alternative is advice that reads "only do this
+                if you are sure", which nobody can act on. Renders nothing
+                until there is a live key. */}
+            <AgentKeys username={username} reloadOn={keysChanged} />
 
             {/*
               The door for people — B79, and one door rather than two since

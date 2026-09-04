@@ -1053,6 +1053,42 @@ export function GET() {
           },
         },
       },
+      "/api/auth/handover": {
+        post: {
+          summary: "Spend a handover credential for your own 7-day token",
+          description:
+            "The first call an agent makes when the owner pasted a prompt instead of " +
+            "reading out a code. Send the handover credential as `Authorization: Bearer`. " +
+            "It lasts 20 minutes, is spent by succeeding here, and is refused on every " +
+            "other route. A 401 means expired or already used — ask the person for a fresh " +
+            "one rather than retrying. The answer carries the 7-day token and the status " +
+            "URL to read next.",
+          responses: {
+            "200": { description: "A 7-day agent token" },
+            "401": { description: "No credential, or one that is expired, spent or not a handover" },
+            "404": { description: "This server has authentication off" },
+          },
+        },
+      },
+      "/api/v1/{user}/handover": {
+        post: {
+          summary: "Issue a handover credential (owner only)",
+          description:
+            "What the owner's own access page calls so it can print a pasteable prompt. " +
+            "Owner only, cookie or bearer. The credential it answers with lasts 20 minutes " +
+            "and can only be exchanged at POST /api/auth/handover — never used to read or " +
+            "write. An agent has no reason to call this; it is here so the contract is " +
+            "complete.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "A 20-minute handover credential" },
+            "403": { description: "Not this journal's owner" },
+            "404": { description: "No such journal, or sign-in is off for it" },
+          },
+        },
+      },
       "/api/v1/{user}/status": {
         get: {
           summary: "Where you stand, in one call",

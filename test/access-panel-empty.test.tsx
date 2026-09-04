@@ -65,6 +65,7 @@ function render(viewer: Viewer, locale = "en") {
               viewer={viewer}
               username="alex"
               docUrl={DOC_URL}
+              siteUrl="https://example.test"
               canSignIn={true}
               codeMinutes={CODE_TTL_MINUTES}
               /* Irrelevant to the empty state, but required since B74 — the
