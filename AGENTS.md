@@ -189,6 +189,16 @@ is broken" or "the documentation is wrong". Neither is true; the types have not
 been generated yet. `.github/workflows/ci.yml` builds before it typechecks for
 the same reason. B100.
 
+**A fifth command, and it is not one of the four.** `npm run unused` (knip)
+answers the question the other four do not — *is anything here for nothing* —
+and it is CI's job rather than yours, because the answer changes rarely and the
+day it changes is a day you were not looking. It fails on a file nothing
+reaches, a dependency nothing imports, or an import of something undeclared.
+Unused *exports* it prints without failing; there are 130 and they are B235's.
+Run it when you delete a module or drop a dependency. `knip.jsonc` carries the
+entry points, which are the whole configuration — nearly nothing here is
+imported by name. B24.
+
 ## Where the work happens
 
 **The main checkout stays on `main`, and stays clean.** Do not branch it, do
@@ -222,7 +232,7 @@ merge, by which time it has stopped being useful. That is also why they are
 committed straight to `main` rather than held back — an uncommitted task file
 in the main checkout blocks the next agent's merge.
 
-Two things that follow, and are easy to get wrong:
+Three things that follow, and are easy to get wrong:
 
 - **A worktree has no `node_modules`.** `npx tsc`, `eslint` and `vitest`
   resolve upward and appear to work; `npm run build` does not. Run `npm ci` in
@@ -230,6 +240,28 @@ Two things that follow, and are easy to get wrong:
 - **`.claude/worktrees/` already holds other sessions' work.** Never work in
   one you did not create, and never assume `main` is ahead of them — an id or
   a change captured in a sibling worktree has not reached `main` yet.
+- **Check the shared checkout is on `main` before merging into it**, with
+  `git rev-parse --abbrev-ref HEAD`. Nothing about a detached HEAD announces
+  itself: `git commit`, `git merge` and `npm run tasks` all keep working, the
+  commits are real and reachable from `HEAD`, and they are on no branch. It has
+  happened once, with eighteen commits from four sessions on it, and the next
+  `git checkout main` would have rewound past all of them into a per-checkout
+  reflog nobody reads. The recovery is
+
+  ```bash
+  git branch -f main HEAD && git checkout main
+  ```
+
+  and it is safe **only** when `git merge-base --is-ancestor main HEAD` holds.
+  If it does not, the branch has diverged and that is a person's decision.
+  `npm run tasks` now says all of this by itself, from any checkout, about
+  every checkout — including that this one is halfway through a merge. B201.
+
+**A dispatched subagent cannot use `EnterWorktree`** — the tool's guard is
+about the session's own working directory, and a subagent inherits its
+parent's. It works with absolute paths instead, and the parent creates the
+worktree and hands over the path. Both halves are written out in
+`work-on-a-task` step 2. B144.
 
 ## Tasks
 
@@ -275,11 +307,27 @@ If `open/` is empty and you were asked to pick something up: say so, show what
 is in `backlog/`, and stop.
 
 The id is the only way tasks refer to each other, so it means one thing
-forever: task files are moved, never deleted, and `nextId()` allocates against
-every checkout rather than the one you are standing in (B99). Reference other
-tasks **by id in prose** — `see B01` — never by relative path, because files
-move between lanes and a path link breaks when one does. Never hand-edit the
-tables in `INDEX.md`; they are generated between the markers by `npm run tasks`.
+forever: task files are moved, never deleted. Reference other tasks **by id in
+prose** — `see B01` — never by relative path, because files move between lanes
+and a path link breaks when one does.
+
+**Always take an id from `npm run tasks -- new`, including from a worktree.**
+Never read `docs/tasks/` and add one. `nextId()` asks every checkout rather
+than the one you are standing in (B99) and then reserves the number in the
+shared git directory, so two sessions in the same second cannot both be given
+it (B143). Choosing by hand is how four agents branched from one commit all
+called their capture B130, and a duplicate is permanent: two files claiming one
+id have different filenames, merge cleanly, and render as two happy rows.
+`test/task-ids.test.ts` fails on a duplicate, on a file whose name and
+frontmatter disagree, and on a reference to an id that does not exist.
+
+Never hand-edit the tables in `INDEX.md`; they are generated between the
+markers by `npm run tasks`. **They are generated in the main checkout only** —
+run from a linked worktree, the script says so and leaves the file alone,
+because a worktree's lanes are the snapshot from when its branch was cut and
+the regenerated block both reinstates stale rows and conflicts with every other
+branch in flight. `npm run tasks -- index` on `main` after merging is what puts
+it right.
 
 A task's **title is the problem, not the fix** — "X-Forwarded-For is taken on
 trust" survives being wrong about the remedy, "Add header_up to the Caddyfile"
