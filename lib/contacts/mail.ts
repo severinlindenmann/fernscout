@@ -7,6 +7,7 @@ import { translateIn } from "../locales";
 import { sendMail, type SendResult } from "../mail";
 import { renderMail } from "../mail/template";
 import { serverSite } from "../site";
+import { getTrip, tripRef } from "../trips";
 import type { Locale } from "../types";
 import {
   manageTokenFor,
@@ -14,7 +15,7 @@ import {
   unsubscribeUrlFor,
   type ContactRecord,
 } from "./index";
-import type { InviteKind } from "./invites";
+import { listInvites, type InviteKind } from "./invites";
 import { pickLocale } from "./locale";
 
 /**
@@ -40,6 +41,28 @@ function baseUrl(): string {
 
 function footerFor(locale: Locale, user: UserConfig): string {
   return translateIn(locale, "contact.mailFooter", { site: user.title });
+}
+
+/**
+ * Which trip a contact was let onto, if they came in on a buddy link — B347,
+ * B349.
+ *
+ * `createdVia` only carries `invite:<id>`; the kind and the trip live on the
+ * invite row, the same lookup `viaLabel()` in `ContactsAdmin.tsx` does for the
+ * contacts page. Null for a guest link, a personal link, `open` or `owner` —
+ * every case where the mail this feeds stays exactly as it was.
+ */
+async function buddyTripFor(
+  username: string,
+  contact: Pick<ContactRecord, "createdVia">,
+): Promise<{ title: string } | null> {
+  const via = contact.createdVia;
+  if (!via?.startsWith("invite:")) return null;
+  const invites = await listInvites(username);
+  const invite = invites.find((candidate) => candidate.id === via.slice("invite:".length));
+  if (!invite || invite.kind !== "buddy" || !invite.tripId) return null;
+  const trip = getTrip(tripRef(username, invite.tripId));
+  return trip ? { title: trip.title } : null;
 }
 
 /** The one-time code (C12). Transactional: no unsubscribe link, because there
@@ -208,16 +231,20 @@ export async function notifyOwnerOfRequest(
 ): Promise<boolean> {
   if (!user.owner.email) return false;
   const locale = pickLocale(user.defaultLocale);
+  // B349 — a buddy link is asking for write access to a trip, not to
+  // "follow along". Same two facts the contacts page already shows for this
+  // row (`viaLabel()` in `ContactsAdmin.tsx`): which kind of link, and which
+  // trip. Null for everyone else, and the sentence is unchanged for them.
+  const trip = await buddyTripFor(username, contact);
+  const bodyVars = { name: contact.name ?? contact.email, email: contact.email, trip: trip?.title ?? "" };
+  const bodyKey = trip ? "contact.mailRequestBuddyBody" : "contact.mailRequestBody";
   try {
     const result = await sendMail(
       renderMail(
         user.owner.email,
         translateIn(locale, "contact.mailRequestSubject", { title: user.title }),
         {
-          preheader: translateIn(locale, "contact.mailRequestBody", {
-            name: contact.name ?? contact.email,
-            email: contact.email,
-          }),
+          preheader: translateIn(locale, bodyKey, bodyVars),
           title: translateIn(locale, "contact.mailRequestTitle"),
           blocks: [
             {
@@ -225,10 +252,7 @@ export async function notifyOwnerOfRequest(
               // Name and address, and nothing else. Whether they asked for a
               // postcard is on the overview page; where they live is not in a
               // mail.
-              text: translateIn(locale, "contact.mailRequestBody", {
-                name: contact.name ?? contact.email,
-                email: contact.email,
-              }),
+              text: translateIn(locale, bodyKey, bodyVars),
             },
             {
               kind: "button",
@@ -304,23 +328,39 @@ export async function sendApprovedMail(
     const openUrl = isEnabled("auth", username)
       ? signInUrl(baseUrl(), username, await issueStandingLink(username, contact.email))
       : `${baseUrl()}/${username}`;
+    // B347 — this contact may hold write access to a trip, not only reading
+    // rights, and the only mail they ever get about being approved is this
+    // one. `buddyTripFor` is null for a guest link, and the mail is unchanged
+    // for them.
+    const trip = await buddyTripFor(username, contact);
+    const bodyKey = trip ? "contact.mailApprovedBuddyBody" : "contact.mailApprovedBody";
+    const bodyVars = { title: user.title, trip: trip?.title ?? "" };
     return await sendMail(
       renderMail(
         contact.email,
         translateIn(locale, "contact.mailApprovedSubject", { title: user.title }),
         {
-          preheader: translateIn(locale, "contact.mailApprovedBody", { title: user.title }),
+          preheader: translateIn(locale, bodyKey, bodyVars),
           title: translateIn(locale, "contact.mailApprovedTitle"),
           blocks: [
             {
               kind: "paragraph",
-              text: translateIn(locale, "contact.mailApprovedBody", { title: user.title }),
+              text: translateIn(locale, bodyKey, bodyVars),
             },
             {
               kind: "button",
               text: translateIn(locale, "contact.mailApprovedButton", { title: user.title }),
               href: openUrl,
             },
+            ...(trip
+              ? [
+                  {
+                    kind: "item" as const,
+                    title: translateIn(locale, "contact.mailApprovedMeLink"),
+                    href: `${baseUrl()}/${username}/me`,
+                  },
+                ]
+              : []),
             {
               kind: "item",
               title: translateIn(locale, "contact.mailManageButton"),
