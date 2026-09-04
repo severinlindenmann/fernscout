@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -614,6 +614,98 @@ describe("creating a trip", () => {
       // Derived, and the same answer the key would have given.
       expect(getTrip("wanderer/plain")?.listed).toBe(true);
     });
+  });
+
+  /**
+   * B204 — a title that closes the frontmatter block from inside the value.
+   *
+   * `q()` escaped `"` and `\\` and not a newline, so `"a\n---\nb"` wrote a
+   * `trip.md` whose frontmatter ended two lines early. The read-back guard
+   * noticed, refused, and left the folder on disk: the trip was invisible at
+   * every reading path, and every delete path resolves the trip first, so the
+   * id was consumed for good.
+   *
+   * Both halves are asserted, because either alone leaves the bug: the
+   * refusal, and that the trips directory is exactly as it was.
+   */
+  describe("a value that would break out of the frontmatter", () => {
+    const BREAKOUT = `a\n---\nnot: [yaml`;
+
+    function tripFolders(): string[] {
+      const trips = path.join(dir, "wanderer", "trips");
+      return fs.existsSync(trips) ? fs.readdirSync(trips).sort() : [];
+    }
+
+    test("a multi-line title is refused, naming the field, and writes nothing", () => {
+      const before = tripFolders();
+      const result = createTrip("wanderer", { ...DATES, id: "b204", title: BREAKOUT });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBe("invalid_title");
+        expect(result.message).toContain("title");
+      }
+      expect(tripFolders()).toEqual(before);
+      expect(getTrip("wanderer/b204")).toBeUndefined();
+    });
+
+    test("a multi-line tagline is refused the same way", () => {
+      const result = createTrip("wanderer", {
+        ...DATES, id: "b204-tagline", title: "T", tagline: BREAKOUT,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBe("invalid_tagline");
+      expect(tripFolders()).not.toContain("b204-tagline");
+    });
+
+    /**
+     * The id has to still be free afterwards. A retry answering `409
+     * trip_exists` for a trip nothing can read or delete is the whole of what
+     * B204 cost.
+     */
+    test("the id is usable immediately after a refusal", () => {
+      createTrip("wanderer", { ...DATES, id: "reused", title: BREAKOUT });
+      const again = createTrip("wanderer", { ...DATES, id: "reused", title: "Second try" });
+      expect(again.ok).toBe(true);
+      expect(getTrip("wanderer/reused")?.title).toBe("Second try");
+    });
+
+    /**
+     * Belt and braces, and the half that protects the next caller: even with
+     * the validation removed, the quoter cannot emit a file that fails to
+     * parse. Asserted through the one field a caller can put anything in and
+     * that is not checked for line breaks.
+     */
+    test("the quoter itself cannot produce unreadable frontmatter", async () => {
+      const { quoteScalar } = await import("@/lib/validate/frontmatter");
+      const matter = (await import("gray-matter")).default;
+      const file = ["---", `title: ${quoteScalar(BREAKOUT)}`, "---", "", "prose", ""].join("\n");
+      expect(matter(file).data.title).toBe(BREAKOUT);
+    });
+  });
+
+  /**
+   * A folder left behind by a failed read-back is the part that could not be
+   * cleaned up from anywhere in the product. Forced here by making the trip
+   * unreadable in the one way validation cannot catch — `getTrip` is mocked to
+   * refuse — so the rollback is exercised rather than argued about.
+   */
+  test("a create that fails its read-back leaves no folder behind", async () => {
+    const trips = await import("@/lib/trips");
+    const real = trips.getTrip;
+    const spy = vi.spyOn(trips, "getTrip").mockImplementation((ref: string) =>
+      ref === "wanderer/vanishes" ? undefined : real(ref),
+    );
+    try {
+      const result = createTrip("wanderer", { ...DATES, id: "vanishes", title: "V" });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBe("trip_unreadable");
+        expect(result.message).toContain("still free");
+      }
+      expect(fs.existsSync(path.join(dir, "wanderer", "trips", "vanishes"))).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

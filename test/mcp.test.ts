@@ -847,6 +847,32 @@ describe("create_day writes a draft, and only a draft", () => {
       .toContain("test: true");
   });
 
+  /**
+   * B204 — the same call that bricked a trip id on the live instance, through
+   * the other door. What matters is not only the refusal but that the folder
+   * is gone: every delete path resolves the trip first, so a trip left behind
+   * that does not read is a trip nothing in the product can remove.
+   */
+  test("a title that would break the frontmatter is refused and leaves no folder", async () => {
+    const result = await call(anaToken, "create_trip", {
+      id: "b204-broken",
+      title: `Broken\n---\nnot: [yaml`,
+      start: "2026-03-01",
+      end: "2026-03-02",
+    });
+    expect(result.isError).toBe(true);
+    expect(fs.existsSync(path.join(dir, "ana", "trips", "b204-broken"))).toBe(false);
+
+    // And the id is still free.
+    const again = await call(anaToken, "create_trip", {
+      id: "b204-broken",
+      title: "Second try",
+      start: "2026-03-01",
+      end: "2026-03-02",
+    });
+    expect(again.isError).toBe(false);
+  });
+
   test("a missing required field is a tool error, not a written file", async () => {
     const result = await call(anaToken, "create_day", { trip: "ana-trip", title: "No date" });
     expect(result.isError).toBe(true);

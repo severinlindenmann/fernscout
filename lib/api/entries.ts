@@ -14,6 +14,7 @@ import { appendGallery } from "../ingest/entry";
 import { slugify } from "../slug.ts";
 import { getTrip, tripDir, tripRef } from "../trips";
 import type { Entry, GalleryItem, Trip } from "../types";
+import { quoteScalar } from "../validate/frontmatter";
 
 /**
  * Writing content through the API.
@@ -83,10 +84,16 @@ export type DeleteResult =
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
 
-/** YAML-safe double-quoted scalar. */
-function quote(value: string): string {
-  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-}
+/**
+ * YAML-safe double-quoted scalar — shared with the trip writer.
+ *
+ * It was a private copy of the same two escapes, and neither copy escaped a
+ * newline, so a `location` or a `transportFrom` containing one closed the
+ * frontmatter block from inside the value and wrote an entry that no reading
+ * path could parse. Same bug as B204, one file over; the fix is the one
+ * quoter both writers call.
+ */
+const quote = quoteScalar;
 
 /**
  * The `costs:` block, in the flow style the hand-written entries use.

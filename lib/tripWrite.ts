@@ -5,6 +5,7 @@ import { contentRoot } from "./contentRoot";
 import { getTrip, tripRef } from "./trips";
 import { calendarStatus } from "./tripTime";
 import { getUser } from "./users";
+import { quoteScalar, singleLineProblem } from "./validate/frontmatter";
 
 /**
  * Creating a trip.
@@ -61,10 +62,6 @@ export type CreateTripResult =
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** YAML-quote a value that goes on one line. */
-function q(value: string): string {
-  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-}
 
 export function createTrip(username: string, input: NewTrip): CreateTripResult {
   if (!getUser(username)) {
@@ -85,6 +82,29 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
   const title = input.title.trim();
   if (!title) {
     return { ok: false, error: "invalid_title", message: "A trip needs a title." };
+  }
+
+  /**
+   * The two fields that become a quoted scalar on one line of the frontmatter,
+   * refused here rather than escaped away. B204.
+   *
+   * `quoteScalar` would now write `\n` and the file would parse, so this is
+   * not what stops the folder being bricked — it is what stops the caller
+   * being told 201 for a title it did not ask for. A trip called
+   * "Japan\n---\nnot: [yaml" is nobody's trip title, and naming the field is
+   * an error an agent can act on.
+   *
+   * `intro` is deliberately absent: it is prose below the closing `---` and
+   * multiple lines are the point.
+   */
+  for (const [field, value] of [
+    ["title", title],
+    ["tagline", input.tagline?.trim() ?? ""],
+  ] as const) {
+    const problem = singleLineProblem(field, value);
+    if (problem) {
+      return { ok: false, error: `invalid_${field}`, message: problem };
+    }
   }
 
   for (const [field, value] of [
@@ -173,10 +193,10 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
   const front: string[] = [
     "---",
     `id: ${id}`,
-    `title: ${q(title)}`,
-    ...(input.tagline?.trim() ? [`tagline: ${q(input.tagline.trim())}`] : []),
-    `start: ${q(input.start)}`,
-    `end: ${q(input.end)}`,
+    `title: ${quoteScalar(title)}`,
+    ...(input.tagline?.trim() ? [`tagline: ${quoteScalar(input.tagline.trim())}`] : []),
+    `start: ${quoteScalar(input.start)}`,
+    `end: ${quoteScalar(input.end)}`,
     `status: ${status}`,
     `accent: ${accent}`,
     `visibility: ${visibility}`,
@@ -208,10 +228,35 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
   // rather than discover an empty journal later.
   const ref = tripRef(username, id);
   if (!getTrip(ref)) {
+    /**
+     * Roll back, because a refusal that leaves the folder behind is worse
+     * than the write it refused. B204.
+     *
+     * The folder is invisible at every reading path — that is what "does not
+     * read back" means — and every delete path resolves the trip first, so
+     * nothing in the product could remove it afterwards. The id was consumed
+     * for good and the only cure was a shell on the server.
+     *
+     * Safe to remove because of the `existsSync` guard above: this function
+     * returns `trip_exists` when the directory is already there, so by the
+     * time control reaches here the folder is one this call made and holds
+     * nothing but the `trip.md` and empty `entries/` written six lines up.
+     */
+    let removed = true;
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch {
+      removed = false;
+    }
     return {
       ok: false,
       error: "trip_unreadable",
-      message: "The trip was written but does not read back. This is a bug; please report it.",
+      message:
+        "The trip was written but does not read back, so it was removed again" +
+        (removed
+          ? ` and the id "${id}" is still free.`
+          : ` — but the folder could not be cleaned up, so "${id}" is taken until somebody removes it on the server.`) +
+        " This is a bug; please report it.",
     };
   }
 
