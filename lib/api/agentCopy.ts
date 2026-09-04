@@ -212,7 +212,11 @@ import { COST_CATEGORIES } from "../costFormat";
  * the two cannot drift.
  *
  * `status` and `gallery` are absent because they are not fields: a day is
- * always a draft, and photographs are their own call.
+ * always a draft, and photographs are their own call. `translations` is here
+ * because it is the one optional-looking field that is not optional: a
+ * journal declaring more than one language refuses a day without it
+ * (`checkTranslations`, lib/validate/entry.ts), and an example that omitted
+ * it taught the shape that gets refused.
  */
 export const PERFECT_DAY_EXAMPLE = [
   "{",
@@ -228,6 +232,9 @@ export const PERFECT_DAY_EXAMPLE = [
   '  "transportTo": "Hoi An",',
   '  "content": "The whole old town hangs with lanterns...",',
   '  "tags": ["vietnam"],',
+  '  "translations": {',
+  '    "de": {"title": "Laternen von Hoi An", "content": "Die ganze Altstadt hängt voller Laternen..."}',
+  "  },",
   '  "costs": [',
   '    {"label": "Sleeper bus", "amount": 320000, "currency": "VND", "category": "transport"},',
   '    {"label": "Dinner", "amount": 180000, "currency": "VND", "category": "food"}',
@@ -247,7 +254,11 @@ export const PERFECT_DAY_INTRO =
   "asking, because each one omitted is something the site cannot show and a second call " +
   "to correct later. Send what you were actually told and leave the rest out: an empty " +
   "field beats an invented one, and this example is a form to fill from what the person " +
-  "said, never a set of plausible values to copy.";
+  "said, never a set of plausible values to copy. `translations` is the exception to " +
+  "\"only three are required\": `title` and `content` hold the language the journal is " +
+  "written in, every *other* language it declares needs an entry here, and a day missing " +
+  "one is refused rather than saved in a single language. A journal written in one " +
+  "language owes nothing and leaves the field out.";
 
 /**
  * What a day's spending owes, before it is written — B335.
