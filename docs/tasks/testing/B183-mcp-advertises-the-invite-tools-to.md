@@ -7,8 +7,7 @@ complexity: low
 area: mcp, capabilities
 found: "2026-09-03T19:46:29Z"
 started: "2026-09-04T06:22:43Z"
-session: 2b6d1969-424a-4788-9497-eb5e151a5391
-claimed: "2026-09-04T06:22:43Z"
+merged: "2026-09-04T06:50:22Z"
 ---
 
 # B183 — MCP advertises the invite tools to a journal that has contacts switched off
