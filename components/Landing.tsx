@@ -110,7 +110,20 @@ export default function Landing({
           </p>
           <p className="mt-1 font-mono text-sm text-navy-600">{t("landing.handEmail")}</p>
           <div className="mt-4">
-            <CopyLine value={docUrl} label={t("landing.copy")} copiedLabel={t("landing.copied")} />
+            {/* A bare URL pasted into an agent is an ambiguous instruction: it
+                may fetch it, summarise it, or ask what to do with it, and the
+                email requirement is the half of the page that does not survive
+                a copy-paste. So the clipboard gets a sentence, and the label
+                stops saying "link". The visible host, path and email line stay
+                as they are — which is where they are readable one at a time,
+                so `name` says what the button copies instead of reciting the
+                whole sentence (B199). B254. */}
+            <CopyLine
+              value={t("landing.instruction", { url: docUrl })}
+              label={t("landing.copyInstruction")}
+              copiedLabel={t("landing.copied")}
+              name={t("landing.copyInstruction")}
+            />
           </div>
         </div>
       </section>

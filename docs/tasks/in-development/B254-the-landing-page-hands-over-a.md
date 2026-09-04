@@ -32,8 +32,17 @@ landing page: the copied value was the whole of what the agent received.
 
 ## Work
 
-- `landing.copy` becomes "Copy instruction" — the button copies a sentence, so
-  it must not say "link". Same for `de` and `hu` (`content/locales/`).
+- The button label becomes "Copy instruction" — the button copies a sentence,
+  so it must not say "link". In all three locales (`content/locales/`).
+
+  Built as a **new** key, `landing.copyInstruction`, rather than by changing
+  `landing.copy` as this section first said. `landing.copy` has three callers,
+  not one: `Landing.tsx`, `AgentHandover.tsx` and `InviteLinks.tsx:182`, and
+  the last of those copies a guest or buddy invite URL, where "Copy link" is
+  exactly right and "Copy instruction" would be false. Renaming the shared
+  value would also have relabelled `AgentHandover` — the one file this ticket
+  says not to touch. So `landing.copy` keeps its wording and its two link
+  callers, and the landing page gets its own label.
 - `Landing.tsx` copies an instruction naming the guide's URL and the email
   requirement, from a new locale string with `{url}` interpolated. English
   reads roughly: *Guide me through creating my own travel journal, following
@@ -52,6 +61,11 @@ landing page: the copied value was the whole of what the agent received.
 
 - `test/landing.test.tsx` asserts the copied value contains the guide URL and
   the email requirement, and that the button reads "Copy instruction".
+
+  The clipboard value lives in the click handler and this suite renders to
+  static markup under `environment: "node"`, so there is nothing to click: the
+  sentence is asserted from the dictionary the component interpolates, the
+  button and its accessible name from the markup. Same split as B199's tests.
 - Clipboard value on `/` pastes into an agent as a self-contained instruction:
   no other line from the page is needed to act on it.
 - `npm run build`, `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`.
