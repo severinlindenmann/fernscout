@@ -164,17 +164,16 @@ Do not edit them by hand; run the script.
 | [B253](backlog/superseded/B253-the-demo-journal-s-tagline-says.md) | The demo journal's tagline says four journeys and the count beside it says five | ISSUE | low | low |
 | [B297](backlog/superseded/B297-a-nul-byte-in-the-idempotency.md) | A NUL byte in the idempotency key separator makes git treat the whole file as binary | CHORE | low | low |
 
-## open (1)
+## open (0)
 
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B321](open/B321-a-contact-row-shows-the-raw.md) | A contact row shows the raw invite id it came from, not which link or which trip | ISSUE | low | low |
+_Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B319](in-development/B319-letting-somebody-in-means-handing-them.md) | Letting somebody in means handing them a link by hand, and approving means being at a browser | FEATURE | high | high | `986bc24c` |
+| [B321](in-development/B321-a-contact-row-shows-the-raw.md) | A contact row shows the raw invite id it came from, not which link or which trip | ISSUE | low | low | `cae3e4fb` |
 
 ## testing (139)
 

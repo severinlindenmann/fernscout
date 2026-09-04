@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: contacts, ui
 found: "2026-09-04T17:02:11Z"
+started: "2026-09-04T17:16:18Z"
+session: cae3e4fb-d628-4a89-89b7-43a581bc7e71
+claimed: "2026-09-04T17:16:18Z"
 ---
 
 # B321 — A contact row shows the raw invite id it came from, not which link or which trip
