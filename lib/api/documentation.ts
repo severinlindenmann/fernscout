@@ -25,6 +25,8 @@ import {
   MEDIA_ENDPOINT_PATH,
   NOT_WRITABLE,
   TITLE_COLLISION_EXAMPLE,
+  PRIVATE_SHUTS_OUT_GUESTS,
+  VISIBILITY_CHOICE,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
   asSentence,
@@ -121,6 +123,13 @@ export function instanceDocumentation(): string {
         VISIBILITY_NOT_A_LOCK.replace(/`/g, ""),
       78,
     ),
+    "",
+    // The consequence, not just the definitions — B302. This document is an
+    // index and says nothing about *creating* a trip, but it is where an agent
+    // meets the three values for the first time, and the one that surprises
+    // people belongs beside them. Backticks stripped, as above: this file is
+    // served as plain text.
+    ...wrap(PRIVATE_SHUTS_OUT_GUESTS.replace(/`/g, ""), 78),
     "",
     "## Then",
     "",
@@ -926,8 +935,15 @@ one whose \`start\` is still ahead shows a countdown — so there is no
 \`"status"\` to send unless this is the trip the bare \`/${example}\` URLs should
 serve, which is \`"status": "current"\`.
 
-A trip is created **private** unless you say otherwise. Publishing somebody's
-journey is their decision — ask before sending \`"visibility": "public"\`.
+${wrap(VISIBILITY_CHOICE).join("\n")}
+
+${wrap(PRIVATE_SHUTS_OUT_GUESTS).join("\n")}
+
+Omit \`visibility\` and the trip is created **private** — the default is the
+closed value so that a field you forget never publishes anything. That is a
+safety net and not an answer: ask, and send what they chose. Publishing
+somebody's journey is their decision, so never send \`"visibility": "public"\`
+without having asked for it in words.
 
 ${wrap(BUDGET_QUESTION).join("\n")}
 
