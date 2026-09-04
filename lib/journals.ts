@@ -1,8 +1,8 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import { hasSwitchedOff, isEnabled } from "./capabilities";
-import { clearConfigCache, type JournalVisibility } from "./config";
+import { hasSwitchedOff, isEnabled, resolveCapabilities } from "./capabilities";
+import { clearConfigCache, FEATURE_NAMES, type FeatureName, type JournalVisibility } from "./config";
 import { contentRoot } from "./contentRoot";
 import { issueStandingLink, signInUrl } from "./auth";
 import type { TranslationKey } from "./i18n";
@@ -11,7 +11,7 @@ import { sendMail } from "./mail";
 import { renderMail } from "./mail/template";
 import { serverSite } from "./site";
 import { journalTombstone } from "./tombstones";
-import { clearUserCache, getUsernames, isReservedUsername, isValidUsername } from "./users";
+import { clearUserCache, getUser, getUsernames, isReservedUsername, isValidUsername } from "./users";
 
 /**
  * Creating a journal — the one thing an agent could not do.
@@ -402,4 +402,187 @@ export async function sendWelcome(input: {
     console.error(`[journals] welcome mail for ${input.username} failed:`, err);
     return false;
   }
+}
+
+/**
+ * Change which capabilities a journal has asked for — B182.
+ *
+ * ## Why this exists
+ *
+ * A journal's `features` block was written once, by whatever `createJournal`
+ * happened to say on the day it ran, and then frozen: nothing in `app/` or
+ * `lib/` wrote it, so the only way to change one was a shell on the server and
+ * a text editor. That left every journal made before B153 with contacts off
+ * and no way to turn them on — which, since B39 removed trip passwords, means a
+ * journal that cannot let anybody in and cannot be repaired from the outside.
+ * It is not only contacts: `mail`, `signup`, `push`, `postcards` and
+ * `photobook` are all per-journal opt-ins under a server ceiling and none of
+ * them could be opted into after the fact.
+ *
+ * ## What it will not do
+ *
+ * **Only `features`.** Not the title, not the locales, not the currencies —
+ * those have the same problem and are a wider surface with different questions
+ * in it (see B220). And explicitly never **`owner.email`**: that address is the
+ * credential which decides who can obtain a token for this journal (decision
+ * 24), so a call that could rewrite it would be a call that could hand the
+ * journal to somebody else. An agent holding a token is *inside* the boundary
+ * that address defines, and nothing inside a boundary may move it. Changing it
+ * is an operator's job, at the file.
+ *
+ * **It cannot widen past the server.** `resolveOne` in lib/capabilities.ts
+ * already treats `content/config.json` as a ceiling, so a journal that wrote
+ * `"contacts": { "enabled": true }` under a server with contacts off would stay
+ * off regardless — the write would simply do nothing. That silence is the
+ * problem, so this refuses instead, with the server's own reason for the
+ * capability being unavailable. The check is not a second implementation of the
+ * rule: it asks `isEnabled(name)` with no username, which *is* the ceiling.
+ *
+ * Switching something **off** is always allowed, whatever the server says. A
+ * journal narrowing itself needs no permission, and `features.mail: false` in
+ * particular is a mute button somebody must always be able to press (B60).
+ *
+ * The file is edited rather than rewritten: the raw JSON is parsed, the one
+ * `enabled` flag inside each named feature is set, and everything else —
+ * `transport`, `provider`, keys this version has never heard of — is left
+ * exactly as it was. And it is read back through `getUser` before the call
+ * reports success, restoring the previous bytes if the result does not parse:
+ * a config file that will not load takes the whole journal off the site, which
+ * is not something to discover later. B204 is the same lesson, one file over.
+ */
+export type SetFeaturesResult =
+  | {
+      ok: true;
+      username: string;
+      /** Every capability, as this journal now asks for it. */
+      features: Record<FeatureName, boolean>;
+      /** The ones this call actually changed, which may be none. */
+      changed: FeatureName[];
+    }
+  | { ok: false; error: string; message: string };
+
+export function setJournalFeatures(
+  username: string,
+  changes: Record<string, unknown>,
+): SetFeaturesResult {
+  const user = getUser(username);
+  if (!user) {
+    return {
+      ok: false,
+      error: "no_such_journal",
+      message: `There is no journal "${username}" on this server, or its config.json cannot be read.`,
+    };
+  }
+
+  const wanted: [FeatureName, boolean][] = [];
+  for (const [key, value] of Object.entries(changes)) {
+    if (!(FEATURE_NAMES as readonly string[]).includes(key)) {
+      return {
+        ok: false,
+        error: "unknown_feature",
+        message: `"${key}" is not a capability on this server. Known: ${FEATURE_NAMES.join(", ")}.`,
+      };
+    }
+    if (typeof value !== "boolean") {
+      return {
+        ok: false,
+        error: "invalid_feature",
+        message: `features.${key} must be true or false, not ${JSON.stringify(value)}.`,
+      };
+    }
+    wanted.push([key as FeatureName, value]);
+  }
+  if (wanted.length === 0) {
+    return {
+      ok: false,
+      error: "nothing_to_change",
+      message:
+        `Name at least one capability to switch on or off: ` +
+        `{"features": {"contacts": true}}. Known: ${FEATURE_NAMES.join(", ")}.`,
+    };
+  }
+
+  // The ceiling, asked of the server and not re-derived here. Only asked when
+  // switching something *on*: narrowing needs no permission.
+  const server = resolveCapabilities();
+  for (const [name, enabled] of wanted) {
+    if (!enabled) continue;
+    const state = server[name];
+    if (!state.enabled) {
+      return {
+        ok: false,
+        error: "capability_unavailable",
+        message:
+          `This server cannot offer "${name}", so this journal cannot switch it on — ` +
+          `${state.reason}. That is an operator's decision, in content/config.json and the ` +
+          `environment; /api/health says what is missing. Nothing was changed.`,
+      };
+    }
+  }
+
+  const file = path.join(contentRoot(), username, "config.json");
+  let previous: string;
+  let raw: Record<string, unknown>;
+  try {
+    previous = fs.readFileSync(file, "utf8");
+    const parsed: unknown = JSON.parse(previous);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      throw new Error("not an object");
+    }
+    raw = parsed as Record<string, unknown>;
+  } catch {
+    return {
+      ok: false,
+      error: "unreadable_config",
+      message:
+        `content/${username}/config.json could not be read as JSON, so nothing was changed. ` +
+        `Fix the file first — this call edits it in place and will not overwrite what it ` +
+        `cannot parse.`,
+    };
+  }
+
+  const existing =
+    typeof raw.features === "object" && raw.features !== null && !Array.isArray(raw.features)
+      ? { ...(raw.features as Record<string, unknown>) }
+      : {};
+
+  const changed: FeatureName[] = [];
+  for (const [name, enabled] of wanted) {
+    if (user.features[name].enabled === enabled) continue;
+    const entry =
+      typeof existing[name] === "object" && existing[name] !== null && !Array.isArray(existing[name])
+        ? { ...(existing[name] as Record<string, unknown>) }
+        : {};
+    // Only `enabled`. A transport or a provider chosen by hand survives this.
+    existing[name] = { ...entry, enabled };
+    changed.push(name);
+  }
+
+  if (changed.length > 0) {
+    fs.writeFileSync(file, JSON.stringify({ ...raw, features: existing }, null, 2) + "\n", "utf8");
+    clearUserCache();
+    clearConfigCache();
+
+    const after = getUser(username);
+    if (!after) {
+      // Put it back. A journal whose config does not parse is invisible at
+      // every reading path, and this call is not the thing that gets to do
+      // that to somebody.
+      fs.writeFileSync(file, previous, "utf8");
+      clearUserCache();
+      clearConfigCache();
+      return {
+        ok: false,
+        error: "write_failed",
+        message:
+          `The change was written and did not read back, so it has been undone and ` +
+          `content/${username}/config.json is exactly as it was.`,
+      };
+    }
+  }
+
+  const now = getUser(username) ?? user;
+  const features = {} as Record<FeatureName, boolean>;
+  for (const name of FEATURE_NAMES) features[name] = now.features[name].enabled;
+  return { ok: true, username, features, changed };
 }
