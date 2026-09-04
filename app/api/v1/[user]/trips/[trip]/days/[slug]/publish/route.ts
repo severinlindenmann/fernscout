@@ -2,14 +2,15 @@ import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from
 import { publishNotice, publishDraft } from "@/lib/api/entries";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { isTestContent } from "@/lib/access";
+import { balanceOf } from "@/lib/credits";
 import { getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { serverSite } from "@/lib/site";
-import { sendDayLetter } from "@/lib/digest/dayLetter";
+import { mailWouldCost, sendDayLetter } from "@/lib/digest/dayLetter";
 import { mailSummary } from "@/lib/api/dayMail";
 import { whatsappSummary } from "@/lib/api/dayWhatsapp";
 import { readPublishFlags } from "@/lib/api/publishFlags";
-import { sendDayWhatsapp } from "@/lib/digest/dayWhatsapp";
+import { sendDayWhatsapp, whatsappWouldCost } from "@/lib/digest/dayWhatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -109,6 +110,52 @@ export async function POST(
   // therefore a bug that ships quietly. See `readPublishFlags`.
   const { sendMail: sendMailRequested, sendWhatsapp: sendWhatsappRequested } =
     await readPublishFlags(request);
+
+  /*
+   * The credits pre-flight — B366. Before anything is published, ask what
+   * *both* requested channels together would cost and compare that one sum
+   * against one balance. Checking mail and WhatsApp separately would let a
+   * journal that can afford either channel alone, but not both, pass two
+   * checks it cannot actually pay for and publish a day it can only
+   * half-send — the exact failure the owner declined when choosing
+   * all-or-nothing. `balanceOf` returning `null` means credits are switched
+   * off for this instance, in which case there is nothing to check: a
+   * disabled capability is absent, not a silent always-pass wearing the same
+   * code path.
+   *
+   * **This is advisory, not the guard.** Between this read and the real
+   * debit inside `sendDayLetter`/`sendDayWhatsapp` below, another call can
+   * spend the same balance — there is no reservation held across the
+   * `publishDraft` write in between. In that race the day publishes and the
+   * send it asked for comes back `no_credits`, which is the outcome the
+   * owner declined for the ordinary case, reached only when two requests
+   * genuinely overlap. The alternative — holding credits reserved across a
+   * filesystem write — risks losing them silently on a crash there, which is
+   * worse. `spend`'s conditional `UPDATE` is what actually keeps a balance
+   * from going negative; this check only keeps the *common* case from
+   * publishing a day it cannot afford to announce.
+   */
+  if (sendMailRequested || sendWhatsappRequested) {
+    const balance = await balanceOf(user);
+    if (balance !== null) {
+      const needed =
+        (sendMailRequested ? await mailWouldCost(user, ref) : 0) +
+        (sendWhatsappRequested ? await whatsappWouldCost(user, ref) : 0);
+      if (needed > balance) {
+        return Response.json(
+          {
+            error: "no_credits",
+            needed,
+            balance,
+            message:
+              `Sending this day would take ${needed} credit(s); this journal has ${balance} left. ` +
+              "Nothing was published.",
+          },
+          { status: 402 },
+        );
+      }
+    }
+  }
 
   const result = publishDraft(ref, slug);
   if (!result.ok) return Response.json({ error: result.error }, { status: 400 });

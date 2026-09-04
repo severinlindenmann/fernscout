@@ -21,7 +21,16 @@ import { maskNumber } from "../whatsapp";
  */
 export function whatsappSummary(outcome: DayWhatsappOutcome): Record<string, unknown> {
   if (!outcome.ok) {
-    return { attempted: false, sent: 0, failed: 0, reason: outcome.reason };
+    return {
+      attempted: false,
+      sent: 0,
+      failed: 0,
+      reason: outcome.reason,
+      // Only carried for "no_credits" — B366, matching `mailSummary`.
+      ...(outcome.reason === "no_credits"
+        ? { needed: outcome.needed, balance: outcome.balance }
+        : {}),
+    };
   }
   return {
     attempted: true,

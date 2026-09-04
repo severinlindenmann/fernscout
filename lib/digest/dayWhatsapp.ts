@@ -1,6 +1,7 @@
 import "server-only";
 import { hasSwitchedOff, isEnabled } from "../capabilities";
 import { isTestContent } from "../access";
+import { balanceOf, refund, spend } from "../credits";
 import { listContacts } from "../contacts";
 import { pickLocale } from "../contacts/locale";
 import type { UserConfig } from "../config";
@@ -115,7 +116,8 @@ export type DayWhatsappSkipReason =
   | "test_content"
   | "whatsapp_off"
   | "contacts_off"
-  | "no_template";
+  | "no_template"
+  | "no_credits";
 
 export type DayWhatsappOutcome =
   | {
@@ -125,7 +127,13 @@ export type DayWhatsappOutcome =
       sent: { to: string }[];
       failed: { to: string; error: string }[];
     }
-  | { ok: false; reason: DayWhatsappSkipReason };
+  | {
+      ok: false;
+      reason: DayWhatsappSkipReason;
+      /** Only set for `reason === "no_credits"`. */
+      needed?: number;
+      balance?: number;
+    };
 
 /**
  * Announce one published day on WhatsApp.
@@ -186,6 +194,17 @@ export async function sendDayWhatsapp(
   if (!isEnabled("contacts", owner)) return { ok: false, reason: "contacts_off" };
 
   const recipients = await recipientsFor(trip, user);
+
+  // One credit per recipient, charged for the whole list before the first
+  // message leaves — B366, matching `sendDayLetter`. All or nothing: an
+  // insufficient balance sends nothing rather than reaching some of the
+  // list and not the rest.
+  const needed = recipients.length;
+  const ledgerRef = `${ref}/${slug}`;
+  if (!(await spend(owner, needed, "day_whatsapp", ledgerRef))) {
+    return { ok: false, reason: "no_credits", needed, balance: (await balanceOf(owner)) ?? 0 };
+  }
+
   // Read once, not per recipient: the day's photograph is the same for
   // everybody, and re-encoding it fifty times would be fifty times the work
   // for one identical buffer.
@@ -194,10 +213,18 @@ export async function sendDayWhatsapp(
   const sent: { to: string }[] = [];
   const failed: { to: string; error: string }[] = [];
   let anyTemplate = false;
+  // A recipient with no template for their language was charged above along
+  // with everybody else, and no message reaches them — that credit is owed
+  // back exactly like a `failed` one, even though it never enters that array
+  // (it is a config gap, not a send that threw).
+  let skippedNoTemplate = 0;
 
   for (const recipient of recipients) {
     const template = templateFor(recipient.locale, user.defaultLocale);
-    if (!template) continue;
+    if (!template) {
+      skippedNoTemplate++;
+      continue;
+    }
     anyTemplate = true;
 
     const message: WhatsappMessage = {
@@ -225,6 +252,12 @@ export async function sendDayWhatsapp(
       failed.push({ to: recipient.to, error: err instanceof Error ? err.message : String(err) });
     }
   }
+
+  // Give back only for messages that did not go out — never a blanket
+  // reversal. A message that was delivered is spent whatever happens
+  // afterwards.
+  const notSent = failed.length + skippedNoTemplate;
+  if (notSent > 0) await refund(owner, notSent, ledgerRef);
 
   // Told apart from "nobody opted in", which is not a misconfiguration. This
   // one means somebody ticked the box and the operator never registered a

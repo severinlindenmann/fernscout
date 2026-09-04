@@ -15,7 +15,17 @@ import type { DayLetterOutcome } from "../digest/dayLetter";
  */
 export function mailSummary(outcome: DayLetterOutcome): Record<string, unknown> {
   if (!outcome.ok) {
-    return { attempted: false, sent: 0, failed: 0, reason: outcome.reason };
+    return {
+      attempted: false,
+      sent: 0,
+      failed: 0,
+      reason: outcome.reason,
+      // Only carried for "no_credits", so a client can say something useful
+      // ("2 of 3 credits needed") rather than just the bare reason — B366.
+      ...(outcome.reason === "no_credits"
+        ? { needed: outcome.needed, balance: outcome.balance }
+        : {}),
+    };
   }
   return {
     attempted: true,

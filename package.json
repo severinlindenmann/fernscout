@@ -33,6 +33,7 @@
     "migrate:users": "node scripts/migrate-users.ts",
     "migrate:owner": "node scripts/migrate-owner.ts",
     "ingest": "tsx --conditions=react-server scripts/ingest.mts",
+    "credits": "tsx --conditions=react-server scripts/grant-credits.ts",
     "i18n:keys": "node scripts/i18n-keys.mjs",
     "tasks": "node scripts/tasks.mjs",
     "unused": "knip"
