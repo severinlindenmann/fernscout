@@ -185,7 +185,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (4)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -193,6 +193,7 @@ _Nothing here._
 | [B347](in-development/B347-a-buddy-approved-onto-a-trip.md) | A buddy approved onto a trip is mailed "follow along whenever you like" and never told they can write | ISSUE | high | low | `62683d95` |
 | [B348](in-development/B348-the-agent-code-mail-tells-a.md) | The agent-code mail tells a buddy the token writes to "your journal", when it writes one trip in somebody else's | ISSUE | high | low | `62683d95` |
 | [B349](in-development/B349-the-owner-s-queue-notification-calls.md) | The owner's queue notification calls a buddy a follower, naming neither the link kind nor the trip | ISSUE | medium | low | `62683d95` |
+| [B361](in-development/B361-the-lifetime-map-cannot-answer-which.md) | The lifetime map cannot answer which countries somebody has been to, only where individual stops fell | FEATURE | medium | high | `e8e2ddef` |
 
 ## testing (141)
 
