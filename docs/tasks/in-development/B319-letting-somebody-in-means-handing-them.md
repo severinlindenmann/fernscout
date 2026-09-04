@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: contacts, invites, mail
 found: "2026-09-04T16:55:58Z"
+started: "2026-09-04T17:01:25Z"
+session: 986bc24c-6a18-473f-a506-aa8c4efb475c
+claimed: "2026-09-04T17:01:25Z"
 ---
 
 # B319 — Letting somebody in means handing them a link by hand, and approving means being at a browser
@@ -62,6 +65,32 @@ codebase with the most reasoning already written down.
   explicitly *not* the model and must not be used — it is not single-use and
   it goes to the agent.
 
+## Decided
+
+**Pre-approval is fine — the owner's decision on 2026-09-04:** *"that's fine
+pre approve, that is a user error I don't care about."* So an address the owner
+hands over is vouched for, and they do not want a second decision in their own
+queue for somebody they just invited by name.
+
+**One half of the double opt-in is kept anyway, and it is not the half that was
+dismissed.** The owner waved away *their own* typo, which is theirs to wave
+away. What remains is that `POST /api/v1/<user>/invites` is called by an
+**agent** holding an owner-scoped token — so "pre-approve whatever address
+arrives" means an agent that mistypes, or invents, an address creates a real
+grant on somebody's private journal with nobody having decided anything. That
+is not user error.
+
+So: **mail the invitation and pre-approve the address, and let whoever opens it
+still prove they hold it.** The owner gets what they asked for — no queue, no
+second click, the invited person is in the moment they arrive — and a wrong
+address grants nothing to anybody instead of granting everything to a
+stranger. The proof costs the invited person one click on a link already in
+their hand.
+
+If that is not what was wanted and a grant should exist before anyone proves
+anything, say so and it is a one-line change — but it should be a sentence
+somebody wrote on purpose, not a default that arrived by omission.
+
 ## Work
 
 Not designed. What has to be decided, and in this order:
@@ -95,3 +124,15 @@ not be resent), B273 (a reader has nowhere to leave a postal address), B274
 - Whatever is decided about proof of address is written down with its
   reasoning, and no path creates a grant for an address nobody proved unless
   that decision was taken deliberately.
+
+## Scope split, so this can start now
+
+B316 and B317 hold `lib/api/agentCopy.ts`, `lib/api/documentation.ts` and
+`lib/validate/entry.ts`. This task is therefore **the server side only**: the
+invitation mail and its language, pre-approval, the authenticated destination
+in the "You're in" letter, and approving from the owner's inbox.
+
+The agent-facing half — `create_invite` growing a language and a "send it"
+argument, and both documents saying what an agent should offer — is **B317's
+third bullet**. Leave those files alone and note in your report what B317 will
+need to say, so the two halves meet.
