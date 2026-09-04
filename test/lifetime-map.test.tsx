@@ -39,13 +39,15 @@ function viewBox(html: string): number[] {
   return match![1].split(" ").map(Number);
 }
 
-/** Every pin's path, tip at its own local origin, translated onto the map. */
+/** Every pin is a `<g translate(x y)>` holding a stem `<line>` from its local
+ * origin (the coordinate) and a `<circle>` head above it — the origin is the
+ * tip, translated onto the map. */
 function pins(html: string): { x: number; y: number; headRadius: number }[] {
   return [
     ...html.matchAll(
-      /<path d="M0,0[^"]*A([\d.]+),[\d.]+[^"]*" transform="translate\(([-\d.]+) ([-\d.]+)\)"/g,
+      /<g transform="translate\(([-\d.]+) ([-\d.]+)\)"><line x1="0" y1="0"[^>]*>(?:<\/line>)?<circle[^>]*r="([\d.]+)"/g,
     ),
-  ].map((m) => ({ headRadius: Number(m[1]), x: Number(m[2]), y: Number(m[3]) }));
+  ].map((m) => ({ x: Number(m[1]), y: Number(m[2]), headRadius: Number(m[3]) }));
 }
 
 /**
