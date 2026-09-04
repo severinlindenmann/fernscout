@@ -140,12 +140,9 @@ Do not edit them by hand; run the script.
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B204](in-development/B204-a-multi-line-title-writes-an.md) | A multi-line title writes an unreadable trip.md, keeps the id and leaves nothing able to remove it | ISSUE | high | low | `2b6d1969` |
 | [B09](in-development/B09-links-to-docs-moved-into-archiv.md) | Links to docs moved into archiv no longer resolve | CHORE | medium | low | `2b6d1969` |
 | [B13](in-development/B13-the-photobook-prints-from-the-web.md) | The photobook prints from the web derivatives, not the originals | ISSUE | medium | medium | `2b6d1969` |
 | [B154](in-development/B154-the-readme-describes-a-scroll-driven.md) | The README describes a scroll-driven map and a photo journal without showing one | CHORE | medium | low | `2b6d1969` |
-| [B165](in-development/B165-turning-the-costs-capability-off.md) | Turning the costs capability off leaves the costs pages fully rendered | ISSUE | medium | low | `2b6d1969` |
-| [B178](in-development/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low | `2b6d1969` |
 | [B25](in-development/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low | `2b6d1969` |
 | [B62](in-development/B62-every-docs-link-in-the-readme.md) | Every docs/ link in the README points at a file that moved to docs/archiv | CHORE | medium | low | `2b6d1969` |
 | [B100](in-development/B100-the-documented-verification-order-runs-tsc.md) | The documented verification order runs tsc before the build that generates the types it needs | CHORE | low | low | `2b6d1969` |
@@ -162,6 +159,7 @@ Do not edit them by hand; run the script.
 | [B01](testing/B01-forwarded-for-trust.md) | X-Forwarded-For is taken on trust, so every rate limit is bypassable | SECURITY | high | low | — |
 | [B196](testing/B196-test-mail-test-ts-fails-on.md) | test/mail.test.ts fails on main — a kept-mail sweep test broke when the journal mail switch landed | ISSUE | high | low | — |
 | [B197](testing/B197-an-unreadable-content-root-switches-every.md) | An unreadable content root switches every journal's mail off instead of warning | ISSUE | high | low | — |
+| [B204](testing/B204-a-multi-line-title-writes-an.md) | A multi-line title writes an unreadable trip.md, keeps the id and leaves nothing able to remove it | ISSUE | high | low | — |
 | [B21](testing/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | CHORE | high | medium | — |
 | [B64](testing/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
@@ -169,6 +167,8 @@ Do not edit them by hand; run the script.
 | [B135](testing/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low | — |
 | [B136](testing/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low | — |
 | [B160](testing/B160-a-one-time-code-endpoint-answers.md) | A one-time code endpoint answers 202 when the server cannot send mail at all | ISSUE | medium | low | — |
+| [B165](testing/B165-turning-the-costs-capability-off.md) | Turning the costs capability off leaves the costs pages fully rendered | ISSUE | medium | low | — |
+| [B178](testing/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low | — |
 | [B32](testing/B32-a-taken-username-answers-409-with.md) | A taken username answers 409 with no route onward for somebody who already owns it | ISSUE | medium | low | — |
 | [B35](testing/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
 | [B38](testing/B38-a-journal-or-a-trip-can.md) | A journal or a trip can be created through the API but never removed | FEATURE | medium | high | — |
