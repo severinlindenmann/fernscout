@@ -50,9 +50,9 @@
       "backend": "dry-run",
       "defaultCountryCode": "41",
       "templates": {
-        "de": "fernscout_day_published",
-        "en": "fernscout_day_published",
-        "hu": "fernscout_day_published"
+        "de": "fernscout_day_published_v2",
+        "en": "fernscout_day_published_v2",
+        "hu": "fernscout_day_published_v2"
       }
     },
     "auth": {
