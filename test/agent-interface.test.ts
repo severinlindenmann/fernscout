@@ -405,6 +405,35 @@ describe("the documents an agent reads", () => {
   test("the guide tells an agent not to invent detail", () => {
     expect(agentGuide()).toMatch(/do not invent/i);
   });
+
+  /**
+   * B331: an agent holding a valid owner token was asked to invite somebody,
+   * found no call in either summary, and invented a browser "dashboard" that
+   * does not exist. Both documents now name the invites endpoint — the
+   * per-journal one directly in its endpoint list, the instance-level one in
+   * a heading of its own rather than only inside the "Then" onboarding
+   * script that offers a guest link in passing once a trip is published.
+   */
+  test("a journal's own document names the invites endpoint", () => {
+    const doc = userDocumentation("ana")!;
+    expect(doc).toContain("/api/v1/ana/invites");
+    expect(doc).toMatch(/"kind":\s*"guest"/);
+    expect(doc).toMatch(/"kind":\s*"buddy"/);
+  });
+
+  test("the instance document has its own heading for invites, not only a mention inside onboarding", () => {
+    const summary = instanceDocumentation();
+    // GUEST_LINK_OFFER already lives inside "## Then" (the walkthrough), and
+    // is not what this asserts: this is a heading of its own, findable by an
+    // agent that is not reading the create-a-journal script at all.
+    const headingIdx = summary.indexOf("## Letting other people in");
+    expect(headingIdx).toBeGreaterThan(-1);
+    const journalsIdx = summary.indexOf("## Journals");
+    expect(journalsIdx).toBeGreaterThan(headingIdx);
+    const section = summary.slice(headingIdx, journalsIdx);
+    expect(section.toLowerCase()).toContain("invite");
+    expect(section).toContain("/api/v1/their-name/invites");
+  });
 });
 
 /**
