@@ -7,6 +7,9 @@ complexity: low
 area: contacts, invites
 found: "2026-09-04T16:49:39Z"
 related: B273
+started: "2026-09-04T19:14:57Z"
+session: cae3e4fb-d628-4a89-89b7-43a581bc7e71
+claimed: "2026-09-04T19:14:57Z"
 ---
 
 # B315 — The invite form offers a postcard but never asks about email updates, so a new reader is silently opted out
@@ -62,16 +65,42 @@ already takes `wantsEmailDigest`.
   on the body carrying it, because the client is not the boundary. Keep
   `known?.wantsEmailDigest ?? false` as the fallback for every other path, so
   a returning reader's stored choice is still never rewritten.
-- **Decide the default and write down why.** The guestbook ticks it; a form on
-  a stranger's site arguably should not pre-tick a consent to mail. Either is
-  defensible — pick one, make both forms agree, and say so in this file.
+- **The default is ticked** — the owner's decision, 2026-09-04, asked
+  directly. It makes the two front doors agree, and `ContactForm` already
+  ticks it. What makes it defensible rather than merely convenient is that
+  nothing is sent on the strength of the tick alone: the address still has to
+  be confirmed by code and then approved by the owner before a single digest
+  goes out (see the note below), and every digest already carries a one-click
+  unsubscribe. A pre-ticked box that cannot by itself cause mail is a default,
+  not a consent dark pattern.
+- **The box is shown unconditionally**, also the owner's instruction: it
+  appears on the form step whether or not this reader has an address on file
+  yet, which is the same thing `ContactForm` does. So the "not in scope" note
+  below is settled in the direction of showing it.
 - **Update the doc comments** in both files: three now assert "no digest tick"
   as a flat rule (`InviteRedeem.tsx:14`, the redeem route's `:36-38`), and
   after this they are wrong for the form step in exactly the way they were
   already wrong about the address before B273 corrected them.
 - Not in scope: whether the box should hide itself when the journal has the
-  digest capability off. `ContactForm` shows it unconditionally; if that is
-  wrong it is wrong in both places and is its own capture.
+  digest capability off. `ContactForm` shows it unconditionally and so does
+  this, per the decision above; if that is wrong it is wrong in both places
+  and is its own capture.
+
+**Two things the owner asked for that turned out to exist already**, checked
+on 2026-09-04 rather than assumed, and recorded here so nobody builds them
+twice:
+
+- *Every update mail must let the reader unsubscribe.* It does.
+  `lib/digest/index.ts:391` passes `unsubscribeUrl` into every digest, and
+  `lib/mail/template.ts:145-149` renders it as a footer link **and** sets
+  `List-Unsubscribe` with `List-Unsubscribe-Post: One-Click`.
+- *Never mail somebody who has not verified their address.* It holds for the
+  digest: `lib/digest/index.ts:197` requires `status === "active"`, and
+  `approveContact` (`lib/contacts/index.ts:684`) returns null without
+  `confirmedAt`, so an unconfirmed address cannot reach `active` and therefore
+  cannot be sent a digest. The DB column already exists — `contacts.confirmed_at`.
+  What does *not* exist is any single place enforcing that rule, so it holds
+  because five senders each happen to be correct. That is **B334**.
 
 ## Acceptance
 
