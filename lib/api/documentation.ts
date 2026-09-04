@@ -347,19 +347,33 @@ Content-Type: application/json
 {"ok": true, "user": "their-name", "url": "${site.url}/their-name",
  "visibility": "public", "welcomeMailed": true,
  "signIn": "${site.url}/their-name/s/…",
+ "signInNote": "Give this to the person, once, in your reply. …",
  "token": "fs_agent_…", "expires": "…", "scope": ["write:content"],
  "next": "POST /api/v1/their-name/trips to create your first trip."}
 \`\`\`
 
 **\`signIn\` is for them, not for you.** Put it in your reply so they can open
 their journal without going to their inbox — it signs them in, which is what
-lets them see drafts and private trips. It works **once**, expires in fifteen
-minutes, and the same door is in their welcome mail if they miss it.
+lets them see drafts and private trips. It works **once** and expires in
+fifteen minutes. \`signInNote\` beside it is the same instruction in one
+sentence, there so it survives being pasted into a log.
+
+**Their welcome mail carries a second link, not this one.** It leads to the
+same place and it is a different token with a different lifetime: the mailed
+one is standing — no expiry, good in a week — while the one you are holding
+dies in fifteen minutes. So "it is also in your email" is true about the
+destination and false about this link, and an agent that says it should expect
+the copy it handed over to stop working while the mailed one still opens.
 
 Three rules about it, and they are not fussiness:
 
-- **Give it to the person, once.** Do not repeat it later in the conversation
-  and do not store it anywhere.
+- **Give it to the person, once, immediately.** Do not repeat it later in the
+  conversation, do not store it anywhere, and do not hold it back for the end
+  of a long reply — besides the fifteen minutes, asking this server for an
+  ordinary sign-in code for that address invalidates any relayed link that has
+  not been used yet. One live code per address is the rule; the relayed link
+  is swept with the rest. The welcome mail's standing link deliberately
+  survives that, which is the other half of why the two are not the same link.
 - **Never hand it over as "the address of your journal".** That is \`url\`.
   Somebody forwarding what they think is an address would be forwarding a
   session.
