@@ -1253,6 +1253,79 @@ export function openApiDocument() {
           },
         },
       },
+      "/api/v1/{user}/trips/{trip}/rates": {
+        get: {
+          summary: "A trip's frozen exchange rates, as stored",
+          description:
+            "The `rates:` table on this trip's `trip.md` — units of the journal's base " +
+            "currency for one unit of each keyed currency, so `{\"THB\": 0.0245}` reads " +
+            "\"1 THB = 0.0245\" of the base. A currency with no rate is simply absent; its " +
+            "costs are reported as unconverted rather than guessed at.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "The trip's rates table" },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal, or is scoped to a trip" },
+            "404": { description: "No such trip" },
+          },
+        },
+        patch: {
+          summary: "Amend a trip's exchange rates after it was created — B352",
+          description:
+            "`createTrip` could only ever write `rates:` once, at the moment a trip is made " +
+            "(B207); this is the door to fix or fill in a rate afterwards, for a hosted " +
+            "instance where nobody has a shell to edit `trip.md` by hand.\n\n" +
+            "**Merges, does not replace.** Naming one currency fills in or corrects that one " +
+            "and leaves every other rate already on the trip untouched — send the one rate a " +
+            "trip is missing, not the whole table. Costs already recorded in a currency you " +
+            "just add convert the next time the costs page, or any total drawn from it, is " +
+            "read.\n\n" +
+            "**Owner only, like `rates` at creation** — a trip-scoped token is refused with " +
+            "`out_of_scope`: a rate table is metadata about the trip, the same shelf " +
+            "`visibility` and `people` sit on, and not content a traveller logs. That is " +
+            "unlike the trip's budget, which anyone on the trip may write.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["rates"],
+                  properties: {
+                    rates: {
+                      type: "object",
+                      additionalProperties: { type: "number" },
+                      description:
+                        "Currency code to rate, e.g. {\"EUR\": 0.94} — units of the base " +
+                        "currency for one unit of the keyed currency.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Merged and written. `rates` is the trip's full table after the merge." },
+            "400": {
+              description: "Invalid JSON, an empty or malformed rates object, or an unrecognisable currency code.",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "The token belongs to a different journal, or is scoped to a trip rather than " +
+                "the journal's owner (`out_of_scope`).",
+            },
+            "404": { description: "No such trip" },
+          },
+        },
+      },
       "/api/v1/{user}/trips/{trip}/media": {
         post: {
           summary: "Upload photographs or video to a day, and add them to it",

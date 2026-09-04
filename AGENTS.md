@@ -561,7 +561,11 @@ buddy link does not. Neither grants anything on its own. Whoever opens one
 proves their own address and lands in the owner's approval queue, and
 `approveContact` is still the only thing in the codebase that creates a grant —
 so report a link as an invitation to *ask*, never as "they now have access".
-The token is in the response once and stored only hashed. `lib/contacts/invites.ts`.
+The token is in the response once, in that API call. Its hash is stored
+always, and — since B280 — a reversible copy beside it where the instance has
+a contacts encryption key, so the owner's own `/<user>/contacts` page can show
+a lost link again; without that key it is hash-only and a lost link can only
+be reissued. `lib/contacts/invites.ts`.
 
 **Deleting is the one thing an agent cannot finish.** `DELETE` on a journal or
 a trip removes nothing and answers `202`: the server mails the address in that

@@ -594,21 +594,29 @@ fifteen minutes. \`signInNote\` beside it is the same instruction in one
 sentence, there so it survives being pasted into a log.
 
 **Their welcome mail carries a second link, not this one.** It leads to the
-same place and it is a different token with a different lifetime: the mailed
-one is standing — no expiry, good in a week — while the one you are holding
-dies in fifteen minutes. So "it is also in your email" is true about the
-destination and false about this link, and an agent that says it should expect
-the copy it handed over to stop working while the mailed one still opens.
+same place and it is a different token with a different lifetime: the one you
+are holding dies in fifteen minutes, and the mailed one does not expire on a
+clock. Both are **single use** — the mailed one is not standing, whatever it
+sounds like. A mail scanner that opens links before the reader does can spend
+it first, and the reader then lands on "that link had already been used"
+having never touched it themselves (B142) — the same reason the site's own
+sign-in page explains this rather than assuming a dead link means something
+went wrong. The **six-digit code is the reliable route**; hand that over, or
+tell them to ask for one, when the link might already be gone.
 
-Three rules about it, and they are not fussiness:
+The one real difference: asking this server for a fresh ordinary sign-in code
+for that address invalidates any relayed link that has not been used yet, but
+the welcome mail's link survives that. One live code per address is the rule
+for everything else; this link alone is exempt, because it is the owner's
+first way in and may sit unopened for a week while they request other codes in
+the meantime.
+
+Three rules about the one you are holding, and they are not fussiness:
 
 - **Give it to the person, once, immediately.** Do not repeat it later in the
   conversation, do not store it anywhere, and do not hold it back for the end
-  of a long reply — besides the fifteen minutes, asking this server for an
-  ordinary sign-in code for that address invalidates any relayed link that has
-  not been used yet. One live code per address is the rule; the relayed link
-  is swept with the rest. The welcome mail's standing link deliberately
-  survives that, which is the other half of why the two are not the same link.
+  of a long reply — it dies in fifteen minutes, and a fresh code request for
+  that address kills it sooner.
 - **Never hand it over as "the address of your journal".** That is \`url\`.
   Somebody forwarding what they think is an address would be forwarding a
   session.
@@ -886,9 +894,13 @@ and, when \`email\` was given, its pre-approval both already exist by the time
 this responds. Read \`invite.url\` and hand it over another way rather than
 telling the owner nothing happened.
 
-The token is in the response **once**. Only its hash is stored, so a link that
-is lost is reissued, never looked up — do not save it anywhere the person did
-not ask for, and do not read it back to them as a credential.
+The token is in the response **once** — in this API call. Do not save it
+anywhere the person did not ask for, and do not read it back to them as a
+credential. Where this journal has a contacts encryption key configured, the
+owner's own \`${example}/contacts\` page can show the link again later — B280
+put a reversible copy beside the hash, for exactly this — so a lost link is not
+always a reissue; point the owner there first. Without that key, the old rule
+still holds: only the hash is stored, and a lost link can only be reissued.
 
 \`GET /api/v1/${example}/invites\` lists what has been issued, without the
 tokens. \`DELETE /api/v1/${example}/invites/<id>\` revokes one: the link stops
@@ -995,15 +1007,21 @@ Add \`"test": true\` if this trip is being made to check that the software works
 rather than to record a journey. Every day of it then carries the banner, and
 none of it reaches the feed, the search index or the sitemap.
 
-**Three fields can only be set here, because nothing edits a \`trip.md\`
-afterwards.** Ask before sending any of them, and leave out what you were not
-told.
+**Two fields can only be set here, because nothing edits a \`trip.md\` after
+creation for either of them.** Ask before sending either, and leave out what
+you were not told. \`rates\` used to be a third — see "The trip's exchange
+rates" below for the door that opened.
 
 | | |
 | --- | --- |
 | \`people\` | Who took the trip — \`[{"name": …, "email": …, "nickname": …}]\`, at most ten. It is the byline **and it is write access**: everyone named may write to the whole trip and may ask for a token scoped to it, using the address given. A malformed entry is refused by name rather than dropped. |
-| \`rates\` | This trip's frozen rates — \`{"THB": 0.0245}\` reads "1 THB = 0.0245" of the journal's base currency, so a currency worth less than the base one has a **small** number. \`content/rates/ecb.json\` points the other way round. Leaving a currency out is supported: its costs are reported as unconverted rather than guessed at. |
 | \`translations\` | The title and tagline in the journal's other languages — \`{"de": {"title": …, "tagline": …}}\`. A language the journal does not declare is refused, since it would be written and never rendered. |
+
+\`rates\` can still be sent here too, at creation, and reads the same way it
+always did: \`{"THB": 0.0245}\` means "1 THB = 0.0245" of the journal's base
+currency, so a currency worth less than the base one has a **small** number.
+\`content/rates/ecb.json\` points the other way round. Leaving a currency out
+is supported: its costs are reported as unconverted rather than guessed at.
 
 There is no \`cover\`. A trip has no photographs when it is created — media is
 attached to a day, and there are no days yet — so a cover is a line somebody
@@ -1400,6 +1418,46 @@ may read, write, amend or delete its budget too, trip-scoped tokens included —
 a budget is trip content, and the people on a trip are the people who spent
 the money. Per-day spending is a different field entirely: \`costs\` on
 \`POST .../days\`, above, which this door does not touch.
+
+### The trip's exchange rates
+
+\`createTrip\` could only ever write \`rates:\` once, at the moment a trip is
+made — B352 opened a door to amend it afterwards, because a costs page with an
+unrated currency had nowhere else to send an owner on a hosted instance: "add
+the missing rates to the trip's trip.md" is advice with nowhere to go when
+nobody has a shell.
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/trips/<trip-id>/rates
+Authorization: Bearer fs_agent_…
+\`\`\`
+
+\`\`\`json
+{"trip": "${example}/<trip-id>", "rates": {"THB": 0.0245}}
+\`\`\`
+
+\`\`\`http
+PATCH ${site.url}/api/v1/${example}/trips/<trip-id>/rates
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"rates": {"EUR": 0.94}}
+\`\`\`
+
+**This merges, it does not replace.** Naming one currency fills in or corrects
+that one and leaves every other rate already on the trip untouched — send the
+one THB rate a trip is missing, not the whole table. Costs already recorded in
+a currency you just add convert the next time the costs page, or any total
+drawn from it, is read; nothing needs re-entering. The same validation
+\`createTrip\` uses runs here too, so a rate rejected on this call would have
+been rejected at creation, and one written here reads back exactly the way one
+written at creation would.
+
+**Owner only**, like \`rates\` at creation — a trip-scoped token is refused with
+\`out_of_scope\`, because a rate table is metadata about the trip, the same
+shelf \`visibility\` and \`people\` sit on, and not content a traveller logs.
+That is different from the trip's budget, above, which anyone on the trip may
+write.
 
 ### Photographs and video
 
