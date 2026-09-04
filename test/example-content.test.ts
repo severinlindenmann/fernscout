@@ -232,11 +232,18 @@ describe("the demo journal covers every cost shape", () => {
   });
 
   test("every trip's spend converts, in every currency it was spent in", () => {
+    // The one check on a trip's `rates:` block that exists anywhere. A cost in
+    // a currency the trip has no rate for is a *supported* state — the page
+    // says what it left out rather than guessing — so nothing may fail the
+    // build over it, and the demo journal is the one place it can be asserted
+    // without making a claim about somebody's own content. Name the currency
+    // in the message: "could not convert" is not actionable, "missing a rate
+    // for THB" is the edit. See docs/currencies.md, and B17.
     for (const trip of trips()) {
       const summary = getCostSummary(trip.ref);
       expect(
-        summary.unconverted,
-        `${trip.ref} has amounts it could not convert`,
+        summary.unconverted.map((u) => u.currency),
+        `${trip.ref} spends in a currency missing from its rates: block in trip.md`,
       ).toEqual([]);
       expect(summary.budget?.total).toBeGreaterThan(0);
     }
