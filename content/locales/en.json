@@ -59,6 +59,7 @@
   "contact.adminRevokeLink": "Revoke",
   "contact.adminSignIn": "Sign in with the address that owns this journal to see who is waiting.",
   "contact.adminSubtitle": "Who is waiting, who is in, and when they last looked.",
+  "contact.adminTelHint": "kept on file — nothing on this site sends to it yet",
   "contact.adminTitle": "Readers",
   "contact.adminVia": "Came via",
   "contact.adminWants": "Wants",

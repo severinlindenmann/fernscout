@@ -90,6 +90,7 @@ export type TranslationKey =
   | "contact.adminRevokeLink"
   | "contact.adminSignIn"
   | "contact.adminSubtitle"
+  | "contact.adminTelHint"
   | "contact.adminTitle"
   | "contact.adminVia"
   | "contact.adminWants"

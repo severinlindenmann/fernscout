@@ -258,6 +258,7 @@ export default function ContactForm({
               value={address.tel}
               onChange={(e) => setTel(e.target.value)}
             />
+            <p className="mt-2 text-base text-navy-600">{t("contact.telHint")}</p>
           </div>
 
           <fieldset className="mt-10 rounded-2xl border border-navy-200 bg-cream-100 p-5">
