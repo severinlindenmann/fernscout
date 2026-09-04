@@ -1,7 +1,8 @@
 import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
-import { publishDraft } from "@/lib/api/entries";
+import { publishNotice, publishDraft } from "@/lib/api/entries";
 import { confirmationMatches, confirmationRequired } from "@/lib/agentConfirm";
 import { SESSION_SCOPE } from "@/lib/auth";
+import { isTestContent } from "@/lib/access";
 import { getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { serverSite } from "@/lib/site";
@@ -100,10 +101,17 @@ export async function POST(
     return Response.json(
       confirmationRequired(
         operation,
-        `This publishes "${entry.title}" (${entry.date}) to ${serverSite().url}/${user}. ` +
-          `It goes into the journal, the feed and the search index, and anyone with the ` +
-          `link can read it. Taking it down again removes it from the site, not from the ` +
-          `people who have already read it.`,
+        // What publishing *this* day does, not what publishing does in
+        // general. A `test: true` day is excluded from the feed, the search
+        // index and the sitemap, and this sentence used to promise the
+        // opposite at the exact moment somebody was deciding. Shared with the
+        // MCP tool so the two doors cannot drift. B158.
+        publishNotice({
+          title: entry.title,
+          date: entry.date,
+          url: `${serverSite().url}/${user}`,
+          test: isTestContent(found, entry),
+        }),
       ),
       { status: 409 },
     );

@@ -313,6 +313,44 @@ export function attachGallery(
 }
 
 /**
+ * What publishing this particular day will do — written once, for both doors.
+ *
+ * This is the last sentence a person reads before they say yes, which makes it
+ * the one moment the software has their full attention. Until B158 it promised
+ * the feed and the search index to every day alike, and for a `test: true` day
+ * none of that half is true: `lib/feed.ts`, `lib/search.ts` and the sitemap all
+ * exclude content nobody lived, so the confirmation was describing a different
+ * day than the one in front of the person approving it.
+ *
+ * The test wording is shorter and more reassuring rather than more alarming,
+ * because that is what is actually the case: the page goes up wearing a banner
+ * that says it did not happen, and nothing goes looking for it.
+ *
+ * One function, because REST and MCP ask the same question and a sentence kept
+ * in two files disagrees with itself within a month — which is exactly how the
+ * two copies of this one came to differ before B158 merged them.
+ */
+export function publishNotice(input: {
+  title: string;
+  date: string;
+  /** Where the day will be, so the person hears the address they are agreeing to. */
+  url: string;
+  /** `isTestContent(trip, entry)` — the trip's flag counts, not just the day's. */
+  test: boolean;
+}): string {
+  const head = `This publishes "${input.title}" (${input.date}) to ${input.url}.`;
+  const tail =
+    `Taking it down again removes it from the site, not from the people who have ` +
+    `already read it.`;
+  return input.test
+    ? `${head} It is marked test: true — content nobody lived — so the page says so in a ` +
+        `banner and it is kept out of the feed, the search index and the sitemap. Anyone ` +
+        `with the link can still read it. ${tail}`
+    : `${head} It goes into the journal, the feed and the search index, and anyone with ` +
+        `the link can read it. ${tail}`;
+}
+
+/**
  * Publish a draft: remove the one line that was holding it back.
  *
  * Until B28 the only way to do this was to open the file in a text editor and
@@ -378,8 +416,27 @@ export function publishDraft(
   return { ok: true, slug };
 }
 
-/** Entries awaiting a human, for the review queue. */
-export function listDrafts(ref: string): { slug: string; title: string; date: string }[] {
+/**
+ * Entries awaiting a human, for the review queue.
+ *
+ * `test` is carried out with them, resolved the way every other surface
+ * resolves it — `isTestContent`, so a day that inherits the flag from its trip
+ * is flagged even though its own file says nothing (B134). This is the list an
+ * agent is instructed to read back to a person **at the moment they decide
+ * what goes on the site**, and a queue of five drafts that does not say two of
+ * them are inventions hands somebody a decision without the fact that decides
+ * it.
+ *
+ * The trip is read once, here, rather than per file: this function reads
+ * frontmatter with `matter` directly instead of going through `getAllEntries`,
+ * so it has to fetch the trip itself, and `getTrip` is a memoised read of the
+ * same folder either way.
+ *
+ * Only when true, like every other flag on these surfaces. Absent means real.
+ */
+export function listDrafts(
+  ref: string,
+): { slug: string; title: string; date: string; test?: true }[] {
   const dir = path.join(tripDir(ref), "entries");
   let files: string[] = [];
   try {
@@ -388,7 +445,8 @@ export function listDrafts(ref: string): { slug: string; title: string; date: st
     return [];
   }
 
-  const drafts: { slug: string; title: string; date: string }[] = [];
+  const trip = getTrip(ref);
+  const drafts: { slug: string; title: string; date: string; test?: true }[] = [];
   for (const file of files) {
     const parsed = matter(fs.readFileSync(path.join(dir, file), "utf8"));
     if (parsed.data.status !== "draft") continue;
@@ -396,6 +454,7 @@ export function listDrafts(ref: string): { slug: string; title: string; date: st
       slug: entrySlugFromFile(file),
       title: String(parsed.data.title ?? ""),
       date: String(parsed.data.date ?? ""),
+      ...(isTestContent(trip, { test: parsed.data.test === true }) ? { test: true as const } : {}),
     });
   }
   return drafts.sort((a, b) => a.date.localeCompare(b.date));

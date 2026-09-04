@@ -13,6 +13,11 @@ export const dynamic = "force-dynamic";
  * what was waiting and not where the person went to say yes: the guide told an
  * agent four times that "a person publishes it" and never once how. A queue
  * that names the outstanding work and not the approval is half a queue.
+ *
+ * It also carries `test` on a draft nobody lived — `listDrafts` resolves it,
+ * inheritance included, and the spread below passes it through (B134). Present
+ * only when true; absent means real, which is the rule on every other surface
+ * that reports this flag.
  */
 export async function GET(request: Request, { params }: RouteContext<"/api/v1/[user]/drafts">) {
   const auth = await authenticate(request);

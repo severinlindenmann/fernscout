@@ -307,3 +307,94 @@ describe("the day list says which days did not happen", () => {
     expect(listed.test).toBe(read.test);
   });
 });
+
+/**
+ * B134 — the review queue, which is the surface read out loud to a person at
+ * the moment they decide what goes on the site.
+ *
+ * B47 fixed the trip summary, the day read and the markdown twin; B116 fixed
+ * the day list. `listDrafts` returned `{ slug, title, date }` and nothing else,
+ * so `GET /api/v1/<user>/drafts` and MCP's `list_drafts` — the one list an
+ * agent is *instructed* to read back before asking "which of these do you
+ * want up?" — could not say that a draft was content nobody lived. An agent
+ * that names five drafts without mentioning that two are inventions has handed
+ * somebody a decision without the fact that decides it.
+ */
+describe("the review queue says which drafts nobody lived", () => {
+  /** A draft in one of the fixture trips. */
+  function writeDraft(trip: string, slug: string, extra: string[] = []) {
+    fs.writeFileSync(
+      path.join(dir, "alex", "trips", trip, "entries", `2026-01-09-${slug}.md`),
+      [
+        "---",
+        `title: "${slug}"`,
+        'date: "2026-01-09"',
+        'location: "Somewhere"',
+        "status: draft",
+        ...extra,
+        "---",
+        "",
+        `MARKER-${slug.toUpperCase()}`,
+        "",
+      ].join("\n"),
+    );
+  }
+
+  async function draftsRoute(token: string) {
+    const { GET } = await import("@/app/api/v1/[user]/drafts/route");
+    const response = await GET(
+      new Request("https://t.test/api/v1/alex/drafts", {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    const body = (await response.json()) as { drafts: Record<string, unknown>[] };
+    return body.drafts;
+  }
+
+  test("a draft that inherits the flag from its trip is marked", async () => {
+    // The case that was silent, and the likely one: the whole trip is a
+    // proving run, so the entry file says nothing of its own.
+    writeDraft("proving-2026", "provingdraft");
+    const { listDrafts } = await import("@/lib/api/entries");
+    expect(listDrafts("alex/proving-2026")).toEqual([
+      { slug: "provingdraft", title: "provingdraft", date: "2026-01-09", test: true },
+    ]);
+
+    const drafts = await draftsRoute(await agentToken());
+    expect(drafts.find((d) => d.slug === "provingdraft")).toMatchObject({ test: true });
+  });
+
+  test("a draft with its own flag is marked, and a real one beside it is not", async () => {
+    writeDraft("real-2026", "fakedraft", ["test: true"]);
+    writeDraft("real-2026", "realdraft");
+
+    const drafts = await draftsRoute(await agentToken());
+    const bySlug = Object.fromEntries(drafts.map((d) => [d.slug as string, d]));
+    expect(bySlug.fakedraft).toMatchObject({ test: true });
+    // Absent, not `false` — absent means real, on every surface that carries
+    // this flag.
+    expect(bySlug.realdraft).not.toHaveProperty("test");
+  });
+
+  test("and the queue agrees with the day read about the same day", async () => {
+    // Two doors, one day. Publishing it is the decision this list exists to
+    // inform, so the two must not describe it differently.
+    writeDraft("proving-2026", "provingdraft");
+    const token = await agentToken();
+    const { GET: dayRoute } = await import(
+      "@/app/api/v1/[user]/trips/[trip]/days/[slug]/route"
+    );
+    const one = await dayRoute(
+      new Request("https://t.test/api/v1/alex/trips/proving-2026/days/provingdraft", {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+      { params: Promise.resolve({ user: "alex", trip: "proving-2026", slug: "provingdraft" }) },
+    );
+    const read = (await one.json()) as { test?: boolean };
+    const queued = (await draftsRoute(token)).find((d) => d.slug === "provingdraft");
+
+    expect(read.test).toBe(true);
+    expect(queued?.test).toBe(read.test);
+  });
+});

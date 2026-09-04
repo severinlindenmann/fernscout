@@ -64,3 +64,29 @@ each already had to repair.
 - Publishing an ordinary day is unchanged.
 - `search_entries`' treatment of test content is stated in its description and
   matches what it does.
+
+## Built (2026-09-04)
+
+Both halves, and the second one is now decided rather than left open.
+
+**The confirmation.** `publishNotice()` in `lib/api/entries.ts` is the sentence,
+written once and read by both doors. For a `test: true` day — the trip's flag
+counts, not only the entry's — it says the page will carry a banner and that the
+day is kept out of the feed, the search index and the sitemap; for an ordinary
+day it says exactly what it said before. The two doors had drifted already (the
+REST message named the URL and the MCP one did not), which is the argument for
+one function rather than two strings: `test/mcp.test.ts` now asserts the REST
+refusal message is contained in the MCP one, so a future edit to one is an edit
+to both.
+
+**`search_entries`.** Decided: test days stay findable, and every result that is
+one says so — in the line as well as in the data, because a caller reading only
+`text` is the failure B116 fixed. The reasoning is in the tool description and
+in `searchDocs`: this is the agent's own journal, so the one kind of content it
+is allowed to invent should not also be the one kind it cannot look up, and the
+public index is a different corpus for a different audience. The flag is carried
+beside the documents rather than inside `SearchDoc`, whose shape is shared with
+the static browser index through `SEARCH_OPTIONS.storeFields`.
+
+Nothing here publishes anything. The confirmation is still refused once, still
+bound to that one day, and still owner-only.
