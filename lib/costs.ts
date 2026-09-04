@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { isEnabled } from "./capabilities";
-import { getAllEntries, getDays } from "./entries";
+import { getAllEntries, getDays, type ReadOptions } from "./entries";
 import { getTrip, getTripIds, tripDir, tripRef } from "./trips";
 import { hasBegun } from "./tripTime";
 import { loadUserConfig } from "./config";
@@ -69,26 +69,37 @@ export function readCostsFile(tripId: string) {
 }
 
 /**
- * Whether this one trip has a `costs.md` — the file, not the capability.
+ * Whether this one trip has any costs at all — a `costs.md`, or a day
+ * carrying a `costs:` block. Not just the file: B328 found a trip with
+ * fifteen days of logged spend and no `costs.md`, whose page could not be
+ * reached because this only ever asked about the file. `costs.md` is still
+ * optional per trip (AGENTS.md), and `features.costs` being on says nothing
+ * about whether anybody wrote one either way — it is on by default at
+ * creation (lib/journals.ts). The costs pages ask this for the trip they are
+ * about to render, so a journal with one trip costed and another not shows
+ * the second one's page as absent rather than as an empty shell, without
+ * hiding the first's.
  *
- * `costs.md` is optional per trip (AGENTS.md), and B267 is the fact that
- * `features.costs` being on says nothing about whether anybody wrote one: it
- * is on by default at creation (lib/journals.ts). The costs pages ask this
- * for the trip they are about to render, so a journal with one trip costed
- * and another not shows the second one's page as absent rather than as an
- * empty shell, without hiding the first's.
+ * `options` is the same `ReadOptions` every other reader in lib/entries.ts
+ * takes, and for the same reason: a day's spend counts toward "this trip has
+ * costs" only for a reader entitled to see that day. Omit it (the default
+ * every non-owner call site uses) and a draft day's costs do not bring the
+ * page into being for a stranger — the same class of leak as B296, B318 and
+ * B322, all one call site short of `includeDrafts`.
  */
-export function hasCostsData(tripId: string): boolean {
-  return readCostsFile(tripId) !== null;
+export function hasCostsData(tripId: string, options?: ReadOptions): boolean {
+  if (readCostsFile(tripId) !== null) return true;
+  return getAllEntries(tripId, options).some((e) => e.costs.length > 0);
 }
 
 /**
- * Whether any trip in this journal has a `costs.md` at all — journal-wide,
- * for the nav (`costsAvailable` below), which is not asked about any one
- * trip. `SiteSummary.costsEnabled` (lib/site.ts) is deliberately the same for
- * every page of a journal (test/access-door.test.ts pins that), so the
- * question it can ask is "does this journal do this at all", not "does the
- * trip in front of the reader right now".
+ * Whether any trip in this journal has costs at all — journal-wide, for the
+ * nav (`costsAvailable` below), which is not asked about any one trip.
+ * `SiteSummary.costsEnabled` (lib/site.ts) is deliberately the same for every
+ * page of a journal and every reader of it (test/access-door.test.ts pins
+ * that), so this never passes `includeDrafts`: a draft-only trip's costs
+ * must not put a tab in the nav that a stranger, or even the owner's own
+ * signed-out browser, would otherwise not get.
  */
 function journalHasCosts(username: string): boolean {
   return getTripIds(username).some((id) => hasCostsData(tripRef(username, id)));
@@ -160,10 +171,10 @@ export function costsForEntry(tripId: string, entry: Entry): CostItem[] {
   }));
 }
 
-export function getAllCosts(tripId: string): CostItem[] {
+export function getAllCosts(tripId: string, options?: ReadOptions): CostItem[] {
   return [
     ...getPreparationCosts(tripId),
-    ...getAllEntries(tripId).flatMap((e) => costsForEntry(tripId, e)),
+    ...getAllEntries(tripId, options).flatMap((e) => costsForEntry(tripId, e)),
   ];
 }
 
@@ -191,10 +202,20 @@ function mergeUnconverted(...lists: Unconverted[][]): Unconverted[] {
  * `lib/tripTime.ts`: whether the trip has begun is a reading of a clock, and
  * a summary that reads it privately cannot be tested on either side of a
  * departure date.
+ *
+ * `options` is `ReadOptions`, threaded through to every day-side read below
+ * for the reason `hasCostsData` above carries at length: a draft day's spend
+ * belongs in this summary only for a reader entitled to see that day.
+ * Omitted, as every call site but the costs pages' own leaves it, a draft's
+ * costs are invisible here exactly as they are everywhere else in the trip.
  */
-export function getCostSummary(tripId: string, now: Date = new Date()): CostSummary {
+export function getCostSummary(
+  tripId: string,
+  now: Date = new Date(),
+  options?: ReadOptions,
+): CostSummary {
   const { base } = conversionFor(tripId);
-  const items = getAllCosts(tripId);
+  const items = getAllCosts(tripId, options);
   const preparationItems = getPreparationCosts(tripId);
 
   // Every figure below is a sum of `base` values only. Summing `amount`
@@ -203,7 +224,7 @@ export function getCostSummary(tripId: string, now: Date = new Date()): CostSumm
   const preparation = sumBase(preparationItems);
   const total = sumBase(items);
   const onTheRoad = total - preparation;
-  const days = getDays(tripId);
+  const days = getDays(tripId, options);
 
   const byCategory = COST_CATEGORIES.map((category) => {
     const amount = sumBase(items.filter((i) => i.category === category));

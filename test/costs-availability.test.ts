@@ -4,9 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import { costsAvailable } from "@/lib/costs";
+import { costsAvailable, hasCostsData } from "@/lib/costs";
 import { siteSummaryFor } from "@/lib/site";
 import { getUser } from "@/lib/users";
+import { tripRef } from "@/lib/trips";
 
 /**
  * B267 — a journal with no `costs.md` anywhere had the capability on by
@@ -73,6 +74,28 @@ function writeTrip(username: string, tripId: string, withCosts: boolean) {
   }
 }
 
+/** One day, carrying its own `costs:` block and nothing else particular —
+ * B328's fixture: the trip that has money logged and no `costs.md` at all. */
+function writeDayCostEntry(username: string, tripId: string, draft: boolean) {
+  const entriesDir = path.join(dir, username, "trips", tripId, "entries");
+  fs.mkdirSync(entriesDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(entriesDir, "2026-01-02-a-day.md"),
+    [
+      "---",
+      'title: "A day"',
+      'date: "2026-01-02"',
+      "costs:",
+      '  - { label: "Street food", amount: 20, category: "food" }',
+      ...(draft ? ["status: draft"] : []),
+      "---",
+      "",
+      "Body.",
+      "",
+    ].join("\n"),
+  );
+}
+
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-costs-availability-"));
   process.env.CONTENT_DIR = dir;
@@ -90,6 +113,10 @@ beforeEach(() => {
   writeTrip("unbudgeted", "trip-a", false);
   writeUser("off");
   writeTrip("off", "trip-a", true);
+  // B328: a trip with a day's spend logged and no `costs.md` at all.
+  writeUser("daycosts");
+  writeTrip("daycosts", "trip-a", false);
+  writeDayCostEntry("daycosts", "trip-a", false);
   // Written after the others so `writeUser` above can stay the one place
   // that sets the ordinary feature block.
   fs.writeFileSync(
@@ -141,5 +168,27 @@ describe("what the nav is told", () => {
   test("a journal with no costs.md anywhere: the tab is gone", () => {
     const user = getUser("unbudgeted")!;
     expect(siteSummaryFor(user, false).costsEnabled).toBe(false);
+  });
+});
+
+/**
+ * B328 — the trip that had fifteen days of logged spend and no `costs.md`,
+ * and no page to show for it. `hasCostsData` asked only about the file;
+ * these pin the fix, that it also asks the days.
+ */
+describe("hasCostsData, once it also asks the days", () => {
+  test("true for a trip with a published day's costs and no costs.md at all", () => {
+    expect(hasCostsData(tripRef("daycosts", "trip-a"))).toBe(true);
+  });
+
+  test("its journal's nav gets the tab too, with nothing written by hand", () => {
+    expect(costsAvailable("daycosts")).toBe(true);
+    const user = getUser("daycosts")!;
+    expect(siteSummaryFor(user, false).costsEnabled).toBe(true);
+  });
+
+  test("false for a trip with nothing costed anywhere — neither a file nor a day", () => {
+    expect(hasCostsData(tripRef("unbudgeted", "trip-a"))).toBe(false);
+    expect(costsAvailable("unbudgeted")).toBe(false);
   });
 });

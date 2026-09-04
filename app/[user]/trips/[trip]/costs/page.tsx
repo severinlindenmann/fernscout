@@ -10,6 +10,7 @@ import { getUser, getUsernames } from "@/lib/users";
 import { isEnabled } from "@/lib/capabilities";
 import TripProvider from "@/components/TripProvider";
 import { travellerNamesOf } from "@/lib/site";
+import { isOwner } from "@/lib/contacts/session";
 
 export function generateStaticParams() {
   return getUsernames().flatMap((user) => {
@@ -76,8 +77,15 @@ export default async function TripCostsPage({ params }: PageProps<"/[user]/trips
    * with the capability off: the capability being on says nothing about this
    * one trip, since `costs` defaults to on at creation (lib/journals.ts) and
    * `costs.md` is written separately, or not at all. B267.
+   *
+   * `hasCostsData` also asks the days now (B328), so a draft day's costs
+   * must not count for a reader who cannot see that day — the same leak as
+   * B296, B318 and B322. `read` below is the owner's own view; every other
+   * reader gets the default, drafts excluded.
    */
-  if (!hasCostsData(trip.ref)) notFound();
+  const owner = await isOwner(user);
+  const read = { includeDrafts: owner };
+  if (!hasCostsData(trip.ref, read)) notFound();
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
@@ -91,7 +99,7 @@ export default async function TripCostsPage({ params }: PageProps<"/[user]/trips
     <TripProvider trip={trip} isCurrent={false}>
       {(await mayViewCosts(trip)) ? (
         <CostsPageContent
-          summary={getCostSummary(trip.ref)}
+          summary={getCostSummary(trip.ref, undefined, read)}
           travellers={travellerNamesOf(userConfig, trip)}
         />
       ) : (
