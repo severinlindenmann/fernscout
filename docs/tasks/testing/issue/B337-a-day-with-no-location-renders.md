@@ -6,6 +6,8 @@ priority: low
 complexity: low
 area: gallery
 found: "2026-09-04T19:18:45Z"
+started: "2026-09-04T19:21:57Z"
+merged: "2026-09-04T19:24:44Z"
 ---
 
 # B337 — A day with no `location:` renders a blank, unlabelled filter chip in the gallery
