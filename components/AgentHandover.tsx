@@ -33,10 +33,17 @@ export default function AgentHandover({
       <p className="mt-3 font-mono text-sm text-navy-900">{docUrl}</p>
       <p className="font-mono text-sm text-navy-600">{email}</p>
       <div className="mt-3">
+        {/* One control, two values, and therefore an accessible name that
+            says what it copies rather than reciting it. Reciting put the
+            guide's address and the owner's own address into one run of text
+            separated by a newline, which readers announce inconsistently or
+            not at all — one string where there were two, under a name that
+            said "Copy link". B199. Both lines are above as page text. */}
         <CopyLine
           value={[docUrl, email].filter(Boolean).join("\n")}
           label={t("landing.copy")}
           copiedLabel={t("landing.copied")}
+          name={t("me.agentCopy")}
         />
       </div>
     </div>

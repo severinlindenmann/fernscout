@@ -72,6 +72,10 @@ vi.mock("@/lib/costs", () => ({ getCostSummary: () => ({ total: 1234 }) }));
 vi.mock("@/lib/site", () => ({ travellerNamesOf: () => [] }));
 vi.mock("@/lib/locales", () => ({
   requestLocale: async () => "en",
+  // The journal's own language, for the sharing card. Both costs routes ask
+  // for it now (B139); neither reaches the call with the capability off, which
+  // is the case under test here.
+  localeForPath: () => "en",
   translateIn: (_locale: string, key: string) => key,
 }));
 

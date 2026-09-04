@@ -322,6 +322,7 @@
   "map.zoomIn": "Nagyítás",
   "map.zoomOut": "Kicsinyítés",
   "me.agentBody": "Add oda ezt a két sort egy ügynöknek. Ott elolvassa az útmutatót, és kér tőled egy kódot.",
+  "me.agentCopy": "Mindkét sor másolása: az útmutató címe és az a cím, ahová a kód érkezik",
   "me.agentTitle": "Íráshoz vagy új úthoz",
   "me.askOwner": "Itt nincs mit kitölteni — ehhez a naplóhoz nem tartozik vendégkönyv. A link, amit kapsz, az enged be.",
   "me.canRead": "Amit olvashatsz",

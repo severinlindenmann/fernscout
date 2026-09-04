@@ -126,7 +126,15 @@ describe("and its owner", () => {
     expect(html).toContain(OWNER_EMAIL);
     // The copy button carries both lines at once, which is the whole point of
     // the block: one paste into an agent.
-    expect(html).toContain(`${DOC_URL}\n${OWNER_EMAIL}`);
+    //
+    // Asserted through the control's *name* rather than by looking for the two
+    // values joined by a newline in the markup. That is where they used to be
+    // findable — inside `aria-label` — and B199 is the ticket for why they are
+    // not any more: a URL and an email address in one accessible name, joined
+    // by a break screen readers announce inconsistently, arrive as one string
+    // under a name that said "Copy link". The clipboard still gets both lines;
+    // `test/copy-line-name.test.tsx` holds that end of it.
+    expect(html).toContain(`aria-label="${dictionaryFor("en")["me.agentCopy"]}"`);
   });
 
   test("is told there is no form and never will be", () => {

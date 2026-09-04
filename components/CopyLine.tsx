@@ -14,11 +14,25 @@ export default function CopyLine({
   value,
   label,
   copiedLabel,
+  name,
 }: {
   value: string;
   label: string;
   /** What the button reads after a successful copy. */
   copiedLabel: string;
+  /**
+   * The accessible name, when reciting the value would not make one.
+   *
+   * By default the name is "<label>: <value>", which is right for the single
+   * address every caller but one hands over. The agent-handover block copies
+   * *two* values joined by a newline, and a newline inside an accessible name
+   * is not reliably announced as a break — so a screen reader ran a URL and an
+   * email address together into one string with no boundary, under a name that
+   * said "Copy link". B199. A caller with more than one value to copy passes a
+   * name that says what it copies instead; the values themselves are on the
+   * page as text, which is where they are readable one at a time.
+   */
+  name?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -41,7 +55,7 @@ export default function CopyLine({
           setCopied(false);
         }
       }}
-      aria-label={`${label}: ${value}`}
+      aria-label={name ?? `${label}: ${value}`}
       // The focus ring is the global blue-500 one from globals.css: sky-500
       // is 2.73:1 on white and 2.63:1 on cream, so as a ring it failed the 3:1
       // that a focus indicator needs on every surface it is drawn against.

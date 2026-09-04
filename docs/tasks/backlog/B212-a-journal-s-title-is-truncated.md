@@ -56,3 +56,27 @@ Not doing: a redesign of the header, or hiding the progress bar.
   title first.
 - The README screenshots are recaptured if the header changes shape — see
   `docs/screenshots/README.md` for how, and for the 339 KB budget.
+
+## B170 carries the fix
+
+This is the same defect as **B170** — "the journal's title is clipped in the
+header at exactly the width where the nav labels appear" — measured there at
+1280 and 1440 before the README screenshots were taken. B170 was in flight when
+this was captured, and its evidence now includes the 1440 × 900 reading above.
+
+Fixed in `components/PageHeader.tsx` under B170: the title box had `flex-1`,
+whose `0%` basis meant the title counted for nothing when the browser decided
+whether the header row fitted on one line — so the row never wrapped and the
+title absorbed the whole shortfall, 71px of box for 140px of "Fernscout Demo".
+It now carries a real basis and the nav takes a second line instead.
+
+The reading in **Why** above was close: the day counter is 144px of the
+difference between this page and `/map`, which is why the truncation shows here
+first. But the mechanism is in the shared header, not in the trip-story
+header — `/map` was one wide chip away from the same thing.
+
+**What is left in this ticket is the third acceptance line only**: the README
+screenshots still show "Ferns…", and the header is now two rows at desktop on
+trip pages, so `docs/screenshots/trip-story.jpg` and `day-entry.jpg` need
+recapturing inside the 339 KB budget. See `docs/screenshots/README.md`, and B154
+for how they were made.

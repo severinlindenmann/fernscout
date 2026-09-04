@@ -322,6 +322,7 @@
   "map.zoomIn": "Zoom in",
   "map.zoomOut": "Zoom out",
   "me.agentBody": "Hand these two lines to an agent. It reads the guide there and asks you for a code.",
+  "me.agentCopy": "Copy both lines: the guide’s address, and the address a code is sent to",
   "me.agentTitle": "To write, or to start a new trip",
   "me.askOwner": "There is nothing to fill in here — this journal keeps no guestbook. The link they send you is what lets you in.",
   "me.canRead": "What you can read",

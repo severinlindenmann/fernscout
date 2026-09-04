@@ -13,7 +13,7 @@ import { GUEST_COOKIE, resolveSession } from "@/lib/auth";
 import { listableTrips } from "@/lib/tripGate";
 import { getCurrentTrip, getTrips } from "@/lib/trips";
 import { currencyOptions } from "@/lib/rates";
-import { dictionaryFor } from "@/lib/locales";
+import { dictionaryFor, readerLocale } from "@/lib/locales";
 import { getDefaultUsername, getUser } from "@/lib/users";
 
 /**
@@ -65,9 +65,15 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
   // A reader's choice from the language switcher, honoured only if this
   // journal actually offers it — otherwise a cookie set on one journal would
   // silently pick a language another one does not speak.
+  //
+  // Through `readerLocale` rather than written out here, because the same
+  // question is asked again by every `generateMetadata` on the way to the
+  // browser tab, and the second copy of the expression asked it differently:
+  // it narrowed to the languages the *project* maintains rather than the ones
+  // this journal offers, so a German cookie carried in from another journal
+  // gave a German `<title>` over this English page. B140, B185.
   const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
-  const locale =
-    chosen && user.locales.includes(chosen) ? chosen : user.defaultLocale;
+  const locale = readerLocale(chosen, user.locales, user.defaultLocale);
 
   // Trimmed to what the switcher needs: a trip's `intro` has no business in
   // the client bundle, and getTrips() touches node:fs.

@@ -222,6 +222,49 @@ export function instanceLocale(): string {
 }
 
 /**
+ * The one rule for "which language does this reader get", stated once.
+ *
+ * A reader's own choice, honoured only if the set in front of them offers it,
+ * and otherwise the fallback that set comes with. Both callers below go
+ * through it — the page body in `app/[user]/layout.tsx` and the `<title>` in
+ * every `generateMetadata` — because when they each had their own copy of the
+ * expression the two copies disagreed (B140, B185): the body narrowed the
+ * cookie to `user.locales` and the metadata narrowed it to `installedLocales()`,
+ * so a `fs.locale=de` cookie carried from one journal produced a German tab
+ * title over an entirely English page on the next.
+ */
+export function readerLocale(
+  chosen: string | null | undefined,
+  offered: string[],
+  fallback: string,
+): string {
+  return chosen && offered.includes(chosen) ? chosen : fallback;
+}
+
+/**
+ * The same rule, for a request that knows only its path.
+ *
+ * Inside a journal the set on offer is that journal's own `locales`, which is
+ * exactly what the layout asks — so the tab title is written in the language
+ * the page underneath it is about to render in, and never in one the journal
+ * does not speak.
+ *
+ * Outside a journal — the landing page, `/welcome`, the notices, a 404 for an
+ * address that names nobody — there is no `user.locales` to narrow against, so
+ * the instance's maintained set stands in and the reader's choice still counts.
+ */
+export function readerLocaleForPath(
+  pathname: string | null | undefined,
+  chosen: string | null | undefined,
+): string {
+  const first = (pathname ?? "").split("/").filter(Boolean)[0];
+  if (first && userExists(first)) {
+    return readerLocale(chosen, localesFor(first), defaultLocaleFor(first));
+  }
+  return readerLocale(chosen, installedLocales(), instanceLocale());
+}
+
+/**
  * The language to render a *server-side* string in, for this request.
  *
  * The reader's own choice first, then the journal's, then the instance's — the
@@ -232,12 +275,15 @@ export function instanceLocale(): string {
  * tab, in their history and in anything they bookmarked or shared, while the
  * page itself said "Galerie".
  *
+ * "The journal's" is load-bearing in the first clause too, and was not always:
+ * the choice used to be honoured whenever the *project* maintained chrome for
+ * it, whatever the journal offered. See `readerLocaleForPath`.
+ *
  * Server-only: it reads the request's cookies and headers.
  */
 export async function requestLocale(): Promise<string> {
   const { cookies, headers } = await import("next/headers");
   const { LOCALE_COOKIE, PATH_HEADER } = await import("./requestKeys");
   const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
-  if (chosen && installedLocales().includes(chosen)) return chosen;
-  return localeForPath((await headers()).get(PATH_HEADER));
+  return readerLocaleForPath((await headers()).get(PATH_HEADER), chosen);
 }
