@@ -85,6 +85,8 @@ export default async function InvitePage({ params }: PageProps<"/[user]/i/[token
       // B360: a server with no postcard provider cannot act on a postal
       // address, so the form stops asking for one.
       postcardsEnabled={isEnabled("postcards", username)}
+      // B376: same reasoning, for the phone hint's own mention of WhatsApp.
+      whatsappEnabled={isEnabled("whatsapp", username)}
     />
   );
 }

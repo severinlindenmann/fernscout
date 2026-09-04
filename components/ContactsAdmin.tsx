@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import CopyLine from "./CopyLine";
-import { LOCALE_LABEL, translate, type TranslationKey } from "@/lib/i18n";
+import { LOCALE_LABEL, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
 /**
@@ -387,6 +387,7 @@ export function GuestForm({
   act,
   onClose,
   postcardsEnabled = true,
+  whatsappEnabled = true,
 }: {
   /** The row being corrected, or `null` to add a new one. */
   contact: AdminContact | null;
@@ -401,6 +402,9 @@ export function GuestForm({
    * existing caller in `test/contact-tel-hint.test.tsx` (which predates this
    * capability check) keeps rendering the fieldset it asserts against. */
   postcardsEnabled?: boolean;
+  /** B376: whether this server can act on a WhatsApp update at all —
+   * `isEnabled("whatsapp", username)`. Only changes the phone hint's wording. */
+  whatsappEnabled?: boolean;
 }) {
   const editingId = contact?.id ?? null;
   const [form, setForm] = useState<GuestFields>(() => fieldsFor(contact, fallbackLocale));
@@ -516,7 +520,9 @@ export function GuestForm({
           value={form.tel}
           onChange={(e) => field("tel", e.target.value)}
         />
-        <p className="mt-2 text-base text-navy-600">{t("contact.adminTelHint")}</p>
+        <p className="mt-2 text-base text-navy-600">
+          {t(telHintKey("admin", postcardsEnabled, whatsappEnabled))}
+        </p>
       </div>
 
       {postcardsEnabled && (
@@ -827,6 +833,7 @@ export default function ContactsAdmin({
   hasGuestTrip,
   highlightId,
   postcardsEnabled = true,
+  whatsappEnabled = true,
 }: {
   username: string;
   locale: Locale;
@@ -858,6 +865,9 @@ export default function ContactsAdmin({
    * `isEnabled("postcards", username)`, from the page. Defaults to shown, the
    * same reasoning as `GuestForm`'s own default below. */
   postcardsEnabled?: boolean;
+  /** B376: whether this server can act on a WhatsApp update at all —
+   * `isEnabled("whatsapp", username)`, from the page. Same default reasoning. */
+  whatsappEnabled?: boolean;
 }) {
   const [contacts, setContacts] = useState(initialContacts);
   const [invites, setInvites] = useState(initialInvites);
@@ -965,6 +975,7 @@ export default function ContactsAdmin({
             act={act}
             onClose={() => setFormTarget(null)}
             postcardsEnabled={postcardsEnabled}
+            whatsappEnabled={whatsappEnabled}
           />
         )}
       </div>

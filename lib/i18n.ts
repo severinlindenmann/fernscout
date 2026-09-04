@@ -131,6 +131,9 @@ export type TranslationKey =
   | "contact.adminSignIn"
   | "contact.adminSubtitle"
   | "contact.adminTelHint"
+  | "contact.adminTelHintNone"
+  | "contact.adminTelHintPostcardsOnly"
+  | "contact.adminTelHintWhatsappOnly"
   | "contact.adminTitle"
   | "contact.adminVia"
   | "contact.adminViaInvite"
@@ -178,6 +181,7 @@ export type TranslationKey =
   | "contact.mailManageButton"
   | "contact.mailRequestBody"
   | "contact.mailRequestBuddyBody"
+  | "contact.mailRequestBuddySubject"
   | "contact.mailRequestButton"
   | "contact.mailRequestSubject"
   | "contact.mailRequestTitle"
@@ -199,6 +203,9 @@ export type TranslationKey =
   | "contact.submit"
   | "contact.tel"
   | "contact.telHint"
+  | "contact.telHintNone"
+  | "contact.telHintPostcardsOnly"
+  | "contact.telHintWhatsappOnly"
   | "contact.title"
   | "contact.tooMany"
   | "contact.unsubscribe"
@@ -734,4 +741,23 @@ export function plural(
     return translate({ ...dictionary, [key]: dictionary[one] }, key, vars, english);
   }
   return translate(dictionary, key, vars, english);
+}
+
+/**
+ * B376 — the phone field's hint names only the capabilities actually on this
+ * server, rather than promising postcards (or WhatsApp) to a reader whose
+ * mail the owner cannot act on. `scope` picks between the reader-facing
+ * wording (`contact.telHint*`) and the owner's own (`contact.adminTelHint*`,
+ * talking about somebody else's number rather than their own).
+ */
+export function telHintKey(
+  scope: "reader" | "admin",
+  postcardsEnabled: boolean,
+  whatsappEnabled: boolean,
+): TranslationKey {
+  const prefix = scope === "admin" ? "contact.adminTelHint" : "contact.telHint";
+  if (postcardsEnabled && whatsappEnabled) return prefix;
+  if (postcardsEnabled) return `${prefix}PostcardsOnly` as TranslationKey;
+  if (whatsappEnabled) return `${prefix}WhatsappOnly` as TranslationKey;
+  return `${prefix}None` as TranslationKey;
 }

@@ -46,6 +46,12 @@ function plainTextOf(eml: string): string {
 }
 
 function mailFilesFor(email: string): string[] {
+  return rawMailFilesFor(email).map(plainTextOf);
+}
+
+/** The raw `.eml` files, unfolded and undecoded — for reading a header
+ * (`Subject:`) rather than the body `plainTextOf` decodes. */
+function rawMailFilesFor(email: string): string[] {
   const mailDir = path.join(dir, OWNER, "mail");
   if (!fs.existsSync(mailDir)) return [];
   const slug = email.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
@@ -53,7 +59,13 @@ function mailFilesFor(email: string): string[] {
     .readdirSync(mailDir)
     .filter((f) => f.includes(slug))
     .sort()
-    .map((f) => plainTextOf(fs.readFileSync(path.join(mailDir, f), "utf8")));
+    .map((f) => fs.readFileSync(path.join(mailDir, f), "utf8"));
+}
+
+/** B362 — the `Subject:` header of a `.eml`, ASCII-only so it is never
+ * RFC 2047-encoded (see `encodeHeader` in `lib/mail/rfc822.ts`). */
+function subjectOf(eml: string): string {
+  return eml.match(/^Subject: (.*)$/m)?.[1] ?? "";
 }
 
 async function ownerToken(): Promise<string> {
@@ -223,6 +235,14 @@ describe("the approval mail (B347) and the owner's queue notification (B349)", (
     const notice = mailFilesFor(OWNER_EMAIL).find((m) => m.includes(email) && m.includes("A new request"));
     expect(notice).toContain(TRIP_TITLE);
     expect(notice).not.toContain("would like to follow along");
+
+    // B362 — the subject line is what the owner sees in a mail list, and it
+    // used to still call this a follow request after the body was fixed.
+    const noticeRaw = rawMailFilesFor(OWNER_EMAIL).find(
+      (m) => plainTextOf(m).includes(email) && plainTextOf(m).includes("A new request"),
+    );
+    expect(subjectOf(noticeRaw ?? "")).toContain(`write to ${TRIP_TITLE}`);
+    expect(subjectOf(noticeRaw ?? "")).not.toContain("follow");
   });
 
   test("a guest contact's mail reads exactly as it does today", async () => {
@@ -239,6 +259,12 @@ describe("the approval mail (B347) and the owner's queue notification (B349)", (
     const notice = mailFilesFor(OWNER_EMAIL).find((m) => m.includes(email) && m.includes("A new request"));
     expect(notice).toContain("would like to follow along");
     expect(notice).not.toContain(TRIP_TITLE);
+
+    // B362 — a guest redemption's subject is unchanged.
+    const noticeRaw = rawMailFilesFor(OWNER_EMAIL).find(
+      (m) => plainTextOf(m).includes(email) && plainTextOf(m).includes("A new request"),
+    );
+    expect(subjectOf(noticeRaw ?? "")).toBe("Someone would like to follow Two Backpacks");
   });
 });
 
