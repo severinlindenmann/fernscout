@@ -63,49 +63,79 @@ without a code, and its comment is explicit: *"The one caller is `POST
 code."* This task adds the second caller. Rewrite that comment in the same
 change; a stale invariant is worse than none.
 
-### The one thing that has to be bounded
+### The design, as decided by the author
 
-**A guest cookie lasts 365 days** (`SESSION_TTL_MS`, `lib/auth/index.ts:70`);
-an agent token lasts 7. So a naive "button that mints a token" means a
-year-old read cookie on a phone in a drawer can issue fresh write credentials
-indefinitely, and the 7-day expiry buys nothing — the ceiling is the cookie, not
-the token.
+**The page hands over a 20-minute credential, and the agent mints its own
+7-day token with it.** Not a 7-day token in the page — that was the first
+answer and this is the better one, because it makes the thing in the clipboard
+worthless twenty minutes later.
 
-Signup is the precedent for how to bound it: its own session lives **20
-minutes**, with the reason in the code — "short enough that a token which can
-create journals is not lying around afterwards". The mint needs the same shape:
-a recent proof of the address, not merely a valid cookie. Which of these it is
-belongs in the plan, not decided here:
+This is the signup flow's shape exactly, and it should reuse its parts rather
+than invent a parallel set. Signup: a code proves the address → a **20-minute**
+`signup` session (`SESSION_TTL_MS`, `lib/auth/index.ts:73`, with the reason in
+the code: "short enough that a token which can create journals is not lying
+around afterwards") → `POST /api/v1/journals` calls `openAgentSession` and
+returns a 7-day agent token. Here: the owner is already signed in → a
+**20-minute** handover session → the agent exchanges it for its own 7-day
+agent token.
 
-- a freshness window — mint only within N minutes of a code being verified,
-  and otherwise send the owner through `/api/auth/request` first;
-- a re-verification step on the button itself;
-- a hard cap on live agent sessions per journal, with `listSessions`
-  (`lib/auth/index.ts:893`) already able to show and `revokeSession` to kill
-  them.
+What that buys, and it is the whole reason to prefer it:
 
-Whatever is chosen, the page has to be able to say *"this key works until
-Thursday and here is how to kill it"*, because a credential a person cannot
-revoke is one they cannot hand out carefully.
+- **The clipboard, the screenshot and the terminal scrollback all go stale.**
+  A 7-day token pasted into a chat log is a 7-day exposure; this one is
+  twenty minutes and then it is nothing.
+- **It fixes the cookie ceiling.** A guest cookie lasts **365 days**
+  (`SESSION_TTL_MS`, `lib/auth/index.ts:70`) against an agent token's 7, so a
+  page that minted the 7-day token directly would let a year-old read cookie
+  in a phone in a drawer issue write credentials indefinitely — the ceiling
+  would be the cookie, not the token. A 20-minute intermediate does not remove
+  that (the cookie can still mint another), but it means nothing durable is
+  ever *displayed*, and the exchange is a single logged event with a session
+  the owner can see and revoke.
+- **The agent ends up holding a credential it minted**, which is the same
+  position it is in after the code flow today. Nothing downstream of
+  authentication changes.
+
+So there are two short-lived things and one durable one, and only the durable
+one is a write credential:
+
+| | Lives | Who holds it | Can write |
+| --- | --- | --- | --- |
+| Handover credential | 20 min | the clipboard | no — it can only be exchanged |
+| Agent token | 7 days | the agent | yes |
+| Guest cookie | 365 days | the browser | no |
+
+The handover credential must not itself be usable as a Bearer token on any
+content route. It exchanges, and that is all it does — the same way a `signup`
+session reaches `POST /api/v1/journals` and nothing else.
 
 ## Work
 
 A plan in `docs/plans/`, because the freshness question above decides the shape
 of the route, and then:
 
-- **A route that mints an agent token for the signed-in owner**, owner-only,
-  bounded as the plan decides, calling `openAgentSession` and logging that it
-  did. Never for a guest, never for a trip person — a buddy holds a
-  trip-scoped token and gets it the way they get it now.
+- **A `handover` session kind**, 20 minutes, scope "exchange only", beside
+  `guest`/`agent`/`signup` in `SessionKind` and `SESSION_TTL_MS`. Issued to the
+  signed-in owner and nobody else — never a guest, never a trip person, since a
+  buddy holds a trip-scoped token and gets it the way they get it now.
+- **An exchange route** that takes the handover credential as a Bearer token,
+  calls `openAgentSession`, returns the 7-day agent token and spends the
+  handover session by doing so. `POST /api/v1/journals` is the model, including
+  that a spent token gives one clear message rather than a bare 401
+  (`app/api/v1/journals/route.ts:100`).
+- **`resolveSession` must refuse a handover token everywhere else.** It is a
+  fourth kind that is not interchangeable with the other three, and the test
+  matrix has to say so per route family, not once.
 - **`AgentHandover` renders the prompt**, not two lines: journal URL, the token
   and its expiry, "call `GET /api/v1/<user>/status` first", and the guide link.
   One copy button for the whole block.
 - **Depends on B91** for `status` to exist. Until it does, the prompt would
   name a call that 404s — so either B91 lands first or the prompt names today's
   calls and is updated when it does. Say which in the plan.
-- **The token is shown once.** No storing it to re-display; that is the
-  argument B280 had to have for invite links and it does not transfer to a
-  write credential. Re-issuing means minting a new one and revoking the old.
+- **Nothing is shown twice.** The handover credential is displayed once and
+  expires on its own; the agent token is never displayed at all, because the
+  page never sees it. That is the argument B280 had to have for invite links,
+  and it does not transfer to a write credential.
 - **The warning text changes rather than disappears.** The owner now holds the
   key rather than reading a code, so what they need told is different and not
   less: what it can do, until when, that it must not go in a group chat, and
@@ -124,12 +154,16 @@ not make the browser an editor. That is B262 and a separate decision.
 ## Acceptance
 
 - Signed in as the owner, `/<user>/me` shows a copyable prompt containing the
-  journal URL, a live token, its expiry, and the instruction to call `status`
-  first.
-- The token in that block authenticates `GET /api/v1/<user>/status` and
-  `POST .../days`, and is refused for another journal.
-- The mint route refuses a guest session, a trip person, and an expired or
-  stale cookie per whatever freshness rule the plan chose — with a test per
+  journal URL, a handover credential, when it expires, the exchange call, and
+  the instruction to call `status` first.
+- An agent given only that block can exchange the credential for a 7-day token
+  and write a draft with it.
+- The handover credential is refused on every content route — a test per route
+  family, not one test — and is spent by a successful exchange, so a second
+  exchange fails with a message that says why.
+- It expires 20 minutes after issue, asserted against `SESSION_TTL_MS` rather
+  than a hardcoded number in the test.
+- The issue route refuses a guest session and a trip person, with a test per
   refusal.
 - The owner can see live agent sessions and revoke one, from the page.
 - No page or API response ever shows the token a second time.

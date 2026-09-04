@@ -7,8 +7,7 @@ complexity: medium
 area: i18n
 found: "2026-09-04T12:32:35Z"
 started: "2026-09-04T12:33:33Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T12:33:33Z"
+merged: "2026-09-04T12:49:43Z"
 ---
 
 # B279 — A page rendered its raw locale keys to a reader instead of any text at all
