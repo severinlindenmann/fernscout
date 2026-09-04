@@ -18,14 +18,18 @@ import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vite
  * from inside a successful confirmation.
  */
 
-/** Every cookie the mocked `next/headers` hands back — unused here (every
- * redemption in this file is a stranger's first visit, never signed in), but
- * `lib/contacts/session.ts` calls `cookies()` regardless. */
+/** Every cookie the mocked `next/headers` hands back. Most redemptions in
+ * this file are a stranger's first visit (nothing to read), but B350's own
+ * tests below need `set` too: `/api/contacts/confirm` writes the guest
+ * session cookie here on a pre-approved confirmation. */
 const jar = vi.hoisted(() => ({ cookies: {} as Record<string, string> }));
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) =>
       jar.cookies[name] === undefined ? undefined : { value: jar.cookies[name] },
+    set: (name: string, value: string) => {
+      jar.cookies[name] = value;
+    },
   }),
 }));
 
@@ -222,6 +226,10 @@ beforeAll(async () => {
 afterEach(() => {
   writeSpy?.mockRestore();
   writeSpy = null;
+  // A pre-approved confirmation now sets the guest session cookie (B350);
+  // clear it between tests so one redemption's session cannot make the next
+  // test's redeemer read as already signed in.
+  jar.cookies = {};
 });
 
 afterAll(async () => {
@@ -308,6 +316,51 @@ describe("mailing a guest invite to a named address", () => {
     expect(await grantExists(contact!.id)).toBe(false);
     // And the owner *was* told about this one — the ordinary path, untouched.
     expect(await notifiedAt(STRANGER)).not.toBeNull();
+  });
+});
+
+/**
+ * B350 — the address was just proved, in this browser, and the grant above
+ * was written a line ago. A pre-approved confirmation now signs the reader in
+ * on the spot instead of sending them to a mailbox for a second link; the
+ * ordinary queue path is unchanged and still hands nothing back.
+ */
+describe("a pre-approved confirmation signs the reader in on the spot", () => {
+  test("the guest session cookie is set, and it resolves to the confirmed address", async () => {
+    jar.cookies = {};
+    const email = "signed-in@example.test";
+    const owner = await ownerToken();
+    const created = await createLink(owner, { kind: "guest", email, name: "Signed In", locale: "en" });
+    const token = tokenFrom(created.body.invite!.url!);
+    await redeem({ token, name: "Signed In", email });
+
+    const code = await freshCode(email);
+    const result = await confirm(email, code);
+    expect(result.body.status).toBe("active");
+
+    const { GUEST_COOKIE, resolveSession } = await import("@/lib/auth");
+    const cookie = jar.cookies[GUEST_COOKIE];
+    expect(cookie).toBeTruthy();
+    const session = await resolveSession(cookie, "guest");
+    expect(session?.owner).toBe(OWNER);
+    expect(session?.email).toBe(email);
+  });
+
+  test("a non-pre-approved (queue) confirmation sets no session cookie", async () => {
+    jar.cookies = {};
+    const email = "queued@example.test";
+    const owner = await ownerToken();
+    // A hand-copied link — no `email` on the invite, so nobody is pre-approved.
+    const created = await createLink(owner, { kind: "guest", locale: "en" });
+    const token = tokenFrom(created.body.invite!.url!);
+    await redeem({ token, name: "Queued", email });
+
+    const code = await freshCode(email);
+    const result = await confirm(email, code);
+    expect(result.body.status).toBe("pending");
+
+    const { GUEST_COOKIE } = await import("@/lib/auth");
+    expect(jar.cookies[GUEST_COOKIE]).toBeUndefined();
   });
 });
 

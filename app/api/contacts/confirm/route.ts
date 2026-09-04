@@ -1,4 +1,5 @@
-import { isEmail } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { GUEST_COOKIE, SESSION_TTL_MS, isEmail } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { approveContact, confirmContact, manageUrl, markOwnerNotified } from "@/lib/contacts";
 import { preapprovedEmailFor } from "@/lib/contacts/invites";
@@ -71,6 +72,23 @@ export async function POST(request: Request) {
   const status = preapproved
     ? ((await approveContact(username, result.contact.id))?.status ?? result.contact.status)
     : result.contact.status;
+
+  // B350: a pre-approved address has just proved itself, in this browser, and
+  // the grant above was written a line ago — there is nothing left for a
+  // second mail-and-click round trip to establish. `confirmContact` already
+  // kept the session it minted alive for exactly this case (and only this
+  // case — see its own doc comment), so set it as the reader's cookie rather
+  // than telling them "nothing left to do" and leaving them signed out.
+  if (result.sessionToken) {
+    const jar = await cookies();
+    jar.set(GUEST_COOKIE, result.sessionToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: Math.floor(SESSION_TTL_MS.guest / 1000),
+    });
+  }
 
   // Both best-effort (B272): neither mail may fail this confirmation. The
   // code was right and the row is already updated — an SMTP hiccup from here
