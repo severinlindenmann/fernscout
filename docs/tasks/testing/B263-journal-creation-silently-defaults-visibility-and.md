@@ -78,7 +78,10 @@ impossible to omit.
   Refuse with the codes listed, the way `LOCALE_LIST` already names them.
   Apply the same check to each entry of `locales` if it is not already made.
 - `locales` **stays optional** — defaulting it to `[defaultLocale]` is a real
-  default and not a decision taken on somebody's behalf.
+  default and not a decision taken on somebody's behalf. (Wrong: one run was
+  enough to show it. B277 made it required too, for the reason argued above
+  and applied to the wrong field — a weak agent omits whatever it is allowed
+  to omit, and then reports its intention.)
 - Update `/openapi.json` and both generated documents so required means
   required in all three places. `lib/api/agentCopy.ts` is where the shared
   sentence belongs.

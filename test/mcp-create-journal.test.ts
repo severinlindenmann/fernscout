@@ -14,6 +14,11 @@ import { clearIdempotencyStore } from "@/lib/mcp/idempotency";
  * door does. Before this it took no `visibility` argument at all and
  * defaulted `default_locale` inside `createJournal`, so an agent using MCP
  * rather than REST got a public journal it never asked to be public.
+ *
+ * B277 extends the same requirement to `locales`, which this tool did not
+ * even take as an argument until now — every journal made through MCP got
+ * whatever `createJournal` defaulted it to, with no switcher to reach a
+ * second language.
  */
 
 let dir: string;
@@ -116,14 +121,41 @@ describe("create_journal over MCP", () => {
     expect(getUser("wanderer")).toBeNull();
   });
 
-  test("creates the journal, private, when both are answered", async () => {
+  test("refuses a missing locales", async () => {
+    const token = await signupToken("e@example.test");
+    const { isError, text } = await callCreateJournal(token, {
+      ...BASE,
+      visibility: "public",
+      default_locale: "en",
+    });
+    expect(isError).toBe(true);
+    expect(text).toMatch(/locales is required/i);
+    expect(getUser("wanderer")).toBeNull();
+  });
+
+  test("refuses locales that do not contain default_locale", async () => {
+    const token = await signupToken("f@example.test");
+    const { isError, text } = await callCreateJournal(token, {
+      ...BASE,
+      visibility: "public",
+      default_locale: "de",
+      locales: ["en", "hu"],
+    });
+    expect(isError).toBe(true);
+    expect(text).toMatch(/locales must contain default_locale/i);
+    expect(getUser("wanderer")).toBeNull();
+  });
+
+  test("creates the journal, private, when all are answered", async () => {
     const token = await signupToken("d@example.test");
     const { isError } = await callCreateJournal(token, {
       ...BASE,
       visibility: "private",
       default_locale: "en",
+      locales: ["en"],
     });
     expect(isError).toBe(false);
     expect(getUser("wanderer")?.visibility).toBe("private");
+    expect(getUser("wanderer")?.locales).toEqual(["en"]);
   });
 });

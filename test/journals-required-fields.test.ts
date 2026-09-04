@@ -10,14 +10,18 @@ import { SIGNUP_OWNER, issueCode, verifyCode } from "@/lib/auth";
 import { instanceDocumentation } from "@/lib/api/documentation";
 
 /**
- * B263 — visibility and defaultLocale must be asked, never assumed.
+ * B263 — visibility and defaultLocale must be asked, never assumed. B277 —
+ * so must locales, the question B263 itself left optional.
  *
  * An agent that omitted either field on `POST /api/v1/journals` used to get a
  * 201 and a journal that silently contradicted what its owner asked for:
- * public when they wanted private, English mail for a German journal. Both
- * fields are now required, and `defaultLocale` — and each entry of
- * `locales`, if sent — is checked against the set this instance actually
- * maintains chrome and mail for, rather than storing whatever string arrives.
+ * public when they wanted private, English mail for a German journal. All
+ * three fields are now required, and `defaultLocale` — and each entry of
+ * `locales` — is checked against the set this instance actually maintains
+ * chrome and mail for, rather than storing whatever string arrives. `locales`
+ * must also contain `defaultLocale`, the same rule `lib/config.ts` already
+ * enforces on load, refused here instead of written to a file that would
+ * load with a warning.
  */
 
 let dir: string;
@@ -154,6 +158,38 @@ describe("defaultLocale is required", () => {
   });
 });
 
+describe("locales is required", () => {
+  test("missing entirely is refused, and names the question to ask", async () => {
+    const token = await signupToken("silent-locales@example.test");
+    const response = await create(token, {
+      ...BASE,
+      username: "silent-h",
+      visibility: "public",
+      defaultLocale: "en",
+    });
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error?: string; message?: string };
+    expect(body.error).toBe("invalid_request");
+    expect(body.message).toMatch(/locales is required/i);
+    expect(getUser("silent-h")).toBeNull();
+  });
+
+  test("not containing defaultLocale is refused", async () => {
+    const token = await signupToken("mismatched-locales@example.test");
+    const response = await create(token, {
+      ...BASE,
+      username: "silent-i",
+      visibility: "public",
+      defaultLocale: "de",
+      locales: ["en", "hu"],
+    });
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { message?: string };
+    expect(body.message).toMatch(/locales must contain defaultLocale/i);
+    expect(getUser("silent-i")).toBeNull();
+  });
+});
+
 describe("what happens once both are answered", () => {
   test("a journal created private stays off the instance index", async () => {
     const token = await signupToken("private-owner@example.test");
@@ -162,6 +198,7 @@ describe("what happens once both are answered", () => {
       username: "quiet-f",
       visibility: "private",
       defaultLocale: "en",
+      locales: ["en"],
     });
     expect(response.status).toBe(201);
     expect(getUser("quiet-f")?.visibility).toBe("private");
@@ -176,6 +213,7 @@ describe("what happens once both are answered", () => {
       username: "reisender-g",
       visibility: "public",
       defaultLocale: "de",
+      locales: ["de", "en"],
     });
     expect(response.status).toBe(201);
 

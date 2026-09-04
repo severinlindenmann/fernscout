@@ -62,6 +62,7 @@ const GOOD = {
   ownerNickname: "Robin",
   visibility: "public",
   defaultLocale: "en",
+  locales: ["en"],
 };
 
 beforeEach(async () => {

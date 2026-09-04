@@ -68,6 +68,15 @@ export type NewJournal = {
    * German journal used to greet its owner in English.
    */
   defaultLocale?: string;
+  /**
+   * Which languages a reader may switch the journal into. Falls back to
+   * `[defaultLocale]` here for the same reason as above — a direct caller's
+   * convenience — and for the same reason both production doors require it
+   * rather than ever reaching this fallback (B277): it is what the language
+   * switcher renders from, so a journal created without it has no switcher
+   * at all, and the owner who asked for three languages found out they had
+   * one.
+   */
   locales?: string[];
   baseCurrency?: string;
   displayCurrencies?: string[];

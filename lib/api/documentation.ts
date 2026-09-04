@@ -166,9 +166,9 @@ export function instanceDocumentation(): string {
     "```",
     "",
     ...wrap(
-      "`username`, `title`, `ownerName`, `ownerNickname`, `visibility` and " +
-        "`defaultLocale` are all required, and none has a default worth picking " +
-        "for somebody — ask. The reply carries a write token for the journal it " +
+      "`username`, `title`, `ownerName`, `ownerNickname`, `visibility`, " +
+        "`defaultLocale` and `locales` are all required, and none has a default worth " +
+        "picking for somebody — ask. The reply carries a write token for the journal it " +
         "just made, so there is no second code. (It also carries `signIn`: a " +
         "one-time link for the person, not for you — read the guide before " +
         "doing anything with it.)",
@@ -572,13 +572,13 @@ Three rules about it, and they are not fussiness:
 - **Do not follow it yourself.** It is single use; opening it to check it works
   spends it, and the person gets a dead link.
 
-**All six of \`username\`, \`title\`, \`ownerName\`, \`ownerNickname\`,
-\`visibility\` and \`defaultLocale\` are required**, and none of them is
-guessable — a request missing any of them is refused rather than filled in on
-somebody's behalf. \`ownerNickname\` is what the site calls this person in its
-own voice — "Robin", not "Robin Delacroix-Mbeki" — and it is never derived
-from \`ownerName\`, because taking the first word mangles any name whose given
-name is not first. Ask.
+**All seven of \`username\`, \`title\`, \`ownerName\`, \`ownerNickname\`,
+\`visibility\`, \`defaultLocale\` and \`locales\` are required**, and none of
+them is guessable — a request missing any of them is refused rather than
+filled in on somebody's behalf. \`ownerNickname\` is what the site calls this
+person in its own voice — "Robin", not "Robin Delacroix-Mbeki" — and it is
+never derived from \`ownerName\`, because taking the first word mangles any
+name whose given name is not first. Ask.
 
 **Ask even when the owner is the person in front of you.** Somebody setting up
 their own journal will give you their name in the same breath, and the rule
@@ -599,14 +599,16 @@ this server sends the owner the moment the journal exists**. It has no
 default either, for the same reason: a German journal created without it used
 to greet its owner in English, silently. Ask, and pass the code.
 
-\`locales\` is a different question: which of those same languages **a
-reader** may switch the journal into — \`["de", "en"]\` above, meaning the
-journal reads in Deutsch or English depending who is looking. It is not the
-owner's own language repeated; their audience is not necessarily the same.
-**Left out, the journal offers only the one language in \`defaultLocale\` —
-no switcher at all**, which is right for an audience who all read that
-language and wrong for one that does not. Ask both; they are not the same
-answer.
+\`locales\` is a different question, and required for the same reason as the
+two above it: which of those same languages **a reader** may switch the
+journal into — \`["de", "en"]\` above, meaning the journal reads in Deutsch or
+English depending who is looking. It is not the owner's own language
+repeated; their audience is not necessarily the same, so ask both — a journal
+created without an answer has no language switcher at all, which is right for
+no audience. It must include \`defaultLocale\`: a journal whose own language
+is not on offer to its own readers is refused rather than written that way
+(B277 — the field used to default silently, and one owner asked for three
+languages and was given one).
 
 The reply carries an **agent token for the journal it just made**, so you can
 go straight on to creating a trip — no second code. It also carries
