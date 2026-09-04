@@ -30,6 +30,10 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   postcards: { env: [], db: true }, // provider-specific; see providerRequirements()
   photobook: { env: [], db: false },
   logging: { env: [], db: false },
+  // B366. The balance and its ledger are rows, so charging without a database
+  // would be a number nobody could decrement — and `spend` refusing every
+  // send is the safe reading of that, not a silent free-for-all.
+  credits: { env: [], db: true },
 };
 
 /** Transport and provider choices carry their own credential requirements.

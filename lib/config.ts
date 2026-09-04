@@ -17,6 +17,7 @@ export const FEATURE_NAMES = [
   "postcards",
   "photobook",
   "logging",
+  "credits",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -212,6 +213,19 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // opt-in (B257), so this is never narrowed by a user's own config.json —
   // see the exclusion in app/api/health/route.ts.
   logging: { enabled: false },
+  // B366. Server-only, like `logging` above and for a sharper reason: this
+  // decides whether a send is charged, and the money lands on the operator's
+  // card rather than the journal's. A per-journal opt-in would mean nobody is
+  // charged until they ask to be; a per-journal opt-out would let a journal
+  // decline the bill for sends it still makes. So it is never asked with a
+  // username — see `creditsEnabled()` in lib/credits.ts.
+  //
+  // Off means today's behaviour exactly — no debit, no refusal, no
+  // panel — because a fresh clone of this repository starts every journal at
+  // zero credits, and a clone that cannot send a single letter is a broken
+  // checkout rather than a business model. The operator switches it on where
+  // sends are actually being paid for.
+  credits: { enabled: false },
 };
 
 /**
