@@ -191,7 +191,18 @@ beforeAll(async () => {
     JSON.stringify({
       site: { name: "R", url: "https://example.test", defaultUser: OWNER },
       users: { reserved: [] },
-      features: { auth: { enabled: true }, contacts: { enabled: true } },
+      features: {
+        auth: { enabled: true },
+        contacts: { enabled: true },
+        // Invitations, codes and approvals are things this instance says to
+        // people by mail, so a fixture that had none was describing a server
+        // where none of it works. It went unnoticed while every mail call
+        // returned null quietly; since B160 `/api/auth/request` refuses up
+        // front rather than issuing a code nobody can be told, and the
+        // buddy-token test below asked for one. The file transport needs no
+        // credentials and writes into this test's own temp directory.
+        mail: { enabled: true, transport: "file" },
+      },
     }),
   );
   writeJournal(OWNER, OWNER_EMAIL);

@@ -21,14 +21,55 @@ export const dynamic = "force-dynamic";
 /**
  * Ask for a one-time code.
  *
- * Always answers `202`, whatever happens next. A different answer for a known
- * address than for an unknown one turns this endpoint into a way of asking
- * which of your family are registered, and — for agent codes — which address
- * owns the site. The mail is the side effect; the response carries no signal.
+ * **`202` for everything that depends on the address.** A different answer for
+ * a known address than for an unknown one turns this endpoint into a way of
+ * asking which of your family are registered, and — for agent codes — which
+ * address owns the site. The mail is the side effect; the response carries no
+ * signal about who was asked for.
+ *
+ * The refusals that are not about the address are exempt, and each says so
+ * where it stands: `auth` off (404), the rate limit (429), an agent code for
+ * an address this journal does not recognise (403, and the trade is argued
+ * below), mail switched off for the whole server (503), and a send that failed
+ * (503). None of them varies with the address, which is the property that
+ * matters rather than the uniform status.
  */
 export async function POST(request: Request) {
   if (!isEnabled("auth")) {
     return Response.json({ error: "auth_disabled" }, { status: 404 });
+  }
+
+  /**
+   * **Before anything is issued** — B160.
+   *
+   * This route's rule is that every outcome is a 202, because a status that
+   * varied by address would say which of somebody's family is registered. A
+   * server that cannot send mail at all says nothing about any address, so
+   * refusing here leaks nothing the uniform 202 was protecting.
+   *
+   * What it stops is worse than an unhelpful answer. `issueCode` revokes every
+   * live code for the address before writing a new one, and the mail layer
+   * returns null rather than throwing when mail is off — so the route took the
+   * success path and answered 202 having *killed the code the person was still
+   * holding* and replaced it with one nobody would ever be told. The `catch`
+   * below already has the right answer for a transport that throws; "mail is
+   * switched off" is not an exception, so it never reached it.
+   *
+   * The signup route refuses the same way and for the same reason
+   * (`app/api/auth/signup/request/route.ts`), as does `lib/deletions.ts`.
+   * Before the rate limit, so a request that was never going to work does not
+   * spend a person's five attempts.
+   */
+  if (!isEnabled("mail")) {
+    return Response.json(
+      {
+        error: "mail_disabled",
+        message:
+          "This server cannot send mail, so there is no way to deliver a code. Nothing has " +
+          "been issued and any code you already hold is still live.",
+      },
+      { status: 503 },
+    );
   }
 
   // Read before rate-limiting, because which bucket applies depends on what
