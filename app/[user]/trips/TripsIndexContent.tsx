@@ -126,7 +126,6 @@ export default function TripsIndexContent({
   trips,
   routes,
   visits = [],
-  labels = [],
   userPath = "",
   lifetime,
   basemap = null,
@@ -139,8 +138,6 @@ export default function TripsIndexContent({
   /** Countries visited and by which trips — see LifetimeMap. Empty for a
    * journal whose days carry no `country:`, which falls back to pins. */
   visits?: CountryVisit[];
-  /** Which visited countries have room to be named — see LifetimeMap. */
-  labels?: { code: string; name: string; x: number; y: number }[];
   /** `/<user>`, so a country can link to the trip that reached it. */
   userPath?: string;
   lifetime: { countries: number; days: number; photos: number; trips: number };
@@ -215,7 +212,6 @@ export default function TripsIndexContent({
                 <LifetimeMap
                   routes={mapRoutes}
                   visits={visits}
-                  labels={labels}
                   userPath={userPath}
                   basemap={basemap}
                 />

@@ -4,6 +4,7 @@ import LifetimeMap, { type CountryVisit, type TripRoute } from "@/components/Lif
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 import countries from "@/lib/worldCountries.json";
+import { FLAG_COLOURS, FLAG_FALLBACK, assignFlagColours } from "@/lib/flagColours";
 
 /**
  * B361. The lifetime map answers "everywhere we have been", and at world scale
@@ -36,7 +37,7 @@ function shapeOf(code: string) {
     (x) => x.code === code,
   );
   if (!c) throw new Error(`no ${code} in lib/worldCountries.json`);
-  return { code, name: c.name, path: c.path };
+  return { code, name: c.name, path: c.path, colour: FLAG_COLOURS[code]?.[0] ?? FLAG_FALLBACK };
 }
 
 const ONE: CountryVisit = { ...shapeOf("TH"), trips: [{ id: "t1", title: "Trip one" }] };
@@ -82,16 +83,32 @@ describe("countries visited", () => {
     expect(html).not.toContain('href="/u/trips/t2"');
   });
 
-  test("more visits is a deeper fill", () => {
-    const html = render([ONE, TWO]);
-    expect(html).toContain("#f0bcc4"); // one visit
-    expect(html).toContain("#c2334a"); // two, darker
+  /**
+   * B370 replaced the visit-depth ramp with each country's own flag colour,
+   * and moved the count into the legend where it is actually read.
+   */
+  test("a country is filled in its flag's colour", () => {
+    expect(render([ONE])).toContain(FLAG_COLOURS.TH[0]);
   });
 
-  test("the legend counts visits rather than naming trips", () => {
-    const html = render([ONE]);
-    expect(html).toContain("1 visit");
-    expect(html).not.toContain("Trip one</span>");
+  test("the legend names the countries and counts repeat visits", () => {
+    const html = render([ONE, TWO]);
+    expect(html).toContain("Thailand");
+    expect(html).toContain("United States of America");
+    expect(html).toContain("×2"); // visited by two trips
+  });
+
+  test("two flags sharing a colour are not filled identically", () => {
+    // France, the Netherlands, Czechia, Norway and the USA are all
+    // red-white-blue; the map is where that shows.
+    const got = assignFlagColours(["FR", "NL", "CZ", "NO", "US"]);
+    expect(new Set(got.values()).size).toBe(5);
+  });
+
+  test("the same journal colours the same way twice", () => {
+    const a = assignFlagColours(["IT", "JP", "TH"]);
+    const b = assignFlagColours(["IT", "JP", "TH"]);
+    expect([...a]).toEqual([...b]);
   });
 
   test("no pins are drawn over the fill", () => {
@@ -164,15 +181,9 @@ describe("map detail", () => {
     expect(() => withMap()).not.toThrow();
   });
 
-  test("names the countries it is given, and nothing else", () => {
-    const html = withMap({ labels: [{ code: "TH", name: "Thailand", x: 780, y: 213 }] });
-    expect(html).toContain("Thailand");
-    expect(html).not.toContain("France");
-  });
-
-  test("a country with no label still keeps its fill", () => {
-    // The crowding guard drops names, never countries.
-    const html = withMap({ labels: [] });
-    expect(html).toContain(ONE.path);
+  test("no country names are written across the map", () => {
+    // B370: they landed in the sea, named the wrong country, and only 5 of 23
+    // fitted. The legend does this job.
+    expect(withMap({ basemap })).not.toContain("<text");
   });
 });
