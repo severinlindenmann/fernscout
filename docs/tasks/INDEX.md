@@ -170,9 +170,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B326](in-development/B326-nothing-says-which-language-a-day.md) | Nothing says which language a day's own title and content must be in, so an agent sent the wrong one fifteen times | ISSUE | high | low | `986bc24c` |
 
 ## testing (141)
 
