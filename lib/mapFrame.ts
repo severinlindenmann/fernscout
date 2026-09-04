@@ -45,6 +45,21 @@ export const KM_PER_UNIT = DEG_PER_UNIT * KM_PER_DEGREE;
 
 export type Point = { lat: number; lng: number };
 
+/**
+ * Whether a point can actually be drawn.
+ *
+ * `lat`/`lng` are typed `number` everywhere a `Point` shows up — `Place`,
+ * `DaySummary`, `PlannedStop` — but a day written without coordinates still
+ * gets one of these, with `lat: undefined` at runtime: it is optional on an
+ * entry (`lib/api/entries.ts`), and `getPlaces`/`getDays` copy it through
+ * without checking (B265). `Number.isFinite` catches that, and a
+ * hand-written `lat: "north"` parsed out of frontmatter the same way —
+ * neither is a coordinate.
+ */
+export function isPlottable(point: Point): boolean {
+  return Number.isFinite(point.lat) && Number.isFinite(point.lng);
+}
+
 export type Frame = {
   x: number;
   y: number;
@@ -152,7 +167,14 @@ export function frameSpanKm(frame: Frame): number {
  * days or stops gets.
  */
 export function frameRoute(points: readonly Point[]): Frame {
-  if (points.length === 0) return WHOLE_WORLD;
+  // A point with no coordinates is not a point. Left in, `Math.min`/`Math.max`
+  // below carry `undefined` or `NaN` straight into `midLat`, and
+  // `Math.max(0.2, NaN)` is `NaN` — not the 0.2 floor — so `lngScale` goes NaN
+  // and poisons every field of the frame: the viewBox, the `scale(…)`
+  // transform, all of it. That is B265: one coordinate-less day blanked every
+  // map on the site, not just its own marker.
+  const plottable = points.filter(isPlottable);
+  if (plottable.length === 0) return WHOLE_WORLD;
 
   // The correction is taken at the middle of the route rather than per point:
   // a frame has one horizontal scale, and over the span a single map covers the
@@ -160,13 +182,13 @@ export function frameRoute(points: readonly Point[]): Frame {
   // Clamped because cos() goes to zero at the poles and a frame of zero width
   // is not a frame; 0.2 is around 78° north or south, past which the stretch is
   // the least of the projection's problems.
-  const lats = points.map((p) => p.lat);
+  const lats = plottable.map((p) => p.lat);
   const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
   const lngScale = Math.max(0.2, Math.cos((midLat * Math.PI) / 180));
 
   const xs: number[] = [];
   const ys: number[] = [];
-  for (const point of points) {
+  for (const point of plottable) {
     const [x, y] = project(point.lat, point.lng);
     xs.push(x * lngScale);
     ys.push(y);

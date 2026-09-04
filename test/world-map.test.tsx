@@ -221,6 +221,34 @@ describe("a trip across a continent", () => {
 });
 
 /**
+ * B265. `getPlaces` returns a `Place` for a day with no coordinates too — it
+ * still has entries, nights and a media count — so this component has to
+ * receive one and draw a route through the days that were located without
+ * reaching for the one that wasn't.
+ */
+describe("a day with no coordinates", () => {
+  const noCoords: PlaceView = {
+    ...stop("Somewhere unrecorded", 0, 0),
+    lat: undefined as unknown as number,
+    lng: undefined as unknown as number,
+  };
+
+  test("does not put NaN through the map", () => {
+    expect(render([...alps, noCoords])).not.toContain("NaN");
+  });
+
+  test("draws a marker for every located day, and none for the one that wasn't", () => {
+    expect(markers(render([...alps, noCoords]))).toHaveLength(alps.length);
+  });
+
+  test("a trip where nothing is located still renders — the whole world, not NaN", () => {
+    const html = render([noCoords]);
+    expect(html).not.toContain("NaN");
+    expect(markers(html)).toHaveLength(0);
+  });
+});
+
+/**
  * The hero's small map, which had the same bug and kept it two commits longer
  * than the others: B46 gave MiniMap the shared frame but left its pin at
  * `r={9}` viewBox units. Framed on `alps-2024` — 4.6 units wide — the pin came
@@ -249,5 +277,32 @@ describe("the hero's mini map", () => {
   test("frames the route it was given", () => {
     const [, , w] = viewBox(renderMini(alps));
     expect(kmForUnits(w)).toBeLessThan(250);
+  });
+
+  /**
+   * B265. `route` here comes from `DaySummary[]`, which carries the same
+   * unchecked `lat`/`lng` as `Place` — a day with no coordinates reaches
+   * this component too.
+   */
+  test("a day with no coordinates does not put NaN through the pin map", () => {
+    const noCoords = { lat: undefined as unknown as number, lng: undefined as unknown as number };
+    const html = renderToStaticMarkup(
+      <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+        <MiniMap route={[...alps, noCoords]} current={alps[alps.length - 1]} />
+      </LocaleProvider>,
+    );
+    expect(html).not.toContain("NaN");
+  });
+
+  /** The pin itself — "where we are right now" — is withheld rather than
+   * drawn at (0, 0) when `current` has no coordinates. */
+  test("an unlocated current position draws no pin, and no NaN", () => {
+    const noCoords = { lat: undefined as unknown as number, lng: undefined as unknown as number };
+    const html = renderToStaticMarkup(
+      <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+        <MiniMap route={alps} current={noCoords} />
+      </LocaleProvider>,
+    );
+    expect(html).not.toContain("NaN");
   });
 });

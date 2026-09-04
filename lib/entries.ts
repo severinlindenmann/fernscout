@@ -162,8 +162,17 @@ function readAllEntries(ref: string): Entry[] {
       location: data.location ?? "",
       country,
       countryCode: countryCodeFor(country, data.countryCode),
-      lat: Number(data.lat),
-      lng: Number(data.lng),
+      // Missing stays missing rather than becoming `Number(undefined)` —
+      // `NaN`, which is what B265 actually found reaching the page: not the
+      // `undefined` a missing field ought to produce, but a number that
+      // fails every `typeof` check meant to catch "not written", and that
+      // serialises into the page's own hydration payload as the literal
+      // text "NaN" no SVG-level guard can catch. `Entry.lat` stays typed
+      // `number` regardless — this file has always been the one place that
+      // type is a promise rather than a guarantee, and every reader of it
+      // already has to cope with a coordinate that quietly isn't one.
+      lat: (data.lat === undefined ? undefined : Number(data.lat)) as number,
+      lng: (data.lng === undefined ? undefined : Number(data.lng)) as number,
       transport: data.transportMode
         ? {
             mode: data.transportMode,
