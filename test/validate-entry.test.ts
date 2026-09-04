@@ -127,6 +127,37 @@ describe("costs", () => {
   test("costs that are not a list at all", () => {
     expect(only({ costs: "some money" })).toMatchObject({ field: "costs" });
   });
+
+  // B304 — checkCosts refuses these two the way lib/validate/costs.ts already
+  // refuses them on a trip's budget door: a zero or negative amount, and a
+  // currency normalizeCurrency wouldn't recognise, are both write-time
+  // mistakes that parseCostItems (lib/costFormat.ts) would otherwise drop
+  // silently when the page reads the day back.
+  test("a zero amount is refused, not just a non-number", () => {
+    const problem = only({ costs: [{ label: "Ferry", amount: 0 }] });
+    expect(problem.field).toBe("costs[0].amount");
+    expect(problem.expected).toContain("greater than zero");
+  });
+
+  test("a negative amount is refused the same way", () => {
+    expect(only({ costs: [{ label: "Ferry", amount: -12 }] }).field).toBe("costs[0].amount");
+  });
+
+  test("an unrecognisable currency is refused, naming the field", () => {
+    const problem = only({ costs: [{ label: "Ferry", amount: 40, currency: "Euros" }] });
+    expect(problem.field).toBe("costs[0].currency");
+    expect(problem.expected).toBe("an ISO-4217 code, e.g. CHF — three letters");
+  });
+
+  test("currency is optional — absent is not refused", () => {
+    expect(validateEntry({ ...ok, costs: [{ label: "Ferry", amount: 40 }] })).toEqual([]);
+  });
+
+  test("a three-letter currency, any case, is accepted", () => {
+    expect(validateEntry({ ...ok, costs: [{ label: "Ferry", amount: 40, currency: "eur" }] })).toEqual(
+      [],
+    );
+  });
 });
 
 describe("tags", () => {
