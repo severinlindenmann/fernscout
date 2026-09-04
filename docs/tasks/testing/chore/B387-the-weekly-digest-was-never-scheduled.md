@@ -7,8 +7,7 @@ complexity: medium
 area: digest, mail
 found: "2026-09-05T00:15:00Z"
 started: "2026-09-04T22:11:32Z"
-session: 3d8b93dd-e447-4c3c-bcd1-fa37e2bd17f9
-claimed: "2026-09-04T22:11:32Z"
+merged: "2026-09-04T22:21:39Z"
 ---
 
 # B387 — The weekly digest was never scheduled or wanted, and is a second mail system to keep correct

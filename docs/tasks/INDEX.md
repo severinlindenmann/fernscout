@@ -184,14 +184,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B387](in-development/B387-the-weekly-digest-was-never-scheduled.md) | The weekly digest was never scheduled or wanted, and is a second mail system to keep correct | CHORE | medium | medium | `3d8b93dd` |
 | [B390](in-development/B390-the-dialling-code-picker-is-eleven.md) | The dialling-code picker is eleven bare numbers with no country, no search and no way to find your own | FEATURE | medium | low | `39691533` |
 
-## testing (162)
+## testing (163)
 
 ### security (7)
 
@@ -340,7 +339,7 @@ _Nothing here._
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
 | [B88](testing/small-feature/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low | — |
 
-### chore (15)
+### chore (16)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -349,6 +348,7 @@ _Nothing here._
 | [B257](testing/chore/B257-nothing-logs-http-requests-so-a.md) | Nothing logs HTTP requests, so a client reporting failed to fetch cannot be diagnosed | CHORE | medium | low | — |
 | [B298](testing/chore/B298-mcp-is-live-and-unused-and.md) | MCP is live and unused, and costs maintenance surface nobody exercises | CHORE | medium | high | — |
 | [B35](testing/chore/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
+| [B387](testing/chore/B387-the-weekly-digest-was-never-scheduled.md) | The weekly digest was never scheduled or wanted, and is a second mail system to keep correct | CHORE | medium | medium | — |
 | [B40](testing/chore/B40-a-six-digit-code-expires-in.md) | A six-digit code expires in ten minutes, which is shorter than people take to find the mail | CHORE | medium | low | — |
 | [B66](testing/chore/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium | — |
 | [B08](testing/chore/B08-serve-webp-alongside-jpeg-with-picture.md) | Serve WebP alongside JPEG with <picture> in the gallery (W30 gap) | CHORE | low | low | — |
