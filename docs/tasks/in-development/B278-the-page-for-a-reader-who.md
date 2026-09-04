@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: trips, access, i18n
 found: "2026-09-04T12:32:34Z"
+started: "2026-09-04T12:50:15Z"
+session: 986bc24c-6a18-473f-a506-aa8c4efb475c
+claimed: "2026-09-04T12:50:15Z"
 ---
 
 # B278 — The page for a reader who may see nothing names nobody to ask and offers no way in
