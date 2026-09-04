@@ -10,6 +10,8 @@ import { agentGuide, instanceDocumentation, userDocumentation } from "@/lib/api/
 import { getAllEntries } from "@/lib/entries";
 import { validateEntry } from "@/lib/validate/entry";
 import {
+  MEDIA_ENDPOINT_PATH,
+  TITLE_COLLISION_EXAMPLE,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
   asSentence,
@@ -501,6 +503,20 @@ describe("what the guide has to tell an agent before it starts", () => {
       expect(asSentence(question)).not.toMatch(/[?!][*`_]*\.\s/);
     }
     expect(instanceDocumentation()).not.toMatch(/\?\*\*\./);
+  });
+
+  test("both documents name the media endpoint where they mention photographs", () => {
+    // B292: the day-fields table used to say only "the media endpoint" and an
+    // agent that had just written a day guessed a path, 404'd, and hunted.
+    expect(flat(agentGuide())).toContain(flat(MEDIA_ENDPOINT_PATH));
+    expect(flat(instanceDocumentation())).toContain(flat(MEDIA_ENDPOINT_PATH));
+  });
+
+  test("both documents give the worked example for titling repeated places", () => {
+    // B292: "no two days may share a slug" was already documented; the
+    // consequence for how to name a second "Bangkok" was not.
+    expect(flat(agentGuide())).toContain(flat(TITLE_COLLISION_EXAMPLE));
+    expect(flat(instanceDocumentation())).toContain(flat(TITLE_COLLISION_EXAMPLE));
   });
 
   test("a journal's own document shows a twin URL with a real trip in it", () => {

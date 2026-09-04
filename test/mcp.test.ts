@@ -973,6 +973,12 @@ describe("create_day writes a draft, and only a draft", () => {
     });
     expect(second.isError).toBe(true);
     expect(textOf(second)).toMatch(/already used for a different day/);
+    // B292: the conflict names the day the key already wrote and says that
+    // write succeeded — `remember` only ever records a successful result, so
+    // a conflict is proof of it, and the agent should not have to go and GET
+    // to find out.
+    expect(textOf(second)).toContain((first.structuredContent as { slug: string }).slug);
+    expect(textOf(second)).toMatch(/succeeded/);
 
     // Neither replayed nor written: the day count is unchanged.
     expect(fs.readdirSync(path.join(dir, "ana", "trips", "ana-trip", "entries"))).toHaveLength(2);

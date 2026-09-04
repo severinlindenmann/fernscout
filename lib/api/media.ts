@@ -172,7 +172,17 @@ export async function storeUploads(
     };
   }
   if (uploads.length === 0) {
-    return { ok: false, problems: [{ field: "files", got: "nothing", expected: "at least one file" }] };
+    return {
+      ok: false,
+      problems: [
+        {
+          field: "files",
+          got: "nothing",
+          expected: "at least one file",
+          hint: "Send bytes as multipart/form-data under the field `files`, or JSON with `urls`.",
+        },
+      ],
+    };
   }
 
   // The day has to exist. Accepting any slug meant a typo silently produced a
