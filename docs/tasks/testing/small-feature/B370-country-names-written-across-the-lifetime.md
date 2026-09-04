@@ -7,8 +7,7 @@ complexity: medium
 area: maps, trips
 found: "2026-09-04T21:20:00Z"
 started: "2026-09-04T21:06:53Z"
-session: e8e2ddef-3ce3-473a-9308-388259ef4452
-claimed: "2026-09-04T21:06:53Z"
+merged: "2026-09-04T21:12:54Z"
 ---
 
 # B370 — Country names written across the lifetime map are unreadable, and one hue for every country makes the map say little

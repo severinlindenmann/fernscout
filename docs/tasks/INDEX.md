@@ -180,7 +180,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (7)
+## in-development (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -188,11 +188,10 @@ _Nothing here._
 | [B356](in-development/B356-reading-a-day-back-omits-its.md) | Reading a day back omits its translations, so an agent cannot verify the ones it wrote | ISSUE | medium | low | `62683d95` |
 | [B357](in-development/B357-a-translated-page-keeps-its-tab.md) | A translated page keeps its tab title in the journal's default language | ISSUE | medium | low | `62683d95` |
 | [B360](in-development/B360-the-invite-landing-page-offers-a.md) | The invite landing page offers a postcard on a server with postcards switched off | ISSUE | medium | low | `62683d95` |
-| [B370](in-development/B370-country-names-written-across-the-lifetime.md) | Country names written across the lifetime map are unreadable, and one hue for every country makes the map say little | FEATURE | medium | medium | `e8e2ddef` |
 | [B358](in-development/B358-the-invite-copy-button-s-accessible.md) | The invite copy button's accessible name ends in two dangling em-dashes and reports no success | ISSUE | low | low | `62683d95` |
 | [B359](in-development/B359-the-used-link-warning-stays-on.md) | The used-link warning stays on the access page after a successful sign-in | ISSUE | low | low | `62683d95` |
 
-## testing (154)
+## testing (155)
 
 ### security (10)
 
@@ -318,7 +317,7 @@ _Nothing here._
 | [B361](testing/big-feature/B361-the-lifetime-map-cannot-answer-which.md) | The lifetime map cannot answer which countries somebody has been to, only where individual stops fell | FEATURE | medium | high | — |
 | [B39](testing/big-feature/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
 
-### small-feature (10)
+### small-feature (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -327,6 +326,7 @@ _Nothing here._
 | [B344](testing/small-feature/B344-the-lifetime-map-joins-every-trip.md) | The lifetime map joins every trip's stops with a line, reading as a route when it is an overview of everywhere somebody has been | FEATURE | medium | low | — |
 | [B346](testing/small-feature/B346-every-trip-is-the-same-colour.md) | Every trip is the same colour because the scaffold writes accent sky and nothing assigns a distinct one | FEATURE | medium | low | — |
 | [B364](testing/small-feature/B364-the-lifetime-map-draws-a-bare.md) | The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries | FEATURE | medium | low | — |
+| [B370](testing/small-feature/B370-country-names-written-across-the-lifetime.md) | Country names written across the lifetime map are unreadable, and one hue for every country makes the map say little | FEATURE | medium | medium | — |
 | [B52](testing/small-feature/B52-the-digest-still-refuses-a-guest.md) | The digest still refuses a guest trip to a reader who can now open it | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
