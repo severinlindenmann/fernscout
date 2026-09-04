@@ -135,6 +135,33 @@ export type DayWhatsappOutcome =
  * `try`. The call sites wrap it again anyway (B272): an announcement must
  * never be able to turn a successful publish into a failure response.
  */
+/**
+ * How many credits a send to this trip would take, without sending anything —
+ * B366.
+ *
+ * The publish route has to refuse *before* `publishDraft` writes to disk, so it
+ * needs the count while the day is still a draft, and `sendDayLetter` cannot
+ * give it one because it declines to render a letter for an unpublished day.
+ * Hence a second entry point — but **not** a second answer: it calls the same
+ * `recipientsFor` the charge itself calls, so the number quoted in a `402` and
+ * the number actually debited cannot drift. A hand-rolled "count the contacts
+ * who opted in" beside it is precisely the duplication `mayMailTrip`'s doc
+ * comment above is an essay about.
+ *
+ * One credit per recipient, so the count *is* the cost; if that ever stops
+ * being true this is the one place to change.
+ *
+ * Zero for a trip or journal that does not exist, and for a `test: true` trip —
+ * content nobody lived reaches no inbox and therefore costs nothing.
+ */
+export async function whatsappWouldCost(owner: string, ref: string): Promise<number> {
+  const user = getUser(owner);
+  const trip = getTrip(ref);
+  if (!user || !trip) return 0;
+  if (trip.test === true) return 0;
+  return (await recipientsFor(trip, user)).length;
+}
+
 export async function sendDayWhatsapp(
   owner: string,
   ref: string,
