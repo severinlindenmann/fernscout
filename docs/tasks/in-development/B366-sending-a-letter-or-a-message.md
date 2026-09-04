@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: credits, mail, api
 found: "2026-09-04T21:02:47Z"
+started: "2026-09-04T21:07:09Z"
+session: 3d8b93dd-e447-4c3c-bcd1-fa37e2bd17f9
+claimed: "2026-09-04T21:07:09Z"
 ---
 
 # B366 — Sending a letter or a message costs a credit, and a journal starts with none
