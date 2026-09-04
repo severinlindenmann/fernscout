@@ -7,8 +7,7 @@ complexity: medium
 area: contacts, invites, web, i18n
 found: "2026-09-04T12:41:00Z"
 started: "2026-09-04T13:11:35Z"
-session: a3370c43-40d9-471c-a3d3-1a30c49b5302
-claimed: "2026-09-04T13:11:35Z"
+merged: "2026-09-04T13:24:19Z"
 ---
 
 # B281 — The invite panel asks who a link is for and then shows neither that nor the language, and offers a third link kind nobody needs
