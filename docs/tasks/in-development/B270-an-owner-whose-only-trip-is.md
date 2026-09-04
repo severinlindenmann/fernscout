@@ -42,3 +42,38 @@ An owner whose only trip is `public, listed: false` sees either the trip or a
 sentence about why they do not, and the reasoning for which is written down.
 Whatever changes, a stranger's view of that journal is unchanged — asserted by
 a test.
+
+## Decision
+
+`listed: false` hides the trip from the owner too, and that stays as-is —
+`listableTrips` is not touched. This was not a judgment call so much as a
+discovery: the codebase had already decided and tested it. `test/access-gate
+.test.ts`'s `EXPECTED` table has an explicit `owner` row for `quiet-2026`
+(`public`, `listed: false`) asserting `switcher: false`, and two tests derived
+from that table —
+"the only trip the gate opens without the switcher listing it is an unlisted
+public one" and the panel's equivalent — assert this holds for *every*
+viewer in the table, owner included, with no carve-out. Widening
+`listableTrips` for the owner would have meant reversing an existing,
+deliberately-worded, already-green test rather than fixing an oversight.
+
+The fix is therefore the owner's empty state: `app/[user]/trips/page.tsx` now
+distinguishes `trips.length === 0` into two owner cases — `all.length === 0`
+(genuinely empty, unchanged: the agent-handover prompt) and `all.length > 0`
+(a real trip, filtered out from under its own owner) — the latter sets
+`empty = { owner: true, siteUrl, filtered: true }`. `TripsIndexContent`'s
+`EmptyState` renders a distinct sentence for it ("Nothing listed here" /
+`trips.emptyOwnerFilteredBody`, naming `listed: false` directly, since this is
+the owner reading about their own file) and skips the agent-handover button,
+which would be wrong here — there is no first day to write, the trip already
+exists.
+
+A stranger's branch (`owner: false`) is untouched: `test/unlisted-owner-trip
+.test.tsx` asserts a stranger looking at the same fixture still gets the
+ordinary `{ owner: false, signedIn: false, ownerName }` shape, byte-identical
+to a genuinely empty journal per B264.
+
+New tests: `test/unlisted-owner-trip.test.tsx` (page.tsx-level, both the
+owner's and a stranger's props against a real `public, listed: false` trip.md
+fixture) and two cases added to `test/empty-journal.test.tsx` (the
+component-level rendering of the `filtered: true` state).
