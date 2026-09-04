@@ -262,6 +262,8 @@ export type TranslationKey =
   | "cost.title"
   | "cost.today"
   | "cost.total"
+  | "cost.tripDescription"
+  | "cost.tripDescriptionPlanned"
   | "cost.unconverted"
   | "cost.underBudget"
   | "cost.what"

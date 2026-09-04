@@ -190,6 +190,8 @@
   "cost.subtitle": "Alles, was wir ausgeben, in {currency} — von Visa und Impfungen vor der Abreise bis zum Kaffee von heute. Ehrlich geführt, damit ihr seht, was so eine Reise wirklich kostet.",
   "cost.subtitlePlanned": "Diese Reise hat noch nicht begonnen — hier steht, was die Vorbereitung gekostet hat und was wir eingeplant haben, in {currency}. Unterwegs ist noch nichts ausgegeben, und nichts davon ist ein Schnitt oder eine Hochrechnung.",
   "cost.title": "Was die Reise kostet",
+  "cost.tripDescription": "Was {trip} wirklich gekostet hat, in {currency}.",
+  "cost.tripDescriptionPlanned": "Was {trip} voraussichtlich kosten wird, in {currency}.",
   "cost.today": "An diesem Tag",
   "cost.total": "Bisher insgesamt",
   "cost.unconverted": "Nicht in diesen Summen enthalten: {amounts}. Die Kurstabelle dieser Reise kennt dafür keinen Kurs, deshalb stehen die Beträge so da, wie sie bezahlt wurden — statt in einer Summe, die stimmig aussähe und falsch wäre. Bitte einen Agenten, der an diesem Journal arbeitet, die fehlenden Kurse nachzutragen.",

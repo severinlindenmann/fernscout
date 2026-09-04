@@ -6,6 +6,9 @@ import CostsPageContent from "@/app/[user]/(trip)/costs/CostsPageContent";
 import CostsPrivate from "@/components/CostsPrivate";
 import { getCostSummary, hasCostsData } from "@/lib/costs";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
+import { getDays } from "@/lib/entries";
+import { hasBegun } from "@/lib/tripTime";
+import type { TranslationKey } from "@/lib/i18n";
 import { getUser, getUsernames } from "@/lib/users";
 import { isEnabled } from "@/lib/capabilities";
 import TripProvider from "@/components/TripProvider";
@@ -39,6 +42,22 @@ export async function generateMetadata({
   // page below 404s for it. B267.
   if (!hasCostsData(trip.ref)) return {};
   const locale = await requestLocale();
+  /**
+   * The tense, and the currency rather than the journal's URL slug (B214,
+   * B382). This route's own description was a literal English sentence,
+   * untranslated, always past tense, and naming the journal by
+   * `trip.username` — a directory name and an address, not something to show
+   * a reader. `cost.tripDescription`/`cost.tripDescriptionPlanned` carry both
+   * fixes: translated, and asking `hasBegun` the way the shared page's own
+   * metadata does (see the note next door, `app/[user]/(trip)/costs/page.tsx`)
+   * rather than `getCostSummary`, which is uncached and prices the trip twice
+   * for one string.
+   */
+  const currency = getUser(user)?.baseCurrency ?? "CHF";
+  const begun = hasBegun(trip, getDays(trip.ref));
+  const descriptionKey: TranslationKey = begun
+    ? "cost.tripDescription"
+    : "cost.tripDescriptionPlanned";
   return {
     // The section name follows the reader; the trip's own title is the
     // author's and is never translated. See the note in the gallery page.
@@ -46,7 +65,7 @@ export async function generateMetadata({
       section: translateIn(locale, "cost.title"),
       trip: trip.title,
     }),
-    description: `What ${trip.title} actually cost, itemised in ${trip.username}'s currency.`,
+    description: translateIn(locale, descriptionKey, { trip: trip.title, currency }),
     alternates: { canonical: `/${user}/trips/${trip.id}/costs` },
   };
 }
