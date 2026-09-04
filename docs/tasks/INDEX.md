@@ -138,7 +138,6 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B257](in-development/B257-nothing-logs-http-requests-so-a.md) | Nothing logs HTTP requests, so a client reporting failed to fetch cannot be diagnosed | CHORE | medium | low | `986bc24c` |
-| [B91](in-development/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | `a3370c43` |
 | [B286](in-development/B286-the-trip-nav-wraps-to-one.md) | The trip nav wraps to one row on one trip and two rows on another at the same width | ISSUE | low | medium | `4d93d34d` |
 
 ## testing
@@ -210,6 +209,7 @@ Do not edit them by hand; run the script.
 | [B68](testing/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
 | [B70](testing/B70-a-test-trip-is-mailed-out.md) | A test trip is mailed out in the digest as if somebody had lived it | ISSUE | medium | low | — |
 | [B82](testing/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
+| [B91](testing/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B97](testing/B97-the-guest-list-cannot-tell-a.md) | The guest list cannot tell a reading link from a writing link | ISSUE | medium | low | — |
 | [B98](testing/B98-revoking-somebody-s-access-leaves-every.md) | Revoking somebody's access leaves every agent token already issued to them working until it expires | SECURITY | medium | medium | — |
 | [B03](testing/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium | — |

@@ -7,8 +7,7 @@ complexity: medium
 area: api, documentation, agents
 found: "2026-09-03"
 started: "2026-09-04T12:50:47Z"
-session: a3370c43-40d9-471c-a3d3-1a30c49b5302
-claimed: "2026-09-04T12:50:47Z"
+merged: "2026-09-04T13:11:09Z"
 ---
 
 # B91 — An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first
