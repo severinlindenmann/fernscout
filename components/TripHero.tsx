@@ -85,6 +85,11 @@ export default function TripHero({
   const { money } = useMoney();
   const site = useSite();
   const flag = flagFor(current.country, current.countryCode);
+  // A day with nothing written down — no coordinates, no name (B381) — has no
+  // place to claim. Saying "we're in" nothing would be inventing a fiction the
+  // day itself does not carry, so the badge is simply not drawn rather than
+  // drawn empty.
+  const hasLocation = current.location !== "";
 
   // The bare URLs are the journal's front door, so the masthead there is the
   // journal. Open one particular trip and the masthead is that trip — the date
@@ -145,33 +150,38 @@ export default function TripHero({
               </motion.div>
             )}
 
-            {live ? (
-              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-yellow-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-yellow-400" />
-                </span>
-                <span className="text-xs text-navy-600">
-                  {t("hero.currentlyIn")}{" "}
-                  <strong className="font-semibold text-navy-900">
-                    {flag} {current.location}
-                  </strong>
-                </span>
-              </div>
-            ) : (
-              // No dot, nothing pinging — the whole point is that this is not
-              // happening right now. It says so first, then where it ended.
-              <div className="mt-4 inline-flex flex-col gap-0.5 rounded-xl border border-navy-200 bg-white px-3 py-2">
-                <span className="text-xs font-semibold text-navy-900">{t("hero.over")}</span>
-                <span className="text-xs text-navy-600">
-                  {t("hero.endedIn")}{" "}
-                  <strong className="font-semibold text-navy-900">
-                    {flag} {current.location}
-                  </strong>{" "}
-                  · {formatShortDate(current.date)}
-                </span>
-              </div>
-            )}
+            {live
+              ? hasLocation && (
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-yellow-400 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-yellow-400" />
+                    </span>
+                    <span className="text-xs text-navy-600">
+                      {t("hero.currentlyIn")}{" "}
+                      <strong className="font-semibold text-navy-900">
+                        {flag} {current.location}
+                      </strong>
+                    </span>
+                  </div>
+                )
+              : (
+                  // No dot, nothing pinging — the whole point is that this is
+                  // not happening right now. It says so first, then where it
+                  // ended, if the last day said where that was.
+                  <div className="mt-4 inline-flex flex-col gap-0.5 rounded-xl border border-navy-200 bg-white px-3 py-2">
+                    <span className="text-xs font-semibold text-navy-900">{t("hero.over")}</span>
+                    {hasLocation && (
+                      <span className="text-xs text-navy-600">
+                        {t("hero.endedIn")}{" "}
+                        <strong className="font-semibold text-navy-900">
+                          {flag} {current.location}
+                        </strong>{" "}
+                        · {formatShortDate(current.date)}
+                      </span>
+                    )}
+                  </div>
+                )}
 
             <div className="mt-6 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
               {onResume && resumeLabel && (
