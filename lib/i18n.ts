@@ -87,6 +87,7 @@ export type TranslationKey =
   | "contact.adminWantsPostcard"
   | "contact.code"
   | "contact.codeIntro"
+  | "contact.codeServerError"
   | "contact.codeSubmit"
   | "contact.codeTitle"
   | "contact.codeWrong"

@@ -56,6 +56,7 @@
   "contact.adminWantsPostcard": "Möchte eine echte Postkarte von unterwegs",
   "contact.code": "Der Code",
   "contact.codeIntro": "Wir haben einen sechsstelligen Code an {email} geschickt. Tipp ihn ein, dann bist du fertig.",
+  "contact.codeServerError": "Das lag an uns, nicht an deinem Code. Deine Adresse ist schon bestätigt — du musst nichts wiederholen.",
   "contact.codeSubmit": "Das bin ich",
   "contact.codeTitle": "Schau in dein Postfach",
   "contact.codeWrong": "Der Code hat nicht gepasst. Schau ihn nochmal an.",

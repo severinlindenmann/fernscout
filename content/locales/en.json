@@ -56,6 +56,7 @@
   "contact.adminWantsPostcard": "Wants a real postcard from the road",
   "contact.code": "The code",
   "contact.codeIntro": "We sent a six-digit code to {email}. Type it in and you're done.",
+  "contact.codeServerError": "That was our fault, not your code. Your address is already confirmed — there's nothing to redo.",
   "contact.codeSubmit": "That's me",
   "contact.codeTitle": "Check your inbox",
   "contact.codeWrong": "That code didn't work. Check it and try again.",

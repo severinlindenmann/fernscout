@@ -3,6 +3,7 @@ import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import {
   confirmContactFromSession,
   getContactByEmail,
+  markOwnerNotified,
   requestContact,
 } from "@/lib/contacts";
 import { resolveInvite } from "@/lib/contacts/invites";
@@ -212,11 +213,15 @@ export async function POST(request: Request) {
   const confirmed = await confirmContactFromSession(username, sessionEmail);
   if (!confirmed.ok) return Response.json({ status: "waiting" }, { status: 202 });
 
+  // Both best-effort (B272), same as `/api/contacts/confirm` — see there.
   await sendConfirmedMail(username, user, confirmed.contact, confirmed.manageToken);
-  // Only the first time, so somebody re-following a link does not put a second
-  // request in front of the owner.
-  if (confirmed.firstConfirmation) {
-    await notifyOwnerOfRequest(username, user, confirmed.contact);
+  // Only while the owner has not actually been told, not only the first time:
+  // a re-following of the link whose earlier notification mail failed still
+  // needs one, and `notified_at` only turns true once it lands — so this
+  // never puts a second request in front of the owner.
+  if (confirmed.needsOwnerNotice) {
+    const notified = await notifyOwnerOfRequest(username, user, confirmed.contact);
+    if (notified) await markOwnerNotified(username, confirmed.contact.id);
   }
 
   return Response.json(

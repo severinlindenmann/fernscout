@@ -3,7 +3,7 @@ import type { UserConfig } from "../config";
 import { CODE_TTL_MINUTES } from "../auth";
 
 import { translateIn } from "../locales";
-import { sendMail } from "../mail";
+import { sendMail, type SendResult } from "../mail";
 import { renderMail } from "../mail/template";
 import { serverSite } from "../site";
 import type { Locale } from "../types";
@@ -67,37 +67,51 @@ export async function sendCodeMail(
   );
 }
 
-/** "We have your details, the owner will let you in." Carries the manage link
- * — the first mail that can, because the address has just been proved. */
+/**
+ * "We have your details, the owner will let you in." Carries the manage link
+ * — the first mail that can, because the address has just been proved.
+ *
+ * Best effort (B272). By the time this is called, `confirmContact` has
+ * already succeeded and the reader has proved their code was right — an SMTP
+ * hiccup here must not turn that into a 500 the UI renders as "that code
+ * didn't work". Failure is logged and swallowed; there is no state to retry
+ * from because this letter carries nothing the reader cannot get again from
+ * `/{user}/c/manage` once they are approved.
+ */
 export async function sendConfirmedMail(
   username: string,
   user: UserConfig,
   contact: ContactRecord,
   manageToken: string,
-) {
+): Promise<SendResult | null> {
   const locale = pickLocale(contact.locale, user.defaultLocale);
   const manage = manageUrl(baseUrl(), username, manageToken);
-  return sendMail(
-    renderMail(
-      contact.email,
-      translateIn(locale, "contact.doneTitle"),
-      {
-        preheader: translateIn(locale, "contact.doneBody", { title: user.title }),
-        title: translateIn(locale, "contact.doneTitle"),
-        blocks: [
-          { kind: "paragraph", text: translateIn(locale, "contact.doneBody", { title: user.title }) },
-          {
-            kind: "button",
-            text: translateIn(locale, "contact.mailManageButton"),
-            href: manage,
-          },
-        ],
-        footer: footerFor(locale, user),
-        unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, manageToken),
-      },
-      username,
-    ),
-  );
+  try {
+    return await sendMail(
+      renderMail(
+        contact.email,
+        translateIn(locale, "contact.doneTitle"),
+        {
+          preheader: translateIn(locale, "contact.doneBody", { title: user.title }),
+          title: translateIn(locale, "contact.doneTitle"),
+          blocks: [
+            { kind: "paragraph", text: translateIn(locale, "contact.doneBody", { title: user.title }) },
+            {
+              kind: "button",
+              text: translateIn(locale, "contact.mailManageButton"),
+              href: manage,
+            },
+          ],
+          footer: footerFor(locale, user),
+          unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, manageToken),
+        },
+        username,
+      ),
+    );
+  } catch (err) {
+    console.error(`[contacts] confirmation mail to ${contact.email} failed:`, err);
+    return null;
+  }
 }
 
 /**
@@ -107,46 +121,65 @@ export async function sendConfirmedMail(
  * this exists to prevent is a request sitting unseen for a fortnight while the
  * owner is on a bus. It links straight into the overview rather than asking
  * them to go and find it.
+ *
+ * Best effort (B272), and unlike `sendConfirmedMail` there **is** state to
+ * retry from: this letter is the one thing standing between a confirmed
+ * request and an owner who never hears about it, which is exactly what went
+ * missing in production when it threw straight out of the route. Failure is
+ * logged and swallowed here; the return value says whether it actually went,
+ * so the caller can persist that with `markOwnerNotified` and only then. A
+ * `false` leaves `contacts.notified_at` null, which is what lets the next
+ * confirmation for the same address try again instead of the notice being
+ * lost for good.
  */
 export async function notifyOwnerOfRequest(
   username: string,
   user: UserConfig,
   contact: ContactRecord,
-) {
-  if (!user.owner.email) return null;
+): Promise<boolean> {
+  if (!user.owner.email) return false;
   const locale = pickLocale(user.defaultLocale);
-  return sendMail(
-    renderMail(
-      user.owner.email,
-      translateIn(locale, "contact.mailRequestSubject", { title: user.title }),
-      {
-        preheader: translateIn(locale, "contact.mailRequestBody", {
-          name: contact.name ?? contact.email,
-          email: contact.email,
-        }),
-        title: translateIn(locale, "contact.mailRequestTitle"),
-        blocks: [
-          {
-            kind: "paragraph",
-            // Name and address, and nothing else. Whether they asked for a
-            // postcard is on the overview page; where they live is not in a
-            // mail.
-            text: translateIn(locale, "contact.mailRequestBody", {
-              name: contact.name ?? contact.email,
-              email: contact.email,
-            }),
-          },
-          {
-            kind: "button",
-            text: translateIn(locale, "contact.mailRequestButton"),
-            href: `${baseUrl()}/${username}/contacts`,
-          },
-        ],
-        footer: footerFor(locale, user),
-      },
-      username,
-    ),
-  );
+  try {
+    const result = await sendMail(
+      renderMail(
+        user.owner.email,
+        translateIn(locale, "contact.mailRequestSubject", { title: user.title }),
+        {
+          preheader: translateIn(locale, "contact.mailRequestBody", {
+            name: contact.name ?? contact.email,
+            email: contact.email,
+          }),
+          title: translateIn(locale, "contact.mailRequestTitle"),
+          blocks: [
+            {
+              kind: "paragraph",
+              // Name and address, and nothing else. Whether they asked for a
+              // postcard is on the overview page; where they live is not in a
+              // mail.
+              text: translateIn(locale, "contact.mailRequestBody", {
+                name: contact.name ?? contact.email,
+                email: contact.email,
+              }),
+            },
+            {
+              kind: "button",
+              text: translateIn(locale, "contact.mailRequestButton"),
+              href: `${baseUrl()}/${username}/contacts`,
+            },
+          ],
+          footer: footerFor(locale, user),
+        },
+        username,
+      ),
+    );
+    // `sendMail` returns null rather than throwing when this server or this
+    // journal has mail switched off — not a failure, but nothing was told
+    // either. Reading that as "notified" would let `notified_at` lie.
+    return result !== null;
+  } catch (err) {
+    console.error(`[contacts] could not notify the owner of ${username} about ${contact.email}:`, err);
+    return false;
+  }
 }
 
 /** "You're in." Sent when the owner approves, in the reader's language. */

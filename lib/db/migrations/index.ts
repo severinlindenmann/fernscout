@@ -10,6 +10,7 @@ import * as deletions from "./008-deletions";
 import * as signinDestination from "./009-signin-destination";
 import * as inviteLinks from "./010-invite-links";
 import * as codeTripBinding from "./011-code-trip-binding";
+import * as contactNotified from "./012-contact-notified";
 
 /**
  * Every migration, listed by hand.
@@ -35,6 +36,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "009-signin-destination": signinDestination,
   "010-invite-links": inviteLinks,
   "011-code-trip-binding": codeTripBinding,
+  "012-contact-notified": contactNotified,
 };
 
 export const migrationProvider: MigrationProvider = {
