@@ -98,3 +98,59 @@ Note that in a closing line so whoever picks up B89 knows to fill it in.
   and the credits block is absent (not zero) until B89 exists.
 - The drafts shape in status and at `/drafts` come from one function, not two.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.
+
+## Verified
+
+Built as `lib/api/status.ts` (the assembly) plus
+`app/api/v1/[user]/status/route.ts` (twenty lines: authenticate, scope check,
+respond). `force-dynamic`, nothing cached.
+
+All four green in the worktree: `npm run build` compiled, `npx tsc --noEmit`
+clean, `npx eslint .` 0 errors (4 pre-existing warnings, none in these files),
+`npx vitest run` 156 files / 2396 tests. `npm run unused` reports no unused
+files, dependencies or unresolved imports.
+
+`test/status.test.ts`, eleven tests, one per acceptance line:
+
+- no token → `401`, which is the guide's "am I signed in" check;
+- owner token → journal, both trips, both drafts, features and a `next` in one
+  call;
+- every draft carries its own `publish` URL, and a published day is not in the
+  queue;
+- `next` names the drafts and carries "Never publish because it looks
+  finished";
+- an owner token is told `scope.kind === "journal"`;
+- a trip-scoped token gets one trip, one draft, and `scope.note` saying in words
+  that it is a slice — the case that matters, since an agent that cannot tell a
+  slice from the whole will report "this journal has one trip" to somebody who
+  has two;
+- `postcards` off is reported as off *with the reason*, not omitted;
+- `credits` and `pricing` are absent, not zero;
+- no `invites` key where `contacts` is off, because there is no queue to land
+  in;
+- and the drafts array from `/drafts` is `toEqual` the `drafts.items` from
+  `/status` — the "one function, not two" criterion, asserted rather than
+  asserted-by-comment.
+
+**The shared shape is `draftQueue` in `lib/api/status.ts`.** The drafts route
+lost its own loop and calls it; that is what makes B134's inherited `test` flag
+impossible to get wrong in one place and right in the other.
+
+Guide: a new "First, get your bearings" section immediately before
+"Authenticating" in `agentGuide()` — two steps, the credential check and then
+read-once — and the route is documented in `openapi.json` beside `/drafts`.
+
+Security pass over the branch found nothing introduced. The gate order is
+`authenticate` → `ownsUser` → assemble, matching the drafts and trips routes,
+and scoping is `writableTrips` rather than a rule reinvented here. The one
+question worth recording: the response repeats capability states and their
+reasons, which `/api/health` already serves **unauthenticated** by design
+(`app/api/health/route.ts:71`) — so this is strictly less exposure than an
+existing public endpoint, not new.
+
+Captured along the way: **B288** — status does not carry malformed trips, which
+`/trips` does for owners (B83). Not absorbed, because this task's Work section
+lists what the response carries and that is not on it.
+
+Left for B89, as this task asked: the `credits` and `pricing` block. It slots in
+beside `features` in `journalStatus`; the comment there says so.

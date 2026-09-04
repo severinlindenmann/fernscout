@@ -1053,6 +1053,28 @@ export function GET() {
           },
         },
       },
+      "/api/v1/{user}/status": {
+        get: {
+          summary: "Where you stand, in one call",
+          description:
+            "The first call to make, and the cheapest credential check there is: `401` " +
+            "means go and get a code, `200` means you are in. Carries the journal, the " +
+            "drafts waiting for a person to approve them — each with the call that " +
+            "publishes it — the trips this token may write to, which capabilities are on " +
+            "for this journal and why any is off, and a `next` saying what to do. " +
+            "`scope` says whether you are holding the whole journal or one trip's slice; " +
+            "do not report a slice as the journal's total. No credits or pricing: there " +
+            "are no accounts yet (B89), and an absent key is the honest answer.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Status" },
+            "401": { description: "No live token — authenticate" },
+            "403": { description: "This token belongs to a different journal" },
+          },
+        },
+      },
       "/api/v1/{user}/drafts": {
         get: {
           summary: "Everything written and not yet on the site",
