@@ -73,8 +73,8 @@ export type DeletionSummary = {
    * `null` means credits are switched off on this server — a different fact
    * from a balance of zero, and the two must not be rendered the same way
    * (B374). Only ever set for `kind: "journal"`: deleting a trip destroys no
-   * credits (`credits` and `credit_ledger` carry no `trip_id`, so `deleteTrip`'s
-   * per-table sweep in `lib/db/schema.ts` never reaches them), so nothing here
+   * credits (`credits` and `credit_ledger` carry no `trip_id`, so the per-table
+   * sweep in `deleteTrip` below never reaches them), so nothing here
    * computes it for that case.
    */
   credits?: number | null;
