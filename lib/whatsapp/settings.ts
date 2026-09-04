@@ -28,6 +28,22 @@ export function whatsappCountryCode(): string | undefined {
  * French-speaking reader getting the German announcement is a smaller harm
  * than getting nothing, and the alternative is that adding a locale silently
  * stops the whole feature.
+ *
+ * ## Why the *name* is configuration and not a constant
+ *
+ * Because you will change the wording, and changing the wording means a new
+ * template. Meta does not let an approved one be edited freely, and — this is
+ * the part that cost a day here — **a deleted template's name is reserved for
+ * 30 days.** Deleting `fernscout_day_published` to recreate it without a
+ * footer produced `(#100/2388023)` on every attempt to create it again, with
+ * no way to undo and no way to use the name until October. The recovery was
+ * `fernscout_day_published_v2` and one line in `content/config.json`, which is
+ * only cheap because the name lives there rather than in this file.
+ *
+ * So: **never delete a template to fix it. Create the next version under a
+ * new name and repoint the config.** The old one costs nothing to leave
+ * sitting there, and it keeps working until the new one is approved, which
+ * means the wording can change with no window where announcements fail.
  */
 export function templateFor(locale: string, fallbackLocale: string): { name: string; language: string } | null {
   const configured = loadServerConfig().features.whatsapp.templates;
