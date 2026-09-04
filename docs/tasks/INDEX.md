@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (87)
+## backlog (86)
 
 ### security (6)
 
@@ -109,7 +109,7 @@ Do not edit them by hand; run the script.
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 | [B90](backlog/big-feature/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
-### small-feature (13)
+### small-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -117,7 +117,6 @@ Do not edit them by hand; run the script.
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
 | [B324](backlog/small-feature/B324-an-owner-in-the-browser-cannot.md) | An owner in the browser cannot send an invitation by mail, only an agent can | FEATURE | medium | low |
-| [B367](backlog/small-feature/B367-an-owner-cannot-see-what-they.md) | An owner cannot see what they have left to spend or what one send would cost | FEATURE | medium | medium |
 | [B42](backlog/small-feature/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
@@ -127,12 +126,11 @@ Do not edit them by hand; run the script.
 | [B305](backlog/small-feature/B305-a-reader-shown-a-day-in.md) | A reader shown a day in a language they did not ask for is told nothing about it | FEATURE | low | low |
 | [B368](backlog/small-feature/B368-there-is-no-way-to-ask.md) | There is no way to ask for more credits, and the payment provider does not exist yet | FEATURE | low | medium |
 
-### chore (9)
+### chore (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B363](backlog/chore/B363-the-letter-s-permission-gate-is.md) | The letter's permission gate is a second copy of the site's, and nothing holds them together | CHORE | medium | medium |
-| [B369](backlog/chore/B369-whatsapp-announcements-are-sent-without-being.md) | WhatsApp announcements are sent without being charged, because B365 landed after the ledger | CHORE | medium | low |
 | [B216](backlog/chore/B216-nothing-helps-an-author-find-the.md) | Nothing helps an author find the rate to freeze into a trip | CHORE | low | low |
 | [B226](backlog/chore/B226-two-new-deploy-time-checks-run.md) | Two new deploy-time checks run only where a binary happens to exist, and CI may have neither | CHORE | low | low |
 | [B235](backlog/chore/B235-seventy-one-exports-and-fifty-nine.md) | Seventy-one exports and fifty-nine exported types are used only inside their own file | CHORE | low | medium |
@@ -168,13 +166,14 @@ Do not edit them by hand; run the script.
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 | [B289](backlog/docs-and-skills/B289-nothing-records-that-a-hungarian-string.md) | Nothing records that a Hungarian string cannot take a case suffix on an interpolated name | DOCS | low | low |
 
-### superseded (5)
+### superseded (6)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B14](backlog/superseded/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B260](backlog/superseded/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |
 | [B341](backlog/superseded/B341-a-malformed-plan-md-throws-uncaught.md) | A malformed plan.md throws uncaught out of getPlan, crashing the trip and map pages | ISSUE | medium | low |
+| [B369](backlog/superseded/B369-whatsapp-announcements-are-sent-without-being.md) | WhatsApp announcements are sent without being charged, because B365 landed after the ledger | CHORE | medium | low |
 | [B253](backlog/superseded/B253-the-demo-journal-s-tagline-says.md) | The demo journal's tagline says four journeys and the count beside it says five | ISSUE | low | low |
 | [B297](backlog/superseded/B297-a-nul-byte-in-the-idempotency.md) | A NUL byte in the idempotency key separator makes git treat the whole file as binary | CHORE | low | low |
 
@@ -182,13 +181,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B366](in-development/B366-sending-a-letter-or-a-message.md) | Sending a letter or a message costs a credit, and a journal starts with none | FEATURE | high | high | `3d8b93dd` |
+_Nothing here._
 
-## testing (164)
+## testing (167)
 
 ### security (10)
 
@@ -311,19 +308,20 @@ _Nothing here._
 | [B376](testing/issue/B376-the-phone-field-offers-postcards-on.md) | The phone field offers postcards on a server with postcards switched off | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
-### big-feature (7)
+### big-feature (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B319](testing/big-feature/B319-letting-somebody-in-means-handing-them.md) | Letting somebody in means handing them a link by hand, and approving means being at a browser | FEATURE | high | high | — |
 | [B345](testing/big-feature/B345-publishing-a-day-tells-nobody-so.md) | Publishing a day tells nobody, so an owner announces their own journal by hand | FEATURE | high | high | — |
 | [B365](testing/big-feature/B365-a-published-day-can-only-be.md) | A published day can only be announced by email | FEATURE | high | high | — |
+| [B366](testing/big-feature/B366-sending-a-letter-or-a-message.md) | Sending a letter or a message costs a credit, and a journal starts with none | FEATURE | high | high | — |
 | [B283](testing/big-feature/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high | — |
 | [B294](testing/big-feature/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high | — |
 | [B361](testing/big-feature/B361-the-lifetime-map-cannot-answer-which.md) | The lifetime map cannot answer which countries somebody has been to, only where individual stops fell | FEATURE | medium | high | — |
 | [B39](testing/big-feature/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
 
-### small-feature (11)
+### small-feature (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -332,7 +330,9 @@ _Nothing here._
 | [B344](testing/small-feature/B344-the-lifetime-map-joins-every-trip.md) | The lifetime map joins every trip's stops with a line, reading as a route when it is an overview of everywhere somebody has been | FEATURE | medium | low | — |
 | [B346](testing/small-feature/B346-every-trip-is-the-same-colour.md) | Every trip is the same colour because the scaffold writes accent sky and nothing assigns a distinct one | FEATURE | medium | low | — |
 | [B364](testing/small-feature/B364-the-lifetime-map-draws-a-bare.md) | The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries | FEATURE | medium | low | — |
+| [B367](testing/small-feature/B367-an-owner-cannot-see-what-they.md) | An owner cannot see what they have left to spend or what one send would cost | FEATURE | medium | medium | — |
 | [B370](testing/small-feature/B370-country-names-written-across-the-lifetime.md) | Country names written across the lifetime map are unreadable, and one hue for every country makes the map say little | FEATURE | medium | medium | — |
+| [B374](testing/small-feature/B374-deleting-a-journal-silently-destroys-the.md) | Deleting a journal silently destroys the credits left in it | FEATURE | medium | low | — |
 | [B52](testing/small-feature/B52-the-digest-still-refuses-a-guest.md) | The digest still refuses a guest trip to a reader who can now open it | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
