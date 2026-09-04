@@ -112,6 +112,7 @@
   "contact.statusPending": "Wartet auf Freigabe",
   "contact.submit": "Ins Gästebuch eintragen",
   "contact.tel": "Telefonnummer",
+  "contact.telHint": "wird nur gespeichert — bisher wird von hier aus nichts dorthin geschickt",
   "contact.title": "Komm mit uns mit",
   "contact.tooMany": "Das waren viele Versuche. Warte ein paar Minuten und probier es nochmal.",
   "contact.unsubscribe": "Keine E-Mails mehr",

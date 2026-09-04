@@ -104,9 +104,16 @@ function runPostcard(options: { cwd: string; contentDir?: string }) {
   if (options.contentDir) env.CONTENT_DIR = options.contentDir;
   else delete env.CONTENT_DIR;
 
+  // `tsx --conditions=react-server`, not plain `node` — same as `runPhotobook`
+  // below, and for the same reason `package.json`'s `postcard` script changed
+  // to this (B273): `lib/postcard/contacts.ts` pulls in `lib/contacts`, which
+  // imports other `lib/` modules with no file extension, and plain Node's ESM
+  // loader cannot resolve a directory import at all — `server-only` aside.
   const result = spawnSync(
     NODE_BIN,
     [
+      TSX,
+      "--conditions=react-server",
       path.join(ROOT, "scripts", "postcard.ts"),
       "--user",
       "example",

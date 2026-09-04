@@ -6,6 +6,7 @@ import {
   markOwnerNotified,
   requestContact,
 } from "@/lib/contacts";
+import { EMPTY_ADDRESS, isPostable, normaliseAddress } from "@/lib/contacts/crypto";
 import { resolveInvite } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
 import { notifyOwnerOfRequest, sendCodeMail, sendConfirmedMail } from "@/lib/contacts/mail";
@@ -27,17 +28,26 @@ export const dynamic = "force-dynamic";
  * approval. That is what makes both links safe to forward: the link decides
  * who may ask, the owner decides who gets in — decision 19, unchanged.
  *
- * ## What a redemption asks for, and nothing else
+ * ## What a redemption asks for
  *
- * Two things. **An address, proved**, and **a name to put beside it**. That is
- * the whole of what being let into a journal needs. No postal address, no
- * phone number, no digest tick: those belong to postcards and the mailing
- * list, they have their own page (`/{user}/c/<token>`), and asking for them
- * here would mean a redemption silently rewriting choices somebody already
- * made. `/{user}/i/<token>` — the personal link — still carries the full form,
- * because that one *is* the guestbook.
+ * Two things it always needs. **An address, proved**, and **a name to put
+ * beside it**. That is the whole of what being let into a journal needs, and
+ * a returning reader — one already known to this journal, by a session or by
+ * email — is asked for nothing beyond them: no digest tick, and (since B273)
+ * no postal address or phone number either, because a redemption that quietly
+ * rewrote a choice somebody already made would be a form doing something
+ * nobody asked it to. Those still have their own page,
+ * `/{user}/c/<token>`, where they can be added, corrected or removed in the
+ * open.
  *
- * Each of the two is skipped when it is already known:
+ * A **brand-new** reader — no session, no existing row for the address they
+ * typed — sees more: a postal address and a phone number, both optional,
+ * exactly like the guestbook at `/{user}/i/<token>`. There is no existing
+ * choice for that screen to overwrite, so offering the two together at the
+ * moment somebody first asks in saves them a second trip to the manage page
+ * later — which is the gap B273 was filed over.
+ *
+ * Each of the two identity fields is skipped when it is already known:
  *
  * - **Signed in to this journal already?** Then the address is proved — the
  *   cookie was minted by `verifyCode` against a code mailed to it — and this
@@ -176,17 +186,47 @@ export async function POST(request: Request) {
     user.defaultLocale,
   );
 
+  /**
+   * Whether the "form" step sent one — B273. Gated on `!sessionEmail` rather
+   * than merely on the body carrying one: the confirm step's whole point is
+   * that a reader already proved by session is never asked about their
+   * address again, and that has to hold even against a request built by hand
+   * rather than by this component — the client is not the boundary. A
+   * brand-new reader's form always sends an address, even an entirely blank
+   * object; that is deliberately not "was every field filled in" — an object
+   * with nothing in it is still a real answer (see `hasAnyDetail`), the same
+   * way `null` from `/api/contacts/request` is.
+   */
+  const addressProvided =
+    !sessionEmail && typeof body.address === "object" && body.address !== null;
+  const wantsPostcard = body.wantsPostcard === true;
+  const submittedAddress = normaliseAddress(
+    addressProvided ? (body.address as Record<string, unknown>) : null,
+  );
+  // Asking for a postcard with nowhere to send it is a mistake worth naming,
+  // rather than a preference worth storing — same rule `/api/contacts/request`
+  // applies to the guestbook.
+  if (addressProvided && wantsPostcard && !isPostable(submittedAddress)) {
+    return Response.json({ error: "invalid_address" }, { status: 400 });
+  }
+  // A phone number is not a postal address: keep the full submission only
+  // when the postcard box is ticked, otherwise only the phone number, never
+  // `null` — `requestContact`'s `hasAnyDetail` decides whether that is worth
+  // persisting at all.
+  const addressToStore = wantsPostcard
+    ? submittedAddress
+    : { ...EMPTY_ADDRESS, tel: submittedAddress.tel };
+
   const result = await requestContact(username, {
     name,
     email,
     locale,
-    // Untouched, both of them. A redemption never asks about the post or the
-    // digest, so it must never answer for them either: `requestContact` reads
-    // `undefined` address as "nothing given" and carries the stored one
-    // forward, and the two consents are re-sent as they already stand.
-    address: undefined,
+    // `undefined` for an already-known reader's confirm step — never asked,
+    // never answered, exactly as before B273. A brand-new reader's form step
+    // sent an address (see `addressProvided` above), so it is written.
+    address: addressProvided ? addressToStore : undefined,
     wantsEmailDigest: known?.wantsEmailDigest ?? false,
-    wantsPostcard: known?.wantsPostcard ?? false,
+    wantsPostcard: addressProvided ? wantsPostcard : (known?.wantsPostcard ?? false),
     createdVia: `invite:${invite.id}`,
     inviteId: invite.id,
   });

@@ -603,6 +603,190 @@ describe("redeeming a buddy link", () => {
   });
 });
 
+/**
+ * B273 — a brand-new reader, redeeming for the first time, can leave a
+ * postal address and a phone number on the same screen, rather than being
+ * sent to `/{user}/c/<token>` afterwards for the one thing the whole feature
+ * exists for: somewhere to send a postcard.
+ */
+describe("redeeming a guest link, with a postal address", () => {
+  let link = "";
+
+  const ADDRESS = {
+    name: "A Reader",
+    line1: "Bahnhofstrasse 1",
+    line2: "",
+    postcode: "8001",
+    city: "Zurich",
+    country: "Switzerland",
+    tel: "+41 00 000 00 00",
+  };
+
+  test("both fields, and the postcard box ticked, are stored — postable and consenting", async () => {
+    as(null);
+    const token = await ownerToken();
+    const created = await createLink(token, { kind: "guest" });
+    const url = created.body.invite!.url!;
+    link = url.slice(url.lastIndexOf("/") + 1);
+
+    as(null);
+    const email = "with-address@example.test";
+    const result = await redeem({
+      token: link,
+      kind: "guest",
+      name: "Reader",
+      email,
+      address: ADDRESS,
+      wantsPostcard: true,
+    });
+    expect(result.status).toBe(202);
+    expect(result.body.status).toBe("code");
+
+    const contact = await contactFor(email);
+    expect(contact?.status).toBe("pending");
+    expect(contact?.postalAddress?.line1).toBe("Bahnhofstrasse 1");
+    expect(contact?.postalAddress?.tel).toBe("+41 00 000 00 00");
+    expect(contact?.wantsPostcard).toBe(true);
+  });
+
+  test("neither field is required to join, and nothing is stored for them", async () => {
+    as(null);
+    const email = "no-address@example.test";
+    const result = await redeem({ token: link, kind: "guest", name: "Reader", email });
+    expect(result.status).toBe(202);
+    expect(result.body.status).toBe("code");
+
+    const contact = await contactFor(email);
+    expect(contact?.status).toBe("pending");
+    expect(contact?.postalAddress).toBeNull();
+    expect(contact?.wantsPostcard).toBe(false);
+  });
+
+  test("a tel with no address is kept, and does not make the contact postable", async () => {
+    as(null);
+    const email = "tel-only@example.test";
+    const result = await redeem({
+      token: link,
+      kind: "guest",
+      name: "Reader",
+      email,
+      address: { name: "", line1: "", line2: "", postcode: "", city: "", country: "", tel: "+41 1" },
+      wantsPostcard: false,
+    });
+    expect(result.status).toBe(202);
+
+    const contact = await contactFor(email);
+    expect(contact?.postalAddress?.tel).toBe("+41 1");
+    expect(contact?.postalAddress?.line1).toBe("");
+    expect(contact?.wantsPostcard).toBe(false);
+  });
+
+  test("ticking the postcard box with an incomplete address 400s rather than storing a half answer", async () => {
+    as(null);
+    const result = await redeem({
+      token: link,
+      kind: "guest",
+      name: "Reader",
+      email: "incomplete@example.test",
+      address: { name: "", line1: "Some Street", line2: "", postcode: "", city: "", country: "", tel: "" },
+      wantsPostcard: true,
+    });
+    expect(result.status).toBe(400);
+    expect(result.body.error).toBe("invalid_address");
+    expect(await contactFor("incomplete@example.test")).toBeNull();
+  });
+
+  test("a returning submission with a new address corrects the first answer, the same as the guestbook", async () => {
+    as(null);
+    const email = "corrects@example.test";
+    await redeem({
+      token: link,
+      kind: "guest",
+      name: "Reader",
+      email,
+      address: ADDRESS,
+      wantsPostcard: true,
+    });
+    expect((await contactFor(email))?.postalAddress?.city).toBe("Zurich");
+
+    await redeem({
+      token: link,
+      kind: "guest",
+      name: "Reader",
+      email,
+      address: { ...ADDRESS, city: "Geneva" },
+      wantsPostcard: true,
+    });
+    expect((await contactFor(email))?.postalAddress?.city).toBe("Geneva");
+  });
+
+  test("none of it appears in any mail the redemption sends", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    as(null);
+    const email = "no-mail-trace@example.test";
+    await redeem({
+      token: link,
+      kind: "guest",
+      name: "Reader",
+      email,
+      address: ADDRESS,
+      wantsPostcard: true,
+    });
+    await confirm(email);
+
+    const mailDir = path.join(dir, OWNER, "mail");
+    const files = fs.existsSync(mailDir) ? fs.readdirSync(mailDir) : [];
+    expect(files.length).toBeGreaterThan(0);
+    for (const file of files) {
+      const text = fs.readFileSync(path.join(mailDir, file), "utf8");
+      expect(text).not.toContain(ADDRESS.line1);
+      expect(text).not.toContain(ADDRESS.postcode);
+      expect(text).not.toContain(ADDRESS.tel);
+    }
+  });
+
+  test("signed in already, a redemption still asks for neither — the confirm step has no form at all", async () => {
+    // Somebody with a session on *this* journal, redeeming a second guest
+    // link. The confirm step never renders address fields, and the body it
+    // sends carries none — this asserts the server side of that: an address
+    // key that was never in the request must not appear from nowhere.
+    const email = "already-signed-in@example.test";
+    await redeem({ token: link, kind: "guest", name: "Reader", email });
+    await confirm(email);
+    const session = await signIn(OWNER, email);
+    as(session);
+
+    const again = await redeem({ token: link, kind: "guest" });
+    expect(again.status).toBe(202);
+    // Already confirmed, not yet approved.
+    expect(again.body.status).toBe("waiting");
+    expect((await contactFor(email))?.postalAddress).toBeNull();
+    as(null);
+  });
+
+  test("an address in the body is ignored while a session proves the reader — the client is not the boundary", async () => {
+    // The same session as above, but this time the request is built by hand
+    // rather than by `InviteRedeem` — which never sends `address` on the
+    // confirm step. The server has to refuse it on its own, not merely rely
+    // on the component never asking.
+    const email = "already-signed-in@example.test";
+    const session = await signIn(OWNER, email);
+    as(session);
+
+    const attempt = await redeem({
+      token: link,
+      kind: "guest",
+      address: ADDRESS,
+      wantsPostcard: true,
+    });
+    expect(attempt.status).toBe(202);
+    expect((await contactFor(email))?.postalAddress).toBeNull();
+    expect((await contactFor(email))?.wantsPostcard).toBe(false);
+    as(null);
+  });
+});
+
 describe("somebody who already owns a journal on this instance", () => {
   let guestLink = "";
   let buddyLink = "";

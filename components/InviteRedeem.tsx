@@ -8,20 +8,29 @@ import type { Locale } from "@/lib/types";
 /**
  * Redeeming a guest or a buddy link — B33.
  *
- * The guestbook (`ContactForm`) asks for a name, an address, a phone number
- * and two consents, because it *is* the guestbook: it is where somebody signs
- * up for postcards and a digest. This asks for two things and refuses to ask
- * for a third — **a name, and an address it can prove** — because being let
- * into somebody's journal needs nothing else, and a redemption that quietly
- * rewrote a reader's postal address or unticked their digest would be a form
- * doing something nobody asked it to.
+ * Two things it always needs — **a name, and an address it can prove** —
+ * because being let into somebody's journal needs nothing else, and a
+ * redemption must never quietly rewrite a choice an already-known reader
+ * already made: no digest tick, and (until B273) no postal address either.
+ * Those still belong on the reader's own manage page, `/{username}/c/<token>`,
+ * where they can be added, corrected or removed in the open — never here,
+ * for somebody who is signed in already or whose email this journal already
+ * knows.
  *
- * Each of the two is skipped when it is already known:
+ * A **brand-new** reader sees more, since B273: a postal address and a phone
+ * number, both optional, on the same "form" step as the name and the email —
+ * the same fields the guestbook (`ContactForm`) has always asked for. There is
+ * no existing choice on this screen to overwrite, only a first one to make, so
+ * offering the two together here saves a second trip to the manage page for
+ * whoever wants to give an address at all.
+ *
+ * Each of the two identity fields is skipped when it is already known:
  *
  * - Signed in to this journal already, and the address is proved. The whole
  *   screen collapses to one button — no email box, no six digits, no second
- *   mail. Somebody who already has a journal on this instance and is reading
- *   this one is the expected case, not the edge case.
+ *   mail, and (for the same reason) no address fields either. Somebody who
+ *   already has a journal on this instance and is reading this one is the
+ *   expected case, not the edge case.
  * - Known here already, and the name on file stands. It is shown, and it can
  *   be corrected, and leaving it alone changes nothing.
  *
@@ -78,11 +87,40 @@ export default function InviteRedeem({
   const [name, setName] = useState(initialName);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  // Only offered on the "form" step — a brand-new reader, never asked before
+  // (B273). Untouched on "confirm": an already-known reader is never shown
+  // these, and the request body below reflects that by leaving them out
+  // entirely rather than sending them empty.
+  const [wantsPostcard, setWantsPostcard] = useState(false);
+  const [address, setAddress] = useState({
+    name: "",
+    line1: "",
+    line2: "",
+    postcode: "",
+    city: "",
+    country: "",
+    tel: "",
+  });
 
   const t = (key: TranslationKey, vars?: Record<string, string>) =>
     translate(dictionaries[locale] ?? dictionaries.en ?? {}, key, vars);
 
   const what = kind === "buddy" ? (tripTitle ?? journalTitle) : journalTitle;
+
+  function setAddressField(field: keyof typeof address, value: string) {
+    setAddress((previous) => ({ ...previous, [field]: value }));
+    // Typing a street plainly means they want the postcard; ticking the box
+    // for them saves a step, and it stays a box they can untick — the same
+    // behaviour `ContactForm` uses for the same reason.
+    if (value.trim() !== "") setWantsPostcard(true);
+  }
+
+  // A phone number is not a postal address, and giving one is not asking for
+  // a postcard — unlike `setAddressField` above, typing a `tel` must never
+  // tick that box for them.
+  function setTel(value: string) {
+    setAddress((previous) => ({ ...previous, tel: value }));
+  }
 
   async function redeem(event: React.FormEvent) {
     event.preventDefault();
@@ -92,16 +130,32 @@ export default function InviteRedeem({
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
         return setError("contact.needEmail");
       }
+      if (
+        wantsPostcard &&
+        (address.line1.trim() === "" || address.city.trim() === "" || address.country.trim() === "")
+      ) {
+        return setError("contact.needAddress");
+      }
     }
 
     setBusy(true);
     const response = await fetch("/api/contacts/redeem", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      // No email when the session carries one: the server reads it off the
-      // cookie, and a body that could name an address would be a way of
-      // confirming somebody else's.
-      body: JSON.stringify({ user: username, token, kind, name, locale, ...(knownEmail ? {} : { email }) }),
+      body: JSON.stringify({
+        user: username,
+        token,
+        kind,
+        name,
+        locale,
+        // No email when the session carries one: the server reads it off the
+        // cookie, and a body that could name an address would be a way of
+        // confirming somebody else's. The address and the postcard consent
+        // are the same story: sent only on the "form" step, where they were
+        // actually asked for — the confirm step must never answer for an
+        // already-known reader (B273's doc comment above explains why).
+        ...(knownEmail ? {} : { email, address, wantsPostcard }),
+      }),
     }).catch(() => null);
     setBusy(false);
 
@@ -111,6 +165,9 @@ export default function InviteRedeem({
       const body = (await response.json().catch(() => ({}))) as { error?: string };
       if (body.error === "invalid_email") return setError("contact.needEmail");
       if (body.error === "invalid_name") return setError("contact.needName");
+      // The client already checked this before sending; the server checks
+      // again because the client is not the boundary (B273).
+      if (body.error === "invalid_address") return setError("contact.needAddress");
       // The server cannot send the code this needs (B205). Said in words
       // rather than as "something went wrong", because there is nothing the
       // reader can do differently and waiting for a mail that is not coming is
@@ -224,6 +281,116 @@ export default function InviteRedeem({
                   ))}
                 </select>
               </div>
+
+              {/* Both optional, and both new since B273 — a brand-new reader
+                  is the only one ever shown these (the "confirm" branch above
+                  never renders this far). No existing choice for this screen
+                  to overwrite, only a first one to make. */}
+              <div className="mt-6">
+                <label className={LABEL} htmlFor="invite-tel">
+                  {`${t("contact.tel")} (${t("contact.optional")})`}
+                </label>
+                <input
+                  id="invite-tel"
+                  className={FIELD}
+                  type="tel"
+                  autoComplete="tel"
+                  value={address.tel}
+                  onChange={(e) => setTel(e.target.value)}
+                />
+                <p className="mt-2 text-base text-navy-600">{t("contact.telHint")}</p>
+              </div>
+
+              <fieldset className="mt-10 rounded-2xl border border-navy-200 bg-cream-100 p-5">
+                <legend className="px-2 font-display text-xl text-navy-900">
+                  {t("contact.address")}
+                </legend>
+                <p className="text-base text-navy-700">{t("contact.addressHint")}</p>
+
+                <div className="mt-4">
+                  <label className={LABEL} htmlFor="invite-addr-name">
+                    {t("contact.addrName")}
+                  </label>
+                  <input
+                    id="invite-addr-name"
+                    className={FIELD}
+                    value={address.name}
+                    onChange={(e) => setAddressField("name", e.target.value)}
+                  />
+                </div>
+                <div className="mt-4">
+                  <label className={LABEL} htmlFor="invite-addr-line1">
+                    {t("contact.addrLine1")}
+                  </label>
+                  <input
+                    id="invite-addr-line1"
+                    className={FIELD}
+                    autoComplete="address-line1"
+                    value={address.line1}
+                    onChange={(e) => setAddressField("line1", e.target.value)}
+                  />
+                </div>
+                <div className="mt-4">
+                  <label className={LABEL} htmlFor="invite-addr-line2">
+                    {`${t("contact.addrLine2")} (${t("contact.optional")})`}
+                  </label>
+                  <input
+                    id="invite-addr-line2"
+                    className={FIELD}
+                    autoComplete="address-line2"
+                    value={address.line2}
+                    onChange={(e) => setAddressField("line2", e.target.value)}
+                  />
+                </div>
+                <div className="mt-4 flex gap-4">
+                  <div className="w-1/3">
+                    <label className={LABEL} htmlFor="invite-addr-postcode">
+                      {t("contact.addrPostcode")}
+                    </label>
+                    <input
+                      id="invite-addr-postcode"
+                      className={FIELD}
+                      autoComplete="postal-code"
+                      value={address.postcode}
+                      onChange={(e) => setAddressField("postcode", e.target.value)}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className={LABEL} htmlFor="invite-addr-city">
+                      {t("contact.addrCity")}
+                    </label>
+                    <input
+                      id="invite-addr-city"
+                      className={FIELD}
+                      autoComplete="address-level2"
+                      value={address.city}
+                      onChange={(e) => setAddressField("city", e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className={LABEL} htmlFor="invite-addr-country">
+                    {t("contact.addrCountry")}
+                  </label>
+                  <input
+                    id="invite-addr-country"
+                    className={FIELD}
+                    autoComplete="country-name"
+                    value={address.country}
+                    onChange={(e) => setAddressField("country", e.target.value)}
+                  />
+                </div>
+              </fieldset>
+
+              <label className="mt-6 flex items-start gap-3 text-lg text-navy-900">
+                <input
+                  type="checkbox"
+                  className="mt-1.5 size-5"
+                  checked={wantsPostcard}
+                  onChange={(e) => setWantsPostcard(e.target.checked)}
+                />
+                <span>{t("contact.wantsPostcard")}</span>
+              </label>
             </>
           )}
 

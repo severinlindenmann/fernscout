@@ -33,8 +33,24 @@ capped at 2000 px on the long edge, which is just enough; the camera original
 
 ### 2. Build the recipient list
 
-A JSON array. Every address needs `name`, `line1`, `postcode` and `city`;
-`line2` and `country` are optional.
+Two ways in, and which one applies depends on whether contacts is on for this
+journal (`isEnabled("contacts", user)` — ask if unsure).
+
+**From the contacts table** (B273), once a reader has left an address through
+the guest invite form or their own manage page (`/{user}/c/<token>`):
+
+```bash
+npm run postcard -- --user <user> --photo <file> --message "..." --from-contacts --from "..."
+```
+
+Every `active` contact who ticked "send me a real postcard" and has enough of
+an address to reach — a street, a town, a country — becomes one recipient.
+Nobody who never asked, and nobody the owner hasn't approved, is on the list.
+If nobody qualifies yet the run says so and writes nothing; check the guest
+list at `/{user}/contacts`, or use a file instead.
+
+**From a file**, for anyone who would rather keep one, or for somebody who
+never went through the guest form at all — `--to <recipients.json>`:
 
 ```json
 [
@@ -48,9 +64,9 @@ A JSON array. Every address needs `name`, `line1`, `postcode` and `city`;
 ]
 ```
 
-A missing field fails the run by index and by field name rather than posting a
-card into a void. Once the contacts capability is on, this file becomes the
-fallback for people who would rather keep a file.
+Every address needs `name`, `line1`, `postcode` and `city`; `line2` and
+`country` are optional. A missing field fails the run by index and by field
+name rather than posting a card into a void.
 
 ### 3. Write the message
 

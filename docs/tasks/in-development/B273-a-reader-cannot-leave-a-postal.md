@@ -30,26 +30,48 @@ So this is the missing half of a feature that already half exists.
 
 ## Work
 
-- Add a postal address and a phone number to the guest invite form and to the
-  reader's own manage page (`/<user>/c/<token>`), so details can be added or
-  removed later by the person they belong to rather than only at the moment
-  they ask to join.
-- **Both optional, and visibly so.** A reader asking to follow somebody's
-  travel journal is not applying for anything; a required address is a reason
-  to close the tab, and a required phone number more so. Say what each is for
-  in the form — a postcard, and nothing else — because an address field with no
-  stated purpose on a stranger's site reads as harvesting.
-- **Phone: say whether anything sends to it.** Nothing in this codebase sends
-  SMS today. A field collected for no implemented purpose should say it is for
-  the owner to have, or not exist yet — decide, and write the reason down.
-- Keep them out of mail, which the existing comment already commits to. Check
-  the owner's contacts overview and the approval queue render them, and that
-  nothing puts them in a notification.
-- Storage: they go on the contact row. Check what `lib/contacts/` already
-  stores and whether a migration is needed, and follow whatever the existing
-  columns do about optional text.
-- All three locales, and mind that an address is not one line in every country
-  — a single multi-line field beats five wrong-shaped ones.
+**Corrected after reading the code.** The reader's own manage page
+(`/<user>/c/<token>`, `components/ContactManage.tsx`) and the older personal
+guestbook (`/<user>/i/<token>`, `components/ContactForm.tsx`) already had a
+full postal-address fieldset and a phone number — `lib/contacts/`'s storage,
+encryption, `isPostable`/`hasAnyDetail` and the admin overview
+(`components/ContactsAdmin.tsx`) were all built for this already, and none of
+that needed touching. The one gap was specifically the page the owner was
+looking at: `/<user>/invite/guest/<token>` (`components/InviteRedeem.tsx` and
+`app/api/contacts/redeem/route.ts`), which by design (B33) asks a
+**returning** reader nothing beyond identity, so that a redemption can never
+silently rewrite a choice they already made. That reasoning does not apply to
+a **brand-new** reader — there is no existing choice yet to overwrite — so:
+
+- Added an optional postal-address fieldset, a phone number and a "send me a
+  real postcard" checkbox to `InviteRedeem`'s "form" step only (a brand-new
+  reader, no session, no known contact). The "confirm" step (an
+  already-known reader — signed in, or email on file) is unchanged: no
+  fields, one button, exactly as B33 built it.
+- Extended `POST /api/contacts/redeem` to accept an address the same way
+  `POST /api/contacts/request` already does — `hasAnyDetail`/`isPostable` and
+  the `invalid_address` 400 are shared logic, not reimplemented.
+- **Both optional, and visibly so** — the address fieldset carries
+  `contact.addressHint` ("only if you'd like a real postcard"), same as the
+  guestbook.
+- **Phone: says whether anything sends to it.** New key `contact.telHint` —
+  "kept on file for the owner — nothing on this site sends to it yet" — shown
+  under the new field. The three older tel fields (`ContactForm`,
+  `ContactManage`, `ContactsAdmin`) still say nothing; captured separately as
+  B303 rather than expanded into here.
+- Mail exclusion needed no code change — `lib/contacts/mail.ts` already never
+  puts an address in a letter — but got a regression test (see Acceptance).
+- **`send-postcards` reading from a contact**, the Acceptance line that turned
+  out to be the largest remaining gap: `scripts/postcard.ts` had carried a
+  comment since it was written — "Once the contacts work lands, this reads
+  from the contacts table instead" — but never did. Added `--from-contacts`,
+  backed by a new `lib/postcard/contacts.ts` (`postcardRecipientsFromContacts`),
+  selecting `active` + `wantsPostcard` + `isPostable` contacts. Doing this
+  required switching the `postcard` npm script from plain `node` to `tsx
+  --conditions=react-server` (matching `digest`/`photobook`): `lib/contacts`
+  imports other `lib/` modules without file extensions, which plain Node's
+  ESM loader cannot resolve at all, `server-only` aside.
+- All three locales for the one new key, in place, alphabetically.
 
 ## Acceptance
 

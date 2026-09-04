@@ -161,8 +161,12 @@ export type ContactRequestInput = {
    * asked", and leaves the stored address and the postcard consent exactly as
    * they are — the same distinction `updateContactSelf` draws, for the same
    * reason: a form that never showed somebody their address must not be able
-   * to delete it. B33's redemption is the caller that needs it; it asks for a
-   * name and an address to reach, and for nothing else.
+   * to delete it. B33's redemption is the caller that needs `undefined` most:
+   * for a reader already known to this journal it asks for nothing beyond a
+   * name and an address to reach. Since B273 it is also a caller of the
+   * **object** form — a brand-new reader, never asked before, is offered a
+   * postal address and a phone number on the same screen the guestbook uses,
+   * because there is no existing choice for that screen to overwrite.
    */
   address?: Partial<PostalAddress> | null;
   wantsEmailDigest: boolean;
