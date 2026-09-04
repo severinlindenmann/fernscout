@@ -40,21 +40,41 @@ const LANES = ["backlog", "open", "in-development", "testing", "completed"];
 const ONE = "aaaaaaaa-1111-2222-3333-444444444444";
 const TWO = "bbbbbbbb-9999-8888-7777-666666666666";
 
-/** A checkout with a `docs/tasks/`, holding the given ids in backlog. */
+/**
+ * A checkout with a `docs/tasks/`, holding the given ids in backlog.
+ *
+ * In `backlog/issue/`, because the fixtures are ISSUEs and that is where the
+ * script files an ISSUE. A fixture at the lane root would sit in the layout
+ * the script only tolerates, and warnMisfiled() would then be shouting through
+ * every assertion in this file that reads stderr.
+ */
 function makeCheckout(dir: string, ids: string[]): string {
   const tasks = path.join(dir, "docs", "tasks");
   for (const lane of LANES) fs.mkdirSync(path.join(tasks, lane), { recursive: true });
+  fs.mkdirSync(path.join(tasks, "backlog", "issue"), { recursive: true });
   fs.writeFileSync(
     path.join(tasks, "INDEX.md"),
     "# Tasks\n\n<!-- generated:begin -->\n<!-- generated:end -->\n",
   );
   for (const id of ids) {
     fs.writeFileSync(
-      path.join(tasks, "backlog", `${id}-a-thing.md`),
+      path.join(tasks, "backlog", "issue", `${id}-a-thing.md`),
       `---\nid: ${id}\ntitle: A thing\ntype: ISSUE\npriority: medium\ncomplexity: low\n---\n\n# ${id} — A thing\n`,
     );
   }
   return dir;
+}
+
+/** What is in one lane, wherever in it the files sit. */
+function laneFiles(dir: string, lane: string): string[] {
+  const at = path.join(dir, "docs", "tasks", lane);
+  return fs
+    .readdirSync(at, { withFileTypes: true })
+    .flatMap((entry) =>
+      entry.isDirectory() ? fs.readdirSync(path.join(at, entry.name)) : [entry.name],
+    )
+    .filter((name) => name.endsWith(".md"))
+    .sort();
 }
 
 /** The script, run as an agent runs it: with a session id in the environment. */
@@ -68,12 +88,16 @@ function tasks(cwd: string, args: string[], session?: string) {
   return run("node", [script, ...args], { cwd, env });
 }
 
-/** A task's frontmatter, wherever in the lanes it has got to. */
+/** A task's frontmatter, wherever in the lanes and categories it has got to. */
 function front(dir: string, id: string): string {
   for (const lane of LANES) {
     const at = path.join(dir, "docs", "tasks", lane);
-    const file = fs.readdirSync(at).find((f) => f.startsWith(`${id}-`));
-    if (file) return fs.readFileSync(path.join(at, file), "utf8").split("---")[1];
+    for (const entry of fs.readdirSync(at, { withFileTypes: true })) {
+      const here = entry.isDirectory() ? path.join(at, entry.name) : at;
+      const names = entry.isDirectory() ? fs.readdirSync(here) : [entry.name];
+      const file = names.find((f) => f.startsWith(`${id}-`));
+      if (file) return fs.readFileSync(path.join(here, file), "utf8").split("---")[1];
+    }
   }
   throw new Error(`${id} is in no lane.`);
 }
@@ -168,7 +192,7 @@ describe("the hold", () => {
     await tasks(dir, ["move", "B01", "testing"], ONE);
     await tasks(dir, ["claim", "B01"], TWO);
 
-    expect(fs.readdirSync(path.join(dir, "docs", "tasks", "testing"))).toEqual([
+    expect(laneFiles(dir, "testing")).toEqual([
       "B01-a-thing.md",
     ]);
   });
@@ -217,7 +241,7 @@ describe("the lease", () => {
     await expect(tasks(dir, ["move", "B01", "in-development"], ONE)).rejects.toThrow(
       /held by session bbbbbbbb/,
     );
-    expect(fs.readdirSync(path.join(dir, "docs", "tasks", "testing"))).toContain(
+    expect(laneFiles(dir, "testing")).toContain(
       "B01-a-thing.md",
     );
   });
@@ -261,9 +285,12 @@ describe("what INDEX.md shows", () => {
 
     const index = fs.readFileSync(path.join(dir, "docs", "tasks", "INDEX.md"), "utf8");
     const sections = index.split(/^## /m);
+    // `## backlog (4)` — the lane heading carries its count, and the category
+    // headings under it are `###`, so splitting on `## ` keeps a whole lane
+    // together and the first `| #` row in it is the one being asked about.
     const headerAfter = (lane: string) =>
       sections
-        .find((s) => s.startsWith(`${lane}\n`))
+        .find((s) => s.startsWith(`${lane} (`))
         ?.split("\n")
         .find((l) => l.startsWith("| #"));
 

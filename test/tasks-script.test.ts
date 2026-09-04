@@ -39,21 +39,42 @@ afterEach(() => {
 
 const LANES = ["backlog", "open", "in-development", "testing", "completed"];
 
-/** A checkout with a `docs/tasks/` in it, holding the given ids in backlog. */
+/**
+ * A checkout with a `docs/tasks/` in it, holding the given ids in backlog.
+ *
+ * Every fixture task is an `ISSUE`, so it belongs in `backlog/issue/` — the
+ * category folder is derived from the type and the script files it there. A
+ * fixture written at the lane root would be a fixture in the layout the script
+ * only tolerates, and every assertion about a quiet stderr would be measuring
+ * warnMisfiled() instead of what it meant to.
+ */
 function makeCheckout(dir: string, ids: string[]): string {
   const tasks = path.join(dir, "docs", "tasks");
   for (const lane of LANES) fs.mkdirSync(path.join(tasks, lane), { recursive: true });
+  fs.mkdirSync(path.join(tasks, "backlog", "issue"), { recursive: true });
   fs.writeFileSync(
     path.join(tasks, "INDEX.md"),
     "# Tasks\n\n<!-- generated:begin -->\n<!-- generated:end -->\n",
   );
   for (const id of ids) {
     fs.writeFileSync(
-      path.join(tasks, "backlog", `${id}-a-thing.md`),
+      path.join(tasks, "backlog", "issue", `${id}-a-thing.md`),
       `---\nid: ${id}\ntitle: A thing\ntype: ISSUE\npriority: medium\ncomplexity: low\n---\n\n# ${id} — A thing\n`,
     );
   }
   return dir;
+}
+
+/** What is in one lane, wherever in it the files sit. */
+function laneFiles(dir: string, lane: string): string[] {
+  const at = path.join(dir, "docs", "tasks", lane);
+  return fs
+    .readdirSync(at, { withFileTypes: true })
+    .flatMap((entry) =>
+      entry.isDirectory() ? fs.readdirSync(path.join(at, entry.name)) : [entry.name],
+    )
+    .filter((name) => name.endsWith(".md"))
+    .sort();
 }
 
 /** `npm run tasks -- new`, as an agent capturing something would run it. */
@@ -91,9 +112,7 @@ describe("id allocation", () => {
   test("takes one past the highest id in this checkout", async () => {
     const dir = makeCheckout(tempDir("fernscout-tasks-"), ["B01", "B07"]);
     await create(dir, "Something");
-    expect(fs.readdirSync(path.join(dir, "docs", "tasks", "backlog"))).toContain(
-      "B08-something.md",
-    );
+    expect(laneFiles(dir, "backlog")).toContain("B08-something.md");
   });
 
   /**
@@ -108,7 +127,7 @@ describe("id allocation", () => {
 
     await create(dir, "Something");
 
-    const written = fs.readdirSync(path.join(dir, "docs", "tasks", "backlog"));
+    const written = laneFiles(dir, "backlog");
     expect(written).toContain("B10-something.md");
     expect(written).not.toContain("B08-something.md");
   });
@@ -135,13 +154,11 @@ describe("id allocation", () => {
     }
 
     // The worktree still sees only B01, and would once have said B02.
-    expect(fs.readdirSync(path.join(linked, "docs", "tasks", "backlog"))).toEqual([
-      "B01-a-thing.md",
-    ]);
+    expect(laneFiles(linked, "backlog")).toEqual(["B01-a-thing.md"]);
 
     await create(linked, "From the worktree");
 
-    const written = fs.readdirSync(path.join(linked, "docs", "tasks", "backlog"));
+    const written = laneFiles(linked, "backlog");
     expect(written).toContain("B21-from-the-worktree.md");
     expect(written).not.toContain("B02-from-the-worktree.md");
   });
@@ -155,16 +172,17 @@ describe("duplicate reporting", () => {
    */
   test("says so when two files in one checkout claim the same id", async () => {
     const dir = makeCheckout(tempDir("fernscout-tasks-"), ["B01"]);
+    fs.mkdirSync(path.join(dir, "docs", "tasks", "testing", "issue"), { recursive: true });
     fs.writeFileSync(
-      path.join(dir, "docs", "tasks", "testing", "B01-something-else.md"),
+      path.join(dir, "docs", "tasks", "testing", "issue", "B01-something-else.md"),
       "---\nid: B01\ntitle: Something else\ntype: ISSUE\npriority: low\ncomplexity: low\n---\n\n# B01 — Something else\n",
     );
 
     const { stderr } = await run("node", [script, "list"], { cwd: dir });
 
     expect(stderr).toContain("B01");
-    expect(stderr).toContain("backlog/B01-a-thing.md");
-    expect(stderr).toContain("testing/B01-something-else.md");
+    expect(stderr).toContain("backlog/issue/B01-a-thing.md");
+    expect(stderr).toContain("testing/issue/B01-something-else.md");
   });
 
   test("stays quiet when every id is claimed once", async () => {
@@ -198,9 +216,7 @@ describe("simultaneous capture", () => {
     await Promise.all(worktrees.map((dir, n) => create(dir, `Found something ${n}`)));
 
     const ids = worktrees.map((dir) => {
-      const [written] = fs
-        .readdirSync(path.join(dir, "docs", "tasks", "backlog"))
-        .filter((f) => f !== "B01-a-thing.md");
+      const [written] = laneFiles(dir, "backlog").filter((f) => f !== "B01-a-thing.md");
       return written.slice(0, written.indexOf("-"));
     });
 
@@ -220,10 +236,7 @@ describe("simultaneous capture", () => {
     await git(main)("worktree", "prune");
 
     await create(main, "Captured later");
-    expect(fs.readdirSync(path.join(main, "docs", "tasks", "backlog"))).toEqual([
-      "B01-a-thing.md",
-      "B03-captured-later.md",
-    ]);
+    expect(laneFiles(main, "backlog")).toEqual(["B01-a-thing.md", "B03-captured-later.md"]);
   });
 });
 

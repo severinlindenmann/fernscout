@@ -19,10 +19,23 @@
 //   npm run tasks -- claim B01             say you are on it, without moving it
 //   npm run tasks -- release B01           let go of it
 //   npm run tasks -- index                 rewrite INDEX.md only
+//   npm run tasks -- tidy                  re-file into the category folders
 //
 // `new`, `move`, `claim` and `release` rewrite INDEX.md as they go — except in
 // a linked worktree, where they say so and leave it alone. Add `--index` to
 // write it there anyway.
+//
+// The two lanes that accumulate — `backlog` and `testing` — hold their tasks
+// in **category folders**, one level below the lane. The category is derived
+// from `type` and `complexity` by categoryOf() and is never typed by hand, for
+// the same reason the status is not: two places to write one fact is two
+// places to disagree. So there is nothing to choose on capture and nothing to
+// remember on a lane move — `new` and `move` file the task themselves, `tidy`
+// re-renders the whole tree from the frontmatter, and warnMisfiled() says when
+// the two have drifted apart. Adding OPS and DOCS to TYPES is what makes that
+// derivation cover the work that is not code: an engagement against the
+// running server and a change to what an agent reads were both CHOREs, which
+// is how a lane of nine chores turned out to be three unrelated jobs.
 //
 // Two things are written into the frontmatter as work happens. **Stamps** are
 // whole instants — `found`, `started`, `merged`, `completed` — because several
@@ -85,9 +98,80 @@ const HELD = new Set(["in-development", "testing"]);
 const CLAIMS_ON_MOVE = "in-development";
 /** Where `new` puts things. Never `open` — that lane is a person's review. */
 const INTAKE = "backlog";
-const TYPES = ["SECURITY", "ISSUE", "FEATURE", "CHORE"];
+const TYPES = ["SECURITY", "ISSUE", "FEATURE", "CHORE", "OPS", "DOCS"];
 const PRIORITIES = ["high", "medium", "low"];
 const COMPLEXITIES = ["low", "medium", "high"];
+
+/**
+ * The category folders a lane is filed into, in the order they are written
+ * into INDEX.md — roughly most urgent first, with the two that are not code
+ * last and `superseded` after everything.
+ *
+ * A category is **derived**, never typed. `categoryOf()` reads it off `type`
+ * and `complexity`, which is the same reasoning the lane follows: a fact kept
+ * in two places disagrees with itself within a month, and this one would have
+ * two lines of frontmatter to disagree between. The folder is a rendering of
+ * the frontmatter exactly as INDEX.md is a rendering of the folders, and
+ * `tidy` is the command that re-renders it.
+ */
+const CATEGORIES = [
+  "security",
+  "issue",
+  "big-feature",
+  "small-feature",
+  "chore",
+  "ops",
+  "docs-and-skills",
+  "superseded",
+];
+
+/**
+ * The lanes deep enough to need the folders.
+ *
+ * `backlog/` and `testing/` are where tasks accumulate — seventy-five and a
+ * hundred and twenty-one on 2026-09-04 — and a flat directory of that size is
+ * one nobody reads to the bottom of. The other three are transient by
+ * construction: `open/` is a short reviewed queue, `in-development/` holds
+ * what is being worked on right now, and `completed/` is read by id or not at
+ * all. Folders there would be three more decisions per lane move buying
+ * nothing.
+ *
+ * A task moving through an uncategorised lane loses nothing, because the
+ * category was never stored in the path — `categoryOf()` derives it again on
+ * the way back in.
+ */
+const CATEGORISED = new Set(["backlog", "testing"]);
+
+/**
+ * Which folder a task belongs in.
+ *
+ * `superseded` first and regardless of type: a task overtaken by other work is
+ * not a security task or a chore any more, it is a record, and the thing a
+ * reader needs to know about it is that it is closed. The field carries what
+ * overtook it, so the row can say so.
+ *
+ * `FEATURE` is the one type that splits, because it is the one where size
+ * changes what a person does with the row: "an afternoon" and "a fortnight and
+ * a design decision" are not the same queue, and lumping them together is what
+ * made the old flat backlog unreadable.
+ */
+function categoryOf({ type, complexity, superseded }) {
+  if (superseded) return "superseded";
+  switch (type) {
+    case "SECURITY":
+      return "security";
+    case "CHORE":
+      return "chore";
+    case "OPS":
+      return "ops";
+    case "DOCS":
+      return "docs-and-skills";
+    case "FEATURE":
+      return complexity === "high" ? "big-feature" : "small-feature";
+    default:
+      return "issue";
+  }
+}
 
 const BEGIN = "<!-- generated:begin -->";
 const END = "<!-- generated:end -->";
@@ -215,17 +299,36 @@ function refuseIfHeld(item, session, argv) {
   );
 }
 
+/**
+ * Every task file in a lane, whether it sits directly in the lane folder or
+ * one category folder down.
+ *
+ * Both are read rather than only the current layout, and that is not
+ * tidiness — a file arriving through a merge from a branch cut before the
+ * folders existed lands at the top level, and a lane read that cannot see it
+ * is a task that has silently stopped existing. `filed` records where it
+ * actually is so `warnMisfiled()` can say so and `tidy` can move it.
+ */
 function itemsIn(lane) {
   const dir = path.join(ROOT, lane);
   if (!fs.existsSync(dir)) return [];
-  return fs
-    .readdirSync(dir)
-    .filter((f) => f.endsWith(".md"))
-    .map((filename) => {
-      const file = path.join(dir, filename);
+  const found = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      const nested = path.join(dir, entry.name);
+      for (const filename of fs.readdirSync(nested)) {
+        if (filename.endsWith(".md")) found.push([entry.name, path.join(nested, filename), filename]);
+      }
+    } else if (entry.name.endsWith(".md")) {
+      found.push([undefined, path.join(dir, entry.name), entry.name]);
+    }
+  }
+  return found
+    .map(([filed, file, filename]) => {
       const { front } = split(file);
-      return {
+      const item = {
         lane,
+        filed,
         file,
         filename,
         id: field(front, "id") ?? filename.slice(0, 3),
@@ -233,9 +336,15 @@ function itemsIn(lane) {
         type: field(front, "type") ?? "ISSUE",
         priority: field(front, "priority") ?? "medium",
         complexity: field(front, "complexity") ?? "medium",
+        superseded: field(front, "superseded"),
         session: field(front, "session"),
         claimed: field(front, "claimed"),
       };
+      // Where it should be, which is not always where it is.
+      item.category = CATEGORISED.has(lane) ? categoryOf(item) : undefined;
+      // What a link in INDEX.md has to say to reach it.
+      item.href = path.posix.join(lane, ...(filed ? [filed] : []), filename);
+      return item;
     })
     .sort(
       (a, b) =>
@@ -397,9 +506,19 @@ function claimedIds() {
     for (const lane of LANES) {
       const dir = path.join(root, lane);
       if (!fs.existsSync(dir)) continue;
-      for (const filename of fs.readdirSync(dir)) {
-        const match = /^(B\d+)-.*\.md$/.exec(filename);
-        if (match) ids.add(match[1]);
+      // One level down as well as the top, because a lane's tasks may be filed
+      // into category folders. Missing them here would hand out an id another
+      // checkout is already using, which is the one thing this must not do —
+      // and a sibling worktree cut before the folders existed has the other
+      // layout, so both are read everywhere rather than per lane.
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const names = entry.isDirectory()
+          ? fs.readdirSync(path.join(dir, entry.name))
+          : [entry.name];
+        for (const filename of names) {
+          const match = /^(B\d+)-.*\.md$/.exec(filename);
+          if (match) ids.add(match[1]);
+        }
       }
     }
   }
@@ -458,7 +577,7 @@ function duplicateIds() {
   const byId = new Map();
   for (const item of allItems()) {
     const at = byId.get(item.id) ?? [];
-    at.push(`${item.lane}/${item.filename}`);
+    at.push(item.href);
     byId.set(item.id, at);
   }
   return [...byId].filter(([, at]) => at.length > 1);
@@ -589,16 +708,10 @@ function slug(title) {
     .join("-");
 }
 
-function table(lane) {
-  const items = itemsIn(lane);
-  if (items.length === 0) return "_Nothing here._\n";
-  // Only the lanes where somebody can be on a task carry a holder column. Sixty
-  // backlog rows of an empty column is noise, and noise in a generated table is
-  // what stops people reading generated tables.
-  const held = HELD.has(lane);
+function table(items, { held }) {
   const rows = items.map(
     (i) =>
-      `| [${i.id}](${lane}/${i.filename}) | ${i.title} | ${i.type} | ${i.priority} | ${i.complexity} |` +
+      `| [${i.id}](${i.href}) | ${i.title} | ${i.type} | ${i.priority} | ${i.complexity} |` +
       (held ? ` ${i.session ? `\`${shortSession(i.session)}\`` : "—"} |` : ""),
   );
   return [
@@ -607,6 +720,36 @@ function table(lane) {
     ...rows,
     "",
   ].join("\n");
+}
+
+/**
+ * One lane's section of INDEX.md: a single table where the lane is flat, and
+ * one table per category where it is not.
+ *
+ * The categories are written in `CATEGORIES` order rather than by size, so the
+ * same reader looking twice finds `security` in the same place both times. An
+ * empty category is left out entirely — a heading over "nothing here" is a row
+ * of noise in a table whose whole job is to be skimmed.
+ */
+function section(lane) {
+  const items = itemsIn(lane);
+  // Only the lanes where somebody can be on a task carry a holder column. Sixty
+  // backlog rows of an empty column is noise, and noise in a generated table is
+  // what stops people reading generated tables.
+  const held = HELD.has(lane);
+  const heading = `## ${lane} (${items.length})`;
+  if (items.length === 0) return [heading, "", "_Nothing here._\n"];
+  if (!CATEGORISED.has(lane)) return [heading, "", table(items, { held })];
+
+  const body = CATEGORIES.flatMap((category) => {
+    const inCategory = items.filter((i) => i.category === category);
+    if (inCategory.length === 0) return [];
+    return [`### ${category} (${inCategory.length})`, "", table(inCategory, { held })];
+  });
+  // A file that arrived at the top level of a categorised lane — through a
+  // merge from a branch cut before the folders existed — is still a task, and
+  // dropping it out of the index is how it stops being one.
+  return [heading, "", ...body];
 }
 
 /**
@@ -649,11 +792,7 @@ function writeIndex({ force = false } = {}) {
   if (start === -1 || end === -1) {
     die(`docs/tasks/INDEX.md is missing its ${BEGIN} / ${END} markers.`);
   }
-  const generated = [
-    BEGIN,
-    "",
-    ...LANES.flatMap((lane) => [`## ${lane}`, "", table(lane)]),
-  ].join("\n");
+  const generated = [BEGIN, "", ...LANES.flatMap(section)].join("\n");
   fs.writeFileSync(file, raw.slice(0, start) + generated + raw.slice(end));
   console.log(`docs/tasks/INDEX.md — ${allItems().length} tasks across ${LANES.length} lanes.`);
 }
@@ -678,7 +817,9 @@ function create(argv) {
   }
 
   const id = reserveId();
-  const file = path.join(ROOT, INTAKE, `${id}-${slug(title)}.md`);
+  const category = categoryOf({ type, complexity });
+  const file = path.join(ROOT, INTAKE, category, `${id}-${slug(title)}.md`);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
   // reserveId() asked every checkout and then claimed the number, so this
   // cannot normally happen. Overwriting somebody else's capture is still the
   // one outcome worth refusing outright.
@@ -733,15 +874,29 @@ function move(argv) {
   // `testing`, where the next agent to touch the task is not this one.
   updated = lane === CLAIMS_ON_MOVE ? takeHold(updated, session) : releaseHold(updated);
 
+  const destination = CATEGORISED.has(lane)
+    ? categoryOf({
+        type: field(updated, "type") ?? item.type,
+        complexity: field(updated, "complexity") ?? item.complexity,
+        superseded: field(updated, "superseded"),
+      })
+    : undefined;
+
   // The lane directory may not exist yet — an empty lane keeps only a
   // .gitkeep, and a newly added lane keeps nothing at all. Renaming into a
   // missing directory throws *after* the stamp has been written, which leaves
   // the task in its old lane wearing a date for a move that did not happen.
-  const target = path.join(ROOT, lane, item.filename);
+  //
+  // The category is derived from the frontmatter that was just written, not
+  // carried over from where the file came from: a task edited on its way
+  // through `in-development/` — a FEATURE that turned out to be an ISSUE, a
+  // complexity revised upwards — files itself correctly on arrival without
+  // anybody remembering to move it a second time.
+  const target = path.join(ROOT, lane, ...(destination ? [destination] : []), item.filename);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(item.file, `---\n${updated}\n---\n${body}`);
   fs.renameSync(item.file, target);
-  console.log(`${item.id}: ${item.lane} → ${lane}`);
+  console.log(`${item.id}: ${item.href} → ${path.relative(ROOT, target)}`);
   if (lane === CLAIMS_ON_MOVE) {
     console.log(
       session
@@ -807,12 +962,84 @@ function list() {
   for (const lane of LANES) {
     const items = itemsIn(lane);
     console.log(`\n${lane} (${items.length})`);
-    for (const i of items) {
+    const line = (i) => {
       const holder = i.session ? `  ← ${shortSession(i.session)}, ${heldFor(i.claimed)}` : "";
-      console.log(`  ${i.id}  ${i.type.padEnd(8)} ${i.priority.padEnd(6)} ${i.title}${holder}`);
+      console.log(`    ${i.id.padEnd(5)} ${i.priority.padEnd(6)} ${i.title}${holder}`);
+    };
+    if (!CATEGORISED.has(lane)) {
+      for (const i of items) line(i);
+      continue;
+    }
+    for (const category of CATEGORIES) {
+      const inCategory = items.filter((i) => i.category === category);
+      if (inCategory.length === 0) continue;
+      console.log(`  ${category} (${inCategory.length})`);
+      for (const i of inCategory) line(i);
     }
   }
   console.log("");
+}
+
+/**
+ * Put every task in the folder its frontmatter says it belongs in.
+ *
+ * The categories are derived, so this is a re-render rather than a decision —
+ * which is what makes it safe to run at any time and the only way the folders
+ * are ever created. Three things send a file to the wrong place and all three
+ * are ordinary: a `type:` corrected by hand after the fact, a task arriving
+ * through a merge from a branch cut before the folders existed, and a file
+ * moved with `mv` by somebody who did not know about `move`.
+ *
+ * `git mv` rather than `fs.renameSync` where git is available, so a rename
+ * stays a rename in the history instead of a delete beside an add — 196 files
+ * moved as adds is a diff nobody can read, and it loses `git log --follow` on
+ * every one of them.
+ */
+function tidy(argv) {
+  const dry = argv.includes("--dry-run");
+  let moved = 0;
+  for (const lane of LANES.filter((l) => CATEGORISED.has(l))) {
+    for (const item of itemsIn(lane)) {
+      if (item.filed === item.category) continue;
+      const target = path.join(ROOT, lane, item.category, item.filename);
+      console.log(`  ${item.id.padEnd(5)} ${item.href} → ${path.relative(ROOT, target)}`);
+      if (dry) {
+        moved += 1;
+        continue;
+      }
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      if (git(["mv", item.file, target]) === undefined) fs.renameSync(item.file, target);
+      moved += 1;
+    }
+  }
+  console.log(
+    moved === 0
+      ? "Every task is already in its category folder."
+      : `${moved} task${moved === 1 ? "" : "s"} ${dry ? "would move" : "moved"}.`,
+  );
+  if (!dry) writeIndex({ force: argv.includes("--index") });
+}
+
+/**
+ * Say when a task is not in the folder its frontmatter puts it in.
+ *
+ * Same reasoning as warnDuplicates(): the index renders it wherever it is and
+ * nothing else notices, so the drift is invisible until somebody browsing
+ * `backlog/security/` concludes there are five security tasks when there are
+ * six. `tidy` is the fix and is named in the message, because a warning
+ * without the command to clear it is a warning people learn to scroll past.
+ */
+function warnMisfiled() {
+  const stray = LANES.filter((l) => CATEGORISED.has(l))
+    .flatMap(itemsIn)
+    .filter((i) => i.filed !== i.category);
+  if (stray.length === 0) return;
+  console.error(`\nWARNING: ${stray.length} task${stray.length === 1 ? " is" : "s are"} not in the category folder their frontmatter names.`);
+  for (const i of stray.slice(0, 10)) {
+    console.error(`  ${i.id.padEnd(5)} ${i.href}  →  ${i.lane}/${i.category}/`);
+  }
+  if (stray.length > 10) console.error(`  … and ${stray.length - 10} more.`);
+  console.error("Run `npm run tasks -- tidy` to re-file them.\n");
 }
 
 const [command, ...rest] = process.argv.slice(2);
@@ -839,13 +1066,17 @@ switch (command) {
     // Asked for by name, so it is meant — write it wherever it was run.
     writeIndex({ force: true });
     break;
+  case "tidy":
+    tidy(rest);
+    break;
   default:
-    die(`Unknown command "${command}". Try: list, new, move, claim, release, index.`);
+    die(`Unknown command "${command}". Try: list, new, move, claim, release, index, tidy.`);
 }
 
 // Said once, after whatever was asked for, and on stderr so it survives being
 // piped. Every one of these is about the repository rather than about a task,
 // and this is the only command every session runs.
 warnDuplicates();
+warnMisfiled();
 warnDetached();
 warnUnfinished();
