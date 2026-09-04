@@ -100,17 +100,18 @@ The section where a mistake is unrecoverable.
 
 | # | Scenario | Pass |
 | --- | --- | --- |
-| D1 | `visibility: password` | Gate on the trip; the rest of the journal still readable |
-| D2 | Wrong password | Refused with a usable message |
-| D3 | Right password | Opens, and stays open across pages |
+| D1 | `visibility: private` | Gate on the trip, naming the journal and never the trip (B117); the rest of the journal still readable |
+| D2 | Signed in, but not in `people:` and not approved | Refused, in different words from the ones a stranger gets. Proving an address is not access |
+| D3 | Signed in as somebody in `people:` — or, on a `guest` trip, an approved guest of the journal | Opens, and stays open across pages |
 | D4 | A private trip's media by direct URL, no session | **404** |
 | D5 | A private trip in `sitemap.xml` and `feed.xml` | Absent from both |
-| D6 | `visibility: unlisted` | Reachable by link, absent from sitemap and switcher |
+| D6 | `visibility: public` with `listed: false` | Reachable by link, absent from sitemap and switcher |
 | D7 | `costsVisibility: guests` | Numbers hidden from a stranger |
 | D8 | One journal's media URL under another user | 404 |
 | D9 | Path traversal in `/[user]/media/...` | 404, never a file outside the journal |
 | D10 | A reserved username (`api`, `admin`, …) | Never treated as a journal |
-| D11 | An unrecognised `visibility:` value | Read as `password`, never as public |
+| D11 | An unrecognised `visibility:` value | Read as `private`, never as public |
+| D12 | `listed: true` on a trip no `visibility` advertises | Refused and logged, not obeyed — `listed:` only ever narrows (B51) |
 
 ## E — Money
 

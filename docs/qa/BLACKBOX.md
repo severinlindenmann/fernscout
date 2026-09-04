@@ -34,8 +34,8 @@ deliberately arranged so the roles differ:
 ```
 example    usa-2026    current, public
            parks-2025  private, with a companion on it
-           alps-2024   guest-only, password "alpenglow2024"
-           asia-2023   unlisted, costs for guests only
+           alps-2024   guest-only — opens for approved guests of the journal
+           asia-2023   public but listed: false, costs for guests only
 bea        one trip, a second journal, to prove isolation
 ```
 

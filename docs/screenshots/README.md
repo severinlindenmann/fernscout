@@ -32,9 +32,38 @@ Resize and compress before committing:
 
 ```bash
 node -e "require('sharp')('shot.png').resize({width:1280})
-  .jpeg({quality:80,mozjpeg:true,chromaSubsampling:'4:4:4'})
+  .jpeg({quality:79,mozjpeg:true,chromaSubsampling:'4:4:4'})
   .toFile('docs/screenshots/name.jpg')"
 ```
+
+The quality is the knob that keeps the set under the ceiling, not a constant:
+`trip-story` and `day-entry` were recaptured at 79 when B170's two-row header
+pushed 80 over it. Check the total after writing a file, rather than trusting
+the number in this recipe:
+
+```bash
+cat docs/screenshots/*.jpg | wc -c      # bytes; the ceiling is 347,136
+```
+
+`du` answers in allocated blocks and reports this set as 432K, which is not
+what the budget is about.
+
+**Turn the scrollbar off before the shot.** A headless Chromium draws a real
+one and a Mac does not, so a capture taken with it is 15px narrower than the
+other three and shows a grey stripe none of them have:
+
+```js
+// in the page, before screenshotting
+document.head.insertAdjacentHTML(
+  "beforeend",
+  "<style>html{scrollbar-width:none}*::-webkit-scrollbar{display:none}</style>",
+);
+```
+
+**And clear the origin's storage first.** `fs.lastDay:<ref>` in `localStorage`
+survives between sessions, so a browser that has read this demo before shows
+"Resume · Day 7" on the trip page where a first-time visitor sees the trip
+opening. The README is for first-time visitors.
 
 ## Rules
 

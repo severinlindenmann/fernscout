@@ -58,3 +58,70 @@ deliberately never updated (`docs/plans/INDEX.md` says so, and
 - `grep -rn 'trip:password\|passwordHash' docs/` finds nothing outside
   `docs/tasks/` and `docs/plans/`.
 - The four checks.
+
+## Built
+
+**Section F, F1–F6 rewritten and F10 replaced.** F7, F8 and F9 are untouched,
+character for character. The new F1–F6 walk `visibility: private` → the gate →
+what the gate does *not* say → a signed-in stranger still refused → `people:`
+opening it → `guest` refusing the same person. F10 is `visibility: public` plus
+`listed: false`, F11 is B51's refusal, and the old F11 and F12 shift down to
+F12 and F13 — the numbers people report with are stable through F9, which is
+where the value is.
+
+Two things the walkthrough itself taught, now in the preamble rather than
+discovered by the next operator:
+
+- A visibility change needs no rebuild. The caches carry a fingerprint of the
+  files they were built from, so the next request sees it.
+- `features.auth.enabled` has to be set in **`content/example/config.json` as
+  well as `content/config.json`**. A journal opts in to sign-in separately, so
+  with only the server flag the gate renders `gate.askOwner` — "ask whoever
+  writes this journal" — and no form, and the section stalls at F4 with nothing
+  saying why. The API does *not* ask that second question and issues sessions
+  for the journal anyway; that inconsistency is **B252**, captured rather than
+  absorbed.
+
+F6's second half — an approved guest opening a `guest` trip — is a pointer to
+H2–H5 rather than a step of its own, because approving somebody needs a
+confirmed contact and that flow is exactly what H already walks. The refusal
+half, which is the part F is about, is performed in F6 itself.
+
+**The other documents.** `docs/running-locally.md` said "there is no
+`passwordHash:` and no `npm run trip:password`" — true, and it made the
+acceptance grep report a hit, so the same sentence now says it without naming
+the removed things. `docs/qa/SCENARIOS.md` D1–D3 and D6 and D11 were the same
+stale vocabulary (D11 said an unrecognised `visibility:` reads as `password`;
+it reads as `private`), and D12 adds B51's refusal. `docs/qa/BLACKBOX.md`
+described the test instance as having a trip with the password "alpenglow2024"
+and another that is `unlisted`. `docs/ROADMAP.md` decision 12 is a dated
+decision and is amended in place with a note, the way decision 19 already
+records B37's amendment; the "journal-level authentication wall" entry further
+down claimed the trip gate "already has a password", which is simply false now.
+
+## Evidence
+
+Every step performed against `npm run build && PORT=3700 npm start`, editing
+`content/example/trips/alps-2024/trip.md` and restoring it afterwards.
+
+| Step | What was run | What came back |
+| --- | --- | --- |
+| F1–F3 | `curl -s localhost:3700/example/trips/alps-2024` with `visibility: private` | `<h1>Fernscout Demo</h1>`, `<title>Fernscout Demo — Five journeys… · Fernscout</title>`, `<meta name="robots" content="noindex, nofollow">`, and the string "Four days round the Alps" absent from the whole document |
+| F4 | `/api/auth/request` + `/verify` as `visitor@example.com`, then the trip with that `fs_session` | `<h1>This trip is not shared with you</h1>`, the `gate.refusedBody` sentence naming the address, and a link to `/example/me` |
+| F5 | that address added to `people:` | `<title>Four days round the Alps · Fernscout Demo</title>` on the trip, its `/gallery` and its `/costs`; a request with no cookie still meets the gate |
+| F6 | `visibility: guest`, address removed | `<h1>This trip is not shared with you</h1>` again for the same session |
+| F7 | `/example/media/alps-2024/over-the-susten/01.jpg`, no session | `404` |
+| F8 | `/sitemap.xml`, `/example/feed.xml` | 0 occurrences of `alps-2024` in either |
+| F9 | `/example`, `/example/trips` | `200`, `200` |
+| F10 | `visibility: public` + `listed: false` | trip page `200`; 0 occurrences in the sitemap, in the feed, and no "Four days round the Alps" on `/example/trips` |
+| F11 | `visibility: guest` + `listed: true` | on the server's console: `[trips] alps-2024/trip.md says listed: true, but visibility "guest" does not advertise the trip — ignoring it. listed: can only narrow; write visibility: public to advertise a trip.` — and still absent from the sitemap |
+
+F12 (`costsVisibility: guests`) and F13 (undo) are unchanged from the old F11
+and F12 and were not re-run.
+
+The grep in the acceptance:
+
+```
+$ grep -rn 'trip:password\|passwordHash' docs/ | grep -v '^docs/tasks/' | grep -v '^docs/plans/'
+(no output)
+```

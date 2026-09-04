@@ -69,11 +69,32 @@ const LOCALES = ["en", "de", "hu"] as const;
 const SERVER_CFG =
   '{"site":{"name":"F","url":"https://example.test","defaultUser":"alex"},"users":{"reserved":[]},"features":{}}';
 
-/** A journal on disk, offering exactly the languages it is given. */
+/**
+ * A journal on disk, offering exactly the languages it is given, with the one
+ * thing a costs page presupposes: a trip that is under way.
+ *
+ * The trip was not here originally and the fixture was a journal with nothing
+ * in it — which, since B214 gave the description its tense, is the one state
+ * where the *planned* wording is right. It is also a state where `/costs`
+ * redirects to the trip list and this metadata is never served, so asserting
+ * the present-tense standfirst against it was asserting about a page nobody
+ * gets. The language questions this file is about are unchanged by it.
+ */
 function journal(opts: { locales: string[]; defaultLocale: string }): void {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "costs-title-"));
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
   fs.mkdirSync(path.join(dir, "alex", "trips"), { recursive: true });
+  const trip = path.join(dir, "alex", "trips", "ridge-2025");
+  fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
+  fs.writeFileSync(
+    path.join(trip, "trip.md"),
+    '---\nid: ridge-2025\ntitle: "Along the ridge"\nstart: "2025-05-01"\nend: "2025-05-10"\n' +
+      "status: current\nvisibility: public\n---\n\nSomething.\n",
+  );
+  fs.writeFileSync(
+    path.join(trip, "entries", "2025-05-02-first.md"),
+    '---\ntitle: "First"\ndate: "2025-05-02"\nlocation: "Chur"\n---\n\nA day.\n',
+  );
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({

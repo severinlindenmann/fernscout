@@ -111,20 +111,41 @@ The five trips deliberately spend in **CHF, EUR, THB, VND, USD and JPY**.
 
 This is where a mistake would be expensive, so test it properly.
 
+**A trip is closed by one word in its `trip.md`, and there is no password.**
+B39 removed the shared secret — one word, held by everybody it was ever
+forwarded to, revocable only by cutting off the whole family at once. What
+replaced it is a reader proving their own address and the owner deciding, so
+the two closed values differ in *who* they open to: `private` is the people in
+the trip's `people:` block, `guest` is everybody the owner has approved into
+the **journal**. Signing in is an identity claim and opens nothing by itself.
+
+Editing a `trip.md` on a running server is enough — the caches carry a
+fingerprint of the files they were built from, so a visibility change takes
+effect on the next request with no restart and no rebuild.
+
+🔑 F4 onwards need sign-in: the `DATABASE_URL`, `SESSION_SECRET` and
+`AUTH_DEV_CODE` block in **G**, `npm run db:migrate`, and
+`features.auth.enabled: true` in **both** `content/config.json` *and*
+`content/example/config.json` — a journal opts in to sign-in separately, and
+without the journal's own flag the gate offers no form at all, only "ask
+whoever writes this journal". (The API does not ask that second question, which
+is B252.)
+
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
-| **F1** | `npm run trip:password -- "familie2026"` | Prints a `scrypt$…` hash |
-| **F2** | Paste it into `content/example/trips/alps-2024/trip.md` as `passwordHash:`, and add `visibility: password`. 🔑 Set `SESSION_SECRET=$(openssl rand -hex 32)`. Rebuild | — |
-| **F3** | Open `/example/trips/alps-2024` | A password form, **not** the trip |
-| **F4** | Enter a wrong password | Refused, with a message that says what to do |
-| **F5** | Enter `familie2026` | The trip opens |
-| **F6** | Reload, and open another page of that trip | Still open — you are not asked again |
+| **F1** | In `content/example/trips/alps-2024/trip.md` set `visibility: private`. Reload `/example/trips/alps-2024` | The **gate**, not the trip |
+| **F2** | Read the gate | It carries the **journal's** name — "Fernscout Demo" — and says nothing about the Alps: not in the heading, not in the tagline, nowhere. B117 |
+| **F3** | `curl -s localhost:3000/example/trips/alps-2024 \| grep -i '<title>'` | The journal's name again, and a `noindex`. Trip ids are guessable by hand, so a closed trip must not name itself in the tab either |
+| **F4** | 🔑 Sign in at the gate with an address that is **not** in that trip's `people:` (the code is in the `.eml` under `content/example/mail/`) | Signed in, and **still refused** — a different sentence, and a link to `/example/me`. Being able to prove an address is not access |
+| **F5** | Add that address to the trip's `people:` block (`- name:` / `email:`), reload | The trip opens, and stays open across its other pages |
+| **F6** | Set `visibility: guest` and take your address back out of `people:`. Reload | Refused again, in the same words as F4: a `guest` trip opens for guests of the **journal**, and signing in is not being approved into one. The other half — an approved guest opening it — needs a contact to approve, which is **H2–H5**; come back to this URL after those and it opens, along with every other `guest` trip in the journal, because a guest is never a guest of one trip |
 | **F7** | In a **private window**, open one of that trip's photos directly, e.g. `/example/media/alps-2024/over-the-susten/01.jpg` | **404.** A private trip's photos must not be fetchable by URL |
 | **F8** | In that private window, check `/sitemap.xml` and `/example/feed.xml` | The Alps trip appears in **neither** |
 | **F9** | `/example` and `/example/trips` in the private window | Still work. **A private trip must not hide the rest of the journal** |
-| **F10** | Set `visibility: unlisted` instead. Rebuild | Reachable by link, but absent from the sitemap and the trip switcher |
-| **F11** | Set `costsVisibility: guests` on a public trip | The costs page hides the numbers |
-| **F12** | Undo F2–F11 before continuing | — |
+| **F10** | Put the trip back to `visibility: public` and add `listed: false`. Reload | Reachable by link, but absent from the sitemap, from `/example/feed.xml` and from the trip switcher. W27 split the old `unlisted` into these two fields: `visibility` is who may read it, `listed` is whether it is advertised |
+| **F11** | Now set `visibility: guest` **and** `listed: true`. Reload, and watch the server's console | Refused and logged — `[trips] … says listed: true, but visibility "guest" does not advertise the trip — ignoring it`. `listed:` can only ever narrow, so a mistake here cannot advertise a closed trip. B51 |
+| **F12** | Set `costsVisibility: guests` on a public trip | The costs page hides the numbers |
+| **F13** | Undo F1–F12 before continuing | — |
 
 ---
 
