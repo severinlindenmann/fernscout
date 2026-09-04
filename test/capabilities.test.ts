@@ -110,6 +110,18 @@ describe("resolveCapabilities", () => {
     const state = resolveCapabilities().postcards;
     expect(state.enabled === false && state.reason).toMatch(/STANNP_API_KEY/);
   });
+
+  test("logging is off by default, like every other unmentioned capability", () => {
+    writeConfig({});
+    const state = resolveCapabilities().logging;
+    expect(state.enabled).toBe(false);
+    expect(state.enabled === false && state.reason).toMatch(/not enabled on this server/);
+  });
+
+  test("logging needs no env and no database — turning it on is enough", () => {
+    writeConfig({ logging: { enabled: true } });
+    expect(isEnabled("logging")).toBe(true);
+  });
 });
 
 describe("assertCapabilities", () => {

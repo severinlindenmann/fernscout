@@ -525,6 +525,59 @@ page — which still distinguishes "cannot read the content directory" from
 "there are no journals", the thing B197 added the field for. The full message
 is on stdout either way: `journalctl -u fernscout`.
 
+### Request logging
+
+Off by default. `features.logging.enabled: true` in `content/config.json`
+turns it on, the same shape as every other capability here:
+
+```json
+{
+  "features": {
+    "logging": { "enabled": true }
+  }
+}
+```
+
+Once it is on, every request `proxy.ts` lets through writes one line to
+stdout — `journalctl -u fernscout`, the same place every other problem here
+gets read:
+
+```
+[request] GET /agent.md ua="AgentFetch/1.0 (+https://example.com/agent)"
+```
+
+**Method, path and user agent. Never an IP address, and never a query
+string** (B257). This server holds private journals, so a log of
+`/<user>/day/<slug>` sitting next to an address is already an identified
+reading history. If an operator needs client addresses for abuse work, that
+is a second, separately-named switch and a separate decision — not this one.
+
+**Not a response log, on purpose rather than by omission.** `proxy.ts` runs
+*before* a request completes — Next's own docs for `proxy` say exactly that —
+so there is no status code, no duration and no response size in existence yet
+at the point this line is written. Getting those three would mean a hook
+inside every route handler instead of the one choke point this ticket chose,
+which is the "a call per handler" it explicitly did not want. What is logged
+is everything proxy actually has the moment it lets a request through.
+
+**Retained for exactly as long as `journalctl` keeps it, and nowhere else** —
+no file, no rotation, nothing under `CONTENT_DIR` or any journal's own
+folder. Systemd already collects, rotates and expires this on the unit's own
+terms; check what that is with `journalctl --disk-usage` and
+`systemctl show systemd-journald -p SystemMaxUse -p MaxRetentionSec`. An
+operator who needs a request kept longer than the journal does needs a
+different mechanism than this switch.
+
+`_next/static`, `_next/image` and `favicon.ico` stay excluded even with this
+on — build assets served dozens of times per page view, and a log that is
+mostly those lines is a log nobody reads. Everything else the matcher admits
+is logged, including `/api/**` (every draft, publish and invite call — the
+write side this whole ticket exists for) and the two agent-facing root
+documents, `/agent.md` and `/documentation.txt`.
+
+`scripts/deploy.sh` prints whether this is on, the same way it already prints
+backup and Caddy state.
+
 ---
 
 ## Backups
@@ -808,3 +861,4 @@ this machine at all (B65):
 | Site up, features missing | `curl -s localhost:3000/api/health` — each capability states why it is off. |
 | Reactions vanished after adding a database | `npm run db:import` moves the JSON state in. It is idempotent. |
 | Deploy failed mid-build | The old process is still serving. Fix, re-run `./scripts/deploy.sh`. |
+| An agent reports "failed to fetch" and you cannot tell whether it arrived | Turn on [Request logging](#apihealth) and check `journalctl -u fernscout` for the path (B257). Off by default, so there is nothing to check until it is. |

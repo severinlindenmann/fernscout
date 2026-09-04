@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { loadServerConfig } from "@/lib/config";
 import { LOCALE_COOKIE, PATH_HEADER } from "@/lib/requestKeys";
+import { formatRequestLine } from "@/lib/requestLog";
 import { journalTombstone, tripTombstone, type Tombstone } from "@/lib/tombstones";
 
 /**
@@ -113,11 +115,58 @@ function goneFor(pathname: string): NextResponse | null {
   return null;
 }
 
+/**
+ * `features.logging.enabled` — read directly rather than through
+ * `lib/capabilities.ts`'s `isEnabled()`. That module imports `lib/users.ts`,
+ * which is `server-only`, and this file is imported here for the same reason
+ * `lib/tombstones.ts` gives for itself: nothing proxy.ts pulls in should
+ * assume it is never bundled for the edge or the browser. `logging` needs no
+ * env var and no database, so this one config read *is* the whole of what
+ * `isEnabled("logging")` would have computed anyway — see B257.
+ *
+ * Cheap and short-circuiting on purpose: `loadServerConfig()` is memoised
+ * against the file's own mtime, so this is one map lookup per request when
+ * the capability is off, and no formatting happens unless it is on.
+ */
+function loggingEnabled(): boolean {
+  try {
+    return loadServerConfig().features.logging.enabled === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * One line to stdout, method + path + user agent, when the capability above
+ * is on. See `lib/requestLog.ts` for the format and for why status,
+ * duration and response size are not in it.
+ *
+ * Called for every request the matcher below lets through, static build
+ * assets excluded — see the matcher's own comment for that choice.
+ */
+function logRequest(request: NextRequest): void {
+  if (!loggingEnabled()) return;
+  console.log(formatRequestLine(request.method, request.nextUrl.pathname, request.headers.get("user-agent")));
+}
+
 export default function proxy(request: NextRequest) {
-  const gone = goneFor(request.nextUrl.pathname);
+  logRequest(request);
+
+  const pathname = request.nextUrl.pathname;
+
+  // The API is the write side of this software (B257's whole motivation) and
+  // never ran through the checks below — the matcher used to exclude it
+  // outright. Widening the matcher so it can be logged must not also start
+  // running tombstone/locale logic against it for the first time: `api` is a
+  // reserved name that can never actually be deleted, so a per-request fs
+  // stat against `content/.deleted/api.json` would be pure waste, forever,
+  // on the hot path this ticket was explicitly told not to slow down.
+  if (pathname.startsWith("/api/")) return NextResponse.next();
+
+  const gone = goneFor(pathname);
   if (gone) return gone;
 
-  request.headers.set(PATH_HEADER, request.nextUrl.pathname);
+  request.headers.set(PATH_HEADER, pathname);
 
   const asked = request.nextUrl.searchParams.get("lang");
   const tag = asked?.trim().toLowerCase();
@@ -142,6 +191,12 @@ export const config = {
   matcher: [
     // Everything a reader looks at. Not the API, not build assets, and not the
     // agent-facing documents, which have no chrome to translate.
+    //
+    // `_next/static`, `_next/image` and `favicon.ico` stay excluded below for
+    // request logging too (B257), on purpose: every one of them is a build
+    // asset served dozens of times per page view, and a log that is mostly
+    // `/_next/static/…` lines is a log nobody reads. Nothing diagnostic is
+    // lost — the page request that asked for them is still logged.
     "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:txt|json|xml|md|png|svg|ico)$).*)",
     // Added for the 410 above, not for the language cookie. These four are the
     // agent- and reader-facing documents of a journal, and after it is deleted
@@ -151,5 +206,16 @@ export const config = {
     "/:user/feed.xml",
     "/:user/search-index.json",
     "/:user/story.json",
+    // Added for request logging (B257), not for the 410 or the language
+    // cookie. `/agent.md` and the instance's own `/documentation.txt` are the
+    // two agent-facing documents the extension exclusion above was written
+    // to skip translating — and an agent's failed fetch to one of them is
+    // exactly what this ticket exists to let an operator confirm or rule
+    // out. `/api/:path*` is the write side: every draft, publish and invite
+    // call, previously invisible to proxy entirely. `proxy()` above skips
+    // the tombstone and locale checks for it — see the comment there.
+    "/documentation.txt",
+    "/agent.md",
+    "/api/:path*",
   ],
 };
