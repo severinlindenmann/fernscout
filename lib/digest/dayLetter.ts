@@ -390,14 +390,31 @@ export type DayLetterOutcome =
  * One credit per recipient, so the count *is* the cost; if that ever stops
  * being true this is the one place to change.
  *
- * Zero for a trip or journal that does not exist, and for a `test: true` trip —
- * content nobody lived reaches no inbox and therefore costs nothing.
+ * Zero for a trip or journal that does not exist, and zero for content nobody
+ * lived — which is a `test: true` trip **or** a `test: true` day inside an
+ * ordinary one. Both, and via `isTestContent`, because the send itself refuses
+ * on exactly that predicate before it charges: quoting a price the charge
+ * would never ask for is how B379 stopped an owner low on credits from
+ * publishing the very content the flag exists to let them publish freely.
+ *
+ * `slug` is therefore not optional in practice even though the type allows it.
+ * Omitting it answers for the trip alone and cannot see a test day, which is
+ * the bug; it stays optional only so a caller that genuinely has no day in
+ * hand — none exists today — is not forced to invent one.
  */
-export async function mailWouldCost(owner: string, ref: string): Promise<number> {
+export async function mailWouldCost(owner: string, ref: string, slug?: string): Promise<number> {
   const user = getUser(owner);
   const trip = getTrip(ref);
   if (!user || !trip) return 0;
-  if (trip.test === true) return 0;
+  if (slug !== undefined) {
+    const entry = getEntryBySlug(ref, slug, { includeDrafts: true });
+    // A day that does not exist has no send and therefore no cost; the route
+    // has already answered 404 for it long before this.
+    if (!entry) return 0;
+    if (isTestContent(trip, entry)) return 0;
+  } else if (trip.test === true) {
+    return 0;
+  }
   return (await recipientsFor(trip, user)).length;
 }
 

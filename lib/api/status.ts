@@ -4,6 +4,7 @@ import { resolveCapabilities } from "@/lib/capabilities";
 import type { FeatureName } from "@/lib/config";
 import { listDrafts, tripSummary } from "@/lib/api/entries";
 import { writableTrips } from "@/lib/api/auth";
+import { balanceOf } from "@/lib/credits";
 import { getTrips } from "@/lib/trips";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
@@ -35,7 +36,15 @@ import { getUser } from "@/lib/users";
  * be noise. These four are the ones where an agent might otherwise build a
  * request that cannot be sent.
  */
-const AGENT_FEATURES: readonly FeatureName[] = ["mail", "push", "postcards", "photobook"] as const;
+const AGENT_FEATURES: readonly FeatureName[] = [
+  "mail",
+  "push",
+  "postcards",
+  "photobook",
+  // B366. An agent that cannot see whether sends are charged will read a 402
+  // from `/publish` as a bug in its own request rather than an empty account.
+  "credits",
+] as const;
 
 export type DraftRow = {
   slug: string;
@@ -116,6 +125,9 @@ export async function journalStatus(user: string, session: Session) {
   const drafts = await draftQueue(user, session, base);
 
   const resolved = resolveCapabilities(user);
+  // `null` both when charging is off and when this token is scoped to a trip
+  // — see the `credits` block below for why those collapse to the same answer.
+  const creditBalance = scoped ? null : await balanceOf(user);
   const features = Object.fromEntries(
     AGENT_FEATURES.map((name) => [
       name,
@@ -158,9 +170,23 @@ export async function journalStatus(user: string, session: Session) {
     ...(resolved.contacts.enabled
       ? { invites: `GET ${base}/api/v1/${user}/invites` }
       : {}),
-    // `credits` and `pricing` are deliberately absent until B89 exists. Absent
-    // rather than zero: a balance of 0 is a statement about an account, and
-    // there are no accounts. Slot them in beside `features` when B89 lands.
+    /*
+     * What a send would cost, and whether this journal can pay for one —
+     * B366, and the answer to a comment that sat here saying credits were
+     * "deliberately absent until B89 exists".
+     *
+     * Absent when charging is off, which is the honest answer then: there is
+     * no balance, and a `0` would read as an empty account rather than as a
+     * server that does not bill. Absent too for a trip-scoped token, which
+     * can neither publish nor send and has no business reading the journal's
+     * balance — the same line `scope` draws everywhere else in this file.
+     *
+     * It is here rather than left to be discovered because the whole purpose
+     * of this endpoint is that an agent knows where it stands before it acts:
+     * without it, `POST .../publish` with `send_mail: true` answers 402 and
+     * the agent has no way to tell an empty account from a malformed request.
+     */
+    ...(creditBalance !== null ? { credits: { balance: creditBalance, perEmail: 1, perWhatsapp: 1 } } : {}),
     next: nextStep(drafts.length, trips.length, scoped),
   };
 }

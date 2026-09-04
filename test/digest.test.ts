@@ -22,6 +22,8 @@ import {
 import { getTrips } from "@/lib/trips";
 import { translate } from "@/lib/i18n";
 import { translateIn } from "@/lib/locales";
+// `grant` is already taken in this file by the access-grant helper below.
+import { balanceOf, grant as grantCredits } from "@/lib/credits";
 import type { Locale } from "@/lib/types";
 
 /**
@@ -63,13 +65,21 @@ function republish(): void {
   clearUserCache();
 }
 
-function writeServerConfig(mail: Record<string, unknown> = { enabled: true, transport: "file" }) {
+function writeServerConfig(
+  mail: Record<string, unknown> = { enabled: true, transport: "file" },
+  credits = false,
+) {
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
       site: { name: "R", url: "https://example.test", defaultUser: OWNER },
       users: { reserved: [] },
-      features: { mail, auth: { enabled: true }, contacts: { enabled: true } },
+      features: {
+        mail,
+        auth: { enabled: true },
+        contacts: { enabled: true },
+        credits: { enabled: credits },
+      },
     }),
   );
   clearConfigCache();
@@ -1021,5 +1031,68 @@ describe("driving the digest over content nobody lived", () => {
     // Both days of the real trip, and both days of the proving trip.
     expect(drill.ready[0].content.dayCount).toBe(4);
     expect(drill.includedTest).toBe(true);
+  });
+});
+
+/**
+ * B380. The day letter charges a credit per recipient; the weekly digest is
+ * the same reader-facing bulk mail through the same transport, to the same
+ * opted-in contacts, and went out free. A journal at zero credits could not
+ * announce one day and could still mail its whole readership every week.
+ */
+describe("credits — B380", () => {
+  test("a digest with too few credits sends nothing and charges nothing", async () => {
+    writeServerConfig({ enabled: true, transport: "file" }, true);
+    writeTrip({ id: "paid-2026", title: "Paid", dates: ["2026-08-27", "2026-08-28"] });
+    await addReader("one@example.test", "de");
+    await addReader("two@example.test", "de");
+    await grantCredits(OWNER, 1); // two readers are ready; one credit is not enough
+
+    const outcome = await runDigest(OWNER, { now: MORNING });
+
+    expect(outcome.sent).toHaveLength(0);
+    expect(outcome.noCredits).toEqual({ needed: 2, balance: 1 });
+    expect(mailFiles()).toHaveLength(0);
+    // Refusing must not have touched the balance.
+    expect(await balanceOf(OWNER)).toBe(1);
+  });
+
+  test("a digest that can pay sends, and spends exactly one credit per reader", async () => {
+    writeServerConfig({ enabled: true, transport: "file" }, true);
+    writeTrip({ id: "paid-2026", title: "Paid", dates: ["2026-08-27", "2026-08-28"] });
+    await addReader("one@example.test", "de");
+    await addReader("two@example.test", "de");
+    await grantCredits(OWNER, 5);
+
+    const outcome = await runDigest(OWNER, { now: MORNING });
+
+    expect(outcome.sent).toHaveLength(2);
+    expect(outcome.noCredits).toBeUndefined();
+    expect(mailFiles()).toHaveLength(2);
+    expect(await balanceOf(OWNER)).toBe(3);
+  });
+
+  test("a dry run costs nothing at all", async () => {
+    writeServerConfig({ enabled: true, transport: "file" }, true);
+    writeTrip({ id: "paid-2026", title: "Paid", dates: ["2026-08-27", "2026-08-28"] });
+    await addReader("one@example.test", "de");
+    await grantCredits(OWNER, 5);
+
+    const outcome = await runDigest(OWNER, { now: MORNING, dryRun: true });
+
+    expect(outcome.dryRun).toBe(true);
+    expect(mailFiles()).toHaveLength(0);
+    expect(await balanceOf(OWNER)).toBe(5);
+  });
+
+  test("with credits switched off the digest is free, exactly as before", async () => {
+    writeServerConfig({ enabled: true, transport: "file" }, false);
+    writeTrip({ id: "free-2026", title: "Free", dates: ["2026-08-27", "2026-08-28"] });
+    await addReader("one@example.test", "de");
+
+    const outcome = await runDigest(OWNER, { now: MORNING });
+
+    expect(outcome.sent).toHaveLength(1);
+    expect(mailFiles()).toHaveLength(1);
   });
 });

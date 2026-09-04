@@ -9,7 +9,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { issueCode, verifyCode, tripWriteScope } from "@/lib/auth";
 import { balanceOf, grant } from "@/lib/credits";
 import { requestContact, confirmContact, approveContact } from "@/lib/contacts";
-import { sendDayLetter } from "@/lib/digest/dayLetter";
+import { mailWouldCost, sendDayLetter } from "@/lib/digest/dayLetter";
 import { getEntryBySlug } from "@/lib/entries";
 import type { Locale } from "@/lib/types";
 
@@ -614,6 +614,37 @@ describe("credits — B366", () => {
     expect(mailFiles()).toHaveLength(0);
     // Refusing must not have touched the balance.
     expect(await balanceOf(OWNER)).toBe(2);
+  });
+
+  /**
+   * B379. `mailWouldCost` takes a trip ref and no slug, so it can see a
+   * `test: true` *trip* and not a `test: true` *day* inside an ordinary one —
+   * while `sendDayLetter` refuses the second with `test_content` before it
+   * charges anything. The publish pre-flight therefore quotes a price for a
+   * send that would cost nothing, and an owner low on credits cannot publish
+   * the very content the flag exists to let them publish freely.
+   */
+  test("a test day costs nothing, even inside an ordinary trip", async () => {
+    enableCredits();
+    writeTrip("proving-ground", { visibility: "public" });
+    const { slug } = writeEntry("proving-ground", {
+      date: "2026-09-11",
+      slug: "invented-day",
+      test: true,
+    });
+    await addReader("one@example.test", "en");
+    await addReader("two@example.test", "en");
+    await grant(OWNER, 0 + 1); // one credit: fewer than the three recipients
+
+    expect(await mailWouldCost(OWNER, "alex/proving-ground", slug)).toBe(0);
+
+    // And the send itself still refuses for the right reason, charging nothing.
+    const outcome = await sendDayLetter(OWNER, "alex/proving-ground", slug);
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.reason).toBe("test_content");
+    expect(mailFiles()).toHaveLength(0);
+    expect(await balanceOf(OWNER)).toBe(1);
   });
 
   test("exactly enough credits sends everything and leaves the balance at zero", async () => {

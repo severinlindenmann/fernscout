@@ -1270,6 +1270,26 @@ and a \`test: true\` day sends nothing at all, whatever the flag says. The
 count comes back, never the addresses; a send that failed shows up as a
 count and a reason, not only in a server log a person never opens (B272).
 
+**Sending may cost credits, and an empty balance stops the publish.** Where
+this server charges for sends — B366 — one credit goes per email and one per
+WhatsApp message. Both requested channels are priced together, against one
+balance, **before** anything is published: a journal that cannot cover the
+whole send gets **402** with \`needed\` and \`balance\`, the day stays a draft,
+and nothing is sent. It is all-or-nothing, so half a mailing list is never the
+outcome.
+
+\`GET /api/v1/${example}/status\` carries \`credits.balance\` when the server
+bills; read it before you publish with either flag rather than discovering an
+empty account from a 402. An absent \`credits\` key means this server does not
+charge, not that the account is empty.
+
+**A 402 is a message to pass on, not something to work around.** Credits are
+added only by the person running the server, from a shell on it. There is no
+purchase call, and there is deliberately nothing you can do about it: say what
+was needed, say what is left, and let them decide. Publishing without either
+flag is never charged and never refused this way, so a day can always go on
+the site — it is only the announcement that waits.
+
 **Neither resend is idempotent, on purpose.** \`/send-mail\` and
 \`/send-whatsapp\` reach everybody again, every time — the owner asking twice is the only guard there is, so ask
 in words before you call it a second time, the same discipline as
