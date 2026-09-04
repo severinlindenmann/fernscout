@@ -55,7 +55,7 @@
   // machine that has not installed them. `lib/capabilities.ts` is the thing
   // that decides whether each is available; a missing one switches a feature
   // off rather than breaking it, so none of them belongs in package.json.
-  "ignoreBinaries": ["ffmpeg", "ffprobe", "restic", "pg_restore", "openssl"],
+  "ignoreBinaries": ["caddy", "ffmpeg", "ffprobe", "restic", "pg_restore", "openssl", "systemd-analyze"],
 
   // Two severities, and the split is the point.
   //
