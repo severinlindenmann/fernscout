@@ -7,8 +7,7 @@ complexity: low
 area: docs
 found: "2026-09-03T20:06:00Z"
 started: "2026-09-04T05:58:30Z"
-session: 2b6d1969-424a-4788-9497-eb5e151a5391
-claimed: "2026-09-04T05:58:30Z"
+merged: "2026-09-04T06:22:16Z"
 ---
 
 # B198 — Every docs link in the README points one directory above where the file is
