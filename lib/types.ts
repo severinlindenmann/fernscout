@@ -28,6 +28,30 @@ export type GalleryItem = {
   poster?: string;
 };
 
+/**
+ * One photograph or clip, as the trip gallery needs it, and no more.
+ *
+ * `getAllMedia` used to flat-map to `{ item: GalleryItem; entry: Entry }` — the
+ * whole `Entry`, prose and all, once per photograph on it. A day with thirty
+ * pictures shipped that day's `content` and `translations` thirty times, in
+ * every language the journal is written in, to a grid that only ever read the
+ * entry's location and date. Same shape of problem as `DaySummary` above,
+ * same fix: project the four entry fields the tiles and the open viewer
+ * actually use, not the entry itself (B87).
+ */
+export type MediaTile = {
+  src: string;
+  type: "image" | "video";
+  caption?: string;
+  width?: number;
+  height?: number;
+  poster?: string;
+  location: string;
+  country: string;
+  countryCode?: string;
+  date: string;
+};
+
 export type Transport = {
   mode: TransportMode;
   from: string;

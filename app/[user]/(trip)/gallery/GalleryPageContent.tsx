@@ -4,8 +4,9 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Clapperboard } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import GalleryGrid, { type MediaEntry } from "@/components/GalleryGrid";
+import GalleryGrid from "@/components/GalleryGrid";
 import type { PlaceView } from "@/components/WorldMap";
+import type { MediaTile } from "@/lib/types";
 import { useI18n } from "@/components/LocaleProvider";
 
 // Behind a button — nobody should pay to download the presentation bundle
@@ -16,7 +17,7 @@ export default function GalleryPageContent({
   media,
   places,
 }: {
-  media: MediaEntry[];
+  media: MediaTile[];
   places: PlaceView[];
 }) {
   const { t } = useI18n();

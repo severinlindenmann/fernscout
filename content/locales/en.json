@@ -259,6 +259,7 @@
   "err.unknownUserTitle": "There is no journal at this address",
   "gallery.all": "All",
   "gallery.description": "Every photo and video from the trip, newest first — filterable by place.",
+  "gallery.loadMore": "Load more",
   "gallery.none": "Nothing here yet.",
   "gallery.subtitle": "photos and videos, newest first.",
   "gallery.title": "Gallery",
