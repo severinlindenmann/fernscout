@@ -1,4 +1,4 @@
-import type { Mail } from "./types";
+import type { Mail, MailAttachment } from "./types";
 
 /**
  * The one mail layout.
@@ -17,7 +17,13 @@ export type MailBlock =
   | { kind: "paragraph"; text: string }
   | { kind: "heading"; text: string }
   | { kind: "button"; text: string; href: string }
-  | { kind: "item"; title: string; meta?: string; href: string };
+  | { kind: "item"; title: string; meta?: string; href: string }
+  /** A photograph, inline — `cid` names an attachment on the `Mail` this
+   * renders into, never a URL. See `lib/mail/types.ts`. */
+  | { kind: "image"; cid: string; alt: string }
+  /** A line of small type — place, local date, cost — under the title.
+   * B345's day-published letter is the first caller. */
+  | { kind: "meta"; text: string };
 
 export type MailContent = {
   /** Shown in the inbox preview line, before anyone opens it. */
@@ -46,6 +52,9 @@ export type MailContent = {
    * or their address instead of leaving altogether.
    */
   manageLink?: { text: string; href: string };
+  /** Backing bytes for every `{ kind: "image" }` block above — see
+   * `lib/mail/types.ts`. Absent for every letter but the day-published one. */
+  attachments?: MailAttachment[];
 };
 
 const INK = "#1e293b";
@@ -80,6 +89,14 @@ function blockHtml(block: MailBlock): string {
         (block.meta ? `<br><span style="color:${MUTED};font-size:15px">${escapeHtml(block.meta)}</span>` : "") +
         `</p>`
       );
+    case "image":
+      // `cid:` only — never a URL. See MailBlock's own comment.
+      return (
+        `<p style="margin:0 0 16px"><img src="cid:${escapeHtml(block.cid)}" alt="${escapeHtml(block.alt)}" ` +
+        `width="560" style="width:100%;max-width:560px;height:auto;border-radius:12px;display:block"></p>`
+      );
+    case "meta":
+      return `<p style="margin:-8px 0 20px;font-size:14px;line-height:1.5;color:${MUTED}">${escapeHtml(block.text)}</p>`;
   }
 }
 
@@ -93,6 +110,11 @@ function blockText(block: MailBlock): string {
       return `${block.text}: ${block.href}`;
     case "item":
       return `* ${block.title}${block.meta ? ` (${block.meta})` : ""}\n  ${block.href}`;
+    // A plain-text reader cannot show the photograph itself; say what it was.
+    case "image":
+      return `[Photo: ${block.alt}]`;
+    case "meta":
+      return block.text;
   }
 }
 
@@ -149,5 +171,13 @@ export function renderMail(
     headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
   }
 
-  return { to, subject, html, text, headers, username };
+  return {
+    to,
+    subject,
+    html,
+    text,
+    headers,
+    username,
+    ...(content.attachments?.length ? { attachments: content.attachments } : {}),
+  };
 }

@@ -5,6 +5,8 @@ import { isTestContent } from "@/lib/access";
 import { getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { serverSite } from "@/lib/site";
+import { sendDayLetter } from "@/lib/digest/dayLetter";
+import { mailSummary, readSendMailFlag } from "@/lib/api/dayMail";
 
 export const dynamic = "force-dynamic";
 
@@ -95,8 +97,35 @@ export async function POST(
     );
   }
 
+  // Read before publishing changes anything, so a malformed body is a `false`
+  // rather than a publish that half-happened.
+  const sendMailRequested = await readSendMailFlag(request);
+
   const result = publishDraft(ref, slug);
   if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
+
+  /*
+   * The letter — B345. `send_mail` is a parameter of this call and its
+   * absence means no letter (it must never default to true: publishing
+   * fifteen days must not mail fifteen letters to everybody the owner
+   * knows). Best-effort, and deliberately outside the publish itself: the day
+   * is already on the site by the time this runs, so nothing here can turn a
+   * successful publish into a failure response — B272 was exactly a mail
+   * step allowed to do that to an unrelated success.
+   */
+  let mail: Record<string, unknown> | undefined;
+  if (sendMailRequested) {
+    try {
+      mail = mailSummary(await sendDayLetter(user, ref, slug));
+    } catch (err) {
+      mail = {
+        attempted: false,
+        sent: 0,
+        failed: 0,
+        reason: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
 
   return Response.json({
     ok: true,
@@ -113,5 +142,6 @@ export async function POST(
       url: `${serverSite().url}/${user}`,
       test: isTestContent(found, entry),
     }),
+    ...(mail ? { mail } : {}),
   });
 }
