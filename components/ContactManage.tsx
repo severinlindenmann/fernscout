@@ -166,6 +166,7 @@ export default function ContactManage({
             value={address.tel}
             onChange={(e) => setAddress((previous) => ({ ...previous, tel: e.target.value }))}
           />
+          <p className="mt-2 text-base text-navy-600">{t("contact.telHint")}</p>
         </div>
 
         <fieldset className="mt-8 rounded-2xl border border-navy-200 bg-cream-100 p-5">

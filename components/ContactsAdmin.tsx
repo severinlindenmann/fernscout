@@ -296,7 +296,11 @@ function fieldsFor(contact: AdminContact | null, fallbackLocale: Locale): GuestF
  * escalation this form could cause, only the one de-escalation the address
  * change makes necessary.
  */
-function GuestForm({
+// Exported only so a test can render the owner's guest form directly —
+// `formTarget` is client-side state with no prop to open it, and this suite
+// has no DOM environment to click the toggle that would. Not part of the
+// module's public surface otherwise.
+export function GuestForm({
   contact,
   fallbackLocale,
   locales,
@@ -427,6 +431,7 @@ function GuestForm({
           value={form.tel}
           onChange={(e) => field("tel", e.target.value)}
         />
+        <p className="mt-2 text-base text-navy-600">{t("contact.adminTelHint")}</p>
       </div>
 
       <fieldset className="mt-6 rounded-2xl border border-navy-200 bg-white p-5">
