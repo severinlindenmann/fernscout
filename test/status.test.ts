@@ -249,10 +249,50 @@ describe("what status says about this server", () => {
     expect(body.features?.postcards?.reason).toContain("not enabled on this server");
   });
 
-  test("credits and pricing are absent rather than zero, until B89 exists", async () => {
+  test("credits are absent when this server does not bill", async () => {
+    // Off is this suite's default (the shared config never enables credits), so
+    // there is no balance to state — a `credits` key here would read as an
+    // empty account rather than as a server that does not charge. B366/B397.
     const { body } = await status(await ownerToken());
+    // No balance block — there is no account to state.
     expect(body).not.toHaveProperty("credits");
-    expect(body).not.toHaveProperty("pricing");
+    // But the capability is still reported off with a reason, the same shape
+    // as postcards above, so an agent can tell "off" from "not a concept".
+    expect(body.features?.credits?.enabled).toBe(false);
+    expect(body.features?.credits?.reason).toBeTruthy();
+  });
+
+  test("credits are reported on though the journal never opts in — B397", async () => {
+    // Server-only: a journal cannot set `credits` in its own config, so
+    // resolving it per-journal used to answer "not enabled by <user>" beside a
+    // live balance. Turn the server switch on and confirm status reports the
+    // capability enabled and carries the balance, from the journal config as
+    // it stands — credits unmentioned.
+    const configPath = path.join(dir, "config.json");
+    const saved = fs.readFileSync(configPath, "utf8");
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify({
+        site: { name: "R", url: "https://example.test", defaultUser: OWNER },
+        users: { reserved: [] },
+        features: { auth: { enabled: true }, credits: { enabled: true } },
+      }),
+    );
+    const { clearConfigCache } = await import("@/lib/config");
+    const { clearUserCache } = await import("@/lib/users");
+    clearConfigCache();
+    clearUserCache();
+    try {
+      const { body } = await status(await ownerToken());
+      expect(body.features?.credits).toEqual({ enabled: true });
+      // The balance block is present (owner, not trip-scoped), at zero — no
+      // grant was made — which is a real number, not the "absent" of off.
+      expect(body.credits).toMatchObject({ balance: 0 });
+    } finally {
+      fs.writeFileSync(configPath, saved);
+      clearConfigCache();
+      clearUserCache();
+    }
   });
 
   test("no invite link where contacts is off, because there is no queue to land in", async () => {

@@ -41,9 +41,6 @@ const AGENT_FEATURES: readonly FeatureName[] = [
   "push",
   "postcards",
   "photobook",
-  // B366. An agent that cannot see whether sends are charged will read a 402
-  // from `/publish` as a bug in its own request rather than an empty account.
-  "credits",
 ] as const;
 
 export type DraftRow = {
@@ -139,6 +136,19 @@ export async function journalStatus(user: string, session: Session) {
           { enabled: false, reason: resolved[name].reason },
     ]),
   );
+
+  // `credits` is server-only — a journal can neither opt in to nor out of
+  // being billed (lib/credits.ts). Resolving it per-journal like the opt-in
+  // capabilities above answered "not enabled by <user>" for every journal,
+  // because none sets `credits: true` in its own config — it is not theirs to
+  // set — which contradicted the `credits.balance` block below that an agent
+  // reads to know whether a send will be charged. So it is reported from the
+  // *server* answer, `resolveCapabilities()` with no username, and still
+  // carries a reason when off, the same shape as the four above. B397.
+  const serverCredits = resolveCapabilities().credits;
+  features.credits = serverCredits.enabled
+    ? { enabled: true }
+    : { enabled: false, reason: serverCredits.reason };
 
   return {
     user,
