@@ -108,8 +108,11 @@ export async function findActiveContactId(
  *   gate left the lock screen open. `lib/grants.ts` reads `access_grants` and
  *   nothing else; importing it is not the `lib/contacts` dependency this file
  *   avoids, and it brings no encrypted contact field into the notify path.
- *   The active-contact question is still asked first and separately, in
- *   `planDigest`'s order.
+ *   The active-contact question is still asked first and separately — the
+ *   order `planDigest` used, before B387 deleted it, and the order
+ *   `sendDayLetter`'s `recipientsFor` still follows: approval before
+ *   entitlement, so somebody who was never approved is never even asked
+ *   about.
  *
  * Everyone else — including every subscriber at all, when there is no database
  * — is left out rather than guessed into an audience that may not be able to
@@ -154,7 +157,7 @@ export async function subscribersFor(
   // Two questions, two queries, asked once for the whole fan-out rather than
   // twice per subscription — which is what this was, and what turns a notify
   // run over fifty devices into a hundred round trips. Active first, then
-  // granted: `planDigest` asks them in that order and so does this.
+  // granted: the same order `sendDayLetter`'s recipient resolution uses.
   const [activeRows, granted] = await Promise.all([
     handle.db
       .selectFrom("contacts")
