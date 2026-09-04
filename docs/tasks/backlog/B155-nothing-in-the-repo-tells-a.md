@@ -64,7 +64,7 @@ into one line ("mail, sign-in, guests, push, print").
 complete set — nine, and that file is "the only place it gets named". The
 README should carry a table of all of them, because a self-hoster deciding what
 to run has nowhere else to look: `lib/capabilities.ts` is source, and
-`docs/` no longer holds the runbook it used to (B62, B9). For each: what it
+`docs/` no longer holds the runbook it used to (B62, B09). For each: what it
 enables, what it costs to turn on, and what the site does without it.
 
 | Feature | Needs | Off means |

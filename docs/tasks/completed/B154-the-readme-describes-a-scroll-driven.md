@@ -29,7 +29,7 @@ which matters because `test/depersonalised.test.ts` fails the build over a real
 name outside `content/`.
 
 Related to B155, which is the prose half of the same README pass, and to B62
-and B9, which are about the README's links pointing at documents that moved
+and B09, which are about the README's links pointing at documents that moved
 into `docs/archiv/`. This task is images only and fixes no links.
 
 ## Work

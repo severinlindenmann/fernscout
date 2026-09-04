@@ -46,6 +46,48 @@ checkout of a sha. Candidates worth ruling out before designing a fix: a
 `git worktree remove` racing another session's operation, an interrupted
 `git checkout`, or a tool that resolves a ref and checks out the sha.
 
+### What 2026-09-04 added, and what it changed about the shape of this
+
+A factory of parallel agents ran eleven groups through this repository on the
+morning of 2026-09-04, merging each branch serially from the shared checkout.
+The detached HEAD did not recur. **Two other failures of the same kind did, and
+both are the point of this ticket rather than a footnote to it: the shared
+checkout is a contended resource with no protocol.**
+
+- **Another session's uncommitted task files stopped a merge before it
+  started**, twice: `Your local changes to the following files would be
+  overwritten by merge`. Nothing had gone wrong — the files were lane moves,
+  which `AGENTS.md` correctly says commit straight to `main` without a branch.
+  They had simply not been committed yet, and the next agent to arrive could
+  not proceed. `git status --short` before merging would have shown it; nothing
+  told anybody to look.
+- **`docs/tasks/INDEX.md` conflicted on every single merge — ten of them.**
+  Nothing else conflicted at all. It is a *generated* file: `npm run tasks`
+  rewrites the block between the markers from the lane folders, so every branch
+  regenerated it from that branch's snapshot of `docs/tasks/`, and every merge
+  had two rewritten blocks to reconcile.
+
+The second one is worth being precise about, because the obvious fixes are
+wrong:
+
+- **`merge=union` in `.gitattributes`** turns a loud conflict into a silently
+  wrong file — both sides' rows concatenated, duplicated, and nobody prompted
+  to regenerate. Worse than the conflict.
+- **`merge=ours`** needs a driver configured per clone (`git config
+  merge.ours.driver true`), which a fresh checkout does not have, so it fails
+  open and differently on different machines.
+- **Not committing it** is a real option and a person's call; the file is
+  browsable on GitHub, which is why it is tracked.
+
+The fix taken instead is narrower and needs no git configuration: **a worktree
+does not regenerate it.** The block is a rendering of the lane folders, and a
+worktree's folders are a snapshot from when its branch was cut — so what it
+writes there is both stale and the thing that collides. `npm run tasks` run in
+a linked worktree now says so and leaves the file alone; `npm run tasks --
+index` in the main checkout after merging is what puts it right. That also
+removes the only objection to running `npm run tasks -- new` from a worktree,
+which is B143's whole subject.
+
 ## Work
 
 - **Detect it, loudly.** `npm run tasks` already runs in the main checkout on
@@ -73,3 +115,34 @@ which are the other two things this repository's parallel running has broken.
 - A test drives the detached case against a temporary checkout, the way
   `test/tasks-script.test.ts` drives id allocation.
 - `AGENTS.md` and `work-on-a-task` state the check and the guarded recovery.
+- A checkout halfway through a merge, rebase or cherry-pick says so.
+- `INDEX.md` is not regenerated from a linked worktree, so it stops being the
+  file that conflicts on every merge.
+
+## What was built
+
+`scripts/tasks.mjs`, said once after whatever was asked for, on stderr:
+
+- `warnDetached()` — reads `git worktree list --porcelain` and reports **any**
+  checkout with no `branch` line, by path, with `git rev-list --count
+  main..<head>` as the number of stranded commits. Said from every checkout
+  about every checkout, deliberately: the agent who needs to know the shared
+  one has come off `main` is the one in a worktree about to merge into it.
+  The recovery is printed only when `git merge-base --is-ancestor main HEAD`
+  holds; when it does not, it says the branch has diverged and stops.
+- `warnUnfinished()` — `MERGE_HEAD`, `rebase-merge`, `rebase-apply`,
+  `CHERRY_PICK_HEAD`, `REVERT_HEAD` under `git rev-parse --git-path`, for this
+  checkout only. A sibling worktree mid-rebase is its own session's business.
+- `writeIndex({ force })` — skipped in a linked worktree, with the reason and
+  the command that fixes it. `--index` and the `index` command override.
+
+Five tests in `test/tasks-script.test.ts` (`describe("checkout state")` and
+`describe("INDEX.md")`), each driving a throwaway git repository under
+`os.tmpdir()`: stranded-commit count, the diverged case refusing to suggest a
+recovery, a detached main seen from a worktree that is itself on a branch, a
+conflicted merge in progress, and silence when everything is in order. All five
+fail against the previous `scripts/tasks.mjs` and pass against this one.
+
+`AGENTS.md` "Where the work happens" and `work-on-a-task` step 6 both carry the
+check, the guarded recovery, and what to do about another session's uncommitted
+task files (commit them — they are task files, and that is where they go).
