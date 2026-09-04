@@ -2,7 +2,15 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
-import { getTrip, getTrips, getCurrentTrip, getTripIds, currentTripRef } from "@/lib/trips";
+import {
+  accentsFor,
+  getTrip,
+  getTrips,
+  getCurrentTrip,
+  getTripIds,
+  currentTripRef,
+} from "@/lib/trips";
+import type { Trip, TripAccent } from "@/lib/types";
 
 const SERVER_CFG = '{"site":{"name":"F","url":"https://example.test","defaultUser":"u"},"users":{"reserved":[]},"features":{}}';
 const USER_CFG = '{"title":"F","tagline":"t","owner":{"name":"A B","nickname":"A"},"startLocation":"X","defaultLocale":"en","locales":["en"],"baseCurrency":"CHF","displayCurrencies":["CHF"],"units":"metric","features":{"reactions":{"enabled":true},"costs":{"enabled":true}}}';
@@ -44,10 +52,13 @@ describe("getTrips", () => {
     expect(getTrip("u/beta-2026")?.translations?.de?.title).toBe("Beta, unterwegs");
   });
 
-  test("defaults a missing accent to sky", () => {
+  test("reads the accent the trip declares, and leaves a missing one unset", () => {
     // gamma declares green; alpha declares coral. Both are honoured.
     expect(getTrip("u/gamma-2027")?.accent).toBe("green");
     expect(getTrip("u/alpha-2023")?.accent).toBe("coral");
+    // B346: absent is its own answer, not sky. `accentsFor` is what turns it
+    // into a colour, so that a journal's trips differ from each other.
+    expect(getTrip("u/unnamed-2025")?.accent).toBeUndefined();
   });
 
   test("puts the owner on a trip-relative cover", () => {
@@ -113,5 +124,57 @@ describe("no content at all", () => {
     process.env.CONTENT_DIR = path.join(os.tmpdir(), "definitely-not-here");
     expect(getTrips("u")).toEqual([]);
     expect(getCurrentTrip("u")).toBeUndefined();
+  });
+});
+
+/**
+ * B346. Every scaffolded trip carried `accent: sky` — `lib/tripWrite.ts` wrote
+ * it whether or not anybody had chosen a colour, and `parseAccent` defaulted a
+ * missing one to sky too. A journal's trips were therefore uniformly blue, and
+ * no code could assign a distinct colour without also overriding the ones an
+ * owner had actually picked. It only became visible when B344 removed the
+ * lifetime map's route lines and left colour as the sole thing separating one
+ * trip's pins from another's.
+ */
+describe("accentsFor", () => {
+  function trip(ref: string, accent?: TripAccent): Trip {
+    return { ref, accent } as Trip;
+  }
+
+  test("trips with no preference each get a different colour", () => {
+    const got = accentsFor([trip("u/a"), trip("u/b"), trip("u/c")]);
+
+    expect(new Set(got.values()).size).toBe(3);
+  });
+
+  test("a colour the owner chose is kept, and not handed to anybody else", () => {
+    const got = accentsFor([trip("u/a", "coral"), trip("u/b"), trip("u/c")]);
+
+    expect(got.get("u/a")).toBe("coral");
+    expect(got.get("u/b")).not.toBe("coral");
+    expect(got.get("u/c")).not.toBe("coral");
+  });
+
+  test("more trips than colours repeats rather than inventing one", () => {
+    const trips = ["a", "b", "c", "d", "e", "f", "g"].map((id) => trip(`u/${id}`));
+    const got = accentsFor(trips);
+
+    expect(got.size).toBe(7);
+    // Every trip has a real accent from the palette — none undefined, none
+    // mixed at runtime.
+    for (const colour of got.values()) {
+      expect(["sky", "yellow", "green", "coral", "navy"]).toContain(colour);
+    }
+  });
+
+  test("every colour being claimed still leaves something to hand out", () => {
+    const claimed: TripAccent[] = ["sky", "yellow", "green", "coral", "navy"];
+    const got = accentsFor([...claimed.map((c, i) => trip(`u/c${i}`, c)), trip("u/spare")]);
+
+    expect(got.get("u/spare")).toBeDefined();
+  });
+
+  test("one trip is still assigned a colour", () => {
+    expect(accentsFor([trip("u/only")]).get("u/only")).toBeDefined();
   });
 });

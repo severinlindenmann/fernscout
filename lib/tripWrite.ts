@@ -494,7 +494,16 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
   const status = STATUSES.includes(input.status as never)
     ? input.status!
     : calendarStatus({ start: input.start });
-  const accent = ACCENTS.includes(input.accent as never) ? input.accent! : "sky";
+  /**
+   * Written only when the caller named one — B346, and the same rule
+   * `listed:` already follows below.
+   *
+   * It used to default to `"sky"` and write that line unconditionally, which
+   * put a colour nobody had chosen into every scaffolded trip and made "no
+   * preference" unrepresentable: the trips page could not assign distinct
+   * colours without trampling deliberate ones. Silence here is what lets it.
+   */
+  const accent = ACCENTS.includes(input.accent as never) ? input.accent! : undefined;
   /**
    * Silence and a typo are answered differently, and only one of them may
    * ever come out more open than the journal itself is — B306.
@@ -585,7 +594,7 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     `start: ${quoteScalar(input.start)}`,
     `end: ${quoteScalar(input.end)}`,
     `status: ${status}`,
-    `accent: ${accent}`,
+    ...(accent ? [`accent: ${accent}`] : []),
     `visibility: ${visibility}`,
     // Written only when it says something `visibility:` has not already said,
     // for the same reason `test:` is. Every trip carrying `listed: true` made

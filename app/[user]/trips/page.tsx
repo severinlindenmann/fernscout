@@ -6,7 +6,7 @@ import { basemapFor } from "@/lib/basemap";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { getPlaces, getTripStats } from "@/lib/entries";
 import { frameRoute } from "@/lib/mapFrame";
-import { getMalformedTrips, getTrips } from "@/lib/trips";
+import { accentsFor, getMalformedTrips, getTrips } from "@/lib/trips";
 import { draftsVisibleTo, listableTrips, signedInAs } from "@/lib/tripGate";
 import { isOwner } from "@/lib/contacts/session";
 import { serverSite } from "@/lib/site";
@@ -176,10 +176,18 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
     }),
   );
 
+  /**
+   * One colour per trip for the whole page — B346. The map pins, the map's
+   * legend and the cards below all read from this, so a trip is the same
+   * colour in all three; resolving `trip.accent` independently at each site is
+   * how they come to disagree.
+   */
+  const accents = accentsFor(trips);
+
   const routes = travelled.map((trip) => ({
     id: trip.id,
     title: trip.title,
-    accent: trip.accent,
+    accent: accents.get(trip.ref)!,
     translations: trip.translations,
     points: placesByTrip
       .get(trip.ref)!
@@ -193,7 +201,7 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
       title: trip.title,
       tagline: trip.tagline,
       cover: trip.cover,
-      accent: trip.accent,
+      accent: accents.get(trip.ref)!,
       status: trip.status,
       start: trip.start,
       end: trip.end,

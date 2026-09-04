@@ -200,9 +200,55 @@ function parseStatus(raw: unknown): TripStatus {
   return v === "current" || v === "upcoming" ? v : "past";
 }
 
-function parseAccent(raw: unknown): TripAccent {
+/**
+ * The colour the owner chose, or `undefined` for "no preference" — which is
+ * a different answer from any colour and has to stay that way (B346).
+ *
+ * It used to fall back to `"sky"`, and `lib/tripWrite.ts` wrote `accent: sky`
+ * into every scaffolded trip, so a trip nobody had coloured and a trip
+ * deliberately set to sky were identical on disk. Nothing could then assign
+ * distinct colours without overriding real choices, and every journal whose
+ * trips came from the API was uniformly blue — which only became visible when
+ * B344 removed the route lines and left colour as the sole thing telling one
+ * trip's pins from another's.
+ *
+ * An unrecognised value reads as no-preference rather than throwing: a typo in
+ * a colour is not worth a broken page, and the caller picks a colour anyway.
+ */
+function parseAccent(raw: unknown): TripAccent | undefined {
   const v = String(raw ?? "").toLowerCase() as TripAccent;
-  return ACCENTS.includes(v) ? v : "sky";
+  return ACCENTS.includes(v) ? v : undefined;
+}
+
+/**
+ * One colour per trip, keyed by ref: the owner's where they chose one, and an
+ * assigned one everywhere else.
+ *
+ * Resolved for the whole journal at once rather than per trip, because the
+ * answer depends on the others — a colour somebody deliberately picked is not
+ * handed out again while it is claimed. Callers must use this for *every*
+ * surface on a page, not just the one they are drawing: the trips index shows
+ * the same trip as a map pin, a legend swatch and a card dot, and three
+ * independent fallbacks are three chances for them to disagree about what
+ * colour a trip is.
+ *
+ * The palette is five, so a journal with more than five uncoloured trips
+ * repeats rather than inventing a colour. Deliberate: the accents are the
+ * brand's, and a sixth mixed at runtime would not be.
+ */
+export function accentsFor(trips: readonly Trip[]): Map<string, TripAccent> {
+  const claimed = new Set(trips.map((t) => t.accent).filter(Boolean));
+  // Everything nobody claimed, in palette order — and the whole palette when
+  // every colour is spoken for, so there is always something to hand out.
+  const unclaimed = ACCENTS.filter((a) => !claimed.has(a));
+  const pool = unclaimed.length > 0 ? unclaimed : ACCENTS;
+
+  let next = 0;
+  const out = new Map<string, TripAccent>();
+  for (const trip of trips) {
+    out.set(trip.ref, trip.accent ?? pool[next++ % pool.length]);
+  }
+  return out;
 }
 
 /**

@@ -294,7 +294,9 @@ export type Trip = {
   /** The trip card's photograph. Written trip-relative ("/media/<trip>/…")
    * and prefixed with the owner on read, like any other media path. */
   cover?: string;
-  accent: TripAccent;
+  /** The colour the owner chose. Absent means no preference — the trips page
+   * assigns one, rather than every trip defaulting to the same blue. B346. */
+  accent?: TripAccent;
   /** The markdown body of trip.md — the trip's intro paragraph. */
   intro: string;
   translations?: TripTranslations;
