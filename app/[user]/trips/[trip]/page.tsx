@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { draftsVisibleTo, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import { basemapForRoute } from "@/lib/basemap";
 import { getAllEntries } from "@/lib/entries";
@@ -14,7 +14,6 @@ import { siteSummary, travellersOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripCountdown from "@/components/TripCountdown";
 import TripStory from "@/app/TripStory";
-import { isOwner } from "@/lib/contacts/session";
 
 export function generateStaticParams() {
   return getUsernames().flatMap((user) => {
@@ -64,14 +63,16 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(trip))) return null;
 
-  const owner = await isOwner(user);
+  // B327: who may see this trip's unpublished days, and whether putting one
+  // on the site is theirs. Owner, or somebody on the trip.
+  const drafts = await draftsVisibleTo(trip);
 
   // Not `status === "upcoming"` alone: see `showsCountdown` for why a
   // published day settles it whatever the status says (B72).
   if (showsCountdown(trip)) {
     // The countdown draws the same merged route as the map — see
     // app/[user]/(trip)/map/page.tsx for why this is gated on ownership.
-    const plan = getPlan(trip.ref, { includeDrafts: owner });
+    const plan = getPlan(trip.ref, { includeDrafts: drafts.visible });
     return (
       <TripProvider trip={trip} isCurrent={false}>
         <TripCountdown
@@ -88,7 +89,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
 
   const { index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(trip.ref, {
     showCosts: await mayViewCosts(trip),
-    includeDrafts: owner,
+    includeDrafts: drafts.visible,
   });
   const userConfig = getUser(user);
   if (!userConfig) notFound();

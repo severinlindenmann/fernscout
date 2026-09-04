@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
-import { mayReadTrip } from "@/lib/tripGate";
+import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
 import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
 import { getPlaces, getTripStats } from "@/lib/entries";
@@ -10,7 +10,6 @@ import { getPlan } from "@/lib/plan";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { currentTripRef } from "@/lib/trips";
 import TripProvider from "@/components/TripProvider";
-import { isOwner } from "@/lib/contacts/session";
 import type { TranslationKey } from "@/lib/i18n";
 
 /**
@@ -75,14 +74,19 @@ export default async function MapPage({ params }: PageProps<"/[user]/map">) {
   if (!(await mayReadTrip(trip))) return null;
   const stats = getTripStats(tripId);
   // Planned stops derived from drafts are the trip's own next moves — shown
-  // only to the person who wrote them, exactly like the drafts themselves.
-  const plan = getPlan(tripId, { includeDrafts: await isOwner(user) });
+  // to whoever may see the drafts themselves, which since B327 is the owner
+  // *or* somebody on the trip. Widened deliberately: `getPlan`'s contract used
+  // to say "the owner", on the reasoning that a reader must not learn where
+  // somebody is going next. Somebody on the trip is not that reader — they are
+  // on the bus, and where it goes next is not a secret from them.
+  const drafts = await draftsVisibleTo(trip);
+  const plan = getPlan(tripId, { includeDrafts: drafts.visible });
   const places = getPlaces(tripId);
   // Clipped here so the reader gets their own trip's worth of map rather than
   // the whole bundle — see the same two lines in the trip-scoped route.
   const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
   return (
-    <TripProvider trip={trip} isCurrent>
+    <TripProvider trip={trip} isCurrent canPublish={drafts.canPublish}>
       <MapPageContent
         places={places}
         plan={plan.stops}

@@ -3,14 +3,13 @@ import { notFound, redirect } from "next/navigation";
 import { getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { buildStoryProps } from "@/lib/tripView";
-import { lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { draftsVisibleTo, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { DayStructuredData } from "@/components/StructuredData";
 import { getUser, getUsernames } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
 import { siteSummary, travellersOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripStory from "@/app/TripStory";
-import { isOwner } from "@/lib/contacts/session";
 
 /** Per-day permalinks for every non-current trip. Each entry gets a real,
  * shareable, indexable URL that renders the same scrolling story, opened at
@@ -81,23 +80,24 @@ export default async function TripDayPage({
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(trip))) return null;
 
-  // The owner may open the permalink of a day they have not published yet;
-  // for everybody else a draft slug is simply not a page.
-  const owner = await isOwner(user);
-  const entry = getEntryBySlug(trip.ref, slug, { includeDrafts: owner });
+  // The owner, or somebody on the trip, may open the permalink of a day
+  // nobody has published yet; for everybody else a draft slug is simply not a
+  // page. B327 — before it, a buddy could not reach a day they had written.
+  const drafts = await draftsVisibleTo(trip);
+  const entry = getEntryBySlug(trip.ref, slug, { includeDrafts: drafts.visible });
   if (!entry) notFound();
 
   const { index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(trip.ref, {
     openAt: entry.date,
     showCosts: await mayViewCosts(trip),
-    includeDrafts: owner,
+    includeDrafts: drafts.visible,
   });
 
   const userConfig = getUser(user);
   if (!userConfig) notFound();
 
   return (
-    <TripProvider trip={trip} isCurrent={false}>
+    <TripProvider trip={trip} isCurrent={false} canPublish={drafts.canPublish}>
       <DayStructuredData
         entry={entry}
         site={site}

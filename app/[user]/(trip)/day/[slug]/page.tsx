@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { currentTripRef, getTrip } from "@/lib/trips";
-import { lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { draftsVisibleTo, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getUser, getUsernames } from "@/lib/users";
 import { buildStoryProps } from "@/lib/tripView";
 import { DayStructuredData } from "@/components/StructuredData";
@@ -10,7 +10,6 @@ import TripProvider from "@/components/TripProvider";
 import { siteSummary, travellersOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripStory from "@/app/TripStory";
-import { isOwner } from "@/lib/contacts/session";
 
 /** Per-day permalinks. Each entry gets a real, shareable, indexable URL that
  * renders the same scrolling story, opened at that day. */
@@ -76,23 +75,24 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(current))) return null;
 
-  // The owner may open the permalink of a day they have not published yet;
-  // for everybody else a draft slug is simply not a page.
-  const owner = await isOwner(user);
-  const entry = getEntryBySlug(tripId, slug, { includeDrafts: owner });
+  // The owner, or somebody on the trip, may open the permalink of a day
+  // nobody has published yet; for everybody else a draft slug is simply not a
+  // page. B327 — before it, a buddy could not reach a day they had written.
+  const drafts = await draftsVisibleTo(current);
+  const entry = getEntryBySlug(tripId, slug, { includeDrafts: drafts.visible });
   if (!entry) notFound();
 
   const { trip, index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(tripId, {
     openAt: entry.date,
     showCosts: await mayViewCosts(current),
-    includeDrafts: owner,
+    includeDrafts: drafts.visible,
   });
 
   const userConfig = getUser(user);
   if (!userConfig) notFound();
 
   return (
-    <TripProvider trip={trip} isCurrent>
+    <TripProvider trip={trip} isCurrent canPublish={drafts.canPublish}>
       <DayStructuredData
         entry={entry}
         site={site}

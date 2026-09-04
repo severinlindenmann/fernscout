@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { mayReadTrip } from "@/lib/tripGate";
+import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import MapPageContent from "@/app/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
@@ -8,7 +8,6 @@ import { getPlaces, getTripStats } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUsernames } from "@/lib/users";
-import { isOwner } from "@/lib/contacts/session";
 import TripProvider from "@/components/TripProvider";
 
 export function generateStaticParams() {
@@ -57,14 +56,16 @@ export default async function TripMapPage({ params }: PageProps<"/[user]/trips/[
 
   const stats = getTripStats(trip.ref);
   // See app/[user]/(trip)/map/page.tsx — drafted stops are the owner's alone.
-  const plan = getPlan(trip.ref, { includeDrafts: await isOwner(user) });
+  // B327 — see the sibling route for why this widened past the owner.
+  const drafts = await draftsVisibleTo(trip);
+  const plan = getPlan(trip.ref, { includeDrafts: drafts.visible });
   const places = getPlaces(trip.ref);
   // The frame is worked out here as well as in the component, so that only the
   // few dozen kilobytes this trip covers cross the wire rather than the eleven
   // megabytes of the baked bundle. `frameRoute` is pure, so the two agree.
   const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
   return (
-    <TripProvider trip={trip} isCurrent={false}>
+    <TripProvider trip={trip} isCurrent={false} canPublish={drafts.canPublish}>
       <MapPageContent
         places={places}
         plan={plan.stops}

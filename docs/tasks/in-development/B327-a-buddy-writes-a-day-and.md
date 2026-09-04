@@ -97,6 +97,41 @@ Not doing: any change to who may **publish**. That stays the owner's, and this
 ticket must not become a route to it. Nor any change to the API, which already
 does the right thing.
 
+**Four things settled while building.**
+
+*The caching worry was unfounded, and reading settled it rather than a change.*
+`app/[user]/layout.tsx` reads cookies, which makes everything under `/[user]`
+per-request; `trips/[trip]/layout.tsx` additionally declares `force-dynamic`
+and says why (B100's sibling). The `generateStaticParams` exports that remain
+are inert. No draft can reach a prerendered page.
+
+*The feed, the sitemap, the search index and the structured data need no
+change either.* `lib/feed.ts:72`, `app/sitemap.ts:67,97`, `lib/search.ts:36`
+and `BlogStructuredData`'s `getAllEntries(trip.ref)` all read with no options,
+so drafts are filtered for every viewer by the default. Verified rather than
+assumed.
+
+*`getPlan({ includeDrafts })` was deliberately widened, and its contract
+changed.* It folds future-dated draft coordinates into the route, and its doc
+said it "must only ever be called with `includeDrafts: true` for the trip's
+owner — a reader must not learn where somebody is going next". Somebody on the
+trip is not that reader: they are on the bus, and where it goes next is not a
+secret from them. Both map pages now pass `drafts.visible`, and the comments
+say so.
+
+*The copy had to fork, which was not in the plan.* "Draft — only you can see
+this … tell your agent to publish it when you are happy with it" is false to a
+buddy in both halves, and the second half is the dangerous one: told they may
+publish, they would send an agent after a call that refuses it, which is
+B293's shape. So `DraftNotice` and the map's draft caption now choose on
+`canPublish`, carried on `TripProvider` — the alternative was threading a
+boolean through four components with no other reason to know who is reading.
+
+Also captured, not absorbed: **B330**, `story.json` varies by cookie and sends
+no `Vary`, so a browser cache on a shared device can serve one reader's view to
+the next. It predates this ticket; what this ticket changes is how many people
+have a view worth not leaking.
+
 Consider whether the buddy's own access page should link the drafts waiting on
 their trip — it is where they will look, and B320 built the block it would sit
 in. Probably a follow-up rather than this ticket.

@@ -1,7 +1,6 @@
 import { storyWindow } from "@/lib/tripView";
 import { currentTripRef, getTrip, parseTripRef, tripRef } from "@/lib/trips";
-import { mayReadTrip, mayViewCosts } from "@/lib/tripGate";
-import { isOwner } from "@/lib/contacts/session";
+import { draftsVisibleTo, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { userExists } from "@/lib/users";
 
 /**
@@ -59,7 +58,11 @@ export async function GET(request: Request, { params }: RouteContext<"/[user]/st
   // days it has not been sent yet.
   const days = storyWindow(ref, start, Math.min(to, start + MAX_DAYS), {
     showCosts: await mayViewCosts(trip),
-    includeDrafts: await isOwner(user, request),
+    // B327: the owner, or somebody on the trip — the same audience the API's
+    // own days listing has had since B296. This is the route a reader's own
+    // browser calls for days it has not been sent yet, so a buddy paging back
+    // through the story would otherwise hit a hole where their draft is.
+    includeDrafts: (await draftsVisibleTo(trip, request)).visible,
   });
 
   return new Response(JSON.stringify({ from: start, days }), {
