@@ -608,7 +608,11 @@ export function GET() {
                       description:
                         "What the site calls them, in its own voice. Never guessed from " +
                         "ownerName — a first-word split mangles any name whose given name " +
-                        "is not first, so there is no safe guess. Ask.",
+                        "is not first, so there is no safe guess. Ask. That includes the " +
+                        "case where the owner is the person you are talking to and has " +
+                        "just given you their name: ask them \"what should the site call " +
+                        "you?\" rather than inferring it. There is no default, and that " +
+                        "is deliberate.",
                     },
                     visibility: {
                       type: "string",
@@ -639,7 +643,12 @@ export function GET() {
                 "their journal without going to their inbox, and it lets them see drafts " +
                 "and private trips. Single use, expires in 15 minutes, and never to be " +
                 "handed over as the journal's address (that is `url`). Do not follow it " +
-                "yourself — opening it spends it. Absent when this server has auth off.",
+                "yourself — opening it spends it. Hand it over straight away: asking for a " +
+                "sign-in code for that address invalidates an unused one early. The " +
+                "owner's welcome mail carries a **second, standing** link to the same " +
+                "place — a different token with no expiry, not this one. `signInNote` " +
+                "carries the same instruction as one sentence, for pasting into a reply. " +
+                "Both are absent when this server has auth off.",
             },
             "400": { description: "The username, title or owner name/nickname is not usable" },
             "401": { description: "Missing or invalid signup token" },

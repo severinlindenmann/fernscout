@@ -234,10 +234,12 @@ export async function POST(request: Request) {
         ? {
             signIn,
             signInNote:
-              "Give this to the person, once, in your reply. It signs them in so they can " +
-              "see their drafts and private trips. It works once and expires in 15 minutes; " +
-              "do not store it or repeat it later. The same link is in their welcome mail " +
-              "if they miss it.",
+              "Give this to the person, once, in your reply, and give it to them now. It " +
+              "signs them in so they can see their drafts and private trips. It works once " +
+              "and expires in 15 minutes, and asking this server for a sign-in code for " +
+              "their address invalidates it early; do not store it or repeat it later. " +
+              "Their welcome mail carries a second, standing link to the same place — a " +
+              "different token that does not expire, not this one.",
           }
         : {}),
       documentation: `${serverSite().url}/${created.username}/documentation.txt`,

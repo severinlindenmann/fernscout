@@ -78,10 +78,12 @@ not help you in the moment.
 
 ### `SESSION_SECRET`, if anything is locked
 
-Needed as soon as a trip carries a `passwordHash:`, or `features.auth` is on.
-Without it nobody can be let in: the trip renders its password gate, the unlock
-endpoint answers 503, and the log says so once. That is the designed behaviour
-rather than a crash, but you still cannot get in.
+Needed as soon as `features.auth` or `features.signup` is on: it is what those
+two capabilities require, so without it `lib/capabilities.ts` reports them off
+and `/api/auth/request` answers 404. Nobody can prove an address, so nobody can
+be let into a closed trip. That is the designed behaviour — an optional
+capability is absent rather than half-working — rather than a crash, but you
+still cannot get in.
 
 ```bash
 SESSION_SECRET=$(openssl rand -hex 32) npm start
@@ -184,23 +186,32 @@ from the same constants the endpoints enforce, so it cannot drift from them.
 
 ---
 
-## A locked trip, without touching your own content
+## A closed trip, without touching your own content
 
-```bash
-node scripts/trip-password.mjs "a-test-password"
-```
-
-Paste what it prints into a trip's `trip.md` in your **copy**:
+There is nothing to generate: a trip is closed by one word in its frontmatter.
+Edit a trip's `trip.md` in your **copy**:
 
 ```yaml
-visibility: guest
-passwordHash: "scrypt$32768$8$1$…"
+visibility: guest      # or: private
 ```
 
-Then reload. Editing this on a running server is fine and is worth doing once —
-content here is markdown a person edits, and the caches carry a fingerprint of
-the files they were built from, so a visibility change takes effect on the next
-request with no restart and no rebuild.
+Then reload, and you meet the gate instead of the trip. B39 removed the trip
+password — the scrypt hash, the signed cookie and the unlock form — so there is
+no `passwordHash:` and no `npm run trip:password`. What replaced it is a
+reader proving an address by e-mail and the owner granting them access; see
+`lib/access.ts` for why one shared secret was the wrong shape.
+
+The two values differ, and the difference is the thing worth seeing locally:
+`guest` opens to anyone the owner has approved into the *journal*, `private`
+only to the people in the trip's `people:` block. To get past either one you
+need `features.auth` on and `SESSION_SECRET` set, above — signing in alone
+opens nothing, so you also need a grant (`private` takes none: put your own
+address in `people:`).
+
+Editing this on a running server is fine and is worth doing once — content here
+is markdown a person edits, and the caches carry a fingerprint of the files
+they were built from, so a visibility change takes effect on the next request
+with no restart and no rebuild.
 
 ## Checking a change before you push
 

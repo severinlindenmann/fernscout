@@ -34,6 +34,12 @@ repointing links wholesale; the question this task asks is whether money is
 current documentation that belongs back out of the archive, and the answer is
 yes.
 
+> **Stale as of 2026-09-04, and the answer stands.** B09 landed and did exactly
+> this: `docs/currencies.md` is out of the archive, linked from `README.md:150`
+> and from the new `docs/README.md:13`, and `test/docs-links.test.ts` now fails
+> the build if either link breaks again. So the first half of work item 1 is
+> done and was not done here. What was left is everything below.
+
 **Two rate tables are easy to mistake for each other.** They have opposite
 conventions, both are called "rates", and only the docblock in
 `lib/currency.ts:19–28` says which is which:
@@ -76,6 +82,46 @@ all — so the one worked example of it is a comment in
    ECB cross-rate for a currency pair, so the author has something to paste.
    Do **not** make it write into `trip.md`: a frozen historical rate is a
    judgement about what a trip actually cost, not a lookup.
+
+## What was done
+
+**1. The two tables.** `docs/currencies.md` gains "Two tables called 'rates',
+pointing opposite ways" — the comparison table from the Why, in those words,
+plus the rule of thumb that makes it checkable without thinking it through
+again: *a trip rate for a currency worth less than your base currency is a
+small number.* `THB: 0.0245` is right; `THB: 40.8` is the ECB's direction
+written into the wrong file. It also notes that `lib/currency.ts` is the only
+place in the code stating both conventions, which is true and is why this was
+findable at all.
+
+**2. Where the number comes from.** A new section of `docs/currencies.md`, and
+a longer version of the `rates` bullet in `.claude/skills/add-a-trip/SKILL.md`.
+Both say the same three things, in order of how defensible the number is a
+year later: a card statement or withdrawal receipt (the amount debited divided
+by the amount received — the only figure that includes the spread actually
+paid), an ECB rate for a date in the middle of the trip, cross-divided when the
+base currency is not the euro (`base per 1 XYZ = (base per EUR) ÷ (XYZ per
+EUR)`), or any rate whose provenance can be written down. Both say never
+today's rate for a trip in the past, and both say an omitted currency is a
+supported state rather than a failure — the page reports it, and an empty field
+beats a number nobody can defend, which is the house rule everywhere else here.
+
+**3. The check already existed.** `test/example-content.test.ts`, "every trip's
+spend converts, in every currency it was spent in", asserts
+`getCostSummary(trip.ref).unconverted` is empty for every demo trip.
+`getAllCosts` (`lib/costs.ts:103`) covers `costs.md` preparation lines *and*
+every entry's costs, so the coverage the Work asked for is there and this task
+was written without noticing it. What it did not do is name the currency: the
+message said only "has amounts it could not convert". It now asserts on
+`unconverted.map(u => u.currency)` with the message "`<ref>` spends in a
+currency missing from its rates: block in trip.md", so a failure states the
+edit rather than the symptom. A comment records why this may never be a build
+failure.
+
+**4. Not done, captured as B216.** The Work said "consider", the acceptance did
+not ask for it, and it is a feature rather than a correction. The constraint
+the Work states — print a figure, never write into `trip.md` — is carried over
+into the capture as the constraint rather than as a nicety.
 
 ## Acceptance
 

@@ -136,6 +136,23 @@ Five fields decide behaviour rather than decoration:
   `baseCurrency` **on this trip**. Frozen per trip on purpose: a later trip to
   the same country carries its own table and never restates what this one cost.
 
+  **Nothing generates this number, and it is easy to write upside down.**
+  `JPY: 0.0057` reads "1 JPY = 0.0057 CHF" — units of the *base* currency per
+  one unit of the keyed currency, so a currency worth less than the base
+  currency gets a small number. That is the opposite of the convention
+  `content/rates/ecb.json` and `npm run rates:update` use, which is units per
+  one euro; writing an ECB figure in here converts nothing correctly and
+  reports no error. Ask the author for a rate from the middle of the trip,
+  best taken from a card statement or a withdrawal receipt — the amount
+  debited divided by the amount received, which is what the money actually
+  cost them. Failing that, an ECB rate for a date in the middle of the trip.
+  Never today's rate for a trip in the past.
+
+  Leaving a currency out is a supported state, not a failure: costs in it are
+  reported on the page as "not counted in these totals" rather than converted
+  at a guess. An empty `rates:` beats a number nobody can defend — the same
+  rule as everywhere else here. `docs/currencies.md` has the full picture.
+
 ### 3. Optional — a budget (`costs.md`)
 
 ```markdown

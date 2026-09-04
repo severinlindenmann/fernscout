@@ -152,7 +152,7 @@ console.log(`    ${SITE_URL}${dayPath(entry.slug)}\n`);
 
 // ---- who gets it -------------------------------------------------------
 
-const restricted = !isOpenToLink(trip);
+const closed = !isOpenToLink(trip);
 // The entry, not just the trip: a `test: true` day inside a real trip is
 // announced to nobody, the same as a whole test trip (B70).
 const recipients = await subscribersFor(trip, entry);
@@ -164,10 +164,20 @@ if (isTestContent(trip, entry)) {
   );
 }
 
-if (restricted) {
+// There has been no trip password since B39 — no hash, no cookie, no unlock
+// form. What narrows the audience now is the trip's `visibility`, and the two
+// closed values narrow it by different amounts, so they get different
+// sentences. Telling an operator their trip is "password-protected" sends them
+// looking for a password that does not exist.
+if (trip.visibility === "private") {
   console.log(
-    `  "${trip.title}" is password-protected — only subscribers tied to an approved,\n` +
-      "  signed-in contact with access to this trip are notified.\n",
+    `  "${trip.title}" is private — it belongs to the people who were on it, and\n` +
+      "  nothing here records who they were, so nobody is notified at all (B68).\n",
+  );
+} else if (closed) {
+  console.log(
+    `  "${trip.title}" is a guest trip, so only subscriptions tied to a contact of\n` +
+      "  this journal who is active and holds a live read grant are notified.\n",
   );
 }
 

@@ -37,7 +37,37 @@ name at the same time — this was the only hit at the time of writing:
 grep -rn 'app/(current)' app lib components test docs
 ```
 
+## What was done
+
+The comment now reads as a docblock for the function it actually sits on and
+keeps the pointer:
+
+```
+/**
+ * `noindex` for a trip that is not indexable, and nothing else.
+ *
+ * The gate itself is below. Its sibling is `app/[user]/(trip)/layout.tsx` —
+ * the same gate, over the pages that render the *current* trip at the bare
+ * `/<user>` URLs. The two have to be kept in step, so read one before
+ * changing the other.
+ */
+```
+
+It was doing double duty before: it is attached to `generateMetadata`, which
+is not the gate, while describing the gate below it.
+
+**The acceptance was too wide, and is narrowed below.** The grep now has a
+second hit, `docs/plans/W19-presentation.md:60`, and that one is correct as it
+stands. `docs/plans/INDEX.md` says plans are "kept as the record of intent and
+are not updated to match what shipped, so a command or a path in one of them
+may not be the form that exists today", and `test/docs-links.test.ts` excludes
+`docs/plans/` from its link guard for exactly that reason. Editing W19 would
+be rewriting a record of what somebody meant to build in 2026 to match what
+exists now. Left alone deliberately.
+
 ## Acceptance
 
-- `grep -rn 'app/(current)'` over the tree returns nothing.
+- `grep -rn 'app/(current)' app lib components test` returns nothing.
+  (`docs/plans/` is excluded: it is a record of intent, never updated — see
+  `docs/plans/INDEX.md` and the `RECORDS` list in `test/docs-links.test.ts`.)
 - The comment names `app/[user]/(trip)/layout.tsx`.

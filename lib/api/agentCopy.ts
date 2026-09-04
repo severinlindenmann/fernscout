@@ -126,7 +126,10 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
       ask: "Their **name**, and **what the site should call them**",
       because:
         "Two answers, not one. Never split the first to get the second: it mangles any " +
-        "name whose given name is not first.",
+        "name whose given name is not first. This holds when the person you are talking " +
+        "to *is* the owner and has just told you their name — ask them the second " +
+        "question too, in the form \"what should the site call you?\". Asking somebody " +
+        "about themselves costs a sentence; it is deriving that breaks.",
     },
     {
       ask: "**Which language** the journal is in",
