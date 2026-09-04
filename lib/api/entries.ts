@@ -76,7 +76,13 @@ export type DraftInput = {
 
 export type WriteResult =
   | { ok: true; slug: string; file: string; status: "draft" }
-  | { ok: false; error: string };
+  /**
+   * `bug` marks the refusals that are this software's fault rather than the
+   * caller's, so a door that speaks in status codes can say 500 instead of
+   * blaming the request (B208). Absent on every refusal a caller can fix by
+   * sending something else.
+   */
+  | { ok: false; error: string; bug?: true };
 
 /** A delete has no file left to name. */
 export type DeleteResult =
@@ -161,6 +167,46 @@ function entryFileWithSlug(dir: string, slug: string): string | null {
     return null;
   }
   return files.find((f) => entrySlugFromFile(f) === slug) ?? null;
+}
+
+/**
+ * The day just written, read back — or a sentence saying what is wrong with it.
+ *
+ * **One file, not the trip.** `createTrip` reads its trip back through
+ * `getTrip` (B204), which is a memoised read of one folder; the equivalent
+ * here would be `getEntryBySlug`, and that goes through `getAllEntries`, which
+ * re-reads and re-parses *every* entry in the trip. On the commonest write in
+ * the system, on a trip with two hundred days, that is two hundred file reads
+ * to check one file. So this reads the one file and parses it with the same
+ * `matter` the reader uses, which is the only step in `readAllEntries` that
+ * can fail on a file this function wrote.
+ *
+ * Three questions, and the last two matter as much as the first. A frontmatter
+ * block that ends early does not always fail to parse — it can parse into
+ * something *else*, with the rest of the block landing in the prose. So the
+ * title and date are asserted to read back as they were written, and the day
+ * is asserted to still be a draft: an entry that reported `status: draft` and
+ * reads back as published is the one failure here that is worse than an
+ * invisible file.
+ */
+function draftDoesNotReadBack(file: string, input: DraftInput): string | null {
+  let data: Record<string, unknown>;
+  try {
+    data = matter(fs.readFileSync(file, "utf8")).data;
+  } catch (err) {
+    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    return `its frontmatter does not parse (${said})`;
+  }
+  if (String(data.title ?? "") !== input.title) {
+    return "its title does not read back as it was written";
+  }
+  if (String(data.date ?? "") !== input.date) {
+    return "its date does not read back as it was written";
+  }
+  if (!isDraft(data)) {
+    return 'it does not read back as "status: draft"';
+  }
+  return null;
 }
 
 /**
@@ -252,6 +298,43 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
   // their site (W31) — and to the API that is about to be asked whether it
   // exists. Same reason as the delete below.
   forgetEntries(ref);
+
+  /**
+   * Read it back rather than trusting the write — B208, the day half of B204.
+   *
+   * `quoteScalar` means there is no known input that produces a file this
+   * cannot parse, so this is the guard that does not depend on anybody having
+   * thought of the input. Without it a day that no reading path can load is
+   * answered `201 {"status":"draft"}`, and the agent tells somebody their day
+   * is written and waiting for them.
+   *
+   * The file goes with the refusal, for the same reason the trip folder does:
+   * a slug is a day's address within its trip, and one held by a file nothing
+   * can read would refuse the retry (`an entry already exists`) while showing
+   * nothing on the site. Removing it means the next attempt is simply the
+   * first one again.
+   */
+  const unreadable = draftDoesNotReadBack(file, input);
+  if (unreadable) {
+    let removed = true;
+    try {
+      fs.rmSync(file);
+    } catch {
+      removed = false;
+    }
+    forgetEntries(ref);
+    return {
+      ok: false,
+      bug: true,
+      error:
+        `The day was written but ${unreadable}, so nothing was kept` +
+        (removed
+          ? `; the slug "${slug}" is still free.`
+          : ` — and the file could not be removed, so "${slug}" is taken until somebody deletes ${input.date}-${slug}.md on the server.`) +
+        " This is a bug; please report it.",
+    };
+  }
+
   return { ok: true, slug, file, status: "draft" };
 }
 

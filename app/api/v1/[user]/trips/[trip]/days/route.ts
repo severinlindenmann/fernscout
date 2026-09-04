@@ -134,7 +134,13 @@ export async function POST(
   if (!result.ok) {
     // A retry that finds its own earlier write is a conflict, not a failure:
     // agents retry, and the second attempt must not overwrite the first.
-    const status = result.error.startsWith("an entry already exists") ? 409 : 400;
+    //
+    // `bug` is the read-back failing (B208), and it is 500 rather than 400
+    // because 400 would tell the caller their request was wrong when it was
+    // not — and would send them off editing a body that is fine. Nothing was
+    // kept, and the same call would fail the same way, so this is the 500 the
+    // guide describes: report it and stop.
+    const status = result.bug ? 500 : result.error.startsWith("an entry already exists") ? 409 : 400;
     return Response.json({ error: result.error }, { status });
   }
 
