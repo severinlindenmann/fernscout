@@ -70,14 +70,41 @@ export async function GET(
   const body = sized ?? fs.readFileSync(file);
   const type = sized ? "image/webp" : contentTypeFor(file);
 
-  return new Response(new Uint8Array(body), {
-    headers: {
-      "Content-Type": type,
-      "Content-Length": String(body.byteLength),
-      // Content is immutable in practice: a changed photo gets a new filename
-      // through the ingest pipeline rather than being overwritten in place.
-      "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": type,
+    "Content-Length": String(body.byteLength),
+    // Content is immutable in practice: a changed photo gets a new filename
+    // through the ingest pipeline rather than being overwritten in place.
+    "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+    "X-Content-Type-Options": "nosniff",
+    /**
+     * Nothing served out of a content folder is a document. B02.
+     *
+     * `default-src 'none'` leaves an SVG nothing to fetch and `sandbox` puts
+     * it in an opaque origin, so a file navigated to directly is no longer
+     * same-site with the guest cookie. Neither affects an `<img>`: a CSP on an
+     * image response governs the image only when a browser treats it as a
+     * document, which is exactly the case being closed.
+     *
+     * `next.config.ts` declares the same policy for this path. Both, on
+     * purpose — the config rule is a path pattern that has to stay in step
+     * with the route tree, and this one cannot drift from the response it is
+     * attached to.
+     */
+    "Content-Security-Policy": "default-src 'none'; sandbox",
+  };
+
+  /**
+   * And SVG specifically is never opened, only downloaded.
+   *
+   * `dangerouslyAllowSVG` is on for `next/image` because the example content's
+   * placeholders are SVG, and this is the matching admission on the route that
+   * actually serves them. `attachment` is ignored for a subresource load, so
+   * the placeholders keep rendering; what it changes is a browser that
+   * *navigates* to the file, which is the only way an SVG's script ever runs.
+   * Belt to the sandbox's braces, and the cheaper of the two to reason about.
+   */
+  if (type === "image/svg+xml") headers["Content-Disposition"] = "attachment";
+
+  return new Response(new Uint8Array(body), { headers });
 }
