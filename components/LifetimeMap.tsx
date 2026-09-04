@@ -98,6 +98,7 @@ const PIN_RING_WIDTH = 0.55;
 export default function LifetimeMap({
   routes,
   visits = [],
+  labels = [],
   userPath = "",
   basemap = null,
 }: {
@@ -113,6 +114,9 @@ export default function LifetimeMap({
    * B361.
    */
   visits?: CountryVisit[];
+  /** Which visited countries have room to be named — chosen on the server by
+   * the same `spread` that keeps town labels apart. B364. */
+  labels?: { code: string; name: string; x: number; y: number }[];
   /** `/<user>`, for linking a country to the trip that reached it. */
   userPath?: string;
   /** Clipped to every trip's combined frame on the server — lib/basemap.ts. */
@@ -169,14 +173,25 @@ export default function LifetimeMap({
         <g transform={`scale(${view.lngScale} 1)`}>
           {filling ? (
             <>
-              {/* The ground. The visited countries are drawn over it, so the
-                  map reads as a map whether or not the outline has arrived —
-                  and the outline is the same one every other map here uses. */}
-              <g fill="#dff3e0" stroke="#bfe3c4" strokeWidth={1}>
-                {worldLand.map((d, i) => (
-                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                ))}
-              </g>
+              {/* The ground, and then the country lines over it.
+                  `basemap.borders` is the same clipped Natural Earth the
+                  branch below draws — B364, because this branch was putting
+                  the fills on a bare coastline and throwing away the borders,
+                  lakes and rivers already computed for it on the server. The
+                  outline is the fallback for a frame with no basemap built. */}
+              {basemap ? (
+                <g fill="#dff3e0" stroke="#94c9a0" strokeWidth={1}>
+                  {basemap.borders.map((d, i) => (
+                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                  ))}
+                </g>
+              ) : (
+                <g fill="#dff3e0" stroke="#bfe3c4" strokeWidth={1}>
+                  {worldLand.map((d, i) => (
+                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                  ))}
+                </g>
+              )}
               <g stroke="#fffaf0" strokeWidth={0.8}>
                 {visits.map((v) => {
                   const shape = (
@@ -207,6 +222,23 @@ export default function LifetimeMap({
                   );
                 })}
               </g>
+              {/* Water last, so a river does not disappear under a country
+                  somebody visited — a lake that vanishes exactly where the map
+                  is most coloured in reads as a rendering fault. */}
+              {basemap && (
+                <>
+                  <g fill="none" stroke="#6fcfe0" strokeWidth={0.5}>
+                    {basemap.rivers.map((d, i) => (
+                      <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                    ))}
+                  </g>
+                  <g fill="#8fe0ef" stroke="#6fcfe0" strokeWidth={0.7}>
+                    {basemap.lakes.map((d, i) => (
+                      <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                    ))}
+                  </g>
+                </>
+              )}
             </>
           ) : basemap ? (
             <>
@@ -229,6 +261,31 @@ export default function LifetimeMap({
             </g>
           )}
         </g>
+        {/* Outside the `scale(lngScale 1)` group above, with the scale applied
+            to the position instead: inside it the glyphs themselves would be
+            squashed horizontally along with the geometry. The halo is a second
+            copy of the same text painted underneath as a fat stroke — the
+            standard way to keep a label legible over whatever it lands on,
+            here a fill that ranges from pale pink to deep coral. */}
+        {labels.map((l) => (
+          <text
+            key={l.code}
+            x={l.x * view.lngScale}
+            y={l.y}
+            textAnchor="middle"
+            fontSize={size(3.4)}
+            className="pointer-events-none select-none font-semibold"
+            aria-hidden
+          >
+            <tspan stroke="#fffaf0" strokeWidth={size(1)} strokeLinejoin="round" fill="none">
+              {l.name}
+            </tspan>
+            <tspan x={l.x * view.lngScale} y={l.y} fill="#1e293b">
+              {l.name}
+            </tspan>
+          </text>
+        ))}
+
         {/* The pins are the fallback, not a layer over the fill: drawing both
             would put fifteen Thai stems back on top of a filled Thailand,
             which is the smear this replaced. */}
