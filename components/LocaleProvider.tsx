@@ -2,7 +2,15 @@
 
 import { createContext, useContext, useMemo } from "react";
 import { MotionConfig } from "motion/react";
-import { translate, plural, monthNames, weekdayNames, type TranslationKey } from "@/lib/i18n";
+import {
+  translate,
+  plural,
+  monthNames,
+  weekdayNames,
+  localizedTripTitle,
+  localizedEntryTitle,
+  type TranslationKey,
+} from "@/lib/i18n";
 import type { Entry, Locale, Trip } from "@/lib/types";
 
 /** What `localizedTrip` needs — a full `Trip` satisfies this, but so does a
@@ -117,16 +125,12 @@ export default function LocaleProvider({
       if (locale === writtenLocale) return { title: entry.title, content: entry.content };
       const tr = entry.translations?.[locale];
       return {
-        title: tr?.title ?? entry.title,
+        title: localizedEntryTitle(entry, locale, writtenLocale),
         content: tr?.content ?? entry.content,
       };
     };
 
-    const localizedTrip = (trip: LocalizableTrip) => {
-      if (locale === "en") return { title: trip.title, tagline: trip.tagline };
-      const tr = trip.translations?.[locale];
-      return { title: tr?.title ?? trip.title, tagline: tr?.tagline ?? trip.tagline };
-    };
+    const localizedTrip = (trip: LocalizableTrip) => localizedTripTitle(trip, locale);
 
     return {
       locale,

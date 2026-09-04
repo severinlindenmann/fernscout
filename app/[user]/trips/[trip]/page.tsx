@@ -14,6 +14,8 @@ import { siteSummary, travellersOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripCountdown from "@/components/TripCountdown";
 import TripStory from "@/app/TripStory";
+import { requestLocale } from "@/lib/locales";
+import { localizedTripTitle } from "@/lib/i18n";
 
 export function generateStaticParams() {
   return getUsernames().flatMap((user) => {
@@ -34,8 +36,11 @@ export async function generateMetadata({
   if (!trip) return {};
   if (!(await mayReadTrip(trip))) return lockedMetadata();
   const description = trip.tagline ?? trip.intro.replace(/\s+/g, " ").slice(0, 160);
+  // The tab follows the *reader* (see app/[user]/trips/page.tsx for why); the
+  // share card below keeps `trip.title`, the language the trip is written in.
+  const { title } = localizedTripTitle(trip, await requestLocale());
   return {
-    title: trip.title,
+    title,
     description,
     alternates: { canonical: `/${user}/trips/${trip.id}` },
     openGraph: {

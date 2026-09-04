@@ -1,4 +1,4 @@
-import type { Locale } from "./types";
+import type { Entry, Locale, Trip } from "./types";
 
 /** The locales we maintain chrome translations for. A journal may offer
  * others; their chrome falls back to English (ROADMAP §1.2). */
@@ -16,6 +16,45 @@ export const LOCALE_SHORT: Record<string, string> = {
   de: "DE",
   hu: "HU",
 };
+
+/** What `localizedTripTitle` needs — a full `Trip` satisfies this, but so
+ * does a `TripSummary` (the header's trip switcher only has that for the
+ * other trips in the list, and `TripSummary` deliberately omits `tagline`). */
+type LocalizableTrip = Pick<Trip, "title" | "translations"> & Partial<Pick<Trip, "tagline">>;
+
+/**
+ * A trip's title/tagline in the given locale, falling back to the original.
+ *
+ * Pure, so both the body (`LocaleProvider`'s `localizedTrip`) and a
+ * `generateMetadata` — which runs on the server with no context to read from
+ * — can resolve the identical string. B357.
+ */
+export function localizedTripTitle(
+  trip: LocalizableTrip,
+  locale: string,
+): { title: string; tagline?: string } {
+  if (locale === "en") return { title: trip.title, tagline: trip.tagline };
+  const tr = trip.translations?.[locale];
+  return { title: tr?.title ?? trip.title, tagline: tr?.tagline ?? trip.tagline };
+}
+
+/** What `localizedEntryTitle` needs. */
+type LocalizableEntry = Pick<Entry, "title" | "translations">;
+
+/**
+ * A day's title in the given locale, falling back to the language it was
+ * written in (the journal's `defaultLocale`) — see `LocaleProvider.localized`
+ * for the same rule and why the shortcut is `writtenLocale` and not `"en"`.
+ * Pure for the same reason as `localizedTripTitle`.
+ */
+export function localizedEntryTitle(
+  entry: LocalizableEntry,
+  locale: string,
+  writtenLocale: string,
+): string {
+  if (locale === writtenLocale) return entry.title;
+  return entry.translations?.[locale]?.title ?? entry.title;
+}
 
 /**
  * UI strings.
