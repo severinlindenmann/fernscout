@@ -86,6 +86,7 @@ Do not edit them by hand; run the script.
 | [B269](backlog/B269-the-photobook-has-its-own-bounding.md) | The photobook has its own bounding-box code with the same NaN hole B265 closed for the web maps | ISSUE | medium | low |
 | [B273](backlog/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium |
 | [B275](backlog/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
+| [B287](backlog/B287-the-contacts-page-carries-addresses-and.md) | The contacts page carries addresses and now invite links, and nothing in the repo pins its cache headers | SECURITY | medium | low |
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B42](backlog/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B43](backlog/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
@@ -129,7 +130,6 @@ Do not edit them by hand; run the script.
 | [B281](open/B281-the-invite-panel-asks-who-a.md) | The invite panel asks who a link is for and then shows neither that nor the language, and offers a third link kind nobody needs | FEATURE | medium | medium |
 | [B282](open/B282-the-access-panel-creates-a-guest.md) | The access panel creates a guest link itself, so link management lives on two pages and the page is long enough to scroll past what matters | ISSUE | medium | low |
 | [B283](open/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high |
-| [B286](open/B286-the-trip-nav-wraps-to-one.md) | The trip nav wraps to one row on one trip and two rows on another at the same width | ISSUE | low | medium |
 
 ## in-development
 
@@ -139,6 +139,7 @@ Do not edit them by hand; run the script.
 | [B278](in-development/B278-the-page-for-a-reader-who.md) | The page for a reader who may see nothing names nobody to ask and offers no way in | ISSUE | medium | medium | `986bc24c` |
 | [B280](in-development/B280-an-invite-link-cannot-be-handed.md) | An invite link cannot be handed out a second time, because the token is only stored hashed | SECURITY | medium | medium | `a3370c43` |
 | [B91](in-development/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | `a3370c43` |
+| [B286](in-development/B286-the-trip-nav-wraps-to-one.md) | The trip nav wraps to one row on one trip and two rows on another at the same width | ISSUE | low | medium | `4d93d34d` |
 
 ## testing
 
