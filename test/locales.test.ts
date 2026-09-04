@@ -132,9 +132,61 @@ describe("translate", () => {
     expect(translate({}, "nav.gallery")).toBe("nav.gallery");
   });
 
+  /**
+   * B279: a key rendered to a reader is certainly wrong for everybody who
+   * sees it, so `translate()` falls through — the requested locale, then
+   * English, then the key — and the last two steps are loud in the log
+   * rather than only visible on the page.
+   */
+  describe("the fallback chain, and what it logs (B279)", () => {
+    let spy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      spy.mockRestore();
+    });
+
+    test("a key present in the requested locale needs nothing else, and logs nothing", () => {
+      expect(translate({ "nav.gallery": "Bilder" }, "nav.gallery", undefined, { "nav.gallery": "Pictures" })).toBe(
+        "Bilder",
+      );
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    test("a key missing from the requested locale renders the English string, and logs", () => {
+      expect(translate({}, "nav.gallery", undefined, { "nav.gallery": "Pictures" })).toBe(
+        "Pictures",
+      );
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy.mock.calls[0]?.[0]).toContain("nav.gallery");
+    });
+
+    test("a key missing everywhere renders the key, and logs", () => {
+      expect(translate({}, "nav.gallery", undefined, {})).toBe("nav.gallery");
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy.mock.calls[0]?.[0]).toContain("nav.gallery");
+    });
+  });
+
   test("translateIn resolves the dictionary from the locale", () => {
     expect(translateIn("de", "nav.gallery")).toBe(dictionaryFor("de")["nav.gallery"]);
     expect(translateIn("hr", "nav.gallery")).toBe(dictionaryFor("en")["nav.gallery"]);
+  });
+
+  /** The same fallback, exercised through the server-facing entry point:
+   * a locale that ships no chrome renders English, loudly, rather than
+   * silently — and never a bare key, since English always has this one. */
+  test("translateIn logs when it falls back to English", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(translateIn("hr", "nav.gallery")).toBe(dictionaryFor("en")["nav.gallery"]);
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 
@@ -253,5 +305,29 @@ describe("a locale file that changes under a running process", () => {
     // …and it starts reading again the moment the file moves.
     writeOverride("de", { "nav.map": "Karte", "nav.gallery": "Bilder" });
     expect(dictionaryFor("de")["nav.gallery"]).toBe("Bilder");
+  });
+
+  /**
+   * B279's investigation half: a file that fails to read or parse used to be
+   * indistinguishable from one that simply does not exist. It still degrades
+   * to the shipped string either way — there is nothing else to fall back
+   * to — but it no longer does so in silence.
+   */
+  test("an override that fails to parse warns, and the shipped string underneath still comes through", () => {
+    fs.mkdirSync(overrideDir(), { recursive: true });
+    fs.writeFileSync(path.join(overrideDir(), "de.json"), "{ not json");
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      // The broken override contributes nothing at all — not a throw, not a
+      // partially-parsed object — but the *shipped* German string, read from
+      // a different, untouched file, is unaffected by it.
+      expect(dictionaryFor("de")["nav.gallery"]).toBeTruthy();
+      expect(dictionaryFor("de")["nav.gallery"]).not.toBe("nav.gallery");
+      expect(warn).toHaveBeenCalled();
+      expect(String(warn.mock.calls[0]?.[0])).toContain("de.json");
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
