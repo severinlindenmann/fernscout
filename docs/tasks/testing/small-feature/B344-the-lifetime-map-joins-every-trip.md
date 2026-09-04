@@ -7,8 +7,7 @@ complexity: low
 area: maps, trips
 found: "2026-09-04T19:45:00Z"
 started: "2026-09-04T19:42:35Z"
-session: e8e2ddef-3ce3-473a-9308-388259ef4452
-claimed: "2026-09-04T19:42:35Z"
+merged: "2026-09-04T19:48:08Z"
 ---
 
 # B344 — The lifetime map joins every trip's stops with a line, reading as a route when it is an overview of everywhere somebody has been
