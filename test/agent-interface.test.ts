@@ -511,6 +511,76 @@ describe("what the guide has to tell an agent before it starts", () => {
   });
 });
 
+/**
+ * B259: an agent whose only tools were web search and web fetch read the
+ * whole of the signup flow B256 put here, collected every answer, and then
+ * could not make a single call — nothing on the way in said that writing
+ * needs `POST`/`PATCH` with a bearer token, so it improvised instead of
+ * stopping. These assert the fix stays true: the capability is stated before
+ * the questions, the improvisation is forbidden by name, and the minimum
+ * write path — trip, day, publish — is inlined rather than left one refused
+ * hop away behind `/agent.md`.
+ */
+describe("the entry document tells an agent whether it can write here", () => {
+  test("states the POST/PATCH-with-bearer requirement above the questions", () => {
+    const summary = instanceDocumentation();
+    const capabilityIdx = summary.indexOf("## Can you write here?");
+    const questionsIdx = summary.indexOf("## Before you call anything, ask");
+    expect(capabilityIdx).toBeGreaterThan(-1);
+    expect(questionsIdx).toBeGreaterThan(capabilityIdx);
+    const section = summary.slice(capabilityIdx, questionsIdx);
+    expect(section).toContain("POST");
+    expect(section).toContain("PATCH");
+    expect(section).toContain("Authorization: Bearer");
+  });
+
+  test("names the two real doors, and does not overclaim the MCP one", () => {
+    const summary = instanceDocumentation();
+    expect(summary).toMatch(/arbitrary\s+HTTP\s+request/i);
+    expect(summary).toContain("/api/mcp");
+    expect(summary).toMatch(/connector/i);
+    // B260 is the gap, not the fix — a connector still needs a hand-carried token.
+    expect(summary).toContain("B260");
+  });
+
+  test("forbids the two observed workarounds by name", () => {
+    const summary = flat(instanceDocumentation());
+    expect(summary).toMatch(/no upload interface/i);
+    expect(summary).toMatch(/no web form/i);
+    expect(summary).toMatch(/no CMS/i);
+    expect(summary).toMatch(/manually upload/i);
+    expect(summary).toMatch(/follow this guide themselves/i);
+  });
+
+  test("tells an agent that cannot fetch the guide to ask for it to be pasted", () => {
+    expect(instanceDocumentation()).toMatch(/ask the person to paste it/i);
+  });
+
+  test("inlines a minimal trip, a minimal day, and the publish call", () => {
+    const summary = instanceDocumentation();
+
+    expect(summary).toMatch(/POST https?:\/\/[^\s]+\/trips\b/);
+    expect(summary).toContain('"id": "japan-2027"');
+    expect(summary).toContain('"start"');
+    expect(summary).toContain('"end"');
+
+    expect(summary).toMatch(/\/trips\/japan-2027\/days\b/);
+    expect(summary).toContain('"title": "Lanterns of Hoi An"');
+    expect(summary).toContain('"date"');
+    expect(summary).toContain('"content"');
+
+    expect(summary).toMatch(/\/trips\/japan-2027\/days\/lanterns-of-hoi-an\/publish\b/);
+  });
+
+  test("every inlined call carries the bearer header a trip-owning token needs", () => {
+    const summary = instanceDocumentation();
+    const writeIdx = summary.indexOf("## Then");
+    const section = summary.slice(writeIdx, summary.indexOf("## Journals"));
+    // fs_signup_ for the journal-creation call, fs_agent_ for the three below it.
+    expect(section.match(/Authorization: Bearer fs_agent_…/g)?.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe("the discovery document does not point at 404s", () => {
   /**
    * `/documentation.txt` advertises other URLs. A link in a discovery document
