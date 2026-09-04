@@ -825,7 +825,7 @@ POST ${site.url}/api/v1/${example}/invites
 Authorization: Bearer fs_agent_…
 Content-Type: application/json
 
-{"kind": "guest"}
+{"kind": "guest", "email": "sister@example.test"}
 \`\`\`
 
 \`\`\`json
@@ -833,7 +833,7 @@ Content-Type: application/json
   "id": "…", "kind": "guest", "scope": "${example}", "trip": null,
   "expiresAt": "…",
   "url": "${site.url}/${example}/invite/guest/fs_inv_…"
-}}
+}, "sent": true, "note": "Mailed to sister@example.test. That address is pre-approved: proving it is all that is left, and it will not sit in your queue."}
 \`\`\`
 
 | | \`guest\` | \`buddy\` |
@@ -853,6 +853,20 @@ group chat. If the person has not said which they meant, ask.
 address and lands in the owner's queue at \`${site.url}/${example}/contacts\`;
 the owner approves each person by hand. So report a link as *an invitation to
 ask*, never as "your sister now has access".
+
+**Naming \`email\` changes that, on purpose.** The owner is no longer handing
+over a link for somebody to open eventually — they are typing an address and
+asking the server to mail it, which is the owner vouching for that address.
+Whoever proves *that exact* address at the landing page is admitted straight
+through: no queue, no second decision. It is still not "they are already
+in" — proving the address is theirs to do, and a wrong or forwarded address
+still just asks, exactly as before pre-approval existed.
+
+**A failed send still returns a usable link.** \`sent\` says whether the mail
+actually left; \`sent: false\` does not mean the invitation failed — the link
+and, when \`email\` was given, its pre-approval both already exist by the time
+this responds. Read \`invite.url\` and hand it over another way rather than
+telling the owner nothing happened.
 
 The token is in the response **once**. Only its hash is stored, so a link that
 is lost is reissued, never looked up — do not save it anywhere the person did

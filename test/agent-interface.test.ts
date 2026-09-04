@@ -697,12 +697,13 @@ describe("what the guide has to tell an agent before it starts", () => {
     expect(flat(instanceDocumentation())).toContain(flat(GUEST_LINK_OFFER));
   });
 
-  test("the guest-link offer describes the link without asserting how it is delivered", () => {
-    // B319 is adding a mailed invitation and pre-approval on top of this same
-    // call. This offer must survive that: it says what the link is and that
-    // the owner may want it sent, and stops there.
-    expect(GUEST_LINK_OFFER).toMatch(/ask whether they want one sent/i);
-    expect(GUEST_LINK_OFFER).not.toMatch(/email|mail|paste/i);
+  test("the guest-link offer names the email argument, so the offer and the call agree", () => {
+    // B333: an agent that had only ever seen `{"kind": "guest"}` here had no
+    // way to discover the mailed, pre-approving form B319 added — say the
+    // argument by name, and say what proving it does and does not grant.
+    expect(GUEST_LINK_OFFER).toMatch(/"email"/);
+    expect(GUEST_LINK_OFFER).toMatch(/pre-approved/i);
+    expect(GUEST_LINK_OFFER).toMatch(/no queue/i);
   });
 });
 

@@ -224,18 +224,21 @@ export const PUBLISH_OFFER =
  *
  * An owner with a freshly published trip has no reason to know
  * `POST /api/v1/<user>/invites` exists; this is the sentence that tells an
- * agent to offer it, once. Deliberately silent on *how* the link then
- * reaches the person it is for: B319 is adding a mailed invitation in the
- * recipient's own language, and pre-approval, on top of this same call —
- * this sentence describes what the link is and that the owner may want it
- * sent, and stops there, so B319's mechanism is an answer to "how" rather
- * than a rewrite of this offer.
+ * agent to offer it, once. It used to stop at "ask whether they want one
+ * sent" and leave the mechanism unnamed — B319 had already added a mailed,
+ * pre-approving form of the same call, and B333 is the record of what that
+ * cost: an agent that had only ever seen `{"kind": "guest"}` here sent
+ * exactly that, then walked the owner through a queue B319 existed to skip.
+ * Naming `email` here is the fix — the offer and the call it makes are the
+ * same sentence now.
  */
 export const GUEST_LINK_OFFER =
   "Once a trip is published, offer a guest link — `POST /api/v1/<user>/invites` with " +
   '`{"kind": "guest"}`. Say what it is: leads to reading the journal\'s `guest` trips, safe ' +
   "to forward, and grants nothing until the owner approves whoever opens it. Ask whether " +
-  "they want one sent.";
+  'they want it mailed — add `"email": "<address>"` to the same call and that address is ' +
+  "pre-approved: proving it is all that is left, no queue and no second decision. A wrong " +
+  "or forwarded address still just asks, exactly as before.";
 
 // Read from the constant rather than typed into prose: a fourth language would
 // otherwise be maintained everywhere except in the sentence that tells an agent
