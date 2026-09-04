@@ -74,3 +74,35 @@ Not doing: penetration testing a deployed host. This is a review of the source.
 - Each dismissed finding has a line saying why it is not one.
 - `test/depersonalised.test.ts` and the existing access tests still pass — the
   sweep must not be the thing that breaks them.
+
+## The sweep that was run
+
+**2026-09-04**, against `main` at `ff81d59`, in the worktree
+`g14-security-sweep`. Report: `docs/security/2026-09-04-sweep.md` — scope, what
+held, what was dismissed and why, and what a source review could not reach.
+
+Run as a read-and-reproduce pass rather than `/security-review`: the two
+user-triggered commands in the Work section are the author's to start, and this
+session was asked to do the review itself. Every boundary named above was
+covered, plus the surface that landed the same morning (B02, B03, B04/B222,
+B53, B182, B178/B204, B165/B183, B197).
+
+Five findings, four with a reproduction that runs in the suite:
+
+| | | |
+| --- | --- | --- |
+| B230 | high | A code issued for one trip is verified into a journal-wide token |
+| B231 | high | A trip-scoped token downloads the whole journal from export.zip |
+| B232 | medium | The reactions endpoint answers for a trip nobody may read |
+| B233 | low | The https-only rule is not re-applied after a redirect |
+| B234 | low | An unauthenticated health check discloses server paths and journal names |
+
+`test/scope-escalation.test.ts` and `test/sweep-b22-disclosure.test.ts` hold the
+reproductions. They **assert today's wrong behaviour and pass**, so the suite
+stays green until each ticket lands and flips its expectations; each names its
+ticket in the file.
+
+Nothing was fixed here. Dismissed candidates are listed with their reasons in
+the report, which is the half that stops the next sweep re-spending its budget
+on them. Live probing of these findings belongs to B101 and was not started;
+the report ends with the order to take them in.
