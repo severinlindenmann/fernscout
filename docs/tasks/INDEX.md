@@ -87,6 +87,7 @@ Do not edit them by hand; run the script.
 | [B269](backlog/B269-the-photobook-has-its-own-bounding.md) | The photobook has its own bounding-box code with the same NaN hole B265 closed for the web maps | ISSUE | medium | low |
 | [B273](backlog/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium |
 | [B275](backlog/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
+| [B278](backlog/B278-the-page-for-a-reader-who.md) | The page for a reader who may see nothing names nobody to ask and offers no way in | ISSUE | medium | medium |
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B42](backlog/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B43](backlog/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
@@ -129,7 +130,10 @@ _Nothing here._
 
 ## in-development
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B277](in-development/B277-the-reader-languages-stay-optional-at.md) | The reader languages stay optional at creation, so a journal asked for three gets one | ISSUE | high | low | `986bc24c` |
+| [B279](in-development/B279-a-page-rendered-its-raw-locale.md) | A page rendered its raw locale keys to a reader instead of any text at all | ISSUE | high | medium | `986bc24c` |
 
 ## testing
 
