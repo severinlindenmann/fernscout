@@ -58,10 +58,16 @@ agent working from the schema alone has less than one working from the prose.
 ## Work
 
 - **Rewrite the choose-a-visibility paragraph in `agentGuide()`** so it offers
-  three options and says which fits which intention, in the order a person
-  decides in: everyone, the people I have let into this journal, only the
-  people who were there. Keep it short — it replaces two sentences, it is not a
-  new chapter — and keep "ask before making somebody's journey public".
+  three options **in this order**, each with what it actually does:
+  1. `public` — anyone with the address, and listed in the feed and sitemap;
+  2. `guest` — the people the owner has approved into this journal, and the
+     people on the trip;
+  3. `private` — only the people on the trip, and not approved guests.
+
+  Say that **`public` or `guest` is the recommendation**, that the field
+  defaults to `private` when omitted precisely so that forgetting it publishes
+  nothing, and therefore not to omit it — ask. Keep "ask before making
+  somebody's journey public": a recommendation is not permission.
 - **Say the consequence once, where it bites:** a `private` trip is closed to
   approved guests too, so if the plan is to share with family, `guest` is the
   value and approving people is the other half. This is the sentence whose
@@ -75,14 +81,29 @@ agent working from the schema alone has less than one working from the prose.
   description** carry it too. `lib/mcp/tools.ts` is a fifth door and an agent
   over MCP never reads the guide.
 
-**The default is a separate decision and is NOT changed here.** The owner's
-message can be read as asking for a new trip to default to `public`. That is a
-reversal of a deliberate safety choice — today an omitted `visibility` gives
-`private`, and `/agent.md` says publishing somebody's journey is their
-decision — and it would mean an agent that omits the field puts a stranger's
-trip on the public site and in the sitemap. It needs its own task and its own
-answer; this one only makes the three options legible. Do not change
-`lib/tripWrite.ts`'s default.
+**The default stays `private`, and the author has confirmed it — decided
+2026-09-04.** The request was for the *presentation order* (public, then guest,
+then private) and not for a change to what an omitted `visibility` produces.
+Do not touch `lib/tripWrite.ts`'s default. The reasoning is worth keeping in
+the guide rather than only here: a field an agent forgets must never publish
+somebody's journey, so the fallback is the closed value — while the *advice* is
+to pick deliberately, which is the next point.
+
+**Recommend `public` or `guest`, and say so in as many words.** Also the
+author's decision, and it is the sentence the whole task is for. `private` is
+the right default and rarely the right *choice*: a journal being kept for
+people is either open to everyone or open to the people the owner has let in.
+`private` is the narrow tool for one journey held back from readers who are
+otherwise welcome — worth having, worth explaining, and not what an agent
+should steer somebody towards by inaction.
+
+So the guide has to hold three things at once without contradicting itself:
+
+- omit the field and you get `private`, because a forgotten field must not
+  publish anything;
+- but do not omit it — ask, and recommend `public` or `guest`;
+- and `private` is for the specific case of holding one journey back from
+  people who can read the rest.
 
 Not doing: any change to what the three values mean, or to the journal-level
 two-value axis.
