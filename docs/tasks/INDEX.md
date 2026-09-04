@@ -118,7 +118,9 @@ _Nothing here._
 
 ## in-development
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B255](in-development/B255-the-landing-page-s-handover-block.md) | The landing page's handover block shows one thing and copies another | ISSUE | high | low | `986bc24c` |
 
 ## testing
 
