@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: contacts, ui, access
 found: "2026-09-03"
+started: "2026-09-04T07:30:32Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T07:30:32Z"
 ---
 
 # B97 — The guest list cannot tell a reading link from a writing link
