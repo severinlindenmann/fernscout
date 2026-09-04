@@ -954,7 +954,8 @@ bytes instead.
 | --- | --- |
 | images | ${IMAGE_FORMATS.join(", ")} — at most ${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB, ${IMAGE_MAX_EDGE}px on the longest edge |
 | video | ${VIDEO_FORMATS.join(", ")} — at most ${(VIDEO_MAX_BYTES / 1024 / 1024).toFixed(0)} MB and ${VIDEO_MAX_SECONDS}s. Needs ffmpeg on the server; if it is missing the refusal says so |
-| per day | at most ${MAX_ITEMS_PER_DAY} items |
+| per day | at most ${MAX_ITEMS_PER_DAY} items, counting what the day already holds |
+| per request | at most ${MAX_ITEMS_PER_DAY} items — the same number, so a batch too big for one call is too big for one day, and splitting it will not help |
 | per journal | whatever this instance's \`media.perUserBytes\` says, if anything |
 | tags | lowercase letters, digits and single hyphens, up to ${TAG_MAX_LENGTH} characters |
 | transport | ${TRANSPORT_MODES.join(", ")} |

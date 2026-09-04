@@ -128,15 +128,32 @@ export function validateMediaItem(item: MediaCandidate, limits: Limits = BUILT_I
   return problems;
 }
 
-/** Every item's own problems, plus the batch-level one: too many items for a
- * single day. */
+/**
+ * Every item's own problems, plus the batch-level one: more items in this one
+ * request than a day may hold at all.
+ *
+ * **This sentence is about the request; `storeUploads`' ceiling is about the
+ * day, and until B209 they were word for word the same** — `at most 40 per
+ * day`, with `got` differing only in a trailing phrase. An agent reading the
+ * refusal could not tell "send fewer in one call" from "this day is full", and
+ * those have different remedies.
+ *
+ * What is said here has to be careful, because the two are not independent:
+ * the day ceiling counts what is on disk *plus* what arrived, so it fires
+ * whenever this one does. A batch over the limit therefore cannot be rescued
+ * by splitting it — the day could not hold the items either way — and this
+ * message must not advise that. It says the items belong on more than one day.
+ * See B209, and the capture it references for the redundancy itself.
+ */
 export function validateMediaBatch(items: MediaCandidate[], limits: Limits = BUILT_IN): Problem[] {
   const problems = items.flatMap((item) => validateMediaItem(item, limits));
   if (items.length > limits.itemsPerDay) {
     problems.push({
       field: "media",
-      got: `${items.length} items`,
-      expected: `at most ${limits.itemsPerDay} per day`,
+      got: `${items.length} items in one request`,
+      expected:
+        `at most ${limits.itemsPerDay} items in one request. That is also all one day may ` +
+        `hold, so splitting this batch will not help — these belong on more than one day.`,
     });
   }
   return problems;

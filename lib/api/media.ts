@@ -224,11 +224,18 @@ export async function storeUploads(
     });
   }
 
+  // Said differently from `validateMediaBatch`'s request-level problem above,
+  // which used to carry the identical `expected` string — B209. This one is
+  // about the day, it names what is already there, and its remedy is another
+  // day rather than another request.
   if (existing + uploads.length > limits.itemsPerDay) {
     problems.push({
       field: "files",
       got: `${existing + uploads.length} items in this day`,
-      expected: `at most ${limits.itemsPerDay} per day`,
+      expected:
+        `at most ${limits.itemsPerDay} items in one day. This day already holds ${existing}, ` +
+        `so it has room for ${Math.max(0, limits.itemsPerDay - existing)} more — put the rest ` +
+        `on another day.`,
     });
   }
 

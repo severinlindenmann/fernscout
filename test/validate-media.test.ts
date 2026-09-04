@@ -97,8 +97,30 @@ describe("a day's worth", () => {
     expect(problems).toHaveLength(1);
     expect(problems[0]).toMatchObject({
       field: "media",
-      got: `${MAX_ITEMS_PER_DAY + 1} items`,
+      got: `${MAX_ITEMS_PER_DAY + 1} items in one request`,
     });
     expect(validateMediaBatch(many.slice(0, MAX_ITEMS_PER_DAY))).toEqual([]);
+  });
+
+  /**
+   * B209 — this refusal and `storeUploads`' day ceiling used to read `at most
+   * 40 per day` alike, so an agent could not tell which rule it had broken.
+   *
+   * The half asserted here is that this one is about *the request*, and that
+   * it does not offer the remedy that does not work: the day ceiling counts
+   * what is on disk plus what arrived, so a batch this size cannot be rescued
+   * by sending it in parts. The other half of the pair is asserted against the
+   * real writer in `test/media-upload.test.ts`.
+   */
+  test("says it is about one request, and does not advise splitting the batch", () => {
+    const many = Array.from({ length: MAX_ITEMS_PER_DAY + 1 }, (_, i) => ({
+      name: `${i}.jpg`,
+      kind: "image" as const,
+    }));
+    const [problem] = validateMediaBatch(many);
+    expect(problem.expected).toContain(`at most ${MAX_ITEMS_PER_DAY} items in one request`);
+    expect(problem.expected).toContain("more than one day");
+    // The words the day ceiling owns, and this one must not borrow.
+    expect(problem.expected).not.toContain("This day already holds");
   });
 });
