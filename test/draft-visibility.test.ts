@@ -9,7 +9,8 @@ import { getAllEntries, getAllMedia, getDays, getEntryBySlug, getTripStats } fro
 /**
  * Drafts, and who they are for.
  *
- * The rule has not changed: an agent writes a draft and a person publishes it.
+ * What has not changed, whoever publishes: a draft is invisible to every
+ * reading path until it is published. B223 moved the deciding, not this.
  * What changed is that the person can now *read* it on their own site before
  * deciding — so `includeDrafts` exists, and the thing worth testing is that it
  * is off unless somebody asks, on every reader.

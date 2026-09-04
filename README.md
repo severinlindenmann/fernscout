@@ -85,7 +85,8 @@ https://your-site.example/documentation.txt
 ```
 
 It reads from there, asks for a six-digit code, and exchanges it for a token
-that can write for seven days — as drafts. `/agent.md` is the full guide,
+that can write for seven days. Days arrive as drafts and go up when you say
+so. `/agent.md` is the full guide,
 generated from the same constants the endpoints enforce, so it cannot drift
 from them.
 
