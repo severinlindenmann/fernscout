@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import LifetimeMap, { type TripRoute } from "@/components/LifetimeMap";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
+import { frameRoute, place as placeIn } from "@/lib/mapFrame";
 
 /**
  * B265. `app/[user]/trips/page.tsx` builds each route's `points` straight
@@ -50,6 +51,11 @@ function pins(html: string): { x: number; y: number; headRadius: number }[] {
   ].map((m) => ({ x: Number(m[1]), y: Number(m[2]), headRadius: Number(m[3]) }));
 }
 
+/** Each pin head's `cy`, in its own local space — negative is up the stem. */
+function headOffsets(html: string): number[] {
+  return [...html.matchAll(/<circle cx="0" cy="([-\d.]+)"/g)].map((m) => Number(m[1]));
+}
+
 /**
  * B88. A dot is centred on the coordinate and covers it; a pin's tip is the
  * coordinate and its body sits above the ground, so the map underneath the
@@ -66,16 +72,34 @@ describe("stops drawn as pins, not dots", () => {
     ],
   };
 
-  test("a pin's tip sits on the coordinate the route line joins", () => {
+  /**
+   * Anchored on the projection rather than on a polyline (B344 removed the
+   * line, and with it the oracle this used to read the expected positions
+   * from). The property is unchanged and is still B88's: the `<g>` a pin hangs
+   * from is translated to the *coordinate*, and the head is drawn above that
+   * origin — so the ground being marked stays visible under the tip.
+   */
+  test("a pin's tip sits on the coordinate, with its head above", () => {
     const html = render([route]);
     const found = pins(html);
     expect(found).toHaveLength(route.points.length);
-    const line = html.match(/<polyline points="([^"]+)"/)![1];
-    const joined = line.split(" ").map((pair) => pair.split(",").map(Number));
+
+    const frame = frameRoute(route.points);
     for (const [i, pin] of found.entries()) {
-      expect(pin.x).toBeCloseTo(joined[i][0], 6);
-      expect(pin.y).toBeCloseTo(joined[i][1], 6);
+      const [x, y] = placeIn(frame, route.points[i]);
+      expect(pin.x).toBeCloseTo(x, 6);
+      expect(pin.y).toBeCloseTo(y, 6);
     }
+
+    // The head is offset up the stem, not centred on the origin — a `cy` of 0
+    // is the dot B88 replaced.
+    for (const cy of headOffsets(html)) expect(cy).toBeLessThan(0);
+  });
+
+  test("no line is drawn between the stops", () => {
+    // B344. This map is everywhere somebody has been, not a journey in order:
+    // a line between two stops asserts a route that was never travelled.
+    expect(render([route])).not.toContain("<polyline");
   });
 
   test("a pin is the same size on screen for a one-city journal and a two-continent one", () => {
