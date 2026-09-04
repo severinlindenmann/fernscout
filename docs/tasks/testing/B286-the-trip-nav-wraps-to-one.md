@@ -7,8 +7,7 @@ complexity: medium
 area: header, nav, ui
 found: "2026-09-04T12:50:19Z"
 started: "2026-09-04T12:59:49Z"
-session: 4d93d34d-feff-4223-abb1-cd70e03244f3
-claimed: "2026-09-04T12:59:49Z"
+merged: "2026-09-04T13:13:43Z"
 ---
 
 # B286 — The trip nav wraps to one row on one trip and two rows on another at the same width
