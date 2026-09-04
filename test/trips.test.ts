@@ -19,11 +19,21 @@ afterEach(() => {
 
 describe("getTrips", () => {
   test("reads every well-formed trip and skips the broken one", () => {
-    expect(getTripIds("u").sort()).toEqual(["alpha-2023", "beta-2026", "gamma-2027"]);
+    expect(getTripIds("u").sort()).toEqual([
+      "alpha-2023",
+      "beta-2026",
+      "gamma-2027",
+      "unnamed-2025",
+    ]);
   });
 
   test("orders current, then upcoming ascending, then past descending", () => {
-    expect(getTrips("u").map((t) => t.id)).toEqual(["beta-2026", "gamma-2027", "alpha-2023"]);
+    expect(getTrips("u").map((t) => t.id)).toEqual([
+      "beta-2026",
+      "gamma-2027",
+      "unnamed-2025",
+      "alpha-2023",
+    ]);
   });
 
   test("parses the body as the intro", () => {

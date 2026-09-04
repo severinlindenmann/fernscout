@@ -55,6 +55,19 @@ describe("grouping", () => {
     expect(getPlaces("u/alpha-2023").map((p) => p.location)).toEqual(["Faro", "Lagos"]);
   });
 
+  /**
+   * B339. `location:` is optional, so a day written without one is `""` — and
+   * the merge compared `"" === ""` and called it the same place. A fifteen-day
+   * trip from Bangkok to Hanoi became one marker on Bangkok, the other fourteen
+   * coordinates discarded, on every surface that goes through `getPlaces`.
+   */
+  test("days with coordinates but no place name each keep their own place", () => {
+    const places = getPlaces("u/unnamed-2025");
+
+    expect(places).toHaveLength(3);
+    expect(places.map((p) => p.lat)).toEqual([13.7563, 18.7883, 21.0285]);
+  });
+
   test("stats count that trip only", () => {
     const stats = getTripStats("u/alpha-2023");
     expect(stats.dayCount).toBe(2);
