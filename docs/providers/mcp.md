@@ -37,6 +37,7 @@ not broken (ROADMAP §1.1).
 | `list_drafts` | what is waiting for a person, and which of it nobody lived | |
 | `create_day` | | **one draft** |
 | `set_journal_features` | | **the journal's capability switches** |
+| `set_journal_profile` | | **what the journal says about itself** — title, tagline, languages, display currencies, whether it is listed. Never `owner.email`, never `baseCurrency` |
 
 Read tools were built first, which is the order the roadmap asks for and the
 order that makes sense: an agent that cannot read the journal has no business

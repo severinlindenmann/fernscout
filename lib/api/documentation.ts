@@ -603,15 +603,43 @@ Content-Type: application/json
 {"features": {"contacts": true}}
 \`\`\`
 
-Owner only, and it writes the \`features\` block and nothing else — not the
-title, and never \`owner.email\`, which is the address that decides who can get
-a token for this journal in the first place. It can only ask for what this
-server already provides: if the operator has not configured a capability, the
-call is refused and says which piece is missing rather than writing something
-that would quietly do nothing. Switching a capability *off* always works.
-\`GET\` the same URL to see what the journal asks for now, and \`/api/health\` for
-what the server can actually give it. **Ask the person before switching
-anything on.**
+Owner only. It can only ask for what this server already provides: if the
+operator has not configured a capability, the call is refused and says which
+piece is missing rather than writing something that would quietly do nothing.
+Switching a capability *off* always works. \`GET\` the same URL to see what the
+journal asks for now, and \`/api/health\` for what the server can actually give
+it. **Ask the person before switching anything on.**
+
+The same URL changes what the journal **says about itself** — a title typoed
+at signup used to be permanent without a shell on the server:
+
+\`\`\`http
+PATCH ${site.url}/api/v1/${example}/config
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"title": "A slow loop", "tagline": "six weeks by train", "locales": ["de", "en"]}
+\`\`\`
+
+\`title\`, \`tagline\`, \`visibility\`, \`startLocation\`, \`units\`, \`locales\`,
+\`defaultLocale\`, \`displayCurrencies\` and \`manualRates\`. Send only what you are
+changing; \`""\` clears a tagline or a start location. Capabilities and these are
+**two calls** — a body naming both is refused rather than half-applied, because
+each call rewrites \`config.json\` whole and puts it back if it does not load.
+\`GET\` returns all of it under \`journal\`.
+
+Three keys are refused, and each says why. **\`owner.email\`** is the address that
+decides who can get a token for this journal, so a token cannot move it.
+**\`baseCurrency\`** is not a display setting: a cost written without a
+\`currency:\` *is* a cost in the base currency, so changing it would not
+reconvert the money, it would change what every amount already recorded means.
+**\`media\`** is the operator's — the server's own limits are already a ceiling
+over it. All three are an edit at the file, by whoever runs the server.
+
+A journal's \`visibility\` is only whether this instance *advertises* it — the
+landing page, \`/documentation.txt\`, the sitemap. A private journal is unlisted,
+not locked; who may read a journey is still that trip's own visibility. **Ask
+before making one public.**
 
 ## Writing
 
@@ -656,6 +684,20 @@ refused rather than written.
 Add \`"test": true\` if this trip is being made to check that the software works
 rather than to record a journey. Every day of it then carries the banner, and
 none of it reaches the feed, the search index or the sitemap.
+
+**Three fields can only be set here, because nothing edits a \`trip.md\`
+afterwards.** Ask before sending any of them, and leave out what you were not
+told.
+
+| | |
+| --- | --- |
+| \`people\` | Who took the trip — \`[{"name": …, "email": …, "nickname": …}]\`, at most ten. It is the byline **and it is write access**: everyone named may write to the whole trip and may ask for a token scoped to it, using the address given. A malformed entry is refused by name rather than dropped. |
+| \`rates\` | This trip's frozen rates — \`{"THB": 0.0245}\` reads "1 THB = 0.0245" of the journal's base currency, so a currency worth less than the base one has a **small** number. \`content/rates/ecb.json\` points the other way round. Leaving a currency out is supported: its costs are reported as unconverted rather than guessed at. |
+| \`translations\` | The title and tagline in the journal's other languages — \`{"de": {"title": …, "tagline": …}}\`. A language the journal does not declare is refused, since it would be written and never rendered. |
+
+There is no \`cover\`. A trip has no photographs when it is created — media is
+attached to a day, and there are no days yet — so a cover is a line somebody
+adds to \`trip.md\` once the pictures are in.
 
 \`\`\`http
 POST ${site.url}/api/v1/${example}/trips/<trip-id>/days

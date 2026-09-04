@@ -526,6 +526,47 @@ export function GET() {
                         "reaches the feed, the search index or the sitemap.",
                     },
                     intro: { type: "string" },
+                    people: {
+                      type: "array",
+                      maxItems: 10,
+                      description:
+                        "Who took the trip. It is the byline AND it is write access: " +
+                        "everyone named may write to the whole trip and may obtain a token " +
+                        "scoped to it, using the address given. A malformed entry is refused " +
+                        "by name (`invalid_people`) rather than dropped, which is what the " +
+                        "reader does with one. Nothing can change this afterwards.",
+                      items: {
+                        type: "object",
+                        required: ["name", "email"],
+                        properties: {
+                          name: { type: "string" },
+                          email: { type: "string", format: "email" },
+                          nickname: { type: "string" },
+                        },
+                      },
+                    },
+                    rates: {
+                      type: "object",
+                      additionalProperties: { type: "number" },
+                      description:
+                        "This trip's frozen rates: units of the journal's BASE currency for " +
+                        "one unit of the keyed currency. `{\"THB\": 0.0245}` is " +
+                        "\"1 THB = 0.0245 CHF\", so a currency worth less than the base one " +
+                        "has a small number — `content/rates/ecb.json` points the other way. " +
+                        "Omitting a currency is supported: its costs are reported as " +
+                        "unconverted rather than converted at a guess.",
+                    },
+                    translations: {
+                      type: "object",
+                      description:
+                        "Title and tagline in the journal's other languages, keyed by locale: " +
+                        "`{\"de\": {\"title\": \"Japan\"}}`. A locale the journal does not " +
+                        "declare is refused rather than written, since nothing would render it.",
+                      additionalProperties: {
+                        type: "object",
+                        properties: { title: { type: "string" }, tagline: { type: "string" } },
+                      },
+                    },
                   },
                 },
               },
@@ -533,7 +574,7 @@ export function GET() {
           },
           responses: {
             "201": { description: "Created" },
-            "400": { description: "The id, title or dates are not usable" },
+            "400": { description: "The id, title, dates, people, rates or translations are not usable" },
             "401": { description: "Missing or invalid token" },
             "403": { description: "Another journal's token, or one scoped to a single trip" },
             "409": { description: "A trip with that id already exists" },
@@ -902,30 +943,44 @@ export function GET() {
       },
       "/api/v1/{user}/config": {
         get: {
-          summary: "Which capabilities this journal asks for",
+          summary: "What this journal asks for, and what it says about itself",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],
           responses: {
-            "200": { description: "One boolean per capability, as the journal asks for it" },
+            "200": {
+              description:
+                "One boolean per capability under `features`, and the writable half of " +
+                "config.json under `journal` — including the `baseCurrency` a " +
+                "`displayCurrencies` must contain",
+            },
             "401": { description: "Missing or invalid token" },
             "403": { description: "The token belongs to a different journal" },
           },
         },
         patch: {
-          summary: "Switch a capability on or off for this journal",
+          summary: "Change a capability, or what this journal says about itself",
           description:
-            "Send only what you are changing: `{\"features\": {\"contacts\": true}}`. Before " +
-            "this there was no endpoint, tool or page that wrote a journal's features, so " +
-            "they were fixed at creation and only an operator with a shell could change " +
-            "them — which left journals unable to invite anybody and their owners unable to " +
-            "fix it (B182).\n\nIt can only ask for what the server already provides: the " +
-            "server's own config is a ceiling, and asking to exceed it is refused with the " +
-            "reason rather than written and silently ignored. Switching a capability *off* " +
-            "always works.\n\nIt writes the `features` block and nothing else. Any other " +
-            "field in the body is a 400, and `owner.email` is never writable here — it is " +
-            "the address that decides who can obtain a token for this journal, so a token " +
-            "must not be able to move it. Owner only.",
+            "Send only what you are changing: `{\"features\": {\"contacts\": true}}`, or one " +
+            "or more of `title`, `tagline`, `visibility`, `startLocation`, `units`, " +
+            "`locales`, `defaultLocale`, `displayCurrencies`, `manualRates`. Before this " +
+            "there was no endpoint, tool or page that wrote a journal's config at all, so it " +
+            "was fixed at creation and only an operator with a shell could change it — which " +
+            "left journals unable to invite anybody (B182) and a title typoed at signup " +
+            "permanent (B220).\n\nCapabilities can only ask for what the server already " +
+            "provides: the server's own config is a ceiling, and asking to exceed it is " +
+            "refused with the reason rather than written and silently ignored. Switching a " +
+            "capability *off* always works.\n\n**Capabilities and the rest are two calls.** " +
+            "A body naming `features` alongside another field is `400 mixed_change` and " +
+            "writes nothing: each call rewrites config.json whole, reads it back, and " +
+            "restores the previous bytes if it does not load, so a request doing that twice " +
+            "is one that can succeed halfway.\n\nThree keys are never writable, each with " +
+            "its own reason in the refusal. `owner.email` decides who can obtain a token for " +
+            "this journal, so a token must not be able to move it. `baseCurrency` is not a " +
+            "display setting — a cost written without a `currency` IS a cost in the base " +
+            "currency, so changing it re-reads every amount already recorded rather than " +
+            "reconverting it. `media` is the operator's, and the server's limits are already " +
+            "a ceiling over it. Owner only.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],
@@ -935,12 +990,56 @@ export function GET() {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["features"],
                   properties: {
                     features: {
                       type: "object",
                       additionalProperties: { type: "boolean" },
-                      description: "Capability name to true or false. Omitted ones are left alone.",
+                      description:
+                        "Capability name to true or false. Omitted ones are left alone. Not " +
+                        "combinable with the fields below — send it in a call of its own.",
+                    },
+                    title: { type: "string" },
+                    tagline: {
+                      type: "string",
+                      description: "Empty string removes it rather than writing one.",
+                    },
+                    visibility: {
+                      type: "string",
+                      enum: ["public", "private"],
+                      description:
+                        "Whether this server advertises the journal — landing page, " +
+                        "/documentation.txt, sitemap. A private journal is unlisted, not " +
+                        "locked: who may read a journey is still that trip's own visibility.",
+                    },
+                    startLocation: {
+                      type: "string",
+                      description: "Empty string removes it rather than writing one.",
+                    },
+                    units: { type: "string", enum: ["metric", "imperial"] },
+                    locales: {
+                      type: "array",
+                      items: { type: "string" },
+                      description:
+                        "Language codes, most preferred first. Must contain `defaultLocale`; " +
+                        "a pair that disagrees is refused rather than written, because the " +
+                        "resulting config would take the journal off the site entirely.",
+                    },
+                    defaultLocale: { type: "string" },
+                    displayCurrencies: {
+                      type: "array",
+                      items: { type: "string" },
+                      description:
+                        "Which currencies a reader may see totals in. Must include the " +
+                        "journal's `baseCurrency`, which this endpoint cannot change — `GET` " +
+                        "returns it under `journal`.",
+                    },
+                    manualRates: {
+                      type: "object",
+                      additionalProperties: { type: ["number", "null"] },
+                      description:
+                        "Rates for what the ECB does not publish, MERGED into what is there. " +
+                        "The ECB's direction: `{\"VND\": 30500}` is \"1 EUR = 30 500 VND\", " +
+                        "the opposite of a trip's own `rates`. `null` removes a code.",
                     },
                   },
                 },
@@ -948,11 +1047,15 @@ export function GET() {
             },
           },
           responses: {
-            "200": { description: "The journal's features afterwards, and what changed" },
+            "200": {
+              description:
+                "The journal's features or profile afterwards, and what changed",
+            },
             "400": {
               description:
-                "An unknown capability, a non-boolean, a field other than `features`, or " +
-                "a capability this server does not provide",
+                "An unknown capability, a non-boolean, an unwritable field (`owner`, " +
+                "`baseCurrency`, `media`), a capability this server does not provide, or " +
+                "`features` sent together with a profile field (`mixed_change`)",
             },
             "401": { description: "Missing or invalid token" },
             "403": {

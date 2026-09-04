@@ -1,7 +1,13 @@
 import { authenticate, errorResponse, ownsUser } from "@/lib/api/auth";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { FEATURE_NAMES, type FeatureName } from "@/lib/config";
-import { setJournalFeatures } from "@/lib/journals";
+import {
+  JOURNAL_FIELD_REFUSALS,
+  JOURNAL_PROFILE_FIELDS,
+  journalProfile,
+  setJournalFeatures,
+  setJournalProfile,
+} from "@/lib/journals";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -25,13 +31,28 @@ export const dynamic = "force-dynamic";
  *
  * ## What it touches
  *
- * `features` only, one boolean per capability. Not the title, the tagline, the
- * locales or the currencies — those share the problem and are a wider surface
- * (B220) — and never `owner.email`, which is the credential deciding who can
- * obtain a token for this journal (decision 24). A token issued *because of*
- * that address must not be able to change it; that is an operator's edit, at
- * the file. The body is refused if it carries anything but `features`, rather
- * than quietly ignoring the rest, so a caller that tried is told.
+ * `features`, one boolean per capability — and, since B220, the fields a
+ * journal describes itself with: `JOURNAL_PROFILE_FIELDS` in lib/journals.ts.
+ * A title typoed at signup used to be permanent without a shell on the server.
+ *
+ * Three keys are still refused, one sentence each, in
+ * `JOURNAL_FIELD_REFUSALS`: `owner.email` because it is the credential
+ * deciding who can obtain a token for this journal (decision 24) and a token
+ * must not move the boundary that issued it; `baseCurrency` because changing
+ * it re-reads every cost already written rather than reconverting it; and
+ * `media` because the server is already a ceiling over it, so a write there
+ * could only be inert or a self-narrowing nobody asked for. The body is
+ * refused whole when it carries one of them, rather than quietly ignoring it,
+ * so a caller that tried is told.
+ *
+ * ## One kind of change per call
+ *
+ * A body naming `features` *and* a profile field is refused rather than
+ * half-applied. Each call edits `config.json` once — read, change, write, read
+ * back, restore if it does not load — and doing that twice in one request
+ * means a request that can succeed halfway. Over MCP the same line falls out
+ * of the shape: `set_journal_features` and `set_journal_profile` are two
+ * tools.
  *
  * ## What it cannot do
  *
@@ -87,10 +108,20 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
   }
 
   const features = view(user);
-  if (!features) return Response.json({ error: "no_such_journal" }, { status: 404 });
+  const config = getUser(user);
+  if (!features || !config) return Response.json({ error: "no_such_journal" }, { status: 404 });
 
   return Response.json({
     user,
+    /**
+     * What the journal says about itself — the half B220 made writable.
+     *
+     * Read back here rather than only written, because a caller sending
+     * `displayCurrencies` has to know the base currency it must contain, and
+     * `baseCurrency` is not writable: without this the only way to learn it
+     * would be to guess and be refused.
+     */
+    journal: journalProfile(config),
     /**
      * What this journal *asks for*, which is not the same as what it gets. The
      * server is a ceiling above this, so a capability true here can still be
@@ -100,7 +131,8 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
     features,
     next:
       `PATCH ${new URL(request.url).pathname} with {"features": {"contacts": true}} to change ` +
-      `one. /api/health says what this server can actually provide.`,
+      `one. /api/health says what this server can actually provide. The same URL takes ` +
+      `${JOURNAL_PROFILE_FIELDS.join(", ")} — one or more of them, in a call of their own.`,
   });
 }
 
@@ -136,23 +168,75 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/v1/
     );
   }
 
-  // Named rather than ignored. A caller that sent `owner` or `title` has asked
-  // for something this deliberately does not do, and a silent 200 would read
-  // as though it had happened.
-  const extra = Object.keys(body).filter((key) => key !== "features");
-  if (extra.length > 0) {
+  const keys = Object.keys(body);
+  if (keys.length === 0) {
+    return Response.json(
+      {
+        error: "invalid_request",
+        message:
+          'Name what to change: {"features": {"contacts": true}}, or one of ' +
+          `${JOURNAL_PROFILE_FIELDS.join(", ")}.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  // Named rather than ignored, and answered before anything else in the body
+  // is looked at. A caller that sent `owner` or `baseCurrency` has asked for
+  // something this deliberately does not do, and a silent 200 — or a 200 for
+  // the half it did understand — would read as though it had happened.
+  const unwritable = keys.filter(
+    (key) => key !== "features" && !(JOURNAL_PROFILE_FIELDS as readonly string[]).includes(key),
+  );
+  if (unwritable.length > 0) {
+    const reasons = unwritable.map((key) => JOURNAL_FIELD_REFUSALS[key]).filter(Boolean);
     return Response.json(
       {
         error: "unsupported_field",
         message:
-          `This call changes ${extra.map((k) => JSON.stringify(k)).join(", ")} for nobody: it ` +
-          `writes the journal's "features" block and nothing else, and it wrote nothing now. ` +
-          `owner.email in particular is never writable here — it is the address that decides ` +
-          `who can get a token for this journal, so a token cannot move it. Ask the person ` +
-          `who runs the server.`,
+          `This call changes ${unwritable.map((k) => JSON.stringify(k)).join(", ")} for ` +
+          `nobody, and it wrote nothing now. It writes the journal's "features" block and ` +
+          `${JOURNAL_PROFILE_FIELDS.join(", ")}.` +
+          (reasons.length ? ` ${reasons.join(" ")}` : ""),
       },
       { status: 400 },
     );
+  }
+
+  const profileKeys = keys.filter((key) => key !== "features");
+  if (keys.includes("features") && profileKeys.length > 0) {
+    return Response.json(
+      {
+        error: "mixed_change",
+        message:
+          `Send the capabilities and ${profileKeys.join(", ")} as two calls. Each one edits ` +
+          `config.json whole — written, read back, and put back if it does not load — and a ` +
+          `request doing that twice is a request that can succeed halfway. Nothing was ` +
+          `changed.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  if (profileKeys.length > 0) {
+    const result = setJournalProfile(
+      user,
+      Object.fromEntries(profileKeys.map((key) => [key, body[key]])),
+    );
+    if (!result.ok) {
+      const status =
+        result.error === "no_such_journal" ? 404 : result.error === "write_failed" ? 500 : 400;
+      return Response.json({ error: result.error, message: result.message }, { status });
+    }
+    return Response.json({
+      ok: true,
+      user,
+      journal: result.journal,
+      changed: result.changed,
+      note: result.changed.length
+        ? `Changed: ${result.changed.join(", ")}.`
+        : "Nothing changed — the journal already said exactly this.",
+    });
   }
 
   const features = body.features;

@@ -450,6 +450,7 @@ describe("the protocol", () => {
       "publish_day",
       "search_entries",
       "set_journal_features",
+      "set_journal_profile",
     ]);
     // Not `create_journal`. This token belongs to a journal, and a journal's
     // token must not be able to mint more journals beside it — offering the
@@ -1457,5 +1458,107 @@ describe("list_invites tells a reading link from a writing link", () => {
     expect(textOf(result)).not.toMatch(/, until /);
     const rows = (result.structuredContent as { invites: { live: boolean }[] }).invites;
     expect(rows[0].live).toBe(false);
+  });
+});
+
+/**
+ * B207 — the three trip fields that were read, typed, rendered, and writable
+ * by nobody.
+ *
+ * `people` is the one with a consequence: everyone on it may write to the
+ * whole trip and may hold a token scoped to it, and it is the byline, which
+ * `peopleOf()` renders from the file alone. An owner working through an agent
+ * — the only way this product is written — could not put anybody on a trip.
+ * `rates` and `translations` are the same shape without the teeth.
+ *
+ * The property asserted here is the one B175 and B178 asserted before it: the
+ * two doors write the same file. A second door that writes a different one is
+ * two products.
+ */
+describe("create_trip writes the trip fields nothing could reach", () => {
+  const BODY = {
+    id: "japan-2027",
+    title: "Japan",
+    start: "2027-04-01",
+    end: "2027-05-15",
+    people: [{ name: "Ana Meyer", email: "ana@example.test", nickname: "Ana" }],
+    rates: { THB: 0.0245 },
+    translations: { en: { title: "Japan", tagline: "Six weeks by train" } },
+  };
+
+  test("all three land in the file, read back, and both doors write it identically", async () => {
+    const file = path.join(dir, "ana", "trips", "japan-2027", "trip.md");
+
+    const result = await call(anaToken, "create_trip", BODY);
+    expect(result.isError).toBe(false);
+    const viaMcp = fs.readFileSync(file, "utf8");
+    expect(viaMcp).toContain('email: "ana@example.test"');
+    expect(viaMcp).toContain("nickname: \"Ana\"");
+    // A plain decimal, not "2.45e-2": YAML would read that back as text.
+    expect(viaMcp).toContain("THB: 0.0245");
+    expect(viaMcp).toContain("tagline: \"Six weeks by train\"");
+
+    // Through the reader, not only as bytes — the whole failure this fixes is
+    // a field that is written and never read.
+    const { getTrip } = await import("@/lib/trips");
+    const trip = getTrip("ana/japan-2027");
+    expect(trip?.people).toEqual([
+      { name: "Ana Meyer", email: "ana@example.test", nickname: "Ana" },
+    ]);
+    expect(trip?.rates).toEqual({ THB: 0.0245 });
+    expect(trip?.translations).toEqual({
+      en: { title: "Japan", tagline: "Six weeks by train" },
+    });
+
+    fs.rmSync(path.join(dir, "ana", "trips", "japan-2027"), { recursive: true });
+    const { POST } = await import("@/app/api/v1/[user]/trips/route");
+    const response = await POST(
+      new Request(`${SITE}/api/v1/ana/trips`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${anaToken}` },
+        body: JSON.stringify(BODY),
+      }),
+      { params: Promise.resolve({ user: "ana" }) },
+    );
+    expect(response.status).toBe(201);
+    expect(fs.readFileSync(file, "utf8")).toBe(viaMcp);
+  });
+
+  test("a people entry without a usable address is refused at both doors, in the same words", async () => {
+    const broken = { ...BODY, id: "broken", people: [{ name: "Ana", email: "nope" }] };
+
+    const result = await call(anaToken, "create_trip", broken);
+    expect(result.isError).toBe(true);
+    // Named, rather than the reader's silent drop of the whole list.
+    expect(textOf(result)).toContain("people[0].email");
+    expect(fs.existsSync(path.join(dir, "ana", "trips", "broken"))).toBe(false);
+
+    const { POST } = await import("@/app/api/v1/[user]/trips/route");
+    const response = await POST(
+      new Request(`${SITE}/api/v1/ana/trips`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${anaToken}` },
+        body: JSON.stringify(broken),
+      }),
+      { params: Promise.resolve({ user: "ana" }) },
+    );
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error: string; message: string };
+    expect(body.error).toBe("invalid_people");
+    expect(body.message).toContain("people[0].email");
+  });
+
+  test("cover is not a property of either door, so a client cannot even send one", async () => {
+    const { toolsFor } = await import("@/lib/mcp/tools");
+    const { resolveSession } = await import("@/lib/auth");
+    const session = await resolveSession(anaToken, "agent");
+    if (!session) throw new Error("no session");
+    const tool = toolsFor(session).find((t) => t.name === "create_trip");
+    const properties = Object.keys(tool?.inputSchema.properties ?? {});
+    expect(properties).toEqual(expect.arrayContaining(["people", "rates", "translations"]));
+    // Decided against rather than forgotten: no photograph exists when a trip
+    // is created, so a cover could only name a file that is not there. B245.
+    expect(properties).not.toContain("cover");
+    expect(tool?.inputSchema.additionalProperties).toBe(false);
   });
 });

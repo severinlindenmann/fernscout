@@ -25,6 +25,23 @@ import { MAINTAINED_LOCALES, translate, type TranslationKey } from "./i18n";
 
 export const FALLBACK_LOCALE = "en";
 
+/**
+ * What a language tag may look like: `de`, `pt-BR`, `zh-Hant-TW`.
+ *
+ * Shape only, and deliberately not a list. A journal may offer a language this
+ * project ships no dictionary for — that is the split above, and refusing
+ * anything outside `MAINTAINED_LOCALES` would refuse the feature. What this
+ * catches is a caller sending a language *name* ("german") or a sentence,
+ * which would be written into a config or a trip's `translations:` and then
+ * match nothing for the rest of the journal's life.
+ *
+ * Used by the two doors that now write locales — `setJournalProfile` here and
+ * `createTrip`'s `translations:` block (B207, B220). One copy, because the two
+ * disagreeing about what a locale is would put a translation in a journal that
+ * cannot render it.
+ */
+export const LOCALE_TAG_RE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
+
 export type Dictionary = Record<string, string>;
 
 /**

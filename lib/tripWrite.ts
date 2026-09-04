@@ -2,7 +2,9 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "./contentRoot";
-import { getTrip, tripRef } from "./trips";
+import { normalizeCurrency } from "./currency";
+import { LOCALE_TAG_RE } from "./locales";
+import { getTrip, MAX_TRIP_PEOPLE, PERSON_EMAIL_RE, tripRef } from "./trips";
 import { calendarStatus } from "./tripTime";
 import { getUser } from "./users";
 import { quoteScalar, singleLineProblem } from "./validate/frontmatter";
@@ -75,7 +77,322 @@ export type NewTrip = {
    */
   test?: boolean;
   intro?: string;
+  /**
+   * The three block fields, taken **raw** and validated below — B207.
+   *
+   * `unknown` rather than their parsed types on purpose. Each of these arrives
+   * as a chunk of somebody's JSON body, and the caller is entitled to hear
+   * which key of which entry is wrong; a door that coerced first would have
+   * thrown that away before this function saw it. Same reasoning as
+   * `costsVisibility` above, one step further: these are maps and lists, so
+   * there is more to get wrong than a spelling.
+   */
+  people?: unknown;
+  rates?: unknown;
+  translations?: unknown;
+  /**
+   * **`cover` is deliberately not here** — the fourth field B207 asked about,
+   * and the one that answers no.
+   *
+   * A cover names a picture inside the trip, and at the moment this function
+   * runs there is not one: the folder is being created, `media/` does not
+   * exist, and `POST /api/v1/<user>/trips/<trip>/media` refuses a batch that
+   * does not name a day, so the first photograph cannot arrive until a day
+   * has. Anything a caller could put here would therefore point at a file that
+   * is not there, and the trips index and the trip's OG image would render a
+   * broken image rather than nothing — a 201 for a trip that looks worse than
+   * one created without the field.
+   *
+   * So it stays file-only for now, and `.claude/skills/add-a-trip/SKILL.md`
+   * is where a person is told to write it by hand. The place it actually
+   * belongs is a call made *after* the photographs land, which is B245.
+   */
 };
+
+/** A frontmatter block that validated, or the refusal to hand back. */
+type BlockResult =
+  | { ok: true; lines: string[] }
+  | { ok: false; error: string; message: string };
+
+const NO_LINES: BlockResult = { ok: true, lines: [] };
+
+/**
+ * A number as YAML will read it back, or null when it would not.
+ *
+ * `String(1e-7)` is `"1e-7"`, which js-yaml reads as the *string* "1e-7"
+ * rather than a number — YAML 1.1 wants `1.0e-07` — so a rate that small
+ * would be written, parse, and then be dropped by `parseRateTable` for not
+ * being a number. Refused instead: a rate nobody can see is worse than a
+ * rate nobody could write.
+ */
+function yamlNumber(n: number): string | null {
+  const s = String(n);
+  return /^\d+(\.\d+)?$/.test(s) ? s : null;
+}
+
+/**
+ * The `people:` block — who took the trip, and therefore who may write to it.
+ *
+ * The one field of the four that does something beyond appearance, and the
+ * reason B207 said to argue about it separately. Everyone named here may write
+ * to the whole trip and may hold a token scoped to it, so accepting it is
+ * accepting that an agent can say who else may write.
+ *
+ * Two things make that a decision rather than a hole. Creating a trip is
+ * already owner-only — a trip-scoped token is refused before this runs — so
+ * the authority spending itself here is the one that could already write
+ * anything in the journal. And a trip made by this call is empty: the set of
+ * people who can reach anything through it is exactly the set the owner just
+ * named, so there is no existing content for a name to widen access *to*.
+ * Naming an address grants nothing by itself either — whoever holds it still
+ * has to prove it through `/api/auth/request` to get a token.
+ *
+ * Changing the list afterwards is the case that is not this, and there is no
+ * route to it: see B245.
+ *
+ * **Refused, never dropped.** `parsePeople` in lib/trips.ts fails closed — one
+ * bad entry drops the whole list — because a reader has nobody to tell. Here
+ * somebody is listening, and a 201 for a `people:` block the site then ignores
+ * is worse than a 400 naming the entry.
+ */
+function peopleBlock(raw: unknown): BlockResult {
+  if (raw === undefined || raw === null) return NO_LINES;
+  if (!Array.isArray(raw)) {
+    return {
+      ok: false,
+      error: "invalid_people",
+      message:
+        'people must be a list of {"name", "email"}, e.g. ' +
+        '[{"name": "Ana Meyer", "email": "ana@example.test"}]. Everyone on it may write to ' +
+        "the whole trip, so it is who was there rather than who might like to read it.",
+    };
+  }
+  if (raw.length === 0) return NO_LINES;
+  if (raw.length > MAX_TRIP_PEOPLE) {
+    return {
+      ok: false,
+      error: "invalid_people",
+      message:
+        `people names ${raw.length} people; the most a trip may have is ${MAX_TRIP_PEOPLE}. ` +
+        `Everyone on the list may write to the whole trip, which is why there is a ceiling — ` +
+        `a list of fifty is a mailing list.`,
+    };
+  }
+
+  const lines = ["people:"];
+  const seen = new Set<string>();
+  for (const [index, item] of raw.entries()) {
+    const at = `people[${index}]`;
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return {
+        ok: false,
+        error: "invalid_people",
+        message: `${at} must be an object with a name and an email.`,
+      };
+    }
+    const entry = item as Record<string, unknown>;
+    const name = typeof entry.name === "string" ? entry.name.trim() : "";
+    const email = typeof entry.email === "string" ? entry.email.trim().toLowerCase() : "";
+    if (!name) {
+      return { ok: false, error: "invalid_people", message: `${at}.name is required.` };
+    }
+    if (!PERSON_EMAIL_RE.test(email)) {
+      return {
+        ok: false,
+        error: "invalid_people",
+        message:
+          `${at}.email is required and must be an address — ${JSON.stringify(entry.email ?? null)} ` +
+          `is not one. It is how that person gets a token for this trip, so a placeholder ` +
+          `would give them nothing.`,
+      };
+    }
+    if (seen.has(email)) {
+      return {
+        ok: false,
+        error: "invalid_people",
+        message: `${at} lists ${email} again; each person appears once.`,
+      };
+    }
+    seen.add(email);
+
+    const nickname =
+      entry.nickname === undefined || entry.nickname === null
+        ? ""
+        : typeof entry.nickname === "string"
+          ? entry.nickname.trim()
+          : null;
+    if (nickname === null) {
+      return {
+        ok: false,
+        error: "invalid_people",
+        message: `${at}.nickname must be text — what to call them in a byline.`,
+      };
+    }
+    for (const [field, value] of [
+      [`${at}.name`, name],
+      [`${at}.nickname`, nickname],
+    ] as const) {
+      const problem = singleLineProblem(field, value);
+      if (problem) return { ok: false, error: "invalid_people", message: problem };
+    }
+
+    lines.push(`  - name: ${quoteScalar(name)}`);
+    lines.push(`    email: ${quoteScalar(email)}`);
+    if (nickname) lines.push(`    nickname: ${quoteScalar(nickname)}`);
+  }
+  return { ok: true, lines };
+}
+
+/**
+ * The `rates:` block — this trip's frozen local→base table.
+ *
+ * Accepted because there is nothing about it that has to wait: the number is a
+ * judgement about what the trip actually cost (B17), and whoever is writing up
+ * the trip either already holds it or does not. Without it every foreign cost
+ * in the trip reads as unconverted, which the costs page says out loud and
+ * which nobody could fix from outside the server.
+ *
+ * The direction is the one that is easy to get backwards, so the doors say it
+ * in words: **units of the journal's base currency for one unit of the keyed
+ * currency**, `THB: 0.0245` being "1 THB = 0.0245 CHF". The ECB table in
+ * `content/rates/ecb.json` points the other way. `docs/currencies.md` carries
+ * the comparison and the rule of thumb — a currency worth less than the base
+ * one has a small number.
+ */
+function ratesBlock(raw: unknown): BlockResult {
+  if (raw === undefined || raw === null) return NO_LINES;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return {
+      ok: false,
+      error: "invalid_rates",
+      message:
+        'rates must be an object of currency code to number, e.g. {"THB": 0.0245} — units of ' +
+        "the journal's base currency for one unit of the keyed currency.",
+    };
+  }
+
+  const entries = Object.entries(raw as Record<string, unknown>);
+  if (entries.length === 0) return NO_LINES;
+
+  const lines = ["rates:"];
+  for (const [key, value] of entries) {
+    const code = normalizeCurrency(key);
+    if (!code) {
+      return {
+        ok: false,
+        error: "invalid_rates",
+        message: `rates has key "${key}"; each key is a three-letter currency code, like "THB".`,
+      };
+    }
+    const n = typeof value === "string" ? Number(value) : value;
+    if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) {
+      return {
+        ok: false,
+        error: "invalid_rates",
+        message:
+          `rates.${code} must be a positive number, got ${JSON.stringify(value)}. It is how ` +
+          `many units of the base currency one ${code} was worth on this trip — 0.0245, not 40.8, ` +
+          `for a currency worth less than the base one.`,
+      };
+    }
+    const written = yamlNumber(n);
+    if (!written) {
+      return {
+        ok: false,
+        error: "invalid_rates",
+        message:
+          `rates.${code} is ${JSON.stringify(value)}, which can only be written in exponent ` +
+          `form — and the file would then read it back as text rather than as a rate. Write it ` +
+          `as a plain decimal, or key the table by the larger unit.`,
+      };
+    }
+    lines.push(`  ${code}: ${written}`);
+  }
+  return { ok: true, lines };
+}
+
+/**
+ * The `translations:` block — the trip's title and tagline in the journal's
+ * other languages.
+ *
+ * Refused for a locale the journal does not declare, rather than written. A
+ * translation into a language nothing renders is exactly the inert write B182
+ * would not ship: it lands, it reads back, and no reader ever sees it. Since
+ * B220 the journal's `locales` are themselves reachable, so the refusal names
+ * the call that fixes it instead of ending the conversation.
+ */
+function translationsBlock(raw: unknown, locales: string[]): BlockResult {
+  if (raw === undefined || raw === null) return NO_LINES;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return {
+      ok: false,
+      error: "invalid_translations",
+      message:
+        'translations must be an object keyed by locale, e.g. ' +
+        '{"de": {"title": "Japan", "tagline": "Sechs Wochen mit dem Zug"}}.',
+    };
+  }
+
+  const entries = Object.entries(raw as Record<string, unknown>);
+  if (entries.length === 0) return NO_LINES;
+
+  const lines = ["translations:"];
+  for (const [locale, value] of entries) {
+    if (!LOCALE_TAG_RE.test(locale)) {
+      return {
+        ok: false,
+        error: "invalid_translations",
+        message: `translations has key "${locale}"; each key is a language code, like "de".`,
+      };
+    }
+    if (!locales.includes(locale)) {
+      return {
+        ok: false,
+        error: "invalid_translations",
+        message:
+          `This journal does not speak "${locale}" — it declares ${locales.map((l) => `"${l}"`).join(", ")} ` +
+          `— so a translation into it would be written and never rendered. Add the language ` +
+          `first with PATCH /api/v1/<user>/config {"locales": [...]}, or leave it out.`,
+      };
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return {
+        ok: false,
+        error: "invalid_translations",
+        message: `translations.${locale} must be an object with a title, a tagline, or both.`,
+      };
+    }
+    const entry = value as Record<string, unknown>;
+    const out: string[] = [];
+    for (const field of ["title", "tagline"] as const) {
+      const v = entry[field];
+      if (v === undefined || v === null) continue;
+      if (typeof v !== "string") {
+        return {
+          ok: false,
+          error: "invalid_translations",
+          message: `translations.${locale}.${field} must be text.`,
+        };
+      }
+      const trimmed = v.trim();
+      if (!trimmed) continue;
+      const problem = singleLineProblem(`translations.${locale}.${field}`, trimmed);
+      if (problem) return { ok: false, error: "invalid_translations", message: problem };
+      out.push(`    ${field}: ${quoteScalar(trimmed)}`);
+    }
+    if (out.length === 0) {
+      return {
+        ok: false,
+        error: "invalid_translations",
+        message:
+          `translations.${locale} says nothing — give it a title, a tagline, or both. The ` +
+          `reader drops an empty one, so writing it would look like it took.`,
+      };
+    }
+    lines.push(`  ${locale}:`, ...out);
+  }
+  return { ok: true, lines };
+}
 
 export type CreateTripResult =
   | { ok: true; id: string; ref: string }
@@ -84,7 +401,8 @@ export type CreateTripResult =
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function createTrip(username: string, input: NewTrip): CreateTripResult {
-  if (!getUser(username)) {
+  const user = getUser(username);
+  if (!user) {
     return { ok: false, error: "no_such_journal", message: `No journal called "${username}".` };
   }
 
@@ -236,6 +554,22 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     };
   }
 
+  /**
+   * The three block fields, all validated before anything is on disk — B207.
+   *
+   * Deliberately before the `mkdirSync` below rather than woven into the
+   * frontmatter array: a refusal that has already made the folder is the B204
+   * failure again, and these are the fields with the most ways to be wrong.
+   */
+  const blocks: BlockResult[] = [
+    peopleBlock(input.people),
+    ratesBlock(input.rates),
+    translationsBlock(input.translations, user.locales),
+  ];
+  for (const block of blocks) {
+    if (!block.ok) return { ok: false, error: block.error, message: block.message };
+  }
+
   const front: string[] = [
     "---",
     `id: ${id}`,
@@ -261,6 +595,12 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     // flag look like a routine part of a trip file rather than the unusual
     // thing it is.
     ...(input.test === true ? ["test: true"] : []),
+    // Each is written only when it says something, on the same reasoning as
+    // `listed:` and `test:` above: `people:` with nothing under it, or an
+    // empty `rates:`, is a key a person opening the file has to decide to
+    // ignore. `blocks` is empty-safe — an absent or empty field yields no
+    // lines at all.
+    ...blocks.flatMap((b) => (b.ok ? b.lines : [])),
     "---",
     "",
     input.intro?.trim() ? input.intro.trim() : "",

@@ -54,6 +54,92 @@ three are the same shape.
 Not doing: a general trip-update endpoint. That is a bigger question than this
 capture, which is only about the fields the reader already understands.
 
+## What was done
+
+Four decisions, one per field. Three writers and one reasoned no.
+
+**`people` — accepted, on create, owner only.** This is the one the ticket said
+to argue about, and the argument came out the other way from where it started.
+Accepting it does hand an agent the ability to say who may write — but
+`createTrip` is already refused to a trip-scoped token, so the authority being
+spent is one that could already write anything in the journal; and a trip made
+by this call is *empty*, so there is no existing content for a name to widen
+access to. Naming an address grants nothing on its own either: whoever holds it
+still has to prove it through `/api/auth/request`. What is left is the byline,
+which `peopleOf()` renders from the file alone and which had no route at all.
+
+Changing the list on a trip that already holds days is the case this is not,
+and it is the one worth the caution the ticket had — captured as **B245**.
+
+Validated in `peopleBlock` (`lib/tripWrite.ts`) and **refused, never dropped**:
+`parsePeople` fails closed because a reader has nobody to tell, and a writer
+does. `PERSON_EMAIL_RE` is now exported from `lib/trips.ts` so the two agree
+about what an address is — the three-regex problem that turned up while doing
+it is **B247**.
+
+**`rates` — accepted.** Nothing about it has to wait: the number is a judgement
+about what the trip cost (B17), and whoever writes the trip up either holds it
+or does not. Both doors carry the direction in words, because it is the mistake
+the model invites — units of the base currency for one unit of the keyed
+currency, so a currency worth less than the base one gets a small number. A
+value only expressible in exponent form is refused rather than written, because
+`String(1e-7)` is `"1e-7"` and YAML reads that back as text.
+
+**`translations` — accepted, for locales the journal declares.** A translation
+into a language nothing renders is the inert write B182 refused to ship, so a
+locale outside the journal's `locales` is refused and the message names the
+call that adds one — which since B220 exists.
+
+**`cover` — no, and this is the decision rather than an omission.** At the
+moment `createTrip` runs the folder is being made: `media/` does not exist, and
+`POST /api/v1/<user>/trips/<trip>/media` refuses a batch that does not name a
+day, so no photograph can arrive until a day has. Any value a caller could send
+would name a file that is not there, and the trips index and the OG card would
+draw a broken image rather than nothing. It stays file-only;
+`.claude/skills/add-a-trip/SKILL.md` now has the `cover:` bullet saying how to
+write it by hand and why no call takes it, and **B245** is the call it belongs
+on.
+
+Written down in three places, not one: `NewTrip` in `lib/tripWrite.ts`, the
+skill, and `/agent.md`.
+
+### Where
+
+- `lib/tripWrite.ts` — `peopleBlock`, `ratesBlock`, `translationsBlock`,
+  `yamlNumber`, validated before `mkdirSync` so a refusal never leaves a folder
+  behind (B204's lesson); the `cover` decision in the `NewTrip` docblock.
+- `lib/trips.ts` — `PERSON_EMAIL_RE` and `KNOWN_TRIP_FIELDS` exported.
+- `lib/locales.ts` — `LOCALE_TAG_RE`, one copy shared with B220's writer.
+- `app/api/v1/[user]/trips/route.ts:117` and `lib/mcp/tools.ts` (`createTripTool`
+  and the `create_trip` `inputSchema`) — the two doors.
+- `/agent.md` (`lib/api/documentation.ts`) and `/openapi.json` document all
+  three, and say there is no `cover`.
+
+### Evidence
+
+- *"For each of the four, a writer with a round-trip test, or a sentence saying
+  why it stays file-only."* — `npx vitest run test/journals.test.ts -t "the
+  trip fields that had no writer"`: 16 tests, and the same 14 fail against
+  `git show HEAD:lib/tripWrite.ts`. The both-doors round trip is
+  `test/mcp.test.ts`, "all three land in the file, read back, and both doors
+  write it identically", which asserts the REST byte-for-byte equal to MCP's.
+  `cover` has the sentence above, the skill bullet, and two tests that no door
+  offers it.
+- *"Nothing in `KNOWN_TRIP_FIELDS` is left undecided."* — asserted rather than
+  claimed: `test/journals.test.ts`, "every field the reader knows is now either
+  written or decided", holds the written list plus the one decided against
+  against the exported set, so a fifteenth field added without a decision fails
+  the suite.
+- `npm run build` ✓, `npx tsc --noEmit` ✓, `npx eslint .` 0 errors (4
+  pre-existing warnings), `npx vitest run` 2270 passed / 3 skipped.
+
+### Captured, not absorbed
+
+**B245** (a trip.md cannot be changed after creation — the home for `cover` and
+for correcting the other three), **B246** (`/openapi.json` never documented
+B178's `costsVisibility` on this endpoint), **B247** (three regexes for an email
+address, two of which disagree).
+
 ## Acceptance
 
 - For each of the four, the file records either a writer with a round-trip

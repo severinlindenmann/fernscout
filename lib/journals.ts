@@ -2,11 +2,12 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { hasSwitchedOff, isEnabled, resolveCapabilities } from "./capabilities";
-import { clearConfigCache, FEATURE_NAMES, type FeatureName, type JournalVisibility } from "./config";
+import { clearConfigCache, FEATURE_NAMES, type FeatureName, type JournalVisibility, type UserConfig } from "./config";
 import { contentRoot } from "./contentRoot";
+import { normalizeCurrency, type RateTable } from "./currency";
 import { issueStandingLink, signInUrl } from "./auth";
 import type { TranslationKey } from "./i18n";
-import { translateIn } from "./locales";
+import { LOCALE_TAG_RE, translateIn } from "./locales";
 import { sendMail } from "./mail";
 import { renderMail } from "./mail/template";
 import { serverSite } from "./site";
@@ -405,6 +406,79 @@ export async function sendWelcome(input: {
 }
 
 /**
+ * Edit `content/<user>/config.json` in place, and put it back if it breaks.
+ *
+ * The one shape both writers of that file share, extracted when B220 added the
+ * second one. Three properties, and each is load-bearing:
+ *
+ * - **Edited, not regenerated.** The callback is handed the parsed JSON and
+ *   returns it changed, so keys this version of the code has never heard of —
+ *   a transport, a provider, something an operator added — survive a write.
+ * - **Nothing is written for a config that will not parse.** A caller cannot
+ *   silently repair a broken file by writing over it.
+ * - **Read back through `getUser`, and restored if it does not load.** A
+ *   config that fails `parseUser` takes the whole journal off the site, at
+ *   every reading path at once. That is not something a call like this gets to
+ *   do to somebody, and discovering it later is worse than the refusal. B204
+ *   is the same lesson one file over, where a trip.md that did not read back
+ *   consumed its id for good.
+ *
+ * The callback returns `null` for "nothing to write", which is how a change
+ * that asks for exactly what is already there costs no write at all.
+ */
+type ConfigEdit = (raw: Record<string, unknown>) => Record<string, unknown> | null;
+
+function editUserConfigFile(
+  username: string,
+  edit: ConfigEdit,
+): { ok: true; wrote: boolean } | { ok: false; error: string; message: string } {
+  const file = path.join(contentRoot(), username, "config.json");
+  let previous: string;
+  let raw: Record<string, unknown>;
+  try {
+    previous = fs.readFileSync(file, "utf8");
+    const parsed: unknown = JSON.parse(previous);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      throw new Error("not an object");
+    }
+    raw = parsed as Record<string, unknown>;
+  } catch {
+    return {
+      ok: false,
+      error: "unreadable_config",
+      message:
+        `content/${username}/config.json could not be read as JSON, so nothing was changed. ` +
+        `Fix the file first — this call edits it in place and will not overwrite what it ` +
+        `cannot parse.`,
+    };
+  }
+
+  const next = edit(raw);
+  if (!next) return { ok: true, wrote: false };
+
+  fs.writeFileSync(file, JSON.stringify(next, null, 2) + "\n", "utf8");
+  clearUserCache();
+  clearConfigCache();
+
+  if (!getUser(username)) {
+    // Put it back. A journal whose config does not parse is invisible at
+    // every reading path, and this call is not the thing that gets to do
+    // that to somebody.
+    fs.writeFileSync(file, previous, "utf8");
+    clearUserCache();
+    clearConfigCache();
+    return {
+      ok: false,
+      error: "write_failed",
+      message:
+        `The change was written and did not read back, so it has been undone and ` +
+        `content/${username}/config.json is exactly as it was.`,
+    };
+  }
+  return { ok: true, wrote: true };
+}
+
+/**
  * Change which capabilities a journal has asked for — B182.
  *
  * ## Why this exists
@@ -520,69 +594,413 @@ export function setJournalFeatures(
     }
   }
 
-  const file = path.join(contentRoot(), username, "config.json");
-  let previous: string;
-  let raw: Record<string, unknown>;
-  try {
-    previous = fs.readFileSync(file, "utf8");
-    const parsed: unknown = JSON.parse(previous);
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      throw new Error("not an object");
-    }
-    raw = parsed as Record<string, unknown>;
-  } catch {
-    return {
-      ok: false,
-      error: "unreadable_config",
-      message:
-        `content/${username}/config.json could not be read as JSON, so nothing was changed. ` +
-        `Fix the file first — this call edits it in place and will not overwrite what it ` +
-        `cannot parse.`,
-    };
-  }
-
-  const existing =
-    typeof raw.features === "object" && raw.features !== null && !Array.isArray(raw.features)
-      ? { ...(raw.features as Record<string, unknown>) }
-      : {};
-
   const changed: FeatureName[] = [];
-  for (const [name, enabled] of wanted) {
-    if (user.features[name].enabled === enabled) continue;
-    const entry =
-      typeof existing[name] === "object" && existing[name] !== null && !Array.isArray(existing[name])
-        ? { ...(existing[name] as Record<string, unknown>) }
+  const written = editUserConfigFile(username, (raw) => {
+    const existing =
+      typeof raw.features === "object" && raw.features !== null && !Array.isArray(raw.features)
+        ? { ...(raw.features as Record<string, unknown>) }
         : {};
-    // Only `enabled`. A transport or a provider chosen by hand survives this.
-    existing[name] = { ...entry, enabled };
-    changed.push(name);
-  }
-
-  if (changed.length > 0) {
-    fs.writeFileSync(file, JSON.stringify({ ...raw, features: existing }, null, 2) + "\n", "utf8");
-    clearUserCache();
-    clearConfigCache();
-
-    const after = getUser(username);
-    if (!after) {
-      // Put it back. A journal whose config does not parse is invisible at
-      // every reading path, and this call is not the thing that gets to do
-      // that to somebody.
-      fs.writeFileSync(file, previous, "utf8");
-      clearUserCache();
-      clearConfigCache();
-      return {
-        ok: false,
-        error: "write_failed",
-        message:
-          `The change was written and did not read back, so it has been undone and ` +
-          `content/${username}/config.json is exactly as it was.`,
-      };
+    for (const [name, enabled] of wanted) {
+      if (user.features[name].enabled === enabled) continue;
+      const entry =
+        typeof existing[name] === "object" && existing[name] !== null && !Array.isArray(existing[name])
+          ? { ...(existing[name] as Record<string, unknown>) }
+          : {};
+      // Only `enabled`. A transport or a provider chosen by hand survives this.
+      existing[name] = { ...entry, enabled };
+      changed.push(name);
     }
-  }
+    return changed.length > 0 ? { ...raw, features: existing } : null;
+  });
+  if (!written.ok) return written;
 
   const now = getUser(username) ?? user;
   const features = {} as Record<FeatureName, boolean>;
   for (const name of FEATURE_NAMES) features[name] = now.features[name].enabled;
   return { ok: true, username, features, changed };
+}
+
+/**
+ * The rest of a journal's `config.json` — B220.
+ *
+ * ## Why there is a second writer
+ *
+ * B182 gave the `features` block a door and deliberately stopped there. What
+ * it left frozen was everything a journal *says about itself*: a title typoed
+ * at signup, a tagline nobody can fix, a language the owner wants to add. The
+ * person who owns the journal has never seen the folder (B28), so "edit
+ * config.json" is advice with nowhere to go, and there is no settings page and
+ * will not be one (decision 24).
+ *
+ * ## What it writes, and what it refuses
+ *
+ * B220 asked for a decision per field rather than for the file to be opened,
+ * because these do not deserve the same care. `JOURNAL_PROFILE_FIELDS` is the
+ * whole accepted list. Three fields are refused, each for its own reason, and
+ * `JOURNAL_FIELD_REFUSALS` carries the sentence the caller is told:
+ *
+ * - **`owner.email`** — the address that decides who can obtain a token for
+ *   this journal (decision 24). A token issued because of that address must
+ *   not be able to move it: nothing inside a boundary may move the boundary.
+ *   That refusal is B182's and is unchanged.
+ * - **`baseCurrency`** — the field that reads like a display setting and is
+ *   not. A cost written without a `currency:` **is** a cost in the base
+ *   currency (`lib/entries.ts`, `lib/costs.ts`), so changing it does not
+ *   reconvert anything: it silently changes what every bare amount ever
+ *   written *meant*. A journal with one trip in it would have its money
+ *   re-read rather than re-priced, with no error anywhere and no way back
+ *   except editing every entry. It is safe exactly once, when the journal is
+ *   created, and that is where it stays — `create_journal` takes it.
+ * - **`media`** — the journal's narrowing of the server's upload limits. The
+ *   server is already a ceiling over it (`narrowest()`, lib/mediaLimits.ts),
+ *   so the only thing an agent could achieve is to make the journal accept
+ *   *less* than the operator allows, and asking for more is not refused but
+ *   silently narrowed away. Writing something inert is precisely what B182
+ *   would not ship; the audience for this block is the operator, who has the
+ *   file.
+ *
+ * ## Two calls, not one
+ *
+ * A body naming both `features` and one of these is refused by the route
+ * rather than half-applied — see the note there. Each call edits the file
+ * once, whole or not at all, which is the property `editUserConfigFile`
+ * exists for.
+ */
+export const JOURNAL_PROFILE_FIELDS = [
+  "title",
+  "tagline",
+  "visibility",
+  "startLocation",
+  "units",
+  "locales",
+  "defaultLocale",
+  "displayCurrencies",
+  "manualRates",
+] as const;
+
+export type JournalProfileField = (typeof JOURNAL_PROFILE_FIELDS)[number];
+
+/** Why a field of `config.json` is not writable through an API. Keyed by the
+ * top-level key a caller would send. */
+export const JOURNAL_FIELD_REFUSALS: Record<string, string> = {
+  owner:
+    "owner.email is never writable here — it is the address that decides who can get a token " +
+    "for this journal, so a token cannot move it. Ask the person who runs the server.",
+  baseCurrency:
+    "baseCurrency is not writable after a journal exists. A cost written without a currency " +
+    "IS a cost in the base currency, so changing it would not reconvert the money — it would " +
+    "silently change what every amount already recorded means. It is set when the journal is " +
+    "created and stays there.",
+  media:
+    "media is the operator's, not the journal's. The server's own limits are already a " +
+    "ceiling over this block, so writing it could only make this journal accept less than the " +
+    "server allows — and asking for more is narrowed away rather than refused, which is a " +
+    "call that appears to do something and does not.",
+};
+
+/** The journal as this call sees it — what it just wrote, plus the one field
+ * a caller has to know to send a usable `displayCurrencies`. */
+export type JournalProfile = {
+  title: string;
+  tagline: string;
+  visibility: JournalVisibility;
+  startLocation: string;
+  units: "metric" | "imperial";
+  locales: string[];
+  defaultLocale: string;
+  displayCurrencies: string[];
+  manualRates: RateTable;
+  /** Read-only here, and included because `displayCurrencies` must contain
+   * it — a caller that cannot see it can only guess. */
+  baseCurrency: string;
+};
+
+export type SetProfileResult =
+  | {
+      ok: true;
+      username: string;
+      journal: JournalProfile;
+      /** The fields this call actually changed, which may be none. */
+      changed: JournalProfileField[];
+    }
+  | { ok: false; error: string; message: string };
+
+/** A journal's writable description, as it stands. Exported so `GET` on the
+ * same endpoint can show what a `PATCH` would be changing. */
+export function journalProfile(user: UserConfig): JournalProfile {
+  return {
+    title: user.title,
+    tagline: user.tagline,
+    visibility: user.visibility,
+    startLocation: user.startLocation,
+    units: user.units,
+    locales: user.locales,
+    defaultLocale: user.defaultLocale,
+    displayCurrencies: user.displayCurrencies,
+    manualRates: user.manualRates,
+    baseCurrency: user.baseCurrency,
+  };
+}
+
+/**
+ * One line of text, trimmed — or the sentence saying why it is not.
+ *
+ * Control characters rather than only newlines: this lands in a JSON string
+ * that is rendered into a `<title>`, an OG tag and a mail subject, and a tab
+ * or a stray escape in a journal's name is nobody's title.
+ */
+function oneLine(field: string, value: unknown): { text: string } | { problem: string } {
+  if (typeof value !== "string") {
+    return { problem: `${field} must be text.` };
+  }
+  if (/[\u0000-\u001f\u007f]/.test(value)) {
+    return {
+      problem:
+        `${field} must be a single line of plain text — it is rendered into the page title, ` +
+        `the sharing card and the journal's mail, none of which have a second line.`,
+    };
+  }
+  return { text: value.trim() };
+}
+
+export function setJournalProfile(
+  username: string,
+  changes: Record<string, unknown>,
+): SetProfileResult {
+  const user = getUser(username);
+  if (!user) {
+    return {
+      ok: false,
+      error: "no_such_journal",
+      message: `There is no journal "${username}" on this server, or its config.json cannot be read.`,
+    };
+  }
+
+  const keys = Object.keys(changes);
+  if (keys.length === 0) {
+    return {
+      ok: false,
+      error: "nothing_to_change",
+      message:
+        `Name at least one field to change: {"title": "…"}. Writable: ` +
+        `${JOURNAL_PROFILE_FIELDS.join(", ")}.`,
+    };
+  }
+
+  /** What to write, and what to remove. A field cleared to "" takes its key
+   * out of the file rather than writing an empty string — `readString` in
+   * lib/config.ts refuses an empty tagline, so `"tagline": ""` would produce a
+   * journal that will not load. */
+  const patch: Record<string, unknown> = {};
+  const remove: string[] = [];
+  const refuse = (error: string, message: string): SetProfileResult => ({
+    ok: false,
+    error,
+    message,
+  });
+
+  for (const key of keys) {
+    if (!(JOURNAL_PROFILE_FIELDS as readonly string[]).includes(key)) {
+      const why = JOURNAL_FIELD_REFUSALS[key];
+      return refuse(
+        "unsupported_field",
+        why ??
+          `"${key}" is not a field this writes. Writable: ${JOURNAL_PROFILE_FIELDS.join(", ")}, ` +
+            `and the features block through its own call.`,
+      );
+    }
+    const value = changes[key];
+
+    switch (key) {
+      case "title":
+      case "tagline":
+      case "startLocation": {
+        const read = oneLine(key, value);
+        if ("problem" in read) return refuse(`invalid_${key}`, read.problem);
+        if (!read.text) {
+          if (key === "title") {
+            return refuse("invalid_title", "A journal needs a title; it cannot be cleared.");
+          }
+          remove.push(key);
+        } else {
+          patch[key] = read.text;
+        }
+        break;
+      }
+
+      case "visibility": {
+        if (value !== "public" && value !== "private") {
+          return refuse(
+            "invalid_visibility",
+            'visibility is "public" or "private", and it decides only whether this server ' +
+              "advertises the journal — on the landing page, in /documentation.txt and in the " +
+              "sitemap. A private journal is unlisted, not locked: who may read a journey is " +
+              "still that trip's own visibility. Ask the person before making a journal public.",
+          );
+        }
+        patch.visibility = value;
+        break;
+      }
+
+      case "units": {
+        if (value !== "metric" && value !== "imperial") {
+          return refuse("invalid_units", 'units is "metric" or "imperial".');
+        }
+        patch.units = value;
+        break;
+      }
+
+      case "locales": {
+        if (!Array.isArray(value) || value.length === 0) {
+          return refuse(
+            "invalid_locales",
+            'locales is a non-empty list of language codes, most preferred first: ["de", "en"]. ' +
+              "A journal may offer a language this software ships no menus for — the content " +
+              "translations work and the chrome falls back to English.",
+          );
+        }
+        const out: string[] = [];
+        for (const item of value) {
+          if (typeof item !== "string" || !LOCALE_TAG_RE.test(item)) {
+            return refuse(
+              "invalid_locales",
+              `locales has ${JSON.stringify(item)}; each entry is a language code like "de" ` +
+                `or "pt-BR", not a language name.`,
+            );
+          }
+          if (!out.includes(item)) out.push(item);
+        }
+        patch.locales = out;
+        break;
+      }
+
+      case "defaultLocale": {
+        if (typeof value !== "string" || !LOCALE_TAG_RE.test(value)) {
+          return refuse(
+            "invalid_defaultLocale",
+            `defaultLocale is a language code like "de", got ${JSON.stringify(value)}.`,
+          );
+        }
+        patch.defaultLocale = value;
+        break;
+      }
+
+      case "displayCurrencies": {
+        if (!Array.isArray(value) || value.length === 0) {
+          return refuse(
+            "invalid_displayCurrencies",
+            'displayCurrencies is a non-empty list of three-letter codes: ["CHF", "EUR"]. It is ' +
+              "which currencies a reader can see the totals in.",
+          );
+        }
+        const out: string[] = [];
+        for (const item of value) {
+          const code = typeof item === "string" ? normalizeCurrency(item) : null;
+          if (!code) {
+            return refuse(
+              "invalid_displayCurrencies",
+              `displayCurrencies has ${JSON.stringify(item)}; each entry is a three-letter ` +
+                `currency code.`,
+            );
+          }
+          if (!out.includes(code)) out.push(code);
+        }
+        const base = normalizeCurrency(user.baseCurrency) ?? user.baseCurrency.toUpperCase();
+        if (!out.includes(base)) {
+          return refuse(
+            "invalid_displayCurrencies",
+            `displayCurrencies must include this journal's base currency, ${base} — every ` +
+              `total is computed in it, and a list without it is a config the site refuses to ` +
+              `load. The base currency itself is not writable here.`,
+          );
+        }
+        patch.displayCurrencies = out;
+        break;
+      }
+
+      case "manualRates": {
+        if (typeof value !== "object" || value === null || Array.isArray(value)) {
+          return refuse(
+            "invalid_manualRates",
+            'manualRates is an object of currency code to number: {"VND": 30500}. The ' +
+              "convention is the ECB's — units of that currency for one EURO, so a currency " +
+              "worth less than the euro has a LARGE number. This is the opposite direction " +
+              "from a trip's own rates: block, which is base-per-unit. Send null for a code " +
+              "to remove it.",
+          );
+        }
+        // Merged rather than replaced, so a caller can correct one currency
+        // without holding the rest of the table. `null` removes a code —
+        // otherwise a rate typed wrongly could never be taken out again.
+        const merged: Record<string, number> = { ...user.manualRates };
+        for (const [rawCode, rawRate] of Object.entries(value as Record<string, unknown>)) {
+          const code = normalizeCurrency(rawCode);
+          if (!code) {
+            return refuse(
+              "invalid_manualRates",
+              `manualRates has key "${rawCode}"; each key is a three-letter currency code.`,
+            );
+          }
+          if (rawRate === null) {
+            delete merged[code];
+            continue;
+          }
+          const n = typeof rawRate === "string" ? Number(rawRate) : rawRate;
+          if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) {
+            return refuse(
+              "invalid_manualRates",
+              `manualRates.${code} must be a positive number of ${code} for one EUR, got ` +
+                `${JSON.stringify(rawRate)}. Send null to remove it.`,
+            );
+          }
+          merged[code] = n;
+        }
+        patch.manualRates = merged;
+        break;
+      }
+    }
+  }
+
+  /**
+   * The one cross-field rule, checked here rather than discovered by the
+   * read-back.
+   *
+   * `parseUser` treats a `defaultLocale` outside `locales` as a config problem,
+   * which takes the whole journal off the site — so without this the honest
+   * outcome would be `write_failed` and a caller with no idea which half was
+   * wrong. Checked against the *result*, so either field may arrive alone.
+   */
+  const nextLocales = (patch.locales as string[] | undefined) ?? user.locales;
+  const nextDefault = (patch.defaultLocale as string | undefined) ?? user.defaultLocale;
+  if (!nextLocales.includes(nextDefault)) {
+    return refuse(
+      "invalid_locales",
+      `defaultLocale "${nextDefault}" is not in locales [${nextLocales.join(", ")}], and a ` +
+        `journal whose config says that does not load at all. Send both together, or add the ` +
+        `language before making it the default.`,
+    );
+  }
+
+  const before = journalProfile(user);
+  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const changed: JournalProfileField[] = [];
+  for (const field of JOURNAL_PROFILE_FIELDS) {
+    // Cleared: a change only if there was something there to clear.
+    if (remove.includes(field)) {
+      if (before[field] !== "") changed.push(field);
+    } else if (field in patch && !same(patch[field], before[field])) {
+      changed.push(field);
+    }
+  }
+
+  const written = editUserConfigFile(username, (raw) => {
+    if (changed.length === 0) return null;
+    const next = { ...raw, ...patch };
+    for (const key of remove) delete next[key];
+    return next;
+  });
+  if (!written.ok) return written;
+
+  const now = getUser(username) ?? user;
+  return { ok: true, username, journal: journalProfile(now), changed };
 }

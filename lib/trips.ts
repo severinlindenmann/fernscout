@@ -116,9 +116,18 @@ export function mediaWithOwner(src: unknown, owner: string | undefined): string 
  */
 export const MAX_TRIP_PEOPLE = 10;
 
-/** Deliberately loose. The address has to survive a round trip through a mail
- * server, not satisfy RFC 5322; anything stricter rejects real addresses. */
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/**
+ * Deliberately loose. The address has to survive a round trip through a mail
+ * server, not satisfy RFC 5322; anything stricter rejects real addresses.
+ *
+ * Exported because `createTrip` now writes a `people:` block and has to refuse
+ * exactly what this would drop. A writer with its own idea of an address is
+ * how you get a 201 for a list the reader then ignores whole — the shape B204
+ * cost us one file over, where two copies of the same quoting helper were both
+ * wrong in the same way.
+ */
+export const PERSON_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_RE = PERSON_EMAIL_RE;
 
 /**
  * The `people:` block — who took this trip.
@@ -323,7 +332,15 @@ function parseVisibility(
  * A typo is the common case and is harmless here; a key the project has
  * *withdrawn* is not, and the boot check is what catches those.
  */
-const KNOWN_TRIP_FIELDS = new Set([
+/**
+ * The whole vocabulary of a `trip.md`, and the list B207 was about.
+ *
+ * Exported so a test can hold `createTrip` to it: every field here is either
+ * written by a door or decided against in writing, and a fifteenth added
+ * without that decision fails rather than joining the three that were read,
+ * rendered and unreachable for a year.
+ */
+export const KNOWN_TRIP_FIELDS = new Set([
   "id",
   "title",
   "tagline",

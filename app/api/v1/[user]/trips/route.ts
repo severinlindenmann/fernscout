@@ -122,6 +122,14 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     listed: typeof body.listed === "boolean" ? body.listed : undefined,
     test: body.test === true,
     intro: str("intro"),
+    // The three block fields, raw for the same reason `costsVisibility` is:
+    // `createTrip` names the entry and the key that is wrong, and coercing
+    // here would throw that away. `cover` is not among them and that is the
+    // decision rather than an omission — see `NewTrip` in lib/tripWrite.ts.
+    // B207.
+    people: body.people,
+    rates: body.rates,
+    translations: body.translations,
   });
 
   if (!created.ok) {
