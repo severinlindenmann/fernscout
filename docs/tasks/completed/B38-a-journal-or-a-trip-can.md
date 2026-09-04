@@ -8,6 +8,7 @@ area: api, journals, trips, mail, auth
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-04T06:44:35Z"
 ---
 
 # B38 — A journal or a trip can be created through the API but never removed
@@ -263,3 +264,61 @@ should say so in the mail rather than imply a completeness it does not have.
   match what ships.
 - Old URLs answer `410`.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.
+
+## Live verification, 2026-09-04 (deployed d564bce) — end to end on a real journal
+
+Driven against `xydhd-qa3`, a campaign QA journal, and completed by the owner
+pressing the button.
+
+**The 202 removes nothing.** `DELETE /api/v1/xydhd-qa3` answered
+`{"ok":true,"deleted":false,"status":"confirmation_sent",...}` with the blast
+radius stated (`trips: 0, days: 0, files: 11, 40 kB`), and afterwards the
+journal directory was still on disk, `/xydhd-qa3/trips` still answered 200, and
+no tombstone existed. The body tells the agent what to say, in as many words:
+*"Do not report this as deleted."*
+
+**`agentConfirm` is not the guard, and this was tested rather than read.**
+`lib/deletions.ts:30-32` explains why it must not be — "deliberately not
+single-use" — and a fabricated `cf_…` code sent as `confirm` to the DELETE
+endpoint did **not** complete anything: it simply issued a second mail and
+returned `deleted: false` again. The deletion token is stored through
+`hashSecret`, lives 60 minutes (`DELETION_TTL_MS`), and
+`app/[user]/delete/[token]` does not delete on GET — the same property B142
+established for sign-in links.
+
+**After the owner pressed the button:**
+
+```
+content/.deleted/xydhd-qa3.json   written
+content/xydhd-qa3/                gone
+
+/xydhd-qa3                    410      /xydhd-qa3/documentation.txt  410
+/xydhd-qa3/trips              410      /xydhd-qa3/feed.xml           410
+/xydhd-qa3/me                 410      /xydhd-qa3/day/anything.md    410
+```
+
+Six routes including the markdown twin, which is B61's ground and agrees.
+The name staying reserved is proven separately for `alpenweg`: a signup token
+aimed at a deleted name answers `400 deleted_username` ("…belonged to a journal
+that was deleted on 2026-09-01, and this server does not hand a name back").
+Re-checking it for `xydhd-qa3` hit the `journals-create` 5/hour limit — which
+is itself a live instance of **B217**.
+
+## The security observation, stated plainly
+
+**The mailed barrier is structural against an agent that only speaks HTTP, and
+instruction-only against one with shell access.** With `features.mail.keepCopy`
+on — as it is in production, deliberately, so these flows can be tested at all —
+the deletion link is written in plaintext to
+`content/<user>/mail/`. It took one command to read
+`https://fernscout.ch/xydhd-qa3/delete/NpUeys…` off disk. It was **not
+followed**; a person pressed the button.
+
+That is not a defect in B38 and it does not weaken what the ticket claims —
+`AGENTS.md` is careful to say the guarantee is that *writing can never publish*
+and that the rest is instruction. B57's own security note already records that
+anyone who can read the filesystem can finish a deletion. It is worth restating
+here because this ticket is where somebody will look for the answer to "can an
+agent delete a journal", and the honest answer depends on whether that agent has
+the server.
+
