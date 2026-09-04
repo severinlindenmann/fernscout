@@ -2,9 +2,10 @@
 
 import { FileWarning } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
+import { useTrip } from "./TripProvider";
 
 /**
- * The banner on a day only its owner can see.
+ * The banner on a day that is not on the site yet.
  *
  * Loud on purpose. The failure this guards against is the author reading their
  * own site, seeing a day an agent wrote, and assuming their family has seen it
@@ -24,6 +25,23 @@ import { useI18n } from "./LocaleProvider";
 
 export default function DraftNotice() {
   const { t } = useI18n();
+  /**
+   * Two readers now, and the old copy was false to the second in both halves
+   * — B327.
+   *
+   * "Draft — only you can see this" and "tell your agent to publish it when
+   * you are happy with it" were written when a draft was the owner's alone.
+   * Somebody on the trip sees them too, and cannot publish: told the owner's
+   * version, they would go looking for a publish call that will refuse them,
+   * which is the shape B293 recorded — an agent with no correct call available
+   * and nothing saying so invents one.
+   *
+   * `canPublish` rather than "is the owner" because that is the distinction
+   * the sentence turns on. Null context — a draft outside a trip page — takes
+   * the narrower copy, which is the safe direction: it never tells anybody
+   * that a day is theirs to publish.
+   */
+  const canPublish = useTrip()?.canPublish ?? false;
   return (
     <div
       role="note"
@@ -32,8 +50,8 @@ export default function DraftNotice() {
     >
       <FileWarning className="mt-0.5 h-5 w-5 shrink-0 text-navy-900" aria-hidden />
       <div className="min-w-0">
-        <p className="font-display text-base font-semibold text-navy-900">{t("draft.title")}</p>
-        <p className="mt-1 text-sm leading-6 text-navy-900">{t("draft.body")}</p>
+        <p className="font-display text-base font-semibold text-navy-900">{t(canPublish ? "draft.title" : "draft.titleShared")}</p>
+        <p className="mt-1 text-sm leading-6 text-navy-900">{t(canPublish ? "draft.body" : "draft.bodyShared")}</p>
       </div>
     </div>
   );

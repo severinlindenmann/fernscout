@@ -26,6 +26,20 @@ import { clearUserCache } from "@/lib/users";
  * because that is the only thing that changed.
  */
 
+/**
+ * No cookie, on every call — B327.
+ *
+ * These pages used to ask `isOwner` and nothing else, which the helper below
+ * mocks. They now ask `draftsVisibleTo`, which falls through to
+ * `isTravellerOn` when the viewer is not the owner, and that reads the jar. An
+ * empty one is exactly what this fixture's "stranger" is, and it needs no
+ * database: `lookUpSession` returns null for an absent token before it opens
+ * one.
+ */
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+}));
+
 let dir: string;
 
 function entry(name: string, date: string, photos: number, draft: boolean) {

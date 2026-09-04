@@ -33,10 +33,14 @@ export default function MapPageContent({
   // Day permalinks hang off the trip in view — `/example/day/…` for the
   // current trip, `/example/trips/<id>/day/…` for any other.
   const href = useTrip()?.href ?? ((p: string) => p);
+  // Whether the draft stops below are this reader's own to publish — B327.
+  const canPublish = useTrip()?.canPublish ?? false;
   const [showing, setShowing] = useState(false);
   const remaining = plan.filter((s) => !s.reached);
-  // Only ever true for the owner — `getPlan` only tags a stop `fromDraft` when
-  // it was asked to include drafts, which only the owner's page does.
+  // `getPlan` only tags a stop `fromDraft` when it was asked to include
+  // drafts, and since B327 that is the owner *or* somebody on the trip — so
+  // this is no longer only ever true for the owner, and the caption below has
+  // to say which reader it is talking to.
   const hasDraftStops = plan.some((s) => s.fromDraft);
   // Everything on this page is one of two kinds: a record of travel already
   // made, or the route still intended. An upcoming trip has only the second,
@@ -128,10 +132,13 @@ export default function MapPageContent({
               {reachedCount}/{plan.length} {t("map.progress")}
             </span>
             {hasDraftStops && (
-              // Visible to nobody but the owner (see `hasDraftStops`), so this
-              // is the one place on the site allowed to say "draft" out loud
-              // without it meaning an entry is showing through.
-              <span>{t("map.plannedFromDrafts")}</span>
+              // Visible only to somebody who may see the drafts themselves
+              // (see `hasDraftStops`), so this is the one place on the site
+              // allowed to say "draft" out loud without it meaning an entry is
+              // showing through.
+              <span>
+                {t(canPublish ? "map.plannedFromDrafts" : "map.plannedFromDraftsShared")}
+              </span>
             )}
           </div>
         )}

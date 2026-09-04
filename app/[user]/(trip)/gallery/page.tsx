@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
-import { mayReadTrip } from "@/lib/tripGate";
+import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
 import GalleryPageContent from "./GalleryPageContent";
 import { getAllMedia, getPlaces } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import TripProvider from "@/components/TripProvider";
-import { isOwner } from "@/lib/contacts/session";
 
 /**
  * Two languages on purpose.
@@ -45,11 +44,11 @@ export default async function GalleryPage({ params }: PageProps<"/[user]/gallery
   // B318: this page called getAllMedia/getPlaces with no options at all, so
   // it filtered drafts out for every viewer, owner included — the one
   // reading path in the trip that never checked who was asking.
-  const owner = await isOwner(user);
-  const read = { includeDrafts: owner };
+  const drafts = await draftsVisibleTo(trip);
+  const read = { includeDrafts: drafts.visible };
 
   return (
-    <TripProvider trip={trip} isCurrent>
+    <TripProvider trip={trip} isCurrent canPublish={drafts.canPublish}>
       <GalleryPageContent media={getAllMedia(tripId, read)} places={getPlaces(tripId, read)} />
     </TripProvider>
   );

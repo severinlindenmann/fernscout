@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { isOpenToLink, maySeeCosts } from "./access";
 import { GUEST_COOKIE, resolveSession } from "./auth";
 import { isEnabled } from "./capabilities";
-import { isJournalGuest, journalReader } from "./contacts/session";
+import { isJournalGuest, isOwner, journalReader } from "./contacts/session";
 import { isPersonOn, isPersonOnWith, redeemedTripsFor } from "./tripPeople";
 import type { Trip } from "./types";
 
@@ -74,6 +74,55 @@ export async function isTravellerOn(trip: Trip): Promise<boolean> {
   const session = await resolveSession(jar.get(GUEST_COOKIE)?.value, "guest");
   if (!session || session.owner !== trip.username) return false;
   return isPersonOn(trip, session.email);
+}
+
+/** What a reader may do with this trip's unpublished days. */
+export type DraftAccess = {
+  /** Whether they may see them at all. */
+  visible: boolean;
+  /** Whether putting one on the site is theirs to do — the owner, and nobody
+   * else. Carried beside `visible` because the two come apart for exactly the
+   * person this exists for, and the copy on the page has to say which. */
+  canPublish: boolean;
+};
+
+/**
+ * Who may see this trip's drafts — B327.
+ *
+ * **The owner, or somebody on the trip.** That is not a new rule: it is the
+ * one the API has enforced since B296, where `GET .../days` reads with
+ * `includeDrafts: true` behind `mayWriteTrip` and its comment says the gate
+ * "already establishes the caller may see them: owner, or somebody on the
+ * trip". The *site* asked a narrower question — `isOwner(user)`, at nine
+ * reading paths — so the codebase held two answers and the narrower one was on
+ * the surface a person actually reads.
+ *
+ * What that cost, once B320 told a buddy they could write: they hand a prompt
+ * to an agent, the agent writes a day, everything it writes lands as a draft
+ * by design, and the day is then absent from the trip page, its own URL, the
+ * gallery and the map. Nothing errors. The readings available to them are "the
+ * agent lied" or "the site is broken", and neither is true. AGENTS.md says the
+ * draft default is "a courtesy to them, not a gate against you" — a person who
+ * may write the day and cannot read it back was the one case where that
+ * sentence was false.
+ *
+ * **Per trip, never per journal**, which `isTravellerOn` gets right for free:
+ * it checks the session is for this journal and then asks `isPersonOn` about
+ * *this* trip. Somebody on one trip learns nothing about another's unfinished
+ * days, including one they may otherwise read.
+ *
+ * A guest of the journal is not a traveller and gets nothing. Being let in to
+ * read is not being on the trip, and `viewer.guest` is deliberately not
+ * consulted here.
+ *
+ * `request` is threaded to `isOwner` alone, which accepts a bearer token as
+ * well as a cookie — `story.json` passes one and must keep behaving as it did.
+ * The traveller half stays cookie-only, matching `isTravellerOn`: this is
+ * somebody reading the site in a browser, and an agent has the API.
+ */
+export async function draftsVisibleTo(trip: Trip, request?: Request): Promise<DraftAccess> {
+  if (await isOwner(trip.username, request)) return { visible: true, canPublish: true };
+  return { visible: await isTravellerOn(trip), canPublish: false };
 }
 
 /**

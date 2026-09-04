@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { mayReadTrip } from "@/lib/tripGate";
+import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import GalleryPageContent from "@/app/[user]/(trip)/gallery/GalleryPageContent";
 import { getAllMedia, getPlaces } from "@/lib/entries";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUsernames } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
-import { isOwner } from "@/lib/contacts/session";
 
 export function generateStaticParams() {
   return getUsernames().flatMap((user) => {
@@ -52,11 +51,11 @@ export default async function TripGalleryPage({
   // B318: this page called getAllMedia/getPlaces with no options at all, so
   // it filtered drafts out for every viewer, owner included — the one
   // reading path in the trip that never checked who was asking.
-  const owner = await isOwner(user);
-  const read = { includeDrafts: owner };
+  const drafts = await draftsVisibleTo(trip);
+  const read = { includeDrafts: drafts.visible };
 
   return (
-    <TripProvider trip={trip} isCurrent={false}>
+    <TripProvider trip={trip} isCurrent={false} canPublish={drafts.canPublish}>
       <GalleryPageContent media={getAllMedia(trip.ref, read)} places={getPlaces(trip.ref, read)} />
     </TripProvider>
   );

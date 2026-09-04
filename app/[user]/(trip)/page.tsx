@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { draftsVisibleTo, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getAllEntries } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { buildStoryProps } from "@/lib/tripView";
@@ -8,7 +8,6 @@ import TripProvider from "@/components/TripProvider";
 import { siteSummary, travellersOf } from "@/lib/site";
 import { getDefaultUsername, getUser } from "@/lib/users";
 import TripStory from "@/app/TripStory";
-import { isOwner } from "@/lib/contacts/session";
 
 export default async function Home({ params }: PageProps<"/[user]">) {
   const { user } = await params;
@@ -23,14 +22,17 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(current))) return null;
 
+  // B327: the owner, or somebody on the trip. `canPublish` travels with it
+  // because the draft banner has to say which of the two is reading.
+  const drafts = await draftsVisibleTo(current);
   const { trip, index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(tripId, {
     showCosts: await mayViewCosts(current),
-    includeDrafts: await isOwner(user),
+    includeDrafts: drafts.visible,
   });
   const userConfig = getUser(user);
   if (!userConfig) notFound();
   return (
-    <TripProvider trip={trip} isCurrent>
+    <TripProvider trip={trip} isCurrent canPublish={drafts.canPublish}>
       <BlogStructuredData
         entries={getAllEntries(tripId)}
         site={site}
