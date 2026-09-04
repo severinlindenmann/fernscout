@@ -7,8 +7,7 @@ complexity: low
 area: maps, trips
 found: "2026-09-04T20:45:00Z"
 started: "2026-09-04T20:42:43Z"
-session: e8e2ddef-3ce3-473a-9308-388259ef4452
-claimed: "2026-09-04T20:42:43Z"
+merged: "2026-09-04T20:49:33Z"
 ---
 
 # B364 — The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries
