@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: docs, journals
 found: "2026-09-01"
+started: "2026-09-04T06:22:41Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T06:22:41Z"
 ---
 
 # B48 — Nothing says what ownerNickname should be when the agent and the owner are the same person

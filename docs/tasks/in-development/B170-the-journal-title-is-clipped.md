@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: header, nav, ui
 found: "2026-09-03"
+started: "2026-09-04T06:22:43Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T06:22:43Z"
 ---
 
 # B170 — The journal's title is clipped in the header at exactly the width where the nav labels appear

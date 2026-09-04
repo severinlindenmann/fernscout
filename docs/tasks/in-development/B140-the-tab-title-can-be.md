@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: i18n, ui
 found: "2026-09-03"
+started: "2026-09-04T06:22:42Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T06:22:42Z"
 ---
 
 # B140 — The tab title can be in a language the journal does not offer

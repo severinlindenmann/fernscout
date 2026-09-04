@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: mcp, trips
 found: "2026-09-03"
+started: "2026-09-04T06:22:43Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T06:22:43Z"
 ---
 
 # B175 — `create_trip` over MCP cannot ask for an unadvertised trip
