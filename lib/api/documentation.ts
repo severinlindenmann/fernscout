@@ -553,6 +553,29 @@ these exist rather than a shared password, which could only be changed for
 everyone at once. Every link is dated; ask for a different window with
 \`{"days": 7}\`.
 
+### If invites are switched off for this journal
+
+They can be switched on, and by you — a journal's capabilities used to be fixed
+at the moment it was created:
+
+\`\`\`http
+PATCH ${site.url}/api/v1/${example}/config
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"features": {"contacts": true}}
+\`\`\`
+
+Owner only, and it writes the \`features\` block and nothing else — not the
+title, and never \`owner.email\`, which is the address that decides who can get
+a token for this journal in the first place. It can only ask for what this
+server already provides: if the operator has not configured a capability, the
+call is refused and says which piece is missing rather than writing something
+that would quietly do nothing. Switching a capability *off* always works.
+\`GET\` the same URL to see what the journal asks for now, and \`/api/health\` for
+what the server can actually give it. **Ask the person before switching
+anything on.**
+
 ## Writing
 
 \`\`\`http
@@ -920,6 +943,11 @@ them what is outstanding, and each entry carries \`publish\`, the call that puts
 that day on the site once they say so. **That is the list to end your report
 with**: what you wrote, and where they approve it.
 
+A draft that is content nobody lived carries \`test: true\` here — including one
+that inherits it from a \`test\` trip and says nothing itself. **Say so when you
+read the list out.** Somebody deciding what goes on their site needs to know
+which of it happened, and this is the last moment anyone asks.
+
 To read one back in full, including a draft:
 
 \`\`\`http
@@ -946,9 +974,14 @@ system, and the draft rule holds through it exactly as it does here.
 | \`list_trips\` | every trip in the journal, including private ones |
 | \`get_day\` | one day, as the markdown that made the page — drafts included |
 | \`search_entries\` | full-text across the journal, private trips included |
-| \`list_drafts\` | what is waiting for a person |
+| \`list_drafts\` | what is waiting for a person, and which of it nobody lived |
 | \`create_day\` | write a day — **as a draft**, always |
 | \`publish_day\` | put a draft on the site, once the person has said so |
+| \`set_journal_features\` | switch one of the journal's capabilities on or off |
+
+The list is filtered by what this journal can actually do: a tool whose
+capability is switched off is **absent** from \`tools/list\` rather than offered
+and then refused. So the tools you are shown are the tools that work.
 
 Authenticate with the same agent token, in the same header. There is no
 separate OAuth authorization server to log in to; the token you already have is

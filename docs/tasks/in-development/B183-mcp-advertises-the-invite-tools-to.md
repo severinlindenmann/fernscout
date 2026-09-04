@@ -50,3 +50,31 @@ security.
   `create_invite`, `list_invites` or `revoke_invite`.
 - The same journal with contacts on does include them.
 - Calling one anyway is still refused with the existing message.
+
+## Built (2026-09-04)
+
+A `requires` field on the registry entry, named beside the handler that already
+refuses without it, and `toolsFor` filters on `isEnabled(t.requires,
+session.owner)`.
+
+**One thing the Work section did not anticipate, and it is the interesting
+part.** `callTool` resolved its tool through `toolsFor` as well, so filtering
+that one function turned the clear "contacts are not enabled for this journal"
+into "unknown tool" — the opposite of the acceptance criterion, which asks for
+the existing refusal to survive. Listing and calling are therefore now two sets:
+`callableTools` is the signup split alone and is what `callTool` uses;
+`toolsFor` is that, narrowed by capability, and is what `tools/list` renders. A
+client holding a list it fetched before the capability changed still gets the
+sentence rather than a shrug, and the filter stays what the task says it is —
+honesty, not security.
+
+The sweep the Work section asked for: `isEnabled` appears in `lib/mcp/tools.ts`
+exactly twice, both for `contacts`. There are no postcard or photobook tools,
+and `add_media` is gated by trip access and size limits rather than by a
+capability. The three invite tools were the whole of it.
+
+`test/mcp.test.ts`: the tool list with contacts off (which is what the fixture
+instance is) omits all three; with contacts switched on at both levels it lists
+them; and calling one with contacts off is still refused in the handler's own
+words. The existing "every tool an agent may call" assertion was updated and now
+documents why the invite tools are not in it.
