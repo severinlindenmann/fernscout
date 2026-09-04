@@ -100,3 +100,46 @@ inventing an interface — this ticket is about there being an answer to find.
 - A disabled `contacts` capability does not answer with a status that means
   "no such route", or it is recorded why it still does.
 - `npm run build`, `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`.
+
+## What was built
+
+Items 1 and 2 done; item 3 deliberately not touched here — see below.
+
+1. **`userDocumentation()`** (`lib/api/documentation.ts`, `## Endpoints` list)
+   gained one bullet naming `POST /api/v1/<user>/invites`, both call shapes
+   (`{"kind":"guest"}` and `{"kind":"buddy","trip":"<trip-id>"}`), and that it
+   is owner-only.
+2. **`instanceDocumentation()`** gained a new heading, `## Letting other
+   people in`, between the onboarding walkthrough (`## Then`, which still
+   carries `GUEST_LINK_OFFER` where it always did — right place to *offer*
+   one once a trip is published) and `## Journals`. It names the invites
+   endpoint, both call shapes, and points at `/agent.md`'s own "Letting other
+   people in" section — findable by an agent that is not reading the
+   create-a-journal script at all, which is the gap the incident report
+   describes.
+
+   Both are covered by new tests in `test/agent-interface.test.ts`:
+   `"a journal's own document names the invites endpoint"` and `"the instance
+   document has its own heading for invites, not only a mention inside
+   onboarding"`.
+
+3. **Not changed.** Investigated first, per instruction: is `contacts` off
+   answering `404` (`app/api/v1/[user]/invites/route.ts:104-114`) a one-off or
+   a convention? It is a convention, followed at least four times —
+   `invites/[id]/route.ts:27-28` (`contacts_disabled`, `404`),
+   `keys/route.ts:32-34` (`auth_disabled`, `404`), and `reactions/route.ts`,
+   whose own comment (line 35) names this "the idiom the contacts routes
+   already use" and cites B165 — the ticket that settled `404` for the costs
+   pages on the same reasoning ("what every other capability-gated route
+   already does" + "the capability is journal-wide and reader-independent, so
+   a 404 leaks nothing"). Changing `invites` alone would make the codebase
+   *less* consistent, not more correct, and B165's own reasoning is a real
+   argument, not an oversight — it deserves being weighed once, for every
+   route the shape appears in, rather than decided piecemeal by whichever
+   ticket happens to touch one of them. Captured as **B340**.
+
+## Evidence
+
+- `npx vitest run test/agent-interface.test.ts` — 69 passed (was 67), including
+  the two new tests above.
+- `npm run verify` — see final report.

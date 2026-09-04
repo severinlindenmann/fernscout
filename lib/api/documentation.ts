@@ -308,6 +308,19 @@ export function instanceDocumentation(): string {
     "will say so itself, in a banner, and keep it out of the feed and the search",
     "index. That is the only way to write something that did not happen.",
     "",
+    "## Letting other people in",
+    "",
+    ...wrap(
+      "A journal has no public sign-up form. The journal's owner — never a token " +
+        "scoped to one trip — can issue a link that lets somebody else in: " +
+        `POST ${base()}/api/v1/their-name/invites with {"kind": "guest"} for a link that ` +
+        'reads the journal\'s guest trips, or {"kind": "buddy", "trip": "<trip-id>"} for ' +
+        "one that leads to writing to a trip. Neither grants anything by itself — whoever " +
+        "opens one still has to be approved. Read /agent.md's \"Letting other people in\" " +
+        "for what each does and the worked example.",
+      78,
+    ),
+    "",
     "## Journals",
     "",
   ];
@@ -407,6 +420,7 @@ export function userDocumentation(username: string): string | null {
     `- Editing a day: PATCH the day's own URL (${base()}/api/v1/${username}/trips/<trip-id>/days/<slug>) with the field you are correcting — never \`/publish\`, which is not an update and cannot be used to change one`,
     `- [Drafts](${base()}/api/v1/${username}/drafts): everything waiting for a person to approve`,
     `- Trips: POST to [the same URL](${base()}/api/v1/${username}/trips) to create one (owner only; defaults to this journal's own visibility)`,
+    `- [Invites](${base()}/api/v1/${username}/invites): POST \`{"kind":"guest"}\` for a link that lets somebody read the journal's \`guest\` trips, or \`{"kind":"buddy","trip":"<trip-id>"}\` for one that leads to writing to a trip — owner only, see "Letting other people in" in the agent guide`,
     `- Deleting: DELETE [a trip](${base()}/api/v1/${username}/trips/<trip-id>) or [the journal](${base()}/api/v1/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it, so a 202 means the mail was sent`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,
