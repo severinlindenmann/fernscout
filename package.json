@@ -22,7 +22,7 @@
     "test:watch": "vitest",
     "seed:example": "node scripts/seed-example-content.mjs",
     "demo:build": "node scripts/build-demo-content.mjs",
-    "postcard": "node scripts/postcard.ts",
+    "postcard": "tsx --conditions=react-server scripts/postcard.ts",
     "photobook": "tsx --conditions=react-server scripts/photobook.ts",
     "export": "tsx --conditions=react-server scripts/export.mts",
     "rates:update": "node scripts/update-rates.mjs",

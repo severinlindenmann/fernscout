@@ -14,8 +14,14 @@ work package was told to stop.
 ```bash
 npm run postcard -- --providers
 npm run postcard -- --user <username> --photo <file.jpg> --message "..." --to recipients.json --from "Us"
+npm run postcard -- --user <username> --photo <file.jpg> --message "..." --from-contacts --from "Us"
 npm run postcard -- ... --guides     # adds trim guides, for proofing only
 ```
+
+`--from-contacts` (B273) reads recipients from the contacts table instead of a
+file: every `active` contact who ticked "send me a real postcard" and has
+enough of an address to reach. It needs `CONTACTS_ENCRYPTION_KEY` set, the
+same key the site decrypts postal addresses with.
 
 Writes to `content/<user>/postcards/` (gitignored), per recipient:
 
@@ -112,5 +118,5 @@ mysteriously. Revisit only if Swiss Post ships a real API.
 | --- | --- |
 | Sending | Needs an account. The boundary this stops at. |
 | Payments / checkout | Out of scope by decision 8 — this is a tool, not a shop |
-| Recipients from the database | Comes with W10 (contacts). Until then, a JSON file, and the file stays as a fallback |
+| Recipients from the database | Done — `--from-contacts` (B273). A JSON file (`--to`) stays as the fallback |
 | PNG previews | The PDF is the artefact; rasterising it needs an image library, and every viewer already renders PDFs |
