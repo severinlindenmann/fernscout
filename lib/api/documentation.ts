@@ -12,6 +12,7 @@ import {
   VIDEO_MAX_SECONDS,
 } from "../validate/media";
 import { TAG_MAX_LENGTH, TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "../validate/entry";
+import { COST_CATEGORIES } from "../costFormat";
 import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
 import { isIndexable } from "../access";
@@ -22,6 +23,8 @@ import {
   GUEST_LINK_OFFER,
   LOCALE_LIST,
   NOT_WRITABLE,
+  PERFECT_DAY_EXAMPLE,
+  PERFECT_DAY_INTRO,
   TITLE_COLLISION_EXAMPLE,
   PHOTOS_SECOND_CALL,
   PRIVATE_SHUTS_OUT_GUESTS,
@@ -229,13 +232,14 @@ export function instanceDocumentation(): string {
     "",
     ...wrap(PHOTOS_SECOND_CALL, 78),
     "",
+    ...wrap(PERFECT_DAY_INTRO.replace(/`/g, ""), 78),
+    "",
     "```http",
     `POST ${base()}/api/v1/their-name/trips/japan-2027/days`,
     "Authorization: Bearer fs_agent_…",
     "Content-Type: application/json",
     "",
-    '{"title": "Lanterns of Hoi An", "date": "2026-08-26",',
-    ' "content": "The whole old town hangs with lanterns."}',
+    ...PERFECT_DAY_EXAMPLE,
     "```",
     "",
     ...wrap(
@@ -1004,18 +1008,7 @@ POST ${site.url}/api/v1/${example}/trips/<trip-id>/days
 Authorization: Bearer fs_agent_…
 Content-Type: application/json
 
-{
-  "title": "Lanterns of Hoi An",
-  "date": "2026-08-26",
-  "time": "16:45",
-  "location": "Hoi An",
-  "country": "Vietnam",
-  "lat": 15.8801,
-  "lng": 108.338,
-  "content": "The whole old town hangs with lanterns...",
-  "tags": ["vietnam"],
-  "idempotency_key": "one-key-per-day-you-write"
-}
+${PERFECT_DAY_EXAMPLE.join("\n")}
 \`\`\`
 
 \`\`\`json
@@ -1032,16 +1025,26 @@ one. The full schema, with the shape of each nested item, is in
 | --- | --- |
 | \`time\` | \`"16:45"\`, local to where the day happened. Orders several days sharing a date. |
 | \`location\`, \`country\` | The country's name, not its code. |
-| \`lat\`, \`lng\` | Numbers, not strings. |
+| \`lat\`, \`lng\` | Decimal degrees, as numbers and not strings — \`15.8801\`, never \`"15.8801"\` and never \`15° 52' 48" N\`. **A pair or nothing**: half a coordinate is refused, since it is not a place. \`lat\` is -90 to 90, \`lng\` is -180 to 180; getting them the wrong way round puts the day in the sea, so check that the smaller-ranged number is the one in \`lat\`. Four decimal places is about eleven metres and is plenty — this marks where the day happened, not where a photograph was taken. Do not geocode and write in one breath: propose what you looked up, and let them confirm it. |
 | \`tags\` | Lowercase letters, digits and single hyphens. |
-| \`costs\` | \`[{"label": "Coffee", "amount": 4.5, "currency": "EUR", "category": "food"}]\` — \`label\` and \`amount\` required. No \`currency\` means the journal's base currency; amounts are never converted on the way in. |
-| \`transportMode\`, \`transportFrom\`, \`transportTo\` | How the day was travelled. The modes are in the table further down. |
+| \`costs\` | What the day cost, one entry per thing rather than one total: \`[{"label": "Coffee", "amount": 4.5, "currency": "EUR", "category": "food"}]\`. \`label\` and \`amount\` are required, and the amount must be greater than zero — a zero or negative one is refused rather than stored and silently dropped when the page renders. \`currency\` is the one the money was actually spent in, as an ISO-4217 code (\`VND\`, not \`₫\`); no \`currency\` means the journal's base currency, so leave it out only when that is true. Nothing is converted on the way in — see below. \`category\` is one of ${COST_CATEGORIES.join(", ")}; anything else is refused by name. |
+| \`transportMode\`, \`transportFrom\`, \`transportTo\` | How this day was reached, on the day it was reached — \`{"transportMode": "car", "transportFrom": "Susten Pass", "transportTo": "Grimsel Pass"}\`. \`transportMode\` is what makes the leg exist: without it there is no arrival scene between the day before and this one, and no icon on the map, whatever the other two say. One of ${TRANSPORT_MODES.join(", ")}, and only these — an unlisted mode is refused rather than shown. \`transportFrom\` and \`transportTo\` are free text and are printed exactly as sent (\`Susten Pass → Grimsel Pass\`), so write the places the way the person says them rather than as coordinates or airport codes; they are not geocoded, and \`lat\`/\`lng\` remain what puts the day on the map. Leave the whole group out on a day nobody travelled — a rest day with a mode on it draws a leg from a place to itself. |
 | \`travelScene\` | How the arrival scene between the previous day and this one plays: ${TRAVEL_SCENE_VARIANTS.join(", ")} — absent plays the default, timed to the distance covered. \`skip\` leaves the leg out of the story pager entirely, for a leg a reader has already seen many times over. Anything else is written as sent and read back as the default rather than refused. |
 | \`test\` | \`true\` when this day did not happen. See **The one rule**. |
 | \`idempotency_key\` | Names this one write — see below. |
 
 There is no \`gallery\` field and no \`status\` field — photographs are attached
 separately, above, and what this writes is always a draft.
+
+**Money is stored as it was spent, and converted only when it is read.** A
+day's \`costs\` keep their own currencies on disk; the trip's \`rates:\` block
+(\`{"THB": 0.0245}\` reads "1 THB = 0.0245 of the journal's base currency") is
+what turns them into one number on the costs page. A currency that block has
+no entry for is reported unconverted rather than counted at the wrong rate, so
+a trip spending in a currency it does not list wants a rate added to
+\`trip.md\` — not amounts converted by hand on the way in, which would record a
+figure nobody spent. This is per-day spending; the trip's overall budget is a
+different door (**The trip's budget**, below), and neither writes the other.
 
 **The slug comes from the title, and no two days in a trip may share one.** A
 slug is a day's address inside its trip, so a second day holding one could
@@ -1269,6 +1272,16 @@ Content-Type: application/json
 {"ok": true, "trip": "${example}/<trip-id>",
  "note": "costs.md now exists (or was replaced) for this trip. GET this same URL..."}
 \`\`\`
+
+\`total\` is the whole trip's planned spend, not a daily figure, and \`days\`
+is how many days it is meant to cover — the per-day allowance the page shows
+is the one divided by the other, so a total for a month and a \`days\` of 45
+reads as a budget nobody set. \`currency\` is the budget's own, three letters,
+and omitting it means the journal's base currency. Preparation \`costs\` beside
+it are the money spent *before* leaving — the rail pass, the visa, the boots
+— and each takes the same fields as a day's, so an amount must be greater than
+zero and a category must be one of ${COST_CATEGORIES.join(", ")}. What was
+spent *on* the trip belongs on its days, not here.
 
 **\`budget\` is required, and both \`total\` and \`days\` must be positive.** A
 zero or missing total is refused here, with a \`problems\` entry naming
