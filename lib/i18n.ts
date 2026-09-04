@@ -327,6 +327,7 @@ export type TranslationKey =
   | "invite.buddyTitle"
   | "invite.confirmAs"
   | "invite.confirmSubmit"
+  | "invite.emailPrefilledHint"
   | "invite.expired"
   | "invite.guestIntro"
   | "invite.guestTitle"

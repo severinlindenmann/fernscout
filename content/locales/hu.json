@@ -296,6 +296,7 @@
   "invite.buddyTitle": "Gyere velünk: {what}",
   "invite.confirmAs": "{email} néven vagy belépve. Mást nem kell kitölteni.",
   "invite.confirmSubmit": "Igen, én vagyok",
+  "invite.emailPrefilledHint": "Ezt a meghívót erre a címre küldtük: {email}. Ha másik címet adsz meg, sorba állsz, nem ugrod át a sort.",
   "invite.expired": "Ez a link már nem működik. Kérj újat attól, aki küldte.",
   "invite.guestIntro": "Írd meg, ki vagy, és {title} beenged. E-mailt kapsz, amint megtörtént.",
   "invite.guestTitle": "Olvasd velünk: {title}",

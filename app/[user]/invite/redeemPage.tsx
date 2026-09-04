@@ -106,6 +106,19 @@ export default async function RedeemPage({
       // can overwrite it, and it is the submitted address that decides who
       // this is.
       initialName={reader.contact?.name ?? invite.name ?? ""}
+      // B338 — decision 1, disclosure. `invite.email` is set only when the
+      // owner asked the server to *mail* this link to somebody named
+      // (B319); a link the owner copied and pasted by hand carries no
+      // address and this is null. That split is the whole answer to "a
+      // guest link is safe to forward": whoever holds a mailed link is
+      // expected to be the person it was addressed to — they already read
+      // the address once, in their own inbox, to get here — so showing it
+      // back to them discloses nothing they do not already hold. A
+      // hand-copied link has no such expectation (it may legitimately reach
+      // several people, each proving their own address), so it prefills
+      // nothing, exactly as before this ticket. The field stays visible and
+      // editable either way; nothing here is hidden.
+      invitedEmail={invite.email}
       alreadyIn={alreadyIn}
     />
   );

@@ -33,6 +33,9 @@ describe("the invite page never shows a bare key (B279)", () => {
           dictionaries={dictionaries}
           knownEmail={null}
           initialName=""
+          // Exercises invite.emailPrefilledHint (B338) in every maintained
+          // locale, same as every other string on this screen.
+          invitedEmail="test@example.com"
           alreadyIn={false}
         />,
       );
@@ -68,6 +71,7 @@ describe("the invite page never shows a bare key (B279)", () => {
           dictionaries={{ en: {} }}
           knownEmail={null}
           initialName=""
+          invitedEmail={null}
           alreadyIn={false}
         />,
       );

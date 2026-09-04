@@ -79,6 +79,27 @@ export type Invite = {
   expiresAt: string | null;
   revokedAt: string | null;
   uses: number;
+  /**
+   * The address this invite was mailed to, or null for a link the owner
+   * copied by hand — B338.
+   *
+   * This is `email_key`, and `014-invite-preapproval`'s own comment calls
+   * that "a lookup key, not the address to show anybody": it is case-folded
+   * for comparison, so what a reader sees here is not necessarily the exact
+   * capitalisation the owner typed. Storing the address as given as well
+   * would fix that at the cost of a migration and a second copy of an email
+   * address at rest, for a difference that is cosmetic in the overwhelming
+   * case — mail delivery has never been case-sensitive in the local part in
+   * practice, and every reader recognises their own address regardless of
+   * case. The lazy answer is the honest one here: show the folded form, and
+   * say so here rather than pretend it is the original.
+   *
+   * Whether it is safe to show at all is a separate question — see the
+   * doc comment on `RedeemPage` in `app/[user]/invite/redeemPage.tsx`, which
+   * is where the decision to prefill only from this field (never from
+   * nothing) is actually made.
+   */
+  email: string | null;
 };
 
 /**
@@ -274,6 +295,7 @@ function toInvite(row: {
   expires_at: string | null;
   revoked_at: string | null;
   uses: number;
+  email_key: string | null;
 }): Invite {
   const kind = toKind(row.kind);
   return {
@@ -286,6 +308,7 @@ function toInvite(row: {
     expiresAt: row.expires_at,
     revokedAt: row.revoked_at,
     uses: row.uses,
+    email: row.email_key,
   };
 }
 
