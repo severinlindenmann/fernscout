@@ -409,6 +409,30 @@ function parseTranslations(raw: unknown): TripTranslations | undefined {
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+/**
+ * Forgets gray-matter's own parse cache — not this module's, gray-matter's.
+ *
+ * `matter()` memoizes a parse *by raw content*, globally, for the life of the
+ * process, and it writes that cache entry before it parses rather than after
+ * — so a call that throws leaves a half-built, non-throwing result sitting
+ * under the failing text's key. The next caller to hand it the same bytes
+ * (the same broken `trip.md`, read again after some other trip in the
+ * journal changed and forced `tripsSignature` to invalidate the whole cache)
+ * gets that stale result back instead of the same failure repeating — an
+ * empty `data`, so `readTrip` no longer throws into its own `catch` but
+ * refuses the folder for the wrong reason ("no id" rather than
+ * "unparseable"). `readTrip`'s catch clears it for that reason. B312, and see
+ * `clearMatterCache` in lib/entries.ts (not imported from here, to avoid a
+ * cycle — lib/entries.ts already imports from this module) for the
+ * `lib/entries.ts` / `lib/api/entries.ts` equivalent, B236.
+ *
+ * Not in gray-matter's own `.d.ts` — `clearCache` exists on the runtime
+ * export but is absent from its published types — hence the cast.
+ */
+function clearMatterCache(): void {
+  (matter as unknown as { clearCache: () => void }).clearCache();
+}
+
 /** Refuses one folder, warns the server log, and carries the reason back. */
 function refuse(folder: string, reason: MalformedTripReason, problem: string): MalformedTrip {
   console.warn(`[trips] ${folder}/: ${problem}`);
@@ -448,6 +472,8 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
     data = parsed.data as Record<string, unknown>;
     content = parsed.content;
   } catch (err) {
+    // See `clearMatterCache` above for why this call is here too.
+    clearMatterCache();
     // First line only: gray-matter quotes the offending source at length, and
     // a web page is not a terminal.
     const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
