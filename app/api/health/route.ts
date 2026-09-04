@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { readBackupStatus } from "@/lib/backupStatus";
 import { basemapProblem } from "@/lib/basemap";
@@ -5,7 +6,7 @@ import { resolveCapabilities } from "@/lib/capabilities";
 import { loadServerConfig } from "@/lib/config";
 import { FEATURE_NAMES } from "@/lib/config";
 import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
-import { contentRootProblem, getUsernames } from "@/lib/users";
+import { contentRootProblem, getUsernames, listedUsernames } from "@/lib/users";
 import pkg from "@/package.json";
 
 // Never cache or prerender: this reflects the live state of the process
@@ -64,8 +65,77 @@ export const dynamic = "force-dynamic";
  * Reporting `enabled: false` and nothing else is what sent somebody hunting
  * for a routing bug when a code arrived for a journal that said mail was off
  * (B60).
+ *
+ * ## What is public here, and what is not (B234)
+ *
+ * This page is unauthenticated and stays that way — an uptime monitor cannot
+ * hold a credential, and every field below that a monitor asserts on is
+ * reachable without one. But two of its fields had drifted past "on or off"
+ * into things this instance does not otherwise hand out, and both appear
+ * precisely when the instance is already unhealthy, which is when somebody
+ * probing is most likely to be reading.
+ *
+ * **Public, to anybody:** `status`, `time`, `uptimeSeconds`, `version`,
+ * `commit`, `backup`, `responseTimeMs`, every block's `ok` boolean and its
+ * machine-readable `code`, and the whole `capabilities` block including each
+ * reason. Reasons are named env vars and config keys — never a value, never a
+ * path, never a person — and AGENTS.md requires that a capability which is off
+ * explains itself. That promise is kept in full.
+ *
+ * **Behind `HEALTH_TOKEN`:** the free-text `error` on `config`, `content` and
+ * `basemap`, which carries the absolute content-root path and errno text; and
+ * the `journals` rows of journals this instance does not advertise. Present it
+ * as `Authorization: Bearer <token>`. Unset means nobody is entitled, never
+ * everybody — a fresh install is safe before it is configured.
+ *
+ * **The diagnostic that B197 added survives the redaction**, which is the
+ * point of drawing the line here rather than dropping the field. B197's
+ * complaint was that an empty `journals` block reads exactly like an instance
+ * with no journals, so nothing could say "cannot tell" rather than "nothing to
+ * report". `content: { ok: false }` is what says it, and that is public. Only
+ * the path is held back, and `getUsernames()` has already written the whole
+ * message to stdout, where the operator entitled to it already is.
+ *
+ * **`journals` is filtered by `listedUsernames()`**, which is the function
+ * whose docstring already says "use this for anything that hands out the
+ * existence of a journal". A journal whose config says `visibility: private`
+ * is meant to be absent from `/documentation.txt`, the landing page and
+ * `sitemap.xml`; it had its name here instead, as soon as it narrowed a
+ * capability. `journalsWithheld` counts what the filter dropped, so the
+ * redaction is visible to the operator debugging a 404 rather than silently
+ * handing them a list that looks complete. A count names nobody and cannot be
+ * turned into a URL.
  */
-export async function GET() {
+
+/**
+ * Whether this caller may read the detail as well as the state.
+ *
+ * A shared operator secret rather than an owner's bearer token, because the
+ * question this page answers is about the *instance* — its filesystem, its
+ * config, its journal list — and no single journal's owner is the authority on
+ * that. On a one-journal instance the two are the same person; on a shared one
+ * they are not, and the wrong one of those two is the one that leaks.
+ *
+ * Compared in constant time, and an unset `HEALTH_TOKEN` entitles nobody: the
+ * safe default for a fresh install is the redacted page, not the full one.
+ */
+function mayReadDetail(request: Request): boolean {
+  const expected = process.env.HEALTH_TOKEN ?? "";
+  if (expected === "") return false;
+  const supplied = /^bearer\s+(.+)$/i.exec(request.headers.get("authorization") ?? "")?.[1] ?? "";
+  if (supplied === "") return false;
+  const a = Buffer.from(supplied);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+/** A fault, as much of it as this caller is entitled to. */
+function fault(code: string, message: string, detailed: boolean) {
+  return { ok: false as const, code, ...(detailed ? { error: message } : {}) };
+}
+
+export async function GET(request: Request) {
+  const detailed = mayReadDetail(request);
   const startedAt = Date.now();
 
   let capabilities: Record<string, { enabled: boolean; reason?: string; keepingCopies?: true }>;
@@ -140,24 +210,36 @@ export async function GET() {
 
   const healthy = configOk && !contentProblem;
 
+  // Only the journals this instance already advertises, unless the caller is
+  // entitled to the rest. See the note above; `listedUsernames()` is the same
+  // filter `/documentation.txt` and the sitemap use, so there is one answer to
+  // "may this journal's name be handed out" rather than two.
+  const listed = detailed ? null : new Set(listedUsernames());
+  const shownJournals = listed
+    ? Object.fromEntries(Object.entries(journals).filter(([name]) => listed.has(name)))
+    : journals;
+  const withheld = Object.keys(journals).length - Object.keys(shownJournals).length;
+
   const body = {
     status: healthy ? "ok" : "error",
     time: new Date().toISOString(),
     uptimeSeconds: Math.round(process.uptime()),
     version: pkg.version ?? null,
     commit: process.env.GIT_SHA ?? null,
-    config: configOk ? { ok: true } : { ok: false, error: configError },
+    config: configOk ? { ok: true } : fault("unusable", configError ?? "", detailed),
     // The journal directory itself, separately from the config file inside it.
     // `ok: true` says the list below is the whole truth; `ok: false` says this
     // process cannot see any journal at all, whatever `journals` looks like.
-    content: contentProblem ? { ok: false, error: contentProblem } : { ok: true },
+    // That distinction is B197's, and it is public; the path is not.
+    content: contentProblem ? fault("unreadable", contentProblem, detailed) : { ok: true },
     // The map data under every trip map, separately again: it is read from
     // lib/, not from content/, and a journal directory that is fine says
     // nothing about a bundle that is not. See the note above on why this does
     // not move `status`.
-    basemap: basemapFault ? { ok: false, error: basemapFault } : { ok: true },
+    basemap: basemapFault ? fault("unreadable", basemapFault, detailed) : { ok: true },
     capabilities,
-    journals,
+    journals: shownJournals,
+    ...(withheld > 0 ? { journalsWithheld: withheld } : {}),
     backup: readBackupStatus(),
     responseTimeMs: Date.now() - startedAt,
   };

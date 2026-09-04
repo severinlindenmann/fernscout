@@ -15,18 +15,6 @@ claimed: "2026-09-04T08:08:58Z"
 
 ## Why
 
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
-
-## Why
-
 `lib/api/fetchMedia.ts` states its own rules at the top of the file, and the
 first is:
 
@@ -66,23 +54,59 @@ Found by the B22 sweep; see `docs/security/2026-09-04-sweep.md`.
 
 ## Work
 
-- Re-check `url.protocol !== "https:"` at the top of each loop iteration, after
-  `url = new URL(location, url)`, with the same refusal wording. One line.
-- Decide about the port while there. Either restrict to 443 — which is what
-  "https only" implies to a reader and what every real image host uses — or say
-  in the docstring that any port on a public host is reachable. Restricting is
-  the smaller surprise; if it is rejected, the comment has to change instead.
-- `pinnedRequest` should not silently ignore a non-https URL. Refusing there as
-  well is belt-and-braces, and it is the function a future caller might reach
-  directly.
+**Done.** The check moved *into* the redirect loop in `lib/api/fetchMedia.ts`,
+as the first thing asked about every hop — before the hop is resolved, since a
+scheme this file will not speak is not a reason to send anybody's resolver a
+name. It is now one named function, `httpsOnlyProblem`, so the rule has a place
+to be documented rather than being a bare condition. `pinnedRequest` asks it
+too and rejects: that function is the one that opens the socket, and it would
+otherwise happily build `url.port || 443` out of an `http:` URL a future caller
+handed it directly.
 
-Not doing: the address checks in `checkHost`/`isPublicAddress`, which were
-swept and hold (B36, B31, B137), or the two timeouts (B136).
+**The port was considered and deliberately not restricted, and the file now
+says so** — which is the alternative this ticket named ("if it is rejected, the
+comment has to change instead"). Two things decided it:
+
+- It removes a real capability. A self-hoster whose photographs sit on `:8443`
+  has a legitimate URL this endpoint would stop fetching, and
+  `test/fetch-media.test.ts`'s B03 pin test — the most valuable test in the
+  file, which drives a real socket against a decoy listener — **cannot be
+  written at all** under a 443-only rule, because it needs an ephemeral port.
+  That test failing was the evidence, not a nuisance to work around.
+- It buys nothing *here*. `fetchImage` is called with a URL the agent chose, so
+  following a redirect reaches no port the original URL could not have named
+  directly. The port question is orthogonal to this ticket rather than part of
+  it.
+
+So the residual capability is stated in the docstring instead of implied by the
+word "https": a caller-chosen port on a caller-chosen **public** host, over
+TLS, bounded by `checkHost`, which is unchanged.
+
+Not done: the address checks in `checkHost`/`isPublicAddress` (B36, B31, B137),
+or the two timeouts (B136).
 
 ## Acceptance
 
-- `test/sweep-b22-disclosure.test.ts` — the `B233` case flips: the redirect to
-  `http://example.com:8080/next.jpg` is refused with the "only https:" wording,
-  and the transport is called once rather than twice.
-- `test/fetch-media.test.ts` passes unchanged.
-- All four checks pass.
+`test/sweep-b22-disclosure.test.ts` was flipped. Its B233 block now asserts:
+
+- a `302` to `http://example.com:8080/next.jpg` is refused with the "only
+  https:" wording, and **the transport is called once**, not twice — before,
+  the second call received a URL with `protocol === "http:"` and `port ===
+  "8080"` and `pinnedRequest` opened TLS to 8080;
+- a redirect that stays on https is still followed, and lands on the second
+  host;
+- a redirect to https on another port is followed **deliberately**, with the
+  reasoning above written into the test, so the documented rule and the
+  enforced rule are asserted to agree in both directions;
+- `http://…` supplied directly is refused, unchanged.
+
+`test/fetch-media.test.ts` passes unchanged — 94 tests, including the B03 pin
+test against a real listener.
+
+There is no HTTP surface to curl for this one: `fetchImage` is reached only
+through `POST /api/v1/<user>/trips/<trip>/media` with an agent token, and the
+reproduction needs a redirecting host. The transport seam is the reproduction,
+which is what it exists for.
+
+`npm run build`, `npx tsc --noEmit`, `npx eslint .` and `npx vitest run` all
+pass: 138 files, 2165 tests, 3 skipped.

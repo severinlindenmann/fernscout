@@ -141,7 +141,7 @@ describe("/api/health on the basemap", () => {
     clearBasemapCache();
     expect(basemapFor(frame())).not.toBeNull();
 
-    const body = await (await health()).json();
+    const body = await (await health(new Request("https://example.test/api/health"))).json();
     expect(body.basemap).toEqual({ ok: true });
   });
 
@@ -151,11 +151,14 @@ describe("/api/health on the basemap", () => {
     clearBasemapCache();
     expect(basemapFor(frame())).toBeNull();
 
-    const response = await health();
+    const response = await health(new Request("https://example.test/api/health"));
     const body = await response.json();
 
     expect(body.basemap.ok).toBe(false);
-    expect(body.basemap.error).toMatch(/EACCES/);
+    // Anonymously the fault has a code and no path — B234, whose own test
+    // asserts the full message comes back with a HEALTH_TOKEN.
+    expect(body.basemap.code).toBe("unreadable");
+    expect(body.basemap.error).toBeUndefined();
     // A map with no borders under it is not a reason to take the instance out
     // of a load balancer — the same call `backup` makes.
     expect(response.status).toBe(200);

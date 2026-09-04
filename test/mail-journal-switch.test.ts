@@ -505,8 +505,11 @@ describe("a journal that has never mentioned mail has not switched it off", () =
 });
 
 describe("/api/health agrees with what actually happens", () => {
+  /** An anonymous probe, which is what an uptime monitor is. B234. */
+  const probe = () => new Request("https://example.test/api/health");
+
   test("a journal with mail off is reported off, and told what still arrives", async () => {
-    const body = await (await health()).json();
+    const body = await (await health(probe())).json();
 
     expect(body.capabilities.mail.enabled).toBe(true);
     expect(body.journals[QUIET].mail).toEqual({
@@ -526,7 +529,7 @@ describe("/api/health agrees with what actually happens", () => {
   });
 
   test("a healthy instance says so about its content root", async () => {
-    const response = await health();
+    const response = await health(probe());
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.status).toBe("ok");
@@ -551,13 +554,16 @@ describe("/api/health agrees with what actually happens", () => {
     });
     try {
       clearUserCache();
-      const response = await health();
+      const response = await health(probe());
 
       expect(response.status).toBe(503);
       const body = await response.json();
       expect(body.status).toBe("error");
       expect(body.content.ok).toBe(false);
-      expect(body.content.error).toMatch(/EACCES/);
+      // The fault is reported; the absolute path in it is not, to a caller
+      // holding no HEALTH_TOKEN. B234, and test/health-disclosure.test.ts.
+      expect(body.content.code).toBe("unreadable");
+      expect(body.content.error).toBeUndefined();
       // The config file parsed fine; it is the directory around it that did
       // not, and conflating the two sends the operator to the wrong file.
       expect(body.config.ok).toBe(true);
@@ -577,12 +583,12 @@ describe("/api/health agrees with what actually happens", () => {
       throw new Error("EACCES: permission denied");
     });
     clearUserCache();
-    expect((await health()).status).toBe(503);
+    expect((await health(probe())).status).toBe(503);
 
     // No `clearUserCache()` after this: the point is that the *successful*
     // read clears the recorded fault, not that the test seam does.
     readdir.mockRestore();
-    expect((await health()).status).toBe(200);
+    expect((await health(probe())).status).toBe(200);
   });
 });
 

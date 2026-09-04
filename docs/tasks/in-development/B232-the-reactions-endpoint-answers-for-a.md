@@ -15,18 +15,6 @@ claimed: "2026-09-04T08:08:58Z"
 
 ## Why
 
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
-
-## Why
-
 `app/api/reactions/route.ts:16` and `:54` resolve the trip with `getTrip` and
 stop there. `mayReadTrip` is never called, on either verb.
 
@@ -69,24 +57,80 @@ Found by the B22 sweep; see `docs/security/2026-09-04-sweep.md`.
 
 ## Work
 
-- `GET` and `POST` both ask `mayReadTrip(trip)`. A refusal answers **the same
-  way as a trip that does not exist** — `400 unknown_trip`, unchanged — so the
-  oracle closes rather than moving.
-- Ask `isEnabled("reactions", username)` too, and answer 404 when it is off, in
-  the same shape `lib/tripGate.ts` uses for costs.
-- `mayReadTrip` reads the guest cookie, so a reader who *may* open the trip
-  still reacts. Check the client provider's request carries credentials.
-- Consider whether `getVotesFor` needs the same gate; it is already scoped to
-  the journal (`scopeToJournal`) and returns only the caller's own picks.
+**Done.** Both verbs now go through one `resolveReadableTrip()` in
+`app/api/reactions/route.ts`, so neither can drift from the other — the old
+code had the same `getTrip` check written out twice.
 
-Not doing: changing the reaction set, the voter-id scheme, or the rate limit.
+The gate is built out of *sameness* rather than out of refusals, because a
+refusal that reads differently only moves the oracle:
+
+- **A trip nobody may read answers exactly as a trip that does not exist.**
+  `400 {"error":"unknown_trip"}`, the same body, byte for byte, for a `private`
+  trip, a `guest` trip the caller was never invited to, and an invented id. The
+  test asserts `real` and `invented` with `toEqual` rather than checking two
+  status codes, because that is the property B117 is about.
+- **A journal with reactions off answers exactly as a journal that does not
+  exist.** `404 {"error":"reactions_disabled", …}` — the idiom
+  `app/api/v1/[user]/invites/route.ts` already uses (`!getUser(user) ||
+  !isEnabled(…)`), taken whole so that the new capability check cannot become a
+  second oracle, this time over journal names.
+- **`POST` gets the same gate, not a weaker one.** Writing a row against a day
+  is what published the day's slug in the first place.
+- A ref that does not parse answers `400 unknown_trip`: it names no journal, so
+  there is nothing to disclose and nothing to gate on.
+
+`mayReadTrip` reads the guest cookie. `components/ReactionsProvider.tsx` fetches
+same-origin with no `credentials` option, and `fetch` defaults to
+`same-origin`, so a signed-in reader's cookie already travels — checked, not
+changed.
+
+`getVotesFor` is deliberately left ungated: it is scoped to the journal by
+`scopeToJournal` and answers only about the voter id the caller supplied.
+Guessing one is a separate, smaller question and is captured as **B239**.
+
+Not done: the reaction set, the voter-id scheme, the rate limit.
 
 ## Acceptance
 
-- `test/sweep-b22-disclosure.test.ts` — the two `B232` cases flip: a `private`
-  trip and an invented id both answer `400 unknown_trip` to an anonymous
-  caller, and the anonymous vote is refused.
-- A signed-in reader with a live grant still sees and records reactions on a
-  `guest` trip.
-- `test/reactions.test.ts` passes, updated where it assumed no gate.
-- All four checks pass.
+`test/sweep-b22-disclosure.test.ts` was flipped — it asserted the wrong
+behaviour on purpose so the suite stayed green until this landed — and now runs
+six B232 cases: the two refusals being identical, a `guest` trip refused the
+same way, an anonymous vote refused *and recording nothing* (checked by asking
+again as the owner), a reader with a live grant still reading and voting, a
+public trip unchanged for anybody, and a reactions-off journal answering as a
+journal that does not exist.
+
+### Live, against `next dev` on a fixture journal
+
+`ana` is a public journal with `the-quiet-week` (`private`) and `open-2026`
+(`public`); `hidden` is a journal with reactions switched off. No cookie, no
+token, in either column.
+
+**Before**
+
+```
+GET /api/reactions?trip=ana/the-quiet-week   200  {"counts":{},"mine":{}}
+GET /api/reactions?trip=ana/no-such-trip     400  {"error":"unknown_trip"}
+POST {"trip":"ana/the-quiet-week","day":"a-day-nobody-may-read",…}
+                                             200  {"counts":{"❤️":1},"mine":"❤️"}
+GET /api/reactions?trip=ana/the-quiet-week   200  {"counts":{"ana/the-quiet-week:a-day-nobody-may-read":{"❤️":1}},"mine":{}}
+GET /api/reactions?trip=hidden/anything      400  {"error":"unknown_trip"}
+```
+
+The third and fourth lines are the whole finding in two requests: a stranger
+wrote a row against a private trip, and the day slug came back to the next
+anonymous reader.
+
+**After**
+
+```
+GET  /api/reactions?trip=ana/the-quiet-week  400  {"error":"unknown_trip"}
+GET  /api/reactions?trip=ana/no-such-trip    400  {"error":"unknown_trip"}
+POST {"trip":"ana/the-quiet-week",…}         400  {"error":"unknown_trip"}
+GET  /api/reactions?trip=ana/open-2026       200  {"counts":{},"mine":{}}
+GET  /api/reactions?trip=hidden/anything     404  {"error":"reactions_disabled",…}
+GET  /api/reactions?trip=nobody/anything     404  {"error":"reactions_disabled",…}
+```
+
+`npm run build`, `npx tsc --noEmit`, `npx eslint .` and `npx vitest run` all
+pass: 138 files, 2165 tests, 3 skipped.

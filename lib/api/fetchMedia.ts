@@ -17,7 +17,11 @@ import { Readable } from "node:stream";
  *
  * So the rules here are deliberately unhelpful:
  *
- * - **https only.** No http, no file:, no gopher:, no data:.
+ * - **https only.** No http, no file:, no gopher:, no data: — and re-asked at
+ *   **every hop**, not once at the start. See `httpsOnlyProblem` and B233 for
+ *   what it cost that it was not. It is the *scheme* that is fixed and not the
+ *   port: a URL naming one is honoured, deliberately, and that function says
+ *   why.
  * - **Every resolved address must be public**, and the request then goes to
  *   *that address* rather than to the name again. Checked after resolution and
  *   again after every redirect, and pinned each time — see `pinnedRequest` for
@@ -52,6 +56,42 @@ const MAX_REDIRECTS = 3;
  * for, and the caller is told to try again rather than told it was refused.
  */
 const BODY_TIMEOUT_MS = 60_000;
+
+/**
+ * Whether this URL is one the transport may be handed, or why not.
+ *
+ * One line that used to live at the top of `fetchImage`, asked once, *before*
+ * the redirect loop — so it governed the URL the caller supplied and no hop
+ * after it. `pinnedRequest` builds its request from `url.port || 443` and
+ * never looks at `url.protocol`, so a `302` to `http://host:8080/x` produced a
+ * **TLS connection to port 8080** on a URL this file would have refused
+ * outright. The stated rule and the enforced rule had come apart, which is the
+ * part that gets inherited by whoever edits this next. B233.
+ *
+ * **The port is deliberately not restricted, and this is the note that says
+ * so** rather than leaving the next reader to infer a rule from the word
+ * "https". Restricting to 443 was tried and rejected on two counts. It removes
+ * a real capability — a self-hoster whose photographs sit on `:8443` has a
+ * legitimate URL this endpoint would stop fetching, and
+ * `test/fetch-media.test.ts` cannot even drive the B03 pin end to end without
+ * an ephemeral port. And it buys nothing here: `fetchImage` is called with a
+ * URL the agent chose, so a redirect can reach no port that the original URL
+ * could not have named directly. The port question is orthogonal to this
+ * ticket, not part of it.
+ *
+ * What bounds the residual capability is `checkHost`, which is unchanged and
+ * still refuses every private, loopback, link-local, NAT64 and v4-mapped
+ * range. What is left is a caller-chosen port on a caller-chosen *public*
+ * host, over TLS.
+ *
+ * Returns null when there is nothing wrong, so a caller reads as a guard.
+ */
+function httpsOnlyProblem(url: URL): string | null {
+  if (url.protocol !== "https:") {
+    return "only https: URLs are fetched — http, file and data are refused";
+  }
+  return null;
+}
 
 export type FetchedMedia = { filename: string; bytes: Buffer };
 
@@ -339,6 +379,15 @@ async function pinnedRequest(
       ? url.hostname.slice(1, -1)
       : url.hostname;
 
+  /**
+   * Unreachable from `fetchImage`, which now asks this at every hop — and
+   * here anyway, because this function opens a TLS socket from `url.port ||
+   * 443` and would happily do it for an `http:` URL a future caller handed
+   * it. The rule belongs where the socket is, not only where the loop is.
+   */
+  const problem = httpsOnlyProblem(url);
+  if (problem) return Promise.reject(new Error(problem));
+
   return new Promise<Response>((resolve, reject) => {
     const request = https.request(
       {
@@ -434,10 +483,6 @@ export async function fetchImage(
   } catch {
     return refuse("not a URL");
   }
-  if (url.protocol !== "https:") {
-    return refuse("only https: URLs are fetched — http, file and data are refused");
-  }
-
   let response: Response;
   // Declared out here so the body read below can abort the request that
   // produced it. A controller scoped to the loop could only ever cancel the
@@ -446,6 +491,13 @@ export async function fetchImage(
   let controller!: AbortController;
   let hops = 0;
   for (;;) {
+    // Inside the loop, so it governs every hop rather than only the URL the
+    // caller typed. It is the first thing asked about a URL, before it is
+    // resolved: a scheme this file will not speak is not a reason to send
+    // anybody's resolver a name. B233.
+    const schemeProblem = httpsOnlyProblem(url);
+    if (schemeProblem) return refuse(schemeProblem);
+
     const { verdict, addresses } = await checkHost(url.hostname);
     if (verdict === "private") {
       // Same words whichever private range it was: a prober does not get to
