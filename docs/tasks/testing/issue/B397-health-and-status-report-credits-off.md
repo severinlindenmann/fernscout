@@ -7,8 +7,7 @@ complexity: low
 area: credits, api, capabilities
 found: "2026-09-05T01:20:00Z"
 started: "2026-09-04T22:56:07Z"
-session: 3d8b93dd-e447-4c3c-bcd1-fa37e2bd17f9
-claimed: "2026-09-04T22:56:07Z"
+merged: "2026-09-04T23:12:41Z"
 ---
 
 # B397 — health and status report credits off per-journal though it is server-only and live
