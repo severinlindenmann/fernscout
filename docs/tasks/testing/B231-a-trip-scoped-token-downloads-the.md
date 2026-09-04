@@ -7,8 +7,7 @@ complexity: low
 area: api, export
 found: "2026-09-04T07:59:28Z"
 started: "2026-09-04T08:08:58Z"
-session: 2b6d1969-424a-4788-9497-eb5e151a5391
-claimed: "2026-09-04T08:08:58Z"
+merged: "2026-09-04T08:29:11Z"
 ---
 
 # B231 — A trip-scoped token downloads the whole journal from export.zip
