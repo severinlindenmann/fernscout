@@ -7,8 +7,7 @@ complexity: low
 area: maps, trips
 found: "2026-09-04T21:50:00Z"
 started: "2026-09-04T21:20:17Z"
-session: e8e2ddef-3ce3-473a-9308-388259ef4452
-claimed: "2026-09-04T21:20:17Z"
+merged: "2026-09-04T21:28:21Z"
 ---
 
 # B375 — Flag fills are near-black and six European blues are indistinguishable, because the collision test compares hex rather than perceived colour

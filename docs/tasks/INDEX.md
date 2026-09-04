@@ -180,17 +180,16 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (5)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B366](in-development/B366-sending-a-letter-or-a-message.md) | Sending a letter or a message costs a credit, and a journal starts with none | FEATURE | high | high | `3d8b93dd` |
-| [B375](in-development/B375-flag-fills-are-near-black-and.md) | Flag fills are near-black and six European blues are indistinguishable, because the collision test compares hex rather than perceived colour | ISSUE | medium | low | `e8e2ddef` |
 | [B362](in-development/B362-the-queue-notification-s-subject-still.md) | The queue notification's subject still calls a buddy a follower, though its body no longer does | ISSUE | low | low | `62683d95` |
 | [B371](in-development/B371-the-markdown-twin-of-a-day.md) | The markdown twin of a day carries only the default locale, so a translated day has no readable source | ISSUE | low | low | `62683d95` |
 | [B376](in-development/B376-the-phone-field-offers-postcards-on.md) | The phone field offers postcards on a server with postcards switched off | ISSUE | low | low | `62683d95` |
 
-## testing (160)
+## testing (161)
 
 ### security (10)
 
@@ -207,7 +206,7 @@ _Nothing here._
 | [B233](testing/security/B233-the-https-only-rule-is-not.md) | The https-only rule is not re-applied after a redirect | SECURITY | low | low | — |
 | [B234](testing/security/B234-an-unauthenticated-health-check-discloses-server.md) | An unauthenticated health check discloses server paths and journal names | SECURITY | low | low | — |
 
-### issue (97)
+### issue (98)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -277,6 +276,7 @@ _Nothing here._
 | [B356](testing/issue/B356-reading-a-day-back-omits-its.md) | Reading a day back omits its translations, so an agent cannot verify the ones it wrote | ISSUE | medium | low | — |
 | [B357](testing/issue/B357-a-translated-page-keeps-its-tab.md) | A translated page keeps its tab title in the journal's default language | ISSUE | medium | low | — |
 | [B360](testing/issue/B360-the-invite-landing-page-offers-a.md) | The invite landing page offers a postcard on a server with postcards switched off | ISSUE | medium | low | — |
+| [B375](testing/issue/B375-flag-fills-are-near-black-and.md) | Flag fills are near-black and six European blues are indistinguishable, because the collision test compares hex rather than perceived colour | ISSUE | medium | low | — |
 | [B41](testing/issue/B41-an-approved-contact-is-shown-a.md) | An approved contact is shown a trip in their own panel and then asked for a password nobody gave them | ISSUE | medium | medium | — |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
