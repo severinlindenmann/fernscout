@@ -26,24 +26,26 @@ export const ACCENT_HEX: Record<TripAccent, string> = {
 };
 
 /**
- * A pin's outline, in local units with its **tip at the origin** — a
- * teardrop: a circular head above the tip, joined to it by the two lines
- * tangent to that circle. Built from the tangent-line geometry rather than a
- * copied icon path, so every length in it is a multiple of `r` and it stays
- * the right shape at whatever radius `size()` hands it — a Bezier pin traced
- * at one fixed radius would not survive being scaled up or down (B46).
+ * A stop is a thin stem rising from the coordinate to a small ringed head —
+ * a pin drawn as a flag rather than a teardrop. The first version here was a
+ * solid teardrop (a circular head fused straight onto its own tail), which
+ * looked right in isolation but not in a cluster: two or three stops within
+ * a few screen pixels of each other — the ordinary case for a multi-stop
+ * trip on a world-scale map — fused their solid heads and thick cream
+ * outlines into a single illegible blob with no way to tell how many stops
+ * were under it. A thin stem and a small head shrink each marker's own
+ * footprint, so the same cluster reads as a few separate, thin lines
+ * converging on nearby points rather than one shape.
  *
- * `h` (tip-to-head-centre) is fixed at `2.2r`: big enough that the head reads
- * as a circle rather than an almond, small enough that the tail stays a
- * visible point rather than a sliver.
+ * `headR` is the head's radius and `stemLen` the tip-to-head-centre
+ * distance, both already in on-screen units (the caller passes them through
+ * `size()`) — there is no local coordinate space to build a path in, unlike
+ * the teardrop this replaces.
  */
-function pinPath(r: number): string {
-  const h = r * 2.2;
-  const phi = Math.acos(r / h);
-  const tx = r * Math.sin(phi);
-  const ty = r * Math.cos(phi) - h;
-  return `M0,0 L${tx},${ty} A${r},${r} 0 1,0 ${-tx},${ty} Z`;
-}
+const PIN_HEAD_R = 1.3;
+const PIN_STEM_LEN = 4;
+const PIN_STEM_WIDTH = 0.55;
+const PIN_RING_WIDTH = 0.55;
 
 /**
  * Every trip's route on one map. Deliberately read-only: no clustering, no
@@ -146,17 +148,28 @@ export default function LifetimeMap({
                   it (B88): a dot both covers the ground it marks — worse the
                   wider the frame, since size() grows it with the map — and
                   merges into its neighbours as soon as two are close, where a
-                  pin's head can overlap and still leave both tips readable. */}
+                  thin stem and a small head can overlap and still leave both
+                  tips readable. */}
               {pts.map(([x, y], i) => (
-                <path
-                  key={i}
-                  d={pinPath(size(2.6))}
-                  transform={`translate(${x} ${y})`}
-                  fill={colour}
-                  stroke="#fffaf0"
-                  strokeWidth={size(0.7)}
-                  strokeLinejoin="round"
-                />
+                <g key={i} transform={`translate(${x} ${y})`}>
+                  <line
+                    x1={0}
+                    y1={0}
+                    x2={0}
+                    y2={-size(PIN_STEM_LEN)}
+                    stroke={colour}
+                    strokeWidth={size(PIN_STEM_WIDTH)}
+                    strokeLinecap="round"
+                  />
+                  <circle
+                    cx={0}
+                    cy={-size(PIN_STEM_LEN)}
+                    r={size(PIN_HEAD_R)}
+                    fill={colour}
+                    stroke="#fffaf0"
+                    strokeWidth={size(PIN_RING_WIDTH)}
+                  />
+                </g>
               ))}
             </g>
           );
