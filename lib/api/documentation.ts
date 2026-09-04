@@ -1631,11 +1631,13 @@ GET ${site.url}/api/v1/${example}/trips/<trip-id>/days/<slug>
 Authorization: Bearer fs_agent_…
 \`\`\`
 
-The whole entry, and a \`status\` of \`draft\` or \`published\`. **Read your own
-work back before you tell somebody it is ready.** You are asked not to invent
-anything, and this is how you check that you did not — that the date is the one
-you were given, that the place is right, that nothing has been rounded into a
-plausible shape.
+The whole entry, and a \`status\` of \`draft\` or \`published\` — \`translations\`
+included, in the same shape they were written in, on a journal that has any.
+**Read your own work back before you tell somebody it is ready.** You are
+asked not to invent anything, and this is how you check that you did not —
+that the date is the one you were given, that the place is right, that nothing
+has been rounded into a plausible shape, and that the translation you wrote is
+the one that landed.
 
 ## A folder of photographs, all at once
 

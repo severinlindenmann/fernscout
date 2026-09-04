@@ -1121,9 +1121,10 @@ export function openApiDocument() {
         get: {
           summary: "One day in full, drafts included",
           description:
-            "The whole entry — content, gallery, costs, tags — and a `status` " +
+            "The whole entry — content, gallery, costs, tags, translations — and a `status` " +
             "of `draft` or `published`. This is how you read back something you " +
-            "have just written, before telling a person it is ready. Scoped like " +
+            "have just written, before telling a person it is ready — translations included, " +
+            "in the same shape they were written in. Scoped like " +
             "the writes on this path: a draft is what somebody has not decided " +
             "to publish, so it needs the same token.",
           parameters: [
