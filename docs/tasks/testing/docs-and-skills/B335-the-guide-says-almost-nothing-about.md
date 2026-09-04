@@ -7,8 +7,7 @@ complexity: low
 area: agent guide
 found: "2026-09-04T19:17:31Z"
 started: "2026-09-04T19:17:54Z"
-session: dfdac5e0-d54f-4e70-a49d-ec80d71d1b7f
-claimed: "2026-09-04T19:17:54Z"
+merged: "2026-09-04T19:25:09Z"
 ---
 
 # B335 — The guide says almost nothing about how a day's money and coordinates should be formed

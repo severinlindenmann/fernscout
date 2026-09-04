@@ -174,14 +174,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B335](in-development/B335-the-guide-says-almost-nothing-about.md) | The guide says almost nothing about how a day's money and coordinates should be formed | DOCS | medium | low | `dfdac5e0` |
 | [B338](in-development/B338-a-mailed-invitation-knows-the-address.md) | A mailed invitation knows the address it was sent to and asks the reader to type it again | ISSUE | medium | low | `986bc24c` |
 
-## testing (148)
+## testing (149)
 
 ### security (12)
 
@@ -346,7 +345,7 @@ _Nothing here._
 | [B21](testing/ops/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | OPS | high | medium | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
-### docs-and-skills (15)
+### docs-and-skills (16)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -361,6 +360,7 @@ _Nothing here._
 | [B248](testing/docs-and-skills/B248-the-main-checkout-rule-is-prose.md) | The main-checkout rule is prose, and prose does not stop an Edit | DOCS | medium | low | — |
 | [B267](testing/docs-and-skills/B267-nothing-tells-an-agent-that-a.md) | Nothing tells an agent that a trip decides its own budget and coordinates, and an empty costs page is offered anyway | DOCS | medium | medium | — |
 | [B292](testing/docs-and-skills/B292-four-things-an-agent-had-to.md) | Four things an agent had to learn by failing are documented somewhere it was not looking | DOCS | medium | low | — |
+| [B335](testing/docs-and-skills/B335-the-guide-says-almost-nothing-about.md) | The guide says almost nothing about how a day's money and coordinates should be formed | DOCS | medium | low | — |
 | [B152](testing/docs-and-skills/B152-the-guide-calls-the-relayed-sign.md) | The guide calls the relayed sign-in link the same link as the mailed one, and never says what kills it | DOCS | low | low | — |
 | [B186](testing/docs-and-skills/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | DOCS | low | low | — |
 | [B198](testing/docs-and-skills/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | DOCS | low | low | — |
