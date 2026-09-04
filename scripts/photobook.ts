@@ -24,6 +24,7 @@ import crypto from "node:crypto";
 
 import { contentRoot } from "../lib/contentRoot.ts";
 import { displayPath } from "../lib/displayPath.ts";
+import { parseTripRef } from "../lib/trips.ts";
 import { buildBookSource, resolvePrintFile } from "../lib/photobook/source.ts";
 import { outline, planBook, type Photobook } from "../lib/photobook/plan.ts";
 import { renderCover, renderVolume } from "../lib/photobook/render.ts";
@@ -92,6 +93,19 @@ if (!tripId) {
   );
 }
 
+// `parseTripRef` is the same check `lib/trips.ts` applies everywhere else a
+// ref is trusted with a filesystem path — a username is a directory name and
+// therefore a security boundary (AGENTS.md). This does not check that the
+// trip *exists*: a photobook run for a journal not yet created is a
+// reasonable thing to do, and `buildBookSource` below is what answers that.
+const parsedTripRef = parseTripRef(tripId);
+if (!parsedTripRef) {
+  fail(
+    `--trip "${tripId}" is not <username>/<trip-id> — both need to be lowercase ` +
+      "letters, digits and dashes, and not start with a dash.",
+  );
+}
+
 const backend = str("backend") ?? "dry-run";
 if (backend !== "dry-run") {
   const state = availableProviders()[backend as keyof ReturnType<typeof availableProviders>];
@@ -127,7 +141,7 @@ else if (binding !== "perfect") fail(`Unknown binding "${binding}". One of: perf
 // `--out` is unchanged and still means what it says: a path the person typed,
 // resolved against where they are standing, anywhere they like. Only the
 // default moved.
-const bookOwner = tripId!.includes("/") ? tripId!.slice(0, tripId!.indexOf("/")) : "";
+const bookOwner = parsedTripRef.username;
 const outDir = path.resolve(str("out") ?? path.join(contentRoot(), bookOwner, "photobooks"));
 fs.mkdirSync(outDir, { recursive: true });
 
@@ -206,7 +220,7 @@ console.log(`${book.title}\n${size.name} · ${book.photoCount} photographs\n`);
 const built: { stem: string; pageCount: number; interiorMd5: string; coverMd5: string }[] = [];
 
 // The trip's own id, without the owner: the owner is already the directory.
-const bookSlug = tripId!.includes("/") ? tripId!.slice(tripId!.indexOf("/") + 1) : tripId!;
+const bookSlug = parsedTripRef.tripId;
 
 for (const volume of book.volumes) {
   const stem = book.volumes.length > 1 ? `${bookSlug}-v${volume.index}` : bookSlug;

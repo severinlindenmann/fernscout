@@ -99,7 +99,7 @@ function contentRootOutsideCheckout(name: string): string {
   return root;
 }
 
-function runPostcard(options: { cwd: string; contentDir?: string }) {
+function runPostcard(options: { cwd: string; contentDir?: string; user?: string }) {
   const env: NodeJS.ProcessEnv = { ...process.env };
   if (options.contentDir) env.CONTENT_DIR = options.contentDir;
   else delete env.CONTENT_DIR;
@@ -116,7 +116,7 @@ function runPostcard(options: { cwd: string; contentDir?: string }) {
       "--conditions=react-server",
       path.join(ROOT, "scripts", "postcard.ts"),
       "--user",
-      "example",
+      options.user ?? "example",
       "--photo",
       PHOTO,
       "--message",
@@ -129,7 +129,12 @@ function runPostcard(options: { cwd: string; contentDir?: string }) {
   return { status: result.status ?? 1, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
 }
 
-function runPhotobook(options: { cwd: string; contentDir?: string; extra?: string[] }) {
+function runPhotobook(options: {
+  cwd: string;
+  contentDir?: string;
+  extra?: string[];
+  trip?: string;
+}) {
   const env: NodeJS.ProcessEnv = { ...process.env };
   if (options.contentDir) env.CONTENT_DIR = options.contentDir;
   else delete env.CONTENT_DIR;
@@ -141,7 +146,7 @@ function runPhotobook(options: { cwd: string; contentDir?: string; extra?: strin
       "--conditions=react-server",
       path.join(ROOT, "scripts", "photobook.ts"),
       "--trip",
-      TRIP,
+      options.trip ?? TRIP,
       ...(options.extra ?? []),
     ],
     { encoding: "utf8", cwd: options.cwd, env },
@@ -242,6 +247,22 @@ describe("npm run postcard", () => {
     // if B219's fix were ever undone.
     expect(said.count).toBe(entries(out).length);
   });
+
+  test("--user is a directory name, and a traversal in it is refused before anything is written (B242)", () => {
+    const contentDir = contentRootOutsideCheckout("postcard-user-traversal");
+    // Exactly `path.join(contentRoot(), owner, "postcards")` — the expression
+    // that used to build the output directory unchecked. If the fix ever
+    // regressed, this is where the files would land.
+    const escaped = path.join(contentDir, "../../escaped");
+    fs.rmSync(escaped, { recursive: true, force: true });
+
+    const run = runPostcard({ cwd: ROOT, contentDir, user: "../../escaped" });
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toMatch(/--user/);
+
+    expect(fs.existsSync(escaped)).toBe(false);
+    expect(fs.existsSync(path.join(escaped, "postcards"))).toBe(false);
+  });
 });
 
 describe("npm run photobook", () => {
@@ -289,5 +310,22 @@ describe("npm run photobook", () => {
     for (const file of printed) {
       expect(fs.existsSync(path.resolve(ROOT, file))).toBe(true);
     }
+  });
+
+  test("--trip is a directory name, and a traversal in it is refused before anything is written (B242)", () => {
+    const contentDir = contentRootOutsideCheckout("photobook-trip-traversal");
+    // Before B242 the owner was sliced off the ref by hand
+    // (`tripId.slice(0, tripId.indexOf("/"))`), which for "../../x/y" reads
+    // ".." — one level above the content root — and joined straight onto
+    // `path.join(contentRoot(), bookOwner, "photobooks")`.
+    const escapedPhotobooks = path.join(contentDir, "..", "photobooks");
+    fs.rmSync(escapedPhotobooks, { recursive: true, force: true });
+
+    const run = runPhotobook({ cwd: ROOT, contentDir, trip: "../../x/y" });
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toMatch(/--trip/);
+
+    expect(fs.existsSync(escapedPhotobooks)).toBe(false);
+    expect(entries(path.join(contentDir, "example", "photobooks"))).toEqual([]);
   });
 });

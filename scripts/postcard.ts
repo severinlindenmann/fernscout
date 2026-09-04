@@ -26,6 +26,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "../lib/contentRoot.ts";
 import { displayPath } from "../lib/displayPath.ts";
+import { ID_PATTERN } from "../lib/ingest/paths.ts";
 import { hasContactsKey } from "../lib/contacts/crypto.ts";
 import { closeDatabase } from "../lib/db/index.ts";
 import { postcardRecipientsFromContacts } from "../lib/postcard/contacts.ts";
@@ -104,6 +105,16 @@ if (!photoPath || !message || !owner || (!toPath && !fromContacts)) {
 }
 if (toPath && fromContacts) {
   fail("--to and --from-contacts name two different recipient lists. Pick one.");
+}
+// A username is a directory name and therefore a security boundary
+// (AGENTS.md) — this is the value that lands directly in
+// `path.join(contentRoot(), owner, "postcards")` below, before anything else
+// touches it. Checked before any file is opened or written (B242).
+if (!ID_PATTERN.test(owner)) {
+  fail(
+    `--user "${owner}" is not a username: lowercase letters, digits and dashes, ` +
+      "and not starting with a dash.",
+  );
 }
 if (fromContacts && !hasContactsKey()) {
   fail(
