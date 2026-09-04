@@ -14,7 +14,7 @@ import {
   normaliseAddress,
   type PostalAddress,
 } from "./crypto";
-import { countInviteUse } from "./invites";
+import { countInviteUse, preapprovedEmailFor } from "./invites";
 import { approveTripPlaces, revokeTripPlaces } from "../tripPeople";
 import { parseLocale } from "./locale";
 
@@ -314,6 +314,17 @@ export type ConfirmResult =
        * whose earlier notification mail failed (B272): distinct from
        * `firstConfirmation`, which stays about the address, not the mail. */
       needsOwnerNotice: boolean;
+      /**
+       * The guest session `verifyCode` minted for this address — set only
+       * when this confirmation is a **pre-approved** one (B350, see
+       * `preapprovedEmailFor`): the address has nothing left to prove, so the
+       * caller sets it as the reader's cookie rather than sending them to
+       * their inbox for a second link. Every other confirmation revokes the
+       * session on the spot, exactly as this function always did — proving an
+       * address is still not, on its own, a reason to sign somebody in.
+       */
+      sessionToken?: string;
+      sessionExpiresAt?: string;
     }
   | { ok: false };
 
@@ -324,9 +335,10 @@ export type ConfirmResult =
  * same function the sign-in route uses, which is why "the code is single use",
  * "five wrong guesses burn it" and the code window are true here for free.
  *
- * The session it mints is revoked on the spot. Confirming an address is not
- * signing in: nobody is handed the token, and leaving a live row behind for a
- * credential that was never issued would be a loose end in the sessions table.
+ * The session it mints is revoked on the spot, unless this confirmation is a
+ * pre-approved one — see `sessionToken` on `ConfirmResult`. Confirming an
+ * address is not signing in; being pre-approved by the owner and then proving
+ * it, in this call, is the one exception (B350).
  */
 export async function confirmContact(
   owner: string,
@@ -337,9 +349,6 @@ export async function confirmContact(
   const verified = await verifyCode(owner, address, code, "guest");
   if (!verified.ok) return { ok: false };
 
-  const session = await resolveSession(verified.token, "guest");
-  if (session) await revokeSession(session.id);
-
   const { db } = await getDatabase();
   const row = await db
     .selectFrom("contacts")
@@ -349,9 +358,22 @@ export async function confirmContact(
     .executeTakeFirst();
 
   // A valid code with no contact behind it means somebody signed in through
-  // the auth route and then posted here. Nothing to confirm.
-  if (!row) return { ok: false };
-  if (toStatus(row.status) === "blocked") return { ok: false };
+  // the auth route and then posted here. Nothing to confirm — and nothing to
+  // keep a session open for.
+  if (!row || toStatus(row.status) === "blocked") {
+    const session = await resolveSession(verified.token, "guest");
+    if (session) await revokeSession(session.id);
+    return { ok: false };
+  }
+
+  // B319/B350: does the invite that brought this address here name *this
+  // exact address* as one the owner pre-approved? If not, this is the
+  // ordinary path and the session is revoked below exactly as before.
+  const preapproved = (await preapprovedEmailFor(owner, row.created_via)) === row.email;
+  if (!preapproved) {
+    const session = await resolveSession(verified.token, "guest");
+    if (session) await revokeSession(session.id);
+  }
 
   const manageToken = manageTokenFor(owner, row.id);
   const now = nowIso();
@@ -370,7 +392,14 @@ export async function confirmContact(
     .execute();
 
   const fresh = { ...row, confirmed_at: row.confirmed_at ?? now, last_seen_at: now };
-  return { ok: true, contact: toRecord(owner, fresh), manageToken, firstConfirmation, needsOwnerNotice };
+  return {
+    ok: true,
+    contact: toRecord(owner, fresh),
+    manageToken,
+    firstConfirmation,
+    needsOwnerNotice,
+    ...(preapproved ? { sessionToken: verified.token, sessionExpiresAt: verified.expiresAt } : {}),
+  };
 }
 
 /**

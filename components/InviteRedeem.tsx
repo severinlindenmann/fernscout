@@ -139,6 +139,12 @@ export default function InviteRedeem({
     translate(dictionaries[locale] ?? dictionaries.en ?? {}, key, vars);
 
   const what = kind === "buddy" ? (tripTitle ?? journalTitle) : journalTitle;
+  // B351: `invitedEmail` is the same signal the prefill and its hint already
+  // key off — this link was mailed to a named address, so proving it here
+  // skips the owner's queue entirely (B319/B333). The three strings below
+  // spoke the queue's language regardless, contradicting that hint on the
+  // same screen.
+  const preapproved = Boolean(invitedEmail);
 
   function setAddressField(field: keyof typeof address, value: string) {
     setAddress((previous) => ({ ...previous, [field]: value }));
@@ -258,8 +264,13 @@ export default function InviteRedeem({
         <form onSubmit={redeem} noValidate>
           <p className="mt-3 text-lg leading-relaxed text-navy-700">
             {kind === "buddy"
-              ? t("invite.buddyIntro", { what, title: journalTitle })
-              : t("invite.guestIntro", { title: journalTitle })}
+              ? t(preapproved ? "invite.buddyIntroPreapproved" : "invite.buddyIntro", {
+                  what,
+                  title: journalTitle,
+                })
+              : t(preapproved ? "invite.guestIntroPreapproved" : "invite.guestIntro", {
+                  title: journalTitle,
+                })}
           </p>
 
           {step === "confirm" ? (
@@ -456,11 +467,15 @@ export default function InviteRedeem({
             </>
           )}
 
-          <p className="mt-6 text-base leading-relaxed text-navy-600">{t("invite.notYet")}</p>
+          <p className="mt-6 text-base leading-relaxed text-navy-600">
+            {t(preapproved ? "invite.notYetPreapproved" : "invite.notYet")}
+          </p>
 
           {error && <p className="mt-6 text-lg text-red-700">{t(error)}</p>}
           <button className={BUTTON} disabled={busy} type="submit">
-            {step === "confirm" ? t("invite.confirmSubmit") : t("invite.submit")}
+            {step === "confirm"
+              ? t("invite.confirmSubmit")
+              : t(preapproved ? "invite.submitPreapproved" : "invite.submit")}
           </button>
         </form>
       )}
