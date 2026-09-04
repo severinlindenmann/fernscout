@@ -7,8 +7,7 @@ complexity: low
 area: agent docs, costs
 found: "2026-09-04T18:55:53Z"
 started: "2026-09-04T18:56:11Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T18:56:11Z"
+merged: "2026-09-04T19:05:02Z"
 ---
 
 # B332 — The documents still say deleting a budget removes the costs page, which B328 made untrue
@@ -52,3 +51,28 @@ correction, not an addition.
 Neither generated document claims that deleting a budget removes the costs
 page, and a test asserts the corrected clause is present so it cannot drift
 back.
+
+## Also fixed here, because the merge was red
+
+Merging B328 turned `test/draft-audience.test.ts` red. A sibling session's
+**B327** landed in the same window and established the rule that *no page
+under the trip gate decides drafts for itself*, replacing `isOwner` with
+`draftsVisibleTo(trip)` across nine reading paths. B328's costs pages reached
+for `isOwner` — B318's pattern from an hour earlier, which B327 had just
+superseded everywhere else.
+
+Neither branch's own run could see it: the invariant test and the violation
+arrived on different branches, each green against `main` separately.
+
+So this task also put both costs pages on `draftsVisibleTo(trip)`, dropped the
+`isOwner` import, and corrected `test/costs-capability.test.ts`'s mock, which
+B328 had pointed at `@/lib/contacts/session` for the same reason.
+
+The rule matters beyond the test. `isOwner` is too narrow: somebody named in a
+trip's `people:` may read their own writing back, and a guest let into the
+journal may not — a per-trip question `isOwner` cannot express. The costs page
+was quietly getting that wrong for buddies.
+
+Worth carrying forward: this is the second time today two branches agreed with
+`main` separately and disagreed with each other. Running the suite on the
+**merge** rather than on the branch is what caught it.
