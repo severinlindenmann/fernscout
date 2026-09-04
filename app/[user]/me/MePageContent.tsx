@@ -3,7 +3,6 @@
 import Link from "next/link";
 import AgentHandover from "@/components/AgentHandover";
 import GuestSignIn from "@/components/GuestSignIn";
-import InviteLinks from "@/components/InviteLinks";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
@@ -84,7 +83,7 @@ export default function MePageContent({
   return (
     <div className="min-h-screen">
       <PageHeader />
-      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
           {t("me.title")}
         </h1>
@@ -157,14 +156,14 @@ export default function MePageContent({
             {canSignIn && <GuestSignIn username={username} codeMinutes={codeMinutes} />}
           </>
         ) : (
-          <p className="mt-3 text-lg text-navy-700">
+          <p className="mt-2 text-base text-navy-600">
             {t("me.signedInAs")}{" "}
             <strong className="font-semibold text-navy-900">{viewer.name ?? viewer.email}</strong>
           </p>
         )}
 
         {viewer.email && (
-          <section className="mt-8">
+          <section className="mt-6">
             <h2 className="font-display text-xl font-semibold text-navy-900">{t("me.canRead")}</h2>
             {/*
               Two empty states, because there are two people who can reach one.
@@ -206,7 +205,7 @@ export default function MePageContent({
         )}
 
         {manageHref && (
-          <section className="mt-8">
+          <section className="mt-6">
             <h2 className="font-display text-xl font-semibold text-navy-900">{t("me.details")}</h2>
             <p className="mt-2 text-lg leading-8 text-navy-700">{t("me.detailsBody")}</p>
             <Link
@@ -219,7 +218,7 @@ export default function MePageContent({
         )}
 
         {viewer.owner && (
-          <section className="mt-8 rounded-2xl border border-navy-200 bg-cream-100 p-5 sm:p-6">
+          <section className="mt-6 rounded-2xl border border-navy-200 bg-cream-100 p-5 sm:p-6">
             <h2 className="font-display text-xl font-semibold text-navy-900">
               {t("me.ownerTitle")}
             </h2>
@@ -239,7 +238,7 @@ export default function MePageContent({
               credential that can rewrite it in your pocket, and the two are
               not interchangeable.
             */}
-            <h3 className="mt-6 font-display text-base font-semibold text-navy-900">
+            <h3 className="mt-5 font-display text-base font-semibold text-navy-900">
               {t("me.tokenTitle")}
             </h3>
             <p className="mt-1 text-base leading-7 text-navy-700">{t("me.tokenBody")}</p>
@@ -248,34 +247,38 @@ export default function MePageContent({
             </p>
 
             {/*
-              B79. The door for people, beside the door for agents.
+              The door for people — B79, and one door rather than two since
+              B282.
 
-              Gated on the same capability as the guest list below, and not on
-              a new one: `POST /api/v1/{user}/invites` answers 404 unless
-              `isEnabled("contacts", …)`, because a redemption has to land in
-              the owner's queue and a journal with contacts off has no queue.
-              Same rule as B74 — the control is absent rather than broken.
+              This block used to *make* a reading link, with `InviteLinks`, and
+              then link to the page where links are listed, revoked and — since
+              B280 — sent again. So the one control here produced something
+              this page could not show you: the URL appeared once and was
+              unrecoverable the moment the owner navigated away. Creation moved
+              to the contacts panel (B281), which is where the note, the
+              language and the copy button are, and this is a button that leads
+              there.
+
+              Gated on the same capability as before, and not on a new one:
+              `/{user}/contacts` answers 404 unless `isEnabled("contacts", …)`,
+              because a redemption has to land in the owner's queue and a
+              journal with contacts off has no queue. Absent rather than
+              disabled — B74 — since a greyed control explaining an operator
+              switch is noise.
             */}
             {contactsEnabled && (
-              <div className="mt-6">
-                <InviteLinks username={username} trips={viewer.trips} />
-              </div>
-            )}
-
-            {/*
-              B74. Owning the journal is not enough: `/<user>/contacts` is a
-              capability, and it answers 404 when the journal has not opened
-              it. Absent rather than disabled — an owner with contacts off has
-              no guest list to manage, and a greyed control explaining an
-              operator switch would be noise.
-            */}
-            {contactsEnabled && (
-              <Link
-                href={`${site.base}/contacts`}
-                className="mt-5 inline-flex min-h-11 items-center text-base font-semibold text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-4"
-              >
-                {t("me.contacts")}
-              </Link>
+              <>
+                <h3 className="mt-5 font-display text-base font-semibold text-navy-900">
+                  {t("me.peopleTitle")}
+                </h3>
+                <p className="mt-1 text-base leading-7 text-navy-700">{t("me.peopleBody")}</p>
+                <Link
+                  href={`${site.base}/contacts`}
+                  className="mt-3 inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+                >
+                  {t("me.contacts")}
+                </Link>
+              </>
             )}
           </section>
         )}

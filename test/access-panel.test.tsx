@@ -210,46 +210,49 @@ describe("the access panel, for the owner", () => {
  * It is an owner who reads "invite" twice, sends the wrong one to a group
  * chat, and finds out later that a buddy link leads to writing.
  */
-describe("the two invite links, for the owner", () => {
-  test("offers both, and says in words what each one leads to", () => {
+/**
+ * The way to the people, for the owner — B79, then B282.
+ *
+ * This page used to *make* a reading link and a writing link itself, and three
+ * tests here asserted on those two blocks. They are gone, and so is
+ * `components/InviteLinks.tsx`: the page could create a link and then could
+ * not show it to you, because the URL appeared once and — until B280 made it
+ * recoverable — was gone the moment the owner navigated away. Creation now
+ * happens on `/{user}/contacts`, beside the list where a link is named,
+ * revoked and copied, and `test/invite-panel.test.tsx` is where those
+ * assertions live.
+ *
+ * What has to hold *here* is narrower and is what these tests check: one
+ * control, leading there, and only for the owner.
+ */
+describe("the way to the people, for the owner", () => {
+  test("offers one button to the page where links and readers live", () => {
     const html = render({ viewer: ownerWithTrips, contactsEnabled: true });
-    expect(html).toContain("Invite somebody");
-    // Two blocks, two verbs, on screen and not in a tooltip.
-    expect(html).toContain("A link for someone to read");
-    expect(html).toContain("A link for someone to write");
-    expect(html).toContain("they can write to that trip");
-    expect(html).toContain("Do not put this one in a group chat.");
-    // And the claim the API actually makes: a link is an invitation to ask.
-    expect(html).toContain("Neither link lets anybody in by itself.");
-    expect(html).toContain("they see nothing until you say yes");
+    expect(html).toContain("Inviting someone, and who reads along");
+    expect(html).toContain('href="/alex/contacts"');
+    // And still says the thing that stops a buddy link going in a group chat:
+    // a link is an invitation to ask, not access.
+    expect(html).toContain("Neither link lets anybody in on its own");
   });
 
-  test("names the trip a buddy link would be for, from the list already on the page", () => {
+  test("makes no link itself, so nothing here produces a URL it cannot show", () => {
     const html = render({ viewer: ownerWithTrips, contactsEnabled: true });
-    expect(html).toContain('id="invite-trip"');
-    expect(html).toContain('value="bus-2026"');
-    expect(html).toContain("The bus year");
-  });
-
-  /**
-   * A buddy link is a link to join one trip, and `POST …/invites` answers 404
-   * for a trip that does not exist. A journal with no trips has nothing to put
-   * in the select, so the block is absent rather than empty — the same rule
-   * B74 applied to the guest list. The reading link still stands: a journal
-   * with no trips yet is exactly when somebody tells their family where it is.
-   */
-  test("with no trips, offers the reading link and no writing link", () => {
-    const html = render({ viewer: owner, contactsEnabled: true });
-    expect(html).toContain("A link for someone to read");
-    expect(html).not.toContain("A link for someone to write");
     expect(html).not.toContain('id="invite-trip"');
+    expect(html).not.toContain("Create a reading link");
+    // The two descriptions moved to the contacts panel with the controls they
+    // belong to; neither should be duplicated here.
+    expect(html).not.toContain("Do not put this one in a group chat.");
   });
 
-  test("with contacts off, offers neither — the endpoint answers 404", () => {
+  test("a journal with no trips gets the same one control", () => {
+    const html = render({ viewer: owner, contactsEnabled: true });
+    expect(html).toContain('href="/alex/contacts"');
+  });
+
+  test("with contacts off, the control is absent — the page answers 404", () => {
     const html = render({ viewer: ownerWithTrips, contactsEnabled: false });
-    expect(html).not.toContain("Invite somebody");
-    expect(html).not.toContain("A link for someone to read");
-    expect(html).not.toContain("A link for someone to write");
+    expect(html).not.toContain("Inviting someone, and who reads along");
+    expect(html).not.toContain('href="/alex/contacts"');
   });
 
   /**
