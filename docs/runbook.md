@@ -456,6 +456,28 @@ Every capability reports whether it is on and, if not, why — **never a secret
 value**. `503` means config failed to resolve. Point an uptime monitor at it:
 while travelling, you cannot debug what you cannot see.
 
+### What it says to a stranger, and what it says to you
+
+It is unauthenticated, and stays that way — a monitor cannot hold a credential.
+So the *state* is public and the *detail* is not (B234):
+
+| Public, to anybody | Needs `HEALTH_TOKEN` |
+| --- | --- |
+| `status`, `time`, `uptimeSeconds`, `version`, `commit`, `backup`, `responseTimeMs` | — |
+| `config`/`content`/`basemap`: `ok` and a machine-readable `code` | their free-text `error`, which carries the absolute content path and the errno |
+| `capabilities`, including each `reason` | — |
+| `journals` for journals this instance advertises, plus `journalsWithheld` | `journals` rows for journals whose config says `visibility: private` |
+
+```bash
+curl -sH "Authorization: Bearer $HEALTH_TOKEN" localhost:3000/api/health | jq
+```
+
+Set it in `/etc/fernscout/env` (`openssl rand -hex 32`). Unset entitles nobody
+rather than everybody, so an instance that never sets it serves the redacted
+page — which still distinguishes "cannot read the content directory" from
+"there are no journals", the thing B197 added the field for. The full message
+is on stdout either way: `journalctl -u fernscout`.
+
 ---
 
 ## Backups

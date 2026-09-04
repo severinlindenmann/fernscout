@@ -129,7 +129,8 @@ describe("/api/health", () => {
     const { GET } = await import("@/app/api/health/route");
     stampSuccess(DEFAULT_MAX_AGE_HOURS + 10);
 
-    const res = await GET();
+    // An anonymous probe, which is what an uptime monitor is (B234).
+    const res = await GET(new Request("https://example.test/api/health"));
     expect(res.status).toBe(200);
     const body = (await res.json()) as { status: string; backup: { state: string; reason?: string } };
     expect(body.status).toBe("ok");
