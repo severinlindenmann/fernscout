@@ -524,10 +524,13 @@ function warnDetached() {
     const stranded = base === undefined ? undefined : Number(git(["rev-list", "--count", `${base}..${at}`]));
     const count = Number.isFinite(stranded) ? stranded : undefined;
     console.error(
+      // No count when there is nothing stranded — "0 commits are on no branch"
+      // reads as a contradiction of the sentence before it, and the checkout
+      // being detached at all is still the thing worth saying.
       `WARNING: ${where} is on a detached HEAD` +
-        (count === undefined
-          ? "."
-          : `; ${count} commit${count === 1 ? "" : "s"} ${count === 1 ? "is" : "are"} on no branch.`),
+        (count
+          ? `; ${count} commit${count === 1 ? "" : "s"} ${count === 1 ? "is" : "are"} on no branch.`
+          : "."),
     );
     if (base === undefined) continue;
     // Empty string is the success of a command that prints nothing; undefined
