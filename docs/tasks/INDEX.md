@@ -122,7 +122,6 @@ _Nothing here._
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B258](in-development/B258-a-deploy-re-installs-re-migrates.md) | A deploy re-installs, re-migrates and rebuilds whatever changed | CHORE | high | medium | `0bf379ff` |
 | [B259](in-development/B259-nothing-tells-an-agent-it-lacks.md) | Nothing tells an agent it lacks the tools to write here, so it invents workarounds instead | ISSUE | high | medium | `986bc24c` |
 | [B261](in-development/B261-the-copied-instruction-names-one-document.md) | The copied instruction names one document, so the agent discovers the other one and is refused it | ISSUE | high | low | `986bc24c` |
 
@@ -145,6 +144,7 @@ _Nothing here._
 | [B254](testing/B254-the-landing-page-hands-over-a.md) | The landing page hands over a bare URL where an agent needs an instruction | ISSUE | high | low | — |
 | [B255](testing/B255-the-landing-page-s-handover-block.md) | The landing page's handover block shows one thing and copies another | ISSUE | high | low | — |
 | [B256](testing/B256-an-agent-that-cannot-read-agent.md) | An agent that cannot read agent.md is left with the five questions and no calls | ISSUE | high | medium | — |
+| [B258](testing/B258-a-deploy-re-installs-re-migrates.md) | A deploy re-installs, re-migrates and rebuilds whatever changed | CHORE | high | medium | — |
 | [B64](testing/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B02](testing/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low | — |

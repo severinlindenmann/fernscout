@@ -7,8 +7,7 @@ complexity: medium
 area: deploy
 found: "2026-09-04T10:41:11Z"
 started: "2026-09-04T10:41:38Z"
-session: 0bf379ff-b385-4c95-8f34-00991d9db83d
-claimed: "2026-09-04T10:41:38Z"
+merged: "2026-09-04T11:05:45Z"
 ---
 
 # B258 — A deploy re-installs, re-migrates and rebuilds whatever changed
