@@ -114,7 +114,7 @@ export function readBackupStatus(now: Date = new Date()): BackupStatus {
       ...base,
       state: "unknown",
       reason:
-        "no backup has ever recorded a success in DATA_DIR — either none is installed (see docs/archiv/runbook.md §Backups) or this DATA_DIR is not the one it writes to",
+        "no backup has ever recorded a success in DATA_DIR — either none is installed (see docs/runbook.md §Backups) or this DATA_DIR is not the one it writes to",
     };
   }
 

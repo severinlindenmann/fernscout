@@ -32,7 +32,8 @@ import { accessSecret } from "./access";
  * to record that it burned, and a store shared across processes; within the
  * five-minute window a replay does the same thing the agent has already been
  * told to do, which is the case this exists to make it stop and think about,
- * not to make cryptographically impossible. `docs/plans/W28` records that.
+ * not to make cryptographically impossible. `docs/plans/W28-agent-safety-gates.md`
+ * records that.
  */
 
 /** Long enough to ask a person, short enough to be worthless in a log. */

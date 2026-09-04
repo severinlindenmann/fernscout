@@ -25,6 +25,35 @@ One instance serves many people: `content/<username>/…`, reachable at
 `/<username>`. A demo journal ships in the repo and serves at `/example`, so a
 fresh clone renders something real before you have written anything.
 
+## What it looks like
+
+Every picture below is that demo journal, on a production build. Nothing in it
+belongs to a real person.
+
+![A trip's story page: the winding day-by-day path down the left, the day card, and the route map beneath it](docs/screenshots/trip-story.jpg)
+
+The story page. The rail on the left *is* the trip — one stop per day, with
+what it cost. Scrolling it walks the travellers from stop to stop, which is the
+one thing a still photograph cannot show you; clone it and scroll.
+
+![One day's entry: the prose, three photographs, and the reaction row](docs/screenshots/day-entry.jpg)
+
+One day: markdown prose, its gallery, the day's spend, and the reactions
+readers leave. This is one file in `entries/`, rendered.
+
+![The trip map: eighteen stops joined by the route travelled](docs/screenshots/trip-map.jpg)
+
+Every stop on one map, drawn from the `lat` and `lng` in each entry's
+frontmatter. The base map is baked into the build — no tile server, no API key,
+nothing to pay for.
+
+![The gallery: every photograph from the trip in a grid, filterable by place](docs/screenshots/gallery.jpg)
+
+The gallery, filterable by place, with a slideshow behind the button.
+
+*Captured at 1280 px wide, light theme, from `content/example/` — see
+[docs/screenshots/](docs/screenshots/) before adding another.*
+
 ## Running it
 
 ```bash
@@ -103,12 +132,14 @@ visibility: `private`, `public` or `guest`. An unrecognised value reads as
 | | |
 | --- | --- |
 | `npm run dev` · `npm run build` · `npm start` | the site |
-| `npx tsc --noEmit` · `npx eslint .` · `npm test` · `npm run build` | the gate, all four before pushing |
+| `npm run build` · `npx tsc --noEmit` · `npx eslint .` · `npx vitest run` | the gate, all four before pushing — build **first**, it writes the route types `tsc` reads |
 | `npm run ingest -- --user <u> --trip <id> <folder>` | a card of photos → dated, geotagged draft days |
 | `npm run rates:update` | refresh the cached ECB rates |
 | `npm run export -- <username>` | the whole journal as a zip |
 
 ## Documentation
+
+Indexed at [docs/](docs/), which also says how far to trust it.
 
 | | |
 | --- | --- |
@@ -122,6 +153,8 @@ visibility: `private`, `public` or `guest`. An unrecognised value reads as
 | [providers/](docs/providers/) | MCP, and the print providers |
 | [TESTING.md](docs/TESTING.md) · [qa/](docs/qa/) | the manual walkthrough, and the scenario catalogue |
 | [branding/](docs/branding/) | the mark, the palette, and what not to do to them |
+| [ROADMAP.md](docs/ROADMAP.md) | the decision log — cited by number from the code |
+| [tasks/](docs/tasks/) · [plans/](docs/plans/) | everything still to do, and the record of intent behind what shipped |
 
 ## Contributing
 

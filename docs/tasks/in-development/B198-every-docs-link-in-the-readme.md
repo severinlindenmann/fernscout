@@ -46,3 +46,37 @@ and this is the second time documentation has drifted from where it lives.
 
 - Every relative link in `README.md` resolves to a file that exists.
 - Something fails if that stops being true.
+
+---
+
+## Resolution — 2026-09-04
+
+**Same finding as B09 and B62. B09 carries the fix.** Reported here on
+2026-09-03, five weeks after B09 and two days after B62 — three independent
+captures of ten dead links in the first document anybody opens. That is the
+case for the test.
+
+The Work section asked the right question and named both answers. The move into
+`archiv/` was intended, but `archiv/` did not mean what a reader takes it to
+mean: not "superseded", but "written by an agent and never read by a person".
+So the second answer is the one that shipped — the files moved back out, and
+the provenance warning moved into `docs/README.md`, which can say the thing a
+directory name cannot. B23 has the per-file reasoning; B09 has the full change.
+
+One correction to the Why: `docs/branding/` was not the only link that
+resolved — `AGENTS.md`, `CONTRIBUTING.md` and `TRADEMARK.md` in the README all
+resolved too. The ten `docs/…` rows were the broken set, which the rest of the
+description gets right.
+
+## Acceptance — met
+
+- Every relative link in `README.md` resolves — checked by
+  `test/docs-links.test.ts`, together with `AGENTS.md`, `CONTRIBUTING.md`,
+  every markdown file under `docs/` and every skill.
+- Something fails if that stops being true. Demonstrated by appending a link to
+  a file that does not exist to `README.md`: two tests fail, one naming the
+  link and one naming the file that cites it. Removing it turns them green.
+- The test skips `docs/tasks/` and `docs/plans/`, and says why in its own
+  comment: a task file quotes the broken link it is reporting, and a plan is
+  intent written before the work and never updated. This resolution note is an
+  example — it would have failed the test it describes.

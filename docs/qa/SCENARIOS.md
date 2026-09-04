@@ -49,11 +49,16 @@ generation** (a later feature). Their capability wiring is still checked.
 
 ## A — Foundations
 
+**Run A4 first.** The numbering is a catalogue, not an order: `npm run build`
+writes the typed-route definitions in `.next/types` that `tsc` resolves
+`PageProps`, `LayoutProps` and `RouteContext` against, so A1 on a checkout that
+has never been built fails on every route file for no reason of its own (B100).
+
 | # | Scenario | Pass |
 | --- | --- | --- |
-| A1 | `npx tsc --noEmit` | No output |
+| A1 | `npx tsc --noEmit` (after A4) | No output |
 | A2 | `npx eslint .` | 0 errors |
-| A3 | `npm test` | All green |
+| A3 | `npx vitest run` | All green |
 | A4 | `npm run build` | Compiles |
 | A5 | Boot with every capability **off** | Server starts; optional features are *absent*, not broken |
 | A6 | Boot with every capability **on** | Server starts; `/api/health` says every one is on |

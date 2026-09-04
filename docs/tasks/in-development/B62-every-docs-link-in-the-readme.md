@@ -57,3 +57,37 @@ went.
 - Every `docs/…` link in `README.md` and in `.claude/skills/**` resolves to a
   file that exists.
 - Something fails when one does not.
+
+---
+
+## Resolution — 2026-09-04
+
+**Same finding as B09 and B198. B09 carries the fix**; this file records that
+it was reported three times, which is itself the argument for the test that now
+guards it.
+
+The Work section offered two answers — "fix the links, or move the docs back
+out of `archiv/`" — and correctly identified which question decides it: *does
+`archiv/` mean superseded, or just moved?* Neither. It meant **unreviewed by a
+person**, which is a third thing, and encoding it in a directory name that
+every reader parses as "historical" is what made the runbook look archived
+while it was the live restore procedure. The files were moved back; the
+provenance warning is now `docs/README.md`, where it says what it means. See
+B23 for the per-file decision and B09 for the full change.
+
+`.claude/skills/deploy/SKILL.md:10` resolves again without being edited, which
+is the point: the skills and the code were never wrong about where these files
+belonged.
+
+## Acceptance — met
+
+```
+$ grep -oE "\(docs/[a-zA-Z0-9/._-]+\)" README.md | tr -d '()' \
+    | while read f; do [ -e "$f" ] || echo "MISSING: $f"; done
+(no output)
+```
+
+- Every `docs/…` link in `README.md` and in `.claude/skills/**` resolves.
+- Something fails when one does not: `test/docs-links.test.ts`, built on the
+  `test/depersonalised.test.ts` precedent this file named. Demonstrated failing
+  on a deliberately broken link, then passing.

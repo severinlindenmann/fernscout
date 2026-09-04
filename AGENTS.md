@@ -170,14 +170,24 @@ every journal written before W38 is.
 ### Verifying a change
 
 ```bash
+npm run build          # first — it writes .next/types, which tsc reads
 npx tsc --noEmit
 npx eslint .
 npx vitest run
-npm run build
 ```
 
 All four, every time. The dev server must boot with a capability both on and
 off.
+
+**The build goes first, and the order is not cosmetic.** Next generates the
+typed-route definitions in `.next/types` during a build, and `PageProps`,
+`LayoutProps` and `RouteContext` resolve against them. On a checkout where no
+build has run since a route appeared — a fresh worktree, or `main` right after
+a merge that added routes — `npx tsc --noEmit` reports dozens of errors in
+files you never opened, and the honest readings available to you are "the merge
+is broken" or "the documentation is wrong". Neither is true; the types have not
+been generated yet. `.github/workflows/ci.yml` builds before it typechecks for
+the same reason. B100.
 
 ## Where the work happens
 
@@ -300,8 +310,15 @@ that carry all of this in full.
 | `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
 
 Prose about the software — how it is built, how to run it, how to deploy it —
-is in `docs/`, indexed from the README. This file is only what applies to
-every task.
+is in `docs/`, indexed from `docs/README.md` and from the README. This file is
+only what applies to every task.
+
+Most of `docs/` was written by an agent during the build and has never been
+read line by line by a person, which `docs/README.md` says at length. **Treat
+it as useful, not as authority**: verify against the code before you rely on
+it, and fix the document while you are there. `docs/plans/` is the exception in
+the other direction — those are intent as written *before* the work, kept as
+the record and never corrected, so do not update one to match what shipped.
 
 ## The network doors
 

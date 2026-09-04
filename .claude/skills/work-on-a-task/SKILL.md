@@ -109,11 +109,17 @@ environment, nothing personal outside `content/`.
 
 ### 5. Verify, against the task's own words
 
-All four, every time:
+All four, every time, in this order:
 
 ```bash
-npx tsc --noEmit && npx eslint . && npx vitest run && npm run build
+npm run build && npx tsc --noEmit && npx eslint . && npx vitest run
 ```
+
+The build is first because it writes `.next/types`, which is where Next puts
+the typed-route definitions `PageProps`, `LayoutProps` and `RouteContext`
+resolve against. A worktree that has never been built fails `tsc` on every
+route file for that reason alone — sixty errors in code you did not write. Run
+`npm ci` in the worktree first, or the build fails too. B100.
 
 Then the task's **Acceptance** section, line by line. Each line either has
 evidence — a command and its output, a test that failed before and passes now
