@@ -7,8 +7,7 @@ complexity: low
 area: contacts
 found: "2026-09-04T19:57:17Z"
 started: "2026-09-04T20:17:22Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-04T20:17:22Z"
+merged: "2026-09-04T20:35:14Z"
 ---
 
 # B350 — A pre-approved guest is told there is nothing left to do, and lands on the journal signed out
