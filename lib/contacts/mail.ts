@@ -1,6 +1,7 @@
 import "server-only";
 import type { UserConfig } from "../config";
-import { CODE_TTL_MINUTES } from "../auth";
+import { CODE_TTL_MINUTES, issueStandingLink, signInUrl } from "../auth";
+import { isEnabled } from "../capabilities";
 
 import { translateIn } from "../locales";
 import { sendMail, type SendResult } from "../mail";
@@ -13,10 +14,11 @@ import {
   unsubscribeUrlFor,
   type ContactRecord,
 } from "./index";
+import type { InviteKind } from "./invites";
 import { pickLocale } from "./locale";
 
 /**
- * The four letters this feature writes.
+ * The five letters this feature writes.
  *
  * Each one is written in the *recipient's* language, which is the whole point
  * of keeping a locale on the contact: the digest picking `preferred_locale` per
@@ -65,6 +67,66 @@ export async function sendCodeMail(
       username,
     ),
   );
+}
+
+/**
+ * "You're invited" — the owner asked the server to mail it, rather than
+ * copying the link out by hand (B319).
+ *
+ * Transactional, like `sendCodeMail`: nobody has a contact row yet, so there
+ * is nothing on file to unsubscribe from — the row this makes only exists
+ * once whoever received this opens the link and proves the address.
+ *
+ * Best effort. By the time this is called `createInvite` has already
+ * succeeded and, when the address matches, pre-approved itself — a failed
+ * send must not undo either: the owner still holds the link this mail would
+ * have carried and can pass it on another way. See B272 for why a mail
+ * failure here is logged and swallowed rather than allowed to fail the call
+ * that made the invite.
+ */
+export async function sendInviteMail(
+  username: string,
+  user: UserConfig,
+  input: {
+    email: string;
+    locale: Locale;
+    kind: InviteKind;
+    url: string;
+    /** The trip a buddy link names, for the sentence that says so. Ignored
+     * for every other kind. */
+    tripTitle?: string | null;
+  },
+): Promise<SendResult | null> {
+  const buddy = input.kind === "buddy";
+  const vars = {
+    title: user.title,
+    nickname: user.owner.nickname,
+    trip: input.tripTitle ?? "",
+  };
+  try {
+    return await sendMail(
+      renderMail(
+        input.email,
+        translateIn(input.locale, buddy ? "contact.mailInviteBuddySubject" : "contact.mailInviteGuestSubject", vars),
+        {
+          preheader: translateIn(input.locale, buddy ? "contact.mailInviteBuddyBody" : "contact.mailInviteGuestBody", vars),
+          title: translateIn(input.locale, "contact.mailInviteTitle"),
+          blocks: [
+            {
+              kind: "paragraph",
+              text: translateIn(input.locale, buddy ? "contact.mailInviteBuddyBody" : "contact.mailInviteGuestBody", vars),
+            },
+            { kind: "button", text: translateIn(input.locale, "contact.mailInviteButton"), href: input.url },
+          ],
+          footer: footerFor(input.locale, user),
+        },
+        username,
+      ),
+    );
+  } catch (err) {
+    console.error(`[contacts] invite mail to ${input.email} failed:`, err);
+    return null;
+  }
 }
 
 /**
@@ -120,7 +182,14 @@ export async function sendConfirmedMail(
  * Sent the moment somebody confirms, not on a schedule, because the failure
  * this exists to prevent is a request sitting unseen for a fortnight while the
  * owner is on a bus. It links straight into the overview rather than asking
- * them to go and find it.
+ * them to go and find it — and, since B319, straight to *this* request within
+ * it (`?contact=<id>`), so the button opens the queue with the person who
+ * just confirmed already in front of the owner rather than at the top of a
+ * list they still have to scroll. That is the cheaper of the two ways an
+ * owner can act from their inbox: the button does not itself approve
+ * anybody — it is still the owner's page, still gated by `isOwner`, still one
+ * press away rather than none — which is what keeps this a plain link rather
+ * than a credential that needs `lib/deletions.ts`'s single-use pattern.
  *
  * Best effort (B272), and unlike `sendConfirmedMail` there **is** state to
  * retry from: this letter is the one thing standing between a confirmed
@@ -164,7 +233,7 @@ export async function notifyOwnerOfRequest(
             {
               kind: "button",
               text: translateIn(locale, "contact.mailRequestButton"),
-              href: `${baseUrl()}/${username}/contacts`,
+              href: `${baseUrl()}/${username}/contacts?contact=${encodeURIComponent(contact.id)}`,
             },
           ],
           footer: footerFor(locale, user),
@@ -182,43 +251,90 @@ export async function notifyOwnerOfRequest(
   }
 }
 
-/** "You're in." Sent when the owner approves, in the reader's language. */
+/**
+ * "You're in." Sent when the owner approves, in the reader's language.
+ *
+ * The button used to be the journal's plain address — `${baseUrl()}/{user}`
+ * — which for a `guest` journal shows an unauthenticated arrival nothing at
+ * all: the gate, not the trip (B319). It now carries a **standing sign-in
+ * link**, the exact mechanism the owner's own welcome mail has used since
+ * `006-standing-link`: `issueStandingLink` mints a `guest`-kind row with no
+ * time expiry, and `signInUrl` points it at `/{user}/s/{token}`, the page
+ * B142 built so a mail scanner following the link cannot spend it before the
+ * reader does — it only *shows* a button; pressing it is what redeems the
+ * link. That is the property this letter needs: it may sit in an inbox for a
+ * week, same as the welcome mail's copy, and a machine reading it first must
+ * not burn the reader's own single use.
+ *
+ * **Why no expiry, deliberately, rather than a short-lived relay link**
+ * (B283's `issueRelayLink`, fifteen minutes). That shape is for a credential
+ * that passes through an agent's transcript in the middle of a live
+ * conversation — used within the minute or not at all. This one is a mail a
+ * newly-approved reader opens whenever they next check their inbox, which the
+ * welcome mail already established is not "now". The cost the short-lived
+ * link avoids — a copy sitting in a chat log — does not apply to a letter
+ * that lives in exactly one place, the reader's own mailbox, and single use
+ * is still the whole of what bounds it: the first press spends it, same as
+ * every standing link.
+ *
+ * Only reached when `isEnabled("auth", username)` — the capability that owns
+ * `/{user}/s/{token}` and `POST /api/auth/link` (AGENTS.md: "absent rather
+ * than broken when disabled"). A journal running with `contacts` and `mail`
+ * on but `auth` off falls back to the plain address exactly as before, rather
+ * than mailing a link to a page that would 404.
+ *
+ * Best effort (B272's rule, extended here to a caller it did not originally
+ * cover): minting the standing link is one more thing that can throw before
+ * `sendMail` ever runs, and this is now called from the moment a pre-approved
+ * address confirms — a path with no owner-approval click behind it for
+ * anyone to retry from. A failure here must log and return `null`, never
+ * surface as a 500 to a reader who did everything right.
+ */
 export async function sendApprovedMail(
   username: string,
   user: UserConfig,
   contact: ContactRecord,
-) {
+): Promise<SendResult | null> {
   const locale = pickLocale(contact.locale, user.defaultLocale);
-  // Recomputed rather than carried around: the manage token is derived from the
-  // contact id, so a mail written months later still has the working link.
-  const token = manageTokenFor(username, contact.id);
-  return sendMail(
-    renderMail(
-      contact.email,
-      translateIn(locale, "contact.mailApprovedSubject", { title: user.title }),
-      {
-        preheader: translateIn(locale, "contact.mailApprovedBody", { title: user.title }),
-        title: translateIn(locale, "contact.mailApprovedTitle"),
-        blocks: [
-          {
-            kind: "paragraph",
-            text: translateIn(locale, "contact.mailApprovedBody", { title: user.title }),
-          },
-          {
-            kind: "button",
-            text: translateIn(locale, "contact.mailApprovedButton", { title: user.title }),
-            href: `${baseUrl()}/${username}`,
-          },
-          {
-            kind: "item",
-            title: translateIn(locale, "contact.mailManageButton"),
-            href: manageUrl(baseUrl(), username, token),
-          },
-        ],
-        footer: footerFor(locale, user),
-        unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, token),
-      },
-      username,
-    ),
-  );
+  try {
+    // Recomputed rather than carried around: the manage token is derived from
+    // the contact id, so a mail written months later still has the working
+    // link.
+    const token = manageTokenFor(username, contact.id);
+    const openUrl = isEnabled("auth", username)
+      ? signInUrl(baseUrl(), username, await issueStandingLink(username, contact.email))
+      : `${baseUrl()}/${username}`;
+    return await sendMail(
+      renderMail(
+        contact.email,
+        translateIn(locale, "contact.mailApprovedSubject", { title: user.title }),
+        {
+          preheader: translateIn(locale, "contact.mailApprovedBody", { title: user.title }),
+          title: translateIn(locale, "contact.mailApprovedTitle"),
+          blocks: [
+            {
+              kind: "paragraph",
+              text: translateIn(locale, "contact.mailApprovedBody", { title: user.title }),
+            },
+            {
+              kind: "button",
+              text: translateIn(locale, "contact.mailApprovedButton", { title: user.title }),
+              href: openUrl,
+            },
+            {
+              kind: "item",
+              title: translateIn(locale, "contact.mailManageButton"),
+              href: manageUrl(baseUrl(), username, token),
+            },
+          ],
+          footer: footerFor(locale, user),
+          unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, token),
+        },
+        username,
+      ),
+    );
+  } catch (err) {
+    console.error(`[contacts] approval mail to ${contact.email} failed:`, err);
+    return null;
+  }
 }

@@ -1,3 +1,4 @@
+import { isEmail } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import {
   createInvite,
@@ -7,6 +8,8 @@ import {
   type Invite,
   type InviteKind,
 } from "@/lib/contacts/invites";
+import { pickLocale } from "@/lib/contacts/locale";
+import { sendInviteMail } from "@/lib/contacts/mail";
 import { isOwner } from "@/lib/contacts/session";
 import { serverSite } from "@/lib/site";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -38,6 +41,22 @@ export const dynamic = "force-dynamic";
  * and waits for the owner, exactly as the existing personal invite does
  * (decision 19). That is what makes both safe to forward: the link decides who
  * may *ask*, and the owner decides who gets in.
+ *
+ * **Naming `email` here changes that, on purpose — B319.** The owner is no
+ * longer handing over a link for someone to open eventually; they are typing
+ * an address and asking this server to mail it. That is the owner vouching
+ * for the address, so `createInvite` records it and the confirming routes
+ * (`/api/contacts/confirm`, `/api/contacts/redeem`) skip the queue for
+ * *exactly* that address once it is proved — see `preapprovedEmailFor`.
+ * Proof is still required and still the reader's own to give; only the
+ * owner's queue is skipped, and only for the address the owner actually typed.
+ * A link sent this way is not thereby unsafe to forward too — a different
+ * address that redeems it still asks, precisely as before.
+ *
+ * A failed send does not fail this call: `sendInviteMail` is best effort
+ * (B272), and the link and its pre-approval both already exist by the time it
+ * runs. `sent` in the response says whether the mail actually left; the owner
+ * still has `invite.url` to send another way if it did not.
  *
  * ## Who may create one
  *
@@ -143,6 +162,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   const kind: InviteKind = raw;
 
   const tripId = typeof body.trip === "string" ? body.trip.trim() : "";
+  let tripTitle: string | null = null;
   if (kind === "buddy") {
     if (!tripId) {
       return Response.json(
@@ -153,12 +173,14 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
         { status: 400 },
       );
     }
-    if (!getTrip(tripRef(user, tripId))) {
+    const trip = getTrip(tripRef(user, tripId));
+    if (!trip) {
       return Response.json(
         { error: "unknown_trip", message: `"${user}" has no trip called "${tripId}".` },
         { status: 404 },
       );
     }
+    tripTitle = trip.title;
   } else if (tripId) {
     // Refused rather than ignored. A guest is a guest of the journal — there
     // is deliberately no per-trip guest link — and silently widening what
@@ -175,32 +197,77 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     );
   }
 
+  // Mail it rather than hand back a link to copy — B319. The owner typing an
+  // address here is the owner vouching for it: `createInvite` records it as
+  // `email_key`, which is what pre-approves it — see `preapprovedEmailFor`
+  // and the confirming routes. Nothing downstream treats a *missing* email
+  // any differently from before; this only ever adds a capability.
+  const rawEmail = typeof body.email === "string" ? body.email.trim() : "";
+  if (rawEmail && !isEmail(rawEmail)) {
+    return Response.json(
+      { error: "invalid_email", message: `"${rawEmail}" does not look like an email address.` },
+      { status: 400 },
+    );
+  }
+
   const days = typeof body.days === "number" && Number.isFinite(body.days) ? body.days : undefined;
+  const locale = typeof body.locale === "string" ? body.locale : undefined;
   const created = await createInvite(user, {
     kind,
     tripId: tripId || null,
     name: typeof body.name === "string" ? body.name : undefined,
-    locale: typeof body.locale === "string" ? body.locale : undefined,
+    locale,
     // Always dated. A link that never expires is the shared password again,
     // wearing a URL.
     expiresAt: inviteExpiry(days),
+    email: rawEmail || null,
   });
 
   const invite = (await listInvites(user)).find((row) => row.id === created.id);
   if (!invite) return Response.json({ error: "not_created" }, { status: 500 });
 
+  const url = inviteLinkUrl(serverSite().url, user, kind, created.token);
+
+  // Best effort (B272's lesson): the invite already exists and, when an
+  // address was given, is already pre-approved by the time this runs — a
+  // send failure must not undo either, or fail a call that has already done
+  // its job. `sendInviteMail` logs and swallows its own errors; `sent` only
+  // says whether a mail actually left, for the owner's own information.
+  const journal = getUser(user)!; // `guard` above already confirmed it exists.
+  const sent = rawEmail
+    ? (await sendInviteMail(user, journal, {
+        email: rawEmail,
+        // `invite.locale` is what `createInvite` actually kept — `parseLocale`
+        // already dropped anything not installed here, so this reads back the
+        // same fallback the link's own prefill uses rather than trusting the
+        // raw request a second time.
+        locale: pickLocale(invite.locale, journal.defaultLocale),
+        kind,
+        url,
+        tripTitle,
+      })) !== null
+    : false;
+
   return Response.json(
     {
       ok: true,
       invite: view(user, invite, created.token),
-      note:
-        kind === "buddy"
+      sent,
+      note: rawEmail
+        ? sent
+          ? `Mailed to ${rawEmail}. That address is pre-approved: proving it is all that is ` +
+            "left, and it will not sit in your queue."
+          : `Could not send to ${rawEmail} — this server's mail may be off. The link above ` +
+            "still works and that address is still pre-approved; send it another way."
+        : kind === "buddy"
           ? "Send this only to the people who were actually on the trip. Redeeming it puts " +
             "them in your queue; approving them lets them write to the trip and read the " +
             "journal's guest trips."
           : "Safe to forward. Everyone who opens it asks separately, and you approve each " +
             "one by hand.",
-      next: `The person opens the link, proves their address, and appears at /${user}/contacts for you to approve.`,
+      next: rawEmail
+        ? `${rawEmail} opens the mail, proves their address, and is in — no queue, no second click.`
+        : `The person opens the link, proves their address, and appears at /${user}/contacts for you to approve.`,
     },
     { status: 201 },
   );

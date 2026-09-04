@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CopyLine from "./CopyLine";
 import { LOCALE_LABEL, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
@@ -195,6 +195,7 @@ function ContactRow({
   busy,
   act,
   onEdit,
+  highlighted = false,
 }: {
   contact: AdminContact;
   /** How they came to be here, already in words — see `viaLabel`. Resolved by
@@ -204,6 +205,11 @@ function ContactRow({
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
   onEdit: (contact: AdminContact) => void;
+  /** This is the request the owner's approval mail was about — B319. Not a
+   * different state, only a ring round an ordinary row: the button, the
+   * data, everything else about it is identical to any other pending
+   * contact. */
+  highlighted?: boolean;
 }) {
   // Owner-facing copy, not the guest form's first-person "Send me…" — this
   // list is read by the owner, about somebody else.
@@ -215,7 +221,12 @@ function ContactRow({
   const postal = contact.postalAddress;
 
   return (
-    <li className="rounded-2xl border border-navy-200 bg-white p-5">
+    <li
+      id={`contact-${contact.id}`}
+      className={`rounded-2xl border bg-white p-5 ${
+        highlighted ? "border-yellow-400 ring-2 ring-yellow-400" : "border-navy-200"
+      }`}
+    >
       <p className="font-display text-xl text-navy-900">{contact.name ?? contact.email}</p>
       <p className="text-base text-navy-700">{contact.email}</p>
       <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm text-navy-600">
@@ -629,6 +640,7 @@ function ContactGroup({
   busy,
   act,
   onEdit,
+  highlightId,
 }: {
   title: string;
   rows: AdminContact[];
@@ -640,6 +652,7 @@ function ContactGroup({
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
   onEdit: (contact: AdminContact) => void;
+  highlightId?: string;
 }) {
   return (
     <section className="mt-10">
@@ -656,6 +669,7 @@ function ContactGroup({
               busy={busy}
               act={act}
               onEdit={onEdit}
+              highlighted={contact.id === highlightId}
               key={contact.id}
             />
           ))}
@@ -779,6 +793,7 @@ export default function ContactsAdmin({
   invites: initialInvites,
   trips = [],
   hasGuestTrip,
+  highlightId,
 }: {
   username: string;
   locale: Locale;
@@ -798,6 +813,14 @@ export default function ContactsAdmin({
   dictionary: Record<string, string>;
   contacts: AdminContact[];
   invites: AdminInvite[];
+  /**
+   * The request the owner's approval mail (`notifyOwnerOfRequest`) was
+   * about — B319. From the page's own `?contact=` query string, so the
+   * button in that mail opens the queue with this one already in front of
+   * the owner rather than merely at the top of a list they still have to
+   * find.
+   */
+  highlightId?: string;
 }) {
   const [contacts, setContacts] = useState(initialContacts);
   const [invites, setInvites] = useState(initialInvites);
@@ -850,6 +873,15 @@ export default function ContactsAdmin({
   // says the right thing again after a link is revoked without anything having
   // to be re-fetched for it.
   const contactVia = (contact: AdminContact) => viaLabel(contact.createdVia, invites, trips, t);
+
+  // Put the highlighted request in view rather than merely marked — B319.
+  // Runs once per id: `refresh()` after an approve or a revoke reloads every
+  // row, and a highlighted request that the owner has just acted on should
+  // stay visible without being re-scrolled to on every subsequent action.
+  useEffect(() => {
+    if (!highlightId) return;
+    document.getElementById(`contact-${highlightId}`)?.scrollIntoView({ block: "center" });
+  }, [highlightId]);
 
   return (
     // `id` and `tabIndex` are the target of the skip link the page's header
@@ -907,6 +939,7 @@ export default function ContactsAdmin({
         busy={busy}
         act={act}
         onEdit={setFormTarget}
+        highlightId={highlightId}
       />
       <ContactGroup
         title={t("contact.adminApproved")}
@@ -916,6 +949,7 @@ export default function ContactsAdmin({
         busy={busy}
         act={act}
         onEdit={setFormTarget}
+        highlightId={highlightId}
       />
       {other.length > 0 && (
         <ContactGroup
@@ -926,6 +960,7 @@ export default function ContactsAdmin({
           busy={busy}
           act={act}
           onEdit={setFormTarget}
+          highlightId={highlightId}
         />
       )}
 

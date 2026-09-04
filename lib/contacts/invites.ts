@@ -140,6 +140,15 @@ export function inviteLinkUrl(
   return `${base.replace(/\/$/, "")}/${username}/invite/${kind}/${token}`;
 }
 
+/**
+ * Case-folded, same rule as `normaliseEmail` in `./index` — reimplemented
+ * rather than imported, because `./index` already imports `countInviteUse`
+ * from this module and the other direction would be a cycle.
+ */
+function emailKeyOf(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export async function createInvite(
   owner: string,
   input: {
@@ -150,6 +159,13 @@ export async function createInvite(
     name?: string;
     locale?: string;
     expiresAt?: string | null;
+    /**
+     * The address to mail this invite to, if the owner asked for that rather
+     * than a link to copy — B319. Recorded case-folded as `email_key`, which
+     * is also what pre-approves it: see `preapprovedEmailFor`. The caller
+     * validates it is a real address; this only stores what it is given.
+     */
+    email?: string | null;
   },
 ): Promise<{ id: string; token: string; expiresAt: string | null }> {
   const { db } = await getDatabase();
@@ -180,10 +196,47 @@ export async function createInvite(
       expires_at: expiresAt,
       revoked_at: null,
       uses: 0,
+      email_key: input.email ? emailKeyOf(input.email) : null,
     })
     .execute();
 
   return { id, token, expiresAt };
+}
+
+/**
+ * The address this invite was mailed to, pre-approved — B319.
+ *
+ * `createdVia` is a contact's own record of how it arrived: `invite:<id>` for
+ * anything that came through this table. Given that string back, this answers
+ * whether *that* invite was mailed to an address rather than handed out as a
+ * link, and if so, what it was. The caller compares the answer to the
+ * confirming contact's own `email` — never to anything from the request — so
+ * a link forwarded to somebody else still lands in the owner's queue: only an
+ * exact match skips it.
+ *
+ * Revocation and expiry are deliberately not checked here. By the time this
+ * runs the redemption already happened through `resolveInvite`, which refuses
+ * a dead link before anything is written; a row that got this far was live
+ * when it mattered, and whether it still is by the time somebody types a code
+ * has no bearing on whether the owner vouched for the address.
+ */
+export async function preapprovedEmailFor(
+  owner: string,
+  createdVia: string | null,
+): Promise<string | null> {
+  const prefix = "invite:";
+  if (!createdVia?.startsWith(prefix)) return null;
+  const id = createdVia.slice(prefix.length);
+
+  const { db } = await getDatabase();
+  const row = await db
+    .selectFrom("contact_invites")
+    .select("email_key")
+    .where("owner_id", "=", owner)
+    .where("id", "=", id)
+    .executeTakeFirst();
+
+  return row?.email_key ?? null;
 }
 
 /**
