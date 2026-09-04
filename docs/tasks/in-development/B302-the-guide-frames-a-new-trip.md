@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: documentation, agents, api
 found: "2026-09-04T14:40:00Z"
+started: "2026-09-04T15:01:17Z"
+session: a3370c43-40d9-471c-a3d3-1a30c49b5302
+claimed: "2026-09-04T15:01:17Z"
 ---
 
 # B302 — The guide frames a new trip as private-or-public, so an agent never offers guest and its user ends up with an approved reader who cannot read
