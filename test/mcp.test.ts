@@ -434,21 +434,22 @@ describe("the protocol", () => {
   test("tools/list names every tool an agent may call, with a schema", async () => {
     const { body } = await rpc(anaToken, "tools/list");
     const tools = (body.result as { tools: { name: string; inputSchema: unknown }[] }).tools;
+    // No invite tools: this instance has contacts off, and since B183 a tool
+    // whose capability is off is absent rather than advertised and refused.
+    // The case where they *are* listed has its own test below.
     expect(tools.map((t) => t.name).sort()).toEqual([
       "add_media",
       "create_day",
-      "create_invite",
       "create_trip",
       "delete_day",
       "delete_journal",
       "delete_trip",
       "get_day",
       "list_drafts",
-      "list_invites",
       "list_trips",
       "publish_day",
-      "revoke_invite",
       "search_entries",
+      "set_journal_features",
     ]);
     // Not `create_journal`. This token belongs to a journal, and a journal's
     // token must not be able to mint more journals beside it — offering the
@@ -1113,5 +1114,279 @@ describe("test content is stated in the readable text", () => {
     // Inherited: `test: true` is on the trip, and nowhere in the entry file.
     expect(getAllEntries("ana/ana-proving")[0].test).toBeUndefined();
     expect((result.structuredContent as { test?: boolean }).test).toBe(true);
+  });
+});
+
+/**
+ * B134, B158 — the two surfaces that still described invented content as
+ * though somebody had lived it, and the one that has now decided.
+ *
+ * `list_drafts` is read out to a person at the moment they choose what goes on
+ * the site; the publish confirmation is the last sentence they hear before
+ * saying yes, and it promised the feed and the search index to a day that is
+ * kept out of both. `search_entries` was the last surface where the structured
+ * answer and the public one disagreed without anybody having decided.
+ */
+describe("what a person is told about content nobody lived", () => {
+  const NOTICE = "did not happen.** It exists to check the software.";
+
+  beforeEach(() => {
+    writeTrip("ana", "ana-proving", ["test: true"]);
+    writeEntry("ana", "ana-proving", "2026-01-06", "proving-day", "Lanterns nobody saw.");
+    // A draft inside it, carrying nothing of its own — the inherited case.
+    fs.writeFileSync(
+      path.join(dir, "ana", "trips", "ana-proving", "entries", "2026-01-07-proving-draft.md"),
+      [
+        "---",
+        'title: "Proving draft"',
+        'date: "2026-01-07"',
+        'location: "Hoi An"',
+        "status: draft",
+        "---",
+        "",
+        "Not yet on the site, and never happened.",
+        "",
+      ].join("\n"),
+    );
+    // And an ordinary draft in the real trip, for the contrast.
+    fs.writeFileSync(
+      path.join(dir, "ana", "trips", "ana-trip", "entries", "2026-01-08-real-draft.md"),
+      [
+        "---",
+        'title: "Real draft"',
+        'date: "2026-01-08"',
+        'location: "Hoi An"',
+        "status: draft",
+        "---",
+        "",
+        "A day that happened, waiting for a person.",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  test("list_drafts says which of them nobody lived, in the same words", async () => {
+    const result = await call(anaToken, "list_drafts");
+    const lines = textOf(result).split("\n");
+    const proving = lines.find((l) => l.includes("proving-draft"))!;
+    const real = lines.find((l) => l.includes("real-draft"))!;
+
+    expect(proving).toContain(`**Test content — this day ${NOTICE}`);
+    expect(real).not.toContain("did not happen");
+
+    const drafts = (result.structuredContent as { drafts: { slug: string; test?: boolean }[] })
+      .drafts;
+    expect(drafts.find((d) => d.slug === "proving-draft")?.test).toBe(true);
+    expect(drafts.find((d) => d.slug === "real-draft")).not.toHaveProperty("test");
+  });
+
+  test("the publish confirmation describes the exclusions rather than promising the opposite", async () => {
+    const refused = await call(anaToken, "publish_day", {
+      trip: "ana-proving",
+      slug: "proving-draft",
+    });
+    expect(refused.isError).toBe(true);
+    const message = textOf(refused);
+    expect(message).toContain("kept out of the feed, the search index and the sitemap");
+    expect(message).not.toContain("It goes into the journal, the feed and the search index");
+  });
+
+  test("publishing an ordinary day still promises the feed and the search index", async () => {
+    const refused = await call(anaToken, "publish_day", {
+      trip: "ana-trip",
+      slug: "real-draft",
+    });
+    expect(refused.isError).toBe(true);
+    expect(textOf(refused)).toContain("It goes into the journal, the feed and the search index");
+  });
+
+  test("and both doors read out the same sentence", async () => {
+    // One function behind two calls (`publishNotice`). Two copies of the
+    // sentence is how the REST one came to promise something the MCP one did
+    // not, and this is the assertion that stops it happening again.
+    const viaMcp = textOf(
+      await call(anaToken, "publish_day", { trip: "ana-proving", slug: "proving-draft" }),
+    );
+
+    const { POST } = await import(
+      "@/app/api/v1/[user]/trips/[trip]/days/[slug]/publish/route"
+    );
+    const response = await POST(
+      new Request(`${SITE}/api/v1/ana/trips/ana-proving/days/proving-draft/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${anaToken}` },
+        body: "{}",
+      }),
+      {
+        params: Promise.resolve({
+          user: "ana",
+          trip: "ana-proving",
+          slug: "proving-draft",
+        }),
+      },
+    );
+    expect(response.status).toBe(409);
+    const body = (await response.json()) as { message: string };
+    expect(viaMcp).toContain(body.message);
+
+    // And nothing was published by either refusal.
+    expect(getAllEntries("ana/ana-proving").map((e) => e.slug)).not.toContain("proving-draft");
+  });
+
+  test("search_entries finds a test day and says on its line that it is one", async () => {
+    // The decision B158 asked for, made and now asserted: this is the agent's
+    // own journal, so its test content is findable here — unlike the public
+    // index — and every result that is fiction says so.
+    const result = await call(anaToken, "search_entries", { query: "lanterns" });
+    const lines = textOf(result).split("\n");
+    const invented = lines.find((l) => l.includes("proving-day"))!;
+    expect(invented).toContain(`**Test content — this day ${NOTICE}`);
+
+    const hits = (result.structuredContent as { results: { slug: string; test?: boolean }[] })
+      .results;
+    expect(hits.find((h) => h.slug === "proving-day")?.test).toBe(true);
+    expect(hits.find((h) => h.slug === "lanterns")).not.toHaveProperty("test");
+  });
+});
+
+/**
+ * B183 — a disabled capability is absent, not broken.
+ *
+ * The three invite tools were advertised to every journal, including one with
+ * contacts switched off, where calling any of them is refused. Nothing leaked
+ * and nothing broke; it was a list that had to be corrected by trying it, in a
+ * codebase that is otherwise consistent about the opposite (AGENTS.md, and B74
+ * for the same shape in the UI).
+ */
+describe("tools/list is filtered by what this journal can actually do", () => {
+  const INVITE_TOOLS = ["create_invite", "list_invites", "revoke_invite"];
+
+  async function toolNames(token: string): Promise<string[]> {
+    const { body } = await rpc(token, "tools/list");
+    return (body.result as { tools: { name: string }[] }).tools.map((t) => t.name);
+  }
+
+  /** Contacts on, both halves: the server can provide it, and ana asks for it. */
+  function enableContacts() {
+    process.env.CONTACTS_ENCRYPTION_KEY = "33".repeat(32);
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "Fernscout", url: SITE, defaultUser: "ana" },
+        users: { reserved: [] },
+        features: { auth: { enabled: true }, contacts: { enabled: true } },
+      }),
+    );
+    const userConfig = path.join(dir, "ana", "config.json");
+    const raw = JSON.parse(fs.readFileSync(userConfig, "utf8")) as Record<string, unknown>;
+    fs.writeFileSync(
+      userConfig,
+      JSON.stringify({ ...raw, features: { contacts: { enabled: true } } }),
+    );
+    clearConfigCache();
+    clearUserCache();
+  }
+
+  afterEach(() => {
+    delete process.env.CONTACTS_ENCRYPTION_KEY;
+  });
+
+  test("a journal with contacts off is not offered the invite tools", async () => {
+    const names = await toolNames(anaToken);
+    for (const tool of INVITE_TOOLS) expect(names).not.toContain(tool);
+  });
+
+  test("the same journal with contacts on is", async () => {
+    enableContacts();
+    const names = await toolNames(anaToken);
+    for (const tool of INVITE_TOOLS) expect(names).toContain(tool);
+  });
+
+  test("and calling one anyway is still refused, in the handler's own words", async () => {
+    // The filter is honesty; the handler is the enforcement. A client may hold
+    // a list it fetched before the capability changed.
+    const result = await call(anaToken, "create_invite", { kind: "guest" });
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toMatch(/contacts/i);
+  });
+});
+
+/**
+ * B175 (and B206, the same finding from the other side) — the two doors on
+ * `listed`.
+ *
+ * `POST /api/v1/<user>/trips` has taken `listed` since W27 and `/openapi.json`
+ * documents it; MCP's `create_trip` had no such property and, with
+ * `additionalProperties: false`, refused one. So an agent working over MCP
+ * could not create the setting AGENTS.md calls the old `unlisted` — public,
+ * readable by anybody with the link, advertised nowhere — which is the honest
+ * setting for a trip somebody will mail to their family. The workaround was to
+ * create the trip and ask a person to edit `trip.md`, which is the advice B28
+ * says has nowhere to go.
+ */
+describe("create_trip can ask for a trip that is readable but not advertised", () => {
+  test("a public trip narrowed to unlisted reads back that way, and both doors write it identically", async () => {
+    const body = {
+      id: "for-the-family",
+      title: "For the family",
+      start: "2026-04-01",
+      end: "2026-04-10",
+      visibility: "public",
+      listed: false,
+    };
+    const file = path.join(dir, "ana", "trips", "for-the-family", "trip.md");
+
+    const result = await call(anaToken, "create_trip", body);
+    expect(result.isError).toBe(false);
+    const viaMcp = fs.readFileSync(file, "utf8");
+    expect(viaMcp).toContain("listed: false");
+
+    // The reply says so, in the text and in the data — an agent that asked for
+    // this needs to see that it took.
+    expect(textOf(result)).toContain("unlisted");
+    expect(result.structuredContent).toMatchObject({ visibility: "public", listed: false });
+
+    fs.rmSync(path.join(dir, "ana", "trips", "for-the-family"), { recursive: true });
+    const { POST } = await import("@/app/api/v1/[user]/trips/route");
+    const response = await POST(
+      new Request(`${SITE}/api/v1/ana/trips`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${anaToken}` },
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ user: "ana" }) },
+    );
+    expect(response.status).toBe(201);
+    expect(fs.readFileSync(file, "utf8")).toBe(viaMcp);
+  });
+
+  test("listed: true on a private trip is refused in the words createTrip uses", async () => {
+    const result = await call(anaToken, "create_trip", {
+      id: "nowhere-trip",
+      title: "Nowhere",
+      start: "2026-04-01",
+      end: "2026-04-10",
+      visibility: "private",
+      listed: true,
+    });
+    expect(result.isError).toBe(true);
+    // The `invalid_listed` message, not a generic failure: it teaches the axis.
+    expect(textOf(result)).toContain("Only a public trip is advertised");
+    expect(fs.existsSync(path.join(dir, "ana", "trips", "nowhere-trip"))).toBe(false);
+  });
+
+  test("an ordinary public trip is still advertised, and its file says nothing about it", async () => {
+    const result = await call(anaToken, "create_trip", {
+      id: "open-trip",
+      title: "Open",
+      start: "2026-04-01",
+      end: "2026-04-10",
+      visibility: "public",
+    });
+    expect(result.isError).toBe(false);
+    expect(result.structuredContent).toMatchObject({ listed: true });
+    // Written only when it narrows — an absent key reads as advertised.
+    expect(fs.readFileSync(path.join(dir, "ana", "trips", "open-trip", "trip.md"), "utf8"))
+      .not.toContain("listed:");
   });
 });

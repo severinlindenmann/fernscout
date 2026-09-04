@@ -30,6 +30,19 @@ family, and over MCP the only way to it is to create the trip and then edit
 
 Same shape as B178, one field over, and worth doing in the same place.
 
+## Resolved under B175 (2026-09-04)
+
+This is B175 rediscovered from the other side, and **B175 carries the fix** —
+`listed` is now a property of `create_trip`'s `inputSchema`, passed through the
+handler, refused with `createTrip`'s own `invalid_listed` message on a trip no
+visibility advertises, and read back off the trip into both the tool's text and
+its structured result. `test/mcp.test.ts` asserts the byte-identical frontmatter
+against the REST door, both refusals, and that an ordinary public trip still
+writes no `listed:` line at all.
+
+Nothing further is needed here. Kept because the id is how tasks refer to each
+other, and because this file records the second sighting.
+
 ## Work
 
 - Add `listed` to `create_trip`'s `inputSchema` as a boolean, with the

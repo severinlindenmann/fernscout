@@ -2,7 +2,7 @@ import "server-only";
 import MiniSearch from "minisearch";
 import { SESSION_SCOPE, SIGNUP_OWNER, type Session } from "../auth";
 import type { Trip } from "../types";
-import { attachGallery, createDraft, deleteEntry, entrySummary, isPublished, listDrafts, publishDraft, tripSummary, type DraftInput } from "../api/entries";
+import { attachGallery, createDraft, deleteEntry, entrySummary, isPublished, listDrafts, publishNotice, publishDraft, tripSummary, type DraftInput } from "../api/entries";
 import { isTestContent } from "../access";
 import { getAllEntries, getEntryBySlug } from "../entries";
 import { stripMarkdown } from "../markdownText";
@@ -10,7 +10,7 @@ import { SEARCH_OPTIONS, type SearchDoc } from "../searchOptions";
 import { getMalformedTrips, getTrip, getTrips, tripRef } from "../trips";
 import { tripWriteVerdict } from "../tripPeople";
 import { validateEntry, type Problem } from "../validate/entry";
-import { createJournal } from "../journals";
+import { createJournal, setJournalFeatures } from "../journals";
 import { createTrip } from "../tripWrite";
 import { serverSite } from "../site";
 import { storeUploads, type KeptOriginal, type UploadCandidate } from "../api/media";
@@ -18,6 +18,7 @@ import { fetchImage } from "../api/fetchMedia";
 import { getUser } from "../users";
 import { confirmationMatches, confirmationRequired } from "../agentConfirm";
 import { isEnabled } from "../capabilities";
+import type { FeatureName } from "../config";
 import {
   createInvite,
   inviteExpiry,
@@ -159,13 +160,36 @@ async function reachableTrips(session: Session) {
  * own unlisted and closed trips are theirs to search. Drafts are
  * still absent, because `getAllEntries` filters them — a draft is found through
  * `list_drafts`, which is the tool that says what it is.
+ *
+ * **Content nobody lived is in it, and says so.** B158 left that undecided; the
+ * decision is that an agent searching the journal it is working in wants to
+ * find its own test days — otherwise the one kind of content an agent is
+ * allowed to invent is the one kind it cannot look up afterwards, and the
+ * public index it would be matching (`lib/search.ts`) is a different corpus
+ * with a different purpose. So this is the same split B116 settled for
+ * `list_trips`: the structured surface is wider than the public one, and every
+ * result that is fiction is marked as fiction — in the text as well as the
+ * data, since a caller reading only `text` is the failure B116 fixed.
+ *
+ * `test` is returned beside the documents rather than inside them: `SearchDoc`
+ * is shared with the browser's index through `SEARCH_OPTIONS.storeFields`, and
+ * adding a field there would change the shape of a static asset that never
+ * carries a test day in the first place.
  */
-function searchDocs(username: string, trips: Trip[]): SearchDoc[] {
+function searchDocs(
+  username: string,
+  trips: Trip[],
+): { docs: SearchDoc[]; invented: Set<string> } {
   const docs: SearchDoc[] = [];
+  const invented = new Set<string>();
   for (const trip of trips) {
     for (const entry of getAllEntries(trip.ref)) {
+      const id = `${trip.id}/${entry.slug}`;
+      // The trip's flag counts, not only the day's — a day inside a `test`
+      // trip carries nothing of its own.
+      if (isTestContent(trip, entry)) invented.add(id);
       docs.push({
-        id: `${trip.id}/${entry.slug}`,
+        id,
         title: entry.title,
         location: entry.location,
         country: entry.country,
@@ -176,7 +200,7 @@ function searchDocs(username: string, trips: Trip[]): SearchDoc[] {
       });
     }
   }
-  return docs;
+  return { docs, invented };
 }
 
 /** One line per problem — a tool error is plain text, so the list has to read
@@ -316,7 +340,8 @@ const searchEntries: Handler = async (session, args) => {
   const index = new MiniSearch<SearchDoc>(SEARCH_OPTIONS);
   // Only what this token may reach, so search cannot be used to enumerate
   // the trips a scoped token is not on.
-  index.addAll(searchDocs(session.owner, (await reachableTrips(session))));
+  const { docs, invented } = searchDocs(session.owner, await reachableTrips(session));
+  index.addAll(docs);
 
   const hits = index
     .search(query, { prefix: true, fuzzy: 0.2 })
@@ -331,10 +356,18 @@ const searchEntries: Handler = async (session, args) => {
       tripTitle: hit.tripTitle as string,
       url: hit.url as string,
       score: Math.round((hit.score as number) * 100) / 100,
+      // Only when true, like every other surface that reports this. B158.
+      ...(invented.has(String(hit.id)) ? { test: true as const } : {}),
     }));
 
   const text = hits.length
-    ? hits.map((h) => `${h.date} · ${h.trip}/${h.slug} — ${h.title} (${h.location})`).join("\n")
+    ? hits
+        .map(
+          (h) =>
+            `${h.date} · ${h.trip}/${h.slug} — ${h.title} (${h.location})` +
+            (h.test ? ` · ${testContentNotice("day")}` : ""),
+        )
+        .join("\n")
     : `Nothing matched "${query}". Drafts are not searchable; list_drafts names them and get_day reads one.`;
 
   return { ok: true, text, data: { query, count: hits.length, results: hits } };
@@ -357,7 +390,18 @@ const listDraftsTool: Handler = async (session, args) => {
   );
 
   const text = drafts.length
-    ? drafts.map((d) => `${d.date} · ${d.trip}/${d.slug} — ${d.title}`).join("\n") +
+    ? drafts
+        .map(
+          (d) =>
+            `${d.date} · ${d.trip}/${d.slug} — ${d.title}` +
+            // The same sentence `get_day` and `list_trips` say, on the same
+            // line so the format stays one line per draft. This list is read
+            // out loud to a person at the moment they decide what goes on the
+            // site, which makes it the worst place to leave the flag in the
+            // data and out of the prose. B134.
+            (d.test ? ` · ${testContentNotice("day")}` : ""),
+        )
+        .join("\n") +
       "\n\nEach of these is waiting for a person to publish it. Tell them what is here " +
       "and ask which they want on the site; `publish_day` is the tool that acts on the " +
       "answer. Do not call it for anything they have not said yes to."
@@ -636,9 +680,17 @@ const publishDayTool: Handler = async (session, args) => {
   if (!confirmationMatches(confirm, operation)) {
     const body = confirmationRequired(
       operation,
-      `This publishes "${entry.title}" (${entry.date}). It goes into the journal, the feed ` +
-        `and the search index, and anyone with the link can read it. Taking it down again ` +
-        `removes it from the site, not from the people who have already read it.`,
+      // The same sentence the REST route reads out, from the same function —
+      // and, since B158, one that describes the day in front of the person
+      // rather than days in general. A `test: true` day is kept out of the
+      // feed, the search index and the sitemap, and this used to promise all
+      // three at the last moment anybody was listening.
+      publishNotice({
+        title: entry.title,
+        date: entry.date,
+        url: `${serverSite().url}/${trip.ref.slice(0, trip.ref.indexOf("/"))}`,
+        test: isTestContent(getTrip(trip.ref), entry),
+      }),
     );
     return { ok: false, error: `${body.message}\n\nconfirm: ${body.confirm}` };
   }
@@ -856,6 +908,65 @@ const createJournalTool: Handler = (session, args) => {
   };
 };
 
+/**
+ * Switch a capability on or off for this journal — B182.
+ *
+ * The features block used to be written once, by `createJournal`, and then
+ * frozen: nothing anywhere wrote it again, so a journal created before
+ * contacts became a default had no way to reach them except a shell on the
+ * server. The person this product is for has never seen the folder.
+ *
+ * Three things it will not do, and all three are deliberate:
+ *
+ * - It does not touch anything but `features`. Not the title, not the locales,
+ *   and never `owner.email` — the address that decides who can obtain a token
+ *   for this journal (decision 24). A token cannot move the boundary that
+ *   issued it.
+ * - It cannot widen past the server. `lib/capabilities.ts` treats the server's
+ *   config as a ceiling, so this refuses rather than writing something inert.
+ * - It publishes nothing and reads nothing new. Capabilities decide what a
+ *   journal can *do*; who may read a trip is still the trip's own gate.
+ */
+const setJournalFeaturesTool: Handler = (session, args) => {
+  if (session.owner === SIGNUP_OWNER) {
+    return { ok: false, error: "Create a journal first, then get an agent token for it." };
+  }
+  if (session.scope !== SESSION_SCOPE.agent) {
+    return {
+      ok: false,
+      error:
+        "This token is scoped to one trip, so it can write days into that trip but cannot " +
+        "change what the journal around it can do. Only the journal's owner can.",
+    };
+  }
+
+  const features = args.features;
+  if (typeof features !== "object" || features === null || Array.isArray(features)) {
+    return {
+      ok: false,
+      error: 'features must be an object of capability names to true or false, e.g. {"contacts": true}.',
+    };
+  }
+
+  const result = setJournalFeatures(session.owner, features as Record<string, unknown>);
+  if (!result.ok) return { ok: false, error: result.message };
+
+  const on = Object.entries(result.features)
+    .filter(([, enabled]) => enabled)
+    .map(([name]) => name);
+  return {
+    ok: true,
+    text:
+      (result.changed.length
+        ? `Changed ${result.changed.join(", ")} for ${session.owner}.`
+        : `Nothing changed — ${session.owner} already asked for exactly this.`) +
+      `\n\nThis journal now asks for: ${on.length ? on.join(", ") : "nothing"}. What it ` +
+      `actually gets is that list narrowed by what this server can provide — /api/health ` +
+      `says which, and why anything is off.`,
+    data: { user: session.owner, features: result.features, changed: result.changed },
+  };
+};
+
 const createTripTool: Handler = (session, args) => {
   if (session.owner === SIGNUP_OWNER) {
     return { ok: false, error: "Create a journal first, then get an agent token for it." };
@@ -896,6 +1007,14 @@ const createTripTool: Handler = (session, args) => {
     // arrive there as "not asked for" and quietly leave the money public.
     // B178.
     costsVisibility: (args.costsVisibility ?? undefined) as never,
+    // Only a real boolean counts. `createTrip` refuses `listed: true` on a trip
+    // no visibility advertises and writes `listed: false` when a public trip is
+    // narrowed; anything else here means "not asked for", which is what leaves
+    // an ordinary public trip advertised. REST has taken this since W27 and MCP
+    // could not ask for it at all — the setting AGENTS.md calls the old
+    // `unlisted`, and the honest one for a trip somebody mails to their family.
+    // B175, and B206 is the same finding from the other side.
+    listed: typeof args.listed === "boolean" ? args.listed : undefined,
     intro: optionalString(args, "intro"),
     // Inherited by every day of the trip, so somebody exercising the pipeline
     // sets it once. Same gap as create_day carried — B157.
@@ -905,6 +1024,11 @@ const createTripTool: Handler = (session, args) => {
 
   const trip = getTrip(created.ref);
   const visibility = trip?.visibility ?? "private";
+  // Read back off the trip rather than echoed from the argument: the caller
+  // needs to see that what they asked for took, which for `listed` is the whole
+  // point of asking. B51 made the key real everywhere else; B175 is the door
+  // that could not reach it.
+  const listed = trip?.listed ?? true;
   return {
     ok: true,
     text:
@@ -913,8 +1037,12 @@ const createTripTool: Handler = (session, args) => {
         ? ' Nobody but the owner can read it yet — say visibility "public" when it is ready, ' +
           "or ask the owner to."
         : "") +
+      (visibility === "public" && !listed
+        ? " It is unlisted: anybody with the link can read it, and it is in no sitemap, feed " +
+          "or trip switcher. That is the setting to hand out by message rather than publish."
+        : "") +
       `\n\nWrite its first day with create_day, trip "${created.id}". Days arrive as drafts.`,
-    data: { trip: created.id, ref: created.ref, visibility },
+    data: { trip: created.id, ref: created.ref, visibility, listed },
   };
 };
 
@@ -999,7 +1127,18 @@ const requestDeletionTool =
 
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 
-export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
+/**
+ * A tool, plus the two things the wire never sees: what runs it, and the
+ * capability it needs.
+ *
+ * `requires` is the capability the *handler* already refuses without. Naming it
+ * here keeps the two answers in one place — a tool whose handler checks a
+ * feature and whose entry does not name it is a tool that will be advertised to
+ * a journal that cannot call it, which is the bug B183 is (see `toolsFor`).
+ */
+type ToolEntry = ToolDefinition & { handler: Handler; requires?: FeatureName };
+
+export const TOOLS: readonly ToolEntry[] = [
   {
     name: "list_trips",
     title: "List trips",
@@ -1037,7 +1176,10 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
     title: "Search entries",
     description:
       "Full-text search across every published entry in this journal, private trips " +
-      "included. Drafts are not indexed — list_drafts names them and get_day reads them.",
+      "included. Drafts are not indexed — list_drafts names them and get_day reads them. " +
+      "Days nobody lived ARE indexed here, unlike the journal's public search, and every " +
+      "one of them says so in its line: this is your own journal, so your test content is " +
+      "findable, but never repeat one to a person as something that happened.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1055,7 +1197,8 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
     title: "List drafts",
     description:
       "Everything waiting for a person to publish it. Useful for telling the author " +
-      "what is outstanding.",
+      "what is outstanding. A draft nobody lived says so on its own line — read that " +
+      "out with the rest, because it is what decides whether they want it on the site.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1108,6 +1251,42 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
     handler: createJournalTool,
   },
   {
+    name: "set_journal_features",
+    title: "Switch a capability on or off for this journal",
+    description:
+      "Turn one of this journal's capabilities on or off — contacts, mail, reactions, costs, " +
+      "push, signup, postcards, photobook. Until now a journal's capabilities were decided " +
+      "when it was created and could only be changed by editing a file on the server, which " +
+      "left journals unable to share themselves and nobody able to fix it. Send only the ones " +
+      "you are changing: {\"features\": {\"contacts\": true}}. It can only ask for what this " +
+      "server already provides — asking for more is refused and says why — and switching " +
+      "something off always works. It changes NOTHING else about the journal: not the title, " +
+      "and never the owner's email address, which is what decides who can get a token here. " +
+      "Owner only. Ask the person before switching anything on.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        features: {
+          type: "object",
+          description:
+            "Capability name to true or false. Anything you leave out is left alone.",
+          additionalProperties: { type: "boolean" },
+        },
+      },
+      required: ["features"],
+      additionalProperties: false,
+    },
+    annotations: {
+      readOnlyHint: false,
+      // It writes one boolean per named capability into the journal's own
+      // config and leaves every other key in the file untouched.
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    handler: setJournalFeaturesTool,
+  },
+  {
     name: "create_trip",
     title: "Create a trip",
     description:
@@ -1130,6 +1309,15 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
         status: { type: "string", enum: ["upcoming", "current", "past"], description: "Usually leave this out. `past` and `upcoming` are derived from `start` every time the site reads the trip, so setting either is a hint that the calendar will overrule. `current` is the one real choice: exactly one trip should have it, and it is the one served at the bare /<user> URL." },
         accent: { type: "string", enum: ["sky", "yellow", "green", "coral", "navy"], description: "Colour. Default sky." },
         visibility: { type: "string", enum: ["private", "public", "guest"], description: "Who is let in. Default private." },
+        listed: {
+          type: "boolean",
+          description:
+            "Whether the trip is advertised. It only ever NARROWS: `false` on a public trip " +
+            "means anybody with the link can read it but it appears in no sitemap, feed or " +
+            "trip switcher — the setting for a journey somebody will mail to their family. " +
+            "`true` on a trip no visibility advertises is refused, because nothing would come " +
+            "of it. Default true, which changes nothing on a closed trip.",
+        },
         costsVisibility: {
           type: "string",
           enum: ["public", "guests"],
@@ -1313,6 +1501,11 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
       openWorldHint: false,
     },
     handler: createInviteTool,
+    // Refused by the handler without it, and now absent from the list as
+    // well: a tool list is how an agent decides what it can do here, and
+    // three tools that cannot work is a list that has to be corrected by
+    // trying them. B183.
+    requires: "contacts",
   },
   {
     name: "list_invites",
@@ -1329,6 +1522,11 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
       openWorldHint: false,
     },
     handler: listInvitesTool,
+    // Refused by the handler without it, and now absent from the list as
+    // well: a tool list is how an agent decides what it can do here, and
+    // three tools that cannot work is a list that has to be corrected by
+    // trying them. B183.
+    requires: "contacts",
   },
   {
     name: "revoke_invite",
@@ -1353,6 +1551,11 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
       openWorldHint: false,
     },
     handler: revokeInviteTool,
+    // Refused by the handler without it, and now absent from the list as
+    // well: a tool list is how an agent decides what it can do here, and
+    // three tools that cannot work is a list that has to be corrected by
+    // trying them. B183.
+    requires: "contacts",
   },
   {
     name: "publish_day",
@@ -1468,16 +1671,41 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
 ] as const;
 
 /**
- * The tools this session may actually call.
+ * The tools this session may **call**.
  *
  * A signup token proves an address and nothing else — there is no journal for
- * it to read or write. Listing the rest would be an invitation to call them
- * and get an error, so it sees one tool and `callTool` enforces the same list.
+ * it to read or write, so it sees one tool and this is what enforces that.
+ * Everything else in the registry is callable; whether the capability behind a
+ * tool is on is the handler's own question, answered in the handler's own
+ * words.
  */
-export function toolsFor(session: Session): readonly (ToolDefinition & { handler: Handler })[] {
+function callableTools(session: Session): readonly ToolEntry[] {
   return session.owner === SIGNUP_OWNER
     ? TOOLS.filter((t) => t.name === "create_journal")
     : TOOLS.filter((t) => t.name !== "create_journal");
+}
+
+/**
+ * The tools this session is **shown**, which is narrower — B183.
+ *
+ * A disabled capability is *absent* rather than broken everywhere else in this
+ * codebase (AGENTS.md, and B74 for the same shape in the UI), and until B183
+ * the three invite tools were advertised to journals with contacts switched
+ * off. Nothing broke and nothing leaked; it was a list an agent could only
+ * correct by calling things, and the tool list is how an agent decides what it
+ * can do here.
+ *
+ * **Listing and calling are deliberately not the same set.** Filtering the
+ * call would turn a clear "contacts are not enabled for this journal" into
+ * "unknown tool", which is a worse answer to a client holding a list it
+ * fetched before the capability changed — and the handler's check is what
+ * actually enforces this in either case. The filter is honesty, not security,
+ * so it belongs on the side that is read rather than the side that acts.
+ */
+export function toolsFor(session: Session): readonly ToolEntry[] {
+  return callableTools(session).filter(
+    (t) => !t.requires || isEnabled(t.requires, session.owner),
+  );
 }
 
 /** The wire shape, with the handler left behind. Written out field by field so
@@ -1517,7 +1745,9 @@ export async function callTool(
   session: Session,
   args: Args,
 ): Promise<ToolOutcome | null> {
-  const tool = toolsFor(session).find((t) => t.name === name);
+  // `callableTools`, not `toolsFor`: a tool whose capability is off is hidden
+  // from the list and still answers with its own refusal when called. B183.
+  const tool = callableTools(session).find((t) => t.name === name);
   if (!tool) return null;
 
   const unknown = unknownProperties(tool, args);

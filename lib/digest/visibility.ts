@@ -68,16 +68,33 @@ import type { Trip } from "../types";
  * Whether it is live is `lib/grants.ts`, which is the one place that decides.
  */
 
-/** Trips a reader may be told about. `granted` is whether they hold a `read`
- * grant on this journal at all. */
-export function digestableTrips(trips: Trip[], granted: boolean): Trip[] {
+/**
+ * Trips a reader may be told about. `granted` is whether they hold a `read`
+ * grant on this journal at all.
+ *
+ * `includeTest` is the one way past the test filter, and it exists for a
+ * problem the two rules created between them: everything an agent is permitted
+ * to write carries `test: true`, and this function drops all of it, so the one
+ * mechanism in the product that sends real mail could not be exercised end to
+ * end by the only party allowed to write to it (B184). It is reachable **only
+ * from a dry run** — `runDigest` refuses the combination before it does
+ * anything, so no path exists from here to `sendMail`. Nothing in a config
+ * file or the environment can set it; it is an argument, which is what makes
+ * the refusal structural rather than a convention. Do not add a caller that
+ * sends.
+ */
+export function digestableTrips(
+  trips: Trip[],
+  granted: boolean,
+  options: { includeTest?: boolean } = {},
+): Trip[] {
   return trips.filter((trip) => {
     // First, and whatever else changes: `private` is nobody's to be told about.
     if (trip.visibility === "private") return false;
     // And for an unrelated reason, neither is a trip nobody lived. Not a
     // question of access — a `public` test trip is refused here and still
     // opens for anyone with the link, wearing its banner (B70).
-    if (isTestContent(trip)) return false;
+    if (isTestContent(trip) && !options.includeTest) return false;
     // Already advertised to the world, so a mail advertises nothing new.
     if (isIndexable(trip)) return true;
     // Everything left is a trip the owner keeps off the listings — a `guest`

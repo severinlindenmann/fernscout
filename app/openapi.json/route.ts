@@ -899,10 +899,78 @@ export function GET() {
       "/api/v1/{user}/drafts": {
         get: {
           summary: "Everything waiting for a person to publish",
+          description:
+            "Each draft carries where to publish it, and `test: true` if it is content " +
+            "nobody lived — including a day that inherits the flag from its trip and says " +
+            "nothing itself. Read that out with the rest: this is the list somebody is " +
+            "looking at when they decide what goes on the site (B134). Absent means real.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],
           responses: { "200": { description: "Drafts" } },
+        },
+      },
+      "/api/v1/{user}/config": {
+        get: {
+          summary: "Which capabilities this journal asks for",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "One boolean per capability, as the journal asks for it" },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+          },
+        },
+        patch: {
+          summary: "Switch a capability on or off for this journal",
+          description:
+            "Send only what you are changing: `{\"features\": {\"contacts\": true}}`. Before " +
+            "this there was no endpoint, tool or page that wrote a journal's features, so " +
+            "they were fixed at creation and only an operator with a shell could change " +
+            "them — which left journals unable to invite anybody and their owners unable to " +
+            "fix it (B182).\n\nIt can only ask for what the server already provides: the " +
+            "server's own config is a ceiling, and asking to exceed it is refused with the " +
+            "reason rather than written and silently ignored. Switching a capability *off* " +
+            "always works.\n\nIt writes the `features` block and nothing else. Any other " +
+            "field in the body is a 400, and `owner.email` is never writable here — it is " +
+            "the address that decides who can obtain a token for this journal, so a token " +
+            "must not be able to move it. Owner only.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["features"],
+                  properties: {
+                    features: {
+                      type: "object",
+                      additionalProperties: { type: "boolean" },
+                      description: "Capability name to true or false. Omitted ones are left alone.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "The journal's features afterwards, and what changed" },
+            "400": {
+              description:
+                "An unknown capability, a non-boolean, a field other than `features`, or " +
+                "a capability this server does not provide",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "The token belongs to a different journal, or is scoped to one trip",
+            },
+            "404": { description: "No such journal" },
+          },
         },
       },
       [`/${example}/trips/{trip}/day/{slug}.md`]: {

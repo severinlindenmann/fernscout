@@ -68,3 +68,56 @@ be one (decision 24).
 - `owner.email` is not writable through it, and there is a test that says so.
 - The existing journals on fernscout.ch can be brought to contacts-on without
   SSH, which is the real test that this is fixed.
+
+## Built (2026-09-04)
+
+Option 2, as the Work section describes it, with the three decisions made.
+
+**Which fields: `features` only.** `setJournalFeatures` in `lib/journals.ts`
+takes a map of capability name to boolean and writes nothing else. The rest of
+`config.json` — title, tagline, locales, currencies, `media`, the journal's own
+`visibility` — has the same problem and is a wider surface with different
+questions in it, so it is captured as **B220** rather than absorbed here.
+
+**The ceiling holds, and it refuses rather than complying uselessly.** The check
+is `resolveCapabilities()[name]` with no username, which *is* `resolveOne`'s
+server half — not a second implementation. A journal asking for something the
+server has not configured is refused with `capability_unavailable` and the
+server's own reason ("not enabled on this server", or the missing environment
+variable by name), and nothing is written. That matters because the write would
+otherwise be *inert*: `resolveOne` checks the server first, so `"contacts":
+{"enabled": true}` under a server with contacts off changes nothing at all, and
+a config file claiming a capability the journal does not have is a file that
+lies to the next person who reads it. Switching a capability **off** is always
+allowed, whatever the server says — a journal narrowing itself asks nobody, and
+`features.mail: false` is a mute button somebody must always be able to press
+(B60).
+
+**`owner.email` is not writable.** The endpoint refuses the whole body when it
+names any field but `features`, rather than ignoring the extra: a caller that
+tried is told, and cannot smuggle a change past by attaching one that is
+accepted. The reasoning is in the code — that address decides who can obtain a
+token for the journal (decision 24), and a token must not be able to move the
+boundary that issued it. `test/journal-features.test.ts` asserts the refusal and
+that the file is byte-identical afterwards.
+
+Two doors, because a REST-only fix would recreate the gap B175 and B206 exist
+about: `PATCH /api/v1/<user>/config` (with a `GET` beside it, so a journal can
+be asked what it currently wants) and MCP `set_journal_features`. Both are owner
+only and agent-scope only — a trip-scoped token writes days and does not decide
+what the journal can do. Documented in `/agent.md`, `/openapi.json` and
+`docs/providers/mcp.md`.
+
+The file is **edited, not regenerated**: the raw JSON is parsed, one `enabled`
+flag is set inside each named feature, and everything else survives — a
+hand-chosen `transport`, and keys this version has never heard of. It is read
+back through `getUser` before success is reported, and the previous bytes are
+restored if it does not parse, because a config file that will not load takes
+the whole journal off the site (B204, one file over).
+
+Not in scope, as stated: a settings page. There is no editing interface and
+there will not be one (decision 24).
+
+The last acceptance line — bringing the existing journals on fernscout.ch to
+contacts-on without SSH — is a live check rather than a test, and is what to try
+first when verifying this.

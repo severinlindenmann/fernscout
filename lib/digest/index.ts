@@ -72,11 +72,23 @@ export type { QuietWindow } from "./quiet";
 export { lastDigestsByContact } from "./record";
 export type { DigestSendRecord, DigestSendStatus } from "./record";
 
-/** Why somebody is not being written to. Every one of these is printable. */
+/**
+ * Why somebody is not being written to. Every one of these is printable.
+ *
+ * `all-test` is narrower than `nothing-new` and was split out of it in B184:
+ * a reader excluded *solely* because every trip and every day in the journal
+ * is content nobody lived read identically to a reader in a genuinely quiet
+ * journal. An operator dry-running the pipeline against a test trip — the only
+ * thing they can safely dry-run against — got no signal that anything had been
+ * deliberately suppressed. It is only ever reported on a run that did **not**
+ * ask for test content, and answering it costs one extra build of the content
+ * for a reader who was getting nothing anyway.
+ */
 export type DigestSkipReason =
   | "not-approved"
   | "no-consent"
   | "nothing-new"
+  | "all-test"
   | "already-today"
   | "quiet-hours";
 
@@ -104,6 +116,12 @@ export type DigestPlan = {
   now: Date;
   ready: DigestRecipientPlan[];
   skipped: DigestSkipped[];
+  /**
+   * Whether content nobody lived was counted into this plan. Always false on a
+   * real send — `runDigest` refuses the combination — and it is here so that
+   * every line the dry run prints can say a drill is a drill. B184.
+   */
+  includedTest: boolean;
 };
 
 export type DigestOptions = {
@@ -114,6 +132,24 @@ export type DigestOptions = {
   /** Ignore the quiet rules. For "the trip ended, send the last one now". */
   force?: boolean;
   window?: QuietWindow;
+  /**
+   * Count content nobody lived, so the pipeline can be driven end to end.
+   *
+   * **Refused unless `dryRun` is also set**, and refused by `runDigest` before
+   * it looks at anything else — the two cannot be separated, which is what
+   * keeps this from being a way to mail fiction to somebody's family. It is an
+   * argument rather than a config value or an environment variable for exactly
+   * that reason: there is no state anywhere that can leave it switched on.
+   *
+   * It exists because two correct rules met (B184). Everything an agent may
+   * write carries `test: true`; the digest drops test content at both levels
+   * it could enter. Together they made the one mechanism that sends real mail
+   * to real people impossible to exercise against a deployment by the only
+   * party allowed to write to it. The alternative — an unflagged fabricated
+   * trip, written so it will enter somebody's inbox — is the precise harm the
+   * filter exists to prevent, so it must not be the fixture.
+   */
+  includeTest?: boolean;
 };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -183,21 +219,38 @@ export async function planDigest(
     // Content first, so that somebody with nothing to hear about is reported
     // as "nothing new" rather than as "it is the middle of their night" — the
     // second is true and useless.
-    const content = buildDigestContent({
-      username: owner,
-      trips: digestableTrips(trips, grants.has(contact.id)),
-      since,
-      includeSince,
-      today,
-      locale,
-      base,
-    });
+    const includeTest = options.includeTest === true;
+    const build = (withTest: boolean) =>
+      buildDigestContent({
+        username: owner,
+        trips: digestableTrips(trips, grants.has(contact.id), { includeTest: withTest }),
+        since,
+        includeSince,
+        today,
+        locale,
+        base,
+        includeTest: withTest,
+      });
+
+    const content = build(includeTest);
     if (!content) {
+      /*
+       * Say *why* there is nothing, when the reason is the test filter.
+       *
+       * Only asked for a reader who is already getting nothing, and only on a
+       * run that did not include test content — so it costs one extra build in
+       * the case where no mail is being written anyway, and turns a silent
+       * zero into a legible one for whoever is dry-running the pipeline
+       * against the only content they can safely dry-run against. B184.
+       */
+      const suppressed = !includeTest && build(true) !== null;
       skipped.push({
         contactId: contact.id,
         email: contact.email,
-        reason: "nothing-new",
-        detail: `since ${since}`,
+        reason: suppressed ? "all-test" : "nothing-new",
+        detail: suppressed
+          ? `since ${since} — everything new is test content, which a digest never carries`
+          : `since ${since}`,
       });
       continue;
     }
@@ -234,7 +287,7 @@ export async function planDigest(
     });
   }
 
-  return { owner, now, ready, skipped };
+  return { owner, now, ready, skipped, includedTest: options.includeTest === true };
 }
 
 export type DigestSent = {
@@ -271,6 +324,24 @@ export async function runDigest(
   if (!user) throw new Error(`No such user: "${owner}".`);
 
   const dryRun = options.dryRun === true;
+  /*
+   * The one refusal that is structural rather than advisory.
+   *
+   * `includeTest` widens the digest to content nobody lived so the pipeline
+   * can be driven end to end (B184). Every line above it in this file is about
+   * not telling somebody something untrue; if these two flags could ever come
+   * apart, this would become a way to mail fiction to a real person's inbox.
+   * So it is answered here, first, before the user is loaded and before
+   * anything is planned — and the flag lives nowhere but this argument, so no
+   * config file and no environment variable can arrive holding it.
+   */
+  if (options.includeTest === true && !dryRun) {
+    throw new Error(
+      "--include-test is a drill, and a drill does not send mail. It counts content " +
+        "nobody lived, which must never reach a reader — run it with --dry-run, or drop " +
+        "the flag.",
+    );
+  }
   // Both switches, and they are answered separately because the remedy is a
   // different file in each case. The digest is the archetypal letter-to-readers
   // — if any mail is what a journal's `features.mail.enabled: false` means to

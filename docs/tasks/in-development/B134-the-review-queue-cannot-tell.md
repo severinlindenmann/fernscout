@@ -62,3 +62,26 @@ Not doing: `test: false` on unflagged drafts. Absent means real.
 - MCP `list_drafts`'s text says so, in the same words `get_day` and
   `list_trips` use.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.
+
+## Built (2026-09-04)
+
+The Why held up: `listDrafts` returned `{ slug, title, date }` and both surfaces
+built on it inherited the gap.
+
+- `lib/api/entries.ts` — `listDrafts` now reads the trip once, with `getTrip`,
+  and resolves the flag with `isTestContent(trip, entry)`. That was the part
+  with a decision in it: the alternative was routing the queue through
+  `getAllEntries`, which filters drafts out and would have meant reading each
+  file twice. `test` is present only when true.
+- `GET /api/v1/<user>/drafts` carries it through the existing spread; the
+  route's doc comment says so.
+- MCP `list_drafts` says it on the draft's own line, through
+  `testContentNotice("day")` — the same sentence `get_day` and `list_trips`
+  use, not a third phrasing. The tool description now tells an agent to read
+  that out with the rest.
+
+Tests in `test/test-content.test.ts`: the inherited case through the REST route,
+the entry's own flag beside a real draft, and that the queue and the day read
+agree about the same day. `test/mcp.test.ts` covers the text rendering.
+
+Not done, as planned: `test: false` on unflagged drafts. Absent means real.

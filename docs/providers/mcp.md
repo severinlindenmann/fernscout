@@ -34,12 +34,20 @@ not broken (ROADMAP §1.1).
 | `list_trips` | every trip in the journal, private ones included | |
 | `get_day` | one published day, as its markdown | |
 | `search_entries` | full text across the journal, private trips included | |
-| `list_drafts` | what is waiting for a person | |
+| `list_drafts` | what is waiting for a person, and which of it nobody lived | |
 | `create_day` | | **one draft** |
+| `set_journal_features` | | **the journal's capability switches** |
 
 Read tools were built first, which is the order the roadmap asks for and the
 order that makes sense: an agent that cannot read the journal has no business
-writing to it.
+writing to it. The table is the shape of the surface rather than a complete
+list — `lib/mcp/tools.ts` is, and it is the only place that cannot go stale.
+
+**`tools/list` is filtered by capability.** A tool whose feature is switched
+off for this journal is absent from the list rather than offered and then
+refused — the invite tools were advertised to journals with contacts off until
+B183. The handler's own check stays, because a client may hold a list it
+fetched earlier; the filter is honesty, not enforcement.
 
 ### `create_day` writes a draft. There is no second tool.
 

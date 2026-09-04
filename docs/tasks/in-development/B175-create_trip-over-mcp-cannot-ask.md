@@ -53,3 +53,28 @@ patch per field.
 - `create_trip` with `{"visibility": "private", "listed": true}` is refused
   with the `invalid_listed` message, not a generic error.
 - A test in `test/mcp.test.ts` covers both.
+
+## Built (2026-09-04)
+
+`listed` is a boolean property of `create_trip`'s `inputSchema` and is passed
+through the handler the way `test` is — only a real boolean counts, so a
+non-boolean reads as "not asked for" rather than silently narrowing somebody's
+trip. The refusal surfaces `createTrip`'s own `invalid_listed` message, which
+teaches the axis instead of failing generically.
+
+The reply also reads the value back **off the trip** rather than echoing the
+argument, in the text and in `data`: an agent that asked for an unlisted trip
+needs to see that it took, which is the whole reason for asking.
+
+`test/mcp.test.ts` covers all three cases: `{public, listed: false}` writes a
+`trip.md` byte-identical to the one REST writes for the same body; `{private,
+listed: true}` is a tool error with no folder left behind; and an ordinary
+public trip still writes no `listed:` line, because the key is written only when
+it narrows.
+
+**B206** is this finding rediscovered while B178 was being built. It is resolved
+by this task and says so in its own file; it stays in `backlog/` rather than
+being deleted, because an id means one thing forever.
+
+Not done, as planned: any other field. B207 covers the four that are read and
+unwritable, and is deliberately left alone.

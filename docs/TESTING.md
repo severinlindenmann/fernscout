@@ -177,6 +177,9 @@ files you can open — no mail account needed.
 | **H8** | Open one in a mail client | Readable, large type, links work, has an unsubscribe link |
 | **H9** | Add a contact with German as their language, run the digest again | Their mail is in German |
 | **H10** | Run the digest twice in a row | The second run sends **nothing** |
+| **H11** | `npm run digest -- --user example --dry-run --include-test --force --since 2020-01-01` against a journal whose only trip is `test: true` | Lines appear, every one of them marked `[TEST CONTENT INCLUDED]`. This is the only way to drive the digest over content an agent is allowed to write (B184) |
+| **H12** | The same command without `--dry-run` | Refused, and nothing is sent. The two flags cannot be separated |
+| **H13** | `npm run digest -- --user example --dry-run --force --since 2020-01-01` on that same journal | `all-test` rather than `nothing-new` — a suppressed journal is distinguishable from a quiet one |
 
 ---
 
