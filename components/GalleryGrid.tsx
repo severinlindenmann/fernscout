@@ -26,7 +26,13 @@ export default function GalleryGrid({ media }: { media: MediaTile[] }) {
   const [place, setPlace] = useState<string>("all");
   const [visibleCount, setVisibleCount] = useState(BATCH);
 
-  const places = useMemo(() => Array.from(new Set(media.map((m) => m.location))), [media]);
+  // `location:` is optional on an entry, so a day without one arrives here as
+  // `""` — which rendered as a blank, clickable, unlabelled chip (B337). The
+  // photos stay in `Alle`; only the chip that could not name itself goes.
+  const places = useMemo(
+    () => Array.from(new Set(media.map((m) => m.location).filter(Boolean))),
+    [media],
+  );
 
   // The filter runs over the whole trip's media, not over what has rendered —
   // `shown` is the full filtered set, and the DOM window below is a slice of
