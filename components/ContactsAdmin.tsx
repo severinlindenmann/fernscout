@@ -248,7 +248,12 @@ function ContactRow({
         )}
         {postal && (
           <>
-            <dt>{t("contact.adminPostcardTo")}</dt>
+            {/* B383 — this row is the owner's own address book, not a
+                postcard destination: the tick above is the postcard
+                consent, this is the address on file whether or not one was
+                ever asked for. Reuses `contact.address` rather than the
+                postcard-specific label. */}
+            <dt>{t("contact.address")}</dt>
             <dd>
               {[
                 postal.name,
@@ -397,10 +402,14 @@ export function GuestForm({
   busy: boolean;
   act: (body: Record<string, unknown>) => Promise<Response | null>;
   onClose: () => void;
-  /** B360: absent, not merely explained, when this server cannot send a
-   * postcard — `lib/capabilities.ts` decides. Defaults to shown, so the one
-   * existing caller in `test/contact-tel-hint.test.tsx` (which predates this
-   * capability check) keeps rendering the fieldset it asserts against. */
+  /** B360, narrowed by B383: gates only the postcard *consent* checkbox now
+   * — absent, not merely explained, when this server cannot send a postcard
+   * (`lib/capabilities.ts` decides). The address fieldset itself stays up
+   * regardless: this is the owner's own address book, and the route stores
+   * whatever is typed here whether or not a postcard was ever asked for.
+   * Defaults to shown, so the one existing caller in
+   * `test/contact-tel-hint.test.tsx` (which predates this capability check)
+   * keeps rendering the checkbox it asserts against. */
   postcardsEnabled?: boolean;
   /** B376: whether this server can act on a WhatsApp update at all —
    * `isEnabled("whatsapp", username)`. Only changes the phone hint's wording. */
@@ -525,12 +534,19 @@ export function GuestForm({
         </p>
       </div>
 
-      {postcardsEnabled && (
+      {/* B383 — the address book is the owner's own, not the postal
+          system's: unlike ContactForm's reader-facing gate, this fieldset
+          stays up whether or not a print provider is configured, because the
+          route already stores whatever is typed here regardless (see
+          app/api/contacts/admin/route.ts's "create" case). Only the postcard
+          *consent* checkbox below stays behind `postcardsEnabled`. */}
       <fieldset className="mt-6 rounded-2xl border border-navy-200 bg-white p-5">
         <legend className="px-2 font-display text-lg text-navy-900">
           {t("contact.address")}
         </legend>
-        <p className="text-base text-navy-700">{t("contact.adminAddressHint")}</p>
+        <p className="text-base text-navy-700">
+          {t(postcardsEnabled ? "contact.adminAddressHint" : "contact.adminAddressHintNoPostcards")}
+        </p>
 
         <div className="mt-4">
           <label className={LABEL} htmlFor="guest-addr-name">
@@ -601,7 +617,6 @@ export function GuestForm({
           />
         </div>
       </fieldset>
-      )}
 
       <div className="mt-6 space-y-4">
         <label className="flex items-start gap-3 text-base text-navy-900">
