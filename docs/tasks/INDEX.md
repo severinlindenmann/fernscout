@@ -97,6 +97,7 @@ Do not edit them by hand; run the script.
 | [B211](backlog/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | ISSUE | low | low |
 | [B212](backlog/B212-a-journal-s-title-is-truncated.md) | A journal's title is truncated to five characters in the trip header on a 1440px desktop | ISSUE | low | low |
 | [B216](backlog/B216-nothing-helps-an-author-find-the.md) | Nothing helps an author find the rate to freeze into a trip | CHORE | low | low |
+| [B221](backlog/B221-a-comment-in-mapframe-points-at.md) | A comment in mapFrame points at a file and a helper that do not exist | ISSUE | low | low |
 | [B88](backlog/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low |
 | [B90](backlog/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 

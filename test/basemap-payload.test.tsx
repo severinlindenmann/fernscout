@@ -104,14 +104,24 @@ function render(stops: PlannedStop[]) {
 /** The heading the countdown only prints when it has a route to draw. */
 const ROUTE_HEADING = dictionaryFor("en")["trips.plannedRoute"];
 
-const built = basemapFor(frameRoute(STOPS)) !== null;
-
 describe("the basemap a page is handed", () => {
+  /**
+   * B179: these three used to be `it.skipIf(!built)`, where `built` was
+   * `basemapFor(...) !== null` — true of a bundle nobody built and equally
+   * true of one this worker failed to *read*. `lib/mapdata/basemap.json.gz` is
+   * committed, so only the second ever happened, and it happened: one run in
+   * three reported green with these assertions silently absent. Skipping is
+   * gone; a run that cannot read the bundle fails here instead.
+   */
+  it("read the committed bundle", () => {
+    expect(basemapFor(frameRoute(STOPS))).not.toBeNull();
+  });
+
   it("is null when there is no route to frame", () => {
     expect(basemapForRoute([])).toBeNull();
   });
 
-  it.skipIf(!built)("is still built for a route that has stops", () => {
+  it("is still built for a route that has stops", () => {
     const map = basemapForRoute(STOPS)!;
     expect(map).not.toBeNull();
     expect(map.borders.length).toBeGreaterThan(0);
@@ -124,7 +134,7 @@ describe("the basemap a page is handed", () => {
    * should tune — it is the measurement the task was filed on, kept so that
    * "no basemap" stays worth something.
    */
-  it.skipIf(!built)("would be six figures of bytes for the whole world", () => {
+  it("would be six figures of bytes for the whole world", () => {
     const whole = JSON.stringify(basemapFor(frameRoute([])));
     expect(Buffer.byteLength(whole)).toBeGreaterThan(100_000);
   });
@@ -142,7 +152,7 @@ describe("an upcoming trip's countdown payload", () => {
     expect(page.bytes).toBeLessThan(30_000);
   });
 
-  it.skipIf(!built)("still draws the map, with its basemap, when there is a plan", () => {
+  it("still draws the map, with its basemap, when there is a plan", () => {
     const page = render(STOPS);
     expect(page.basemap).not.toBeNull();
     expect(page.markup).toContain(ROUTE_HEADING);

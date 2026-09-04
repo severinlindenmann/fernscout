@@ -20,9 +20,22 @@ const alps = [
   { lat: 46.6364, lng: 8.5942 },
 ];
 
-const built = basemapFor(frameRoute(alps)) !== null;
+describe("the basemap for an inland trip", () => {
+  /**
+   * Asserted rather than skipped on, which is the B179 half this file carries.
+   *
+   * These used to hang off `describe.skipIf(!built)`, and `built` was
+   * `basemapFor(...) !== null` — a condition that is false both when the
+   * bundle was never built and when reading it *failed*. `lib/mapdata/
+   * basemap.json.gz` is committed, so in a checkout it is never legitimately
+   * absent, and the skip only ever fired for the second reason: one vitest run
+   * in three reported green with seven map assertions quietly missing. A run
+   * that cannot read the bundle now says so here, once, in a sentence.
+   */
+  test("the committed bundle loaded — everything below depends on it", () => {
+    expect(basemapFor(frameRoute(alps))).not.toBeNull();
+  });
 
-describe.skipIf(!built)("the basemap for an inland trip", () => {
   const map = basemapFor(frameRoute(alps))!;
 
   test("has borders to draw, which the coastline never did", () => {
@@ -76,6 +89,75 @@ describe.skipIf(!built)("the basemap for an inland trip", () => {
 
   test("says where the data came from", () => {
     expect(map.attribution).toMatch(/Natural Earth/);
+  });
+
+  /**
+   * B177: what all of that costs a reader on mobile data.
+   *
+   * Every shape whose bounding box grazed the frame used to travel whole, so
+   * four stops inside 68 km were drawn on 518,867 bytes of basemap — 465,472
+   * of it seven country polygons, most of them a thousand kilometres past the
+   * edge of a frame 186 km wide. Clipped to the padded box (lib/mapClip.ts)
+   * the same map is 64,616. The ceiling is generous against that measurement
+   * rather than tuned to it: it is here to fail if whole shapes ever start
+   * travelling again, not to police a few kilobytes.
+   */
+  test("weighs kilobytes, not half a megabyte", () => {
+    expect(Buffer.byteLength(JSON.stringify(map))).toBeLessThan(120_000);
+  });
+
+  /**
+   * Countries are filled *and* stroked — the fill is the land — so a clipped
+   * polygon has to come back closed or the sea turns green, while a river cut
+   * at the same edge must not be closed into a loop.
+   */
+  test("keeps filled shapes closed and stroked lines open", () => {
+    for (const d of [...map.borders, ...map.lakes, ...map.glaciers, ...map.relief]) {
+      expect(d.startsWith("M")).toBe(true);
+      expect(d.trimEnd().endsWith("Z")).toBe(true);
+    }
+    for (const d of [...map.rivers, ...map.roads, ...map.railroads, ...map.admin1]) {
+      expect(d).not.toContain("Z");
+    }
+  });
+
+  /**
+   * And the cut is to the *padded* box, not the frame: the artificial edges a
+   * clip leaves behind are stroked as though a border ran there, so they have
+   * to sit outside anything a zoom can show. See PAD_FRACTION in lib/basemap.ts.
+   */
+  test("cuts to the padded box, so no cut edge lands inside the frame", () => {
+    const frame = frameRoute(alps);
+    // The box lib/basemap.ts clips to, in the bundle's uncorrected units.
+    const box = {
+      x0: (frame.x - frame.w * 0.5) / frame.lngScale,
+      x1: (frame.x + frame.w * 1.5) / frame.lngScale,
+      y0: frame.y - frame.h * 0.5,
+      y1: frame.y + frame.h * 1.5,
+    };
+    // One grid cell of slack, and no more: coordinates are written to two
+    // decimals (a 400 m grid, scripts/build-mapdata.mjs), so a point cut
+    // exactly on the box rounds up to half a cell past it. Measured worst case
+    // on this frame: 0.0049 units, 198 m, against a frame 4.64 units wide.
+    const slack = 0.01;
+    let outside = 0;
+    for (const layer of [map.borders, map.lakes, map.rivers, map.roads, map.railroads]) {
+      for (const d of layer) {
+        for (const pair of d.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)) {
+          const x = Number(pair[1]);
+          const y = Number(pair[2]);
+          if (
+            x < box.x0 - slack ||
+            x > box.x1 + slack ||
+            y < box.y0 - slack ||
+            y > box.y1 + slack
+          ) {
+            outside++;
+          }
+        }
+      }
+    }
+    expect(outside).toBe(0);
   });
 });
 
