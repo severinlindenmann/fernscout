@@ -7,8 +7,7 @@ complexity: low
 area: api errors, i18n
 found: "2026-09-04T18:33:02Z"
 started: "2026-09-04T18:33:33Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T18:33:33Z"
+merged: "2026-09-04T18:38:18Z"
 ---
 
 # B326 — Nothing says which language a day's own title and content must be in, so an agent sent the wrong one fifteen times
