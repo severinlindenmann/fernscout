@@ -263,3 +263,83 @@ describe("what the plan writes down", () => {
     expect(files).toContain("alex/trips/asia-2026/originals/day-one/01.jpg");
   });
 });
+
+/**
+ * B210. `MEDIA_ORIGINALS_DIR` is "another disk, usually", so the one file the
+ * book actually prints can sit outside the content root — and a path measured
+ * from a root that does not contain it is a `../` chain whose length says
+ * where the content root happens to sit. The plan is a file somebody keeps.
+ */
+describe("originals kept outside the content root", () => {
+  let vault: string;
+
+  beforeEach(() => {
+    vault = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-vault-"));
+    process.env.MEDIA_ORIGINALS_DIR = vault;
+  });
+
+  afterEach(() => {
+    delete process.env.MEDIA_ORIGINALS_DIR;
+    fs.rmSync(vault, { recursive: true, force: true });
+  });
+
+  async function seedAcrossTwoDisks() {
+    writeDay("day-one", "2026-01-01", [{ width: 2000, height: 1333 }]);
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
+    // Where `tripOriginalsDir` puts them: <root>/<user>/<trip>/…
+    write(path.join(vault, "alex", "asia-2026", "day-one", "01.jpg"), await jpeg(4200, 2800));
+  }
+
+  test("the plan names the originals root rather than climbing out of the content one", async () => {
+    await seedAcrossTwoDisks();
+    const photo = buildBookSource(REF, { madeOn: "2026-02-01" }).days[0].photos[0];
+
+    expect(photo.file).toBe("originals:alex/asia-2026/day-one/01.jpg");
+    expect(photo.file).not.toContain("..");
+    expect(photo.file).not.toContain(vault);
+    expect(path.isAbsolute(photo.file)).toBe(false);
+    // Still the original that gets printed, and still readable back.
+    expect(photo.width).toBe(4200);
+    expect(fs.existsSync(resolvePrintFile(photo.file))).toBe(true);
+  });
+
+  test("the same photograph gets the same handle from a content root somewhere else", async () => {
+    await seedAcrossTwoDisks();
+    const here = buildBookSource(REF, { madeOn: "2026-02-01" }).days[0].photos[0].file;
+
+    // The identical content, at a different depth, against the same vault.
+    const elsewhere = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-deep-")), "a/b/c");
+    fs.mkdirSync(elsewhere, { recursive: true });
+    fs.cpSync(dir, elsewhere, { recursive: true });
+    process.env.CONTENT_DIR = elsewhere;
+    clearConfigCache();
+    clearUserCache();
+
+    const there = buildBookSource(REF, { madeOn: "2026-02-01" }).days[0].photos[0].file;
+    expect(there).toBe(here);
+    fs.rmSync(elsewhere, { recursive: true, force: true });
+  });
+
+  test("a plan built against a vault will not quietly resolve without one", async () => {
+    await seedAcrossTwoDisks();
+    const photo = buildBookSource(REF, { madeOn: "2026-02-01" }).days[0].photos[0];
+
+    delete process.env.MEDIA_ORIGINALS_DIR;
+    // Not a path under the content root that happens not to exist: that is how
+    // a missing plate gets explained as a missing photograph.
+    expect(() => resolvePrintFile(photo.file)).toThrow(/MEDIA_ORIGINALS_DIR/);
+  });
+
+  test("a vault inside the content root is still written the plain way", async () => {
+    // Nothing is outside anything here, so nothing changes: the prefix exists
+    // for the case where a relative path cannot be honest.
+    process.env.MEDIA_ORIGINALS_DIR = path.join(dir, "vault");
+    writeDay("day-one", "2026-01-01", [{ width: 2000, height: 1333 }]);
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
+    write(path.join(dir, "vault", "alex", "asia-2026", "day-one", "01.jpg"), await jpeg(4200, 2800));
+
+    const photo = buildBookSource(REF, { madeOn: "2026-02-01" }).days[0].photos[0];
+    expect(photo.file).toBe("vault/alex/asia-2026/day-one/01.jpg");
+    expect(fs.existsSync(resolvePrintFile(photo.file))).toBe(true);
+  });
+});

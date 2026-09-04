@@ -25,7 +25,7 @@ import { contentRoot } from "../contentRoot";
 import { getDays, getPlaces } from "../entries";
 import { getPlan } from "../plan";
 import { getCostSummary } from "../costs";
-import { tripMediaDir, tripOriginalsDir } from "../media";
+import { mediaOriginalsRoot, tripMediaDir, tripOriginalsDir } from "../media";
 import { getTrip, tripDir } from "../trips";
 import { readJpeg } from "../postcard/pdf.ts";
 import { paragraphsOf } from "./text.ts";
@@ -59,16 +59,61 @@ export function mediaFileFor(ref: string, src: string): string {
  * — and it drags a home directory, and therefore a person's name, into a
  * generated artefact (B25).
  *
- * `resolvePrintFile` is the other half. Everything downstream of the source —
- * the planner, the renderer, the preview — treats `file` as an opaque handle,
- * so the two functions below are the only place the string is a path.
+ * **A file outside the content root is written against the root it *is* under,
+ * named by a prefix**: `originals:<user>/<trip>/day/01.jpg` for anything under
+ * `MEDIA_ORIGINALS_DIR`, which is the one directory the content root is
+ * allowed not to contain. Relative-to-the-content-root would answer
+ * `../../../mnt/photos/…` there — a path whose number of `..` segments depends
+ * on where the content root happens to sit, which is the portability B25 asked
+ * for lost by another route, and unreadable in a warning, which is the other
+ * job this string does (B210).
+ *
+ * The discriminator rides *inside* the handle rather than in a field beside it
+ * because `BookPhoto.file` is opaque to everything downstream — the planner,
+ * the placements, the renderer, the preview — and a second field would have to
+ * be threaded through all four to reach the only two functions that know what
+ * a path is. Both of those are here.
+ *
+ * `resolvePrintFile` is the other half.
  */
+const ORIGINALS_PREFIX = "originals:";
+
+/** True when `relative` stays inside the root it was measured from. */
+function inside(relative: string): boolean {
+  if (relative === "" || path.isAbsolute(relative)) return false;
+  return relative !== ".." && !relative.startsWith(`..${path.sep}`);
+}
+
+const forwardSlashes = (relative: string) => relative.split(path.sep).join("/");
+
 function bookFile(absolute: string): string {
-  return path.relative(contentRoot(), absolute).split(path.sep).join("/");
+  const fromContent = path.relative(contentRoot(), absolute);
+  if (inside(fromContent)) return forwardSlashes(fromContent);
+
+  const originals = mediaOriginalsRoot();
+  if (originals) {
+    const fromOriginals = path.relative(originals, absolute);
+    if (inside(fromOriginals)) return ORIGINALS_PREFIX + forwardSlashes(fromOriginals);
+  }
+  // Under neither root — a src that escaped `media/`, which `printSourceFor`
+  // hands back untouched. Still never absolute.
+  return forwardSlashes(fromContent);
 }
 
 export function resolvePrintFile(file: string): string {
-  return path.resolve(contentRoot(), file);
+  if (!file.startsWith(ORIGINALS_PREFIX)) return path.resolve(contentRoot(), file);
+
+  const originals = mediaOriginalsRoot();
+  if (!originals) {
+    // Only reachable for a plan built elsewhere, or with the variable since
+    // unset. Loud, because the quiet alternative is looking under the content
+    // root for a file that was never there and calling the page missing.
+    throw new Error(
+      `${file} was recorded against MEDIA_ORIGINALS_DIR, which is not set. ` +
+        "Point it at the directory the plan was built against, or rebuild the plan.",
+    );
+  }
+  return path.resolve(originals, file.slice(ORIGINALS_PREFIX.length));
 }
 
 /** JPEG-first, so `01.jpg` beside `01.heic` prints rather than falls back. */
@@ -99,7 +144,8 @@ function findOriginal(originalsDir: string, relative: string): string | null {
 }
 
 export type PrintSource = {
-  /** What the plan records: content-root-relative. See `bookFile`. */
+  /** What the plan records: relative to the content root, or to the
+   * originals root behind an `originals:` prefix. See `bookFile`. */
   file: string;
   /** The same file, absolute, for reading it here and now. */
   absolute: string;

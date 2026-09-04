@@ -47,12 +47,25 @@ export function tripMediaDir(ref: string): string {
  * needs configuring before it works is a feature most people never get.
  */
 export function tripOriginalsDir(ref: string): string {
-  const configured = process.env.MEDIA_ORIGINALS_DIR?.trim();
+  const configured = mediaOriginalsRoot();
   const parsed = parseTripRef(ref);
   if (configured && parsed) {
     return path.join(configured, parsed.username, parsed.tripId);
   }
   return path.join(tripDir(ref), "originals");
+}
+
+/**
+ * Where `MEDIA_ORIGINALS_DIR` points, absolute, or null when it is unset.
+ *
+ * Its own function because a second caller needs the *root* rather than one
+ * trip's directory under it: the photobook plan writes a path outside the
+ * content root relative to this, so the string it records does not depend on
+ * how far apart the two directories happen to sit (B210).
+ */
+export function mediaOriginalsRoot(): string | null {
+  const configured = process.env.MEDIA_ORIGINALS_DIR?.trim();
+  return configured ? path.resolve(configured) : null;
 }
 
 /** Public URL for a file inside a trip's media directory. */
