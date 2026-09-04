@@ -36,6 +36,7 @@
     "credits": "tsx --conditions=react-server scripts/grant-credits.ts",
     "i18n:keys": "node scripts/i18n-keys.mjs",
     "tasks": "node scripts/tasks.mjs",
+    "avatar": "node scripts/render-avatar.mjs",
     "unused": "knip"
   },
   "dependencies": {
