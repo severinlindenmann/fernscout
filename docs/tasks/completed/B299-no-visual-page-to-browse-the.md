@@ -8,6 +8,7 @@ area: docs, api
 found: "2026-09-04T13:59:26Z"
 started: "2026-09-04T13:59:42Z"
 merged: "2026-09-04T14:14:10Z"
+completed: "2026-09-04T21:54:18Z"
 ---
 
 # B299 — No visual page to browse the API endpoints

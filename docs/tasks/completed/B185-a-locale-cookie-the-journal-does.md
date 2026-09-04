@@ -8,6 +8,7 @@ area: i18n, metadata
 found: "2026-09-03"
 started: "2026-09-04T06:22:42Z"
 merged: "2026-09-04T07:11:28Z"
+completed: "2026-09-04T21:54:18Z"
 ---
 
 # B185 — Metadata and body disagree about which locale applies

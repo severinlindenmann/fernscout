@@ -8,6 +8,7 @@ area: maps, entries
 found: "2026-09-04T11:35:50Z"
 started: "2026-09-04T11:36:57Z"
 merged: "2026-09-04T11:52:04Z"
+completed: "2026-09-04T21:54:17Z"
 ---
 
 # B265 — A day with no coordinates puts NaN through every map on the site

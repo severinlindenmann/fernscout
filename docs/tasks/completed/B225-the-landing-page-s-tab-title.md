@@ -8,6 +8,7 @@ area: i18n, landing, metadata
 found: "2026-09-04"
 started: "2026-09-04T09:30:23Z"
 merged: "2026-09-04T10:00:32Z"
+completed: "2026-09-04T21:54:17Z"
 ---
 
 # B225 — The front door's tab title is not translated

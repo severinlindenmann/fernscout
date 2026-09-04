@@ -8,6 +8,7 @@ area: config, api
 found: "2026-09-04T06:41:01Z"
 started: "2026-09-04T08:57:04Z"
 merged: "2026-09-04T09:30:14Z"
+completed: "2026-09-04T21:54:16Z"
 ---
 
 # B220 — The rest of a journal's config.json still cannot be changed after it is created

@@ -8,6 +8,7 @@ area: api, config, capabilities
 found: "2026-09-04T13:35:47Z"
 started: "2026-09-04T14:41:16Z"
 merged: "2026-09-04T15:05:26Z"
+completed: "2026-09-04T21:54:16Z"
 ---
 
 # B293 — A journal's features cannot be changed by any door, and the route that refuses says only 405

@@ -8,6 +8,7 @@ area: contacts, trips, grants
 found: "2026-09-04"
 started: "2026-09-04T08:39:10Z"
 merged: "2026-09-04T08:56:53Z"
+completed: "2026-09-04T21:54:16Z"
 ---
 
 # B213 — An un-revoke that only half works, and reports success
