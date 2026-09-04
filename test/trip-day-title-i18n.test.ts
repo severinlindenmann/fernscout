@@ -113,6 +113,7 @@ describe("a trip page read in German", () => {
     request.cookieLocale = "de";
     const meta = await tripMetadata({
       params: Promise.resolve({ user: "alex", trip: "andes-2025" }),
+      searchParams: Promise.resolve({}),
     });
 
     expect(meta.title).toBe("Der lange Weg nach Salta");
@@ -125,6 +126,7 @@ describe("a trip page read in German", () => {
 
     const meta = await tripMetadata({
       params: Promise.resolve({ user: "alex", trip: "andes-2025" }),
+      searchParams: Promise.resolve({}),
     });
     expect(meta.title).toBe("The long way to Salta");
   });
@@ -137,6 +139,7 @@ describe("a day page read in German", () => {
     request.path = "/alex/trips/andes-2025/day/salta";
     const meta = await dayMetadata({
       params: Promise.resolve({ user: "alex", trip: "andes-2025", slug: "salta" }),
+      searchParams: Promise.resolve({}),
     });
 
     expect(meta.title).toBe("In die Berge — Salta");
@@ -150,6 +153,7 @@ describe("a day page read in German", () => {
 
     const meta = await dayMetadata({
       params: Promise.resolve({ user: "alex", trip: "andes-2025", slug: "salta" }),
+      searchParams: Promise.resolve({}),
     });
     expect(meta.title).toBe("Into the hills — Salta");
   });
