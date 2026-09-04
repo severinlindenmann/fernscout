@@ -8,8 +8,7 @@ area: contacts, invites
 found: "2026-09-04T16:49:39Z"
 related: B273
 started: "2026-09-04T19:14:57Z"
-session: cae3e4fb-d628-4a89-89b7-43a581bc7e71
-claimed: "2026-09-04T19:14:57Z"
+merged: "2026-09-04T19:20:58Z"
 ---
 
 # B315 — The invite form offers a postcard but never asks about email updates, so a new reader is silently opted out
