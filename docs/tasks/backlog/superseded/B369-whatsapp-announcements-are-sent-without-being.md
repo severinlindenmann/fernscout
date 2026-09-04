@@ -6,7 +6,20 @@ priority: medium
 complexity: low
 area: credits, whatsapp
 found: "2026-09-04T21:03:24Z"
+superseded: "B366 — B365 merged mid-build, so charging both channels became one piece of work"
 ---
+
+> **Superseded by B366.** This ticket existed only because B365 was uncommitted
+> in a sibling worktree when the credit system was planned, which made WhatsApp
+> charging impossible to touch. B365 merged to `main` (34e2298) an hour later.
+>
+> The work itself is unchanged and is being done — it moved rather than
+> vanished. What forced the move is this ticket's own acceptance criterion: the
+> two channels must be checked against one balance in **one** comparison, or a
+> journal with 10 credits passes a 6-credit mail check and a 6-credit WhatsApp
+> check and then publishes a day it can only half-send. One comparison cannot
+> live on two branches.
+
 
 # B369 — WhatsApp announcements are sent without being charged, because B365 landed after the ledger
 
