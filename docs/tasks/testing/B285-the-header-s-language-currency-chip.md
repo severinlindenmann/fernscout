@@ -7,8 +7,7 @@ complexity: low
 area: header, nav, ui
 found: "2026-09-04T12:50:12Z"
 started: "2026-09-04T12:53:05Z"
-session: 4d93d34d-feff-4223-abb1-cd70e03244f3
-claimed: "2026-09-04T12:53:05Z"
+merged: "2026-09-04T12:59:12Z"
 ---
 
 # B285 — The header's language/currency chip drifts to the middle of the row on desktop
