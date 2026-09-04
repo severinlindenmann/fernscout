@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: mail, publishing, contacts
 found: "2026-09-04T19:50:03Z"
+started: "2026-09-04T19:53:33Z"
+session: 986bc24c-6a18-473f-a506-aa8c4efb475c
+claimed: "2026-09-04T19:53:33Z"
 ---
 
 # B345 — Publishing a day tells nobody, so an owner announces their own journal by hand
@@ -65,7 +68,36 @@ unguarded send turned a successful confirmation into "that code didn't work"; a
 letter that fails must not fail the publish, and the failure must be visible in
 the response rather than only in a log.
 
-## Four decisions the owner has to make first
+## Decided by the owner, 2026-09-04
+
+The plan ends with four questions. All four are answered; the plan itself stays
+as written, because it is the record of what was intended before the work.
+
+1. **One switch, not two.** `wants_email_digest` covers both the digest and the
+   day-letter. A reader who turned mail off gets neither — so the existing
+   opt-in is the only check, and no column, no migration and no new question on
+   the redeem form.
+2. **Send the journal's own timezone as information, and no clock.** No
+   lat/lng timezone lookup, which this project has no data for. Say the
+   journal's timezone plainly — `journalTimezone()` in `lib/digest/quiet.ts`
+   already resolves it — and let a reader do the arithmetic if they care. This
+   sidesteps the trap in the plan: a day published three weeks late would
+   otherwise carry a confidently wrong "it is 9pm there".
+3. **One photograph.** The first of the day's gallery, attached inline. No
+   gallery, no second image.
+4. **A resend goes to everybody again.** It is a manual, deliberate act by the
+   owner, and its whole purpose is to send the letter a second time — so it
+   does not consult what was sent before. The response must say it is a resend
+   and how many letters went, because the owner is the only safeguard against
+   doing it twice.
+
+**And it must be testable for real.** The owner asked for test letters to
+`lindenmann@severin.io`. Build so that a real send can be exercised against the
+running instance, not only against `.eml` files on disk — the last two mail
+features (B272's failure, B319's letters) were both only proved in tests until
+somebody sent one.
+
+## What was open, before those answers
 
 The plan ends with these and they change what gets built:
 
