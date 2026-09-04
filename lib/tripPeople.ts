@@ -1,4 +1,5 @@
 import "server-only";
+import { tripWriteScope } from "./auth";
 import { getDatabaseOrNull, newId, nowIso } from "./db";
 import { grantIsLive } from "./grants";
 import type { Trip } from "./types";
@@ -171,10 +172,16 @@ export function isPersonOnWith(
  * Somebody who is only on one trip gets a scope naming it, so the same token
  * presented against another trip is refused by `scopeAllows` below rather than
  * by a check somebody has to remember to write.
+ *
+ * **Defined in `lib/auth`** since B230 and re-exported here, because the thing
+ * that mints a session now has to build this string too: a code issued for one
+ * trip can only ever open that trip's scope, and `verifyCode` enforces it
+ * rather than trusting whatever the caller passed. Two copies of the format
+ * would have been one typo away from a comparison that never matches, which on
+ * that path means somebody getting more than they asked for. Every reader here
+ * is unchanged.
  */
-export function tripWriteScope(tripId: string): string {
-  return `write:trip:${tripId}`;
-}
+export { tripWriteScope };
 
 export function scopeAllows(scope: string | undefined, trip: Trip): boolean {
   if (!scope) return false;

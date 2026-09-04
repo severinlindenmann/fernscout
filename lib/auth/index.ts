@@ -82,6 +82,24 @@ export const SESSION_SCOPE: Record<SessionKind, string> = {
 export const GUEST_COOKIE = "fs_session";
 
 /**
+ * The scope string a token that may write **one trip** carries.
+ *
+ * It lives here, beside `SESSION_SCOPE`, because it is the same vocabulary:
+ * what a session may do. `lib/tripPeople.ts` re-exports it for the readers
+ * that were already importing it from there, and reads it back with
+ * `scopeAllows` and `tripWriteVerdict`.
+ *
+ * Written in one place so `verifyCode` can enforce the binding below without
+ * building the string by hand. A scope format kept in two places is one
+ * `write:trips:` typo away from a comparison that never matches — and a
+ * comparison that never matches, on this path, is somebody getting more than
+ * they asked for.
+ */
+export function tripWriteScope(tripId: string): string {
+  return `write:trip:${tripId}`;
+}
+
+/**
  * A six-digit code.
  *
  * Six digits is 20 bits, and what makes that safe is the **attempt counter**,
@@ -252,17 +270,39 @@ export async function revokeCodes(
  * Any previously live code for the same address and kind is consumed first —
  * see `revokeCodes`.
  */
-export async function issueCode(
-  owner: string,
-  email: string,
-  kind: SessionKind,
+export type IssueCodeOptions = {
   /**
    * Where redeeming the link should land, when the caller knows — the page the
    * reader was looking at when they asked. Checked here as well as at
    * redemption, so a rejected value is never written down in the first place;
    * the check that matters is still the one on the way out.
    */
-  destination?: string | null,
+  destination?: string | null;
+  /**
+   * The trip this agent code is *for* — B230.
+   *
+   * The caller has already decided the address may write to it
+   * (`mayRequestAgentToken`), and writing it down here is what stops that
+   * decision being re-taken at redemption from a field the caller sends
+   * again. A bound code can only ever mint `write:trip:<trip>`; see
+   * `verifyCode`.
+   *
+   * Null or absent for a guest code, a signup code, and for the journal
+   * owner's own unqualified agent code.
+   */
+  trip?: string | null;
+};
+
+export async function issueCode(
+  owner: string,
+  email: string,
+  kind: SessionKind,
+  /**
+   * An object rather than two positional strings. They are both optional,
+   * both nullable and both about "what else this code carries", which is
+   * exactly the shape that gets called with the arguments the wrong way round.
+   */
+  { destination, trip }: IssueCodeOptions = {},
 ): Promise<IssuedCode> {
   const { db } = await getDatabase();
   const address = normaliseEmail(email);
@@ -289,6 +329,11 @@ export async function issueCode(
       // would be a path nothing ever reads, kept where a reader's browsing
       // shows up in a database dump.
       link_dest: linkToken ? safeDestination(owner, destination) : null,
+      // Only an agent token has a width to bind. A guest session reads the
+      // journal it was issued for and has nothing to narrow; a signup code
+      // belongs to an address rather than to a journal, so there is no trip in
+      // existence for it to name.
+      trip_id: kind === "agent" && trip ? trip : null,
       kind,
       created_at: now.toISOString(),
       expires_at: expiresAt,
@@ -306,7 +351,13 @@ export async function issueCode(
 
 export type VerifyResult =
   | { ok: true; token: string; expiresAt: string; scope: string; userId: string }
-  | { ok: false; reason: "no-code" | "expired" | "wrong" | "burned" };
+  /**
+   * `out-of-scope` is the one that is not about the six digits: the code was
+   * right, and the caller asked for a session wider than the code it holds —
+   * see the binding in `verifyCode`. Every caller answers all of these the
+   * same way, which is the point; the reason exists for the log and the test.
+   */
+  | { ok: false; reason: "no-code" | "expired" | "wrong" | "burned" | "out-of-scope" };
 
 /**
  * What redeeming a *link* gives you: a session, plus where to send the reader.
@@ -318,6 +369,62 @@ export type VerifyResult =
 export type VerifyLinkResult =
   | (Extract<VerifyResult, { ok: true }> & { destination: string | null })
   | Extract<VerifyResult, { ok: false }>;
+
+/**
+ * The row a code redemption is about: the newest live, unconsumed, ordinary
+ * code for this address and kind.
+ *
+ * One query, two readers — `verifyCode` and `pendingCodeTrip` — so the two
+ * cannot end up talking about different rows. A route that decided the width
+ * of a token from one row while the code was checked against another would be
+ * B230 again, wearing a different shape.
+ *
+ * **Never the standing link's row.** This takes the newest live row and
+ * assumes it is the code the person is holding, which was true while
+ * `issueCode` superseded every other. A standing link breaks that assumption:
+ * it lives alongside them and outlives them by design, so without the filter
+ * the welcome link's row — whose code is a value nobody has ever been told —
+ * is the one matched against what the person typed, and every real code fails.
+ */
+async function liveCodeRow(owner: string, address: string, kind: SessionKind) {
+  const { db } = await getDatabase();
+  return db
+    .selectFrom("login_codes")
+    .selectAll()
+    .where("owner_id", "=", owner)
+    .where("email", "=", address)
+    .where("kind", "=", kind)
+    .where("consumed_at", "is", null)
+    .where("link_standing", "=", 0)
+    .orderBy("created_at", "desc")
+    .executeTakeFirst();
+}
+
+/**
+ * The trip the code this address is holding was issued for — B230.
+ *
+ * For `/api/auth/verify`, which has to know how wide a token to ask for
+ * *before* it redeems anything. The answer comes off the row rather than out
+ * of the request body, which is the whole of the fix: the trip was checked
+ * when the code was issued (`mayRequestAgentToken`), and re-supplying it at
+ * redemption meant that check could be discarded by leaving the field out.
+ *
+ * Null means the code is not bound to a trip — the journal owner's own agent
+ * code, or a guest code — and null is not an authorisation. The caller still
+ * has to establish that whoever is redeeming may hold a journal-wide token;
+ * see the verify route.
+ *
+ * Expiry is not checked here. A stale row's trip is still the right answer to
+ * "how wide", and the code it belongs to is refused a moment later anyway.
+ */
+export async function pendingCodeTrip(
+  owner: string,
+  email: string,
+  kind: SessionKind,
+): Promise<string | null> {
+  const row = await liveCodeRow(owner, normaliseEmail(email), kind);
+  return row?.trip_id ?? null;
+}
 
 /**
  * Redeem a code for a session token.
@@ -343,26 +450,7 @@ export async function verifyCode(
   const { db } = await getDatabase();
   const address = normaliseEmail(email);
 
-  const row = await db
-    .selectFrom("login_codes")
-    .selectAll()
-    .where("owner_id", "=", owner)
-    .where("email", "=", address)
-    .where("kind", "=", kind)
-    .where("consumed_at", "is", null)
-    /**
-     * Never the standing link's row.
-     *
-     * This lookup takes the newest live row and assumes it is the code the
-     * person is holding, which was true while `issueCode` superseded every
-     * other. A standing link breaks that assumption: it lives alongside them
-     * and outlives them by design, so without this the welcome link's row —
-     * whose code is a value nobody has ever been told — is the one that gets
-     * matched against what the person typed, and every real code fails.
-     */
-    .where("link_standing", "=", 0)
-    .orderBy("created_at", "desc")
-    .executeTakeFirst();
+  const row = await liveCodeRow(owner, address, kind);
 
   if (!row) return { ok: false, reason: "no-code" };
 
@@ -399,6 +487,27 @@ export async function verifyCode(
     return { ok: false, reason: "wrong" };
   }
 
+  /**
+   * **The code decides how wide the token is, not the caller.** B230.
+   *
+   * A code issued for a trip can mint one thing: that trip's write scope. The
+   * caller may pass it (and the verify route does, having worked it out from
+   * the same row) or pass nothing at all, and either way this is what it gets.
+   * Asking for something else is refused rather than honoured — and refused
+   * *before* the code is consumed, so a caller that sent the wrong body can
+   * fix it and try again with the code the person is still holding.
+   *
+   * The check the route makes is the same check; this one is the one that
+   * cannot be forgotten. Whether the address is still on the trip is asked at
+   * every write instead, by `tripWriteVerdict` — B98 — because a token
+   * outlives the answer.
+   */
+  const bound = kind === "agent" ? row.trip_id : null;
+  if (bound && scope && scope !== tripWriteScope(bound)) {
+    return { ok: false, reason: "out-of-scope" };
+  }
+  const granted = bound ? tripWriteScope(bound) : scope;
+
   // Redeeming the code retires the link along with it: the reader is in, and
   // the weaker credential has no reason to stay live in someone's inbox.
   await db
@@ -407,7 +516,7 @@ export async function verifyCode(
     .where("id", "=", row.id)
     .execute();
 
-  return openSession(owner, address, kind, scope);
+  return openSession(owner, address, kind, granted);
 }
 
 /**
@@ -498,6 +607,9 @@ async function insertLinkRow(
       // to. The welcome mail's link and the relay link both open the journal.
       link_dest: null,
       kind: "guest",
+      // Both link-only credentials are guest sessions, which read and have
+      // nothing to narrow.
+      trip_id: null,
       created_at: nowIso(),
       // Read for a relay link, and the thing that makes it expire. For a
       // standing link it is never read — written because the column is NOT

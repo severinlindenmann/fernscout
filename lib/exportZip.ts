@@ -19,10 +19,17 @@ import type { Trip } from "./types";
  *
  * Two scopes, because this can be reached two different ways:
  *
- * - `"all"` — every trip, exactly as it sits on disk. This is the owner's own
- *   backup, produced by `scripts/export.ts` (a local/operator tool, the same
- *   trust level as `npm run export` or `npm run db:migrate` — nothing
- *   here is exposed over HTTP).
+ * - `"all"` — every trip, exactly as it sits on disk, drafts included. This is
+ *   the owner's own backup. `scripts/export.ts` produces it locally, and two
+ *   HTTP routes serve it: `/<username>/export.zip` to a token carrying the
+ *   journal owner's unqualified `write:content`, and
+ *   `/<username>/delete/<token>/export.zip` to the single-use, hour-lived
+ *   token mailed to `owner.email` before a deletion. This comment used to say
+ *   "nothing here is exposed over HTTP", which stopped being true when the
+ *   first of those learned to serve it — and a route that read it as still
+ *   true handed the whole journal to any token belonging to it, trip-scoped
+ *   ones included (B231). **Anything reaching for this scope has to establish
+ *   that it is the owner, not merely that it is inside the journal.**
  * - `"open-to-link"` — only trips an anonymous visitor could already reach
  *   (`isOpenToLink`: public + unlisted). This is what
  *   `/<username>/export.zip` serves: a convenience packaging of content

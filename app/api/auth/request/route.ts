@@ -151,7 +151,25 @@ export async function POST(request: Request) {
     );
   }
 
-  const { code, linkToken } = await issueCode(username, email, kind, destination);
+  /**
+   * The trip goes **onto the code**, not into the answer — B230.
+   *
+   * `mayRequestAgentToken` has just decided that this address may write to
+   * this trip and nothing else. Writing the trip down beside the code is what
+   * makes that decision survive to redemption: `/api/auth/verify` reads it off
+   * the row, so there is no field for a caller to leave out and no second
+   * value to disagree with. Before this it was re-sent at verify time, where
+   * an unrecognised value meant "no narrowing" — the journal's own
+   * `write:content`, to somebody who had been let onto one trip.
+   *
+   * Only for an agent code, and only when a trip was named. The owner asking
+   * for a journal-wide token names none, and that is the one case that still
+   * mints `write:content`.
+   */
+  const { code, linkToken } = await issueCode(username, email, kind, {
+    destination,
+    trip: kind === "agent" && tripId ? tripId : null,
+  });
   const base = serverSite().url;
 
   /**

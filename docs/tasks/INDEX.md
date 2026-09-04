@@ -75,6 +75,7 @@ Do not edit them by hand; run the script.
 | [B222](backlog/B222-the-rate-limit-sweep-judged-every.md) | The rate-limit sweep judged every bucket by the default window, resetting the longer ones | SECURITY | medium | low |
 | [B228](backlog/B228-the-guest-list-issues-a-link.md) | The guest list issues a link that never expires | ISSUE | medium | low |
 | [B236](backlog/B236-one-entry-file-that-does-not.md) | One entry file that does not parse throws out of getAllEntries, so the whole trip stops reading rather than that one day | ISSUE | medium | low |
+| [B240](backlog/B240-every-owner-only-gate-is-one.md) | Every owner-only gate is one scope string away from opening | SECURITY | medium | medium |
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B42](backlog/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B43](backlog/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
@@ -103,6 +104,7 @@ Do not edit them by hand; run the script.
 | [B235](backlog/B235-seventy-one-exports-and-fifty-nine.md) | Seventy-one exports and fifty-nine exported types are used only inside their own file | CHORE | low | medium |
 | [B237](backlog/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
+| [B241](backlog/B241-an-agent-code-can-be-issued.md) | An agent code can be issued for a trip that does not exist | ISSUE | low | low |
 | [B88](backlog/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low |
 | [B90](backlog/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 

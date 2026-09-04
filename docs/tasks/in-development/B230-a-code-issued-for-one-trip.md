@@ -15,18 +15,6 @@ claimed: "2026-09-04T08:08:58Z"
 
 ## Why
 
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
-
-## Why
-
 `/api/auth/request` is the check everything downstream leans on: it refuses an
 agent code to an address that is neither the journal's `owner.email` nor listed
 on — or a redeemed buddy of — the trip it named
@@ -104,3 +92,80 @@ Not doing: changing `/api/auth/request`'s check, which is correct, or the
   unknown_trip` on a trip its holder was never on.
 - `test/write-revocation.test.ts` still passes unchanged.
 - All four checks pass.
+
+## What was built
+
+Branch `g16-token-scope-escalation`.
+
+**The trip is bound to the code.** `login_codes` gains `trip_id`
+(`lib/db/migrations/011-code-trip-binding.ts`), `issueCode` writes it —
+`/api/auth/request` passes the trip it has just checked with
+`mayRequestAgentToken` — and `verifyCode` reads it back off the row. There is
+no longer a second value for a caller to disagree with.
+
+**Two layers, both closed.**
+
+- `verifyCode` (`lib/auth/index.ts`) enforces the binding itself: a bound code
+  mints `write:trip:<trip_id>` and nothing else, whatever scope the caller
+  passed. A caller asking for something wider is refused with the new
+  `out-of-scope` reason, *before* the code is consumed, so a wrong body does
+  not spend a code the person is still holding. This is the check no route can
+  forget.
+- `agentScope` in `app/api/auth/verify/route.ts` no longer reads the trip from
+  the request body at all. It reads the code's binding (`pendingCodeTrip`) and
+  decides: a bound code opens its own trip; an **unbound** code is refused
+  unless the address is the journal's `owner.email`, so `undefined` — which
+  still means "the whole journal" — is now returned from exactly one branch.
+  Every value it does not recognise is a refusal, where each one used to widen.
+
+**What is preserved.** The owner may still narrow at verify time by naming a
+trip, which is what the function was written for; naming a trip that does not
+exist is refused instead of widening. Publishing is untouched and remains
+owner-only. `resolveSession`'s cookie/bearer wall and its `cache()` (B53) were
+not touched.
+
+**The refusal is the endpoint's uniform `401 invalid_code`**, with no message.
+A friendlier body would say which of "your code is for another trip", "you do
+not own this journal" and "no such trip" applied — each a question about
+somebody else's journal answerable by a caller holding no code, and the first
+would make an outstanding code enumerable. The operator gets a `console.warn`;
+`/agent.md` and `openapi.json` now state the rule, so an agent does not need to
+learn it from an error.
+
+`tripWriteScope` moved to `lib/auth` (re-exported from `lib/tripPeople`, every
+caller unchanged) so the minting side and the reading side build the string
+from one definition.
+
+## Evidence
+
+`test/scope-escalation.test.ts` — the B230 cases are flipped and both halves of
+the reproduction now go through the real routes (`/api/auth/request`, then
+`/api/auth/verify`) rather than calling `issueCode` directly.
+
+Before, against `main` at `11003ce`:
+
+```
+AssertionError: expected [ 'write:content' ] to deeply equal [ 'write:trip:alps-2026' ]
+```
+
+After: `scope: ["write:trip:alps-2026"]`, and that token gets `404
+unknown_trip` on `honeymoon-2026` while still writing `201` into `alps-2026`.
+Naming a trip they are not on answers `401 invalid_code` with no token, and the
+code stays live. Reverting the fix in the worktree fails 11 of the file's 16
+cases; with it, `npx vitest run` is 137 files / 2161 tests green, and
+`test/write-revocation.test.ts` passed unchanged throughout.
+
+Also captured while here: **B240** (every owner-only gate is a scope-string
+check, which is what made one minting bug open all of them) and **B241** (the
+owner can still be issued a code for a trip that does not exist — fail-closed
+since this fix, but unexplained).
+
+## When it ships
+
+The migration adds a nullable column, so an existing database needs nothing but
+`db:migrate`. One thing to know while testing: **every code outstanding at the
+moment of the deploy has no trip on it.** For the journal's owner that is
+unchanged — an unbound code is theirs and still opens the journal. For anybody
+else it is now a refusal, so somebody who asked for a code just before the
+deploy and reads it just after gets `401 invalid_code` and has to ask again.
+Codes live thirty minutes; the window closes on its own.

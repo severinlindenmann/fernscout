@@ -94,6 +94,15 @@ export type LoginCodesTable = {
    */
   link_dest: string | null;
   /**
+   * The trip this code was issued for, and therefore the only trip the token
+   * it produces can write to — `write:trip:<trip_id>`. Null for a guest or
+   * signup code, and for an agent code the journal's owner asked for without
+   * naming a trip, which is the one case that still mints the unqualified
+   * `write:content`. Written when the code is issued and never re-supplied at
+   * redemption; see `011-code-trip-binding` and B230.
+   */
+  trip_id: string | null;
+  /**
    * 1 for the welcome mail's link, which never expires and is not swept away
    * when a fresh code is issued for the same address. 0 — the default, and
    * every row written before `006-standing-link` — is a link that dies with
