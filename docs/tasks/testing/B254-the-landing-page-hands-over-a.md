@@ -7,8 +7,7 @@ complexity: low
 area: landing page
 found: "2026-09-04T10:13:42Z"
 started: "2026-09-04T10:14:03Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T10:14:03Z"
+merged: "2026-09-04T10:19:48Z"
 ---
 
 # B254 — The landing page hands over a bare URL where an agent needs an instruction
