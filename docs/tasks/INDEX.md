@@ -185,17 +185,16 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (5)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B345](in-development/B345-publishing-a-day-tells-nobody-so.md) | Publishing a day tells nobody, so an owner announces their own journal by hand | FEATURE | high | high | `986bc24c` |
 | [B347](in-development/B347-a-buddy-approved-onto-a-trip.md) | A buddy approved onto a trip is mailed "follow along whenever you like" and never told they can write | ISSUE | high | low | `62683d95` |
 | [B348](in-development/B348-the-agent-code-mail-tells-a.md) | The agent-code mail tells a buddy the token writes to "your journal", when it writes one trip in somebody else's | ISSUE | high | low | `62683d95` |
-| [B346](in-development/B346-every-trip-is-the-same-colour.md) | Every trip is the same colour because the scaffold writes accent sky and nothing assigns a distinct one | FEATURE | medium | low | `e8e2ddef` |
 | [B349](in-development/B349-the-owner-s-queue-notification-calls.md) | The owner's queue notification calls a buddy a follower, naming neither the link kind nor the trip | ISSUE | medium | low | `62683d95` |
 
-## testing (140)
+## testing (141)
 
 ### security (10)
 
@@ -311,13 +310,14 @@ _Nothing here._
 | [B294](testing/big-feature/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high | — |
 | [B39](testing/big-feature/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
 
-### small-feature (8)
+### small-feature (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B273](testing/small-feature/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium | — |
 | [B299](testing/small-feature/B299-no-visual-page-to-browse-the.md) | No visual page to browse the API endpoints | FEATURE | medium | low | — |
 | [B344](testing/small-feature/B344-the-lifetime-map-joins-every-trip.md) | The lifetime map joins every trip's stops with a line, reading as a route when it is an overview of everywhere somebody has been | FEATURE | medium | low | — |
+| [B346](testing/small-feature/B346-every-trip-is-the-same-colour.md) | Every trip is the same colour because the scaffold writes accent sky and nothing assigns a distinct one | FEATURE | medium | low | — |
 | [B52](testing/small-feature/B52-the-digest-still-refuses-a-guest.md) | The digest still refuses a guest trip to a reader who can now open it | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
