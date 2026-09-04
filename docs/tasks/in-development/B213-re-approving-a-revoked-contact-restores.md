@@ -50,17 +50,17 @@ no longer exists. What they said, and what is true:
   survives the rewrite unchanged.
 - **The recovery paragraph was wrong, and in the reassuring direction.**
   Issuing a new buddy link does *not* restore the place. `claimTripPlace`
-  (`lib/tripPeople.ts:246`) returns early when **any** row exists for
-  `(owner, trip, contact)`, revoked included, so a redemption of a fresh link
-  writes nothing at all. Nor can the person redeem anything while blocked —
+  (`lib/tripPeople.ts:255`, after this change) returns early when **any** row
+  exists for `(owner, trip, contact)` — revoked included — so redeeming a
+  fresh link writes nothing at all. Nor can the person redeem anything while blocked —
   `requestContact` answers `ignored` first. There was no route back through any
   product surface: the place could only be restored by editing the database.
   That, more than the misreported `ok`, is what settled the decision below.
 
-So the cause is one line: `revokeTripPlaces` (`lib/tripPeople.ts:370`) stamps
-`revoked_at`, `approveTripPlaces` (`lib/tripPeople.ts:323`) filtered those rows
-out, and nothing anywhere clears the stamp. The row survives, permanently
-closed, and no surface says so.
+So the cause is one line. `revokeTripPlaces` (`lib/tripPeople.ts:414` after
+this change) stamps `revoked_at`, `approveTripPlaces` (`lib/tripPeople.ts:355`)
+filtered those rows out, and nothing anywhere clears the stamp. The row
+survives, permanently closed, and no surface says so.
 
 **This is reachable in two clicks**, which is what separates it from its
 neighbours. It is the same shape as **B130** in the other table — a row that
@@ -120,9 +120,9 @@ contract, the panel and the i18n strings. **B244.**
 
 - `approveTripPlaces` revives a revoked row rather than skipping it: `revoked_at`
   is dropped from the `where`, `revoked_at !== null` becomes its own reason to
-  open a row (such a row usually carries a live `granted_at` and no expiry, so
-  it passes both of the other tests), and the update clears `revoked_at` along
-  with `expires_at`. Same shape as B130's revival in `access_grants`.
+  open a row — such a row usually carries a live `granted_at` and no expiry, so
+  neither of the other two clauses would select it — and the update clears
+  `revoked_at` along with `expires_at`. Same shape as B130's revival in `access_grants`.
 - The reasoning moves to the three places that enforce it: `claimTripPlace`'s
   early return is documented as load-bearing, `revokeTripPlaces` says it is
   reversible by the owner, and `approveContact`/`revokeContact` say the same
