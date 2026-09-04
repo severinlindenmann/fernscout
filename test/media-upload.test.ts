@@ -270,8 +270,7 @@ describe("what it refuses", () => {
  *
  * Decoding is where that gives up, and it throws. Uncaught, it reached the
  * REST route as a bare 500 with an empty body — nothing for an agent to act
- * on — while the same bytes through MCP came back with a usable message. Two
- * doors, one pipeline, two different answers.
+ * on.
  */
 describe("a file that is not the image it says it is", () => {
   test("is refused with a readable problem, not a crash", async () => {

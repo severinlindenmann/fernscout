@@ -44,7 +44,7 @@ serves any trip at the explicit one. Both render the same components.
 | `lib/access.ts` · `lib/viewer.ts` · `lib/tripGate.ts` | who may see a trip, and what a given viewer is allowed |
 | `lib/auth/` | email OTP, sessions, and agent tokens — two classes that are never interchangeable |
 | `lib/db/` · `lib/repos/` | the dialect split, migrations, and one repo per stored thing |
-| `lib/api/` · `lib/mcp/` | the REST surface under `/api/v1` and the MCP server at `/api/mcp`, over one shared core |
+| `lib/api/` | the REST surface under `/api/v1` |
 | `lib/validate/` | what an agent may write, and why a rejection says what it says |
 | `lib/media.ts` · `lib/mediaSizes.ts` · `lib/mediaLimits.ts` | derivatives, quotas and upload ceilings |
 | `lib/ingest/` | a folder of camera files → EXIF, clustering, resizing, entry markdown |

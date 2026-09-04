@@ -2,7 +2,7 @@
 
 The durable catalogue: **what** to test, **how**, and what counts as a pass.
 `docs/TESTING.md` is the walkthrough a person follows by hand; this is the
-version an agent can execute end to end, and it goes wider — API, MCP, auth,
+version an agent can execute end to end, and it goes wider — API, auth,
 mail, multi-user, and the parts of the product that only misbehave when two
 journals share an instance.
 
@@ -175,18 +175,6 @@ The section where a mistake is unrecoverable.
 | I8 | Re-POST the same title and date | 409 — a retry never overwrites |
 | I9 | Malformed body, missing fields, bad dates | 400 with a usable message, never a 500 |
 | I10 | No parameter anywhere skips draft status | Confirmed by reading the code and by trying |
-
-## J — MCP
-
-| # | Scenario | Pass |
-| --- | --- | --- |
-| J1 | `initialize` over Streamable HTTP | Protocol version and capabilities |
-| J2 | `tools/list` | The documented tools |
-| J3 | `tools/call` a read tool | Real content |
-| J4 | `tools/call` a write tool | A draft, same as REST |
-| J5 | Unauthenticated call | 401 with `WWW-Authenticate` |
-| J6 | `/api/well-known/oauth-protected-resource` | RFC 9728 metadata |
-| J7 | Cross-user access with a valid token | Refused |
 
 ## K — Mail with no mail server
 

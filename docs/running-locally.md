@@ -180,9 +180,9 @@ curl -X POST localhost:3700/api/auth/verify -H 'content-type: application/json' 
   -d '{"user":"example","email":"agent@fernscout.ch","code":"123456","kind":"agent"}'
 ```
 
-From there, `Authorization: Bearer fs_agent_…` reaches `/api/v1/…` and
-`/api/mcp`. `GET /agent.md` is the guide an agent reads, and it is generated
-from the same constants the endpoints enforce, so it cannot drift from them.
+From there, `Authorization: Bearer fs_agent_…` reaches `/api/v1/…`.
+`GET /agent.md` is the guide an agent reads, and it is generated from the same
+constants the endpoints enforce, so it cannot drift from them.
 
 ---
 

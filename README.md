@@ -13,8 +13,8 @@ is needed to run a public journal, and everything exports as the files it
 already is.
 
 **There is no editing interface, and there will not be one.** Reading happens
-in a browser; writing happens through an agent holding a token, over REST or
-MCP. Which means the rule everything else is built around:
+in a browser; writing happens through an agent holding a token, over REST.
+Which means the rule everything else is built around:
 
 > **The agent is the editor.** It writes, it publishes, it corrects — you tell
 > it what you want and it does the work. Everything it writes arrives as a
@@ -156,7 +156,7 @@ Indexed at [docs/](docs/), which also says how far to trust it.
 | [currencies.md](docs/currencies.md) | how money is stored, converted and refused |
 | [config-upgrades.md](docs/config-upgrades.md) | moving a config file forward a version |
 | [deploy-mail.md](docs/deploy-mail.md) | mail, and the file transport that needs no SMTP |
-| [providers/](docs/providers/) | MCP, and the print providers |
+| [providers/](docs/providers/) | the print providers |
 | [TESTING.md](docs/TESTING.md) · [qa/](docs/qa/) | the manual walkthrough, and the scenario catalogue |
 | [branding/](docs/branding/) | the mark, the palette, and what not to do to them |
 | [ROADMAP.md](docs/ROADMAP.md) | the decision log — cited by number from the code |

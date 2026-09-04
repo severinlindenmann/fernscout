@@ -12,9 +12,9 @@ empty"** and that is enough for me to find it.
 🔑 needs an environment variable
 
 This is the walkthrough a person follows by hand. `docs/qa/SCENARIOS.md` is the
-wider catalogue an agent runs end to end — API, MCP, auth, mail and two
-journals on one instance — and `docs/qa/BLACKBOX.md` is the pass run by testers
-who have never seen the source.
+wider catalogue an agent runs end to end — API, auth, mail and two journals on
+one instance — and `docs/qa/BLACKBOX.md` is the pass run by testers who have
+never seen the source.
 
 ---
 

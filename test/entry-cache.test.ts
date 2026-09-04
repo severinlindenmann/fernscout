@@ -14,8 +14,7 @@ import { getAllEntries, getEntryBySlug } from "@/lib/entries";
  * for content that only changes when somebody edits a file by hand — and wrong
  * the moment the application writes one itself. It did, and nothing cleared
  * the cache: a day deleted through the API left the disk but went on being
- * served, its permalink answering 200 and MCP returning its full text, until
- * the server restarted.
+ * served, its permalink answering 200 until the server restarted.
  *
  * That is the confirmation gate failing at the last step. An owner deleting
  * something *because it should not be public* was told it was gone while it

@@ -20,7 +20,7 @@ Two ways in, and they are the same content behind two doors:
 | You are | Use |
 | --- | --- |
 | Working **in this repository**, with the files on disk | the skills in `.claude/skills/`, and this file |
-| Working **against a running site**, over the network | `/agent.md` (the guide), `/api/v1/…` (REST) and `/api/mcp` (MCP) |
+| Working **against a running site**, over the network | `/agent.md` (the guide) and `/api/v1/…` (REST) |
 
 ## The one rule
 
@@ -33,13 +33,13 @@ stated as a capability and not as a restraint.
 frontmatter, and every reading path filters it out in `lib/entries.ts`. It is
 the default so that a person can read a day back before it is on the site — a
 courtesy to them, not a gate against you. `POST .../days` has no `status`
-argument and no publish-on-create, in the REST API or in MCP, for exactly that
-reason: writing and publishing are two calls so there is a moment in between.
+argument and no publish-on-create, for exactly that reason: writing and
+publishing are two calls so there is a moment in between.
 
 **Publishing is the second call, and it is yours to make when asked:**
-`POST /api/v1/<user>/trips/<trip>/days/<slug>/publish`, or `publish_day` over
-MCP. Owner only — a trip-scoped token writes days into its trip and cannot put
-them on the site, because being on the bus is not the same as deciding what the
+`POST /api/v1/<user>/trips/<trip>/days/<slug>/publish`. Owner only — a
+trip-scoped token writes days into its trip and cannot put them on the site,
+because being on the bus is not the same as deciding what the
 journal says. B28 is why it exists: the person deciding is often somebody who
 has never seen the folder, and telling them to delete a line from a file was
 advice with nowhere to go.
@@ -436,7 +436,6 @@ the record and never corrected, so do not update one to match what shipped.
 | `/<user>/invite/guest/<token>` | where a guest link lands |
 | `/<user>/invite/buddy/<token>` | where a buddy link lands |
 | `DELETE /api/v1/<user>` and `…/trips/<trip>` | ask to delete — see below |
-| `POST /api/mcp` | MCP over Streamable HTTP — see `docs/providers/mcp.md` |
 
 Agent tokens arrive in `Authorization: Bearer` and nowhere else; guest sessions
 arrive in a cookie and nowhere else. The two are not interchangeable, and
@@ -444,8 +443,7 @@ arrive in a cookie and nowhere else. The two are not interchangeable, and
 phone must not put a credential that can rewrite it in your pocket.
 
 **Two links let other people in, and only one of them is safe to forward.**
-`POST /api/v1/<user>/invites` (owner only; `create_invite` over MCP) makes
-either a **guest** link — leads to reading the journal's `guest` trips — or a
+`POST /api/v1/<user>/invites` (owner only) makes either a **guest** link — leads to reading the journal's `guest` trips — or a
 **buddy** link, which names a trip and leads to **write access** to it. Say
 which you are handing over: a guest link belongs in a family group chat and a
 buddy link does not. Neither grants anything on its own. Whoever opens one
