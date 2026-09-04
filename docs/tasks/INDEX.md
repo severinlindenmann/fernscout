@@ -138,7 +138,6 @@ _Nothing here._
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B302](in-development/B302-the-guide-frames-a-new-trip.md) | The guide frames a new trip as private-or-public, so an agent never offers guest and its user ends up with an approved reader who cannot read | ISSUE | high | low | `a3370c43` |
-| [B293](in-development/B293-a-journal-s-features-cannot-be.md) | A journal's features cannot be changed by any door, and the route that refuses says only 405 | ISSUE | medium | medium | `986bc24c` |
 
 ## testing
 
@@ -209,6 +208,7 @@ _Nothing here._
 | [B283](testing/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high | — |
 | [B285](testing/B285-the-header-s-language-currency-chip.md) | The header's language/currency chip drifts to the middle of the row on desktop | ISSUE | medium | low | — |
 | [B292](testing/B292-four-things-an-agent-had-to.md) | Four things an agent had to learn by failing are documented somewhere it was not looking | ISSUE | medium | low | — |
+| [B293](testing/B293-a-journal-s-features-cannot-be.md) | A journal's features cannot be changed by any door, and the route that refuses says only 405 | ISSUE | medium | medium | — |
 | [B298](testing/B298-mcp-is-live-and-unused-and.md) | MCP is live and unused, and costs maintenance surface nobody exercises | CHORE | medium | high | — |
 | [B299](testing/B299-no-visual-page-to-browse-the.md) | No visual page to browse the API endpoints | FEATURE | medium | low | — |
 | [B301](testing/B301-the-handover-block-still-offers-the.md) | The handover block still offers the read-out-a-code route beside the key, which is two ways to do one thing | ISSUE | medium | low | — |

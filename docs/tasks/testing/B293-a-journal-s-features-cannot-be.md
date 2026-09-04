@@ -7,8 +7,7 @@ complexity: medium
 area: api, config, capabilities
 found: "2026-09-04T13:35:47Z"
 started: "2026-09-04T14:41:16Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T14:41:16Z"
+merged: "2026-09-04T15:05:26Z"
 ---
 
 # B293 — A journal's features cannot be changed by any door, and the route that refuses says only 405
