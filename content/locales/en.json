@@ -139,6 +139,8 @@
   "contact.telHintNone": "kept on file for the owner — nothing on this site sends to it yet",
   "contact.telHintPostcardsOnly": "for postcards",
   "contact.telHintWhatsappOnly": "for WhatsApp updates if you tick the box below",
+  "contact.telNoMatches": "No country matches that",
+  "contact.telSearchPlaceholder": "Type a country, code or +digits",
   "contact.title": "Come along with us",
   "contact.tooMany": "That's a lot of tries. Wait a few minutes and try once more.",
   "contact.unsubscribe": "Stop all emails",

@@ -73,3 +73,35 @@ name, filters as you type, and is usable with the keyboard alone. Picking
 Switzerland and typing `765613150` still stores `+41 765613150` and
 `toE164` still returns `41765613150`. A test covers the filter matching by
 name, by iso2 and by digits, and the flag derivation for a known code.
+
+## Done
+
+Built as planned: `DIAL_CODES` in `components/TelField.tsx` is now iso2+cc for
+every ITU dialling code (≈240 rows, uninhabited territories with no telecom of
+their own left out), names come from `Intl.DisplayNames(locale, {type:
+"region"})` via the new `countryName()`, flags from `flagOf()` (regional
+indicators, two lines), and a combobox (input + `role="listbox"`, arrow
+keys/Enter/Escape, click-outside-to-close) replaced the `<select>`. `locale`
+is a new required prop, taken from whichever locale state each of the four
+callers already held — none of them read `LocaleProvider` here; `ContactForm`
+deliberately doesn't (see its own doc comment), so a shared prop was the only
+option that worked for all four. Two more required props,
+`searchPlaceholder`/`noMatches` (`t("contact.telSearchPlaceholder")` /
+`t("contact.telNoMatches")`), carry the new UI strings, added to
+`lib/i18n.ts` and `content/locales/{en,de,hu}.json` next to `contact.telHint*`.
+
+One deviation from the plan worth recording: `test/tel-field.test.ts` tests
+`filterCountries`/`flagOf` as plain exported functions rather than rendering
+the combobox and driving it with keyboard/mouse events, because this
+checkout's vitest runs in the `"node"` environment with no DOM testing
+library — the existing `test/contact-tel-hint.test.tsx` only ever exercises
+`renderToStaticMarkup`. The interactive behaviour (typing narrows the list,
+arrow keys move, Enter selects, Escape closes) is therefore verified by
+inspection and by `npm run verify`'s type/build pass, not by an automated
+test. Captured as B391 rather than silently accepted.
+
+`test/tel-field.test.ts`'s old "a country this picker does not offer" case
+(`+7`, Russia) no longer holds — Russia is exactly one of the countries this
+ticket added — so it was rewritten to use `+999`, a code no ITU country
+answers to, which is the honest remaining case of "a leading `+` this picker
+still can't place".

@@ -139,6 +139,8 @@
   "contact.telHintNone": "csak eltároljuk – egyelőre semmi nem küld ide semmit",
   "contact.telHintPostcardsOnly": "képeslapokhoz",
   "contact.telHintWhatsappOnly": "WhatsApp-értesítésekhez, ha bejelölöd lent a négyzetet",
+  "contact.telNoMatches": "Egyetlen ország sem egyezik",
+  "contact.telSearchPlaceholder": "Ország, kód vagy +számok",
   "contact.title": "Tarts velünk",
   "contact.tooMany": "Ez sok próbálkozás volt. Várj pár percet, aztán próbáld újra.",
   "contact.unsubscribe": "Ne kapjak több e-mailt",

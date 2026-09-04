@@ -377,6 +377,9 @@ export default function InviteRedeem({
                   national={splitTel(address.tel).national}
                   onChange={setTel}
                   labelCountry={t("contact.telCountry")}
+                  searchPlaceholder={t("contact.telSearchPlaceholder")}
+                  noMatches={t("contact.telNoMatches")}
+                  locale={locale}
                 />
                 <p className="mt-2 text-base text-navy-600">
                   {t(telHintKey("reader", postcardsEnabled, whatsappEnabled))}
