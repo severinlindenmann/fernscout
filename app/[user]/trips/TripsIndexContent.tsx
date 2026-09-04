@@ -8,7 +8,11 @@ import { mediaLoader } from "@/components/mediaLoader";
 import AgentHandover from "@/components/AgentHandover";
 import GuestSignIn from "@/components/GuestSignIn";
 import PageHeader from "@/components/PageHeader";
-import LifetimeMap, { ACCENT_HEX, type TripRoute } from "@/components/LifetimeMap";
+import LifetimeMap, {
+  ACCENT_HEX,
+  type CountryVisit,
+  type TripRoute,
+} from "@/components/LifetimeMap";
 import type { Basemap } from "@/lib/basemap";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
@@ -121,6 +125,8 @@ const GROUPS: { status: TripStatus; key: TranslationKey }[] = [
 export default function TripsIndexContent({
   trips,
   routes,
+  visits = [],
+  userPath = "",
   lifetime,
   basemap = null,
   empty = null,
@@ -129,6 +135,11 @@ export default function TripsIndexContent({
 }: {
   trips: TripCardData[];
   routes: RouteData[];
+  /** Countries visited and by which trips — see LifetimeMap. Empty for a
+   * journal whose days carry no `country:`, which falls back to pins. */
+  visits?: CountryVisit[];
+  /** `/<user>`, so a country can link to the trip that reached it. */
+  userPath?: string;
   lifetime: { countries: number; days: number; photos: number; trips: number };
   /** Clipped on the server to every route's combined frame — lib/basemap.ts. */
   basemap?: Basemap | null;
@@ -198,7 +209,7 @@ export default function TripsIndexContent({
 
             {mapRoutes.length > 0 && (
               <div className="mt-7">
-                <LifetimeMap routes={mapRoutes} basemap={basemap} />
+                <LifetimeMap routes={mapRoutes} visits={visits} userPath={userPath} basemap={basemap} />
               </div>
             )}
 

@@ -14,6 +14,49 @@ export type TripRoute = {
   points: { lat: number; lng: number; location: string }[];
 };
 
+/** One country somebody has been to, and which trips took them there. */
+export type CountryVisit = {
+  /** ISO 3166-1 alpha-2. */
+  code: string;
+  /** The country's own name, for the hover text. */
+  name: string;
+  /**
+   * Its SVG outline, resolved from `lib/worldCountries.json` **on the server**
+   * — see `app/[user]/trips/page.tsx`.
+   *
+   * Carried here rather than looked up in the browser because the fill is the
+   * meaning of this map: loading the country shapes client-side left the
+   * server render with no countries in it at all, so a reader without
+   * JavaScript, and everyone's first paint, got an empty frame. Sending the
+   * handful actually visited is also far less than the 143 KB of all 177.
+   */
+  path: string;
+  trips: { id: string; title: string }[];
+};
+
+/**
+ * How often a country was visited, as fill.
+ *
+ * One hue in three steps rather than a colour per trip — decided with the
+ * owner, B361. A country reached by two trips has no single trip colour, and
+ * the alternatives were both worse: letting the most recent trip win hides
+ * that you went twice, and striping two colours together is unreadable on a
+ * small country and hopeless at three. Depth answers "how often", which is the
+ * question a lifetime map is actually being asked, and the trips themselves
+ * are named on hover.
+ *
+ * Warm, because the map is not: the land is pale green and the sea is blue, so
+ * a blue or green ramp would fight the basemap it sits on. This is the brand
+ * coral (`--color-coral-500`, the `coral` accent) and two tints of it.
+ */
+const VISIT_FILL = ["#f0bcc4", "#dc7185", "#c2334a"] as const;
+
+/** Three steps, so four visits and seven both read as "often". Past the third
+ * the difference stops being legible anyway, and the legend says `3+`. */
+function fillFor(visits: number): string {
+  return VISIT_FILL[Math.min(visits, VISIT_FILL.length) - 1];
+}
+
 /** The five palette hues from app/globals.css, as literals — this is an SVG
  * stroke, which Tailwind classes can't reach. Exported so the trip cards can
  * use the same colour for their accent dot. */
@@ -54,14 +97,30 @@ const PIN_RING_WIDTH = 0.55;
  */
 export default function LifetimeMap({
   routes,
+  visits = [],
+  userPath = "",
   basemap = null,
 }: {
   routes: TripRoute[];
+  /**
+   * Countries visited, and by which trips. When this is non-empty the map
+   * fills countries instead of drawing a pin per stop; when it is empty it
+   * falls back to the pins below.
+   *
+   * The fallback is not decoration. A journal whose days carry no `country:`
+   * resolves nothing here, and filling nothing would render an empty world —
+   * strictly worse than the pins it replaced. `viki` is exactly that journal.
+   * B361.
+   */
+  visits?: CountryVisit[];
+  /** `/<user>`, for linking a country to the trip that reached it. */
+  userPath?: string;
   /** Clipped to every trip's combined frame on the server — lib/basemap.ts. */
   basemap?: Basemap | null;
 }) {
   const { t } = useI18n();
   const worldLand = useWorldLand();
+  const filling = visits.length > 0;
 
   // Frame the visited area rather than the whole world — otherwise two European
   // trips are two dots in an ocean of empty Pacific.
@@ -96,7 +155,11 @@ export default function LifetimeMap({
         // framed to a landscape shape it would otherwise be a 150-pixel band on
         // a phone, which is a picture of nothing.
         className="block h-auto min-h-[260px] w-full sm:min-h-0"
-        role="img"
+        // `role="img"` promises there is nothing inside worth reaching, which
+        // is true of the pins and false the moment a country becomes a link —
+        // an image's children are not exposed, so the links would exist for
+        // the mouse and for nobody else. B361.
+        role={filling ? "group" : "img"}
         aria-label={label}
       >
         {/* Same fills as the per-trip WorldMap (components/WorldMap.tsx), so the
@@ -104,7 +167,48 @@ export default function LifetimeMap({
             built, which is what lets a Swiss trip show a border rather than an
             empty green field. */}
         <g transform={`scale(${view.lngScale} 1)`}>
-          {basemap ? (
+          {filling ? (
+            <>
+              {/* The ground. The visited countries are drawn over it, so the
+                  map reads as a map whether or not the outline has arrived —
+                  and the outline is the same one every other map here uses. */}
+              <g fill="#dff3e0" stroke="#bfe3c4" strokeWidth={1}>
+                {worldLand.map((d, i) => (
+                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                ))}
+              </g>
+              <g stroke="#fffaf0" strokeWidth={0.8}>
+                {visits.map((v) => {
+                  const shape = (
+                    <path
+                      d={v.path}
+                      fill={fillFor(v.trips.length)}
+                      vectorEffect="non-scaling-stroke"
+                      className="cursor-pointer transition-opacity duration-150 hover:opacity-70"
+                    >
+                      {/* Native SVG tooltip: hover text with no state, no
+                          portal and no positioning arithmetic, and it doubles
+                          as the link's accessible name. */}
+                      <title>{`${v.name} — ${v.trips.map((tr) => tr.title).join(", ")}`}</title>
+                    </path>
+                  );
+
+                  /* One trip is a destination; several are not. Sending the
+                     reader to the most recent silently is the same trap the
+                     fill-colour decision already turned down, so a country
+                     several trips reached names them and the cards below the
+                     map are where you choose. B361. */
+                  return v.trips.length === 1 && userPath ? (
+                    <a key={v.code} href={`${userPath}/trips/${v.trips[0].id}`}>
+                      {shape}
+                    </a>
+                  ) : (
+                    <g key={v.code}>{shape}</g>
+                  );
+                })}
+              </g>
+            </>
+          ) : basemap ? (
             <>
               <g fill="#dff3e0" stroke="#94c9a0" strokeWidth={1}>
                 {basemap.borders.map((d, i) => (
@@ -125,7 +229,10 @@ export default function LifetimeMap({
             </g>
           )}
         </g>
-        {routes.map((route) => {
+        {/* The pins are the fallback, not a layer over the fill: drawing both
+            would put fifteen Thai stems back on top of a filled Thailand,
+            which is the smear this replaced. */}
+        {!filling && routes.map((route) => {
           // A coordinate-less day (B265) is filtered here rather than drawn:
           // an undefined lat/lng is not a point, and a polyline through one
           // would be a line to nowhere the reader has no way to read as a gap.
@@ -174,18 +281,36 @@ export default function LifetimeMap({
           );
         })}
       </svg>
-      {/* The legend names each trip, so colour alone never carries the meaning. */}
+      {/* The legend carries whatever the map just encoded, so colour is never
+          the only thing saying it. Filling countries by visit count and
+          labelling them by trip would be a legend for a map that is not
+          there. */}
       <figcaption className="flex flex-wrap gap-x-4 gap-y-1.5 border-t border-navy-200 bg-white px-4 py-3 text-xs text-navy-700">
-        {routes.map((r) => (
-          <span key={r.id} className="flex items-center gap-1.5">
-            <span
-              aria-hidden
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: ACCENT_HEX[r.accent] }}
-            />
-            {r.title}
-          </span>
-        ))}
+        {filling
+          ? VISIT_FILL.map((hex, i) => (
+              <span key={hex} className="flex items-center gap-1.5">
+                <span
+                  aria-hidden
+                  className="inline-block h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: hex }}
+                />
+                {i === VISIT_FILL.length - 1
+                  ? t("trips.visitsMany", { count: String(i + 1) })
+                  : i === 0
+                    ? t("trips.visitOne")
+                    : t("trips.visits", { count: String(i + 1) })}
+              </span>
+            ))
+          : routes.map((r) => (
+              <span key={r.id} className="flex items-center gap-1.5">
+                <span
+                  aria-hidden
+                  className="inline-block h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: ACCENT_HEX[r.accent] }}
+                />
+                {r.title}
+              </span>
+            ))}
       </figcaption>
     </figure>
   );

@@ -11,6 +11,7 @@ import { draftsVisibleTo, listableTrips, signedInAs } from "@/lib/tripGate";
 import { isOwner } from "@/lib/contacts/session";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
+import worldCountries from "@/lib/worldCountries.json";
 import TripsIndexContent, { type EmptyJournal } from "./TripsIndexContent";
 
 /**
@@ -184,6 +185,50 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
    */
   const accents = accentsFor(trips);
 
+  /**
+   * Which countries were reached, and by which trips — B361.
+   *
+   * Counted per *trip*, not per stop: a country is entered once however many
+   * days were spent there, so fifteen days across Thailand is one visit and
+   * two separate trips to the United States is two. That is what the fill
+   * depth means, and counting stops instead would make one long trip look
+   * like a lifetime of them.
+   *
+   * Empty when no day names a country, which is a real journal and not an
+   * edge case — `LifetimeMap` falls back to pins rather than drawing an empty
+   * world.
+   */
+  const visitsByCode = new Map<string, { id: string; title: string }[]>();
+  for (const trip of travelled) {
+    const codes = new Set(
+      (placesByTrip.get(trip.ref) ?? [])
+        .map((p) => p.countryCode)
+        .filter((c): c is string => Boolean(c)),
+    );
+    for (const code of codes) {
+      const list = visitsByCode.get(code) ?? [];
+      list.push({ id: trip.id, title: trip.title });
+      visitsByCode.set(code, list);
+    }
+  }
+  /**
+   * The outline comes from here, on the server, rather than being fetched and
+   * matched in the browser: the fill *is* this map's meaning, so resolving it
+   * client-side left the server render with no countries in it — an empty
+   * frame for the first paint and for anyone without JavaScript. Sending only
+   * the countries actually visited is also a fraction of the 143 KB of all
+   * 177. B361.
+   */
+  const visits = [...visitsByCode]
+    .map(([code, trips]) => {
+      const shape = worldCountries.find((c) => c.code === code);
+      // A country with no shape is one Natural Earth cannot name (Antarctica,
+      // N. Cyprus, Somaliland) or a code nothing matched — dropped rather
+      // than drawn, since there is nothing to draw.
+      return shape ? { code, name: shape.name, path: shape.path, trips } : null;
+    })
+    .filter((v): v is NonNullable<typeof v> => v !== null);
+
   const routes = travelled.map((trip) => ({
     id: trip.id,
     title: trip.title,
@@ -223,6 +268,8 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
     <TripsIndexContent
       trips={cards}
       routes={routes}
+      visits={visits}
+      userPath={`/${user}`}
       // Every trip's points at once: the lifetime map frames all of them, so
       // the clip has to cover all of them too.
       //
