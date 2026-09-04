@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import MePageContent, { type ManagePanel } from "@/app/[user]/me/MePageContent";
+import MePageContent, { type ManagePanel, type PaymentPanel } from "@/app/[user]/me/MePageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
@@ -68,6 +68,7 @@ function render(
     /** `undefined` means the journal names nobody — see the B20 block below. */
     ownerName?: string;
     manage?: ManagePanel;
+    payment?: PaymentPanel;
   } = {},
 ) {
   return renderToStaticMarkup(
@@ -87,6 +88,7 @@ function render(
           contactsEnabled={over.contactsEnabled ?? false}
           ownerName={"ownerName" in over ? over.ownerName : "Robin"}
           manage={over.manage}
+          payment={over.payment}
         />
           </TripListProvider>
         </CurrencyProvider>
@@ -533,5 +535,98 @@ describe("what somebody on a trip is told they can write", () => {
     expect(html).toContain(dictionaryFor("en")["me.handoverCreate"]);
     expect(html).not.toContain(dictionaryFor("en")["me.buddyTitle"]);
     expect(html).not.toContain("/api/auth/verify");
+  });
+});
+
+/**
+ * The Payment section — B367.
+ *
+ * `payment` is resolved server-side and handed down as one prop, the same
+ * rule the rest of this file already tests for `ownerName` and `manage`:
+ * the component renders what it is given and asks no question of its own
+ * about who may see a balance. So what these assert is the gate around the
+ * prop, not the numbers inside it — `test/contacts-panel.test.ts` (a
+ * sibling, not a React test) is where the count itself is checked against
+ * `recipientsFor`'s own predicate.
+ */
+describe("the payment section", () => {
+  const payment: PaymentPanel = {
+    balance: 12,
+    emailRecipients: 5,
+    whatsappRecipients: 2,
+  };
+
+  test("renders for the owner", () => {
+    const html = render({ viewer: owner, payment });
+    expect(html).toContain(dictionaryFor("en")["me.paymentTitle"]);
+    expect(html).toContain("You have 12 credits.");
+    expect(html).toContain(
+      "A full send would reach up to 5 people — you included — and cost up to 5 credits.",
+    );
+    expect(html).toContain(
+      "Up to 2 people are opted in for WhatsApp right now — a full send would cost up to 2 credits.",
+    );
+  });
+
+  test("says plainly that a zero balance sends nothing", () => {
+    const html = render({ viewer: owner, payment: { ...payment, balance: 0 } });
+    expect(html).toContain("You have 0 credits.");
+    expect(html).toContain(dictionaryFor("en")["me.paymentBalanceEmpty"]);
+  });
+
+  test("says nothing about a balance that is not zero", () => {
+    const html = render({ viewer: owner, payment });
+    expect(html).not.toContain(dictionaryFor("en")["me.paymentBalanceEmpty"]);
+  });
+
+  /** B369 has not shipped the channel yet; the row is omitted rather than a
+   * confident zero that would read as "nobody wants WhatsApp". */
+  test("omits the WhatsApp row rather than showing a zero, when it is not offered", () => {
+    const html = render({
+      viewer: owner,
+      payment: { ...payment, whatsappRecipients: null },
+    });
+    expect(html).toContain("A full send would reach up to 5 people");
+    expect(html).not.toContain("opted in for WhatsApp");
+  });
+
+  test("names a placeholder for buying credits, and does not build a flow", () => {
+    const html = render({ viewer: owner, payment });
+    expect(html).toContain(dictionaryFor("en")["me.paymentBuyTitle"]);
+    expect(html).toContain("disabled=\"\"");
+  });
+
+  /**
+   * `payment` is `undefined` in every case below — the same as credits being
+   * switched off, or this reader not being the owner. B74: the section is
+   * absent, never a greyed-out shell or a dash where the balance would be.
+   */
+  test("is absent with credits off, owner included — payment is never handed down", () => {
+    const html = render({ viewer: owner });
+    expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
+  });
+
+  test("is absent for a signed-in guest of the journal", () => {
+    const guestViewer: Viewer = { email: "gran@example.test", owner: false, guest: true, trips: [] };
+    const html = render({ viewer: guestViewer, payment });
+    expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
+  });
+
+  test("is absent for a traveller who is not the owner", () => {
+    const traveller: Viewer = {
+      email: "kevin@example.test",
+      owner: false,
+      guest: true,
+      trips: [
+        { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller" },
+      ],
+    };
+    const html = render({ viewer: traveller, payment });
+    expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
+  });
+
+  test("is absent for a reader with no session at all", () => {
+    const html = render({ viewer: stranger, payment });
+    expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
   });
 });

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { notFound } from "next/navigation";
-import MePageContent, { type ManagePanel } from "./MePageContent";
-import { manageTokenFor, listContacts, normaliseEmail } from "@/lib/contacts";
+import MePageContent, { type ManagePanel, type PaymentPanel } from "./MePageContent";
+import { manageTokenFor, listContacts, normaliseEmail, optedInCounts } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { pickLocale } from "@/lib/contacts/locale";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
+import { balanceOf } from "@/lib/credits";
 import { ownerShortName, serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
 import { getUser } from "@/lib/users";
@@ -93,12 +94,43 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
     }
   }
 
+  // B367. `balanceOf` answers `null` for a journal with credits switched
+  // off, which is not the same question as "zero left" — B74's rule is that
+  // the whole section is then absent rather than showing a dash or a zero,
+  // so `payment` stays `undefined` and the component never has to tell the
+  // two apart. Nothing is fetched for anyone but the owner: a stranger or a
+  // traveller has no business knowing what this journal has left to spend.
+  let payment: PaymentPanel | undefined;
+  if (viewer.owner) {
+    const balance = await balanceOf(user);
+    if (balance !== null) {
+      // `optedInCounts` (lib/contacts) is `recipientsFor`'s own predicate,
+      // read here without a trip to ask `mayMailTrip` about — see its doc
+      // comment for why that makes this the journal-wide "up to N" rather
+      // than one trip's exact count.
+      // The owner's address goes in: `recipientsFor` always sends them their
+      // own copy, so a count without them understates every mail send by one
+      // credit. `optedInCounts` handles the case where the owner is also a
+      // contact of their own journal.
+      const counts = optedInCounts(await listContacts(user), journal.owner.email);
+      payment = {
+        balance,
+        emailRecipients: counts.email,
+        // `null` rather than 0 when WhatsApp itself is off — B369 hasn't
+        // shipped the channel yet, and a bare 0 would read as "nobody wants
+        // it" rather than "this journal doesn't offer it".
+        whatsappRecipients: isEnabled("whatsapp", user) ? counts.whatsapp : null,
+      };
+    }
+  }
+
   return (
     <MePageContent
       viewer={viewer}
       username={user}
       siteUrl={serverSite().url}
       manage={manage}
+      payment={payment}
       // Resolved here rather than guessed in the component: a capability is a
       // server ceiling and a journal opt-in, and the page was offering a door
       // that this journal had never opened. The panel used to take a second

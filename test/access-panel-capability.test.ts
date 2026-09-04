@@ -44,6 +44,10 @@ vi.mock("@/lib/contacts", () => ({
   listContacts: async () => [],
   manageTokenFor: () => "t",
   normaliseEmail: (email: string) => email,
+  // B367 added this export; nothing here asserts on its output (see
+  // test/payment-panel.test.ts), just that the page's other calls still
+  // resolve with a full mock in place.
+  optedInCounts: () => ({ email: 0, whatsapp: 0 }),
 }));
 vi.mock("next/navigation", () => ({
   notFound: () => {

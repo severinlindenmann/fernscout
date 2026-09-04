@@ -25,6 +25,26 @@ export type ManagePanel = {
 };
 
 /**
+ * What the Payment section needs — B367.
+ *
+ * Resolved entirely on the server (`app/[user]/me/page.tsx`), never here: a
+ * balance and a recipient count are exactly the kind of field that rule
+ * exists for, the same as `ownerName` above. `undefined` is the whole of B74
+ * for this panel — credits switched off, or a reader who is not the owner —
+ * and the component does not need to tell those two apart because it never
+ * sees which one happened.
+ */
+export type PaymentPanel = {
+  balance: number;
+  /** Contacts `active` and opted in to the email digest, journal-wide. Not
+   * one trip's count — see the long comment on this prop's caller. */
+  emailRecipients: number;
+  /** `null` when this journal does not offer WhatsApp at all, so the row is
+   * omitted rather than rendered as a confident zero. */
+  whatsappRecipients: number | null;
+};
+
+/**
  * "What can I see?"
  *
  * Written for the reader least comfortable with software on the site — the
@@ -42,6 +62,7 @@ export default function MePageContent({
   username,
   siteUrl,
   manage,
+  payment,
   canSignIn,
   codeMinutes,
   contactsEnabled,
@@ -57,6 +78,9 @@ export default function MePageContent({
   siteUrl: string;
   /** Present only when this reader has a contact record to edit. */
   manage?: ManagePanel;
+  /** Present only for the owner, and only when credits are switched on —
+   * see `PaymentPanel`. */
+  payment?: PaymentPanel;
   /** Whether codes can be issued at all, which is what signing in needs. */
   canSignIn: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
@@ -85,7 +109,7 @@ export default function MePageContent({
    */
   signinNotice?: string;
 }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const site = useSite();
   // Bumped when the handover block mints a key, so the list of live keys below
   // it reads itself again rather than showing the state from page load.
@@ -353,6 +377,76 @@ export default function MePageContent({
                 if you are sure", which nobody can act on. Renders nothing
                 until there is a live key. */}
             <AgentKeys username={username} reloadOn={keysChanged} />
+
+            {/*
+              What a send would cost, and what is left to pay for it — B367.
+
+              Absent rather than zero when `payment` is `undefined`: that is
+              either credits switched off for this instance, or B74's rule
+              doing its job — the component does not ask which, `page.tsx`
+              already decided.
+
+              The two recipient counts are journal-wide, not one trip's: this
+              page has no trip in view to ask `mayMailTrip` about, so the
+              number shown is the most a send could ever reach — a `public`
+              trip's own count matches it, a `private` one reaches fewer once
+              that gate filters per recipient. "Up to" says so instead of
+              promising a number the next send might not match.
+            */}
+            {payment && (
+              <>
+                <h3 className="mt-5 font-display text-base font-semibold text-navy-900">
+                  {t("me.paymentTitle")}
+                </h3>
+                <p className="mt-1 text-base leading-7 text-navy-700">
+                  {tn("me.paymentBalance", payment.balance, {
+                    balance: String(payment.balance),
+                  })}
+                </p>
+                {payment.balance === 0 && (
+                  <p className="mt-1 text-base leading-7 text-navy-700">
+                    {t("me.paymentBalanceEmpty")}
+                  </p>
+                )}
+
+                <p className="mt-3 text-base font-semibold text-navy-900">
+                  {t("me.paymentPricesTitle")}
+                </p>
+                <p className="mt-1 text-base leading-7 text-navy-700">{t("me.paymentPrices")}</p>
+
+                <p className="mt-3 text-base font-semibold text-navy-900">
+                  {t("me.paymentEstimateTitle")}
+                </p>
+                <p className="mt-1 text-base leading-7 text-navy-700">
+                  {tn("me.paymentEmailEstimate", payment.emailRecipients, {
+                    count: String(payment.emailRecipients),
+                  })}
+                </p>
+                {payment.whatsappRecipients !== null && (
+                  <p className="mt-1 text-base leading-7 text-navy-700">
+                    {tn("me.paymentWhatsappEstimate", payment.whatsappRecipients, {
+                      count: String(payment.whatsappRecipients),
+                    })}
+                  </p>
+                )}
+
+                {/* B368 builds the real flow. This is a placeholder, not a
+                    stub of one: inert, and granting nothing — the only thing
+                    that may increase a balance is `grant` in `lib/credits.ts`,
+                    run by hand on the server, and it must stay that way. */}
+                <button
+                  type="button"
+                  disabled
+                  aria-disabled="true"
+                  className="mt-3 inline-flex min-h-11 cursor-not-allowed items-center rounded-full border border-navy-200 px-5 text-base font-semibold text-navy-400"
+                >
+                  {t("me.paymentBuyTitle")}
+                </button>
+                <p className="mt-1 text-base leading-7 text-navy-700">
+                  {t("me.paymentBuyBody")}
+                </p>
+              </>
+            )}
 
             {/*
               The door for people — B79, and one door rather than two since

@@ -675,6 +675,54 @@ export async function listContacts(owner: string): Promise<ContactRecord[]> {
 }
 
 /**
+ * How many of this journal's contacts would receive each channel, journal-wide
+ * — B367's "up to N" on `/<user>/me`, not one trip's.
+ *
+ * The predicate — `status: "active"` and the channel's own opt-in — is
+ * `lib/digest/dayLetter.ts`'s `recipientsFor` restated without a trip to ask
+ * `mayMailTrip` about. It is therefore the count for the *most permissive*
+ * trip a send could go to: `mayMailTrip` returns `true` unconditionally for a
+ * `public` trip (`isOpenToLink`), so a public trip's own recipient count
+ * matches this exactly, and a `private` or `guest` one reaches fewer once
+ * that gate starts filtering per recipient. That gap is why the page says
+ * "up to N" rather than a number a `private` trip's own send would not match
+ * — never a second, diverging definition of "opted in" to keep in step with
+ * the first.
+ */
+export function optedInCounts(
+  contacts: ContactRecord[],
+  /**
+   * The journal owner's own address, when they have one.
+   *
+   * Passed in because the two channels differ, and the difference is a credit
+   * per send: `recipientsFor` in `dayLetter.ts` **always** adds the owner's
+   * own copy of the letter ("it is their journal and their record that it
+   * went"), skipping them if they also appear among the contacts. Its
+   * WhatsApp counterpart adds nobody — there is no `owner.tel` and inventing
+   * one would be this codebase deciding somebody's phone number belongs to
+   * it.
+   *
+   * So the email count is contacts-minus-the-owner **plus one**, and leaving
+   * the owner out entirely understates the price of every mail send by
+   * exactly one credit. Understating is the wrong direction to be wrong in on
+   * a page somebody reads before deciding whether they can afford to publish.
+   */
+  ownerEmail?: string | null,
+): { email: number; whatsapp: number } {
+  const isActive = (c: ContactRecord) => c.status === "active";
+  const owner = ownerEmail ? normaliseEmail(ownerEmail) : null;
+  const optedInEmail = contacts.filter((c) => isActive(c) && c.wantsEmailDigest);
+  return {
+    // Never twice: a contact at the owner's own address is the same recipient
+    // as the owner's copy, and `recipientsFor`'s `seen` set already treats it
+    // that way.
+    email:
+      optedInEmail.filter((c) => normaliseEmail(c.email) !== owner).length + (owner ? 1 : 0),
+    whatsapp: contacts.filter((c) => isActive(c) && c.wantsWhatsapp).length,
+  };
+}
+
+/**
  * One contact, by the address on their session cookie.
  *
  * Indexed on `email_key`, and one row rather than the whole book: this is

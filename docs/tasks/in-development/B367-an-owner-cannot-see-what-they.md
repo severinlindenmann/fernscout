@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: credits, me page
 found: "2026-09-04T21:03:00Z"
+started: "2026-09-04T21:18:33Z"
+session: 3d8b93dd-e447-4c3c-bcd1-fa37e2bd17f9
+claimed: "2026-09-04T21:18:33Z"
 ---
 
 # B367 — An owner cannot see what they have left to spend or what one send would cost
