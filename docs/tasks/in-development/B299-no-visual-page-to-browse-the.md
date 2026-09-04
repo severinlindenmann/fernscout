@@ -35,3 +35,7 @@ this is a reading surface, not an alternative to Postman.
 
 `GET /api/docs` returns HTML listing every path currently in `/openapi.json`,
 with each one's methods, summary and responses visible without JavaScript.
+
+Also links the new page from the landing page (`components/Landing.tsx`),
+next to the "Fernscout is open source" link, since that was asked for in the
+same turn.
