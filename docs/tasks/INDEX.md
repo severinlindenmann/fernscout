@@ -157,22 +157,21 @@ Do not edit them by hand; run the script.
 | [B253](backlog/superseded/B253-the-demo-journal-s-tagline-says.md) | The demo journal's tagline says four journeys and the count beside it says five | ISSUE | low | low |
 | [B297](backlog/superseded/B297-a-nul-byte-in-the-idempotency.md) | A NUL byte in the idempotency key separator makes git treat the whole file as binary | CHORE | low | low |
 
-## open (4)
+## open (0)
 
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B236](open/B236-one-entry-file-that-does-not.md) | One entry file that does not parse throws out of getAllEntries, so the whole trip stops reading rather than that one day | ISSUE | medium | low |
-| [B242](open/B242-the-generator-scripts-take-user-and.md) | The generator scripts take --user and --trip as directory names without checking them | ISSUE | medium | low |
-| [B304](open/B304-a-day-s-costs-still-accept.md) | A day's costs still accept a zero amount and an unrecognised currency, and drop both silently | ISSUE | medium | low |
-| [B303](open/B303-the-phone-number-field-on-the.md) | The phone number field on the guestbook and the admin guest form never says what it is for | ISSUE | low | low |
+_Nothing here._
 
-## in-development (3)
+## in-development (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B306](in-development/B306-a-journal-s-visibility-borrows-the.md) | A journal's visibility borrows the trip's words for a different meaning, and everyone reads them as the trip's | ISSUE | high | medium | `986bc24c` |
+| [B236](in-development/B236-one-entry-file-that-does-not.md) | One entry file that does not parse throws out of getAllEntries, so the whole trip stops reading rather than that one day | ISSUE | medium | low | `46daaba3` |
+| [B242](in-development/B242-the-generator-scripts-take-user-and.md) | The generator scripts take --user and --trip as directory names without checking them | ISSUE | medium | low | `46daaba3` |
+| [B304](in-development/B304-a-day-s-costs-still-accept.md) | A day's costs still accept a zero amount and an unrecognised currency, and drop both silently | ISSUE | medium | low | `46daaba3` |
 | [B87](in-development/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | `67c9cca1` |
 | [B15](in-development/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | `67c9cca1` |
+| [B303](in-development/B303-the-phone-number-field-on-the.md) | The phone number field on the guestbook and the admin guest form never says what it is for | ISSUE | low | low | `46daaba3` |
 
 ## testing (127)
 
