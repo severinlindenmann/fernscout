@@ -63,9 +63,21 @@ Two things, and the first is not optional even though it is the smaller.
    creation, refusing to change `status` by any route, and leaving a published
    day published and a draft a draft. `createDraft` already assembles this
    frontmatter and `appendGallery` already splices into an existing file
-   textually without touching the rest, so the pieces exist. Decide
-   deliberately whether a published day may be edited at all, and whether the
-   response should say which it was — and write the reasoning down either way.
+   textually without touching the rest, so the pieces exist.
+
+   **A published day may be edited** — decided by the owner on 2026-09-04, so
+   this is settled and not yours to reopen. A journal is somebody's account of
+   what happened and a correction to it is the ordinary case, not the exception:
+   a wrong date, a misspelled place, a coordinate that was missing. Refusing to
+   touch a published day would mean the only way to fix a typo is to unpublish,
+   rewrite and republish, and an agent with no unpublish call would do what the
+   one in the Why did — reach for the nearest verb and get it wrong.
+
+   What must not change is *which state the day is in*. Editing a published day
+   leaves it published; editing a draft leaves it a draft; neither is a way to
+   publish or unpublish. Say in the response which state the day was left in,
+   so an agent reporting to its owner has the truth to hand rather than its own
+   intention — that is the half B263 and the Why above both turn on.
 
 Note in passing, do not fix here: coordinates for an existing day are the
 thing that was actually wanted, and B267 is why the agent had none to write in
