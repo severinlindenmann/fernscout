@@ -7,8 +7,7 @@ complexity: medium
 area: media, viewer
 found: "2026-09-04T16:55:51Z"
 started: "2026-09-04T16:57:40Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T16:57:40Z"
+merged: "2026-09-04T17:05:24Z"
 ---
 
 # B318 — A draft day shows three of its nine photographs and all nine once published
