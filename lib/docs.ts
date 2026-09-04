@@ -2,11 +2,14 @@ import fs from "node:fs";
 import path from "node:path";
 
 /**
- * The `/docs` page's whole content strategy: read it off the files that are
- * already true, rather than write a second copy that drifts from them. B23
- * is the same argument made about `docs/` itself — a reference kept in two
- * places disagrees with itself within a month — so this reads `README.md`
- * and `docs/ingest.md` at request time instead of retyping their prose here.
+ * The `/docs` page's content strategy, for the parts that can honestly be
+ * generated: read it off `README.md` and `CONTRIBUTING.md` at request time
+ * rather than write a second copy that drifts from them (B23 makes the same
+ * argument about `docs/` itself — a reference kept in two places disagrees
+ * with itself within a month). Not everything on the page comes from here —
+ * the "what to give it" guidance is written for the page directly, because
+ * the file it would otherwise have been pulled from (`docs/ingest.md`)
+ * described a pipeline this page does not want to promise (B306).
  */
 
 /** A file already in the repository, read fresh so an edit to it reaches the
@@ -36,24 +39,4 @@ export function section(markdown: string, heading: string): string {
   const rest = lines.slice(start + 1);
   const end = rest.findIndex((line) => /^#{1,2}\s/.test(line));
   return rest.slice(0, end === -1 ? undefined : end).join("\n").trim();
-}
-
-/**
- * Pushes every markdown heading in a block down `levels` levels (default 1).
- *
- * `docs/ingest.md` is a standalone file with its own `#`/`##` structure; the
- * `/docs` page embeds it wholesale under a `###` heading of its own, so its
- * headings have to become `####`/`#####` or the two collide at the same
- * visual size and the page reads as flat where it is not.
- */
-export function demote(markdown: string, levels = 1): string {
-  return markdown.replace(/^(#{1,6})(\s)/gm, (_m, hashes: string, space: string) =>
-    "#".repeat(Math.min(6, hashes.length + levels)) + space,
-  );
-}
-
-/** Drops a markdown file's own `# Title` line (and the blank line after it),
- * for when the embedding page already supplies a heading for the section. */
-export function dropTitle(markdown: string): string {
-  return markdown.replace(/^#\s+.*\n+/, "");
 }
