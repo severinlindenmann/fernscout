@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Landing, { type PublicJournal } from "@/components/Landing";
 import { isIndexable } from "@/lib/access";
 import { getAllEntries } from "@/lib/entries";
-import { installedLocales } from "@/lib/locales";
+import { installedLocales, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 import { getTrips } from "@/lib/trips";
 import { getUser, listedUsernames } from "@/lib/users";
@@ -18,12 +18,34 @@ import { getUser, listedUsernames } from "@/lib/users";
  * `site.defaultUser` still decides whose language and name the instance wears.
  */
 
-export const metadata: Metadata = {
-  title: { absolute: `${serverSite().name} — a travel journal your agent writes` },
-  description:
-    "Markdown and photographs in a folder you own. Read it in a browser; write it through an agent.",
-  alternates: { canonical: "/" },
-};
+/**
+ * The tab title, in the language the page underneath it renders in.
+ *
+ * These two strings were English literals in a static `metadata` object, so a
+ * German reader got "Fernscout — a travel journal your agent writes" over an
+ * `<h1>` reading "Ein Reisetagebuch, das dein Agent für dich schreibt" — and
+ * got the same English title with a Croatian cookie, where the page really is
+ * English, which is what showed the title was not locale-dependent at all
+ * (B225).
+ *
+ * Nothing here decides a locale: `requestLocale()` is the one rule B140 left,
+ * and outside a journal there is no `user.locales` to narrow against, so the
+ * maintained set stands in and the reader's choice counts. The page was
+ * already picking the right language; it simply had nothing to say in it.
+ *
+ * `absolute` because the root layout's template appends the site name, and
+ * `{name}` puts it in the sentence already.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await requestLocale();
+  return {
+    title: {
+      absolute: translateIn(locale, "landing.metaTitle", { name: serverSite().name }),
+    },
+    description: translateIn(locale, "landing.metaDescription"),
+    alternates: { canonical: "/" },
+  };
+}
 
 /** A journal's first public photograph, for the preview card. */
 function coverFor(username: string): string | undefined {

@@ -83,3 +83,44 @@ screenshots still show "Ferns…", and the header is now two rows at desktop on
 trip pages, so `docs/screenshots/trip-story.jpg` and `day-entry.jpg` need
 recapturing inside the 339 KB budget. See `docs/screenshots/README.md`, and B154
 for how they were made.
+
+## Built — the third acceptance line
+
+`docs/screenshots/trip-story.jpg` and `day-entry.jpg` recaptured against
+`npm run build && PORT=3700 npm start`, at 1440 × 900 with `fs.locale=en`,
+viewport only, resized to 1280 and written as JPEG the way
+`docs/screenshots/README.md` says. Both now show **"Fernscout Demo"** and the
+full tagline "Las Vegas to Denver the long way round, one night at a time"
+where they said "Ferns…" and "Las Vegas …", and both show the two-row header
+B170 produced — nav on its own line beneath the title.
+
+The budget:
+
+| | before | after |
+| --- | --- | --- |
+| `trip-story.jpg` | 76,165 | 72,334 |
+| `day-entry.jpg` | 94,726 | 92,692 |
+| `gallery.jpg`, `trip-map.jpg` | 176,254 | unchanged |
+| **total** | **347,145 (339.0 KB)** | **341,280 (333.3 KB)** |
+
+Under the ceiling, and 5.7 KB lighter than the set it replaces. Quality 79
+rather than the 80 in the recipe: the two-row header adds detail, and 80 came
+out 2 KB over. The README now says the quality is the knob and gives a
+byte-accurate way to check the total — `du` answers in blocks and calls this
+set 432K.
+
+**`gallery.jpg` and `trip-map.jpg` were checked and left alone.** The map page's
+header still measures 69px — one row, with the title in full — so those two are
+not stale in shape. That is the same reading the **Why** above records from the
+other side: the day counter is what made the trip pages wrap first.
+
+Two things the recapture needed that were not written down anywhere, and now
+are, in `docs/screenshots/README.md`:
+
+- headless Chromium draws a real scrollbar where a Mac does not, so the first
+  capture was 15px narrower than the other three and carried a grey stripe;
+- `localStorage` survives between browser sessions, and the profile still held
+  `fs.lastDay:example/parks-2025` from B154's capture — the first new shot said
+  "Resume · Day 7" where a first-time visitor sees the trip opening.
+
+The first two acceptance lines were already B170's and are unchanged here.

@@ -288,6 +288,8 @@
   "landing.hero": "Ein Reisetagebuch, das dein Agent für dich schreibt.",
   "landing.lede": "Dein Reisetagebuch besteht aus Markdown-Dateien und Fotos in einem Ordner, der dir gehört. Du liest es im Browser. Ein Agent schreibt es — du gibst ihm nur einen Link und eine E-Mail-Adresse.",
   "landing.madeBy": "Mit Liebe gemacht in {flag} von {name}",
+  "landing.metaDescription": "Markdown-Dateien und Fotos in einem Ordner, der dir gehört. Du liest es im Browser; ein Agent schreibt es.",
+  "landing.metaTitle": "{name} — ein Reisetagebuch, das dein Agent schreibt",
   "landing.noEditor": "Es gibt keine Bearbeitungsoberfläche, und es wird auch keine geben. Der Agent ist der Editor.",
   "landing.publicNone": "Noch keine Tagebücher. Kopiere content/example nach content/<dein-name> und lade neu.",
   "landing.publicTitle": "Öffentliche Reisetagebücher auf diesem Server",

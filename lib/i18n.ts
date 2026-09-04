@@ -319,6 +319,8 @@ export type TranslationKey =
   | "landing.hero"
   | "landing.lede"
   | "landing.madeBy"
+  | "landing.metaDescription"
+  | "landing.metaTitle"
   | "landing.noEditor"
   | "landing.publicNone"
   | "landing.publicTitle"

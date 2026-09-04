@@ -196,10 +196,11 @@ visibility: guest      # or: private
 ```
 
 Then reload, and you meet the gate instead of the trip. B39 removed the trip
-password — the scrypt hash, the signed cookie and the unlock form — so there is
-no `passwordHash:` and no `npm run trip:password`. What replaced it is a
-reader proving an address by e-mail and the owner granting them access; see
-`lib/access.ts` for why one shared secret was the wrong shape.
+password — the scrypt hash, the signed cookie, the unlock form and the script
+that printed hashes — so nothing in a trip's frontmatter takes a secret any
+more. What replaced it is a reader proving an address by e-mail and the owner
+granting them access; see `lib/access.ts` for why one shared secret was the
+wrong shape.
 
 The two values differ, and the difference is the thing worth seeing locally:
 `guest` opens to anyone the owner has approved into the *journal*, `private`

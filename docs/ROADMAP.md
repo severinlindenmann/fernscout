@@ -38,7 +38,7 @@ anything still open is in §15.
 | 9 | Feature model | **Every optional capability off by default; enabling one is the self-hoster's act and requires their own credentials. The hosted tier supplies those credentials** (§1.1, §2.1) |
 | 10 | Prototype scope | **`fernscout.ch` on the VPS, public site only, no Postgres** (§2.2) |
 | 11 | Costs visibility | **Per-trip: `public` or `guests`** — set in `trip.md` |
-| 12 | Trip visibility | **Per-trip: `public` / `unlisted` / `password`** |
+| 12 | Trip visibility | **Per-trip: `public` / `unlisted` / `password`**. *Amended by B39 and W27: the password is gone — one shared secret was the wrong shape (`lib/access.ts`). It is `public` / `guest` / `private`, and `unlisted` became the separate `listed:` field, which may only narrow (B51).* |
 | 13 | Languages | **Two layers** — maintained UI locales (de/en/hu, English fallback) vs arbitrary content languages (§1.2). Implies `M7` locale URLs |
 | 14 | Domains | **`.ch` + `.com`** only |
 | 15 | Media | **VPS disk, behind a media interface**; off-VPS backups regardless |
@@ -399,7 +399,7 @@ guestbook — waits for a reason to exist.
 
 | | Trigger |
 | --- | --- |
-| **A journal-level authentication wall** | If somebody wants a journal a stranger with the URL cannot read *at all*. W38 gave a journal `visibility: private`, which means unlisted — off `/documentation.txt`, off the landing page, off the sitemap, `noindex`. Who may read a *journey* is still the trip's own gate, which already has a password, invited guests and a `people:` list. A real wall above that touches every page, the feed, the search index, the export, the media route and the markdown twins, and needs an invite flow at journal level. Do not half-build it: a gate that looks stronger than it is, is worse than none |
+| **A journal-level authentication wall** | If somebody wants a journal a stranger with the URL cannot read *at all*. W38 gave a journal `visibility: private`, which means unlisted — off `/documentation.txt`, off the landing page, off the sitemap, `noindex`. Who may read a *journey* is still the trip's own gate, which already has approved guests of the journal and the trip's own `people:` list. A real wall above that touches every page, the feed, the search index, the export, the media route and the markdown twins, and needs an invite flow at journal level. Do not half-build it: a gate that looks stronger than it is, is worse than none |
 | **Trademark registration** | Any of the three triggers in §0.6 |
 | **Object storage** | When the VPS disk hurts. `lib/media.ts` is what makes it a config change |
 | **`.de` / `.at` domains** | If DACH readership grows beyond family, or someone else takes them |

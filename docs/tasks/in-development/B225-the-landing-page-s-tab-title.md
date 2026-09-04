@@ -72,3 +72,43 @@ right — this page picks the correct language and then has nothing to say in it
   instance's own language in both, as today.
 - No page outside a journal has an untranslated title while its body is
   translated.
+
+## Built
+
+`app/page.tsx` — the static `metadata` object is now a `generateMetadata` that
+resolves `requestLocale()` and renders `landing.metaTitle` (which takes the
+instance's name as `{name}`) and `landing.metaDescription`, both new in
+`content/locales/{en,de,hu}.json` and in the `TranslationKey` union. Nothing
+about locale *choice* changed, as the Work section says: `requestLocale()` is
+B140's rule and it was already returning the right answer.
+
+`title` stays `absolute`, because the root layout's `%s · Fernscout` template
+would otherwise append the site name to a sentence that already carries it.
+
+Against a production build:
+
+```
+$ curl -s -H 'Cookie: fs.locale=de' localhost:3700/ | grep -o '<title>[^<]*</title>'
+<title>Fernscout — ein Reisetagebuch, das dein Agent schreibt</title>
+$ … fs.locale=hu → <title>Fernscout — útinapló, amit az ügynököd ír</title>
+$ … fs.locale=hr → <title>Fernscout — a travel journal your agent writes</title>
+```
+
+with `<html lang>` and the `<h1>` agreeing in each case, and `hr` — a language
+the instance maintains no chrome for — falling back to the instance's own.
+
+**The other pages outside a journal, which the Work section asked for.**
+`/welcome` is a `redirect("/")` and renders no document. `/offline` was already
+translated and is verified German under a `de` cookie. The 404 is the one that
+is *not* right, and its cause is neither of this ticket's: `app/not-found.tsx`
+exports a `generateMetadata` that Next never calls, because `not-found.js` has
+no metadata export in its API surface, so the served page takes the root
+layout's `title.default` and says "Fernscout" over a fully German body. The
+string exists and is translated; the framework does not ask for it. Captured as
+B251 rather than absorbed — the fix is a choice about where a 404's title comes
+from, not a dictionary entry.
+
+`test/landing-metadata.test.tsx` covers the three acceptance lines it can and
+says in a comment why the 404 is deliberately not asserted there: a test that
+calls that function directly passes while the page a reader gets does not,
+which is the exact failure mode this ticket is about.
