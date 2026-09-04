@@ -7,8 +7,7 @@ complexity: high
 area: contacts, invites, mail
 found: "2026-09-04T16:55:58Z"
 started: "2026-09-04T17:01:25Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T17:01:25Z"
+merged: "2026-09-04T17:26:37Z"
 ---
 
 # B319 — Letting somebody in means handing them a link by hand, and approving means being at a browser
