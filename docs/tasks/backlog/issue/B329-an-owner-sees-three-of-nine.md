@@ -50,33 +50,51 @@ the second look. If that is what this is, it is not a bug about drafts at all;
 it is that a fifteen-day story page loads its photographs on scroll and an
 anchor jump makes that visible.
 
-## Work
+## Resolved — not a defect
 
-**Reproduce it signed in, in a real browser, before changing anything.** `curl`
-has already been exhausted — it cannot hold a session and every server path
-reads correctly. `chrome-devtools` is the tool AGENTS.md names for exactly this
-("a page is wrong and `curl` says nothing"): sign in as the owner, open
-`/viki#day-hanoi`, and look at the network panel.
+**Confirmed by the owner on 2026-09-04: the photographs appear after a while.**
+Nothing is broken, and the mechanism is `STORY_WINDOW`.
 
-What the answer looks like in each case:
+`lib/tripView.ts:15` sets `STORY_WINDOW = 2`, and `windowFor` (line 81) clamps
+a window of two days either side of a centre — **five days**, not fifteen.
+`buildStoryProps` slices `days` to that window and the reader fetches the rest
+from `/<user>/story.json` as they move. The centre is `openAt ?? getDefaultDay`,
+and for a trip that ended in the past the default day is at the end — so the
+opening window on `viki/asien-2025` is 2025-11-13 to 11-15, of which exactly
+**two days carry galleries**: `hanoi` and `hanoi-nachtleben`. That is the whole
+of the report.
 
-- **Nine requests, all 200** → nothing is broken; the images below the fold
-  had not loaded yet. Close this, and consider whether an anchor jump should
-  eagerly load what it lands on — a separate, smaller question.
-- **Nine requests, some 404 or 403** → the media route is refusing some days.
-  Compare the failing day slugs against the entry slugs; a mismatch between a
-  media folder name and its entry's slug would do it, and `attachGallery`
-  chooses that folder.
-- **Fewer than nine requests** → the page did not render the tiles, and the
-  bug is in the story path after all, despite reading correctly. Look at what
-  `buildStoryProps` returns for a draft day with a gallery.
+So the count was never about drafts. Everything the earlier investigation
+confirmed still holds and is worth keeping: 9 gallery items, 9 derivatives on
+disk, the story page passing `includeDrafts: await isOwner(user)`, the media
+route withholding a draft's images only from non-owners, and B318 having fixed
+the two *gallery* pages, which are not this page.
 
-Do not fix on the strength of the hypothesis above. The number three is the
-clue and it has already misled once: B318's report also said three, and there
-the explanation was three genuinely-published photographs, not a cap.
+"After publish I normally then see them" was scrolling, not publishing.
+
+## What is left, and it is small
+
+**A fragment cannot centre the window.** The owner's link was
+`/viki#day-hanoi-nachtleben`. A `#fragment` never reaches the server, so
+`openAt` is undefined and the window opens on the default day regardless of
+which day the link names. When the linked day happens to fall outside the
+opening window, following the link scrolls to an anchor that is not rendered
+yet — the reader lands on nothing until the loader catches up.
+
+That is a real, if minor, defect in sharing a link to a particular day. The fix
+is a query parameter rather than a fragment — `?day=<slug>` or `?on=<date>`,
+which `openAt` already accepts — plus whatever writes those links choosing the
+former. Check what currently generates `#day-<slug>` hrefs before deciding; if
+they are only ever in-page navigation within an already-loaded story, there is
+nothing to fix and this task closes with the paragraph above as its record.
+
+Also worth one measurement, not a change: how long "a while" is. Five days of
+prose plus a `story.json` round trip per step is the design, and if the first
+window takes noticeably long on a fifteen-day trip that is a performance
+question, not this one.
 
 ## Acceptance
 
-Either an owner sees all nine photographs of their draft days on the story
-page, or the ticket records — with the network evidence — that they always did
-and what the owner was seeing instead.
+Either a link naming a day opens the story on that day, or it is established
+that no shared link ever names one and this task closes as the record of why
+three of nine photographs was correct behaviour.
