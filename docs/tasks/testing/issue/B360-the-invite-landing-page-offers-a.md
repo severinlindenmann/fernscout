@@ -7,8 +7,7 @@ complexity: low
 area: contacts
 found: "2026-09-04T19:57:29Z"
 started: "2026-09-04T21:05:05Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-04T21:05:05Z"
+merged: "2026-09-04T21:23:36Z"
 ---
 
 # B360 — The invite landing page offers a postcard on a server with postcards switched off
