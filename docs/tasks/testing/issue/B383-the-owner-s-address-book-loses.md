@@ -7,8 +7,7 @@ complexity: low
 area: contacts, capabilities
 found: "2026-09-04T21:57:23Z"
 started: "2026-09-04T22:00:20Z"
-session: 39691533-1e0d-44dd-a2e5-b2a7ce844518
-claimed: "2026-09-04T22:00:20Z"
+merged: "2026-09-04T22:09:37Z"
 ---
 
 # B383 — The owner's address book loses the postal address when postcards are off
