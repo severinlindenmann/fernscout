@@ -88,14 +88,15 @@ vi.mock("@/lib/locales", () => ({
 
 // The gate itself is not what is under test here; costs off has to win before
 // it is consulted, and a viewer who may read the trip is the harder case.
+// Nor is who may see drafts. Since B328 the page asks whether draft days'
+// costs count, and since B332 it asks the *trip* rather than `isOwner` —
+// B327's rule, pinned by test/draft-audience.test.ts. This file is about the
+// capability alone, so the gate answers yes to everything.
 vi.mock("@/lib/tripGate", () => ({
   mayReadTrip: async () => true,
   mayViewCosts: async () => true,
+  draftsVisibleTo: async () => ({ visible: true }),
 }));
-// Nor is ownership, since B328: the page now asks `isOwner` to decide whether
-// `hasCostsData`/`getCostSummary` may see draft days' costs, and the mocked
-// `getUser` above carries no `owner` field for the real `isOwner` to read.
-vi.mock("@/lib/contacts/session", () => ({ isOwner: async () => true }));
 
 beforeEach(() => {
   enabled.mockReset();

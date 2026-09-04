@@ -173,8 +173,10 @@ export const NOT_WRITABLE =
   "Two things no call changes, so you do not have to look. A journal's `features` are not " +
   "writable through any door: `auth` and `contacts` are what get an owner back into their " +
   "own journal, and a token must not be able to shut the door it came through. And a trip " +
-  "has no costs *switch* — the page follows the data. Write a budget to the costs endpoint " +
-  "and the page appears; DELETE it and the page goes. If neither of those is what you were " +
+  "has no costs *switch* — the page follows the data, and the data is either a budget at the " +
+  "costs endpoint or any day carrying its own `costs:` block. Write either and the page " +
+  "appears; to take it away, both have to go — deleting the budget while the days still log " +
+  "spend leaves the page exactly where it was (B332). If neither of those is what you were " +
   "asked for, say so and stop: there is no web form, no CMS and no upload page to send " +
   "somebody to instead.";
 
