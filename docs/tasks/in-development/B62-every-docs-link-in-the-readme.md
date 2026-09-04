@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: docs
 found: "2026-09-01"
+started: "2026-09-04T05:58:29Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T05:58:29Z"
 ---
 
 # B62 — Every docs/ link in the README points at a file that moved to docs/archiv

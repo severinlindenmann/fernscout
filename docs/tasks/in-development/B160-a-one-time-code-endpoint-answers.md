@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: auth, mail
 found: "2026-09-03T19:34:26Z"
+started: "2026-09-04T05:58:31Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T05:58:31Z"
 ---
 
 # B160 — A one-time code endpoint answers 202 when the server cannot send mail at all

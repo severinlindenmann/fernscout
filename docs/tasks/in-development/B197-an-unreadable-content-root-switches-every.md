@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: mail, capabilities, tests
 found: "2026-09-03T19:58:00Z"
+started: "2026-09-04T05:58:31Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T05:58:31Z"
 ---
 
 # B197 — An unreadable content root switches every journal's mail off instead of warning

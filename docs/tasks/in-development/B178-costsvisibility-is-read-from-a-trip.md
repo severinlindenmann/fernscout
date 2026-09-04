@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: trips, api, costs
 found: "2026-09-03"
+started: "2026-09-04T05:58:32Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T05:58:32Z"
 ---
 
 # B178 — Two trip fields that can be read but never written

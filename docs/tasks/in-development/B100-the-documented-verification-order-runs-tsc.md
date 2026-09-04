@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: docs, tooling
 found: "2026-09-03"
+started: "2026-09-04T05:58:30Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T05:58:30Z"
 ---
 
 # B100 — The documented verification order runs `tsc` before the build that generates the types it needs

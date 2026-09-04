@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: mail, test
 found: "2026-09-03"
+started: "2026-09-04T05:58:31Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T05:58:31Z"
 ---
 
 # B196 — A failing test on `main`
