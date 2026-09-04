@@ -31,7 +31,8 @@
     "migrate:owner": "node scripts/migrate-owner.ts",
     "ingest": "tsx --conditions=react-server scripts/ingest.mts",
     "i18n:keys": "node scripts/i18n-keys.mjs",
-    "tasks": "node scripts/tasks.mjs"
+    "tasks": "node scripts/tasks.mjs",
+    "unused": "knip"
   },
   "dependencies": {
     "archiver": "^8.0.0",
@@ -63,6 +64,7 @@
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
+    "knip": "^6.34.0",
     "tailwindcss": "^4",
     "topojson-client": "^3.1.0",
     "tsx": "^4.23.13",

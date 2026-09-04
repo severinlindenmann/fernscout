@@ -1,0 +1,88 @@
+// What is here for nothing. `npm run unused`, and a CI job of the same name.
+//
+// The four checks in AGENTS.md all answer "does what is here work". None of
+// them answers "is anything here for nothing", so a file that stops being
+// imported keeps compiling, keeps passing, and keeps being read by the next
+// person as though it mattered. The cost is not disk: this codebase is written
+// to be read, with the reasoning in the comments, and a comment explaining why
+// something is shaped the way it is — in a file nothing calls any more — is
+// worse than no comment. B24.
+//
+// **Entry points are the whole configuration.** Almost nothing here is
+// imported by name: routes and layouts are entered by Next, `instrumentation`
+// and `proxy` by the server, `sw.js` by the browser, and everything in
+// `scripts/` by a person typing. A tool that does not know that reports the
+// application as dead code, which is how a check earns being ignored.
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+
+  // The Next.js plugin already contributes `app/**/{page,layout,route,…}`,
+  // `next.config.ts` and the middleware. These are the ones nothing infers.
+  "entry": [
+    // Started by the Node server, never imported.
+    "instrumentation.ts",
+    "proxy.ts",
+    // Registered by the browser, from a string in the page.
+    "public/sw.js",
+    // CLIs. `npm run <name>` is the caller, and package.json is not an import
+    // graph, so every one of these looks unreferenced from the inside.
+    "scripts/*.{ts,mts,mjs}",
+    // A skill's own tooling — run by an agent following the SKILL.md beside it.
+    ".claude/skills/**/*.mjs",
+    // The suite, and the fixtures it reaches for.
+    "test/**/*.test.{ts,tsx}",
+    "test/fixtures/**/*.{ts,tsx}",
+    "vitest.config.mts",
+    // Each migration is imported as a namespace and handed to Kysely whole
+    // (`lib/db/migrations/index.ts`), which never names `up` or `down`. They
+    // are entered by the migration runner, and nothing can see that statically.
+    "lib/db/migrations/[0-9]*.ts"
+  ],
+
+  "ignore": [
+    // Other sessions' checkouts. They are whole copies of this repository
+    // living inside it, and scanning them reports every file several times
+    // over — the same reason eslint.config.mjs ignores `.claude/**`.
+    ".claude/worktrees/**",
+    // A person's journals, and generated derivatives of them. Not code.
+    "content/**",
+    // Generated: the packed place index and the world map are built by
+    // scripts/build-*.mjs and read as data.
+    "lib/data/**"
+  ],
+
+  // External programs, checked for at run time and absent by design on a
+  // machine that has not installed them. `lib/capabilities.ts` is the thing
+  // that decides whether each is available; a missing one switches a feature
+  // off rather than breaking it, so none of them belongs in package.json.
+  "ignoreBinaries": ["ffmpeg", "ffprobe", "restic", "pg_restore", "openssl"],
+
+  // Two severities, and the split is the point.
+  //
+  // **Error** is everything that is at zero today and must stay there: a whole
+  // file nothing reaches, a dependency nothing imports, an import of something
+  // that is not declared. Each of those is a fact about the repository, and
+  // each fails CI the day it becomes true.
+  //
+  // **Warn** is unused *exports* and *exported types* — 71 and 59 of them on
+  // the day this was written, almost all functions, constants and types
+  // exported out of habit and used only inside their own file. Every one is a
+  // real finding and none is a broken build, and 130 red lines on day one is
+  // how a check gets an `--ignore` flag added to it a week later. They are
+  // printed on every run and tracked as their own task; see B24 and B235.
+  "rules": {
+    "files": "error",
+    "dependencies": "error",
+    "devDependencies": "error",
+    "optionalPeerDependencies": "error",
+    "unlisted": "error",
+    "binaries": "error",
+    "unresolved": "error",
+    "exports": "warn",
+    "types": "warn",
+    "nsExports": "warn",
+    "nsTypes": "warn",
+    "enumMembers": "warn",
+    "duplicates": "warn"
+  }
+}
