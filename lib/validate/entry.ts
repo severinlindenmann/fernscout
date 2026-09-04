@@ -353,11 +353,12 @@ function checkTitle(input: EntryInput, problems: Problem[]): void {
  * declared language is a `400` naming the language rather than a day quietly
  * saved in one.
  *
- * The refusal names the *journal's* languages as the remedy on purpose. An
- * agent stuck at a validator will look for a way to satisfy it, and the only
- * one available without the owner is to translate the prose itself — which is
- * inventing what somebody said, the one thing this software forbids outright.
- * So the message says the fix is `locales`, not the day.
+ * The refusal names the *journal's* languages as the remedy on purpose, and
+ * also names `locales` as the way out for an owner writing in one language
+ * only — not because translating on request is forbidden (B316: it is not;
+ * carrying what the owner wrote into another language invents nothing), but
+ * because an agent stuck at a validator should not default to translating
+ * without being asked. The hint says which without ruling out the other.
  */
 function checkTranslations(
   input: EntryInput,
@@ -379,10 +380,10 @@ function checkTranslations(
       expected: `this journal is read in ${locales.join(", ")}, so a day carries its title and content in ${owed.join(", ")} as well`,
       hint:
         `Send them as translations: {"${owed[0]}": {"title": "…", "content": "…"}}. The words ` +
-        `must come from the person whose journal this is — never translate their prose ` +
-        `yourself. If this journal is written in one language only, that is the journal's ` +
-        `to fix and not the day's: PATCH the journal's config with ` +
-        `locales: ["${writtenLocale}"].`,
+        `are the owner's — do not translate their prose yourself unless they ask you to; if ` +
+        `they do, translate it and say so in your reply. If this journal is written in one ` +
+        `language only, that is the journal's to fix and not the day's: PATCH the journal's ` +
+        `config with locales: ["${writtenLocale}"].`,
     });
     return;
   }

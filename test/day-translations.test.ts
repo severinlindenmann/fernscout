@@ -145,7 +145,10 @@ describe("a journal read in three languages", () => {
     expect(problem?.expected).toContain("hu");
     // Never the language the prose is already in.
     expect(problem?.expected).not.toMatch(/\bde, en, hu as well\b/);
-    expect(problem?.hint).toContain("never translate their prose");
+    // B316: the hint must not read as an absolute ban — it permits translating
+    // when the owner asks, and only forbids doing so unasked.
+    expect(problem?.hint).toContain("do not translate their prose yourself unless they ask");
+    expect(problem?.hint).toContain("if they do, translate it and say so");
     // And the remedy is the journal's, not the day's.
     expect(problem?.hint).toContain('locales: ["de"]');
   });

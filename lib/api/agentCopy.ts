@@ -108,30 +108,36 @@ export const BUDGET_QUESTION =
   "nav entry, and writing one is what brings both.";
 
 /**
- * What a day owes its journal's other languages — B294.
+ * What a day owes its journal's other languages — B294, corrected by B316.
  *
  * The complaint: a journal declaring `de`, `en` and `hu` gave a reader who
  * switched to English an English switcher, an English trip title, and German
  * prose. `translations` covered a trip's title and tagline and nothing else,
  * so no call could put a day's words in a second language.
  *
- * The owner chose to require them. The sentence has to carry the prohibition
- * as loudly as the requirement, because an agent that meets a validator it
- * cannot satisfy will reach for the one thing that would satisfy it — and
- * here that is translating somebody's memoir, which is inventing what they
- * said.
+ * The owner chose to require them. B294's wording forbade translating
+ * outright, on the theory that carrying words into another language is the
+ * same invention as putting weather nobody mentioned into a day — it is not.
+ * AGENTS.md's one rule is about *what happened*; translating what the owner
+ * did write invents nothing. Stated as an absolute, the sentence trapped an
+ * agent that had hit the refusal and was then asked, directly, to translate:
+ * it complied "under protest", having read its own instructions as forbidding
+ * the one thing that would satisfy them (B316). So the rule now turns on
+ * whether the owner asked — silent translation is still the failure, asked-for
+ * translation is not, and either way the day must say which words are whose.
  */
 export const TRANSLATIONS_REQUIRED =
   "**`translations` — the day's title and content in the journal's other languages.** A " +
   "journal readable in three languages writes its days in three: a day missing one is " +
   "refused, and the refusal names which. Send it as " +
   '`{"en": {"title": "…", "content": "…"}}`, keyed by language code, for every language ' +
-  "the journal declares except the one the day is already written in. **The words are the " +
-  "owner's.** Ask them for each language and write what they give you; never translate " +
-  "their prose yourself, and never machine-translate to get past the refusal — that is " +
-  "inventing what somebody said, which is the one thing you may not do. If they write in " +
-  "one language only, the fix is the journal's `locales`, not the day: one `PATCH` to the " +
-  "journal's config, and nothing is owed.";
+  "the journal declares except the one the day is already written in. **Do not translate " +
+  "unasked** — three language versions the owner never asked for, presented as their own " +
+  "writing, is the failure. **If they ask you to, translate it**: carrying what they wrote " +
+  "into another language invents nothing, and is not the invented weather or meals AGENTS.md " +
+  "forbids. Say so in your reply either way, so the owner knows which words are theirs and " +
+  "can correct them. If they write in one language only, the fix is the journal's " +
+  "`locales`, not the day: one `PATCH` to the journal's config, and nothing is owed.";
 
 /**
  * What is not writable, said once so nobody has to discover it by guessing.
