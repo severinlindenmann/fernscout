@@ -27,11 +27,35 @@ export type { Mail, SendResult } from "./types";
  * gitignored folder — uniqueness is `writeEml`'s job, not this function's —
  * read by a person hunting for the mail they just triggered and deleted
  * afterwards. Nothing resolves it, so nothing breaks if it changes.
+ *
+ * **How far it folds, and where it deliberately stops** (B151). It takes the
+ * accents off and spells out `ß`, so a German or Vietnamese subject stays a
+ * readable filename. It does *not* carry `lib/slug.ts`'s transliteration
+ * table, so `ü` here is `u` and there is `ue`: "Grüße vom Weg" is
+ * `grusse-vom-weg` on disk and `gruesse-vom-weg` in a permalink.
+ *
+ * That divergence is the point rather than an oversight. The table exists to
+ * keep two German words apart in an address somebody has already shared —
+ * without it "Rückfahrt" and a jolt slug alike, for ever. Nothing here is
+ * shared, resolved or permanent, so the guarantee is not worth the coupling:
+ * B77 considered unifying the private copies and rejected it, and B86
+ * restated why. Recognisable is the whole requirement, and `grusse` is
+ * recognisable.
  */
 function slug(text: string): string {
   return (
     text
       .toLowerCase()
+      // **`ß` before the accents come off, because it has none.** NFD leaves it
+      // exactly as it is, so the strip below cannot help and the class after it
+      // turns the letter into a hyphen — "Grüße" arrives as `gru-e` with the
+      // pass and `gr-e` without. It is the letter that eats the word, and one
+      // line buys the whole word back (B151).
+      .replace(/ß/g, "ss")
+      // Then the accents, and only the accents: "Grüße" becomes `grusse` and
+      // "Hội An" `hoi-an`, rather than losing the vowels entirely.
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "")
       .slice(0, 60) || "mail"
