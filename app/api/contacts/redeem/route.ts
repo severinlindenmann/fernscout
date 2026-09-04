@@ -1,5 +1,5 @@
 import { isEmail, issueCode } from "@/lib/auth";
-import { isEnabled } from "@/lib/capabilities";
+import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import {
   confirmContactFromSession,
   getContactByEmail,
@@ -110,6 +110,51 @@ export async function POST(request: Request) {
   // typing one.
   const reader = await journalReader(username);
   const sessionEmail = reader.email;
+
+  /**
+   * No session, so this redemption ends in a six-digit code — and the code has
+   * to be sendable before anything is written. B205, the same shape B160
+   * removed from `POST /api/auth/request`.
+   *
+   * With mail off, `sendCodeMail` returns null without sending and the reader
+   * was told `{"status":"code"}` all the same: an inbox nothing will ever
+   * arrive in. It cost more than a wasted wait, because `issueCode` consumes
+   * every live code for that address before writing a new one
+   * (`lib/auth/index.ts:254`) — so somebody who already held a working code
+   * lost it to a code nobody was ever told. Refusing here, **before**
+   * `issueCode` and before `requestContact`, means a redemption that cannot
+   * finish also does not take anything away.
+   *
+   * Both switches, because `sendCodeMail` goes through `sendMail`, which
+   * honours both: the server's `isEnabled("mail")` and the journal's own
+   * `features.mail.enabled: false`. Checking only the first would leave the
+   * identical promise standing for a journal that switched mail off.
+   *
+   * It discloses nothing this route was keeping: an invalid, expired or
+   * mismatched token has already been answered `202 {"status":"expired"}`
+   * above, so "this token is live" is something the endpoint says either way —
+   * deliberately, and for the reason written there. What the answer does not
+   * vary with is the address: every caller with a live token gets this, so it
+   * is not a way to ask whether somebody is known here or has been blocked.
+   *
+   * The signed-in branch below is deliberately not refused. It issues no code
+   * and promises no inbox — `sendConfirmedMail` and `notifyOwnerOfRequest` are
+   * courtesies — and the request it files is real work that mail being off
+   * does not undo.
+   */
+  if (!sessionEmail && (!isEnabled("mail") || hasSwitchedOff("mail", username))) {
+    return Response.json(
+      {
+        error: "mail_disabled",
+        message:
+          "This server cannot send the six-digit code that redeeming a link needs, so nothing " +
+          "was written and no code was issued — including any code you already hold, which is " +
+          "still live. The person who runs this server has to turn mail on; /api/health says " +
+          "why it is off.",
+      },
+      { status: 503 },
+    );
+  }
 
   const submitted = typeof body.email === "string" ? body.email : "";
   const email = sessionEmail ?? submitted;

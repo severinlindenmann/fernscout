@@ -274,6 +274,7 @@
   "invite.guestTitle": "Olvasd velünk: {title}",
   "invite.inBody": "Nincs több teendő — nyisd meg: {title}.",
   "invite.inTitle": "Már bent vagy",
+  "invite.noMail": "Ez a napló most nem tud e-mailt küldeni, így a szükséges kódot sem lehet elküldeni. Semmi nem mentődött el. Szólj annak, aki az oldalt üzemelteti, és próbáld meg később.",
   "invite.notYet": "Ettől még nem vagy bent — előbb valakinek igent kell mondania.",
   "invite.ownerBody": "Ezt a linket te készítetted. Küldd el másnak — neked nem változtat semmin.",
   "invite.ownerTitle": "Ez a te saját naplód",

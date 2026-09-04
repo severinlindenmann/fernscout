@@ -35,6 +35,19 @@ say which is which either.
 Costs a wasted retry: an agent that splits the batch in half and resends gets
 the same refusal, because the day was already full.
 
+**Corrected while building: the two checks are not "unrelated", and that
+changes what the batch sentence may say.** The day ceiling counts
+`existing + uploads.length` where `existing` is a `readdirSync` count and is
+never negative, so it fires whenever the batch rule does. The two problems
+therefore always arrive *together*, and the obvious wording for the batch one —
+"send fewer per request" — would have been advice that cannot work: a batch too
+big for one request is too big for the day however it is split. The wasted
+retry the Why describes is exactly that advice being followed.
+
+So the batch sentence says what the request broke *and* refuses the remedy that
+does not work. The redundancy itself — one mistake, two problems — is left
+alone here and captured as **B229**.
+
 ## Work
 
 Give the two different sentences. The batch one is about the request; the
@@ -43,8 +56,25 @@ ceiling one is about the day. Neither number changes, only the words.
 Check `/agent.md`'s limits table while in there — it advertises "at most 40
 items per day", which is the second rule, and does not mention the first.
 
+## What was built
+
+- `validateMediaBatch` (`lib/validate/media.ts:133`) now reports
+  `got: "41 items in one request"` and an `expected` that names the request,
+  says the same number is all a day may hold, and says splitting will not help.
+- `storeUploads` (`lib/api/media.ts:232`) reports `got: "41 items in this day"`
+  and an `expected` that names what the day already holds, how much room is
+  left, and "put the rest on another day". The remaining room is computed, so
+  the sentence is actionable rather than generic.
+- The guide's limits table (`lib/api/documentation.ts:957`) gains a `per
+  request` row saying it is the same number and that splitting will not help,
+  beside the per-day row it already had.
+- Tests: `test/validate-media.test.ts` asserts the request sentence and that it
+  does not borrow the day's words; `test/media-upload.test.ts` asserts the pair
+  in one refusal from the real writer, matched on text (B71).
+
 ## Acceptance
 
-- The two refusals read differently and each says what to do next.
+- The two refusals read differently and each says what to do next. ✅
 - A test asserts both, matched on their text rather than on their position in
-  `problems` (see B71).
+  `problems` (see B71). ✅ — `only(...)` in `test/media-upload.test.ts` matches
+  on `"in one request"` and `"in one day"` and asserts exactly one of each.

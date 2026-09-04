@@ -1,11 +1,34 @@
 import { SESSION_SCOPE, SIGNUP_OWNER, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { createJournal, sendWelcome } from "@/lib/journals";
-import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { clientIp, rateLimitFor, rateLimitStatus } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
+
+const HOUR = 60 * 60 * 1000;
+
+/**
+ * Two budgets, because creating a journal and failing to create one are not
+ * the same act — B217.
+ *
+ * A signup token survives a refused creation, deliberately and in writing:
+ * `/agent.md` says "a taken username is worth correcting rather than starting
+ * over", so somebody picking a name does not have to go back to their inbox
+ * every time one is gone. One bucket counted *attempts*, so the promise held
+ * at the credential and broke at the address — three or four corrections and
+ * the agent was locked out for the rest of the hour, holding a token that was
+ * still perfectly good and standing next to a person who was still waiting.
+ *
+ * Splitting them keeps the thing the limit is actually for. Name enumeration
+ * *is* a sequence of refusals, so refusals still cost — just not against the
+ * budget that decides whether the eventual real creation is allowed. Twenty an
+ * hour is far more than a conversation about a name needs and far less than a
+ * useful sweep of a namespace.
+ */
+const CREATED = { max: 5, windowMs: HOUR };
+const REFUSED = { max: 20, windowMs: HOUR };
 
 /**
  * Create a journal.
@@ -25,23 +48,43 @@ export async function POST(request: Request) {
     return Response.json({ error: "signup_disabled" }, { status: 404 });
   }
 
-  const limit = rateLimitFor("journals-create", clientIp(request), {
-    max: 5,
-    windowMs: 60 * 60 * 1000,
-  });
-  if (!limit.ok) {
-    return Response.json(
-      { error: "too_many_requests", retryAfter: limit.retryAfter },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
-    );
-  }
+  const ip = clientIp(request);
+
+  /**
+   * Both budgets are *read* here and neither is spent, because which one this
+   * request belongs to is not knowable yet. A refusal takes a slot from
+   * `REFUSED` on its way out — see `refuse` — and a creation takes one from
+   * `CREATED` once it has actually happened.
+   */
+  const createBudget = rateLimitStatus("journals-create", ip, CREATED);
+  if (!createBudget.ok) return tooMany("journals_created", createBudget.retryAfter);
+  const refusalBudget = rateLimitStatus("journals-create-refused", ip, REFUSED);
+  if (!refusalBudget.ok) return tooMany("failed_attempts", refusalBudget.retryAfter);
+
+  /**
+   * Every way this route says no, and the only thing that spends the refusal
+   * budget.
+   *
+   * A helper rather than a call beside each `return` so that a refusal added
+   * later cannot quietly become free — the shape of the route is that nothing
+   * returns a 4xx except through here.
+   */
+  const refuse = (
+    body: Record<string, unknown>,
+    status: number,
+    headers?: Record<string, string>,
+  ) => {
+    rateLimitFor("journals-create-refused", ip, REFUSED);
+    return Response.json(body, { status, ...(headers ? { headers } : {}) });
+  };
 
   const header = request.headers.get("authorization") ?? "";
   const match = header.match(/^Bearer\s+(.+)$/i);
   if (!match) {
-    return Response.json(
+    return refuse(
       { error: "missing_token", message: "Start at POST /api/auth/signup/request." },
-      { status: 401, headers: { "WWW-Authenticate": 'Bearer realm="fernscout"' } },
+      401,
+      { "WWW-Authenticate": 'Bearer realm="fernscout"' },
     );
   }
 
@@ -60,7 +103,7 @@ export async function POST(request: Request) {
      * journal and then retried needs to know the first call *worked*, or it
      * reports a failure for something that succeeded.
      */
-    return Response.json(
+    return refuse(
       {
         error: "invalid_token",
         message:
@@ -69,7 +112,7 @@ export async function POST(request: Request) {
           "Otherwise this token has expired (they last twenty minutes): start again at " +
           "POST /api/auth/signup/request.",
       },
-      { status: 401 },
+      401,
     );
   }
 
@@ -84,7 +127,7 @@ export async function POST(request: Request) {
   const ownerName = str("ownerName") ?? "";
   const ownerNickname = str("ownerNickname") ?? "";
   if (!username || !title || !ownerName || !ownerNickname) {
-    return Response.json(
+    return refuse(
       {
         error: "invalid_request",
         message:
@@ -92,7 +135,7 @@ export async function POST(request: Request) {
           '"ownerNickname": "…"}. `ownerNickname` is what the site calls this person in ' +
           "its own voice and is never guessed from `ownerName` — ask them for it.",
       },
-      { status: 400 },
+      400,
     );
   }
 
@@ -101,7 +144,7 @@ export async function POST(request: Request) {
   // agent that sent "hidden" or "unlisted" meant to ask for something.
   const visibility = str("visibility");
   if (visibility !== undefined && visibility !== "public" && visibility !== "private") {
-    return Response.json(
+    return refuse(
       {
         error: "invalid_request",
         message:
@@ -110,7 +153,7 @@ export async function POST(request: Request) {
           "sent the address and appears on no list. Neither decides who may read a trip — " +
           "that is the trip's own visibility.",
       },
-      { status: 400 },
+      400,
     );
   }
 
@@ -133,7 +176,7 @@ export async function POST(request: Request) {
   if (!created.ok) {
     // 409 for "that name is taken", 400 for "that name is not a name".
     const status = created.error === "username_taken" ? 409 : created.error === "too_many_journals" ? 403 : 400;
-    return Response.json(
+    return refuse(
       {
         error: created.error,
         message: created.message,
@@ -141,9 +184,17 @@ export async function POST(request: Request) {
         // agent to stop reading it.
         ...(created.next ? { next: created.next } : {}),
       },
-      { status },
+      status,
     );
   }
+
+  /**
+   * The slot is spent here, on the outcome rather than on the attempt. Five
+   * journals an hour from one address is the rule; the four mistyped names in
+   * front of this one are not journals and no longer count as though they
+   * were.
+   */
+  rateLimitFor("journals-create", ip, CREATED);
 
   /**
    * The signup token is spent, now that it has been used.
@@ -254,5 +305,39 @@ export async function POST(request: Request) {
       next: `POST /api/v1/${created.username}/trips to create your first trip.`,
     },
     { status: 201 },
+  );
+}
+
+/**
+ * A 429 that says which budget ran out.
+ *
+ * The old one was a bare `too_many_requests` with a `retryAfter`, which reads
+ * as "the server is busy" — so an agent that had just been refused four
+ * usernames had no way to learn that the refusals were what spent the budget,
+ * and no way to tell that apart from having created five journals. Two
+ * different situations with two different things to say to the person waiting.
+ *
+ * `reason` is a stable token for the machine and `message` is the sentence to
+ * read out; `retryAfter` is unchanged and is still in the header as well.
+ */
+function tooMany(reason: "journals_created" | "failed_attempts", retryAfter: number): Response {
+  const minutes = Math.max(1, Math.ceil(retryAfter / 60));
+  return Response.json(
+    {
+      error: "too_many_requests",
+      reason,
+      retryAfter,
+      message:
+        reason === "journals_created"
+          ? `This network address has created ${CREATED.max} journals in the last hour, which ` +
+            `is the limit. Nothing is wrong with your token. Try again in ${minutes} ` +
+            `minute${minutes === 1 ? "" : "s"}, when the oldest one falls out of the window.`
+          : `${REFUSED.max} attempts from this network address were refused in the last hour ` +
+            `— taken names, names that are not names, or requests missing a field — so this ` +
+            `one was not tried. Your token is still good and creating a journal is still ` +
+            `allowed; it is the guessing that has stopped. Try again in ${minutes} ` +
+            `minute${minutes === 1 ? "" : "s"}, and check the username with the person first.`,
+    },
+    { status: 429, headers: { "Retry-After": String(retryAfter) } },
   );
 }

@@ -110,6 +110,11 @@ export default function InviteRedeem({
       const body = (await response.json().catch(() => ({}))) as { error?: string };
       if (body.error === "invalid_email") return setError("contact.needEmail");
       if (body.error === "invalid_name") return setError("contact.needName");
+      // The server cannot send the code this needs (B205). Said in words
+      // rather than as "something went wrong", because there is nothing the
+      // reader can do differently and waiting for a mail that is not coming is
+      // what the old answer left them doing.
+      if (body.error === "mail_disabled") return setError("invite.noMail");
       return setError("contact.error");
     }
 
