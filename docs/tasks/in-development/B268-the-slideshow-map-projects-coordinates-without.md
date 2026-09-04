@@ -7,6 +7,9 @@ complexity: low
 area: slideshow, maps
 found: "2026-09-04T11:52:43Z"
 related: B269
+started: "2026-09-04T15:49:33Z"
+session: 67c9cca1-5b74-49e7-b1a4-dbee6bf7ce21
+claimed: "2026-09-04T15:49:33Z"
 ---
 
 # B268 — The slideshow map projects coordinates without mapFrame, so a coordinate-less day breaks it the same way

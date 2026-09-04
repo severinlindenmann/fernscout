@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: trips, access
 found: "2026-09-04T11:52:43Z"
+started: "2026-09-04T15:49:33Z"
+session: 67c9cca1-5b74-49e7-b1a4-dbee6bf7ce21
+claimed: "2026-09-04T15:49:33Z"
 ---
 
 # B270 — An owner whose only trip is public but unlisted sees four zeroes and no empty state

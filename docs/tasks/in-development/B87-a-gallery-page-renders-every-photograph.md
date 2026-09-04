@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: gallery, performance
 found: "2026-09-03"
+started: "2026-09-04T15:49:34Z"
+session: 67c9cca1-5b74-49e7-b1a4-dbee6bf7ce21
+claimed: "2026-09-04T15:49:34Z"
 ---
 
 # B87 — A gallery page renders every photograph in the trip at once
