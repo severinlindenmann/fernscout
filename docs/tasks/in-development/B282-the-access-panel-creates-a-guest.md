@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: web, me-page, contacts
 found: "2026-09-04T12:42:00Z"
+started: "2026-09-04T13:24:42Z"
+session: a3370c43-40d9-471c-a3d3-1a30c49b5302
+claimed: "2026-09-04T13:24:42Z"
 ---
 
 # B282 — The access panel creates a guest link itself, so link management lives on two pages and the page is long enough to scroll past what matters
