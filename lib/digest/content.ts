@@ -148,8 +148,23 @@ export function buildDigestContent(options: {
   locale: Locale;
   /** Origin, no trailing slash. */
   base: string;
+  /**
+   * Keep days nobody lived instead of dropping them. **Dry runs only** — see
+   * `digestableTrips` and `runDigest`, which refuses the combination with a
+   * real send before it reads anything. B184.
+   */
+  includeTest?: boolean;
 }): DigestContent | null {
-  const { username, trips, since, includeSince = false, today, locale, base } = options;
+  const {
+    username,
+    trips,
+    since,
+    includeSince = false,
+    today,
+    locale,
+    base,
+    includeTest = false,
+  } = options;
   const summaries: DigestTripSummary[] = [];
   let cursor = since ?? "";
   let dayCount = 0;
@@ -163,7 +178,9 @@ export function buildDigestContent(options: {
       // this filters entries rather than days — the lead becomes the first
       // one that actually happened, and a day of nothing but test entries
       // disappears entirely.
-      const lived = day.entries.filter((entry) => !isTestContent(trip, entry));
+      const lived = includeTest
+        ? day.entries
+        : day.entries.filter((entry) => !isTestContent(trip, entry));
       if (lived.length === 0) continue;
       fresh.push({ date: day.date, entries: lived, lead: lived[0] });
     }

@@ -517,10 +517,13 @@ describe("a day nobody lived", () => {
     });
     await addReader("only-fakes@example.test", "de");
 
-    // Not an empty mail: no mail, and a reason that says so.
+    // Not an empty mail: no mail, and a reason that says so. Since B184 the
+    // reason is `all-test` rather than `nothing-new` — a reader excluded
+    // *because* everything new was invented used to be indistinguishable from
+    // a reader in a genuinely quiet journal.
     const plan = await planDigest(OWNER, { now: MORNING });
     expect(plan.ready).toHaveLength(0);
-    expect(plan.skipped.map((s) => s.reason)).toEqual(["nothing-new"]);
+    expect(plan.skipped.map((s) => s.reason)).toEqual(["all-test"]);
 
     const outcome = await runDigest(OWNER, { now: MORNING });
     expect(outcome.sent).toHaveLength(0);
@@ -915,5 +918,108 @@ describe("the switches", () => {
     await addReader("de@example.test", "de");
     const plan = await planDigest(OWNER, { now: MORNING, since: "2026-05-01" });
     expect(plan.ready[0].content.dayCount).toBe(3);
+  });
+});
+
+/**
+ * B184 — the drill.
+ *
+ * Two correct rules met and made the digest untestable. Everything an agent is
+ * permitted to write carries `test: true` (AGENTS.md), and B70 makes the digest
+ * refuse test content at both levels it could enter. Together: no content the
+ * only party allowed to write here can produce ever yields a digest line, so
+ * the one mechanism in the product that sends real mail to real people could
+ * not be exercised end to end against a deployment. B52 and B70 were both
+ * blocked on it.
+ *
+ * The fix must not become a way to mail fiction to somebody's family, so the
+ * flag is refused unless the run is a dry run — structurally, by an argument
+ * that cannot be set from config or the environment.
+ */
+describe("driving the digest over content nobody lived", () => {
+  beforeEach(() => {
+    // A journal whose only trip is a proving run: public, listed, and nobody
+    // lived it. This is the shape an agent asked to demonstrate the pipeline
+    // leaves behind, and it produced no digest line at all.
+    writeTrip({
+      id: "proving-2026",
+      title: "Proving trip",
+      test: true,
+      dates: ["2026-08-25", "2026-08-26"],
+    });
+  });
+
+  test("without the flag there is nothing, and the reason is not `nothing-new`", async () => {
+    await addReader("quiet@example.test", "de");
+    const plan = await planDigest(OWNER, { now: MORNING });
+
+    expect(plan.ready).toHaveLength(0);
+    // The distinction B184 asked for: a journal deliberately suppressed reads
+    // differently from a journal with nothing in it. An operator dry-running
+    // against the only content they can safely dry-run against gets a signal.
+    expect(plan.skipped[0]).toMatchObject({ reason: "all-test" });
+    expect(plan.skipped[0].detail).toContain("test content");
+  });
+
+  test("a genuinely quiet journal still says `nothing-new`", async () => {
+    await addReader("later@example.test", "de", { approvedOn: "2026-12-01" });
+    const plan = await planDigest(OWNER, { now: MORNING });
+    expect(plan.skipped[0]).toMatchObject({ reason: "nothing-new" });
+  });
+
+  test("with --include-test and --dry-run the pipeline produces lines", async () => {
+    await addReader("drill@example.test", "de");
+    const outcome = await runDigest(OWNER, {
+      now: MORNING,
+      dryRun: true,
+      includeTest: true,
+    });
+
+    expect(outcome.plan.ready).toHaveLength(1);
+    expect(outcome.plan.ready[0].content.dayCount).toBe(2);
+    expect(outcome.plan.ready[0].content.trips[0].tripId).toBe("proving-2026");
+    // Every line the report prints can say it was a drill.
+    expect(outcome.plan.includedTest).toBe(true);
+    // And nothing was sent or recorded, as with any dry run.
+    expect(mailFiles()).toEqual([]);
+    expect(await digestRows()).toHaveLength(0);
+  });
+
+  test("without --dry-run it is refused, and nothing is sent", async () => {
+    await addReader("real@example.test", "de");
+    await expect(runDigest(OWNER, { now: MORNING, includeTest: true })).rejects.toThrow(
+      /drill does not send mail/,
+    );
+    expect(mailFiles()).toEqual([]);
+    expect(await digestRows()).toHaveLength(0);
+  });
+
+  test("a real run over the same journal still sends nothing at all", async () => {
+    // The refusal above must not be the only thing standing between test
+    // content and an inbox: with the flag simply absent, the filter is doing
+    // the work it has always done.
+    await addReader("safe@example.test", "de");
+    const outcome = await runDigest(OWNER, { now: MORNING });
+    expect(outcome.sent).toHaveLength(0);
+    expect(mailFiles()).toEqual([]);
+  });
+
+  test("a test day inside a real trip is counted only during a drill", async () => {
+    writeTrip({
+      id: "real-2026",
+      title: "Real trip",
+      dates: ["2026-08-27", "2026-08-28"],
+      testEntries: [1],
+    });
+    await addReader("mixed@example.test", "de");
+
+    const ordinary = await planDigest(OWNER, { now: MORNING });
+    expect(ordinary.ready[0].content.dayCount).toBe(1);
+    expect(ordinary.includedTest).toBe(false);
+
+    const drill = await planDigest(OWNER, { now: MORNING, includeTest: true });
+    // Both days of the real trip, and both days of the proving trip.
+    expect(drill.ready[0].content.dayCount).toBe(4);
+    expect(drill.includedTest).toBe(true);
   });
 });

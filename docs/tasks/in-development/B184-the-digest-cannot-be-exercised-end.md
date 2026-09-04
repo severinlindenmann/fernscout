@@ -122,3 +122,33 @@ this.
 - Attempting it without `--dry-run` is refused, and a test asserts that.
 - The dry-run output states that test content was included.
 - B52's guest-trip bullet becomes checkable against a running instance.
+
+## Built (2026-09-04)
+
+The flag, exactly as the Work section describes it, plus the skip reason.
+
+- `DigestOptions.includeTest` reaches `digestableTrips` and
+  `buildDigestContent`, so both levels the filter works at can be widened
+  together. `runDigest` throws when it is set without `dryRun`, **before** it
+  loads the user or plans anything — and it is an argument, not a config value
+  or an environment variable, so there is no state anywhere that can arrive
+  holding it. `test/digest.test.ts` asserts the refusal, and that no `.eml` and
+  no `digest_sends` row exists afterwards.
+- `DigestPlan.includedTest` is what lets the CLI mark **every** line, not just a
+  header: `[TEST CONTENT INCLUDED]` on each reader and each skip, plus a block
+  after the count. A header scrolls away; a line copied into a ticket does not
+  carry one.
+- `DigestSkipReason` gains **`all-test`**, reported only on a run that did not
+  ask for test content and only for a reader who was getting nothing anyway —
+  the content is built a second time, with the flag, and if that yields
+  something the suppression was the cause. The existing B70 test that asserted
+  `nothing-new` for exactly this case now asserts `all-test`, which is the
+  distinction this task asked for.
+- `docs/TESTING.md` gains H11–H13: the drill, the refusal, and the legible zero.
+
+The alternatives in the Work section were both declined for the reasons written
+there. Nothing was built that lets test content reach a real send, and no
+unflagged fabricated trip was created to work around the filter.
+
+B52's guest-trip bullet and B70's day-level bullet are now checkable against a
+running instance with `--dry-run --include-test`.
