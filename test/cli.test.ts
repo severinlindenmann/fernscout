@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 /**
@@ -166,4 +167,81 @@ describe("CLI entry points load", () => {
       }
     }, 60_000);
   }
+});
+
+/**
+ * B184 — the one flag on any of these CLIs that must not be able to send mail.
+ *
+ * `--include-test` widens the digest to content nobody lived so the pipeline
+ * can be exercised end to end, which is the only way the digest can be driven
+ * by the only party allowed to write to this product. The guarantee is in
+ * `runDigest` and is unit-tested there; this asserts the operator-facing half —
+ * that the flag reaches it from the command line, and that the refusal happens
+ * before anything is planned, loaded or sent.
+ */
+describe("the digest refuses to send test content", () => {
+  /** A journal on disk, which is as far as the script gets before refusing. */
+  function journal(): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-digest-cli-"));
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "T", url: "https://t.test", defaultUser: "ana" },
+        users: { reserved: [] },
+        features: { mail: { enabled: true, transport: "file" } },
+      }),
+    );
+    fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "ana", "config.json"),
+      JSON.stringify({ title: "Ana", owner: { name: "Ana", nickname: "Ana" } }),
+    );
+    return dir;
+  }
+
+  function digest(dir: string, args: string[]) {
+    return spawnSync(`${scripts.digest} ${args.join(" ")}`, {
+      shell: true,
+      cwd: process.cwd(),
+      encoding: "utf8",
+      timeout: 60_000,
+      env: {
+        ...process.env,
+        PATH: `${path.join(process.cwd(), "node_modules", ".bin")}${path.delimiter}${process.env.PATH ?? ""}`,
+        CONTENT_DIR: dir,
+        DATABASE_URL: `sqlite:${path.join(dir, "digest.db")}`,
+      },
+    });
+  }
+
+  test("--include-test without --dry-run is refused, and the run stops there", () => {
+    const dir = journal();
+    try {
+      const run = digest(dir, ["--user", "ana", "--include-test"]);
+      const output = `${run.stdout ?? ""}${run.stderr ?? ""}`;
+      expect(output).toContain("drill does not send mail");
+      expect(run.status).not.toBe(0);
+      // Nothing was written on the way to the refusal.
+      expect(fs.existsSync(path.join(dir, "ana", "mail"))).toBe(false);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  test("paired with --dry-run it gets past that guard", () => {
+    // This fixture has no contacts database behind it, so the run stops one
+    // step later — which is the assertion: the pairing is accepted, and the
+    // refusal above is about the pairing rather than about the flag. What a
+    // drill then prints is covered in test/digest.test.ts, against a journal
+    // that has readers.
+    const dir = journal();
+    try {
+      const run = digest(dir, ["--user", "ana", "--dry-run", "--include-test"]);
+      const output = `${run.stdout ?? ""}${run.stderr ?? ""}`;
+      expect(output).not.toContain("drill does not send mail");
+      expect(fs.existsSync(path.join(dir, "ana", "mail"))).toBe(false);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
 });

@@ -144,6 +144,10 @@ The flag, exactly as the Work section describes it, plus the skip reason.
   something the suppression was the cause. The existing B70 test that asserted
   `nothing-new` for exactly this case now asserts `all-test`, which is the
   distinction this task asked for.
+- `test/cli.test.ts` runs the script itself: `--include-test` without
+  `--dry-run` exits non-zero with the refusal and writes no mailbox, and the
+  paired form gets past that guard. The guarantee lives in `runDigest`, but the
+  flag reaching it from a command line is the operator-facing half.
 - `docs/TESTING.md` gains H11–H13: the drill, the refusal, and the legible zero.
 
 The alternatives in the Work section were both declined for the reasons written
