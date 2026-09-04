@@ -279,3 +279,226 @@ describe("who may call it", () => {
     expect(body.error).toBe("nothing_to_change");
   });
 });
+
+/**
+ * B220 — the rest of the file, after B182 opened the `features` block.
+ *
+ * The decision the ticket asked for is per field, and these are where it is
+ * written down. What a journal *says about itself* is writable: title,
+ * tagline, visibility, startLocation, units, locales, defaultLocale,
+ * displayCurrencies, manualRates. Three things are not, each for its own
+ * reason, and there is a test for each refusal because a refusal nobody
+ * asserts is a refusal that quietly becomes an oversight:
+ *
+ *  - `owner.email` — the address deciding who can get a token here (B182's,
+ *    unchanged);
+ *  - `baseCurrency` — a cost with no `currency:` IS a cost in the base
+ *    currency, so changing it re-reads money rather than reconverting it;
+ *  - `media` — the server is already a ceiling over it, so the only reachable
+ *    effect is inert or a self-narrowing nobody asked for.
+ */
+describe("what a journal says about itself", () => {
+  test("a title typoed at signup can be fixed, through both doors identically", async () => {
+    const { status, body } = await patch({ title: "Ana's Slow Loop" });
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ ok: true, changed: ["title"] });
+    // Read back off disk, not echoed: the point is the file.
+    expect(rawConfig().title).toBe("Ana's Slow Loop");
+    expect(getUser("ana")?.title).toBe("Ana's Slow Loop");
+    const viaRest = fs.readFileSync(path.join(dir, "ana", "config.json"), "utf8");
+
+    // The same change over MCP produces the same bytes. B178 and B175 asserted
+    // it this way for trip fields; a second door that writes a different file
+    // is two products.
+    writeUserConfig();
+    const session = await resolveSession(token, "agent");
+    if (!session) throw new Error("no session");
+    const result = await callTool("set_journal_profile", session, { title: "Ana's Slow Loop" });
+    expect(result?.ok).toBe(true);
+    expect(fs.readFileSync(path.join(dir, "ana", "config.json"), "utf8")).toBe(viaRest);
+  });
+
+  test("a tagline can be cleared, and clearing it removes the key rather than emptying it", async () => {
+    // `readString` in lib/config.ts refuses an empty tagline, so `"tagline": ""`
+    // would be a journal that will not load at all.
+    const { status, body } = await patch({ tagline: "" });
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ ok: true, changed: ["tagline"] });
+    expect("tagline" in rawConfig()).toBe(false);
+    expect(getUser("ana")).not.toBeNull();
+  });
+
+  test("the languages a journal offers can be changed, both fields at once", async () => {
+    const { status, body } = await patch({ locales: ["de", "en"], defaultLocale: "de" });
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ ok: true });
+    expect(getUser("ana")?.locales).toEqual(["de", "en"]);
+    expect(getUser("ana")?.defaultLocale).toBe("de");
+  });
+
+  test("a defaultLocale outside locales is refused rather than written", async () => {
+    // Written, it is a config problem, and a config problem takes the whole
+    // journal off the site. The caller hears which half was wrong instead.
+    const { status, body } = await patch({ defaultLocale: "de" });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_locales");
+    expect(getUser("ana")?.defaultLocale).toBe("en");
+  });
+
+  test("displayCurrencies must contain the base currency, which this cannot change", async () => {
+    const { status, body } = await patch({ displayCurrencies: ["EUR"] });
+    expect(status).toBe(400);
+    expect(String(body.message)).toContain("CHF");
+    expect(getUser("ana")?.displayCurrencies).toEqual(["CHF"]);
+
+    const ok = await patch({ displayCurrencies: ["chf", "eur"] });
+    expect(ok.status).toBe(200);
+    // Normalised on the way in, so the file holds what the reader expects.
+    expect(getUser("ana")?.displayCurrencies).toEqual(["CHF", "EUR"]);
+  });
+
+  test("manualRates merges and a null removes one, so a wrong rate can be taken out", async () => {
+    writeUserConfig({ manualRates: { VND: 30500 } });
+    await patch({ manualRates: { CUP: 26 } });
+    expect(getUser("ana")?.manualRates).toEqual({ VND: 30500, CUP: 26 });
+
+    await patch({ manualRates: { CUP: null } });
+    expect(getUser("ana")?.manualRates).toEqual({ VND: 30500 });
+  });
+
+  test("a rate that is not a positive number is refused, naming the currency", async () => {
+    const { status, body } = await patch({ manualRates: { VND: -1 } });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_manualRates");
+    expect(String(body.message)).toContain("VND");
+  });
+
+  test("a language name instead of a language code is refused", async () => {
+    const { status, body } = await patch({ locales: ["german"] });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_locales");
+  });
+
+  test("saying the same thing twice changes nothing and is not an error", async () => {
+    const { status, body } = await patch({ title: "Ana" });
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ ok: true, changed: [] });
+  });
+
+  test("everything else in the file survives, including a key nothing parses", async () => {
+    writeUserConfig({ somethingNobodyParsed: { keep: true } });
+    await patch({ title: "Renamed" });
+    const after = rawConfig();
+    expect(after.somethingNobodyParsed).toEqual({ keep: true });
+    expect(after.owner).toEqual({
+      name: "Ana Meyer",
+      nickname: "Ana",
+      email: "ana@example.test",
+    });
+    expect(after.features).toEqual({ reactions: { enabled: true } });
+  });
+
+  test("GET reads back what PATCH writes, including the base currency it cannot change", async () => {
+    const { GET } = await import("@/app/api/v1/[user]/config/route");
+    const response = await GET(
+      new Request(`${SITE}/api/v1/ana/config`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      { params: Promise.resolve({ user: "ana" }) },
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { journal: Record<string, unknown> };
+    expect(body.journal).toMatchObject({ title: "Ana", baseCurrency: "CHF", visibility: "public" });
+  });
+});
+
+describe("the three fields it will not write", () => {
+  test("owner.email is still refused, and the whole body with it", async () => {
+    const before = rawConfig();
+    const { status, body } = await patch({
+      title: "Renamed",
+      owner: { email: "someone-else@example.test" },
+    });
+    expect(status).toBe(400);
+    expect(body.error).toBe("unsupported_field");
+    expect(String(body.message)).toContain("owner.email");
+    // The accepted half did not land either: a caller cannot smuggle a change
+    // past by attaching one this does write.
+    expect(rawConfig()).toEqual(before);
+  });
+
+  test("baseCurrency is refused, and says why rather than only that", async () => {
+    const { status, body } = await patch({ baseCurrency: "EUR" });
+    expect(status).toBe(400);
+    expect(body.error).toBe("unsupported_field");
+    // The reason is the point: a cost with no currency IS a cost in the base
+    // currency, so this would re-read money rather than reconvert it.
+    expect(String(body.message)).toContain("without a currency");
+    expect(getUser("ana")?.baseCurrency).toBe("CHF");
+  });
+
+  test("media is refused: the server is already the ceiling over it", async () => {
+    const { status, body } = await patch({ media: { maxBytes: 1 } });
+    expect(status).toBe(400);
+    expect(body.error).toBe("unsupported_field");
+    expect(String(body.message)).toContain("operator");
+  });
+
+  test("MCP does not offer them either — the schema has no property for them", async () => {
+    const { toolsFor } = await import("@/lib/mcp/tools");
+    const session = await resolveSession(token, "agent");
+    if (!session) throw new Error("no session");
+    const tool = toolsFor(session).find((t) => t.name === "set_journal_profile");
+    const properties = Object.keys(tool?.inputSchema.properties ?? {});
+    expect(properties).not.toContain("baseCurrency");
+    expect(properties).not.toContain("owner");
+    expect(properties).not.toContain("media");
+    expect(tool?.inputSchema.additionalProperties).toBe(false);
+  });
+});
+
+describe("one kind of change per call", () => {
+  test("a body naming both a capability and a field is refused rather than half-applied", async () => {
+    const before = rawConfig();
+    const { status, body } = await patch({ features: { contacts: true }, title: "Renamed" });
+    expect(status).toBe(400);
+    expect(body.error).toBe("mixed_change");
+    expect(rawConfig()).toEqual(before);
+    expect(isEnabled("contacts", "ana")).toBe(false);
+  });
+
+  test("a trip-scoped token cannot change what the journal says about itself", async () => {
+    fs.mkdirSync(path.join(dir, "ana", "trips", "japan-2027"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "ana", "trips", "japan-2027", "trip.md"),
+      [
+        "---",
+        "id: japan-2027",
+        'title: "Japan"',
+        'start: "2027-04-01"',
+        'end: "2027-04-10"',
+        "people:",
+        '  - name: "Bea"',
+        '    email: "bea@example.test"',
+        "---",
+        "",
+      ].join("\n"),
+    );
+    clearUserCache();
+
+    const { tripWriteScope } = await import("@/lib/auth");
+    await issueCode("ana", "bea@example.test", "agent");
+    const buddy = await verifyCode(
+      "ana",
+      "bea@example.test",
+      "123456",
+      "agent",
+      tripWriteScope("japan-2027"),
+    );
+    if (!buddy.ok) throw new Error("no trip token");
+
+    const { status } = await patch({ title: "Bea's journal now" }, buddy.token);
+    expect(status).toBe(403);
+    expect(getUser("ana")?.title).toBe("Ana");
+  });
+});

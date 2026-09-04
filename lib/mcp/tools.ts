@@ -7,10 +7,15 @@ import { isTestContent } from "../access";
 import { getAllEntries, getEntryBySlug } from "../entries";
 import { stripMarkdown } from "../markdownText";
 import { SEARCH_OPTIONS, type SearchDoc } from "../searchOptions";
-import { getMalformedTrips, getTrip, getTrips, tripRef } from "../trips";
+import { getMalformedTrips, getTrip, getTrips, MAX_TRIP_PEOPLE, tripRef } from "../trips";
 import { tripWriteVerdict } from "../tripPeople";
 import { validateEntry, type Problem } from "../validate/entry";
-import { createJournal, setJournalFeatures } from "../journals";
+import {
+  createJournal,
+  JOURNAL_PROFILE_FIELDS,
+  setJournalFeatures,
+  setJournalProfile,
+} from "../journals";
 import { createTrip } from "../tripWrite";
 import { serverSite } from "../site";
 import { storeUploads, type KeptOriginal, type UploadCandidate } from "../api/media";
@@ -975,6 +980,60 @@ const setJournalFeaturesTool: Handler = (session, args) => {
   };
 };
 
+/**
+ * Change what a journal says about itself — B220.
+ *
+ * The sibling of `set_journal_features`, and separate from it on purpose:
+ * each call edits `config.json` whole, and one tool doing both would be one
+ * call that can succeed halfway.
+ *
+ * What it will not touch is the interesting half, and `JOURNAL_FIELD_REFUSALS`
+ * in lib/journals.ts carries the reason for each: `owner.email` (a token must
+ * not move the boundary that issued it), `baseCurrency` (changing it re-reads
+ * every cost already written rather than reconverting it) and `media` (the
+ * server is already a ceiling over it).
+ */
+const setJournalProfileTool: Handler = (session, args) => {
+  if (session.owner === SIGNUP_OWNER) {
+    return { ok: false, error: "Create a journal first, then get an agent token for it." };
+  }
+  if (session.scope !== SESSION_SCOPE.agent) {
+    return {
+      ok: false,
+      error:
+        "This token is scoped to one trip, so it can write days into that trip but cannot " +
+        "change what the journal around it says about itself. Only the journal's owner can.",
+    };
+  }
+
+  // Only the keys the caller actually sent. An absent argument is "leave it
+  // alone", and passing `undefined` through would make every call a change to
+  // every field.
+  const changes: Record<string, unknown> = {};
+  for (const field of JOURNAL_PROFILE_FIELDS) {
+    if (args[field] !== undefined) changes[field] = args[field];
+  }
+
+  const result = setJournalProfile(session.owner, changes);
+  if (!result.ok) return { ok: false, error: result.message };
+
+  return {
+    ok: true,
+    text:
+      (result.changed.length
+        ? `Changed ${result.changed.join(", ")} for ${session.owner}.`
+        : `Nothing changed — ${session.owner} already said exactly this.`) +
+      `\n\n"${result.journal.title}"${result.journal.tagline ? ` — ${result.journal.tagline}` : ""}, ` +
+      `${result.journal.visibility}, in ${result.journal.locales.join(", ")}, ` +
+      `budgeted in ${result.journal.baseCurrency}.` +
+      (result.journal.visibility === "public"
+        ? ""
+        : " Unlisted: this server does not advertise it, though who may read a journey is " +
+          "still that trip's own visibility."),
+    data: { user: session.owner, journal: result.journal, changed: result.changed },
+  };
+};
+
 const createTripTool: Handler = (session, args) => {
   if (session.owner === SIGNUP_OWNER) {
     return { ok: false, error: "Create a journal first, then get an agent token for it." };
@@ -1027,6 +1086,12 @@ const createTripTool: Handler = (session, args) => {
     // Inherited by every day of the trip, so somebody exercising the pipeline
     // sets it once. Same gap as create_day carried — B157.
     ...(args.test === true ? { test: true } : {}),
+    // Raw, like `costsVisibility` above: `createTrip` validates all three and
+    // names the entry and key that is wrong, which is what an agent needs to
+    // fix a `people:` list. B207.
+    people: args.people,
+    rates: args.rates,
+    translations: args.translations,
   });
   if (!created.ok) return { ok: false, error: created.message };
 
@@ -1295,13 +1360,95 @@ export const TOOLS: readonly ToolEntry[] = [
     handler: setJournalFeaturesTool,
   },
   {
+    name: "set_journal_profile",
+    title: "Change what this journal says about itself",
+    description:
+      "Change a journal's title, tagline, languages, display currencies or listing — the " +
+      "things it says about itself, as opposed to what it can do (that is " +
+      "set_journal_features). Until now these were fixed when the journal was created, so a " +
+      "title typoed at signup was permanent unless somebody had a shell on the server. Send " +
+      "only what you are changing; anything you leave out is left alone. It will NOT change " +
+      "the owner's email address, which is what decides who can get a token here, and it will " +
+      "not change baseCurrency — a cost written without a currency IS a cost in the base " +
+      "currency, so moving it would silently change what every amount already recorded means. " +
+      "Owner only, and ask the person before making a private journal public.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "What the journal is called." },
+        tagline: {
+          type: "string",
+          description: "One line under the title. Send \"\" to remove it.",
+        },
+        visibility: {
+          type: "string",
+          enum: ["public", "private"],
+          description:
+            "Whether this server ADVERTISES the journal — on the landing page, in " +
+            "/documentation.txt, in the sitemap. A private journal is unlisted, not locked: " +
+            "who may read a journey is still that trip's own visibility. Ask before making " +
+            "one public.",
+        },
+        startLocation: {
+          type: "string",
+          description: "Where they usually set out from. Send \"\" to remove it.",
+        },
+        units: { type: "string", enum: ["metric", "imperial"] },
+        locales: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "The languages the journal offers, most preferred first: [\"de\", \"en\"]. Codes, " +
+            "not names. A language this software ships no menus for still works — its content " +
+            "translations render and the menus fall back to English. Must contain " +
+            "defaultLocale; send both together when changing that.",
+        },
+        defaultLocale: {
+          type: "string",
+          description: "Which of `locales` a reader gets first. Must be one of them.",
+        },
+        displayCurrencies: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Which currencies a reader can see the totals in. Must include the journal's base " +
+            "currency, which this call cannot change — read it back from " +
+            "GET /api/v1/<user>/config.",
+        },
+        manualRates: {
+          type: "object",
+          additionalProperties: { type: ["number", "null"] },
+          description:
+            "Rates for currencies the ECB does not publish, merged into whatever is there: " +
+            "{\"VND\": 30500} reads \"1 EUR = 30 500 VND\", so a currency worth less than the " +
+            "euro has a LARGE number. That is the OPPOSITE direction from a trip's own " +
+            "`rates`, which is base-per-unit. Send null for a code to remove it.",
+        },
+      },
+      additionalProperties: false,
+    },
+    annotations: {
+      readOnlyHint: false,
+      // It writes the named keys into the journal's own config and leaves
+      // every other key in the file untouched.
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    handler: setJournalProfileTool,
+  },
+  {
     name: "create_trip",
     title: "Create a trip",
     description:
       "Create a trip in this journal, so there is somewhere to write days into. Needs a start " +
       "and an end date — a trip without both is skipped when the site reads it. Created " +
       "PRIVATE unless you are told otherwise: publishing somebody's journey is their decision, " +
-      "not a default. Only the journal's owner can call this.",
+      "not a default. Only the journal's owner can call this. This is the only call that " +
+      "writes a trip's metadata — `people`, `rates` and `translations` cannot be changed " +
+      "afterwards by any call, so ask the person before sending them and leave out what you " +
+      "were not told. A cover image cannot be set here at all: there are no photographs in a " +
+      "trip that does not exist yet.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1343,6 +1490,61 @@ export const TOOLS: readonly ToolEntry[] = [
             "the software works. Inherited by every day written into it, so set it here rather " +
             "than on each entry. The site says so in a banner and keeps the trip out of the " +
             "feed, the search index and the sitemap.",
+        },
+        people: {
+          type: "array",
+          maxItems: MAX_TRIP_PEOPLE,
+          description:
+            "Who took this trip — at most ten. It is the byline, AND it is write access: " +
+            "everyone named may write to the whole trip and may ask for a token scoped to it, " +
+            "using the address given here. So name the people who were actually there, from " +
+            "what the owner told you, and nobody else. It cannot be changed afterwards by any " +
+            "call, so ask rather than guess.",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Their name, as the byline should read." },
+              email: {
+                type: "string",
+                description:
+                  "Their own address. It is how they get a token for this trip, so a " +
+                  "placeholder gives them nothing.",
+              },
+              nickname: {
+                type: "string",
+                description:
+                  "What to call them in a byline, if it is not their name. Never guessed by " +
+                  "splitting the name.",
+              },
+            },
+            required: ["name", "email"],
+            additionalProperties: false,
+          },
+        },
+        rates: {
+          type: "object",
+          description:
+            "This trip's frozen exchange rates: how many units of the journal's BASE currency " +
+            "one unit of the keyed currency was worth on this trip. {\"THB\": 0.0245} reads " +
+            "\"1 THB = 0.0245 CHF\". A currency worth less than the base one therefore has a " +
+            "SMALL number — the ECB table points the other way and getting it backwards is " +
+            "wrong by orders of magnitude with no error anywhere. Without a rate, costs in " +
+            "that currency are shown unconverted, which is a supported state: leave it out " +
+            "rather than invent a number. Never today's rate for a trip in the past.",
+          additionalProperties: { type: "number" },
+        },
+        translations: {
+          type: "object",
+          description:
+            "The trip's title and tagline in the journal's other languages, keyed by locale: " +
+            "{\"de\": {\"title\": \"Japan\", \"tagline\": \"Sechs Wochen mit dem Zug\"}}. Only " +
+            "languages the journal declares are accepted — anything else would be written and " +
+            "never rendered.",
+          additionalProperties: {
+            type: "object",
+            properties: { title: { type: "string" }, tagline: { type: "string" } },
+            additionalProperties: false,
+          },
         },
       },
       required: ["id", "title", "start", "end"],

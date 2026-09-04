@@ -10,7 +10,7 @@ import { verifyLink } from "@/lib/auth";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { instanceDocumentation } from "@/lib/api/documentation";
 import { createTrip } from "@/lib/tripWrite";
-import { getTrip, getTrips } from "@/lib/trips";
+import { getTrip, getTrips, KNOWN_TRIP_FIELDS } from "@/lib/trips";
 
 /**
  * Creating a journal and a trip over the API.
@@ -834,5 +834,308 @@ describe("a journal appears without anybody invalidating a cache", () => {
 
     fs.rmSync(path.join(dir, "temporary"), { recursive: true, force: true });
     expect(getUsernames()).not.toContain("temporary");
+  });
+});
+
+/**
+ * B207 — the four fields `KNOWN_TRIP_FIELDS` reads and nothing could write.
+ *
+ * B178 asked for a sweep of the rest of the parsed frontmatter once
+ * `costsVisibility` was closed. There were four, and the ticket asked for them
+ * to be decided one at a time rather than added in a batch. Three are written
+ * here; `cover` is refused, and the reason is in `NewTrip` (lib/tripWrite.ts)
+ * and asserted at the bottom of this block.
+ *
+ * The rule these share: **refused, never dropped.** `lib/trips.ts` fails
+ * closed when it reads a bad `people:` — one malformed entry drops the whole
+ * list — because a reader has nobody to tell. A writer does, so a 201 for a
+ * block the site will then ignore is the outcome none of these may produce.
+ */
+describe("the trip fields that had no writer", () => {
+  beforeEach(() => {
+    make("wanderer");
+  });
+
+  describe("people — who took it, and therefore who may write to it", () => {
+    test("is written, reads back, and carries the nickname when there is one", () => {
+      const result = createTrip("wanderer", {
+        ...DATES,
+        id: "japan-2027",
+        title: "Japan",
+        people: [
+          { name: "Robin Traveller", email: "Robin@Example.test", nickname: "Robin" },
+          { name: "Ana Meyer", email: "ana@example.test" },
+        ],
+      });
+      expect(result.ok).toBe(true);
+
+      const trip = getTrip("wanderer/japan-2027");
+      expect(trip?.people).toEqual([
+        // Lower-cased on the way in, because that is what an address is
+        // compared as when somebody asks for a token.
+        { name: "Robin Traveller", email: "robin@example.test", nickname: "Robin" },
+        { name: "Ana Meyer", email: "ana@example.test" },
+      ]);
+    });
+
+    test("an entry without a usable address is refused, and the trip is not created", () => {
+      // The half-written case is the dangerous one: `parsePeople` would drop
+      // the whole list and the caller would be told 201 for a trip crediting
+      // nobody.
+      const result = createTrip("wanderer", {
+        ...DATES,
+        id: "nameless",
+        title: "T",
+        people: [{ name: "Ana", email: "ana at example" }],
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBe("invalid_people");
+      expect(getTrip("wanderer/nameless")).toBeUndefined();
+      expect(fs.existsSync(path.join(dir, "wanderer", "trips", "nameless"))).toBe(false);
+    });
+
+    test("more than ten is refused — everyone on the list may write to the trip", () => {
+      const result = createTrip("wanderer", {
+        ...DATES,
+        id: "coach-party",
+        title: "T",
+        people: Array.from({ length: 11 }, (_, i) => ({
+          name: `P${i}`,
+          email: `p${i}@example.test`,
+        })),
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBe("invalid_people");
+    });
+
+    test("the same address twice is refused rather than written and dropped", () => {
+      const result = createTrip("wanderer", {
+        ...DATES,
+        id: "twice",
+        title: "T",
+        people: [
+          { name: "Ana", email: "ana@example.test" },
+          { name: "Ana again", email: "ANA@example.test" },
+        ],
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBe("invalid_people");
+    });
+
+    test("a name that would close the frontmatter block is refused, like a title", () => {
+      // B204, one field over: `quoteScalar` would now escape it, and the
+      // caller still hears about a name it did not intend to send.
+      const result = createTrip("wanderer", {
+        ...DATES,
+        id: "b204-people",
+        title: "T",
+        people: [{ name: "Ana\n---\nnot: [yaml", email: "ana@example.test" }],
+      });
+      expect(result.ok).toBe(false);
+      expect(fs.existsSync(path.join(dir, "wanderer", "trips", "b204-people"))).toBe(false);
+    });
+
+    test("an empty list writes no key at all", () => {
+      createTrip("wanderer", { ...DATES, id: "solo", title: "Solo", people: [] });
+      const file = fs.readFileSync(
+        path.join(dir, "wanderer", "trips", "solo", "trip.md"),
+        "utf8",
+      );
+      expect(file).not.toContain("people:");
+      expect(getTrip("wanderer/solo")?.people).toEqual([]);
+    });
+  });
+
+  describe("rates — this trip's frozen local-to-base table", () => {
+    test("is written and reads back as numbers, including a small one", () => {
+      const result = createTrip("wanderer", {
+        ...DATES,
+        id: "vietnam",
+        title: "Vietnam",
+        // 1 THB = 0.0245 CHF. The direction that is easy to get backwards.
+        rates: { THB: 0.0245, VND: 0.000034 },
+      });
+      expect(result.ok).toBe(true);
+      expect(getTrip("wanderer/vietnam")?.rates).toEqual({ THB: 0.0245, VND: 0.000034 });
+    });
+
+    test("a rate that is not a positive number is refused, naming the currency", () => {
+      const result = createTrip("wanderer", {
+        ...DATES,
+        id: "bad-rate",
+        title: "T",
+        rates: { THB: "about forty" },
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBe("invalid_rates");
+        expect(result.message).toContain("THB");
+      }
+      expect(getTrip("wanderer/bad-rate")).toBeUndefined();
+    });
+
+    test("something that is not a currency code is refused rather than silently dropped", () => {
+      // `parseRateTable` drops it with a warning when it reads one. Written
+      // here, the caller would never learn the currency it asked for is
+      // missing — and an unconvertible cost is a supported state, so nothing
+      // downstream would look wrong either.
+      const result = createTrip("wanderer", {
+        ...DATES,
+        id: "not-a-code",
+        title: "T",
+        rates: { baht: 0.0245 },
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBe("invalid_rates");
+    });
+
+    test("a rate only expressible in exponent form is refused, not written as text", () => {
+      // `String(1e-7)` is "1e-7", which YAML reads back as a string; the file
+      // would parse and the rate would then be dropped by the reader.
+      const result = createTrip("wanderer", {
+        ...DATES,
+        id: "tiny",
+        title: "T",
+        rates: { XXX: 1e-7 },
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBe("invalid_rates");
+    });
+  });
+
+  describe("translations — the trip's title in the journal's other languages", () => {
+    test("is written for a language the journal speaks, and reads back", () => {
+      make("reisender", { defaultLocale: "de", locales: ["de", "en"] });
+      const result = createTrip("reisender", {
+        ...DATES,
+        id: "japan-2027",
+        title: "Japan",
+        translations: { en: { title: "Japan", tagline: "Six weeks by train" } },
+      });
+      expect(result.ok).toBe(true);
+      expect(getTrip("reisender/japan-2027")?.translations).toEqual({
+        en: { title: "Japan", tagline: "Six weeks by train" },
+      });
+    });
+
+    test("a language the journal does not speak is refused, and says where to add it", () => {
+      // Written, it would land, read back, and never be rendered — the inert
+      // write B182 refused to ship. Since B220 the journal's `locales` are
+      // reachable, so the refusal names the call rather than ending there.
+      const result = createTrip("wanderer", {
+        ...DATES,
+        id: "german",
+        title: "T",
+        translations: { de: { title: "Japan" } },
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBe("invalid_translations");
+        expect(result.message).toContain("locales");
+      }
+      expect(getTrip("wanderer/german")).toBeUndefined();
+    });
+
+    test("a language name rather than a language code is refused", () => {
+      const result = createTrip("wanderer", {
+        ...DATES,
+        id: "named",
+        title: "T",
+        translations: { german: { title: "Japan" } },
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBe("invalid_translations");
+    });
+
+    test("a locale entry saying nothing is refused, because the reader drops it", () => {
+      make("reisender", { defaultLocale: "de", locales: ["de", "en"] });
+      const result = createTrip("reisender", {
+        ...DATES,
+        id: "empty",
+        title: "T",
+        translations: { en: {} },
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toBe("invalid_translations");
+    });
+  });
+
+  /**
+   * `cover` — the one of the four that answers no.
+   *
+   * At the moment `createTrip` runs the folder is being made: there is no
+   * `media/`, and `POST /api/v1/<user>/trips/<trip>/media` refuses a batch
+   * that does not name a day, so no photograph can arrive until a day has.
+   * Anything a caller could send would name a file that is not there. It stays
+   * file-only, `.claude/skills/add-a-trip/SKILL.md` says how to write it by
+   * hand, and B245 is the call it actually belongs on.
+   */
+  test("cover is not accepted, and a body carrying one writes no cover", () => {
+    const result = createTrip("wanderer", {
+      ...DATES,
+      id: "covered",
+      title: "T",
+      ...({ cover: "/media/covered/hero.jpg" } as Record<string, unknown>),
+    });
+    expect(result.ok).toBe(true);
+    const file = fs.readFileSync(path.join(dir, "wanderer", "trips", "covered", "trip.md"), "utf8");
+    expect(file).not.toContain("cover:");
+    expect(getTrip("wanderer/covered")?.cover).toBeUndefined();
+  });
+
+  test("every field the reader knows is now either written or decided", () => {
+    /**
+     * The acceptance line of B207, as a test rather than as a claim: nothing
+     * in `KNOWN_TRIP_FIELDS` is left undecided. Written by `createTrip`, or
+     * named here with the reason it is not.
+     */
+    const written = [
+      "id",
+      "title",
+      "tagline",
+      "start",
+      "end",
+      "status",
+      "accent",
+      "visibility",
+      "listed",
+      "costsVisibility",
+      "test",
+      "people",
+      "rates",
+      "translations",
+    ];
+    const decidedAgainst = { cover: "no media exists when a trip is created — B245" };
+
+    const trip = createTrip("wanderer", {
+      ...DATES,
+      id: "everything",
+      title: "Everything",
+      tagline: "one line",
+      status: "upcoming",
+      accent: "coral",
+      visibility: "public",
+      listed: false,
+      costsVisibility: "guests",
+      test: true,
+      people: [{ name: "Ana", email: "ana@example.test" }],
+      rates: { THB: 0.0245 },
+      translations: { en: { title: "Everything" } },
+    });
+    expect(trip.ok).toBe(true);
+
+    const file = fs.readFileSync(
+      path.join(dir, "wanderer", "trips", "everything", "trip.md"),
+      "utf8",
+    );
+    for (const field of written) {
+      expect(file, `${field} should be written by createTrip`).toContain(`${field}:`);
+    }
+    for (const field of Object.keys(decidedAgainst)) {
+      expect(file, `${field} is decided against`).not.toContain(`${field}:`);
+    }
+    expect([...written, ...Object.keys(decidedAgainst)].sort()).toEqual(
+      [...KNOWN_TRIP_FIELDS].sort(),
+    );
   });
 });

@@ -153,6 +153,39 @@ Five fields decide behaviour rather than decoration:
   at a guess. An empty `rates:` beats a number nobody can defend — the same
   rule as everywhere else here. `docs/currencies.md` has the full picture.
 
+Two more keys the reader understands, and one of them is the only field of a
+`trip.md` that no call can write:
+
+- **`translations`** — the trip's title and tagline in the journal's other
+  languages, keyed by locale:
+
+  ```yaml
+  translations:
+    de:
+      title: "Japan"
+      tagline: "Sechs Wochen mit dem Zug"
+  ```
+
+  Only worth writing for a locale the journal actually declares in its own
+  `config.json`; anything else is written and never rendered. Over the API a
+  locale the journal does not speak is refused rather than written, and says to
+  add the language first.
+- **`cover`** — the picture the trip shows on `/<user>/trips` and in its
+  sharing card, as a path under the trip's own media: `cover:
+  /media/<trip-id>/hero.jpg`. **This is the one field you write by hand.**
+  `POST /api/v1/<user>/trips` and `create_trip` deliberately do not take it
+  (B207): a trip has no photographs at the moment it is created — media has to
+  be attached to a day, and there are no days yet — so any value they could
+  accept would name a file that is not there, and the trips index would draw a
+  broken image rather than none. Add the line once the photographs are in, at
+  the file. B245 is the call it should eventually live on.
+
+Everything above except `cover` can also be sent to `POST
+/api/v1/<user>/trips` or `create_trip` when the trip is created, which is the
+only moment any of it can be set: there is no call that edits a `trip.md`
+afterwards, so a `people:` list or a `rates:` table sent wrongly is corrected
+here, in the file.
+
 ### 3. Optional — a budget (`costs.md`)
 
 ```markdown
