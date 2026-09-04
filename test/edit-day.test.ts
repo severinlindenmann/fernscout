@@ -9,7 +9,8 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { createDraft, editEntry, publishDraft, type EditInput } from "@/lib/api/entries";
 import { getEntryBySlug } from "@/lib/entries";
-import { PATCH as editRoute } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/route";
+import { GET as getDayRoute, PATCH as editRoute } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/route";
+import { POST as createRoute } from "@/app/api/v1/[user]/trips/[trip]/days/route";
 
 /**
  * B266 — editing a day, and the one property that must survive it.
@@ -282,5 +283,131 @@ describe("PATCH .../days/<slug>: the route", () => {
     expect(status).toBe(400);
     expect(body.error).toBe("invalid_entry");
     expect(Array.isArray(body.problems)).toBe(true);
+  });
+});
+
+/**
+ * B304 — a day's costs held to the same rule B295 gave the trip budget door:
+ * a zero or negative amount, and a currency `normalizeCurrency` would not
+ * recognise, are refused rather than accepted and silently dropped when the
+ * page reads them back (`parseCostItems`, lib/costFormat.ts). Both doors
+ * share `checkCosts` (lib/validate/entry.ts) now, so the messages match.
+ *
+ * The one thing these tests hold apart from that: a day already on disk with
+ * either mistake — written before this ticket, or by hand — must keep
+ * rendering. Reading a day never calls the validator; only a write does.
+ */
+describe("day costs: the same refusal as the trip budget door (B304)", () => {
+  async function createDay(token: string, body: unknown) {
+    const response = await createRoute(
+      new Request("https://t.test/api/v1/alex/trips/reise/days", {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ user: "alex", trip: "reise" }) },
+    );
+    const parsed = (await response.json()) as Record<string, unknown>;
+    return { status: response.status, body: parsed };
+  }
+
+  test("POST refuses a zero-amount cost, naming the field", async () => {
+    const token = await agentToken();
+    const { status, body } = await createDay(token, {
+      ...DRAFT,
+      costs: [{ label: "Ferry", amount: 0, currency: "EUR" }],
+    });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_entry");
+    const problems = body.problems as { field: string }[];
+    expect(problems.some((p) => p.field === "costs[0].amount")).toBe(true);
+    // Refused, not written half-done.
+    expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })).toBeUndefined();
+  });
+
+  test("POST refuses a negative amount the same way", async () => {
+    const token = await agentToken();
+    const { status, body } = await createDay(token, {
+      ...DRAFT,
+      costs: [{ label: "Ferry", amount: -5, currency: "EUR" }],
+    });
+    expect(status).toBe(400);
+    const problems = body.problems as { field: string }[];
+    expect(problems.some((p) => p.field === "costs[0].amount")).toBe(true);
+  });
+
+  test("POST refuses an unrecognisable currency, naming the field", async () => {
+    const token = await agentToken();
+    const { status, body } = await createDay(token, {
+      ...DRAFT,
+      costs: [{ label: "Ferry", amount: 40, currency: "Euros" }],
+    });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_entry");
+    const problems = body.problems as { field: string }[];
+    expect(problems.some((p) => p.field === "costs[0].currency")).toBe(true);
+  });
+
+  test("PATCH refuses the same shape, and writes nothing", async () => {
+    createDraft(REF, DRAFT);
+    const token = await agentToken();
+    const { status, body } = await patchDay(token, "erster-tag", {
+      costs: [{ label: "Taxi", amount: 0, currency: "CHF" }],
+    });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_entry");
+    const problems = body.problems as { field: string }[];
+    expect(problems.some((p) => p.field === "costs[0].amount")).toBe(true);
+    expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })?.costs).toEqual([]);
+  });
+
+  test("the messages match the trip-budget door's", async () => {
+    const token = await agentToken();
+    const { body: byAmount } = await createDay(token, {
+      ...DRAFT,
+      costs: [{ label: "Ferry", amount: 0, currency: "EUR" }],
+    });
+    const amountProblem = (byAmount.problems as { field: string; expected: string }[]).find(
+      (p) => p.field === "costs[0].amount",
+    );
+    // Same sentence lib/validate/costs.ts uses for the trip budget door —
+    // both now come from the one function, checkCosts (lib/validate/entry.ts).
+    expect(amountProblem?.expected).toBe(
+      "a number greater than zero — parseCostItems drops a zero or negative amount " +
+        "silently when the page reads it back, which is the failure this door exists to refuse.",
+    );
+
+    const { body: byCurrency } = await createDay(token, {
+      ...DRAFT,
+      costs: [{ label: "Ferry", amount: 40, currency: "Euros" }],
+    });
+    const currencyProblem = (byCurrency.problems as { field: string; expected: string }[]).find(
+      (p) => p.field === "costs[0].currency",
+    );
+    expect(currencyProblem?.expected).toBe("an ISO-4217 code, e.g. CHF — three letters");
+  });
+
+  test("a day already on disk with a zero-amount cost and a bad currency still renders", async () => {
+    // createDraft is the lib function the route calls *after* validation —
+    // used directly here, unvalidated, to stand in for a day already on disk
+    // before this ticket (or one written by hand, or by ingest). The read
+    // path must not start erroring on a file the write path would now refuse.
+    createDraft(REF, {
+      ...DRAFT,
+      costs: [{ label: "Ferry", amount: 0, currency: "Euros" }],
+    });
+    const token = await agentToken();
+    const response = await getDayRoute(
+      new Request("https://t.test/api/v1/alex/trips/reise/days/erster-tag", {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+      { params: Promise.resolve({ user: "alex", trip: "reise", slug: "erster-tag" }) },
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { costs: unknown[] };
+    // parseCostItems drops the zero-amount item silently, exactly as it did
+    // before this ticket — this is about the render not throwing, not about
+    // resurrecting a cost the write path would now refuse.
+    expect(body.costs).toEqual([]);
   });
 });

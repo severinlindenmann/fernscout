@@ -9,61 +9,12 @@
 // rather than forming a second opinion — a day's costs and a trip's
 // preparation costs are the same shape (label, amount, category, currency),
 // and B295 is explicit that this door refuses exactly what the existing
-// validation refuses. Two things are new here, both because a budget door
-// cannot afford the silence a page render can: currency shape, which
-// `checkCosts` has never checked (a day's costs door lets a bad currency
-// through to `normalizeCurrency`'s fallback), and a non-positive amount,
-// which `checkCosts` lets through as "a number" but `parseCostItems`
-// (lib/costFormat.ts) then drops silently when the page reads it back —
-// the exact shape of B263's failure, one field over from the budget total
-// it was actually about.
-import { checkCosts, describe, type EntryInput, type Problem } from "./entry";
-
-/** Same shape `normalizeCurrency` (lib/currency.ts) accepts. Checked here,
- * ahead of the write, rather than left to that function's silent fallback. */
-const CURRENCY_RE = /^[A-Za-z]{3}$/;
-
-function checkCurrencyCode(field: string, raw: unknown, problems: Problem[]): void {
-  if (raw === undefined) return;
-  if (typeof raw !== "string" || !CURRENCY_RE.test(raw.trim())) {
-    problems.push({
-      field,
-      got: describe(raw),
-      expected: "an ISO-4217 code, e.g. CHF — three letters",
-    });
-  }
-}
-
-function checkItemCurrencies(raw: unknown, problems: Problem[]): void {
-  if (!Array.isArray(raw)) return;
-  raw.forEach((item, i) => {
-    const cost = (item && typeof item === "object" ? item : {}) as { currency?: unknown };
-    checkCurrencyCode(`costs[${i}].currency`, cost.currency, problems);
-  });
-}
-
-/**
- * `checkCosts` accepts any finite number as an amount; `parseCostItems`
- * then drops anything that is not strictly positive when the page reads it
- * back. Refused here instead, with the same reasoning `checkBudget` below
- * applies to a zero total: a write that reads back as if it had never
- * happened is worse than one that was never accepted.
- */
-function checkItemAmounts(raw: unknown, problems: Problem[]): void {
-  if (!Array.isArray(raw)) return;
-  raw.forEach((item, i) => {
-    const cost = (item && typeof item === "object" ? item : {}) as { amount?: unknown };
-    if (typeof cost.amount === "number" && Number.isFinite(cost.amount) && cost.amount <= 0) {
-      problems.push({
-        field: `costs[${i}].amount`,
-        got: describe(cost.amount),
-        expected:
-          "a number greater than zero — parseCostItems drops a zero or negative amount " +
-          "silently when the page reads it back, which is the failure this door exists to refuse.",
-      });
-    }
-  });
-}
+// validation refuses. Since B304, `checkCosts` itself checks currency shape
+// and a non-positive amount — it originally didn't, which is why this file
+// used to carry its own copy of both checks; that copy is gone now that the
+// shared function does the same work, for the day-costs door as well as this
+// one.
+import { checkCosts, checkCurrencyCode, describe, type EntryInput, type Problem } from "./entry";
 
 export type BudgetInput = { total?: unknown; days?: unknown; currency?: unknown };
 
@@ -109,8 +60,6 @@ function checkBudget(raw: unknown, problems: Problem[], required: boolean): void
 function checkCostsList(raw: unknown, problems: Problem[]): void {
   if (raw === undefined) return;
   checkCosts({ costs: raw } as EntryInput, problems);
-  checkItemCurrencies(raw, problems);
-  checkItemAmounts(raw, problems);
 }
 
 function checkBody(raw: unknown, problems: Problem[]): void {

@@ -39,6 +39,27 @@ export const CONTENT_MAX_LENGTH = 100_000;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/** Same shape `normalizeCurrency` (lib/currency.ts) accepts. Checked here,
+ * ahead of the write, rather than left to that function's silent fallback —
+ * a bad currency would otherwise reach `normalizeCurrency`'s default and read
+ * back as the trip's base currency, with nothing said to anybody (B304).
+ *
+ * Exported since B304 so lib/validate/costs.ts — which checks the identical
+ * shape on a trip's `budget.currency` — shares this rather than keeping a
+ * second regex and a second message that could drift from this one. */
+const CURRENCY_RE = /^[A-Za-z]{3}$/;
+
+export function checkCurrencyCode(field: string, raw: unknown, problems: Problem[]): void {
+  if (raw === undefined) return;
+  if (typeof raw !== "string" || !CURRENCY_RE.test(raw.trim())) {
+    problems.push({
+      field,
+      got: describe(raw),
+      expected: "an ISO-4217 code, e.g. CHF — three letters",
+    });
+  }
+}
+
 export type Problem = {
   /** Dotted/indexed path to the bad value, e.g. "costs[1].amount". */
   field: string;
@@ -179,9 +200,17 @@ function checkTransportMode(input: EntryInput, problems: Problem[]): void {
 /**
  * Exported since B295: the costs door's own `costs:` list — a trip's
  * preparation spending — is the identical shape as a day's, so it refuses
- * exactly what this refuses rather than a second opinion. Label, amount and
- * category are checked here; currency is not (see `lib/validate/costs.ts`
- * for why the newer door checks it and this one still doesn't).
+ * exactly what this refuses rather than a second opinion.
+ *
+ * Since B304 this also refuses a zero or negative amount and an
+ * unrecognisable currency, not just a missing label or an unknown category.
+ * Before that, a day written with `{"amount": 0, "currency": "Euros"}` was
+ * accepted here and then silently dropped — the amount by `parseCostItems`,
+ * which keeps only a strictly positive one, the currency by
+ * `normalizeCurrency`'s fallback to the trip's base currency
+ * (lib/costFormat.ts, lib/currency.ts) — reporting success on a write that
+ * stored nothing. Same failure `lib/validate/costs.ts` refuses on a trip's
+ * own budget door (B295); this is the day-costs half of it.
  */
 export function checkCosts(input: EntryInput, problems: Problem[]): void {
   if (input.costs === undefined) return;
@@ -199,6 +228,14 @@ export function checkCosts(input: EntryInput, problems: Problem[]): void {
     }
     if (typeof cost.amount !== "number" || !Number.isFinite(cost.amount)) {
       problems.push({ field: `${prefix}.amount`, got: describe(cost.amount), expected: "a number" });
+    } else if (cost.amount <= 0) {
+      problems.push({
+        field: `${prefix}.amount`,
+        got: describe(cost.amount),
+        expected:
+          "a number greater than zero — parseCostItems drops a zero or negative amount " +
+          "silently when the page reads it back, which is the failure this door exists to refuse.",
+      });
     }
     if (
       cost.category !== undefined &&
@@ -210,6 +247,7 @@ export function checkCosts(input: EntryInput, problems: Problem[]): void {
         expected: `one of ${COST_CATEGORIES.join(", ")}`,
       });
     }
+    checkCurrencyCode(`${prefix}.currency`, cost.currency, problems);
   });
 }
 
