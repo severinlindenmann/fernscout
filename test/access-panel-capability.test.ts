@@ -32,10 +32,10 @@ vi.mock("@/lib/viewer", () => ({
 /** Spied rather than reimplemented: what this file asserts is that the page
  * asks for the owner's short name and passes *that* down, not what the answer
  * is. `test/site-travellers.test.ts` owns the answer. */
-const shortName = vi.hoisted(() => vi.fn((_user: unknown) => "Robin"));
+const shortName = vi.hoisted(() => vi.fn(() => "Robin"));
 vi.mock("@/lib/site", () => ({
   serverSite: () => ({ url: "https://example.test" }),
-  ownerShortName: (user: unknown) => shortName(user),
+  ownerShortName: (...args: unknown[]) => shortName(...(args as [])),
 }));
 vi.mock("@/lib/contacts", () => ({
   listContacts: async () => [],
