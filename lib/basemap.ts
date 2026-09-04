@@ -4,6 +4,7 @@ import path from "node:path";
 import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { placesInBox } from "./ingest/geo";
+import { clipPath, type ClipBox } from "./mapClip";
 import { DEG_PER_UNIT, frameRoute, kmForUnits, type Frame, type Point } from "./mapFrame";
 import { MAP_VIEWBOX } from "./mapProjection.mjs";
 
@@ -24,10 +25,16 @@ import { MAP_VIEWBOX } from "./mapProjection.mjs";
  *   already committed for reverse-geocoding photographs.
  *
  * Clipping here rather than in the browser is the whole point. The bundle is
- * eleven megabytes; a reader gets the few dozen kilobytes their trip actually
- * covers, and there is no generated artefact anywhere to go stale when a trip
- * grows a stop — the answer is derived per request from files on disk, exactly
- * as `getPlaces` is.
+ * 6.7 MB gzipped and 25 MB parsed; a reader gets the few dozen kilobytes their
+ * trip actually covers, and there is no generated artefact anywhere to go
+ * stale when a trip grows a stop — the answer is derived per request from
+ * files on disk, exactly as `getPlaces` is.
+ *
+ * "The few dozen kilobytes" was a claim about *shape selection* and it was not
+ * true: a shape whose bounding box grazed the frame travelled whole, so
+ * `alps-2024` — four stops inside 68 km — came to 518,867 bytes, and the trip
+ * page to 1,092,881. B177 made the sentence true by cutting the geometry as
+ * well as choosing the shapes (`lib/mapClip.ts`): 64,616 and 192,102.
  */
 
 /** One shape: its bounding box in projected units, then its SVG path. */
@@ -132,44 +139,185 @@ const DETAIL_BELOW_KM = 900;
  */
 const MID_BELOW_KM = 6000;
 
+/**
+ * How far past the frame the clip reaches, as a fraction of the frame.
+ *
+ * Two jobs, and it had only the first before B177. **Panning**: the map drags,
+ * so a reader who pulls the Alps a little to the left must not pull them off
+ * the edge of what the server sent. **And now the cut edge**: a clipped
+ * country is stroked along the box as though a border ran there
+ * (`lib/mapClip.ts`), and half a frame is how far away those edges stay.
+ *
+ * B177 asked whether it earns its keep, on the premise that the map does not
+ * pan. It does — `WorldMap` has drag handlers and the map page is where a
+ * reader looks at a route properly — so the question is what the room costs
+ * now that it is bought by area rather than by whole countries. Measured, at
+ * 0.25 instead of 0.5: `alps-2024` 41,439 bytes rather than 64,616, and
+ * `usa-2026` 40,278 rather than 85,436. Real, and still small beside the
+ * 454,251 bytes clipping took off `alps-2024` on its own — so the drag stays
+ * a half frame, and this is the number to revisit first if it ever has to give.
+ */
+const PAD_FRACTION = 0.5;
+
 function bundleFile(): string {
   return path.join(path.dirname(fileURLToPath(import.meta.url)), "mapdata", "basemap.json.gz");
 }
 
+/**
+ * The parsed bundle once it is in hand.
+ *
+ * `undefined` is "not read yet", `null` is **never built** — the one absent
+ * state that is supported and permanent. A failed read is *not* recorded here;
+ * see `readProblem`.
+ */
 let cached: Bundle | null | undefined;
 
 /**
- * The baked bundle, or null if it was never built.
+ * A read that failed for a reason other than the file not being there.
+ *
+ * **Why this is not just `cached = null`.** It was, and B179 is what that
+ * cost: one `ENOMEM`, one interrupted read, one `RangeError` on a 25 MB parse,
+ * and every map on the instance drew with no borders, no water and no labels
+ * until somebody restarted the process — silently, because "never built" and
+ * "could not be read" were the same branch. The file is 6.7 MB gzipped and
+ * 25 MB parsed, the largest single allocation this server makes, so a
+ * transient failure under memory pressure is not hypothetical.
+ *
+ * Kept separately from `cached` so that a fault is *retried* and *sayable*
+ * where absence is neither, and following `rootProblem` in lib/users.ts
+ * (B197): recorded rather than thrown, because the person who needs it is not
+ * in the request — they are looking at a monitor asking why every map went
+ * blank.
+ */
+let readProblem: { message: string; at: number; attempts: number } | null = null;
+
+/**
+ * How many failures in a row are retried at once, before backing off.
+ *
+ * A transient fault deserves the next request; a corrupt file does not deserve
+ * a 6.7 MB read and a 25 MB parse on every page render for the rest of the
+ * process's life. Three is enough to ride out a moment of memory pressure, and
+ * few enough that a genuinely broken file costs three attempts rather than
+ * thousands.
+ */
+const EAGER_RETRIES = 3;
+
+/** And how long the backoff is, once the eager retries are spent. */
+const RETRY_AFTER_MS = 30_000;
+
+/**
+ * Why the bundle could not be read, if the last attempt failed.
+ *
+ * Null both when the bundle loaded and when it was never built — absence is
+ * not a fault. `/api/health` reports it; nothing else should branch on it,
+ * because the answer to "no basemap" is the same either way: draw the clean
+ * background.
+ */
+export function basemapProblem(): string | null {
+  return readProblem?.message ?? null;
+}
+
+/**
+ * The baked bundle, or null if it was never built — or cannot be read.
  *
  * Absent is a supported state, not an error: a checkout that has not run
  * `npm run build:mapdata` still serves maps, just without a basemap under
  * them. That is the same fallback a frame too close in for Natural Earth to
  * say anything about already gets, so there is a correct thing to draw.
+ *
+ * A *failed* read is a different thing wearing the same face. It returns the
+ * same null — a map with no borders beats a page that will not render — but it
+ * is remembered as a fault rather than as an answer, warned about once, and
+ * tried again.
  */
 function bundle(): Bundle | null {
   if (cached !== undefined) return cached;
+  if (
+    readProblem &&
+    readProblem.attempts >= EAGER_RETRIES &&
+    Date.now() - readProblem.at < RETRY_AFTER_MS
+  ) {
+    return null;
+  }
+
   const file = bundleFile();
   try {
-    cached = JSON.parse(zlib.gunzipSync(fs.readFileSync(file)).toString("utf8")) as Bundle;
-  } catch {
-    cached = null;
+    const data = JSON.parse(zlib.gunzipSync(fs.readFileSync(file)).toString("utf8")) as Bundle;
+    cached = data;
+    readProblem = null;
+    return data;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      // Never built. Permanent, silent, and correct: this is the state a
+      // checkout that skipped `npm run build:mapdata` is meant to be in.
+      cached = null;
+      readProblem = null;
+      return null;
+    }
+    const message = `${file} could not be read: ${(error as Error).message}`;
+    // Once per distinct fault, not once per map: a trip page builds two of
+    // these, and a line repeated on every render is how the warnings that
+    // matter stop being read. Repeated when the message changes, because a
+    // fault that turned from EACCES into a parse error is news.
+    if (readProblem?.message !== message) {
+      console.warn(
+        `[basemap] ${message} — every map on this instance draws without ` +
+          `borders, water or labels until it reads again. /api/health says so.`,
+      );
+    }
+    readProblem = { message, at: Date.now(), attempts: (readProblem?.attempts ?? 0) + 1 };
+    return null;
   }
-  return cached;
 }
 
-/** Test seam — the bundle is read once and held for the life of the process. */
+/**
+ * Test seam — drops the parsed bundle and any recorded read failure with it.
+ *
+ * Both, for the reason `clearUserCache()` gives: a test that mocked
+ * `readFileSync` into throwing must not leave the next one reporting an
+ * instance whose maps are broken.
+ */
 export function clearBasemapCache(): void {
   cached = undefined;
+  readProblem = null;
 }
 
 /** Whether two boxes touch at all. */
-function overlaps(shape: Shape, x0: number, y0: number, x1: number, y1: number): boolean {
-  return shape[0] <= x1 && shape[2] >= x0 && shape[1] <= y1 && shape[3] >= y0;
+function overlaps(shape: Shape, box: ClipBox): boolean {
+  return shape[0] <= box.x1 && shape[2] >= box.x0 && shape[1] <= box.y1 && shape[3] >= box.y0;
 }
 
-function clip(shapes: Shape[], x0: number, y0: number, x1: number, y1: number): string[] {
+/**
+ * One layer, cut to the box.
+ *
+ * Selection is by bounding box, as it always was; what changed with B177 is
+ * what a *selected* shape costs. A shape used to travel whole, so `alps-2024`
+ * — four stops inside 68 km — was handed 518,867 bytes of basemap, 465,472 of
+ * it seven country polygons drawn a thousand kilometres past the edge of a
+ * frame 186 km wide. The reader downloaded Sicily to look at the Grimsel.
+ * `lib/mapClip.ts` cuts the geometry to the box instead.
+ *
+ * A shape lying *wholly* inside the box is passed through untouched, which is
+ * not only an optimisation: it is what keeps a wide map byte-for-byte what it
+ * was. At continental width every shape the clip returns is contained, so
+ * nothing is parsed, nothing is re-serialised, and the coarse band pays
+ * nothing for a fix aimed at the close one.
+ *
+ * `close` is the bake's own flag for the layer (`scripts/build-mapdata.mjs`):
+ * a filled shape has to come back closed or the fill leaks into the sea, and a
+ * stroked line must not be closed or a river joins its own mouth.
+ */
+function clip(shapes: Shape[], box: ClipBox, close: boolean): string[] {
   const out: string[] = [];
-  for (const shape of shapes) if (overlaps(shape, x0, y0, x1, y1)) out.push(shape[4]);
+  for (const shape of shapes) {
+    if (!overlaps(shape, box)) continue;
+    if (shape[0] >= box.x0 && shape[1] >= box.y0 && shape[2] <= box.x1 && shape[3] <= box.y1) {
+      out.push(shape[4]);
+      continue;
+    }
+    const cut = clipPath(shape[4], box, close);
+    if (cut) out.push(cut);
+  }
   return out;
 }
 
@@ -197,13 +345,15 @@ export function basemapFor(frame: Frame): Basemap | null {
       : (data.bordersCoarse ?? data.borders);
 
   // The frame is in corrected space; the bundle is not. Undo the correction to
-  // get the box to test against, and pad it by half a frame so that panning a
-  // little does not run off the edge of what was clipped.
-  const pad = frame.w * 0.5;
-  const x0 = (frame.x - pad) / frame.lngScale;
-  const x1 = (frame.x + frame.w + pad) / frame.lngScale;
-  const y0 = frame.y - frame.h * 0.5;
-  const y1 = frame.y + frame.h * 1.5;
+  // get the box to clip against, and pad it (PAD_FRACTION) so that panning a
+  // little does not run off the edge of what was kept.
+  const pad = frame.w * PAD_FRACTION;
+  const box: ClipBox = {
+    x0: (frame.x - pad) / frame.lngScale,
+    x1: (frame.x + frame.w + pad) / frame.lngScale,
+    y0: frame.y - frame.h * PAD_FRACTION,
+    y1: frame.y + frame.h * (1 + PAD_FRACTION),
+  };
 
   // **Labels use the frame itself, not the padded box.** Shapes are padded
   // because a coastline half off-screen still has to be drawn to the edge; a
@@ -242,21 +392,21 @@ export function basemapFor(frame: Frame): Basemap | null {
   );
 
   return {
-    borders: clip(outlines, x0, y0, x1, y1),
+    borders: clip(outlines, box, true),
     // Everything below is detail that a continental frame cannot show and
     // should not carry. See DETAIL_BELOW_KM.
-    admin1: detailed ? clip(data.admin1 ?? [], x0, y0, x1, y1) : [],
-    relief: detailed ? clip(data.relief ?? [], x0, y0, x1, y1) : [],
-    glaciers: detailed ? clip(data.glaciers ?? [], x0, y0, x1, y1) : [],
-    parks: detailed ? clip(data.parks ?? [], x0, y0, x1, y1) : [],
+    admin1: detailed ? clip(data.admin1 ?? [], box, false) : [],
+    relief: detailed ? clip(data.relief ?? [], box, true) : [],
+    glaciers: detailed ? clip(data.glaciers ?? [], box, true) : [],
+    parks: detailed ? clip(data.parks ?? [], box, true) : [],
     // Roads and railways only once the frame is small enough for them to mean
     // something. On a map of Asia every motorway in China is a grey haze over
     // the route the trip actually took; on a map of one valley the road *is*
     // the trip. The threshold is the same one `isCloseRange` names.
-    railroads: ways ? clip(data.railroads ?? [], x0, y0, x1, y1) : [],
-    roads: ways ? clip(data.roads ?? [], x0, y0, x1, y1) : [],
-    lakes: detailed ? clip(data.lakes, x0, y0, x1, y1) : [],
-    rivers: detailed ? clip(data.rivers, x0, y0, x1, y1) : [],
+    railroads: ways ? clip(data.railroads ?? [], box, false) : [],
+    roads: ways ? clip(data.roads ?? [], box, false) : [],
+    lakes: detailed ? clip(data.lakes, box, true) : [],
+    rivers: detailed ? clip(data.rivers, box, false) : [],
     peaks: spread(peakCandidates, frame, MAX_PEAKS),
     towns: spread(townCandidates, frame, MAX_TOWNS),
     attribution: data.attribution,

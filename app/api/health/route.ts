@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { readBackupStatus } from "@/lib/backupStatus";
+import { basemapProblem } from "@/lib/basemap";
 import { resolveCapabilities } from "@/lib/capabilities";
 import { loadServerConfig } from "@/lib/config";
 import { FEATURE_NAMES } from "@/lib/config";
@@ -45,6 +46,17 @@ export const dynamic = "force-dynamic";
  * empty `journals` block is the symptom an operator sees; this field is the
  * only thing that can tell them it means "cannot tell" rather than "nothing to
  * report".
+ *
+ * **A basemap that will not read is `basemap: { ok: false }` and a 200.**
+ * `bundle()` in lib/basemap.ts returns null both for a bundle nobody built —
+ * a supported state — and for one it could not read, and before B179 those
+ * were the same silent branch, cached for the life of the process: one failed
+ * read and every map on the instance drew blank until a restart. The fault now
+ * has a name and is reported here. It is a field rather than part of `status`,
+ * for the reason `backup` is: a map with no borders under it is not a reason
+ * to take an instance out of a load balancer, and very much a reason to tell
+ * somebody. Nothing here forces a read — this reports the last attempt any
+ * page made, so an instance that has drawn no map since booting says `ok`.
  *
  * A journal whose `mail` is narrowed off also carries `stillSent`, because
  * that block is only true of the letters the journal writes to its readers:
@@ -124,6 +136,8 @@ export async function GET() {
     }
   }
 
+  const basemapFault = basemapProblem();
+
   const healthy = configOk && !contentProblem;
 
   const body = {
@@ -137,6 +151,11 @@ export async function GET() {
     // `ok: true` says the list below is the whole truth; `ok: false` says this
     // process cannot see any journal at all, whatever `journals` looks like.
     content: contentProblem ? { ok: false, error: contentProblem } : { ok: true },
+    // The map data under every trip map, separately again: it is read from
+    // lib/, not from content/, and a journal directory that is fine says
+    // nothing about a bundle that is not. See the note above on why this does
+    // not move `status`.
+    basemap: basemapFault ? { ok: false, error: basemapFault } : { ok: true },
     capabilities,
     journals,
     backup: readBackupStatus(),
