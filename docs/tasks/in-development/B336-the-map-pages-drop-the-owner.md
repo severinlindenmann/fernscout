@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: maps, entries, drafts
 found: "2026-09-04T19:18:30Z"
+started: "2026-09-04T19:26:10Z"
+session: cae3e4fb-d628-4a89-89b7-43a581bc7e71
+claimed: "2026-09-04T19:26:10Z"
 ---
 
 # B336 — The map pages drop the owner's draft days while the same page's planned route keeps them
