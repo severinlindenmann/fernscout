@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: content, deploy, demo
 found: "2026-09-03"
+merged: "2026-09-04T10:01:15Z"
 ---
 
 # B113 — The live demo journal is missing its upcoming trip
@@ -130,3 +131,34 @@ separately if it is wanted — the trip write path is deliberately narrow and
 - Whichever answer is chosen, it is written down: either `example/` is in the
   sync script's list and the runbook says a deploy overwrites it, or the runbook
   says how to seed it and that deploys will not.
+
+## Verified resolved (2026-09-04)
+
+Checked against the running instance rather than taken on trust. A deploy
+since this was captured carried the trip:
+
+```
+$ curl -s -o /dev/null -w "%{http_code}" https://fernscout.ch/example/trips/japan-2027/map
+200
+$ curl -s https://fernscout.ch/documentation.txt | grep example
+- [Fernscout Demo](…): Four journeys, to show what this thing does — 5 public trips
+$ curl -s https://fernscout.ch/example/trips | grep -o japan-2027
+japan-2027
+```
+
+The map page serves the planned-trip strings — `titlePlanned` and "Where
+we're going" are both in the served HTML, alongside "Where we've been" for the
+past trips — so B18's headline case is now reproducible on the live site,
+which is the acceptance this task existed for.
+
+No work was done under this id. One thing it noticed is **not** fixed and is
+the more interesting half, per the Why: there is still no network path that
+writes a `plan.md`, so an agent testing a live instance cannot build this
+specimen itself — it can only report the gap. That is B245's neighbourhood (a
+trip's `trip.md` cannot be changed after creation) and is not claimed here.
+
+Moved to `testing/` so a person can close it.
+
+The tagline in `/documentation.txt` still reads "Four journeys" while the count
+beside it says 5 — a hand-written string in the demo journal's own config that
+no longer matches. Captured separately rather than fixed here.
