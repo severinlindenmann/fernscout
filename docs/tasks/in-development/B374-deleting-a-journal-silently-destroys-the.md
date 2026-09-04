@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: credits, deletions
 found: "2026-09-04T21:15:00Z"
+started: "2026-09-04T21:18:54Z"
+session: 3d8b93dd-e447-4c3c-bcd1-fa37e2bd17f9
+claimed: "2026-09-04T21:18:54Z"
 ---
 
 # B374 — Deleting a journal silently destroys the credits left in it

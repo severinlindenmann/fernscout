@@ -5,6 +5,7 @@ import path from "node:path";
 import { hashSecret } from "./auth";
 import { isEnabled } from "./capabilities";
 import { clearConfigCache } from "./config";
+import { balanceOf } from "./credits";
 import { contentRoot } from "./contentRoot";
 import { getDatabase, TABLE_NAMES } from "./db";
 import type { TranslationKey } from "./i18n";
@@ -67,6 +68,16 @@ export type DeletionSummary = {
   days: number;
   files: number;
   bytes: number;
+  /**
+   * The journal's own credit balance (B366), at the moment of asking.
+   * `null` means credits are switched off on this server — a different fact
+   * from a balance of zero, and the two must not be rendered the same way
+   * (B374). Only ever set for `kind: "journal"`: deleting a trip destroys no
+   * credits (`credits` and `credit_ledger` carry no `trip_id`, so the per-table
+   * sweep in `deleteTrip` below never reaches them), so nothing here
+   * computes it for that case.
+   */
+  credits?: number | null;
 };
 
 function nowIso(): string {
@@ -161,6 +172,22 @@ export function summarise(target: DeletionTarget): DeletionSummary | null {
   };
 }
 
+/**
+ * `summarise`, plus the one fact it cannot carry because it is a database
+ * read and `summarise` is a synchronous walk of the disk.
+ *
+ * Kept separate rather than folded into `summarise` itself: the tombstone
+ * notice and the per-table sweep both call `summarise` for a title alone,
+ * long after there is a journal left to hold a balance, and making every one
+ * of those callers `await` a query they never look at would be a cost paid
+ * everywhere for a fact needed in exactly two places — the mail and the page.
+ */
+async function summariseWithCredits(target: DeletionTarget): Promise<DeletionSummary | null> {
+  const summary = summarise(target);
+  if (!summary || summary.kind !== "journal") return summary;
+  return { ...summary, credits: await balanceOf(summary.username) };
+}
+
 export type DeletionRequested = {
   ok: true;
   /** Where the mail went, as the owner would recognise it. */
@@ -194,7 +221,7 @@ export async function requestDeletion(
     };
   }
 
-  const summary = summarise(target);
+  const summary = await summariseWithCredits(target);
   if (!summary) {
     return {
       ok: false,
@@ -326,10 +353,20 @@ async function sendDeletionMail(input: {
     minutes: DELETION_TTL_MINUTES,
   };
 
+  // Absent rather than a "0 credits" line, on a server with credits switched
+  // off or a journal that never held any — B74's rule, restated for money
+  // instead of a currency total. See the type's doc comment on why this is
+  // only ever set for a journal.
+  const creditsLine: MailBlock[] =
+    typeof summary.credits === "number" && summary.credits > 0
+      ? [{ kind: "paragraph", text: t("del.credits", { ...counts, credits: String(summary.credits) }) }]
+      : [];
+
   const blocks: MailBlock[] = [
     { kind: "paragraph", text: t(isJournal ? "del.journalIntro" : "del.tripIntro", counts) },
     { kind: "heading", text: t("del.whatGoesHeading") },
     { kind: "paragraph", text: t(isJournal ? "del.journalWhatGoes" : "del.tripWhatGoes", counts) },
+    ...creditsLine,
     // Above the delete button, on purpose. Somebody about to remove five years
     // of writing should be handed a copy without having to think of it.
     { kind: "heading", text: t("del.exportHeading") },
@@ -422,7 +459,7 @@ export async function resolveDeletionToken(
     kind === "trip"
       ? { kind, username: row.owner_id, tripId: row.trip_id ?? "" }
       : { kind, username: row.owner_id };
-  const summary = summarise(target);
+  const summary = await summariseWithCredits(target);
   // The target went away between the mail and the click — deleted by hand, or
   // by a second link. There is nothing left to confirm.
   if (!summary) return { ok: false, reason: "gone" };

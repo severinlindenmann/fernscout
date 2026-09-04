@@ -285,6 +285,7 @@ export type TranslationKey =
   | "dayMail.timezone"
   | "del.backups"
   | "del.confirmButton"
+  | "del.credits"
   | "del.deleteButton"
   | "del.doneJournalBody"
   | "del.doneJournalTitle"

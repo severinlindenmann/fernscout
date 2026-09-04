@@ -96,6 +96,15 @@ export default async function DeletePage({ params }: PageProps<"/[user]/delete/[
       <p className="mt-3 text-lg leading-8 text-navy-700">
         {t(isJournal ? "del.journalWhatGoes" : "del.tripWhatGoes", vars)}
       </p>
+      {/* Absent when credits are off or the balance is zero — a "you will
+          lose 0 credits" line is noise on every self-hosted install that has
+          never turned charging on (B74, restated for money by B374). Never
+          rendered for a trip: deleting one destroys no credits. */}
+      {isJournal && typeof summary.credits === "number" && summary.credits > 0 && (
+        <p className="mt-3 text-lg leading-8 text-navy-700">
+          {t("del.credits", { ...vars, credits: String(summary.credits) })}
+        </p>
+      )}
 
       <h2 className="mt-10 font-display text-2xl font-semibold text-navy-900">
         {t("del.exportHeading")}
