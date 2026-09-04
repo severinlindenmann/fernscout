@@ -159,3 +159,13 @@ Also captured while here: **B240** (every owner-only gate is a scope-string
 check, which is what made one minting bug open all of them) and **B241** (the
 owner can still be issued a code for a trip that does not exist — fail-closed
 since this fix, but unexplained).
+
+## When it ships
+
+The migration adds a nullable column, so an existing database needs nothing but
+`db:migrate`. One thing to know while testing: **every code outstanding at the
+moment of the deploy has no trip on it.** For the journal's owner that is
+unchanged — an unbound code is theirs and still opens the journal. For anybody
+else it is now a refusal, so somebody who asked for a code just before the
+deploy and reads it just after gets `401 invalid_code` and has to ask again.
+Codes live thirty minutes; the window closes on its own.
