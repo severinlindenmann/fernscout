@@ -369,6 +369,8 @@ export function userDocumentation(username: string): string | null {
     "Every page has a markdown twin: append `.md` to a day's own URL and you get",
     "the source that produced it, rather than the rendering. The content *is*",
     "markdown, so nothing is lost in the conversion — there is no conversion.",
+    "That includes `translations:`, in full, on a day written in more than one",
+    "language — the twin is the file on disk, not the default-locale reading of it.",
     "",
     // A worked URL, from a trip that actually exists here. The pattern alone
     // sent an agent to `/<user>/day/<slug>.md` for a day in a past trip and it
@@ -839,6 +841,11 @@ URL carries its trip. The search index identifies entries as
 within a journal. The short form works too and falls back to the journal's
 other trips when the current one has no such day — but if you have the trip id,
 use it. A miss answers plain-text \`404\`, never an HTML error page.
+
+A day written in more than one language carries a \`translations:\` block in
+the twin too, the same shape it was written in — the twin is always the file
+on disk, in its own default language, never re-led with whichever locale you
+asked for.
 
 ## Letting other people in
 
