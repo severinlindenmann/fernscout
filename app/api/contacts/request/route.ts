@@ -8,6 +8,8 @@ import { pickLocale } from "@/lib/contacts/locale";
 import { sendCodeMail } from "@/lib/contacts/mail";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
+import { isMessageable } from "@/lib/whatsapp/phone";
+import { whatsappCountryCode } from "@/lib/whatsapp/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +96,16 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_address" }, { status: 400 });
   }
 
+  // The same refusal for the same reason, one channel over: consent to be
+  // messaged on a number nothing can dial is a typo, not a preference. Named
+  // rather than silently dropped, so the person who typed `076 561 31 50` on
+  // an instance with no `defaultCountryCode` finds out now instead of
+  // wondering for a month why nothing arrives (see lib/whatsapp/phone.ts).
+  const wantsWhatsapp = body.wantsWhatsapp === true;
+  if (wantsWhatsapp && !isMessageable(address.tel, whatsappCountryCode())) {
+    return Response.json({ error: "invalid_phone" }, { status: 400 });
+  }
+
   // A phone number is not a postal address (task 10). The client is not the
   // boundary — a submission could tick `wantsPostcard: false` while still
   // sending a full street address, deliberately or otherwise — so this route
@@ -151,6 +163,7 @@ export async function POST(request: Request) {
       address: addressToStore,
       wantsEmailDigest: digestPreference(body) === true,
       wantsPostcard,
+      wantsWhatsapp,
       createdVia: `invite:${invite.id}`,
       inviteId: invite.id,
     });

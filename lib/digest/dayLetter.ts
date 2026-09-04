@@ -78,8 +78,15 @@ import { journalTimezone } from "./quiet";
 /** Mirrors `mayReadTrip` (`lib/tripGate.ts`) for one address, without a
  * session to read it from: `isTraveller` stands in for `isTravellerOn`,
  * `granted` for `isJournalGuest` — a contact who is `active` and holds a live
- * `read` grant, exactly what `isJournalGuest` tests. */
-function mayMailTrip(trip: Trip, isTraveller: boolean, granted: boolean): boolean {
+ * `read` grant, exactly what `isJournalGuest` tests.
+ *
+ * **Exported so B365's WhatsApp announcement shares it rather than copying
+ * it.** The comment above this block is a warning about one permission rule
+ * living in two places; a second channel with its own transcription of the
+ * same three lines is precisely the drift it describes, and the second copy
+ * would be the one nobody updates. Any channel that announces a trip asks
+ * this function. */
+export function mayMailTrip(trip: Trip, isTraveller: boolean, granted: boolean): boolean {
   if (isOpenToLink(trip)) return true;
   if (isTraveller) return true;
   if (trip.visibility === "private") return false;

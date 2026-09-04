@@ -18,6 +18,9 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   costs: { env: [], db: false },
   push: { env: ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"], db: false },
   mail: { env: [], db: false }, // transport-specific; see mailRequirements()
+  // Backend-specific, the same way mail is: `dry-run` needs nothing, which
+  // is what keeps this developable with no Meta account at all.
+  whatsapp: { env: [], db: false },
   auth: { env: ["SESSION_SECRET"], db: true },
   // Self-service journal creation. Needs somewhere to keep the codes it
   // issues, and — checked in the route rather than here — mail to send them
@@ -36,6 +39,20 @@ const TRANSPORT_ENV: Record<string, readonly string[]> = {
   file: [],
   console: [],
   smtp: ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "MAIL_FROM"],
+};
+
+/**
+ * What each WhatsApp backend needs before it can honestly claim to be on.
+ *
+ * The token is an environment variable and never `content/config.json`: it is
+ * a bearer credential for an account that can message real people, and that
+ * file is one people commit. `WHATSAPP_WABA_ID` is not here — nothing in the
+ * send path uses it (it identifies the *account*, and messages are addressed
+ * to a phone number id), so requiring it would be theatre.
+ */
+const WHATSAPP_BACKEND_ENV: Record<string, readonly string[]> = {
+  "dry-run": [],
+  cloud: ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID"],
 };
 
 const PROVIDER_ENV: Record<string, readonly string[]> = {
@@ -71,6 +88,17 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
       return {
         env: [],
         problem: `features.mail.transport "${transport}" is unknown (expected one of: ${Object.keys(TRANSPORT_ENV).join(", ")})`,
+      };
+    }
+    return { env };
+  }
+  if (name === "whatsapp") {
+    const backend = optionOf(feature, "backend") ?? "dry-run";
+    const env = WHATSAPP_BACKEND_ENV[backend];
+    if (!env) {
+      return {
+        env: [],
+        problem: `features.whatsapp.backend "${backend}" is unknown (expected one of: ${Object.keys(WHATSAPP_BACKEND_ENV).join(", ")})`,
       };
     }
     return { env };

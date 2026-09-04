@@ -45,6 +45,14 @@
       "enabled": false,
       "transport": "file"
     },
+    "whatsapp": {
+      "enabled": false,
+      "backend": "dry-run",
+      "defaultCountryCode": "41",
+      "templates": {
+        "de": "fernscout_day_published"
+      }
+    },
     "auth": {
       "enabled": false
     },

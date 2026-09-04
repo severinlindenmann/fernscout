@@ -6,7 +6,10 @@ import { getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { serverSite } from "@/lib/site";
 import { sendDayLetter } from "@/lib/digest/dayLetter";
-import { mailSummary, readSendMailFlag } from "@/lib/api/dayMail";
+import { mailSummary } from "@/lib/api/dayMail";
+import { whatsappSummary } from "@/lib/api/dayWhatsapp";
+import { readPublishFlags } from "@/lib/api/publishFlags";
+import { sendDayWhatsapp } from "@/lib/digest/dayWhatsapp";
 
 export const dynamic = "force-dynamic";
 
@@ -99,7 +102,13 @@ export async function POST(
 
   // Read before publishing changes anything, so a malformed body is a `false`
   // rather than a publish that half-happened.
-  const sendMailRequested = await readSendMailFlag(request);
+  //
+  // **One read for both flags.** `Request.json()` consumes the stream, so
+  // asking two helpers in turn would give the second one an empty body and a
+  // permanent `false` — indistinguishable from "the caller did not ask", and
+  // therefore a bug that ships quietly. See `readPublishFlags`.
+  const { sendMail: sendMailRequested, sendWhatsapp: sendWhatsappRequested } =
+    await readPublishFlags(request);
 
   const result = publishDraft(ref, slug);
   if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
@@ -127,6 +136,30 @@ export async function POST(
     }
   }
 
+  /*
+   * The message — B365, and the same contract as the letter above it in every
+   * respect that matters: `send_whatsapp` is a parameter of this call, its
+   * absence means no message, and it must never default to true. Publishing
+   * fifteen days must not buzz fifteen times in somebody's pocket.
+   *
+   * Its own `try`, separate from mail's, so neither channel can take the
+   * other down with it — and both outside the publish, which has already
+   * succeeded by the time either runs (B272).
+   */
+  let whatsapp: Record<string, unknown> | undefined;
+  if (sendWhatsappRequested) {
+    try {
+      whatsapp = whatsappSummary(await sendDayWhatsapp(user, ref, slug));
+    } catch (err) {
+      whatsapp = {
+        attempted: false,
+        sent: 0,
+        failed: 0,
+        reason: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
   return Response.json({
     ok: true,
     slug: result.slug,
@@ -143,5 +176,6 @@ export async function POST(
       test: isTestContent(found, entry),
     }),
     ...(mail ? { mail } : {}),
+    ...(whatsapp ? { whatsapp } : {}),
   });
 }

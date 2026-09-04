@@ -43,6 +43,7 @@ export type AdminContact = {
   status: "pending" | "active" | "blocked";
   wantsEmailDigest: boolean;
   wantsPostcard: boolean;
+  wantsWhatsapp: boolean;
   postalAddress: AdminAddress | null;
   createdVia: string | null;
   createdAt: string;
@@ -216,6 +217,7 @@ function ContactRow({
   const wants = [
     contact.wantsEmailDigest ? t("contact.adminWantsDigest") : null,
     contact.wantsPostcard ? t("contact.adminWantsPostcard") : null,
+    contact.wantsWhatsapp ? t("contact.adminWantsWhatsapp") : null,
   ].filter(Boolean);
 
   const postal = contact.postalAddress;
@@ -325,6 +327,7 @@ type GuestFields = {
   country: string;
   wantsEmailDigest: boolean;
   wantsPostcard: boolean;
+  wantsWhatsapp: boolean;
 };
 
 function fieldsFor(contact: AdminContact | null, fallbackLocale: Locale): GuestFields {
@@ -342,6 +345,7 @@ function fieldsFor(contact: AdminContact | null, fallbackLocale: Locale): GuestF
     country: postal?.country ?? "",
     wantsEmailDigest: contact?.wantsEmailDigest ?? false,
     wantsPostcard: contact?.wantsPostcard ?? false,
+    wantsWhatsapp: contact?.wantsWhatsapp ?? false,
   };
 }
 
@@ -418,6 +422,7 @@ export function GuestForm({
       locale: form.locale,
       wantsEmailDigest: form.wantsEmailDigest,
       wantsPostcard: form.wantsPostcard,
+      wantsWhatsapp: form.wantsWhatsapp,
       address: {
         name: form.addressName,
         line1: form.line1,
@@ -602,6 +607,15 @@ export function GuestForm({
             onChange={(e) => field("wantsPostcard", e.target.checked)}
           />
           <span>{t("contact.adminWantsPostcard")}</span>
+        </label>
+        <label className="flex items-start gap-3 text-base text-navy-900">
+          <input
+            type="checkbox"
+            className="mt-1 size-5"
+            checked={form.wantsWhatsapp}
+            onChange={(e) => field("wantsWhatsapp", e.target.checked)}
+          />
+          <span>{t("contact.adminWantsWhatsapp")}</span>
         </label>
       </div>
 

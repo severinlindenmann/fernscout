@@ -51,6 +51,7 @@ describe("the phone field says what it is for, everywhere it is asked", () => {
           status: "active",
           wantsEmailDigest: true,
           wantsPostcard: false,
+      wantsWhatsapp: false,
           address: {
             name: "",
             line1: "",

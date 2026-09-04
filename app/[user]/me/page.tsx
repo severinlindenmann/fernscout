@@ -78,6 +78,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
           status: contact.status,
           wantsEmailDigest: contact.wantsEmailDigest,
           wantsPostcard: contact.wantsPostcard,
+          wantsWhatsapp: contact.wantsWhatsapp,
           address: contact.postalAddress ?? EMPTY_ADDRESS,
         },
       };

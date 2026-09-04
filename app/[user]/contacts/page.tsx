@@ -72,6 +72,7 @@ export default async function ContactsAdminPage({
     status: contact.status,
     wantsEmailDigest: contact.wantsEmailDigest,
     wantsPostcard: contact.wantsPostcard,
+    wantsWhatsapp: contact.wantsWhatsapp,
     // Decrypted here and nowhere else on the public side: the owner is the one
     // person besides its owner who is entitled to read it.
     postalAddress: contact.hasPostalAddress ? (contact.postalAddress ?? EMPTY_ADDRESS) : null,

@@ -125,6 +125,7 @@ export default function InviteRedeem({
   // goes out, and every digest carries a one-click unsubscribe.
   const [wantsDigest, setWantsDigest] = useState(true);
   const [wantsPostcard, setWantsPostcard] = useState(false);
+  const [wantsWhatsapp, setWantsWhatsapp] = useState(false);
   const [address, setAddress] = useState({
     name: "",
     line1: "",
@@ -193,7 +194,7 @@ export default function InviteRedeem({
         // are the same story: sent only on the "form" step, where they were
         // actually asked for — the confirm step must never answer for an
         // already-known reader (B273's doc comment above explains why).
-        ...(knownEmail ? {} : { email, address, wantsPostcard, wantsEmailDigest: wantsDigest }),
+        ...(knownEmail ? {} : { email, address, wantsPostcard, wantsWhatsapp, wantsEmailDigest: wantsDigest }),
       }),
     }).catch(() => null);
     setBusy(false);
@@ -462,6 +463,15 @@ export default function InviteRedeem({
                     onChange={(e) => setWantsPostcard(e.target.checked)}
                   />
                   <span>{t("contact.wantsPostcard")}</span>
+                </label>
+                <label className="flex items-start gap-3 text-lg text-navy-900">
+                  <input
+                    type="checkbox"
+                    className="mt-1.5 size-5"
+                    checked={wantsWhatsapp}
+                    onChange={(e) => setWantsWhatsapp(e.target.checked)}
+                  />
+                  <span>{t("contact.wantsWhatsapp")}</span>
                 </label>
               </div>
             </>

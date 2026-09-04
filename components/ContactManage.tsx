@@ -33,6 +33,7 @@ export type ManageContact = {
   status: "pending" | "active" | "blocked";
   wantsEmailDigest: boolean;
   wantsPostcard: boolean;
+  wantsWhatsapp: boolean;
   address: ManageAddress;
 };
 
@@ -79,6 +80,7 @@ export default function ContactManage({
   const [address, setAddress] = useState<ManageAddress>(contact.address);
   const [wantsDigest, setWantsDigest] = useState(contact.wantsEmailDigest);
   const [wantsPostcard, setWantsPostcard] = useState(contact.wantsPostcard);
+  const [wantsWhatsapp, setWantsWhatsapp] = useState(contact.wantsWhatsapp);
   const [note, setNote] = useState<TranslationKey | null>(null);
   const [busy, setBusy] = useState(false);
   const [deleted, setDeleted] = useState(false);
@@ -121,7 +123,7 @@ export default function ContactManage({
         onSubmit={async (event) => {
           event.preventDefault();
           await post(
-            { action: "update", name, locale, address, wantsEmailDigest: wantsDigest, wantsPostcard },
+            { action: "update", name, locale, address, wantsEmailDigest: wantsDigest, wantsPostcard, wantsWhatsapp },
             "contact.saved",
           );
         }}
@@ -218,6 +220,15 @@ export default function ContactManage({
               onChange={(e) => setWantsPostcard(e.target.checked)}
             />
             <span>{t("contact.wantsPostcard")}</span>
+          </label>
+          <label className="flex items-start gap-3 text-lg text-navy-900">
+            <input
+              type="checkbox"
+              className="mt-1.5 size-5"
+              checked={wantsWhatsapp}
+              onChange={(e) => setWantsWhatsapp(e.target.checked)}
+            />
+            <span>{t("contact.wantsWhatsapp")}</span>
           </label>
         </div>
 

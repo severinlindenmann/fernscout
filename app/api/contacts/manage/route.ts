@@ -32,6 +32,7 @@ function selfView(contact: ContactRecord) {
     status: contact.status,
     wantsEmailDigest: contact.wantsEmailDigest,
     wantsPostcard: contact.wantsPostcard,
+    wantsWhatsapp: contact.wantsWhatsapp,
     address: contact.postalAddress,
     confirmedAt: contact.confirmedAt,
   };
@@ -111,6 +112,7 @@ export async function POST(request: Request) {
           ? body.wantsDigest
           : undefined,
     wantsPostcard: typeof body.wantsPostcard === "boolean" ? body.wantsPostcard : undefined,
+    wantsWhatsapp: typeof body.wantsWhatsapp === "boolean" ? body.wantsWhatsapp : undefined,
   });
 
   if (!contact) return Response.json({ error: "unknown_token" }, { status: 404 });
