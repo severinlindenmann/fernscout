@@ -7,8 +7,7 @@ complexity: low
 area: costs
 found: "2026-09-04T19:57:18Z"
 started: "2026-09-04T20:35:16Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-04T20:35:16Z"
+merged: "2026-09-04T20:56:14Z"
 ---
 
 # B353 — A trip whose currency has no rate shows CHF 0 everywhere except the costs page
