@@ -258,17 +258,17 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
         "their journal's address.",
     },
     {
-      ask: "**Public or guest?**",
+      ask: "**Public or guest?** (`visibility`)",
       because: `Whether this server advertises the journal at all — ${VISIBILITY_MEANING}`,
     },
     {
-      ask: "Their **name**, and **what the site should call them**",
+      ask: "Their **name** (`ownerName`), and **what the site should call them** (`ownerNickname`)",
       because:
-        "Two answers, not one. Never split the first to get the second: it mangles any " +
-        "name whose given name is not first. This holds when the person you are talking " +
-        "to *is* the owner and has just told you their name — ask them the second " +
-        "question too, in the form \"what should the site call you?\". Asking somebody " +
-        "about themselves costs a sentence; it is deriving that breaks.",
+        "Two separate fields, asked, never inferred — an agent that infers the second from " +
+        "the first is exactly the mistake these exist to stop. Splitting the first word off " +
+        "a name is wrong for anyone whose given name is not first, and this holds even when " +
+        "the person in front of you *is* the owner and just told you their name: ask the " +
+        "second question too, in the form \"what should the site call you?\".",
     },
     {
       ask: "**Which language** they write in",
@@ -293,6 +293,114 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
     },
   ];
 }
+
+/**
+ * The sentence a table of questions never said: that it is a script.
+ *
+ * B307 — an agent that read the six questions above still asked them in three
+ * separate rounds, interleaved with three fetches of the guide, because
+ * nothing on the page told it these were one thing to do once rather than
+ * six facts to pick up as they came to mind. This is that sentence, shared by
+ * all three scripts below so it cannot say something different for one of
+ * them.
+ */
+export function scriptIntro(count: number): string {
+  return (
+    `This is a script, not a menu: ask all ${numeral(count).toLowerCase()} of the questions ` +
+    "below, in order, once, before your first call. Do not start on a guess."
+  );
+}
+
+/**
+ * Ask before creating a trip — B307.
+ *
+ * `id`, `title`, `start` and `end` are what `createTrip` (lib/tripWrite.ts)
+ * requires; `visibility` and the budget question are not retyped here — they
+ * reuse `VISIBILITY_CHOICE` and `BUDGET_QUESTION`, the same sentences the
+ * rest of this file already exports, so there is one definition of each and
+ * this script is a third *shape* for it, not a third *copy*.
+ */
+export function tripQuestions(): FirstQuestion[] {
+  return [
+    {
+      ask: "The trip's **id** (`id`)",
+      because:
+        "Lowercase letters, digits and dashes, starting with a letter or digit. It becomes " +
+        "part of the URL and cannot be changed afterwards — `japan-2027` ages better than " +
+        "`the-big-one`.",
+    },
+    {
+      ask: "Its **title** (`title`)",
+      because: "What the trip is called. Required — a trip without one is refused.",
+    },
+    {
+      ask: "**When it starts and ends** (`start`, `end`)",
+      because:
+        "Both, as `2027-04-01`. Required: a trip missing either is skipped when the site " +
+        "reads it, so it would exist on disk and nowhere a reader could find it.",
+    },
+    {
+      ask: "**Public, guest or private?** (`visibility`)",
+      because:
+        `${VISIBILITY_CHOICE} Leaving it out is not a fourth answer: the trip then inherits ` +
+        "this journal's own answer, never wider than that, and a value this server does not " +
+        "recognise falls back to `private` instead, the narrowest state there is.",
+    },
+    {
+      ask: "**Does this trip track its money?**",
+      because: BUDGET_QUESTION,
+    },
+  ];
+}
+
+/**
+ * Ask before writing a day — B307.
+ *
+ * `title`, `date` and `content` are required by `validateEntry`
+ * (lib/validate/entry.ts). `translations` becomes required the moment the
+ * journal declares more than one language (B294) and reuses
+ * `TRANSLATIONS_REQUIRED` rather than saying it twice; coordinates never are
+ * — `COORDINATES_QUESTION` already says to propose, never invent, so it
+ * stays a question rather than a requirement.
+ */
+export function dayQuestions(): FirstQuestion[] {
+  return [
+    {
+      ask: "The day's **title** (`title`)",
+      because:
+        "Required — it becomes the slug, and no two days in a trip may share one; a title " +
+        "that collides is refused rather than overwriting the day already there.",
+    },
+    {
+      ask: "The **date** (`date`)",
+      because: "Required, as YYYY-MM-DD — a real calendar date.",
+    },
+    {
+      ask: "**What happened, in their words** (`content`)",
+      because:
+        "Required — the day's prose, as they told it. Write what you were told: no invented " +
+        "weather, meals or feelings. An empty field beats a plausible fiction.",
+    },
+    {
+      ask: "**The same day in the journal's other languages** (`translations`)",
+      because: TRANSLATIONS_REQUIRED,
+    },
+    {
+      ask: "**Coordinates**, if the prose names a real place (`lat`, `lng`)",
+      because: COORDINATES_QUESTION,
+    },
+  ];
+}
+
+/**
+ * The note a day script owes and a question list cannot carry: photographs
+ * are not a field on the call above, they are a call of their own, made once
+ * the day exists — B307, closing the "Writing a day" bullet the ticket asked
+ * for.
+ */
+export const PHOTOS_SECOND_CALL =
+  "Photographs are never part of this call. They are a second one, once the day exists: " +
+  `${MEDIA_ENDPOINT_PATH}. There is nothing to paste into the entry itself.`;
 
 /**
  * Greedy wrap to a column, for the documents that are assembled as arrays of
