@@ -49,6 +49,7 @@ export default function ContactForm({
   dictionaries,
   initialName = "",
   inviteToken,
+  postcardsEnabled = true,
 }: {
   username: string;
   journalTitle: string;
@@ -63,6 +64,11 @@ export default function ContactForm({
    * invite token, so a form rendered without one could only ever lie to the
    * person filling it in. */
   inviteToken: string;
+  /** B360: whether this server can act on a postcard request at all —
+   * `isEnabled("postcards", username)`, from the page. Defaults to shown, so
+   * the one test that predates this capability check keeps rendering the
+   * fieldset it asserts against. */
+  postcardsEnabled?: boolean;
 }) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [step, setStep] = useState<Step>("form");
@@ -268,6 +274,7 @@ export default function ContactForm({
             <p className="mt-2 text-base text-navy-600">{t("contact.telHint")}</p>
           </div>
 
+          {postcardsEnabled && (
           <fieldset className="mt-10 rounded-2xl border border-navy-200 bg-cream-100 p-5">
             <legend className="px-2 font-display text-xl text-navy-900">
               {t("contact.address")}
@@ -348,6 +355,7 @@ export default function ContactForm({
               />
             </div>
           </fieldset>
+          )}
 
           {/* Three questions, three boxes. "Write to me", "post me something"
               and "message my phone" have different consequences and are never
@@ -365,6 +373,7 @@ export default function ContactForm({
               />
               <span>{t("contact.wantsDigest")}</span>
             </label>
+            {postcardsEnabled && (
             <label className="flex items-start gap-3 text-lg text-navy-900">
               <input
                 type="checkbox"
@@ -374,6 +383,7 @@ export default function ContactForm({
               />
               <span>{t("contact.wantsPostcard")}</span>
             </label>
+            )}
             <label className="flex items-start gap-3 text-lg text-navy-900">
               <input
                 type="checkbox"

@@ -22,6 +22,7 @@
   "contact.adminContactExists": "That address is already a guest — edit them instead.",
   "contact.adminCopiedLink": "Link copied",
   "contact.adminCopyLink": "Copy link",
+  "contact.adminCopyLinkKind": "Copy the {kind}",
   "contact.adminCopyLinkNamed": "Copy the {kind} — {name}",
   "contact.adminCreate": "Create the link",
   "contact.adminDelete": "Delete",

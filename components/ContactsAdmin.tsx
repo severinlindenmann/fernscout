@@ -386,6 +386,7 @@ export function GuestForm({
   busy,
   act,
   onClose,
+  postcardsEnabled = true,
 }: {
   /** The row being corrected, or `null` to add a new one. */
   contact: AdminContact | null;
@@ -395,6 +396,11 @@ export function GuestForm({
   busy: boolean;
   act: (body: Record<string, unknown>) => Promise<Response | null>;
   onClose: () => void;
+  /** B360: absent, not merely explained, when this server cannot send a
+   * postcard — `lib/capabilities.ts` decides. Defaults to shown, so the one
+   * existing caller in `test/contact-tel-hint.test.tsx` (which predates this
+   * capability check) keeps rendering the fieldset it asserts against. */
+  postcardsEnabled?: boolean;
 }) {
   const editingId = contact?.id ?? null;
   const [form, setForm] = useState<GuestFields>(() => fieldsFor(contact, fallbackLocale));
@@ -513,6 +519,7 @@ export function GuestForm({
         <p className="mt-2 text-base text-navy-600">{t("contact.adminTelHint")}</p>
       </div>
 
+      {postcardsEnabled && (
       <fieldset className="mt-6 rounded-2xl border border-navy-200 bg-white p-5">
         <legend className="px-2 font-display text-lg text-navy-900">
           {t("contact.address")}
@@ -588,6 +595,7 @@ export function GuestForm({
           />
         </div>
       </fieldset>
+      )}
 
       <div className="mt-6 space-y-4">
         <label className="flex items-start gap-3 text-base text-navy-900">
@@ -599,6 +607,7 @@ export function GuestForm({
           />
           <span>{t("contact.adminWantsDigest")}</span>
         </label>
+        {postcardsEnabled && (
         <label className="flex items-start gap-3 text-base text-navy-900">
           <input
             type="checkbox"
@@ -608,6 +617,7 @@ export function GuestForm({
           />
           <span>{t("contact.adminWantsPostcard")}</span>
         </label>
+        )}
         <label className="flex items-start gap-3 text-base text-navy-900">
           <input
             type="checkbox"
@@ -777,11 +787,19 @@ function InviteRow({
               // The URL is a credential, so it is deliberately not recited as
               // the accessible name the way `CopyLine`'s default would — B199
               // is the precedent. What it copies is said in words instead, and
-              // the note beside it is what identifies which link this is.
-              name={t("contact.adminCopyLinkNamed", {
-                kind: t(INVITE_KIND_KEY[invite.kind]),
-                name: invite.name ?? "—",
-              })}
+              // the note beside it is what identifies which link this is —
+              // when there is one. B358: an unnamed link used to fill the gap
+              // with an em-dash placeholder, so the name ended "— —".
+              name={
+                invite.name
+                  ? t("contact.adminCopyLinkNamed", {
+                      kind: t(INVITE_KIND_KEY[invite.kind]),
+                      name: invite.name,
+                    })
+                  : t("contact.adminCopyLinkKind", {
+                      kind: t(INVITE_KIND_KEY[invite.kind]),
+                    })
+              }
             />
           )}
           <button
@@ -808,6 +826,7 @@ export default function ContactsAdmin({
   trips = [],
   hasGuestTrip,
   highlightId,
+  postcardsEnabled = true,
 }: {
   username: string;
   locale: Locale;
@@ -835,6 +854,10 @@ export default function ContactsAdmin({
    * find.
    */
   highlightId?: string;
+  /** B360: whether this server can act on a postcard request at all —
+   * `isEnabled("postcards", username)`, from the page. Defaults to shown, the
+   * same reasoning as `GuestForm`'s own default below. */
+  postcardsEnabled?: boolean;
 }) {
   const [contacts, setContacts] = useState(initialContacts);
   const [invites, setInvites] = useState(initialInvites);
@@ -941,6 +964,7 @@ export default function ContactsAdmin({
             busy={busy}
             act={act}
             onClose={() => setFormTarget(null)}
+            postcardsEnabled={postcardsEnabled}
           />
         )}
       </div>
