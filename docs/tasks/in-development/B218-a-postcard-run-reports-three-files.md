@@ -33,12 +33,25 @@ they are about to hand to a printer does not match the folder, which is the
 one job that line has. It is also the line somebody would check first if a
 card really were missing — which is the failure B86 and B150 both describe.
 
+Confirmed before changing anything: a batch of four reported `Wrote 12
+file(s)` and `ls` found sixteen.
+
 ## Work
 
 Count what was written rather than multiplying, so the number cannot drift
-again the next time a file joins the set.
+again the next time a file joins the set. **Done:** `scripts/postcard.ts` now
+writes through a small `write()` that appends to a `written[]`, the way
+`scripts/photobook.ts` already did, and the report is `written.length`.
+
+Fixed alongside **B219**, which moved the same script's output directory.
+They share a commit rather than splitting one: the two changes are twenty
+lines apart in `scripts/postcard.ts`, and the same test file covers both.
 
 ## Acceptance
 
 - A run of N recipients reports the number of files `ls` finds in the output
   folder for that run.
+
+`test/generator-output.test.ts` asserts it twice, and deliberately: once with
+`CONTENT_DIR` pointing outside the checkout, and once with the two roots
+agreeing, so this stays guarded even if B219's fix were ever undone.
