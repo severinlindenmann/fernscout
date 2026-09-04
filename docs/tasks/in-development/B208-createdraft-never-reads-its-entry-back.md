@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: api, entries
 found: "2026-09-04T06:14:14Z"
+started: "2026-09-04T07:52:19Z"
+session: 7d30451d-0304-4631-8484-d96036fb11b4
+claimed: "2026-09-04T07:52:19Z"
 ---
 
 # B208 — createDraft never reads its entry back, so an unwritable day is reported as written
