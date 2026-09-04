@@ -811,7 +811,10 @@ export function tripSummary(username: string, tripId: string) {
  * instead of quietly answering it wrong.
  *
  * Only when true, like every other flag on these surfaces — absent means real,
- * which is what `tripSummary` above already says.
+ * which is what `tripSummary` above already says. `draft` follows the same
+ * rule: absent means published, so a caller that already filters drafts out
+ * never grows a field it has no use for, and a caller that asked for them
+ * (`GET .../days`, B296) can tell which is which.
  */
 export function entrySummary(entry: Entry, trip: Trip | undefined) {
   return {
@@ -824,6 +827,7 @@ export function entrySummary(entry: Entry, trip: Trip | undefined) {
     lat: entry.lat,
     lng: entry.lng,
     photos: entry.gallery.length,
+    ...(entry.draft ? { draft: true } : {}),
     ...(isTestContent(trip, entry) ? { test: true } : {}),
   };
 }

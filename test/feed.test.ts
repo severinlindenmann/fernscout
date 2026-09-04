@@ -58,6 +58,20 @@ describe("buildFeedXml", () => {
     expect(xml).not.toContain("unlisted-2026");
   });
 
+  /**
+   * B296 — the fix that made `GET .../days` include drafts touched one call
+   * site inside that route, not the default `getAllEntries` runs with
+   * everywhere else. This is the check that it stayed that way: a draft
+   * living inside an otherwise *public* trip must still be invisible to a
+   * reading path that walks every trip rather than answering one page's
+   * request.
+   */
+  test("contains no draft, even inside an otherwise public trip", () => {
+    const xml = buildFeedXml("creator")!;
+    expect(xml).not.toContain("DRAFTMARKERHIDDEN");
+    expect(xml).not.toContain("A Draft Day");
+  });
+
   test("skips an upcoming trip (nothing written yet)", () => {
     const xml = buildFeedXml("creator")!;
     expect(xml).not.toContain("upcoming-2027");

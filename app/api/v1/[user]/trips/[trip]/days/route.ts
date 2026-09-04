@@ -41,10 +41,16 @@ export async function GET(
    * looking for. Inherited too: a day in a `test` trip carries no flag of its
    * own, and `GET .../days/<slug>` has resolved it that way since B47, so the
    * list and the day read must not disagree about the same day.
+   *
+   * `includeDrafts: true` — the gate above already establishes the caller may
+   * see them: owner, or somebody on the trip. Everything this API writes
+   * lands as a draft, so without this an agent that had just created fifteen
+   * days asked for the trip's days and was handed an empty array (B296).
+   * `entrySummary` marks which is which so the two are not confused.
    */
   return Response.json({
     trip: ref,
-    days: getAllEntries(ref).map((entry) => entrySummary(entry, found)),
+    days: getAllEntries(ref, { includeDrafts: true }).map((entry) => entrySummary(entry, found)),
   });
 }
 
