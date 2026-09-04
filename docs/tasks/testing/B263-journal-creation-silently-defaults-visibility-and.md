@@ -7,8 +7,7 @@ complexity: low
 area: api, journals
 found: "2026-09-04T11:26:21Z"
 started: "2026-09-04T11:27:17Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T11:27:17Z"
+merged: "2026-09-04T11:44:18Z"
 ---
 
 # B263 — Journal creation silently defaults visibility and language, so a journal asked to be private was created public
