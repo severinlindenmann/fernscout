@@ -7,8 +7,7 @@ complexity: low
 area: landing page
 found: "2026-09-04T10:25:39Z"
 started: "2026-09-04T10:25:56Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T10:25:56Z"
+merged: "2026-09-04T10:29:28Z"
 ---
 
 # B255 — The landing page's handover block shows one thing and copies another

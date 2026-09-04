@@ -118,9 +118,7 @@ _Nothing here._
 
 ## in-development
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B255](in-development/B255-the-landing-page-s-handover-block.md) | The landing page's handover block shows one thing and copies another | ISSUE | high | low | `986bc24c` |
+_Nothing here._
 
 ## testing
 
@@ -139,6 +137,7 @@ _Nothing here._
 | [B230](testing/B230-a-code-issued-for-one-trip.md) | A code issued for one trip is verified into a journal-wide token | SECURITY | high | low | — |
 | [B231](testing/B231-a-trip-scoped-token-downloads-the.md) | A trip-scoped token downloads the whole journal from export.zip | SECURITY | high | low | — |
 | [B254](testing/B254-the-landing-page-hands-over-a.md) | The landing page hands over a bare URL where an agent needs an instruction | ISSUE | high | low | — |
+| [B255](testing/B255-the-landing-page-s-handover-block.md) | The landing page's handover block shows one thing and copies another | ISSUE | high | low | — |
 | [B64](testing/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B02](testing/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low | — |
