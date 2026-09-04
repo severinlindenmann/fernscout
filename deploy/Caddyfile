@@ -1,11 +1,20 @@
-# A reference snippet, not a file to copy blindly.
+# A reference file, not a file to copy blindly.
 #
 # On a VPS that serves nothing else, this can become /etc/caddy/Caddyfile
 # outright. On a machine that already has one — another site, another
-# service — **merge the site block below into the existing file instead**.
+# service — **take the `import` line only** and add it to the existing file.
 # `sudo cp deploy/Caddyfile /etc/caddy/Caddyfile` would delete whatever was
 # already there, and Caddy is a single-config-file server: there is only one
 # of them, and everything on the machine shares it.
+#
+# The site block itself is no longer here. It lives in deploy/fernscout.caddy,
+# which this file imports and which an existing Caddyfile can import in
+# exactly the same way — one line, added once, pointing into the checkout. A
+# proxy directive added in a release then reaches the machine with the commit
+# that made it, because `git pull` updates the file Caddy is reading. Before
+# that, a change here reached a merged Caddyfile only if somebody remembered:
+# B01's `header_up X-Forwarded-For` was deployed, reported healthy, and had no
+# effect at all until it was applied by hand a day later. That is B66.
 #
 # Automatic HTTPS: Caddy requests and renews a Let's Encrypt certificate for
 # {$CADDY_DOMAIN} on first request, with no cron job and no certbot. Needs
@@ -22,13 +31,15 @@
 # argument — set a real address here before the first certificate request
 # so this never sees a blank one, even before .env exists.
 #
-# Merging into an existing Caddyfile: take the site block only. A second
-# global options block is a config error, and adding one where there was none
-# changes ACME behaviour for the sites already being served.
+# Merging into an existing Caddyfile: **do not bring this block with you.** A
+# second global options block is a config error, and adding one where there
+# was none changes ACME behaviour for the sites already being served. The
+# import below is the only line to take.
 {
 	email {$CADDY_ACME_EMAIL}
 }
 
+<<<<<<< HEAD
 {$CADDY_DOMAIN} {
 	encode gzip zstd
 
@@ -60,3 +71,10 @@
 		header_up X-Forwarded-For {remote_host}
 	}
 }
+=======
+# Adjust the path if the checkout is not at /srv/fernscout. Caddy reads it as
+# root, and it must stay readable to root — an import Caddy cannot open is a
+# config error and the reload is refused, which is the loud failure and the
+# right one.
+import /srv/fernscout/deploy/fernscout.caddy
+>>>>>>> g11-backup-systemd-and-tests

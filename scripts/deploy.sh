@@ -121,11 +121,36 @@ report_backup() {
   esac
 }
 
+# Whether the proxy in front of this app is still the one the release expects
+# (B66). `deploy/fernscout.caddy` is imported by the machine's Caddyfile, so on
+# a machine that took the import there is nothing to say; on one whose operator
+# merged the block by hand — the normal case on a shared host — a proxy
+# directive added in this release has *not* arrived, and this is where that
+# gets said instead of being discovered a year later by somebody debugging a
+# rate limit. Never fatal: nothing about the proxy is this script's to change,
+# and refusing to finish a deploy over it would be worse than the drift.
+report_caddy() {
+  local out status
+  set +e
+  out="$(as_service npm run --silent check:caddy 2>&1)"
+  status=$?
+  set -e
+  case "$status" in
+    0) log "caddy: the running config carries what this release expects" ;;
+    1) printf '%s\n' "$out" >&2 ;;
+    # Exit 2 is "could not ask" — no caddy on PATH, no config file, an adapter
+    # error. Said quietly and in one line, because a machine that does not use
+    # Caddy at all is a supported deployment and must not be nagged.
+    *) log "caddy: not checked (${out%%$'\n'*})" ;;
+  esac
+}
+
 log "waiting for health"
 for i in $(seq 1 30); do
   if HEALTH="$(curl -fsS "http://127.0.0.1:${PORT:-3000}/api/health" 2>/dev/null)"; then
     log "healthy"
     report_backup "$HEALTH"
+    report_caddy
     exit 0
   fi
   sleep 1

@@ -1,0 +1,49 @@
+# Fernscout's site block, and nothing else. **This file is the release's.**
+#
+# It is meant to be `import`ed, not copied:
+#
+#     # in /etc/caddy/Caddyfile, once, and never edited again
+#     import /srv/fernscout/deploy/fernscout.caddy
+#
+# and that one line is the whole of what an operator owns. The file it points
+# at is inside the checkout, so `git pull` — which is to say every deploy —
+# updates the proxy config with the commit that changed it, on a machine that
+# already serves other sites, without anything writing to /etc/caddy at all.
+#
+# That is B66. `deploy/Caddyfile` was a template nobody ran: a proxy directive
+# added here reached the machine only if somebody remembered to merge it by
+# hand, and B01's `header_up` line below — without which every rate limit on
+# the server can be reset by forging a header — was deployed, reported
+# healthy, and had no effect for as long as it took a person to notice.
+#
+# `scripts/check-caddy.mts` is the backstop: it compares what Caddy is
+# actually running against this file, and `scripts/deploy.sh` runs it on every
+# deploy. An operator who declines the import and merges by hand keeps a
+# working site and gets told, out loud, each time the two drift apart.
+#
+# Deliberately no global options block. There is one per machine, it belongs
+# to whoever set the machine up, and a second one is a config error — see
+# deploy/Caddyfile.
+
+{$CADDY_DOMAIN} {
+	encode gzip zstd
+
+	# Next.js sets its own cache headers per-route (see next.config.ts and
+	# the API routes' `cache-control: no-store`); Caddy just proxies. The app
+	# runs on this host — there is no container to address by name.
+	reverse_proxy 127.0.0.1:{$PORT:3000} {
+		# Overwrite, never append — and this line is load-bearing.
+		#
+		# Caddy's default is to *append* the real client address to whatever
+		# `X-Forwarded-For` arrived. `clientIp()` in lib/rateLimit.ts reads the
+		# first value, so without this a client that sends its own
+		# `X-Forwarded-For: 203.0.113.9` is rate-limited as 203.0.113.9 —
+		# rotate the header per request and every limit on this server resets.
+		# That includes the eight-guess limit in front of a trip's password.
+		#
+		# The app trusts the first value *because* of this line. If Caddy is
+		# ever replaced, the replacement has to overwrite the header too, or
+		# `clientIp()` has to stop trusting it. See B01.
+		header_up X-Forwarded-For {remote_host}
+	}
+}
