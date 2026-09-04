@@ -71,15 +71,26 @@ made it changeable afterwards).
   they are reading if it is not the one they asked for — a reader who switched
   and got German prose with no explanation is the defect this ticket opened
   with.
-- **Refusing a day that omits a declared language is a decision, not an
-  obvious yes.** B263 and B277 both showed that what an agent may omit, it
-  omits — which argues for requiring all declared locales. Against: a day
-  half-written at the roadside, in one language, is a real thing an owner
-  wants saved. Weigh a refusal against accepting the day and reporting plainly
-  which languages are missing, in the write response, so the agent tells its
-  owner rather than the gap being silent. Whichever is chosen, write the
-  reasoning down — and if the answer is "accept and report", the reporting is
-  not optional, because it is the whole safeguard.
+- **Refuse a day that omits a declared language, and name the language that is
+  missing** — the owner's decision on 2026-09-04, so this is settled.
+
+  `400`, nothing written, and the message says which locales were expected and
+  which arrived: an agent that is told *"this journal writes in de, en and hu;
+  `content` is missing for en and hu"* can go back to its owner and ask for the
+  two it does not have. A message that says only "incomplete" sends it
+  guessing, and this is the field where guessing means inventing what somebody
+  said.
+
+  The reasoning, for whoever reads this cold: B263 and B277 each shipped a
+  field an agent was *asked* to send and *allowed* to omit, and in both cases
+  it was omitted and the owner was told otherwise. This is the third instance
+  of that pattern and the first one caught before it shipped. The remedy for an
+  owner who writes in one language is `PATCH /api/v1/<user>/config` with
+  `locales: ["de"]` — one call — not a day quietly saved in one language while
+  the switcher offers three.
+
+  Make the refusal name that remedy, since an agent hitting it needs to know
+  the fix is the journal's languages and not the day.
 - **Both documents**, including the day-fields table and the creation question
   B277 added, so an owner choosing three languages is told what it commits them
   to at the moment they choose.
