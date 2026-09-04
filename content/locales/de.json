@@ -322,6 +322,7 @@
   "map.zoomIn": "Vergrössern",
   "map.zoomOut": "Verkleinern",
   "me.agentBody": "Gib diese zwei Zeilen einem Agenten. Er liest dort die Anleitung und fragt dich nach einem Code.",
+  "me.agentCopy": "Beide Zeilen kopieren: die Adresse der Anleitung und die Adresse, an die ein Code geschickt wird",
   "me.agentTitle": "Zum Schreiben oder für eine neue Reise",
   "me.askOwner": "Hier gibt es nichts auszufüllen — dieses Tagebuch führt kein Gästebuch. Der Link, den du bekommst, lässt dich hinein.",
   "me.canRead": "Was du lesen kannst",

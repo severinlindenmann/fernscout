@@ -353,6 +353,7 @@ export type TranslationKey =
   | "map.zoomIn"
   | "map.zoomOut"
   | "me.agentBody"
+  | "me.agentCopy"
   | "me.agentTitle"
   | "me.askOwner"
   | "me.canRead"
