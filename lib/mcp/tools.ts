@@ -596,6 +596,7 @@ const listInvitesTool: Handler = async (session) => {
   if (refused) return refused;
 
   const invites = await listInvites(session.owner);
+  const now = new Date().toISOString();
   const rows = invites.map((invite) => ({
     id: invite.id,
     kind: invite.kind,
@@ -604,6 +605,10 @@ const listInvitesTool: Handler = async (session) => {
     createdAt: invite.createdAt,
     expiresAt: invite.expiresAt,
     revokedAt: invite.revokedAt,
+    // Whether the link still opens anything, decided here rather than left to
+    // the reader to derive from two nullable timestamps — B97 is the same
+    // legibility failure in the owner's own browser.
+    live: invite.revokedAt === null && (invite.expiresAt === null || invite.expiresAt > now),
     uses: invite.uses,
   }));
   return {
@@ -615,11 +620,22 @@ const listInvitesTool: Handler = async (session) => {
             .map(
               (row) =>
                 `${row.id} — ${row.kind} to ${row.scope}, used ${row.uses}×` +
-                (row.revokedAt ? ", revoked" : row.expiresAt ? `, until ${row.expiresAt.slice(0, 10)}` : ""),
+                (row.revokedAt
+                  ? ", revoked"
+                  : !row.live && row.expiresAt
+                    ? // Said as "expired" rather than "until <a date in the
+                      // past>", which reads as a live link to anything
+                      // skimming the line.
+                      `, expired ${row.expiresAt.slice(0, 10)}`
+                    : row.expiresAt
+                      ? `, until ${row.expiresAt.slice(0, 10)}`
+                      : ""),
             )
             .join("\n") +
-          "\n\nThe links themselves are not here and cannot be: only their hashes were " +
-          "stored, so one that was lost has to be reissued rather than looked up.",
+          "\n\nA buddy link leads to write access on the trip it names; a guest or personal " +
+          "link leads to reading. Neither grants anything until the owner approves whoever " +
+          "redeems it.\n\nThe links themselves are not here and cannot be: only their hashes " +
+          "were stored, so one that was lost has to be reissued rather than looked up.",
     data: { invites: rows },
   };
 };

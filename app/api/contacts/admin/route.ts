@@ -23,6 +23,7 @@ import {
   inviteUrl,
   listInvites,
   revokeInvite,
+  type Invite,
 } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
 import { sendApprovedMail, sendCodeMail } from "@/lib/contacts/mail";
@@ -62,6 +63,32 @@ function ownerView(contact: ContactRecord) {
   };
 }
 
+/**
+ * One link, as the page renders it — B97.
+ *
+ * `listInvites` already returned all of this and the route already passed it
+ * through; what dropped `kind`, `tripId` and `expiresAt` was the type on the
+ * other side. Shaped explicitly here anyway, the way `ownerView` is: the
+ * fields the guest list needs are then a stated contract rather than whatever
+ * `Invite` happens to hold, and the one thing that must never appear — the
+ * token — cannot arrive by a column being added upstream. Only its hash was
+ * ever stored, so there is nothing here to leak; that is worth keeping true by
+ * construction.
+ */
+function inviteView(invite: Invite) {
+  return {
+    id: invite.id,
+    kind: invite.kind,
+    tripId: invite.tripId,
+    name: invite.name,
+    locale: invite.locale,
+    createdAt: invite.createdAt,
+    expiresAt: invite.expiresAt,
+    revokedAt: invite.revokedAt,
+    uses: invite.uses,
+  };
+}
+
 async function guard(username: string, request: Request): Promise<Response | null> {
   if (!getUser(username) || !isEnabled("contacts", username)) {
     return Response.json({ error: "contacts_disabled" }, { status: 404 });
@@ -79,7 +106,7 @@ export async function GET(request: Request) {
 
   return Response.json({
     contacts: (await listContacts(username)).map(ownerView),
-    invites: await listInvites(username),
+    invites: (await listInvites(username)).map(inviteView),
   });
 }
 

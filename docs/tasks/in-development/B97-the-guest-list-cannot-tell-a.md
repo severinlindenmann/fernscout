@@ -74,3 +74,81 @@ and any change to what a link grants.
 - An expired or revoked link says so and offers no revoke button.
 - `npm run i18n:keys`, `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`,
   `npm run build`.
+
+## What was built
+
+`components/ContactsAdmin.tsx` — `AdminInvite` carries `kind`, `tripId` and
+`expiresAt`, and each row is drawn by a new `InviteRow`: the kind in the words
+the access panel already uses (`me.inviteGuestTitle`, `me.inviteBuddyTitle`, and
+a new `contact.adminInvitePersonalTitle` for the third), the trip on a buddy
+link, then name, language, uses and one state — `works until <date>`, `no end
+date`, `expired` or `revoked`. A dead link is offered no revoke button, because
+`resolveInvite` already refuses it and a button that claimed to do something to
+it would be noise.
+
+`app/api/contacts/admin/route.ts` gained an `inviteView`, the way `ownerView`
+already exists for a contact. **One correction to the Why above:** the route was
+never the place the fields were lost — it returned `listInvites(username)`
+whole, and every field was already in the RSC payload; what dropped them was the
+type on the other side. The mapping is there so the page's contract is stated
+rather than "whatever `Invite` happens to hold", and so a column added upstream
+cannot arrive on the client by accident.
+
+Copy in `content/locales/{en,de,hu}.json` plus `npm run i18n:keys`:
+`contact.adminInvitePersonalTitle`, `contact.adminInviteTrip`,
+`contact.adminInviteExpires`, `contact.adminInviteExpired`,
+`contact.adminInviteRevoked`, `contact.adminInviteNoExpiry`.
+
+### The same blindness elsewhere: checked
+
+- **REST** (`GET /api/v1/{user}/invites`) was already legible — `view()` returns
+  `kind`, and `scope` as a **trip ref** rather than a bare id. No change.
+- **MCP** (`list_invites`) named the kind, and got one real fix: a link whose
+  date had passed rendered as `, until 2020-01-01`, which reads as live to
+  anything skimming the line. It now says `expired <date>`, the rows carry a
+  derived `live`, and the answer states in one sentence which kind leads to
+  write access.
+
+## Evidence
+
+Rendered `/alex/contacts` on a dev server (one personal, one guest, one buddy
+link, all issued the way the panel issues them):
+
+```
+A personal link, for one person | Oma · English · used 0× · no end date        [Revoke]
+A link for someone to write     | the trip bus-2026 · used 0× · works until 2026-10-04  [Revoke]
+A link for someone to read      | used 0× · works until 2026-10-04             [Revoke]
+```
+
+and after revoking the guest link and expiring the buddy link in the database:
+
+```
+A personal link, for one person | Oma · English · used 0× · no end date        [Revoke]
+A link for someone to write     | the trip bus-2026 · used 0× · expired — it no longer works
+A link for someone to read      | used 0× · revoked — it no longer works
+```
+
+`list_invites` over MCP against the same journal:
+
+```
+… — personal to alex, used 0×
+… — buddy to alex/bus-2026, used 0×, expired 2020-01-01
+… — guest to alex, used 0×, revoked
+```
+
+`test/guest-list-links.test.tsx` (new) asserts all of it on the rendered markup;
+it fails 6 of 8 against the previous component, where the guest and buddy rows
+were both `— · — · used 0×`. Two tests in `test/mcp.test.ts` cover the MCP list
+through the real endpoint.
+
+`npm run i18n:keys`, `npm run build`, `npx tsc --noEmit`, `npx eslint .` (0
+errors) and `npx vitest run` (130 files, 2098 passed) all pass.
+
+## Noticed while building, not absorbed
+
+**B228** — making the expiry legible showed that the personal links this page
+issues carry none at all: `case "invite"` in the admin route calls
+`createInvite` without an `expiresAt`, while both other doors date every link
+and `lib/contacts/invites.ts` argues at length that a link which never expires
+is the shared password again. Captured rather than fixed here; B97 is about
+reading the list, not about what the form writes.

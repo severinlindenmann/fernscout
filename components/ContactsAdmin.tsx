@@ -49,13 +49,44 @@ export type AdminContact = {
   lastSeenAt: string | null;
 };
 
+/**
+ * One issued link, as the owner has to be able to read it — B97.
+ *
+ * `kind`, `tripId` and `expiresAt` were on `Invite` in the database and were
+ * dropped by this type on the way to the screen, so a guest link and a buddy
+ * link — neither of which carries a name or a language when it is issued from
+ * the access panel, which is how they are normally issued — rendered as the
+ * same row: `— · — · used 0 times`. One of them leads to somebody writing to a
+ * trip, and this list is the only place either can be revoked.
+ */
 export type AdminInvite = {
   id: string;
+  /** What the link leads to. `personal` and `guest` end at reading; only
+   * `buddy` ends at write access to a trip. */
+  kind: "personal" | "guest" | "buddy";
+  /** The trip a `buddy` link joins. Null for every other kind. */
+  tripId: string | null;
   name: string | null;
   locale: Locale | null;
   createdAt: string;
+  expiresAt: string | null;
   revokedAt: string | null;
   uses: number;
+};
+
+/**
+ * What each kind of link leads to, in the words the access panel already uses.
+ *
+ * `me.inviteGuestTitle` and `me.inviteBuddyTitle` are the strings the owner
+ * read on the panel where they issued the link (B79). Reusing them rather than
+ * writing a second vocabulary for the same two things is the point: an owner
+ * who sent the wrong one is looking for the words they were shown when they
+ * sent it.
+ */
+const INVITE_KIND_KEY: Record<AdminInvite["kind"], TranslationKey> = {
+  personal: "contact.adminInvitePersonalTitle",
+  guest: "me.inviteGuestTitle",
+  buddy: "me.inviteBuddyTitle",
 };
 
 const STATUS_KEY: Record<AdminContact["status"], TranslationKey> = {
@@ -549,6 +580,74 @@ function ContactGroup({
   );
 }
 
+/**
+ * One issued link, said in full — B97.
+ *
+ * Two things have to be legible without opening anything, because this list is
+ * the only place a link can be revoked and revoking is irreversible: **which
+ * kind it is**, and **whether it still works**. The cost of guessing wrong is
+ * asymmetric — kill the reading link by mistake and the family cannot ask to
+ * read; leave the writing link alive and a stranger can join a trip.
+ *
+ * A dead link — revoked, or past its expiry — says so and is offered no
+ * button. Both are already refused by `resolveInvite`, so a control that
+ * claimed to do something to one would be noise over a link that is already
+ * nothing.
+ */
+function InviteRow({
+  invite,
+  t,
+  busy,
+  act,
+}: {
+  invite: AdminInvite;
+  t: Translate;
+  busy: boolean;
+  act: (body: Record<string, unknown>) => void;
+}) {
+  // Compared as ISO strings, which is what the column stores and what sorts
+  // correctly — the same comparison `lib/grants.ts` makes for a grant.
+  const expired = invite.expiresAt !== null && invite.expiresAt <= new Date().toISOString();
+  const dead = invite.revokedAt !== null || expired;
+
+  const detail = [
+    // The trip is the whole difference between this row and the one above it,
+    // so it comes first on a buddy link.
+    invite.kind === "buddy" ? t("contact.adminInviteTrip", { trip: invite.tripId ?? "—" }) : null,
+    invite.name,
+    invite.locale ? LOCALE_LABEL[invite.locale] : null,
+    t("contact.adminInviteUses", { count: String(invite.uses) }),
+    invite.revokedAt
+      ? t("contact.adminInviteRevoked")
+      : expired
+        ? t("contact.adminInviteExpired")
+        : invite.expiresAt
+          ? t("contact.adminInviteExpires", { date: invite.expiresAt.slice(0, 10) })
+          : t("contact.adminInviteNoExpiry"),
+  ].filter(Boolean);
+
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-navy-200 px-4 py-3">
+      <span className="text-base">
+        <span className={dead ? "text-navy-600" : "font-semibold text-navy-900"}>
+          {t(INVITE_KIND_KEY[invite.kind])}
+        </span>
+        <span className="block text-sm text-navy-600">{detail.join(" · ")}</span>
+      </span>
+      {!dead && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => act({ action: "revoke-invite", id: invite.id })}
+          className="rounded-lg border border-navy-200 px-3 py-1 text-sm text-navy-700 disabled:opacity-50"
+        >
+          {t("contact.adminRevokeLink")}
+        </button>
+      )}
+    </li>
+  );
+}
+
 export default function ContactsAdmin({
   username,
   locale,
@@ -734,24 +833,7 @@ export default function ContactsAdmin({
         {invites.length > 0 && (
           <ul className="mt-6 space-y-2">
             {invites.map((invite) => (
-              <li
-                key={invite.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-navy-200 px-4 py-3"
-              >
-                <span className="text-base text-navy-900">
-                  {`${invite.name ?? "—"} · ${invite.locale ? LOCALE_LABEL[invite.locale] : "—"} · ${t("contact.adminInviteUses", { count: String(invite.uses) })}`}
-                </span>
-                {!invite.revokedAt && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => act({ action: "revoke-invite", id: invite.id })}
-                    className="rounded-lg border border-navy-200 px-3 py-1 text-sm text-navy-700 disabled:opacity-50"
-                  >
-                    {t("contact.adminRevokeLink")}
-                  </button>
-                )}
-              </li>
+              <InviteRow key={invite.id} invite={invite} t={t} busy={busy} act={act} />
             ))}
           </ul>
         )}
