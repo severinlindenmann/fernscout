@@ -231,6 +231,47 @@ describe("a contact the owner takes back", () => {
     expect(after.body.message).toContain("withdrawn");
     expect(after.body.message).not.toContain("/api/auth/request");
   });
+
+  /**
+   * And starts again when the owner changes their mind — B213.
+   *
+   * B98's suite stopped at the 403 above, which is how the other half went
+   * unnoticed on the live instance: approving the contact again answered
+   * `{"ok": true, "contact": {"status": "active"}}` and this route still said
+   * `403 access_revoked`, because `approveTripPlaces` skipped a revoked row.
+   * The owner was told it had worked, the person could not write, and neither
+   * was told why — with no way back short of editing the database, since
+   * `claimTripPlace` returns on the row a new buddy link would have to write
+   * over.
+   *
+   * The same token, deliberately: nothing about this needs a new invite or a
+   * new sign-in, which is the whole of what "restored" has to mean.
+   */
+  test("writes again when the owner approves them back, on the token they already hold", async () => {
+    const { approveContact, revokeContact, getContactByEmail } = await import("@/lib/contacts");
+    const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+
+    const email = "kit@example.test";
+    const contactId = await letIn(email, "Kit");
+    await claimTripPlace(OWNER, "owner-only-2026", contactId, null);
+    await approveTripPlaces(OWNER, contactId);
+
+    const token = await tripToken(email, "owner-only-2026");
+    expect((await writeDay(token, "owner-only-2026", "Kit while approved")).status).toBe(201);
+
+    await revokeContact(OWNER, contactId);
+    const shut = await writeDay(token, "owner-only-2026", "Kit after revocation");
+    expect(shut.status).toBe(403);
+    expect(shut.body.error).toBe("access_revoked");
+
+    // One click, the same one that hands back the journal.
+    const back = await approveContact(OWNER, contactId);
+    expect(back?.status).toBe("active");
+    expect((await getContactByEmail(OWNER, email))?.status).toBe("active");
+
+    const again = await writeDay(token, "owner-only-2026", "After being let back on");
+    expect(again.status).toBe(201);
+  });
 });
 
 describe("the owner's own token", () => {

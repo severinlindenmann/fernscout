@@ -242,6 +242,15 @@ export async function tripWriteVerdict(
  * leaves the grant alone: re-following the link in a group chat must not
  * quietly demote somebody who is already on the trip, the same rule
  * `requestContact` follows for an `active` contact.
+ *
+ * **The early return is load-bearing since B213**, and not only a way of
+ * avoiding a duplicate. It is what a *revoked* row costs somebody to redeem
+ * past: `approveTripPlaces` now revives a revoked place when the owner
+ * approves the contact again, so a fresh row written over the top of a revoked
+ * one would be a clean slate that the person let themselves back into. Any row
+ * counts here — revoked included — which is why this asks whether the place
+ * exists rather than whether it is live. (`requestContact` refuses a blocked
+ * contact before this is even reached, so the two hold the same line twice.)
  */
 export async function claimTripPlace(
   username: string,
@@ -314,11 +323,34 @@ export async function claimTripPlace(
  * how the schema says "on this trip until Christmas", it stays enforced, and a
  * rule honoured by whichever caller remembered it is worse than no rule.
  *
- * **Not touched: a revoked place.** `revokeTripPlaces` marks rather than
- * deletes so somebody the owner showed the door cannot redeem the same link
- * back into a clean slate, and re-approving a blocked contact must not undo
- * that by a side door. Whether revocation should be reversible at all is a
- * decision about what revocation means, not this filter's business.
+ * **And a revoked place comes back too** — B213, which is the decision B161
+ * left open when it wrote "not touched: a revoked place" here.
+ *
+ * The observed cost of leaving it closed was not a hypothetical. An owner who
+ * revoked somebody by mistake and clicked approve again got `{"ok": true,
+ * "contact": {"status": "active"}}` while the person still met `403
+ * access_revoked` on the trip, and no surface said so. Worse, there was no way
+ * back at all: a fresh buddy link does not help, because `claimTripPlace`
+ * returns early on the row that already exists, so the place could only be
+ * restored by editing the database by hand.
+ *
+ * It is also the divergence this function was fixed for once already. One
+ * table over, revocation has always been reversible — `revokeContact` deletes
+ * the `access_grants` row and `approveContact` writes a fresh one, so an
+ * un-revoked contact reads every `guest` trip in the journal again on the same
+ * click. Trip places being the one thing that did not come back was a filter's
+ * accident rather than anybody's decision, and one writer disagreeing with its
+ * neighbour is the shape of B82, B130 and B161.
+ *
+ * The reason B161 gave for hesitating is real and is kept, in the place that
+ * actually enforces it: **a revoked person cannot do this to themselves.**
+ * `requestContact` ignores a blocked contact, so redeeming the link again
+ * writes nothing and puts nothing back in the owner's queue; `claimTripPlace`
+ * returns on the existing row, so no second, clean row can be made; and
+ * `approveContact` is the only thing in the codebase that writes `status:
+ * "active"`. Reviving here therefore needs the owner to look at somebody they
+ * blocked and press approve — which is the same deliberate act that hands back
+ * the journal, not a side door into it.
  */
 export async function approveTripPlaces(username: string, contactId: string): Promise<string[]> {
   const handle = await getDatabaseOrNull();
@@ -326,23 +358,25 @@ export async function approveTripPlaces(username: string, contactId: string): Pr
   const now = new Date();
   const candidates = await handle.db
     .selectFrom("trip_people")
-    .select(["id", "trip_id", "granted_at", "expires_at"])
+    .select(["id", "trip_id", "granted_at", "revoked_at", "expires_at"])
     .where("owner_id", "=", username)
     .where("contact_id", "=", contactId)
-    .where("revoked_at", "is", null)
     .execute();
 
-  // Never granted (a request), or granted and since lapsed. Both are somebody
-  // who is not on the trip right now, which is the only question the owner is
-  // answering when they click approve.
+  // Revoked, never granted (a request), or granted and since lapsed. All three
+  // are somebody who is not on the trip right now, which is the only question
+  // the owner is answering when they click approve. Revoked is its own clause
+  // rather than a case of the others: such a row usually carries a live
+  // `granted_at` and no expiry, and would pass both of the tests below.
   const opening = candidates.filter(
-    (row) => row.granted_at === null || !grantIsLive(row.expires_at, now),
+    (row) =>
+      row.revoked_at !== null || row.granted_at === null || !grantIsLive(row.expires_at, now),
   );
   if (opening.length === 0) return [];
 
   await handle.db
     .updateTable("trip_people")
-    .set({ granted_at: nowIso(), granted_by: username, expires_at: null })
+    .set({ granted_at: nowIso(), granted_by: username, revoked_at: null, expires_at: null })
     // Scoped again by owner and contact, though the ids came from a query that
     // already was: an UPDATE reached by primary key alone is one refactor away
     // from writing across journals.
@@ -366,6 +400,16 @@ export async function approveTripPlaces(username: string, contactId: string): Pr
  * them redeem the same link again into a clean slate. A place that was never
  * granted is revoked too — an outstanding request from somebody the owner has
  * just blocked should not be waiting to be approved by a later click.
+ *
+ * **Reversible, by the owner and by nobody else** — B213. Approving the
+ * contact again clears this stamp and puts them back on the trip, the same way
+ * approving again writes back the `access_grants` row `revokeContact` deleted.
+ * That is the owner changing their mind, which they are entitled to do and had
+ * no way to do; it is not the revoked person's route back, because every door
+ * they could push on refuses a blocked contact. See `approveTripPlaces`.
+ *
+ * The `revoked_at is null` guard is what keeps the stamp meaning the first
+ * time the owner said no: revoking twice must not move the date forward.
  */
 export async function revokeTripPlaces(username: string, contactId: string): Promise<void> {
   const handle = await getDatabaseOrNull();
