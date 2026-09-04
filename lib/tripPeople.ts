@@ -282,30 +282,73 @@ export async function claimTripPlace(
  * everywhere as the stronger of the two and not the one to forward.
  *
  * Returns the trips that were opened, so the caller can say so.
+ *
+ * **A row is not a place; a live row is** — B161, the `trip_people` half of
+ * what B130 fixed in `access_grants`. This used to pick its rows by asking
+ * whether they had ever been opened (`granted_at is null`), which is a test
+ * for the row's *existence* where every reader above tests whether it is
+ * `grantIsLive`. A place whose `expires_at` had passed was therefore skipped —
+ * it *was* granted — so the owner clicked approve, `approveContact` reported
+ * success, and the person was still not on the trip. The same divergence B82
+ * found in `lib/push.ts` and B130 found one table over: one writer and every
+ * reader asking different questions. So this writer asks `grantIsLive` too,
+ * and the two tables now behave the same way under one click.
+ *
+ * Approving is the owner saying *let them in now*, so a lapsed place is
+ * revived rather than left standing: the expiry is cleared and the stamps are
+ * rewritten, because this is a fresh decision and the old `granted_at`
+ * describes a place that has since run out. A place that never lapsed is not
+ * touched at all — restamping a live grant would rewrite a date that is still
+ * true.
+ *
+ * Nothing writes a non-null `expires_at` here yet (`claimTripPlace` hard-codes
+ * null, and no caller issues a time-limited place), which is the same standing
+ * that `lib/grants.ts` documents for `access_grants` under B178: the column is
+ * how the schema says "on this trip until Christmas", it stays enforced, and a
+ * rule honoured by whichever caller remembered it is worse than no rule.
+ *
+ * **Not touched: a revoked place.** `revokeTripPlaces` marks rather than
+ * deletes so somebody the owner showed the door cannot redeem the same link
+ * back into a clean slate, and re-approving a blocked contact must not undo
+ * that by a side door. Whether revocation should be reversible at all is a
+ * decision about what revocation means, not this filter's business.
  */
 export async function approveTripPlaces(username: string, contactId: string): Promise<string[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
-  const pending = await handle.db
+  const now = new Date();
+  const candidates = await handle.db
     .selectFrom("trip_people")
-    .select(["id", "trip_id"])
+    .select(["id", "trip_id", "granted_at", "expires_at"])
     .where("owner_id", "=", username)
     .where("contact_id", "=", contactId)
-    .where("granted_at", "is", null)
     .where("revoked_at", "is", null)
     .execute();
-  if (pending.length === 0) return [];
+
+  // Never granted (a request), or granted and since lapsed. Both are somebody
+  // who is not on the trip right now, which is the only question the owner is
+  // answering when they click approve.
+  const opening = candidates.filter(
+    (row) => row.granted_at === null || !grantIsLive(row.expires_at, now),
+  );
+  if (opening.length === 0) return [];
 
   await handle.db
     .updateTable("trip_people")
-    .set({ granted_at: nowIso(), granted_by: username })
+    .set({ granted_at: nowIso(), granted_by: username, expires_at: null })
+    // Scoped again by owner and contact, though the ids came from a query that
+    // already was: an UPDATE reached by primary key alone is one refactor away
+    // from writing across journals.
     .where("owner_id", "=", username)
     .where("contact_id", "=", contactId)
-    .where("granted_at", "is", null)
-    .where("revoked_at", "is", null)
+    .where(
+      "id",
+      "in",
+      opening.map((row) => row.id),
+    )
     .execute();
 
-  return pending.map((row) => row.trip_id);
+  return opening.map((row) => row.trip_id);
 }
 
 /**
