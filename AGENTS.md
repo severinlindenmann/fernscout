@@ -24,27 +24,34 @@ Two ways in, and they are the same content behind two doors:
 
 ## The one rule
 
-**Anything an agent creates is a draft.** `status: draft` in the frontmatter,
-and every reading path filters it out in `lib/entries.ts`. There is no
-parameter, argument or flag on anything that *writes* which skips the step —
-not in the REST API, not in MCP, not in the skills below.
+**The agent is the editor.** It writes, it publishes, it corrects. There is no
+web form and no CMS to fall back on, so if an agent will not do a thing on the
+owner's behalf, the thing cannot be done at all — which is why the rule is
+stated as a capability and not as a restraint.
 
-Publishing is a **separate, deliberate call** the person asks for:
+**What an agent writes arrives as a draft.** `status: draft` in the
+frontmatter, and every reading path filters it out in `lib/entries.ts`. It is
+the default so that a person can read a day back before it is on the site — a
+courtesy to them, not a gate against you. `POST .../days` has no `status`
+argument and no publish-on-create, in the REST API or in MCP, for exactly that
+reason: writing and publishing are two calls so there is a moment in between.
+
+**Publishing is the second call, and it is yours to make when asked:**
 `POST /api/v1/<user>/trips/<trip>/days/<slug>/publish`, or `publish_day` over
-MCP. Owner only — a trip-scoped token writes days and cannot put them on the
-site — and refused once, with a code bound to that one day.
+MCP. Owner only — a trip-scoped token writes days into its trip and cannot put
+them on the site, because being on the bus is not the same as deciding what the
+journal says. B28 is why it exists: the person deciding is often somebody who
+has never seen the folder, and telling them to delete a line from a file was
+advice with nowhere to go.
 
-Be exact about what that guarantees, because it is less than it looks. An agent
-holds both calls; the confirmation makes publishing a distinct act it has to
-mean, not proof that a human consented. The guarantee is structural — writing
-can never publish — and the rest is instruction: **ask, in words, and wait for
-an answer.** B28 records why it exists at all: the person the rule reserves this
-for is often somebody who has never seen the folder, and telling them to edit a
-file was advice with nowhere to go.
+Nothing in the code can tell whether the person actually asked, so that part is
+instruction and not a guarantee: **ask, in words, and wait for an answer.** "It
+looks finished" is not consent, and neither is silence.
 
-One invented memory presented to somebody's family as fact is not recoverable.
-So: write what you were told. No weather nobody mentioned, no meals nobody ate,
-no feelings nobody expressed. An empty field beats a plausible fiction.
+The one thing that is never an agent's to decide is what happened. One invented
+memory presented to somebody's family as fact is not recoverable. So: write
+what you were told. No weather nobody mentioned, no meals nobody ate, no
+feelings nobody expressed. An empty field beats a plausible fiction.
 
 **`test: true`** is the exception, and the only one. A day or a trip carrying it
 is content nobody lived, written to prove the pipeline works: the page says so

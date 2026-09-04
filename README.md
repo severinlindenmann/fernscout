@@ -16,10 +16,15 @@ already is.
 in a browser; writing happens through an agent holding a token, over REST or
 MCP. Which means the rule everything else is built around:
 
-> **Anything an agent creates is a draft.** A person removes one line from one
-> file to publish it. There is no parameter, flag or endpoint anywhere that
-> skips that step — because one invented memory, presented to somebody's family
-> as fact, is not recoverable.
+> **The agent is the editor.** It writes, it publishes, it corrects — you tell
+> it what you want and it does the work. Everything it writes arrives as a
+> draft, so you can read a day back before it goes up; that is a courtesy to
+> you, not a gate against it.
+
+The one thing that stays out of an agent's hands is invention. One made-up
+memory, presented to somebody's family as fact, is not recoverable — so an
+agent writes what it was told and leaves a field empty rather than guessing,
+and content nobody lived is marked `test: true` and says so on the page.
 
 One instance serves many people: `content/<username>/…`, reachable at
 `/<username>`. A demo journal ships in the repo and serves at `/example`, so a

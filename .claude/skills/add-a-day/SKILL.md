@@ -1,6 +1,6 @@
 ---
 name: add-a-day
-description: Write one day of a Fernscout trip as a draft entry — from notes, a transcript, or a conversation. Use when the user says "write up today", "add a day", "add an entry", "turn these notes into a post", or hands over a voice-memo transcript. Always produces status:draft; a person publishes.
+description: Write one day of a Fernscout trip as a draft entry — from notes, a transcript, or a conversation. Use when the user says "write up today", "add a day", "add an entry", "turn these notes into a post", or hands over a voice-memo transcript. Always produces status:draft, and does not publish.
 ---
 
 # Add a day
@@ -92,7 +92,18 @@ npx vitest run test/entries.test.ts
 ```
 
 Then tell the author, in one line: what you wrote, where the file is, and that
-it is waiting for them. Offer to read it back. Do not offer to publish it.
+it is waiting for them. Offer to read it back.
+
+**Do not offer to publish it, and this door is deliberately stricter than the
+other one.** Over the network an agent publishes when asked — that is the rule
+in `AGENTS.md`, and ROADMAP decision 28 — because the person deciding there
+often has no folder and no editor, so refusing would leave them with no route
+at all. Here they have both: you are in their checkout, they can see the file,
+and deleting one line is a thing they can do in five seconds and undo just as
+fast. Where the person has the shorter route, leave it to them.
+
+If they ask you to publish it, do it — delete the `status: draft` line and say
+so. What you must not do is *propose* it.
 
 ## Doing this against a running site instead
 

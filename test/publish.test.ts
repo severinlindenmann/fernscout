@@ -9,19 +9,19 @@ import { getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { confirmationMatches, issueConfirmation } from "@/lib/agentConfirm";
 
 /**
- * Publishing, and what the draft rule still guarantees afterwards.
+ * Publishing, and what survives of the draft rule around it.
  *
- * The rule was always "an agent writes drafts, a person publishes them", and
- * the second half had no mechanism: the only way to publish was to open the
- * file and delete a line, which is fine for the author on their own laptop and
- * impossible for somebody handed a journal by an agent. The guide said "a
- * person publishes it" four times and never said how.
+ * Until B28 there was no mechanism at all: the only way to publish was to open
+ * the file and delete a line, which is fine for the author on their own laptop
+ * and impossible for somebody handed a journal by an agent. Under the current
+ * rule (ROADMAP decision 28) publishing is the agent's to do when asked, and
+ * B224 took away the confirmation handshake that once guarded it.
  *
  * What must remain true, and is what these tests are for:
  *
  *  - writing and publishing are two separate calls, and nothing sent to the
- *    write can publish;
- *  - publishing is confirmed, with a code bound to that exact day;
+ *    write can publish — that gap is what lets somebody read a day back;
+ *  - publishing twice is refused rather than shrugged off;
  *  - the file is otherwise untouched — publishing is the removal of one line,
  *    not a rewrite.
  */
@@ -136,20 +136,25 @@ describe("publishing a draft", () => {
 });
 
 /**
- * The confirmation is not proof a person consented — an agent can make both
- * calls. What it guarantees is that publishing is a distinct, deliberate act
- * bound to one day, which is why a code for one thing must not work for
- * another.
+ * `publish_day` is a retired confirmation verb, and these are the reasons it
+ * was not simply deleted from the union in `lib/agentConfirm.ts` (B224).
+ *
+ * A code is signed over its action, so the name has to keep meaning what it
+ * meant. Removing it would let a `publish_day` code issued before the change
+ * fail to *parse* rather than fail to *match* — a different error on a
+ * different path — and would free the string for some later verb to adopt,
+ * at which point old codes would start verifying against a call nobody issued
+ * them for.
+ *
+ * The binding these assert is deletion's now. It is tested here rather than
+ * moved because this is the file that explains why the verb is still listed.
  */
-describe("the confirmation binding", () => {
+describe("the retired publish verb stays bound", () => {
   const op = (target: string) =>
     ({ action: "publish_day" as const, scope: REF, target });
 
-  test("a code publishes the day it was issued for", () => {
+  test("a code still matches only the day it was issued for", () => {
     expect(confirmationMatches(issueConfirmation(op("erster-tag")), op("erster-tag"))).toBe(true);
-  });
-
-  test("and not another day", () => {
     expect(confirmationMatches(issueConfirmation(op("erster-tag")), op("zweiter-tag"))).toBe(false);
   });
 
@@ -164,17 +169,12 @@ describe("the confirmation binding", () => {
     ).toBe(false);
   });
 
-  /** The property that keeps publishing separate from deleting. */
-  test("a code to delete a draft cannot publish it", () => {
-    const deleteCode = issueConfirmation({
-      action: "delete_draft",
-      scope: REF,
-      target: "erster-tag",
-    });
-    expect(confirmationMatches(deleteCode, op("erster-tag"))).toBe(false);
-  });
-
-  test("and a code to publish cannot delete", () => {
+  /**
+   * The property that matters after B224: a code obtained for the retired verb
+   * must not authorise the one that still exists. Deleting is unrecoverable
+   * and kept its confirmation precisely because publishing did not.
+   */
+  test("a publish code cannot delete", () => {
     const publishCode = issueConfirmation(op("erster-tag"));
     expect(
       confirmationMatches(publishCode, {
@@ -183,6 +183,15 @@ describe("the confirmation binding", () => {
         target: "erster-tag",
       }),
     ).toBe(false);
+  });
+
+  test("and a delete code was never a publish code", () => {
+    const deleteCode = issueConfirmation({
+      action: "delete_draft",
+      scope: REF,
+      target: "erster-tag",
+    });
+    expect(confirmationMatches(deleteCode, op("erster-tag"))).toBe(false);
   });
 
   test("an invented code does not verify", () => {

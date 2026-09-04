@@ -19,10 +19,12 @@ import { quoteScalar } from "../validate/frontmatter";
 /**
  * Writing content through the API.
  *
- * Everything an agent creates lands as a **draft** (G7). One hallucinated
- * memory in front of your family is unrecoverable, and no token lifetime fixes
- * that — so a human moves an entry from draft to published, and the API has no
- * way to skip the step.
+ * Everything an agent creates lands as a **draft** (G7), and `createDraft` has
+ * no argument that changes it. That is not a gate against the agent — it
+ * publishes too, in `publishDraft` below. It is a gap: one hallucinated memory
+ * in front of somebody's family is unrecoverable, and the only thing that ever
+ * catches one is a person reading the day back before anybody else can. Two
+ * calls is what makes that moment exist.
  *
  * Writes go straight to markdown files, because markdown files are the content
  * model. There is no second representation to keep in step, and anything an
@@ -313,20 +315,21 @@ export function attachGallery(
 }
 
 /**
- * What publishing this particular day will do — written once, for both doors.
+ * What publishing this particular day did — written once, for both doors.
  *
- * This is the last sentence a person reads before they say yes, which makes it
- * the one moment the software has their full attention. Until B158 it promised
- * the feed and the search index to every day alike, and for a `test: true` day
- * none of that half is true: `lib/feed.ts`, `lib/search.ts` and the sitemap all
- * exclude content nobody lived, so the confirmation was describing a different
- * day than the one in front of the person approving it.
+ * It was the refusal's question until B224 and is the receipt now, which is a
+ * change of tense and not of purpose: it is still the sentence that tells
+ * somebody what just became readable, and it is still what the agent reads out
+ * to them. Until B158 it promised the feed and the search index to every day
+ * alike, and for a `test: true` day none of that half is true: `lib/feed.ts`,
+ * `lib/search.ts` and the sitemap all exclude content nobody lived, so it
+ * described a different day than the one it was about.
  *
  * The test wording is shorter and more reassuring rather than more alarming,
  * because that is what is actually the case: the page goes up wearing a banner
  * that says it did not happen, and nothing goes looking for it.
  *
- * One function, because REST and MCP ask the same question and a sentence kept
+ * One function, because REST and MCP report the same act and a sentence kept
  * in two files disagrees with itself within a month — which is exactly how the
  * two copies of this one came to differ before B158 merged them.
  */
@@ -338,7 +341,7 @@ export function publishNotice(input: {
   /** `isTestContent(trip, entry)` — the trip's flag counts, not just the day's. */
   test: boolean;
 }): string {
-  const head = `This publishes "${input.title}" (${input.date}) to ${input.url}.`;
+  const head = `"${input.title}" (${input.date}) is on ${input.url}.`;
   const tail =
     `Taking it down again removes it from the site, not from the people who have ` +
     `already read it.`;
@@ -346,7 +349,7 @@ export function publishNotice(input: {
     ? `${head} It is marked test: true — content nobody lived — so the page says so in a ` +
         `banner and it is kept out of the feed, the search index and the sitemap. Anyone ` +
         `with the link can still read it. ${tail}`
-    : `${head} It goes into the journal, the feed and the search index, and anyone with ` +
+    : `${head} It is in the journal, the feed and the search index, and anyone with ` +
         `the link can read it. ${tail}`;
 }
 
@@ -360,11 +363,11 @@ export function publishNotice(input: {
  * now a real person. The guide told them four times that "a person publishes
  * it" and never once said how.
  *
- * **This does not weaken the draft rule; it moves where the person stands.**
- * Writing and publishing remain two separate calls, the second is refused
- * without a confirmation code bound to that exact day, and the refusal asks
- * whether the person actually said to. What an agent still cannot do is
- * publish as a side effect of writing.
+ * **Publishing is the agent's to do, once asked** (B223). What survives from
+ * the older rule is only the shape: writing and publishing are two calls, so
+ * there is a moment where the day exists and nobody has read it. The
+ * confirmation handshake that used to guard the second call went in B224 — it
+ * never established that anybody consented, since the agent held both codes.
  *
  * Textual, like `attachGallery`: the file is not parsed and re-emitted, so
  * comments, key order and hand-written formatting survive. Only the status line

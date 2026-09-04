@@ -706,37 +706,44 @@ describe("create_day writes a draft, and only a draft", () => {
     expect(JSON.stringify(create)).not.toMatch(/"publish"|"status"/);
   });
 
-  test("publishing is a separate tool, and it refuses the first time", async () => {
+  /**
+   * B224. There was a confirmation handshake here until then: the first call
+   * was refused with a code and the second carried it back. It never
+   * established that a person had consented — the agent held both calls — so
+   * once publishing stopped being reserved for a person it was a round trip
+   * buying nothing, and a refusal shape on the success path that a strict
+   * client reads as failure. The write still cannot publish; that is the part
+   * that was ever structural.
+   */
+  test("publishing is a separate tool, and one call does it", async () => {
     await call(anaToken, "create_day", DAY);
-    const first = await call(anaToken, "publish_day", {
-      trip: "ana-trip",
-      slug: "lanterns-of-hoi-an",
-    });
-    // Refused, with the code and the question — not published.
-    expect(first.isError).toBe(true);
-    expect(JSON.stringify(first)).toMatch(/confirm/);
     expect(getAllEntries("ana/ana-trip").map((e) => e.slug)).not.toContain("lanterns-of-hoi-an");
-  });
 
-  test("and goes through on the second, with the code", async () => {
-    await call(anaToken, "create_day", DAY);
-    const first = await call(anaToken, "publish_day", {
+    const result = await call(anaToken, "publish_day", {
       trip: "ana-trip",
       slug: "lanterns-of-hoi-an",
     });
-    const code = /cf_[A-Za-z0-9_-]+/.exec(JSON.stringify(first))?.[0];
-    expect(code).toBeTruthy();
-
-    const second = await call(anaToken, "publish_day", {
-      trip: "ana-trip",
-      slug: "lanterns-of-hoi-an",
-      confirm: code,
-    });
-    expect(second.isError).toBeFalsy();
+    expect(result.isError).toBeFalsy();
     expect(getAllEntries("ana/ana-trip").map((e) => e.slug)).toContain("lanterns-of-hoi-an");
   });
 
-  test("an invented confirmation does not publish anything", async () => {
+  test("and the tool no longer advertises a confirmation argument", async () => {
+    const { body } = await rpc(anaToken, "tools/list");
+    const tools = (body.result as { tools: { name: string }[] }).tools;
+    const publish = tools.find((t) => t.name === "publish_day");
+    expect(publish).toBeTruthy();
+    expect(JSON.stringify(publish)).not.toMatch(/confirm/i);
+  });
+
+  /**
+   * The one thing that must not happen to an agent still working from the
+   * pre-B224 guide: it sends the `confirm` it thinks is required, and the day
+   * goes up anyway with the argument quietly ignored. `additionalProperties:
+   * false` on the tool means it is refused instead — the agent learns the
+   * protocol changed rather than succeeding by accident and reporting a
+   * handshake that never happened.
+   */
+  test("a leftover confirmation argument is refused, not ignored", async () => {
     await call(anaToken, "create_day", DAY);
     const result = await call(anaToken, "publish_day", {
       trip: "ana-trip",
@@ -1180,24 +1187,30 @@ describe("what a person is told about content nobody lived", () => {
     expect(drafts.find((d) => d.slug === "real-draft")).not.toHaveProperty("test");
   });
 
-  test("the publish confirmation describes the exclusions rather than promising the opposite", async () => {
-    const refused = await call(anaToken, "publish_day", {
+  /**
+   * The sentence was the confirmation's question until B224 and is the
+   * receipt now — a change of tense, not of duty. It is still what the agent
+   * reads out to the person, so it must still describe the day in front of
+   * them rather than days in general (B158).
+   */
+  test("the publish receipt describes the exclusions rather than promising the opposite", async () => {
+    const done = await call(anaToken, "publish_day", {
       trip: "ana-proving",
       slug: "proving-draft",
     });
-    expect(refused.isError).toBe(true);
-    const message = textOf(refused);
+    expect(done.isError).toBeFalsy();
+    const message = textOf(done);
     expect(message).toContain("kept out of the feed, the search index and the sitemap");
-    expect(message).not.toContain("It goes into the journal, the feed and the search index");
+    expect(message).not.toContain("It is in the journal, the feed and the search index");
   });
 
-  test("publishing an ordinary day still promises the feed and the search index", async () => {
-    const refused = await call(anaToken, "publish_day", {
+  test("publishing an ordinary day still names the feed and the search index", async () => {
+    const done = await call(anaToken, "publish_day", {
       trip: "ana-trip",
       slug: "real-draft",
     });
-    expect(refused.isError).toBe(true);
-    expect(textOf(refused)).toContain("It goes into the journal, the feed and the search index");
+    expect(done.isError).toBeFalsy();
+    expect(textOf(done)).toContain("It is in the journal, the feed and the search index");
   });
 
   test("and both doors read out the same sentence", async () => {
@@ -1208,29 +1221,34 @@ describe("what a person is told about content nobody lived", () => {
       await call(anaToken, "publish_day", { trip: "ana-proving", slug: "proving-draft" }),
     );
 
+    // The REST door publishes the *other* draft, because a day can only be
+    // published once now that neither call is refused first.
     const { POST } = await import(
       "@/app/api/v1/[user]/trips/[trip]/days/[slug]/publish/route"
     );
     const response = await POST(
-      new Request(`${SITE}/api/v1/ana/trips/ana-proving/days/proving-draft/publish`, {
+      new Request(`${SITE}/api/v1/ana/trips/ana-trip/days/real-draft/publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${anaToken}` },
         body: "{}",
       }),
       {
-        params: Promise.resolve({
-          user: "ana",
-          trip: "ana-proving",
-          slug: "proving-draft",
-        }),
+        params: Promise.resolve({ user: "ana", trip: "ana-trip", slug: "real-draft" }),
       },
     );
-    expect(response.status).toBe(409);
-    const body = (await response.json()) as { message: string };
-    expect(viaMcp).toContain(body.message);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { note: string };
 
-    // And nothing was published by either refusal.
-    expect(getAllEntries("ana/ana-proving").map((e) => e.slug)).not.toContain("proving-draft");
+    // Same wording, differing only in the day each is about: both end on the
+    // clause `publishNotice` appends to every day alike.
+    const tail = "not from the people who have already read it.";
+    expect(viaMcp).toContain(tail);
+    expect(body.note).toContain(tail);
+    expect(body.note).toContain("It is in the journal, the feed and the search index");
+
+    // And both actually published.
+    expect(getAllEntries("ana/ana-proving").map((e) => e.slug)).toContain("proving-draft");
+    expect(getAllEntries("ana/ana-trip").map((e) => e.slug)).toContain("real-draft");
   });
 
   test("search_entries finds a test day and says on its line that it is one", async () => {
