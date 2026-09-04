@@ -11,6 +11,7 @@ import { balanceOf } from "@/lib/credits";
 import { ownerShortName, serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
 import { getUser } from "@/lib/users";
+import { whatsappCountryCode } from "@/lib/whatsapp/settings";
 
 // Reads a session on every request; there is nothing here to prerender.
 export const dynamic = "force-dynamic";
@@ -90,6 +91,8 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
           wantsWhatsapp: contact.wantsWhatsapp,
           address: contact.postalAddress ?? EMPTY_ADDRESS,
         },
+        // B385: same fallback `toE164` reads at send time.
+        defaultCountryCode: whatsappCountryCode(),
       };
     }
   }

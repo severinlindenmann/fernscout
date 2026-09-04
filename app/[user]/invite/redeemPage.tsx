@@ -4,6 +4,7 @@ import InviteRedeem from "@/components/InviteRedeem";
 import NoticeShell from "@/components/NoticeShell";
 import { isEnabled } from "@/lib/capabilities";
 import { resolveInvite } from "@/lib/contacts/invites";
+import { whatsappCountryCode } from "@/lib/whatsapp/settings";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { isJournalGuest, isOwner, journalReader } from "@/lib/contacts/session";
 import { dictionariesFor, localesFor, translateIn } from "@/lib/locales";
@@ -126,6 +127,9 @@ export default async function RedeemPage({
       postcardsEnabled={isEnabled("postcards", username)}
       // B376: same reasoning, for the phone hint's own mention of WhatsApp.
       whatsappEnabled={isEnabled("whatsapp", username)}
+      // B385: same fallback `toE164` itself reads, offered here as the
+      // dialling code's default rather than left for send time to discover.
+      defaultCountryCode={whatsappCountryCode()}
     />
   );
 }

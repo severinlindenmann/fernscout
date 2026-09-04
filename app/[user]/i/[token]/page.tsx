@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import ContactForm from "@/components/ContactForm";
 import { isEnabled } from "@/lib/capabilities";
 import { resolveInvite } from "@/lib/contacts/invites";
+import { whatsappCountryCode } from "@/lib/whatsapp/settings";
 import NoticeShell from "@/components/NoticeShell";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { getUser } from "@/lib/users";
@@ -87,6 +88,10 @@ export default async function InvitePage({ params }: PageProps<"/[user]/i/[token
       postcardsEnabled={isEnabled("postcards", username)}
       // B376: same reasoning, for the phone hint's own mention of WhatsApp.
       whatsappEnabled={isEnabled("whatsapp", username)}
+      // B385: pre-selects the number's country when the operator has told
+      // `toE164` where a national number belongs. Independent of whether
+      // WhatsApp is switched on — the same fallback exists for legacy rows.
+      defaultCountryCode={whatsappCountryCode()}
     />
   );
 }

@@ -14,6 +14,7 @@ import { dictionaryFor, localesFor, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 import { getTrips } from "@/lib/trips";
 import { getUser } from "@/lib/users";
+import { whatsappCountryCode } from "@/lib/whatsapp/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -134,6 +135,9 @@ export default async function ContactsAdminPage({
         postcardsEnabled={isEnabled("postcards", username)}
         // B376: same reasoning, for the phone hint's own mention of WhatsApp.
         whatsappEnabled={isEnabled("whatsapp", username)}
+        // B385: default a new guest's dialling code to the operator's own
+        // fallback for a national number, when there is one.
+        defaultCountryCode={whatsappCountryCode()}
       />
     </div>
   );

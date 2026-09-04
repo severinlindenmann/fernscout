@@ -4,6 +4,7 @@ import { useState } from "react";
 import { codeConfirmErrorKey } from "@/lib/contacts/codeConfirmError";
 import { LOCALE_LABEL, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
+import TelField, { joinTel, splitTel } from "./TelField";
 
 /**
  * Redeeming a guest or a buddy link — B33.
@@ -76,6 +77,7 @@ export default function InviteRedeem({
   alreadyIn,
   postcardsEnabled = true,
   whatsappEnabled = true,
+  defaultCountryCode,
 }: {
   username: string;
   journalTitle: string;
@@ -110,6 +112,11 @@ export default function InviteRedeem({
   /** B376: whether this server can act on a WhatsApp update at all —
    * `isEnabled("whatsapp", username)`. Only changes the phone hint's wording. */
   whatsappEnabled?: boolean;
+  /** B385: `whatsappCountryCode()` — the operator's own configured fallback,
+   * used only to pre-select the dialling code on this always-blank field
+   * (the "form" step is shown only to a brand-new reader — see the class
+   * doc comment). */
+  defaultCountryCode?: string;
 }) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [step, setStep] = useState<Step>(
@@ -145,6 +152,11 @@ export default function InviteRedeem({
     country: "",
     tel: "",
   });
+  // The dialling code — see `ContactForm`'s own note on the same pattern
+  // (B385). This screen only ever asks a brand-new reader, so there is no
+  // existing number to read back; the only question is what to default the
+  // select to.
+  const [cc, setCc] = useState(defaultCountryCode ?? "");
 
   const t = (key: TranslationKey, vars?: Record<string, string>) =>
     translate(dictionaries[locale] ?? dictionaries.en ?? {}, key, vars);
@@ -168,8 +180,9 @@ export default function InviteRedeem({
   // A phone number is not a postal address, and giving one is not asking for
   // a postcard — unlike `setAddressField` above, typing a `tel` must never
   // tick that box for them.
-  function setTel(value: string) {
-    setAddress((previous) => ({ ...previous, tel: value }));
+  function setTel(newCc: string, national: string) {
+    setCc(newCc);
+    setAddress((previous) => ({ ...previous, tel: joinTel(newCc, national) }));
   }
 
   async function redeem(event: React.FormEvent) {
@@ -358,13 +371,12 @@ export default function InviteRedeem({
                 <label className={LABEL} htmlFor="invite-tel">
                   {`${t("contact.tel")} (${t("contact.optional")})`}
                 </label>
-                <input
+                <TelField
                   id="invite-tel"
-                  className={FIELD}
-                  type="tel"
-                  autoComplete="tel"
-                  value={address.tel}
-                  onChange={(e) => setTel(e.target.value)}
+                  cc={cc}
+                  national={splitTel(address.tel).national}
+                  onChange={setTel}
+                  labelCountry={t("contact.telCountry")}
                 />
                 <p className="mt-2 text-base text-navy-600">
                   {t(telHintKey("reader", postcardsEnabled, whatsappEnabled))}

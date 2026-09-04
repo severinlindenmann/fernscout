@@ -134,6 +134,7 @@
   "contact.statusPending": "Wartet auf Freigabe",
   "contact.submit": "Ins Gästebuch eintragen",
   "contact.tel": "Telefonnummer",
+  "contact.telCountry": "Landesvorwahl",
   "contact.telHint": "für Postkarten – und für WhatsApp-Updates, wenn du unten das Häkchen setzt",
   "contact.telHintNone": "wird nur gespeichert — bisher wird von hier aus nichts dorthin geschickt",
   "contact.telHintPostcardsOnly": "für Postkarten",

@@ -22,6 +22,10 @@ export type ManagePanel = {
   locales: string[];
   dictionary: Record<string, string>;
   contact: ManageContact;
+  /** B385: `whatsappCountryCode()`, resolved server-side like everything
+   * else this panel carries — see the note on `PaymentPanel` below for why
+   * that rule exists. */
+  defaultCountryCode?: string;
 };
 
 /**
@@ -307,6 +311,7 @@ export default function MePageContent({
                   username={username}
                   token={manage.token}
                   contact={manage.contact}
+                  defaultCountryCode={manage.defaultCountryCode}
                 />
               </div>
             </details>

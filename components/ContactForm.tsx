@@ -4,6 +4,7 @@ import { useState } from "react";
 import { codeConfirmErrorKey } from "@/lib/contacts/codeConfirmError";
 import { LOCALE_LABEL, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
+import TelField, { joinTel, splitTel } from "./TelField";
 
 /**
  * The guestbook (C11).
@@ -51,6 +52,7 @@ export default function ContactForm({
   inviteToken,
   postcardsEnabled = true,
   whatsappEnabled = true,
+  defaultCountryCode,
 }: {
   username: string;
   journalTitle: string;
@@ -74,6 +76,11 @@ export default function ContactForm({
    * `isEnabled("whatsapp", username)`. Only changes the phone hint's wording;
    * the checkbox itself is unconditional (see the note above it). */
   whatsappEnabled?: boolean;
+  /** B385: `whatsappCountryCode()` — the operator's own configured fallback
+   * for a national number. Used only to pre-select the dialling code on a
+   * form that starts with no number typed yet; never overrides a number
+   * already on the record. */
+  defaultCountryCode?: string;
 }) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [step, setStep] = useState<Step>("form");
@@ -94,6 +101,14 @@ export default function ContactForm({
     country: "",
     tel: "",
   });
+  // The dialling code, held apart from `address.tel` — B385. This form never
+  // has an existing number to read back (a fresh guestbook entry starts
+  // blank), so the only question is what to default the select to:
+  // `defaultCountryCode`, the operator's own configured fallback, or nothing
+  // if there is none. A separate state (rather than parsing `address.tel` on
+  // every render) also survives somebody backspacing the whole number,
+  // which `joinTel` — rightly — would otherwise read back as no country.
+  const [cc, setCc] = useState(defaultCountryCode ?? "");
   const [code, setCode] = useState("");
   const [manage, setManage] = useState<string | null>(null);
   const [approved, setApproved] = useState(false);
@@ -110,9 +125,13 @@ export default function ContactForm({
 
   // A phone number is not a postal address, and giving one is not asking for
   // a postcard — unlike `setAddressField` above, typing a `tel` must never
-  // tick that box for them.
-  function setTel(value: string) {
-    setAddress((previous) => ({ ...previous, tel: value }));
+  // tick that box for them. `address.tel` always holds the joined
+  // `+<cc> <national>` shape (or bare digits with no country picked), which
+  // is exactly what `toE164` already reads — nothing past this component
+  // needed to change for B385.
+  function setTel(newCc: string, national: string) {
+    setCc(newCc);
+    setAddress((previous) => ({ ...previous, tel: joinTel(newCc, national) }));
   }
 
   async function submitDetails(event: React.FormEvent) {
@@ -268,13 +287,12 @@ export default function ContactForm({
             <label className={LABEL} htmlFor="contact-tel">
               {`${t("contact.tel")} (${t("contact.optional")})`}
             </label>
-            <input
+            <TelField
               id="contact-tel"
-              className={FIELD}
-              type="tel"
-              autoComplete="tel"
-              value={address.tel}
-              onChange={(e) => setTel(e.target.value)}
+              cc={cc}
+              national={splitTel(address.tel).national}
+              onChange={setTel}
+              labelCountry={t("contact.telCountry")}
             />
             <p className="mt-2 text-base text-navy-600">
               {t(telHintKey("reader", postcardsEnabled, whatsappEnabled))}
