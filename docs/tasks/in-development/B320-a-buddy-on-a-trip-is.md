@@ -86,6 +86,17 @@ back.
   into an agent, since the guide is the thing that actually teaches the agent
   what to call.
 
+**Corrected while building: "how to take it back" cannot be delivered here.**
+The Work above asked for the same three things the owner gets, revocation
+included. `GET`/`DELETE` on `/api/v1/{user}/keys` are owner-only
+(`app/api/v1/[user]/keys/route.ts:35`), and `AgentKeys` is rendered inside
+`{viewer.owner && …}` — so a buddy has no route to the list at all, and giving
+them one is a new pairing of a guest cookie against `agent` rows rather than a
+UI change. That is **B323**, captured rather than absorbed. What ships here
+says the true thing instead: the key stops by itself after seven days, and to
+stop it sooner, ask whoever keeps the journal. When B323 lands, that sentence
+(`me.buddyKeyWarning`) changes.
+
 **Two decisions this task must make rather than assume.**
 
 *How the buddy gets the token.* Today it is the six-digit code flow —
@@ -112,8 +123,10 @@ Not doing: any change to who may publish, any narrowing of a grant to one trip
 ## Acceptance
 
 - Signed in as a contact who holds a place on a trip but does not own the
-  journal, `/{user}/me` explains that they may write days into that trip, how
-  to hand that to an agent, and how to revoke it — with the trip named.
+  journal, `/{user}/me` explains that they may write days into that trip and
+  how to hand that to an agent, with the trip named. **Revocation is B323's**
+  — see the correction above; what this must do is say truthfully how a key
+  ends.
 - The same page signed in as a guest with no trip place is unchanged: no token
   copy, no agent block.
 - `me.detailsBody`, or whatever replaces it for a traveller, no longer asserts
