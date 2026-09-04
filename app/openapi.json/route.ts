@@ -3,6 +3,7 @@ import { getDefaultUsername, getUsernames } from "@/lib/users";
 // Shared with /agent.md and /documentation.txt. A machine contract that
 // disagrees with the prose about what `private` means is worse than either.
 import { LOCALE_LIST, VISIBILITY_MEANING, VISIBILITY_NOT_A_LOCK } from "@/lib/api/agentCopy";
+import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 
 /**
@@ -35,7 +36,9 @@ export function GET() {
       description:
         "The agent is the editor here: it writes, it publishes, it corrects. " +
         "Everything created arrives as a draft first, so the person can read it " +
-        "back; putting it on the site is a second call, POST .../days/{slug}/publish. " +
+        "back; putting it on the site is a second call, POST .../days/{slug}/publish, " +
+        "and that call is not how you edit a day — PATCH the same URL as the day " +
+        "itself for that. " +
         `The prose guide is at ${site.url}/agent.md.`,
       license: { name: "AGPL-3.0-or-later" },
     },
@@ -171,6 +174,38 @@ export function GET() {
                 "dropped connection and you get the first answer back with `replayed: true`; " +
                 "send it with a different body and the call is refused (409) and nothing is " +
                 "written. A new key for every day.",
+            },
+          },
+        },
+        DayEdit: {
+          type: "object",
+          description:
+            "The body of PATCH /api/v1/{user}/trips/{trip}/days/{slug}. Every field is " +
+            `optional — send only what you are changing (${EDITABLE_DAY_FIELDS.join(", ")}). ` +
+            "There is no `status` here, and there cannot be: publishing and unpublishing " +
+            "happen only through POST .../publish. A field this omits is left exactly as " +
+            "it was, formatting included — this is a textual edit, not a rewrite.",
+          properties: {
+            title: { type: "string" },
+            date: { type: "string", format: "date", description: "2026-08-26" },
+            time: { type: "string", pattern: "^\\d{2}:\\d{2}$" },
+            location: { type: "string" },
+            country: { type: "string", description: "The country's name, not its code." },
+            lat: { type: "number" },
+            lng: { type: "number", description: "Must arrive with lat in the same call." },
+            content: { type: "string", description: "Replaces the entry's whole body." },
+            tags: { type: "array", items: { type: "string" } },
+            costs: {
+              type: "array",
+              items: { $ref: "#/components/schemas/Cost" },
+              description: "Replaces the whole list. An empty array clears it.",
+            },
+            transportMode: { type: "string" },
+            transportFrom: { type: "string" },
+            transportTo: { type: "string" },
+            test: {
+              type: "boolean",
+              description: "Same meaning as on creation. `false` removes the flag.",
             },
           },
         },
@@ -842,6 +877,10 @@ export function GET() {
             "them on the site. Nothing sent to the days POST can publish — writing and " +
             "publishing are two calls, which is what gives them a moment to read the day " +
             "back, and it is the only part that is structural.\n\n" +
+            "**Not an update.** This does exactly one thing — remove the line holding a day " +
+            "back — and it is not how you correct a day, before or after it is on the site: " +
+            "that is PATCH .../days/{slug}. A day already published answers 409 here rather " +
+            "than accepting new content under the name \"publish\".\n\n" +
             "It does not really come back. Taking a day down removes it from the journal, " +
             "the feed and the search index, not from the people who have read it.",
           parameters: [
@@ -886,6 +925,55 @@ export function GET() {
           responses: {
             "200": { description: "The day" },
             "404": { description: "No such trip or day" },
+          },
+        },
+        patch: {
+          summary: "Edit a day that already exists",
+          description:
+            "Change one or more fields of a day already written — a coordinate that was " +
+            "missing, a misspelled place, a date that was wrong. This is a textual edit: a " +
+            "field this omits, and the file's own formatting, are left exactly as they were " +
+            "— the same discipline POST .../media and the publish call already keep.\n\n" +
+            "**Not how you publish or unpublish.** There is no `status` in the body " +
+            "(`components.schemas.DayEdit`), and sending one is refused (400) with " +
+            "nothing written — a day moves between draft and published only through " +
+            "POST .../publish, never through this call. The response's `status` says " +
+            "which one the day was left in, so it can be reported truthfully rather than " +
+            "assumed: an earlier agent had no way to edit a day, reached for `/publish` " +
+            "because it was the only verb that touched an existing file, and put fifteen " +
+            "unreviewed days on somebody's site while reporting them as drafts (B266).\n\n" +
+            "Same authority as writing the day: whoever may POST a day into this trip may " +
+            "PATCH one, trip-scoped tokens included.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+            { name: "slug", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/DayEdit" } },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Edited. `status` is `draft` or `published` — the day's actual state, not " +
+                "this call's intention — and `changed` lists the fields that were sent.",
+            },
+            "400": {
+              description:
+                "Invalid entry (a `problems` list, same shape as creation's), an empty " +
+                "body, or a field this endpoint does not write — `status` included, named " +
+                "in `unsupported_field` rather than silently dropped.",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+            "404": {
+              description:
+                "No such trip, or no such day — the two answer alike, so a trip-scoped " +
+                "token cannot enumerate the journal's others.",
+            },
           },
         },
       },

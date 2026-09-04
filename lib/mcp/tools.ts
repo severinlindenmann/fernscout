@@ -4,14 +4,14 @@ import { LOCALE_LIST } from "../api/agentCopy";
 import { SESSION_SCOPE, SIGNUP_OWNER, type Session } from "../auth";
 import { MAINTAINED_LOCALES } from "../i18n";
 import type { Trip } from "../types";
-import { attachGallery, createDraft, deleteEntry, entrySummary, isPublished, listDrafts, publishNotice, publishDraft, tripSummary, type DraftInput } from "../api/entries";
+import { attachGallery, createDraft, deleteEntry, editEntry, entrySummary, isPublished, listDrafts, publishNotice, publishDraft, tripSummary, type DraftInput, type EditInput } from "../api/entries";
 import { isTestContent } from "../access";
 import { getAllEntries, getEntryBySlug } from "../entries";
 import { stripMarkdown } from "../markdownText";
 import { SEARCH_OPTIONS, type SearchDoc } from "../searchOptions";
 import { getMalformedTrips, getTrip, getTrips, MAX_TRIP_PEOPLE, tripRef } from "../trips";
 import { tripWriteVerdict } from "../tripPeople";
-import { validateEntry, type Problem } from "../validate/entry";
+import { validateEntry, validateEntryEdit, type Problem } from "../validate/entry";
 import {
   createJournal,
   JOURNAL_PROFILE_FIELDS,
@@ -870,6 +870,64 @@ const createDay: Handler = async (session, args) => {
   return outcome;
 };
 
+/**
+ * Edit a day that already exists — the other half of B266.
+ *
+ * REST and MCP are the same two doors onto the same markdown, and B263 was
+ * exactly this shape of mistake fixed on one door and left standing on the
+ * other. `additionalProperties: false` on this tool's schema already refuses
+ * a `status` argument before `callTool` ever reaches this handler (see
+ * `unknownProperties`), so there is nothing to check for it here — the same
+ * structural guarantee `EditInput`'s type gives the REST route.
+ *
+ * Same fields this tool's own `create_day` accepts, minus `idempotency_key`:
+ * `costs` and the transport fields are not exposed here because `create_day`
+ * does not expose them either — this does not widen what MCP can write, only
+ * what it can correct.
+ */
+const editDay: Handler = async (session, args) => {
+  const trip = await resolveTrip(session, args);
+  if (!trip.ok) return trip;
+
+  const slug = optionalString(args, "slug");
+  if (!slug) {
+    return { ok: false, error: "slug is required — the day to edit, as list_drafts or get_day reports it" };
+  }
+
+  const input: EditInput = {};
+  for (const key of ["title", "date", "time", "location", "country", "content"] as const) {
+    const value = optionalString(args, key);
+    if (value !== undefined) input[key] = value;
+  }
+  for (const key of ["lat", "lng"] as const) {
+    const value = args[key];
+    if (value !== undefined && value !== null) input[key] = value as number;
+  }
+  if (Array.isArray(args.tags)) input.tags = args.tags.map(String);
+  if (typeof args.test === "boolean") input.test = args.test;
+
+  if (Object.keys(input).length === 0) {
+    return { ok: false, error: "nothing to change — send one or more fields to edit" };
+  }
+
+  const problems = validateEntryEdit(input);
+  if (problems.length > 0) return { ok: false, error: `invalid_entry — ${describeProblems(problems)}` };
+
+  const result = editEntry(trip.ref, slug, input);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  return {
+    ok: true,
+    text:
+      `Edited ${result.slug} in ${trip.ref}. It is still ${result.status === "draft" ? "a draft" : "published"} ` +
+      "— this call cannot move it between the two; publish_day is the only thing that does." +
+      (result.status === "published"
+        ? " Anyone who already read it can now see this change."
+        : ""),
+    data: { trip: trip.ref, slug: result.slug, status: result.status },
+  };
+};
+
 const createJournalTool: Handler = (session, args) => {
   // Only a signup session, and this is the check that keeps the MCP exception
   // from widening: an agent token for one journal must not be able to mint
@@ -1659,6 +1717,53 @@ export const TOOLS: readonly ToolEntry[] = [
       openWorldHint: false,
     },
     handler: createDay,
+  },
+  {
+    name: "edit_day",
+    title: "Edit a day that already exists",
+    description:
+      "Change one or more fields of a day you already wrote — a coordinate that was " +
+      "missing, a misspelled place, a date that was wrong. Send only what changes; " +
+      "everything else, formatting included, is left alone. THIS CANNOT PUBLISH OR " +
+      "UNPUBLISH A DAY: a draft you edit is still a draft, and a published day you edit " +
+      "stays published and visible to whoever already read it. `publish_day` is the only " +
+      "call that moves a day between the two — there is no `status` argument here for " +
+      "exactly that reason, and sending one is refused. Editing a published day changes " +
+      "what its readers see, so treat it the way you would treat writing it in the first " +
+      "place.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        trip: { type: "string", description: "Trip id, as list_trips reports it." },
+        slug: { type: "string", description: "The day's slug, as list_drafts or get_day reports it." },
+        title: { type: "string" },
+        date: { type: "string", description: "YYYY-MM-DD." },
+        time: { type: "string", description: "HH:MM." },
+        location: { type: "string" },
+        country: { type: "string" },
+        lat: { type: "number" },
+        lng: { type: "number" },
+        content: { type: "string", description: "Replaces the entry's whole body." },
+        tags: { type: "array", items: { type: "string" } },
+        test: {
+          type: "boolean",
+          description: "Same meaning as on create_day. False removes the flag.",
+        },
+      },
+      required: ["trip", "slug"],
+      additionalProperties: false,
+    },
+    annotations: {
+      readOnlyHint: false,
+      // Nothing is removed — a field is changed or left alone, and the file
+      // itself still exists afterwards either way.
+      destructiveHint: false,
+      // Sending the same edit twice leaves the day in the same state; unlike
+      // create_day there is no duplicate to create.
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    handler: editDay,
   },
   {
     name: "add_media",

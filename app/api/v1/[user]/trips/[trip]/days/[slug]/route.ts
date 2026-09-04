@@ -1,7 +1,9 @@
 import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { isTestContent } from "@/lib/access";
+import { EDITABLE_DAY_FIELDS, editEntry, type EditInput } from "@/lib/api/entries";
 import { getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
+import { validateEntryEdit } from "@/lib/validate/entry";
 
 export const dynamic = "force-dynamic";
 
@@ -77,5 +79,107 @@ export async function GET(
     // say whether this is on the site, and `status` absent from a response is
     // too easy to read as "published".
     status: entry.draft ? "draft" : "published",
+  });
+}
+
+/**
+ * Edit a day that already exists — B266.
+ *
+ * Before this there was no way to change a day once written, and the agent
+ * that tried reached for `.../publish` instead, because it was the only verb
+ * that touched an existing file — and published fifteen unreviewed days while
+ * reporting them as drafts. See `lib/api/entries.ts`'s `editEntry` for how
+ * this is made structurally incapable of repeating that: `status` is not a
+ * field this writes, by type and by an explicit refusal below, and a draft
+ * stays a draft and a published day stays published whatever the body asks
+ * for — checked again after the edit, not merely assumed from the code.
+ *
+ * Same authority as writing a day in the first place: whoever `mayWriteTrip`
+ * lets create a day may correct one, trip-scoped tokens included. Publishing
+ * and unpublishing stay owner-only, through their own endpoint — this one
+ * cannot reach either.
+ */
+export async function PATCH(
+  request: Request,
+  { params }: RouteContext<"/api/v1/[user]/trips/[trip]/days/[slug]">,
+) {
+  const auth = await authenticate(request);
+  if (!auth.ok) return errorResponse(auth);
+
+  const { user, trip, slug } = await params;
+  if (!ownsUser(auth.session, user)) {
+    return Response.json({ error: "out_of_scope" }, { status: 403 });
+  }
+
+  const ref = tripRef(user, trip);
+  const found = getTrip(ref);
+  if (!found) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  const gate = await mayWriteTrip(auth.session, found);
+  if (!gate.ok) return refuseWrite(gate);
+
+  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return Response.json({ error: "invalid_json" }, { status: 400 });
+  }
+
+  const keys = Object.keys(body);
+  if (keys.length === 0) {
+    return Response.json(
+      {
+        error: "invalid_request",
+        message: `Name what to change: one or more of ${EDITABLE_DAY_FIELDS.join(", ")}.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  /**
+   * Named rather than dropped — the same shape as `owner.email` on the
+   * journal config PATCH. `status` is the one this ticket is about: a day
+   * moves between draft and published only through `.../publish`, never by
+   * this call, whatever it is asked to set — so a body that names it is
+   * refused whole rather than partially applied, and the caller is told why
+   * instead of quietly being ignored.
+   */
+  const unwritable = keys.filter((key) => !(EDITABLE_DAY_FIELDS as readonly string[]).includes(key));
+  if (unwritable.length > 0) {
+    return Response.json(
+      {
+        error: "unsupported_field",
+        message:
+          `This call changes ${unwritable.map((k) => JSON.stringify(k)).join(", ")} for nobody, ` +
+          "and nothing was written. A day moves between draft and published only through " +
+          "POST .../publish — never through this call, whatever it is asked to set. This " +
+          `endpoint writes ${EDITABLE_DAY_FIELDS.join(", ")}.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  const problems = validateEntryEdit(body);
+  if (problems.length > 0) {
+    return Response.json({ error: "invalid_entry", problems }, { status: 400 });
+  }
+
+  const result = editEntry(ref, slug, body as EditInput);
+  if (!result.ok) {
+    const status = result.bug ? 500 : result.error === "unknown_day" ? 404 : 400;
+    return Response.json({ error: result.error }, { status });
+  }
+
+  // The half B263 and this ticket both turn on: what the agent reports back
+  // has to be the day's actual state, not its own intention. So this says it
+  // plainly rather than leaving it to be inferred from a 200.
+  return Response.json({
+    ok: true,
+    slug: result.slug,
+    status: result.status,
+    changed: keys,
+    note:
+      result.status === "draft"
+        ? `Still a draft — not on the site. This call cannot publish it; ` +
+          `POST .../days/${result.slug}/publish when they say so.`
+        : "Still published — anyone who already read it can now see this change. " +
+          "This call cannot take it off the site or move it back to draft.",
   });
 }

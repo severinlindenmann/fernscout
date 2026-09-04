@@ -101,7 +101,14 @@ function isRealCalendarDate(value: string): boolean {
   );
 }
 
-function checkDate(input: EntryInput, problems: Problem[]): void {
+/**
+ * `required` defaults to true for `validateEntry` (creation, where a day
+ * without a date cannot be filed). `validateEntryEdit` below passes `false`:
+ * a PATCH that says nothing about the date is leaving it alone, not sending
+ * an invalid one.
+ */
+function checkDate(input: EntryInput, problems: Problem[], required = true): void {
+  if (!required && input.date === undefined) return;
   if (typeof input.date !== "string" || !isRealCalendarDate(input.date)) {
     problems.push({
       field: "date",
@@ -203,7 +210,9 @@ function checkTags(input: EntryInput, problems: Problem[]): void {
   });
 }
 
-function checkBody(input: EntryInput, problems: Problem[]): void {
+/** Same `required` story as `checkDate`. */
+function checkBody(input: EntryInput, problems: Problem[], required = true): void {
+  if (!required && input.content === undefined) return;
   if (typeof input.content !== "string" || input.content.trim() === "") {
     problems.push({ field: "content", got: describe(input.content), expected: "non-empty body text" });
     return;
@@ -247,6 +256,35 @@ export function validateEntry(input: EntryInput): Problem[] {
   checkTags(input, problems);
   checkTest(input, problems);
   checkBody(input, problems);
+  return problems;
+}
+
+/**
+ * The same rules as `validateEntry`, for `PATCH .../days/<slug>` (B266).
+ *
+ * A PATCH is a partial edit: a field absent from the body means "leave it
+ * alone", not "reject the request" — so `date` and `content`, the two fields
+ * creation requires, are checked for shape only when they are present.
+ * Every other rule is unchanged, because a value that would be wrong on the
+ * way in is wrong on the way in either time.
+ *
+ * `lat`/`lng` still have to arrive together in the same call — `checkCoordinates`
+ * does not know what the day already has on disk, so patching only `lat` on a
+ * day that already carries `lng` is refused the same as it would be on
+ * creation. ponytail: send both if you want either changed; teach this check
+ * the file's existing values if that turns out to matter in practice.
+ */
+export function validateEntryEdit(input: EntryInput): Problem[] {
+  const problems: Problem[] = [];
+  checkTitle(input, problems);
+  checkDate(input, problems, false);
+  checkTime(input, problems);
+  checkCoordinates(input, problems);
+  checkTransportMode(input, problems);
+  checkCosts(input, problems);
+  checkTags(input, problems);
+  checkTest(input, problems);
+  checkBody(input, problems, false);
   return problems;
 }
 

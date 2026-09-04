@@ -398,6 +398,231 @@ export function attachGallery(
 }
 
 /**
+ * Every field `PATCH .../days/<slug>` may change. Deliberately not `status`
+ * — see `editEntry` below, which is the whole point of B266.
+ */
+export const EDITABLE_DAY_FIELDS = [
+  "title",
+  "date",
+  "time",
+  "location",
+  "country",
+  "lat",
+  "lng",
+  "content",
+  "tags",
+  "costs",
+  "transportMode",
+  "transportFrom",
+  "transportTo",
+  "test",
+] as const;
+
+/** A partial `DraftInput` — every field optional, since a PATCH names only
+ * what it is changing. `idempotency_key` is not among them: an edit is
+ * naturally safe to repeat, since resending the same fields just writes the
+ * same file again. */
+export type EditInput = Partial<Omit<DraftInput, "idempotency_key">>;
+
+/**
+ * The line naming `key` inside the frontmatter block (`lines[1..closing)`),
+ * or -1. Only scanned inside the block, the same discipline `publishDraft`
+ * uses for `status: draft` — a `title:` inside the prose is a day about
+ * titles, not a target.
+ */
+function frontmatterLineOf(lines: string[], closing: number, key: string): number {
+  const pattern = new RegExp(`^${key}:(\\s|$)`);
+  return lines.findIndex((line, i) => i > 0 && i < closing && pattern.test(line));
+}
+
+/**
+ * Replace, insert or remove one scalar frontmatter line, leaving every other
+ * byte untouched — new fields are appended just above the closing `---`,
+ * same as `appendGallery` appends a fresh `gallery:` block. Returns the
+ * closing marker's index, which moves when a line is added or removed.
+ */
+function spliceScalar(lines: string[], closing: number, key: string, rendered: string | null): number {
+  const at = frontmatterLineOf(lines, closing, key);
+  if (rendered === null) {
+    if (at < 0) return closing;
+    lines.splice(at, 1);
+    return closing - 1;
+  }
+  if (at >= 0) {
+    lines[at] = rendered;
+    return closing;
+  }
+  lines.splice(closing, 0, rendered);
+  return closing + 1;
+}
+
+/**
+ * `costs:` is a list, not one line — replaced wholesale rather than
+ * diffed item by item, the same choice `appendGallery` makes for `gallery:`.
+ * An empty array clears it: no manual costs recorded any more.
+ */
+function spliceCosts(lines: string[], closing: number, costs: DraftInput["costs"]): number {
+  const at = frontmatterLineOf(lines, closing, "costs");
+  let end = closing;
+  if (at >= 0) {
+    end = at + 1;
+    while (end < closing && /^\s+\S/.test(lines[end])) end++;
+    lines.splice(at, end - at);
+    closing -= end - at;
+  }
+  const block = costLines(costs);
+  if (block.length === 0) return closing;
+  lines.splice(at >= 0 ? at : closing, 0, ...block);
+  return closing + block.length;
+}
+
+/**
+ * Splice `input`'s fields into `markdown`, textually — parsed and re-emitted
+ * for nothing. A field the day already has is replaced in place, so a
+ * comment or a hand-chosen key order two lines away survives; a field new to
+ * this day is appended just above the closing `---`. `content`, which is not
+ * frontmatter, replaces everything from the closing marker to the end of the
+ * file.
+ *
+ * Returns null when there is no frontmatter block to splice into — the
+ * caller's cue to leave a hand-shaped file alone and say so, same as
+ * `attachGallery`.
+ */
+export function spliceEntryFields(markdown: string, input: EditInput): string | null {
+  const lines = markdown.split("\n");
+  if (lines[0]?.trim() !== "---") return null;
+  let closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
+  if (closing < 0) return null;
+
+  const set = (key: string, rendered: string | null) => {
+    closing = spliceScalar(lines, closing, key, rendered);
+  };
+
+  if (input.title !== undefined) set("title", `title: ${quote(input.title)}`);
+  if (input.date !== undefined) set("date", `date: ${quote(input.date)}`);
+  if (input.time !== undefined) set("time", input.time ? `time: ${quote(input.time)}` : null);
+  if (input.location !== undefined) set("location", input.location ? `location: ${quote(input.location)}` : null);
+  if (input.country !== undefined) set("country", input.country ? `country: ${quote(input.country)}` : null);
+  if (input.lat !== undefined) set("lat", `lat: ${input.lat}`);
+  if (input.lng !== undefined) set("lng", `lng: ${input.lng}`);
+  if (input.tags !== undefined) {
+    set("tags", input.tags.length ? `tags: [${input.tags.map(quote).join(", ")}]` : null);
+  }
+  if (input.transportMode !== undefined) {
+    set("transportMode", input.transportMode ? `transportMode: ${quote(input.transportMode)}` : null);
+  }
+  if (input.transportFrom !== undefined) {
+    set("transportFrom", input.transportFrom ? `transportFrom: ${quote(input.transportFrom)}` : null);
+  }
+  if (input.transportTo !== undefined) {
+    set("transportTo", input.transportTo ? `transportTo: ${quote(input.transportTo)}` : null);
+  }
+  // Written only when true, like every other flag here — see the note on
+  // NewTrip.test. `test: false` unsets it rather than writing a line nobody
+  // wants to read.
+  if (input.test !== undefined) set("test", input.test === true ? "test: true" : null);
+  if (input.costs !== undefined) closing = spliceCosts(lines, closing, input.costs);
+
+  if (input.content !== undefined) {
+    lines.splice(closing + 1, lines.length - (closing + 1), "", input.content.trim(), "");
+  }
+
+  return lines.join("\n");
+}
+
+/** The two checks `validateEntryEdit` cannot make on its own: a field that is
+ * present must not be present-and-empty. Mirrors `validateDraft`'s title,
+ * date and content rules, but only for fields the caller actually sent. */
+function validateEditPresence(input: EditInput): string | null {
+  if (input.title !== undefined && input.title.trim() === "") return "title must not be empty";
+  if (input.date !== undefined && !DATE_RE.test(input.date)) return "date must be YYYY-MM-DD";
+  if (input.content !== undefined && input.content.trim() === "") return "content must not be empty";
+  return null;
+}
+
+/**
+ * Edit a day that already exists — `PATCH .../days/<slug>`, B266.
+ *
+ * Before this there was no way to change a day once written, and the agent
+ * that tried reached for `publishDraft` instead, because it was the only verb
+ * that touched an existing file. This is the missing one, and it is built to
+ * make that mistake structurally impossible rather than merely undocumented:
+ * `EditInput` has no `status` field, so there is nothing in its type a caller
+ * could set even by accident, and the two checks below confirm that on the
+ * one file that matters — this write — rather than trusting the type alone.
+ *
+ * **Published stays published, draft stays draft — whatever the body asks
+ * for.** Decided by the file's own `status` line before this function
+ * touches anything, and asserted again after: if splicing `input`'s fields
+ * ever changed that answer, nothing is written and the caller is told it hit
+ * a bug, rather than a published day silently reverting to a draft or a
+ * draft silently going up. That is the property this whole ticket is about,
+ * so it is checked here even though nothing in `spliceEntryFields` should be
+ * able to move it — the same "verify what you just wrote" instinct as
+ * `draftDoesNotReadBack` above.
+ *
+ * The parse-and-check happens on the *string* `spliceEntryFields` returns,
+ * before anything reaches disk — an edit that would leave the file unparseable
+ * is refused rather than written and then noticed.
+ */
+export function editEntry(
+  ref: string,
+  slug: string,
+  input: EditInput,
+): { ok: true; slug: string; status: "draft" | "published" } | { ok: false; error: string; bug?: true } {
+  const problem = validateEditPresence(input);
+  if (problem) return { ok: false, error: problem };
+
+  const dir = path.join(tripDir(ref), "entries");
+  let files: string[] = [];
+  try {
+    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
+  } catch {
+    return { ok: false, error: "unknown_day" };
+  }
+  const match = files.find((f) => entrySlugFromFile(f) === slug);
+  if (!match) return { ok: false, error: "unknown_day" };
+
+  const file = path.join(dir, match);
+  const raw = fs.readFileSync(file, "utf8");
+  const wasDraft = isDraft(matter(raw).data);
+
+  const spliced = spliceEntryFields(raw, input);
+  if (spliced === null) {
+    return {
+      ok: false,
+      error: `"${slug}" has no frontmatter block to edit. Edit the file by hand.`,
+    };
+  }
+
+  let after: Record<string, unknown>;
+  try {
+    after = matter(spliced).data;
+  } catch (err) {
+    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    return {
+      ok: false,
+      bug: true,
+      error: `The edit would leave "${slug}" unparseable (${said}), so nothing was written. This is a bug; please report it.`,
+    };
+  }
+
+  if (isDraft(after) !== wasDraft) {
+    return {
+      ok: false,
+      bug: true,
+      error:
+        `Editing "${slug}" would have changed whether it is published, so nothing was written. ` +
+        "This is a bug; please report it.",
+    };
+  }
+
+  fs.writeFileSync(file, spliced);
+  forgetEntries(ref);
+  return { ok: true, slug, status: wasDraft ? "draft" : "published" };
+}
+
+/**
  * What publishing this particular day did — written once, for both doors.
  *
  * It was the refusal's question until B224 and is the receipt now, which is a
