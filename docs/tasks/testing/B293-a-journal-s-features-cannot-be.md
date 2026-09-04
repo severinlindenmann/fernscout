@@ -7,8 +7,7 @@ complexity: medium
 area: api, config, capabilities
 found: "2026-09-04T13:35:47Z"
 started: "2026-09-04T14:41:16Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T14:41:16Z"
+merged: "2026-09-04T15:05:26Z"
 ---
 
 # B293 — A journal's features cannot be changed by any door, and the route that refuses says only 405
@@ -51,42 +50,34 @@ no budget at all.
 
 ## Work
 
-**Decided by the owner on 2026-09-04, and it makes most of this task go away:
-the costs page follows the data, not a switch.** No budget written means the
-page and its nav entry are not there; a `costs.md` means they are. So there is
-nothing for an agent to toggle, and the authority question below — may a token
-disable a journal's capabilities — does not need answering to close the
-complaint that produced this ticket.
+**Built on 2026-09-04, and the world moved while this sat in the backlog.** Two
+tickets landed first and turned the main complaint from "you cannot" into "here
+is how": B267 made the costs page follow the data, and B295 built the costs
+door. So the sentence an agent needed was never going to be *"this is UI-only"*
+— it is *"write a budget to give the page, DELETE it to take the page away"*.
+MCP is also gone (B298), so there is one door, not two.
 
-That presence-driven behaviour is **B267's third Work item** and stays there
-rather than being duplicated here. B267 also carries the related half the same
-owner reported: the nav offering *Costs* on a journal with no trips at all.
+What was built:
 
-What is left for this task:
-
-1. **Make `405` say something.** A route that refuses a verb should name the
-   verbs it has, and where it is a common wrong guess, the route that does have
-   it — `PATCH /api/v1/<user>/trips/<trip>` and `PATCH /api/v1/<user>` were both
-   guessed here, and the second is `…/config`. Find how Next surfaces an
-   unimplemented method and whether it can carry a body; if it cannot, an
-   explicit handler on the routes agents demonstrably guess at is the answer.
-   Keep it a message, not a framework.
-2. **Say in both documents that a journal's `features` are not agent-writable,
-   and that the costs page follows the data.** An agent asked to turn a page
-   off must find the sentence rather than guess two routes and then invent a
-   web UI, which is what happened. Name that failure the way the guide already
-   names *"manually upload"* — an interface that does not exist is not a
-   fallback.
-3. `features` **stays unwritable**, deliberately, and the reason is worth one
-   line where the next person will ask: turning `auth` or `contacts` off can
-   lock an owner out of their own journal, which is why B153 forces both on at
-   creation. A token issued because of an address must not be able to sever the
-   path back to it.
+1. **`PATCH` handlers on the two routes an agent was observed guessing at**,
+   each answering `405` with `Allow: DELETE` and a body naming what the route
+   has and where the likely intention actually lives.
+   `PATCH /api/v1/<user>` points at `…/config`; `PATCH /api/v1/<user>/trips/<trip>`
+   points at the budget, the day and the media doors below it, and says a
+   trip's own fields are `trip.md` and the owner's own edit. Next answers an
+   unimplemented method with a bare `405` and no body, so an explicit handler
+   is the only way to say anything — two of them, not a framework. A third
+   route gets the same treatment when a third guess turns up.
+2. **`NOT_WRITABLE` in `lib/api/agentCopy.ts`**, rendered into both generated
+   documents beside the budget question. It carries the two facts and the one
+   prohibition: `features` are not writable by any door and why (`auth` and
+   `contacts` are how an owner gets back in, and a token must not shut the door
+   it came through — B153); a trip has no costs *switch*, the page follows the
+   data; and if neither is what was asked for, say so and stop, because there is
+   no web form, no CMS and no upload page to send anybody to instead.
+3. **`features` stays unwritable**, deliberately.
 
 Not in scope, and no longer needed for this complaint: an API for capabilities.
-If a future case genuinely needs one, the shape to weigh is the harmless subset
-(`reactions`, `photobook`, `postcards`) with `auth` and `contacts` refused in
-the manner of `JOURNAL_FIELD_REFUSALS` — but do not build it on speculation.
 ## Acceptance
 
 - A wrong verb on the trip and journal routes returns a body naming what is

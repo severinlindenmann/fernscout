@@ -23,6 +23,7 @@ import {
   COORDINATES_QUESTION,
   LOCALE_LIST,
   MEDIA_ENDPOINT_PATH,
+  NOT_WRITABLE,
   TITLE_COLLISION_EXAMPLE,
   PRIVATE_SHUTS_OUT_GUESTS,
   VISIBILITY_CHOICE,
@@ -219,6 +220,8 @@ export function instanceDocumentation(): string {
     ...wrap(BUDGET_QUESTION, 78),
     "",
     ...wrap(COORDINATES_QUESTION, 78),
+    "",
+    ...wrap(NOT_WRITABLE, 78),
     "",
     "```http",
     `POST ${base()}/api/v1/their-name/trips/japan-2027/days`,
@@ -943,6 +946,8 @@ somebody's journey is their decision, so never send \`"visibility": "public"\`
 without having asked for it in words.
 
 ${wrap(BUDGET_QUESTION).join("\n")}
+
+${wrap(NOT_WRITABLE).join("\n")}
 
 ${wrap(COORDINATES_QUESTION).join("\n")}
 

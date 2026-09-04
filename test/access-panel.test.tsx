@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import MePageContent from "@/app/[user]/me/MePageContent";
+import MePageContent, { type ManagePanel } from "@/app/[user]/me/MePageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
@@ -67,6 +67,7 @@ function render(
     contactsEnabled?: boolean;
     /** `undefined` means the journal names nobody — see the B20 block below. */
     ownerName?: string;
+    manage?: ManagePanel;
   } = {},
 ) {
   return renderToStaticMarkup(
@@ -85,6 +86,7 @@ function render(
           codeMinutes={CODE_TTL_MINUTES}
           contactsEnabled={over.contactsEnabled ?? false}
           ownerName={"ownerName" in over ? over.ownerName : "Robin"}
+          manage={over.manage}
         />
           </TripListProvider>
         </CurrencyProvider>
@@ -329,5 +331,73 @@ describe("who a stranger is told to ask", () => {
     const html = render({ canSignIn: false, ownerName: undefined });
     expect(html).toMatch(/nothing to fill in/i);
     expect(html).not.toMatch(/Ask \./);
+  });
+});
+
+/**
+ * The "Your details" panel, inline (B304).
+ *
+ * It used to be a `Link` to `/{user}/c/{token}` — the same form on a second
+ * page, reached with no session lost in the navigation. It is now the same
+ * `ContactManage` component, mounted in place inside a `<details>`, because a
+ * reader who is already signed in landed on a second page for one field they
+ * could see right in front of them — and, since the page around it renders in
+ * whatever language this reader chose, a header in one language above a form
+ * in another (`/{user}/c/{token}`'s own, deliberate, record-language design)
+ * read as broken here rather than intentional.
+ */
+describe("the details panel, inline", () => {
+  const manage: ManagePanel = {
+    token: "fs_manage_test",
+    locales: ["en", "de"],
+    // Deliberately not "en" — the page around it (`render()`, above) is
+    // fixed to English. A German panel inside an English page is exactly
+    // what proves the two are wired independently: the reader's own choice
+    // for the chrome, the record's for nothing here any more (B304 moved
+    // that decision out of `/{user}/c/{token}` and into the page's own
+    // language, which the caller now hands down as `manage.dictionary`).
+    dictionary: dictionaryFor("de"),
+    contact: {
+      name: "Fam. Peter",
+      email: "peter@example.test",
+      locale: "en",
+      status: "active",
+      wantsEmailDigest: true,
+      wantsPostcard: false,
+      address: { name: "", line1: "", line2: "", postcode: "", city: "", country: "", tel: "" },
+    },
+  };
+
+  test("absent with no contact record — no dead link to a page that has nothing", () => {
+    const html = render({ viewer: owner, contactsEnabled: true });
+    expect(html).not.toContain("<details");
+    expect(html).not.toContain(dictionaryFor("en")["me.editDetails"]);
+  });
+
+  test("offers the toggle, and no more a link to /c/<token>", () => {
+    const html = render({ viewer: owner, contactsEnabled: true, manage });
+    expect(html).toContain("<details");
+    expect(html).toContain(dictionaryFor("en")["me.editDetails"]);
+    expect(html).not.toMatch(/href="\/alex\/c\//);
+  });
+
+  test("renders the form in its own dictionary, independent of the page's", () => {
+    const html = render({ viewer: owner, contactsEnabled: true, manage });
+    // The page around it stayed English (`me.details`, from `render()`'s
+    // fixed `LocaleProvider`) while the form inside it is the German
+    // `manage.dictionary` — both present at once, proving one does not leak
+    // into or override the other. `contact.name` rather than
+    // `contact.manageTitle`: the latter happens to read "Your details" in
+    // English too — the same string `me.details` already put on the page —
+    // so it can't tell "the form went German" apart from "it never left
+    // English" the way a label with no such coincidence can.
+    expect(html).toContain(dictionaryFor("en")["me.details"]);
+    expect(html).toContain(dictionaryFor("de")["contact.name"]);
+    expect(html).not.toContain(`>${dictionaryFor("en")["contact.name"]}<`);
+  });
+
+  test("hands the contact's own data to the form, not a blank one", () => {
+    const html = render({ viewer: owner, contactsEnabled: true, manage });
+    expect(html).toContain('value="Fam. Peter"');
   });
 });

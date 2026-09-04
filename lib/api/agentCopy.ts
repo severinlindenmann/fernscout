@@ -92,6 +92,32 @@ export const BUDGET_QUESTION =
   "nav entry, and writing one is what brings both.";
 
 /**
+ * What is not writable, said once so nobody has to discover it by guessing.
+ *
+ * B293. An agent asked to turn a trip's costs page off tried `PATCH` on the
+ * trip and on the journal, got a bare `405` from both, and then told its owner
+ * to "do it manually via the web UI" — an interface that does not exist and
+ * never will (ROADMAP decision 24). That is the same invention as B259's
+ * "manually upload", and it comes from the same place: no correct call
+ * available and nothing saying so.
+ *
+ * Two facts, and the first has stopped being a dead end. The costs page now
+ * follows the data (B267) and the budget is writable (B295), so "turn it off"
+ * has a real answer. `features` genuinely is not writable, and the reason is
+ * worth carrying: `auth` and `contacts` gate the way back into a journal, and
+ * a token issued because of an address must not be able to sever it — which is
+ * why B153 forces both on at creation.
+ */
+export const NOT_WRITABLE =
+  "Two things no call changes, so you do not have to look. A journal's `features` are not " +
+  "writable through any door: `auth` and `contacts` are what get an owner back into their " +
+  "own journal, and a token must not be able to shut the door it came through. And a trip " +
+  "has no costs *switch* — the page follows the data. Write a budget to the costs endpoint " +
+  "and the page appears; DELETE it and the page goes. If neither of those is what you were " +
+  "asked for, say so and stop: there is no web form, no CMS and no upload page to send " +
+  "somebody to instead.";
+
+/**
  * The other question B267 found nothing asking: a day is written to hold
  * `lat`/`lng`, and nothing ever said so. Fifteen days went out with neither,
  * at which point there was no coordinate to add after the fact (B266) and no
