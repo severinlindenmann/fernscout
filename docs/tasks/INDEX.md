@@ -118,7 +118,9 @@ _Nothing here._
 
 ## in-development
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B254](in-development/B254-the-landing-page-hands-over-a.md) | The landing page hands over a bare URL where an agent needs an instruction | ISSUE | high | low | `986bc24c` |
 
 ## testing
 
