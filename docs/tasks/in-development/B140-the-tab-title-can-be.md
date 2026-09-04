@@ -86,3 +86,67 @@ count.
 - A test asserts both, since the two rules live in different files and nothing
   currently makes them agree.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.
+
+## What changed
+
+**B140 carries the fix. B185 is the same defect, found separately on
+`/xydhd-qa3/me` — one change closes both**, and both were verified against the
+same test.
+
+The two rules are now one function, in `lib/locales.ts`:
+
+```ts
+export function readerLocale(chosen, offered, fallback) {
+  return chosen && offered.includes(chosen) ? chosen : fallback;
+}
+```
+
+`app/[user]/layout.tsx` calls it with `user.locales` and `user.defaultLocale` —
+which is exactly the expression it had written out. `readerLocaleForPath` calls
+it with `localesFor(username)` and `defaultLocaleFor(username)` when the path
+names a journal, and `requestLocale()` is now that call with the cookie and the
+`PATH_HEADER` read for it. No call site changed, as **Work** predicted: the
+username was already in the header.
+
+The **Work** section's guess was right about which rule wins and slightly wrong
+about the shape. It proposed narrowing to `localesFor(username)`; that alone
+would have left the *fallback* still coming from `localeForPath`, which happens
+to be the same value — `defaultLocaleFor(username)` — so the code would have
+been right by coincidence rather than by construction. Both halves go through
+one function instead, which is what B185 asks for in its own words.
+
+**The pages outside a journal were checked, as Work asked.** `readerLocaleForPath`
+keeps the old rule for them: the landing page, `/welcome`, the notices and a
+404 for an address that names nobody have no `user.locales` to narrow against,
+so the maintained set stands in and the reader's choice still counts. `/` with
+`fs.locale=de` is still German; `/` with `fs.locale=hr` is still the instance's
+language, because Croatian is not an interface language here.
+
+**`app/layout.tsx` gets the narrowing for free**, since `<html lang>` comes from
+the same `requestLocale()`. It used to serve `lang="de"` on an English-only
+journal until `HtmlLang` corrected it on hydration; now the server's answer is
+right the first time.
+
+**One existing test encoded the bug and was corrected**, which is worth being
+explicit about: `test/map-tense.test.tsx`'s "a German reader on an English
+journal" built a journal with `locales: ["en"]` and expected a German tab title
+from it — the exact behaviour this ticket calls a defect. Its journal now
+*offers* German (`locales: ["en", "de"]`), which is the case the reader/journal
+split is actually about, and a new case beside it asserts the English-only
+journal keeps English in both places.
+
+## Evidence
+
+`test/reader-locale.test.tsx` — new, 7 tests, covering the rule directly and
+through the gallery page's `generateMetadata`. With `requestLocale` restored to
+the old two-line rule and everything else in place:
+
+```
+× requestLocale is that rule, with the cookie and the header read for it
+    AssertionError: expected 'de' to be 'en'
+× the tab title is in the language the page will render in
+    AssertionError: expected 'Galerie' to be 'Gallery'
+```
+
+That second line is the ticket, in a test: `<title>Galerie</title>` over a page
+whose `<h1>` says "Gallery".

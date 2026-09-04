@@ -72,14 +72,14 @@ const LOCALES = ["en", "de", "hu"] as const;
 const SERVER_CFG =
   '{"site":{"name":"F","url":"https://example.test","defaultUser":"alex"},"users":{"reserved":[]},"features":{}}';
 
-function userCfg(locale: string): string {
+function userCfg(locale: string, offers?: string[]): string {
   return JSON.stringify({
     title: "A journal",
     tagline: "t",
     owner: { name: "A B", nickname: "A" },
     startLocation: "X",
     defaultLocale: locale,
-    locales: [locale],
+    locales: offers ?? [locale],
     baseCurrency: "CHF",
     displayCurrencies: ["CHF"],
     units: "metric",
@@ -94,12 +94,12 @@ function userCfg(locale: string): string {
  * falls back to the most recent past trip, so this is what `/alex/map` renders
  * for a journal between trips — not a transient pre-departure state.
  */
-function journal(opts: { locale: string; withDay: boolean }): void {
+function journal(opts: { locale: string; withDay: boolean; offers?: string[] }): void {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "map-tense-"));
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
   const trip = path.join(dir, "alex", "trips", "ridge-2026");
   fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
-  fs.writeFileSync(path.join(dir, "alex", "config.json"), userCfg(opts.locale));
+  fs.writeFileSync(path.join(dir, "alex", "config.json"), userCfg(opts.locale, opts.offers));
   fs.writeFileSync(
     path.join(trip, "trip.md"),
     '---\nid: ridge-2026\ntitle: "Along the ridge"\nstart: "2026-05-01"\nend: "2026-05-10"\n' +
@@ -230,9 +230,18 @@ describe.each(LOCALES)("a journal reading in %s", (locale) => {
  * whoever sees a forwarded card is not this reader and their language is not
  * knowable from this request.
  */
-describe("a German reader on an English journal", () => {
+describe("a German reader on an English journal that offers German", () => {
+  /**
+   * `offers` is load-bearing and was not always there. The journal used to be
+   * written as English-only, and the reader's German cookie was expected to
+   * win anyway — which is precisely the defect B140 and B185 record: the tab
+   * title took any language the *project* maintains, while the body took only
+   * the ones this *journal* offers, so the title was German over a page that
+   * was entirely English. A journal that lists German is the case this split
+   * is actually about.
+   */
   test("gets a German tab title and an English card, both in the planned tense", async () => {
-    journal({ locale: "en", withDay: false });
+    journal({ locale: "en", offers: ["en", "de"], withDay: false });
     request.cookieLocale = "de";
     const meta = await metaFor();
 
@@ -242,11 +251,24 @@ describe("a German reader on an English journal", () => {
   });
 
   test("and the same split once the trip has days", async () => {
-    journal({ locale: "en", withDay: true });
+    journal({ locale: "en", offers: ["en", "de"], withDay: true });
     request.cookieLocale = "de";
     const meta = await metaFor();
 
     expect(meta.title).toBe(dictionaryFor("de")["map.title"]);
     expect(meta.shared).toBe(dictionaryFor("en")["map.title"]);
+  });
+});
+
+/** And on a journal that does not offer it, the cookie does not apply. B140. */
+describe("a German reader on an English-only journal", () => {
+  test("gets an English tab title, matching the page under it", async () => {
+    journal({ locale: "en", withDay: true });
+    request.cookieLocale = "de";
+    const meta = await metaFor();
+
+    expect(meta.title).toBe(dictionaryFor("en")["map.title"]);
+    expect(meta.title).toBe(headingOf("en"));
+    expect(meta.title).not.toBe(dictionaryFor("de")["map.title"]);
   });
 });
