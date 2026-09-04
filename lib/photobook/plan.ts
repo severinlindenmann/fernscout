@@ -49,9 +49,9 @@ import { formatDate, formatDateRange, wrap } from "./text.ts";
 
 export type BookPhoto = {
   /** Opaque to the planner; the renderer resolves it to bytes. The source
-   * writes it relative to the content root, so it is also readable enough to
-   * be the label in a warning — see `bookFile` in `source.ts` for why it is
-   * not an absolute path. */
+   * writes it relative to whichever root holds it, so it is also readable
+   * enough to be the label in a warning — see `bookFile` in `source.ts` for
+   * why it is not an absolute path. */
   file: string;
   /** Overrides `file` in a warning, for a caller that has a better name. */
   label?: string;
