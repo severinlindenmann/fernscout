@@ -7,8 +7,7 @@ complexity: medium
 area: visibility, agent docs
 found: "2026-09-04T15:33:57Z"
 started: "2026-09-04T15:37:27Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T15:37:27Z"
+merged: "2026-09-04T16:08:33Z"
 ---
 
 # B306 — A journal's visibility borrows the trip's words for a different meaning, and everyone reads them as the trip's
