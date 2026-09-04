@@ -24,7 +24,7 @@
  * script's `--conditions=react-server` flag (see `scripts/digest.mts` for the
  * same note).
  */
-import { auditOwner, balanceOf, grant, ledgerFor } from "../lib/credits.ts";
+import { auditOwner, creditsEnabled, grant, ledgerFor } from "../lib/credits.ts";
 import { closeDatabase } from "../lib/db/index.ts";
 import { getUsernames } from "../lib/users.ts";
 
@@ -70,15 +70,30 @@ async function main() {
         fail(`<n> must be a positive whole number of credits, got "${nRaw}"`);
       }
       await grant(username, n, note);
-      const balance = await balanceOf(username);
+      // `auditOwner`, not `balanceOf`: the latter answers `null` when the
+      // `credits` capability is off, and granting into a server where
+      // charging has not been switched on yet is the documented ordinary
+      // order of operations (see `grant`'s own doc comment). Reporting
+      // "New balance: null" there tells an operator who has just moved money
+      // nothing about whether it landed — the stored number is what they
+      // need, and whether it is currently being charged against is a
+      // separate sentence.
+      const { balance } = await auditOwner(username);
       console.log(`Granted ${n} credit(s) to ${username}. New balance: ${balance}.`);
+      if (!creditsEnabled()) {
+        console.log(
+          "Note: the `credits` capability is off on this server, so nothing is being " +
+            "charged yet and these credits will not be spent. Switch it on in " +
+            "content/config.json when you want sends to start costing.",
+        );
+      }
       break;
     }
 
     case "list": {
       const [username] = rest;
       requireUser(username);
-      const balance = await balanceOf(username);
+      const { balance } = await auditOwner(username);
       const rows = await ledgerFor(username);
       console.log(`${username} — balance ${balance}\n`);
       if (rows.length === 0) console.log("  (no ledger entries)");
