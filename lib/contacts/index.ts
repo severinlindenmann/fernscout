@@ -627,6 +627,16 @@ export async function getContact(owner: string, id: string): Promise<ContactReco
  * journal. That is why a buddy link is documented everywhere as the stronger
  * of the two and not the one to paste into a group chat. `private` is still
  * the way to hold a trip back from everyone who is otherwise let in.
+ *
+ * **Approving a blocked contact undoes a revocation in full** — B213. It
+ * always did on this table (the grant below is written back from scratch, so
+ * the journal returns), and since B213 it does on `trip_people` too: a place
+ * `revokeContact` marked comes back rather than staying shut with the response
+ * still saying `ok`. The owner pressing approve on somebody they blocked is
+ * the whole of what it takes, and the whole of what can do it — the blocked
+ * person's own routes back all refuse before they reach here. What this
+ * function still does not do is *say* which trips it opened; the ids come back
+ * from `approveTripPlaces` and are dropped on the floor, which is B244.
  */
 export async function approveContact(
   owner: string,
@@ -699,9 +709,20 @@ export async function approveContact(
   return getContact(owner, id);
 }
 
-/** Take it back. The grants go — including every place on a trip, so a buddy
- * loses the trip as well as the journal; the record stays, so they cannot
- * simply re-request their way back in through the form. */
+/**
+ * Take it back.
+ *
+ * The grants go — including every place on a trip, so a buddy loses the trip
+ * as well as the journal; the record stays, so they cannot simply re-request
+ * their way back in through the form.
+ *
+ * **Reversible by the owner, and by nobody else** — B213. Approving again puts
+ * back both halves: the `access_grants` row is written fresh, and since B213
+ * the trip places are un-marked too, so an owner who revoked somebody by
+ * mistake has a way back that is not a database edit. The person on the other
+ * end still has none — every door they could push on refuses a `blocked`
+ * contact before it writes anything.
+ */
 export async function revokeContact(owner: string, id: string): Promise<ContactRecord | null> {
   const { db } = await getDatabase();
   await db
