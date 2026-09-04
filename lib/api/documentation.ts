@@ -64,6 +64,38 @@ export function instanceDocumentation(): string {
     "> author owns. Reading happens in a browser. Writing happens through an agent",
     "> holding a token — there is no editing interface, and there will not be one.",
     "",
+    "## Can you write here?",
+    "",
+    ...wrap(
+      "Check this before you ask anyone for their email address. Writing to this " +
+        "journal — creating one, a trip, a day, publishing it — is HTTP `POST` or " +
+        "`PATCH`, sent with an `Authorization: Bearer` header carrying a token. If " +
+        "your tools only fetch pages, or fetch only a URL a person pasted into this " +
+        "conversation and never one found inside a fetched page, you cannot make " +
+        "those calls — no matter how completely the rest of this document is " +
+        "written.",
+      78,
+    ),
+    "",
+    ...wrap(
+      "Two doors actually do it: a harness or client that can send an arbitrary " +
+        `HTTP request with a header of its own choosing, or ${base()}/api/mcp added ` +
+        "as an MCP connector — though a connector still needs its owner to hand it " +
+        "a token by hand today; nothing here issues one to a connector on its own " +
+        "(tracked, not fixed, as B260).",
+      78,
+    ),
+    "",
+    ...wrap(
+      "If neither is open to you: say so, plainly, and stop there. There is no " +
+        "upload interface to build instead, no web form, and no CMS — that absence " +
+        "is the software (ROADMAP decision 24), not a gap for you to route around. " +
+        'Do not offer a file the owner can "manually upload" — nothing here accepts ' +
+        "one — and do not hand the job back by telling the owner to follow this " +
+        "guide themselves; that is the job they asked you to do.",
+      78,
+    ),
+    "",
     "## Before you call anything, ask",
     "",
     ...wrap(
@@ -151,8 +183,69 @@ export function instanceDocumentation(): string {
     ),
     "",
     ...wrap(
-      `Read ${base()}/agent.md for everything past this — trips, days, ` +
-        "publishing, deleting, photographs — with a worked example for each.",
+      "A fresh journal holds nothing to read yet. Three more calls — a trip, a " +
+        "day, and the publish that puts it on the site — are the minimum that gets " +
+        "something onto it, worth having here rather than only behind a second " +
+        "fetch:",
+      78,
+    ),
+    "",
+    "```http",
+    `POST ${base()}/api/v1/their-name/trips`,
+    "Authorization: Bearer fs_agent_…",
+    "Content-Type: application/json",
+    "",
+    '{"id": "japan-2027", "title": "Japan", "start": "2027-04-01", "end": "2027-05-15"}',
+    "```",
+    "",
+    ...wrap(
+      "`id`, `title`, `start` and `end` are all required — a trip without dates " +
+        "would sit on disk and nowhere a reader could find it. Created **private** " +
+        "unless you say otherwise; ask before making somebody's journey public.",
+      78,
+    ),
+    "",
+    "```http",
+    `POST ${base()}/api/v1/their-name/trips/japan-2027/days`,
+    "Authorization: Bearer fs_agent_…",
+    "Content-Type: application/json",
+    "",
+    '{"title": "Lanterns of Hoi An", "date": "2026-08-26",',
+    ' "content": "The whole old town hangs with lanterns."}',
+    "```",
+    "",
+    ...wrap(
+      "`title`, `date` and `content` are required; location, photographs and cost " +
+        "are optional and are in the guide. This always writes a **draft**: there " +
+        'is no `"status"` field you can send, and nothing here is on the site yet. ' +
+        "The reply carries the `slug` the day was filed under — take it from there " +
+        "rather than guessing it from the title, which is not always what a title " +
+        "reduces to. Read the day back, tell the person what you wrote, and wait " +
+        "for them to say yes. Only then, with that slug:",
+      78,
+    ),
+    "",
+    "```http",
+    `POST ${base()}/api/v1/their-name/trips/japan-2027/days/lanterns-of-hoi-an/publish`,
+    "Authorization: Bearer fs_agent_…",
+    "Content-Type: application/json",
+    "",
+    "{}",
+    "```",
+    "",
+    ...wrap(
+      "That is what puts it on the site — yours to call once they have said so, " +
+        "not before.",
+      78,
+    ),
+    "",
+    ...wrap(
+      `Read ${base()}/agent.md for everything past this — deleting, photographs, ` +
+        "letting other people in, and the fields left out above — with a worked " +
+        "example for each. If your tools cannot fetch it — the same limit as " +
+        "above, when they follow only a pasted link — ask the person to paste it " +
+        "here instead; working that out cost one earlier run several turns it " +
+        "should not have needed.",
       78,
     ),
     "",
