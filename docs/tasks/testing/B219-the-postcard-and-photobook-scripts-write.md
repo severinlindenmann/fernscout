@@ -7,8 +7,7 @@ complexity: low
 area: postcards, photobook, scripts
 found: "2026-09-04T06:40:18Z"
 started: "2026-09-04T08:20:02Z"
-session: 7d30451d-0304-4631-8484-d96036fb11b4
-claimed: "2026-09-04T08:20:02Z"
+merged: "2026-09-04T08:26:56Z"
 ---
 
 # B219 — The postcard and photobook scripts write beside the code

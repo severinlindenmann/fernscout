@@ -7,8 +7,7 @@ complexity: low
 area: postcards, scripts
 found: "2026-09-04T06:40:11Z"
 started: "2026-09-04T08:20:03Z"
-session: 7d30451d-0304-4631-8484-d96036fb11b4
-claimed: "2026-09-04T08:20:03Z"
+merged: "2026-09-04T08:26:56Z"
 ---
 
 # B218 — A postcard run reports three files per recipient and writes four
