@@ -1,10 +1,9 @@
 import fs from "node:fs";
 import { contentTypeFor, resolveMediaFile, resizedCopy } from "@/lib/media";
 import { parseWidth } from "@/lib/mediaSizes";
-import { mayReadTrip } from "@/lib/tripGate";
+import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
 import { getTrip } from "@/lib/trips";
 import { getEntryBySlug } from "@/lib/entries";
-import { isOwner } from "@/lib/contacts/session";
 
 /**
  * Serves trip media from the content folder.
@@ -16,22 +15,20 @@ import { isOwner } from "@/lib/contacts/session";
  * go.
  */
 /**
- * Whether this folder belongs to a day nobody has published, seen by somebody
- * who is not its author.
+ * Whether this folder belongs to a day nobody has published.
  *
  * A folder matching no entry at all is left alone: ingest writes media before
  * the words exist, and an orphan is already referenced by nothing. Only a slug
- * that *is* an entry, and that entry a draft, is withheld.
+ * that *is* an entry, and that entry a draft, is a draft folder.
+ *
+ * Says nothing about who is asking — that is the caller's second question, and
+ * keeping the two apart is what B327 got wrong here. This used to end in
+ * `!(await isOwner(username))`, which made "is it a draft" and "may you see
+ * it" one answer and the second of them the wrong one.
  */
-async function isDraftDay(
-  ref: string,
-  daySlug: string | undefined,
-  username: string,
-): Promise<boolean> {
+function isDraftDay(ref: string, daySlug: string | undefined): boolean {
   if (!daySlug) return false;
-  const entry = getEntryBySlug(ref, daySlug, { includeDrafts: true });
-  if (!entry?.draft) return false;
-  return !(await isOwner(username));
+  return getEntryBySlug(ref, daySlug, { includeDrafts: true })?.draft === true;
 }
 
 export async function GET(
@@ -48,12 +45,22 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  // And the day's own state, which the trip gate above says nothing about.
-  // A photograph uploaded to a draft used to be public the moment it landed:
-  // the entry's text stayed hidden and its pictures did not, which is half of
-  // the one rule this project has. Served to the owner, because reviewing a
-  // draft means looking at what an agent attached to it.
-  if (await isDraftDay(trip.ref, segments[1], user)) {
+  /**
+   * And the day's own state, which the trip gate above says nothing about.
+   *
+   * A photograph uploaded to a draft used to be public the moment it landed:
+   * the entry's text stayed hidden and its pictures did not, which is half of
+   * the one rule this project has.
+   *
+   * **Who may see it is `draftsVisibleTo`, and this was the tenth reading path
+   * — B327 changed nine and missed this one.** It is not a `page.tsx`, so the
+   * structural test that was supposed to catch exactly this walked past it.
+   * The result was a buddy who could open the draft day, read every word, and
+   * get a 404 for each of its photographs: the failure the ticket set out to
+   * remove, on the one surface that still had it.
+   */
+  const draft = isDraftDay(trip.ref, segments[1]);
+  if (draft && !(await draftsVisibleTo(trip)).visible) {
     return new Response("Not found", { status: 404 });
   }
 
@@ -73,9 +80,22 @@ export async function GET(
   const headers: Record<string, string> = {
     "Content-Type": type,
     "Content-Length": String(body.byteLength),
-    // Content is immutable in practice: a changed photo gets a new filename
-    // through the ingest pipeline rather than being overwritten in place.
-    "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+    /**
+     * Content is immutable in practice: a changed photo gets a new filename
+     * through the ingest pipeline rather than being overwritten in place.
+     *
+     * **Except for a draft's photographs, which no cache may keep.** `public`
+     * invites any intermediary to store the response and hand it to the next
+     * person who asks for that URL — and this is the one response here whose
+     * body depends on who asked. It was already wrong before B327, when the
+     * only 200 was the owner's; letting somebody on the trip through widens
+     * the set of unpublished photographs a shared cache could be holding, so
+     * it is fixed here rather than captured. A published photograph is the
+     * same bytes for everybody and keeps the long cache it has always had.
+     */
+    "Cache-Control": draft
+      ? "private, no-store"
+      : "public, max-age=3600, stale-while-revalidate=86400",
     "X-Content-Type-Options": "nosniff",
     /**
      * Nothing served out of a content folder is a document. B02.
