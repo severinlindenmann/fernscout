@@ -31,11 +31,16 @@ on).
 Run all four of these — CI runs the same checks:
 
 ```bash
+npm run build          # first — it writes .next/types, which tsc reads
 npx tsc --noEmit
 npx eslint .
 npx vitest run
-npm run build
 ```
+
+The build goes first because Next writes the typed-route definitions in
+`.next/types` while it builds, and `PageProps`, `LayoutProps` and
+`RouteContext` resolve against them. Run `tsc` on a checkout that has never
+been built and it reports errors in every route file, none of which are yours.
 
 A PR that fails any of these won't be merged as-is. If a check is failing
 for a reason unrelated to your change, say so in the PR description rather
