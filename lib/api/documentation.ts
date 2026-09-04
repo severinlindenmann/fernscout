@@ -1198,6 +1198,83 @@ Only the journal's **owner** may ask. A token scoped to one trip can write days
 into that trip and cannot delete it, or the journal around it; being on
 somebody's journey is not authority to end it.
 
+### The trip's budget
+
+A trip's costs page (\`/${example}/trips/<trip-id>/costs\`) is presence-driven:
+no \`costs.md\`, no page; a \`costs.md\`, one. Before B295 the only way to write
+one was by hand, over SSH or with the \`add-a-trip\` skill on a local checkout —
+this is the door.
+
+\`\`\`http
+PUT ${site.url}/api/v1/${example}/trips/<trip-id>/costs
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{
+  "budget": {"total": 12000, "days": 45, "currency": "CHF"},
+  "costs": [{"label": "Rail pass", "amount": 420, "category": "preparation"}],
+  "body": "The rail pass is the decision everything else follows from."
+}
+\`\`\`
+
+\`\`\`json
+{"ok": true, "trip": "${example}/<trip-id>",
+ "note": "costs.md now exists (or was replaced) for this trip. GET this same URL..."}
+\`\`\`
+
+**\`budget\` is required, and both \`total\` and \`days\` must be positive.** A
+zero or missing total is refused here, with a \`problems\` entry naming
+\`budget.total\` — not written and read back as no budget at all, which is what
+\`lib/costFormat.ts\`'s \`parseBudget\` does silently when the page renders
+(B263). An unknown category or an unrecognisable currency code is refused the
+same way, by name, on either field.
+
+\`\`\`json
+{"error": "invalid_costs", "problems": [
+  {"field": "budget.total", "got": "0", "expected": "a positive number..."},
+  {"field": "costs[0].category", "got": "\\"shenanigans\\"", "expected": "one of preparation, flights, ..."}
+]}
+\`\`\`
+
+**\`PATCH\` changes part of it without resending everything**, textually — the
+same discipline as editing a day (B266): a field this omits, and the file's
+own formatting, comments and key order, survive untouched. This may well be a
+\`costs.md\` the owner wrote themselves.
+
+\`\`\`http
+PATCH ${site.url}/api/v1/${example}/trips/<trip-id>/costs
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"budget": {"total": 13500, "days": 45, "currency": "CHF"}}
+\`\`\`
+
+\`budget\`, \`costs\` and \`body\` each replace their own block wholesale when
+sent — \`"budget": null\` clears the budget alone and leaves the rest of the
+file; \`"costs": []\` clears the preparation-costs list the same way. Neither
+removes the file, and PATCH refuses to run at all against a trip with no
+\`costs.md\` yet — PUT to the same URL first.
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/trips/<trip-id>/costs
+DELETE ${site.url}/api/v1/${example}/trips/<trip-id>/costs
+Authorization: Bearer fs_agent_…
+\`\`\`
+
+\`GET\` reads the budget and the preparation costs back as stored, plus the
+journal's base currency, so you can confirm what you wrote before telling
+somebody it is there — \`"exists": false\` means there is no \`costs.md\` yet,
+which is not an error. \`DELETE\` removes the file entirely, which is how the
+budget — and the costs page with it — goes away; the response says so
+(\`"costsPageGone": true\`) rather than leaving it to be inferred, and calling
+it again once the file is gone answers \`404\`.
+
+**Same authority as writing a day.** Whoever may \`POST\` a day into this trip
+may read, write, amend or delete its budget too, trip-scoped tokens included —
+a budget is trip content, and the people on a trip are the people who spent
+the money. Per-day spending is a different field entirely: \`costs\` on
+\`POST .../days\`, above, which this door does not touch.
+
 ### Photographs and video
 
 \`\`\`http

@@ -33,8 +33,12 @@ export * from "./costFormat";
  * Resolved per trip and never cached across trips — the whole reason rates
  * live in `trip.md` is that two trips may hold different rates for the same
  * currency, and a shared table would quietly erase that.
+ *
+ * Exported since B295: the costs API door needs the same base currency and
+ * rates to decide what a written-back budget or cost item means, and a
+ * second copy of this would be the second opinion AGENTS.md warns against.
  */
-function conversionFor(ref: string): { base: string; rates: RateTable } {
+export function conversionFor(ref: string): { base: string; rates: RateTable } {
   const trip = getTrip(ref);
   // The base currency belongs to whoever owns the trip, not to the instance:
   // two users on one server may budget in different currencies.
@@ -45,8 +49,21 @@ function conversionFor(ref: string): { base: string; rates: RateTable } {
   };
 }
 
-function readCostsFile(tripId: string) {
-  const file = path.join(tripDir(tripId), "costs.md");
+/** Where `costs.md` lives for a trip — exported since B295 so the API door
+ * that writes and deletes it does not carry a second copy of this path. */
+export function costsFilePath(tripId: string): string {
+  return path.join(tripDir(tripId), "costs.md");
+}
+
+/**
+ * The file, parsed and un-converted — `null` when there is none.
+ *
+ * Exported since B295: the costs API's `GET` reads back exactly this, the
+ * same object every other reader in this file works from, rather than a
+ * second parse of the same file.
+ */
+export function readCostsFile(tripId: string) {
+  const file = costsFilePath(tripId);
   if (!fs.existsSync(file)) return null;
   return matter(fs.readFileSync(file, "utf8"));
 }

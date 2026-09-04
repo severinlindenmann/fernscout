@@ -112,7 +112,9 @@ const quote = quoteScalar;
  * "other", which is what `lib/costs.ts` would read anyway — written out so the
  * file says what it means.
  */
-function costLines(costs: DraftInput["costs"]): string[] {
+// Exported since B295: the costs door writes a trip's preparation costs in
+// this identical shape, and reuses this renderer rather than a second copy.
+export function costLines(costs: DraftInput["costs"]): string[] {
   if (!costs?.length) return [];
   return [
     "costs:",
