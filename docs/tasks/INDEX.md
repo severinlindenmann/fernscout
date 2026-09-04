@@ -136,7 +136,6 @@ _Nothing here._
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B302](in-development/B302-the-guide-frames-a-new-trip.md) | The guide frames a new trip as private-or-public, so an agent never offers guest and its user ends up with an approved reader who cannot read | ISSUE | high | low | `a3370c43` |
 | [B294](in-development/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high | `986bc24c` |
 
 ## testing
@@ -171,6 +170,7 @@ _Nothing here._
 | [B295](testing/B295-a-trip-budget-can-only-be.md) | A trip budget can only be written by hand, so an agent cannot give a trip its costs page | FEATURE | high | medium | — |
 | [B296](testing/B296-the-days-listing-hides-drafts-from.md) | The days listing hides drafts from the only caller allowed to see them, so an agent cannot audit its own writes | ISSUE | high | low | — |
 | [B300](testing/B300-approving-a-guest-opens-nothing-when.md) | Approving a guest opens nothing when every trip is private, and neither the owner nor the guest is told | ISSUE | high | low | — |
+| [B302](testing/B302-the-guide-frames-a-new-trip.md) | The guide frames a new trip as private-or-public, so an agent never offers guest and its user ends up with an approved reader who cannot read | ISSUE | high | low | — |
 | [B64](testing/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B02](testing/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low | — |
