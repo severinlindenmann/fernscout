@@ -84,7 +84,6 @@ Do not edit them by hand; run the script.
 | [B267](backlog/B267-nothing-tells-an-agent-that-a.md) | Nothing tells an agent that a trip decides its own budget and coordinates, and an empty costs page is offered anyway | ISSUE | medium | medium |
 | [B268](backlog/B268-the-slideshow-map-projects-coordinates-without.md) | The slideshow map projects coordinates without mapFrame, so a coordinate-less day breaks it the same way | ISSUE | medium | low |
 | [B269](backlog/B269-the-photobook-has-its-own-bounding.md) | The photobook has its own bounding-box code with the same NaN hole B265 closed for the web maps | ISSUE | medium | low |
-| [B271](backlog/B271-the-owner-s-contacts-page-has.md) | The owner's contacts page has no way back to the journal | ISSUE | medium | low |
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B42](backlog/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B43](backlog/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
@@ -129,6 +128,7 @@ _Nothing here._
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B266](in-development/B266-a-day-cannot-be-edited-after.md) | A day cannot be edited after it is written, and the agent that tried published fifteen of them | ISSUE | high | medium | `986bc24c` |
+| [B271](in-development/B271-the-owner-s-contacts-page-has.md) | The owner's contacts page has no way back to the journal | ISSUE | medium | low | `a3370c43` |
 
 ## testing
 

@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: web, contacts, navigation
 found: "2026-09-04T11:34:00Z"
+started: "2026-09-04T11:55:54Z"
+session: a3370c43-40d9-471c-a3d3-1a30c49b5302
+claimed: "2026-09-04T11:55:54Z"
 ---
 
 # B271 — The owner's contacts page has no way back to the journal
