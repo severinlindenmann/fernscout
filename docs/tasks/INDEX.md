@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (87)
+## backlog (88)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (26)
+### issue (27)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -92,6 +92,7 @@ Do not edit them by hand; run the script.
 | [B274](backlog/issue/B274-the-self-serve-link-in-a.md) | The self-serve link in a reader's mail is labelled as a detail change when it is their standing way back | ISSUE | low | low |
 | [B284](backlog/issue/B284-a-dictionary-read-that-fails-for.md) | A dictionary read that fails for any reason but absence is cached as empty until the file changes | ISSUE | low | low |
 | [B288](backlog/issue/B288-an-agent-orienting-through-status-is.md) | An agent orienting through status is not told a trip.md failed to load, though the trip list would tell it | ISSUE | low | low |
+| [B388](backlog/issue/B388-resending-a-mailed-guest-invitation-has.md) | Resending a mailed guest invitation has no rate limit | ISSUE | low | low |
 
 ### big-feature (12)
 
@@ -182,15 +183,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B384](in-development/B384-a-guest-the-owner-adds-by.md) | A guest the owner adds by hand is a dead end: a bare code, no link, no way to be approved | ISSUE | high | medium | `39691533` |
 | [B385](in-development/B385-a-phone-number-typed-into-any.md) | A phone number typed into any of the four guest forms has no country, and only the sender finds out | FEATURE | medium | low | `39691533` |
 | [B387](in-development/B387-the-weekly-digest-was-never-scheduled.md) | The weekly digest was never scheduled or wanted, and is a second mail system to keep correct | CHORE | medium | medium | `3d8b93dd` |
 
-## testing (160)
+## testing (161)
 
 ### security (7)
 
@@ -204,7 +204,7 @@ _Nothing here._
 | [B03](testing/security/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium | — |
 | [B233](testing/security/B233-the-https-only-rule-is-not.md) | The https-only rule is not re-applied after a redirect | SECURITY | low | low | — |
 
-### issue (98)
+### issue (99)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -235,6 +235,7 @@ _Nothing here._
 | [B353](testing/issue/B353-a-trip-whose-currency-has-no.md) | A trip whose currency has no rate shows CHF 0 everywhere except the costs page | ISSUE | high | low | — |
 | [B380](testing/issue/B380-the-weekly-digest-mails-every-reader.md) | The weekly digest mails every reader without spending a credit | ISSUE | high | low | — |
 | [B381](testing/issue/B381-a-day-with-no-coordinates-becomes.md) | A day with no coordinates becomes a nameless place, inflating the stop and country counts a page contradicts itself about | ISSUE | high | low | — |
+| [B384](testing/issue/B384-a-guest-the-owner-adds-by.md) | A guest the owner adds by hand is a dead end: a bare code, no link, no way to be approved | ISSUE | high | medium | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
