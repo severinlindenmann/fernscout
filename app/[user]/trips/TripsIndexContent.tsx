@@ -32,18 +32,29 @@ export type TripCardData = {
 };
 
 /**
- * What to say when the journal holds no trips at all.
+ * What to say when this reader has nothing to see on the trip list.
  *
- * Null when it holds at least one — including when the gate has removed every
- * one of them from *this* reader, which looks identical from here and is not
- * the same thing (B44: there the journal is full and the filter is silent).
- * The server decides, because only the server can see past the gate.
+ * Null when there is at least one card to show. Otherwise there are two ways
+ * to get here and they must look **identical** to a signed-out reader: the
+ * journal genuinely holds no trips, or it holds some and the gate has removed
+ * every one of them from *this* reader (B44: a full journal behind a silent
+ * filter). Telling the two apart from the outside is a fact about somebody's
+ * private journal, readable by anyone who tries the address — B117 refuses
+ * that trade for a closed trip's own name, and B264 is the same refusal here.
+ * So the server folds both into one `owner: false` shape and this component
+ * never sees which one it was.
  *
- * A union rather than three nullable fields, so that the owner's address
+ * `signedIn` is the one distinction that is safe to draw, because it does not
+ * come from probing the journal — it comes from the reader's own cookie, which
+ * they already know they are carrying. Somebody who has proven an address to
+ * *this* journal and still sees nothing does not need "sign in"; they need
+ * "ask for more."
+ *
+ * A union rather than nullable fields throughout, so that the owner's address
  * simply is not in the payload of a page a stranger asked for.
  */
 export type EmptyJournal =
-  | { owner: false }
+  | { owner: false; signedIn: boolean }
   | { owner: true; docUrl: string; ownerEmail: string | null };
 
 export type RouteData = {
@@ -239,25 +250,37 @@ function MalformedNotice({ malformed }: { malformed: BrokenFolder[] }) {
 }
 
 /**
- * A journal with nothing in it, said plainly.
+ * Nothing on the list for this reader, said plainly.
  *
- * Two readers, and they need opposite things. A visitor needs the honest line
- * and nothing to do. The **owner** needs the one fact nobody can guess from
- * looking: there is no button here, there never will be (ROADMAP decision 24),
- * and a trip is made by handing two lines to an agent. That instruction
- * already existed on `/<user>/me`, in a panel a person who has just created a
- * journal has no reason to have opened — so it is repeated here rather than
- * linked to, from the same component, and this is the page they land on.
+ * Three readers, not two. The **owner** of a genuinely empty journal needs the
+ * one fact nobody can guess from looking: there is no button here, there never
+ * will be (ROADMAP decision 24), and a trip is made by handing two lines to an
+ * agent. That instruction already existed on `/<user>/me`, in a panel a person
+ * who has just created a journal has no reason to have opened — so it is
+ * repeated here rather than linked to, from the same component, and this is
+ * the page they land on.
+ *
+ * Everybody else gets one of two sentences, chosen only by `signedIn` — never
+ * by whether the journal is actually empty, which this component is not told
+ * (see `EmptyJournal`). A stranger is pointed at both ways in: ask for an
+ * invite link, or sign in if they already have one. Somebody already signed in
+ * to *this* journal and still empty-handed is told the truer thing — their
+ * address is not the problem, coverage is — because "sign in" to somebody
+ * already signed in reads as a broken page.
  */
 function EmptyState({ empty }: { empty: EmptyJournal }) {
   const { t } = useI18n();
+  const title = empty.owner ? t("trips.emptyTitle") : t("trips.hiddenTitle");
+  const body = empty.owner
+    ? t("trips.emptyOwnerBody")
+    : empty.signedIn
+      ? t("trips.hiddenSignedInBody")
+      : t("trips.hiddenBody");
 
   return (
     <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-      <h2 className="font-display text-xl font-semibold text-navy-900">{t("trips.emptyTitle")}</h2>
-      <p className="mt-2 max-w-2xl text-lg leading-8 text-navy-700">
-        {empty.owner ? t("trips.emptyOwnerBody") : t("trips.emptyBody")}
-      </p>
+      <h2 className="font-display text-xl font-semibold text-navy-900">{title}</h2>
+      <p className="mt-2 max-w-2xl text-lg leading-8 text-navy-700">{body}</p>
       {empty.owner && (
         <div className="mt-6 border-t border-navy-200 pt-5">
           <AgentHandover docUrl={empty.docUrl} email={empty.ownerEmail} />
