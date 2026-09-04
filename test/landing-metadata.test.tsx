@@ -97,7 +97,12 @@ function instance(): void {
 function headingOf(locale: string): string {
   const html = renderToStaticMarkup(
     <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
-      <Landing siteName={SITE_NAME} docUrl="https://example.test/documentation.txt" journals={[]} />
+      <Landing
+        siteName={SITE_NAME}
+        docUrl="https://example.test/documentation.txt"
+        agentUrl="https://example.test/agent.md"
+        journals={[]}
+      />
     </LocaleProvider>,
   );
   const match = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(html);
