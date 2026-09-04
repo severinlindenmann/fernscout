@@ -60,7 +60,18 @@ export const VISIBILITY_NOT_A_LOCK =
 // Read from the constant rather than typed into prose: a fourth language would
 // otherwise be maintained everywhere except in the sentence that tells an agent
 // it exists. The media limits table already works this way.
-import { MAINTAINED_LOCALES } from "../i18n";
+import { LOCALE_LABEL, MAINTAINED_LOCALES } from "../i18n";
+
+/**
+ * The maintained languages, named the way a person recognises them —
+ * "Deutsch", not "de" — with the code beside each for the field that actually
+ * takes it. B256: a bare `en, de, hu` was the only place either language
+ * question named the choices, and it named them in a way only the software
+ * understood.
+ */
+export const LOCALE_LIST = MAINTAINED_LOCALES.map(
+  (code) => `${LOCALE_LABEL[code]} (\`${code}\`)`,
+).join(", ");
 
 /** One thing an agent has to ask before its first call. */
 export type FirstQuestion = { ask: string; because: string };
@@ -115,8 +126,11 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
     {
       ask: "The **journal's address** (`username`), if they have no journal yet",
       because:
-        `It becomes ${siteUrl}/<username>, it is permanent, and it is what they will ` +
-        "give people.",
+        `It becomes ${siteUrl}/<username>, it is permanent, and it **is the journal's own ` +
+        "name — never a trip's** — in lowercase letters, digits and dashes. Never invent " +
+        "one, and never illustrate it either: an example inside the question you ask is a " +
+        'suggestion, and "asia-2025" is a trip\'s name that somebody would be stuck with as ' +
+        "their journal's address.",
     },
     {
       ask: "**Public or private?**",
@@ -132,12 +146,20 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
         "about themselves costs a sentence; it is deriving that breaks.",
     },
     {
-      ask: "**Which language** the journal is in",
+      ask: "**Which language** they write in",
       because:
-        `This instance maintains ${MAINTAINED_LOCALES.join(", ")}. It sets the language of ` +
-        "the site's own chrome and of the mail this server sends the owner — including the " +
-        "letter that arrives the moment the journal is created, which is the first thing " +
-        "the software ever says to them. Send it as `defaultLocale`.",
+        `This instance maintains ${LOCALE_LIST}. It sets the language of the site's own ` +
+        "chrome and of the mail this server sends the owner — including the letter that " +
+        "arrives the moment the journal is created, which is the first thing the software " +
+        "ever says to them. Send it as `defaultLocale`.",
+    },
+    {
+      ask: "**Which languages a reader may switch the journal into**",
+      because:
+        "A different question from the one above — their own language is not necessarily " +
+        `everyone their audience reads in. Choose from the same ${LOCALE_LIST} and send it ` +
+        'as `locales`, e.g. `["de", "en"]`. Left out, the journal offers only the one ' +
+        "language named in `defaultLocale` — no switcher at all.",
     },
   ];
 }

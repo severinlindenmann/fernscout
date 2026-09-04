@@ -1106,9 +1106,13 @@ export function GET() {
     },
   };
 
+  // No `X-Robots-Tag` — B256. Its only reader is an automated one, and
+  // `noindex` reads to a well-behaved fetcher as "do not use this content",
+  // which is the one thing this document must never say. See the comment on
+  // /agent.md/route.ts, which had the same header and the same failure.
+  // `/documentation.txt` is a different argument and keeps it.
   return Response.json(document, {
     headers: {
-      "X-Robots-Tag": "noindex",
       "Cache-Control": "public, max-age=300",
     },
   });

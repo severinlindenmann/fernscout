@@ -343,6 +343,26 @@ describe("the documents an agent reads", () => {
     expect(summary).toContain("days/<slug>/publish");
   });
 
+  /**
+   * B256: an agent that could not fetch `/agent.md` had read only the three
+   * prose steps that used to be here — "signup is in the guide" — and had no
+   * call it could actually make. The index has to carry the signup calls
+   * itself, not just point at where they live, so a failed hop to the guide
+   * costs the rest of the API and not the whole of it.
+   */
+  test("the summary is self-sufficient for signup: it carries the three calls", () => {
+    const summary = instanceDocumentation();
+    expect(summary).toContain("/api/auth/signup/request");
+    expect(summary).toContain("/api/auth/signup/verify");
+    expect(summary).toContain("POST");
+    expect(summary).toMatch(/\/api\/v1\/journals/);
+    // A complete body, not just the path: the fields a signup token cannot
+    // proceed without.
+    for (const field of ["username", "title", "ownerName", "ownerNickname"]) {
+      expect(summary, `${field} must appear in the journals example`).toContain(`"${field}"`);
+    }
+  });
+
   test("the guide documents authentication without ever mailing a token", () => {
     const guide = agentGuide();
     expect(guide).toContain("/api/auth/request");
