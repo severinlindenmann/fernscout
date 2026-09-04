@@ -111,6 +111,7 @@
   "contact.statusPending": "Waiting to be let in",
   "contact.submit": "Sign the guestbook",
   "contact.tel": "Phone number",
+  "contact.telHint": "kept on file for the owner — nothing on this site sends to it yet",
   "contact.title": "Come along with us",
   "contact.tooMany": "That's a lot of tries. Wait a few minutes and try once more.",
   "contact.unsubscribe": "Stop all emails",

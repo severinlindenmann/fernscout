@@ -142,6 +142,7 @@ export type TranslationKey =
   | "contact.statusPending"
   | "contact.submit"
   | "contact.tel"
+  | "contact.telHint"
   | "contact.title"
   | "contact.tooMany"
   | "contact.unsubscribe"

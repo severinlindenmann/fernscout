@@ -111,6 +111,7 @@
   "contact.statusPending": "Jóváhagyásra vár",
   "contact.submit": "Beírom magam a vendégkönyvbe",
   "contact.tel": "Telefonszám",
+  "contact.telHint": "csak eltároljuk – egyelőre semmi nem küld ide semmit",
   "contact.title": "Tarts velünk",
   "contact.tooMany": "Ez sok próbálkozás volt. Várj pár percet, aztán próbáld újra.",
   "contact.unsubscribe": "Ne kapjak több e-mailt",
