@@ -214,6 +214,45 @@ export function openApiDocument() {
             },
           },
         },
+        Budget: {
+          type: "object",
+          required: ["total", "days"],
+          description:
+            "A trip's planned total, in `components.schemas.Costs`. Both fields are required " +
+            "and must be positive — a zero or missing total is refused with a `problems` entry " +
+            "rather than written and read back as no budget at all, which is what " +
+            "lib/costFormat.ts's parseBudget does silently for a page render (B263).",
+          properties: {
+            total: { type: "number", description: "Planned total for the whole trip." },
+            days: { type: "number", description: "How many days the budget was drawn up for." },
+            currency: {
+              type: "string",
+              description: "ISO-4217, e.g. CHF. Omit it and the journal's own base currency is used.",
+            },
+          },
+        },
+        Costs: {
+          type: "object",
+          description:
+            "The body of PUT and PATCH " +
+            "/api/v1/{user}/trips/{trip}/costs — a trip's planned budget, its preparation " +
+            "spending, and the owner's own prose about the money. On PUT, `budget` is " +
+            "required; on PATCH every field is optional, and `budget: null` clears the " +
+            "budget alone without touching `costs` or `body`.",
+          properties: {
+            budget: { $ref: "#/components/schemas/Budget" },
+            costs: {
+              type: "array",
+              items: { $ref: "#/components/schemas/Cost" },
+              description:
+                "Preparation costs — visas, gear, the rail pass bought before leaving. Same " +
+                "shape as a day's `costs`, and refused the same way: an unknown category, or " +
+                "an amount that is zero or negative, is a `problems` entry rather than a silent " +
+                "drop. Replaces the whole list when sent; an empty array clears it.",
+            },
+            body: { type: "string", description: "The trip's own prose about the money." },
+          },
+        },
       },
     },
     paths: {
@@ -985,6 +1024,127 @@ export function openApiDocument() {
                 "No such trip, or no such day — the two answer alike, so a trip-scoped " +
                 "token cannot enumerate the journal's others.",
             },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}/costs": {
+        get: {
+          summary: "A trip's budget and preparation costs, as stored",
+          description:
+            "The whole of `costs.md` — the budget, the preparation costs, the base currency " +
+            "they default into, and the trip's own prose about the money. `exists: false` " +
+            "means there is no `costs.md` yet, which is not an error: it is the same answer " +
+            "an empty drafts list gives. This is how you read back what PUT or PATCH just " +
+            "wrote, before telling the owner it is there.\n\n" +
+            "Same authority as writing a day: whoever may write to this trip may read its " +
+            "budget, trip-scoped tokens included.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "The trip's costs.md, parsed" },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+            "404": { description: "No such trip" },
+          },
+        },
+        put: {
+          summary: "Write the whole costs.md",
+          description:
+            "Creates or wholly replaces a trip's budget, preparation costs and prose about " +
+            "the money, in one call — the write half of B295: before it, a budget could only " +
+            "be written by hand, over SSH or with the `add-a-trip` skill on a local checkout, " +
+            "and there was no way over the network to give a trip its costs page at all.\n\n" +
+            "**`budget` is required.** A zero or missing total is refused here with a " +
+            "`problems` entry, rather than written and read back as no budget at all — " +
+            "`lib/costFormat.ts`'s `parseBudget` drops one silently for a page render, and a " +
+            "door cannot repeat that (B263).\n\n" +
+            "Same authority as writing a day: whoever may `POST` a day into this trip may " +
+            "`PUT` its costs, trip-scoped tokens included — a budget is trip content, and the " +
+            "people on a trip are the people who spent the money.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/Costs" } },
+            },
+          },
+          responses: {
+            "200": { description: "Written. GET this same URL to read it back." },
+            "400": {
+              description:
+                "Invalid costs (a `problems` list, same shape as a day's — field, what " +
+                "arrived, what was expected), invalid JSON, or a field this endpoint does " +
+                "not write.",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+            "404": { description: "No such trip" },
+          },
+        },
+        patch: {
+          summary: "Amend part of costs.md without resending the whole thing",
+          description:
+            "Textual, like PATCH .../days/{slug} (B266): a field this omits, and the file's " +
+            "own formatting — comments, key order, flow or block YAML style — are left " +
+            "exactly as they were, because this may well be a file the owner wrote by hand.\n\n" +
+            "`budget`, `costs` and `body` each replace their own block wholesale when sent. " +
+            "`budget: null` clears the budget alone and leaves `costs` and `body` untouched; " +
+            "`costs: []` clears the preparation-costs list the same way. Neither removes " +
+            "`costs.md` itself — that is DELETE, below, and it is the only call that makes " +
+            "the costs page disappear.\n\n" +
+            "Same authority as writing a day: whoever may `POST` a day into this trip may " +
+            "`PATCH` its costs, trip-scoped tokens included.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/Costs" } },
+            },
+          },
+          responses: {
+            "200": { description: "Amended. `changed` lists the fields that were sent." },
+            "400": {
+              description:
+                "Invalid costs, an empty body, or a field this endpoint does not write — " +
+                "named in `unsupported_field` rather than silently dropped.",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+            "404": {
+              description:
+                "No such trip, or this trip has no costs.md yet — PUT to this same URL to " +
+                "create one first.",
+            },
+          },
+        },
+        delete: {
+          summary: "Remove costs.md — how the costs page goes away",
+          description:
+            "Whole file, not just the `budget:` line: the costs page is presence-driven " +
+            "(B293) and `hasCostsData` (B267) is what decides it exists, by asking whether " +
+            "`costs.md` is there at all — so this removes the file entirely, and the " +
+            "response says the page is gone rather than leaving that to be inferred.\n\n" +
+            "Not idempotent in status: calling this on a trip with no costs.md answers 404, " +
+            "since there was nothing here to remove.\n\n" +
+            "Same authority as writing a day: whoever may write to this trip may remove its " +
+            "budget, trip-scoped tokens included.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Removed. `costsPageGone: true` — the page will not appear in the trip's nav." },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+            "404": { description: "No such trip, or this trip has no costs.md" },
           },
         },
       },

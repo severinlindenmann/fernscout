@@ -77,7 +77,9 @@ export type EntryInput = {
  * difference between "twelve" the number and "twelve" the word that isn't
  * one has to be visible at a glance.
  */
-function describe(value: unknown): string {
+// Exported since B295: the costs door's own validator (lib/validate/costs.ts)
+// reads a value back the same way rather than carrying a second renderer.
+export function describe(value: unknown): string {
   if (value === undefined) return "nothing";
   if (value === null) return "null";
   try {
@@ -161,7 +163,14 @@ function checkTransportMode(input: EntryInput, problems: Problem[]): void {
   }
 }
 
-function checkCosts(input: EntryInput, problems: Problem[]): void {
+/**
+ * Exported since B295: the costs door's own `costs:` list — a trip's
+ * preparation spending — is the identical shape as a day's, so it refuses
+ * exactly what this refuses rather than a second opinion. Label, amount and
+ * category are checked here; currency is not (see `lib/validate/costs.ts`
+ * for why the newer door checks it and this one still doesn't).
+ */
+export function checkCosts(input: EntryInput, problems: Problem[]): void {
   if (input.costs === undefined) return;
   if (!Array.isArray(input.costs)) {
     problems.push({ field: "costs", got: describe(input.costs), expected: "a list of cost items" });
