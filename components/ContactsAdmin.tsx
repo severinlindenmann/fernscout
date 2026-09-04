@@ -705,7 +705,9 @@ export default function ContactsAdmin({
   const other = contacts.filter((c) => c.status === "blocked");
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-12" lang={locale}>
+    // `id` and `tabIndex` are the target of the skip link the page's header
+    // renders — without them the first thing in the tab order goes nowhere.
+    <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl px-6 py-12" lang={locale}>
       <h1 className="font-display text-3xl text-navy-900 sm:text-4xl">
         {t("contact.adminTitle")}
       </h1>

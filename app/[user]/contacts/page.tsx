@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ContactsAdmin, { type AdminContact } from "@/components/ContactsAdmin";
 import NoticeShell from "@/components/NoticeShell";
+import PageHeader from "@/components/PageHeader";
 import { isEnabled } from "@/lib/capabilities";
 import { listContacts } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
@@ -69,13 +70,29 @@ export default async function ContactsAdminPage({ params }: PageProps<"/[user]/c
   }));
 
   return (
-    <ContactsAdmin
-      locales={localesFor(username)}
-      dictionary={dictionaryFor(locale)}
-      username={username}
-      locale={locale}
-      contacts={contacts}
-      invites={await listInvites(username)}
-    />
+    // The header is the way back, and this page needs one more than most: it is
+    // where the approval email lands, so the owner arrives in a fresh tab with
+    // no history behind it and, until B271, nothing on the page pointing at the
+    // journal. Every other page under `app/[user]/` already mounts it, so the
+    // exit is the one the owner has been taught to use rather than a "back"
+    // link invented here — and it brings the language switcher and the skip
+    // link with it. `useTrip()` is null on this route, which is exactly what
+    // makes the journal's title in it link to the journal.
+    //
+    // Composed here rather than inside `ContactsAdmin` because the header needs
+    // the layout's providers and the component is rendered without them by
+    // `test/guest-list-links.test.tsx`, which is about the copy on the rows and
+    // has no business standing up a journal to read it.
+    <div className="min-h-screen">
+      <PageHeader />
+      <ContactsAdmin
+        locales={localesFor(username)}
+        dictionary={dictionaryFor(locale)}
+        username={username}
+        locale={locale}
+        contacts={contacts}
+        invites={await listInvites(username)}
+      />
+    </div>
   );
 }

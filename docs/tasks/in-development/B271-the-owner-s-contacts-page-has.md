@@ -43,15 +43,26 @@ title already links home (`PageHeader.tsx:30` falls back to `site.base` when
 there is no trip in context, which is the case here, as it is on `/me`), and it
 brings the nav, the language switcher and the skip link with it.
 
+**Composed in `app/[user]/contacts/page.tsx`, not inside `ContactsAdmin` —
+corrected while building.** `/me` puts the header inside its content component,
+so that was the plan here too, and it breaks `test/guest-list-links.test.tsx`:
+that test renders `ContactsAdmin` with no providers at all, and `useSite()`
+throws outside `SiteProvider` (`components/SiteProvider.tsx:27`). Wrapping the
+test in four providers to render a header it makes no assertions about is the
+wrong trade — the test is about the copy on the invite rows, which is what
+stopped an owner revoking the wrong link (B97). Putting the chrome in the page
+leaves `ContactsAdmin` renderable on its own and is where composition belongs
+anyway. It also means the 130-line body of that component keeps its
+indentation, so the diff is the change rather than a reflow.
+
 Not doing: a bespoke "← back" link. A second navigation idiom on one page of ten
 is how a site stops feeling like one site, and the header is what the other nine
 pages taught the owner to use. Not adding `<PageHeader>` to the `NoticeShell`
 branch either — that page is for somebody who is not signed in, and its single
 action is already the right shape.
 
-`ContactsAdmin` is a client component with the providers above it, so nothing
-new has to be threaded through. `main` keeps `id="main"` and `tabIndex={-1}` so
-the skip link the header renders has a target — `/me` is the precedent.
+`main` gains `id="main"` and `tabIndex={-1}` so the skip link the header renders
+has a target — `/me` is the precedent.
 
 ## Acceptance
 
@@ -63,3 +74,31 @@ the skip link the header renders has a target — `/me` is the precedent.
 - Keyboard: tab once from the top reaches "skip to content" and it moves focus
   into the contacts `main`.
 - `npm run build && npx tsc --noEmit && npx eslint . && npx vitest run` all pass.
+
+## Verified
+
+Against a locally built server with `auth`, `contacts` and `mail` on and a
+SQLite `DATABASE_URL`, per `docs/running-locally.md`, signed in through the
+real code flow as the example journal's owner:
+
+```
+GET /example/contacts             200
+  <header …>                      present
+  <a href="/example">Fernscout Demo</a>   the way back
+  <a href="#main">Skip to content</a>     and its target:
+  <main id="main" tabindex="-1" … lang="en">
+```
+
+With `contacts` off — the default — the same URL is `404` and the header is not
+rendered at all, so the capability is still absent rather than a dead page.
+
+`test/contacts-way-back.test.tsx` renders the page component itself, with the
+layout's four providers around it: three tests, two of which fail on the code
+as it was. Full suite 151 files / 2335 tests green; `npm run build`,
+`npx tsc --noEmit` and `npx eslint .` clean (4 pre-existing warnings, none in
+these files).
+
+Not run: `claude-security`. The change adds chrome to a page already behind
+`isOwner`, and touches no auth, token, grant, visibility or API-route code —
+the header it mounts is the one every other page of the journal already
+renders.
