@@ -30,13 +30,21 @@ import { useI18n } from "@/components/LocaleProvider";
  *
  * **It never names the trip.** See B117, and the `<h1>` below.
  *
- * Which is why there are three states and not one:
+ * Which is why there are four states and not one:
  *
  * - **not signed in** — the form, and an honest sentence about who it is for.
- * - **signed in, still refused** — a different sentence entirely. This is what
- *   a guest of the journal hits on a `private` trip, and what anybody who
- *   signed in with the wrong address hits. Showing them the form again would
- *   have them sign in twice and conclude the site is broken.
+ * - **signed in, refused because this trip is `private`, and refused to an
+ *   approved journal guest specifically** — B300. "Ask whoever writes this
+ *   journal to let you in" is false for exactly this reader: they already
+ *   asked, and were let in — into the journal, not this trip, and no request
+ *   changes that. Told apart from the state below by `guestBlockedByPrivate`,
+ *   which `lib/tripGate.ts`'s `guestBlockedByPrivateTrip` computes without
+ *   ever handing this component the trip's visibility, its id or its title —
+ *   only the one bit this sentence needs.
+ * - **signed in, still refused, for any other reason** — anybody who signed in
+ *   with the wrong address, or a stranger who is signed in but not a guest of
+ *   this journal at all. Showing them the form again would have them sign in
+ *   twice and conclude the site is broken.
  * - **sign-in switched off for this journal** — no form to show, so it says
  *   what to do instead rather than offering a door that leads nowhere.
  */
@@ -46,6 +54,7 @@ export default function TripGate({
   signedInAs,
   canSignIn,
   codeMinutes,
+  guestBlockedByPrivate,
 }: {
   username: string;
   journalTitle: string;
@@ -55,6 +64,14 @@ export default function TripGate({
   canSignIn: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
   codeMinutes: string;
+  /**
+   * True only when the viewer is an approved guest of this journal, refused
+   * this one trip because it is `private` — never anything a viewer who is
+   * *not* that reader could tell apart from an ordinary refusal. See
+   * `guestBlockedByPrivateTrip` in `lib/tripGate.ts`, the only place this is
+   * computed.
+   */
+  guestBlockedByPrivate: boolean;
 }) {
   const { t } = useI18n();
   /**
@@ -71,6 +88,14 @@ export default function TripGate({
    */
   const here = usePathname();
 
+  // `guestBlockedByPrivate` only ever means something when somebody is
+  // signed in — a stranger with no session cannot be the approved guest it
+  // describes — so the check is doubled here rather than trusted alone. Not
+  // a security boundary (the caller already computed it from the session),
+  // just the same defensive habit the rest of this component keeps: nothing
+  // upstream is treated as enough on its own.
+  const refusedForPrivacy = Boolean(signedInAs) && guestBlockedByPrivate;
+
   return (
     <main
       id="main"
@@ -84,13 +109,15 @@ export default function TripGate({
           is what a reader needs in order to know whose sign-in form this is,
           and is already the tab's title on this page. */}
       <h1 className="font-display text-2xl text-navy-900">
-        {signedInAs ? t("gate.refusedTitle") : journalTitle}
+        {signedInAs ? t(refusedForPrivacy ? "gate.privateTitle" : "gate.refusedTitle") : journalTitle}
       </h1>
 
       {signedInAs ? (
         <>
           <p className="mt-3 text-lg leading-8 text-navy-700">
-            {t("gate.refusedBody", { email: signedInAs })}
+            {refusedForPrivacy
+              ? t("gate.privateBody")
+              : t("gate.refusedBody", { email: signedInAs })}
           </p>
           {/* Not a dead end. `/<user>/me` is the page that lists what this
               address *can* open, and carries the control for signing out and

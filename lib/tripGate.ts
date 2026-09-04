@@ -160,6 +160,34 @@ export async function isGuestOf(trip: Trip): Promise<boolean> {
 }
 
 /**
+ * Whether a refusal from `mayReadTrip` was specifically an approved journal
+ * guest meeting a `private` trip — B300.
+ *
+ * A **sibling** to `mayReadTrip`, not a second return value bolted onto it.
+ * The long comment at the end of `mayReadTrip` is explicit about why: that
+ * function's branch order is load-bearing, and a `session !== null` test
+ * placed anywhere above its `private` check opens every closed trip on the
+ * instance to anyone with an inbox (`test/access-gate.test.ts`, "a signed-in
+ * stranger"). Widening what `mayReadTrip` *returns* is exactly the kind of
+ * edit that invites that mistake later, so the answer to "which branch
+ * refused" lives here instead, asked the same way and in the same order —
+ * traveller first, then `private`, then the grant — so it can only ever be
+ * true for the one case it names. It is safe to call on its own, not only
+ * after `mayReadTrip` has already said no.
+ *
+ * The only caller is `TripGate`, by way of both layouts, and only to choose
+ * a more specific sentence for somebody the gate has already refused. It
+ * hands back a bare `boolean` — never the trip's visibility, never anything
+ * else about it — so B117 still holds: nothing this function's result can
+ * put on the page names the trip to a reader who is not this exact case.
+ */
+export async function guestBlockedByPrivateTrip(trip: Trip): Promise<boolean> {
+  if (await isTravellerOn(trip)) return false;
+  if (trip.visibility !== "private") return false;
+  return isJournalGuest(trip.username);
+}
+
+/**
  * Trips this viewer may see *listed*.
  *
  * Public trips, plus the journal's `guest` trips once its owner has let this

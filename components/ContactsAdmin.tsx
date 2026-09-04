@@ -693,12 +693,21 @@ export default function ContactsAdmin({
   contacts: initialContacts,
   invites: initialInvites,
   trips = [],
+  hasGuestTrip,
 }: {
   username: string;
   locale: Locale;
   /** The trips a writing link can name. Empty is a real state — a journal with
    * no trip yet can issue a reading link and nothing else. */
   trips?: { id: string; title: string }[];
+  /**
+   * Whether any trip in the journal is `visibility: guest` — the only kind an
+   * approval actually opens (B300). A journal whose only trips are `private`
+   * or `public` can still approve somebody; the approval just admits them to
+   * nothing, which is worth saying before the owner acts on it rather than
+   * after.
+   */
+  hasGuestTrip: boolean;
   /** The languages this journal offers, from its config. */
   locales: string[];
   dictionary: Record<string, string>;
@@ -759,6 +768,19 @@ export default function ContactsAdmin({
         {t("contact.adminTitle")}
       </h1>
       <p className="mt-3 text-lg text-navy-700">{t("contact.adminSubtitle")}</p>
+
+      {/* B300. Said here, ahead of the pending list and its approve buttons
+          below, and it stays visible after an approval too — nothing about
+          this journal changes when a contact does. The people who most need
+          it are the ones about to click Approve for the first time, thinking
+          it shares the journey rather than the journal. Coral, like the draft
+          and test notices: yellow is the brand's own colour and reads as
+          decoration, not a warning — see docs/branding/BRAND.md. */}
+      {!hasGuestTrip && (
+        <p className="mt-6 rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3 text-base text-navy-900">
+          {t("contact.adminNoGuestTrip")}
+        </p>
+      )}
 
       <div className="mt-8">
         {formTarget === null ? (
