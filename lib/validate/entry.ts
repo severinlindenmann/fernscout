@@ -415,7 +415,15 @@ function checkTranslations(
       problems.push({
         field: `translations.${code}`,
         got: code,
-        expected: `not ${code} — that is the language the day's own title and content are in`,
+        expected:
+          `not ${code} — this journal's own language, which the day's own title and content ` +
+          `hold already, not translations`,
+        hint:
+          `If translations.${code} is a duplicate of what you already sent as this day's ` +
+          `title and content, delete it. If it holds different words — prose in another ` +
+          `language that ended up under the wrong key — move it there instead: the day's own ` +
+          `title and content are always ${code}, and every other language, including the one ` +
+          `you have now, belongs under its own key in translations.`,
       });
       continue;
     }

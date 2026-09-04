@@ -195,13 +195,43 @@ describe("a journal read in three languages", () => {
     expect(problem?.hint).toContain("never reach a reader");
   });
 
-  test("refuses a translation into the language the day is already written in", async () => {
+  test("refuses a translation into the language the day is already written in, and names it", async () => {
     const { status, body } = await post({
       ...GERMAN,
       translations: { ...OTHERS, de: { title: "Nochmal", content: "Nochmal." } },
     });
     expect(status).toBe(400);
-    expect(body.problems?.some((p) => p.field === "translations.de")).toBe(true);
+    const problem = body.problems?.find((p) => p.field === "translations.de");
+    expect(problem).toBeDefined();
+    // B326: the message must name the journal's own language rather than
+    // leaving the agent to guess which language "the day's own fields" means
+    // — this is what the refusal actually said before the fix, minus the name.
+    expect(problem?.expected).toContain("de");
+    expect(problem?.hint).toContain("de");
+    // And it has to say where things go, not only that this slot is wrong —
+    // an agent following it should be able to fix a swapped payload without
+    // another round trip.
+    expect(problem?.hint).toMatch(/title and content/);
+  });
+
+  test("a swapped payload — English in title/content, de/en/hu all under translations — is refused at translations.de, not silently accepted", async () => {
+    // The exact shape B326 was filed over: a defaultLocale: de journal, an
+    // agent holding English source prose, sending English as the day's own
+    // title/content and every language including German under translations.
+    const { status, body } = await post({
+      title: "Bangkok",
+      date: "2026-09-01",
+      content: "Woke at half five and could not get back to sleep.",
+      translations: {
+        de: GERMAN,
+        en: OTHERS.en,
+        hu: OTHERS.hu,
+      },
+    });
+    expect(status).toBe(400);
+    const problem = body.problems?.find((p) => p.field === "translations.de");
+    expect(problem).toBeDefined();
+    expect(problem?.hint).toContain("de");
   });
 
   test("refuses a translation missing its content", async () => {
