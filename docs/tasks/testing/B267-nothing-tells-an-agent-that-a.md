@@ -7,8 +7,7 @@ complexity: medium
 area: trips, costs, agent docs
 found: "2026-09-04T11:35:51Z"
 started: "2026-09-04T13:56:45Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T13:56:45Z"
+merged: "2026-09-04T14:22:02Z"
 ---
 
 # B267 — Nothing tells an agent that a trip decides its own budget and coordinates, and an empty costs page is offered anyway

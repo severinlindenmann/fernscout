@@ -138,7 +138,6 @@ _Nothing here._
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B300](in-development/B300-approving-a-guest-opens-nothing-when.md) | Approving a guest opens nothing when every trip is private, and neither the owner nor the guest is told | ISSUE | high | low | `a3370c43` |
-| [B267](in-development/B267-nothing-tells-an-agent-that-a.md) | Nothing tells an agent that a trip decides its own budget and coordinates, and an empty costs page is offered anyway | ISSUE | medium | medium | `986bc24c` |
 | [B273](in-development/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium | `a3370c43` |
 | [B301](in-development/B301-the-handover-block-still-offers-the.md) | The handover block still offers the read-out-a-code route beside the key, which is two ways to do one thing | ISSUE | medium | low | `a3370c43` |
 
@@ -199,6 +198,7 @@ _Nothing here._
 | [B232](testing/B232-the-reactions-endpoint-answers-for-a.md) | The reactions endpoint answers for a trip nobody may read | SECURITY | medium | low | — |
 | [B25](testing/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low | — |
 | [B257](testing/B257-nothing-logs-http-requests-so-a.md) | Nothing logs HTTP requests, so a client reporting failed to fetch cannot be diagnosed | CHORE | medium | low | — |
+| [B267](testing/B267-nothing-tells-an-agent-that-a.md) | Nothing tells an agent that a trip decides its own budget and coordinates, and an empty costs page is offered anyway | ISSUE | medium | medium | — |
 | [B271](testing/B271-the-owner-s-contacts-page-has.md) | The owner's contacts page has no way back to the journal | ISSUE | medium | low | — |
 | [B278](testing/B278-the-page-for-a-reader-who.md) | The page for a reader who may see nothing names nobody to ask and offers no way in | ISSUE | medium | medium | — |
 | [B280](testing/B280-an-invite-link-cannot-be-handed.md) | An invite link cannot be handed out a second time, because the token is only stored hashed | SECURITY | medium | medium | — |
