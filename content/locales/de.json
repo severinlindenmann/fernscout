@@ -379,7 +379,7 @@
   "me.strangerBodyNamed": "Dieses Tagebuch wird von {name} geführt. Wenn dir jemand einen Link dazu geschickt hat, folge ihm. Für einen richtigen Zugang bitte {name}, dich einzuladen.",
   "me.strangerTitle": "Du bist nicht angemeldet",
   "me.title": "Dein Zugang",
-  "me.tokenBody": "Aus dem Code, den du vorliest, wird ein Schlüssel, der sieben Tage gilt — für dieses Journal und für nichts sonst. Er kann Tage schreiben, immer als Entwurf, und niemals veröffentlichen. Das Veröffentlichen bleibt bei dir.",
+  "me.tokenBody": "Aus dem Code, den du vorliest, wird ein Schlüssel, der sieben Tage gilt — für dieses Journal und für nichts sonst. Er kann Tage schreiben und einen davon veröffentlichen, wenn du es sagst; bis dahin wartet alles als Entwurf. Er ist dein gesamtes Bearbeiten, deshalb geht er an jemanden, dem du vertraust, und nie in einen Gruppenchat.",
   "me.tokenTitle": "Was der Agent bekommt",
   "me.tokenWarning": "Das ist nicht dasselbe wie hier angemeldet zu sein. Füge ihn nirgends ein, wo du nicht selbst angefangen hast: Wer ihn hat, kann bis zum Ablauf in dein Journal schreiben.",
   "me.viaGuest": "du wurdest eingeladen",

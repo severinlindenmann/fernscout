@@ -379,7 +379,7 @@
   "me.strangerBodyNamed": "Ezt a naplót {name} vezeti. Ha valaki küldött egy linket hozzá, kövesd azt. Rendes hozzáférésért {name} tud meghívni.",
   "me.strangerTitle": "Nem vagy bejelentkezve",
   "me.title": "A te hozzáférésed",
-  "me.tokenBody": "A felolvasott kódból hét napig érvényes kulcs lesz, kizárólag ehhez a naplóhoz. Írhat vele napokat — mindig piszkozatként —, közzétenni viszont soha nem tud. A közzététel a te dolgod marad.",
+  "me.tokenBody": "A felolvasott kódból hét napig érvényes kulcs lesz, kizárólag ehhez a naplóhoz. Napokat tud írni, és közzé is tud tenni egyet, ha te kéred — addig minden piszkozatként vár. Ez a teljes szerkesztési jogod, ezért csak olyannak add oda, akiben megbízol, és soha ne csoportos beszélgetésbe.",
   "me.tokenTitle": "Mit kap az ügynök",
   "me.tokenWarning": "Ez nem ugyanaz, mint hogy itt be vagy jelentkezve. Ne illeszd be olyan oldalra vagy beszélgetésbe, amit nem te kezdtél: akinél megvan, lejáratig írhat a naplódba.",
   "me.viaGuest": "meghívtak",
