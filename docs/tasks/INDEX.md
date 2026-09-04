@@ -124,6 +124,7 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B258](in-development/B258-a-deploy-re-installs-re-migrates.md) | A deploy re-installs, re-migrates and rebuilds whatever changed | CHORE | high | medium | `0bf379ff` |
 | [B259](in-development/B259-nothing-tells-an-agent-it-lacks.md) | Nothing tells an agent it lacks the tools to write here, so it invents workarounds instead | ISSUE | high | medium | `986bc24c` |
+| [B261](in-development/B261-the-copied-instruction-names-one-document.md) | The copied instruction names one document, so the agent discovers the other one and is refused it | ISSUE | high | low | `986bc24c` |
 
 ## testing
 

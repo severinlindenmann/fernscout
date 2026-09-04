@@ -68,12 +68,31 @@ it lives in a gitignored skill that is not the shipped software's business.
 ## Acceptance
 
 ```bash
-scripts/deploy.sh --plan docs/tasks/open/B01.md          # → nothing to do
-scripts/deploy.sh --plan lib/entries.ts                  # → build, restart
-scripts/deploy.sh --plan package-lock.json               # → install, build, restart
-npx vitest run test/deploy-plan.test.ts
+scripts/deploy.sh --plan docs/tasks/INDEX.md              # → nothing to do
+scripts/deploy.sh --plan lib/entries.ts                   # → build, restart
+scripts/deploy.sh --plan package-lock.json                # → install, build, restart
+npx vitest run test/deploy-plan.test.ts                   # 9 passed
 ```
 
-And on the live host: a docs-only deploy finishes without building, a
-code-only deploy finishes without `npm ci`, and `/api/health` reports the
-`GIT_SHA` that was just pushed in both cases.
+## What it measured, on the live host
+
+The old script, deploying this change: **251s**. Then, same commit, same
+machine, marker moved to make each path the one under test:
+
+| Path | Steps run | Wall clock |
+| --- | --- | --- |
+| docs, tasks, scripts, tests only (5 files) | none | **2s** |
+| nothing pulled, marker at HEAD | none | 2s |
+| code (14 files across `app/`, `lib/`, docs) | build, restart | **10s** |
+| `--full` | everything | ~250s |
+
+The code figure is a build whose turbopack cache was fully warm and whose
+sources had not actually changed since the last one, so it is the floor rather
+than the average — a real code change costs whatever Turbopack takes to
+rebuild it, plus the ~5s restart and health poll. What it is *not* is the
+`npm ci` that used to precede it every time.
+
+The dirty-tree refusal in the author's own `ship.sh` also earned itself during
+this: a sibling session dropped two half-written captures into the main
+checkout mid-test, and the deploy stopped instead of reporting success about a
+tree that was not the one being deployed.
