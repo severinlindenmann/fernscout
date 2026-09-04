@@ -95,9 +95,8 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
   let empty: EmptyJournal | null = null;
   if (malformed.length === 0) {
     if (owner) {
-      // Genuine emptiness only — unchanged by B264. An owner whose one trip
-      // is merely filtered out from under them (an unlisted public trip, say)
-      // is not shown this: that is not the "there is no button" moment.
+      // Genuine emptiness — unchanged by B264. There is no button here, and a
+      // trip is made by handing an agent the prompt below.
       if (all.length === 0) {
         empty = {
           owner: true,
@@ -106,6 +105,18 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
           // whatever host the owner reached it through.
           siteUrl: serverSite().url,
         };
+      } else if (trips.length === 0) {
+        // B270: a real trip, filtered out from under its own owner.
+        // `listableTrips` refuses a `public, listed: false` trip to
+        // *everyone*, owner included — `listed` is deliberately about
+        // advertising, not about locking the owner out of their own file
+        // (test/access-gate.test.ts asserts this for every viewer, owner
+        // row included). So this is not the "there is no button" moment —
+        // the trip exists and the owner wrote it — it needs its own
+        // sentence instead of the genuinely-empty one above, and neither of
+        // B264's four zeroes nor its stranger message, which would tell an
+        // owner who has a trip that they have none.
+        empty = { owner: true, siteUrl: serverSite().url, filtered: true };
       }
     } else if (trips.length === 0) {
       // Whether this journal is truly empty or just filtered to nothing is

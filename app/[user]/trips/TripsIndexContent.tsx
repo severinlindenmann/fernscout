@@ -60,10 +60,22 @@ export type TripCardData = {
  * whatever this reader's trips filter to — so, unlike `trips.length`, it is
  * safe to hand to a stranger. `page.tsx` already falls back to the journal's
  * title when the config has no nickname, so this is never an empty string.
+ *
+ * `filtered` (B270) is the owner's own third state, and it does not collapse
+ * into either of the other two. The owner's `all.length === 0` above is
+ * genuine emptiness; a *stranger's* `owner: false` already hides whether
+ * anything exists at all. But an owner can also have a real trip that
+ * `listableTrips` filters out from under them too — a `public, listed: false`
+ * trip is unlisted for everyone, owner included, deliberately
+ * (`test/access-gate.test.ts`, "the only trip the gate opens without the
+ * switcher listing it"). Nothing about that state needs hiding from the
+ * owner — it is their own file, and B117's reasons for not naming a trip to
+ * an uninvited reader do not apply to the trip's own author — so this is a
+ * plain `boolean` rather than a second `EmptyJournal` shape to keep secret.
  */
 export type EmptyJournal =
   | { owner: false; signedIn: boolean; ownerName: string }
-  | { owner: true; siteUrl: string };
+  | { owner: true; siteUrl: string; filtered?: boolean };
 
 export type RouteData = {
   id: string;
@@ -293,9 +305,15 @@ function MalformedNotice({ malformed }: { malformed: BrokenFolder[] }) {
 function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: string }) {
   const { t } = useI18n();
   const { username, canSignIn } = useSite();
-  const title = empty.owner ? t("trips.emptyTitle") : t("trips.hiddenTitle");
+  const title = empty.owner
+    ? empty.filtered
+      ? t("trips.emptyOwnerFilteredTitle")
+      : t("trips.emptyTitle")
+    : t("trips.hiddenTitle");
   const body = empty.owner
-    ? t("trips.emptyOwnerBody")
+    ? empty.filtered
+      ? t("trips.emptyOwnerFilteredBody")
+      : t("trips.emptyOwnerBody")
     : empty.signedIn
       ? t("trips.hiddenSignedInBody", { name: empty.ownerName })
       : t("trips.hiddenBody", { name: empty.ownerName });
@@ -305,7 +323,9 @@ function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: 
       <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
         <h2 className="font-display text-xl font-semibold text-navy-900">{title}</h2>
         <p className="mt-2 max-w-2xl text-lg leading-8 text-navy-700">{body}</p>
-        {empty.owner && (
+        {/* Not shown for the filtered state: there is no first day to hand an
+            agent for, the owner already has a trip — it just is not listed. */}
+        {empty.owner && !empty.filtered && (
           <div className="mt-6 border-t border-navy-200 pt-5">
             <AgentHandover username={username} siteUrl={empty.siteUrl} />
           </div>

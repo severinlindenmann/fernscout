@@ -144,6 +144,30 @@ describe("and its owner", () => {
 });
 
 /**
+ * B270: the owner's third state. `page.tsx` sets `filtered: true` when the
+ * owner has a real trip that `listableTrips` has filtered out from under them
+ * too (a `public, listed: false` trip — deliberately unlisted for everyone,
+ * owner included, see `test/access-gate.test.ts`). It must read differently
+ * from genuine emptiness: there is a trip, so there is no first day to hand an
+ * agent for.
+ */
+describe("and its owner, whose only trip is filtered out from under them", () => {
+  const filtered: EmptyJournal = { owner: true, siteUrl: "https://example.test", filtered: true };
+
+  test("is told nothing is listed, not that there are no trips yet", () => {
+    const html = render({ empty: filtered });
+    expect(html).toContain("Nothing listed here");
+    expect(html).not.toContain("No trips yet");
+  });
+
+  test("is pointed at `listed: false` rather than handed the agent-handover button", () => {
+    const html = render({ empty: filtered });
+    expect(html).toMatch(/listed: false/);
+    expect(html).not.toContain(dictionaryFor("en")["me.handoverCreate"]);
+  });
+});
+
+/**
  * B264: a signed-out stranger, whether the journal is empty or full of
  * journeys none of which are theirs, is pointed at both ways in — an invite
  * link, or signing in — and told nothing about which situation it actually

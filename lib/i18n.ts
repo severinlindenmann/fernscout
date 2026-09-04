@@ -505,6 +505,8 @@ export type TranslationKey =
   | "trips.allTrips"
   | "trips.daysAway"
   | "trips.emptyOwnerBody"
+  | "trips.emptyOwnerFilteredBody"
+  | "trips.emptyOwnerFilteredTitle"
   | "trips.emptyTitle"
   | "trips.hiddenBody"
   | "trips.hiddenSignedInBody"

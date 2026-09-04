@@ -474,6 +474,8 @@
   "trips.allTrips": "Alle Reisen",
   "trips.daysAway": "Tage entfernt",
   "trips.emptyOwnerBody": "Dieses Tagebuch ist noch leer. Reisen legst du hier nicht selbst an — es gibt kein Formular und wird keins geben. Drücke den Knopf unten für einen Text, den du einem Agenten gibst, und er richtet die erste Reise ein.",
+  "trips.emptyOwnerFilteredBody": "Du hast eine Reise, aber ihre trip.md markiert sie mit `listed: false` — das hält sie auch aus dieser Liste heraus, nicht nur aus der Sitemap und dem Umschalter. Setze dort `listed: true`, um sie hier zu sehen.",
+  "trips.emptyOwnerFilteredTitle": "Nichts aufgeführt",
   "trips.emptyTitle": "Noch keine Reisen",
   "trips.hiddenBody": "Hier gibt es nichts, was du lesen kannst. Reisen in diesem Tagebuch können privat sein — frag {name} nach einem Einladungslink, oder melde dich unten mit der eingeladenen Adresse an.",
   "trips.hiddenSignedInBody": "Du bist angemeldet, aber mit deiner Adresse ist hier noch nichts geteilt. Frag {name}, ob mehr für dich freigegeben werden kann.",
