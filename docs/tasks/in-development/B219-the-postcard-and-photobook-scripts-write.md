@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: postcards, photobook, scripts
 found: "2026-09-04T06:40:18Z"
+started: "2026-09-04T08:08:59Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T08:08:59Z"
 ---
 
 # B219 — The postcard and photobook scripts write beside the code

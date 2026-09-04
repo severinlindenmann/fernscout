@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: tests, deploy, caddy
 found: "2026-09-04T07:47:58Z"
+started: "2026-09-04T08:08:59Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T08:08:59Z"
 ---
 
 # B227 — Nothing notices a conflict marker in deploy/Caddyfile

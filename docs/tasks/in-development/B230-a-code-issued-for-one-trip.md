@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: auth, api
 found: "2026-09-04T07:59:18Z"
+started: "2026-09-04T08:08:58Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T08:08:58Z"
 ---
 
 # B230 — A code issued for one trip is verified into a journal-wide token
