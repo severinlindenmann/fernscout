@@ -559,18 +559,17 @@ describe("the payment section", () => {
   test("renders for the owner", () => {
     const html = render({ viewer: owner, payment });
     expect(html).toContain(dictionaryFor("en")["me.paymentTitle"]);
-    expect(html).toContain("You have 12 credits.");
-    expect(html).toContain(
-      "A full send would reach up to 5 people — you included — and cost up to 5 credits.",
-    );
-    expect(html).toContain(
-      "Up to 2 people are opted in for WhatsApp right now — a full send would cost up to 2 credits.",
-    );
+    // The balance is a featured numeral beside its unit label now (B392), not
+    // a sentence — the digit and the word are separate elements.
+    expect(html).toContain("12");
+    expect(html).toContain(dictionaryFor("en")["me.paymentUnit"]);
+    expect(html).toContain("Up to 5 by email");
+    expect(html).toContain("Up to 2 by WhatsApp");
   });
 
   test("says plainly that a zero balance sends nothing", () => {
     const html = render({ viewer: owner, payment: { ...payment, balance: 0 } });
-    expect(html).toContain("You have 0 credits.");
+    expect(html).toContain(">0<");
     expect(html).toContain(dictionaryFor("en")["me.paymentBalanceEmpty"]);
   });
 
@@ -586,8 +585,8 @@ describe("the payment section", () => {
       viewer: owner,
       payment: { ...payment, whatsappRecipients: null },
     });
-    expect(html).toContain("A full send would reach up to 5 people");
-    expect(html).not.toContain("opted in for WhatsApp");
+    expect(html).toContain("Up to 5 by email");
+    expect(html).not.toContain("by WhatsApp");
   });
 
   test("names a placeholder for buying credits, and does not build a flow", () => {

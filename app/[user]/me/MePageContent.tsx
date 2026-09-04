@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { KeyRound, Wallet, UserRound, Mail, MessageCircle, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import AgentHandover from "@/components/AgentHandover";
 import AgentKeys from "@/components/AgentKeys";
@@ -344,149 +345,177 @@ export default function MePageContent({
         )}
 
         {viewer.owner && (
-          <section className="mt-6 rounded-2xl border border-navy-200 bg-cream-100 p-5 sm:p-6">
-            <h2 className="font-display text-xl font-semibold text-navy-900">
+          <section className="mt-8">
+            <h2 className="font-display text-2xl font-semibold tracking-tight text-navy-900">
               {t("me.ownerTitle")}
             </h2>
-            {/* Shared with the empty trip list, which is where a new owner
-                actually lands first — see components/AgentHandover.tsx. */}
-            <div className="mt-4">
-              <AgentHandover
-                username={username}
-                siteUrl={siteUrl}
-                onIssued={() => setKeysChanged((n) => n + 1)}
-              />
+            <p className="mt-1.5 text-base leading-7 text-navy-600">{t("me.ownerLede")}</p>
+
+            {/*
+              Three concern-cards instead of one flat wall — B392. The owner
+              block used to be a single cream box with five subsections stacked
+              as identical `h3 + p + p + button` groups, so the one figure a
+              person scans for (the balance) read as prose in the middle of it.
+              The jobs are the agent, the money and the people; the cards say so.
+            */}
+            <div className="mt-5 space-y-4">
+              {/* The agent — handing over a key, what it can do, and the live keys. */}
+              <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-navy-900">
+                    <KeyRound className="h-[18px] w-[18px]" aria-hidden="true" />
+                  </span>
+                  <h3 className="font-display text-lg font-semibold text-navy-900">
+                    {t("me.agentCardTitle")}
+                  </h3>
+                </div>
+
+                {/* Shared with the empty trip list, which is where a new owner
+                    actually lands first — see components/AgentHandover.tsx. */}
+                <div className="mt-4">
+                  <AgentHandover
+                    username={username}
+                    siteUrl={siteUrl}
+                    onIssued={() => setKeysChanged((n) => n + 1)}
+                  />
+                </div>
+
+                {/*
+                  What the code actually becomes — the one thing a person needs
+                  to judge before reading a code aloud: what the other end can
+                  do, and for how long. The warning is decision 24 in a
+                  sentence, and it earns the callout rather than a stray line.
+                */}
+                <div className="mt-5 border-t border-navy-200 pt-5">
+                  <h4 className="font-display text-base font-semibold text-navy-900">
+                    {t("me.tokenTitle")}
+                  </h4>
+                  <p className="mt-1.5 text-base leading-7 text-navy-700">{t("me.tokenBody")}</p>
+                  <div className="mt-3 flex gap-3 rounded-xl border border-coral-300 bg-coral-300/15 p-3.5">
+                    <TriangleAlert
+                      className="mt-0.5 h-[18px] w-[18px] shrink-0 text-coral-600"
+                      aria-hidden="true"
+                    />
+                    <p className="text-base leading-7 text-navy-900">{t("me.tokenWarning")}</p>
+                  </div>
+                </div>
+
+                {/* The way to take a key back — B283. Renders nothing until
+                    there is a live key. */}
+                <AgentKeys username={username} reloadOn={keysChanged} />
+              </div>
+
+              {/*
+                Credits — the signature card, B367/B392. The balance is the one
+                number on the page and reads as one: a featured figure in a
+                well, the per-channel cost beside it, the flat price as a
+                caption. Absent (not zero) when `payment` is undefined — credits
+                off, or a reader who is not the owner — `page.tsx` already
+                decided, and the component never asks which. The two counts are
+                journal-wide, so "up to N" rather than a promise a private
+                trip's send would not keep.
+              */}
+              {payment && (
+                <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-navy-900">
+                      <Wallet className="h-[18px] w-[18px]" aria-hidden="true" />
+                    </span>
+                    <h3 className="font-display text-lg font-semibold text-navy-900">
+                      {t("me.paymentTitle")}
+                    </h3>
+                  </div>
+
+                  <div className="mt-4 sm:flex sm:items-stretch sm:gap-4">
+                    <div className="flex flex-col justify-center rounded-xl border border-navy-200 bg-cream-50 px-5 py-4 sm:w-44 sm:shrink-0">
+                      <span className="font-display text-4xl font-semibold tabular-nums tracking-tight text-navy-900">
+                        {payment.balance}
+                      </span>
+                      <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-navy-600">
+                        {tn("me.paymentUnit", payment.balance)}
+                      </span>
+                      {payment.balance === 0 && (
+                        <span className="mt-2 text-sm leading-6 text-coral-600">
+                          {t("me.paymentBalanceEmpty")}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-4 sm:mt-0 sm:flex-1">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+                        {t("me.paymentEstimateTitle")}
+                      </p>
+                      <ul className="mt-2 space-y-1.5">
+                        <li className="flex items-center gap-2.5 text-base leading-7 text-navy-700">
+                          <Mail className="h-4 w-4 shrink-0 text-navy-600" aria-hidden="true" />
+                          {tn("me.paymentEmailLine", payment.emailRecipients, {
+                            count: String(payment.emailRecipients),
+                          })}
+                        </li>
+                        {payment.whatsappRecipients !== null && (
+                          <li className="flex items-center gap-2.5 text-base leading-7 text-navy-700">
+                            <MessageCircle
+                              className="h-4 w-4 shrink-0 text-navy-600"
+                              aria-hidden="true"
+                            />
+                            {tn("me.paymentWhatsappLine", payment.whatsappRecipients, {
+                              count: String(payment.whatsappRecipients),
+                            })}
+                          </li>
+                        )}
+                      </ul>
+                      <p className="mt-2.5 text-sm leading-6 text-navy-600">
+                        {t("me.paymentPrices")}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* B368 builds the real flow. Inert here, and granting
+                      nothing — the only thing that may raise a balance is
+                      `grant` in lib/credits.ts, run by hand on the server. */}
+                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-navy-200 pt-4">
+                    <button
+                      type="button"
+                      disabled
+                      aria-disabled="true"
+                      className="inline-flex min-h-11 cursor-not-allowed items-center rounded-full border border-navy-200 px-5 text-base font-semibold text-navy-400"
+                    >
+                      {t("me.paymentBuyTitle")}
+                    </button>
+                    <span className="text-sm text-navy-600">{t("me.paymentBuyBody")}</span>
+                  </div>
+                </div>
+              )}
+
+              {/*
+                The door for people — B79/B282. This is a button that leads to
+                the contacts panel, where links are made, listed, revoked and
+                re-sent; the URL is not minted here, because a link this page
+                could not show you again is a link that vanishes on the next
+                navigation. Absent rather than disabled — B74 — when the journal
+                has contacts off and therefore no queue for a redemption to land
+                in.
+              */}
+              {contactsEnabled && (
+                <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-navy-900">
+                      <UserRound className="h-[18px] w-[18px]" aria-hidden="true" />
+                    </span>
+                    <h3 className="font-display text-lg font-semibold text-navy-900">
+                      {t("me.peopleTitle")}
+                    </h3>
+                  </div>
+                  <p className="mt-3 text-base leading-7 text-navy-700">{t("me.peopleBody")}</p>
+                  <Link
+                    href={`${site.base}/contacts`}
+                    className="mt-4 inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+                  >
+                    {t("me.contacts")}
+                  </Link>
+                </div>
+              )}
             </div>
-            {/*
-              What the code actually becomes.
-              
-              The panel handed over an address and an email and stopped there,
-              so the one thing a person needs to judge before reading a code
-              aloud — what the other end can then do, and for how long — was
-              written down nowhere they would look. The last line is decision
-              24 in a sentence: reading the site on your phone must not put a
-              credential that can rewrite it in your pocket, and the two are
-              not interchangeable.
-            */}
-            <h3 className="mt-5 font-display text-base font-semibold text-navy-900">
-              {t("me.tokenTitle")}
-            </h3>
-            <p className="mt-1 text-base leading-7 text-navy-700">{t("me.tokenBody")}</p>
-            <p className="mt-2 border-l-2 border-coral-600 pl-3 text-base leading-7 text-navy-900">
-              {t("me.tokenWarning")}
-            </p>
-
-            {/* And the way to take one back — B283. Handing an agent a
-                seven-day key is now a two-second act, so revoking one has to
-                be as well; the alternative is advice that reads "only do this
-                if you are sure", which nobody can act on. Renders nothing
-                until there is a live key. */}
-            <AgentKeys username={username} reloadOn={keysChanged} />
-
-            {/*
-              What a send would cost, and what is left to pay for it — B367.
-
-              Absent rather than zero when `payment` is `undefined`: that is
-              either credits switched off for this instance, or B74's rule
-              doing its job — the component does not ask which, `page.tsx`
-              already decided.
-
-              The two recipient counts are journal-wide, not one trip's: this
-              page has no trip in view to ask `mayMailTrip` about, so the
-              number shown is the most a send could ever reach — a `public`
-              trip's own count matches it, a `private` one reaches fewer once
-              that gate filters per recipient. "Up to" says so instead of
-              promising a number the next send might not match.
-            */}
-            {payment && (
-              <>
-                <h3 className="mt-5 font-display text-base font-semibold text-navy-900">
-                  {t("me.paymentTitle")}
-                </h3>
-                <p className="mt-1 text-base leading-7 text-navy-700">
-                  {tn("me.paymentBalance", payment.balance, {
-                    balance: String(payment.balance),
-                  })}
-                </p>
-                {payment.balance === 0 && (
-                  <p className="mt-1 text-base leading-7 text-navy-700">
-                    {t("me.paymentBalanceEmpty")}
-                  </p>
-                )}
-
-                <p className="mt-3 text-base font-semibold text-navy-900">
-                  {t("me.paymentPricesTitle")}
-                </p>
-                <p className="mt-1 text-base leading-7 text-navy-700">{t("me.paymentPrices")}</p>
-
-                <p className="mt-3 text-base font-semibold text-navy-900">
-                  {t("me.paymentEstimateTitle")}
-                </p>
-                <p className="mt-1 text-base leading-7 text-navy-700">
-                  {tn("me.paymentEmailEstimate", payment.emailRecipients, {
-                    count: String(payment.emailRecipients),
-                  })}
-                </p>
-                {payment.whatsappRecipients !== null && (
-                  <p className="mt-1 text-base leading-7 text-navy-700">
-                    {tn("me.paymentWhatsappEstimate", payment.whatsappRecipients, {
-                      count: String(payment.whatsappRecipients),
-                    })}
-                  </p>
-                )}
-
-                {/* B368 builds the real flow. This is a placeholder, not a
-                    stub of one: inert, and granting nothing — the only thing
-                    that may increase a balance is `grant` in `lib/credits.ts`,
-                    run by hand on the server, and it must stay that way. */}
-                <button
-                  type="button"
-                  disabled
-                  aria-disabled="true"
-                  className="mt-3 inline-flex min-h-11 cursor-not-allowed items-center rounded-full border border-navy-200 px-5 text-base font-semibold text-navy-400"
-                >
-                  {t("me.paymentBuyTitle")}
-                </button>
-                <p className="mt-1 text-base leading-7 text-navy-700">
-                  {t("me.paymentBuyBody")}
-                </p>
-              </>
-            )}
-
-            {/*
-              The door for people — B79, and one door rather than two since
-              B282.
-
-              This block used to *make* a reading link, with `InviteLinks`, and
-              then link to the page where links are listed, revoked and — since
-              B280 — sent again. So the one control here produced something
-              this page could not show you: the URL appeared once and was
-              unrecoverable the moment the owner navigated away. Creation moved
-              to the contacts panel (B281), which is where the note, the
-              language and the copy button are, and this is a button that leads
-              there.
-
-              Gated on the same capability as before, and not on a new one:
-              `/{user}/contacts` answers 404 unless `isEnabled("contacts", …)`,
-              because a redemption has to land in the owner's queue and a
-              journal with contacts off has no queue. Absent rather than
-              disabled — B74 — since a greyed control explaining an operator
-              switch is noise.
-            */}
-            {contactsEnabled && (
-              <>
-                <h3 className="mt-5 font-display text-base font-semibold text-navy-900">
-                  {t("me.peopleTitle")}
-                </h3>
-                <p className="mt-1 text-base leading-7 text-navy-700">{t("me.peopleBody")}</p>
-                <Link
-                  href={`${site.base}/contacts`}
-                  className="mt-3 inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-                >
-                  {t("me.contacts")}
-                </Link>
-              </>
-            )}
           </section>
         )}
 
