@@ -4,9 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import { sendMail, sendMailWith } from "@/lib/mail";
+import { sendMail, sendMailWith, setSmtpTrustAnchorForTests } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
 import { buildMessage } from "@/lib/mail/rfc822";
+import { startFakeSmtp, TEST_CERT, type FakeSmtp } from "./fixtures/smtp-server";
 
 let dir: string;
 
@@ -205,6 +206,129 @@ describe("kept mail expires", () => {
 
     expect(fs.existsSync(stale)).toBe(false);
     expect(fs.readdirSync(mailDir).filter((f) => f.endsWith(".eml"))).toHaveLength(1);
+  });
+});
+
+/**
+ * B58 — the combination production actually runs, which nothing could reach.
+ *
+ * `test/smtp.test.ts` drives the client through a real socket and a real TLS
+ * upgrade, but it does so by calling `sendSmtp` directly and handing it the
+ * fixture's `ca`. `SmtpTransport` builds its config from the environment and
+ * had no CA option, the fixture's certificate is self-signed, and the client
+ * correctly refuses a server offering no STARTTLS — so there was no route from
+ * `sendMail` to a *successful* smtp send. Everything above the socket was
+ * covered on the failure path only, and "smtp succeeded, copy written" — the
+ * one that runs at fernscout.ch every time somebody asks for a code — was
+ * tested by hand or not at all.
+ *
+ * The seam is `setSmtpTrustAnchorForTests`, which refuses outside
+ * `NODE_ENV=test` and has no environment variable behind it, deliberately: see
+ * its docstring for why `SMTP_CA` would be a TLS downgrade dressed as
+ * configuration.
+ */
+describe("the smtp transport, from sendMail down to the socket", () => {
+  let server: FakeSmtp;
+
+  beforeEach(async () => {
+    server = await startFakeSmtp();
+    process.env.SMTP_HOST = "127.0.0.1";
+    process.env.SMTP_PORT = String(server.port);
+    process.env.SMTP_USER = "agent@example.test";
+    process.env.SMTP_PASSWORD = "s3cret-token";
+    process.env.MAIL_FROM = "Fernscout <agent@example.test>";
+    setSmtpTrustAnchorForTests(TEST_CERT);
+  });
+
+  afterEach(async () => {
+    setSmtpTrustAnchorForTests(undefined);
+    await server.close();
+    delete process.env.SMTP_HOST;
+    delete process.env.SMTP_PORT;
+    delete process.env.SMTP_USER;
+    delete process.env.SMTP_PASSWORD;
+  });
+
+  test("a message really crosses the wire, encrypted and authenticated", async () => {
+    writeConfig({ enabled: true, transport: "smtp" });
+
+    const result = await sendMail(renderMail("reader@example.test", "Hello", SAMPLE, "ana"));
+
+    expect(result?.transport).toBe("smtp");
+    expect(result?.reference).toContain("FAKE123");
+
+    const session = server.sessions[0];
+    expect(session.upgraded).toBe(true);
+    expect(session.mailFrom).toBe("<agent@example.test>");
+    expect(session.rcptTo).toEqual(["<reader@example.test>"]);
+    expect(session.data).toContain("Subject: Hello");
+    // The credential is never spoken before the upgrade. Asserted here as well
+    // as in test/smtp.test.ts because this is the path that carries a real
+    // password read from the environment.
+    expect(session.plaintextCommands.some((c) => c.toUpperCase().startsWith("AUTH"))).toBe(
+      false,
+    );
+  });
+
+  /** The half B57 could not reach: it sent, *and* the copy landed. */
+  test("with keepCopy on, a successful send leaves exactly one .eml", async () => {
+    writeConfig({ enabled: true, transport: "smtp", keepCopy: true });
+
+    const result = await sendMail(renderMail("reader@example.test", "Hello", SAMPLE, "ana"));
+    expect(result?.transport).toBe("smtp");
+
+    const kept = fs.readdirSync(path.join(dir, "ana", "mail")).filter((f) => f.endsWith(".eml"));
+    expect(kept).toHaveLength(1);
+    // Byte-identical to what went down the socket, because both come from
+    // `writeEml` over the same `Mail`. A debugging aid that differs from the
+    // real thing in some detail nobody wrote down is worse than none.
+    const copy = fs.readFileSync(path.join(dir, "ana", "mail", kept[0]), "utf8");
+    expect(server.sessions[0].data).toContain("Subject: Hello");
+    expect(copy).toContain("To: reader@example.test");
+  });
+
+  test("without the setting, a successful send leaves nothing on disk", async () => {
+    writeConfig({ enabled: true, transport: "smtp" });
+
+    await sendMail(renderMail("reader@example.test", "Hello", SAMPLE, "ana"));
+
+    expect(fs.existsSync(path.join(dir, "ana", "mail"))).toBe(false);
+  });
+
+  /**
+   * The anchor is load-bearing, not decorative.
+   *
+   * Without it the same send is refused, because the fixture's certificate is
+   * self-signed and the client verifies. That is what makes the three tests
+   * above evidence about a real TLS session rather than about a check somebody
+   * switched off — and it is the failure B58 describes as the reason nothing
+   * could reach a successful send in the first place.
+   */
+  test("without the anchor the same send is refused, so verification is real", async () => {
+    setSmtpTrustAnchorForTests(undefined);
+    writeConfig({ enabled: true, transport: "smtp" });
+
+    await expect(
+      sendMail(renderMail("reader@example.test", "Hello", SAMPLE, "ana")),
+    ).rejects.toThrow(/self.signed certificate/i);
+  });
+
+  /**
+   * The property the seam exists to have. If this ever fails, somebody has
+   * made a deployed server able to trust a certificate handed to it — read
+   * `setSmtpTrustAnchorForTests` before changing it.
+   */
+  test("the trust seam refuses to run anywhere but a test", () => {
+    const was = process.env.NODE_ENV;
+    // @ts-expect-error — NODE_ENV is typed as a literal union, and setting it
+    // is the whole point of this assertion.
+    process.env.NODE_ENV = "production";
+    try {
+      expect(() => setSmtpTrustAnchorForTests(TEST_CERT)).toThrow(/test seam/);
+    } finally {
+      // @ts-expect-error — as above.
+      process.env.NODE_ENV = was;
+    }
   });
 });
 
