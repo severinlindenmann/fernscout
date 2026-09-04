@@ -386,6 +386,8 @@ export type TranslationKey =
   | "map.stillToCome"
   | "map.stops"
   | "map.stops.one"
+  | "map.stopsFromDrafts"
+  | "map.stopsFromDraftsShared"
   | "map.subtitle"
   | "map.subtitlePlanned"
   | "map.title"

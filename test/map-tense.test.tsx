@@ -32,9 +32,19 @@ const request = vi.hoisted(() => ({ cookieLocale: undefined as string | undefine
 // `requestLocale` reads the locale cookie and the path header; both throw
 // outside a real request scope. The path is what `localeForPath` turns into
 // the *journal's* language, which the sharing card follows.
+//
+// `get` is keyed by name — not just by whether *a* cookie is set — since
+// B336: `generateMetadata` here now also asks `draftsVisibleTo`, which reads
+// the session cookie (`fs_session`) under its own name. A name-blind mock
+// handed that call the locale string back as if it were a session token,
+// which then failed on `getDatabase()` — nobody in this file ever signs in,
+// so every cookie but the locale one is nobody's.
 vi.mock("next/headers", () => ({
   cookies: async () => ({
-    get: () => (request.cookieLocale ? { value: request.cookieLocale } : undefined),
+    get: (name: string) =>
+      name === "fs.locale" && request.cookieLocale
+        ? { value: request.cookieLocale }
+        : undefined,
   }),
   headers: async () => ({ get: () => "/alex/map" }),
 }));

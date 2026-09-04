@@ -8,7 +8,7 @@ import { basemapForRoute } from "@/lib/basemap";
 import { getPlaces, getTripStats } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
-import { currentTripRef } from "@/lib/trips";
+import { currentTripRef, getTrip } from "@/lib/trips";
 import TripProvider from "@/components/TripProvider";
 import type { TranslationKey } from "@/lib/i18n";
 
@@ -33,6 +33,13 @@ import type { TranslationKey } from "@/lib/i18n";
  * returns anything, not on `trip.status` — so the two cannot drift apart again.
  * `getPlaces` is cached per directory (lib/entries.ts), so the page below does
  * not read the trip a second time.
+ *
+ * And, since B336, the same *audience* the page asks it for. `getPlaces` used
+ * to be called here with no options — always published-only — so an owner
+ * whose only entries were drafts got `<title>Where we're going</title>` over a
+ * page that then rendered their draft markers under "Where we've been". This
+ * runs behind the same cookie the page reads, so the tense this reader is
+ * shown here is the tense their own request is about to render.
  */
 export async function generateMetadata({
   params,
@@ -46,7 +53,9 @@ export async function generateMetadata({
   // planned wording is the one that claims less. Same shape as the day
   // permalink's metadata, which resolves the trip this way too.
   const ref = currentTripRef(user);
-  const visited = ref !== undefined && getPlaces(ref).length > 0;
+  const trip = ref ? getTrip(ref) : undefined;
+  const drafts = trip ? await draftsVisibleTo(trip) : { visible: false, canPublish: false };
+  const visited = ref !== undefined && getPlaces(ref, { includeDrafts: drafts.visible }).length > 0;
   // The subtitle switches with it. It is the `<meta name="description">` and
   // the sharing card's blurb, and "Tap any stop to see how long we stayed" is
   // the same false claim as the heading, one line further down.
@@ -72,7 +81,6 @@ export default async function MapPage({ params }: PageProps<"/[user]/map">) {
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(trip))) return null;
-  const stats = getTripStats(tripId);
   // Planned stops derived from drafts are the trip's own next moves — shown
   // to whoever may see the drafts themselves, which since B327 is the owner
   // *or* somebody on the trip. Widened deliberately: `getPlan`'s contract used
@@ -81,7 +89,15 @@ export default async function MapPage({ params }: PageProps<"/[user]/map">) {
   // on the bus, and where it goes next is not a secret from them.
   const drafts = await draftsVisibleTo(trip);
   const plan = getPlan(tripId, { includeDrafts: drafts.visible });
-  const places = getPlaces(tripId);
+  // B336: the solid "where we've been" markers asked this question one line
+  // below `getPlan` and got a different answer, because this call carried no
+  // options at all — always published-only, regardless of who was looking.
+  // The dashed planned route already followed `drafts.visible`; the stats
+  // block below has to agree with both, or its counts contradict the markers
+  // on the same map.
+  const read = { includeDrafts: drafts.visible };
+  const stats = getTripStats(tripId, read);
+  const places = getPlaces(tripId, read);
   // Clipped here so the reader gets their own trip's worth of map rather than
   // the whole bundle — see the same two lines in the trip-scoped route.
   const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
