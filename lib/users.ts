@@ -86,6 +86,45 @@ export function userDir(username: string): string {
 const cache = new Map<string, { signature: string; names: string[] }>();
 
 /**
+ * The content root as of the last attempt to read it, when that attempt
+ * failed. Null means the last read worked.
+ *
+ * **Why a fault needs a name.** `getUsernames()` cannot throw — a directory
+ * listing that fails during a request would take down every page rather than
+ * the one journal it concerns — so it returns an empty list, and an empty list
+ * is indistinguishable from an instance with no journals on it yet. Everything
+ * downstream then draws the wrong conclusion politely: `userExists` says no,
+ * `getUser` returns null, `/api/health` reports nothing narrowed, and the site
+ * serves 404 for journals that are sitting on disk perfectly intact.
+ *
+ * B197 is what that cost. The per-journal mail gate asked
+ * `isEnabled("mail", username)`, which resolves through here, so an unreadable
+ * content root read as *every journal has switched mail off* — silently, with
+ * nothing in the log and nothing on the health page. The gate has since been
+ * narrowed (`hasSwitchedOff` in lib/capabilities.ts) so that "cannot tell" is
+ * no longer read as "no", which is the half that mattered. This is the other
+ * half: an I/O fault that suppresses the whole journal directory has to be
+ * *sayable*, not merely survivable.
+ *
+ * Recorded rather than thrown, and read by `/api/health`, because the person
+ * who needs it is not in the request — they are looking at a monitor asking
+ * why an instance that boots serves nothing.
+ */
+let rootProblem: { root: string; message: string } | null = null;
+
+/**
+ * Why the journal directory could not be read, if it could not.
+ *
+ * Reflects the most recent call to `getUsernames()`, so call that first — as
+ * `/api/health` does — rather than trusting a stale answer. Null is the
+ * ordinary state and says nothing about how many journals there are: an
+ * instance with none returns null here and an empty list there.
+ */
+export function contentRootProblem(): string | null {
+  return rootProblem?.message ?? null;
+}
+
+/**
  * Every user on this instance, in directory order.
  *
  * A directory that is not a usable username is skipped with a warning rather
@@ -115,10 +154,23 @@ export function getUsernames(): string[] {
   let entries: fs.Dirent[] = [];
   try {
     entries = fs.readdirSync(root, { withFileTypes: true });
-  } catch {
+  } catch (error) {
+    const message = `${root} could not be read: ${(error as Error).message}`;
+    // Once per distinct fault, not once per request: this is on the path of
+    // every page, and a line repeated a thousand times a minute is how the
+    // warnings that matter stop being read. It is repeated when the message
+    // changes, because a fault that turned from ENOENT into EACCES is news.
+    if (rootProblem?.message !== message) {
+      console.warn(
+        `[users] ${message} — no journal resolves until this is fixed, and an empty ` +
+          `journal list is not the same as an instance with no journals. /api/health says so.`,
+      );
+    }
+    rootProblem = { root, message };
     cache.set(root, { signature: "", names: [] });
     return [];
   }
+  rootProblem = null;
 
   const signature = entries
     .filter((e) => e.isDirectory())
@@ -214,7 +266,10 @@ export function getDefaultUsername(): string | null {
   return configured;
 }
 
-/** Test seam — drops the memoised user list. */
+/** Test seam — drops the memoised user list, and any recorded read failure
+ * with it. A test that mocked `readdirSync` into throwing must not leave the
+ * next one reporting an unhealthy content root. */
 export function clearUserCache(): void {
   cache.clear();
+  rootProblem = null;
 }

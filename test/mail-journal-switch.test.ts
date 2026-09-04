@@ -524,6 +524,66 @@ describe("/api/health agrees with what actually happens", () => {
     expect(body.journals[LOUD]?.mail).toBeUndefined();
     expect(body.journals[SILENT]?.mail).toBeUndefined();
   });
+
+  test("a healthy instance says so about its content root", async () => {
+    const response = await health();
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.status).toBe("ok");
+    expect(body.content).toEqual({ ok: true });
+  });
+
+  /**
+   * B197, second half. The gate no longer reads "cannot tell" as "the journal
+   * said no" — that is asserted above, at `sendMail`. What was still missing
+   * is that nothing could *say* the fault was happening.
+   *
+   * `getUsernames()` swallows its own `readdirSync` failure and returns an
+   * empty list, because a failed listing must not take every page down with
+   * it. But an empty list is exactly what an instance with no journals looks
+   * like, so this page reported `status: ok`, an empty `journals` block, and
+   * no hint that it could not see anything. An operator reading it during the
+   * outage would conclude nobody had narrowed anything.
+   */
+  test("a content root it cannot read is reported, not passed off as ok", async () => {
+    const readdir = vi.spyOn(fs, "readdirSync").mockImplementation(() => {
+      throw new Error("EACCES: permission denied");
+    });
+    try {
+      clearUserCache();
+      const response = await health();
+
+      expect(response.status).toBe(503);
+      const body = await response.json();
+      expect(body.status).toBe("error");
+      expect(body.content.ok).toBe(false);
+      expect(body.content.error).toMatch(/EACCES/);
+      // The config file parsed fine; it is the directory around it that did
+      // not, and conflating the two sends the operator to the wrong file.
+      expect(body.config.ok).toBe(true);
+      // And the empty block is now explained rather than misleading.
+      expect(body.journals).toEqual({});
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining("no journal resolves until this is fixed"),
+      );
+    } finally {
+      readdir.mockRestore();
+      clearUserCache();
+    }
+  });
+
+  test("the fault is not remembered once the directory reads again", async () => {
+    const readdir = vi.spyOn(fs, "readdirSync").mockImplementation(() => {
+      throw new Error("EACCES: permission denied");
+    });
+    clearUserCache();
+    expect((await health()).status).toBe(503);
+
+    // No `clearUserCache()` after this: the point is that the *successful*
+    // read clears the recorded fault, not that the test seam does.
+    readdir.mockRestore();
+    expect((await health()).status).toBe(200);
+  });
 });
 
 const SAMPLE = {

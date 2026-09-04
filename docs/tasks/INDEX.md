@@ -70,6 +70,7 @@ Do not edit them by hand; run the script.
 | [B132](backlog/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
 | [B14](backlog/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B155](backlog/B155-nothing-in-the-repo-tells-a.md) | Nothing in the repo tells a reader that fernscout.ch will host their journal, or what it promises | FEATURE | medium | low |
+| [B205](backlog/B205-redeeming-an-invite-promises-a-code.md) | Redeeming an invite promises a code the server may have no way to send | ISSUE | medium | low |
 | [B34](backlog/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B42](backlog/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B43](backlog/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
@@ -135,13 +136,10 @@ Do not edit them by hand; run the script.
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B196](in-development/B196-test-mail-test-ts-fails-on.md) | test/mail.test.ts fails on main — a kept-mail sweep test broke when the journal mail switch landed | ISSUE | high | low | `2b6d1969` |
-| [B197](in-development/B197-an-unreadable-content-root-switches-every.md) | An unreadable content root switches every journal's mail off instead of warning | ISSUE | high | low | `2b6d1969` |
 | [B204](in-development/B204-a-multi-line-title-writes-an.md) | A multi-line title writes an unreadable trip.md, keeps the id and leaves nothing able to remove it | ISSUE | high | low | `2b6d1969` |
 | [B09](in-development/B09-links-to-docs-moved-into-archiv.md) | Links to docs moved into archiv no longer resolve | CHORE | medium | low | `2b6d1969` |
 | [B13](in-development/B13-the-photobook-prints-from-the-web.md) | The photobook prints from the web derivatives, not the originals | ISSUE | medium | medium | `2b6d1969` |
 | [B154](in-development/B154-the-readme-describes-a-scroll-driven.md) | The README describes a scroll-driven map and a photo journal without showing one | CHORE | medium | low | `2b6d1969` |
-| [B160](in-development/B160-a-one-time-code-endpoint-answers.md) | A one-time code endpoint answers 202 when the server cannot send mail at all | ISSUE | medium | low | `2b6d1969` |
 | [B165](in-development/B165-turning-the-costs-capability-off.md) | Turning the costs capability off leaves the costs pages fully rendered | ISSUE | medium | low | `2b6d1969` |
 | [B178](in-development/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low | `2b6d1969` |
 | [B25](in-development/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low | `2b6d1969` |
@@ -151,7 +149,6 @@ Do not edit them by hand; run the script.
 | [B137](in-development/B137-a-refused-url-tells-the-caller.md) | A refused URL tells the caller to retry a permanent failure and says nothing about a transient one | ISSUE | low | low | `2b6d1969` |
 | [B198](in-development/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | ISSUE | low | low | `2b6d1969` |
 | [B23](in-development/B23-everything-in-docs-was-archived-and.md) | Everything in docs was archived and nobody decided what is still current | CHORE | low | low | `2b6d1969` |
-| [B58](in-development/B58-smtptransport-cannot-be-driven-to-a.md) | SmtpTransport cannot be driven to a successful send from a test | CHORE | low | low | `2b6d1969` |
 | [B71](in-development/B71-the-per-day-media-ceiling-test.md) | The per-day media ceiling test asserts on problems[0], and failed once in a full run | CHORE | low | low | `2b6d1969` |
 
 ## testing
@@ -160,6 +157,8 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B01](testing/B01-forwarded-for-trust.md) | X-Forwarded-For is taken on trust, so every rate limit is bypassable | SECURITY | high | low | — |
 | [B153](testing/B153-a-journal-created-through-the-api.md) | A journal created through the API can never invite anybody, because contacts is off and nothing can turn it on | ISSUE | high | low | — |
+| [B196](testing/B196-test-mail-test-ts-fails-on.md) | test/mail.test.ts fails on main — a kept-mail sweep test broke when the journal mail switch landed | ISSUE | high | low | — |
+| [B197](testing/B197-an-unreadable-content-root-switches-every.md) | An unreadable content root switches every journal's mail off instead of warning | ISSUE | high | low | — |
 | [B21](testing/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | CHORE | high | medium | — |
 | [B64](testing/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
@@ -167,6 +166,7 @@ Do not edit them by hand; run the script.
 | [B135](testing/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low | — |
 | [B136](testing/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low | — |
 | [B159](testing/B159-a-contact-request-answers-every-token.md) | A contact request answers every token identically but takes ten times longer for a live one | SECURITY | medium | low | — |
+| [B160](testing/B160-a-one-time-code-endpoint-answers.md) | A one-time code endpoint answers 202 when the server cannot send mail at all | ISSUE | medium | low | — |
 | [B32](testing/B32-a-taken-username-answers-409-with.md) | A taken username answers 409 with no route onward for somebody who already owns it | ISSUE | medium | low | — |
 | [B35](testing/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
 | [B38](testing/B38-a-journal-or-a-trip-can.md) | A journal or a trip can be created through the API but never removed | FEATURE | medium | high | — |
@@ -183,6 +183,7 @@ Do not edit them by hand; run the script.
 | [B98](testing/B98-revoking-somebody-s-access-leaves-every.md) | Revoking somebody's access leaves every agent token already issued to them working until it expires | SECURITY | medium | medium | — |
 | [B130](testing/B130-re-approving-a-contact-leaves.md) | Re-approving a contact leaves an expired grant expired, so the approval does nothing | ISSUE | low | low | — |
 | [B50](testing/B50-two-mails-in-the-same-millisecond.md) | Two mails in the same millisecond overwrite each other in development | ISSUE | low | low | — |
+| [B58](testing/B58-smtptransport-cannot-be-driven-to-a.md) | SmtpTransport cannot be driven to a successful send from a test | CHORE | low | low | — |
 
 ## completed
 

@@ -4,7 +4,7 @@ import { resolveCapabilities } from "@/lib/capabilities";
 import { loadServerConfig } from "@/lib/config";
 import { FEATURE_NAMES } from "@/lib/config";
 import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
-import { getUsernames } from "@/lib/users";
+import { contentRootProblem, getUsernames } from "@/lib/users";
 import pkg from "@/package.json";
 
 // Never cache or prerender: this reflects the live state of the process
@@ -34,6 +34,17 @@ export const dynamic = "force-dynamic";
  * "enabled" while `/<user>/contacts` answered 404, because that journal had
  * never switched it on. The person reading this page at 2am concluded the routing
  * was broken. `journals` gives the answer they were actually looking for.
+ *
+ * **A content root it cannot read is `content: { ok: false }` and a 503.**
+ * `getUsernames()` cannot throw — a failed directory listing must not take
+ * every page down with it — so it returns an empty list, which reads exactly
+ * like an instance nobody has created a journal on. Everything downstream then
+ * answers politely and wrongly: no journal resolves, `journals` below is empty
+ * because there is nothing to compare, and this page said `ok`. B197 is what
+ * that cost, in the form of every journal's mail silently switched off. The
+ * empty `journals` block is the symptom an operator sees; this field is the
+ * only thing that can tell them it means "cannot tell" rather than "nothing to
+ * report".
  *
  * A journal whose `mail` is narrowed off also carries `stillSent`, because
  * that block is only true of the letters the journal writes to its readers:
@@ -82,8 +93,13 @@ export async function GET() {
     string,
     Record<string, { enabled: boolean; reason?: string; stillSent?: string }>
   > = {};
+  // Read after `getUsernames()`, never before it: the fault is recorded by the
+  // read, so asking first answers about whatever happened last time.
+  let contentProblem: string | null = null;
   if (configOk) {
-    for (const username of getUsernames()) {
+    const usernames = getUsernames();
+    contentProblem = contentRootProblem();
+    for (const username of usernames) {
       const resolved = resolveCapabilities(username);
       const narrowed: Record<
         string,
@@ -108,13 +124,19 @@ export async function GET() {
     }
   }
 
+  const healthy = configOk && !contentProblem;
+
   const body = {
-    status: configOk ? "ok" : "error",
+    status: healthy ? "ok" : "error",
     time: new Date().toISOString(),
     uptimeSeconds: Math.round(process.uptime()),
     version: pkg.version ?? null,
     commit: process.env.GIT_SHA ?? null,
     config: configOk ? { ok: true } : { ok: false, error: configError },
+    // The journal directory itself, separately from the config file inside it.
+    // `ok: true` says the list below is the whole truth; `ok: false` says this
+    // process cannot see any journal at all, whatever `journals` looks like.
+    content: contentProblem ? { ok: false, error: contentProblem } : { ok: true },
     capabilities,
     journals,
     backup: readBackupStatus(),
@@ -122,7 +144,7 @@ export async function GET() {
   };
 
   return NextResponse.json(body, {
-    status: configOk ? 200 : 503,
+    status: healthy ? 200 : 503,
     headers: { "cache-control": "no-store" },
   });
 }
