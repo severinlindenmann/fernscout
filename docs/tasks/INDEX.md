@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (89)
+## backlog (90)
 
 ### security (6)
 
@@ -132,10 +132,11 @@ Do not edit them by hand; run the script.
 | [B176](backlog/small-feature/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B305](backlog/small-feature/B305-a-reader-shown-a-day-in.md) | A reader shown a day in a language they did not ask for is told nothing about it | FEATURE | low | low |
 
-### chore (7)
+### chore (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B363](backlog/chore/B363-the-letter-s-permission-gate-is.md) | The letter's permission gate is a second copy of the site's, and nothing holds them together | CHORE | medium | medium |
 | [B216](backlog/chore/B216-nothing-helps-an-author-find-the.md) | Nothing helps an author find the rate to freeze into a trip | CHORE | low | low |
 | [B226](backlog/chore/B226-two-new-deploy-time-checks-run.md) | Two new deploy-time checks run only where a binary happens to exist, and CI may have neither | CHORE | low | low |
 | [B235](backlog/chore/B235-seventy-one-exports-and-fifty-nine.md) | Seventy-one exports and fifty-nine exported types are used only inside their own file | CHORE | low | medium |
