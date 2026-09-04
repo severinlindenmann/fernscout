@@ -7,8 +7,7 @@ complexity: low
 area: mail, testing
 found: "2026-09-01"
 started: "2026-09-04T05:58:31Z"
-session: 2b6d1969-424a-4788-9497-eb5e151a5391
-claimed: "2026-09-04T05:58:31Z"
+merged: "2026-09-04T06:14:50Z"
 ---
 
 # B58 — SmtpTransport cannot be driven to a successful send from a test
@@ -64,3 +63,40 @@ the socket.
 - Whatever admits the CA cannot be used to weaken TLS on a real deployment, and
   the reason is written where somebody changing it will read it.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.
+
+## Done — 2026-09-04
+
+**The seam is a function, not an environment variable.** `SMTP_CA` read
+alongside the others would be a supported way to make a deployed server trust
+an arbitrary certificate: anybody who can set env on the box, or talk an
+operator into a line in a unit file, turns submission into something a
+machine-in-the-middle can terminate — and the client would report a clean send.
+So there is no configuration surface at all. `setSmtpTrustAnchorForTests` in
+`lib/mail/index.ts` throws unless `NODE_ENV === "test"`, which a Next
+production build never is, and the reason is written in its docstring where
+somebody changing it will read it. An operator with a private CA installs it in
+the system trust store, which is one deliberate decision rather than a string
+in a config file nobody re-reads.
+
+`SmtpTransport` passes it through as `ca`, undefined everywhere but a test.
+
+Five cases in `test/mail.test.ts`, under *"the smtp transport, from sendMail
+down to the socket"* — all failing before the seam existed, all passing after:
+
+- *a message really crosses the wire, encrypted and authenticated* — the whole
+  path from `sendMail` to the fake server's socket, asserting the TLS upgrade
+  happened and that no `AUTH` command was spoken before it. That last one is
+  asserted here as well as in `test/smtp.test.ts` because this is the path
+  carrying a real password read from the environment.
+- *with keepCopy on, a successful send leaves exactly one .eml* — the
+  combination B57 could not reach.
+- *without the setting, a successful send leaves nothing on disk*.
+- *without the anchor the same send is refused, so verification is real* — the
+  test that makes the three above evidence about TLS rather than about a check
+  somebody switched off. Without the anchor the fixture's self-signed
+  certificate is rejected, exactly as this task described.
+- *the trust seam refuses to run anywhere but a test*.
+
+Not done, as stated above: reworking the transport interface so the message is
+built once and shared. The copy is still a faithful re-render rather than the
+exact bytes that went down the socket — B57's own question, still open.

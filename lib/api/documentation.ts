@@ -435,6 +435,9 @@ Content-Type: application/json
 Answers \`202\` when a code is on its way, and **\`403 not_authorised\` when that
 address is neither the journal's owner nor listed on the trip you named** — so
 you are told, rather than waiting for a code that was never going to arrive.
+A **\`503 mail_disabled\`** means this server cannot send mail at all: nothing
+was issued, any code the person already holds is still live, and there is
+nothing to retry until an operator turns mail on.
 Ask the person for the six-digit code that arrives in their inbox. It lasts
 ${CODE_TTL_MINUTES} minutes, is single use, and burns after five wrong guesses.
 

@@ -282,6 +282,46 @@ class ConsoleTransport implements MailTransport {
 }
 
 /**
+ * An extra trust anchor for the SMTP client — **a test seam, and only that.**
+ *
+ * `test/fixtures/smtp-server.ts` is a real SMTP server with a self-signed
+ * certificate generated on first use. `test/smtp.test.ts` reaches it by calling
+ * `sendSmtp` directly and passing `ca`, but `SmtpTransport` builds its own
+ * config from the environment and had nowhere to put one — so nothing could
+ * drive `sendMail` down to a real socket and back with a *successful* send.
+ * Everything from `sendMail` to the wire was covered on the failure path only,
+ * and the combination that actually runs in production — smtp succeeded, copy
+ * written — was exercised by hand or not at all (B58).
+ *
+ * **Why not `SMTP_CA`.** An environment variable read here would be a
+ * supported way to make a deployed server trust an arbitrary certificate:
+ * anyone who can set env on the box — or talk an operator into a line in a
+ * unit file — turns submission into something a machine-in-the-middle can
+ * terminate, and the client would report a clean send. That is a TLS downgrade
+ * wearing configuration's clothes, and this project's whole reason for having
+ * its own SMTP client is that the failure modes stay visible.
+ *
+ * So there is no configuration surface at all. The only way in is calling this
+ * function from inside the process, and it refuses outside `NODE_ENV=test` —
+ * which a Next production build never is. If you are here because you self-host
+ * a mail server with a private CA: install it in the system trust store, where
+ * it is one decision an operator makes deliberately rather than a string in a
+ * config file nobody re-reads.
+ */
+let smtpTrustAnchor: string | undefined;
+
+export function setSmtpTrustAnchorForTests(pem: string | undefined): void {
+  if (process.env.NODE_ENV !== "test") {
+    throw new Error(
+      "setSmtpTrustAnchorForTests is a test seam: it makes the SMTP client trust an " +
+        "additional certificate and must never run on a real deployment. Install the " +
+        "certificate in the system trust store instead.",
+    );
+  }
+  smtpTrustAnchor = pem;
+}
+
+/**
  * SMTP, for production (decision 17: Proton SMTP Submission).
  *
  * The client is `lib/mail/smtp.ts` and is tested against a real socket and a
@@ -308,6 +348,9 @@ class SmtpTransport implements MailTransport {
         // Servers log the EHLO name. Ours is the site's own host, which makes
         // a rejected send traceable to the instance that sent it.
         clientName: hostOf(loadServerConfig().site.url),
+        // Undefined everywhere except a test — see `setSmtpTrustAnchorForTests`
+        // above, and note there is no environment variable behind it.
+        ca: smtpTrustAnchor,
       },
     });
 

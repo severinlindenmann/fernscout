@@ -6,6 +6,7 @@ import { clearConfigCache, parseServerConfig, parseUserConfig } from "@/lib/conf
 import { clearUserCache, getUser } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
+import { issueCode, verifyCode } from "@/lib/auth";
 import { sendMail, sendTransactional } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
 import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
@@ -249,6 +250,103 @@ describe("letters about access to the journal — not governed by its switch", (
   });
 });
 
+/**
+ * B160 — the other side of the line above.
+ *
+ * `sendTransactional` returning null when the *server* cannot send is correct:
+ * a caller announcing a new day must not fail because nobody configured mail.
+ * But `POST /api/auth/request` treated that null as success. It had already
+ * called `issueCode`, which consumes every live code for the address before
+ * writing a new one — so asking for a code on an instance with mail off killed
+ * the code the person still had in their inbox, wrote one nobody would ever be
+ * told, and answered `202 accepted`.
+ *
+ * The route now refuses before anything is issued. Refusing leaks nothing: the
+ * answer is the same for every address, which is what the uniform 202 exists
+ * to protect.
+ */
+describe("asking for a code on a server that cannot send mail", () => {
+  /**
+   * A fresh caller every time.
+   *
+   * The agent bucket in `lib/rateLimit.ts` is five requests per address per
+   * quarter of an hour, and its map is module state that outlives a test file's
+   * `beforeEach`. Without a distinct address per call these assertions would
+   * pass or fail depending on how many earlier tests reached the limiter —
+   * which is exactly what happened while this block was being written: the
+   * fixed route short-circuits before the limit and the broken one does not, so
+   * the count differed between the two runs being compared.
+   */
+  let caller = 0;
+  function ask(user: string, email: string, kind: "agent" | "guest" = "agent") {
+    caller++;
+    return authRequest(
+      new Request(`${SITE}/api/auth/request`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": `203.0.113.${caller}`,
+        },
+        body: JSON.stringify({ user, email, kind }),
+      }),
+    );
+  }
+
+  /** Every code row for a journal, live or spent. */
+  async function codeRows(user: string) {
+    const { db } = await getDatabase();
+    return db.selectFrom("login_codes").selectAll().where("owner_id", "=", user).execute();
+  }
+
+  test("is refused rather than accepted, and says why", async () => {
+    serverConfig({ enabled: false });
+
+    const response = await ask(LOUD, OWNER);
+    expect(response.status).toBe(503);
+    const body = await response.json();
+    expect(body.error).toBe("mail_disabled");
+    // A sentence somebody can act on, not a bare code — the same shape the
+    // signup route has answered with all along.
+    expect(body.message).toMatch(/cannot send mail/);
+  });
+
+  test("nothing is written to the database", async () => {
+    serverConfig({ enabled: false });
+    await ask(LOUD, OWNER);
+    expect(await codeRows(LOUD)).toHaveLength(0);
+  });
+
+  /**
+   * The expensive half of the bug. `issueCode` revokes before it inserts, so
+   * the old behaviour did not merely fail to deliver — it took away the code
+   * the person was in the middle of typing.
+   */
+  test("a code that was already live for that address still works afterwards", async () => {
+    const { code } = await issueCode(LOUD, OWNER, "agent");
+    serverConfig({ enabled: false });
+
+    expect((await ask(LOUD, OWNER)).status).toBe(503);
+
+    await expect(verifyCode(LOUD, OWNER, code, "agent")).resolves.toMatchObject({ ok: true });
+  });
+
+  test("with mail on it is the ordinary 202 again", async () => {
+    const response = await ask(LOUD, OWNER);
+    expect(response.status).toBe(202);
+    expect(mailFor(LOUD)).toHaveLength(1);
+  });
+
+  /**
+   * A journal that switched its own mail off is *not* this case: a sign-in
+   * code is exempt from that switch (above), so the route must still issue
+   * one. The refusal is about the server having no transport at all.
+   */
+  test("a journal's own switch does not refuse the request", async () => {
+    expect((await ask(QUIET, OWNER)).status).toBe(202);
+    expect(mailFor(QUIET)).toHaveLength(1);
+  });
+});
+
 describe("mail that belongs to no journal", () => {
   /**
    * A signup code is addressed to somebody who does not own a name yet, so
@@ -425,6 +523,66 @@ describe("/api/health agrees with what actually happens", () => {
     // was the other half of the lie.
     expect(body.journals[LOUD]?.mail).toBeUndefined();
     expect(body.journals[SILENT]?.mail).toBeUndefined();
+  });
+
+  test("a healthy instance says so about its content root", async () => {
+    const response = await health();
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.status).toBe("ok");
+    expect(body.content).toEqual({ ok: true });
+  });
+
+  /**
+   * B197, second half. The gate no longer reads "cannot tell" as "the journal
+   * said no" — that is asserted above, at `sendMail`. What was still missing
+   * is that nothing could *say* the fault was happening.
+   *
+   * `getUsernames()` swallows its own `readdirSync` failure and returns an
+   * empty list, because a failed listing must not take every page down with
+   * it. But an empty list is exactly what an instance with no journals looks
+   * like, so this page reported `status: ok`, an empty `journals` block, and
+   * no hint that it could not see anything. An operator reading it during the
+   * outage would conclude nobody had narrowed anything.
+   */
+  test("a content root it cannot read is reported, not passed off as ok", async () => {
+    const readdir = vi.spyOn(fs, "readdirSync").mockImplementation(() => {
+      throw new Error("EACCES: permission denied");
+    });
+    try {
+      clearUserCache();
+      const response = await health();
+
+      expect(response.status).toBe(503);
+      const body = await response.json();
+      expect(body.status).toBe("error");
+      expect(body.content.ok).toBe(false);
+      expect(body.content.error).toMatch(/EACCES/);
+      // The config file parsed fine; it is the directory around it that did
+      // not, and conflating the two sends the operator to the wrong file.
+      expect(body.config.ok).toBe(true);
+      // And the empty block is now explained rather than misleading.
+      expect(body.journals).toEqual({});
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining("no journal resolves until this is fixed"),
+      );
+    } finally {
+      readdir.mockRestore();
+      clearUserCache();
+    }
+  });
+
+  test("the fault is not remembered once the directory reads again", async () => {
+    const readdir = vi.spyOn(fs, "readdirSync").mockImplementation(() => {
+      throw new Error("EACCES: permission denied");
+    });
+    clearUserCache();
+    expect((await health()).status).toBe(503);
+
+    // No `clearUserCache()` after this: the point is that the *successful*
+    // read clears the recorded fault, not that the test seam does.
+    readdir.mockRestore();
+    expect((await health()).status).toBe(200);
   });
 });
 

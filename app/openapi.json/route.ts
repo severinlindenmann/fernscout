@@ -181,10 +181,12 @@ export function GET() {
           security: [],
           description:
             "Always answers 202, whether or not the address owns anything — so " +
-            "it cannot be used to discover which addresses exist. The one " +
-            "exception is an agent code for an address that neither owns the " +
-            "journal nor is on the trip you named, which answers 403 rather than " +
-            "leaving you waiting for a code that was never coming.\n\n" +
+            "it cannot be used to discover which addresses exist. Two " +
+            "exceptions, and neither of them varies with the address: an agent " +
+            "code for an address that neither owns the journal nor is on the trip " +
+            "you named answers 403 rather than leaving you waiting for a code that " +
+            "was never coming, and a server with mail switched off answers 503 " +
+            "`mail_disabled` rather than issuing a code it has no way to deliver.\n\n" +
             "**A new request invalidates the previous code.** Two of these mails " +
             "look identical apart from the time in them, and only the newest code " +
             "works — so if you ask twice, make sure the person reads out the " +
@@ -237,7 +239,10 @@ export function GET() {
             "429": { description: "Too many attempts" },
             "503": {
               description:
-                "The code could not be sent, so no code is live for this address. Retry.",
+                "`mail_disabled` — this server cannot send mail at all, so nothing was " +
+                "issued and any code you already hold is still live. Or `mail_failed` — " +
+                "the send was attempted and broke, so no code is live for this address " +
+                "and retrying is the remedy.",
             },
           },
         },
