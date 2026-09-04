@@ -1,6 +1,5 @@
-import { authenticate, errorResponse, ownsUser, writableTrips } from "@/lib/api/auth";
-import { listDrafts } from "@/lib/api/entries";
-import { getTrips } from "@/lib/trips";
+import { authenticate, errorResponse, ownsUser } from "@/lib/api/auth";
+import { draftQueue } from "@/lib/api/status";
 import { serverSite } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -28,18 +27,13 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
     return Response.json({ error: "out_of_scope" }, { status: 403 });
   }
 
-  const base = serverSite().url;
   return Response.json({
     user,
-    // Same scoping as the trip list: a trip-scoped token sees that trip's
-    // drafts and no others.
-    drafts: (await writableTrips(auth.session, getTrips(user))).flatMap((trip) =>
-      listDrafts(trip.ref).map((d) => ({
-        ...d,
-        trip: trip.ref,
-        publish: `POST ${base}/api/v1/${user}/trips/${trip.id}/days/${d.slug}/publish`,
-      })),
-    ),
+    // `draftQueue` rather than the loop that used to be here: `/status` reports
+    // the same queue, and two hand-rolled copies of this shape are two chances
+    // to get B134's inherited `test` flag wrong. Scoping comes with it — a
+    // trip-scoped token sees that trip's drafts and no others (B91).
+    drafts: await draftQueue(user, auth.session, serverSite().url),
     next:
       "Tell the person what is waiting and ask which to publish. `publish` is the call " +
       "that acts on their answer — it is refused once and hands you a confirmation code.",

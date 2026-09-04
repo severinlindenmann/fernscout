@@ -650,6 +650,30 @@ which addresses own which names — so the answer has to come from the person.
 creation says \`username\`. Same value: the journal's address, the thing between
 the domain and the rest of the URL.
 
+## First, get your bearings
+
+Two calls before you do anything, in this order, and the first one is free.
+
+**1. Do you already hold a live token?** Ask for status. A \`200\` means you are
+in and the answer *is* your bearings; a \`401\` means go and authenticate below.
+Nothing else tells you this as cheaply.
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/status
+Authorization: Bearer fs_agent_…
+\`\`\`
+
+**2. Read what it says, once, and work from it.** It carries the journal, every
+day still waiting for a person to approve it — with the exact call that
+publishes each — every trip you may write to, which of this server's
+capabilities are on, and a \`next\` saying what to do. Whether you are holding
+the whole journal or one trip's slice is stated in \`scope\`, so do not report a
+slice as the journal's total.
+
+That is one call instead of four, and it is the difference between an agent
+that notices three drafts already waiting for approval and one that writes a
+fourth on top of them.
+
 ## Authenticating
 
 Two calls. The token is never sent by email — only a short-lived code is, and
