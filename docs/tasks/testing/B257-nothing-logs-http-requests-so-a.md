@@ -7,8 +7,7 @@ complexity: low
 area: operations
 found: "2026-09-04T10:35:21Z"
 started: "2026-09-04T12:46:31Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T12:46:31Z"
+merged: "2026-09-04T13:12:55Z"
 ---
 
 # B257 — Nothing logs HTTP requests, so a client reporting failed to fetch cannot be diagnosed
