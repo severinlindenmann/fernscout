@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (93)
+## backlog (90)
 
 ### security (6)
 
@@ -62,13 +62,11 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (36)
+### issue (33)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B329](backlog/issue/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium |
-| [B347](backlog/issue/B347-a-buddy-approved-onto-a-trip.md) | A buddy approved onto a trip is mailed "follow along whenever you like" and never told they can write | ISSUE | high | low |
-| [B348](backlog/issue/B348-the-agent-code-mail-tells-a.md) | The agent-code mail tells a buddy the token writes to "your journal", when it writes one trip in somebody else's | ISSUE | high | low |
 | [B350](backlog/issue/B350-a-pre-approved-guest-is-told.md) | A pre-approved guest is told there is nothing left to do, and lands on the journal signed out | ISSUE | high | low |
 | [B352](backlog/issue/B352-a-trip-s-rates-cannot-be.md) | A trip's rates cannot be set after it is created, but the costs page tells the owner to edit trip.md | ISSUE | high | medium |
 | [B353](backlog/issue/B353-a-trip-whose-currency-has-no.md) | A trip whose currency has no rate shows CHF 0 everywhere except the costs page | ISSUE | high | low |
@@ -82,7 +80,6 @@ Do not edit them by hand; run the script.
 | [B323](backlog/issue/B323-somebody-on-a-trip-cannot-see.md) | Somebody on a trip cannot see or revoke the writing keys they have handed out | ISSUE | medium | medium |
 | [B340](backlog/issue/B340-a-disabled-capability-answers-404-across.md) | A disabled capability answers 404 across every gated route, hiding a real refusal as no-such-route | ISSUE | medium | low |
 | [B342](backlog/issue/B342-readcostsfile-has-no-guard-around-matter.md) | readCostsFile has no guard around matter() and throws on a malformed costs.md | ISSUE | medium | low |
-| [B349](backlog/issue/B349-the-owner-s-queue-notification-calls.md) | The owner's queue notification calls a buddy a follower, naming neither the link kind nor the trip | ISSUE | medium | low |
 | [B351](backlog/issue/B351-the-pre-approved-invite-page-still.md) | The pre-approved invite page still speaks the queue's language and contradicts itself | ISSUE | medium | low |
 | [B356](backlog/issue/B356-reading-a-day-back-omits-its.md) | Reading a day back omits its translations, so an agent cannot verify the ones it wrote | ISSUE | medium | low |
 | [B357](backlog/issue/B357-a-translated-page-keeps-its-tab.md) | A translated page keeps its tab title in the journal's default language | ISSUE | medium | low |
@@ -188,12 +185,15 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B345](in-development/B345-publishing-a-day-tells-nobody-so.md) | Publishing a day tells nobody, so an owner announces their own journal by hand | FEATURE | high | high | `986bc24c` |
+| [B347](in-development/B347-a-buddy-approved-onto-a-trip.md) | A buddy approved onto a trip is mailed "follow along whenever you like" and never told they can write | ISSUE | high | low | `62683d95` |
+| [B348](in-development/B348-the-agent-code-mail-tells-a.md) | The agent-code mail tells a buddy the token writes to "your journal", when it writes one trip in somebody else's | ISSUE | high | low | `62683d95` |
 | [B346](in-development/B346-every-trip-is-the-same-colour.md) | Every trip is the same colour because the scaffold writes accent sky and nothing assigns a distinct one | FEATURE | medium | low | `e8e2ddef` |
+| [B349](in-development/B349-the-owner-s-queue-notification-calls.md) | The owner's queue notification calls a buddy a follower, naming neither the link kind nor the trip | ISSUE | medium | low | `62683d95` |
 
 ## testing (140)
 

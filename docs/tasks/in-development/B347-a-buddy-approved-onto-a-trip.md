@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: mail
 found: "2026-09-04T19:57:10Z"
+started: "2026-09-04T20:02:31Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-04T20:02:31Z"
 ---
 
 # B347 — A buddy approved onto a trip is mailed "follow along whenever you like" and never told they can write
