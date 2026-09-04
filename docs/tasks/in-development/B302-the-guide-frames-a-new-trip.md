@@ -126,3 +126,70 @@ two-value axis.
 - `test/agent-interface.test.ts` still passes, and gains an assertion that the
   three-way choice reaches every door that offers trip creation.
 - The four checks pass.
+
+## Verified
+
+All four green: `npm run build` compiled, `npx tsc --noEmit` clean, `npx eslint .`
+0 errors (4 pre-existing warnings, none in these files), `npx vitest run` 2417
+tests. `npm run unused` clean. Re-run after the last edit.
+
+### Three constants, in `lib/api/agentCopy.ts`
+
+`VISIBILITY_CHOICE` (which of the three to ask for, and the recommendation),
+`PRIVATE_SHUTS_OUT_GUESTS` (the consequence an owner walked into in B300), and
+`VISIBILITY_ENUM_NOTE` (the same choice short enough for an OpenAPI
+`description`). Written there rather than in the documents, because
+`agentCopy.ts` exists precisely so a sentence more than one door has to say is
+written once — AGENTS.md's rule, and the visibility vocabulary is the thing
+that already drifted once in W27.
+
+The existing `VISIBILITY_MEANING` and `VISIBILITY_NOT_A_LOCK` are untouched.
+They *define* the values; these three say which to choose. That distinction is
+the whole task: the definitions were already on every door.
+
+### Where they land
+
+- **`/agent.md`** — the paragraph at the point a trip is created. Read the
+  rendered output rather than trusting the assertions: three values with what
+  each does, `public` or `guest` recommended, then the private-shuts-out-guests
+  sentence, then the default explained as a safety net rather than an answer.
+- **`/documentation.txt`** — `PRIVATE_SHUTS_OUT_GUESTS`, backticks stripped as
+  its neighbour already does, beside the definitions it already carried. This
+  document is an index and says nothing about creating a trip, but it is where
+  an agent meets the three values first.
+- **`openapi.json`** — `POST /api/v1/{user}/trips` gains a `description` (it
+  had only a summary, so an agent working from the schema knew *less* than one
+  reading the prose), and the `visibility` property gains a description and a
+  reordered enum.
+
+### The order, and the default
+
+`enum: ["public", "guest", "private"]` — most open first, the author's
+decision and the order a person decides in. **`default: "private"` is
+unchanged**, and `lib/tripWrite.ts` was not touched: the author confirmed the
+request was for presentation order, not for what an omitted field produces. A
+field an agent forgets must never publish somebody's journey. The guide now
+carries all three of those facts without contradicting itself — the default is
+the closed value, do not rely on it, ask.
+
+### Tests
+
+Three added to `test/agent-interface.test.ts` (55 in that file now):
+
+- the guide carries `VISIBILITY_CHOICE` **and** matches
+  `/recommend `?public`? or `?guest`?/i` — asserting the recommendation
+  itself, not merely that a constant appears somewhere;
+- every door that offers trip creation carries `PRIVATE_SHUTS_OUT_GUESTS` —
+  guide, index and OpenAPI;
+- the machine contract carries the note, the enum is in the new order, and the
+  default is still `private`.
+
+That last assertion is the one worth having: it fails if somebody later
+"tidies" the enum order or flips the default, which is exactly the change this
+task decided not to make.
+
+### Not done, deliberately
+
+No MCP door — a sibling session removed MCP entirely in B298, so the bullet in
+this task's Work section that named `lib/mcp/tools.ts` describes a file that no
+longer exists. The task file was corrected before the work started.

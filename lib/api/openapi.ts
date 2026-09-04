@@ -3,7 +3,13 @@ import { serverSite } from "@/lib/site";
 import { getDefaultUsername, getUsernames } from "@/lib/users";
 // Shared with /agent.md and /documentation.txt. A machine contract that
 // disagrees with the prose about what `private` means is worse than either.
-import { LOCALE_LIST, VISIBILITY_MEANING, VISIBILITY_NOT_A_LOCK } from "@/lib/api/agentCopy";
+import {
+  LOCALE_LIST,
+  PRIVATE_SHUTS_OUT_GUESTS,
+  VISIBILITY_ENUM_NOTE,
+  VISIBILITY_MEANING,
+  VISIBILITY_NOT_A_LOCK,
+} from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 
@@ -563,6 +569,11 @@ export function openApiDocument() {
         },
         post: {
           summary: "Create a trip (owner only; private unless asked otherwise)",
+          // B302: the summary said which value you get by *default* and never
+          // which to ask for, so an agent reading only the schema had less to
+          // go on than one reading the prose. Both sentences come from
+          // `lib/api/agentCopy.ts`, where the guide takes them too.
+          description: `${VISIBILITY_ENUM_NOTE}\n\n${PRIVATE_SHUTS_OUT_GUESTS}`,
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],
@@ -588,7 +599,15 @@ export function openApiDocument() {
                         "served at the bare /{user} URL.",
                     },
                     accent: { type: "string", enum: ["sky", "yellow", "green", "coral", "navy"] },
-                    visibility: { type: "string", enum: ["private", "public", "guest"], default: "private" },
+                    visibility: {
+                      type: "string",
+                      // Most open first, which is the order a person decides
+                      // in — B302. `default` stays `private`: a field an agent
+                      // forgets must not publish somebody's journey.
+                      enum: ["public", "guest", "private"],
+                      default: "private",
+                      description: VISIBILITY_ENUM_NOTE,
+                    },
                     listed: {
                       type: "boolean",
                       description:

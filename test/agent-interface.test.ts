@@ -7,6 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { createDraft, listDrafts, validateDraft } from "@/lib/api/entries";
 import { slugify } from "@/lib/slug.ts";
 import { agentGuide, instanceDocumentation, userDocumentation } from "@/lib/api/documentation";
+import { openApiDocument } from "@/lib/api/openapi";
 import { getAllEntries } from "@/lib/entries";
 import { validateEntry } from "@/lib/validate/entry";
 import {
@@ -14,6 +15,9 @@ import {
   COORDINATES_QUESTION,
   MEDIA_ENDPOINT_PATH,
   TITLE_COLLISION_EXAMPLE,
+  PRIVATE_SHUTS_OUT_GUESTS,
+  VISIBILITY_CHOICE,
+  VISIBILITY_ENUM_NOTE,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
   asSentence,
@@ -481,6 +485,51 @@ describe("what the guide has to tell an agent before it starts", () => {
     expect(flat(instanceDocumentation())).toContain(
       flat(VISIBILITY_NOT_A_LOCK.replace(/`/g, "")),
     );
+  });
+
+  /**
+   * B302 — the difference between defining the three values and telling an
+   * agent which to ask for.
+   *
+   * The definitions were already everywhere. What was missing was the choice:
+   * the guide said "created private unless you say otherwise; ask before
+   * public", which never mentions `guest` at all. An agent following it asked
+   * "shall I make this public?", was told no, and left a private trip — after
+   * which its owner approved a guest who could not read it (B300).
+   */
+  test("the guide says which of the three to ask for, and recommends two of them", () => {
+    const guide = flat(agentGuide());
+    expect(guide).toContain(flat(VISIBILITY_CHOICE));
+    // The recommendation is the point, so assert on it rather than only on
+    // the constant being present somewhere.
+    expect(guide).toMatch(/recommend `?public`? or `?guest`?/i);
+  });
+
+  test("every door that offers trip creation says a private trip shuts out guests", () => {
+    // The consequence an owner actually walked into. The guide is where a trip
+    // gets created; the index is where an agent meets the three values first.
+    expect(flat(agentGuide())).toContain(flat(PRIVATE_SHUTS_OUT_GUESTS));
+    expect(flat(instanceDocumentation())).toContain(
+      flat(PRIVATE_SHUTS_OUT_GUESTS.replace(/`/g, "")),
+    );
+    expect(flat(JSON.stringify(openApiDocument()))).toContain(flat(PRIVATE_SHUTS_OUT_GUESTS));
+  });
+
+  test("the machine contract carries the choice too, not just the default", () => {
+    // An agent working from the schema alone used to know less than one
+    // reading the prose: the summary named the default and nothing else.
+    const doc = openApiDocument();
+    const post = doc.paths["/api/v1/{user}/trips"].post;
+    expect(flat(post.description)).toContain(flat(VISIBILITY_ENUM_NOTE));
+    // Most open first — the order a person decides in.
+    expect(
+      post.requestBody.content["application/json"].schema.properties.visibility.enum,
+    ).toEqual(["public", "guest", "private"]);
+    // And the default is still the closed value, so a forgotten field
+    // publishes nothing.
+    expect(
+      post.requestBody.content["application/json"].schema.properties.visibility.default,
+    ).toBe("private");
   });
 
   test("the index and the guide ask for the same things, in their own shapes", () => {

@@ -294,3 +294,64 @@ export function handoverPrompt(input: {
     "looks finished. Write what I tell you and nothing I did not.",
   ].join("\n");
 }
+
+/**
+ * Which visibility to give a new trip — B302.
+ *
+ * `VISIBILITY_NOT_A_LOCK` above *defines* the three values and is carried by
+ * every agent-facing document. This is the different question, and the one an
+ * agent actually has to put to a person: which of the three to ask for. The
+ * guide had no answer to it. It said "a trip is created private unless you say
+ * otherwise; ask before sending public" — a binary, in which the value that
+ * matches "my family should be able to read this" is never mentioned at all.
+ * So an agent asked "shall I make it public?", heard "no", and left a `private`
+ * trip; and the owner then approved a guest who could not read it. That is
+ * B300, and this is the sentence whose absence caused it.
+ *
+ * Three things have to hold at once without contradicting each other, which is
+ * why this is one constant rather than three:
+ *
+ * - **the default is `private`**, because a field an agent forgets must never
+ *   publish somebody's journey;
+ * - **do not rely on the default** — ask, and recommend `public` or `guest`;
+ * - **`private` is the narrow tool**, for one journey held back from readers
+ *   who are welcome to the rest.
+ *
+ * The order is the author's (2026-09-04): public, guest, private — most open
+ * first, because that is the order a person decides in.
+ */
+export const VISIBILITY_CHOICE =
+  "Ask which of three, and say what each does. **`public`** — anyone with the address, and " +
+  "listed in this journal's feed and sitemap. **`guest`** — the people the owner has " +
+  "approved into this journal, plus anyone named on the trip; nobody else, and it is never " +
+  "advertised. **`private`** — only the people named on the trip, and *not* the journal's " +
+  "approved guests. Recommend `public` or `guest`: those are what somebody keeping a journal " +
+  "for people actually wants, and `private` is the narrow tool for holding one journey back " +
+  "from readers who may read the rest.";
+
+/**
+ * The consequence that the definitions alone do not carry, and the one an
+ * owner walked into on the live site — B300.
+ *
+ * It travels with `VISIBILITY_CHOICE` wherever that goes. Approving a guest is
+ * a grant on the *journal*, and a `private` trip does not honour it: the owner
+ * sees "approved", the reader sees a locked page, and no amount of approving
+ * changes it. Whoever reads this is the only party in a position to say so
+ * before the trip is created.
+ */
+export const PRIVATE_SHUTS_OUT_GUESTS =
+  "A `private` trip stays shut to approved guests too — approving somebody into the journal " +
+  "does not open it, and the owner has no way to grant it per person. If the plan is to " +
+  "share with family, `guest` is the value, and approving them is the other half of it.";
+
+/**
+ * The same choice, for `visibility` on a field list rather than in prose.
+ *
+ * Short enough for an OpenAPI `description`, where the paragraph above would
+ * be a wall. Both come from here so the two cannot drift.
+ */
+export const VISIBILITY_ENUM_NOTE =
+  "public (anyone, and listed) · guest (the journal's approved guests, plus the trip's own " +
+  "people) · private (only the trip's own people, not approved guests). Omitted means " +
+  "private, so that a forgotten field publishes nothing — but ask rather than relying on " +
+  "that, and recommend public or guest.";
