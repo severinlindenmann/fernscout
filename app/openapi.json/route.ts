@@ -608,7 +608,11 @@ export function GET() {
                       description:
                         "What the site calls them, in its own voice. Never guessed from " +
                         "ownerName — a first-word split mangles any name whose given name " +
-                        "is not first, so there is no safe guess. Ask.",
+                        "is not first, so there is no safe guess. Ask. That includes the " +
+                        "case where the owner is the person you are talking to and has " +
+                        "just given you their name: ask them \"what should the site call " +
+                        "you?\" rather than inferring it. There is no default, and that " +
+                        "is deliberate.",
                     },
                     visibility: {
                       type: "string",

@@ -386,6 +386,12 @@ calls this person in its own voice — "Robin", not "Robin Delacroix-Mbeki" — 
 it is never derived from \`ownerName\`, because taking the first word mangles any
 name whose given name is not first. Ask.
 
+**Ask even when the owner is the person in front of you.** Somebody setting up
+their own journal will give you their name in the same breath, and the rule
+above still holds — it forbids *deriving* a nickname, not asking for one, and
+"what should the site call you?" is one short question about themselves that
+they can answer instantly. There is no default and there will not be one.
+
 \`visibility\` is \`"public"\` unless you say otherwise. Ask which they want; see
 the table above for what the two mean.
 
