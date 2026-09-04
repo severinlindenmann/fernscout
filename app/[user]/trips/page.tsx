@@ -6,7 +6,7 @@ import { basemapFor } from "@/lib/basemap";
 import { getPlaces, getTripStats } from "@/lib/entries";
 import { frameRoute } from "@/lib/mapFrame";
 import { getMalformedTrips, getTrips } from "@/lib/trips";
-import { listableTrips } from "@/lib/tripGate";
+import { listableTrips, signedInAs } from "@/lib/tripGate";
 import { isOwner } from "@/lib/contacts/session";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
@@ -45,18 +45,27 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
   const trips = await listableTrips(all);
 
   /*
-   * Is this journal empty, and is the person looking at it its owner?
+   * Is there anything on this list, and is the person looking at it its
+   * owner?
    *
-   * Asked of `all`, before the gate: a journal whose trips this reader may
-   * not see is a full journal behind a silent filter (B44), not an empty one,
-   * and telling a guest there are no trips would be a second lie on top of the
-   * four zeroes. Only genuine emptiness gets the empty state.
+   * Asked of `trips` — the filtered list — not `all`. A journal whose trips
+   * this reader may not see is a full journal behind a silent filter (B44),
+   * not an empty one, and used to be told nothing at all: four zeroes and no
+   * sentence. B264 is why `trips.length` decides it now — a filtered-empty
+   * reader gets told what to do (ask for an invite, or sign in), the same
+   * words a genuinely-empty journal's stranger gets, because a signed-out
+   * reader who could tell the two apart would be reading a fact about
+   * somebody's private journal off the shape of the response. B117 already
+   * refuses that trade for a closed trip's own name; this is the same refusal
+   * for whether one exists at all.
    *
    * `isOwner` reads the session cookie, which `listableTrips` has already
    * read on this request — and this route is dynamic regardless, because both
    * that call and `generateMetadata`'s `headers()` make it so. There was no
-   * static render to lose, and the lookup happens only on the one page in a
-   * journal's life that has nothing on it.
+   * static render to lose. The lookup still only happens on a page that has
+   * nothing to list: `trips.length === 0` is a superset of the old
+   * `all.length === 0`, so a journal with anything visible still pays nothing
+   * for it.
    *
    * The owner's address is put in the payload only once `isOwner` has said
    * yes. A stranger's copy of this page does not contain it.
@@ -64,11 +73,12 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
 
   // Trips that are on disk but too broken to render. Read first, and used to
   // decide whether the owner question is worth asking at all: on a journal
-  // where every trip parses and at least one exists — which is nearly all of
-  // them, nearly all the time — this page needs no session lookup, and the
-  // list is already in hand from the same parse `getTrips` just ran.
+  // where every trip parses and at least one is visible to this reader —
+  // which is nearly all of them, nearly all the time — this page needs no
+  // session lookup, and the list is already in hand from the same parse
+  // `getTrips` just ran.
   const broken = getMalformedTrips(user);
-  const owner = all.length === 0 || broken.length > 0 ? await isOwner(user) : false;
+  const owner = trips.length === 0 || broken.length > 0 ? await isOwner(user) : false;
 
   // Shown to the owner only: a stranger sees a malformed trip as simply
   // absent, the same as before B83. Decided before the empty state, because a
@@ -82,14 +92,26 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
   const malformed = owner ? broken.map(({ folder, reason }) => ({ folder, reason })) : [];
 
   let empty: EmptyJournal | null = null;
-  if (all.length === 0 && malformed.length === 0) {
-    empty = owner
-      ? {
+  if (malformed.length === 0) {
+    if (owner) {
+      // Genuine emptiness only — unchanged by B264. An owner whose one trip
+      // is merely filtered out from under them (an unlisted public trip, say)
+      // is not shown this: that is not the "there is no button" moment.
+      if (all.length === 0) {
+        empty = {
           owner: true,
           docUrl: `${serverSite().url}/documentation.txt`,
           ownerEmail: getUser(user)?.owner.email ?? null,
-        }
-      : { owner: false };
+        };
+      }
+    } else if (trips.length === 0) {
+      // Whether this journal is truly empty or just filtered to nothing is
+      // exactly what must not reach this reader — see the block comment
+      // above. `signedIn` is safe to tell apart: it is read off this
+      // reader's own cookie, not probed from the journal, and only asked once
+      // we already know there is nothing to show them.
+      empty = { owner: false, signedIn: (await signedInAs(user)) !== null };
+    }
   }
   // Upcoming trips have no entries, so they contribute nothing to the map or
   // the lifetime totals — only a card with a countdown.

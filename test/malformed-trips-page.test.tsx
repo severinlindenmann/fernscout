@@ -218,7 +218,10 @@ describe("the page decides who sees it", () => {
   async function pageProps(owner: boolean) {
     vi.resetModules();
     vi.doMock("@/lib/contacts/session", () => ({ isOwner: async () => owner }));
-    vi.doMock("@/lib/tripGate", () => ({ listableTrips: async (t: unknown) => t }));
+    vi.doMock("@/lib/tripGate", () => ({
+      listableTrips: async (t: unknown) => t,
+      signedInAs: async () => null,
+    }));
     const { default: TripsPage } = await import("@/app/[user]/trips/page");
     const element = (await TripsPage({
       params: Promise.resolve({ user: "alex" }),
@@ -254,6 +257,8 @@ describe("the page decides who sees it", () => {
     expect(props.malformed).toEqual([]);
     expect(JSON.stringify(props)).not.toContain("japan-2027");
     // To them the journal really is empty: there is no trip they could read.
-    expect(props.empty).toEqual({ owner: false });
+    // Byte-identical to a genuinely empty journal — B264 — which is why this
+    // is `signedIn: false` rather than any hint that a trip exists at all.
+    expect(props.empty).toEqual({ owner: false, signedIn: false });
   });
 });
