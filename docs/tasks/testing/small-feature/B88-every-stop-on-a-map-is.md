@@ -122,3 +122,29 @@ for a one-city route and a two-continent one (which is what "same size on
 screen" means once the SVG is rendered at a fixed CSS width), the legend still
 pairs colour and title, and the map keeps `role="img"`/`aria-label` and grows
 no `role="button"` markers.
+
+## Revision (2026-09-04, while in `testing/`)
+
+The owner looked at the merged teardrop on a real multi-stop journal
+(`/viki/trips`) and it read badly — confirmed against the demo journal's own
+18-stop `parks-2025` route rather than the two- and three-point fixtures above.
+A solid teardrop's head is roughly circular and sits flush against its own
+tail, so two or three within a few screen pixels of each other — the ordinary
+case for any trip with more than a handful of stops on a world-scale map, not
+an edge case — fused their solid fills and thick cream outlines into one
+illegible blob with no way to tell how many stops were under it.
+
+Replaced the teardrop with a thin stem (`<line>`) rising to a small ringed
+head (`<circle>`), tip still exactly on the coordinate. Shrinking each
+marker's own footprint means the same dense cluster now reads as several thin
+lines converging on nearby points rather than one shape — checked visually
+against the demo journal's 18-stop cluster, which stays busy (no clustering
+was added, per this task's own scope) but no longer fuses into a solid mass.
+The shape also now echoes the legend's own circular colour swatches, which the
+teardrop didn't.
+
+All four acceptance lines above still hold with the new shape; only
+`pinPath()`/`<path d="M0,0...">` was replaced (with `PIN_HEAD_R`/
+`PIN_STEM_LEN`/`PIN_STEM_WIDTH`/`PIN_RING_WIDTH` constants and a `<g>` of
+`<line>` + `<circle>`), and `test/lifetime-map.test.tsx`'s `pins()` helper was
+rewritten to parse the new markup instead of the old path's arc command.
