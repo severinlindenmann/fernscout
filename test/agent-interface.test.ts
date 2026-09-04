@@ -323,7 +323,24 @@ describe("the documents an agent reads", () => {
     const guide = agentGuide();
     expect(guide).toMatch(/draft/i);
     // Whitespace-tolerant: the guide is wrapped prose, not one line.
-    expect(guide).toMatch(/no\s+parameter,\s+header\s+or\s+endpoint\s+that\s+skips/i);
+    //
+    // What it must say is the shape of the rule, not the old prohibition. The
+    // agent publishes (ROADMAP decision 28); what it cannot do is publish as a
+    // side effect of writing, because the gap between the two calls is where
+    // the person reads the day back. B223.
+    expect(guide).toMatch(/no\s+argument\s+that\s+changes\s+that/i);
+    expect(guide).toMatch(/days\/<slug>\/publish/);
+  });
+
+  /**
+   * `/documentation.txt` is the first document an agent reads and, until B223,
+   * the only one that stated the rule without ever saying how publishing
+   * happens. An agent that reads only this one must still finish the job.
+   */
+  test("the summary names the publish call, not just the draft rule", () => {
+    const summary = instanceDocumentation();
+    expect(summary).toMatch(/draft/i);
+    expect(summary).toContain("days/<slug>/publish");
   });
 
   test("the guide documents authentication without ever mailing a token", () => {

@@ -88,7 +88,7 @@ Desktop **1440×900** and mobile **390×844**, both.
 | # | Scenario | Pass |
 | --- | --- | --- |
 | C1 | A draft entry (`status: draft`) | Absent from story, feed, sitemap, search, gallery, API reads |
-| C2 | Removing `status: draft` publishes it | Appears everywhere |
+| C2 | Removing `status: draft` publishes it, and so does `POST .../days/<slug>/publish` | Appears everywhere, by either route |
 | C3 | Several entries on one date | Ordered by `time:`, grouped as one day |
 | C4 | Media paths stay trip-relative | Owner prefixed at read time; no username in frontmatter |
 | C5 | Trip statuses current / past / upcoming | Current at bare URLs, upcoming shows a countdown and no days |
@@ -169,7 +169,7 @@ The section where a mistake is unrecoverable.
 | I3 | One user's token against another user's journal | 403/404, never data |
 | I4 | `GET .../trips/<trip>/days` | Day summaries |
 | I5 | `POST` a new day | 201, and the file says `status: draft` |
-| I6 | That day on the site | **Absent** until a person publishes it |
+| I6 | That day on the site | **Absent** until it is published |
 | I7 | `GET /api/v1/<user>/drafts` | The draft, waiting |
 | I8 | Re-POST the same title and date | 409 — a retry never overwrites |
 | I9 | Malformed body, missing fields, bad dates | 400 with a usable message, never a 500 |

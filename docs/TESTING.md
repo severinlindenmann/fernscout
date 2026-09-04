@@ -152,9 +152,12 @@ and in `content/config.json` set `features.auth.enabled` and
 | **G7** | Same request with a **different** email | `202` but **no** mail written — only the owner can get a write token |
 | **G8** | `curl localhost:3000/api/v1/example/trips -H "authorization: Bearer <token>"` | All four trips as JSON |
 | **G9** | POST a new day (the exact call is in `/agent.md`) | `201`, and it says **draft** |
-| **G10** | Look for that day on the site | **Not there.** Drafts are invisible until a person publishes |
+| **G10** | Look for that day on the site | **Not there.** Drafts are invisible until published |
 | **G11** | `curl localhost:3000/api/v1/example/drafts -H "authorization: Bearer <token>"` | Your draft, waiting |
-| **G12** | Delete the `status: draft` line from the new entry file, rebuild | Now it appears on the site |
+| **G12** | `curl -X POST localhost:3000/api/v1/example/trips/<trip>/days/<slug>/publish -H "authorization: Bearer <token>" -H 'content-type: application/json' -d '{}'` | `200` with the day's public URL, **in one call** — no confirmation round trip (B224) |
+| **G12a** | Reload that day's page | It is on the site, and the draft banner is gone |
+| **G12b** | Repeat G12 | Refused — a day already up must not be reported as freshly published |
+| **G12c** | Delete the `status: draft` line from a *different* draft by hand, rebuild | Also appears. The file is still the content model; the endpoint is the route for somebody with no folder |
 | **G13** | Repeat G9 with the same title and date | `409` — a retry must never overwrite the first attempt |
 | **G14** | **The real test:** give a fresh Claude/ChatGPT the URL `http://localhost:3000/documentation.txt` and your email, and ask it to write up a day | It should manage without further help |
 

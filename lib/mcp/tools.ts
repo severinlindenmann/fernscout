@@ -301,7 +301,7 @@ const getDay: Handler = async (session, args) => {
     `${entry.date}${entry.time ? ` ${entry.time}` : ""} · ${entry.location}${entry.country ? `, ${entry.country}` : ""}`,
     // Said in the text, not only in the data: an agent summarising this to a
     // person must not describe a draft as though it were on the site.
-    ...(entry.draft ? ["", "**Draft — not on the site.** A person publishes it."] : []),
+    ...(entry.draft ? ["", "**Draft — not on the site.** `publish_day` puts it up, once they say so."] : []),
     // Said in the text as well as the data, for the same reason as the draft
     // line above: an agent summarising this must not describe a day nobody
     // lived as though it recorded something.
@@ -402,9 +402,9 @@ const listDraftsTool: Handler = async (session, args) => {
             (d.test ? ` · ${testContentNotice("day")}` : ""),
         )
         .join("\n") +
-      "\n\nEach of these is waiting for a person to publish it. Tell them what is here " +
-      "and ask which they want on the site; `publish_day` is the tool that acts on the " +
-      "answer. Do not call it for anything they have not said yes to."
+      "\n\nEach of these is waiting to be read back. Tell them what is here and ask which " +
+      "they want on the site; `publish_day` is the tool that acts on the answer. Do not " +
+      "call it for anything they have not said yes to."
     : "Nothing is waiting for review.";
 
   return { ok: true, text, data: { user: session.owner, drafts } };
@@ -413,10 +413,12 @@ const listDraftsTool: Handler = async (session, args) => {
 /**
  * Write a day. Always a draft.
  *
- * There is no argument here that publishes. `publish_day` is the second half
- * and is a separate, confirmed, owner-only call — the split is the control, not
- * the absence of a mechanism: one invented memory in front of somebody's family
- * is not recoverable, and no amount of care in a prompt is a control.
+ * There is no argument here that publishes. `publish_day` is the second half,
+ * and an agent holds both — the split is not a gate against it. What the gap
+ * buys is a moment where the day exists and nobody has read it yet, which is
+ * where the person reads it back. That is the only protection against an
+ * invented memory reaching somebody's family, because no amount of care in a
+ * prompt is a control.
  *
  * This comment said "there is no second tool that does" until B156. It was the
  * reasoning that kept the reply string below alive after B28 built the tool,
@@ -644,16 +646,15 @@ const revokeInviteTool: Handler = async (session, args) => {
 };
 
 /**
- * Put a draft on the site — the other half of the draft rule.
+ * Put a draft on the site — the other half of writing one.
  *
- * The rule was always "an agent writes drafts, a person publishes them", and
- * the second half had no mechanism at either door: over MCP, as over REST, a
- * finished piece of work had nowhere to go. See the route handler for what
- * this does and does not guarantee.
+ * Until B28 the second half had no mechanism at either door: over MCP, as over
+ * REST, a finished piece of work had nowhere to go. See the route handler for
+ * what this does and does not guarantee, and for why the confirmation
+ * handshake that used to sit here went away in B224.
  *
- * Owner only, and confirmed. A trip-scoped session writes days and cannot
- * publish them: being on the trip is not the same as deciding what the journal
- * says.
+ * Owner only. A trip-scoped session writes days and cannot publish them: being
+ * on the trip is not the same as deciding what the journal says.
  */
 const publishDayTool: Handler = async (session, args) => {
   const trip = await resolveTrip(session, args);
@@ -675,26 +676,6 @@ const publishDayTool: Handler = async (session, args) => {
   if (!entry) return { ok: false, error: `unknown_day: no entry "${slug}" in ${trip.ref}` };
   if (!entry.draft) return { ok: false, error: `"${slug}" is already on the site.` };
 
-  const operation = { action: "publish_day" as const, scope: trip.ref, target: slug };
-  const confirm = optionalString(args, "confirm");
-  if (!confirmationMatches(confirm, operation)) {
-    const body = confirmationRequired(
-      operation,
-      // The same sentence the REST route reads out, from the same function —
-      // and, since B158, one that describes the day in front of the person
-      // rather than days in general. A `test: true` day is kept out of the
-      // feed, the search index and the sitemap, and this used to promise all
-      // three at the last moment anybody was listening.
-      publishNotice({
-        title: entry.title,
-        date: entry.date,
-        url: `${serverSite().url}/${trip.ref.slice(0, trip.ref.indexOf("/"))}`,
-        test: isTestContent(getTrip(trip.ref), entry),
-      }),
-    );
-    return { ok: false, error: `${body.message}\n\nconfirm: ${body.confirm}` };
-  }
-
   const result = publishDraft(trip.ref, slug);
   if (!result.ok) return { ok: false, error: result.error };
 
@@ -705,7 +686,19 @@ const publishDayTool: Handler = async (session, args) => {
     text:
       `Published "${entry.title}". It is on the site at ` +
       `${base}/${username}/trips/${tripId}/day/${slug} — tell the person, and give them ` +
-      `the link.`,
+      `the link.\n\n` +
+      // The same sentence the REST route reads out, from the same function —
+      // and, since B158, one that describes the day in front of the person
+      // rather than days in general. A `test: true` day is kept out of the
+      // feed, the search index and the sitemap, and this used to promise all
+      // three at the last moment anybody was listening. It was the refusal's
+      // message until B224 and is the receipt now.
+      publishNotice({
+        title: entry.title,
+        date: entry.date,
+        url: `${base}/${username}`,
+        test: isTestContent(getTrip(trip.ref), entry),
+      }),
     data: { slug, status: "published" },
   };
 };
@@ -846,9 +839,8 @@ const createDay: Handler = async (session, args) => {
     ok: true,
     text:
       `Created ${result.slug} as a draft in ${trip.ref}.\n` +
-      "It is not on the site. Publishing is a second, deliberate call — `publish_day` — " +
-      "and it is the person's to ask for. Tell them it is waiting; do not call it because " +
-      "the day looks finished to you.",
+      "It is not on the site yet. Read it back to them, and call `publish_day` when they " +
+      "say so — not because the day looks finished to you.",
     data: { trip: trip.ref, slug: result.slug, status: result.status, replayed: false },
   };
   remember(key, fingerprint, outcome);
@@ -1196,7 +1188,7 @@ export const TOOLS: readonly ToolEntry[] = [
     name: "list_drafts",
     title: "List drafts",
     description:
-      "Everything waiting for a person to publish it. Useful for telling the author " +
+      "Everything written and not yet on the site. Useful for telling the author " +
       "what is outstanding. A draft nobody lived says so on its own line — read that " +
       "out with the rest, because it is what decides whether they want it on the site.",
     inputSchema: {
@@ -1352,8 +1344,9 @@ export const TOOLS: readonly ToolEntry[] = [
     name: "create_day",
     title: "Write a day (as a draft)",
     description:
-      "Write one day of a trip. It is created as a DRAFT and is not on the site: a " +
-      "person publishes it, and there is no argument here that skips that. Write only " +
+      "Write one day of a trip. It is created as a DRAFT and is not on the site: `publish_day` " +
+      "puts it up, and there is no argument here that does it in one motion — the gap is where " +
+      "the person reads it back. Write only " +
       "what you were told — no weather nobody mentioned, no meals nobody ate. An empty " +
       "field is better than an invented one. Pass idempotency_key so a retry does not " +
       "read as a conflict.",
@@ -1559,24 +1552,19 @@ export const TOOLS: readonly ToolEntry[] = [
   },
   {
     name: "publish_day",
-    title: "Publish a draft (needs confirming)",
+    title: "Publish a draft",
     description:
-      "Put a draft on the site. This is the step the draft rule reserves for a person — so " +
-      "ask them first, in words, and do not call this because the day looks finished to " +
-      "you. The first call is ALWAYS refused and hands you a confirmation code; repeat it " +
-      "with `confirm` set to that value. Only the journal's owner can publish: a token " +
-      "scoped to one trip writes days and cannot put them on the site. Publishing cannot " +
-      "really be undone — taking a day down removes it from the journal, not from the " +
-      "people who have already read it.",
+      "Put a draft on the site. This is ordinary work and it is yours to do — but ask them " +
+      "first, in words, and do not call it because the day looks finished to you. Nothing " +
+      "here can check that you asked. Only the journal's owner can publish: a token scoped " +
+      "to one trip writes days and cannot put them on the site. Publishing cannot really " +
+      "be undone — taking a day down removes it from the journal, not from the people who " +
+      "have already read it.",
     inputSchema: {
       type: "object",
       properties: {
         trip: { type: "string", description: "Trip id, as list_trips reports it." },
         slug: { type: "string", description: "The draft's slug, as list_drafts reports it." },
-        confirm: {
-          type: "string",
-          description: "The code from the refusal. Do not invent one; it will not verify.",
-        },
       },
       required: ["trip", "slug"],
       additionalProperties: false,

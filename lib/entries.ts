@@ -212,8 +212,10 @@ function readAllEntries(ref: string): Entry[] {
 /**
  * Whether an entry is a draft.
  *
- * Agents write drafts and only a person publishes them (ROADMAP G7), so this
- * is the line between "an agent wrote something" and "it is on the site". It
+ * An agent writes a day as a draft and publishes it in a second call once the
+ * person has said so (ROADMAP G7, and decision 28 for why publishing is not a
+ * file edit any more). This is the line between "an agent wrote something" and
+ * "it is on the site". It
  * is enforced in `getAllEntries`, which every reading path goes through, so a
  * new page cannot accidentally render one.
  */

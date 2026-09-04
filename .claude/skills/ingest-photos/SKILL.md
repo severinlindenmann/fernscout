@@ -95,9 +95,14 @@ Fill in the prose using the `add-a-day` skill's rules: the author's voice, the
 author's language, and **nothing you were not told**. A photograph is not a
 memory — do not narrate what you think it shows.
 
-Every entry ingest writes carries `status: draft`, so nothing you import is
-on the site until a person removes that line. Leave it there. Write the words
-under it and tell them it is ready — publishing is their step, not yours.
+Every entry ingest writes carries `status: draft`, so nothing you import is on
+the site yet. Leave the line there. Write the words under it and tell them it
+is ready.
+
+**Do not offer to publish, even though the network door does** — see the same
+note in `add-a-day`. An import is the case where it matters most: it is a
+batch, nobody has looked at any of it, and the photographs are the part you
+were least able to check.
 
 ## The iCloud path
 

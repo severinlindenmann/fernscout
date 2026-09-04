@@ -57,15 +57,18 @@ export type ConfirmableAction =
    * Putting a draft on the site.
    *
    * The odd one out here, because it destroys nothing — and it belongs anyway.
-   * Everything else on this list can be undone by somebody with the folder;
-   * this one cannot, in the sense that matters. Once a day is published it is
-   * in the feed, in the search index, and in whatever reader already had the
-   * page open. Un-publishing removes it from the site and not from the people
-   * who read it.
+   * **Retired in B224, and kept so old codes cannot be reinterpreted.**
+   * Publishing used to be confirmed here. It stopped being, when the rule
+   * stopped reserving publishing for a person: the agent held both calls, so
+   * the handshake never established consent, and it charged a round trip and a
+   * `409` on the success path for that. Deletion keeps its confirmation
+   * because deletion is unrecoverable and its second step happens in a
+   * mailbox; publishing is undone by putting the line back.
    *
-   * Its own verb, like `delete_published`: a code issued to publish one day
-   * must not authorise publishing another, and neither must a code obtained
-   * for anything else.
+   * The verb stays on this list rather than being deleted. A code is signed
+   * over its action, so removing the name would let a stored `publish_day`
+   * code fail to parse rather than fail to match — and, worse, would free the
+   * string for some later verb to reuse against codes issued for this one.
    */
   | "publish_day"
   | "order";

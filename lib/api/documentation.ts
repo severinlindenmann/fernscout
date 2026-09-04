@@ -96,8 +96,13 @@ export function instanceDocumentation(): string {
     "   address that owns it.",
     "3. Exchange the code for a token. It can write for seven days.",
     "",
-    "Anything you create arrives as a **draft**. A person publishes it. That is",
-    "deliberate and there is no parameter that skips it.",
+    "You are the editor here: you write, you publish, you correct. Anything you",
+    "create arrives as a **draft** first — not to hold you back, but so the person",
+    "can read a day back before it is on the site. Putting it up is a second call,",
+    "`POST .../days/<slug>/publish`, and it is yours to make once they say so.",
+    "",
+    "Ask them, in words, and wait for an answer. Nothing here can check that you",
+    "did.",
     "",
     "Do not invent detail. If you were asked for content nobody lived — to check",
     "that this all works — set `test: true` on the trip or the day and the site",
@@ -249,19 +254,18 @@ no CMS. Writing happens through the API below, which is why you are here.
 
 ## The one rule
 
-**Everything you create is a draft.** A person publishes it. There is no
-parameter, header or endpoint that skips this: nothing you send to
-\`POST .../days\` can put a day on the site, whatever you put in it. One
-invented memory presented to somebody's family as fact is not recoverable, so
-the writing and the publishing are two separate acts with a person in between.
+**You are the editor.** You write, you publish, you correct. There is no web
+form and no CMS behind you, so anything you will not do on the owner's behalf
+is a thing that cannot be done at all.
 
-**Publishing is a second, deliberate call — \`POST .../days/<slug>/publish\`.**
-It exists because the person deciding may never have seen the folder this
-journal lives in, and telling them to edit a file was not an answer. It does
-not make publishing yours to decide. **Ask them, in words, and wait for an
-answer.** "It looks finished" is not consent, and neither is silence. The call
-is refused the first time and hands you a code, which is there to make you
-stop; it is not a substitute for having asked.
+**What you write arrives as a draft**, and \`POST .../days\` has no argument
+that changes that. Not to hold you back — so that there is a moment where the
+person can read a day back before it is on the site. Publishing is the second
+call, \`POST .../days/<slug>/publish\`, and it is yours to make.
+
+**Which is why the asking is on you.** Nothing here can tell whether they
+actually said yes, so: **ask them, in words, and wait for an answer.** "It
+looks finished" is not consent, and neither is silence.
 
 Write what you were told. Do not invent detail to fill a page — no weather you
 were not told about, no meals nobody mentioned, no feelings nobody expressed.
@@ -661,7 +665,7 @@ Content-Type: application/json
 
 \`\`\`json
 {"ok": true, "slug": "lanterns-of-hoi-an", "status": "draft",
- "note": "Created as a draft. It is not on the site until a person publishes it."}
+ "note": "Created as a draft. Read it back to them, then publish it when they say so."}
 \`\`\`
 
 **Every field a day can carry.** \`title\`, \`date\` and \`content\` are required;
@@ -715,14 +719,12 @@ resubmitting for each:
 
 ### Publishing, when they say so
 
-This is the step the draft rule reserves for a person. It has an endpoint now
-because the person doing the deciding often has no text editor and no folder —
-a journal made through this API belongs to somebody who has never seen either —
-and "a person publishes it" was advice with nowhere to go.
+One call, and the day is on the site. This is ordinary work: the person told
+you what they wanted, you wrote it, they read it back, they said yes.
 
-**Ask first. Report what is waiting, and let them answer.** Do not call this
-because the day reads well to you, and do not batch it: one day, one question,
-one answer.
+**The asking is the whole of the safeguard.** Do not call this because the day
+reads well to you, and do not batch it into a question nobody can answer
+properly: one day, one question, one answer.
 
 \`\`\`http
 POST ${site.url}/api/v1/${example}/trips/<trip-id>/days/<slug>/publish
@@ -732,31 +734,28 @@ Content-Type: application/json
 {}
 \`\`\`
 
-The first call is always refused, with a code and a sentence naming the day and
-what publishing it means:
-
 \`\`\`json
-{"error": "confirmation_required", "confirm": "cf_m1x2y3_…",
- "message": "This publishes \\"Lanterns of Hoi An\\" (2026-08-26) to ${site.url}/${example}. …"}
+{"ok": true, "slug": "lanterns-of-hoi-an", "status": "published",
+ "url": "${site.url}/${example}/day/lanterns-of-hoi-an"}
 \`\`\`
 
-Repeat the call with \`{"confirm": "cf_…"}\` and it goes up. You get the URL
-back — **give it to them**; it is the thing they actually wanted.
+**Give them the URL.** It is the thing they actually wanted.
 
 Three things worth knowing:
 
 - **Only the journal's owner can publish.** A token scoped to one trip writes
   days into it and cannot put them on the site. Being on the trip is not the
   same as deciding what the journal says.
-- **A code is bound to one day**, and to this verb. One issued to delete will
-  not publish, and one issued for another day will not verify.
+- **Publishing twice is refused**, rather than answered with a cheerful \`200\`.
+  A day that was already up went up at some point you know nothing about, and
+  reporting that as your own work would be false.
 - **It does not really come back.** Taking a day down removes it from the
   journal, the feed and the search index — not from the people who have already
   read it.
 
-When you have finished writing, end your report with what is waiting and where
-to approve it: \`GET /api/v1/${example}/drafts\` lists it, and this is the call
-that acts on their answer.
+When you have finished writing, end your report with what is waiting:
+\`GET /api/v1/${example}/drafts\` lists it, and this is the call that acts on
+their answer.
 
 ### Deleting, and anything that costs money
 

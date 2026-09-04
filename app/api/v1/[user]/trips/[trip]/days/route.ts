@@ -145,7 +145,7 @@ export async function POST(
     {
       ok: true,
       ...written,
-      note: "Created as a draft. It is not on the site until a person publishes it.",
+      note: "Created as a draft. Read it back to them, then POST .../days/<slug>/publish when they say so.",
     },
     { status: 201 },
   );

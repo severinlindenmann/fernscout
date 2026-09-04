@@ -1,6 +1,5 @@
 import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { publishNotice, publishDraft } from "@/lib/api/entries";
-import { confirmationMatches, confirmationRequired } from "@/lib/agentConfirm";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { isTestContent } from "@/lib/access";
 import { getEntryBySlug } from "@/lib/entries";
@@ -15,29 +14,32 @@ export const dynamic = "force-dynamic";
  *
  * ## Why this exists at all
  *
- * The rule has always been that an agent writes drafts and a person publishes
- * them. What was never provided was a way for the person to *do* that which
- * did not involve a text editor and the content folder. The guide said "a
- * person publishes it" four times and never said how; an agent that finished
- * its work had to end its report with a shrug, and the owner of a journal
- * created over the API — who has never seen the folder — had no next move at
- * all.
+ * B28 built it because the owner of a journal created over the API has never
+ * seen the folder it lives in, and the only way to publish was to open a file
+ * and delete a line. The guide said "a person publishes it" four times and
+ * never said how; an agent that finished its work had to end its report with a
+ * shrug.
  *
- * ## What has and has not changed
+ * ## Writing and publishing are two calls, and that is all that is structural
  *
- * **Writing and publishing are still two calls.** Nothing an agent sends to
- * `POST .../days` can publish; there is no parameter, and this endpoint cannot
- * create anything. The gap between the two is where the person goes, and it is
- * the gap that was always the point.
+ * Nothing an agent sends to `POST .../days` can publish — there is no
+ * parameter — and this endpoint cannot create anything. Do not read the split
+ * as a gate against the agent: it holds both calls, and under the rule in
+ * AGENTS.md publishing is its work to do. What the gap buys is a moment where
+ * the day exists and nobody has read it, which is where the person reads it
+ * back. That is worth keeping and nothing else here is.
  *
- * **Publishing is confirmed, like deleting.** The first call is refused with a
- * code bound to this journal, this trip, this day and this verb, and the
- * refusal asks whether the person actually said to. Be honest about what that
- * buys: an agent can make both calls without asking anybody. It is not proof a
- * human consented, and `lib/agentConfirm.ts` says so plainly about deletion
- * too. What it does is make publishing a deliberate second act rather than
- * something that happens as a side effect of a write, and give the agent a
- * sentence it has to read first.
+ * **There is no confirmation handshake, since B224.** There was one until
+ * then, modelled on deletion. It never established that a human consented —
+ * the agent held both calls, and B28's own comment said so — so once the
+ * doctrine stopped reserving publishing for a person it was a round trip
+ * buying nothing, and a `409` on the success path that a strict client reads
+ * as failure. Deletion keeps its confirmation and should: it is unrecoverable
+ * and its second step happens in a mailbox (`lib/deletions.ts`, B38), whereas
+ * publishing is undone by putting the line back.
+ *
+ * Which leaves the asking as instruction rather than mechanism. `/agent.md`
+ * says it plainly — ask, in words, and wait — and nothing here can check.
  *
  * **Only the journal's owner may.** A trip-scoped token — held by somebody who
  * came on one trip — writes days into that trip and cannot publish them. Being
@@ -93,30 +95,6 @@ export async function POST(
     );
   }
 
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-  const confirm = typeof body?.confirm === "string" ? body.confirm : undefined;
-  const operation = { action: "publish_day" as const, scope: ref, target: slug };
-
-  if (!confirmationMatches(confirm, operation)) {
-    return Response.json(
-      confirmationRequired(
-        operation,
-        // What publishing *this* day does, not what publishing does in
-        // general. A `test: true` day is excluded from the feed, the search
-        // index and the sitemap, and this sentence used to promise the
-        // opposite at the exact moment somebody was deciding. Shared with the
-        // MCP tool so the two doors cannot drift. B158.
-        publishNotice({
-          title: entry.title,
-          date: entry.date,
-          url: `${serverSite().url}/${user}`,
-          test: isTestContent(found, entry),
-        }),
-      ),
-      { status: 409 },
-    );
-  }
-
   const result = publishDraft(ref, slug);
   if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
 
@@ -125,6 +103,16 @@ export async function POST(
     slug: result.slug,
     status: "published",
     url: `${serverSite().url}/${user}/trips/${trip}/day/${slug}`,
-    note: "It is on the site now. Tell the person, and give them the URL.",
+    // What publishing *this* day did, not what publishing does in general. A
+    // `test: true` day is excluded from the feed, the search index and the
+    // sitemap, and the sentence used to promise the opposite. It was the
+    // refusal's message until B224; it is the receipt now, and it is still
+    // shared with the MCP tool so the two doors cannot drift. B158.
+    note: publishNotice({
+      title: entry.title,
+      date: entry.date,
+      url: `${serverSite().url}/${user}`,
+      test: isTestContent(found, entry),
+    }),
   });
 }

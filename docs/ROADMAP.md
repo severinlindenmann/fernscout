@@ -54,6 +54,7 @@ anything still open is in §15.
 | 25 | Agent doc name | **`/documentation.txt`**, not `llms.txt` — named for the person handing over the link. `llms.txt` stays an off-by-default alias. Kept out of search with `X-Robots-Tag: noindex`, never a `robots.txt` rule (plan W23) |
 | 27 | No Docker | **Native install on the VPS** — Node, Caddy, systemd, and Postgres only when a feature needs it. The backend is Next.js route handlers plus a Node worker; **no second framework** (§2.3) |
 | 26 | Landing page | **A landing page at `/`** (or `/welcome` when a `defaultUser` owns the root): what this is, how to point an agent at it, and a link to the live `/example` user (plan W24) |
+| 28 | Publishing | **The agent is the editor: it writes, it publishes, it corrects.** Decision 24 said browsers never edit; this says who does. What an agent writes still arrives as a draft and `POST .../days` still cannot publish — the two calls exist so the owner can read a day back before anyone else — but putting it up is `POST .../days/<slug>/publish` (`publish_day` over MCP), owner-only, and the agent's to make when asked. Supersedes the older rule that a person publishes by deleting `status: draft` from a file, which was advice with nowhere to go for the owner of a journal an agent created (B28, restated B223; B224 dropped the confirmation handshake, which never established consent because the agent held both calls) |
 ### 0.5 What "clean seams" concretely means
 
 Cheap now, expensive to retrofit. This is the whole cost of keeping §12 alive:
@@ -252,7 +253,11 @@ folder you own, and any agent can read and write it.* Lean all the way in.
 
 G1 (skills + `AGENTS.md`), G4 (REST), G5 (MCP), G6 (direct file access) and
 **G7 — agent-written content is always a draft** shipped in W18 and W23. G7 is
-enforced in `lib/entries.ts` and is not a setting.
+enforced in `lib/entries.ts` and is not a setting. What it means changed in
+decision 28: a draft is the state a day is written into so that somebody can
+read it back, not a lock only a person can open. Publishing is an agent call
+now — B28 built it, B223 restated the rule around it, B224 took the
+confirmation handshake back off.
 
 | ID | Task | Effort |
 | --- | --- | --- |
