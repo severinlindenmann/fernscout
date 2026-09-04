@@ -64,14 +64,25 @@ ticket is the same fix, not yet applied, for `lib/trips.ts`.
 
 - In `readTrip`'s `catch (err)` (lib/trips.ts, the "unparseable" branch), call
   `matter.clearCache()` before returning the `refuse(...)` result — same
-  reasoning as `clearMatterCache` in `lib/entries.ts`, which this could import
-  instead of duplicating the cast gray-matter's own `.d.ts` needs (`clearCache`
-  is on the runtime export but missing from its published types).
-- Check whether any other unguarded-but-caught `matter()` call in the codebase
-  has the same shape (a `try`/`catch` around `matter()` with no
-  `clearCache()`) — `readTrip`'s own doc comment in lib/trips.ts says
-  `lib/plan.ts` returns rather than throws "matching" this function, so it is
-  worth checking too.
+  reasoning as `clearMatterCache` in `lib/entries.ts`. **Done as a local
+  duplicate, not an import**: `lib/entries.ts` already imports from
+  `lib/trips.ts` (`mediaWithOwner`, `parseTripRef`, `tripDir`), so importing
+  `clearMatterCache` the other way would make the two modules import each
+  other. A 3-line function with the same doc comment and the same cast is a
+  smaller cost than a module cycle between the two.
+- Checked whether any other unguarded-but-caught `matter()` call in the
+  codebase has the same shape (a `try`/`catch` around `matter()` with no
+  `clearCache()`) — none does; `lib/entries.ts` and `lib/api/entries.ts`
+  already call it at every catch site (B236), and this ticket's fix is the
+  last one.
+- **Found while checking that, and *not* fixed here**: `readTrip`'s own doc
+  comment says `lib/plan.ts` "matches" this function by returning rather than
+  throwing on a bad file — it doesn't. `readPlanFile` (lib/plan.ts:69) calls
+  `matter()` with no `try`/`catch` at all, and `getPlan` is called directly
+  from page components with none either, so a malformed `plan.md` throws
+  uncaught and crashes the trip and map pages. That is a different failure
+  mode (never caught, not caught-then-mis-cached) and is captured separately
+  as B341 rather than folded in here.
 
 ## Acceptance
 
@@ -79,4 +90,13 @@ ticket is the same fix, not yet applied, for `lib/trips.ts`.
   reports it; touch (or add) a sibling trip so `tripsSignature` changes and
   the malformed trip is forced through `readTrip` again with unchanged bytes;
   assert it is *still* reported as malformed rather than silently accepted.
+  Done as `test/trip-reparse.test.ts`. Note on what "silently accepted" turned
+  out to mean: on unfixed code the folder is *still* refused (an empty `data`
+  from the stale gray-matter cache has no `id` either, so `readTrip`'s
+  missing-id check still catches it) — but as the wrong reason,
+  `"missing-id"` instead of `"unparseable"`, which is itself the bug the
+  Why section describes as "or at least not refuse the folder the same way".
+  The test pins the reason staying `"unparseable"` across the forced
+  re-parse, confirmed failing (`"missing-id"`) before the fix and passing
+  after.
 - `npm run verify` passes.
