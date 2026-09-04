@@ -73,3 +73,56 @@ reporting spending that has not happened is a larger copy question than a
 - A test asserts the pairing in all three maintained locales, as
   `test/map-tense.test.tsx` does for the map.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.
+
+## What changed
+
+Fixed in `app/[user]/(trip)/costs/page.tsx`. The metadata block now has the
+shape its two neighbours have: `requestLocale()` for the tab title,
+`localeForPath(PATH_HEADER)` for the sharing card, both through `translateIn`.
+
+The open question in **Work** — whether a translated description needed a new
+key — did not: **`cost.subtitle` is the right string** and no key was added.
+It is the standfirst the page renders one line under the `<h1>`, it already
+takes `{currency}`, and it exists in all three dictionaries. The English
+paraphrase that was there ("What the trip actually costs, itemised in CHF —
+preparation, flights, beds, food and everything in between") existed nowhere
+else and nobody maintained it.
+
+**B165 is untouched.** The `if (!isEnabled("costs", user)) return {}` guard
+still comes first, before any locale is resolved: nothing describes a page that
+is not there. `test/costs-capability.test.ts` still passes; its `@/lib/locales`
+mock grew a `localeForPath` so it keeps describing what the route now imports.
+
+**`app/[user]/(trip)/page.tsx` is correct as it is, and stays.** It exports no
+`generateMetadata`, so the journal's front page takes the layout's `default`:
+`"<title> — <tagline>"`. Both are the author's own words in their own language,
+already read from `config.json`, and there is no chrome string to translate —
+`%s · <title>` is the *template* the section pages fill, and the front page is
+the one page that has no section name. Giving it a `generateMetadata` would
+only restate what it already gets.
+
+**One thing found and not absorbed: B214.** The description is `cost.subtitle`
+unconditionally, and the page switches to `cost.subtitlePlanned` on a trip that
+has not started (B19's fix, `CostsPageContent.tsx:43`). So on a journal whose
+current trip is upcoming, the description is one tense ahead of the standfirst
+beneath it. Fixing it means resolving `hasBegun` inside `generateMetadata`, and
+`getCostSummary` is not cached — that is a cost/benefit call of its own, which
+is why it is B214 and not a line in this diff.
+
+## Evidence
+
+`test/costs-title.test.tsx` — new, 8 tests. Against the code as it was, all
+eight fail:
+
+```
+AssertionError: expected 'Costs' to be 'What the trip costs'
+AssertionError: expected 'Costs' to be 'Was die Reise kostet'
+AssertionError: expected 'Costs' to be 'Mennyibe kerül az út'
+AssertionError: expected 'What the trip actually costs, itemise…' to be 'Alles, was wir ausgeben, in CHF — von…'
+```
+
+It renders the real `CostsPageContent` and reads its `<h1>` out of the markup,
+then asserts `generateMetadata`'s title is the same string — in `en`, `de` and
+`hu`, as `test/map-tense.test.tsx` does for the map. The reader/journal split
+has its own case: a German reader on a journal that offers German gets a German
+tab title and an English sharing card.

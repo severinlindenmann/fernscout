@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
+import { PATH_HEADER } from "@/lib/requestKeys";
 import { mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { notFound } from "next/navigation";
 import CostsPageContent from "./CostsPageContent";
@@ -10,6 +13,25 @@ import { getUser } from "@/lib/users";
 import { isEnabled } from "@/lib/capabilities";
 import { travellerNamesOf } from "@/lib/site";
 
+/**
+ * Two languages on purpose — the same split the map and gallery pages carry,
+ * and for the same reason.
+ *
+ * The tab title follows the *reader*: it lands in their history, their
+ * bookmarks and their tab strip. The sharing card follows the *journal*,
+ * because whoever sees a forwarded card is not this reader and their language
+ * is not knowable from this request.
+ *
+ * Both were English literals until B139 — "Costs" in the tab over a page whose
+ * `<h1>` said "Was die Reise kostet", on a journal that has never had an
+ * English word on it. The trip-scoped route next door
+ * (app/[user]/trips/[trip]/costs/page.tsx) had already been given the reader's
+ * language; these are two routes onto one page and they disagreed.
+ *
+ * `cost.title` and `cost.subtitle` are the page's own heading and standfirst,
+ * so the tab and the description are the strings the reader is about to see
+ * rather than a second English paraphrase of them that nobody maintains.
+ */
 export async function generateMetadata({
   params,
 }: PageProps<"/[user]/costs">): Promise<Metadata> {
@@ -17,20 +39,24 @@ export async function generateMetadata({
   // No description of a page that is not there. B165.
   if (!isEnabled("costs", user)) return {};
   const currency = getUser(user)?.baseCurrency ?? "CHF";
-  const description =
-    `What the trip actually costs, itemised in ${currency} — preparation, ` +
-    "flights, beds, food and everything in between.";
+  const reader = await requestLocale();
+  const journal = localeForPath((await headers()).get(PATH_HEADER));
+  // Present tense, as `cost.subtitle` is, on a trip that may not have started.
+  // The page itself switches to `cost.subtitlePlanned` there; this line does
+  // not, and that is B214 rather than something absorbed into B139.
+  const description = translateIn(journal, "cost.subtitle", { currency });
+  const shared = translateIn(journal, "cost.title");
   return {
-    title: "Costs",
+    title: translateIn(reader, "cost.title"),
     description,
     alternates: { canonical: `/${user}/costs` },
     openGraph: {
       type: "website",
-      title: "What the trip costs",
+      title: shared,
       description,
       url: `/${user}/costs`,
     },
-    twitter: { card: "summary_large_image", title: "Costs", description },
+    twitter: { card: "summary_large_image", title: shared, description },
   };
 }
 
