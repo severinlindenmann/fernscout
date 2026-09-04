@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import CopyLine from "./CopyLine";
 import { LOCALE_LABEL, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
@@ -72,6 +73,16 @@ export type AdminInvite = {
   expiresAt: string | null;
   revokedAt: string | null;
   uses: number;
+  /**
+   * The link itself, for a row whose owner can still send it — B280.
+   *
+   * Null for a link issued before invite tokens were recoverable, one issued
+   * while `CONTACTS_ENCRYPTION_KEY` was unset, and one that is revoked or
+   * expired. Null means *no copy control*, not an empty one: a link that
+   * cannot be sent again is the behaviour every link had until B280, and a
+   * dead button explaining that is worse than no button.
+   */
+  url: string | null;
 };
 
 /**
@@ -614,6 +625,12 @@ function InviteRow({
     // The trip is the whole difference between this row and the one above it,
     // so it comes first on a buddy link.
     invite.kind === "buddy" ? t("contact.adminInviteTrip", { trip: invite.tripId ?? "—" }) : null,
+    // The owner's own note. Second, and before the counters, because it is the
+    // only thing that tells two rows of the same kind apart — which is what
+    // the owner is actually deciding between when they reach for revoke. It
+    // was blank on every link until B281, because the form that collected it
+    // made a `personal` link and the two kinds an owner hands out were made by
+    // a form that collected neither.
     invite.name,
     invite.locale ? LOCALE_LABEL[invite.locale] : null,
     t("contact.adminInviteUses", { count: String(invite.uses) }),
@@ -635,14 +652,34 @@ function InviteRow({
         <span className="block text-sm text-navy-600">{detail.join(" · ")}</span>
       </span>
       {!dead && (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => act({ action: "revoke-invite", id: invite.id })}
-          className="rounded-lg border border-navy-200 px-3 py-1 text-sm text-navy-700 disabled:opacity-50"
-        >
-          {t("contact.adminRevokeLink")}
-        </button>
+        <span className="flex flex-wrap items-center gap-2">
+          {/* B280 and B281: send the same link again rather than issuing a
+              second one for the same audience. Absent, not disabled, when
+              there is no recoverable token — see `AdminInvite.url`. */}
+          {invite.url && (
+            <CopyLine
+              value={invite.url}
+              label={t("contact.adminCopyLink")}
+              copiedLabel={t("contact.adminCopiedLink")}
+              // The URL is a credential, so it is deliberately not recited as
+              // the accessible name the way `CopyLine`'s default would — B199
+              // is the precedent. What it copies is said in words instead, and
+              // the note beside it is what identifies which link this is.
+              name={t("contact.adminCopyLinkNamed", {
+                kind: t(INVITE_KIND_KEY[invite.kind]),
+                name: invite.name ?? "—",
+              })}
+            />
+          )}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => act({ action: "revoke-invite", id: invite.id })}
+            className="rounded-lg border border-navy-200 px-3 py-1 text-sm text-navy-700 disabled:opacity-50"
+          >
+            {t("contact.adminRevokeLink")}
+          </button>
+        </span>
       )}
     </li>
   );
@@ -655,9 +692,13 @@ export default function ContactsAdmin({
   dictionary,
   contacts: initialContacts,
   invites: initialInvites,
+  trips = [],
 }: {
   username: string;
   locale: Locale;
+  /** The trips a writing link can name. Empty is a real state — a journal with
+   * no trip yet can issue a reading link and nothing else. */
+  trips?: { id: string; title: string }[];
   /** The languages this journal offers, from its config. */
   locales: string[];
   dictionary: Record<string, string>;
@@ -668,6 +709,12 @@ export default function ContactsAdmin({
   const [invites, setInvites] = useState(initialInvites);
   const [inviteName, setInviteName] = useState("");
   const [inviteLocale, setInviteLocale] = useState<Locale>(locale);
+  // `guest` first because it is the one that belongs in a family group chat.
+  // Defaulting to `buddy` would put write access one un-read radio button
+  // away, which is the mistake B97 is about, made earlier.
+  const [inviteKind, setInviteKind] = useState<"guest" | "buddy">("guest");
+  const [inviteTrip, setInviteTrip] = useState(trips[0]?.id ?? "");
+  const [inviteError, setInviteError] = useState<string | null>(null);
   const [freshLink, setFreshLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // `null`: closed. `"new"`: the "Add a guest" toggle. Otherwise the row being
@@ -778,26 +825,131 @@ export default function ContactsAdmin({
           className="mt-8 rounded-2xl border border-navy-200 p-5"
           onSubmit={async (event) => {
             event.preventDefault();
-            const response = await act({
-              action: "invite",
-              name: inviteName,
-              locale: inviteLocale,
-            });
-            if (!response?.ok) return;
-            const body = (await response.json()) as { url?: string };
-            setFreshLink(body.url ?? null);
+            setInviteError(null);
+            setBusy(true);
+            // `POST /api/v1/{user}/invites` rather than the panel's own admin
+            // route: that route's `invite` action made a `personal` link and
+            // nothing else, and this one already owns the rules — a buddy
+            // link needs a trip, a guest link must not name one, the trip has
+            // to exist, and every link is dated. B281.
+            const response = await fetch(`/api/v1/${username}/invites`, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                kind: inviteKind,
+                ...(inviteKind === "buddy" ? { trip: inviteTrip } : {}),
+                name: inviteName,
+                locale: inviteLocale,
+              }),
+            }).catch(() => null);
+            setBusy(false);
+
+            if (!response?.ok) {
+              // The route explains itself in `message`; showing that rather
+              // than a generic failure is the difference between "try again"
+              // and "you asked for a trip link without naming a trip".
+              const body = (await response?.json().catch(() => null)) as {
+                message?: string;
+              } | null;
+              setInviteError(body?.message ?? t("contact.adminInviteFailed"));
+              return;
+            }
+            const body = (await response.json()) as { invite?: { url?: string } };
+            setFreshLink(body.invite?.url ?? null);
             setInviteName("");
+            await refresh();
           }}
         >
           <p className="font-display text-xl text-navy-900">{t("contact.adminNewInvite")}</p>
-          <label className="mt-4 block text-base font-medium text-navy-700" htmlFor="invite-name">
-            {t("contact.adminInviteFor")}
+
+          {/* Which door, first, because it changes what the rest of the form
+              means — and said in the same words the row below will use, so an
+              owner who picks "a link for someone to write" recognises the row
+              it produces. A reading link goes in a family group chat; a
+              writing link does not, which is why the sentence under each is
+              part of the control rather than a tooltip. */}
+          <fieldset className="mt-4">
+            <legend className={LABEL}>{t("contact.adminInviteKind")}</legend>
+            {(["guest", "buddy"] as const).map((kind) => {
+              // A writing link names a trip, and `POST /invites` refuses one
+              // that names nothing. So a journal with no trip cannot make this
+              // kind at all — and it is said here, on the option itself,
+              // rather than after the owner has chosen it. A control you can
+              // select that then explains why it will not work is the dead
+              // button this project's capability rule exists to avoid.
+              const unavailable = kind === "buddy" && trips.length === 0;
+              return (
+                <label
+                  key={kind}
+                  className={`mt-2 flex gap-3 rounded-xl border border-navy-200 p-4 ${
+                    unavailable ? "bg-cream-100" : "bg-white"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="invite-kind"
+                    value={kind}
+                    checked={inviteKind === kind}
+                    disabled={unavailable}
+                    onChange={() => setInviteKind(kind)}
+                    className="mt-1.5 h-5 w-5 shrink-0"
+                  />
+                  <span>
+                    <span
+                      className={`block text-lg font-semibold ${
+                        unavailable ? "text-navy-600" : "text-navy-900"
+                      }`}
+                    >
+                      {t(INVITE_KIND_KEY[kind])}
+                    </span>
+                    <span className="block text-base leading-7 text-navy-700">
+                      {unavailable
+                        ? t("contact.adminInviteNoTrips")
+                        : t(kind === "guest" ? "me.inviteGuestBody" : "me.inviteBuddyBody")}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </fieldset>
+
+          {/* Which trip, once there is a choice to make and the owner has
+              asked for the kind that needs one. */}
+          {inviteKind === "buddy" && trips.length > 0 && (
+            <>
+              <label className={`${LABEL} mt-4`} htmlFor="invite-trip">
+                {t("contact.adminInviteWhichTrip")}
+              </label>
+              <select
+                id="invite-trip"
+                className={FIELD}
+                value={inviteTrip}
+                onChange={(e) => setInviteTrip(e.target.value)}
+              >
+                {trips.map((trip) => (
+                  <option key={trip.id} value={trip.id}>
+                    {trip.title}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+
+          {/* The owner's own note, and the reason this field exists at all:
+              two links of the same kind are otherwise one row repeated, and
+              this list is the only place either can be revoked (B97). Asked
+              as "what is this for" rather than "who is it for" — a link
+              forwarded round a family is for a family, not a person, and
+              `name` was never an identity. */}
+          <label className={`${LABEL} mt-4`} htmlFor="invite-name">
+            {t("contact.adminInviteNote")}
           </label>
           <input
             id="invite-name"
-            className="mt-2 w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-lg"
+            className={FIELD}
             value={inviteName}
             onChange={(e) => setInviteName(e.target.value)}
+            placeholder={t("contact.adminInviteNotePlaceholder")}
           />
           <label className="mt-4 block text-base font-medium text-navy-700" htmlFor="invite-locale">
             {t("contact.language")}
@@ -816,11 +968,17 @@ export default function ContactsAdmin({
           </select>
           <button
             type="submit"
-            disabled={busy}
+            disabled={busy || (inviteKind === "buddy" && trips.length === 0)}
             className="mt-5 rounded-xl bg-navy-900 px-4 py-3 text-base text-cream-50 disabled:opacity-50"
           >
             {t("contact.adminCreate")}
           </button>
+
+          {inviteError && (
+            <p role="alert" className="mt-4 text-base leading-7 text-coral-600">
+              {inviteError}
+            </p>
+          )}
 
           {freshLink && (
             <div className="mt-5">
@@ -828,6 +986,14 @@ export default function ContactsAdmin({
               <code className="mt-2 block break-all rounded-xl bg-cream-100 p-3 text-sm text-navy-900">
                 {freshLink}
               </code>
+              <div className="mt-3">
+                <CopyLine
+                  value={freshLink}
+                  label={t("contact.adminCopyLink")}
+                  copiedLabel={t("contact.adminCopiedLink")}
+                  name={t("contact.adminCopyLink")}
+                />
+              </div>
             </div>
           )}
         </form>

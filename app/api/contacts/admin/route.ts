@@ -18,13 +18,7 @@ import {
   normaliseAddress,
   type PostalAddress,
 } from "@/lib/contacts/crypto";
-import {
-  createInvite,
-  inviteUrl,
-  listInvites,
-  revokeInvite,
-  type Invite,
-} from "@/lib/contacts/invites";
+import { listInvitesWithLinks, revokeInvite, type Invite } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
 import { sendApprovedMail, sendCodeMail } from "@/lib/contacts/mail";
 import { isOwner } from "@/lib/contacts/session";
@@ -75,7 +69,7 @@ function ownerView(contact: ContactRecord) {
  * ever stored, so there is nothing here to leak; that is worth keeping true by
  * construction.
  */
-function inviteView(invite: Invite) {
+function inviteView(invite: Invite & { url?: string | null }) {
   return {
     id: invite.id,
     kind: invite.kind,
@@ -86,6 +80,12 @@ function inviteView(invite: Invite) {
     expiresAt: invite.expiresAt,
     revokedAt: invite.revokedAt,
     uses: invite.uses,
+    // The one field here that is a credential — B280. It comes from
+    // `listInvitesWithLinks` and reaches only this route and the owner's own
+    // page; `GET /api/v1/{user}/invites`, which an agent bearer token also
+    // reaches, deliberately does not carry it. `guard` below is owner-only,
+    // cookie or token, which is what makes that safe.
+    url: invite.url ?? null,
   };
 }
 
@@ -106,7 +106,7 @@ export async function GET(request: Request) {
 
   return Response.json({
     contacts: (await listContacts(username)).map(ownerView),
-    invites: (await listInvites(username)).map(inviteView),
+    invites: (await listInvitesWithLinks(username, serverSite().url)).map(inviteView),
   });
 }
 
@@ -138,19 +138,15 @@ export async function POST(request: Request) {
       if (!gone) return Response.json({ error: "unknown_contact" }, { status: 404 });
       return Response.json({ ok: true, deleted: true });
     }
-    case "invite": {
-      const invite = await createInvite(username, {
-        name: typeof body.name === "string" ? body.name : undefined,
-        locale: typeof body.locale === "string" ? body.locale : undefined,
-      });
-      // Shown once. Only the hash was stored, so a link that is lost has to be
-      // reissued rather than looked up.
-      return Response.json({
-        ok: true,
-        id: invite.id,
-        url: inviteUrl(serverSite().url, username, invite.token),
-      });
-    }
+    // `case "invite"` was here, and it made a `personal` link — the only kind
+    // this panel could make, while the two an owner actually hands out were
+    // made on `/{user}/me` by a different component. B281 removed it rather
+    // than growing a second copy of the validation: the panel now posts to
+    // `POST /api/v1/{user}/invites`, which already refuses a buddy link with
+    // no trip, a guest link *with* a trip, and a trip that does not exist, and
+    // which always dates the link. Two routes that both create invites are two
+    // sets of rules to keep in step. Redemption of existing `personal` links
+    // is untouched.
     case "revoke-invite": {
       await revokeInvite(username, id);
       return Response.json({ ok: true });

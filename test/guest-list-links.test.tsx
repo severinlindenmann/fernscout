@@ -36,6 +36,11 @@ function invite(over: Partial<AdminInvite>): AdminInvite {
     expiresAt: future,
     revokedAt: null,
     uses: 0,
+    // Null by default, which is a row whose token predates B280 — the copy
+    // control is then absent. The tests here are about the *copy* on the rows,
+    // so a link that could also be copied would add a control to every
+    // assertion without changing what any of them is checking.
+    url: null,
     ...over,
   };
 }
