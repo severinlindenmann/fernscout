@@ -7,8 +7,7 @@ complexity: medium
 area: tasks, tooling, worktrees
 found: "2026-09-03"
 started: "2026-09-04T07:43:08Z"
-session: 2b6d1969-424a-4788-9497-eb5e151a5391
-claimed: "2026-09-04T07:43:08Z"
+merged: "2026-09-04T08:11:42Z"
 ---
 
 # B143 — Task ids collide when parallel sessions capture by hand
