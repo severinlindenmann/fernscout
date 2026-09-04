@@ -72,3 +72,46 @@ file; whichever lands second rebases.
   something does.
 - All three locales carry any changed string.
 - The four checks pass.
+
+## Verified
+
+All four green: `npm run build` compiled, `npx tsc --noEmit` clean, `npx eslint .`
+0 errors (4 pre-existing warnings, none in these files), `npx vitest run` 159
+files / 2426 tests. `npm run unused` reports no unused files, dependencies or
+unresolved imports — which is the check that `components/InviteLinks.tsx` is
+gone cleanly rather than merely unmounted.
+
+### Measured, at 390px, signed in as the owner
+
+Both builds served from one content copy with `auth`, `contacts` and `mail` on
+and a SQLite database, signed in through the real code flow, measured in a
+headless browser at a 390px viewport:
+
+| | Before | After | |
+| --- | --- | --- | --- |
+| The owner section | 1558px | **970px** | −588px, 38% |
+| `main`, whole page | 2393px | **1765px** | −628px, 26% |
+
+Most of that is the two cards `InviteLinks` rendered; the rest is the section
+rhythm (`mt-8` → `mt-6` on three sections, `py-8` → `py-6` on the page below
+`sm`, and the two `h3`s inside the owner card at `mt-5`).
+
+**Nothing that explains a consequence was removed.** The rendered owner section
+still reads, in order: this is your journal · the two lines to hand an agent ·
+what the agent gets · the paragraph that is decision 24 in a sentence ("It is
+not the same as being signed in here…") · inviting someone · one button. The
+stranger branch (B75/B76) is untouched.
+
+Also confirmed live in the same browser: the button leads to
+`/example/contacts`, `#invite-trip` is gone from `/me`, and B281's panel there
+offers both kinds with the reading link checked and neither disabled.
+
+### One thing the rig taught me
+
+The first "after" measurement rendered `contact.adminNewInvite` as "New personal
+link" — the string B281 had already changed. `content/locales/` lives under the
+content root, so the strings came from the *copy* of `content/` the test rig was
+using, made before B281. Not a defect in either change, and not a deployment
+risk here (`scripts/deploy.sh` syncs `content/locales/` and `content/rates/`,
+which is exactly what that step is for) — but worth knowing that a locale string
+is content, not code, when reading a page that looks a version behind.
