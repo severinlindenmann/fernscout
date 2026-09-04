@@ -92,6 +92,13 @@ server-rendered, and a map SVG or a rendered string is present in raw `curl`
 output. Reach for the browser only when the question is genuinely about client
 behaviour, and if it is held, say so rather than blocking on it.
 
+When the question is *why* the client misbehaved rather than *whether* it did,
+`chrome-devtools` answers it and Playwright does not: console errors with
+source-mapped stack traces, the actual network waterfall, and an accessibility
+tree. "The gallery is blank" is a Playwright observation; "the gallery is blank
+because the derivative 404s" is evidence. It drives its own browser, so the
+shared-instance constraint above does not apply to it.
+
 **`ssh` is sometimes refused by the permission classifier**, and the shape of
 the command decides it, not the host. A narrow, obviously read-only command
 (`ls -t <dir> | head`, a targeted `grep -oE`) usually passes where a bare `ls`
