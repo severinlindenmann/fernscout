@@ -35,9 +35,12 @@ is how an owner turns the page off**, and there is no way to delete it either.
 
 ## Work
 
-A costs door for a trip, at `/api/v1/<user>/trips/<trip>/costs`, and the same
-operations over MCP — B263 established that fixing one door and forgetting the
-other is half a fix.
+A costs door for a trip, at `/api/v1/<user>/trips/<trip>/costs`. **REST only —
+do not add an MCP tool.** B263's lesson was that fixing one door and forgetting
+the other is half a fix, and that still holds for anything with two doors; it
+does not apply here, because B298 is removing MCP at the owner's request. A new
+tool in `lib/mcp/tools.ts` would be written to be deleted, and would make that
+removal harder. If MCP ever returns, it returns with a costs tool.
 
 - **`GET`** — the budget and the preparation costs as stored, so an agent can
   read back what it wrote and tell the owner what is there. Include the trip's

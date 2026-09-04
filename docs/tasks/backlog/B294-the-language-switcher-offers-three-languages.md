@@ -92,3 +92,12 @@ Either the documents and the creation question say plainly what `locales`
 covers, or a day can carry its prose in the journal's declared languages with
 a documented fallback — and whichever is chosen, the reasoning is written down
 where the next person reads it.
+
+## Before starting
+
+B298 is removing MCP at the owner's request, and this task touches the day
+write path that MCP's `create_day` and `edit_day` mirror. Check where B298 has
+got to first: if `lib/mcp/tools.ts` is gone, there is one door to change rather
+than two, and half the work in the Work section above disappears. If it is not
+gone yet, coordinate rather than writing tool schemas that are about to be
+deleted.
