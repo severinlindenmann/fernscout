@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (86)
+## backlog (87)
 
 ### security (6)
 
@@ -142,13 +142,14 @@ Do not edit them by hand; run the script.
 | [B322](backlog/chore/B322-the-photobook-and-the-digest-read.md) | The photobook and the digest read only published days, and nobody has said whether that is a decision | CHORE | low | low |
 | [B343](backlog/chore/B343-clearmattercache-is-defined-twice-with-its.md) | clearMatterCache is defined twice, with its reasoning written out twice | CHORE | low | low |
 
-### ops (11)
+### ops (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B101](backlog/ops/B101-nobody-has-attacked-a-running-instance.md) | Nobody has attacked a running instance from the outside with the source in hand | OPS | high | high |
 | [B102](backlog/ops/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | OPS | high | medium |
 | [B103](backlog/ops/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | OPS | high | medium |
+| [B373](backlog/ops/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
 | [B65](backlog/ops/B65-the-deployed-server-has-no-backup.md) | The deployed server has no backup at all — restic, the units and the credentials were never installed | OPS | high | medium |
 | [B104](backlog/ops/B104-signup-is-on-at-the-server.md) | Signup is on at the server and off in every journal, so no account has ever been created on the live site | OPS | medium | medium |
 | [B105](backlog/ops/B105-contacts-is-on-at-the-server.md) | Contacts is on at the server and off in every journal, so no invitation has ever been carried through on the live site | OPS | medium | medium |
