@@ -218,8 +218,10 @@ export function instanceDocumentation(): string {
       "`title`, `date` and `content` are required; location, photographs and cost " +
         "are optional and are in the guide. This always writes a **draft**: there " +
         'is no `"status"` field you can send, and nothing here is on the site yet. ' +
-        "Read it back, tell the person what you wrote, and wait for them to say " +
-        "yes. Only then:",
+        "The reply carries the `slug` the day was filed under — take it from there " +
+        "rather than guessing it from the title, which is not always what a title " +
+        "reduces to. Read the day back, tell the person what you wrote, and wait " +
+        "for them to say yes. Only then, with that slug:",
       78,
     ),
     "",
