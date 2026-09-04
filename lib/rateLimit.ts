@@ -61,6 +61,32 @@ function sweep(now: number) {
   }
 }
 
+/** The hits still inside the window, oldest first. */
+function within(key: string, windowMs: number, now: number): number[] {
+  return (hits.get(key)?.times ?? []).filter((t) => now - t < windowMs);
+}
+
+/**
+ * Whether a bucket would accept one more — **without taking it**.
+ *
+ * The counting half of a limit and the deciding half are not always the same
+ * moment. `POST /api/v1/journals` has to know, before it does any work, that
+ * it is allowed to proceed, and then count the *outcome* rather than the
+ * attempt: a refused creation and a successful one belong in different
+ * buckets, and which one it is is not knowable at the top of the route. B217.
+ *
+ * Writes nothing, including no sweep: a bucket that is only read has added
+ * nothing to evict.
+ */
+function look(key: string, max: number, windowMs: number): { ok: boolean; retryAfter: number } {
+  const now = Date.now();
+  const recent = within(key, windowMs, now);
+  if (recent.length >= max) {
+    return { ok: false, retryAfter: Math.ceil((windowMs - (now - recent[0])) / 1000) };
+  }
+  return { ok: true, retryAfter: 0 };
+}
+
 /**
  * One attempt against one bucket.
  *
@@ -74,7 +100,7 @@ function take(
   windowMs: number,
 ): { ok: boolean; retryAfter: number } {
   const now = Date.now();
-  const recent = (hits.get(key)?.times ?? []).filter((t) => now - t < windowMs);
+  const recent = within(key, windowMs, now);
 
   if (recent.length >= max) {
     const retryAfter = Math.ceil((windowMs - (now - recent[0])) / 1000);
@@ -119,6 +145,22 @@ export function rateLimitFor(
   options: { max: number; windowMs: number },
 ): { ok: boolean; retryAfter: number } {
   return take(`${namespace}:${key(ip)}`, options.max, options.windowMs);
+}
+
+/**
+ * What `rateLimitFor` would answer, without spending anything.
+ *
+ * For a caller that counts what happened rather than that it was asked — see
+ * `look` above, and `POST /api/v1/journals`, which is the only caller today.
+ * Anything that both checks and consumes should still use `rateLimitFor`: two
+ * calls where one would do is a way of forgetting the second.
+ */
+export function rateLimitStatus(
+  namespace: string,
+  ip: string,
+  options: { max: number; windowMs: number },
+): { ok: boolean; retryAfter: number } {
+  return look(`${namespace}:${key(ip)}`, options.max, options.windowMs);
 }
 
 export function rateLimit(ip: string): { ok: boolean; retryAfter: number } {

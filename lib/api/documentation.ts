@@ -1086,7 +1086,7 @@ what tells them apart.
 | \`404\` | \`unknown_trip\` | No such trip, or not one this token may write to. **Fix the id.** |
 | \`404\` | \`auth_disabled\` | This server has authentication off entirely. Nothing you send will work; **stop** and tell the person. \`/api/health\` says which capabilities are on. |
 | \`409\` | — | That entry already exists, or an \`idempotency_key\` was reused for a different day. |
-| \`429\` | \`too_many_requests\` | Too many attempts. Wait; the response says how long. |
+| \`429\` | \`too_many_requests\` | Too many attempts. Wait; the response says how long. Creating a journal adds \`reason\`: \`journals_created\` is the real limit, and \`failed_attempts\` means a run of *refused* names from this address — your token is still good and the wait is not about it. |
 | \`503\` | \`mail_failed\` | A code could not be sent, and none is live. Retry. |
 
 There is no \`500\` you should ever see. If you get one, it is a fault on this
