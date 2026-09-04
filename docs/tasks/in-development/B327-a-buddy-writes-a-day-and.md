@@ -136,11 +136,62 @@ Consider whether the buddy's own access page should link the drafts waiting on
 their trip — it is where they will look, and B320 built the block it would sit
 in. Probably a follow-up rather than this ticket.
 
+## Returned from testing, 2026-09-04
+
+**It shipped with a tenth reading path still on the old gate.** Reported from
+the live site:
+
+```
+GET https://fernscout.ch/viki/media/asien-2025/bangkok/01.jpg?w=320 → 404
+```
+
+`app/[user]/media/[...path]/route.ts` decides whether a day's photographs may
+be served, and its `isDraftDay` helper ended in `!(await isOwner(username))` —
+the same gate this ticket replaced everywhere else. So a buddy could open the
+draft day, read every word of it, and get a 404 for each of its pictures. That
+is arguably worse than the bug this ticket set out to fix: the original looked
+like nothing had been written, this looks like the photographs were lost.
+
+**Why it was missed, which is the part worth keeping.** The Why section counted
+nine `includeDrafts: isOwner(user)` call sites, and the structural test written
+to prevent a regression walked `app/[user]/(trip)` and `app/[user]/trips/[trip]`
+looking for `page.tsx`. The media route is neither: it is a `route.ts`, in
+neither directory, and it did not spell the check as `includeDrafts:` at all —
+it read *with* drafts and then decided separately who could have them. A test
+that only looks where the bug was last time is not a test of the rule.
+
+Three changes, and one of them is the test:
+
+- The media route asks `draftsVisibleTo` like everything else. `isDraftDay`
+  now answers only "is this a draft", and who may see it is the caller's
+  separate question — collapsing the two was the original mistake.
+- The structural test walks **every `.ts`/`.tsx` under `app/[user]`**, strips
+  comments, and fails a file that consults `isOwner` anywhere near a draft
+  decision. `export.zip` is named as the one legitimate exemption, with the
+  reason: it hands over the whole journal and is the owner's alone.
+- `lib/plan.ts`'s contract comment still said `includeDrafts: true` was "for
+  the trip's owner — callers gate it on `isOwner`". The callers were widened
+  and the comment was not; a contract that describes code nobody has is how the
+  next reader gets it wrong.
+
+**And one thing fixed rather than captured.** The media response carried
+`Cache-Control: public, max-age=3600, stale-while-revalidate=86400` for every
+file including a draft's, which invites any shared cache to store an
+unpublished photograph and hand it to whoever asks for that URL next. It was
+already wrong when the owner was the only 200; letting the trip's people
+through widens the set, so a draft now answers `private, no-store` and a
+published photograph keeps the long cache it always had. Related to B330, and
+not the same bug — that one is `Vary` on `story.json`, this is `public` on a
+response that varies.
+
 ## Acceptance
 
 - Signed in as somebody on a trip who does not own the journal, a draft day on
   that trip is visible: on the trip page, at its own URL, in the gallery and on
-  the map.
+  the map — **including its photographs**, which is what the first attempt
+  missed.
+- A draft's photographs are served with a `Cache-Control` no shared cache may
+  store; a published day's are unchanged.
 - It is marked as not yet on the site, in words, wherever it appears.
 - The same reader sees no draft from any other trip in the journal, including
   one they can otherwise read.

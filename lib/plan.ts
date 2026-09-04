@@ -41,11 +41,17 @@ type RawStop = Partial<Record<keyof PlannedStop, unknown>>;
  * would just be a second place for it to go stale. This is the one path in
  * the codebase allowed to read draft coordinates into something rendered on
  * the map, and it must only ever be called with `includeDrafts: true` for
- * the trip's owner — callers are responsible for that check (see the map and
- * countdown pages, which gate it on `isOwner`), because by the time a stop
+ * somebody `draftsVisibleTo` has said yes to — callers are responsible for
+ * that check (see the map and countdown pages), because by the time a stop
  * reaches this function there is nothing left to distinguish "from a draft"
  * from "hand-written", and a reader must not learn where somebody is going
  * next.
+ *
+ * That audience was the trip's owner alone until B327 and is now the owner
+ * *or* somebody holding a place on the trip. The sentence above still holds
+ * for the reader it was written about: somebody on the trip is not "a reader"
+ * in that sense, they are on the bus, and where it goes next is not a secret
+ * from them.
  */
 export function getPlan(tripId: string, options: ReadOptions = {}): PlanProgress {
   const file = path.join(tripDir(tripId), "plan.md");

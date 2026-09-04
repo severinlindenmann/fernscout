@@ -124,11 +124,20 @@ function writeTrip(spec: (typeof TRIPS)[number]) {
     ].join("\n"),
   );
   // One published day and one draft, so a reader who may see drafts sees two
-  // and everyone else sees one — a difference a count can catch.
+  // and everyone else sees one — a difference a count can catch. Each gets a
+  // photograph in the folder the media route addresses by slug, so the same
+  // fixture answers "may they read it" and "may they see its pictures".
   for (const [name, title, draft] of [
     ["2026-08-25-arrival.md", "Arrival", false],
     ["2026-08-26-unfinished.md", "Unfinished", true],
   ] as const) {
+    const slug = name.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "");
+    fs.mkdirSync(path.join(root, "media", slug), { recursive: true });
+    // A JPEG's first four bytes, which is all `contentTypeFor` looks at.
+    fs.writeFileSync(
+      path.join(root, "media", slug, "01.jpg"),
+      Buffer.from([0xff, 0xd8, 0xff, 0xdb]),
+    );
     fs.writeFileSync(
       path.join(root, "entries", name),
       [
@@ -264,40 +273,148 @@ describe("who may see a trip's drafts", () => {
 });
 
 /**
+ * The tenth reading path — the one B327 shipped without.
+ *
+ * A buddy could open the draft day and read every word of it, and each of its
+ * photographs came back 404, because `app/[user]/media/[...path]/route.ts`
+ * still ended its draft check in `!(await isOwner(username))`. Reported from
+ * the live site, against a real request:
+ * `GET /viki/media/asien-2025/bangkok/01.jpg?w=320` → 404.
+ *
+ * A day whose words are readable and whose pictures are not is arguably worse
+ * than the original bug: the first looked like nothing had been written, this
+ * looks like the photographs were lost.
+ */
+describe("a draft day's photographs", () => {
+  async function fetchPhoto(tripId: string, slug: string) {
+    const { GET } = await import("@/app/[user]/media/[...path]/route");
+    const segments = [tripId, slug, "01.jpg"];
+    return GET(
+      new Request(`https://example.test/${OWNER}/media/${segments.join("/")}`),
+      { params: Promise.resolve({ user: OWNER, path: segments }) } as never,
+    );
+  }
+
+  test("reach somebody on the trip, which is the reported bug", async () => {
+    as("traveller");
+    expect((await fetchPhoto("robins-2026", "unfinished")).status).toBe(200);
+  });
+
+  test("and the published day's reach them too, as they always did", async () => {
+    as("traveller");
+    expect((await fetchPhoto("robins-2026", "arrival")).status).toBe(200);
+  });
+
+  test("do not reach a guest of the journal, who may still read the published day", async () => {
+    as("guest");
+    expect((await fetchPhoto("robins-2026", "unfinished")).status).toBe(404);
+    expect((await fetchPhoto("robins-2026", "arrival")).status).toBe(200);
+  });
+
+  test("do not reach a signed-in stranger or an anonymous reader", async () => {
+    for (const viewer of ["stranger", "anonymous"]) {
+      as(viewer);
+      expect((await fetchPhoto("robins-2026", "unfinished")).status).toBe(404);
+    }
+  });
+
+  test("and not on a trip they are not on, even a public one", async () => {
+    as("traveller");
+    expect((await fetchPhoto("open-2026", "unfinished")).status).toBe(404);
+  });
+
+  test("still reach the owner", async () => {
+    as("owner");
+    expect((await fetchPhoto("open-2026", "unfinished")).status).toBe(200);
+  });
+
+  /**
+   * The response now varies by who asked, so no shared cache may keep it.
+   * `public, max-age=3600` was already wrong when the owner was the only 200;
+   * widening the audience is what made it worth fixing rather than noting.
+   */
+  test("are never stored by a cache, while published ones still are", async () => {
+    as("traveller");
+    const draft = await fetchPhoto("robins-2026", "unfinished");
+    expect(draft.headers.get("Cache-Control")).toBe("private, no-store");
+
+    const published = await fetchPhoto("robins-2026", "arrival");
+    expect(published.headers.get("Cache-Control")).toContain("public");
+  });
+});
+
+/**
  * The structural half, in the spirit of `test/trip-gate.test.ts`: the failure
  * this guards against is somebody adding a page next year and reaching for
  * `isOwner` because that is what the neighbouring pages used to do. Grepping
  * is blunt, and it is the instrument that catches the thing that happens.
  */
-describe("no page under the trip gate decides drafts for itself", () => {
-  const dirs = ["app/[user]/(trip)", "app/[user]/trips/[trip]"];
+describe("nothing under app/[user] decides drafts for itself", () => {
+  /**
+   * **Every file under `/[user]`, not only `page.tsx`.**
+   *
+   * The first version of this walked `app/[user]/(trip)` and
+   * `app/[user]/trips/[trip]` looking for `page.tsx`, on the reasoning that
+   * those are the two route groups that render a trip. It shipped, and it
+   * missed `app/[user]/media/[...path]/route.ts` — which gated a draft day's
+   * photographs on `isOwner` and went on doing so, so a buddy could open the
+   * day, read every word, and get a 404 for each of its pictures.
+   *
+   * A test that only looks where the bug was last time is not a test of the
+   * rule. `story.json` is outside those two directories as well, and so is
+   * anything a future route adds; the rule is about the *journal*, so the walk
+   * is the journal's whole tree.
+   */
+  const root = path.join(process.cwd(), "app/[user]");
 
-  function pagesUnder(d: string): string[] {
-    const root = path.join(process.cwd(), d);
+  function sourcesUnder(at: string): string[] {
     const out: string[] = [];
-    const walk = (at: string) => {
-      for (const e of fs.readdirSync(at, { withFileTypes: true })) {
-        const full = path.join(at, e.name);
-        if (e.isDirectory()) walk(full);
-        else if (e.name === "page.tsx") out.push(full);
-      }
-    };
-    walk(root);
+    for (const e of fs.readdirSync(at, { withFileTypes: true })) {
+      const full = path.join(at, e.name);
+      if (e.isDirectory()) out.push(...sourcesUnder(full));
+      else if (e.name.endsWith(".ts") || e.name.endsWith(".tsx")) out.push(full);
+    }
     return out;
   }
 
-  const pages = dirs.flatMap(pagesUnder);
+  const sources = sourcesUnder(root);
 
-  test("there are pages to check", () => {
-    expect(pages.length).toBeGreaterThanOrEqual(10);
+  /**
+   * The one file where `isOwner` beside a draft is correct.
+   *
+   * `export.zip` hands over the **whole journal** — private journeys,
+   * unpublished drafts and photographs, as `del.export` says in as many words.
+   * That is the owner's alone and has nothing to do with what a trip's people
+   * may read: somebody on one trip must not be able to download the journal
+   * because of it. Named here with the reason rather than left to a looser
+   * pattern, so the next file that wants an exemption has to argue for one.
+   */
+  const OWNER_ONLY = new Set(["app/[user]/export.zip/route.ts"]);
+
+  /** Comments say `isOwner` when explaining why it is *not* used any more —
+   * this file's own history is written into the media route — so the rule is
+   * about code and the prose is stripped before it is applied. */
+  function code(src: string): string {
+    return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  }
+
+  test("there are sources to check", () => {
+    expect(sources.length).toBeGreaterThanOrEqual(20);
   });
 
-  test.each(pages.map((p) => [path.relative(process.cwd(), p), p]))(
-    "%s never gates includeDrafts on isOwner",
-    (_label, file) => {
-      const src = fs.readFileSync(file, "utf8");
+  test.each(sources.map((p) => [path.relative(process.cwd(), p), p]))(
+    "%s never decides who sees a draft from isOwner",
+    (label, file) => {
+      const src = code(fs.readFileSync(file, "utf8"));
       expect(src).not.toMatch(/includeDrafts:\s*(await\s+)?isOwner/);
       expect(src).not.toMatch(/includeDrafts:\s*owner\b/);
+      // The media route's shape, and the one the first version of this test
+      // walked past: `isOwner` consulted inside the decision about whether a
+      // draft may be served. A file that does both is either wrong or listed
+      // above with a reason.
+      if (/\bdraft/i.test(src) && !OWNER_ONLY.has(label.split(path.sep).join("/"))) {
+        expect(src).not.toMatch(/\bisOwner\s*\(/);
+      }
     },
   );
 });
