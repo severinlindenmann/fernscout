@@ -6,6 +6,9 @@ priority: low
 complexity: medium
 area: config, api
 found: "2026-09-04T06:41:01Z"
+started: "2026-09-04T08:57:04Z"
+session: 7d30451d-0304-4631-8484-d96036fb11b4
+claimed: "2026-09-04T08:57:04Z"
 ---
 
 # B220 — The rest of a journal's config.json still cannot be changed after it is created
