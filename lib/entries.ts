@@ -346,6 +346,11 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
 
   for (const day of getDays(ref, options)) {
     const lead = day.lead;
+    // A day with no coordinates at all cannot be drawn, so it is not a place
+    // — the day somebody spends on a train with nothing to report (B381).
+    // Distinct from B339 below: that is a day that *has* coordinates and an
+    // empty name. This is a day with nothing to plot, full stop.
+    if (!Number.isFinite(lead.lat) || !Number.isFinite(lead.lng)) continue;
     const last = places.at(-1);
     // Merged only when the day actually names where it was. `location:` is
     // optional, so an unnamed day arrives as `""` — and `"" === ""` held, which
