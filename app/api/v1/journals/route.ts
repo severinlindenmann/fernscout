@@ -211,24 +211,53 @@ export async function POST(request: Request) {
     );
   }
 
-  // `locales` stays optional — defaulting it to [defaultLocale] is a real
-  // default, not a decision taken on somebody's behalf — but any language it
-  // does name is checked against the same maintained set.
+  // Required for the same reason as defaultLocale above, and named
+  // separately because it answers a different question: which languages a
+  // *reader* may switch the journal into, not which one the owner writes in.
+  // B277 — a weak agent omits whatever it is allowed to omit, and this field
+  // was still allowed to be silent: a journal asked for three languages got
+  // one, with no switcher to reach the other two and no page for the owner
+  // to add them from afterwards.
   const locales = list("locales");
-  if (locales) {
-    const bad = locales.find((code) => !(MAINTAINED_LOCALES as readonly string[]).includes(code));
-    if (bad !== undefined) {
-      return refuse(
-        {
-          error: "invalid_request",
-          message:
-            `locales has ${JSON.stringify(bad)}; each entry must be one of ${LOCALE_LIST} — ` +
-            "which of them a reader may switch the journal into. Left out, the journal " +
-            "offers only defaultLocale.",
-        },
-        400,
-      );
-    }
+  if (locales === undefined) {
+    return refuse(
+      {
+        error: "invalid_request",
+        message:
+          "locales is required — which languages a reader may switch the journal into, as " +
+          "distinct from defaultLocale, the owner's own. There is no default worth picking " +
+          `for somebody: ask, and send the codes — ${LOCALE_LIST}.`,
+      },
+      400,
+    );
+  }
+  const bad = locales.find((code) => !(MAINTAINED_LOCALES as readonly string[]).includes(code));
+  if (bad !== undefined) {
+    return refuse(
+      {
+        error: "invalid_request",
+        message:
+          `locales has ${JSON.stringify(bad)}; each entry must be one of ${LOCALE_LIST} — ` +
+          "which of them a reader may switch the journal into.",
+      },
+      400,
+    );
+  }
+  // It must contain defaultLocale: a journal whose own language is not on
+  // offer to its own readers is a config problem lib/config.ts already
+  // flags — with a warning nobody sees, on a file that has already loaded.
+  // Refused here, with a message, rather than written broken.
+  if (!locales.includes(defaultLocale)) {
+    return refuse(
+      {
+        error: "invalid_request",
+        message:
+          `locales must contain defaultLocale (${JSON.stringify(defaultLocale)}) — a journal ` +
+          "whose own language is not on offer to its readers is a config problem, not a " +
+          "preference.",
+      },
+      400,
+    );
   }
 
   const created = createJournal({

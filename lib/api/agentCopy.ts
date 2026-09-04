@@ -157,9 +157,10 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
       ask: "**Which languages a reader may switch the journal into**",
       because:
         "A different question from the one above — their own language is not necessarily " +
-        `everyone their audience reads in. Choose from the same ${LOCALE_LIST} and send it ` +
-        'as `locales`, e.g. `["de", "en"]`. Left out, the journal offers only the one ' +
-        "language named in `defaultLocale` — no switcher at all.",
+        `everyone their audience reads in. Choose from the same ${LOCALE_LIST}, including ` +
+        "`defaultLocale` itself, and send it as `locales`, e.g. `[\"de\", \"en\"]`. Required " +
+        "— a journal created without it has no language switcher at all, which is how one " +
+        "asked for three languages ended up with one (B277).",
     },
   ];
 }

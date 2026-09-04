@@ -988,6 +988,43 @@ const createJournalTool: Handler = (session, args) => {
     };
   }
 
+  // Required for the same reason as default_locale above, and named
+  // separately — B277 — because it answers a different question: which
+  // languages a *reader* may switch the journal into, not which one the
+  // owner writes in. Left optional, an agent that never asked left a
+  // journal with no switcher at all.
+  const locales = Array.isArray(args.locales)
+    ? args.locales.filter((v): v is string => typeof v === "string")
+    : undefined;
+  if (locales === undefined) {
+    return {
+      ok: false,
+      error:
+        "locales is required — which languages a reader may switch the journal into, as " +
+        "distinct from default_locale, the owner's own. There is no default worth picking " +
+        `for somebody: ask, and send the codes — ${LOCALE_LIST}.`,
+    };
+  }
+  const badLocale = locales.find((code) => !(MAINTAINED_LOCALES as readonly string[]).includes(code));
+  if (badLocale !== undefined) {
+    return {
+      ok: false,
+      error: `locales has ${JSON.stringify(badLocale)}; each entry must be one of ${LOCALE_LIST}.`,
+    };
+  }
+  // It must contain default_locale — a journal whose own language is not on
+  // offer to its own readers is a config problem lib/config.ts already
+  // flags, with a warning nobody sees on a file that has already loaded.
+  if (!locales.includes(defaultLocale)) {
+    return {
+      ok: false,
+      error:
+        `locales must contain default_locale (${JSON.stringify(defaultLocale)}) — a journal ` +
+        "whose own language is not on offer to its readers is a config problem, not a " +
+        "preference.",
+    };
+  }
+
   const created = createJournal({
     username,
     title,
@@ -998,6 +1035,7 @@ const createJournalTool: Handler = (session, args) => {
     visibility,
     startLocation: optionalString(args, "start_location"),
     defaultLocale,
+    locales,
     baseCurrency: optionalString(args, "base_currency"),
   });
   if (!created.ok) return { ok: false, error: created.message };
@@ -1419,9 +1457,26 @@ export const TOOLS: readonly ToolEntry[] = [
             "Language code, e.g. en or de — the language the owner writes in. Sets the " +
             "site's chrome and the welcome mail. Required; there is no default. Ask.",
         },
+        locales: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Which languages a reader may switch the journal into — a different question " +
+            "from default_locale, the owner's own. Required and must include " +
+            "default_locale; there is no default. Ask which languages the audience reads " +
+            "in.",
+        },
         base_currency: { type: "string", description: "Currency costs are kept in. Default CHF." },
       },
-      required: ["username", "title", "owner_name", "owner_nickname", "visibility", "default_locale"],
+      required: [
+        "username",
+        "title",
+        "owner_name",
+        "owner_nickname",
+        "visibility",
+        "default_locale",
+        "locales",
+      ],
       additionalProperties: false,
     },
     annotations: {

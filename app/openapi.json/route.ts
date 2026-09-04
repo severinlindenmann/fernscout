@@ -689,6 +689,7 @@ export function GET() {
                     "ownerNickname",
                     "visibility",
                     "defaultLocale",
+                    "locales",
                   ],
                   properties: {
                     username: { type: "string", description: "The journal's address. Permanent." },
@@ -734,10 +735,14 @@ export function GET() {
                     locales: {
                       type: "array",
                       items: { type: "string", enum: [...MAINTAINED_LOCALES] },
+                      // No `default`: B277 — the same silent shape B263 found in
+                      // visibility and defaultLocale, one field over. Left
+                      // optional, a journal asked for three languages got one,
+                      // with no switcher to reach the other two.
                       description:
-                        "Which languages a reader may switch the journal into. Optional — " +
-                        `left out, the journal offers only defaultLocale. Each entry must be ` +
-                        `one of ${LOCALE_LIST}.`,
+                        `Required — there is no default. Which languages a reader may switch ` +
+                        `the journal into, as distinct from defaultLocale, the owner's own. ` +
+                        `Must include defaultLocale. Each entry must be one of ${LOCALE_LIST}.`,
                     },
                     baseCurrency: { type: "string" },
                     displayCurrencies: { type: "array", items: { type: "string" } },
@@ -764,8 +769,9 @@ export function GET() {
             },
             "400": {
               description:
-                "The username, title or owner name/nickname is not usable, or visibility " +
-                "or defaultLocale is missing or not a value this server accepts.",
+                "The username, title or owner name/nickname is not usable, or visibility, " +
+                "defaultLocale or locales is missing or not a value this server accepts, or " +
+                "locales does not contain defaultLocale.",
             },
             "401": { description: "Missing or invalid signup token" },
             "403": { description: "This address already owns as many journals as it may" },

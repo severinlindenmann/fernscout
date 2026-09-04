@@ -61,6 +61,7 @@ const GOOD = {
   ownerNickname: "Robin",
   visibility: "public",
   defaultLocale: "en",
+  locales: ["en"],
 };
 /** Refused by `createJournal` every time, and cheap: no journal is written. */
 const NOT_A_NAME = { ...GOOD, username: "Has Capitals" };
