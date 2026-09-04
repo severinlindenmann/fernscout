@@ -125,9 +125,17 @@ export const BUDGET_QUESTION =
  * the one thing that would satisfy them (B316). So the rule now turns on
  * whether the owner asked — silent translation is still the failure, asked-for
  * translation is not, and either way the day must say which words are whose.
+ *
+ * B326 added the clause naming which slot holds which language, after an
+ * agent working from English prose for a `defaultLocale: de` journal put
+ * English in the day's own `title`/`content` and German in
+ * `translations.de` — backwards, and nothing here or in the refusal said so
+ * until then.
  */
 export const TRANSLATIONS_REQUIRED =
-  "**`translations` — the day's title and content in the journal's other languages.** A " +
+  "**`translations` — the day's title and content in the journal's other languages.** The " +
+  "day's own `title` and `content` are the journal's `defaultLocale` version; `translations` " +
+  "holds the rest, one entry per remaining language. A " +
   "journal readable in three languages writes its days in three: a day missing one is " +
   "refused, and the refusal names which. Send it as " +
   '`{"en": {"title": "…", "content": "…"}}`, keyed by language code, for every language ' +
