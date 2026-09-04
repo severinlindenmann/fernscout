@@ -444,10 +444,14 @@ export function basemapForRoute(points: readonly Point[]): Basemap | null {
  * what must not overlap is the drawn text, and that keeps its size on screen
  * however far the map is zoomed.
  */
-function spread(candidates: BasemapLabel[], frame: Frame, limit: number): BasemapLabel[] {
+export function spread<T extends { x: number; y: number }>(
+  candidates: T[],
+  frame: Frame,
+  limit: number,
+): T[] {
   const apartX = frame.w * 0.22;
   const apartY = frame.h * 0.07;
-  const kept: BasemapLabel[] = [];
+  const kept: T[] = [];
   for (const candidate of candidates) {
     if (kept.length >= limit) break;
     const collides = kept.some(

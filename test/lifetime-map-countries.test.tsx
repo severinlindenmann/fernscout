@@ -117,3 +117,62 @@ describe("countries visited", () => {
     expect(render([])).toContain('role="img"');
   });
 });
+
+/**
+ * B364. The fill branch was drawing its countries on a bare coastline while
+ * the branch beside it drew borders and lakes from the basemap the page was
+ * already computing and passing in — one component, two answers to how much
+ * map a map has.
+ */
+describe("map detail", () => {
+  const basemap = {
+    borders: ["M0,0 L1,1 Z"],
+    admin1: [],
+    relief: [],
+    glaciers: [],
+    parks: [],
+    railroads: [],
+    roads: [],
+    lakes: ["M2,2 L3,3 Z"],
+    rivers: ["M4,4 L5,5 Z"],
+    peaks: [],
+    towns: [],
+    attribution: "",
+  };
+
+  function withMap(extra: Record<string, unknown> = {}) {
+    return renderToStaticMarkup(
+      <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+        <LifetimeMap routes={[route]} visits={[ONE]} userPath="/u" {...extra} />
+      </LocaleProvider>,
+    );
+  }
+
+  test("draws the basemap's borders, lakes and rivers under the fill", () => {
+    const html = withMap({ basemap });
+    expect(html).toContain("M0,0 L1,1 Z"); // borders
+    expect(html).toContain("M2,2 L3,3 Z"); // lakes
+    expect(html).toContain("M4,4 L5,5 Z"); // rivers
+  });
+
+  test("water is drawn after the fill, so a lake is never buried under it", () => {
+    const html = withMap({ basemap });
+    expect(html.indexOf(ONE.path)).toBeLessThan(html.indexOf("M2,2 L3,3 Z"));
+  });
+
+  test("a journal with no basemap still renders, on the plain outline", () => {
+    expect(() => withMap()).not.toThrow();
+  });
+
+  test("names the countries it is given, and nothing else", () => {
+    const html = withMap({ labels: [{ code: "TH", name: "Thailand", x: 780, y: 213 }] });
+    expect(html).toContain("Thailand");
+    expect(html).not.toContain("France");
+  });
+
+  test("a country with no label still keeps its fill", () => {
+    // The crowding guard drops names, never countries.
+    const html = withMap({ labels: [] });
+    expect(html).toContain(ONE.path);
+  });
+});

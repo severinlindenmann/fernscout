@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
-import { basemapFor } from "@/lib/basemap";
+import { basemapFor, spread } from "@/lib/basemap";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { getPlaces, getTripStats } from "@/lib/entries";
 import { frameRoute } from "@/lib/mapFrame";
@@ -23,6 +23,15 @@ import TripsIndexContent, { type EmptyJournal } from "./TripsIndexContent";
  * The sharing card follows the *journal*, because the people who see one are
  * not this reader and their language is not knowable from this request.
  */
+/**
+ * How many countries may be named at once.
+ *
+ * Fewer than the basemap's 22 towns: a country name is longer, and this is the
+ * widest frame on the site, so the same number would be a wall of text laid
+ * over the fills it is meant to explain.
+ */
+const MAX_COUNTRY_LABELS = 12;
+
 export async function generateMetadata(): Promise<Metadata> {
   const reader = await requestLocale();
   const journal = localeForPath((await headers()).get(PATH_HEADER));
@@ -225,9 +234,32 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
       // A country with no shape is one Natural Earth cannot name (Antarctica,
       // N. Cyprus, Somaliland) or a code nothing matched — dropped rather
       // than drawn, since there is nothing to draw.
-      return shape ? { code, name: shape.name, path: shape.path, trips } : null;
+      return shape
+        ? { code, name: shape.name, path: shape.path, x: shape.x, y: shape.y, w: shape.w, trips }
+        : null;
     })
     .filter((v): v is NonNullable<typeof v> => v !== null);
+
+  /**
+   * Which visited countries get their name written on them — B364.
+   *
+   * `spread` is the same collision test the basemap already uses to keep town
+   * labels from piling up (lib/basemap.ts): candidates are offered
+   * largest-first and dropped when one is already too close, so a crowded
+   * frame simply runs out of room. Reused rather than reinvented, so there is
+   * one rule on this site for when a label is too many.
+   *
+   * Biggest first, so where two countries collide the one with room to hold a
+   * name keeps it. A dropped label never drops the fill: the country was still
+   * visited, it just has no room to say so.
+   */
+  const labels = (frame: ReturnType<typeof frameRoute>) =>
+    spread([...visits].sort((a, b) => b.w - a.w), frame, MAX_COUNTRY_LABELS).map((v) => ({
+      code: v.code,
+      name: v.name,
+      x: v.x,
+      y: v.y,
+    }));
 
   const routes = travelled.map((trip) => ({
     id: trip.id,
@@ -264,6 +296,11 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
     travelled.flatMap((t) => placesByTrip.get(t.ref)!.map((p) => p.country).filter(Boolean)),
   );
 
+  // One frame for both the basemap clip and the label spread — they have to
+  // agree about what is on screen or the labels are placed against a different
+  // map from the one drawn.
+  const mapFrame = routes.length > 0 ? frameRoute(routes.flatMap((r) => r.points)) : null;
+
   return (
     <TripsIndexContent
       trips={cards}
@@ -278,7 +315,8 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
       // that were never geotagged still gets a world map, and a basemap for
       // it. A journal with nothing but upcoming trips draws no map, and was
       // paying 160 KB of clipped-to-nothing world for it (B85).
-      basemap={routes.length > 0 ? basemapFor(frameRoute(routes.flatMap((r) => r.points))) : null}
+      basemap={mapFrame ? basemapFor(mapFrame) : null}
+      labels={mapFrame ? labels(mapFrame) : []}
       empty={empty}
       malformed={malformed}
       // The code-request form the empty state may show — see EmptyState.

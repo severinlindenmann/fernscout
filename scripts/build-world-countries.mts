@@ -69,7 +69,18 @@ function ringToPath(ring: Ring): string {
 
 const geo = feature(topology, topology.objects.countries) as { features: CountryFeature[] };
 
-const out: { code: string | null; name: string; path: string }[] = [];
+const out: {
+  code: string | null;
+  name: string;
+  path: string;
+  /** Where a label for this country goes, in the same projected space as
+   * `path`. */
+  x: number;
+  y: number;
+  /** How wide the country is on the map, for ordering labels largest-first —
+   * the big ones win a crowded frame, the way town labels already do. */
+  w: number;
+}[] = [];
 const unmatched: string[] = [];
 
 for (const f of geo.features) {
@@ -86,13 +97,34 @@ for (const f of geo.features) {
   // Every polygon of one country joins into a single path, so a country is one
   // shape to fill, hover and click. Indonesia is not thirteen thousand
   // countries, and a path per island would make it behave like them.
-  const d = polygons
-    .filter((rings) => rings[0] && rings[0].length >= 4)
-    .map((rings) => rings.map(ringToPath).join(" "))
-    .join(" ");
+  const usable = polygons.filter((rings) => rings[0] && rings[0].length >= 4);
+  const d = usable.map((rings) => rings.map(ringToPath).join(" ")).join(" ");
   if (!d) continue;
 
-  out.push({ code, name, path: d });
+  /**
+   * The label sits on the country's *largest* landmass, not on the mean of
+   * all of them. Averaging puts the United States' name in the Pacific
+   * between Alaska and Florida, and France's off the coast of South America
+   * by way of French Guiana — the label ends up in the sea for exactly the
+   * countries most likely to be visited.
+   */
+  let best: { x: number; y: number; w: number } | null = null;
+  for (const rings of usable) {
+    const pts = rings[0].map(([lng, lat]) => project(lat, lng));
+    const xs = pts.map(([x]) => x);
+    const ys = pts.map(([, y]) => y);
+    const w = Math.max(...xs) - Math.min(...xs);
+    if (!best || w > best.w) {
+      best = {
+        x: (Math.min(...xs) + Math.max(...xs)) / 2,
+        y: (Math.min(...ys) + Math.max(...ys)) / 2,
+        w,
+      };
+    }
+  }
+  if (!best) continue;
+
+  out.push({ code, name, path: d, x: +best.x.toFixed(1), y: +best.y.toFixed(1), w: +best.w.toFixed(1) });
 }
 
 fs.writeFileSync(OUT_FILE, JSON.stringify(out));
