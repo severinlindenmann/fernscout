@@ -532,6 +532,16 @@ export function openApiDocument() {
                         "How long the link stays live. There is no never — a link that does " +
                         "not expire is the shared password again, wearing a URL.",
                     },
+                    email: {
+                      type: "string",
+                      description:
+                        "Mail the link to this address, in the recipient's own language, and " +
+                        "pre-approve it — B319. Whoever proves this exact address at the " +
+                        "landing page is admitted with no queue and no second decision from " +
+                        "the owner. Proof still happens: a wrong or forwarded address grants " +
+                        "nothing to anybody. Optional; omit it to get back a link to send " +
+                        "yourself.",
+                    },
                   },
                 },
               },
@@ -541,7 +551,10 @@ export function openApiDocument() {
             "201": {
               description:
                 "The link. `url` is present exactly once, in this response; `scope` is the " +
-                "journal, or a `<user>/<trip>` ref for a buddy link.",
+                "journal, or a `<user>/<trip>` ref for a buddy link. `sent` says whether an " +
+                "`email` given above actually left — `false` still means the link and its " +
+                "pre-approval both exist, so hand `invite.url` over another way rather than " +
+                "reading a failed send as a failed invitation.",
             },
             "400": { description: "No kind, a guest link with a trip, or a buddy link without" },
             "403": { description: "Not this journal's owner" },

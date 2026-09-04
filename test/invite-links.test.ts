@@ -970,6 +970,33 @@ describe("the documents that describe them", () => {
     expect(Object.keys(document.paths)).toContain("/api/v1/{user}/invites");
     expect(Object.keys(document.paths)).toContain("/api/v1/{user}/invites/{id}");
   });
+
+  /**
+   * B333: the schema grew `email` and `sent` and the guide's worked example
+   * did not, which is exactly how the argument shipped invisible the first
+   * time — nothing wrong syntactically, nothing failing, just never shown to
+   * an agent reading either document. Pin both sides so they cannot drift
+   * apart again.
+   */
+  test("the schema names email and sent, and the guide's worked example carries email", async () => {
+    const { openApiDocument } = await import("@/lib/api/openapi");
+    const doc = openApiDocument() as { paths: Record<string, unknown> };
+    const invitesPost = (doc.paths["/api/v1/{user}/invites"] as { post: unknown }).post as {
+      requestBody: { content: { "application/json": { schema: { properties: Record<string, unknown> } } } };
+      responses: unknown;
+    };
+    expect(invitesPost.requestBody.content["application/json"].schema.properties).toHaveProperty(
+      "email",
+    );
+    expect(JSON.stringify(invitesPost.responses)).toMatch(/sent/);
+
+    const { agentGuide } = await import("@/lib/api/documentation");
+    const guide = agentGuide();
+    // The worked request body, and the worked response beside it — both from
+    // the invites example, not merely present somewhere in a 24 KB guide.
+    expect(guide).toContain('"kind": "guest", "email"');
+    expect(guide).toMatch(/"sent":\s*true/);
+  });
 });
 
 /**
