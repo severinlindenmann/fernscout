@@ -95,6 +95,7 @@ export default async function ManagePage({ params }: PageProps<"/[user]/c/[token
               status: contact.status,
               wantsEmailDigest: contact.wantsEmailDigest,
               wantsPostcard: contact.wantsPostcard,
+              wantsWhatsapp: contact.wantsWhatsapp,
               address: contact.postalAddress ?? EMPTY_ADDRESS,
             }}
           />

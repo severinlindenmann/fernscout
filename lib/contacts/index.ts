@@ -17,6 +17,8 @@ import {
 import { countInviteUse, preapprovedEmailFor } from "./invites";
 import { approveTripPlaces, revokeTripPlaces } from "../tripPeople";
 import { parseLocale } from "./locale";
+import { isMessageable } from "../whatsapp/phone";
+import { whatsappCountryCode } from "../whatsapp/settings";
 
 /**
  * One contact record — ROADMAP §3.1.
@@ -62,6 +64,9 @@ export type ContactRecord = {
   status: ContactStatus;
   wantsEmailDigest: boolean;
   wantsPostcard: boolean;
+  /** B365. A separate consent from the digest, and gated on there being a
+   * number to reach — see migration 015 and `isMessageable`. */
+  wantsWhatsapp: boolean;
   hasPostalAddress: boolean;
   postalAddress: PostalAddress | null;
   createdVia: string | null;
@@ -118,6 +123,7 @@ type ContactRow = {
   notes: string | null;
   wants_email_digest: number;
   wants_postcard: number;
+  wants_whatsapp: number;
   postal_cipher: string | null;
   created_via: string | null;
   created_at: string;
@@ -138,6 +144,7 @@ function toRecord(owner: string, row: ContactRow): ContactRecord {
     status: toStatus(row.status),
     wantsEmailDigest: toBool(row.wants_email_digest),
     wantsPostcard: toBool(row.wants_postcard),
+    wantsWhatsapp: toBool(row.wants_whatsapp),
     hasPostalAddress: row.postal_cipher !== null,
     postalAddress: decryptAddress(row.postal_cipher, addressAad(owner, row.id)),
     createdVia: row.created_via,
@@ -171,6 +178,15 @@ export type ContactRequestInput = {
   address?: Partial<PostalAddress> | null;
   wantsEmailDigest: boolean;
   wantsPostcard: boolean;
+  /**
+   * Optional where its two neighbours are required, and that asymmetry is
+   * deliberate: **absence is the absence of consent.** A caller that has
+   * never heard of this field cannot accidentally opt somebody in, which is
+   * the only failure mode here that reaches a stranger's phone. The other two
+   * are required because a form that forgot them silently *unsubscribes*
+   * somebody — the opposite risk, needing the opposite default.
+   */
+  wantsWhatsapp?: boolean;
   /** `invite:<id>` | `owner` — and `open` on rows written before B37 removed
    * the open guestbook. Those are left as they are: they record how somebody
    * actually arrived. */
@@ -244,6 +260,14 @@ export async function requestContact(
     ? (toBool(existing?.wants_postcard) && input.wantsPostcard)
     : input.wantsPostcard && isPostable(address);
 
+  // The same shape as `wantsPostcard` directly above, and for the same
+  // reason: a consent whose channel has no address is not a preference, it is
+  // a typo. `mergedAddress` rather than `address`, because a caller that did
+  // not re-ask for the number still has the one already on file.
+  const wantsWhatsapp = untouched
+    ? (toBool(existing?.wants_whatsapp) && input.wantsWhatsapp === true)
+    : input.wantsWhatsapp === true && isMessageable(mergedAddress.tel, whatsappCountryCode());
+
   const cipher = untouched
     ? (existing?.postal_cipher ?? null)
     : hasAnyDetail(mergedAddress)
@@ -266,6 +290,7 @@ export async function requestContact(
         postal_cipher: cipher,
         wants_email_digest: input.wantsEmailDigest ? 1 : 0,
         wants_postcard: wantsPostcard ? 1 : 0,
+        wants_whatsapp: wantsWhatsapp ? 1 : 0,
         updated_at: now,
       })
       .where("id", "=", existing.id)
@@ -287,6 +312,7 @@ export async function requestContact(
         postal_cipher: cipher,
         wants_email_digest: input.wantsEmailDigest ? 1 : 0,
         wants_postcard: wantsPostcard ? 1 : 0,
+        wants_whatsapp: wantsWhatsapp ? 1 : 0,
         created_via: input.createdVia,
         confirmed_at: null,
         approved_at: null,
@@ -516,6 +542,7 @@ export type SelfUpdate = {
   address?: Partial<PostalAddress> | null;
   wantsEmailDigest?: boolean;
   wantsPostcard?: boolean;
+  wantsWhatsapp?: boolean;
 };
 
 /** Change language, change address, change your mind. */
@@ -559,6 +586,7 @@ export async function updateContactSelf(
         };
 
   const wantsPostcard = patch.wantsPostcard ?? current.wantsPostcard;
+  const wantsWhatsapp = patch.wantsWhatsapp ?? current.wantsWhatsapp;
   // `isPostable` is the wrong gate for whether to keep the blob at all — a
   // record holding only a phone number is worth keeping, same as
   // `requestContact` and `updateContactByOwner`.
@@ -579,6 +607,12 @@ export async function updateContactSelf(
       // preference, it is a typo. `keepAddress` may now hold a tel-only blob,
       // so the gate is `isPostable`, not merely "there is a blob at all".
       wants_postcard: wantsPostcard && keepAddress !== null && isPostable(keepAddress) ? 1 : 0,
+      // Same gate, different channel: consent with no number to reach is not
+      // a state worth storing.
+      wants_whatsapp:
+        wantsWhatsapp && keepAddress !== null && isMessageable(keepAddress.tel, whatsappCountryCode())
+          ? 1
+          : 0,
       postal_cipher: keepAddress
         ? encryptAddress(keepAddress, addressAad(owner, current.id))
         : null,
@@ -597,7 +631,7 @@ export async function unsubscribeContact(owner: string, token: string): Promise<
   const { db } = await getDatabase();
   await db
     .updateTable("contacts")
-    .set({ wants_email_digest: 0, wants_postcard: 0, updated_at: nowIso() })
+    .set({ wants_email_digest: 0, wants_postcard: 0, wants_whatsapp: 0, updated_at: nowIso() })
     .where("id", "=", current.id)
     .execute();
   return true;
@@ -842,6 +876,7 @@ export async function updateContactByOwner(
     address?: Partial<PostalAddress> | null;
     wantsEmailDigest?: boolean;
     wantsPostcard?: boolean;
+    wantsWhatsapp?: boolean;
   },
 ): Promise<ContactRecord | null> {
   const { db } = await getDatabase();
@@ -875,9 +910,15 @@ export async function updateContactByOwner(
       : null;
     // Wanting a postcard with nowhere to send it is not a state worth storing.
     if (!isPostable(address)) patch.wants_postcard = 0;
+    // And the same for the number: an owner who clears it has ended the
+    // WhatsApp consent whether or not they touched its box.
+    if (!isMessageable(address.tel, whatsappCountryCode())) patch.wants_whatsapp = 0;
   }
   if (fields.wantsPostcard !== undefined && patch.wants_postcard === undefined) {
     patch.wants_postcard = fields.wantsPostcard ? 1 : 0;
+  }
+  if (fields.wantsWhatsapp !== undefined && patch.wants_whatsapp === undefined) {
+    patch.wants_whatsapp = fields.wantsWhatsapp ? 1 : 0;
   }
 
   if (emailChanged) {

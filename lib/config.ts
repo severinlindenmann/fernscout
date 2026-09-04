@@ -10,6 +10,7 @@ export const FEATURE_NAMES = [
   "costs",
   "push",
   "mail",
+  "whatsapp",
   "auth",
   "signup",
   "contacts",
@@ -197,6 +198,10 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   costs: { enabled: true },
   push: { enabled: false },
   mail: { enabled: false, transport: "file" },
+  // Announcements only, and off by default like every optional capability.
+  // `dry-run` writes the payload it would have sent, so the whole feature
+  // develops without a Meta account — see lib/whatsapp/index.ts.
+  whatsapp: { enabled: false, backend: "dry-run" },
   auth: { enabled: false },
   signup: { enabled: false },
   contacts: { enabled: false },

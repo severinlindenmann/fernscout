@@ -988,7 +988,14 @@ export function openApiDocument() {
             "everybody the owner knows. The response's `mail` field reports how many went, " +
             "never who to. A failed send never fails the publish; it shows up in `mail` " +
             "instead. Owner only, same as the publish itself. See " +
-            "`/api/v1/{user}/trips/{trip}/days/{slug}/send-mail` to send it again afterwards.",
+            "`/api/v1/{user}/trips/{trip}/days/{slug}/send-mail` to send it again afterwards.\n\n" +
+            "**`send_whatsapp: true` does the same on WhatsApp** — B365 — and obeys the " +
+            "same default: absent means nothing is sent. Both flags may be given at once, " +
+            "and each reports separately (`mail`, `whatsapp`) so one channel failing tells " +
+            "you nothing false about the other. Its readers are a narrower set: only " +
+            "contacts who ticked the WhatsApp box and left a usable number, because Meta " +
+            "requires opt-in to WhatsApp specifically and the digest's consent does not " +
+            "carry over.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
@@ -1006,6 +1013,12 @@ export function openApiDocument() {
                       description:
                         "Mail every entitled reader about this day once it is published. " +
                         "Absent or false sends nothing.",
+                    },
+                    send_whatsapp: {
+                      type: "boolean",
+                      description:
+                        "Message every entitled reader who opted in to WhatsApp and left a " +
+                        "usable number. Absent or false sends nothing.",
                     },
                   },
                 },
@@ -1060,6 +1073,47 @@ export function openApiDocument() {
             },
             "404": { description: "No such trip, or no such day" },
             "409": { description: "That day is still a draft — nothing to send a letter about" },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}/days/{slug}/send-whatsapp": {
+        post: {
+          summary: "Announce a published day on WhatsApp, again",
+          description:
+            "B365, and the exact counterpart of `/send-mail` beside it: message every " +
+            "entitled reader who opted in to WhatsApp about a day **already** on the site. " +
+            "Owner only, and that reasoning is stronger here than for mail — a letter waits " +
+            "in an inbox, this buzzes in somebody's pocket, and a reader who did not want it " +
+            "reports the number rather than unsubscribing. Meta bans the number and the " +
+            "journal loses the channel for everyone.\n\n" +
+            "**Not idempotent, on purpose**, exactly like `/send-mail`. The response says " +
+            "`resend: true` and how many went; a failure names its reason against a masked " +
+            "number, never the number itself. A `test: true` day, or one still a draft, " +
+            "refuses outright.\n\n" +
+            "The words are fixed: WhatsApp permits only a template approved by Meta in " +
+            "advance, so this fills variables in sentences already written. `no_template` " +
+            "means readers opted in but no approved template exists for any language they " +
+            "could be written in.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+            { name: "slug", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Sent (or attempted) — the body carries the count" },
+            "400": {
+              description:
+                "Content nobody lived, WhatsApp or contacts not enabled here, or no approved " +
+                "template for any reader's language — the body says which",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "Another journal's token, or one scoped to a single trip — which may write " +
+                "days but not message readers about them",
+            },
+            "404": { description: "No such trip, or no such day" },
+            "409": { description: "That day is still a draft — nothing to announce" },
           },
         },
       },

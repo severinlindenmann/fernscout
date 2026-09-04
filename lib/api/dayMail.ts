@@ -1,25 +1,11 @@
 import type { DayLetterOutcome } from "../digest/dayLetter";
 
 /**
- * The two API doors onto B345's letter share this: how `send_mail` arrives on
- * the publish call, and how a `DayLetterOutcome` becomes an API response.
+ * How a `DayLetterOutcome` becomes an API response, for both of B345's doors.
+ *
+ * `send_mail` itself is read by `lib/api/publishFlags.ts`, together with
+ * B365's `send_whatsapp` — one parse of a body that may only be read once.
  */
-
-/**
- * `send_mail` from the publish body — absent or anything but `true` means no
- * letter. Never throws: an empty or malformed body reads the same as
- * `false`, which is the safe default publishing must not silently widen.
- */
-export async function readSendMailFlag(request: Request): Promise<boolean> {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return false;
-  }
-  if (typeof body !== "object" || body === null) return false;
-  return (body as Record<string, unknown>).send_mail === true;
-}
 
 /**
  * What the API reports about a send — a count, never the addresses (the plan

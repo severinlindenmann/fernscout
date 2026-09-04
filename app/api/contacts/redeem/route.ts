@@ -16,6 +16,8 @@ import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
 import { claimTripPlace } from "@/lib/tripPeople";
 import { getUser } from "@/lib/users";
+import { isMessageable } from "@/lib/whatsapp/phone";
+import { whatsappCountryCode } from "@/lib/whatsapp/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -237,6 +239,13 @@ export async function POST(request: Request) {
   if (addressProvided && wantsPostcard && !isPostable(submittedAddress)) {
     return Response.json({ error: "invalid_address" }, { status: 400 });
   }
+  // The WhatsApp tick, on exactly the terms `wantsPostcard` gets: honoured
+  // only on the form step, ignored on the confirm step so this route can
+  // never answer a channel question for a reader who already chose.
+  const wantsWhatsapp = addressProvided ? body.wantsWhatsapp === true : false;
+  if (wantsWhatsapp && !isMessageable(submittedAddress.tel, whatsappCountryCode())) {
+    return Response.json({ error: "invalid_phone" }, { status: 400 });
+  }
   // A phone number is not a postal address: keep the full submission only
   // when the postcard box is ticked, otherwise only the phone number, never
   // `null` — `requestContact`'s `hasAnyDetail` decides whether that is worth
@@ -255,6 +264,7 @@ export async function POST(request: Request) {
     address: addressProvided ? addressToStore : undefined,
     wantsEmailDigest,
     wantsPostcard: addressProvided ? wantsPostcard : (known?.wantsPostcard ?? false),
+    wantsWhatsapp: addressProvided ? wantsWhatsapp : (known?.wantsWhatsapp ?? false),
     createdVia: `invite:${invite.id}`,
     inviteId: invite.id,
   });

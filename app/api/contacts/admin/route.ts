@@ -47,6 +47,7 @@ function ownerView(contact: ContactRecord) {
     status: contact.status,
     wantsEmailDigest: contact.wantsEmailDigest,
     wantsPostcard: contact.wantsPostcard,
+    wantsWhatsapp: contact.wantsWhatsapp,
     hasPostalAddress: contact.hasPostalAddress,
     postalAddress: contact.postalAddress,
     createdVia: contact.createdVia,
@@ -200,6 +201,7 @@ export async function POST(request: Request) {
         address,
         wantsEmailDigest: body.wantsEmailDigest === true,
         wantsPostcard,
+        wantsWhatsapp: body.wantsWhatsapp === true,
         createdVia: "owner",
       });
       if (result.outcome === "ignored") {
@@ -295,6 +297,9 @@ export async function POST(request: Request) {
         ...(addressChanged ? { address: body.address as Partial<PostalAddress> | null } : {}),
         ...(typeof body.wantsEmailDigest === "boolean"
           ? { wantsEmailDigest: body.wantsEmailDigest }
+          : {}),
+        ...(typeof body.wantsWhatsapp === "boolean"
+          ? { wantsWhatsapp: body.wantsWhatsapp }
           : {}),
         ...(typeof body.wantsPostcard === "boolean" && body.wantsPostcard !== current.wantsPostcard
           ? { wantsPostcard: body.wantsPostcard }

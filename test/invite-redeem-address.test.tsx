@@ -57,12 +57,17 @@ describe("the guest invite form's postal address fields", () => {
    * always done. Two front doors into one contacts table must not disagree
    * about what a reader was taken to have asked for.
    */
-  test("the digest box starts ticked and the postcard box does not", () => {
+  test("the digest box starts ticked; the postcard and WhatsApp boxes do not", () => {
     const html = render(null);
     const boxes = [...html.matchAll(/<input type="checkbox"[^>]*>/g)].map((m) => m[0]);
-    expect(boxes).toHaveLength(2);
+    expect(boxes).toHaveLength(3);
     expect(boxes[0]).toContain("checked");
     expect(boxes[1]).not.toContain("checked");
+    // B365. Unticked by default is not cosmetic: a pre-ticked box is not
+    // consent to be messaged on WhatsApp, and Meta's policy — plus the fact
+    // that the number was collected for postcards — makes this the one box
+    // that must never start on.
+    expect(boxes[2]).not.toContain("checked");
   });
 
   test("an already-known reader (the confirm step) sees none of it", () => {

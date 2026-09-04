@@ -137,6 +137,8 @@ export type ContactsTable = {
   postal_cipher: string | null;
   /** 0/1 — the schema has no boolean. Two consents, asked separately. */
   wants_email_digest: Generated<number>;
+  /** B365. Separate from the digest opt-in on purpose — see migration 015. */
+  wants_whatsapp: Generated<number>;
   wants_postcard: Generated<number>;
   /** `invite:<id>` | `open` | `owner` — which link brought them here. */
   created_via: string | null;

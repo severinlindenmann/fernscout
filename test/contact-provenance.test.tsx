@@ -41,6 +41,7 @@ function contact(over: Partial<AdminContact>): AdminContact {
     status: "active",
     wantsEmailDigest: false,
     wantsPostcard: false,
+    wantsWhatsapp: false,
     postalAddress: null,
     createdVia: null,
     createdAt: new Date().toISOString(),

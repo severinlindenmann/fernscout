@@ -73,6 +73,7 @@ export default function ContactForm({
   const [email, setEmail] = useState("");
   const [wantsDigest, setWantsDigest] = useState(true);
   const [wantsPostcard, setWantsPostcard] = useState(false);
+  const [wantsWhatsapp, setWantsWhatsapp] = useState(false);
   const [address, setAddress] = useState({
     name: "",
     line1: "",
@@ -130,6 +131,7 @@ export default function ContactForm({
         invite: inviteToken,
         wantsEmailDigest: wantsDigest,
         wantsPostcard,
+        wantsWhatsapp,
         // The phone number is always sent; the postal address only comes
         // along when the postcard box is ticked — never `null`, so a `tel`
         // typed in without wanting a postcard is not silently dropped.
@@ -155,6 +157,11 @@ export default function ContactForm({
       if (body.error === "invalid_email") return setError("contact.needEmail");
       if (body.error === "invalid_name") return setError("contact.needName");
       if (body.error === "invalid_address") return setError("contact.needAddress");
+      // Deliberately only the server's answer: whether a national number is
+      // usable depends on `defaultCountryCode`, which is server config the
+      // browser has no copy of. A client-side check would have to guess it,
+      // and would reject numbers the server accepts.
+      if (body.error === "invalid_phone") return setError("contact.needPhone");
       return setError("contact.error");
     }
     setStep("code");
@@ -342,8 +349,12 @@ export default function ContactForm({
             </div>
           </fieldset>
 
-          {/* Two questions, two boxes. "Write to me" and "post me something"
-              have different consequences and are never answered at once. */}
+          {/* Three questions, three boxes. "Write to me", "post me something"
+              and "message my phone" have different consequences and are never
+              answered at once — and the third is a separate consent in policy
+              as well as in taste: Meta wants opt-in to WhatsApp specifically,
+              and the number above was asked for as a postal detail. See
+              migration 015. */}
           <div className="mt-8 space-y-4">
             <label className="flex items-start gap-3 text-lg text-navy-900">
               <input
@@ -362,6 +373,15 @@ export default function ContactForm({
                 onChange={(e) => setWantsPostcard(e.target.checked)}
               />
               <span>{t("contact.wantsPostcard")}</span>
+            </label>
+            <label className="flex items-start gap-3 text-lg text-navy-900">
+              <input
+                type="checkbox"
+                className="mt-1.5 size-5"
+                checked={wantsWhatsapp}
+                onChange={(e) => setWantsWhatsapp(e.target.checked)}
+              />
+              <span>{t("contact.wantsWhatsapp")}</span>
             </label>
           </div>
 

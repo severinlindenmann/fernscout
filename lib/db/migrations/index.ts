@@ -13,6 +13,7 @@ import * as codeTripBinding from "./011-code-trip-binding";
 import * as contactNotified from "./012-contact-notified";
 import * as inviteTokenCipher from "./013-invite-token-cipher";
 import * as invitePreapproval from "./014-invite-preapproval";
+import * as contactWhatsapp from "./015-contact-whatsapp";
 
 /**
  * Every migration, listed by hand.
@@ -41,6 +42,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "012-contact-notified": contactNotified,
   "013-invite-token-cipher": inviteTokenCipher,
   "014-invite-preapproval": invitePreapproval,
+  "015-contact-whatsapp": contactWhatsapp,
 };
 
 export const migrationProvider: MigrationProvider = {

@@ -1221,16 +1221,50 @@ Authorization: Bearer fs_agent_…
  "sent": 6, "failed": 0}
 \`\`\`
 
-**Owner only, both of them** — the same reason \`publish\` is: a token scoped
-to one trip may write days into it and must not be able to mail the journal's
-whole readership. Only the owner's approved, opted-in readers get one — the
+### The same day, on WhatsApp
+
+If this instance has WhatsApp switched on, the identical pair exists for it —
+\`"send_whatsapp": true\` on publish, and
+\`POST .../days/<slug>/send-whatsapp\` afterwards — with the identical
+default: absent means nothing is sent. Both flags may be given at once.
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/trips/<trip-id>/days/<slug>/publish
+
+{"send_mail": true, "send_whatsapp": true}
+\`\`\`
+
+Three things differ from the letter, and they are worth knowing before you
+offer it:
+
+- **It goes to a phone.** A letter waits in an inbox; this buzzes in
+  somebody's pocket, possibly at breakfast, possibly at 3am in another
+  timezone. Ask more carefully than you would about mail, not less.
+- **Its readers are a different set.** Only contacts who ticked the WhatsApp
+  box *and* left a usable number — never everybody the digest reaches. Meta
+  requires opt-in to WhatsApp specifically, so the digest's consent does not
+  carry over, and neither does the phone number somebody typed in for
+  postcards.
+- **The words are not yours.** WhatsApp permits only a template approved by
+  Meta days in advance, so what you send is three variables dropped into
+  sentences somebody else already wrote. You cannot compose this message, and
+  a request to "say something different this time" needs a new template and
+  a day's wait.
+
+The reply is shaped like mail's, under \`whatsapp\` instead of \`mail\`, and
+carries counts rather than numbers — a failure names its reason against a
+masked number, never the number itself.
+
+**Owner only, all four of them** — the same reason \`publish\` is: a token scoped
+to one trip may write days into it and must not be able to reach the
+journal's whole readership. Only the owner's approved, opted-in readers get one — the
 letter reaches nobody a guest link or a buddy link would not already reach,
 and a \`test: true\` day sends nothing at all, whatever the flag says. The
 count comes back, never the addresses; a send that failed shows up as a
 count and a reason, not only in a server log a person never opens (B272).
 
-**The resend is not idempotent, on purpose.** \`/send-mail\` mails everybody
-again, every time — the owner asking twice is the only guard there is, so ask
+**Neither resend is idempotent, on purpose.** \`/send-mail\` and
+\`/send-whatsapp\` reach everybody again, every time — the owner asking twice is the only guard there is, so ask
 in words before you call it a second time, the same discipline as
 \`/publish\` itself.
 

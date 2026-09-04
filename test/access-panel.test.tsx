@@ -364,6 +364,7 @@ describe("the details panel, inline", () => {
       status: "active",
       wantsEmailDigest: true,
       wantsPostcard: false,
+      wantsWhatsapp: false,
       address: { name: "", line1: "", line2: "", postcode: "", city: "", country: "", tel: "" },
     },
   };
@@ -454,6 +455,7 @@ describe("what somebody on a trip is told they can write", () => {
       status: "active",
       wantsEmailDigest: true,
       wantsPostcard: false,
+      wantsWhatsapp: false,
       address: { name: "", line1: "", line2: "", postcode: "", city: "", country: "", tel: "" },
     },
   };
