@@ -100,6 +100,65 @@ const INVITE_KIND_KEY: Record<AdminInvite["kind"], TranslationKey> = {
   buddy: "me.inviteBuddyTitle",
 };
 
+/**
+ * A trip as the owner named it, rather than as the URL spells it — B321.
+ *
+ * Both lists on this page identify a trip, and both had only its id to hand:
+ * the invite row printed `asien-2025` and the contact row printed nothing at
+ * all. The titles are already a prop on this component, because the form that
+ * makes a buddy link offers them in a dropdown — so the owner picks a trip by
+ * title and is then shown the id everywhere afterwards.
+ *
+ * Falls back to the id, which is right rather than merely safe: a trip deleted
+ * or renamed since the link was issued has no title to find, and the id is
+ * still what the invite is bound to.
+ */
+function tripLabel(trips: { id: string; title: string }[], id: string): string {
+  return trips.find((trip) => trip.id === id)?.title ?? id;
+}
+
+/**
+ * How somebody came to be on this list, in words — B321.
+ *
+ * `createdVia` is provenance the database keeps for the code's benefit:
+ * `invite:<id>` | `open` | `owner` (lib/db/schema.ts). The row printed it
+ * verbatim, so the owner's answer to "came via" was a UUID — the same UUID for
+ * everybody who used one link, which made three people from one family link
+ * look like three unrelated strings.
+ *
+ * The useful half is what the *link* was, and for a buddy link **which trip**:
+ * that is the difference between somebody who reads the journal and somebody
+ * who may write days into a named trip, and it is the most important fact
+ * about a contact row. The vocabulary is the invite list's own
+ * (`INVITE_KIND_KEY`), for the reason that table gives — an owner looking at a
+ * row wants the words they were shown when they sent the link.
+ *
+ * A link that is not in the list still renders a sentence rather than falling
+ * back to the id. `listInvites` returns every row the owner has, revoked and
+ * expired included, so this is the rare case rather than the common one; when
+ * it happens, "an invite link" is true and a UUID is not more informative.
+ */
+function viaLabel(
+  createdVia: string | null,
+  invites: AdminInvite[],
+  trips: { id: string; title: string }[],
+  t: Translate,
+): string | null {
+  if (!createdVia) return null;
+  if (createdVia === "owner") return t("contact.adminViaOwner");
+  // B37 removed the open guestbook. Rows written before it still say this, and
+  // will forever.
+  if (createdVia === "open") return t("contact.adminViaOpen");
+  if (!createdVia.startsWith("invite:")) return createdVia;
+
+  const invite = invites.find((candidate) => candidate.id === createdVia.slice("invite:".length));
+  if (!invite) return t("contact.adminViaInvite");
+  const kind = t(INVITE_KIND_KEY[invite.kind]);
+  return invite.kind === "buddy" && invite.tripId
+    ? `${kind} · ${t("contact.adminInviteTrip", { trip: tripLabel(trips, invite.tripId) })}`
+    : kind;
+}
+
 const STATUS_KEY: Record<AdminContact["status"], TranslationKey> = {
   pending: "contact.statusPending",
   active: "contact.statusActive",
@@ -131,12 +190,16 @@ type Translate = (key: TranslationKey, vars?: Record<string, string>) => string;
  * React throws away its state each time. */
 function ContactRow({
   contact,
+  via,
   t,
   busy,
   act,
   onEdit,
 }: {
   contact: AdminContact;
+  /** How they came to be here, already in words — see `viaLabel`. Resolved by
+   * the caller, which is where the invite list and the trip titles are. */
+  via: string | null;
   t: Translate;
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
@@ -159,7 +222,7 @@ function ContactRow({
         <dt>{t("contact.language")}</dt>
         <dd>{contact.locale ? LOCALE_LABEL[contact.locale] : "—"}</dd>
         <dt>{t("contact.adminVia")}</dt>
-        <dd>{contact.createdVia ?? "—"}</dd>
+        <dd>{via ?? "—"}</dd>
         <dt>{t("contact.adminLastSeen")}</dt>
         <dd>{contact.lastSeenAt?.slice(0, 10) ?? t("contact.adminNever")}</dd>
         <dt>{t(STATUS_KEY[contact.status])}</dt>
@@ -561,6 +624,7 @@ export function GuestForm({
 function ContactGroup({
   title,
   rows,
+  via,
   t,
   busy,
   act,
@@ -568,6 +632,10 @@ function ContactGroup({
 }: {
   title: string;
   rows: AdminContact[];
+  /** Passed down rather than the invite list and the trips, so the three
+   * groups share one resolution and neither row component has to know that
+   * provenance is stored as an id. */
+  via: (contact: AdminContact) => string | null;
   t: Translate;
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
@@ -583,6 +651,7 @@ function ContactGroup({
           {rows.map((contact) => (
             <ContactRow
               contact={contact}
+              via={via(contact)}
               t={t}
               busy={busy}
               act={act}
@@ -612,11 +681,14 @@ function ContactGroup({
  */
 function InviteRow({
   invite,
+  trips,
   t,
   busy,
   act,
 }: {
   invite: AdminInvite;
+  /** For naming a buddy link's trip as the owner named it — see `tripLabel`. */
+  trips: { id: string; title: string }[];
   t: Translate;
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
@@ -629,7 +701,15 @@ function InviteRow({
   const detail = [
     // The trip is the whole difference between this row and the one above it,
     // so it comes first on a buddy link.
-    invite.kind === "buddy" ? t("contact.adminInviteTrip", { trip: invite.tripId ?? "—" }) : null,
+    // The title rather than the id, the same as the contact rows above — B321.
+    // Two lists on one page naming one trip two different ways is a difference
+    // the owner has to decode, and the id is what they were never shown: the
+    // form that made this link offered them a dropdown of titles.
+    invite.kind === "buddy"
+      ? t("contact.adminInviteTrip", {
+          trip: invite.tripId ? tripLabel(trips, invite.tripId) : "—",
+        })
+      : null,
     // The owner's own note. Second, and before the counters, because it is the
     // only thing that tells two rows of the same kind apart — which is what
     // the owner is actually deciding between when they reach for revoke. It
@@ -765,6 +845,12 @@ export default function ContactsAdmin({
   const approved = contacts.filter((c) => c.status === "active");
   const other = contacts.filter((c) => c.status === "blocked");
 
+  // Resolved here, where both lists are, and handed down — B321. The invites
+  // are in this component's own state and are re-read by `refresh()`, so a row
+  // says the right thing again after a link is revoked without anything having
+  // to be re-fetched for it.
+  const contactVia = (contact: AdminContact) => viaLabel(contact.createdVia, invites, trips, t);
+
   return (
     // `id` and `tabIndex` are the target of the skip link the page's header
     // renders — without them the first thing in the tab order goes nowhere.
@@ -815,6 +901,7 @@ export default function ContactsAdmin({
 
       <ContactGroup
         title={t("contact.adminPending")}
+        via={contactVia}
         rows={pending}
         t={t}
         busy={busy}
@@ -823,6 +910,7 @@ export default function ContactsAdmin({
       />
       <ContactGroup
         title={t("contact.adminApproved")}
+        via={contactVia}
         rows={approved}
         t={t}
         busy={busy}
@@ -832,6 +920,7 @@ export default function ContactsAdmin({
       {other.length > 0 && (
         <ContactGroup
           title={t("contact.adminOther")}
+          via={contactVia}
           rows={other}
           t={t}
           busy={busy}
@@ -1028,7 +1117,14 @@ export default function ContactsAdmin({
         {invites.length > 0 && (
           <ul className="mt-6 space-y-2">
             {invites.map((invite) => (
-              <InviteRow key={invite.id} invite={invite} t={t} busy={busy} act={act} />
+              <InviteRow
+                key={invite.id}
+                invite={invite}
+                trips={trips}
+                t={t}
+                busy={busy}
+                act={act}
+              />
             ))}
           </ul>
         )}
