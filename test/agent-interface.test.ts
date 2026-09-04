@@ -585,7 +585,15 @@ describe("what the guide has to tell an agent before it starts", () => {
     // or an agent satisfies the refusal by translating somebody's prose.
     expect(flat(agentGuide())).toContain(flat(TRANSLATIONS_REQUIRED));
     expect(flat(instanceDocumentation())).toContain(flat(TRANSLATIONS_REQUIRED));
-    expect(TRANSLATIONS_REQUIRED).toContain("never translate their prose yourself");
+  });
+
+  test("the translations sentence forbids translating unasked but permits it when asked", () => {
+    // B316: the B294 wording read as an absolute ban, and an agent refused an
+    // owner who asked directly. A future edit must not drop either half —
+    // the prohibition on quietly manufacturing translations, or the
+    // permission to translate on request.
+    expect(TRANSLATIONS_REQUIRED).toContain("Do not translate unasked");
+    expect(TRANSLATIONS_REQUIRED).toContain("If they ask you to, translate it");
   });
 
   test("the languages question says what answering it commits an owner to", () => {
