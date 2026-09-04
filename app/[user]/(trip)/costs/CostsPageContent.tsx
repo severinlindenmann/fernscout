@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Table2, BarChart3, TriangleAlert, TrendingDown, TrendingUp } from "lucide-react";
+import { Table2, BarChart3, TrendingDown, TrendingUp } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import UnconvertedNotice from "@/components/UnconvertedNotice";
 import { StackedShareBar, BarList, DailyColumns, CumulativeArea } from "@/components/charts/Charts";
 import { useI18n } from "@/components/LocaleProvider";
 import { useMoney } from "@/components/CurrencyProvider";
@@ -13,7 +14,6 @@ import {
   type BudgetStatus,
   type CostSummary,
   type CostCategory,
-  type Unconverted,
 } from "@/lib/costFormat";
 import type { TranslationKey } from "@/lib/i18n";
 
@@ -255,31 +255,6 @@ export default function CostsPageContent({
         )}
       </main>
     </div>
-  );
-}
-
-/**
- * The gap, stated plainly.
- *
- * Costs whose currency the trip has no rate for are left out of every total on
- * this page. Saying so is the whole point: a total that quietly shrinks — or,
- * worse, one that added 450 THB to a pile of francs — is a number nobody can
- * check.
- */
-function UnconvertedNotice({ items }: { items: Unconverted[] }) {
-  const { t } = useI18n();
-  const { original } = useMoney();
-  if (items.length === 0) return null;
-
-  const amounts = items.map((u) => original(u.amount, u.currency)).join(", ");
-  return (
-    <p
-      role="status"
-      className="mt-4 flex items-start gap-2 rounded-xl border border-coral-400/50 bg-coral-300/25 px-3.5 py-3 text-xs leading-relaxed text-navy-900"
-    >
-      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-coral-600" aria-hidden />
-      <span>{t("cost.unconverted", { amounts, file: "trip.md" })}</span>
-    </p>
   );
 }
 

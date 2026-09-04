@@ -181,7 +181,7 @@
   "cost.title": "What the trip costs",
   "cost.today": "Spent this day",
   "cost.total": "Total so far",
-  "cost.unconverted": "Not counted in these totals: {amounts}. This trip’s rate table has no rate for them, so they are shown as they were paid rather than folded into a number that would look right and be wrong. Add the missing rates to the trip’s {file}.",
+  "cost.unconverted": "Not counted in these totals: {amounts}. This trip’s rate table has no rate for them, so they are shown as they were paid rather than folded into a number that would look right and be wrong. Ask an agent working on this journal to add the missing rates.",
   "cost.underBudget": "under plan so far",
   "cost.what": "What",
   "cost.when": "When",

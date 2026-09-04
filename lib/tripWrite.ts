@@ -110,7 +110,7 @@ export type NewTrip = {
 };
 
 /** A frontmatter block that validated, or the refusal to hand back. */
-type BlockResult =
+export type BlockResult =
   | { ok: true; lines: string[] }
   | { ok: false; error: string; message: string };
 
@@ -259,7 +259,7 @@ function peopleBlock(raw: unknown): BlockResult {
  * the comparison and the rule of thumb — a currency worth less than the base
  * one has a small number.
  */
-function ratesBlock(raw: unknown): BlockResult {
+export function ratesBlock(raw: unknown): BlockResult {
   if (raw === undefined || raw === null) return NO_LINES;
   if (typeof raw !== "object" || Array.isArray(raw)) {
     return {

@@ -194,6 +194,8 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
               nights: c.nights,
               amount: c.amount,
             })),
+            // What totalSpend/spendPerDay above had to leave out — B353.
+            unconverted: costs.unconverted,
           }
         : {
             // Nights per country is not spending, and the map and the hero

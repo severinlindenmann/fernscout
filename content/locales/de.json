@@ -181,7 +181,7 @@
   "cost.title": "Was die Reise kostet",
   "cost.today": "An diesem Tag",
   "cost.total": "Bisher insgesamt",
-  "cost.unconverted": "Nicht in diesen Summen enthalten: {amounts}. Die Kurstabelle dieser Reise kennt dafür keinen Kurs, deshalb stehen die Beträge so da, wie sie bezahlt wurden — statt in einer Summe, die stimmig aussähe und falsch wäre. Trag die fehlenden Kurse in {file} nach.",
+  "cost.unconverted": "Nicht in diesen Summen enthalten: {amounts}. Die Kurstabelle dieser Reise kennt dafür keinen Kurs, deshalb stehen die Beträge so da, wie sie bezahlt wurden — statt in einer Summe, die stimmig aussähe und falsch wäre. Bitte einen Agenten, der an diesem Journal arbeitet, die fehlenden Kurse nachzutragen.",
   "cost.underBudget": "bisher unter Plan",
   "cost.what": "Was",
   "cost.when": "Wann",
