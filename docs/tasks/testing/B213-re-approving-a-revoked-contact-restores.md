@@ -7,8 +7,7 @@ complexity: low
 area: contacts, trips, grants
 found: "2026-09-04"
 started: "2026-09-04T08:39:10Z"
-session: 7d30451d-0304-4631-8484-d96036fb11b4
-claimed: "2026-09-04T08:39:10Z"
+merged: "2026-09-04T08:56:53Z"
 ---
 
 # B213 — An un-revoke that only half works, and reports success
