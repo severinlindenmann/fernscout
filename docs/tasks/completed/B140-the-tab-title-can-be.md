@@ -8,6 +8,7 @@ area: i18n, ui
 found: "2026-09-03"
 started: "2026-09-04T06:22:42Z"
 merged: "2026-09-04T07:11:28Z"
+completed: "2026-09-04T07:37:45Z"
 ---
 
 # B140 — The tab title can be in a language the journal does not offer

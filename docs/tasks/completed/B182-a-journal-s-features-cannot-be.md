@@ -8,6 +8,7 @@ area: config, api, capabilities
 found: "2026-09-03T19:46:29Z"
 started: "2026-09-04T06:22:44Z"
 merged: "2026-09-04T06:50:22Z"
+completed: "2026-09-04T07:37:44Z"
 ---
 
 # B182 — A journal's features cannot be changed after it is created, so every journal made before today is stuck as it was

@@ -102,6 +102,7 @@ Do not edit them by hand; run the script.
 | [B218](backlog/B218-a-postcard-run-reports-three-files.md) | A postcard run reports three files per recipient and writes four | ISSUE | low | low |
 | [B220](backlog/B220-the-rest-of-a-journal-s.md) | The rest of a journal's config.json still cannot be changed after it is created | ISSUE | low | medium |
 | [B221](backlog/B221-a-comment-in-mapframe-points-at.md) | A comment in mapFrame points at a file and a helper that do not exist | ISSUE | low | low |
+| [B225](backlog/B225-the-landing-page-s-tab-title.md) | The landing page's tab title is English over a translated page | ISSUE | low | low |
 | [B88](backlog/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low |
 | [B90](backlog/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
@@ -151,11 +152,9 @@ Do not edit them by hand; run the script.
 | [B136](testing/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low | — |
 | [B16](testing/B16-the-day-photo-viewer-does-not.md) | The day photo viewer does not answer to touch and never says where you are | ISSUE | medium | low | — |
 | [B160](testing/B160-a-one-time-code-endpoint-answers.md) | A one-time code endpoint answers 202 when the server cannot send mail at all | ISSUE | medium | low | — |
-| [B165](testing/B165-turning-the-costs-capability-off.md) | Turning the costs capability off leaves the costs pages fully rendered | ISSUE | medium | low | — |
 | [B177](testing/B177-a-trip-map-s-basemap-is.md) | A trip map's basemap is half a megabyte for a route sixty-eight kilometres across | ISSUE | medium | medium | — |
 | [B178](testing/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low | — |
 | [B179](testing/B179-one-failed-read-of-the-basemap.md) | One failed read of the basemap bundle turns every map on the instance blank until restart | ISSUE | medium | low | — |
-| [B182](testing/B182-a-journal-s-features-cannot-be.md) | A journal's features cannot be changed after it is created, so every journal made before today is stuck as it was | ISSUE | medium | medium | — |
 | [B184](testing/B184-the-digest-cannot-be-exercised-end.md) | The digest cannot be exercised end to end, because everything an agent may write is filtered out of it | CHORE | medium | low | — |
 | [B25](testing/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low | — |
 | [B35](testing/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
@@ -172,13 +171,11 @@ Do not edit them by hand; run the script.
 | [B130](testing/B130-re-approving-a-contact-leaves.md) | Re-approving a contact leaves an expired grant expired, so the approval does nothing | ISSUE | low | low | — |
 | [B133](testing/B133-nothing-tests-the-url-upload-branch.md) | Nothing tests the URL upload branch end to end, so the kept-original promise rests on one shared writer | CHORE | low | low | — |
 | [B137](testing/B137-a-refused-url-tells-the-caller.md) | A refused URL tells the caller to retry a permanent failure and says nothing about a transient one | ISSUE | low | low | — |
-| [B140](testing/B140-the-tab-title-can-be.md) | The tab title can be in a language the journal does not offer, while the page is not | ISSUE | low | low | — |
 | [B150](testing/B150-two-recipients-with-the-same.md) | Two recipients with the same Latin name overwrite each other's postcards | ISSUE | low | low | — |
 | [B152](testing/B152-the-guide-calls-the-relayed-sign.md) | The guide calls the relayed sign-in link the same link as the mailed one, and never says what kills it | CHORE | low | low | — |
 | [B158](testing/B158-the-publish-confirmation-promises-feed-and.md) | The publish confirmation promises feed and search for a day that is excluded from both | ISSUE | low | low | — |
 | [B170](testing/B170-the-journal-title-is-clipped.md) | The journal's title is clipped in the header at exactly the width where the nav labels appear | ISSUE | low | low | — |
 | [B175](testing/B175-create_trip-over-mcp-cannot-ask.md) | create_trip over MCP cannot ask for an unadvertised trip, because it has no listed field | ISSUE | low | low | — |
-| [B183](testing/B183-mcp-advertises-the-invite-tools-to.md) | MCP advertises the invite tools to a journal that has contacts switched off | CHORE | low | low | — |
 | [B185](testing/B185-a-locale-cookie-the-journal-does.md) | A locale cookie the journal does not list translates the tab title but not the page under it | ISSUE | low | low | — |
 | [B186](testing/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | CHORE | low | low | — |
 | [B198](testing/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | ISSUE | low | low | — |
@@ -211,9 +208,11 @@ Do not edit them by hand; run the script.
 | [B145](completed/B145-task-stamps-record-only-a-date.md) | Task stamps record only a date, and nothing says which agent is on it | CHORE | medium | low |
 | [B154](completed/B154-the-readme-describes-a-scroll-driven.md) | The README describes a scroll-driven map and a photo journal without showing one | CHORE | medium | low |
 | [B159](completed/B159-a-contact-request-answers-every-token.md) | A contact request answers every token identically but takes ten times longer for a live one | SECURITY | medium | low |
+| [B165](completed/B165-turning-the-costs-capability-off.md) | Turning the costs capability off leaves the costs pages fully rendered | ISSUE | medium | low |
 | [B17](completed/B17-how-a-trip-gets-its-rates.md) | How a trip gets its rates is written down nowhere a person will find it | CHORE | medium | low |
 | [B180](completed/B180-the-bounded-probe-test-never-runs.md) | The bounded-probe test never runs, because it needs a coreutils binary macOS does not have | CHORE | medium | low |
 | [B181](completed/B181-the-postgres-dump-test-has-never.md) | The restore drill has never run in CI, because nothing there installs restic | CHORE | medium | medium |
+| [B182](completed/B182-a-journal-s-features-cannot-be.md) | A journal's features cannot be changed after it is created, so every journal made before today is stuck as it was | ISSUE | medium | medium |
 | [B19](completed/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium |
 | [B26](completed/B26-the-welcome-mail-is-english-only.md) | The welcome mail is English only, and nobody is asked which language the journal is in | FEATURE | medium | low |
 | [B27](completed/B27-the-welcome-mail-s-link-opens.md) | The welcome mail's link opens the public view, so the owner cannot see their own drafts | FEATURE | medium | medium |
@@ -245,7 +244,9 @@ Do not edit them by hand; run the script.
 | [B117](completed/B117-a-private-trip-s-title-is.md) | A private trip's title is shown to anyone who guesses its id | SECURITY | low | low |
 | [B118](completed/B118-the-journal-map-page-disagrees-with.md) | The journal map page disagrees with itself about tense between its heading and its tab title | ISSUE | low | low |
 | [B139](completed/B139-the-costs-page-s-tab-title.md) | The costs page's tab title is English on a journal that is not | ISSUE | low | low |
+| [B140](completed/B140-the-tab-title-can-be.md) | The tab title can be in a language the journal does not offer, while the page is not | ISSUE | low | low |
 | [B151](completed/B151-the-mail-filename-slug-has.md) | The mail filename slug has no NFD pass, so a German umlaut loses its vowel | CHORE | low | low |
+| [B183](completed/B183-mcp-advertises-the-invite-tools-to.md) | MCP advertises the invite tools to a journal that has contacts switched off | CHORE | low | low |
 | [B23](completed/B23-everything-in-docs-was-archived-and.md) | Everything in docs was archived and nobody decided what is still current | CHORE | low | low |
 | [B29](completed/B29-an-agent-has-no-way-to.md) | An agent has no way to hand its owner a working sign-in link | FEATURE | low | medium |
 | [B30](completed/B30-a-url-upload-never-says-whether.md) | A URL upload never says whether an original was kept | ISSUE | low | low |
