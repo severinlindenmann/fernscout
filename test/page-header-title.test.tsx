@@ -99,6 +99,17 @@ describe("the header's title box", () => {
 
   test("the nav's box grows, so a wrapped nav still ends at the right", () => {
     const html = markup();
-    expect(html).toMatch(/<div class="flex w-full grow justify-end lg:w-auto">/);
+    expect(html).toMatch(
+      /<div class="flex w-full grow justify-end lg:w-auto lg:grow-0">/,
+    );
+  });
+
+  // B285: `grow` without `lg:grow-0` competed with the title's own `grow` for
+  // leftover space once the nav shared line 1 with the title and chips
+  // (`lg` and up), leaving a lone chip pinned mid-row. `lg:grow-0` is the one
+  // class whose absence brings that back.
+  test("the nav's box stops growing once it shares the line with the title", () => {
+    const html = markup();
+    expect(html).toMatch(/class="[^"]*\bgrow\b[^"]*\blg:grow-0\b[^"]*"/);
   });
 });

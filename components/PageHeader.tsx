@@ -72,6 +72,18 @@ export default function PageHeader({
         what gives is then the one the page wants: the tagline truncates first,
         the nav moves to its own line second, and the journal's name — the only
         thing in the header that says whose journal this is — is last.
+
+        `grow` stops at `lg` (`lg:grow-0`, B285). Past that point the nav
+        shares the line with the title and chips instead of owning it alone,
+        and a `grow` that kept applying there competed with the title's own
+        `grow` for whatever the row had left over. On a page with a small chip
+        row — no active trip, one currency — that left only the language chip
+        in the middle, pinned between two boxes that had each swollen to
+        absorb half the leftover width, with a few hundred pixels of empty
+        space on both sides of it. Past `lg` there is nothing left to fill —
+        `SiteNav`'s content is `justify-end` inside a box no longer wider than
+        itself — so the chips and the nav end up as one tight cluster at the
+        row's right edge instead.
       */}
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-2">
         <div className="min-w-0 flex-[1_1_12rem]">
@@ -98,7 +110,7 @@ export default function PageHeader({
           <CurrencySwitcher />
           <LocaleSwitcher />
         </div>
-        <div className="flex w-full grow justify-end lg:w-auto">
+        <div className="flex w-full grow justify-end lg:w-auto lg:grow-0">
           <SiteNav />
         </div>
       </div>
