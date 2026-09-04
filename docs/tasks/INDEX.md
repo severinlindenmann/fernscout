@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (80)
+## backlog (79)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (27)
+### issue (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -79,7 +79,6 @@ Do not edit them by hand; run the script.
 | [B313](backlog/issue/B313-getplan-s-own-doc-comment-claims.md) | getPlan's own doc comment claims a malformed plan.md returns empty, but readPlanFile has no guard and throws | ISSUE | medium | low |
 | [B323](backlog/issue/B323-somebody-on-a-trip-cannot-see.md) | Somebody on a trip cannot see or revoke the writing keys they have handed out | ISSUE | medium | medium |
 | [B336](backlog/issue/B336-the-map-pages-drop-the-owner.md) | The map pages drop the owner's draft days while the same page's planned route keeps them | ISSUE | medium | low |
-| [B338](backlog/issue/B338-a-mailed-invitation-knows-the-address.md) | A mailed invitation knows the address it was sent to and asks the reader to type it again | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
@@ -175,11 +174,12 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B335](in-development/B335-the-guide-says-almost-nothing-about.md) | The guide says almost nothing about how a day's money and coordinates should be formed | DOCS | medium | low | `dfdac5e0` |
+| [B338](in-development/B338-a-mailed-invitation-knows-the-address.md) | A mailed invitation knows the address it was sent to and asks the reader to type it again | ISSUE | medium | low | `986bc24c` |
 
 ## testing (148)
 
