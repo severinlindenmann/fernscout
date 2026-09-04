@@ -8,6 +8,7 @@ area: map, plan
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+completed: "2026-09-04T05:32:26Z"
 ---
 
 # B18 — A planned trip's map page draws no map

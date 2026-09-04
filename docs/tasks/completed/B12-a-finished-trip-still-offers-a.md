@@ -8,6 +8,7 @@ area: story-nav, tripTime
 found: "2026-09-01"
 started: "2026-09-03T19:23:10Z"
 merged: "2026-09-03T19:37:59Z"
+completed: "2026-09-04T05:20:41Z"
 ---
 
 # B12 — A finished trip still offers a Today button

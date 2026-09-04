@@ -8,6 +8,7 @@ area: costs, plan
 found: "2026-09-01"
 started: "2026-09-03T19:24:37Z"
 merged: "2026-09-03T19:46:28Z"
+completed: "2026-09-04T05:47:37Z"
 ---
 
 # B19 — A planned trip's costs page

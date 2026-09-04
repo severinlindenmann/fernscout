@@ -8,6 +8,7 @@ area: tests, backup, ci
 found: "2026-09-03"
 started: "2026-09-03T19:43:08Z"
 merged: "2026-09-03T20:05:04Z"
+completed: "2026-09-04T05:19:28Z"
 ---
 
 # B180 — The bounded-probe test never runs

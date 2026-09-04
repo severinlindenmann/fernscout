@@ -8,6 +8,7 @@ area: auth, mail, onboarding
 found: "2026-09-03"
 started: "2026-09-03T19:48:54Z"
 merged: "2026-09-03T20:02:18Z"
+completed: "2026-09-04T05:34:10Z"
 ---
 
 # B142 — Something at the recipient's mail host follows the sign-in link

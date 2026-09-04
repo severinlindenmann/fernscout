@@ -8,6 +8,7 @@ area: mcp, docs, publishing
 found: "2026-09-03"
 started: "2026-09-03T19:27:30Z"
 merged: "2026-09-03T19:34:07Z"
+completed: "2026-09-04T05:32:25Z"
 ---
 
 # B156 — MCP still hands out the rule B28 retired

@@ -141,3 +141,58 @@ All four acceptance lines demonstrated; see the run notes below.
   is `approveContact`'s upsert guard, a writer, not a reader deciding access.
   Every *reader* of the table is now `lib/grants.ts`.
 - **The four checks** all pass.
+
+## Live verification, 2026-09-04 (deployed d564bce)
+
+The fix is present in the deployed artifact and its behaviour cannot be
+triggered from outside the box. Both halves are evidenced.
+
+**Present**: `subscribersFor` no longer queries `access_grants` itself —
+`grep 'selectFrom("access_grants")'` on the deployed tree returns only
+`lib/grants.ts:51,70` and `contacts/index.ts:656` (a writer). `lib/push.ts`
+now runs `contacts WHERE status='active'` and `contactsWithReadGrant(...)`
+concurrently, and every row goes through `grantIsLive`. Guard order is
+`isTestContent` → `visibility === 'private'` → `listSubscriptions` →
+`isOpenToLink` → active ∩ granted.
+
+**Unreproducible**, four independent reasons, verified not assumed:
+
+1. Push is off server-wide — no `VAPID_*` in `/etc/fernscout/env`.
+   `POST /api/push/subscribe` → `404 push_disabled`, so no subscription can
+   even be created.
+2. **`subscribersFor` has no HTTP surface.** Its only production caller is
+   `scripts/notify.mts:158`, a CLI; `web-push` is imported nowhere else.
+   Publishing a day fires nothing. This is the stronger blocker.
+3. The CLI is never scheduled — no notify timer, no cron entry.
+4. **The premise is not constructible.** The only writes into `access_grants`
+   are `contacts/index.ts:677` and `:690`, both `expires_at: null`. Confirmed
+   against production: 4 grants, **0 with a non-null expiry**, 0 push
+   subscriptions instance-wide.
+
+### What would close it, and the trap in it
+
+Config: generate VAPID keys into `/etc/fernscout/env`; enable push in the
+journal's own `features` block (`pushEnabledFor` needs the per-journal opt-in —
+same hand-edit situation as B153).
+
+Fixture: a `guest` trip with a published day that **must not carry
+`test: true`**, because `lib/push.ts` returns `[]` on `isTestContent` before
+every other question. That collides head-on with the rule that everything an
+agent writes is test-flagged, so whoever closes this either creates non-test
+content deliberately or accepts a unit test. Plus an active contact with a
+`read` grant, and a subscription **bound to that contact** — sent with that
+contact's guest session cookie, or `contact_id` is null and the subscription is
+filtered out regardless of grants, which looks exactly like a pass.
+
+Then expire the grant by direct SQL, because nothing in the product can.
+
+**The control that makes the result mean anything**: run
+`npm run notify -- --user <journal> --trip <trip> --latest --dry-run` FIRST
+with `expires_at` still NULL and require the endpoint to be *present*. Only
+then apply the past expiry and require it absent. A bare zero-recipient result
+is indistinguishable from six inert-fixture causes, all live possibilities on
+this instance. `test/access-gate.test.ts:951-961` uses exactly this
+before/after shape.
+
+Incidental and good: **B130 is fixed in the deployed code** —
+`contacts/index.ts:680-693` now asks `grantIsLive` and revives a lapsed grant.

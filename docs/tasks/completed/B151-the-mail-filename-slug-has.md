@@ -8,6 +8,7 @@ area: mail, slugs
 found: "2026-09-03"
 started: "2026-09-03T20:05:28Z"
 merged: "2026-09-04T04:41:28Z"
+completed: "2026-09-04T05:19:16Z"
 ---
 
 # B151 — The mail filename slug has no NFD pass

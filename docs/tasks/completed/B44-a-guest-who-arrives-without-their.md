@@ -8,6 +8,7 @@ area: me, nav, access, i18n, ui
 found: "2026-09-01"
 started: "2026-09-03T19:24:37Z"
 merged: "2026-09-04T04:37:32Z"
+completed: "2026-09-04T05:49:34Z"
 ---
 
 # B44 — A guest who arrives without their link sees a complete-looking journal and no way to say who they are

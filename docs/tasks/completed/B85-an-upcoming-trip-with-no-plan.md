@@ -8,6 +8,7 @@ area: trips, maps, payload
 found: "2026-09-01"
 started: "2026-09-03T19:23:10Z"
 merged: "2026-09-03T19:43:54Z"
+completed: "2026-09-04T05:47:37Z"
 ---
 
 # B85 — An upcoming trip with no plan serialises a whole-world basemap into a page that draws no map

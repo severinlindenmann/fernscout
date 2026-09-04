@@ -270,3 +270,37 @@ the file transport.
 Checked by reverting rather than asserted: 5 of the 17 fail against the pre-fix
 `lib/` (the three gates and the health field), and a different 5 fail if the
 user default for mail is off — which is the shape this task nearly shipped as.
+
+## Live verification, 2026-09-04 (deployed d564bce)
+
+Two of the acceptance bullets are now **observed**, using a temporary
+hand-edited fixture on `xydhd-qa3` (authorised; reverted afterwards, backup
+removed).
+
+**`/api/health` agrees with what happens, and names the exemptions.** With
+`"mail": {"enabled": false}` in that journal's `features` block:
+
+```json
+"xydhd-qa3": {"mail": {"enabled": false,
+  "reason": "not enabled by xydhd-qa3",
+  "stillSent": "sign-in codes, deletion confirmations and operator alerts are
+    still sent — a journal's mail switch governs the letters it sends to its readers"}}
+```
+
+The `stillSent` field the ticket asks for is present and states the rule. Before
+the fix, the pre-B60 contradiction was `/api/health` calling a journal
+mail-disabled while mail went out for it, with nothing explaining the gap.
+
+**An exempt class still sends.** With mail off, `POST /api/auth/request`
+(`kind: guest`) for that journal answered `202` and wrote
+`2026-09-04T05-49-14-030Z-…-sign-in-to-qa-three.eml` — the directory went from
+9 files to 10. Correct: a sign-in code is an access letter, not a letter to a
+reader.
+
+**Still unchecked: the suppression itself.** "No mail of whatever classes the
+decision says it should not" needs a *reader-facing* letter — a welcome (only
+sent at creation), a contact letter, or a digest. The digest is unreachable for
+the reason in **B184**: every filter drops `test: true` content, and everything
+an agent may write is test-flagged. So the negative half of this ticket shares
+B184's blocker and closes with it.
+

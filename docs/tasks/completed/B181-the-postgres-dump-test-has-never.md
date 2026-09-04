@@ -8,6 +8,7 @@ area: tests, db, postgres, ci
 found: "2026-09-03"
 started: "2026-09-03T19:43:08Z"
 merged: "2026-09-03T20:05:05Z"
+completed: "2026-09-04T05:19:29Z"
 ---
 
 # B181 — The Postgres dump test has never run anywhere

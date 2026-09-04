@@ -8,6 +8,7 @@ area: i18n, trips, ui
 found: "2026-09-03"
 started: "2026-09-03"
 merged: "2026-09-03"
+completed: "2026-09-04T05:34:10Z"
 ---
 
 # B118 — The journal map page disagrees with itself about tense

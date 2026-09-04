@@ -8,6 +8,7 @@ area: trips, content
 found: "2026-09-01"
 started: "2026-09-03T19:24:38Z"
 merged: "2026-09-03T19:41:21Z"
+completed: "2026-09-04T05:20:41Z"
 ---
 
 # B51 — A trip's `listed` frontmatter key is documented and never read

@@ -15,17 +15,22 @@ meeting a real mail scanner.
 finishes.** A ticket is a self-contained question; a fresh agent per ticket
 keeps one ticket's mess out of the next one's evidence.
 
-**Each agent claims its ticket before it starts**, because three siblings
-reading one lane otherwise have nothing to divide it between them:
+**The orchestrator claims each ticket — not the agent.** Siblings reading one
+lane need something to divide it between them, but a verification agent is told
+not to touch the repository at all (see `BRIEF.md`), and it cannot be told both.
+So claim on the agent's behalf, immediately before spawning it:
 
 ```bash
 npm run tasks -- claim B01      # holds it where it stands; no lane move
-npm run tasks -- release B01    # if you hand it back unverified
+npm run tasks -- release B01    # if it comes back unverified
 ```
 
 The builder let go when it merged, so every ticket in `testing/` starts free.
 A ticket that is already held is somebody's — take the next one. `npm run
 tasks` shows the holder and how long they have had it.
+
+Tickets grouped into one cluster are claimed together, and released or moved
+together as the reports land.
 
 ## Before spawning anything
 

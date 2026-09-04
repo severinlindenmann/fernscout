@@ -121,3 +121,42 @@ a photograph may weigh and it is not what is wrong here.
   timeout.
 - The refusal wording is unchanged.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.
+
+## Live verification, 2026-09-04 (deployed d564bce)
+
+**The headline regression is fixed and observed.** The same 71.6 MB Wikimedia
+JPEG that took **57.8 s** before is now refused in **0.53 s** — a ~680x
+reduction in held connection — with the wording unchanged:
+
+```
+POST /api/v1/xydhd-qa1/trips/b31-refusals/media  {"urls":["…Johannesaltar_01.jpg"]}
+-> 400 {"error":"could_not_fetch","failures":[{"reason":"is larger than 50 MB"}]}
+curl -w '%{time_total}' = 0.532502     (baseline refusal on a tiny URL: 0.447969)
+```
+
+Server-side work was ~0.085 s; reading that body in the time would need
+~880 MB/s sustained. The body was conclusively not read. Live limits confirmed
+first: no `media` block in config, so `IMAGE_MAX_BYTES` = 50 MB is the real cap.
+
+**One bullet stays unobservable from outside: the total-time budget.** The code
+is deployed — `BODY_TIMEOUT_MS = 60_000` at `lib/api/fetchMedia.ts:51`, raced
+against each `read()`, with the `AbortController` hoisted out of the redirect
+loop so an abort drops the socket. It cannot be triggered from here because it
+needs an HTTPS origin that sends `Content-Type: image/*` promptly and then
+stalls. This was tested rather than assumed: httpbun `/mix` delays the headers
+too (so it exercises the 15 s connect timeout instead), and `/drip` has the
+right shape but forces `content-type: text/octet-stream`, which is refused
+before a byte of body is read.
+
+Note the live refusal came through the `content-length` shortcut, not the
+streaming cancel — every large public static file carries an honest
+`content-length`. The streaming half is covered by
+`test/fetch-media.test.ts:327`.
+
+### What would close it
+
+One controlled HTTPS origin serving `/stall.jpg` — 200, `Content-Type:
+image/jpeg`, then stop sending. Expect after ~60 s: `400`, reason "took longer
+than 60 seconds to send its body". A second URL trickling >50 MB with no
+`content-length` closes the streaming half, answering "is larger than 50 MB"
+after ~50 MB rather than after the whole body.

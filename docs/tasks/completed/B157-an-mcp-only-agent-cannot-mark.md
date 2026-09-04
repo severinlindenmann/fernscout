@@ -8,6 +8,7 @@ area: mcp, test-content
 found: "2026-09-03"
 started: "2026-09-03T19:34:18Z"
 merged: "2026-09-03T19:42:11Z"
+completed: "2026-09-04T05:32:26Z"
 ---
 
 # B157 — MCP cannot flag one day as test content

@@ -8,6 +8,7 @@ area: mail, ops, security
 found: "2026-09-03"
 started: "2026-09-03"
 merged: "2026-09-03"
+completed: "2026-09-04T05:32:26Z"
 ---
 
 # B111 — Signup codes are written outside the content directory, where nobody is looking for them

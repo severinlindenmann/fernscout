@@ -8,6 +8,7 @@ area: backup, ops
 found: "2026-09-01"
 started: "2026-09-03"
 merged: "2026-09-03"
+completed: "2026-09-04T05:19:28Z"
 ---
 
 # B114 — One unreadable file under DATA_DIR aborts the whole backup

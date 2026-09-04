@@ -8,6 +8,7 @@ area: privacy, trips, auth
 found: "2026-09-03"
 started: "2026-09-03T19:24:37Z"
 merged: "2026-09-03T19:39:12Z"
+completed: "2026-09-04T05:34:10Z"
 ---
 
 # B117 — A private trip's title is shown to anyone who guesses its id
