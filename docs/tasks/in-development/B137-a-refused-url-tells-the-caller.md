@@ -66,3 +66,52 @@ about the network.
 - No refusal reveals an address, a range or a resolver error — B31's rule,
   re-asserted.
 - `agent.md` lists the refusals that actually occur.
+
+## What was built
+
+The Why was accurate on both counts.
+
+**NXDOMAIN is now its own verdict.** `HostVerdict` in `lib/api/fetchMedia.ts`
+gains `nonexistent`, and `checkHost` reaches it two ways: `dns.lookup` throwing
+`ENOTFOUND` or `EAI_NONAME` — the resolver answered and there is no such name —
+and a lookup that returns zero addresses, which is the case the old comment
+reasoned about and accepted. Every other `dns.lookup` failure, `EAI_AGAIN`
+above all, stays `unresolvable` and keeps B31's wording exactly.
+
+The new refusal:
+
+> could not be looked up — there is no such name. That is permanent, so check
+> the spelling rather than resending. It is not a refusal for pointing
+> somewhere private
+
+No form of "again", deliberately: a message a regex or a skim-reading agent
+could mistake for the transient one is the whole failure mode being fixed.
+
+**The response timeout now says to retry.** The `catch` around `fetch()`
+answered `could not be reached` for both a refused connection and a 15-second
+timeout. A `timedOut` flag set by the abort timer separates them; the timeout
+gets the same shape of sentence the body timeout already had, and a connection
+that fails some other way keeps the neutral answer. `fetchImage` gained a
+fourth optional parameter, `responseTimeoutMs`, for the same reason the third
+one exists — so a test can assert the clock without waiting on it. Nothing in
+the application passes either.
+
+**The guide lists what actually occurs.** The "two of those refusals mean
+opposite things" paragraph in `lib/api/documentation.ts` is now a table of six,
+each saying whether resending will help. It was describing two when the code
+emitted nine.
+
+B31's third acceptance bullet is re-asserted in the test rather than assumed:
+the new refusal is checked against `/\d+\.\d+\.\d+\.\d+|ENOTFOUND|EAI_|resolver/`.
+
+## Evidence
+
+- `test/fetch-media.test.ts` — three new tests, all three failing against the
+  code as it was:
+  - `a name that does not exist is not told the failure may be temporary`
+  - `a name that resolves to nothing is permanent too`
+  - `a host that never answers is told to try again, not that it is unreachable`
+  plus two regression guards that passed before and must keep passing:
+  `a resolver that does not answer still says to retry` and `a connection that
+  simply fails is not told to try again`.
+- 92 tests in that file, green.

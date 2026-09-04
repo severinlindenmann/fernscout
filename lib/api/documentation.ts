@@ -824,6 +824,12 @@ touched — and \`kept\` is there so you can see that the original survived rath
 than inferring it from a promise. If \`kept\` shows the same numbers you sent,
 the full-resolution file is on disk.
 
+\`kept.filename\` is **advisory** — it is what the source called the file, not
+what is on disk. Sending bytes, that is your own filename and correlates. From
+a URL it is the last path segment, so \`…/seed/x/3000/2000\` reports
+\`"2000.jpg"\`; the stored name is \`01.jpg\` either way. Correlate by position:
+\`kept[n]\` is \`items[n]\` is the n-th file you sent.
+
 \`day\` is required and must name a day that already exists in this trip. A
 **published** day is refused with \`409\`: adding photographs to something people
 have already read changes what they read, and that is a person's decision.
@@ -865,12 +871,18 @@ URL pointing at this server's own network, or at a cloud metadata endpoint,
 will not be fetched. If a URL is refused you are told which one and why, and
 nothing is written: fix it and send the batch again.
 
-**Two of those refusals mean opposite things, so read the reason.** "Does not
-resolve to a public address" is permanent — that URL points somewhere it will
-never be allowed to point, and resending changes nothing. "Could not be looked
-up" is a resolver that did not answer, which is often a moment rather than a
-fact: send the batch again. A single flaky lookup discards the whole batch, so
-this is worth one retry before you tell somebody their photo host is blocked.
+**The refusals say whether resending will help, so read the reason.** A single
+failure discards the whole batch, so it is worth knowing which of these you
+have before you tell somebody their photo host is blocked:
+
+| The reason says | What it means |
+| --- | --- |
+| does not resolve to a public address | **Permanent.** That URL points somewhere it will never be allowed to point — private, loopback, link-local, or a cloud metadata address — and resending changes nothing. Deliberately the same words for every such range. |
+| there is no such name | **Permanent.** The name does not exist. Check the spelling; resending a typo will not fix it. |
+| the name did not resolve | **Transient.** A resolver that did not answer, which is often a moment rather than a fact. Send the batch again. |
+| took longer than N seconds to answer, or to send its body | **Transient.** The host was reachable and slow. Send the batch again. |
+| could not be reached | The connection failed. Not obviously either — retry once, then treat the host as the problem. |
+| answered 404, is text/html not an image, is larger than N MB, too many redirects | **Permanent for that URL.** Pick another one. |
 
 You do not need to pre-flight URLs yourself. If you do anyway, note that a
 \`HEAD\` is not a reliable test — plenty of image hosts answer it with \`405\`
