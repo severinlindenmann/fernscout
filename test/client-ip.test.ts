@@ -16,6 +16,16 @@ import { clientIp } from "@/lib/rateLimit";
  * line the function depends on. The second is the one that would catch a
  * regression — somebody tidying that config away would otherwise reopen B01
  * with every test still green.
+ *
+ * **These three regex assertions are about *content*, and they stay.** They are
+ * correct at that job. What they cannot do is notice that the file has stopped
+ * being a Caddyfile: commit `4705300` committed `deploy/Caddyfile` with merge
+ * conflict markers in it and the assertion below still matched, because the
+ * `import` line survived inside one half of the conflict (B227). *Shape* is
+ * asserted in `test/conflict-markers.test.ts` — which runs everywhere and needs
+ * no binary — and, where a `caddy` binary exists, by the adapt in
+ * `test/check-caddy.test.ts`. Neither replaces the other; do not delete one of
+ * these three thinking it is covered over there.
  */
 
 describe("clientIp", () => {

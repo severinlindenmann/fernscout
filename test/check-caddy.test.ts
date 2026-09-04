@@ -199,3 +199,65 @@ describe("check-caddy: the fixtures are what Caddy actually produces", () => {
     }
   }, 60_000);
 });
+
+/**
+ * And the greenfield file itself, through the parser. B227.
+ *
+ * `deploy/Caddyfile` is the one an operator may copy to `/etc/caddy/Caddyfile`
+ * outright, and until now nothing had ever parsed it: the three checks that
+ * read it and its snippet — `test/client-ip.test.ts` — are line-anchored
+ * regexes, which ask whether a string is present and cannot ask whether the
+ * file is still a file. Commit `4705300` committed it with conflict markers in
+ * it and every gate stayed green, because the `import` line the regex looks for
+ * had survived inside one half of the conflict.
+ *
+ * **This is the expensive half of B227's answer, and it is not the keeper.** It
+ * needs a `caddy` binary, which CI does not have (B226), so it skips exactly
+ * where the marker would have reached `main`. The keeper is
+ * `test/conflict-markers.test.ts`, which needs nothing and runs everywhere.
+ * When B226 lands, this stops skipping and starts being the stronger of the two.
+ *
+ * The obstacle that kept anyone from wiring this up: the file's last line is
+ * `import /srv/fernscout/deploy/fernscout.caddy`, an absolute path that exists
+ * on the VPS and nowhere else, and Caddy stops on an import it cannot open. So
+ * the file is adapted through a copy with that one line repointed at this
+ * checkout. Nothing else is rewritten — the copy is the shipped file.
+ */
+describe("check-caddy: the shipped Caddyfile parses", () => {
+  const CADDYFILE = path.join(process.cwd(), "deploy", "Caddyfile");
+  const IMPORT_LINE = /^import\s+\S*deploy\/fernscout\.caddy$/m;
+
+  test("its import line is the VPS path, which is why it cannot be adapted in place", () => {
+    // Runs without Caddy: it is the premise the skipping test below depends on,
+    // and a silent skip must not be the only thing guarding it.
+    expect(fs.readFileSync(CADDYFILE, "utf8")).toMatch(IMPORT_LINE);
+  });
+
+  test.skipIf(!HAS_CADDY)("adapts cleanly with that import pointed at this checkout", () => {
+    const shipped = fs.readFileSync(CADDYFILE, "utf8");
+    const local = shipped.replace(IMPORT_LINE, `import ${SHIPPED_SNIPPET}`);
+    expect(local).not.toBe(shipped);
+
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-caddyfile-"));
+    try {
+      const file = path.join(dir, "Caddyfile");
+      fs.writeFileSync(file, local);
+      const res = spawnSync("caddy", ["adapt", "--config", file, "--adapter", "caddyfile"], {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CADDY_DOMAIN: FIXTURE_DOMAIN,
+          // The global options block's `email` needs a non-empty argument, and
+          // an unset variable adapts to nothing. On a VPS this comes from .env.
+          CADDY_ACME_EMAIL: "operator@journal.example",
+        },
+      });
+      expect(res.status, res.stderr).toBe(0);
+      // It really did produce a server, rather than an empty config that
+      // happened to parse.
+      expect(JSON.parse(res.stdout)).toHaveProperty("apps.http.servers");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }, 60_000);
+});

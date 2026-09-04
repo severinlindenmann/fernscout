@@ -70,23 +70,50 @@ does about that path.
 
 ## Work
 
-- Decide what guards these files, given that the honest parser needs a binary
-  CI does not have and an import path that only resolves on the VPS. Candidates,
-  and they are not exclusive:
-  - A cheap, always-running assertion that no tracked file carries a conflict
-    marker. Catches this class everywhere, not just in `deploy/`, costs no
-    binary, and is the one that would have caught `4705300`. Note the marker
-    strings have to be built rather than written literally, or the test file
-    fails itself.
-  - Make the real parse runnable: install Caddy in CI (that is B226's half),
-    and give the adapt a resolvable import — a temporary copy with the path
-    rewritten, or a `{$FERNSCOUT_CADDY}` placeholder the check substitutes.
-- Whatever lands, `test/client-ip.test.ts`'s three regex assertions stay. They
-  assert *content* and are correct at that job; the gap is that nothing asserts
-  *shape*. Say so in the file so the next reader does not delete one for the
-  other.
-- Coordinate with **B226** rather than duplicating it: that task is about the
-  two skipped keepers, this one is about the file they were meant to keep.
+The Why was verified rather than trusted: `git show 4705300:deploy/Caddyfile`
+still has the three markers at lines 42, 74 and 80, the `import` line does
+survive inside the second half, and `caddy adapt` on it fails with
+`unrecognized directive: journal.example`. All of it holds.
+
+**Both halves landed, and the file says which is the keeper.**
+
+**The keeper — `test/conflict-markers.test.ts`.** No tracked file carries a
+conflict marker. `git ls-files`, skip anything with a NUL byte in its first 8 KB,
+and report `file:line` for every marker. It needs no binary, runs wherever
+`npx vitest run` does — so on `ubuntu-latest` in the existing `test` job with no
+new step, and on macOS — and it catches the class in every file rather than in
+the one that happened to break this time. 51 ms over 992 tracked files.
+
+Two details that decide whether it is usable:
+
+- **The marker strings are built, not written** (`"<".repeat(7)`), or the test
+  file would be a tracked file carrying a conflict marker and would fail itself.
+- **`<<<<<<<` and `>>>>>>>` are conclusive on their own; `=======` and `|||||||`
+  are only counted in a file that already has one of those.** Seven `=` at the
+  start of a line is a valid Markdown setext heading underline, and this
+  repository is mostly Markdown. A real conflict always has all three markers,
+  so requiring the company of an opening or closing one costs nothing and stops
+  an ordinary document from failing the build. A marker indented by a space, or
+  quoted inline in prose, is not reported — which is what lets a task file
+  (including this one) describe the problem.
+
+  Checked against the tree as it stands: zero matches for any of the four forms,
+  so nothing had to be exempted. `docs/tasks/` is **not** excluded.
+
+**The expensive half — `test/check-caddy.test.ts`.** `deploy/Caddyfile` is now
+adapted through `caddy adapt`, which is a real parse. The obstacle the Why
+identified is handled the way it suggested: the file is copied to a temp
+directory with its one `import /srv/fernscout/deploy/fernscout.caddy` line
+repointed at this checkout, and nothing else is rewritten. `CADDY_ACME_EMAIL`
+has to be set too — an unset variable adapts to nothing and `email` refuses a
+missing argument, which is a second reason nobody had wired this up. It is
+`test.skipIf(!HAS_CADDY)`, so it skips exactly where the marker would have
+reached `main`; **B226** carries the binary, and when it lands this becomes the
+stronger of the two. The test file says all of that.
+
+`test/client-ip.test.ts`'s three regex assertions stay, untouched, and its
+header now says why: they assert *content* and are right at that job, the gap
+was that nothing asserted *shape*, and neither check replaces the other.
 
 Not doing: moving or flattening the `import`. B66 made that indirection
 load-bearing — a proxy change reaches the machine with the commit that made it —
@@ -94,10 +121,31 @@ and a test's convenience is not a reason to undo it.
 
 ## Acceptance
 
-- Restoring `deploy/Caddyfile` to its state at `4705300` makes a check fail,
-  and the failure names the file and says a conflict marker is in it.
-- The check runs on `ubuntu-latest` in `.github/workflows/ci.yml` with no
-  manual step, and on macOS, and its result does not depend on whether a
-  `caddy` binary is present — or, if it does, the file says which half is the
-  keeper and B226 carries the binary.
-- `npx vitest run` still passes on a clean checkout.
+- **Restoring `deploy/Caddyfile` to its state at `4705300` makes a check fail,
+  and the failure names the file and says a conflict marker is in it.**
+  Demonstrated:
+
+  ```
+  AssertionError: unresolved merge conflict:
+    deploy/Caddyfile:42 begins with a <<<<<<< conflict marker
+    deploy/Caddyfile:74 begins with a ======= conflict marker
+    deploy/Caddyfile:80 begins with a >>>>>>> conflict marker
+  ```
+
+  Three tests go red, not one: the repository-wide sweep, the by-name
+  `deploy/Caddyfile is free of conflict markers`, and — where Caddy is
+  installed — `adapts cleanly with that import pointed at this checkout`, which
+  fails with `unrecognized directive: journal.example`.
+
+- **The check runs on `ubuntu-latest` in `.github/workflows/ci.yml` with no
+  manual step, and on macOS, and does not depend on a `caddy` binary.** The
+  keeper is plain vitest, so the existing `test` job runs it as-is; no workflow
+  change was needed. The half that does need the binary is named above as the
+  half that skips, and B226 carries it.
+
+- **`npx vitest run` still passes on a clean checkout.** It does.
+
+The detector is additionally exercised against a reconstruction of
+`deploy/Caddyfile` as it was at `4705300` — rebuilt in the test rather than read
+from git history, because `actions/checkout@v4` clones at depth 1 and
+`git show 4705300:…` would not resolve in CI.
