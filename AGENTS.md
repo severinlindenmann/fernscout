@@ -252,6 +252,27 @@ merge, by which time it has stopped being useful. That is also why they are
 committed straight to `main` rather than held back — an uncommitted task file
 in the main checkout blocks the next agent's merge.
 
+**On this machine a hook enforces the first half of that**, and B248 is the
+record of why prose was not enough: an agent that had read the sentence and
+then edited `lib/entries.ts` here succeeded, and the next session's `git merge`
+was what found out. A `PreToolUse` hook on `Edit|Write|NotebookEdit` now
+refuses a write in the shared checkout unless the target is under
+`docs/tasks/`, is gitignored, or is inside `.claude/worktrees/` — and the
+refusal carries the worktree recipe rather than only saying no.
+
+**It is not in the repository, and a fresh clone does not have it.** It lives
+in `.claude/settings.json` and `.claude/hooks/main-checkout-guard.mjs`, both
+gitignored, because a repository that requires somebody's harness
+configuration to be workable is a different promise from the one this file
+makes. Installing it elsewhere is a `PreToolUse` entry matching
+`Edit|Write|NotebookEdit` and a script implementing those three allowances.
+
+**It matches tool names, so `Bash` walks past it** — a heredoc, `sed -i` or a
+short script writes here with nothing said, and those are the calls these
+sessions make most. B310 is open on that. Read the guard as the thing that
+catches the honest accident, not as a lock: the rule above is still the rule,
+and it is still yours to keep.
+
 Four things that follow, and are easy to get wrong:
 
 - **One git command per shell call, when your session is worktree-isolated.**
