@@ -1,6 +1,8 @@
 import "server-only";
 import dns from "node:dns/promises";
+import https from "node:https";
 import net from "node:net";
+import { Readable } from "node:stream";
 
 /**
  * Downloading a photograph an agent points at, rather than one it uploads.
@@ -16,10 +18,11 @@ import net from "node:net";
  * So the rules here are deliberately unhelpful:
  *
  * - **https only.** No http, no file:, no gopher:, no data:.
- * - **Every resolved address must be public.** Checked after DNS resolution
- *   and again after every redirect, because a name that resolved publicly a
- *   moment ago can resolve to 127.0.0.1 on the next lookup — the DNS-rebinding
- *   attack this ordering exists to defeat.
+ * - **Every resolved address must be public**, and the request then goes to
+ *   *that address* rather than to the name again. Checked after resolution and
+ *   again after every redirect, and pinned each time — see `pinnedRequest` for
+ *   why checking the name and then fetching the name is not the same thing
+ *   (B03).
  * - **Redirects are followed by hand**, at most three, so each hop is
  *   re-checked rather than trusted to `fetch`.
  * - **A declared image content type**, and a size cap enforced while reading
@@ -208,7 +211,18 @@ export function isPublicAddress(ip: string): boolean {
  */
 type HostVerdict = "public" | "private" | "unresolvable" | "nonexistent";
 
-async function checkHost(hostname: string): Promise<HostVerdict> {
+/**
+ * The verdict, plus the addresses it was reached on.
+ *
+ * The addresses are not decoration. B03: checking a *name* and then fetching
+ * the *name* are two independent resolutions, and the request has to go to the
+ * addresses this function actually looked at. `addresses` is empty for every
+ * verdict but `public` — there is nothing to connect to and nothing that may
+ * be connected to.
+ */
+type HostCheck = { verdict: HostVerdict; addresses: string[] };
+
+async function checkHost(hostname: string): Promise<HostCheck> {
   /**
    * A literal address never reaches DNS; check it directly. It can never be
    * "unresolvable" — there was nothing to resolve.
@@ -225,7 +239,11 @@ async function checkHost(hostname: string): Promise<HostVerdict> {
   const literal = hostname.startsWith("[") && hostname.endsWith("]")
     ? hostname.slice(1, -1)
     : hostname;
-  if (net.isIP(literal)) return isPublicAddress(literal) ? "public" : "private";
+  if (net.isIP(literal)) {
+    return isPublicAddress(literal)
+      ? { verdict: "public", addresses: [literal] }
+      : { verdict: "private", addresses: [] };
+  }
 
   let addresses: { address: string }[];
   try {
@@ -238,15 +256,141 @@ async function checkHost(hostname: string): Promise<HostVerdict> {
     // else — EAI_AGAIN above all — is a resolver that failed, not a name that
     // is wrong.
     const code = (err as NodeJS.ErrnoException).code;
-    return code === "ENOTFOUND" || code === "EAI_NONAME" ? "nonexistent" : "unresolvable";
+    const verdict = code === "ENOTFOUND" || code === "EAI_NONAME" ? "nonexistent" : "unresolvable";
+    return { verdict, addresses: [] };
   }
   // No answers at all is a name that does not exist, which is the caller's
   // mistake rather than a reason to retry — and it is not evidence about
   // anybody's private network either, so it reads as nonexistent rather than
   // as private.
-  if (addresses.length === 0) return "nonexistent";
-  return addresses.every((a) => isPublicAddress(a.address)) ? "public" : "private";
+  if (addresses.length === 0) return { verdict: "nonexistent", addresses: [] };
+  // Every one of them, not the first: a name with one public answer and one
+  // private answer is a name this server will not talk to, because it has no
+  // say in which of them a connection would pick.
+  if (!addresses.every((a) => isPublicAddress(a.address))) {
+    return { verdict: "private", addresses: [] };
+  }
+  return { verdict: "public", addresses: addresses.map((a) => a.address) };
 }
+
+/**
+ * A resolver that has already made up its mind.
+ *
+ * Handed to `https.request` as its `lookup`, so the socket goes to an address
+ * `checkHost` inspected instead of to whatever DNS says a few milliseconds
+ * later. This is the entire fix for B03: the check and the connection used to
+ * be two independent resolutions of the same name, and a nameserver the caller
+ * controls could answer the first publicly and the second with 127.0.0.1.
+ *
+ * It never consults DNS, so there is no second answer to differ. The hostname
+ * argument is ignored on purpose — this function is only ever installed on a
+ * request whose host is the one that was checked, and a lookup that could fall
+ * back to the real resolver would be a lookup with the hole still in it.
+ *
+ * Both callback shapes, because `net.connect` asks for `all: true` when
+ * happy-eyeballs is on (the default since Node 20) and for a single address
+ * when it is not.
+ */
+function pinnedLookup(addresses: string[]): net.LookupFunction {
+  return (_hostname, options, callback) => {
+    if (options?.all) {
+      callback(
+        null,
+        addresses.map((address) => ({ address, family: net.isIP(address) })),
+      );
+      return;
+    }
+    callback(null, addresses[0], net.isIP(addresses[0]));
+  };
+}
+
+/**
+ * One request, to an address that was already vetted.
+ *
+ * `node:https` rather than `fetch` for one reason: it takes a `lookup`, and
+ * `fetch` does not. Everything else about it is arranged to keep the
+ * properties the `fetch` version had —
+ *
+ * - **Redirects are never followed.** Not an option that could be set wrongly;
+ *   `https.request` has no redirect logic at all, and the 3xx comes back to
+ *   the loop in `fetchImage` so the next hop is re-checked and re-pinned.
+ * - **TLS is still verified against the name**, not against the pinned
+ *   address: `servername` carries the original hostname into SNI and
+ *   certificate validation. Pinning changes where the packets go, not who has
+ *   to prove they are the host.
+ * - **The abort signal reaches the socket**, so the timeouts in `fetchImage`
+ *   let go of the connection rather than only of our reader.
+ *
+ * The `IncomingMessage` is wrapped back into a `Response` so the reading code
+ * above is unchanged — the size cap, the two clocks and the content-type check
+ * are the part of this file that has been got right twice already (B31, B136)
+ * and are not worth rewriting to change a transport.
+ */
+async function pinnedRequest(
+  url: URL,
+  addresses: string[],
+  signal: AbortSignal,
+): Promise<Response> {
+  // `new URL("https://[::1]/x").hostname` keeps its brackets; `https.request`
+  // wants the address without them, and re-brackets it for the Host header
+  // itself.
+  const hostname =
+    url.hostname.startsWith("[") && url.hostname.endsWith("]")
+      ? url.hostname.slice(1, -1)
+      : url.hostname;
+
+  return new Promise<Response>((resolve, reject) => {
+    const request = https.request(
+      {
+        hostname,
+        port: url.port || 443,
+        path: `${url.pathname}${url.search}`,
+        method: "GET",
+        headers: { accept: "image/*" },
+        signal,
+        lookup: pinnedLookup(addresses),
+        // An IP literal cannot be an SNI name — TLS rejects it — and there is
+        // no name to verify against in that case anyway.
+        ...(net.isIP(hostname) ? {} : { servername: hostname }),
+      },
+      (message) => {
+        const headers = new Headers();
+        for (const [key, value] of Object.entries(message.headers)) {
+          if (Array.isArray(value)) for (const one of value) headers.append(key, one);
+          else if (value !== undefined) headers.set(key, value);
+        }
+        const status = message.statusCode ?? 502;
+        // `new Response` throws if a status that may not carry a body is given
+        // one. Drain rather than leave the socket half-read.
+        const bodyless = status === 204 || status === 205 || status === 304;
+        if (bodyless) message.resume();
+        resolve(
+          new Response(
+            bodyless ? null : (Readable.toWeb(message) as ReadableStream<Uint8Array>),
+            { status, headers },
+          ),
+        );
+      },
+    );
+    request.on("error", reject);
+    request.end();
+  });
+}
+
+/**
+ * How the request is made, once the address is settled.
+ *
+ * Exists so a test can answer without a server — the project's rule is that a
+ * build never touches the network, and a test that depends on somebody's CDN
+ * tests their uptime. **Nothing in the application passes it**, and anything
+ * that did would be opting out of the pin; the default is the only transport
+ * this software ships with.
+ */
+export type Transport = (
+  url: URL,
+  addresses: string[],
+  signal: AbortSignal,
+) => Promise<Response>;
 
 function filenameFrom(url: URL, contentType: string): string {
   const last = url.pathname.split("/").filter(Boolean).at(-1) ?? "";
@@ -279,6 +423,8 @@ export async function fetchImage(
   bodyTimeoutMs: number = BODY_TIMEOUT_MS,
   /** The other clock, overridable for the same reason. */
   responseTimeoutMs: number = TIMEOUT_MS,
+  /** See `Transport`. Nothing in the application passes it either. */
+  transport: Transport = pinnedRequest,
 ): Promise<{ ok: true; media: FetchedMedia } | { ok: false; problem: FetchProblem }> {
   const refuse = (reason: string) => ({ ok: false as const, problem: { url: raw, reason } });
 
@@ -300,7 +446,7 @@ export async function fetchImage(
   let controller!: AbortController;
   let hops = 0;
   for (;;) {
-    const verdict = await checkHost(url.hostname);
+    const { verdict, addresses } = await checkHost(url.hostname);
     if (verdict === "private") {
       // Same words whichever private range it was: a prober does not get to
       // map somebody's network one hostname at a time.
@@ -334,11 +480,10 @@ export async function fetchImage(
       controller.abort();
     }, responseTimeoutMs);
     try {
-      response = await fetch(url, {
-        redirect: "manual",
-        signal: controller.signal,
-        headers: { accept: "image/*" },
-      });
+      // The addresses `checkHost` just looked at, not the name it looked them
+      // up from. B03: resolving twice is what let a low-TTL name answer the
+      // check publicly and the connection with loopback.
+      response = await transport(url, addresses, controller.signal);
     } catch {
       if (timedOut) {
         return refuse(
@@ -362,7 +507,8 @@ export async function fetchImage(
       }
       // Round again — and note the address check happens before the next
       // request, not once at the start. That is the whole point of doing this
-      // by hand instead of letting fetch follow.
+      // by hand rather than letting the transport follow, and the next hop is
+      // pinned to its own answer just as this one was.
       continue;
     }
     break;

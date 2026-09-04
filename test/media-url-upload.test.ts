@@ -2,6 +2,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import dns from "node:dns/promises";
+import https from "node:https";
+import { EventEmitter } from "node:events";
+import { Readable } from "node:stream";
+import type { ClientRequest, IncomingMessage } from "node:http";
 import sharp from "sharp";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 
@@ -73,24 +77,40 @@ async function postUrls(token: string, urls: string[]) {
   return { status: response.status, body: await response.json() };
 }
 
-const realFetch = globalThis.fetch;
+const realRequest = https.request;
 const realLookup = dns.lookup;
 
 /**
  * A remote host that serves one known image.
  *
- * DNS is stubbed as well as `fetch`: the build never touches the network, and a
- * test that depends on `example.com` resolving is a test that fails on a
+ * DNS is stubbed as well as the socket: the build never touches the network,
+ * and a test that depends on `example.com` resolving is a test that fails on a
  * machine with no resolver.
+ *
+ * Stubbed at `https.request` rather than at `globalThis.fetch` since B03. The
+ * route reaches the remote host through `fetchImage`, which no longer uses
+ * `fetch` — `fetch` takes no `lookup`, so it cannot be pinned to the address
+ * that was checked. Everything above the socket is therefore still the real
+ * code here, pin included, which is more of it than this test used to cover.
  */
 function serve(bytes: Buffer) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (dns as any).lookup = async () => [{ address: "93.184.216.34", family: 4 }];
-  globalThis.fetch = async () =>
-    new Response(new Blob([bytes as unknown as BlobPart]), {
-      status: 200,
-      headers: { "content-type": "image/jpeg" },
-    });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (https as any).request = (
+    _options: unknown,
+    callback: (message: IncomingMessage) => void,
+  ): ClientRequest => {
+    const message = Readable.from([bytes]) as unknown as IncomingMessage;
+    message.statusCode = 200;
+    message.headers = { "content-type": "image/jpeg" };
+    const request = new EventEmitter() as unknown as ClientRequest;
+    request.end = (() => {
+      setImmediate(() => callback(message));
+      return request;
+    }) as ClientRequest["end"];
+    return request;
+  };
 }
 
 beforeAll(async () => {
@@ -169,7 +189,8 @@ beforeAll(async () => {
 });
 
 afterEach(() => {
-  globalThis.fetch = realFetch;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (https as any).request = realRequest;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (dns as any).lookup = realLookup;
 });
