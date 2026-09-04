@@ -166,11 +166,12 @@ export function instanceDocumentation(): string {
     "```",
     "",
     ...wrap(
-      "`username`, `title`, `ownerName` and `ownerNickname` are all required, " +
-        "and none is guessable — ask. The reply carries a write token for the " +
-        "journal it just made, so there is no second code. (It also carries " +
-        "`signIn`: a one-time link for the person, not for you — read the guide " +
-        "before doing anything with it.)",
+      "`username`, `title`, `ownerName`, `ownerNickname`, `visibility` and " +
+        "`defaultLocale` are all required, and none has a default worth picking " +
+        "for somebody — ask. The reply carries a write token for the journal it " +
+        "just made, so there is no second code. (It also carries `signIn`: a " +
+        "one-time link for the person, not for you — read the guide before " +
+        "doing anything with it.)",
       78,
     ),
     "",
@@ -544,11 +545,13 @@ Three rules about it, and they are not fussiness:
 - **Do not follow it yourself.** It is single use; opening it to check it works
   spends it, and the person gets a dead link.
 
-**All four of \`username\`, \`title\`, \`ownerName\` and \`ownerNickname\` are
-required**, and none of them is guessable. \`ownerNickname\` is what the site
-calls this person in its own voice — "Robin", not "Robin Delacroix-Mbeki" — and
-it is never derived from \`ownerName\`, because taking the first word mangles any
-name whose given name is not first. Ask.
+**All six of \`username\`, \`title\`, \`ownerName\`, \`ownerNickname\`,
+\`visibility\` and \`defaultLocale\` are required**, and none of them is
+guessable — a request missing any of them is refused rather than filled in on
+somebody's behalf. \`ownerNickname\` is what the site calls this person in its
+own voice — "Robin", not "Robin Delacroix-Mbeki" — and it is never derived
+from \`ownerName\`, because taking the first word mangles any name whose given
+name is not first. Ask.
 
 **Ask even when the owner is the person in front of you.** Somebody setting up
 their own journal will give you their name in the same breath, and the rule
@@ -556,14 +559,18 @@ above still holds — it forbids *deriving* a nickname, not asking for one, and
 "what should the site call you?" is one short question about themselves that
 they can answer instantly. There is no default and there will not be one.
 
-\`visibility\` is \`"public"\` unless you say otherwise. Ask which they want; see
-the table above for what the two mean.
+\`visibility\` has no default either — send \`"public"\` or \`"private"\` and
+nothing else, and get one of those two answers from the person before you
+call this. See the table above for what the two mean. This document used to
+say silence read as \`"public"\`; it did, and a journal asked to be private
+was created public because of it (B263). It no longer does — the request is
+refused instead.
 
 \`defaultLocale\` is **their** language — ${LOCALE_LIST} on this instance —
 and it decides the language of the site's chrome **and of the welcome mail
-this server sends the owner the moment the journal exists**. It defaults to
-\`en\`, so a German journal created without it greets its owner in English.
-Ask, and pass it.
+this server sends the owner the moment the journal exists**. It has no
+default either, for the same reason: a German journal created without it used
+to greet its owner in English, silently. Ask, and pass the code.
 
 \`locales\` is a different question: which of those same languages **a
 reader** may switch the journal into — \`["de", "en"]\` above, meaning the

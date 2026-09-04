@@ -1,6 +1,8 @@
 import "server-only";
 import MiniSearch from "minisearch";
+import { LOCALE_LIST } from "../api/agentCopy";
 import { SESSION_SCOPE, SIGNUP_OWNER, type Session } from "../auth";
+import { MAINTAINED_LOCALES } from "../i18n";
 import type { Trip } from "../types";
 import { attachGallery, createDraft, deleteEntry, entrySummary, isPublished, listDrafts, publishNotice, publishDraft, tripSummary, type DraftInput } from "../api/entries";
 import { isTestContent } from "../access";
@@ -892,6 +894,42 @@ const createJournalTool: Handler = (session, args) => {
     };
   }
 
+  // Required rather than defaulted, the same as on the REST door — B263. A
+  // journal asked to be private and created public because this tool asked
+  // no question and `createJournal` filled the silence in with `public`.
+  const visibility = optionalString(args, "visibility");
+  if (visibility === undefined) {
+    return {
+      ok: false,
+      error:
+        'visibility is required — "public" or "private". There is no default worth ' +
+        "picking for somebody: ask which they want.",
+    };
+  }
+  if (visibility !== "public" && visibility !== "private") {
+    return {
+      ok: false,
+      error: `visibility must be "public" or "private", got ${JSON.stringify(visibility)}.`,
+    };
+  }
+
+  const defaultLocale = optionalString(args, "default_locale");
+  if (defaultLocale === undefined) {
+    return {
+      ok: false,
+      error:
+        "default_locale is required — the language the owner writes in. It sets the " +
+        "language of the site's own chrome and of the welcome mail. There is no default " +
+        `worth picking for somebody: ask, and send the code — ${LOCALE_LIST}.`,
+    };
+  }
+  if (!(MAINTAINED_LOCALES as readonly string[]).includes(defaultLocale)) {
+    return {
+      ok: false,
+      error: `default_locale must be one of ${LOCALE_LIST}, got ${JSON.stringify(defaultLocale)}.`,
+    };
+  }
+
   const created = createJournal({
     username,
     title,
@@ -899,8 +937,9 @@ const createJournalTool: Handler = (session, args) => {
     ownerEmail: session.email,
     ownerName,
     ownerNickname,
+    visibility,
     startLocation: optionalString(args, "start_location"),
-    defaultLocale: optionalString(args, "default_locale"),
+    defaultLocale,
     baseCurrency: optionalString(args, "base_currency"),
   });
   if (!created.ok) return { ok: false, error: created.message };
@@ -1308,11 +1347,23 @@ export const TOOLS: readonly ToolEntry[] = [
             "What the site calls them, in its own voice — not necessarily their first name. " +
             "Required, and never guessed from owner_name: ask the person rather than splitting it.",
         },
+        visibility: {
+          type: "string",
+          enum: ["public", "private"],
+          description:
+            "Whether this server advertises the journal — on its own index, its landing " +
+            "page and its sitemap. Required; there is no default. Ask which they want.",
+        },
         start_location: { type: "string", description: "Where they usually set out from." },
-        default_locale: { type: "string", description: "Language code, e.g. en or de. Default en." },
+        default_locale: {
+          type: "string",
+          description:
+            "Language code, e.g. en or de — the language the owner writes in. Sets the " +
+            "site's chrome and the welcome mail. Required; there is no default. Ask.",
+        },
         base_currency: { type: "string", description: "Currency costs are kept in. Default CHF." },
       },
-      required: ["username", "title", "owner_name", "owner_nickname"],
+      required: ["username", "title", "owner_name", "owner_nickname", "visibility", "default_locale"],
       additionalProperties: false,
     },
     annotations: {

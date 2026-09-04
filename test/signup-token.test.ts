@@ -56,7 +56,13 @@ function create(token: string, body: Record<string, unknown>) {
 }
 
 const OWNER = "owner@example.test";
-const GOOD = { title: "A journal", ownerName: "Robin Traveller", ownerNickname: "Robin" };
+const GOOD = {
+  title: "A journal",
+  ownerName: "Robin Traveller",
+  ownerNickname: "Robin",
+  visibility: "public",
+  defaultLocale: "en",
+};
 
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-signup-"));
