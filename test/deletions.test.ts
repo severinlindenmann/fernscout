@@ -3,9 +3,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { sql } from "kysely";
+import { renderToStaticMarkup } from "react-dom/server";
 import { NextRequest } from "next/server";
 import proxy from "@/proxy";
 import { clearConfigCache } from "@/lib/config";
+import { grant } from "@/lib/credits";
 import { clearUserCache, getUser, userExists } from "@/lib/users";
 import { closeDatabase, getDatabase, TABLE_NAMES } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
@@ -58,6 +60,24 @@ function serverConfig(): void {
       },
     }),
   );
+}
+
+/** B374: `serverConfig` plus the one switch its tests need to turn. */
+function serverConfigWithCredits(enabled: boolean): void {
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "Testbed", url: "https://t.test" },
+      users: { reserved: ["admin"] },
+      features: {
+        signup: { enabled: true },
+        auth: { enabled: true },
+        mail: { enabled: true, transport: "file" },
+        credits: { enabled },
+      },
+    }),
+  );
+  clearConfigCache();
 }
 
 beforeEach(async () => {
@@ -679,6 +699,75 @@ describe("the mail is the gate", () => {
     expect(row?.token_hash).not.toBe(token);
     expect(row?.requested_by).toBe(asking.id);
     expect(userExists(user)).toBe(true);
+  });
+});
+
+/**
+ * B374 — a balance dies with the journal, silently, unless the mail and the
+ * page both say so before the button.
+ */
+describe("credits are named before they are lost", () => {
+  async function renderedPage(user: string, token: string): Promise<string> {
+    const rendered = await DeletePage({
+      params: Promise.resolve({ user, token }),
+      searchParams: Promise.resolve({}),
+    });
+    return renderToStaticMarkup(rendered as Parameters<typeof renderToStaticMarkup>[0]);
+  }
+
+  test("a balance of 180 is named in the mail and on the page", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    serverConfigWithCredits(true);
+    await grant(user, 180, "test");
+
+    const asked = await requestDeletion({ kind: "journal", username: user });
+    expect(asked.ok).toBe(true);
+    expect(mailBody(user)).toContain("180");
+
+    const token = takeToken(user);
+    expect(await renderedPage(user, token)).toContain("180");
+  });
+
+  test("a balance of zero says nothing about credits", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    serverConfigWithCredits(true);
+    // No grant: the journal's balance is zero, the same as every journal
+    // starts with.
+
+    await requestDeletion({ kind: "journal", username: user });
+    expect(mailBody(user)).not.toMatch(/credit/i);
+
+    const token = takeToken(user);
+    expect(await renderedPage(user, token)).not.toMatch(/credit/i);
+  });
+
+  test("credits switched off says nothing, even over a balance granted before the switch", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    serverConfigWithCredits(true);
+    await grant(user, 50, "test");
+    serverConfigWithCredits(false);
+
+    await requestDeletion({ kind: "journal", username: user });
+    expect(mailBody(user)).not.toMatch(/credit/i);
+
+    const token = takeToken(user);
+    expect(await renderedPage(user, token)).not.toMatch(/credit/i);
+  });
+
+  test("deleting a trip never mentions credits — a trip destroys none", async () => {
+    const user = makeJournal();
+    const trip = makeTrip(user);
+    serverConfigWithCredits(true);
+    await grant(user, 90, "test");
+
+    await requestDeletion({ kind: "trip", username: user, tripId: trip });
+    expect(mailBody(user)).not.toMatch(/credit/i);
+
+    const token = takeToken(user);
+    expect(await renderedPage(user, token)).not.toMatch(/credit/i);
   });
 });
 

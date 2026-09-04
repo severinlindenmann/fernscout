@@ -207,6 +207,7 @@
   "dayMail.timezone": "időzóna: {zone}",
   "del.backups": "Ez a tartalmat erről a kiszolgálóról távolítja el. A máshol őrzött másolatokat — az üzemeltető biztonsági mentéseit vagy a tartalommappa verziótörténetét — nem éri el.",
   "del.confirmButton": "Törlési oldal megnyitása",
+  "del.credits": "Emellett {credits} fel nem használt kreditje is van benne. A napló törlése nem téríti vissza ezeket, és nem kerülnek át egy másik naplóba.",
   "del.deleteButton": "Igen, töröld véglegesen",
   "del.doneJournalBody": "A(z) „{title}” törölve lett. A címe mostantól azt válaszolja, hogy megszűnt, és a nevet más sem kapja meg.",
   "del.doneJournalTitle": "Eltűnt",

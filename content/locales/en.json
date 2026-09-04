@@ -207,6 +207,7 @@
   "dayMail.timezone": "timezone: {zone}",
   "del.backups": "This removes the content from this server. Copies kept elsewhere — backups made by whoever runs it, or a version history of the content folder — are not reached by it.",
   "del.confirmButton": "Open the deletion page",
+  "del.credits": "It also holds {credits} unspent credits. Deleting the journal does not refund them, and they do not carry over to another one.",
   "del.deleteButton": "Yes, delete it permanently",
   "del.doneJournalBody": "“{title}” has been deleted. Its address answers “gone” from now on, and the name is not given out to anybody else.",
   "del.doneJournalTitle": "It is gone",

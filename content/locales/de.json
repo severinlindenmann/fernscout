@@ -207,6 +207,7 @@
   "dayMail.timezone": "Zeitzone: {zone}",
   "del.backups": "Das entfernt die Inhalte von diesem Server. Kopien anderswo — Sicherungen der Person, die ihn betreibt, oder eine Versionsgeschichte des Inhaltsordners — erreicht es nicht.",
   "del.confirmButton": "Löschseite öffnen",
+  "del.credits": "Es enthält außerdem noch {credits} ungenutzte Guthaben-Credits. Beim Löschen des Journals werden sie nicht erstattet und nicht in ein anderes Journal übertragen.",
   "del.deleteButton": "Ja, endgültig löschen",
   "del.doneJournalBody": "„{title}“ wurde gelöscht. Die Adresse antwortet ab jetzt mit „nicht mehr vorhanden“, und der Name wird niemand anderem gegeben.",
   "del.doneJournalTitle": "Es ist weg",
