@@ -133,17 +133,16 @@ export default function LifetimeMap({
           const colour = ACCENT_HEX[route.accent];
           return (
             <g key={route.id}>
-              {pts.length > 1 && (
-                <polyline
-                  points={pts.map(([x, y]) => `${x},${y}`).join(" ")}
-                  fill="none"
-                  stroke={colour}
-                  strokeWidth={size(1.6)}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  opacity={0.85}
-                />
-              )}
+              {/* No line between the stops, deliberately (B344). The per-trip
+                  map draws one because that page *is* one journey in order and
+                  the line is the journey. This map answers a different
+                  question — everywhere we have been — over trips that have
+                  nothing to do with each other, and a line between two of them
+                  asserts a sequence and a path nobody travelled: two stops
+                  joined across an ocean read as a crossing when they were two
+                  separate holidays. The pins carry position, and the legend
+                  ties each colour back to a trip by name, which is the whole
+                  of what an overview owes the reader. */}
               {/* A pin, tip on the coordinate, rather than a dot centred on
                   it (B88): a dot both covers the ground it marks — worse the
                   wider the frame, since size() grows it with the map — and
