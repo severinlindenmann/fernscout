@@ -1,9 +1,9 @@
 // Validates the shape of an entry before it becomes a markdown file.
 //
 // Pure on purpose: no fs, no "server-only" import, nothing that only runs in
-// a route handler. That is what lets the REST route, the MCP tool and
-// `npm run ingest` all call the same checks instead of three drifting copies,
-// and what makes every rule here testable with a plain object literal.
+// a route handler. That is what lets the REST route and `npm run ingest`
+// both call the same checks instead of two drifting copies, and what makes
+// every rule here testable with a plain object literal.
 //
 // Every rule returns a PROBLEM, not a boolean — and validateEntry collects
 // every problem an input has, not just the first. An agent fixing its own
@@ -66,7 +66,7 @@ export type EntryInput = {
   tags?: unknown;
   /** Content nobody lived. See the note on `Entry.test` in lib/types.ts. */
   test?: unknown;
-  /** The prose body — "content" is what the REST route and MCP tool call it. */
+  /** The prose body — "content" is what the REST route calls it. */
   content?: unknown;
 };
 

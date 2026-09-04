@@ -12,8 +12,8 @@ import { journalTombstone, tripTombstone, type Tombstone } from "@/lib/tombstone
  * The alternative was `/de/alex/day/x`: a locale segment on every route.
  * That is the stronger pattern for search engines, and it is also a second
  * full route restructure that invalidates every URL this project builds — the
- * documentation file, the feeds, the sitemap, OG metadata, the REST and MCP
- * paths. For a journal read by a few dozen people who arrive from a link
+ * documentation file, the feeds, the sitemap, OG metadata, the REST paths.
+ * For a journal read by a few dozen people who arrive from a link
  * somebody sent them, the parameter buys most of the value for a fraction of
  * the cost.
  *

@@ -16,9 +16,9 @@ import type { Day, Entry, EntryTranslations, GalleryItem } from "./types";
  * is right for a site whose content only changes when somebody edits a file —
  * and wrong the moment the application itself writes one. It did: a day
  * deleted through the API left the disk but stayed in this map, so its
- * permalink went on answering 200 and MCP went on returning its full text
- * until the server restarted. An owner who deleted something *because it
- * should not be public* was told it was gone while it was still being served.
+ * permalink went on answering 200 until the server restarted. An owner who
+ * deleted something *because it should not be public* was told it was gone
+ * while it was still being served.
  *
  * Every write path calls this. See lib/api/entries.ts.
  */

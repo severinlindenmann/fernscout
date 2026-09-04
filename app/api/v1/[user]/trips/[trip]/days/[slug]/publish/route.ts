@@ -106,8 +106,7 @@ export async function POST(
     // What publishing *this* day did, not what publishing does in general. A
     // `test: true` day is excluded from the feed, the search index and the
     // sitemap, and the sentence used to promise the opposite. It was the
-    // refusal's message until B224; it is the receipt now, and it is still
-    // shared with the MCP tool so the two doors cannot drift. B158.
+    // refusal's message until B224; it is the receipt now. B158.
     note: publishNotice({
       title: entry.title,
       date: entry.date,

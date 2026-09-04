@@ -463,8 +463,7 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
   // B141. `getEntryBySlug` takes the first match and has no tiebreak, so two
   // entry files differing only in their date prefix produce one reachable day
   // and one that is on disk, is not a draft, and can never be served. B119
-  // made `createDraft` refuse that, which covers REST and MCP; ingest writes
-  // its own names and did not.
+  // made `createDraft` refuse that; ingest writes its own names and did not.
   //
   // Ingest cannot refuse — it is a batch import of a folder somebody just
   // handed over, and stopping the run because photograph 340 landed in a town
