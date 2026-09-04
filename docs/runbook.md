@@ -240,11 +240,45 @@ curl -sI https://<your-domain>/api/health | head -1
 cd /srv/fernscout && sudo ./scripts/deploy.sh
 ```
 
-Pull, `npm ci`, migrate if a database is configured, build, restart, wait for
-health. **The build runs before the restart**, so a broken build leaves the
-running site untouched instead of taking it down and then failing.
+Pull, then **only the steps the diff needs** — install, migrate, sync, build,
+units, restart — and wait for health. **The build runs before the restart**, so
+a broken build leaves the running site untouched instead of taking it down and
+then failing.
 
-Five things it does that are not obvious from the name:
+### Which steps run (B258)
+
+The deploy compares the commit it last brought up healthy against what it just
+pulled, and asks each changed path what it costs:
+
+| Changed | Adds |
+| --- | --- |
+| `docs/`, `test/`, `scripts/`, `.claude/`, `.github/`, root `*.md`, tooling config | nothing |
+| `content/locales/`, `content/rates/` | sync, build, restart |
+| other `content/` | nothing, and it says so — a deploy does not copy that half |
+| `app/`, `lib/`, `components/`, `public/`, `next.config.ts`, **anything unrecognised** | build, restart |
+| `package.json`, `package-lock.json` | `npm ci` |
+| `lib/db/migrations/`, `lib/db/migrate.ts`, `lib/db/schema.ts` | `npm run db:migrate` |
+| `deploy/*.service`, `*.timer` | `scripts/install-units.sh` |
+| `deploy/*.caddy`, `deploy/Caddyfile` | the Caddy drift report |
+
+A deploy that carries only task files therefore takes about three seconds, and
+a code-only deploy skips the `npm ci` that used to rewrite `node_modules`
+against a lockfile it already had. The plan is printed before anything runs.
+
+An unrecognised path builds rather than doing nothing, deliberately: a
+directory added next year is code until somebody says otherwise, because
+guessing "code" wrongly costs a build nobody needed and guessing "prose"
+wrongly serves the previous release under a green health check.
+
+```bash
+sudo ./scripts/deploy.sh --full          # every step, whatever changed
+./scripts/deploy.sh --plan lib/foo.ts    # what those paths would cost, and exit
+```
+
+`--plan` touches nothing and needs no server; `test/deploy-plan.test.ts` is
+that mode held to the table above.
+
+Six things it does that are not obvious from the name:
 
 - **It syncs the shipped half of `content/` into `CONTENT_DIR`** —
   `scripts/sync-shipped-content.sh`, run after the pull and before the build.
@@ -272,7 +306,20 @@ Five things it does that are not obvious from the name:
   left a unit change behind used to be indistinguishable from one that had
   none, which is the whole of B138.
 - **It records `GIT_SHA`** in a systemd drop-in, so `/api/health` answers
-  "which build is actually running" rather than `"commit": null`.
+  "which build is actually running" rather than `"commit": null`. Only when it
+  restarts: a drop-in written without one would relabel the running build with
+  a commit it was not built from at the next reboot, and a version label that
+  lies is worse than one that lags. After a deploy that changed only prose,
+  `/api/health` still names the commit the running build came from — which is
+  the true answer, and the script says so.
+- **It remembers what it last brought up healthy**, in
+  `/srv/fernscout/.deploy-state`. That marker is what makes the table above
+  safe: it moves only *after* health goes green, so a build that fails leaves
+  it pointing at the commit that is actually serving and the next attempt
+  re-plans from there rather than from the one it never managed to run. Delete
+  it and the next deploy does everything once. It is also robust to a `git
+  pull` somebody ran by hand — the diff is taken from the last healthy commit,
+  not from the pull.
 
 **Check the shipped content actually arrived**, rather than reading the log and
 believing it. Both commands are silent on success:

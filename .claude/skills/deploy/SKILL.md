@@ -9,6 +9,12 @@ A deploy is a pull, an install, a build and a restart, run on the machine that
 serves. There is no image and no artifact to ship — that is why there is no
 Docker here. Full reference: `docs/runbook.md`.
 
+> **Check for `.claude/skills/vps/` first.** If it exists, this instance has
+> its own one-command deploy path — host, ssh alias and how much local
+> verification it keeps — and that skill is the one to follow. It is
+> gitignored, so a fresh clone has only this file, which is the generic
+> procedure and works on anybody's VPS.
+
 ## Before anything leaves your machine
 
 All four, and read the output rather than the exit code:
@@ -40,18 +46,50 @@ ssh <host>
 cd /srv/fernscout && ./scripts/deploy.sh
 ```
 
-`scripts/deploy.sh` does, in this order:
+`scripts/deploy.sh` pulls, then runs **only the steps the diff asks for**:
 
 1. `git pull --ff-only` — no merge commits happen on the server.
-2. `npm ci` — the exact lockfile, never `npm install`.
-3. `npm run db:migrate`, only when `DATABASE_URL` is set. Unset is supported
-   and means a public-only site.
-4. `npm run build` — **before** the restart, on purpose.
-5. `systemctl restart fernscout` (and the worker, if it is enabled).
-6. Polls `/api/health` for 30 seconds and fails loudly if it never goes green.
+2. `npm ci` — when `package-lock.json` or `package.json` changed. The exact
+   lockfile, never `npm install`.
+3. `scripts/sync-shipped-content.sh` — when `content/locales/` or
+   `content/rates/` changed (B56).
+4. `npm run db:migrate` — when a migration, `lib/db/migrate.ts` or
+   `lib/db/schema.ts` changed, and only when `DATABASE_URL` is set. Unset is
+   supported and means a public-only site.
+5. `npm run build` — for anything under `app/`, `lib/`, `components/`,
+   `public/`, config, or any path the classifier does not recognise.
+   **Before** the restart, on purpose.
+6. `scripts/install-units.sh` — when a `deploy/*.service` or `*.timer` changed.
+7. `systemctl restart fernscout` (and the worker, if it is enabled).
+8. Polls `/api/health` for 30 seconds and fails loudly if it never goes green.
+
+So a deploy carrying only task files or docs takes about three seconds and
+builds nothing, and a code deploy skips `npm ci`. The plan is printed before
+anything runs; the full table is in `docs/runbook.md`.
+
+```bash
+sudo ./scripts/deploy.sh --full          # every step, whatever changed
+./scripts/deploy.sh --plan lib/foo.ts    # what those paths would cost, no server needed
+```
+
+What makes that safe is `$APP_DIR/.deploy-state`: the commit the script last
+brought up **healthy**. It moves only after health goes green, so a failed
+build re-plans from the commit that is actually serving. Delete it to force one
+full deploy.
+
+Two consequences worth knowing:
+
+- **A deploy that skipped the restart leaves `/api/health` reporting the
+  commit its build came from**, not `HEAD`. That is the honest answer — the old
+  build is what is serving — and the script says so rather than leaving you to
+  wonder.
+- **Editing `scripts/deploy.sh` itself takes two deploys.** The running script
+  pulls its own replacement partway through and bash reads a script
+  incrementally, so the new behaviour appears on the next run. Judge the second
+  one.
 
 Overridable by environment: `APP_DIR` (default `/srv/fernscout`), `SERVICE`
-(`fernscout`), `PORT` (`3000`).
+(`fernscout`), `PORT` (`3000`), `STATE_FILE` (`$APP_DIR/.deploy-state`).
 
 ## Confirming it, from outside
 
