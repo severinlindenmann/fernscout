@@ -7,8 +7,7 @@ complexity: medium
 area: me-page, access, auth, mail
 found: "2026-09-04T17:01:48Z"
 started: "2026-09-04T17:04:22Z"
-session: cae3e4fb-d628-4a89-89b7-43a581bc7e71
-claimed: "2026-09-04T17:04:22Z"
+merged: "2026-09-04T17:16:05Z"
 ---
 
 # B320 — A buddy on a trip is told the journal is not theirs to write, and never learns they hold write access
