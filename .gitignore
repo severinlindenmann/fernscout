@@ -108,3 +108,4 @@ exports/
 # Downloaded Natural Earth sources for scripts/build-mapdata.mjs — the baked
 # output in lib/mapdata/ is committed, these are not.
 .mapdata-cache/
+.qa-shots/
