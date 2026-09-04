@@ -75,3 +75,14 @@ read is part of the answer to that, but the size problem is its own task.
   `POST /api/v1/journals` accepts — so the script cannot drift from the
   validator.
 - `npm run build`, `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`.
+
+## Ordering
+
+**B306 first, then this, then B308** — the owner asked for this one first, and
+it has a dependency they could not see from the question: B306 renames the
+journal's visibility values, which this ticket's script has to name. Written
+first, the script would say `public | private` and be wrong within the hour.
+
+B308 follows this rather than preceding it: writing the scripts is what shows
+which prose has become redundant, so the trimming has evidence behind it
+instead of being a guess about what an agent still needs.
