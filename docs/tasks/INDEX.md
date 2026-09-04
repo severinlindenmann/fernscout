@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (88)
+## backlog (89)
 
 ### security (6)
 
@@ -97,11 +97,12 @@ Do not edit them by hand; run the script.
 | [B359](backlog/issue/B359-the-used-link-warning-stays-on.md) | The used-link warning stays on the access page after a successful sign-in | ISSUE | low | low |
 | [B362](backlog/issue/B362-the-queue-notification-s-subject-still.md) | The queue notification's subject still calls a buddy a follower, though its body no longer does | ISSUE | low | low |
 
-### big-feature (12)
+### big-feature (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
+| [B365](backlog/big-feature/B365-a-published-day-can-only-be.md) | A published day can only be announced by email | FEATURE | high | high |
 | [B06](backlog/big-feature/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B112](backlog/big-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts write straight to content, bypassing the token, draft status and rate limits every network write goes through | FEATURE | medium | high |
 | [B262](backlog/big-feature/B262-writing-to-a-journal-requires-bringing.md) | Writing to a journal requires bringing your own agent, so an owner without one cannot write at all | FEATURE | medium | high |
