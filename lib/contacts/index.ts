@@ -675,6 +675,29 @@ export async function listContacts(owner: string): Promise<ContactRecord[]> {
 }
 
 /**
+ * How many of this journal's contacts would receive each channel, journal-wide
+ * — B367's "up to N" on `/<user>/me`, not one trip's.
+ *
+ * The predicate — `status: "active"` and the channel's own opt-in — is
+ * `lib/digest/dayLetter.ts`'s `recipientsFor` restated without a trip to ask
+ * `mayMailTrip` about. It is therefore the count for the *most permissive*
+ * trip a send could go to: `mayMailTrip` returns `true` unconditionally for a
+ * `public` trip (`isOpenToLink`), so a public trip's own recipient count
+ * matches this exactly, and a `private` or `guest` one reaches fewer once
+ * that gate starts filtering per recipient. That gap is why the page says
+ * "up to N" rather than a number a `private` trip's own send would not match
+ * — never a second, diverging definition of "opted in" to keep in step with
+ * the first.
+ */
+export function optedInCounts(contacts: ContactRecord[]): { email: number; whatsapp: number } {
+  const isActive = (c: ContactRecord) => c.status === "active";
+  return {
+    email: contacts.filter((c) => isActive(c) && c.wantsEmailDigest).length,
+    whatsapp: contacts.filter((c) => isActive(c) && c.wantsWhatsapp).length,
+  };
+}
+
+/**
  * One contact, by the address on their session cookie.
  *
  * Indexed on `email_key`, and one row rather than the whole book: this is
