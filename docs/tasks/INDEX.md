@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (72)
+## backlog (73)
 
 ### security (4)
 
@@ -60,10 +60,11 @@ Do not edit them by hand; run the script.
 | [B287](backlog/security/B287-the-contacts-page-carries-addresses-and.md) | The contacts page carries addresses and now invite links, and nothing in the repo pins its cache headers | SECURITY | medium | low |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (24)
+### issue (25)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B320](backlog/issue/B320-a-buddy-on-a-trip-is.md) | A buddy on a trip is told the journal is not theirs to write, and never learns they hold write access | ISSUE | high | medium |
 | [B228](backlog/issue/B228-the-guest-list-issues-a-link.md) | The guest list issues a link that never expires | ISSUE | medium | low |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
@@ -74,7 +75,6 @@ Do not edit them by hand; run the script.
 | [B312](backlog/issue/B312-a-malformed-trip-md-that-gray.md) | A malformed trip.md that gray-matter has already failed to parse once can silently succeed on re-parse | ISSUE | medium | low |
 | [B313](backlog/issue/B313-getplan-s-own-doc-comment-claims.md) | getPlan's own doc comment claims a malformed plan.md returns empty, but readPlanFile has no guard and throws | ISSUE | medium | low |
 | [B315](backlog/issue/B315-the-invite-form-offers-a-postcard.md) | The invite form offers a postcard but never asks about email updates, so a new reader is silently opted out | ISSUE | medium | low |
-| [B317](backlog/issue/B317-the-scripts-say-what-to-ask.md) | The scripts say what to ask and never what to offer next, so an agent stops after each step | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
@@ -88,6 +88,7 @@ Do not edit them by hand; run the script.
 | [B274](backlog/issue/B274-the-self-serve-link-in-a.md) | The self-serve link in a reader's mail is labelled as a detail change when it is their standing way back | ISSUE | low | low |
 | [B284](backlog/issue/B284-a-dictionary-read-that-fails-for.md) | A dictionary read that fails for any reason but absence is cached as empty until the file changes | ISSUE | low | low |
 | [B288](backlog/issue/B288-an-agent-orienting-through-status-is.md) | An agent orienting through status is not told a trip.md failed to load, though the trip list would tell it | ISSUE | low | low |
+| [B321](backlog/issue/B321-a-contact-row-shows-the-raw.md) | A contact row shows the raw invite id it came from, not which link or which trip | ISSUE | low | low |
 
 ### big-feature (11)
 
@@ -171,11 +172,11 @@ _Nothing here._
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B316](in-development/B316-the-rule-against-translating-prose-reads.md) | The rule against translating prose reads as absolute, so an agent refuses an owner who asks for it | ISSUE | high | low | `986bc24c` |
 | [B318](in-development/B318-a-draft-day-shows-three-of.md) | A draft day shows three of its nine photographs and all nine once published | ISSUE | high | medium | `986bc24c` |
 | [B319](in-development/B319-letting-somebody-in-means-handing-them.md) | Letting somebody in means handing them a link by hand, and approving means being at a browser | FEATURE | high | high | `986bc24c` |
+| [B317](in-development/B317-the-scripts-say-what-to-ask.md) | The scripts say what to ask and never what to offer next, so an agent stops after each step | ISSUE | medium | low | `986bc24c` |
 
-## testing (135)
+## testing (136)
 
 ### security (12)
 
@@ -194,7 +195,7 @@ _Nothing here._
 | [B233](testing/security/B233-the-https-only-rule-is-not.md) | The https-only rule is not re-applied after a redirect | SECURITY | low | low | — |
 | [B234](testing/security/B234-an-unauthenticated-health-check-discloses-server.md) | An unauthenticated health check discloses server paths and journal names | SECURITY | low | low | — |
 
-### issue (78)
+### issue (79)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -216,6 +217,7 @@ _Nothing here._
 | [B300](testing/issue/B300-approving-a-guest-opens-nothing-when.md) | Approving a guest opens nothing when every trip is private, and neither the owner nor the guest is told | ISSUE | high | low | — |
 | [B306](testing/issue/B306-a-journal-s-visibility-borrows-the.md) | A journal's visibility borrows the trip's words for a different meaning, and everyone reads them as the trip's | ISSUE | high | medium | — |
 | [B307](testing/issue/B307-onboarding-is-prose-so-an-agent.md) | Onboarding is prose, so an agent asks a different set of questions in a different order every time | ISSUE | high | medium | — |
+| [B316](testing/issue/B316-the-rule-against-translating-prose-reads.md) | The rule against translating prose reads as absolute, so an agent refuses an owner who asks for it | ISSUE | high | low | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
