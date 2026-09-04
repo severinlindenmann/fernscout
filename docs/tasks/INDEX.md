@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (90)
+## backlog (91)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (33)
+### issue (34)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -99,6 +99,7 @@ Do not edit them by hand; run the script.
 | [B288](backlog/issue/B288-an-agent-orienting-through-status-is.md) | An agent orienting through status is not told a trip.md failed to load, though the trip list would tell it | ISSUE | low | low |
 | [B358](backlog/issue/B358-the-invite-copy-button-s-accessible.md) | The invite copy button's accessible name ends in two dangling em-dashes and reports no success | ISSUE | low | low |
 | [B359](backlog/issue/B359-the-used-link-warning-stays-on.md) | The used-link warning stays on the access page after a successful sign-in | ISSUE | low | low |
+| [B362](backlog/issue/B362-the-queue-notification-s-subject-still.md) | The queue notification's subject still calls a buddy a follower, though its body no longer does | ISSUE | low | low |
 
 ### big-feature (12)
 
@@ -185,17 +186,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (5)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B345](in-development/B345-publishing-a-day-tells-nobody-so.md) | Publishing a day tells nobody, so an owner announces their own journal by hand | FEATURE | high | high | `986bc24c` |
-| [B347](in-development/B347-a-buddy-approved-onto-a-trip.md) | A buddy approved onto a trip is mailed "follow along whenever you like" and never told they can write | ISSUE | high | low | `62683d95` |
-| [B348](in-development/B348-the-agent-code-mail-tells-a.md) | The agent-code mail tells a buddy the token writes to "your journal", when it writes one trip in somebody else's | ISSUE | high | low | `62683d95` |
-| [B349](in-development/B349-the-owner-s-queue-notification-calls.md) | The owner's queue notification calls a buddy a follower, naming neither the link kind nor the trip | ISSUE | medium | low | `62683d95` |
 | [B361](in-development/B361-the-lifetime-map-cannot-answer-which.md) | The lifetime map cannot answer which countries somebody has been to, only where individual stops fell | FEATURE | medium | high | `e8e2ddef` |
 
-## testing (141)
+## testing (144)
 
 ### security (10)
 
@@ -212,7 +210,7 @@ _Nothing here._
 | [B233](testing/security/B233-the-https-only-rule-is-not.md) | The https-only rule is not re-applied after a redirect | SECURITY | low | low | — |
 | [B234](testing/security/B234-an-unauthenticated-health-check-discloses-server.md) | An unauthenticated health check discloses server paths and journal names | SECURITY | low | low | — |
 
-### issue (85)
+### issue (88)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -240,6 +238,8 @@ _Nothing here._
 | [B331](testing/issue/B331-a-journal-s-own-document-never.md) | A journal's own document never mentions invites, so an agent told its owner to use a dashboard that does not exist | ISSUE | high | low | — |
 | [B332](testing/issue/B332-the-documents-still-say-deleting-a.md) | The documents still say deleting a budget removes the costs page, which B328 made untrue | ISSUE | high | low | — |
 | [B339](testing/issue/B339-getplaces-merges-every-unnamed-day-into.md) | getPlaces merges every unnamed day into one place, collapsing a whole trip's coordinates to a single point | ISSUE | high | low | — |
+| [B347](testing/issue/B347-a-buddy-approved-onto-a-trip.md) | A buddy approved onto a trip is mailed "follow along whenever you like" and never told they can write | ISSUE | high | low | — |
+| [B348](testing/issue/B348-the-agent-code-mail-tells-a.md) | The agent-code mail tells a buddy the token writes to "your journal", when it writes one trip in somebody else's | ISSUE | high | low | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
@@ -272,6 +272,7 @@ _Nothing here._
 | [B317](testing/issue/B317-the-scripts-say-what-to-ask.md) | The scripts say what to ask and never what to offer next, so an agent stops after each step | ISSUE | medium | low | — |
 | [B336](testing/issue/B336-the-map-pages-drop-the-owner.md) | The map pages drop the owner's draft days while the same page's planned route keeps them | ISSUE | medium | low | — |
 | [B338](testing/issue/B338-a-mailed-invitation-knows-the-address.md) | A mailed invitation knows the address it was sent to and asks the reader to type it again | ISSUE | medium | low | — |
+| [B349](testing/issue/B349-the-owner-s-queue-notification-calls.md) | The owner's queue notification calls a buddy a follower, naming neither the link kind nor the trip | ISSUE | medium | low | — |
 | [B41](testing/issue/B41-an-approved-contact-is-shown-a.md) | An approved contact is shown a trip in their own panel and then asked for a password nobody gave them | ISSUE | medium | medium | — |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
