@@ -95,6 +95,12 @@ function journal(opts: { locales: string[]; defaultLocale: string }): void {
     path.join(trip, "entries", "2025-05-02-first.md"),
     '---\ntitle: "First"\ndate: "2025-05-02"\nlocation: "Chur"\n---\n\nA day.\n',
   );
+  // Without this the page 404s on its own missing budget (B267) before this
+  // file's language assertions ever get to run.
+  fs.writeFileSync(
+    path.join(trip, "costs.md"),
+    "---\nbudget:\n  total: 100\n  days: 10\n---\n\nBefore we left.\n",
+  );
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({

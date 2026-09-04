@@ -106,6 +106,12 @@ function journal(opts: { locale: string; withTrip: boolean }): void {
       path.join(trip, "entries", "2025-05-02-first.md"),
       '---\ntitle: "First"\ndate: "2025-05-02"\nlocation: "Chur"\n---\n\nA day.\n',
     );
+    // Without this the page 404s on its own missing budget (B267) before
+    // this file's tense assertions ever get to run.
+    fs.writeFileSync(
+      path.join(trip, "costs.md"),
+      "---\nbudget:\n  total: 100\n  days: 10\n---\n\nBefore we left.\n",
+    );
   }
   process.env.CONTENT_DIR = dir;
   clearConfigCache();
@@ -247,6 +253,10 @@ describe("the flag the description and the page share", () => {
       path.join(trip, "trip.md"),
       '---\nid: ridge-2099\ntitle: "Ahead"\nstart: "2099-05-01"\nend: "2099-05-10"\n' +
         "status: current\nvisibility: public\n---\n\nSomething.\n",
+    );
+    fs.writeFileSync(
+      path.join(trip, "costs.md"),
+      "---\nbudget:\n  total: 100\n  days: 10\n---\n\nBefore we left.\n",
     );
     process.env.CONTENT_DIR = dir;
     clearConfigCache();

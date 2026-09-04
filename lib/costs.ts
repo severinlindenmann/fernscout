@@ -2,8 +2,9 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { isEnabled } from "./capabilities";
 import { getAllEntries, getDays } from "./entries";
-import { getTrip, tripDir } from "./trips";
+import { getTrip, getTripIds, tripDir, tripRef } from "./trips";
 import { hasBegun } from "./tripTime";
 import { loadUserConfig } from "./config";
 import { normalizeCurrency, toBase, type RateTable } from "./currency";
@@ -48,6 +49,48 @@ function readCostsFile(tripId: string) {
   const file = path.join(tripDir(tripId), "costs.md");
   if (!fs.existsSync(file)) return null;
   return matter(fs.readFileSync(file, "utf8"));
+}
+
+/**
+ * Whether this one trip has a `costs.md` — the file, not the capability.
+ *
+ * `costs.md` is optional per trip (AGENTS.md), and B267 is the fact that
+ * `features.costs` being on says nothing about whether anybody wrote one: it
+ * is on by default at creation (lib/journals.ts). The costs pages ask this
+ * for the trip they are about to render, so a journal with one trip costed
+ * and another not shows the second one's page as absent rather than as an
+ * empty shell, without hiding the first's.
+ */
+export function hasCostsData(tripId: string): boolean {
+  return readCostsFile(tripId) !== null;
+}
+
+/**
+ * Whether any trip in this journal has a `costs.md` at all — journal-wide,
+ * for the nav (`costsAvailable` below), which is not asked about any one
+ * trip. `SiteSummary.costsEnabled` (lib/site.ts) is deliberately the same for
+ * every page of a journal (test/access-door.test.ts pins that), so the
+ * question it can ask is "does this journal do this at all", not "does the
+ * trip in front of the reader right now".
+ */
+function journalHasCosts(username: string): boolean {
+  return getTripIds(username).some((id) => hasCostsData(tripRef(username, id)));
+}
+
+/**
+ * What the nav asks: is the capability on, *and* is there anything anywhere
+ * in the journal to show. Neither alone is enough — `isEnabled` on its own is
+ * what B267 found offering a "Costs" tab with nothing behind it, and a bare
+ * `journalHasCosts` would show the tab on a journal that has switched
+ * spending off entirely.
+ *
+ * The costs pages themselves ask a narrower, per-trip version of this same
+ * pair — `isEnabled("costs", username) && hasCostsData(trip.ref)` — because
+ * whether *this* trip's own page has anything to show is not the same
+ * question as whether the journal does, anywhere.
+ */
+export function costsAvailable(username: string): boolean {
+  return isEnabled("costs", username) && journalHasCosts(username);
 }
 
 /** Costs incurred before leaving: visas, vaccinations, passport, gear. */

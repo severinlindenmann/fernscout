@@ -1,5 +1,6 @@
 import "server-only";
 import { isEnabled } from "./capabilities";
+import { costsAvailable } from "./costs";
 import { loadServerConfig, type UserConfig } from "./config";
 import { getUser } from "./users";
 import type { Trip, TripPerson } from "./types";
@@ -138,13 +139,17 @@ export type SiteSummary = {
    */
   canSignIn: boolean;
   /**
-   * Whether this journal does spending at all — `features.costs`, resolved for
-   * this user by `isEnabled`.
+   * Whether this journal's costs page has anything to show — `features.costs`
+   * on (`isEnabled`), *and* at least one trip actually has a `costs.md`
+   * (`costsAvailable` in lib/costs.ts).
    *
-   * The nav needs it (B165): with the capability off both costs pages answer
-   * 404, and a tab that links at one is the same bug the sign-in door above
-   * records — a control promising something that is not there. Absent rather
-   * than broken.
+   * The nav needs it (B165, B267): with the capability off both costs pages
+   * answer 404, and a tab that links at one is the same bug the sign-in door
+   * above records — a control promising something that is not there. Absent
+   * rather than broken. The capability check alone was not enough: it is on
+   * by default at trip creation (lib/journals.ts), so a journal that never
+   * wrote a budget still got the tab, leading to a page with nothing on it —
+   * the same failure with an extra step. B267 added the second half.
    *
    * Journal-wide and viewer-independent, exactly like `canSignIn`, and for the
    * same reason: it comes from config and from nothing the reader is or is not
@@ -173,7 +178,7 @@ export function siteSummaryFor(
     // it is a property of the journal, so every caller would compute the same
     // answer, and one of them would eventually forget to.
     canSignIn: isEnabled("auth", user.username),
-    costsEnabled: isEnabled("costs", user.username),
+    costsEnabled: costsAvailable(user.username),
   };
 }
 

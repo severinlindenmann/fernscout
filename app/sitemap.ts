@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getAllEntries, getDays } from "@/lib/entries";
 import { getCurrentTrip, getTrips } from "@/lib/trips";
 import { isIndexable } from "@/lib/access";
+import { hasCostsData } from "@/lib/costs";
 import { isEnabled } from "@/lib/capabilities";
 import { serverSite } from "@/lib/site";
 import { listedUsernames } from "@/lib/users";
@@ -78,10 +79,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       if (trip.status === "upcoming") continue;
 
       // A journal with spending switched off has no costs page, so nothing
-      // offers a crawler one. B165 — absent, not a 404 in the sitemap.
-      const pages = isEnabled("costs", username)
-        ? ["/gallery", "/map", "/costs"]
-        : ["/gallery", "/map"];
+      // offers a crawler one. B165 — absent, not a 404 in the sitemap. Nor
+      // does a trip that never got its own `costs.md` (B267): the capability
+      // being on says nothing about this one trip.
+      const pages =
+        isEnabled("costs", username) && hasCostsData(trip.ref)
+          ? ["/gallery", "/map", "/costs"]
+          : ["/gallery", "/map"];
       for (const page of pages) {
         out.push({
           url: `${tripBase}${page}`,

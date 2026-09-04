@@ -19,6 +19,8 @@ import { CODE_TTL_MINUTES } from "../auth";
 // The sentences these documents share with /openapi.json, kept in one place so
 // they cannot come to disagree. See the note at the top of that file.
 import {
+  BUDGET_QUESTION,
+  COORDINATES_QUESTION,
   LOCALE_LIST,
   MEDIA_ENDPOINT_PATH,
   TITLE_COLLISION_EXAMPLE,
@@ -204,6 +206,10 @@ export function instanceDocumentation(): string {
         "unless you say otherwise; ask before making somebody's journey public.",
       78,
     ),
+    "",
+    ...wrap(BUDGET_QUESTION, 78),
+    "",
+    ...wrap(COORDINATES_QUESTION, 78),
     "",
     "```http",
     `POST ${base()}/api/v1/their-name/trips/japan-2027/days`,
@@ -919,6 +925,10 @@ serve, which is \`"status": "current"\`.
 
 A trip is created **private** unless you say otherwise. Publishing somebody's
 journey is their decision — ask before sending \`"visibility": "public"\`.
+
+${wrap(BUDGET_QUESTION).join("\n")}
+
+${wrap(COORDINATES_QUESTION).join("\n")}
 
 \`"costsVisibility": "guests"\` is the separate question of the money, and only
 of the money: among the readers already allowed to open the trip, it keeps what

@@ -6,7 +6,7 @@ import { mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { notFound } from "next/navigation";
 import CostsPageContent from "./CostsPageContent";
 import CostsPrivate from "@/components/CostsPrivate";
-import { getCostSummary } from "@/lib/costs";
+import { getCostSummary, hasCostsData } from "@/lib/costs";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { getCurrentTrip } from "@/lib/trips";
 import { getDays } from "@/lib/entries";
@@ -72,6 +72,12 @@ export async function generateMetadata({
   // No current trip at all: the page redirects to the trip list, so nothing
   // renders under this description. The planned wording is the one that claims
   // less, which is what the map page settled on for the same state.
+  //
+  // A current trip that has no `costs.md` is the other state nothing should
+  // describe: the page below 404s for it (B267), so no description belongs
+  // to it either — the same "not there" AGENTS.md asks for a disabled
+  // capability, reached here by way of missing data rather than a switch.
+  if (trip && !hasCostsData(trip.ref)) return {};
   const begun = trip ? hasBegun(trip, getDays(trip.ref)) : false;
   const blurb: TranslationKey = begun ? "cost.subtitle" : "cost.subtitlePlanned";
   const description = translateIn(journal, blurb, { currency });
@@ -111,6 +117,15 @@ export default async function CostsPage({ params }: PageProps<"/[user]/costs">) 
   // No current trip is a normal state, not a missing page. See lib/currentTrip.ts.
   const trip = currentTripOrRedirect(user);
   const tripId = trip.ref;
+  /**
+   * `costs` is on by default at trip creation (lib/journals.ts), so the
+   * capability being on says nothing about whether this trip ever got a
+   * `costs.md`. Without this, a trip that never did rendered the panel
+   * anyway, with every figure zero — the same "absent rather than broken"
+   * failure the capability check above exists to prevent, reached by way of
+   * missing data instead of a switched-off feature. B267.
+   */
+  if (!hasCostsData(tripId)) notFound();
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
