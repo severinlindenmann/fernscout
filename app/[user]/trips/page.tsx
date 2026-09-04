@@ -84,7 +84,7 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
   // Shown to the owner only: a stranger sees a malformed trip as simply
   // absent, the same as before B83. Decided before the empty state, because a
   // journal whose only trip is malformed is *not* empty — it must not be told
-  // to hand two lines to an agent when the trip it is missing is one it has
+  // to hand an agent a prompt when the trip it is missing is one it has
   // already written.
   // Folder and reason only. The English `problem` on each is what the log and
   // the API carry; the page renders the reason translated, so sending the
@@ -101,8 +101,6 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
       if (all.length === 0) {
         empty = {
           owner: true,
-          docUrl: `${serverSite().url}/documentation.txt`,
-          ownerEmail: getUser(user)?.owner.email ?? null,
           // For the handover prompt B283 renders here: the exchange call and
           // the status call both name this instance's own address, not
           // whatever host the owner reached it through.
@@ -117,7 +115,7 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
       // we already know there is nothing to show them.
       //
       // `ownerName` (B278) is a third value that is safe for the same reason
-      // `docUrl`/`ownerEmail` are safe above: it is the journal's own
+      // `siteUrl` is safe above: it is the journal's own
       // constant, read off `config.json`, and does not vary with what this
       // reader may or may not see. Nickname first — it is the short form the
       // journal already keeps for exactly this (B20) — and the title when a

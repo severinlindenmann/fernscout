@@ -28,7 +28,6 @@ import type { Viewer } from "@/lib/viewer";
 export default function MePageContent({
   viewer,
   username,
-  docUrl,
   siteUrl,
   manageHref,
   canSignIn,
@@ -39,7 +38,6 @@ export default function MePageContent({
 }: {
   viewer: Viewer;
   username: string;
-  docUrl: string;
   /** This instance's public base URL. Threaded from the server rather than
    * read off `location`, so the prompt an agent is handed names the address
    * the journal actually answers on rather than whatever host the owner
@@ -187,7 +185,7 @@ export default function MePageContent({
               `resolveViewer` puts every trip in the journal into the list for
               an owner, so an empty list has exactly one meaning for them: the
               journal has no trips. The answer is how one gets made — an agent,
-              per decision 24 — and the two lines to hand it are already in the
+              per decision 24 — and the prompt to hand it is already in the
               owner block below, so the copy points down the page rather than
               repeating the handover here.
             */}
@@ -237,8 +235,6 @@ export default function MePageContent({
                 actually lands first — see components/AgentHandover.tsx. */}
             <div className="mt-4">
               <AgentHandover
-                docUrl={docUrl}
-                email={viewer.email}
                 username={username}
                 siteUrl={siteUrl}
                 onIssued={() => setKeysChanged((n) => n + 1)}
