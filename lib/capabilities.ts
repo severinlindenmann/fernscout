@@ -26,6 +26,7 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   contacts: { env: ["CONTACTS_ENCRYPTION_KEY"], db: true },
   postcards: { env: [], db: true }, // provider-specific; see providerRequirements()
   photobook: { env: [], db: false },
+  logging: { env: [], db: false },
 };
 
 /** Transport and provider choices carry their own credential requirements.

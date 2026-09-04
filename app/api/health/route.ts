@@ -188,6 +188,14 @@ export async function GET(request: Request) {
         { enabled: boolean; reason?: string; stillSent?: string }
       > = {};
       for (const name of FEATURE_NAMES) {
+        // `logging` has no per-journal opt-in (B257) — it is the operator's
+        // decision alone, made once for the whole instance — so a journal
+        // that has never mentioned it must never appear here as though it
+        // had narrowed something. Skipping it is what keeps that true: every
+        // journal defaults to "not enabled by <username>" the same way every
+        // other opt-in capability does, and without this line that default
+        // would show up as narrowed for every journal, every time.
+        if (name === "logging") continue;
         const state = resolved[name];
         if (state.enabled === capabilities[name].enabled) continue;
         narrowed[name] = state.enabled

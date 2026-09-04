@@ -15,6 +15,7 @@ export const FEATURE_NAMES = [
   "contacts",
   "postcards",
   "photobook",
+  "logging",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -166,6 +167,11 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   contacts: { enabled: false },
   postcards: { enabled: false, provider: "dry-run" },
   photobook: { enabled: false, provider: "dry-run" },
+  // One line per request to stdout — method, path, user agent, never an IP
+  // or a query string. Server-only: there is deliberately no per-journal
+  // opt-in (B257), so this is never narrowed by a user's own config.json —
+  // see the exclusion in app/api/health/route.ts.
+  logging: { enabled: false },
 };
 
 /**

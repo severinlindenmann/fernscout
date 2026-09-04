@@ -302,6 +302,24 @@ report_backup() {
   esac
 }
 
+# Whether this deploy is writing a request log, printed for the same reason
+# as backup state: an operator who turned `features.logging` on has no other
+# way to learn from a deploy that it actually took, and one who never did
+# should be told there is nothing to check yet rather than left to guess
+# (B257). Never fatal — this is an operator's own choice, not a health check.
+report_logging() {
+  local health="$1"
+  local enabled
+  enabled="$(printf '%s' "$health" | node -e \
+    'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).capabilities?.logging?.enabled))}catch{}})' \
+    2>/dev/null)" || enabled=""
+  case "$enabled" in
+    true) log "logging: on — requests are in journalctl -u ${SERVICE}" ;;
+    false) log "logging: off (features.logging.enabled in content/config.json)" ;;
+    *) ;;  # an older build with no logging capability at all
+  esac
+}
+
 # Whether the proxy in front of this app is still the one the release expects
 # (B66). `deploy/fernscout.caddy` is imported by the machine's Caddyfile, so on
 # a machine that took the import there is nothing to say; on one whose operator
@@ -340,6 +358,7 @@ for i in $(seq 1 30); do
     log "healthy"
     record_deployed
     report_backup "$HEALTH"
+    report_logging "$HEALTH"
     [ "$do_caddy" = 1 ] && report_caddy
     if [ "$do_restart" = 0 ] && [ "$do_build" = 0 ]; then
       log "note: /api/health still reports the commit it was built from — that is what is serving"
