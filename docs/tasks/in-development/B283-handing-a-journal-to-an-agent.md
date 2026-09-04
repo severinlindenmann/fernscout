@@ -6,6 +6,9 @@ priority: medium
 complexity: high
 area: auth, me-page, agents, documentation
 found: "2026-09-04T12:43:00Z"
+started: "2026-09-04T13:40:14Z"
+session: a3370c43-40d9-471c-a3d3-1a30c49b5302
+claimed: "2026-09-04T13:40:14Z"
 ---
 
 # B283 — Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt
