@@ -7,8 +7,7 @@ complexity: low
 area: map, ui
 found: "2026-09-03"
 started: "2026-09-04T15:49:33Z"
-session: 67c9cca1-5b74-49e7-b1a4-dbee6bf7ce21
-claimed: "2026-09-04T15:49:33Z"
+merged: "2026-09-04T16:04:34Z"
 ---
 
 # B88 — Every stop on a map is a dot, which says nothing about where the point actually is

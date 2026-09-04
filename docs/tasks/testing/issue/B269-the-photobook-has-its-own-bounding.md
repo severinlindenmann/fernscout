@@ -8,8 +8,7 @@ area: photobook, maps
 found: "2026-09-04T11:52:43Z"
 related: B268
 started: "2026-09-04T15:49:33Z"
-session: 67c9cca1-5b74-49e7-b1a4-dbee6bf7ce21
-claimed: "2026-09-04T15:49:33Z"
+merged: "2026-09-04T16:04:33Z"
 ---
 
 # B269 — The photobook has its own bounding-box code with the same NaN hole B265 closed for the web maps
