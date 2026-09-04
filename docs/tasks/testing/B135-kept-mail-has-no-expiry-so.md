@@ -111,3 +111,40 @@ are settled.
 - `docs/archiv/deploy-mail.md` states the lifetime, and no longer says the files
   stay until somebody removes them.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.
+
+## Live verification, 2026-09-04 (deployed bc1fe40)
+
+The fix is in the running build — the rebuilt chunk
+`lib_mail_index_ts_18rx2qu._.js` carries `1728e5` (172,800,000 ms = two days)
+and the `swept ${n} expired .eml from …` log line.
+
+**The in-window half is observed.** Two sign-in codes were sent to `example`
+14 seconds apart; the second write ran the sweep (writeEml sweeps before
+writing) and left the first file alone. Both survive.
+
+**The deletion half cannot be witnessed yet, and the reason is this campaign's
+own cleanup.** `find /var/lib/fernscout/content -name "*.eml" -mtime +2`
+returns nothing — every `.eml` on the instance is from today, because the QA
+journals and their mail were deleted. And sweep-on-write means a directory
+nothing writes to never sweeps.
+
+### Concrete re-check, costing one mail
+
+The two files in `/var/lib/fernscout/content/.mail/` turn two days old at
+**2026-09-06 07:11Z**. Any signup code requested after that should delete them
+and log:
+
+```
+[mail] swept 2 expired .eml from /var/lib/fernscout/content/.mail (older than 2 days)
+```
+
+That is a single `POST /api/auth/signup/request` and one `journalctl` grep.
+
+### One correction to this ticket's own acceptance
+
+It names `docs/archiv/deploy-mail.md`. That path no longer exists — B09/B23
+moved everything out of `docs/archiv/`, and the file is now
+**`docs/deploy-mail.md`**. Its content is correct: it states the two-day
+lifetime and both of its limits, and no longer says the files stay until
+somebody removes them.
+

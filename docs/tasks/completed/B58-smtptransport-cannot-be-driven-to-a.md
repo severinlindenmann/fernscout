@@ -8,6 +8,7 @@ area: mail, testing
 found: "2026-09-01"
 started: "2026-09-04T05:58:31Z"
 merged: "2026-09-04T06:14:50Z"
+completed: "2026-09-04T07:30:54Z"
 ---
 
 # B58 — SmtpTransport cannot be driven to a successful send from a test
