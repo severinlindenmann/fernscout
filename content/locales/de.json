@@ -296,6 +296,7 @@
   "invite.buddyTitle": "Komm mit auf {what}",
   "invite.confirmAs": "Du bist als {email} angemeldet. Sonst ist nichts auszufüllen.",
   "invite.confirmSubmit": "Ja, das bin ich",
+  "invite.emailPrefilledHint": "Diese Einladung wurde an {email} geschickt. Trägst du eine andere Adresse ein, landest du auf der Liste, statt sie zu überspringen.",
   "invite.expired": "Dieser Link funktioniert nicht mehr. Bitte um einen neuen.",
   "invite.guestIntro": "Sag kurz, wer du bist, dann lässt dich {title} herein. Du bekommst eine E-Mail, sobald es so weit ist.",
   "invite.guestTitle": "Lies mit bei {title}",

@@ -1257,6 +1257,26 @@ describe("the personal link", () => {
     });
     expect(await resolveInvite("ana", token)).toBeNull();
   });
+
+  /**
+   * B338 — the field the redeem page prefills its email box from. A link the
+   * owner asked to have mailed carries the address; one they copied by hand
+   * carries none, and that split is what makes the difference between
+   * prefilling somebody's own address back to them and prefilling nothing.
+   */
+  test("a mailed invite carries the address it was sent to, case-folded", async () => {
+    const { token } = await createInvite("ana", {
+      kind: "guest",
+      name: "Oma",
+      email: "Oma.Mueller@Example.Test",
+    });
+    expect((await resolveInvite("ana", token))?.email).toBe("oma.mueller@example.test");
+  });
+
+  test("a link copied by hand carries no address", async () => {
+    const { token } = await createInvite("ana", { kind: "guest", name: "Familie" });
+    expect((await resolveInvite("ana", token))?.email).toBeNull();
+  });
 });
 
 describe("the self-serve page", () => {

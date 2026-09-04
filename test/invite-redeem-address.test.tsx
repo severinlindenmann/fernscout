@@ -18,7 +18,7 @@ import { dictionaryFor } from "@/lib/locales";
 describe("the guest invite form's postal address fields", () => {
   const dictionaries = { en: dictionaryFor("en") };
 
-  function render(knownEmail: string | null) {
+  function render(knownEmail: string | null, invitedEmail: string | null = null) {
     return renderToStaticMarkup(
       <InviteRedeem
         username="ana"
@@ -31,6 +31,7 @@ describe("the guest invite form's postal address fields", () => {
         dictionaries={dictionaries}
         knownEmail={knownEmail}
         initialName=""
+        invitedEmail={invitedEmail}
         alreadyIn={false}
       />,
     );
@@ -76,5 +77,51 @@ describe("the guest invite form's postal address fields", () => {
     // with the fields simply missing.
     expect(html).toContain("known@example.test");
     expect(html).toContain('type="submit"');
+  });
+});
+
+/**
+ * B338 — a mailed invite prefills the address it was sent to; a link the
+ * owner copied by hand prefills nothing, exactly as before this ticket. The
+ * explanation of what changing the address costs is shown in the one case
+ * and not the other, because it is only true in the one case.
+ */
+describe("the email field prefills only from a mailed invite (B338)", () => {
+  const dictionaries = { en: dictionaryFor("en") };
+
+  function render(invitedEmail: string | null) {
+    return renderToStaticMarkup(
+      <InviteRedeem
+        username="ana"
+        journalTitle="Ana's journal"
+        kind="guest"
+        tripTitle={null}
+        token="tok"
+        initialLocale="en"
+        locales={["en"]}
+        dictionaries={dictionaries}
+        knownEmail={null}
+        initialName=""
+        invitedEmail={invitedEmail}
+        alreadyIn={false}
+      />,
+    );
+  }
+
+  test("a mailed invite prefills its address, and says what changing it costs", () => {
+    const html = render("oma@example.test");
+    expect(html).toContain('id="invite-email"');
+    expect(html).toContain('value="oma@example.test"');
+    // The apostrophe renders HTML-escaped, so this checks the part either
+    // side of it rather than the raw dictionary string.
+    expect(html).toContain("This invitation was sent to oma@example.test");
+    expect(html).toContain("wait in the queue instead of skipping it");
+  });
+
+  test("a hand-copied link prefills nothing, and says nothing about changing it", () => {
+    const html = render(null);
+    const field = /<input id="invite-email"[^>]*>/.exec(html)?.[0] ?? "";
+    expect(field).toContain('value=""');
+    expect(html).not.toContain(dictionaries.en["invite.emailPrefilledHint"].split("{email}")[0]);
   });
 });

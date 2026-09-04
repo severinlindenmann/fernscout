@@ -41,6 +41,16 @@ import type { Locale } from "@/lib/types";
  * What it never does is tell somebody they are in. Redeeming is asking; the
  * last screen says so in those words, because a form that appears to succeed
  * and then goes quiet leaves people waiting for a reply that never comes.
+ *
+ * **The email field prefills, but only from a mailed invite — B338.** When
+ * `invitedEmail` is set, the address is already the one the owner asked to
+ * have this link mailed to, and typing over it means falling out of B319's
+ * pre-approval into the ordinary queue with no explanation on the owner's
+ * side. `invite.emailPrefilledHint`, shown beside the field exactly when it
+ * was prefilled, is that explanation. See `invitedEmail`'s own doc comment
+ * below, and the one on `RedeemPage`, for why prefilling is judged safe
+ * against "safe to forward" and why the value shown is the case-folded
+ * `email_key` rather than a second stored copy of the address as typed.
  */
 
 type Step = "form" | "confirm" | "code" | "waiting" | "in";
@@ -62,6 +72,7 @@ export default function InviteRedeem({
   dictionaries,
   knownEmail,
   initialName,
+  invitedEmail,
   alreadyIn,
 }: {
   username: string;
@@ -79,6 +90,14 @@ export default function InviteRedeem({
    * the session itself. */
   knownEmail: string | null;
   initialName: string;
+  /**
+   * The address this invite was mailed to — B338. Null for a link the owner
+   * copied by hand, which prefills nothing here, unchanged from before this
+   * ticket. Only ever reaches this component when there is no `knownEmail`
+   * already (a signed-in reader is shown the "confirm" step instead, which
+   * has no email field to prefill).
+   */
+  invitedEmail: string | null;
   /** They already hold everything this link leads to. */
   alreadyIn: boolean;
 }) {
@@ -89,7 +108,7 @@ export default function InviteRedeem({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<TranslationKey | null>(null);
   const [name, setName] = useState(initialName);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(invitedEmail ?? "");
   const [code, setCode] = useState("");
   // Only offered on the "form" step — a brand-new reader, never asked before
   // (B273). Untouched on "confirm": an already-known reader is never shown
@@ -276,6 +295,19 @@ export default function InviteRedeem({
                   onChange={(e) => setEmail(e.target.value)}
                 />
                 <p className="mt-2 text-base text-navy-600">{t("contact.emailHint")}</p>
+                {/* B338 — the sentence that matters more than the prefill
+                    itself. Shown whenever this link carried an address to
+                    prefill, regardless of whether the reader has since
+                    edited the field: the point is to say, before they
+                    submit, what changing it costs — falling out of
+                    pre-approval and into the owner's queue with no
+                    explanation there. Never shown for a hand-copied link,
+                    which never prefilled anything to begin with. */}
+                {invitedEmail && (
+                  <p className="mt-2 text-base text-navy-600">
+                    {t("invite.emailPrefilledHint", { email: invitedEmail })}
+                  </p>
+                )}
               </div>
 
               <div className="mt-6">
