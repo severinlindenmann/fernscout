@@ -8,6 +8,7 @@ area: viewer, access
 found: "2026-09-01"
 started: "2026-09-03T19:23:10Z"
 merged: "2026-09-03T19:34:28Z"
+completed: "2026-09-04T06:18:50Z"
 ---
 
 # B45 — The access panel lists guest trips the reader cannot actually open
