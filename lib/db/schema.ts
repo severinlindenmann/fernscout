@@ -393,6 +393,46 @@ export type DeletionRequestsTable = {
   requested_by: string | null;
 };
 
+/**
+ * One row per journal, holding the number that decides whether a letter is
+ * sent — B366.
+ *
+ * `owner_id` is the username and the primary key, which is load-bearing
+ * rather than tidy: the debit is a single conditional `UPDATE … WHERE
+ * owner_id = ? AND balance >= ?` and a second row for the same journal would
+ * halve that guard without anything failing. See `016-credits` for why the
+ * balance is a column at all rather than a `SUM()` over the ledger.
+ *
+ * A journal with no row here has a balance of zero, which is what every
+ * journal starts with. Nothing back-fills.
+ */
+export type CreditsTable = {
+  owner_id: string;
+  balance: Generated<number>;
+  updated_at: string;
+};
+
+/**
+ * Where every credit came from and went — append-only, never updated, never
+ * deleted except with the journal itself.
+ *
+ * `delta` is signed: positive for a grant or a refund, negative for a spend.
+ * One signed column rather than a kind plus an unsigned amount, so the audit
+ * (`SUM(delta)` against `credits.balance`) cannot be got wrong by forgetting
+ * a sign at one call site.
+ */
+export type CreditLedgerTable = {
+  id: string;
+  owner_id: string;
+  delta: number;
+  /** `grant` | `day_mail` | `day_whatsapp` | `refund`. */
+  reason: string;
+  /** `<username>/<trip-id>/<slug>` for a spend, null for a grant. */
+  ref: string | null;
+  note: string | null;
+  created_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -408,6 +448,8 @@ export type Database = {
   tracking_points: TrackingPointsTable;
   print_orders: PrintOrdersTable;
   deletion_requests: DeletionRequestsTable;
+  credits: CreditsTable;
+  credit_ledger: CreditLedgerTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -427,4 +469,6 @@ export const TABLE_NAMES = [
   "tracking_points",
   "print_orders",
   "deletion_requests",
+  "credits",
+  "credit_ledger",
 ] as const satisfies readonly (keyof Database)[];

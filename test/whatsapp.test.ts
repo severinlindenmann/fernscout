@@ -7,6 +7,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { issueCode } from "@/lib/auth";
+import { balanceOf, grant } from "@/lib/credits";
 import { approveContact, confirmContact, requestContact, unsubscribeContact, manageTokenFor } from "@/lib/contacts";
 import { sendDayWhatsapp } from "@/lib/digest/dayWhatsapp";
 import { readPublishFlags } from "@/lib/api/publishFlags";
@@ -28,7 +29,10 @@ const TEMPLATE = "fernscout_day_published";
 
 let dir: string;
 
-function writeServerConfig(whatsapp: Record<string, unknown> = {}) {
+function writeServerConfig(
+  whatsapp: Record<string, unknown> = {},
+  opts: { credits?: boolean } = {},
+) {
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
@@ -43,10 +47,18 @@ function writeServerConfig(whatsapp: Record<string, unknown> = {}) {
           templates: { en: TEMPLATE, de: `${TEMPLATE}_de` },
           ...whatsapp,
         },
+        ...(opts.credits !== undefined ? { credits: { enabled: opts.credits } } : {}),
       },
     }),
   );
   clearConfigCache();
+}
+
+/** Turns on B366's billing switch for one test — `test/credits.test.ts`
+ * already pins the "off" behaviour, so this file only has to prove that "on"
+ * is wired to `sendDayWhatsapp`. */
+function enableCredits() {
+  writeServerConfig({}, { credits: true });
 }
 
 function writeUserConfig() {
@@ -378,5 +390,69 @@ describe("both publish flags survive sharing one request body", () => {
     });
     const broken = new Request("https://t.test/x", { method: "POST", body: "{not json" });
     expect(await readPublishFlags(broken)).toEqual({ sendMail: false, sendWhatsapp: false });
+  });
+});
+
+describe("credits — B366", () => {
+  test("an insufficient balance refuses the whole send, and nothing goes out", async () => {
+    enableCredits();
+    await addReader("one@example.test", { tel: "+41765550001" });
+    await addReader("two@example.test", { tel: "+41765550002" });
+    await addReader("three@example.test", { tel: "+41765550003" });
+    writeTrip("billed");
+    const slug = writeEntry("billed");
+    // 3 needed, only 2 granted.
+    await grant(OWNER, 2);
+
+    const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/billed`, slug);
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.reason).toBe("no_credits");
+    expect(outcome.needed).toBe(3);
+    expect(outcome.balance).toBe(2);
+    expect(payloads()).toHaveLength(0);
+    expect(await balanceOf(OWNER)).toBe(2);
+  });
+
+  test("exactly enough credits sends everything and leaves the balance at zero", async () => {
+    enableCredits();
+    await addReader("one@example.test", { tel: "+41765550001" });
+    await addReader("two@example.test", { tel: "+41765550002" });
+    writeTrip("paid");
+    const slug = writeEntry("paid");
+    await grant(OWNER, 2);
+
+    const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/paid`, slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent).toHaveLength(2);
+    expect(outcome.failed).toHaveLength(0);
+    expect(await balanceOf(OWNER)).toBe(0);
+  });
+
+  test("a recipient whose send fails is refunded — never a blanket reversal", async () => {
+    enableCredits();
+    await addReader("bad@example.test", { tel: "+41765550001" });
+    await addReader("good@example.test", { tel: "+41765550002" });
+    writeTrip("flaky-credits");
+    const slug = writeEntry("flaky-credits");
+    await grant(OWNER, 2);
+
+    const real = fs.writeFileSync.bind(fs);
+    let thrown = false;
+    vi.spyOn(fs, "writeFileSync").mockImplementation((file, data, options) => {
+      if (!thrown && typeof file === "string" && file.includes("0001")) {
+        thrown = true;
+        throw new Error("simulated delivery failure");
+      }
+      return real(file, data, options);
+    });
+
+    const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/flaky-credits`, slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.failed).toHaveLength(1);
+    // 2 spent up front, 1 refunded for the one that did not go out.
+    expect(await balanceOf(OWNER)).toBe(1);
   });
 });

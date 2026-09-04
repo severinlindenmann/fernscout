@@ -68,6 +68,9 @@
     "photobook": {
       "enabled": false,
       "provider": "dry-run"
+    },
+    "credits": {
+      "enabled": false
     }
   }
 }

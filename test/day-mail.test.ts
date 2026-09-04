@@ -7,6 +7,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { issueCode, verifyCode, tripWriteScope } from "@/lib/auth";
+import { balanceOf, grant } from "@/lib/credits";
 import { requestContact, confirmContact, approveContact } from "@/lib/contacts";
 import { sendDayLetter } from "@/lib/digest/dayLetter";
 import { getEntryBySlug } from "@/lib/entries";
@@ -27,7 +28,7 @@ const OWNER_EMAIL = "alex@example.test";
 
 let dir: string;
 
-function writeServerConfig() {
+function writeServerConfig(opts: { credits?: boolean } = {}) {
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
@@ -37,9 +38,18 @@ function writeServerConfig() {
         auth: { enabled: true },
         contacts: { enabled: true },
         mail: { enabled: true, transport: "file" },
+        ...(opts.credits !== undefined ? { credits: { enabled: opts.credits } } : {}),
       },
     }),
   );
+  clearConfigCache();
+}
+
+/** Turns on B366's billing switch for one test, mid-run — the rest of the
+ * file leaves it absent, which `test/credits.test.ts` already pins as "off",
+ * so this file only has to prove that "on" is wired to the two send paths. */
+function enableCredits() {
+  writeServerConfig({ credits: true });
 }
 
 function writeUserConfig() {
@@ -581,5 +591,165 @@ describe("mail is best-effort", () => {
     expect(mail.attempted).toBe(true);
     expect(mail.failed).toBeGreaterThanOrEqual(1);
     expect(mail.errors).toBeDefined();
+  });
+});
+
+describe("credits — B366", () => {
+  test("an insufficient balance refuses the whole send, and nothing is written", async () => {
+    enableCredits();
+    writeTrip("billed", { visibility: "public" });
+    const { slug } = writeEntry("billed", { date: "2026-09-10", slug: "billed-day" });
+    await addReader("one@example.test", "en");
+    await addReader("two@example.test", "en");
+    await addReader("three@example.test", "en");
+    // owner + three readers = 4 needed; only 2 granted.
+    await grant(OWNER, 2);
+
+    const outcome = await sendDayLetter(OWNER, "alex/billed", slug);
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.reason).toBe("no_credits");
+    expect(outcome.needed).toBe(4);
+    expect(outcome.balance).toBe(2);
+    expect(mailFiles()).toHaveLength(0);
+    // Refusing must not have touched the balance.
+    expect(await balanceOf(OWNER)).toBe(2);
+  });
+
+  test("exactly enough credits sends everything and leaves the balance at zero", async () => {
+    enableCredits();
+    writeTrip("paid", { visibility: "public" });
+    const { slug } = writeEntry("paid", { date: "2026-09-10", slug: "paid-day" });
+    await addReader("one@example.test", "en");
+    await addReader("two@example.test", "en");
+    // owner + two readers = 3 needed.
+    await grant(OWNER, 3);
+
+    const outcome = await sendDayLetter(OWNER, "alex/paid", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent).toHaveLength(3);
+    expect(outcome.failed).toHaveLength(0);
+    expect(await balanceOf(OWNER)).toBe(0);
+  });
+
+  test("a recipient whose send fails is refunded — never a blanket reversal", async () => {
+    enableCredits();
+    writeTrip("flaky-credits", { visibility: "public" });
+    const { slug } = writeEntry("flaky-credits", {
+      date: "2026-09-10",
+      slug: "flaky-credits-day",
+    });
+    await addReader("bad@example.test", "en");
+    await addReader("good@example.test", "en");
+    // owner + two readers = 3 needed.
+    await grant(OWNER, 3);
+
+    const real = fs.writeFileSync.bind(fs);
+    let thrown = false;
+    vi.spyOn(fs, "writeFileSync").mockImplementation((file, data, options) => {
+      if (!thrown && typeof file === "string" && file.includes("bad-example-test")) {
+        thrown = true;
+        throw new Error("450 4.2.1 mailbox temporarily unavailable");
+      }
+      return real(file, data, options);
+    });
+
+    const outcome = await sendDayLetter(OWNER, "alex/flaky-credits", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.failed).toHaveLength(1);
+    // 3 spent up front, 1 refunded for the one that did not go out.
+    expect(await balanceOf(OWNER)).toBe(1);
+  });
+
+  test("the publish pre-flight refuses at 402 and leaves the day a draft", async () => {
+    enableCredits();
+    writeTrip("preflight", { visibility: "public" });
+    writeEntry("preflight", { date: "2026-09-10", slug: "preflight-day", draft: true });
+    await addReader("one@example.test", "en");
+    await addReader("two@example.test", "en");
+    // owner + two readers = 3 needed; only 1 granted.
+    await grant(OWNER, 1);
+
+    const token = await agentToken();
+    const result = await publish(token, "preflight", "preflight-day", { send_mail: true });
+    expect(result.status).toBe(402);
+    expect(result.body).toMatchObject({ error: "no_credits", needed: 3, balance: 1 });
+    expect(
+      getEntryBySlug("alex/preflight", "preflight-day", { includeDrafts: true })?.draft,
+    ).toBe(true);
+    expect(mailFiles()).toHaveLength(0);
+  });
+
+  test("both channels are checked together — passing each alone is not enough", async () => {
+    // A bespoke server config for this one test: mail, whatsapp and credits
+    // all switched on at once, which no other test in this file needs.
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "R", url: "https://example.test", defaultUser: OWNER },
+        users: { reserved: [] },
+        features: {
+          auth: { enabled: true },
+          contacts: { enabled: true },
+          mail: { enabled: true, transport: "file" },
+          whatsapp: {
+            enabled: true,
+            backend: "dry-run",
+            templates: { en: "fernscout_day_published" },
+          },
+          credits: { enabled: true },
+        },
+      }),
+    );
+    clearConfigCache();
+
+    writeTrip("combined", { visibility: "public" });
+    const { slug } = writeEntry("combined", {
+      date: "2026-09-10",
+      slug: "combined-day",
+      draft: true,
+    });
+
+    // Twelve contacts opted into both channels: mail therefore costs 13 (the
+    // owner, always, plus the twelve) and WhatsApp costs 12. Either channel
+    // alone fits comfortably in a balance of 20 — 13 < 20 and 12 < 20 — but
+    // together they need 25, which is the property this ticket calls out:
+    // checking the two channels separately would let this publish and only
+    // half-send.
+    for (let i = 0; i < 12; i++) {
+      const email = `reader${i}@example.test`;
+      await requestContact(OWNER, {
+        name: `Reader ${i}`,
+        email,
+        locale: "en",
+        address: { tel: `+4176${String(1000000 + i).padStart(7, "0")}` },
+        wantsEmailDigest: true,
+        wantsPostcard: false,
+        wantsWhatsapp: true,
+        createdVia: "open",
+      });
+      const { code } = await issueCode(OWNER, email, "guest");
+      const confirmed = await confirmContact(OWNER, email, code);
+      if (!confirmed.ok) throw new Error("confirmation failed");
+      await approveContact(OWNER, confirmed.contact.id);
+    }
+    await grant(OWNER, 20);
+
+    const token = await agentToken();
+    const result = await publish(token, "combined", slug, {
+      send_mail: true,
+      send_whatsapp: true,
+    });
+
+    expect(result.status).toBe(402);
+    expect(result.body.error).toBe("no_credits");
+    expect(result.body.needed).toBe(25);
+    expect(result.body.balance).toBe(20);
+    expect(
+      getEntryBySlug("alex/combined", slug, { includeDrafts: true })?.draft,
+    ).toBe(true);
+    expect(mailFiles()).toHaveLength(0);
   });
 });

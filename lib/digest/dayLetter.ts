@@ -2,6 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import { isEnabled, hasSwitchedOff } from "../capabilities";
 import { isOpenToLink, isTestContent } from "../access";
+import { balanceOf, refund, spend } from "../credits";
 import {
   listContacts,
   manageTokenFor,
@@ -343,7 +344,8 @@ export type DayLetterSkipReason =
   | "not_published"
   | "test_content"
   | "mail_off"
-  | "contacts_off";
+  | "contacts_off"
+  | "no_credits";
 
 export type DayLetterOutcome =
   | {
@@ -352,7 +354,14 @@ export type DayLetterOutcome =
       sent: { email: string }[];
       failed: { email: string; error: string }[];
     }
-  | { ok: false; reason: DayLetterSkipReason };
+  | {
+      ok: false;
+      reason: DayLetterSkipReason;
+      /** Only set for `reason === "no_credits"`, so a client can say
+       * something useful rather than just the word "no_credits". */
+      needed?: number;
+      balance?: number;
+    };
 
 /**
  * Send the letter for one published day — both of B345's triggers land here.
@@ -365,6 +374,33 @@ export type DayLetterOutcome =
  * function is meant to be wrapped in a `try` of its own at the call site
  * (B272: mail is best-effort everywhere).
  */
+/**
+ * How many credits a send to this trip would take, without sending anything —
+ * B366.
+ *
+ * The publish route has to refuse *before* `publishDraft` writes to disk, so it
+ * needs the count while the day is still a draft, and `sendDayLetter` cannot
+ * give it one because it declines to render a letter for an unpublished day.
+ * Hence a second entry point — but **not** a second answer: it calls the same
+ * `recipientsFor` the charge itself calls, so the number quoted in a `402` and
+ * the number actually debited cannot drift. A hand-rolled "count the contacts
+ * who opted in" beside it is precisely the duplication `mayMailTrip`'s doc
+ * comment above is an essay about.
+ *
+ * One credit per recipient, so the count *is* the cost; if that ever stops
+ * being true this is the one place to change.
+ *
+ * Zero for a trip or journal that does not exist, and for a `test: true` trip —
+ * content nobody lived reaches no inbox and therefore costs nothing.
+ */
+export async function mailWouldCost(owner: string, ref: string): Promise<number> {
+  const user = getUser(owner);
+  const trip = getTrip(ref);
+  if (!user || !trip) return 0;
+  if (trip.test === true) return 0;
+  return (await recipientsFor(trip, user)).length;
+}
+
 export async function sendDayLetter(
   owner: string,
   ref: string,
@@ -389,6 +425,16 @@ export async function sendDayLetter(
   if (!isEnabled("contacts", owner)) return { ok: false, reason: "contacts_off" };
 
   const recipients = await recipientsFor(trip, user);
+
+  // One credit per recipient, charged for the whole list before the first
+  // letter leaves — B366. All or nothing: an insufficient balance sends
+  // nothing rather than reaching some of the list and not the rest.
+  const needed = recipients.length;
+  const ledgerRef = `${ref}/${slug}`;
+  if (!(await spend(owner, needed, "day_mail", ledgerRef))) {
+    return { ok: false, reason: "no_credits", needed, balance: (await balanceOf(owner)) ?? 0 };
+  }
+
   const base = serverSite().url;
 
   const sent: { email: string }[] = [];
@@ -406,6 +452,10 @@ export async function sendDayLetter(
       failed.push({ email: recipient.email, error: message });
     }
   }
+
+  // Give back only for sends that did not happen — never a blanket reversal.
+  // A letter that was delivered is spent whatever happens afterwards.
+  if (failed.length > 0) await refund(owner, failed.length, ledgerRef);
 
   return { ok: true, resend: options.resend === true, sent, failed };
 }

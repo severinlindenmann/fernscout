@@ -77,8 +77,15 @@ export async function POST(
   const outcome = await sendDayWhatsapp(user, ref, slug, { resend: true });
   if (!outcome.ok) {
     return Response.json(
-      { error: outcome.reason, message: capabilityMessage(outcome.reason) },
-      { status: 400 },
+      {
+        error: outcome.reason,
+        message: capabilityMessage(outcome.reason),
+        ...(outcome.reason === "no_credits"
+          ? { needed: outcome.needed, balance: outcome.balance }
+          : {}),
+      },
+      // B366: an empty balance is billing, not a bad request.
+      { status: outcome.reason === "no_credits" ? 402 : 400 },
     );
   }
 
@@ -98,6 +105,8 @@ function capabilityMessage(reason: string): string {
         "Readers have opted in, but no approved template is configured for any language they " +
         "could be written in. Set features.whatsapp.templates in content/config.json."
       );
+    case "no_credits":
+      return "This journal does not have enough credits left to send this message. Nothing was sent.";
     default:
       return `"${reason}" — nothing was sent.`;
   }

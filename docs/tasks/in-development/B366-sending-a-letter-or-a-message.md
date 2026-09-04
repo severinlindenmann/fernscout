@@ -186,12 +186,38 @@ reader to find it.
 `sendDayLetter`'s own refusal is the whole answer. Return `402` rather than
 `400` for `no_credits` there; the other reasons keep `400`.
 
-### Not in this ticket
+### WhatsApp is in this ticket after all — B365 merged mid-build
 
-- **WhatsApp.** B365 is uncommitted in `.claude/worktrees/b365-whatsapp` and
-  touches `dayWhatsapp.ts`, `publishFlags.ts` and the publish route. Charging it
-  is B369, after that merges. Design the seam for it — `spend(owner, n,
-  "day_whatsapp", …)` is the same three lines — but do not edit that worktree.
+Written on the assumption that B365 was uncommitted in a sibling worktree, so
+charging WhatsApp was deferred to B369. B365 merged to `main` (34e2298) while
+this ticket's foundation was being built, which changes the answer: **B369 is
+superseded and its work belongs here.**
+
+The reason is not convenience. B369's own acceptance called for *one* combined
+check — "both channels are checked against one balance in one comparison",
+because a journal with 10 credits that passes a 6-credit mail check and a
+6-credit WhatsApp check separately gets its day published and only one of the
+two sent. That comparison cannot be split across two branches without one of
+them building on the other's half-finished publish route, which is the failure
+`AGENTS.md` names by title. So both channels are charged here.
+
+### Two things already built, before the rest was handed over
+
+- **`credits` is server-only** — `isEnabled("credits")`, never with a username.
+  The task file above called for an ordinary per-journal capability; that is
+  backwards for a billing switch in both directions. Opt-in means the operator
+  turns charging on and no journal is charged until each asks to be; opt-out
+  means a journal declines a bill that still reaches the operator's card.
+  `logging` is server-only for the same shape of reason (B257).
+- **The concurrency test does not prove the race on SQLite**, and the acceptance
+  line below overstated what it would buy. Verified by mutation rather than
+  assumed: substituting the naive `SELECT`-then-`UPDATE` left all thirteen tests
+  passing, because `better-sqlite3` hands Kysely one connection and serialises
+  the transactions. It now runs over `dialectCases()`, so CI's Postgres leg
+  exercises the real interleave. A green local run is not evidence; the green CI
+  run is.
+
+### Not in this ticket
 - **Buying credits.** B368.
 - **The panel.** B367.
 - **Charging anything but reader-facing bulk.** Login codes, deletion
@@ -209,8 +235,10 @@ reader to find it.
   - `spend` of exactly the balance succeeds and leaves 0; one more fails and
     leaves the balance untouched.
   - **Concurrency:** balance 10, ten concurrent `spend(u, 2, …)` — exactly five
-    succeed, five fail, final balance 0. Run it against SQLite; it is the test
-    that pins property 2.
+    succeed, five fail, final balance 0. Runs over `dialectCases()`. On SQLite
+    it pins the arithmetic only (the driver serialises transactions, so the
+    naive implementation also passes — checked by mutation); **Postgres is where
+    it pins property 2**, and CI runs that leg.
   - Every `spend`, `refund` and `grant` writes exactly one ledger row, and
     `SUM(delta) === balance` after an arbitrary sequence.
   - With `credits` disabled, `spend` returns `true` and writes no row.
