@@ -347,7 +347,13 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
   for (const day of getDays(ref, options)) {
     const lead = day.lead;
     const last = places.at(-1);
-    if (last && last.location === lead.location && last.country === lead.country) {
+    // Merged only when the day actually names where it was. `location:` is
+    // optional, so an unnamed day arrives as `""` — and `"" === ""` held, which
+    // made every unnamed day "the same place as yesterday" and collapsed a
+    // whole trip into one marker carrying the first day's coordinates. Fifteen
+    // days from Bangkok to Hanoi drew a single dot on Bangkok (B339). An empty
+    // location means *unknown*, not *unchanged*: it starts its own place.
+    if (last && lead.location && last.location === lead.location && last.country === lead.country) {
       last.entries.push(...day.entries);
       last.lastDate = day.date;
       last.mediaCount += day.entries.reduce((n, e) => n + e.gallery.length, 0);
