@@ -7,8 +7,7 @@ complexity: high
 area: maps, trips
 found: "2026-09-04T20:15:00Z"
 started: "2026-09-04T20:12:15Z"
-session: e8e2ddef-3ce3-473a-9308-388259ef4452
-claimed: "2026-09-04T20:12:15Z"
+merged: "2026-09-04T20:28:24Z"
 ---
 
 # B361 — The lifetime map cannot answer which countries somebody has been to, only where individual stops fell
