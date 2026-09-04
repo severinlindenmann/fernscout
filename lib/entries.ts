@@ -7,7 +7,7 @@ import { loadUserConfig } from "./config";
 import { normalizeCurrency } from "./currency";
 import { mediaWithOwner, parseTripRef, tripDir } from "./trips";
 import { hasHappened } from "./tripTime";
-import type { Day, Entry, EntryTranslations, GalleryItem } from "./types";
+import type { Day, Entry, EntryTranslations, GalleryItem, MediaTile } from "./types";
 
 /**
  * Forgets one trip's parsed entries.
@@ -328,10 +328,27 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
   return places;
 }
 
-/** Every gallery item across the trip, newest first, with its entry attached. */
-export function getAllMedia(ref: string, options?: ReadOptions) {
+/**
+ * Every gallery item across the trip, newest first, projected to a
+ * `MediaTile` — the entry's location, country and date, not the entry
+ * itself. See the type's docblock (B87).
+ */
+export function getAllMedia(ref: string, options?: ReadOptions): MediaTile[] {
   return getAllEntries(ref, options)
-    .flatMap((entry) => entry.gallery.map((item) => ({ item, entry })))
+    .flatMap((entry) =>
+      entry.gallery.map((item) => ({
+        src: item.src,
+        type: item.type,
+        caption: item.caption,
+        width: item.width,
+        height: item.height,
+        poster: item.poster,
+        location: entry.location,
+        country: entry.country,
+        countryCode: entry.countryCode,
+        date: entry.date,
+      })),
+    )
     .reverse();
 }
 

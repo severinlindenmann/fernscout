@@ -290,6 +290,7 @@ export type TranslationKey =
   | "err.unknownUserTitle"
   | "gallery.all"
   | "gallery.description"
+  | "gallery.loadMore"
   | "gallery.none"
   | "gallery.subtitle"
   | "gallery.title"
