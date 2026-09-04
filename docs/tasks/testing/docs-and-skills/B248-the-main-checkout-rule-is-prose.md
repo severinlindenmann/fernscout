@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: Agent workflow
 found: "2026-09-04T09:07:45Z"
+merged: "2026-09-04T16:05:08Z"
 ---
 
 # B248 — The main-checkout rule is prose, and prose does not stop an Edit
