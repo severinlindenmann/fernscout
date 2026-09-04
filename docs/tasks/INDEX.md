@@ -109,8 +109,6 @@ Do not edit them by hand; run the script.
 | [B02](open/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low |
 | [B143](open/B143-task-ids-collide-when-parallel-sessions.md) | Task ids collide when parallel sessions capture by hand, which is what B99 was meant to prevent | ISSUE | medium | medium |
 | [B144](open/B144-enterworktree-refuses-for-a-dispatched-subagent.md) | EnterWorktree refuses for a dispatched subagent, so work-on-a-task's second step cannot be followed | ISSUE | medium | low |
-| [B177](open/B177-a-trip-map-s-basemap-is.md) | A trip map's basemap is half a megabyte for a route sixty-eight kilometres across | ISSUE | medium | medium |
-| [B179](open/B179-one-failed-read-of-the-basemap.md) | One failed read of the basemap bundle turns every map on the instance blank until restart | ISSUE | medium | low |
 | [B20](open/B20-the-stranger-s-me-page-never.md) | The stranger's me page never says who to ask | ISSUE | medium | low |
 | [B22](open/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | SECURITY | medium | medium |
 | [B66](open/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium |
@@ -129,24 +127,21 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B134](in-development/B134-the-review-queue-cannot-tell.md) | The review queue cannot tell a person which drafts nobody lived | ISSUE | medium | low | `2b6d1969` |
 | [B16](in-development/B16-the-day-photo-viewer-does-not.md) | The day photo viewer does not answer to touch and never says where you are | ISSUE | medium | low | `2b6d1969` |
-| [B17](in-development/B17-how-a-trip-gets-its-rates.md) | How a trip gets its rates is written down nowhere a person will find it | CHORE | medium | low | `2b6d1969` |
+| [B177](in-development/B177-a-trip-map-s-basemap-is.md) | A trip map's basemap is half a megabyte for a route sixty-eight kilometres across | ISSUE | medium | medium | `2b6d1969` |
+| [B179](in-development/B179-one-failed-read-of-the-basemap.md) | One failed read of the basemap bundle turns every map on the instance blank until restart | ISSUE | medium | low | `2b6d1969` |
 | [B182](in-development/B182-a-journal-s-features-cannot-be.md) | A journal's features cannot be changed after it is created, so every journal made before today is stuck as it was | ISSUE | medium | medium | `2b6d1969` |
 | [B184](in-development/B184-the-digest-cannot-be-exercised-end.md) | The digest cannot be exercised end to end, because everything an agent may write is filtered out of it | CHORE | medium | low | `2b6d1969` |
 | [B08](in-development/B08-serve-webp-alongside-jpeg-with-picture.md) | Serve WebP alongside JPEG with <picture> in the gallery (W30 gap) | CHORE | low | low | `2b6d1969` |
 | [B139](in-development/B139-the-costs-page-s-tab-title.md) | The costs page's tab title is English on a journal that is not | ISSUE | low | low | `2b6d1969` |
 | [B140](in-development/B140-the-tab-title-can-be.md) | The tab title can be in a language the journal does not offer, while the page is not | ISSUE | low | low | `2b6d1969` |
 | [B150](in-development/B150-two-recipients-with-the-same.md) | Two recipients with the same Latin name overwrite each other's postcards | ISSUE | low | low | `2b6d1969` |
-| [B152](in-development/B152-the-guide-calls-the-relayed-sign.md) | The guide calls the relayed sign-in link the same link as the mailed one, and never says what kills it | CHORE | low | low | `2b6d1969` |
 | [B158](in-development/B158-the-publish-confirmation-promises-feed-and.md) | The publish confirmation promises feed and search for a day that is excluded from both | ISSUE | low | low | `2b6d1969` |
 | [B170](in-development/B170-the-journal-title-is-clipped.md) | The journal's title is clipped in the header at exactly the width where the nav labels appear | ISSUE | low | low | `2b6d1969` |
 | [B175](in-development/B175-create_trip-over-mcp-cannot-ask.md) | create_trip over MCP cannot ask for an unadvertised trip, because it has no listed field | ISSUE | low | low | `2b6d1969` |
 | [B183](in-development/B183-mcp-advertises-the-invite-tools-to.md) | MCP advertises the invite tools to a journal that has contacts switched off | CHORE | low | low | `2b6d1969` |
 | [B185](in-development/B185-a-locale-cookie-the-journal-does.md) | A locale cookie the journal does not list translates the tab title but not the page under it | ISSUE | low | low | `2b6d1969` |
-| [B186](in-development/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | CHORE | low | low | `2b6d1969` |
 | [B199](in-development/B199-the-agent-handover-copy-control-has.md) | The agent-handover copy control has two values and a newline in one accessible name | ISSUE | low | low | `2b6d1969` |
 | [B202](in-development/B202-a-postcard-recipient-s-ss-becomes.md) | A postcard recipient's ß becomes a hyphen, so a German surname loses a letter | CHORE | low | low | `2b6d1969` |
-| [B48](in-development/B48-nothing-says-what-ownernickname-should-be.md) | Nothing says what ownerNickname should be when the agent and the owner are the same person | CHORE | low | low | `2b6d1969` |
-| [B81](in-development/B81-the-notify-script-still-calls-a.md) | The notify script still calls a closed trip password-protected | CHORE | low | low | `2b6d1969` |
 
 ## testing
 
@@ -167,6 +162,7 @@ Do not edit them by hand; run the script.
 | [B154](testing/B154-the-readme-describes-a-scroll-driven.md) | The README describes a scroll-driven map and a photo journal without showing one | CHORE | medium | low | — |
 | [B160](testing/B160-a-one-time-code-endpoint-answers.md) | A one-time code endpoint answers 202 when the server cannot send mail at all | ISSUE | medium | low | — |
 | [B165](testing/B165-turning-the-costs-capability-off.md) | Turning the costs capability off leaves the costs pages fully rendered | ISSUE | medium | low | — |
+| [B17](testing/B17-how-a-trip-gets-its-rates.md) | How a trip gets its rates is written down nowhere a person will find it | CHORE | medium | low | — |
 | [B178](testing/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low | — |
 | [B25](testing/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low | — |
 | [B35](testing/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
@@ -185,11 +181,15 @@ Do not edit them by hand; run the script.
 | [B130](testing/B130-re-approving-a-contact-leaves.md) | Re-approving a contact leaves an expired grant expired, so the approval does nothing | ISSUE | low | low | — |
 | [B133](testing/B133-nothing-tests-the-url-upload-branch.md) | Nothing tests the URL upload branch end to end, so the kept-original promise rests on one shared writer | CHORE | low | low | — |
 | [B137](testing/B137-a-refused-url-tells-the-caller.md) | A refused URL tells the caller to retry a permanent failure and says nothing about a transient one | ISSUE | low | low | — |
+| [B152](testing/B152-the-guide-calls-the-relayed-sign.md) | The guide calls the relayed sign-in link the same link as the mailed one, and never says what kills it | CHORE | low | low | — |
+| [B186](testing/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | CHORE | low | low | — |
 | [B198](testing/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | ISSUE | low | low | — |
 | [B23](testing/B23-everything-in-docs-was-archived-and.md) | Everything in docs was archived and nobody decided what is still current | CHORE | low | low | — |
+| [B48](testing/B48-nothing-says-what-ownernickname-should-be.md) | Nothing says what ownerNickname should be when the agent and the owner are the same person | CHORE | low | low | — |
 | [B50](testing/B50-two-mails-in-the-same-millisecond.md) | Two mails in the same millisecond overwrite each other in development | ISSUE | low | low | — |
 | [B58](testing/B58-smtptransport-cannot-be-driven-to-a.md) | SmtpTransport cannot be driven to a successful send from a test | CHORE | low | low | — |
 | [B71](testing/B71-the-per-day-media-ceiling-test.md) | The per-day media ceiling test asserts on problems[0], and failed once in a full run | CHORE | low | low | — |
+| [B81](testing/B81-the-notify-script-still-calls-a.md) | The notify script still calls a closed trip password-protected | CHORE | low | low | — |
 
 ## completed
 

@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: maps, payload
 found: "2026-09-03T19:36:52Z"
+started: "2026-09-04T06:43:31Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T06:43:31Z"
 ---
 
 # B177 — A trip map's basemap is half a megabyte for a route sixty-eight kilometres across

@@ -7,8 +7,7 @@ complexity: low
 area: docs, trips, auth
 found: "2026-09-03"
 started: "2026-09-04T06:22:42Z"
-session: 2b6d1969-424a-4788-9497-eb5e151a5391
-claimed: "2026-09-04T06:22:42Z"
+merged: "2026-09-04T06:43:26Z"
 ---
 
 # B186 — The trip gate's doc comment points at a route group that no longer exists
