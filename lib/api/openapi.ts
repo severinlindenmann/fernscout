@@ -995,7 +995,18 @@ export function openApiDocument() {
             "you nothing false about the other. Its readers are a narrower set: only " +
             "contacts who ticked the WhatsApp box and left a usable number, because Meta " +
             "requires opt-in to WhatsApp specifically and the digest's consent does not " +
-            "carry over.",
+            "carry over.\n\n" +
+            "**Sending costs credits where this server charges for them** — B366, one per " +
+            "email and one per WhatsApp message. Both requested channels are priced " +
+            "together against one balance *before* anything is published: if the journal " +
+            "cannot cover the whole send, this answers **402** with `needed` and `balance`, " +
+            "the day stays a draft and nothing is sent. It is all-or-nothing, so a partial " +
+            "delivery is never the outcome. A publish with neither flag is never charged " +
+            "and never refused for credits. `GET /api/v1/{user}/status` carries the balance; " +
+            "read it first rather than discovering an empty account here. Only the journal's " +
+            "owner can add credits, and only from a shell on the server — there is no " +
+            "purchase call, so a 402 is a message to pass on, never something to retry " +
+            "around.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
@@ -1028,6 +1039,11 @@ export function openApiDocument() {
           responses: {
             "200": { description: "Published; the body carries the day's public URL" },
             "400": { description: "The day could not be published — the body says why" },
+            "402": {
+              description:
+                "Not enough credits for the send this call asked for. Nothing was " +
+                "published and nothing was charged; `needed` and `balance` say by how much.",
+            },
             "401": { description: "Missing or invalid token" },
             "403": {
               description:
@@ -1064,6 +1080,14 @@ export function openApiDocument() {
             "400": {
               description:
                 "Content nobody lived, or mail/contacts is not enabled here — the body says which",
+            },
+            "402": {
+              description:
+                "Not enough credits for this send, where the server charges for them " +
+                "(B366). Nothing was sent and nothing was charged; `needed` and `balance` " +
+                "say by how much. Only the owner can add credits, from a shell on the " +
+                "server — there is no purchase call, so this is a message to pass on " +
+                "rather than something to retry around.",
             },
             "401": { description: "Missing or invalid token" },
             "403": {
@@ -1105,6 +1129,14 @@ export function openApiDocument() {
               description:
                 "Content nobody lived, WhatsApp or contacts not enabled here, or no approved " +
                 "template for any reader's language — the body says which",
+            },
+            "402": {
+              description:
+                "Not enough credits for this send, where the server charges for them " +
+                "(B366). Nothing was sent and nothing was charged; `needed` and `balance` " +
+                "say by how much. Only the owner can add credits, from a shell on the " +
+                "server — there is no purchase call, so this is a message to pass on " +
+                "rather than something to retry around.",
             },
             "401": { description: "Missing or invalid token" },
             "403": {
@@ -1497,8 +1529,13 @@ export function openApiDocument() {
             "publishes it — the trips this token may write to, which capabilities are on " +
             "for this journal and why any is off, and a `next` saying what to do. " +
             "`scope` says whether you are holding the whole journal or one trip's slice; " +
-            "do not report a slice as the journal's total. No credits or pricing: there " +
-            "are no accounts yet (B89), and an absent key is the honest answer.",
+            "do not report a slice as the journal's total.\n\n" +
+            "**`credits`** is here when this server charges for sends (B366): `balance`, " +
+            "and what each channel costs. Read it before publishing with `send_mail` or " +
+            "`send_whatsapp` — a balance too small refuses the whole publish with 402 and " +
+            "writes nothing. Absent means this server does not bill, not that the account " +
+            "is empty; it is also absent for a trip-scoped token, which can neither " +
+            "publish nor send.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],

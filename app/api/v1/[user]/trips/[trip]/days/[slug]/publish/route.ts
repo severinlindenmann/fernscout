@@ -139,8 +139,8 @@ export async function POST(
     const balance = await balanceOf(user);
     if (balance !== null) {
       const needed =
-        (sendMailRequested ? await mailWouldCost(user, ref) : 0) +
-        (sendWhatsappRequested ? await whatsappWouldCost(user, ref) : 0);
+        (sendMailRequested ? await mailWouldCost(user, ref, slug) : 0) +
+        (sendWhatsappRequested ? await whatsappWouldCost(user, ref, slug) : 0);
       if (needed > balance) {
         return Response.json(
           {

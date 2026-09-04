@@ -8,6 +8,7 @@ import {
   type ContactRecord,
 } from "../contacts";
 import { pickLocale } from "../contacts/locale";
+import { balanceOf, refund, spend } from "../credits";
 import { sendMail } from "../mail";
 import { serverSite } from "../site";
 import { getTrips } from "../trips";
@@ -308,6 +309,16 @@ export type DigestOutcome = {
   plan: DigestPlan;
   sent: DigestSent[];
   failed: DigestFailure[];
+  /**
+   * Set only when the run was refused for want of credits — B380. Present
+   * means nothing was sent and nothing was charged; absent is the ordinary
+   * case, including every run on a server with credits switched off.
+   *
+   * A field rather than a thrown error: this runs from a scheduler, where an
+   * exception is a stack trace in a log nobody reads, and "you have 1 credit
+   * and this needed 2" is an outcome the operator has to be able to act on.
+   */
+  noCredits?: { needed: number; balance: number };
 };
 
 /**
@@ -372,6 +383,33 @@ export async function runDigest(
   const failed: DigestFailure[] = [];
   if (dryRun) return { owner, dryRun, plan, sent, failed };
 
+  /*
+   * The digest costs what the day letter costs — B380.
+   *
+   * It is the same reader-facing bulk mail, through the same transport, to
+   * the same opted-in contacts, and until now it went out free: a journal at
+   * zero credits could not announce a single day and could still write to its
+   * whole readership every week. One credit per reader, charged for the whole
+   * run before the first letter leaves, all or nothing — the same rule
+   * `sendDayLetter` follows, so nobody gets a half-delivered week.
+   *
+   * After the `dryRun` return above, deliberately: a plan is not a send and
+   * must cost nothing, or the drill that exists to be run freely stops being
+   * free.
+   */
+  const needed = plan.ready.length;
+  const ledgerRef = `${owner}/digest/${plan.now.toISOString()}`;
+  if (!(await spend(owner, needed, "digest", ledgerRef))) {
+    return {
+      owner,
+      dryRun,
+      plan,
+      sent,
+      failed,
+      noCredits: { needed, balance: (await balanceOf(owner)) ?? 0 },
+    };
+  }
+
   const base = serverSite().url;
 
   for (const recipient of plan.ready) {
@@ -422,6 +460,10 @@ export async function runDigest(
       failed.push({ contactId: recipient.contactId, email: recipient.email, error: message });
     }
   }
+
+  // Only for the letters that did not go out — a delivered digest is spent
+  // whatever happens afterwards.
+  if (failed.length > 0) await refund(owner, failed.length, ledgerRef);
 
   return { owner, dryRun, plan, sent, failed };
 }

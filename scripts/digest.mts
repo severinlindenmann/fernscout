@@ -144,7 +144,12 @@ function report(outcome: DigestOutcome, dryRun: boolean): void {
           "without --dry-run is refused while --include-test is set — drop the flag first, " +
           "and expect the test days to disappear from the count.\n"
         : "\nDry run: nothing was sent and nothing was recorded. Re-run without --dry-run to send.\n"
-      : `\n${outcome.sent.length} sent, ${outcome.failed.length} failed.\n`,
+      : outcome.noCredits
+        ? `\nRefused: this digest needed ${outcome.noCredits.needed} credit(s) and the journal ` +
+          `has ${outcome.noCredits.balance}. Nothing was sent and nothing was charged — the ` +
+          "readers stay due one, so topping up and re-running sends the same digest.\n" +
+          "Add credits with: npm run credits -- grant <username> <n>\n"
+        : `\n${outcome.sent.length} sent, ${outcome.failed.length} failed.\n`,
   );
 }
 
@@ -180,7 +185,11 @@ async function main() {
       now,
     });
     report(outcome, args.dryRun);
-    if (outcome.failed.length > 0) process.exitCode = 1;
+    // A run refused for credits is a failure, not a quiet no-op: it prints
+    // "0 sent, 0 failed" otherwise, which on a cron is indistinguishable from
+    // "nobody was due a digest" — the operator would never learn their
+    // readers had stopped hearing from them.
+    if (outcome.failed.length > 0 || outcome.noCredits) process.exitCode = 1;
   } catch (err) {
     console.error(`\n${err instanceof Error ? err.message : String(err)}\n`);
     process.exitCode = 1;

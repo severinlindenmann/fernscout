@@ -71,7 +71,8 @@ export async function up(db: MigrationDb): Promise<void> {
     // column rather than a `kind` plus an unsigned amount, so that the audit
     // is a `SUM()` and cannot be got wrong by forgetting a sign somewhere.
     .addColumn("delta", "integer", (c) => c.notNull())
-    // "grant" | "day_mail" | "day_whatsapp" | "refund". Plain text, for the
+    // "grant" | "day_mail" | "day_whatsapp" | "digest" | "refund". Plain text,
+    // for the
     // reason `users.role` gives: the typed alternative needs `create type` on
     // Postgres, has no counterpart in SQLite, and a fourth channel is a
     // plausible future.
