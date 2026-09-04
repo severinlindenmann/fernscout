@@ -121,7 +121,10 @@ _Nothing here._
 
 ## in-development
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B263](in-development/B263-journal-creation-silently-defaults-visibility-and.md) | Journal creation silently defaults visibility and language, so a journal asked to be private was created public | SECURITY | high | low | `986bc24c` |
+| [B264](in-development/B264-a-reader-who-may-see-nothing.md) | A reader who may see nothing in a journal is told there are no trips yet | ISSUE | high | medium | `986bc24c` |
 
 ## testing
 
