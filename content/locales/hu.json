@@ -291,6 +291,7 @@
   "invite.submit": "Kérem a belépést",
   "invite.waitingBody": "{title} tud róla, hogy vársz. E-mailt kapsz, amint beengednek.",
   "invite.waitingTitle": "Sorban állsz",
+  "landing.apiDocs": "API-referencia",
   "landing.copied": "Másolva",
   "landing.copy": "Link másolása",
   "landing.copyInstruction": "Utasítás másolása",

@@ -291,6 +291,7 @@
   "invite.submit": "Ask to join",
   "invite.waitingBody": "{title} has been told you're waiting. You'll get an email the moment they wave you in.",
   "invite.waitingTitle": "You're in the queue",
+  "landing.apiDocs": "API reference",
   "landing.copied": "Copied",
   "landing.copy": "Copy link",
   "landing.copyInstruction": "Copy instruction",
