@@ -199,6 +199,28 @@ describe("createTrip", () => {
     expect(file).toContain("status: upcoming");
   });
 
+  /**
+   * B346. It used to write `accent: sky` into every trip, so a colour nobody
+   * had chosen was indistinguishable from one somebody had — which left the
+   * trips page unable to assign distinct colours without overriding real
+   * choices, and every journal's trips the same blue.
+   */
+  test("writes no accent for a trip nobody coloured, and keeps one that is asked for", () => {
+    createTrip("alex", { id: "nocolour", title: "No colour", start: "2099-01-01", end: "2099-01-02" });
+    const plain = fs.readFileSync(path.join(dir, "alex", "trips", "nocolour", "trip.md"), "utf8");
+    expect(plain).not.toContain("accent:");
+
+    createTrip("alex", {
+      id: "green-one",
+      title: "Green one",
+      start: "2099-01-01",
+      end: "2099-01-02",
+      accent: "green",
+    });
+    const chosen = fs.readFileSync(path.join(dir, "alex", "trips", "green-one", "trip.md"), "utf8");
+    expect(chosen).toContain("accent: green");
+  });
+
   test("still honours an explicit current", () => {
     createTrip("alex", {
       id: "unterwegs",

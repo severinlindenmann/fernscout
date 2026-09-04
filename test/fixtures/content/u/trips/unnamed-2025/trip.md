@@ -5,7 +5,6 @@ tagline: "three days"
 start: "2025-11-01"
 end: "2025-11-03"
 status: past
-accent: coral
 ---
 
 A trip whose days carry coordinates and no place names.
