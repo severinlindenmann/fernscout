@@ -131,7 +131,7 @@ Do not edit them by hand; run the script.
 | [B198](backlog/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | ISSUE | low | low |
 | [B199](backlog/B199-the-agent-handover-copy-control-has.md) | The agent-handover copy control has two values and a newline in one accessible name | ISSUE | low | low |
 | [B200](backlog/B200-the-restore-drill-dumps-a-database.md) | The restore drill dumps a database no migration has touched, so the archive it proves restorable is empty | CHORE | low | low |
-| [B202](backlog/B202-a-postcard-recipient-s-ss-becomes.md) | A postcard recipient's ss becomes a hyphen, so a German surname loses a letter | CHORE | low | low |
+| [B202](backlog/B202-a-postcard-recipient-s-ss-becomes.md) | A postcard recipient's ß becomes a hyphen, so a German surname loses a letter | CHORE | low | low |
 | [B23](backlog/B23-everything-in-docs-was-archived-and.md) | Everything in docs was archived and nobody decided what is still current | CHORE | low | low |
 | [B24](backlog/B24-nothing-notices-when-a-file-stops.md) | Nothing notices when a file stops being used | CHORE | low | low |
 | [B48](backlog/B48-nothing-says-what-ownernickname-should-be.md) | Nothing says what ownerNickname should be when the agent and the owner are the same person | CHORE | low | low |
@@ -148,9 +148,7 @@ _Nothing here._
 
 ## in-development
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B151](in-development/B151-the-mail-filename-slug-has.md) | The mail filename slug has no NFD pass, so a German umlaut loses its vowel | CHORE | low | low | `d6791268` |
+_Nothing here._
 
 ## testing
 
@@ -203,6 +201,7 @@ _Nothing here._
 | [B117](testing/B117-a-private-trip-s-title-is.md) | A private trip's title is shown to anyone who guesses its id | SECURITY | low | low | — |
 | [B118](testing/B118-the-journal-map-page-disagrees-with.md) | The journal map page disagrees with itself about tense between its heading and its tab title | ISSUE | low | low | — |
 | [B130](testing/B130-re-approving-a-contact-leaves.md) | Re-approving a contact leaves an expired grant expired, so the approval does nothing | ISSUE | low | low | — |
+| [B151](testing/B151-the-mail-filename-slug-has.md) | The mail filename slug has no NFD pass, so a German umlaut loses its vowel | CHORE | low | low | — |
 | [B50](testing/B50-two-mails-in-the-same-millisecond.md) | Two mails in the same millisecond overwrite each other in development | ISSUE | low | low | — |
 | [B86](testing/B86-a-recipient-whose-name-has-no.md) | A recipient whose name has no ASCII gets an empty postcard filename, and each one overwrites the last | ISSUE | low | low | — |
 
