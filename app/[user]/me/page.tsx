@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { requestLocale, translateIn } from "@/lib/locales";
+import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { notFound } from "next/navigation";
-import MePageContent from "./MePageContent";
+import MePageContent, { type ManagePanel } from "./MePageContent";
 import { manageTokenFor, listContacts, normaliseEmail } from "@/lib/contacts";
+import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
+import { pickLocale } from "@/lib/contacts/locale";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { ownerShortName, serverSite } from "@/lib/site";
@@ -48,15 +50,38 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
   // own page had drawn and got a 404.
   const contactsEnabled = isEnabled("contacts", user);
 
-  // The manage page already exists and already works with no login, from the
-  // token in every mail footer — so the panel links to it rather than growing
-  // a second address form that would have to be kept in step with the first.
-  let manageHref: string | undefined;
+  // The manage form itself lives in one place, `ContactManage`, and is reused
+  // rather than rebuilt: it works with no login from the token in every mail
+  // footer (`/c/<token>`), and it renders again here, inline, for a reader
+  // who is already signed in and would otherwise be sent to a second page for
+  // one field they can see right in front of them.
+  let manage: ManagePanel | undefined;
   if (viewer.email && contactsEnabled) {
     const contact = (await listContacts(user)).find(
       (c) => c.email === normaliseEmail(viewer.email!),
     );
-    if (contact) manageHref = `/${user}/c/${manageTokenFor(user, contact.id)}`;
+    if (contact) {
+      // The reader's own UI language, not the one on the contact record —
+      // the record's `locale` is a separate question ("write to me in"),
+      // still asked inside the form's own dropdown. Rendering the form's
+      // chrome in the record's language instead would put it next to a
+      // header in whatever language this reader is actually reading in.
+      const uiLocale = await requestLocale();
+      manage = {
+        token: manageTokenFor(user, contact.id),
+        locales: localesFor(user),
+        dictionary: dictionaryFor(uiLocale),
+        contact: {
+          name: contact.name ?? "",
+          email: contact.email,
+          locale: pickLocale(contact.locale, journal.defaultLocale),
+          status: contact.status,
+          wantsEmailDigest: contact.wantsEmailDigest,
+          wantsPostcard: contact.wantsPostcard,
+          address: contact.postalAddress ?? EMPTY_ADDRESS,
+        },
+      };
+    }
   }
 
   return (
@@ -64,7 +89,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       viewer={viewer}
       username={user}
       siteUrl={serverSite().url}
-      manageHref={manageHref}
+      manage={manage}
       // Resolved here rather than guessed in the component: a capability is a
       // server ceiling and a journal opt-in, and the page was offering a door
       // that this journal had never opened. The panel used to take a second

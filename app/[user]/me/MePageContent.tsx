@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import AgentHandover from "@/components/AgentHandover";
 import AgentKeys from "@/components/AgentKeys";
+import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
@@ -11,6 +12,16 @@ import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import type { Viewer } from "@/lib/viewer";
+
+/** What the "Your details" panel needs to render `ContactManage` inline —
+ * everything `/c/<token>` builds server-side, handed down instead of a link
+ * to that page. */
+export type ManagePanel = {
+  token: string;
+  locales: string[];
+  dictionary: Record<string, string>;
+  contact: ManageContact;
+};
 
 /**
  * "What can I see?"
@@ -29,7 +40,7 @@ export default function MePageContent({
   viewer,
   username,
   siteUrl,
-  manageHref,
+  manage,
   canSignIn,
   codeMinutes,
   contactsEnabled,
@@ -44,7 +55,7 @@ export default function MePageContent({
    * happens to have reached it through. */
   siteUrl: string;
   /** Present only when this reader has a contact record to edit. */
-  manageHref?: string;
+  manage?: ManagePanel;
   /** Whether codes can be issued at all, which is what signing in needs. */
   canSignIn: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
@@ -213,16 +224,29 @@ export default function MePageContent({
           </section>
         )}
 
-        {manageHref && (
+        {manage && (
           <section className="mt-6">
             <h2 className="font-display text-xl font-semibold text-navy-900">{t("me.details")}</h2>
             <p className="mt-2 text-lg leading-8 text-navy-700">{t("me.detailsBody")}</p>
-            <Link
-              href={manageHref}
-              className="mt-3 inline-flex min-h-11 items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100"
-            >
-              {t("me.editDetails")}
-            </Link>
+            {/* A native `<details>` rather than a link to `/c/<token>`: the
+                same form, opened in place instead of on a second page — see
+                `ManagePanel` above for why the data now travels down instead
+                of a URL. */}
+            <details className="mt-3">
+              <summary className="inline-flex min-h-11 w-fit cursor-pointer list-none items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 [&::-webkit-details-marker]:hidden">
+                {t("me.editDetails")}
+              </summary>
+              <div className="mt-4 rounded-2xl border border-navy-200 bg-white">
+                <ContactManage
+                  className="px-5 py-6 sm:px-6"
+                  locales={manage.locales}
+                  dictionary={manage.dictionary}
+                  username={username}
+                  token={manage.token}
+                  contact={manage.contact}
+                />
+              </div>
+            </details>
           </section>
         )}
 
