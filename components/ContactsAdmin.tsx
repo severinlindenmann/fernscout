@@ -589,6 +589,9 @@ export function GuestForm({
           national={form.tel}
           onChange={(cc, national) => setForm((previous) => ({ ...previous, cc, tel: national }))}
           labelCountry={t("contact.telCountry")}
+          searchPlaceholder={t("contact.telSearchPlaceholder")}
+          noMatches={t("contact.telNoMatches")}
+          locale={form.locale}
         />
         <p className="mt-2 text-base text-navy-600">
           {t(telHintKey("admin", postcardsEnabled, whatsappEnabled))}

@@ -200,6 +200,9 @@ export default function ContactManage({
               setAddress((previous) => ({ ...previous, tel: national }));
             }}
             labelCountry={t("contact.telCountry")}
+            searchPlaceholder={t("contact.telSearchPlaceholder")}
+            noMatches={t("contact.telNoMatches")}
+            locale={locale}
           />
           <p className="mt-2 text-base text-navy-600">{t("contact.telHint")}</p>
         </div>

@@ -209,6 +209,8 @@ export type TranslationKey =
   | "contact.telHintNone"
   | "contact.telHintPostcardsOnly"
   | "contact.telHintWhatsappOnly"
+  | "contact.telNoMatches"
+  | "contact.telSearchPlaceholder"
   | "contact.title"
   | "contact.tooMany"
   | "contact.unsubscribe"
