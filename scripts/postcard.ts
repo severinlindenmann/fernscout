@@ -15,6 +15,8 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { contentRoot } from "../lib/contentRoot.ts";
+import { displayPath } from "../lib/displayPath.ts";
 import { renderPostcard, type PostalAddress } from "../lib/postcard/render.ts";
 import { availableProviders, buildStannpRequest } from "../lib/postcard/providers.ts";
 import { recipientBases } from "../lib/postcard/filename.ts";
@@ -100,7 +102,13 @@ const recipients = readRecipients(toPath);
 // A rendered postcard carries somebody's home address, so it lives under the
 // user who sent it rather than in a directory shared by everyone on the
 // instance — and it is gitignored there.
-const outDir = path.join(process.cwd(), "content", owner, "postcards");
+//
+// Through `contentRoot()`, never `process.cwd()`: on a deployed instance the
+// content root is under DATA_DIR and the working directory is the checkout, so
+// building the path from the latter writes postal addresses into the directory
+// `git pull` runs in, outside the backup. That is B111's defect with a worse
+// payload (B219).
+const outDir = path.join(contentRoot(), owner, "postcards");
 fs.mkdirSync(outDir, { recursive: true });
 
 console.log(`Rendering ${recipients.length} postcard(s) with the ${backend} backend.\n`);
@@ -112,6 +120,16 @@ const files = recipientBases(recipients.map((to) => to.name));
 
 let lowResolution = false;
 let renamed = 0;
+// Counted rather than multiplied. The report used to say `recipients.length * 3`
+// and the folder had four files per recipient, because the request JSON joined
+// the set and the arithmetic did not follow (B218). This is the one line a
+// person checks a run against the folder they are about to hand to a printer,
+// so it counts what was actually written.
+const written: string[] = [];
+const write = (file: string, data: Uint8Array | string) => {
+  fs.writeFileSync(file, data);
+  written.push(file);
+};
 for (const [index, to] of recipients.entries()) {
   const result = renderPostcard({
     photo,
@@ -123,17 +141,11 @@ for (const [index, to] of recipients.entries()) {
 
   const file = files[index];
   const base = path.join(outDir, file.base);
-  fs.writeFileSync(`${base}.pdf`, result.pdf);
-  fs.writeFileSync(
-    `${base}-front.pdf`,
-    renderPostcard({ photo, message, from, to, sides: "front" }).pdf,
-  );
-  fs.writeFileSync(
-    `${base}-back.pdf`,
-    renderPostcard({ photo, message, from, to, sides: "back" }).pdf,
-  );
+  write(`${base}.pdf`, result.pdf);
+  write(`${base}-front.pdf`, renderPostcard({ photo, message, from, to, sides: "front" }).pdf);
+  write(`${base}-back.pdf`, renderPostcard({ photo, message, from, to, sides: "back" }).pdf);
 
-  console.log(`  ${to.name} -> ${path.relative(process.cwd(), base)}.pdf`);
+  console.log(`  ${to.name} -> ${displayPath(`${base}.pdf`)}`);
   if (file.renamed) {
     // Said out loud, because the author is about to hand these to a printer
     // and has to know which card is whose.
@@ -149,10 +161,10 @@ for (const [index, to] of recipients.entries()) {
 
   // Built but not sent: this is what would go to the provider.
   const prepared = buildStannpRequest({ to, front: new Uint8Array(), back: new Uint8Array(), test: true });
-  fs.writeFileSync(`${base}-stannp-request.json`, JSON.stringify(prepared, null, 2) + "\n");
+  write(`${base}-stannp-request.json`, JSON.stringify(prepared, null, 2) + "\n");
 }
 
-console.log(`\nWrote ${recipients.length * 3} file(s) to content/${owner}/postcards/`);
+console.log(`\nWrote ${written.length} file(s) to ${displayPath(outDir)}/`);
 console.log("Front and back are also written separately — Stannp takes them as two files.");
 if (renamed) {
   console.log(

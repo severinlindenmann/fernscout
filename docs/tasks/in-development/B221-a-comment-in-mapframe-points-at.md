@@ -34,12 +34,28 @@ ceiling). Only the sentence about it is wrong.
 Noticed while reading the file for B177. Small, and the kind of thing that
 costs somebody ten minutes at exactly the wrong moment.
 
+One correction to the Why, and it changes the replacement text. `lib/basemap.ts`
+does **not** call `frameSpanKm`: `basemapFor` computes the same number itself as
+`kmForUnits(frame.w)` (`lib/basemap.ts:338`) and compares it against
+`WAYS_BELOW_KM`, `DETAIL_BELOW_KM` and `MID_BELOW_KM`. So the band thresholds
+are the same *quantity* but not a caller. The only caller in the codebase is
+`components/WorldMap.tsx:149`, for the zoom ceiling. The replacement says both,
+and says which is which, rather than implying a call that is not there.
+
 ## Work
 
 Say what `frameSpanKm` is actually for — the zoom ceiling in `WorldMap`, and
-the band thresholds in `lib/basemap.ts` — and drop the dead reference. Check
-the neighbouring comments in the same file for others of the same vintage
-while the file is open.
+the band thresholds in `lib/basemap.ts` — and drop the dead reference. **Done**,
+with the distinction above. The sentence about the question nobody asks is kept
+but turned the right way round: it now says that nothing decides in advance
+whether the basemap has anything to say about a place, and points at
+`lib/basemap.ts` for why.
+
+Check the neighbouring comments in the same file for others of the same vintage
+while the file is open. **Done** — the whole of `lib/mapFrame.ts` was read.
+Everything else it names exists: `lib/mapProjection.mjs`, `lib/worldLand.json`,
+`place()`, `KM_PER_UNIT`, `SADDLE_STITCH`-style constants in the file itself.
+This was the only dead reference.
 
 ## Acceptance
 

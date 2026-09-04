@@ -22,6 +22,8 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 
+import { contentRoot } from "../lib/contentRoot.ts";
+import { displayPath } from "../lib/displayPath.ts";
 import { buildBookSource, resolvePrintFile } from "../lib/photobook/source.ts";
 import { outline, planBook, type Photobook } from "../lib/photobook/plan.ts";
 import { renderCover, renderVolume } from "../lib/photobook/render.ts";
@@ -115,10 +117,18 @@ else if (binding !== "perfect") fail(`Unknown binding "${binding}". One of: perf
 // A finished book belongs to whoever it is about, next to their content and
 // their postcards, rather than in a directory shared by everyone on the
 // instance (decision 23). Gitignored there.
+//
+// The default is built from `contentRoot()`, never `process.cwd()`: on a
+// deployed instance the content root is under DATA_DIR and the working
+// directory is the checkout, so the working directory puts a book — and the
+// provider request JSON beside it — inside the directory `git pull` runs in
+// and outside the backup (B219, and B111 before it).
+//
+// `--out` is unchanged and still means what it says: a path the person typed,
+// resolved against where they are standing, anywhere they like. Only the
+// default moved.
 const bookOwner = tripId!.includes("/") ? tripId!.slice(0, tripId!.indexOf("/")) : "";
-const outDir = path.resolve(
-  str("out") ?? path.join(process.cwd(), "content", bookOwner, "photobooks"),
-);
+const outDir = path.resolve(str("out") ?? path.join(contentRoot(), bookOwner, "photobooks"));
 fs.mkdirSync(outDir, { recursive: true });
 
 // ---- the colour profile, if one was supplied -------------------------------
@@ -186,7 +196,7 @@ const md5 = (bytes: Uint8Array) => crypto.createHash("md5").update(bytes).digest
 const write = (name: string, data: Uint8Array | string) => {
   const file = path.join(outDir, name);
   fs.writeFileSync(file, data);
-  written.push(path.relative(process.cwd(), file));
+  written.push(displayPath(file));
   return file;
 };
 
@@ -290,7 +300,7 @@ if (iccPath) {
 
 // ---- report ----------------------------------------------------------------
 
-console.log(`\nWrote ${written.length} file(s) to ${path.relative(process.cwd(), outDir)}/`);
+console.log(`\nWrote ${written.length} file(s) to ${displayPath(outDir)}/`);
 for (const file of written) console.log(`  ${file}`);
 
 if (book.warnings.length > 0) {
