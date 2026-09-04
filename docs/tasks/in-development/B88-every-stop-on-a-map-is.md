@@ -82,3 +82,44 @@ Related: B78 for the transport styling on the same maps.
 - The map still carries its `role="img"` and `aria-label` (`:73–74`) — the
   marker change must not turn it into something a screen reader enumerates.
 - `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`, `npm run build`.
+
+## Resolution
+
+Replaced the `<circle r={size(2.2)} .../>` marker with a `<path>` teardrop: a
+new `pinPath(r)` helper builds the outline from the tangent-line geometry of a
+circle sitting `2.2r` above the origin (a closed path — `M0,0 L<tangent> A<r>
+... Z` — so the arc plus the implicit closing line *are* the two tangent
+lines, no bezier tracing involved). Every length in it is a multiple of `r`,
+and `r` is `size(2.6)` — the existing screen-constant-size helper at `:62` —
+so it scales correctly at any frame width the same way the old circle's
+radius did; nothing about the shape is a hand-traced path baked at one size
+(the B46 failure mode the task warned about). Each pin is drawn at its actual
+coordinate with `transform="translate(x y)"`, tip at the local origin, so the
+tip — not the shape's centroid — is what sits on the coordinate the route
+polyline also joins.
+
+Kept: the accent colour as `fill`, the cream (`#fffaf0`) `stroke`, and the
+existing `strokeWidth={size(0.7)}`. Added `strokeLinejoin="round"` so the
+tangent-line corners don't come out sharp at small radii.
+
+The polyline still joins the raw coordinates, so it arrives at each pin's tip
+and the head floats above it, which is what a pin should look like — checked
+by rendering `alps-2024`-shaped fixtures and by asserting in the test that a
+pin's translate matches the corresponding point in the polyline's own `points`
+string exactly.
+
+**WorldMap and MiniMap were not touched, on purpose.** `WorldMap`'s markers are
+interactive — selectable, clusterable, carry a two-digit cluster count
+(`:551–560`) and a focus ring — and a pin has to hold all of that without
+either looking wrong or losing the a11y semantics `WorldMap` already has
+per-marker (`role="button"`, `aria-label`). That is real additional work
+distinct from this task's plain, read-only lifetime map, and stays a separate
+task as the Work section already said — not reopened here. `MiniMap`'s marker
+is small enough on its own hero-sized map that a dot reads fine; left alone.
+
+`test/lifetime-map.test.tsx` adds: a pin's tip matches the point the route
+line joins, the pin's head radius is the same *fraction of the viewBox width*
+for a one-city route and a two-continent one (which is what "same size on
+screen" means once the SVG is rendered at a fixed CSS width), the legend still
+pairs colour and title, and the map keeps `role="img"`/`aria-label` and grows
+no `role="button"` markers.

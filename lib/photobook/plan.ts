@@ -42,6 +42,7 @@ import {
   type RectMm,
 } from "./spec.ts";
 import { formatDate, formatDateRange, wrap } from "./text.ts";
+import { isPlottable } from "../mapFrame.ts";
 
 // ---------------------------------------------------------------------------
 // What the planner is given
@@ -607,8 +608,14 @@ function materialise(
     }
 
     case "route": {
-      const view = routeView(source.route);
-      const points = source.route.map((p) => ({
+      // Filtered once, here, rather than only inside `routeView`: `points`
+      // below is projected and drawn straight into the PDF path/dots by
+      // `drawRoutePage` without going through `routeView` at all, so a stop
+      // without coordinates would still reach the page as `NaN` even with the
+      // bounding box fixed.
+      const plottable = source.route.filter(isPlottable);
+      const view = routeView(plottable);
+      const points = plottable.map((p) => ({
         location: p.location,
         country: p.country,
         ...projectEquirectangular(p.lat, p.lng),
@@ -620,7 +627,7 @@ function materialise(
         half: draft.half,
         view,
         points,
-        caption: `${source.route.length} stops, ${formatDateRange(source.trip.start, source.trip.end)}`,
+        caption: `${plottable.length} stops, ${formatDateRange(source.trip.start, source.trip.end)}`,
       };
     }
 
@@ -739,10 +746,43 @@ export function projectEquirectangular(lat: number, lng: number): { x: number; y
 /**
  * The window on the world that this trip needs, as a 2:1 rectangle so that the
  * spread it is drawn across is not distorted.
+ *
+ * `isPlottable` is imported rather than reimplemented (B269): a stop whose
+ * `lat`/`lng` is not a finite number — a day written without coordinates,
+ * same as everywhere else in the app — took the whole bounding box to `NaN`
+ * here for the same reason it did in `lib/mapFrame.ts`'s `frameRoute` before
+ * B265: `Math.min`/`Math.max` over a `NaN` is `NaN`.
+ *
+ * This is a second, independent implementation of that bounding-box maths
+ * rather than a caller of `frameRoute`, and deliberately so — not an oversight
+ * left for later:
+ *
+ *  - `frameRoute`'s frame corrects x by `cos(latitude)` so a unit means the
+ *    same ground distance on both axes (see that file). This map's window is
+ *    culled and projected in the *same, uncorrected* equirectangular space as
+ *    the baked land paths in `lib/worldLand.json` (`MAP_SPACE`, matching
+ *    `mapProjector`'s `view.x/y/width/height`) — applying `lngScale` here
+ *    would shift every coastline and marker out of registration with the
+ *    window `mapProjector`/`drawRoutePage` cull against.
+ *  - The shape is fixed at exactly 2:1, because a book spread is two trim
+ *    widths across one trim height; `frameRoute`'s `TARGET_ASPECT` (1.6) is
+ *    chosen for a browser layout, an unrelated constraint.
+ *  - The padding floor here (30/15 "map units") is sized against the *print*
+ *    frame directly; `frameRoute`'s floor is a real distance
+ *    (`MIN_SPAN_KM` via `KM_PER_UNIT`), which is only a meaningful unit once
+ *    `lngScale` has been applied — the same correction the first point says
+ *    cannot be introduced here.
+ *
+ * Consolidating would mean either rewriting `mapProjector` and the renderer's
+ * window-culling to work in a latitude-corrected space, or having `frameRoute`
+ * grow an uncorrected mode — both bigger than the NaN hole this task closes.
  */
 export function routeView(route: RoutePoint[]): RouteView {
-  if (route.length === 0) return { x: 0, y: 0, width: MAP_SPACE.width, height: MAP_SPACE.height };
-  const points = route.map((p) => projectEquirectangular(p.lat, p.lng));
+  const plottable = route.filter(isPlottable);
+  if (plottable.length === 0) {
+    return { x: 0, y: 0, width: MAP_SPACE.width, height: MAP_SPACE.height };
+  }
+  const points = plottable.map((p) => projectEquirectangular(p.lat, p.lng));
   const minX = Math.min(...points.map((p) => p.x));
   const maxX = Math.max(...points.map((p) => p.x));
   const minY = Math.min(...points.map((p) => p.y));

@@ -398,6 +398,61 @@ describe("the route view", () => {
       expect(y).toBeLessThan(view.y + view.height);
     }
   });
+
+  /**
+   * B269. A stop without coordinates — `lat`/`lng` are optional on an entry,
+   * and `routeFor` (`lib/photobook/source.ts`) copies them through unchecked —
+   * took `Math.min`/`Math.max` here to `NaN`, same shape as B265's hole in
+   * `frameRoute`.
+   */
+  describe("a stop with no coordinates", () => {
+    const located = [
+      { location: "A", country: "CH", lat: 47, lng: 8 },
+      { location: "B", country: "VN", lat: 21, lng: 105 },
+    ];
+    const unlocated = { location: "Unrecorded", country: "", lat: undefined as unknown as number, lng: undefined as unknown as number };
+
+    test("is dropped rather than poisoning the view", () => {
+      const view = routeView([...located, unlocated]);
+      expect(Number.isFinite(view.x)).toBe(true);
+      expect(Number.isFinite(view.y)).toBe(true);
+      expect(Number.isFinite(view.width)).toBe(true);
+      expect(Number.isFinite(view.height)).toBe(true);
+      expect(view).toEqual(routeView(located));
+    });
+
+    test("a route with nothing plottable frames the whole world, not NaN", () => {
+      const view = routeView([unlocated]);
+      expect(view).toEqual({ x: 0, y: 0, width: 1000, height: 500 });
+    });
+
+    /**
+     * The bounding box is only half the hole: `materialise`'s "route" case
+     * also projects every route point straight into `MappedPoint[]` for
+     * `drawRoutePage` (`lib/photobook/render.ts`) to draw as dots and a
+     * connecting line, bypassing `routeView` entirely.
+     */
+    test("a planned book draws no NaN point for a day with no coordinates", () => {
+      const days = [day(0), day(1)];
+      const route = [
+        ...days.map((d) => ({ location: d.location, country: d.country, lat: d.lat, lng: d.lng })),
+        unlocated,
+      ];
+      const book = planBook(source(days, { route }), SPEC);
+      const routePages = book.volumes[0].pages.filter((p) => p.kind === "route");
+      expect(routePages.length).toBeGreaterThan(0);
+      for (const p of routePages) {
+        if (p.kind !== "route") continue;
+        expect(Number.isFinite(p.view.x)).toBe(true);
+        expect(Number.isFinite(p.view.width)).toBe(true);
+        expect(p.points).toHaveLength(days.length);
+        for (const pt of p.points) {
+          expect(Number.isFinite(pt.x)).toBe(true);
+          expect(Number.isFinite(pt.y)).toBe(true);
+        }
+      }
+    });
+  });
 });
 
 describe("text", () => {

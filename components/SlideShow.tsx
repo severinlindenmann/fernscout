@@ -25,6 +25,7 @@ import {
   Minimize2,
 } from "lucide-react";
 import { project, MAP_VIEWBOX } from "@/lib/mapProjection";
+import { isPlottable } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import { TRANSPORT_STYLE } from "@/lib/transport";
 import { flagFor } from "@/lib/flags";
@@ -623,9 +624,42 @@ const VEHICLE_ICON = {
   walk: Footprints,
 } as const;
 
-/** The map behind the show: same land data, camera pinned to the active stop,
- * and — while a leg is playing — the vehicle actually travelling along it. */
-function SlideMap({
+/**
+ * Where the camera looks when a place has no coordinates: it holds the last
+ * located stop rather than jumping to `(NaN, NaN)`, and falls further back to
+ * the next located one, or the world's centre, only if there is none behind
+ * it.
+ */
+function cameraTarget(
+  pts: readonly ([number, number] | null)[],
+  index: number,
+): [number, number] {
+  for (let i = index; i >= 0; i--) {
+    const p = pts[i];
+    if (p) return p;
+  }
+  for (let i = index + 1; i < pts.length; i++) {
+    const p = pts[i];
+    if (p) return p;
+  }
+  return [MAP_VIEWBOX.width / 2, MAP_VIEWBOX.height / 2];
+}
+
+/**
+ * The map behind the show: same land data, camera pinned to the active stop,
+ * and — while a leg is playing — the vehicle actually travelling along it.
+ *
+ * Projects through `project()` directly rather than through a `lib/mapFrame`
+ * `Frame`, and that is deliberate rather than the gap B265 left: this map's
+ * viewBox is the whole, uncorrected world — the same coordinate space
+ * `useWorldLand`'s baked paths are in — and the camera pans and zooms across
+ * it with a `motion.g` transform instead of cropping to a bounding box.
+ * `frameRoute`'s frame is a *different* space (cropped, latitude-corrected by
+ * `lngScale`) built for a static viewBox; applying it here would misalign
+ * every marker against the coastline it is meant to sit on. What was missing
+ * was only the `isPlottable` guard, not the frame.
+ */
+export function SlideMap({
   places,
   activeIndex,
   travelling,
@@ -635,8 +669,8 @@ function SlideMap({
   travelling: boolean;
 }) {
   const worldLand = useWorldLand();
-  const pts = places.map((p) => project(p.lat, p.lng));
-  const active = pts[activeIndex] ?? [MAP_VIEWBOX.width / 2, MAP_VIEWBOX.height / 2];
+  const pts = places.map((p) => (isPlottable(p) ? project(p.lat, p.lng) : null));
+  const active = cameraTarget(pts, activeIndex);
   const ZOOM = 3.4;
   const cx = MAP_VIEWBOX.width / 2;
   const cy = MAP_VIEWBOX.height / 2;
@@ -665,8 +699,11 @@ function SlideMap({
         </g>
 
         {places.slice(1).map((p, i) => {
-          const [x1, y1] = pts[i];
-          const [x2, y2] = pts[i + 1];
+          const from = pts[i];
+          const to = pts[i + 1];
+          if (!from || !to) return null;
+          const [x1, y1] = from;
+          const [x2, y2] = to;
           const mode = p.entries[0]?.transport?.mode;
           const style = mode ? TRANSPORT_STYLE[mode] : null;
           if (!style) return null;
@@ -699,7 +736,9 @@ function SlideMap({
         })}
 
         {places.map((p, i) => {
-          const [x, y] = pts[i];
+          const pt = pts[i];
+          if (!pt) return null;
+          const [x, y] = pt;
           const isActive = i === activeIndex;
           return (
             <g key={p.key}>
@@ -728,9 +767,9 @@ function SlideMap({
         })}
 
         {/* The leg being flown right now. */}
-        {travelling && activeIndex > 0 && (() => {
-          const from = pts[activeIndex - 1];
-          const to = pts[activeIndex];
+        {travelling && activeIndex > 0 && pts[activeIndex - 1] && pts[activeIndex] && (() => {
+          const from = pts[activeIndex - 1]!;
+          const to = pts[activeIndex]!;
           const mode = places[activeIndex].entries[0]?.transport?.mode;
           const Icon = mode ? (VEHICLE_ICON[mode] ?? Plane) : Plane;
           // Point the icon along the direction of travel.
