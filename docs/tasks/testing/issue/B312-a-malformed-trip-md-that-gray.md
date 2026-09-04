@@ -7,8 +7,7 @@ complexity: low
 area: trips, reading
 found: "2026-09-04T16:21:57Z"
 started: "2026-09-04T19:26:10Z"
-session: cae3e4fb-d628-4a89-89b7-43a581bc7e71
-claimed: "2026-09-04T19:26:10Z"
+merged: "2026-09-04T19:39:05Z"
 ---
 
 # B312 — A malformed trip.md that gray-matter has already failed to parse once can silently succeed on re-parse
