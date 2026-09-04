@@ -174,13 +174,17 @@ curl -s localhost:3000/api/health | head
 above is yours, and stays yours, because `fernscout-worker.service` ships
 disabled on purpose. Every later deploy runs the same script, so from here on a
 unit change reaches the machine with the commit that made it (B138). It is not
-Caddy's config; see §TLS for that, and B66 for its drift.
+Caddy's config — Caddy has one file for the whole machine and a deploy has no
+business writing it. The proxy keeps up a different way, by importing a file
+inside the checkout; see §TLS, and
+[Does the running proxy still match the release?](#does-the-running-proxy-still-match-the-release)
+for the check that says whether it did (B66).
 
 ### 7. TLS
 
 ```bash
 sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
-sudo nano /etc/caddy/Caddyfile     # set your domain and ACME email
+sudo nano /etc/caddy/Caddyfile     # set your ACME email; check the import path
 sudo caddy validate --config /etc/caddy/Caddyfile
 sudo systemctl reload caddy
 ```
@@ -189,6 +193,33 @@ sudo systemctl reload caddy
 > file, shared by everything on the host, so that `cp` deletes any site already
 > configured there. If `/etc/caddy/Caddyfile` already has content, see
 > [Deploying alongside an existing Caddy site](#deploying-alongside-an-existing-caddy-site).
+
+`deploy/Caddyfile` is a global options block and **one `import` line**. The
+site block itself is `deploy/fernscout.caddy`, inside the checkout, and Caddy
+reads it from there — so a proxy directive added in a later release arrives
+with `git pull`, on this machine and on a shared one, and the file you edited
+by hand is never the file that got left behind (B66). Adjust the import path
+if the checkout is not at `/srv/fernscout`; leave the rest alone.
+
+**Do not edit `deploy/fernscout.caddy`.** It is the release's, and the next
+`git pull` will conflict with anything written into it. The two values it needs
+come from Caddy's own environment:
+
+```bash
+sudo systemctl edit caddy
+# [Service]
+# Environment=CADDY_DOMAIN=your-domain.example
+# Environment=CADDY_ACME_EMAIL=you@your-domain.example
+sudo systemctl daemon-reload
+sudo CADDY_DOMAIN=your-domain.example CADDY_ACME_EMAIL=you@your-domain.example \
+  caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+The upstream port is `{$PORT:3000}`, so a deployment that moved the app off
+3000 sets `PORT` in `/etc/fernscout/env` **and** adds `Environment=PORT=…` to
+that same drop-in — Caddy expands the placeholder from its own environment, not
+from the app's. Still no proxy edit.
 
 `caddy validate` before the reload, always: a reload of a broken config leaves
 the old one running, but a *restart* of one does not, and the difference is
@@ -296,32 +327,51 @@ A VPS that already serves something is the normal case, not the exception.
 Nothing about the deploy changes except step 7 — but that step, run as written,
 takes the other site down.
 
-**Back the file up before touching it**, then append a site block, leaving
+**Back the file up before touching it**, then append **one line**, leaving
 every existing block byte-identical:
 
 ```bash
 sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak-$(date +%F)
 sudo tee -a /etc/caddy/Caddyfile >/dev/null <<'EOF'
 
-fernscout.ch {
-	encode gzip zstd
-	reverse_proxy 127.0.0.1:3000
-}
-
-www.fernscout.ch {
-	redir https://fernscout.ch{uri} permanent
-}
+import /srv/fernscout/deploy/fernscout.caddy
 EOF
+sudo systemctl edit caddy      # Environment=CADDY_DOMAIN=… (see §7)
 sudo caddy validate --config /etc/caddy/Caddyfile
 sudo systemctl reload caddy
 ```
+
+**That line is the whole of it, and it is the point.** The site block it pulls
+in lives in the checkout, so every later release's proxy changes arrive with
+`git pull` — no second merge, ever. Copying the block in by hand instead still
+works and still serves the site, and it is how B01's `header_up
+X-Forwarded-For` came to be deployed, reported healthy, and completely absent
+from the running proxy for a day: a fix that only exists in a template is not
+deployed, it is written down.
 
 Two things not to do. Do not add a second global options block — the `{ email }`
 block at the top of `deploy/Caddyfile` is a config error when one already
 exists, and adding one where there was none changes ACME behaviour for the
 sites already being served; Caddy's default account is already issuing their
-certificates. And `reload`, never `restart`: a reload swaps the config with no
-dropped connection, so the neighbouring site does not so much as blink.
+certificates. That block is why the import exists as a separate file: it is the
+one part of `deploy/Caddyfile` a shared host must not take. And `reload`, never
+`restart`: a reload swaps the config with no dropped connection, so the
+neighbouring site does not so much as blink.
+
+### Does the running proxy still match the release?
+
+```bash
+cd /srv/fernscout && npm run check:caddy
+```
+
+It adapts `/etc/caddy/Caddyfile` and `deploy/fernscout.caddy` through
+`caddy adapt` and reports any directive the release expects and the machine is
+not serving — by name, with the import line that fixes it for good. Extra
+directives of your own are not drift and are not reported; only ours going
+missing is. `scripts/deploy.sh` runs it at the end of every deploy and prints
+the answer, so an operator who declined the import is told each time rather
+than a year later. Exit 0 agrees, 1 drifted, 2 could not be checked (no Caddy
+on this machine, which is a supported deployment).
 
 Check the neighbour before and after, not just your own site:
 

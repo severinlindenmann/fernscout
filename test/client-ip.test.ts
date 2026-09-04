@@ -48,8 +48,12 @@ describe("clientIp", () => {
 });
 
 describe("the half of B01 that lives in the proxy", () => {
-  const caddyfile = () =>
-    fs.readFileSync(path.join(process.cwd(), "deploy", "Caddyfile"), "utf8");
+  // Since B66 the site block is its own file — the one an operator `import`s
+  // rather than copies, so that a proxy change reaches a machine that already
+  // serves another site. deploy/Caddyfile is now the global options block and
+  // that import, and the directive being asserted here is not in it.
+  const snippet = () =>
+    fs.readFileSync(path.join(process.cwd(), "deploy", "fernscout.caddy"), "utf8");
 
   /**
    * Caddy *appends* the real address to an incoming `X-Forwarded-For` unless
@@ -57,13 +61,28 @@ describe("the half of B01 that lives in the proxy", () => {
    * client could name its own address and reset every limit keyed on it —
    * including the eight guesses in front of a trip's password.
    */
-  test("the Caddyfile overwrites X-Forwarded-For rather than appending", () => {
-    expect(caddyfile()).toMatch(/header_up\s+X-Forwarded-For\s+\{remote_host\}/);
+  test("the shipped site block overwrites X-Forwarded-For rather than appending", () => {
+    expect(snippet()).toMatch(/header_up\s+X-Forwarded-For\s+\{remote_host\}/);
   });
 
   test("and it is inside the reverse_proxy block, where it takes effect", () => {
-    const block = /reverse_proxy[^\n]*\{([\s\S]*?)\n\t\}/.exec(caddyfile());
+    const block = /reverse_proxy[^\n]*\{([\s\S]*?)\n\t\}/.exec(snippet());
     expect(block, "reverse_proxy should be a block, not a one-liner").not.toBeNull();
     expect(block![1]).toMatch(/header_up\s+X-Forwarded-For/);
   });
+
+  test("and deploy/Caddyfile still delivers it, by importing that file", () => {
+    // The greenfield path — `cp deploy/Caddyfile /etc/caddy/Caddyfile` — has to
+    // keep working, and it now works by reference. A Caddyfile that lost the
+    // import would serve a site with no site block at all, so this is not a
+    // stylistic assertion.
+    expect(fs.readFileSync(path.join(process.cwd(), "deploy", "Caddyfile"), "utf8")).toMatch(
+      /^import\s+\S*deploy\/fernscout\.caddy$/m,
+    );
+  });
+
+  // Whether the *running* proxy has any of this is a different question, and
+  // the one B01 actually got wrong: the line was committed, deployed, and had
+  // no effect for a day because nothing installed the file. That check is
+  // test/check-caddy.test.ts and `npm run check:caddy` (B66).
 });
