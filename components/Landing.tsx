@@ -152,6 +152,19 @@ export default function Landing({
         {t("landing.noEditor")}
       </p>
 
+      {/* Right after the instruction, not tucked into the self-host column
+          below: the guide is for anyone deciding whether to use this, not
+          only for somebody about to run their own instance. */}
+      <Link
+        href="/docs"
+        className="mt-6 inline-flex min-h-11 items-center gap-2 text-base font-semibold text-navy-900
+                   underline decoration-blue-500 decoration-2 underline-offset-4
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+      >
+        <BookOpen className="h-4 w-4" aria-hidden />
+        {t("landing.docs")}
+      </Link>
+
       {/* The reason to stay on the page: somebody else's trip, one click away. */}
       <section className="mt-12 border-t border-navy-200 pt-8">
         <h2 className="font-display text-xl font-semibold text-navy-900">
@@ -224,7 +237,7 @@ export default function Landing({
               </a>
             )}
             <Link
-              href="/api/docs"
+              href="/docs/api"
               className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-navy-900
                          underline decoration-blue-500 decoration-2 underline-offset-4
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"

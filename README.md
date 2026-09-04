@@ -145,7 +145,12 @@ visibility: `private`, `public` or `guest`. An unrecognised value reads as
 
 ## Documentation
 
-Indexed at [docs/](docs/), which also says how far to trust it.
+Indexed at [docs/](docs/), which also says how far to trust it. A running
+instance also serves an owner-facing guide at `/docs` — what to hand an
+agent, a folder of photos or a markdown file, and how the site itself runs —
+and the API reference at `/docs/api`. Both are generated from this README and
+from `docs/ingest.md`, so they read the same as this file rather than a
+second copy of it.
 
 | | |
 | --- | --- |

@@ -298,6 +298,7 @@
   "landing.apiDocs": "API-Referenz",
   "landing.copied": "Kopiert",
   "landing.copyInstruction": "Anweisung kopieren",
+  "landing.docs": "Dokumentation lesen",
   "landing.handTitle": "Gib das deinem Agenten",
   "landing.hero": "Ein Reisetagebuch, das dein Agent für dich schreibt.",
   "landing.instruction": "Führe mich durch das Anlegen meines eigenen Reisetagebuchs, nach der Übersicht unter {docUrl} und der vollständigen Anleitung unter {agentUrl}. Du brauchst dafür eine E-Mail-Adresse, die mir gehört.",

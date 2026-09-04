@@ -132,8 +132,17 @@ describe("every docs/ path cited from code, skills or the README exists", () => 
   /**
    * A `docs/…` path in prose or a comment. Trailing punctuation is trimmed —
    * "see docs/runbook.md." names a file, not a file called `runbook.md.`.
+   *
+   * Not preceded by `/` or a word character (B305): a bare `\b` reads the
+   * tail end of `app/docs/page.tsx` — a real route this repository has had
+   * since B305 — as a citation of a `docs/`-folder file that is not there.
+   * Excluding a `/`-led match also keeps this test out of the way of the
+   * `/docs/api` URL and its siblings, which name a route rather than a file.
+   * Every citation this test actually exists to catch is written as a bare
+   * repo-relative path — `docs/runbook.md`, never with a leading slash —
+   * which neither exclusion touches.
    */
-  const DOCS_PATH = /\bdocs\/[A-Za-z0-9._/-]+/g;
+  const DOCS_PATH = /(?<![/\w])docs\/[A-Za-z0-9._/-]+/g;
 
   test("no citation leads nowhere", () => {
     const broken = new Map<string, string[]>();

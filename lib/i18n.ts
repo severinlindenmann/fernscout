@@ -329,6 +329,7 @@ export type TranslationKey =
   | "landing.apiDocs"
   | "landing.copied"
   | "landing.copyInstruction"
+  | "landing.docs"
   | "landing.handTitle"
   | "landing.hero"
   | "landing.instruction"

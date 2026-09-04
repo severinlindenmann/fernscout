@@ -2,7 +2,7 @@ import { openApiDocument } from "@/lib/api/openapi";
 
 /**
  * The machine contract for the same API `/agent.md` describes in prose, and
- * the same document `/api/docs` renders for a person — see the comment on
+ * the same document `/docs/api` renders for a person — see the comment on
  * `openApiDocument` for why it lives there rather than here.
  *
  * **No `X-Robots-Tag` here, unlike `/documentation.txt` and `/openapi.json`'s

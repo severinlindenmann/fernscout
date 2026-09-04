@@ -24,7 +24,7 @@ import { MAINTAINED_LOCALES } from "@/lib/i18n";
  * there are five endpoints, and a hand-written document that is checked by a
  * test is more honest than a generated one nobody reads.
  *
- * Shared between `/openapi.json` (the machine contract) and `/api/docs` (the
+ * Shared between `/openapi.json` (the machine contract) and `/docs/api` (the
  * same document, rendered for a person) so the two cannot drift into
  * describing two different APIs.
  */
