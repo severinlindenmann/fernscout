@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: tests, db, postgres, backup
 found: "2026-09-03T20:05:00Z"
+started: "2026-09-04T07:17:29Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T07:17:29Z"
 ---
 
 # B200 — The restore drill dumps a database no migration has touched

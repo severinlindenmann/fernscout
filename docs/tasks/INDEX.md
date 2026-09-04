@@ -109,31 +109,27 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B201](open/B201-the-shared-main-checkout-can-be.md) | The shared main checkout can be left on a detached HEAD, stranding every session's commits | ISSUE | high | medium |
-| [B203](open/B203-onfailure-sits-in-the-service-section.md) | OnFailure sits in the [Service] section, so systemd ignores it and a failed backup still tells nobody | ISSUE | high | low |
 | [B143](open/B143-task-ids-collide-when-parallel-sessions.md) | Task ids collide when parallel sessions capture by hand, which is what B99 was meant to prevent | ISSUE | medium | medium |
 | [B144](open/B144-enterworktree-refuses-for-a-dispatched-subagent.md) | EnterWorktree refuses for a dispatched subagent, so work-on-a-task's second step cannot be followed | ISSUE | medium | low |
 | [B20](open/B20-the-stranger-s-me-page-never.md) | The stranger's me page never says who to ask | ISSUE | medium | low |
 | [B22](open/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | SECURITY | medium | medium |
-| [B66](open/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium |
 | [B97](open/B97-the-guest-list-cannot-tell-a.md) | The guest list cannot tell a reading link from a writing link | ISSUE | medium | low |
 | [B161](open/B161-an-expired-place-on-a-trip.md) | An expired place on a trip is not restored by re-approving the contact | ISSUE | low | low |
-| [B195](open/B195-the-unbounded-fallback-branch-is-the.md) | The unbounded-fallback branch is now the one that never runs where coreutils is installed | CHORE | low | low |
-| [B200](open/B200-the-restore-drill-dumps-a-database.md) | The restore drill dumps a database no migration has touched, so the archive it proves restorable is empty | CHORE | low | low |
 | [B24](open/B24-nothing-notices-when-a-file-stops.md) | Nothing notices when a file stops being used | CHORE | low | low |
 
 ## in-development
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B203](in-development/B203-onfailure-sits-in-the-service-section.md) | OnFailure sits in the [Service] section, so systemd ignores it and a failed backup still tells nobody | ISSUE | high | low | `2b6d1969` |
 | [B02](in-development/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low | `2b6d1969` |
-| [B16](in-development/B16-the-day-photo-viewer-does-not.md) | The day photo viewer does not answer to touch and never says where you are | ISSUE | medium | low | `2b6d1969` |
 | [B177](in-development/B177-a-trip-map-s-basemap-is.md) | A trip map's basemap is half a megabyte for a route sixty-eight kilometres across | ISSUE | medium | medium | `2b6d1969` |
 | [B179](in-development/B179-one-failed-read-of-the-basemap.md) | One failed read of the basemap bundle turns every map on the instance blank until restart | ISSUE | medium | low | `2b6d1969` |
+| [B66](in-development/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium | `2b6d1969` |
 | [B03](in-development/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium | `2b6d1969` |
 | [B04](in-development/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium | `2b6d1969` |
-| [B08](in-development/B08-serve-webp-alongside-jpeg-with-picture.md) | Serve WebP alongside JPEG with <picture> in the gallery (W30 gap) | CHORE | low | low | `2b6d1969` |
-| [B150](in-development/B150-two-recipients-with-the-same.md) | Two recipients with the same Latin name overwrite each other's postcards | ISSUE | low | low | `2b6d1969` |
-| [B202](in-development/B202-a-postcard-recipient-s-ss-becomes.md) | A postcard recipient's ß becomes a hyphen, so a German surname loses a letter | CHORE | low | low | `2b6d1969` |
+| [B195](in-development/B195-the-unbounded-fallback-branch-is-the.md) | The unbounded-fallback branch is now the one that never runs where coreutils is installed | CHORE | low | low | `2b6d1969` |
+| [B200](in-development/B200-the-restore-drill-dumps-a-database.md) | The restore drill dumps a database no migration has touched, so the archive it proves restorable is empty | CHORE | low | low | `2b6d1969` |
 | [B53](in-development/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | `2b6d1969` |
 
 ## testing
@@ -154,6 +150,7 @@ Do not edit them by hand; run the script.
 | [B135](testing/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low | — |
 | [B136](testing/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low | — |
 | [B154](testing/B154-the-readme-describes-a-scroll-driven.md) | The README describes a scroll-driven map and a photo journal without showing one | CHORE | medium | low | — |
+| [B16](testing/B16-the-day-photo-viewer-does-not.md) | The day photo viewer does not answer to touch and never says where you are | ISSUE | medium | low | — |
 | [B160](testing/B160-a-one-time-code-endpoint-answers.md) | A one-time code endpoint answers 202 when the server cannot send mail at all | ISSUE | medium | low | — |
 | [B165](testing/B165-turning-the-costs-capability-off.md) | Turning the costs capability off leaves the costs pages fully rendered | ISSUE | medium | low | — |
 | [B17](testing/B17-how-a-trip-gets-its-rates.md) | How a trip gets its rates is written down nowhere a person will find it | CHORE | medium | low | — |
@@ -172,12 +169,14 @@ Do not edit them by hand; run the script.
 | [B70](testing/B70-a-test-trip-is-mailed-out.md) | A test trip is mailed out in the digest as if somebody had lived it | ISSUE | medium | low | — |
 | [B82](testing/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
 | [B98](testing/B98-revoking-somebody-s-access-leaves-every.md) | Revoking somebody's access leaves every agent token already issued to them working until it expires | SECURITY | medium | medium | — |
+| [B08](testing/B08-serve-webp-alongside-jpeg-with-picture.md) | Serve WebP alongside JPEG with <picture> in the gallery (W30 gap) | CHORE | low | low | — |
 | [B100](testing/B100-the-documented-verification-order-runs-tsc.md) | The documented verification order runs tsc before the build that generates the types it needs | CHORE | low | low | — |
 | [B130](testing/B130-re-approving-a-contact-leaves.md) | Re-approving a contact leaves an expired grant expired, so the approval does nothing | ISSUE | low | low | — |
 | [B133](testing/B133-nothing-tests-the-url-upload-branch.md) | Nothing tests the URL upload branch end to end, so the kept-original promise rests on one shared writer | CHORE | low | low | — |
 | [B137](testing/B137-a-refused-url-tells-the-caller.md) | A refused URL tells the caller to retry a permanent failure and says nothing about a transient one | ISSUE | low | low | — |
 | [B139](testing/B139-the-costs-page-s-tab-title.md) | The costs page's tab title is English on a journal that is not | ISSUE | low | low | — |
 | [B140](testing/B140-the-tab-title-can-be.md) | The tab title can be in a language the journal does not offer, while the page is not | ISSUE | low | low | — |
+| [B150](testing/B150-two-recipients-with-the-same.md) | Two recipients with the same Latin name overwrite each other's postcards | ISSUE | low | low | — |
 | [B152](testing/B152-the-guide-calls-the-relayed-sign.md) | The guide calls the relayed sign-in link the same link as the mailed one, and never says what kills it | CHORE | low | low | — |
 | [B158](testing/B158-the-publish-confirmation-promises-feed-and.md) | The publish confirmation promises feed and search for a day that is excluded from both | ISSUE | low | low | — |
 | [B170](testing/B170-the-journal-title-is-clipped.md) | The journal's title is clipped in the header at exactly the width where the nav labels appear | ISSUE | low | low | — |
@@ -187,6 +186,7 @@ Do not edit them by hand; run the script.
 | [B186](testing/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | CHORE | low | low | — |
 | [B198](testing/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | ISSUE | low | low | — |
 | [B199](testing/B199-the-agent-handover-copy-control-has.md) | The agent-handover copy control has two values and a newline in one accessible name | ISSUE | low | low | — |
+| [B202](testing/B202-a-postcard-recipient-s-ss-becomes.md) | A postcard recipient's ß becomes a hyphen, so a German surname loses a letter | CHORE | low | low | — |
 | [B23](testing/B23-everything-in-docs-was-archived-and.md) | Everything in docs was archived and nobody decided what is still current | CHORE | low | low | — |
 | [B48](testing/B48-nothing-says-what-ownernickname-should-be.md) | Nothing says what ownerNickname should be when the agent and the owner are the same person | CHORE | low | low | — |
 | [B50](testing/B50-two-mails-in-the-same-millisecond.md) | Two mails in the same millisecond overwrite each other in development | ISSUE | low | low | — |

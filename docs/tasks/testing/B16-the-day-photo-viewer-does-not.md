@@ -7,8 +7,7 @@ complexity: low
 area: gallery, a11y
 found: "2026-09-01"
 started: "2026-09-04T06:30:09Z"
-session: 2b6d1969-424a-4788-9497-eb5e151a5391
-claimed: "2026-09-04T06:30:09Z"
+merged: "2026-09-04T07:17:24Z"
 ---
 
 # B16 — The day photo viewer, on a phone

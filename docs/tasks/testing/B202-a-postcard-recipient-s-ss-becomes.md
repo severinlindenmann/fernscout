@@ -7,8 +7,7 @@ complexity: low
 area: postcards, slugs
 found: "2026-09-04T04:38:00Z"
 started: "2026-09-04T06:30:09Z"
-session: 2b6d1969-424a-4788-9497-eb5e151a5391
-claimed: "2026-09-04T06:30:09Z"
+merged: "2026-09-04T07:17:24Z"
 ---
 
 # B202 — A postcard recipient's ß becomes a hyphen
