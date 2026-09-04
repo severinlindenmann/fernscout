@@ -20,6 +20,7 @@
     "digest": "tsx --conditions=react-server scripts/digest.mts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "verify": "node scripts/verify.mjs",
     "seed:example": "node scripts/seed-example-content.mjs",
     "demo:build": "node scripts/build-demo-content.mjs",
     "postcard": "tsx --conditions=react-server scripts/postcard.ts",

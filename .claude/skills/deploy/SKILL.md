@@ -17,19 +17,18 @@ Docker here. Full reference: `docs/runbook.md`.
 
 ## Before anything leaves your machine
 
-All four, and read the output rather than the exit code:
+One command, and read the output rather than the exit code:
 
 ```bash
-npm run build          # first — it writes .next/types, which tsc reads
-npx tsc --noEmit
-npx eslint .
-npx vitest run
+npm run verify
 ```
 
-`npm run build` is not optional, and it goes first: Next writes the typed-route
-definitions into `.next/types` during a build, so `tsc` on an unbuilt checkout
-fails on every route file for reasons that have nothing to do with your change
-(B100). The deploy script builds **on the server**
+It runs the build, `tsc`, `eslint` and the suite in that order and stops at the
+first failure. The build is not optional and it goes first: Next writes the
+typed-route definitions into `.next/types` during a build, so `tsc` on an
+unbuilt checkout fails on every route file for reasons that have nothing to do
+with your change (B100). Do not reach for `--quick` here — a deploy is the one
+moment the build is the point. The deploy script builds **on the server**
 before it restarts, so a build that fails there leaves the old site running and
 the deploy simply fails — but it fails at 2am, over a hostel connection, on a
 laptop that is about to lose power. Find it here instead.
