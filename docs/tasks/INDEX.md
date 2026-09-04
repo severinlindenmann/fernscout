@@ -131,7 +131,6 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B266](in-development/B266-a-day-cannot-be-edited-after.md) | A day cannot be edited after it is written, and the agent that tried published fifteen of them | ISSUE | high | medium | `986bc24c` |
 | [B272](in-development/B272-a-transient-mail-failure-tells-a.md) | A transient mail failure tells a reader their code was wrong and loses the owner's notification for good | ISSUE | high | medium | `986bc24c` |
-| [B271](in-development/B271-the-owner-s-contacts-page-has.md) | The owner's contacts page has no way back to the journal | ISSUE | medium | low | `a3370c43` |
 
 ## testing
 
@@ -184,6 +183,7 @@ _Nothing here._
 | [B227](testing/B227-nothing-notices-a-conflict-marker-in.md) | Nothing notices a conflict marker in deploy/Caddyfile, because every check greps for a line rather than parsing the file | ISSUE | medium | low | — |
 | [B232](testing/B232-the-reactions-endpoint-answers-for-a.md) | The reactions endpoint answers for a trip nobody may read | SECURITY | medium | low | — |
 | [B25](testing/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low | — |
+| [B271](testing/B271-the-owner-s-contacts-page-has.md) | The owner's contacts page has no way back to the journal | ISSUE | medium | low | — |
 | [B35](testing/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
 | [B39](testing/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
 | [B40](testing/B40-a-six-digit-code-expires-in.md) | A six-digit code expires in ten minutes, which is shorter than people take to find the mail | CHORE | medium | low | — |
