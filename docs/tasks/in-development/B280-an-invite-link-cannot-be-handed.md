@@ -110,3 +110,31 @@ code does.
 - `claude-security` has been run over the branch; every finding is fixed or
   captured by id.
 - The four checks pass.
+
+## Verified
+
+All four green in the worktree: `npm run build` compiled, `npx tsc --noEmit`
+clean, `npx eslint .` 0 errors (4 pre-existing warnings, none in these files),
+`npx vitest run` 155 files / 2384 tests. `npm run unused` reports no unused
+files, dependencies or unresolved imports.
+
+Eight new tests in `test/contacts.test.ts`, under "the personal link", one per
+acceptance line: the link comes back as the same URL and still redeems; the row
+does not contain the token in the clear; one invite's ciphertext moved into
+another's row yields a null url instead of a working link; a row with
+`token_cipher` nulled — which is exactly an older row — still redeems and
+offers nothing; revoked and expired links are listed with a null url; the plain
+`listInvites` contains neither the token nor a url; and with
+`CONTACTS_ENCRYPTION_KEY` deleted the link still redeems and simply cannot be
+shown.
+
+Security pass over the branch found no introduced vulnerability. The one thing
+it raised is older and wider than this task and is captured as **B287**: the
+page that will render these links has its `Cache-Control` set by a Next default
+that nothing in this repository asserts, on the page that already carries
+decrypted postal addresses.
+
+One consequence worth stating for whoever builds B281: every live invite URL
+will now be present in the contacts page's HTML and RSC payload. That page is
+behind `isOwner` and `noindex`, and it already carries addresses — but it is a
+change in what a cached copy of that page is worth, which is what B287 is for.
