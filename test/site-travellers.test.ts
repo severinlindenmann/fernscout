@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { travellerFullNamesOf, travellerNamesOf, travellersOf } from "@/lib/site";
+import {
+  ownerShortName,
+  travellerFullNamesOf,
+  travellerNamesOf,
+  travellersOf,
+} from "@/lib/site";
 import type { Trip } from "@/lib/types";
 import type { UserConfig } from "@/lib/config";
 
@@ -59,5 +64,35 @@ describe("who a trip is credited to", () => {
     ]);
     expect(travellersOf(mixedCase, trip)).toHaveLength(2);
     expect(travellerNamesOf(mixedCase, trip)).toBe("Alex + Robin");
+  });
+});
+
+/**
+ * What to call the journal's owner in one word — B20.
+ *
+ * The stranger's access panel says "ask {name}", so this has to produce
+ * something that reads as a person and never a blank. A byline can afford a
+ * full "Firstname Lastname"; a sentence asking somebody to go and ask a person
+ * cannot, which is why the fallback trims rather than using `name` whole.
+ */
+describe("the owner's short name", () => {
+  test("is the nickname when there is one", () => {
+    expect(ownerShortName(user)).toBe("Alex");
+  });
+
+  test("falls back to the first word of the name, not the whole of it", () => {
+    const blank = {
+      owner: { name: "Alex Berger", nickname: "", email: "alex@example.com" },
+    } as UserConfig;
+    expect(ownerShortName(blank)).toBe("Alex");
+  });
+
+  test("is undefined when the config names nobody, rather than an empty string", () => {
+    const nameless = { owner: { name: "  ", nickname: "  " } } as UserConfig;
+    expect(ownerShortName(nameless)).toBeUndefined();
+  });
+
+  test("never carries the address that sits beside it", () => {
+    expect(ownerShortName(user)).not.toContain("@");
   });
 });

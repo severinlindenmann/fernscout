@@ -32,6 +32,7 @@ export default function MePageContent({
   canSignIn,
   codeMinutes,
   contactsEnabled,
+  ownerName,
   signinNotice,
 }: {
   viewer: Viewer;
@@ -46,6 +47,16 @@ export default function MePageContent({
   /** Whether this journal keeps a guest list at all. Resolved on the server;
    * `isEnabled` reads server config and this file is a client component. */
   contactsEnabled: boolean;
+  /**
+   * What to call the person whose journal this is — one word, and never their
+   * address (B20).
+   *
+   * Picked at the server boundary by `ownerShortName`, so this component is
+   * handed a name and cannot reach the email sitting beside it in the config.
+   * Absent when the journal names nobody, and the copy then falls back to the
+   * sentences that name no one, because "Ask ." is worse than "ask them".
+   */
+  ownerName?: string;
   /**
    * Why they landed here rather than inside the journal (B142).
    *
@@ -96,7 +107,26 @@ export default function MePageContent({
               <h2 className="font-display text-xl font-semibold text-navy-900">
                 {t("me.strangerTitle")}
               </h2>
-              <p className="mt-2 text-lg leading-8 text-navy-700">{t("me.strangerBody")}</p>
+              {/*
+                Who to ask, by name.
+
+                The page is written for the reader least comfortable with
+                software here — somebody who opens the journal from a link in
+                an email and, when she loses the email, has no way back in. It
+                told her the only way in was to ask a person and never said
+                which person, on a site she may have reached without knowing
+                whose it is.
+
+                The name and nothing else. No address, no phone number: the
+                same discipline the trip gate keeps (B117) — say enough that
+                somebody who should be here knows who to write to, and nothing
+                that would be a leak to whoever else tries the URL.
+              */}
+              <p className="mt-2 text-lg leading-8 text-navy-700">
+                {ownerName
+                  ? t("me.strangerBodyNamed", { name: ownerName })
+                  : t("me.strangerBody")}
+              </p>
 
               {/*
                 There is exactly one door for a stranger, and it is signing in
@@ -117,7 +147,7 @@ export default function MePageContent({
               */}
               {!canSignIn && (
                 <p className="mt-4 border-l-2 border-yellow-400 pl-4 text-base leading-7 text-navy-900">
-                  {t("me.askOwner")}
+                  {ownerName ? t("me.askOwnerNamed", { name: ownerName }) : t("me.askOwner")}
                 </p>
               )}
             </section>

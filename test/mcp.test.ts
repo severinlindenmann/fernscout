@@ -1267,6 +1267,31 @@ describe("what a person is told about content nobody lived", () => {
   });
 });
 
+/** Contacts on, both halves: the server can provide it, and ana asks for it. */
+function enableContacts() {
+  process.env.CONTACTS_ENCRYPTION_KEY = "33".repeat(32);
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "Fernscout", url: SITE, defaultUser: "ana" },
+      users: { reserved: [] },
+      features: { auth: { enabled: true }, contacts: { enabled: true } },
+    }),
+  );
+  const userConfig = path.join(dir, "ana", "config.json");
+  const raw = JSON.parse(fs.readFileSync(userConfig, "utf8")) as Record<string, unknown>;
+  fs.writeFileSync(
+    userConfig,
+    JSON.stringify({ ...raw, features: { contacts: { enabled: true } } }),
+  );
+  clearConfigCache();
+  clearUserCache();
+}
+
+afterEach(() => {
+  delete process.env.CONTACTS_ENCRYPTION_KEY;
+});
+
 /**
  * B183 — a disabled capability is absent, not broken.
  *
@@ -1283,31 +1308,6 @@ describe("tools/list is filtered by what this journal can actually do", () => {
     const { body } = await rpc(token, "tools/list");
     return (body.result as { tools: { name: string }[] }).tools.map((t) => t.name);
   }
-
-  /** Contacts on, both halves: the server can provide it, and ana asks for it. */
-  function enableContacts() {
-    process.env.CONTACTS_ENCRYPTION_KEY = "33".repeat(32);
-    fs.writeFileSync(
-      path.join(dir, "config.json"),
-      JSON.stringify({
-        site: { name: "Fernscout", url: SITE, defaultUser: "ana" },
-        users: { reserved: [] },
-        features: { auth: { enabled: true }, contacts: { enabled: true } },
-      }),
-    );
-    const userConfig = path.join(dir, "ana", "config.json");
-    const raw = JSON.parse(fs.readFileSync(userConfig, "utf8")) as Record<string, unknown>;
-    fs.writeFileSync(
-      userConfig,
-      JSON.stringify({ ...raw, features: { contacts: { enabled: true } } }),
-    );
-    clearConfigCache();
-    clearUserCache();
-  }
-
-  afterEach(() => {
-    delete process.env.CONTACTS_ENCRYPTION_KEY;
-  });
 
   test("a journal with contacts off is not offered the invite tools", async () => {
     const names = await toolNames(anaToken);
@@ -1406,5 +1406,56 @@ describe("create_trip can ask for a trip that is readable but not advertised", (
     // Written only when it narrows — an absent key reads as advertised.
     expect(fs.readFileSync(path.join(dir, "ana", "trips", "open-trip", "trip.md"), "utf8"))
       .not.toContain("listed:");
+  });
+});
+
+/**
+ * B97 — the agent's view of the same list the owner reads in a browser.
+ *
+ * The failure B97 records is in the guest list: a reading link and a writing
+ * link rendering as the same row. The question it asks is asked of every
+ * surface that lists them, so it is asked here too — an agent told to "revoke
+ * the writing link" is choosing between lines of text with the same
+ * asymmetric cost of guessing wrong.
+ */
+describe("list_invites tells a reading link from a writing link", () => {
+  test("names the kind and, for a buddy link, the trip it opens", async () => {
+    enableContacts();
+    await call(anaToken, "create_invite", { kind: "guest" });
+    await call(anaToken, "create_invite", { kind: "buddy", trip: "ana-trip" });
+
+    const result = await call(anaToken, "list_invites");
+    const text = textOf(result);
+    expect(text).toContain("guest to ana");
+    // A trip ref, not a bare id: ids are unique within a user and address
+    // nothing on their own.
+    expect(text).toContain("buddy to ana/ana-trip");
+    // And what the difference between those two words actually is, in the
+    // answer rather than in a document the reader may not have.
+    expect(text).toContain("write access");
+
+    const rows = (result.structuredContent as { invites: { kind: string; live: boolean }[] })
+      .invites;
+    expect(rows.map((r) => r.kind).sort()).toEqual(["buddy", "guest"]);
+    expect(rows.every((r) => r.live)).toBe(true);
+  });
+
+  test("a link whose date has passed reads as expired, not as one that still works", async () => {
+    enableContacts();
+    const created = await call(anaToken, "create_invite", { kind: "guest" });
+    const id = (created.structuredContent as { id: string }).id;
+
+    const { db } = await getDatabase();
+    await db
+      .updateTable("contact_invites")
+      .set({ expires_at: new Date(Date.now() - 86_400_000).toISOString() })
+      .where("id", "=", id)
+      .execute();
+
+    const result = await call(anaToken, "list_invites");
+    expect(textOf(result)).toContain("expired");
+    expect(textOf(result)).not.toMatch(/, until /);
+    const rows = (result.structuredContent as { invites: { live: boolean }[] }).invites;
+    expect(rows[0].live).toBe(false);
   });
 });

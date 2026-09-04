@@ -75,3 +75,48 @@ the unambiguous one.
 - A test in `test/trip-people.test.ts` that fails before the change, reaching
   into the row the way the B130 case in `test/access-gate.test.ts` does.
 - The four checks.
+
+## What was built
+
+**The expiry half, and only that.** `approveTripPlaces` (`lib/tripPeople.ts`)
+now selects every unrevoked row for the contact and asks `grantIsLive` which of
+them are not currently a place — never granted, or granted and since lapsed.
+Those are opened together: `granted_at` and `granted_by` restamped and
+`expires_at` cleared, which is exactly what B130 did to `access_grants`, so one
+click behaves the same way on both tables. A row that never lapsed is not
+touched, and the returned trip ids are the ones actually opened.
+
+The Why above was checked against the code and stands. Two things it did not
+know, both confirmed rather than contradicted:
+
+- **B178 decided the standing of the expiry column** (`grantIsLive`, in
+  `lib/grants.ts`): a grant is permanent until revoked, no writer takes an
+  expiry, and the column stays and stays enforced so that "let them in until
+  Christmas" is one writer away. This change is the same position for
+  `trip_people` — it does not create expiries, it makes the one writer that
+  ignored them agree with every reader. Nothing here contradicts B178.
+- **The `revoked_at` question named in the Why is deliberately left alone**, and
+  is now pinned by a test rather than by absence: a revoked place stays revoked
+  when the contact is approved again. `revokeTripPlaces` marks rather than
+  deletes so somebody shown the door cannot redeem the same link into a clean
+  slate, and a widening of this filter should have to argue with a failing test.
+
+`approveContact` remains the only thing that creates a place; nothing new
+writes one.
+
+## One correction to the Acceptance
+
+The test is in **`test/trip-place-revival.test.ts`**, not in
+`test/trip-people.test.ts`. That file states in its own words that it sets **no
+`DATABASE_URL`, deliberately** — what it pins is that a hand-written `people:`
+block stands entirely on its own with no database at all — so giving it a
+database to reach into would dissolve the property it exists to assert.
+
+## Evidence
+
+`npx vitest run test/trip-place-revival.test.ts`: 4 passed. Against the previous
+`approveTripPlaces`, 2 of the 4 fail — the revived place is not returned and
+`isPersonOn` stays false after the owner has clicked approve.
+
+The four checks: `npm run build`, `npx tsc --noEmit`, `npx eslint .` (0 errors),
+`npx vitest run` (130 files, 2098 passed, 2 skipped).

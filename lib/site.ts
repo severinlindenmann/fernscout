@@ -54,6 +54,32 @@ export function travellersOf(user: UserConfig, trip: Trip): TripPerson[] {
   return out;
 }
 
+/**
+ * What to call the person whose journal this is, in one word — B20.
+ *
+ * `nickname` is the short form a journal already keeps for exactly this, and
+ * `lib/journals.ts` requires it rather than deriving one, because a first-word
+ * guess is wrong for plenty of names. This is the fallback for a journal
+ * written before that or edited by hand: the first word of `name`, which is
+ * wrong less often than a full "Firstname Lastname" where a first name was
+ * meant.
+ *
+ * Undefined when the config names nobody, so a caller has to have a sentence
+ * for that case rather than rendering "Ask ." — an owner block with no name in
+ * it is a malformed config, not a reason to print a blank.
+ *
+ * **Nothing else about the owner comes out of here.** `owner.email` sits in
+ * the same object and is the one field on it that must never reach a browser;
+ * the point of a function that returns a single string is that a component
+ * cannot be handed the object and pick wrong later.
+ */
+export function ownerShortName(user: UserConfig): string | undefined {
+  const nickname = user.owner.nickname?.trim();
+  if (nickname) return nickname;
+  const first = user.owner.name?.trim().split(/\s+/)[0];
+  return first || undefined;
+}
+
 /** Short forms joined with "+", as a journal refers to the people on a trip. */
 export function travellerNamesOf(user: UserConfig, trip: Trip): string {
   return travellersOf(user, trip)
