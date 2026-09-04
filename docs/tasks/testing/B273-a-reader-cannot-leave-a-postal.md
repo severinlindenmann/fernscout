@@ -7,8 +7,7 @@ complexity: medium
 area: contacts, invites
 found: "2026-09-04T11:56:50Z"
 started: "2026-09-04T14:16:22Z"
-session: a3370c43-40d9-471c-a3d3-1a30c49b5302
-claimed: "2026-09-04T14:16:22Z"
+merged: "2026-09-04T14:48:19Z"
 ---
 
 # B273 — A reader cannot leave a postal address or phone number, so a postcard has nowhere to go
