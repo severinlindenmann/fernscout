@@ -85,9 +85,13 @@ describe("the phone hint on the owner's add-a-guest form (GuestForm)", () => {
     );
   }
 
-  test("does not mention postcards with postcards off", () => {
+  test("the phone hint does not mention postcards with postcards off", () => {
     const html = render(false, true);
     expect(html).toContain(en["contact.adminTelHintWhatsappOnly"]);
-    expect(html).not.toContain("postcard");
+    // B383: the address fieldset's own hint legitimately still says
+    // "postcard" here — it explains that the address is kept regardless —
+    // so this checks the *phone* hint specifically, not the whole page.
+    expect(html).not.toContain(en["contact.adminTelHint"]);
+    expect(html).not.toContain(en["contact.adminTelHintPostcardsOnly"]);
   });
 });
