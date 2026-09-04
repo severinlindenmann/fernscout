@@ -153,6 +153,14 @@ Five fields decide behaviour rather than decoration:
   at a guess. An empty `rates:` beats a number nobody can defend — the same
   rule as everywhere else here. `docs/currencies.md` has the full picture.
 
+  **Unlike everything else here, this one can be amended later.** Since B352,
+  `PATCH /api/v1/<user>/trips/<trip>/rates` with `{"rates": {"EUR": 0.94}}`
+  merges into the trip's table without touching the currencies already there —
+  naming one does not drop the rest — and costs already recorded convert on
+  the next read. Owner only; a trip-scoped token is refused with
+  `out_of_scope`. Still worth getting right at creation, since nothing prompts
+  anyone to come back and fix a wrong figure.
+
 Two more keys the reader understands, and one of them is the only field of a
 `trip.md` that no call can write:
 
@@ -181,10 +189,11 @@ Two more keys the reader understands, and one of them is the only field of a
   the file. B245 is the call it should eventually live on.
 
 Everything above except `cover` can also be sent to `POST
-/api/v1/<user>/trips` or `create_trip` when the trip is created, which is the
-only moment any of it can be set: there is no call that edits a `trip.md`
-afterwards, so a `people:` list or a `rates:` table sent wrongly is corrected
-here, in the file.
+/api/v1/<user>/trips` or `create_trip` when the trip is created. For `people`
+and `translations`, that is the only moment: there is no call that edits a
+`trip.md` afterwards, so a `people:` list or a `translations:` block sent
+wrongly is corrected here, in the file. `rates` is the exception — see above —
+and can be amended after the fact through the API.
 
 ### 3. Optional — a budget (`costs.md`)
 
