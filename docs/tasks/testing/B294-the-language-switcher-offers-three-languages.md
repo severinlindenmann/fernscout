@@ -7,8 +7,7 @@ complexity: high
 area: i18n, entries
 found: "2026-09-04T13:36:02Z"
 started: "2026-09-04T15:06:34Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T15:06:34Z"
+merged: "2026-09-04T15:20:25Z"
 ---
 
 # B294 — The language switcher offers three languages for prose that only exists in one
