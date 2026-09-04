@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { isOpenToLink, maySeeCosts } from "./access";
 import { GUEST_COOKIE, resolveSession } from "./auth";
+import { isEnabled } from "./capabilities";
 import { isJournalGuest, journalReader } from "./contacts/session";
 import { isPersonOn, isPersonOnWith, redeemedTripsFor } from "./tripPeople";
 import type { Trip } from "./types";
@@ -119,6 +120,25 @@ export function lockedMetadata(): Metadata {
  * one call every costs-rendering path makes.
  */
 export async function mayViewCosts(trip: Trip): Promise<boolean> {
+  /**
+   * An instance — or a journal — that does not do spending shows no spending,
+   * to anybody. B165.
+   *
+   * A different question from the rest of this function, and asked first
+   * because it outranks it: `costsVisibility` decides which readers see the
+   * numbers, and this decides whether there are numbers at all. `costs` was a
+   * capability in `FEATURE_NAMES`, in `REQUIREMENTS` and on `/api/health`, and
+   * the only thing that ever asked was the photobook — so an operator who
+   * switched spending off got no change, while `/api/health` went on
+   * reporting a capability the running site contradicted.
+   *
+   * Here rather than in each page because this is already "the one call every
+   * costs-rendering path makes": the story feed's per-day badge and the spend
+   * block both come through `showCosts`, which is this answer. The two costs
+   * *pages* additionally 404 — a page for a capability this journal does not
+   * have should be absent, not an empty panel.
+   */
+  if (!isEnabled("costs", trip.username)) return false;
   return maySeeCosts(trip, await isGuestOf(trip));
 }
 

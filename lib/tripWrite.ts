@@ -5,6 +5,7 @@ import { contentRoot } from "./contentRoot";
 import { getTrip, tripRef } from "./trips";
 import { calendarStatus } from "./tripTime";
 import { getUser } from "./users";
+import { quoteScalar, singleLineProblem } from "./validate/frontmatter";
 
 /**
  * Creating a trip.
@@ -24,6 +25,9 @@ const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 const ACCENTS = ["sky", "yellow", "green", "coral", "navy"] as const;
 const STATUSES = ["upcoming", "current", "past"] as const;
 const VISIBILITIES = ["private", "public", "guest"] as const;
+/** Mirrors `CostsVisibility` in lib/types.ts and `parseCostsVisibility` in
+ * lib/trips.ts — the two spellings the reader understands. */
+const COSTS_VISIBILITIES = ["public", "guests"] as const;
 
 export type NewTrip = {
   id: string;
@@ -45,6 +49,24 @@ export type NewTrip = {
    */
   listed?: boolean;
   /**
+   * Who among the readers who may open the trip may see what it cost.
+   *
+   * `public` — the default, and what an absent key reads as — means anybody
+   * who can read the trip can read its money. `guests` narrows that to
+   * somebody who was on the trip or whom the owner has approved into the
+   * journal (`maySeeCosts`, lib/access.ts).
+   *
+   * It was read, typed, gated and documented, and nothing could write it:
+   * every trip on every instance had public costs and the guests-only branch
+   * had nothing to act on. With no editing interface anywhere in this product
+   * (ROADMAP decision 24), an owner who works through an agent could not
+   * reach a feature the site says it has. B178.
+   *
+   * Note this is not `visibility`: it decides nothing about who may open the
+   * trip, only whether the numbers are drawn once they are in.
+   */
+  costsVisibility?: (typeof COSTS_VISIBILITIES)[number];
+  /**
    * A trip that exists to prove the software works, not to record anything.
    *
    * Every day of it gets a banner saying so, and none of it reaches the feed,
@@ -60,11 +82,6 @@ export type CreateTripResult =
   | { ok: false; error: string; message: string };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-/** YAML-quote a value that goes on one line. */
-function q(value: string): string {
-  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-}
 
 export function createTrip(username: string, input: NewTrip): CreateTripResult {
   if (!getUser(username)) {
@@ -85,6 +102,29 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
   const title = input.title.trim();
   if (!title) {
     return { ok: false, error: "invalid_title", message: "A trip needs a title." };
+  }
+
+  /**
+   * The two fields that become a quoted scalar on one line of the frontmatter,
+   * refused here rather than escaped away. B204.
+   *
+   * `quoteScalar` would now write `\n` and the file would parse, so this is
+   * not what stops the folder being bricked — it is what stops the caller
+   * being told 201 for a title it did not ask for. A trip called
+   * "Japan\n---\nnot: [yaml" is nobody's trip title, and naming the field is
+   * an error an agent can act on.
+   *
+   * `intro` is deliberately absent: it is prose below the closing `---` and
+   * multiple lines are the point.
+   */
+  for (const [field, value] of [
+    ["title", title],
+    ["tagline", input.tagline?.trim() ?? ""],
+  ] as const) {
+    const problem = singleLineProblem(field, value);
+    if (problem) {
+      return { ok: false, error: `invalid_${field}`, message: problem };
+    }
   }
 
   for (const [field, value] of [
@@ -152,6 +192,32 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     : "private";
 
   /**
+   * An unrecognised `costsVisibility` is **refused, not defaulted** — the one
+   * place in this function where a typo does not fall back to a default, and
+   * for the same reason `visibility` does fall back to `private`.
+   *
+   * The safe end of this axis is `guests`, and that is what the reader picks
+   * for a value it does not know (`parseCostsVisibility`, lib/trips.ts).
+   * Defaulting a misspelling to `public` here would therefore both widen what
+   * the caller asked for and disagree with the reader about the same file.
+   * Defaulting it to `guests` would hide the money of every caller who typed
+   * "publik". Neither is a thing to do silently to somebody's trip, so the
+   * caller hears about it instead.
+   */
+  const costsVisibility = input.costsVisibility;
+  if (costsVisibility !== undefined && !COSTS_VISIBILITIES.includes(costsVisibility)) {
+    return {
+      ok: false,
+      error: "invalid_costs_visibility",
+      message:
+        `costsVisibility "${costsVisibility}" is not a value this reads. It is ` +
+        `"public" — anybody who can open the trip sees what it cost — or "guests", which ` +
+        `narrows the numbers to the people who were on the trip and the readers you have ` +
+        `approved into the journal. It does not decide who may open the trip; visibility does.`,
+    };
+  }
+
+  /**
    * `listed: true` on a trip nothing advertises is a request the reader will
    * refuse, so refuse it here where somebody is listening.
    *
@@ -173,10 +239,10 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
   const front: string[] = [
     "---",
     `id: ${id}`,
-    `title: ${q(title)}`,
-    ...(input.tagline?.trim() ? [`tagline: ${q(input.tagline.trim())}`] : []),
-    `start: ${q(input.start)}`,
-    `end: ${q(input.end)}`,
+    `title: ${quoteScalar(title)}`,
+    ...(input.tagline?.trim() ? [`tagline: ${quoteScalar(input.tagline.trim())}`] : []),
+    `start: ${quoteScalar(input.start)}`,
+    `end: ${quoteScalar(input.end)}`,
     `status: ${status}`,
     `accent: ${accent}`,
     `visibility: ${visibility}`,
@@ -186,6 +252,11 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     // the reader ignored — so the line most often present was also the line
     // least often true.
     ...(input.listed === false ? ["listed: false"] : []),
+    // Written only when it narrows, on the same reasoning as `listed:` above:
+    // an absent key reads as `public`, so `costsVisibility: public` in every
+    // file would be a line that never says anything, in a file a person is
+    // meant to be able to open and read straight. B178.
+    ...(costsVisibility === "guests" ? ["costsVisibility: guests"] : []),
     // Written only when true. Every trip carrying `test: false` would make the
     // flag look like a routine part of a trip file rather than the unusual
     // thing it is.
@@ -208,10 +279,35 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
   // rather than discover an empty journal later.
   const ref = tripRef(username, id);
   if (!getTrip(ref)) {
+    /**
+     * Roll back, because a refusal that leaves the folder behind is worse
+     * than the write it refused. B204.
+     *
+     * The folder is invisible at every reading path — that is what "does not
+     * read back" means — and every delete path resolves the trip first, so
+     * nothing in the product could remove it afterwards. The id was consumed
+     * for good and the only cure was a shell on the server.
+     *
+     * Safe to remove because of the `existsSync` guard above: this function
+     * returns `trip_exists` when the directory is already there, so by the
+     * time control reaches here the folder is one this call made and holds
+     * nothing but the `trip.md` and empty `entries/` written six lines up.
+     */
+    let removed = true;
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch {
+      removed = false;
+    }
     return {
       ok: false,
       error: "trip_unreadable",
-      message: "The trip was written but does not read back. This is a bug; please report it.",
+      message:
+        "The trip was written but does not read back, so it was removed again" +
+        (removed
+          ? ` and the id "${id}" is still free.`
+          : ` — but the folder could not be cleaned up, so "${id}" is taken until somebody removes it on the server.`) +
+        " This is a bug; please report it.",
     };
   }
 

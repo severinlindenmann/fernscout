@@ -111,6 +111,21 @@ export type SiteSummary = {
    * from nothing the reader is or is not allowed to see.
    */
   canSignIn: boolean;
+  /**
+   * Whether this journal does spending at all — `features.costs`, resolved for
+   * this user by `isEnabled`.
+   *
+   * The nav needs it (B165): with the capability off both costs pages answer
+   * 404, and a tab that links at one is the same bug the sign-in door above
+   * records — a control promising something that is not there. Absent rather
+   * than broken.
+   *
+   * Journal-wide and viewer-independent, exactly like `canSignIn`, and for the
+   * same reason: it comes from config and from nothing the reader is or is not
+   * allowed to see. It is not `costsVisibility`, which is per trip and per
+   * reader and is decided by `mayViewCosts` on the server.
+   */
+  costsEnabled: boolean;
 };
 
 export function siteSummaryFor(
@@ -132,6 +147,7 @@ export function siteSummaryFor(
     // it is a property of the journal, so every caller would compute the same
     // answer, and one of them would eventually forget to.
     canSignIn: isEnabled("auth", user.username),
+    costsEnabled: isEnabled("costs", user.username),
   };
 }
 

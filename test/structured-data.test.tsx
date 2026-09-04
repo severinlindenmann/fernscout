@@ -23,6 +23,7 @@ const site: SiteSummary = {
   base: "/alex",
   signedIn: false,
   canSignIn: false,
+  costsEnabled: true,
 };
 
 const authors = ["Alex Berger", "Robin Berger"];

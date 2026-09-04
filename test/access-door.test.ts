@@ -65,6 +65,7 @@ describe("what the header is told about signing in", () => {
       "base",
       "baseCurrency",
       "canSignIn",
+      "costsEnabled",
       "locales",
       "signedIn",
       "startLocation",

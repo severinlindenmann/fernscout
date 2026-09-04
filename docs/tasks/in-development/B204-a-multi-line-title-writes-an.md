@@ -64,6 +64,43 @@ now shows in the owner's `/trips` notice and in `GET /api/v1/<user>/trips`'s
 `malformed` array, so at least the writer can see what it did. That is a good
 argument for B83 and not a reason to leave this.
 
+## What was built
+
+The Why above is accurate; nothing in it needed correcting. Two findings while
+building it are recorded at the end of this section.
+
+- **`lib/validate/frontmatter.ts`** is new and holds the two halves:
+  `quoteScalar`, which escapes newlines, tabs and the remaining control
+  characters as well as `"` and `\\`, and `singleLineProblem`, which names a
+  field that cannot be a one-line scalar. Pure, like the rest of
+  `lib/validate`, and shared rather than copied — the duplicate `q()` and
+  `quote()` were wrong in the same way because they were two copies.
+- **`createTrip` refuses a multi-line `title` or `tagline`** before anything
+  is written, with `invalid_title` / `invalid_tagline`. `intro` is deliberately
+  not checked: it is prose below the closing `---` and multiple lines are the
+  point.
+- **A failed read-back rolls the folder back.** Safe because the `existsSync`
+  guard above it answers `trip_exists` when the directory already exists, so
+  by the time the rollback runs the folder is one this call made. The message
+  now says the id is still free, or — if the removal itself failed — that it is
+  not.
+- **The day writer's `quote()` is now `quoteScalar`.** It had the identical
+  hazard on `location`, `country`, `transportFrom`/`To`, `tags` and cost
+  labels, none of which is checked for line breaks.
+
+`costs.md` and `plan.md` have **no writer at all** — nothing in `lib/` or
+`app/` writes either, they are hand-written by the `add-a-trip` skill — so
+there was no third copy of the pattern to fix.
+
+Two things noticed and captured rather than absorbed:
+
+- **B208** — `createDraft` never reads its entry back, so the trip path fails
+  loudly on a file that does not parse and the day path would answer 201 over
+  one. With `quoteScalar` in place there is no known input that reaches it,
+  which is why it is a capture and not part of this.
+- **B206** — MCP `create_trip` has no `listed` property while REST does. Found
+  while checking that both doors accept the same body.
+
 ## Work
 
 Three things, and the first two are independent of each other:
@@ -94,6 +131,24 @@ and a bigger question; this task is about not creating the breakage.
 - The same through MCP `create_trip`.
 - A test sends `"a\n---\nb"` as a title and asserts both — the refusal, and that
   the trips directory is unchanged afterwards.
+
+### Evidence
+
+All four verified, each by a test that fails with the fix removed
+(demonstrated by disabling the validation and the rollback and re-running:
+four failures, all four green with them back).
+
+- `test/journals.test.ts` → "a value that would break out of the frontmatter":
+  the refusal names `title`, the trips directory is byte-for-byte the list it
+  was, and the id is reusable on the next call.
+- Same describe → "a multi-line tagline is refused the same way".
+- `test/journals.test.ts` → "a create that fails its read-back leaves no folder
+  behind": `getTrip` is stubbed to refuse the new ref, so the rollback branch
+  is exercised rather than argued about; the folder is gone and the message
+  says the id is free.
+- `test/mcp.test.ts` → "a title that would break the frontmatter is refused and
+  leaves no folder": the same call through the other door, plus a second
+  `create_trip` on the same id succeeding.
 
 ## Cleanup outstanding
 

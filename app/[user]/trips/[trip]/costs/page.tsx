@@ -7,11 +7,15 @@ import CostsPrivate from "@/components/CostsPrivate";
 import { getCostSummary } from "@/lib/costs";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUser, getUsernames } from "@/lib/users";
+import { isEnabled } from "@/lib/capabilities";
 import TripProvider from "@/components/TripProvider";
 import { travellerNamesOf } from "@/lib/site";
 
 export function generateStaticParams() {
   return getUsernames().flatMap((user) => {
+    // A journal with spending switched off has no costs pages to prerender.
+    // B165.
+    if (!isEnabled("costs", user)) return [];
     const current = getCurrentTrip(user)?.id;
     return getTrips(user)
     .filter((t) => t.id !== current && t.status !== "upcoming")
@@ -23,6 +27,8 @@ export async function generateMetadata({
   params,
 }: PageProps<"/[user]/trips/[trip]/costs">): Promise<Metadata> {
   const { user, trip: id } = await params;
+  // No description of a page that is not there. B165.
+  if (!isEnabled("costs", user)) return {};
   const trip = getTrip(tripRef(user, id));
   if (!trip) return {};
   const locale = await requestLocale();
@@ -40,6 +46,22 @@ export async function generateMetadata({
 
 export default async function TripCostsPage({ params }: PageProps<"/[user]/trips/[trip]/costs">) {
   const { user, trip: id } = await params;
+  /**
+   * A journal that does not do spending has no costs page — 404, not an empty
+   * one. B165.
+   *
+   * `notFound()` is what every other capability-gated route does
+   * (app/[user]/contacts/page.tsx, app/[user]/i/[token]/page.tsx), and the
+   * reason it is right here is the one AGENTS.md gives: a capability that is
+   * off must be *absent* rather than broken. An operator who switches `costs`
+   * off is told by `/api/health` that it is off; a page that answers 200 with
+   * the full budget panel makes that a claim the running site contradicts.
+   *
+   * In the page rather than the layout, for the reason in lib/tripGate.ts: a
+   * layout gate leaks the page's data into the RSC payload and the head even
+   * when it renders something else.
+   */
+  if (!isEnabled("costs", user)) notFound();
   const trip = getTrip(tripRef(user, id));
   if (!trip) notFound();
   // The layout draws the gate; this stops the page from *running*.

@@ -585,6 +585,14 @@ serve, which is \`"status": "current"\`.
 A trip is created **private** unless you say otherwise. Publishing somebody's
 journey is their decision — ask before sending \`"visibility": "public"\`.
 
+\`"costsVisibility": "guests"\` is the separate question of the money, and only
+of the money: among the readers already allowed to open the trip, it keeps what
+it cost to the people who were on it and the readers the owner has approved
+into the journal. Left out, the numbers are shown to everyone who can read the
+trip. A title or a tagline must be one line — both are written as a single line
+of the trip's frontmatter, and a request carrying a line break in either is
+refused rather than written.
+
 Add \`"test": true\` if this trip is being made to check that the software works
 rather than to record a journey. Every day of it then carries the banner, and
 none of it reaches the feed, the search index or the sitemap.

@@ -891,6 +891,11 @@ const createTripTool: Handler = (session, args) => {
     status: optionalString(args, "status") as never,
     accent: optionalString(args, "accent") as never,
     visibility: optionalString(args, "visibility") as never,
+    // Raw rather than `optionalString`: `createTrip` refuses a value it does
+    // not read instead of defaulting it, and a non-string would otherwise
+    // arrive there as "not asked for" and quietly leave the money public.
+    // B178.
+    costsVisibility: (args.costsVisibility ?? undefined) as never,
     intro: optionalString(args, "intro"),
     // Inherited by every day of the trip, so somebody exercising the pipeline
     // sets it once. Same gap as create_day carried — B157.
@@ -1125,6 +1130,15 @@ export const TOOLS: readonly (ToolDefinition & { handler: Handler })[] = [
         status: { type: "string", enum: ["upcoming", "current", "past"], description: "Usually leave this out. `past` and `upcoming` are derived from `start` every time the site reads the trip, so setting either is a hint that the calendar will overrule. `current` is the one real choice: exactly one trip should have it, and it is the one served at the bare /<user> URL." },
         accent: { type: "string", enum: ["sky", "yellow", "green", "coral", "navy"], description: "Colour. Default sky." },
         visibility: { type: "string", enum: ["private", "public", "guest"], description: "Who is let in. Default private." },
+        costsVisibility: {
+          type: "string",
+          enum: ["public", "guests"],
+          description:
+            "Who may see what the trip cost, among the readers already allowed to open it. " +
+            "Default public. `guests` narrows the numbers to the people who were on the trip " +
+            "and the readers the owner has approved into the journal. This is not visibility: " +
+            "it decides nothing about who may open the trip.",
+        },
         intro: { type: "string", description: "A paragraph introducing the trip. Only what you were told." },
         test: {
           type: "boolean",

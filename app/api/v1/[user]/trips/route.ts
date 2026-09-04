@@ -114,6 +114,11 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     status: str("status") as never,
     accent: str("accent") as never,
     visibility: str("visibility") as never,
+    // Passed straight through rather than coerced. `createTrip` refuses a
+    // value it does not know instead of defaulting it, because either default
+    // would be a silent decision about somebody's money — see the note there.
+    // B178.
+    costsVisibility: (body.costsVisibility ?? undefined) as never,
     listed: typeof body.listed === "boolean" ? body.listed : undefined,
     test: body.test === true,
     intro: str("intro"),
