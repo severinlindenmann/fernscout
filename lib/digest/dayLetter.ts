@@ -53,9 +53,26 @@ import { journalTimezone } from "./quiet";
  * `mayMailTrip` and `mayMailCosts` below are that gate, restated without a
  * request to ask a session from. They must never admit more than
  * `mayReadTrip` / `mayViewCosts` (`lib/tripGate.ts`) would for the same
- * person, on pain of a letter linking to a page that then refuses whoever
- * opens it — see `test/day-mail.test.ts`, which pins the two together the
- * same way `test/access-gate.test.ts` pins `digestableTrips`.
+ * person, on pain of a letter carrying words and a cost to somebody the site
+ * would refuse.
+ *
+ * **They are a second copy of a permission rule, and nothing holds the two
+ * together.** Checked faithful when written — `mayMailTrip` is
+ * `isOpenToLink || traveller || (not private && granted)`, and `mayMailCosts`
+ * is `isEnabled && (costsVisibility public || isGuestOf)`, which is
+ * `maySeeCosts(trip, isGuestOf(trip))` inlined — but faithful *when written*
+ * is exactly what every drift in this codebase was. `test/day-mail.test.ts`
+ * pins the behaviour these produce; it does not compare them against
+ * `lib/tripGate.ts`, so a change there can leave these two behind without
+ * anything failing. B346 is the test that would close that, and until it
+ * exists a change to `mayReadTrip` or `mayViewCosts` has to be made here by
+ * hand, deliberately.
+ *
+ * The reason they exist at all: `mayReadTrip` reads a cookie, and there is no
+ * cookie when the question is "may this address be sent a letter". If that
+ * ever becomes expressible without duplication — a shared pure core the two
+ * wrappers call — that is the better answer and this comment is the argument
+ * for it.
  */
 
 /** Mirrors `mayReadTrip` (`lib/tripGate.ts`) for one address, without a
