@@ -8,6 +8,7 @@ area: docs
 found: "2026-09-01"
 started: "2026-09-04T05:58:30Z"
 merged: "2026-09-04T06:22:15Z"
+completed: "2026-09-04T07:21:29Z"
 ---
 
 # B09 — Links into `docs/` no longer resolve

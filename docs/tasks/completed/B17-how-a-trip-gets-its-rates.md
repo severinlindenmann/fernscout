@@ -8,6 +8,7 @@ area: currency, docs
 found: "2026-09-01"
 started: "2026-09-04T06:22:41Z"
 merged: "2026-09-04T06:43:25Z"
+completed: "2026-09-04T07:21:29Z"
 ---
 
 # B17 — How a trip gets its rates
