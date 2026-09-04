@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (87)
+## backlog (85)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (26)
+### issue (24)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -90,8 +90,6 @@ Do not edit them by hand; run the script.
 | [B274](backlog/issue/B274-the-self-serve-link-in-a.md) | The self-serve link in a reader's mail is labelled as a detail change when it is their standing way back | ISSUE | low | low |
 | [B284](backlog/issue/B284-a-dictionary-read-that-fails-for.md) | A dictionary read that fails for any reason but absence is cached as empty until the file changes | ISSUE | low | low |
 | [B288](backlog/issue/B288-an-agent-orienting-through-status-is.md) | An agent orienting through status is not told a trip.md failed to load, though the trip list would tell it | ISSUE | low | low |
-| [B362](backlog/issue/B362-the-queue-notification-s-subject-still.md) | The queue notification's subject still calls a buddy a follower, though its body no longer does | ISSUE | low | low |
-| [B371](backlog/issue/B371-the-markdown-twin-of-a-day.md) | The markdown twin of a day carries only the default locale, so a translated day has no readable source | ISSUE | low | low |
 
 ### big-feature (12)
 
@@ -182,19 +180,17 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (7)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B366](in-development/B366-sending-a-letter-or-a-message.md) | Sending a letter or a message costs a credit, and a journal starts with none | FEATURE | high | high | `3d8b93dd` |
-| [B356](in-development/B356-reading-a-day-back-omits-its.md) | Reading a day back omits its translations, so an agent cannot verify the ones it wrote | ISSUE | medium | low | `62683d95` |
-| [B357](in-development/B357-a-translated-page-keeps-its-tab.md) | A translated page keeps its tab title in the journal's default language | ISSUE | medium | low | `62683d95` |
-| [B360](in-development/B360-the-invite-landing-page-offers-a.md) | The invite landing page offers a postcard on a server with postcards switched off | ISSUE | medium | low | `62683d95` |
 | [B375](in-development/B375-flag-fills-are-near-black-and.md) | Flag fills are near-black and six European blues are indistinguishable, because the collision test compares hex rather than perceived colour | ISSUE | medium | low | `e8e2ddef` |
-| [B358](in-development/B358-the-invite-copy-button-s-accessible.md) | The invite copy button's accessible name ends in two dangling em-dashes and reports no success | ISSUE | low | low | `62683d95` |
-| [B359](in-development/B359-the-used-link-warning-stays-on.md) | The used-link warning stays on the access page after a successful sign-in | ISSUE | low | low | `62683d95` |
+| [B362](in-development/B362-the-queue-notification-s-subject-still.md) | The queue notification's subject still calls a buddy a follower, though its body no longer does | ISSUE | low | low | `62683d95` |
+| [B371](in-development/B371-the-markdown-twin-of-a-day.md) | The markdown twin of a day carries only the default locale, so a translated day has no readable source | ISSUE | low | low | `62683d95` |
+| [B376](in-development/B376-the-phone-field-offers-postcards-on.md) | The phone field offers postcards on a server with postcards switched off | ISSUE | low | low | `62683d95` |
 
-## testing (155)
+## testing (160)
 
 ### security (10)
 
@@ -211,7 +207,7 @@ _Nothing here._
 | [B233](testing/security/B233-the-https-only-rule-is-not.md) | The https-only rule is not re-applied after a redirect | SECURITY | low | low | — |
 | [B234](testing/security/B234-an-unauthenticated-health-check-discloses-server.md) | An unauthenticated health check discloses server paths and journal names | SECURITY | low | low | — |
 
-### issue (92)
+### issue (97)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -278,6 +274,9 @@ _Nothing here._
 | [B338](testing/issue/B338-a-mailed-invitation-knows-the-address.md) | A mailed invitation knows the address it was sent to and asks the reader to type it again | ISSUE | medium | low | — |
 | [B349](testing/issue/B349-the-owner-s-queue-notification-calls.md) | The owner's queue notification calls a buddy a follower, naming neither the link kind nor the trip | ISSUE | medium | low | — |
 | [B351](testing/issue/B351-the-pre-approved-invite-page-still.md) | The pre-approved invite page still speaks the queue's language and contradicts itself | ISSUE | medium | low | — |
+| [B356](testing/issue/B356-reading-a-day-back-omits-its.md) | Reading a day back omits its translations, so an agent cannot verify the ones it wrote | ISSUE | medium | low | — |
+| [B357](testing/issue/B357-a-translated-page-keeps-its-tab.md) | A translated page keeps its tab title in the journal's default language | ISSUE | medium | low | — |
+| [B360](testing/issue/B360-the-invite-landing-page-offers-a.md) | The invite landing page offers a postcard on a server with postcards switched off | ISSUE | medium | low | — |
 | [B41](testing/issue/B41-an-approved-contact-is-shown-a.md) | An approved contact is shown a trip in their own panel and then asked for a password nobody gave them | ISSUE | medium | medium | — |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
@@ -306,6 +305,8 @@ _Nothing here._
 | [B270](testing/issue/B270-an-owner-whose-only-trip-is.md) | An owner whose only trip is public but unlisted sees four zeroes and no empty state | ISSUE | low | low | — |
 | [B286](testing/issue/B286-the-trip-nav-wraps-to-one.md) | The trip nav wraps to one row on one trip and two rows on another at the same width | ISSUE | low | medium | — |
 | [B337](testing/issue/B337-a-day-with-no-location-renders.md) | A day with no location: renders a blank, unlabelled filter chip in the gallery | ISSUE | low | low | — |
+| [B358](testing/issue/B358-the-invite-copy-button-s-accessible.md) | The invite copy button's accessible name ends in two dangling em-dashes and reports no success | ISSUE | low | low | — |
+| [B359](testing/issue/B359-the-used-link-warning-stays-on.md) | The used-link warning stays on the access page after a successful sign-in | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
 ### big-feature (7)
