@@ -19,11 +19,37 @@ docs/tasks/
   completed/         verified by a person, kept as the record
 ```
 
+**`backlog/` and `testing/` are filed one level deeper**, into category
+folders, because they are the two lanes that accumulate — seventy-five and a
+hundred and twenty-one on 2026-09-04, and a flat directory of that size is one
+nobody reads to the bottom of:
+
+```
+docs/tasks/backlog/
+  security/          SECURITY
+  issue/             ISSUE
+  big-feature/       FEATURE, complexity: high
+  small-feature/     FEATURE, anything less
+  chore/             CHORE
+  ops/               OPS — an engagement against the running instance
+  docs-and-skills/   DOCS — the deliverable is words somebody reads
+  superseded/        overtaken by other work; see `superseded:` below
+```
+
+**You never choose the folder, and you never move a file into one by hand.**
+It is derived from `type` and `complexity` — the same reasoning as the lane,
+one fact in one place. `new` and `move` file the task for you;
+`npm run tasks -- tidy` re-renders the whole tree from the frontmatter; and
+`test/task-ids.test.ts` fails when a file is not where its frontmatter puts it,
+which is how a `type:` edited in place gets noticed. To recategorise a task,
+change its `type:` and run `tidy`.
+
 Building one is `work-on-a-task`. This skill is the bookkeeping around it.
 
 ```bash
 npm run tasks                          # what is in each lane, and who is on what
 npm run tasks -- move B03 completed
+npm run tasks -- tidy                  # re-file after editing a type by hand
 ```
 
 ## What the frontmatter records as work happens
@@ -144,13 +170,37 @@ right; `--index` forces it here if you really mean it.
 
 | Field | Values | Means |
 | --- | --- | --- |
-| `type` | SECURITY · ISSUE · FEATURE · CHORE | what kind of thing it is |
+| `type` | SECURITY · ISSUE · FEATURE · CHORE · OPS · DOCS | what kind of thing it is |
 | `priority` | high · medium · low | what it costs to leave alone |
 | `complexity` | low · medium · high | what it costs to fix |
 
 `priority` and `complexity` are independent and both are needed: B01 is a
 one-line fix for the most serious thing on the list, and a single "severity"
-field would hide that.
+field would hide that. `complexity` does one more job now: it is what splits a
+FEATURE between `big-feature/` and `small-feature/`, so `high` on a feature is
+a claim that this is a fortnight and a design decision rather than an
+afternoon.
+
+**Two of the six types are for work that is not a diff**, and reaching for
+CHORE instead is what made a lane of nine chores turn out to be three
+unrelated jobs:
+
+- **`OPS`** — the deliverable is *doing it against the running instance*:
+  enabling a capability and driving it end to end, the restore drill, a
+  penetration test. It produces findings and other tasks. If the acceptance
+  criterion cannot be met on a laptop, this is the type.
+- **`DOCS`** — the deliverable is *words somebody reads*: `AGENTS.md`, a skill,
+  `/agent.md`, a doc comment that points at a file which no longer exists, the
+  demo content an agent learns the model from. Code may change; what makes it
+  DOCS is that the change is to what is understood, not to what runs.
+
+**`superseded:`** is the one field that overrides the type. It carries what
+overtook the task — an id, or in a sentence what was found — and files it under
+`superseded/`. Use it when a task turns out to be done, wrong, or about code
+that no longer exists. It is not `completed/`: nothing here claims a person
+verified anything, and the task keeps its file and its id because ids are
+forever. Say what overtook it in the body as well, under `## Why`, so the next
+reader does not re-derive it.
 
 **The title is the problem, not the fix.** "X-Forwarded-For is taken on trust"
 survives being wrong about the remedy; "Add header_up to the Caddyfile" does

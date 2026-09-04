@@ -287,7 +287,39 @@ npm run tasks -- new --type ISSUE --priority high --complexity low \
     --area "…" --title "…"          # always lands in backlog/
 npm run tasks -- move B01 testing
 npm run tasks -- claim B01          # say you are on it, without moving it
+npm run tasks -- tidy               # re-file into the category folders
 ```
+
+**The two lanes that accumulate are filed into category folders.** `backlog/`
+and `testing/` hold their tasks one level down — `security/`, `issue/`,
+`big-feature/`, `small-feature/`, `chore/`, `ops/`, `docs-and-skills/`,
+`superseded/` — because a flat directory of a hundred and twenty is one nobody
+reads to the bottom of. The other three lanes stay flat: they are transient,
+and three more decisions per lane move would buy nothing.
+
+**You never choose the folder.** It is derived from `type` and `complexity`,
+the same way the status is derived from the lane and for the same reason — a
+fact kept in two places disagrees with itself within a month. `new` and `move`
+file the task themselves, `npm run tasks -- tidy` re-renders the whole tree
+from the frontmatter, and `test/task-ids.test.ts` fails when a file is not
+where its frontmatter puts it. Correcting a `type:` and running `tidy` is how
+a task changes category; moving the file by hand is how the two drift apart.
+
+Two of the six types exist for work that is not code, and getting them right
+is what keeps the folders worth having:
+
+| `type:` | For |
+| --- | --- |
+| `SECURITY` `ISSUE` `CHORE` | as before |
+| `FEATURE` | `complexity: high` files under `big-feature/`, anything else under `small-feature/` |
+| `OPS` | an engagement against the **running** instance — enable a capability and drive it, run the restore drill, attack the live surface. The deliverable is findings and other tasks, not a diff |
+| `DOCS` | the deliverable is words somebody reads — `AGENTS.md`, a skill, the agent guide, a doc comment, the demo content that teaches the model |
+
+`superseded:` is the one thing that overrides the type. It carries what
+overtook the task — an id, or what was found — and files it under
+`superseded/`, which is how a task is closed without being deleted and without
+claiming a person verified it. Ids are forever, so an overtaken task keeps its
+file and its number and stops appearing among live work.
 
 **A task in flight says which agent is on it.** Moving into `in-development/`
 writes your session into `session:`, and taking a task another session holds is

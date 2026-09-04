@@ -129,6 +129,12 @@ was written from a particular reading, and it can be wrong or out of date.
 
 - The Why turns out to be incomplete or mistaken → correct it, and say what
   changed your mind.
+- The `type:` or `complexity:` turns out to be wrong — a "chore" that is really
+  an engagement against the live instance, a `medium` feature that is a
+  fortnight — → correct the frontmatter and run `npm run tasks -- tidy`. Those
+  two fields decide the category folder in `backlog/` and `testing/`, so
+  editing one in place leaves the file where it no longer belongs and
+  `test/task-ids.test.ts` fails on the merge. Never move the file by hand.
 - You find a second problem → that is a new capture in `backlog/`, not scope
   you silently absorb. Reference it by id from this task.
 
