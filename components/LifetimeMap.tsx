@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { frameRoute, place as placeIn } from "@/lib/mapFrame";
+import { frameRoute, isPlottable, place as placeIn } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import { useI18n } from "./LocaleProvider";
 import type { Basemap } from "@/lib/basemap";
@@ -104,7 +104,10 @@ export default function LifetimeMap({
           )}
         </g>
         {routes.map((route) => {
-          const pts = route.points.map((p) => placeIn(view, p));
+          // A coordinate-less day (B265) is filtered here rather than drawn:
+          // an undefined lat/lng is not a point, and a polyline through one
+          // would be a line to nowhere the reader has no way to read as a gap.
+          const pts = route.points.filter(isPlottable).map((p) => placeIn(view, p));
           const colour = ACCENT_HEX[route.accent];
           return (
             <g key={route.id}>

@@ -89,6 +89,45 @@ describe("framing a route", () => {
   });
 
   /**
+   * B265. A day written without coordinates still gets a `Place` — `lat` and
+   * `lng` are optional on an entry, and `getPlaces` copies them through
+   * unchecked — so `lat: undefined` reached `Math.min`/`Math.max` here and
+   * `Math.max(0.2, NaN)` came out `NaN`, not the 0.2 floor. That poisoned
+   * every field of the frame — viewBox, `scale(…)` transform, all of it —
+   * which is why the console showed hundreds of identical NaN errors rather
+   * than one.
+   */
+  describe("a point with no coordinates", () => {
+    test("undefined lat is dropped rather than poisoning the frame", () => {
+      const points = [...alps, { lat: undefined as unknown as number, lng: 8.5 }];
+      const frame = frameRoute(points);
+      expect(Number.isFinite(frame.x)).toBe(true);
+      expect(Number.isFinite(frame.y)).toBe(true);
+      expect(Number.isFinite(frame.w)).toBe(true);
+      expect(Number.isFinite(frame.h)).toBe(true);
+      expect(Number.isFinite(frame.lngScale)).toBe(true);
+      // And it frames the same as the valid points alone — the invalid one
+      // contributed nothing rather than something wrong.
+      expect(frame).toEqual(frameRoute(alps));
+    });
+
+    test("a non-numeric lat, hand-written into frontmatter, is dropped the same way", () => {
+      const points = [...alps, { lat: Number("north"), lng: 8.5 }];
+      const frame = frameRoute(points);
+      expect(Number.isFinite(frame.lngScale)).toBe(true);
+      expect(frame).toEqual(frameRoute(alps));
+    });
+
+    test("a list that is entirely invalid frames the whole world", () => {
+      const points = [
+        { lat: undefined as unknown as number, lng: undefined as unknown as number },
+        { lat: Number("nowhere"), lng: 8.5 },
+      ];
+      expect(frameRoute(points)).toEqual(frameRoute([]));
+    });
+  });
+
+  /**
    * The frame is the page's layout: the SVG renders `w-full h-auto`, so a
    * bounding box three times taller than wide becomes a column of map that
    * pushes the rest of the page off the screen. The Alps run 68 km north to

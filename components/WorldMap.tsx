@@ -5,7 +5,7 @@ import Image from "next/image";
 import { mediaLoader } from "./mediaLoader";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Plus, Minus, Maximize2 } from "lucide-react";
-import { frameRoute, frameSpanKm, place as placeIn, type Frame } from "@/lib/mapFrame";
+import { frameRoute, frameSpanKm, isPlottable, place as placeIn, type Frame } from "@/lib/mapFrame";
 import { MAP_VIEWBOX } from "@/lib/mapProjection";
 import { useWorldLand } from "./useWorldLand";
 import { TRANSPORT_STYLE, dashFor } from "@/lib/transport";
@@ -103,15 +103,22 @@ export default function WorldMap({
     return plan.slice(Math.max(0, lastReached));
   }, [plan]);
 
+  // A coordinate-less day (B265) is not a point on this map: dropped here,
+  // once, rather than at every place below that would otherwise draw one —
+  // the frame, the focus, the clusters and the legs all read this instead of
+  // `places`, so a route runs through the days that were located and simply
+  // does not reach for the ones that weren't.
+  const plottable = useMemo(() => places.filter(isPlottable), [places]);
+
   const legs: Leg[] = useMemo(() => {
     const out: Leg[] = [];
-    for (let i = 1; i < places.length; i++) {
-      const mode = places[i].entries[0]?.transport?.mode;
+    for (let i = 1; i < plottable.length; i++) {
+      const mode = plottable[i].entries[0]?.transport?.mode;
       if (!mode) continue;
-      out.push({ from: places[i - 1], to: places[i], mode });
+      out.push({ from: plottable[i - 1], to: plottable[i], mode });
     }
     return out;
-  }, [places]);
+  }, [plottable]);
 
   const usedModes = useMemo(() => Array.from(new Set(legs.map((l) => l.mode))), [legs]);
 
@@ -120,21 +127,21 @@ export default function WorldMap({
   // lost in the full world. Only when there's neither does the whole world
   // stand in.
   const base = useMemo(
-    () => frameRoute(places.length > 0 ? places : plan),
-    [places, plan],
+    () => frameRoute(plottable.length > 0 ? plottable : plan),
+    [plottable, plan],
   );
 
   // Where the stops actually are. Zooming in drifts the camera from the
   // route's bounding-box centre toward this, so you end up over the places
   // rather than the empty ocean in the middle of a long-haul leg.
   const focus = useMemo(() => {
-    if (places.length === 0) return null;
-    const pts = places.map((p) => placeIn(base, p));
+    if (plottable.length === 0) return null;
+    const pts = plottable.map((p) => placeIn(base, p));
     return {
       x: pts.reduce((s, p) => s + p[0], 0) / pts.length,
       y: pts.reduce((s, p) => s + p[1], 0) / pts.length,
     };
-  }, [places, base]);
+  }, [plottable, base]);
 
   /**
    * How far in you may go: until the view is about two kilometres across.
@@ -210,7 +217,7 @@ export default function WorldMap({
 
   // Clustered against the radius the markers are actually drawn at, so the
   // rule is "these two would overlap" rather than a distance guessed up front.
-  const clusters = useMemo(() => clusterPlaces(places, px(13), base), [places, px, base]);
+  const clusters = useMemo(() => clusterPlaces(plottable, px(13), base), [plottable, px, base]);
 
   const reset = useCallback(() => {
     setZoom(1);

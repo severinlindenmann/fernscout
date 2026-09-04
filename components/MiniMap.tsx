@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { frameRoute, place as placeIn } from "@/lib/mapFrame";
+import { frameRoute, isPlottable, place as placeIn } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import type { Basemap } from "@/lib/basemap";
 
@@ -25,8 +25,12 @@ export default function MiniMap({
   // that must never fall outside, and on a trip whose current position has run
   // ahead of its written days it is the outlier that decides the frame.
   const frame = frameRoute([...route, current]);
-  const pts = route.map((p) => placeIn(frame, p));
-  const [cx, cy] = placeIn(frame, current);
+  // A coordinate-less day (B265) is not a point: dropped from the polyline
+  // rather than drawn as one. `current` itself is guarded separately below —
+  // it is a single day, not a list to filter.
+  const pts = route.filter(isPlottable).map((p) => placeIn(frame, p));
+  const hasCurrent = isPlottable(current);
+  const [cx, cy] = hasCurrent ? placeIn(frame, current) : [0, 0];
 
   /**
    * Sizes in screen pixels, for the reason WorldMap carries at length.
@@ -104,18 +108,24 @@ export default function MiniMap({
       )}
 
       {/* pulsing "we are here" pin — scale, not `r`: Motion can't interpolate
-          SVG geometry attributes reliably. */}
-      <motion.circle
-        cx={cx}
-        cy={cy}
-        r={px(16)}
-        fill="#ffd23f"
-        initial={{ scale: 0.7, opacity: 0.45 }}
-        animate={{ scale: [0.7, 1.9], opacity: [0.45, 0] }}
-        transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut" }}
-        style={{ transformOrigin: `${cx}px ${cy}px` }}
-      />
-      <circle cx={cx} cy={cy} r={px(9)} fill="#ffd23f" stroke="#1e293b" strokeWidth={px(3)} />
+          SVG geometry attributes reliably. Withheld rather than drawn at
+          (0, 0) when `current` itself has no coordinates (B265) — a pin on
+          the map's corner would read as a place, and it is not one. */}
+      {hasCurrent && (
+        <>
+          <motion.circle
+            cx={cx}
+            cy={cy}
+            r={px(16)}
+            fill="#ffd23f"
+            initial={{ scale: 0.7, opacity: 0.45 }}
+            animate={{ scale: [0.7, 1.9], opacity: [0.45, 0] }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut" }}
+            style={{ transformOrigin: `${cx}px ${cy}px` }}
+          />
+          <circle cx={cx} cy={cy} r={px(9)} fill="#ffd23f" stroke="#1e293b" strokeWidth={px(3)} />
+        </>
+      )}
     </svg>
   );
 }
