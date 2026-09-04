@@ -7,8 +7,7 @@ complexity: high
 area: mail, publishing, contacts
 found: "2026-09-04T19:50:03Z"
 started: "2026-09-04T19:53:33Z"
-session: 986bc24c-6a18-473f-a506-aa8c4efb475c
-claimed: "2026-09-04T19:53:33Z"
+merged: "2026-09-04T20:23:42Z"
 ---
 
 # B345 — Publishing a day tells nobody, so an owner announces their own journal by hand
