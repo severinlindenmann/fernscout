@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: postcards, scripts
 found: "2026-09-03"
+started: "2026-09-04T06:30:09Z"
+session: 2b6d1969-424a-4788-9497-eb5e151a5391
+claimed: "2026-09-04T06:30:09Z"
 ---
 
 # B150 — Two recipients with the same Latin name overwrite each other's postcards

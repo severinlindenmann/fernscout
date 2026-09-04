@@ -7,8 +7,7 @@ complexity: low
 area: tests, media
 found: "2026-09-01"
 started: "2026-09-04T05:58:33Z"
-session: 2b6d1969-424a-4788-9497-eb5e151a5391
-claimed: "2026-09-04T05:58:33Z"
+merged: "2026-09-04T06:30:05Z"
 ---
 
 # B71 — The per-day media ceiling test asserts on problems[0], and failed once in a full run
