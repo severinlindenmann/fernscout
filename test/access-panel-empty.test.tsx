@@ -48,8 +48,6 @@ const site = {
   hasAccessPanel: true,
 } as unknown as SiteSummary;
 
-const DOC_URL = "https://example.test/documentation.txt";
-
 /** Signed in, and nothing to read: the owner of an empty journal. */
 const owner: Viewer = { email: "owner@example.test", owner: true, guest: false, trips: [] };
 /** Signed in, and nothing to read: a guest whose invitation has not arrived. */
@@ -64,7 +62,6 @@ function render(viewer: Viewer, locale = "en") {
             <MePageContent
               viewer={viewer}
               username="alex"
-              docUrl={DOC_URL}
               siteUrl="https://example.test"
               canSignIn={true}
               codeMinutes={CODE_TTL_MINUTES}
@@ -98,12 +95,12 @@ describe("an owner whose journal has no trips", () => {
   });
 
   /** The new line points down the page rather than repeating the handover, so
-   * what it points at has to be on the page it is shown on. */
-  test("is pointed at the two lines an agent needs, which are below it", () => {
+   * what it points at has to be on the page it is shown on — since B301, a
+   * single button rather than two lines to hand over by hand. */
+  test("is pointed at the button an agent needs, which is below it", () => {
     const html = render(owner);
     expect(html).toContain(line("en", "me.ownerNoTrips"));
-    expect(html).toContain(DOC_URL);
-    expect(html).toContain(owner.email!);
+    expect(html).toContain(line("en", "me.handoverCreate"));
   });
 
   test("hears it in every maintained locale", () => {

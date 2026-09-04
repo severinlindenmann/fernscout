@@ -63,7 +63,6 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
     <MePageContent
       viewer={viewer}
       username={user}
-      docUrl={`${serverSite().url}/documentation.txt`}
       siteUrl={serverSite().url}
       manageHref={manageHref}
       // Resolved here rather than guessed in the component: a capability is a

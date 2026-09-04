@@ -80,7 +80,6 @@ function render(
         <MePageContent
           viewer={over.viewer ?? stranger}
           username="alex"
-          docUrl="https://example.test/documentation.txt"
           siteUrl="https://example.test"
           canSignIn={over.canSignIn ?? false}
           codeMinutes={CODE_TTL_MINUTES}
@@ -192,9 +191,9 @@ describe("the access panel, for the owner", () => {
   test("and the rest of the owner block is untouched either way", () => {
     for (const contactsEnabled of [true, false]) {
       const html = render({ viewer: owner, contactsEnabled });
-      // What an owner comes here for: the address and email to hand an agent.
-      expect(html).toContain("https://example.test/documentation.txt");
-      expect(html).toContain("owner@example.test");
+      // What an owner comes here for: the button that mints a prompt to hand
+      // an agent (B301 — no address or email printed on the page any more).
+      expect(html).toContain(dictionaryFor("en")["me.handoverCreate"]);
     }
   });
 });

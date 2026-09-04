@@ -75,3 +75,56 @@ as the way in for an agent nobody pasted a key into.
 - The B199 assertion about not reciting a copied value survives, pointed at the
   prompt's copy button.
 - The four checks pass.
+
+## Verified
+
+All four green: `npm run build` compiled, `npx tsc --noEmit` clean, `npx eslint .`
+0 errors (4 pre-existing warnings, none in these files), `npx vitest run` 161
+files / 2457 tests. `npm run unused` exits clean — no unused files, dependencies
+or unresolved imports (only the pre-existing, non-failing "unused exports" list
+B235 owns).
+
+### What was built
+
+- `components/AgentHandover.tsx`: removed the `me.agentByHand` paragraph, the
+  two `font-mono` lines and their `CopyLine`, and the `docUrl`/`email` props
+  that fed them. The `prompt !== null` branch was split into an exported
+  `HandoverPrompt({ prompt, expires })` — not asked for in Work, but needed to
+  make the B199 assertions renderable at all: this repo's tests use
+  `renderToStaticMarkup` with no simulated clicks, and the old two-line block
+  was the only part of this component reachable that way. Without the split
+  there was no way to exercise the prompt's copy button in a test.
+- `docUrl`/`email` removed as props, all the way up: `MePageContent.tsx`,
+  `app/[user]/me/page.tsx`, `TripsIndexContent.tsx`'s `EmptyJournal` type and
+  its `EmptyState`, and `app/[user]/trips/page.tsx`'s construction of `empty`.
+- Dead keys removed from `lib/i18n.ts` (via `npm run i18n:keys`, not by hand)
+  and all three `content/locales/*.json`: `me.agentByHand`, `me.agentCopy`,
+  `landing.copy`. `landing.copied` stays — the prompt's own copy button uses it
+  too.
+
+### One thing found beyond the Work list, and fixed rather than captured
+
+Three other translation strings said "hand the two lines below" in some form —
+`me.agentBody` (the sentence right under the heading), `trips.emptyOwnerBody`
+(the empty-trip-list page), and `me.ownerNoTrips` (the "nothing here yet" line
+on `/<user>/me`). None were named in Work, but all three became literally false
+the moment the two lines were deleted, and `me.ownerNoTrips` is what an
+existing test (`access-panel.test.tsx`) actually failed on first — proof this
+wasn't a nearby unrelated finding but breakage the deletion itself caused. Fixed
+in all three locales rather than filed as a new backlog item, since leaving
+stale copy pointing at a removed control would fail the first acceptance line
+("nothing about reading out a code... shows the handover heading, its sentence
+and one button") in substance even where the literal grep passed.
+
+### B199 test, moved rather than dropped
+
+`test/copy-line-name.test.tsx` no longer renders `AgentHandover` at all — moved
+to render `HandoverPrompt` directly with a synthetic multi-line prompt. All
+three assertions moved (name recites what pressing it does rather than the
+value; no accessible name carries a newline; the name is translated in all
+three locales), retargeted from `me.agentCopy` to `me.handoverCopy` since that
+is the key the surviving control already used. Nothing was dropped — the old
+control they were about no longer exists, and the new control has the same
+shape of risk for a stronger reason (a live credential, not two public
+addresses). The unrelated "single value" describe block (B79) was left
+untouched.

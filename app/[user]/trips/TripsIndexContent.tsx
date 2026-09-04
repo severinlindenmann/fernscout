@@ -55,15 +55,15 @@ export type TripCardData = {
  * simply is not in the payload of a page a stranger asked for.
  *
  * `ownerName` (B278) travels on the `owner: false` branch for the same reason
- * `docUrl`/`ownerEmail` travel on the `owner: true` one: it is a fact about
- * the *journal*, computed once in `page.tsx` from `config.json`, and constant
+ * `siteUrl` travels on the `owner: true` one: it is a fact about the
+ * *journal*, computed once in `page.tsx` from `config.json`, and constant
  * whatever this reader's trips filter to — so, unlike `trips.length`, it is
  * safe to hand to a stranger. `page.tsx` already falls back to the journal's
  * title when the config has no nickname, so this is never an empty string.
  */
 export type EmptyJournal =
   | { owner: false; signedIn: boolean; ownerName: string }
-  | { owner: true; docUrl: string; ownerEmail: string | null; siteUrl: string };
+  | { owner: true; siteUrl: string };
 
 export type RouteData = {
   id: string;
@@ -266,11 +266,11 @@ function MalformedNotice({ malformed }: { malformed: BrokenFolder[] }) {
  *
  * Three readers, not two. The **owner** of a genuinely empty journal needs the
  * one fact nobody can guess from looking: there is no button here, there never
- * will be (ROADMAP decision 24), and a trip is made by handing two lines to an
- * agent. That instruction already existed on `/<user>/me`, in a panel a person
- * who has just created a journal has no reason to have opened — so it is
- * repeated here rather than linked to, from the same component, and this is
- * the page they land on.
+ * will be (ROADMAP decision 24), and a trip is made by handing an agent the
+ * prompt below. That instruction already existed on `/<user>/me`, in a panel a
+ * person who has just created a journal has no reason to have opened — so it
+ * is repeated here rather than linked to, from the same component, and this
+ * is the page they land on.
  *
  * Everybody else gets one of two sentences, chosen only by `signedIn` — never
  * by whether the journal is actually empty, which this component is not told
@@ -307,12 +307,7 @@ function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: 
         <p className="mt-2 max-w-2xl text-lg leading-8 text-navy-700">{body}</p>
         {empty.owner && (
           <div className="mt-6 border-t border-navy-200 pt-5">
-            <AgentHandover
-              docUrl={empty.docUrl}
-              email={empty.ownerEmail}
-              username={username}
-              siteUrl={empty.siteUrl}
-            />
+            <AgentHandover username={username} siteUrl={empty.siteUrl} />
           </div>
         )}
       </section>

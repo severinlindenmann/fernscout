@@ -109,8 +109,7 @@ function statTiles(html: string): string[] {
 describe("a journal with no trips", () => {
   test("renders no lifetime stat tiles at all", () => {
     expect(statTiles(render({ empty: { owner: false, signedIn: false, ownerName: OWNER_NAME } }))).toEqual([]);
-    expect(statTiles(render({ empty: { owner: true, docUrl: DOC_URL, ownerEmail: OWNER_EMAIL, siteUrl: "https://example.test" } })))
-      .toEqual([]);
+    expect(statTiles(render({ empty: { owner: true, siteUrl: "https://example.test" } }))).toEqual([]);
   });
 
   test("drops the subtitle, which claims a record it does not have", () => {
@@ -120,7 +119,7 @@ describe("a journal with no trips", () => {
 });
 
 describe("and its owner", () => {
-  const owner: EmptyJournal = { owner: true, docUrl: DOC_URL, ownerEmail: OWNER_EMAIL, siteUrl: "https://example.test" };
+  const owner: EmptyJournal = { owner: true, siteUrl: "https://example.test" };
 
   test("says there are no trips yet, in the journal's language", () => {
     expect(render({ empty: owner })).toContain("No trips yet");
@@ -128,21 +127,14 @@ describe("and its owner", () => {
     expect(render({ empty: owner, locale: "hu" })).toContain("Még nincs egyetlen út sem");
   });
 
-  test("is given what to hand an agent, on the page they land on", () => {
+  // Since B301: one button rather than two lines to hand over by hand.
+  // `test/copy-line-name.test.tsx` holds the accessible-name half of this —
+  // that the prompt the button produces is copyable without reciting a live
+  // credential as its name.
+  test("is given a button to press, not two lines to hand over", () => {
     const html = render({ empty: owner });
-    expect(html).toContain(DOC_URL);
-    expect(html).toContain(OWNER_EMAIL);
-    // The copy button carries both lines at once, which is the whole point of
-    // the block: one paste into an agent.
-    //
-    // Asserted through the control's *name* rather than by looking for the two
-    // values joined by a newline in the markup. That is where they used to be
-    // findable — inside `aria-label` — and B199 is the ticket for why they are
-    // not any more: a URL and an email address in one accessible name, joined
-    // by a break screen readers announce inconsistently, arrive as one string
-    // under a name that said "Copy link". The clipboard still gets both lines;
-    // `test/copy-line-name.test.tsx` holds that end of it.
-    expect(html).toContain(`aria-label="${dictionaryFor("en")["me.agentCopy"]}"`);
+    expect(html).toContain(dictionaryFor("en")["me.handoverCreate"]);
+    expect(html).not.toMatch(/read out the code/i);
   });
 
   test("is told there is no form and never will be", () => {
