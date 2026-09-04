@@ -55,7 +55,13 @@ function create(ip: string, token: string, body: Record<string, unknown>) {
   );
 }
 
-const GOOD = { title: "A journal", ownerName: "Robin Traveller", ownerNickname: "Robin" };
+const GOOD = {
+  title: "A journal",
+  ownerName: "Robin Traveller",
+  ownerNickname: "Robin",
+  visibility: "public",
+  defaultLocale: "en",
+};
 /** Refused by `createJournal` every time, and cheap: no journal is written. */
 const NOT_A_NAME = { ...GOOD, username: "Has Capitals" };
 

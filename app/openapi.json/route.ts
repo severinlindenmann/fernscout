@@ -2,7 +2,8 @@ import { serverSite } from "@/lib/site";
 import { getDefaultUsername, getUsernames } from "@/lib/users";
 // Shared with /agent.md and /documentation.txt. A machine contract that
 // disagrees with the prose about what `private` means is worse than either.
-import { VISIBILITY_MEANING, VISIBILITY_NOT_A_LOCK } from "@/lib/api/agentCopy";
+import { LOCALE_LIST, VISIBILITY_MEANING, VISIBILITY_NOT_A_LOCK } from "@/lib/api/agentCopy";
+import { MAINTAINED_LOCALES } from "@/lib/i18n";
 
 /**
  * The machine contract for the same API `/agent.md` describes in prose.
@@ -646,7 +647,14 @@ export function GET() {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["username", "title", "ownerName", "ownerNickname"],
+                  required: [
+                    "username",
+                    "title",
+                    "ownerName",
+                    "ownerNickname",
+                    "visibility",
+                    "defaultLocale",
+                  ],
                   properties: {
                     username: { type: "string", description: "The journal's address. Permanent." },
                     title: { type: "string" },
@@ -666,16 +674,36 @@ export function GET() {
                     visibility: {
                       type: "string",
                       enum: ["public", "private"],
-                      default: "public",
+                      // No `default`: silence used to be read as `public`, which is
+                      // exactly the field that decides whether a stranger can come
+                      // across somebody's journal (B263). Required — ask.
                       // The same two sentences /agent.md and /documentation.txt
                       // carry, from the one place they are written.
                       description:
-                        `Whether this server advertises the journal: ${VISIBILITY_MEANING} ` +
+                        `Required — there is no default. Whether this server advertises the ` +
+                        `journal: ${VISIBILITY_MEANING} ` +
                         `${VISIBILITY_NOT_A_LOCK.replace(/`/g, "")} Ask which they want.`,
                     },
                     startLocation: { type: "string" },
-                    defaultLocale: { type: "string" },
-                    locales: { type: "array", items: { type: "string" } },
+                    defaultLocale: {
+                      type: "string",
+                      enum: [...MAINTAINED_LOCALES],
+                      // No `default`: silently falling back to English is the other
+                      // half of B263 — the welcome mail, the first thing this
+                      // software says to the owner, arrived in the wrong language.
+                      description:
+                        `Required — there is no default. The language the owner writes in, ` +
+                        `${LOCALE_LIST}. Sets the language of the site's own chrome and of ` +
+                        "the welcome mail sent the moment the journal is created.",
+                    },
+                    locales: {
+                      type: "array",
+                      items: { type: "string", enum: [...MAINTAINED_LOCALES] },
+                      description:
+                        "Which languages a reader may switch the journal into. Optional — " +
+                        `left out, the journal offers only defaultLocale. Each entry must be ` +
+                        `one of ${LOCALE_LIST}.`,
+                    },
                     baseCurrency: { type: "string" },
                     displayCurrencies: { type: "array", items: { type: "string" } },
                     units: { type: "string", enum: ["metric", "imperial"] },
@@ -699,7 +727,11 @@ export function GET() {
                 "carries the same instruction as one sentence, for pasting into a reply. " +
                 "Both are absent when this server has auth off.",
             },
-            "400": { description: "The username, title or owner name/nickname is not usable" },
+            "400": {
+              description:
+                "The username, title or owner name/nickname is not usable, or visibility " +
+                "or defaultLocale is missing or not a value this server accepts.",
+            },
             "401": { description: "Missing or invalid signup token" },
             "403": { description: "This address already owns as many journals as it may" },
             "404": { description: "Signing up is not enabled on this server" },

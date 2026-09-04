@@ -50,9 +50,23 @@ export type NewJournal = {
    * `public`: that is what every journal made before the field existed is, and
    * quietly unlisting somebody who did not ask to be unlisted is its own kind
    * of surprise. An agent is told to ask; asking is the mechanism.
+   *
+   * That default is for a direct caller of this function — the two doors that
+   * reach it in production, `POST /api/v1/journals` and the MCP
+   * `create_journal` tool, both refuse a request that omits it rather than
+   * ever passing `undefined` down to here (B263). Silence reaching this
+   * default at all would mean one of those doors stopped asking.
    */
   visibility?: JournalVisibility;
   startLocation?: string;
+  /**
+   * The owner's own language. Falls back to `"en"` here for the same reason
+   * as `visibility` above — a direct caller's convenience — and for the same
+   * reason both production doors require it rather than ever reaching this
+   * fallback (B263): it sets the language of the welcome mail, the first
+   * thing this software says to somebody, and defaulting it silently is how a
+   * German journal used to greet its owner in English.
+   */
   defaultLocale?: string;
   locales?: string[];
   baseCurrency?: string;

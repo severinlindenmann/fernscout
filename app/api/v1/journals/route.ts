@@ -1,5 +1,7 @@
+import { LOCALE_LIST } from "@/lib/api/agentCopy";
 import { SESSION_SCOPE, SIGNUP_OWNER, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
+import { MAINTAINED_LOCALES } from "@/lib/i18n";
 import { createJournal, sendWelcome } from "@/lib/journals";
 import { clientIp, rateLimitFor, rateLimitStatus } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
@@ -139,11 +141,29 @@ export async function POST(request: Request) {
     );
   }
 
+  // Required rather than defaulted: this is the field that decides whether a
+  // stranger can come across somebody's journal, and silence must not decide
+  // it on their behalf any more than an unrecognised value may (B263 — a
+  // journal asked to be private was created public because nothing here
+  // insisted on an answer).
+  const visibility = str("visibility");
+  if (visibility === undefined) {
+    return refuse(
+      {
+        error: "invalid_request",
+        message:
+          'visibility is required — "public" or "private". public is listed on this ' +
+          "server's own index, its landing page and its sitemap; private is on none of " +
+          "them and reachable by anyone sent the address. There is no default worth " +
+          "picking for somebody: ask which they want.",
+      },
+      400,
+    );
+  }
   // Refused rather than quietly read as `public`: this is the field that
   // decides whether a stranger can come across somebody's journal, and an
   // agent that sent "hidden" or "unlisted" meant to ask for something.
-  const visibility = str("visibility");
-  if (visibility !== undefined && visibility !== "public" && visibility !== "private") {
+  if (visibility !== "public" && visibility !== "private") {
     return refuse(
       {
         error: "invalid_request",
@@ -157,6 +177,60 @@ export async function POST(request: Request) {
     );
   }
 
+  // Required for the same reason: it decides the language of the site's own
+  // chrome and of the welcome mail — the first thing this software ever says
+  // to the owner — and defaulting it to English on their behalf is exactly
+  // the silent decision B263 is about.
+  const defaultLocale = str("defaultLocale");
+  if (defaultLocale === undefined) {
+    return refuse(
+      {
+        error: "invalid_request",
+        message:
+          "defaultLocale is required — the language the owner writes in. It sets the " +
+          "language of the site's own chrome and of the welcome mail this server sends " +
+          "the moment the journal is created. There is no default worth picking for " +
+          `somebody: ask which language they write in, and send the code — ${LOCALE_LIST}.`,
+      },
+      400,
+    );
+  }
+  // Checked against the maintained set rather than stored as whatever string
+  // arrives: "Deutsch", "German" and "de-DE" are all things an agent will
+  // send, and a journal whose defaultLocale is not one this build ships would
+  // render in English while its config claimed otherwise.
+  if (!(MAINTAINED_LOCALES as readonly string[]).includes(defaultLocale)) {
+    return refuse(
+      {
+        error: "invalid_request",
+        message:
+          `defaultLocale must be one of ${LOCALE_LIST}, got ${JSON.stringify(defaultLocale)}. ` +
+          'Send the code, not the language\'s name — "Deutsch" and "German" are both "de".',
+      },
+      400,
+    );
+  }
+
+  // `locales` stays optional — defaulting it to [defaultLocale] is a real
+  // default, not a decision taken on somebody's behalf — but any language it
+  // does name is checked against the same maintained set.
+  const locales = list("locales");
+  if (locales) {
+    const bad = locales.find((code) => !(MAINTAINED_LOCALES as readonly string[]).includes(code));
+    if (bad !== undefined) {
+      return refuse(
+        {
+          error: "invalid_request",
+          message:
+            `locales has ${JSON.stringify(bad)}; each entry must be one of ${LOCALE_LIST} — ` +
+            "which of them a reader may switch the journal into. Left out, the journal " +
+            "offers only defaultLocale.",
+        },
+        400,
+      );
+    }
+  }
+
   const created = createJournal({
     visibility,
     username,
@@ -166,8 +240,8 @@ export async function POST(request: Request) {
     ownerName,
     ownerNickname,
     startLocation: str("startLocation"),
-    defaultLocale: str("defaultLocale"),
-    locales: list("locales"),
+    defaultLocale,
+    locales,
     baseCurrency: str("baseCurrency"),
     displayCurrencies: list("displayCurrencies"),
     units: str("units") === "imperial" ? "imperial" : "metric",
