@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import ContactManage from "@/components/ContactManage";
+import LocaleProvider from "@/components/LocaleProvider";
 import NoticeShell from "@/components/NoticeShell";
 import PageHeader from "@/components/PageHeader";
 import { isEnabled } from "@/lib/capabilities";
@@ -43,50 +44,62 @@ export default async function ManagePage({ params }: PageProps<"/[user]/c/[token
     const accept = (await headers()).get("accept-language");
     const locale = pickLocale(fromAcceptLanguage(accept), user.defaultLocale);
     return (
-      <div className="min-h-screen">
-        {/* Same reasoning as `/contacts` (B271): this page is a fresh tab with
-            no history behind it, and the header is the way back to the
-            journal — `useTrip()` is null here, so the title links there. */}
-        <PageHeader />
-        <NoticeShell
-          lang={locale}
-          title={translateIn(locale, "err.linkExpiredTitle")}
-          body={translateIn(locale, "err.linkExpiredBody")}
-          // It used to offer the open guestbook here, as the way to get a fresh
-          // link. There is no open guestbook any more (B37), and the body now
-          // says the true thing instead: ask whoever invited you. Still not a
-          // 404 — see the note above.
-          actions={[
-            {
-              href: `/${username}`,
-              label: translateIn(locale, "err.goToJournal", { title: user.title }),
-            },
-          ]}
-        />
-      </div>
+      // Nested rather than left to the layout's own (browser/cookie-driven)
+      // provider, for the same reason the body renders in this language: a
+      // header in one language above a notice in another is exactly the
+      // mismatch this page exists to avoid.
+      <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
+        <div className="min-h-screen">
+          {/* Same reasoning as `/contacts` (B271): this page is a fresh tab
+              with no history behind it, and the header is the way back to
+              the journal — `useTrip()` is null here, so the title links
+              there. */}
+          <PageHeader />
+          <NoticeShell
+            lang={locale}
+            title={translateIn(locale, "err.linkExpiredTitle")}
+            body={translateIn(locale, "err.linkExpiredBody")}
+            // It used to offer the open guestbook here, as the way to get a
+            // fresh link. There is no open guestbook any more (B37), and the
+            // body now says the true thing instead: ask whoever invited you.
+            // Still not a 404 — see the note above.
+            actions={[
+              {
+                href: `/${username}`,
+                label: translateIn(locale, "err.goToJournal", { title: user.title }),
+              },
+            ]}
+          />
+        </div>
+      </LocaleProvider>
     );
   }
 
   const locale = pickLocale(contact.locale, user.defaultLocale);
+  const dictionary = dictionaryFor(locale);
 
   return (
-    <div className="min-h-screen">
-      <PageHeader />
-      <ContactManage
-        locales={localesFor(username)}
-        dictionary={dictionaryFor(locale)}
-        username={username}
-        token={token}
-        contact={{
-          name: contact.name ?? "",
-          email: contact.email,
-          locale,
-          status: contact.status,
-          wantsEmailDigest: contact.wantsEmailDigest,
-          wantsPostcard: contact.wantsPostcard,
-          address: contact.postalAddress ?? EMPTY_ADDRESS,
-        }}
-      />
-    </div>
+    <LocaleProvider locale={locale} dictionary={dictionary}>
+      <div className="min-h-screen">
+        <PageHeader />
+        <main id="main" tabIndex={-1}>
+          <ContactManage
+            locales={localesFor(username)}
+            dictionary={dictionary}
+            username={username}
+            token={token}
+            contact={{
+              name: contact.name ?? "",
+              email: contact.email,
+              locale,
+              status: contact.status,
+              wantsEmailDigest: contact.wantsEmailDigest,
+              wantsPostcard: contact.wantsPostcard,
+              address: contact.postalAddress ?? EMPTY_ADDRESS,
+            }}
+          />
+        </main>
+      </div>
+    </LocaleProvider>
   );
 }

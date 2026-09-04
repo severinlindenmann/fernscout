@@ -50,12 +50,15 @@ const STATUS_KEY: Record<ManageContact["status"], TranslationKey> = {
   blocked: "contact.statusBlocked",
 };
 
+const PAGE_CLASS = "mx-auto w-full max-w-xl px-6 py-12 sm:py-16";
+
 export default function ContactManage({
   username,
   token,
   contact,
   locales,
   dictionary,
+  className = PAGE_CLASS,
 }: {
   username: string;
   /** The languages this journal offers, from its config. */
@@ -63,6 +66,13 @@ export default function ContactManage({
   dictionary: Record<string, string>;
   token: string;
   contact: ManageContact;
+  /**
+   * The outer element's spacing and width. Defaults to a page's own centred
+   * column — the standalone `/c/<token>` page every mail footer points at.
+   * `/me` renders this inline, already inside its own padded column, and
+   * passes something narrower so the two boxes don't nest.
+   */
+  className?: string;
 }) {
   const [locale, setLocale] = useState<Locale>(contact.locale);
   const [name, setName] = useState(contact.name);
@@ -90,14 +100,14 @@ export default function ContactManage({
 
   if (deleted) {
     return (
-      <main className="mx-auto w-full max-w-xl px-6 py-16" lang={locale}>
+      <div className={className} lang={locale}>
         <h1 className="font-display text-3xl text-navy-900">{t("contact.deleted")}</h1>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-xl px-6 py-12 sm:py-16" lang={locale}>
+    <div className={className} lang={locale}>
       <h1 className="font-display text-3xl leading-tight text-navy-900 sm:text-4xl">
         {t("contact.manageTitle")}
       </h1>
@@ -254,6 +264,6 @@ export default function ContactManage({
       >
         {t("contact.deleteMe")}
       </button>
-    </main>
+    </div>
   );
 }
