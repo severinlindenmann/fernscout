@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (102)
+## backlog (95)
 
 ### security (6)
 
@@ -62,13 +62,12 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (36)
+### issue (31)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B329](backlog/issue/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium |
 | [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
-| [B406](backlog/issue/B406-the-invite-form-swallows-a-refusal.md) | The invite form swallows a refusal, so a reader clicks join and nothing at all happens | ISSUE | high | low |
 | [B228](backlog/issue/B228-the-guest-list-issues-a-link.md) | The guest list issues a link that never expires | ISSUE | medium | low |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
@@ -80,7 +79,6 @@ Do not edit them by hand; run the script.
 | [B340](backlog/issue/B340-a-disabled-capability-answers-404-across.md) | A disabled capability answers 404 across every gated route, hiding a real refusal as no-such-route | ISSUE | medium | low |
 | [B342](backlog/issue/B342-readcostsfile-has-no-guard-around-matter.md) | readCostsFile has no guard around matter() and throws on a malformed costs.md | ISSUE | medium | low |
 | [B378](backlog/issue/B378-the-whatsapp-checkbox-is-offered-on.md) | The WhatsApp checkbox is offered on a journal with WhatsApp switched off, one line under a hint saying nothing sends there | ISSUE | medium | low |
-| [B408](backlog/issue/B408-status-reports-credits-enabled-while-config.md) | status reports credits enabled while config reports it off, on the same journal | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
@@ -97,10 +95,7 @@ Do not edit them by hand; run the script.
 | [B388](backlog/issue/B388-resending-a-mailed-guest-invitation-has.md) | Resending a mailed guest invitation has no rate limit | ISSUE | low | low |
 | [B389](backlog/issue/B389-a-contact-s-stored-phone-number.md) | A contact's stored phone number that toE164 cannot parse is shown to the owner as if it were fine | ISSUE | low | low |
 | [B391](backlog/issue/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low |
-| [B407](backlog/issue/B407-two-mail-refusals-blame-the-server.md) | Two mail refusals blame the server when it is the journal's own switch that is off | ISSUE | low | low |
-| [B414](backlog/issue/B414-three-places-tell-an-owner-to.md) | Three places tell an owner to edit trip.md for a change the API can now make | ISSUE | low | low |
 | [B415](backlog/issue/B415-the-address-lookup-offers-the-same.md) | The address lookup offers the same address twice when OSM holds a building and a shop at it | ISSUE | low | low |
-| [B418](backlog/issue/B418-a-journal-with-no-tagline-renders.md) | A journal with no tagline renders a dangling em-dash in its title and og:title | ISSUE | low | low |
 | [B419](backlog/issue/B419-the-three-comboboxes-never-tell-assistive.md) | The three comboboxes never tell assistive tech which suggestion the arrow keys are on | ISSUE | low | low |
 
 ### big-feature (12)
@@ -137,7 +132,7 @@ Do not edit them by hand; run the script.
 | [B176](backlog/small-feature/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B305](backlog/small-feature/B305-a-reader-shown-a-day-in.md) | A reader shown a day in a language they did not ask for is told nothing about it | FEATURE | low | low |
 
-### chore (9)
+### chore (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -149,7 +144,6 @@ Do not edit them by hand; run the script.
 | [B314](backlog/chore/B314-a-comment-beside-the-trip-route.md) | A comment beside the trip route still says a new trip defaults to private | CHORE | low | low |
 | [B322](backlog/chore/B322-the-photobook-and-the-digest-read.md) | The photobook and the digest read only published days, and nobody has said whether that is a decision | CHORE | low | low |
 | [B343](backlog/chore/B343-clearmattercache-is-defined-twice-with-its.md) | clearMatterCache is defined twice, with its reasoning written out twice | CHORE | low | low |
-| [B417](backlog/chore/B417-access-gate-test-ts-still-carries.md) | access-gate.test.ts still carries a digest column for a function B387 deleted | CHORE | low | low |
 
 ### ops (15)
 
@@ -171,7 +165,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (6)
+### docs-and-skills (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -180,7 +174,6 @@ Do not edit them by hand; run the script.
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 | [B289](backlog/docs-and-skills/B289-nothing-records-that-a-hungarian-string.md) | Nothing records that a Hungarian string cannot take a case suffix on an interpolated name | DOCS | low | low |
 | [B404](backlog/docs-and-skills/B404-a-journal-s-own-documentation-txt.md) | A journal's own documentation.txt does not say a private trip stays shut to approved guests | DOCS | low | low |
-| [B409](backlog/docs-and-skills/B409-the-error-table-says-a-trip.md) | The error table says a trip-scoped token gets out_of_scope for another trip, and it gets unknown_trip | DOCS | low | low |
 
 ### superseded (6)
 
@@ -197,13 +190,21 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B332](in-development/B332-the-documents-still-say-deleting-a.md) | The documents still say deleting a budget removes the costs page, which B328 made untrue | ISSUE | high | low | `62683d95` |
+| [B406](in-development/B406-the-invite-form-swallows-a-refusal.md) | The invite form swallows a refusal, so a reader clicks join and nothing at all happens | ISSUE | high | low | `62683d95` |
 | [B411](in-development/B411-the-root-page-shows-a-stranger.md) | The root page shows a stranger's welcome to somebody who is signed in and holds three journals | FEATURE | high | medium | `3744307d` |
+| [B408](in-development/B408-status-reports-credits-enabled-while-config.md) | status reports credits enabled while config reports it off, on the same journal | ISSUE | medium | low | `62683d95` |
+| [B407](in-development/B407-two-mail-refusals-blame-the-server.md) | Two mail refusals blame the server when it is the journal's own switch that is off | ISSUE | low | low | `62683d95` |
+| [B409](in-development/B409-the-error-table-says-a-trip.md) | The error table says a trip-scoped token gets out_of_scope for another trip, and it gets unknown_trip | DOCS | low | low | `62683d95` |
+| [B414](in-development/B414-three-places-tell-an-owner-to.md) | Three places tell an owner to edit trip.md for a change the API can now make | ISSUE | low | low | `62683d95` |
+| [B417](in-development/B417-access-gate-test-ts-still-carries.md) | access-gate.test.ts still carries a digest column for a function B387 deleted | CHORE | low | low | `62683d95` |
+| [B418](in-development/B418-a-journal-with-no-tagline-renders.md) | A journal with no tagline renders a dangling em-dash in its title and og:title | ISSUE | low | low | `62683d95` |
 
-## testing (148)
+## testing (147)
 
 ### security (3)
 
@@ -213,7 +214,7 @@ _Nothing here._
 | [B280](testing/security/B280-an-invite-link-cannot-be-handed.md) | An invite link cannot be handed out a second time, because the token is only stored hashed | SECURITY | medium | medium | — |
 | [B03](testing/security/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium | — |
 
-### issue (89)
+### issue (88)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -231,7 +232,6 @@ _Nothing here._
 | [B307](testing/issue/B307-onboarding-is-prose-so-an-agent.md) | Onboarding is prose, so an agent asks a different set of questions in a different order every time | ISSUE | high | medium | — |
 | [B318](testing/issue/B318-a-draft-day-shows-three-of.md) | A draft day shows three of its nine photographs and all nine once published | ISSUE | high | medium | — |
 | [B320](testing/issue/B320-a-buddy-on-a-trip-is.md) | A buddy on a trip is told the journal is not theirs to write, and never learns they hold write access | ISSUE | high | medium | — |
-| [B332](testing/issue/B332-the-documents-still-say-deleting-a.md) | The documents still say deleting a budget removes the costs page, which B328 made untrue | ISSUE | high | low | — |
 | [B339](testing/issue/B339-getplaces-merges-every-unnamed-day-into.md) | getPlaces merges every unnamed day into one place, collapsing a whole trip's coordinates to a single point | ISSUE | high | low | — |
 | [B347](testing/issue/B347-a-buddy-approved-onto-a-trip.md) | A buddy approved onto a trip is mailed "follow along whenever you like" and never told they can write | ISSUE | high | low | — |
 | [B348](testing/issue/B348-the-agent-code-mail-tells-a.md) | The agent-code mail tells a buddy the token writes to "your journal", when it writes one trip in somebody else's | ISSUE | high | low | — |

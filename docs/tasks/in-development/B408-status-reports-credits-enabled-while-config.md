@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: api
 found: "2026-09-05T07:49:39Z"
+started: "2026-09-05T08:49:35Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T08:49:35Z"
 ---
 
 # B408 — status reports credits enabled while config reports it off, on the same journal

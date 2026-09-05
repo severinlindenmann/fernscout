@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: tests
 found: "2026-09-05T08:31:28Z"
+started: "2026-09-05T08:49:36Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T08:49:36Z"
 ---
 
 # B417 — access-gate.test.ts still carries a digest column for a function B387 deleted

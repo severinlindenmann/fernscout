@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: contacts
 found: "2026-09-05T07:49:39Z"
+started: "2026-09-05T08:49:34Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T08:49:34Z"
 ---
 
 # B406 — The invite form swallows a refusal, so a reader clicks join and nothing at all happens

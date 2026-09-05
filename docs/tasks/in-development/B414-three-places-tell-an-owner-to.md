@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: trips
 found: "2026-09-05T08:27:14Z"
+started: "2026-09-05T08:49:33Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T08:49:33Z"
 ---
 
 # B414 — Three places tell an owner to edit trip.md for a change the API can now make
