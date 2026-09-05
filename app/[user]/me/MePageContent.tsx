@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { KeyRound, Wallet, UserRound, Mail, MessageCircle, TriangleAlert } from "lucide-react";
+import { useRef, useState } from "react";
+import { KeyRound, Wallet, UserRound, Mail, MessageCircle, TriangleAlert, X } from "lucide-react";
 import Link from "next/link";
 import AgentHandover from "@/components/AgentHandover";
 import AgentKeys from "@/components/AgentKeys";
@@ -12,8 +12,117 @@ import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
+import { formatChf, TIERS } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 import type { Viewer } from "@/lib/viewer";
+
+/**
+ * The tiers dialog behind the Payment card's "Buy credits" button — B368.
+ *
+ * A native `<dialog>` with `showModal()` rather than a hand-rolled overlay:
+ * the browser already traps focus inside it and closes it on Escape, so there
+ * is nothing here to get wrong that a dependency would get right instead.
+ *
+ * Pressing Buy on a tier posts to the purchase route, which mails the journal's
+ * own owner address and grants nothing — see that route's doc comment. This
+ * component only ever reports what the route answered: `me.paymentBuySent`
+ * is the exact claim the route's success justifies, and nothing stronger.
+ */
+function BuyCreditsDialog({ username }: { username: string }) {
+  const { t, tn } = useI18n();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [busyTier, setBusyTier] = useState<string | null>(null);
+  const [result, setResult] = useState<"sent" | "failed" | null>(null);
+
+  async function buy(tierId: string) {
+    setBusyTier(tierId);
+    const response = await fetch(`/api/v1/${username}/credits/purchase`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tier: tierId }),
+    }).catch(() => null);
+    setBusyTier(null);
+
+    if (response?.ok) {
+      setResult("sent");
+      dialogRef.current?.close();
+    } else {
+      setResult("failed");
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setResult(null);
+          dialogRef.current?.showModal();
+        }}
+        className="inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+      >
+        {t("me.paymentBuyTitle")}
+      </button>
+      <span className="text-sm text-navy-600">{t("me.paymentBuyBody")}</span>
+      {result && (
+        <span
+          role="status"
+          className={`w-full text-sm ${result === "failed" ? "text-coral-600" : "text-navy-700"}`}
+        >
+          {t(result === "sent" ? "me.paymentBuySent" : "me.paymentBuyFailed")}
+        </span>
+      )}
+
+      <dialog
+        ref={dialogRef}
+        aria-labelledby="buy-credits-title"
+        className="w-[calc(100%-2rem)] max-w-md rounded-2xl border border-navy-200 bg-white p-0 shadow-xl backdrop:bg-navy-900/40"
+      >
+        <div className="p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <h3 id="buy-credits-title" className="font-display text-lg font-semibold text-navy-900">
+              {t("me.buyDialogTitle")}
+            </h3>
+            <button
+              type="button"
+              aria-label={t("me.buyDialogClose")}
+              onClick={() => dialogRef.current?.close()}
+              className="rounded-full p-1 text-navy-500 transition-colors hover:text-navy-900"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
+          <ul className="mt-4 space-y-3">
+            {TIERS.map((tier) => (
+              <li
+                key={tier.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-navy-200 bg-cream-50 px-4 py-3"
+              >
+                <div>
+                  <p className="font-display text-base font-semibold text-navy-900">
+                    {tier.credits} {tn("me.paymentUnit", tier.credits)}
+                  </p>
+                  <p className="text-sm text-navy-600">
+                    {formatChf(tier.priceRappen)}
+                    {tier.discount && ` · ${t("me.buyDialogDiscount", { discount: tier.discount })}`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busyTier !== null}
+                  onClick={() => buy(tier.id)}
+                  className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-yellow-400 px-4 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {busyTier === tier.id ? t("me.buyDialogBusy") : t("me.buyDialogBuy")}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </dialog>
+    </>
+  );
+}
 
 /** What the "Your details" panel needs to render `ContactManage` inline —
  * everything `/c/<token>` builds server-side, handed down instead of a link
@@ -483,19 +592,12 @@ export default function MePageContent({
                     </div>
                   </div>
 
-                  {/* B368 builds the real flow. Inert here, and granting
-                      nothing — the only thing that may raise a balance is
-                      `grant` in lib/credits.ts, run by hand on the server. */}
+                  {/* The dialog posts to the purchase route, which mails
+                      the journal's own owner and grants nothing — the only
+                      thing that may raise a balance is `grant` in
+                      lib/credits.ts, run by hand on the server. */}
                   <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-navy-200 pt-4">
-                    <button
-                      type="button"
-                      disabled
-                      aria-disabled="true"
-                      className="inline-flex min-h-11 cursor-not-allowed items-center rounded-full border border-navy-200 px-5 text-base font-semibold text-navy-400"
-                    >
-                      {t("me.paymentBuyTitle")}
-                    </button>
-                    <span className="text-sm text-navy-600">{t("me.paymentBuyBody")}</span>
+                    <BuyCreditsDialog username={username} />
                   </div>
                 </div>
               )}
