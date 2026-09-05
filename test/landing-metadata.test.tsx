@@ -194,12 +194,16 @@ describe("a reader whose language the instance does not maintain", () => {
  * journal. `/welcome` is not among them: it is a `redirect("/")` and renders
  * no document at all.
  *
- * The 404 is deliberately not asserted here. Its `generateMetadata` returns a
- * translated title when called — and Next never calls it, because
- * `not-found.js` has no metadata export in its API surface, so the served page
- * takes the root layout's `title.default` and says "Fernscout" in every
- * language. Asserting the function here would state the opposite of what a
- * reader gets, which is the whole failure mode B225 is about. B251 carries it.
+ * The 404 is deliberately not asserted here, still. It used to carry its own
+ * `generateMetadata` that returned a translated title when called directly —
+ * and Next never called it, because `not-found.js` has no metadata export in
+ * its API surface, so the served page took the root layout's `title.default`
+ * and said "Fernscout" in every language regardless. A unit test calling that
+ * function would have passed while the real response stayed wrong, which is
+ * the whole failure mode B225 is about — so B251 deleted the dead export and
+ * moved the translated fallback into `app/layout.tsx`'s own `title.default`,
+ * proved against a real production build with curl instead of a direct call,
+ * for the same reason.
  */
 describe("every page outside a journal", () => {
   test("has a title in the reader's language, not an English literal", async () => {

@@ -1,5 +1,3 @@
-import type { Metadata } from "next";
-import { requestLocale, translateIn } from "@/lib/locales";
 import NotFoundNotice from "@/components/NotFoundNotice";
 import { getDefaultUsername, getUser } from "@/lib/users";
 
@@ -15,15 +13,13 @@ import { getDefaultUsername, getUser } from "@/lib/users";
  *
  * It offers the default journal by name rather than a bare "home", because the
  * reader who got here was trying to read somebody's trip, not visit a website.
+ *
+ * No `generateMetadata` here on purpose (B251): `not-found.js` has no metadata
+ * export in Next's API surface, so one used to sit here, never called, and a
+ * test could still call it directly and pass. The translated tab title and
+ * the single `noindex` now come from `app/layout.tsx` and from Next itself —
+ * see the note on `generateMetadata` there.
  */
-/** The tab title follows the reader; see the note in the gallery page. */
-export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: translateIn(await requestLocale(), "err.notFoundTitle"),
-    robots: { index: false, follow: false },
-  };
-}
-
 export default function NotFound() {
   const username = getDefaultUsername();
   const user = username ? getUser(username) : null;
