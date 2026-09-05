@@ -204,17 +204,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (5)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B465](in-development/B465-the-postcard-preview-follows-the-journal.md) | The postcard preview follows the journal's language, not the reader's chosen one | ISSUE | high | low | `8af79b62` |
 | [B470](in-development/B470-the-landing-page-the-docs-index.md) | The landing page, the docs index and the guides are three surfaces with no shared shell, so the documentation reads as a pile rather than a site | FEATURE | high | medium | `3744307d` |
-| [B466](in-development/B466-the-send-button-spends-money-with.md) | The send button spends money with no moment to reconsider | FEATURE | medium | low | `8af79b62` |
-| [B467](in-development/B467-a-sent-postcard-leaves-the-owner.md) | A sent postcard leaves the owner no record of what was posted | FEATURE | medium | medium | `8af79b62` |
 | [B472](in-development/B472-the-outcome-mail-opens-with-the.md) | The outcome mail opens with the same sentence twice | ISSUE | low | low | `7c3dd4ae` |
 
-## testing (164)
+## testing (167)
 
 ### security (1)
 
@@ -222,7 +219,7 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 
-### issue (94)
+### issue (95)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -252,6 +249,7 @@ _Nothing here._
 | [B459](testing/issue/B459-a-reader-signed-in-before-b410.md) | A reader signed in before B410 never gets an identity, so the way out of a journal stays hidden | ISSUE | high | low | — |
 | [B460](testing/issue/B460-neither-postcard-form-can-be-submitted.md) | Neither postcard form can be submitted: the redirect leaves the origin and CSP blocks it | ISSUE | high | low | — |
 | [B461](testing/issue/B461-the-postcard-preview-is-english-on.md) | The postcard preview is English on a German journal, and its language note explains nothing | ISSUE | high | low | — |
+| [B465](testing/issue/B465-the-postcard-preview-follows-the-journal.md) | The postcard preview follows the journal's language, not the reader's chosen one | ISSUE | high | low | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
@@ -337,7 +335,7 @@ _Nothing here._
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 | [B425](testing/big-feature/B425-until-a-psp-exists-a-payment.md) | Until a PSP exists, a payment is a request the instance admin approves by an emailed link, which grants the credits | FEATURE | medium | high | — |
 
-### small-feature (22)
+### small-feature (24)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -359,6 +357,8 @@ _Nothing here._
 | [B458](testing/small-feature/B458-a-backup-that-works-says-nothing.md) | A backup that works says nothing, so the only evidence the alarm is alive is an alarm | FEATURE | medium | low | — |
 | [B463](testing/small-feature/B463-the-credits-card-prices-a-send.md) | The credits card prices a send but not a postcard, does not total a day, and offers no way to mute a channel | FEATURE | medium | low | — |
 | [B464](testing/small-feature/B464-the-nightly-mail-carries-a-journal.md) | The nightly mail carries a journal tail nobody reads, when what an operator wants is the state of the instance | FEATURE | medium | medium | — |
+| [B466](testing/small-feature/B466-the-send-button-spends-money-with.md) | The send button spends money with no moment to reconsider | FEATURE | medium | low | — |
+| [B467](testing/small-feature/B467-a-sent-postcard-leaves-the-owner.md) | A sent postcard leaves the owner no record of what was posted | FEATURE | medium | medium | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |

@@ -7,8 +7,7 @@ complexity: medium
 area: postcards, mail
 found: "2026-09-05T17:00:20Z"
 started: "2026-09-05T13:20:10Z"
-session: 8af79b62-fe04-4cc3-b94b-9609f44a5f9d
-claimed: "2026-09-05T13:20:10Z"
+merged: "2026-09-05T13:27:21Z"
 ---
 
 # B467 — A sent postcard leaves the owner no record of what was posted
