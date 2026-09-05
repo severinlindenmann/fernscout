@@ -220,7 +220,13 @@ describe("what the trip gate covers", () => {
   test("only the trip's own pages sit inside the gate", () => {
     const group = path.join(process.cwd(), "app", "[user]", "(trip)");
     const gated = fs.readdirSync(group).sort();
-    expect(gated).toEqual(["costs", "day", "gallery", "layout.tsx", "map", "page.tsx"]);
+    // "photobook" joined this list deliberately (Task 10): the current-trip
+    // photobook page lives at app/[user]/(trip)/photobook, and a trip's own
+    // photobook is exactly the kind of trip's-own-page this gate is for — a
+    // private trip must hide it same as its gallery. The trip-scoped
+    // equivalent, app/[user]/trips/[trip]/photobook, is a different route
+    // outside this group and gates itself via mayReadTrip.
+    expect(gated).toEqual(["costs", "day", "gallery", "layout.tsx", "map", "page.tsx", "photobook"]);
 
     // These must stay outside it, or a private trip hides them too.
     const user = path.join(process.cwd(), "app", "[user]");
