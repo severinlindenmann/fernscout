@@ -25,6 +25,9 @@
 #      off, which is every instance by default. /api/health reports it.
 #   2. Mail to the operator, via the app's own transport (`npm run alert`).
 #      Off-box, and the only one that reaches somebody who is not looking.
+#      What it carries depends on how the run ended: the journal tail when it
+#      failed, and `npm run status` — the state of the instance — when it did
+#      not. Nobody reads a restic log to learn that nothing is wrong (B464).
 #
 # Deliberately not `set -e`: an alarm that gives up halfway is the failure this
 # script exists to prevent. Every step is attempted, whatever the last one did.
@@ -104,9 +107,32 @@ fi
 # --- 2. The mail -----------------------------------------------------------
 # `npm run alert` needs node_modules and a configured mail transport; a box
 # that has neither still has the stamp above.
+# What the mail carries, and it is not the same thing both ways round.
+#
+# A failure wants the journal: the question it has to answer is *why*, and the
+# last 25 lines are the answer. A success wants none of it — nobody reads a
+# restic log to find out the instance is healthy. It gets the status report
+# instead: journals, trips, days, guests, credits, disk (B464).
+#
+# `npm run status` needs node_modules and a readable content root, so its
+# failure is a paragraph in the mail rather than a reason not to send one. The
+# summary line above is true either way and goes out regardless.
+DETAIL=""
+if [[ "$OUTCOME" == "success" ]]; then
+  if ! DETAIL="$(cd "$APP_DIR" && npm run --silent status 2>&1)"; then
+    DETAIL="The status report could not be built on this host:
+
+$DETAIL"
+  fi
+elif [[ -n "$JOURNAL" ]]; then
+  DETAIL="$JOURNAL"
+else
+  DETAIL="$(printf 'No journal was readable from this unit; run: journalctl -u %s -n 50' "$UNIT")"
+fi
+
 BODY="$SUMMARY
 
-$( [[ -n "$JOURNAL" ]] && printf '%s' "$JOURNAL" || printf 'No journal was readable from this unit; run: journalctl -u %s -n 50' "$UNIT" )"
+$DETAIL"
 
 if printf '%s\n' "$BODY" | (cd "$APP_DIR" && npm run --silent alert -- --unit "$UNIT" --outcome "$OUTCOME"); then
   MAILED=1

@@ -221,9 +221,12 @@ describe("npm run alert", () => {
       expect(eml, "a success mail must not use the word for the other outcome").not.toContain(
         "fernscout-backup.service failed",
       );
-      // Still the same message otherwise: the piped detail and where to look.
-      expect(eml).toContain("systemctl status fernscout-backup.service");
       expect(eml).toContain("/api/health");
+      // And *not* the failure's two commands. Since B464 a success carries the
+      // status report and a link; telling its reader to run `journalctl` to
+      // confirm that nothing is wrong is the log-reading that mail replaced.
+      expect(eml).not.toContain("systemctl status fernscout-backup.service");
+      expect(eml).not.toContain("journalctl -u");
     },
     120_000,
   );

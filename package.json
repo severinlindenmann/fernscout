@@ -17,6 +17,7 @@
     "build:geodata": "node scripts/build-geodata.ts",
     "build:countries": "node scripts/build-country-codes.mjs",
     "alert": "tsx --conditions=react-server scripts/alert.mts",
+    "status": "tsx --conditions=react-server scripts/status.mts",
     "notify": "tsx --conditions=react-server scripts/notify.mts",
     "test": "vitest run",
     "test:watch": "vitest",
