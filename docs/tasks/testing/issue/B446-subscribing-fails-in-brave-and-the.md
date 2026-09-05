@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: push, notifications
 found: "2026-09-05T12:36:14Z"
+merged: "2026-09-05T12:40:25Z"
 ---
 
 # B446 — Subscribing fails in Brave and the reader is told only that it did not work

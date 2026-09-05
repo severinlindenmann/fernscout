@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: push, i18n
 found: "2026-09-05T12:36:16Z"
+merged: "2026-09-05T12:40:25Z"
 ---
 
 # B447 — The Home Screen hint says iPhone to somebody holding an iPad
