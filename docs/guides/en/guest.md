@@ -61,8 +61,16 @@ is one extra step. It is worth doing once:
 
 1. Open the journal in **Safari** — not Chrome, and not a link inside another
    app.
-2. Press the **Share** button (the square with an arrow pointing up).
-3. Scroll down and choose **Add to Home Screen**, then **Add**.
+2. Press the **Share** button — the square with an arrow pointing up. If you
+   press and hold the page instead, it is the first entry in the menu.
+
+   ![The Safari menu, with Share as its first entry above Add to Bookmarks.](/docs/guides/figures/ios-share.webp)
+
+3. The sharing panel opens. **Scroll down inside it** — past the apps — and
+   choose **Add to Home Screen**, then **Add**. It is near the bottom, which
+   is why it is easy to miss.
+
+   ![The sharing panel, scrolled down to a list ending in Add to Home Screen.](/docs/guides/figures/ios-add-home.webp)
 4. Close Safari and open the journal again **from the new icon** on your Home
    Screen.
 5. Read a little. A card appears at the bottom offering to tell you about new

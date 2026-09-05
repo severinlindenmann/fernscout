@@ -57,9 +57,20 @@ kezdőképernyődhöz, ezért van egy plusz lépés. Megéri egyszer megcsináln
 
 1. Nyisd meg a naplót **Safariban** — ne Chrome-ban, és ne egy másik
    alkalmazáson belüli hivatkozásként.
-2. Nyomd meg a **Megosztás** gombot (a négyzet felfelé mutató nyíllal).
-3. Görgess le, válaszd a **Főképernyőhöz adás**, majd a **Hozzáadás**
-   lehetőséget.
+2. Nyomd meg a **Megosztás** gombot — a négyzetet felfelé mutató nyíllal. Ha
+   inkább hosszan nyomod az oldalt, a menü első pontja lesz.
+
+   ![A Safari menüje, az első pontja a „Share", fölötte az „Add to Bookmarks".](/docs/guides/figures/ios-share.webp)
+
+3. Megnyílik a megosztási panel. **Görgess le benne** — az alkalmazások
+   mellett — és válaszd a **Főképernyőhöz adás**, majd a **Hozzáadás**
+   lehetőséget. Egészen alul van, ezért könnyű átsiklani fölötte.
+
+   ![A megosztási panel, legörgetve az „Add to Home Screen" pontig.](/docs/guides/figures/ios-add-home.webp)
+
+   > A képek angol nyelvű iPhone-t mutatnak — ott „Share" és „Add to Home
+   > Screen" a két pont neve. Magyar nyelvű iPhone-on ugyanezeken a helyeken
+   > „Megosztás" és „Főképernyőhöz adás" szerepel.
 4. Zárd be a Safarit, és nyisd meg a naplót újra **az új ikonról** a
    kezdőképernyőn.
 5. Olvass egy kicsit. Alul megjelenik egy kártya, amely felajánlja, hogy szól

@@ -58,8 +58,22 @@ hast. Deshalb gibt es einen zusätzlichen Schritt. Er lohnt sich:
 
 1. Öffne das Reisetagebuch in **Safari** — nicht in Chrome, und nicht als Link
    in einer anderen App.
-2. Drücke auf den **Teilen**-Knopf (das Quadrat mit dem Pfeil nach oben).
-3. Scrolle nach unten und wähle **Zum Home-Bildschirm**, dann **Hinzufügen**.
+2. Drücke auf den **Teilen**-Knopf — das Quadrat mit dem Pfeil nach oben.
+   Wenn du stattdessen lange auf die Seite drückst, ist es der erste Eintrag
+   im Menü.
+
+   ![Das Safari-Menü, mit „Share" als erstem Eintrag über „Add to Bookmarks".](/docs/guides/figures/ios-share.webp)
+
+3. Das Teilen-Fenster geht auf. **Scrolle darin nach unten** — an den Apps
+   vorbei — und wähle **Zum Home-Bildschirm**, dann **Hinzufügen**. Es steht
+   weit unten, deshalb übersieht man es leicht.
+
+   ![Das Teilen-Fenster, nach unten gescrollt bis zum Eintrag „Add to Home Screen".](/docs/guides/figures/ios-add-home.webp)
+
+   > Die Bilder zeigen ein iPhone, das auf Englisch eingestellt ist — die
+   > Einträge heissen dort „Share" und „Add to Home Screen". Auf einem
+   > deutschen iPhone stehen an denselben Stellen „Teilen" und „Zum
+   > Home-Bildschirm".
 4. Schliesse Safari und öffne das Tagebuch noch einmal **über das neue Symbol**
    auf deinem Home-Bildschirm.
 5. Lies ein bisschen. Unten erscheint eine Karte, die dir anbietet, dich über
