@@ -7,8 +7,7 @@ complexity: low
 area: postcards, UI
 found: "2026-09-05T13:57:39Z"
 started: "2026-09-05T13:58:00Z"
-session: c1b5210b-0188-4c7a-8840-654a2db4319f
-claimed: "2026-09-05T13:58:00Z"
+merged: "2026-09-05T14:06:36Z"
 ---
 
 # B478 — The postcard composer offers no choice of day or language for the prefilled text

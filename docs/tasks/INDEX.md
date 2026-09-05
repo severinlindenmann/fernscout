@@ -202,15 +202,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B476](in-development/B476-a-photobook-cannot-be-ordered-from.md) | A photobook cannot be ordered from the site, only from a shell | FEATURE | high | high | `d9c396ea` |
-| [B478](in-development/B478-the-postcard-composer-offers-no-choice.md) | The postcard composer offers no choice of day or language for the prefilled text | FEATURE | medium | low | `c1b5210b` |
 | [B475](in-development/B475-the-nightly-status-mail-is-a.md) | The nightly status mail is a wall of monospace while every other letter this instance sends is designed | FEATURE | low | medium | `7c3dd4ae` |
 
-## testing (174)
+## testing (175)
 
 ### security (2)
 
@@ -339,7 +338,7 @@ _Nothing here._
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 | [B425](testing/big-feature/B425-until-a-psp-exists-a-payment.md) | Until a PSP exists, a payment is a request the instance admin approves by an emailed link, which grants the credits | FEATURE | medium | high | — |
 
-### small-feature (25)
+### small-feature (26)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -364,6 +363,7 @@ _Nothing here._
 | [B464](testing/small-feature/B464-the-nightly-mail-carries-a-journal.md) | The nightly mail carries a journal tail nobody reads, when what an operator wants is the state of the instance | FEATURE | medium | medium | — |
 | [B466](testing/small-feature/B466-the-send-button-spends-money-with.md) | The send button spends money with no moment to reconsider | FEATURE | medium | low | — |
 | [B467](testing/small-feature/B467-a-sent-postcard-leaves-the-owner.md) | A sent postcard leaves the owner no record of what was posted | FEATURE | medium | medium | — |
+| [B478](testing/small-feature/B478-the-postcard-composer-offers-no-choice.md) | The postcard composer offers no choice of day or language for the prefilled text | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
