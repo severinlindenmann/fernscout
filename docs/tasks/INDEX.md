@@ -203,10 +203,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B477](in-development/B477-the-ios-home-screen-steps-are.md) | The iOS Home Screen steps are the ones readers get lost in and the only ones with no picture | DOCS | medium | low | `3744307d` |
 | [B475](in-development/B475-the-nightly-status-mail-is-a.md) | The nightly status mail is a wall of monospace while every other letter this instance sends is designed | FEATURE | low | medium | `7c3dd4ae` |
 
 ## testing (173)
