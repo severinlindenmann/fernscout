@@ -96,14 +96,26 @@ describe("photobook orders", () => {
 
   test("printed and failed are recorded with the payload", async () => {
     await claimOrder(OWNER, "order-four-1234", PAYLOAD);
-    await markPrinted(OWNER, "order-four-1234", { ...PAYLOAD, files: ["interior.pdf", "cover.pdf"] });
+    expect(
+      await markPrinted(OWNER, "order-four-1234", { ...PAYLOAD, files: ["interior.pdf", "cover.pdf"] }),
+    ).toBe(true);
     expect((await getPhotobookOrder(OWNER, "order-four-1234"))?.status).toBe("printed");
 
     await claimOrder(OWNER, "order-five-1234", PAYLOAD);
-    await markFailed(OWNER, "order-five-1234", PAYLOAD, "render threw");
+    expect(await markFailed(OWNER, "order-five-1234", PAYLOAD, "render threw")).toBe(true);
     const failed = await getPhotobookOrder(OWNER, "order-five-1234");
     expect(failed?.status).toBe("failed");
     expect(failed?.payload.failure).toBe("render threw");
+  });
+
+  test("a terminal status cannot be overwritten — markPrinted cannot resurrect a failed order", async () => {
+    await claimOrder(OWNER, "order-six-1234", PAYLOAD);
+    expect(await markFailed(OWNER, "order-six-1234", PAYLOAD, "render threw")).toBe(true);
+
+    expect(await markPrinted(OWNER, "order-six-1234", PAYLOAD)).toBe(false);
+    const order = await getPhotobookOrder(OWNER, "order-six-1234");
+    expect(order?.status).toBe("failed");
+    expect(order?.payload.failure).toBe("render threw");
   });
 
   test("nothing under app/api can reach the order builder", () => {

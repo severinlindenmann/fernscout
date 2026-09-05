@@ -93,7 +93,14 @@ export async function claimOrder(
       })
       .execute();
     return true;
-  } catch {
+  } catch (err) {
+    // A primary-key conflict is the ordinary double-press and is expected
+    // constantly; a lock timeout or a full disk looks identical from here and
+    // is not. Telling the two apart reliably across SQLite and Postgres isn't
+    // worth the code, so this logs unconditionally, at a level quiet enough
+    // not to page anyone over a double click but present in the logs for the
+    // outage that isn't one.
+    console.warn(`photobook claimOrder(${owner}, ${id}) failed:`, err);
     return false;
   }
 }
@@ -126,29 +133,43 @@ export async function getPhotobookOrder(owner: string, id: string): Promise<Phot
   };
 }
 
+/**
+ * Move a claimed order to a terminal status, and say whether it happened.
+ *
+ * Gated on `status = 'submitted'`, the same rows-affected reasoning as
+ * `claimForSend`: `submitted` is the only status this is meant to leave, so a
+ * second call — the render finishing twice, or a failure notice arriving
+ * after a printed one — changes nothing instead of overwriting a `failed` row
+ * (whose `payload.failure` means the credits were already returned) back to
+ * `printed`, which would read as fine while the refund silently stood.
+ */
 async function setStatus(
   owner: string,
   id: string,
   status: string,
   payload: PhotobookPayload,
-): Promise<void> {
+): Promise<boolean> {
+  if (!ORDER_ID_RE.test(id)) return false;
   const handle = await getDatabaseOrNull();
-  if (!handle) return;
-  await handle.db
+  if (!handle) return false;
+  const result = await handle.db
     .updateTable("print_orders")
     .set({ status, payload: JSON.stringify(payload), updated_at: nowIso() })
     .where("id", "=", id)
     .where("owner_id", "=", owner)
     .where("kind", "=", "photobook")
-    .execute();
+    .where("status", "=", "submitted")
+    .executeTakeFirst();
+  // bigint on both dialects; Number() for the same reason claimForSend uses it.
+  return Number(result.numUpdatedRows ?? 0) === 1;
 }
 
 export async function markPrinted(
   owner: string,
   id: string,
   payload: PhotobookPayload,
-): Promise<void> {
-  await setStatus(owner, id, "printed", payload);
+): Promise<boolean> {
+  return setStatus(owner, id, "printed", payload);
 }
 
 export async function markFailed(
@@ -156,6 +177,6 @@ export async function markFailed(
   id: string,
   payload: PhotobookPayload,
   failure: string,
-): Promise<void> {
-  await setStatus(owner, id, "failed", { ...payload, failure });
+): Promise<boolean> {
+  return setStatus(owner, id, "failed", { ...payload, failure });
 }
