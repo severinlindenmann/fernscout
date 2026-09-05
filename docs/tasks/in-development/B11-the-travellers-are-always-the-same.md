@@ -6,6 +6,9 @@ priority: low
 complexity: medium
 area: animation, brand, agent-interface
 found: "2026-09-01"
+started: "2026-09-05T15:51:50Z"
+session: c3c8ffc8-e9b2-4d46-b1b7-942387750255
+claimed: "2026-09-05T15:51:50Z"
 ---
 
 # B11 — The travellers are always the same two people
