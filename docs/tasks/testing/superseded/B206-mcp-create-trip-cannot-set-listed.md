@@ -7,6 +7,7 @@ complexity: low
 area: trips, api, mcp
 found: "2026-09-04T06:14:09Z"
 merged: "2026-09-04T08:40:12Z"
+superseded: "B298 — MCP was removed entirely; /api/mcp answers 404 on the live instance as of 2026-09-05"
 ---
 
 # B206 — MCP create_trip cannot set listed, so the two doors do not accept the same trip

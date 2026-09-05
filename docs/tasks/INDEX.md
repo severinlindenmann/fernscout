@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (91)
+## backlog (92)
 
 ### security (6)
 
@@ -162,7 +162,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (4)
+### docs-and-skills (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -170,6 +170,7 @@ Do not edit them by hand; run the script.
 | [B372](backlog/docs-and-skills/B372-a-private-trip-s-photograph-is.md) | A private trip's photograph is handed to Meta, and nothing a reader or owner sees says so | DOCS | medium | low |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 | [B289](backlog/docs-and-skills/B289-nothing-records-that-a-hungarian-string.md) | Nothing records that a Hungarian string cannot take a case suffix on an interpolated name | DOCS | low | low |
+| [B404](backlog/docs-and-skills/B404-a-journal-s-own-documentation-txt.md) | A journal's own documentation.txt does not say a private trip stays shut to approved guests | DOCS | low | low |
 
 ### superseded (6)
 
@@ -194,21 +195,17 @@ _Nothing here._
 | [B368](in-development/B368-there-is-no-way-to-ask.md) | There is no way to ask for more credits, and the payment provider does not exist yet | FEATURE | low | medium | `3d8b93dd` |
 | [B402](in-development/B402-the-admin-contact-list-prints-a.md) | The admin contact list prints a saved country code, not its name | ISSUE | low | low | `39691533` |
 
-## testing (172)
+## testing (162)
 
-### security (7)
+### security (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B01](testing/security/B01-forwarded-for-trust.md) | X-Forwarded-For is taken on trust, so every rate limit is bypassable | SECURITY | high | low | — |
-| [B230](testing/security/B230-a-code-issued-for-one-trip.md) | A code issued for one trip is verified into a journal-wide token | SECURITY | high | low | `62683d95` |
-| [B222](testing/security/B222-the-rate-limit-sweep-judged-every.md) | The rate-limit sweep judged every bucket by the default window, resetting the longer ones | SECURITY | medium | low | `62683d95` |
-| [B232](testing/security/B232-the-reactions-endpoint-answers-for-a.md) | The reactions endpoint answers for a trip nobody may read | SECURITY | medium | low | `62683d95` |
 | [B280](testing/security/B280-an-invite-link-cannot-be-handed.md) | An invite link cannot be handed out a second time, because the token is only stored hashed | SECURITY | medium | medium | — |
 | [B03](testing/security/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium | — |
-| [B233](testing/security/B233-the-https-only-rule-is-not.md) | The https-only rule is not re-applied after a redirect | SECURITY | low | low | `62683d95` |
 
-### issue (105)
+### issue (103)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -295,9 +292,7 @@ _Nothing here._
 | [B158](testing/issue/B158-the-publish-confirmation-promises-feed-and.md) | The publish confirmation promises feed and search for a day that is excluded from both | ISSUE | low | low | — |
 | [B161](testing/issue/B161-an-expired-place-on-a-trip.md) | An expired place on a trip is not restored by re-approving the contact | ISSUE | low | low | — |
 | [B170](testing/issue/B170-the-journal-title-is-clipped.md) | The journal's title is clipped in the header at exactly the width where the nav labels appear | ISSUE | low | low | `62683d95` |
-| [B175](testing/issue/B175-create_trip-over-mcp-cannot-ask.md) | create_trip over MCP cannot ask for an unadvertised trip, because it has no listed field | ISSUE | low | low | — |
 | [B199](testing/issue/B199-the-agent-handover-copy-control-has.md) | The agent-handover copy control has two values and a newline in one accessible name | ISSUE | low | low | — |
-| [B206](testing/issue/B206-mcp-create-trip-cannot-set-listed.md) | MCP create_trip cannot set listed, so the two doors do not accept the same trip | ISSUE | low | low | — |
 | [B207](testing/issue/B207-four-trip-fields-are-read-from.md) | Four trip fields are read from trip.md and nothing can write them | ISSUE | low | low | — |
 | [B208](testing/issue/B208-createdraft-never-reads-its-entry-back.md) | createDraft never reads its entry back, so an unwritable day is reported as written | ISSUE | low | low | — |
 | [B209](testing/issue/B209-two-different-limits-are-refused-with.md) | Two different limits are refused with the same sentence, so an agent cannot tell which it broke | ISSUE | low | low | — |
@@ -352,14 +347,13 @@ _Nothing here._
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
 | [B88](testing/small-feature/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low | — |
 
-### chore (16)
+### chore (15)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B258](testing/chore/B258-a-deploy-re-installs-re-migrates.md) | A deploy re-installs, re-migrates and rebuilds whatever changed | CHORE | high | medium | — |
 | [B184](testing/chore/B184-the-digest-cannot-be-exercised-end.md) | The digest cannot be exercised end to end, because everything an agent may write is filtered out of it | CHORE | medium | low | — |
 | [B257](testing/chore/B257-nothing-logs-http-requests-so-a.md) | Nothing logs HTTP requests, so a client reporting failed to fetch cannot be diagnosed | CHORE | medium | low | — |
-| [B298](testing/chore/B298-mcp-is-live-and-unused-and.md) | MCP is live and unused, and costs maintenance surface nobody exercises | CHORE | medium | high | — |
 | [B35](testing/chore/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
 | [B387](testing/chore/B387-the-weekly-digest-was-never-scheduled.md) | The weekly digest was never scheduled or wanted, and is a second mail system to keep correct | CHORE | medium | medium | — |
 | [B40](testing/chore/B40-a-six-digit-code-expires-in.md) | A six-digit code expires in ten minutes, which is shorter than people take to find the mail | CHORE | medium | low | — |
@@ -380,15 +374,11 @@ _Nothing here._
 | [B21](testing/ops/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | OPS | high | medium | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
-### docs-and-skills (18)
+### docs-and-skills (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B201](testing/docs-and-skills/B201-the-shared-main-checkout-can-be.md) | The shared main checkout can be left on a detached HEAD, stranding every session's commits | DOCS | high | medium | — |
-| [B223](testing/docs-and-skills/B223-the-draft-rule-is-stated-three.md) | The draft rule is stated three different ways since the publish endpoint shipped | DOCS | high | medium | `62683d95` |
-| [B256](testing/docs-and-skills/B256-an-agent-that-cannot-read-agent.md) | An agent that cannot read agent.md is left with the five questions and no calls | DOCS | high | medium | `62683d95` |
-| [B259](testing/docs-and-skills/B259-nothing-tells-an-agent-it-lacks.md) | Nothing tells an agent it lacks the tools to write here, so it invents workarounds instead | DOCS | high | medium | `62683d95` |
-| [B302](testing/docs-and-skills/B302-the-guide-frames-a-new-trip.md) | The guide frames a new trip as private-or-public, so an agent never offers guest and its user ends up with an approved reader who cannot read | DOCS | high | low | `62683d95` |
 | [B354](testing/docs-and-skills/B354-agent-md-calls-the-mailed-sign.md) | agent.md calls the mailed sign-in link standing with no expiry, and it is single use | DOCS | high | low | — |
 | [B143](testing/docs-and-skills/B143-task-ids-collide-when-parallel-sessions.md) | Task ids collide when parallel sessions capture by hand, which is what B99 was meant to prevent | DOCS | medium | medium | — |
 | [B144](testing/docs-and-skills/B144-enterworktree-refuses-for-a-dispatched-subagent.md) | EnterWorktree refuses for a dispatched subagent, so work-on-a-task's second step cannot be followed | DOCS | medium | low | — |
@@ -398,12 +388,18 @@ _Nothing here._
 | [B292](testing/docs-and-skills/B292-four-things-an-agent-had-to.md) | Four things an agent had to learn by failing are documented somewhere it was not looking | DOCS | medium | low | — |
 | [B335](testing/docs-and-skills/B335-the-guide-says-almost-nothing-about.md) | The guide says almost nothing about how a day's money and coordinates should be formed | DOCS | medium | low | — |
 | [B355](testing/docs-and-skills/B355-agent-md-says-an-invite-token.md) | agent.md says an invite token is only stored hashed and can never be shown again, which B280 changed | DOCS | medium | low | — |
-| [B152](testing/docs-and-skills/B152-the-guide-calls-the-relayed-sign.md) | The guide calls the relayed sign-in link the same link as the mailed one, and never says what kills it | DOCS | low | low | `62683d95` |
 | [B186](testing/docs-and-skills/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | DOCS | low | low | — |
 | [B198](testing/docs-and-skills/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | DOCS | low | low | — |
 | [B221](testing/docs-and-skills/B221-a-comment-in-mapframe-points-at.md) | A comment in mapFrame points at a file and a helper that do not exist | DOCS | low | low | — |
 
-## completed (99)
+### superseded (2)
+
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B175](testing/superseded/B175-create_trip-over-mcp-cannot-ask.md) | create_trip over MCP cannot ask for an unadvertised trip, because it has no listed field | ISSUE | low | low | — |
+| [B206](testing/superseded/B206-mcp-create-trip-cannot-set-listed.md) | MCP create_trip cannot set listed, so the two doors do not accept the same trip | ISSUE | low | low | — |
+
+## completed (109)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -414,14 +410,19 @@ _Nothing here._
 | [B157](completed/B157-an-mcp-only-agent-cannot-mark.md) | An MCP-only agent cannot mark a single day as test content, because create_day has no test field | ISSUE | high | low |
 | [B18](completed/B18-a-planned-trip-s-map-page.md) | A planned trip's map page draws no map | ISSUE | high | low |
 | [B213](completed/B213-re-approving-a-revoked-contact-restores.md) | Re-approving a revoked contact restores the journal but not their place on a trip, and says it worked | ISSUE | high | low |
+| [B223](completed/B223-the-draft-rule-is-stated-three.md) | The draft rule is stated three different ways since the publish endpoint shipped | DOCS | high | medium |
 | [B224](completed/B224-publishing-a-day-costs-a-confirmation.md) | Publishing a day costs a confirmation round trip the new doctrine does not want | FEATURE | high | medium |
+| [B230](completed/B230-a-code-issued-for-one-trip.md) | A code issued for one trip is verified into a journal-wide token | SECURITY | high | low |
 | [B231](completed/B231-a-trip-scoped-token-downloads-the.md) | A trip-scoped token downloads the whole journal from export.zip | SECURITY | high | low |
+| [B256](completed/B256-an-agent-that-cannot-read-agent.md) | An agent that cannot read agent.md is left with the five questions and no calls | DOCS | high | medium |
+| [B259](completed/B259-nothing-tells-an-agent-it-lacks.md) | Nothing tells an agent it lacks the tools to write here, so it invents workarounds instead | DOCS | high | medium |
 | [B263](completed/B263-journal-creation-silently-defaults-visibility-and.md) | Journal creation silently defaults visibility and language, so a journal asked to be private was created public | SECURITY | high | low |
 | [B265](completed/B265-a-day-with-no-coordinates-puts.md) | A day with no coordinates puts NaN through every map on the site | ISSUE | high | low |
 | [B266](completed/B266-a-day-cannot-be-edited-after.md) | A day cannot be edited after it is written, and the agent that tried published fifteen of them | ISSUE | high | medium |
 | [B279](completed/B279-a-page-rendered-its-raw-locale.md) | A page rendered its raw locale keys to a reader instead of any text at all | ISSUE | high | medium |
 | [B295](completed/B295-a-trip-budget-can-only-be.md) | A trip budget can only be written by hand, so an agent cannot give a trip its costs page | FEATURE | high | medium |
 | [B296](completed/B296-the-days-listing-hides-drafts-from.md) | The days listing hides drafts from the only caller allowed to see them, so an agent cannot audit its own writes | ISSUE | high | low |
+| [B302](completed/B302-the-guide-frames-a-new-trip.md) | The guide frames a new trip as private-or-public, so an agent never offers guest and its user ends up with an approved reader who cannot read | DOCS | high | low |
 | [B327](completed/B327-a-buddy-writes-a-day-and.md) | A buddy writes a day and can see it nowhere on the site, because every reading path gates drafts on ownership | ISSUE | high | medium |
 | [B331](completed/B331-a-journal-s-own-document-never.md) | A journal's own document never mentions invites, so an agent told its owner to use a dashboard that does not exist | ISSUE | high | low |
 | [B333](completed/B333-the-invitation-can-be-mailed-and.md) | The invitation can be mailed and pre-approved, and nothing anywhere says so | ISSUE | high | low |
@@ -447,12 +448,15 @@ _Nothing here._
 | [B182](completed/B182-a-journal-s-features-cannot-be.md) | A journal's features cannot be changed after it is created, so every journal made before today is stuck as it was | ISSUE | medium | medium |
 | [B19](completed/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium |
 | [B20](completed/B20-the-stranger-s-me-page-never.md) | The stranger's me page never says who to ask | ISSUE | medium | low |
+| [B222](completed/B222-the-rate-limit-sweep-judged-every.md) | The rate-limit sweep judged every bucket by the default window, resetting the longer ones | SECURITY | medium | low |
+| [B232](completed/B232-the-reactions-endpoint-answers-for-a.md) | The reactions endpoint answers for a trip nobody may read | SECURITY | medium | low |
 | [B26](completed/B26-the-welcome-mail-is-english-only.md) | The welcome mail is English only, and nobody is asked which language the journal is in | FEATURE | medium | low |
 | [B27](completed/B27-the-welcome-mail-s-link-opens.md) | The welcome mail's link opens the public view, so the owner cannot see their own drafts | FEATURE | medium | medium |
 | [B278](completed/B278-the-page-for-a-reader-who.md) | The page for a reader who may see nothing names nobody to ask and offers no way in | ISSUE | medium | medium |
 | [B28](completed/B28-publishing-a-draft-requires-editing-a.md) | Publishing a draft requires editing a file by hand, so an agent cannot close the loop it opened | FEATURE | medium | high |
 | [B281](completed/B281-the-invite-panel-asks-who-a.md) | The invite panel asks who a link is for and then shows neither that nor the language, and offers a third link kind nobody needs | FEATURE | medium | medium |
 | [B293](completed/B293-a-journal-s-features-cannot-be.md) | A journal's features cannot be changed by any door, and the route that refuses says only 405 | ISSUE | medium | medium |
+| [B298](completed/B298-mcp-is-live-and-unused-and.md) | MCP is live and unused, and costs maintenance surface nobody exercises | CHORE | medium | high |
 | [B299](completed/B299-no-visual-page-to-browse-the.md) | No visual page to browse the API endpoints | FEATURE | medium | low |
 | [B304](completed/B304-a-day-s-costs-still-accept.md) | A day's costs still accept a zero amount and an unrecognised currency, and drop both silently | ISSUE | medium | low |
 | [B315](completed/B315-the-invite-form-offers-a-postcard.md) | The invite form offers a postcard but never asks about email updates, so a new reader is silently opted out | ISSUE | medium | low |
@@ -487,11 +491,13 @@ _Nothing here._
 | [B139](completed/B139-the-costs-page-s-tab-title.md) | The costs page's tab title is English on a journal that is not | ISSUE | low | low |
 | [B140](completed/B140-the-tab-title-can-be.md) | The tab title can be in a language the journal does not offer, while the page is not | ISSUE | low | low |
 | [B151](completed/B151-the-mail-filename-slug-has.md) | The mail filename slug has no NFD pass, so a German umlaut loses its vowel | CHORE | low | low |
+| [B152](completed/B152-the-guide-calls-the-relayed-sign.md) | The guide calls the relayed sign-in link the same link as the mailed one, and never says what kills it | DOCS | low | low |
 | [B183](completed/B183-mcp-advertises-the-invite-tools-to.md) | MCP advertises the invite tools to a journal that has contacts switched off | CHORE | low | low |
 | [B185](completed/B185-a-locale-cookie-the-journal-does.md) | A locale cookie the journal does not list translates the tab title but not the page under it | ISSUE | low | low |
 | [B220](completed/B220-the-rest-of-a-journal-s.md) | The rest of a journal's config.json still cannot be changed after it is created | ISSUE | low | medium |
 | [B225](completed/B225-the-landing-page-s-tab-title.md) | The landing page's tab title is English over a translated page | ISSUE | low | low |
 | [B23](completed/B23-everything-in-docs-was-archived-and.md) | Everything in docs was archived and nobody decided what is still current | CHORE | low | low |
+| [B233](completed/B233-the-https-only-rule-is-not.md) | The https-only rule is not re-applied after a redirect | SECURITY | low | low |
 | [B234](completed/B234-an-unauthenticated-health-check-discloses-server.md) | An unauthenticated health check discloses server paths and journal names | SECURITY | low | low |
 | [B29](completed/B29-an-agent-has-no-way-to.md) | An agent has no way to hand its owner a working sign-in link | FEATURE | low | medium |
 | [B30](completed/B30-a-url-upload-never-says-whether.md) | A URL upload never says whether an original was kept | ISSUE | low | low |

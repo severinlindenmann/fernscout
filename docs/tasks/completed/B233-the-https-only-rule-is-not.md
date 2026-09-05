@@ -8,8 +8,7 @@ area: api, media, ssrf
 found: "2026-09-04T07:59:28Z"
 started: "2026-09-04T08:08:58Z"
 merged: "2026-09-04T08:43:24Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T07:33:17Z"
+completed: "2026-09-05T07:37:49Z"
 ---
 
 # B233 — The https-only rule is not re-applied after a redirect

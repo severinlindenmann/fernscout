@@ -8,8 +8,7 @@ area: agent onboarding docs
 found: "2026-09-04T10:35:21Z"
 started: "2026-09-04T10:36:11Z"
 merged: "2026-09-04T10:49:24Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T07:33:18Z"
+completed: "2026-09-05T07:37:33Z"
 ---
 
 # B256 — An agent that cannot read agent.md is left with the five questions and no calls

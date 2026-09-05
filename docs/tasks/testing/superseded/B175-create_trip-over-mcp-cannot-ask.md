@@ -8,6 +8,7 @@ area: mcp, trips
 found: "2026-09-03"
 started: "2026-09-04T06:22:43Z"
 merged: "2026-09-04T06:50:22Z"
+superseded: "B298 — MCP was removed entirely; /api/mcp answers 404 on the live instance as of 2026-09-05"
 ---
 
 # B175 — `create_trip` over MCP cannot ask for an unadvertised trip

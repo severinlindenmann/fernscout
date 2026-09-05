@@ -8,8 +8,7 @@ area: auth, api
 found: "2026-09-04T07:59:18Z"
 started: "2026-09-04T08:08:58Z"
 merged: "2026-09-04T08:29:10Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T07:33:16Z"
+completed: "2026-09-05T07:37:48Z"
 ---
 
 # B230 — A code issued for one trip is verified into a journal-wide token

@@ -8,8 +8,7 @@ area: docs, api, mcp, i18n
 found: "2026-09-04T07:30:42Z"
 started: "2026-09-04T07:32:24Z"
 merged: "2026-09-04T07:56:56Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T07:33:18Z"
+completed: "2026-09-05T07:37:33Z"
 ---
 
 # B223 — The draft rule is stated three different ways since the publish endpoint shipped

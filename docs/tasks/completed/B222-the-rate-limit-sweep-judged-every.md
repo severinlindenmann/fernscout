@@ -7,8 +7,7 @@ complexity: low
 area: rate-limiting
 found: "2026-09-04T07:29:26Z"
 merged: "2026-09-04T15:41:21Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T07:33:17Z"
+completed: "2026-09-05T07:38:26Z"
 ---
 
 # B222 — The rate-limit sweep judged every bucket by the default window, resetting the longer ones
@@ -81,3 +80,22 @@ left alone until there is a second process.
   passes now.
 - On the live site: five journal-creation attempts, then reactions from many
   addresses, then a sixth attempt inside the hour is still refused.
+
+---
+
+**2026-09-05, campaign verdict: first bullet verified, second not runnable.**
+
+`npx vitest run test/rate-limit.test.ts` passes, including the named test "a
+bucket whose own window is still open is not swept away by a shorter one"
+(`test/rate-limit.test.ts:86`). That is the bullet that pins the actual fix.
+
+The live bullet was **not** run, deliberately. Reaching the sweep threshold
+needs reactions from thousands of *distinct* addresses — from one client they
+all hash to one bucket key, so the code path under test is never entered — and
+the first half would burn the shared 5-per-hour journal-creation budget to zero
+for every other agent. Verifying it live would need a maintenance window with
+the whole budget allocated to it, or a fixture that can reach the threshold
+without touching the production limiter.
+
+Moved to `completed/` on the first bullet. If the live bullet matters, it is
+its own ops task, not a gap in the fix.

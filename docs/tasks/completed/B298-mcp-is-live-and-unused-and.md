@@ -8,6 +8,7 @@ area: mcp, api, docs, tests
 found: "2026-09-04T13:55:45Z"
 started: "2026-09-04T13:57:38Z"
 merged: "2026-09-04T14:21:26Z"
+completed: "2026-09-05T07:37:34Z"
 ---
 
 # B298 — MCP is live and unused, and costs maintenance surface nobody exercises
