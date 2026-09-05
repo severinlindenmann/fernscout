@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: home, service worker
 found: "2026-09-05T12:24:48Z"
+merged: "2026-09-05T12:28:32Z"
 ---
 
 # B443 — Every signed-out visit to / logs a 401 in the browser console

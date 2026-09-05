@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (105)
+## backlog (104)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (37)
+### issue (36)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -102,7 +102,6 @@ Do not edit them by hand; run the script.
 | [B428](backlog/issue/B428-the-patch-config-response-echoes-a.md) | The PATCH config response echoes a stale features block that a GET moments later contradicts | ISSUE | low | low |
 | [B429](backlog/issue/B429-the-invite-form-shows-a-canned.md) | The invite form shows a canned mail-off line instead of the server's, losing which switch is off | ISSUE | low | low |
 | [B432](backlog/issue/B432-six-german-strings-address-the-reader.md) | Six German strings address the reader formally where a hundred and thirty use du | ISSUE | low | low |
-| [B443](backlog/issue/B443-every-signed-out-visit-to-logs.md) | Every signed-out visit to / logs a 401 in the browser console | ISSUE | low | low |
 
 ### big-feature (12)
 
@@ -206,9 +205,9 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B445](in-development/B445-there-is-nothing-a-guest-a.md) | There is nothing a guest, a buddy or a new owner can read that explains what they can do here | DOCS | high | medium | `3744307d` |
 
-## testing (145)
+## testing (146)
 
-### issue (83)
+### issue (84)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -294,6 +293,7 @@ _Nothing here._
 | [B400](testing/issue/B400-a-non-boolean-send-mail-on.md) | A non-boolean send_mail on publish is silently ignored, so an agent thinks it sent | ISSUE | low | low | — |
 | [B413](testing/issue/B413-the-buy-credits-dialog-is-off.md) | The Buy-credits dialog is off-centre; make it an animated dropdown under its button | ISSUE | low | low | — |
 | [B414](testing/issue/B414-three-places-tell-an-owner-to.md) | Three places tell an owner to edit trip.md for a change the API can now make | ISSUE | low | low | `62683d95` |
+| [B443](testing/issue/B443-every-signed-out-visit-to-logs.md) | Every signed-out visit to / logs a 401 in the browser console | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
 ### big-feature (11)
