@@ -589,10 +589,22 @@ describe("the payment section", () => {
     expect(html).not.toContain("by WhatsApp");
   });
 
-  test("names a placeholder for buying credits, and does not build a flow", () => {
+  /**
+   * B368 built the real flow: the button opens a dialog listing the three
+   * tiers, rather than sitting disabled with a "coming soon" caption. It
+   * still builds no checkout — pressing Buy on a tier only mails the
+   * journal's own owner; see `app/api/v1/[user]/credits/purchase/route.ts`.
+   */
+  test("offers the three tiers behind the buy button, none of them disabled", () => {
     const html = render({ viewer: owner, payment });
     expect(html).toContain(dictionaryFor("en")["me.paymentBuyTitle"]);
-    expect(html).toContain("disabled=\"\"");
+    expect(html).not.toContain("disabled=\"\"");
+    expect(html).toContain("50 credits");
+    expect(html).toContain("CHF 10.00");
+    expect(html).toContain("100 credits");
+    expect(html).toContain("CHF 18.00");
+    expect(html).toContain("200 credits");
+    expect(html).toContain("CHF 32.00");
   });
 
   /**

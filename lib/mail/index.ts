@@ -446,7 +446,10 @@ export async function sendMail(mail: Mail): Promise<SendResult | null> {
  *   `DELETE` answering 202 with nothing ever arriving;
  * - **operator alerts** about the machine (`scripts/alert.mts`), which are not
  *   the journal writing to anybody; they are the box saying its backup failed,
- *   and B64 is what silence there costs.
+ *   and B64 is what silence there costs;
+ * - **a credit purchase inquiry** (B368), which mails the owner about a tier
+ *   they just asked for on their own page and must not itself cost a credit —
+ *   charging to ask for more credits is the lockout this list exists to avoid.
  *
  * What they have in common: each is addressed to somebody exercising control
  * of the journal, and withholding it removes control rather than granting it.
