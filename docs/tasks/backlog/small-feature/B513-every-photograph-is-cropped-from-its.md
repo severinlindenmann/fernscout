@@ -44,8 +44,26 @@ Where it is stored is the decision. Options, and they are not equivalent:
   means the composer writing to content, which nothing in the browser does
   today and which decision 24 has opinions about.
 
-The first is the smaller change and the honest starting point; say why in the
-ticket if that is what is chosen.
+**Decided (2026-09-05): the book's options.** Three reasons, in order of
+weight.
+
+The composer is a browser surface, and ROADMAP decision 24 is that there is no
+web editing interface for content. A focal point written into an entry's
+frontmatter from a page in Chrome is the first crack in that, and it is not
+worth spending on a crop.
+
+A crop only exists because a book put the photograph in a slot of a particular
+shape. The same picture is a hero on one page and a quarter on another, and the
+point that saves it may differ; the *photograph* has no focal point, the
+*placement* does.
+
+And it is reversible. If the website later wants one too — `GalleryGrid` does
+crop its thumbnails, so it might — the frontmatter is still there to move to,
+and the book can read it in preference to its own. Starting the other way round
+cannot be undone.
+
+The cost, recorded so nobody rediscovers it as a surprise: a photograph used in
+two books is adjusted twice. Most are used in one.
 
 In the composer: tap a point on the thumbnail. That is the whole gesture, and
 it wants to be visible only for a photograph that is actually being cropped —

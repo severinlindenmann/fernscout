@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: photobook, preview
 found: "2026-09-05T20:42:57Z"
+started: "2026-09-05T20:47:27Z"
+session: d9c396ea-a80a-4f80-954a-d37a0bf2c8c8
+claimed: "2026-09-05T20:47:27Z"
 ---
 
 # B514 — The preview shows pages, but a book is read in spreads

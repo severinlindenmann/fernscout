@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: photobook, ui
 found: "2026-09-05T20:42:57Z"
+started: "2026-09-05T20:47:26Z"
+session: d9c396ea-a80a-4f80-954a-d37a0bf2c8c8
+claimed: "2026-09-05T20:47:26Z"
 ---
 
 # B515 — There is no way back from an arrangement you regret
