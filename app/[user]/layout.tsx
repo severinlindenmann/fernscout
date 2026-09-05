@@ -9,6 +9,7 @@ import LocaleProvider from "@/components/LocaleProvider";
 import TripListProvider from "@/components/TripListProvider";
 import { isIndexable } from "@/lib/access";
 import { siteSummaryFor } from "@/lib/site";
+import IdentityUpgrade from "@/components/IdentityUpgrade";
 import PushPrompt from "@/components/PushPrompt";
 import { resolveAccess } from "@/lib/auth/handshake";
 import { listableTrips } from "@/lib/tripGate";
@@ -78,6 +79,12 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
   // the only credential the way out can be drawn from. Free here:
   // `resolveAccess` is memoised per request and has already been asked.
   const hasIdentity = Boolean(access.identity);
+  // B410 shipped to an instance whose readers were already signed in, and
+  // nothing upgrades them: identity is minted by the act of signing in, which
+  // a reader holding a year-long cookie will not repeat. This is the one
+  // reader who needs asking — proved for this journal, and carrying no
+  // identity to show for it. See app/api/auth/identity/upgrade. B459.
+  const upgradeIdentity = Boolean(access.session) && !access.identity;
 
   // A reader's choice from the language switcher, honoured only if this
   // journal actually offers it — otherwise a cookie set on one journal would
@@ -117,6 +124,7 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
         the reader the hero has already scrolled away from (B439).
       */}
       <PushPrompt username={username} />
+      {upgradeIdentity && <IdentityUpgrade />}
       {/* The journal's own language, rendered on the server. This used to be
           English on the server and the reader's choice after hydration, which
           is why no German page had a URL of its own and search engines only
