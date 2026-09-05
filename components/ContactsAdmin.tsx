@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AddressLookupField from "./AddressLookupField";
 import CopyLine from "./CopyLine";
 import CountryField from "./CountryField";
 import TelField, { joinTel, splitTel } from "./TelField";
+import { countryName, resolveCountry } from "@/lib/countries";
 import { LOCALE_LABEL, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
@@ -215,6 +217,8 @@ function ContactRow({
   act,
   onEdit,
   highlighted = false,
+  locale,
+  locales,
 }: {
   contact: AdminContact;
   /** How they came to be here, already in words — see `viaLabel`. Resolved by
@@ -228,6 +232,12 @@ function ContactRow({
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
   onEdit: (contact: AdminContact) => void;
+  /** The admin's own locale — B402: what `postal.country` is named in, the
+   * same way `CountryField` names it in the form's own locale. */
+  locale: Locale;
+  /** The journal's own languages, for `resolveCountry` — a legacy row may
+   * have been typed in any of them. */
+  locales: string[];
   /** This is the request the owner's approval mail was about — B319. Not a
    * different state, only a ring round an ordinary row: the button, the
    * data, everything else about it is identical to any other pending
@@ -282,7 +292,15 @@ function ContactRow({
                 postal.line1,
                 postal.line2,
                 `${postal.postcode} ${postal.city}`.trim(),
-                postal.country,
+                // B398 stores an ISO2 code once a row is saved through the
+                // picker; named back out in the admin's own locale the same
+                // way CountryField does. A legacy row resolveCountry can't
+                // place (or an ISO2 Intl.DisplayNames won't name) shows
+                // exactly the string on disk — never a blank.
+                (() => {
+                  const iso2 = resolveCountry(postal.country, locales);
+                  return iso2 ? countryName(iso2, locale) : postal.country;
+                })(),
               ]
                 .filter((line) => line !== "")
                 .join(", ")}
@@ -443,6 +461,7 @@ export function GuestForm({
   contact,
   fallbackLocale,
   locales,
+  username,
   t,
   busy,
   act,
@@ -450,11 +469,16 @@ export function GuestForm({
   postcardsEnabled = true,
   whatsappEnabled = true,
   defaultCountryCode,
+  addressLookupEnabled = false,
 }: {
   /** The row being corrected, or `null` to add a new one. */
   contact: AdminContact | null;
   fallbackLocale: Locale;
   locales: string[];
+  /** For the address lookup proxy's own capability check — B399. Every
+   * other caller in this form already has `username` in scope; this is the
+   * one prop `GuestForm` did not need until now. */
+  username: string;
   t: Translate;
   busy: boolean;
   act: (body: Record<string, unknown>) => Promise<Response | null>;
@@ -474,6 +498,8 @@ export function GuestForm({
   /** B385: `whatsappCountryCode()`, seeding only a brand-new guest's blank
    * dialling code — see `fieldsFor`. */
   defaultCountryCode?: string;
+  /** B399: `isEnabled("addressLookup", username)`, from the page. */
+  addressLookupEnabled?: boolean;
 }) {
   const editingId = contact?.id ?? null;
   const [form, setForm] = useState<GuestFields>(() =>
@@ -628,12 +654,28 @@ export function GuestForm({
           <label className={LABEL} htmlFor="guest-addr-line1">
             {t("contact.addrLine1")}
           </label>
-          <input
+          <AddressLookupField
             id="guest-addr-line1"
             className={FIELD}
             value={form.line1}
-            onChange={(e) => field("line1", e.target.value)}
+            onChange={(value) => field("line1", value)}
+            onPick={(suggestion) =>
+              setForm((previous) => ({
+                ...previous,
+                line1: suggestion.line1,
+                postcode: suggestion.postcode,
+                city: suggestion.city,
+                country: suggestion.country,
+              }))
+            }
+            enabled={addressLookupEnabled}
+            username={username}
+            locale={form.locale}
+            label={t("contact.addrLine1")}
           />
+          {addressLookupEnabled && (
+            <p className="mt-2 text-base text-navy-600">{t("contact.addressLookupHint")}</p>
+          )}
         </div>
         <div className="mt-4">
           <label className={LABEL} htmlFor="guest-addr-line2">
@@ -756,6 +798,8 @@ function ContactGroup({
   act,
   onEdit,
   highlightId,
+  locale,
+  locales,
 }: {
   title: string;
   rows: AdminContact[];
@@ -772,6 +816,9 @@ function ContactGroup({
   act: (body: Record<string, unknown>) => void;
   onEdit: (contact: AdminContact) => void;
   highlightId?: string;
+  /** B402 — see `ContactRow`'s own note on both of these. */
+  locale: Locale;
+  locales: string[];
 }) {
   return (
     <section className="mt-10">
@@ -790,6 +837,8 @@ function ContactGroup({
               act={act}
               onEdit={onEdit}
               highlighted={contact.id === highlightId}
+              locale={locale}
+              locales={locales}
               key={contact.id}
             />
           ))}
@@ -925,6 +974,7 @@ export default function ContactsAdmin({
   postcardsEnabled = true,
   whatsappEnabled = true,
   defaultCountryCode,
+  addressLookupEnabled = false,
 }: {
   username: string;
   locale: Locale;
@@ -962,6 +1012,8 @@ export default function ContactsAdmin({
   /** B385: `whatsappCountryCode()` — passed through to `GuestForm`'s own
    * default, unrelated to whether WhatsApp itself is on. */
   defaultCountryCode?: string;
+  /** B399: `isEnabled("addressLookup", username)`, from the page. */
+  addressLookupEnabled?: boolean;
 }) {
   const [contacts, setContacts] = useState(initialContacts);
   const [invites, setInvites] = useState(initialInvites);
@@ -1072,6 +1124,7 @@ export default function ContactsAdmin({
             contact={formTarget === "new" ? null : formTarget}
             fallbackLocale={locale}
             locales={locales}
+            username={username}
             t={t}
             busy={busy}
             act={act}
@@ -1079,6 +1132,7 @@ export default function ContactsAdmin({
             defaultCountryCode={defaultCountryCode}
             postcardsEnabled={postcardsEnabled}
             whatsappEnabled={whatsappEnabled}
+            addressLookupEnabled={addressLookupEnabled}
           />
         )}
       </div>
@@ -1093,6 +1147,8 @@ export default function ContactsAdmin({
         act={act}
         onEdit={setFormTarget}
         highlightId={highlightId}
+        locale={locale}
+        locales={locales}
       />
       <ContactGroup
         title={t("contact.adminApproved")}
@@ -1103,6 +1159,8 @@ export default function ContactsAdmin({
         act={act}
         onEdit={setFormTarget}
         highlightId={highlightId}
+        locale={locale}
+        locales={locales}
       />
       {other.length > 0 && (
         <ContactGroup
@@ -1114,6 +1172,8 @@ export default function ContactsAdmin({
           act={act}
           onEdit={setFormTarget}
           highlightId={highlightId}
+          locale={locale}
+          locales={locales}
         />
       )}
 

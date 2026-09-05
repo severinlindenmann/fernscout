@@ -60,6 +60,7 @@ describe("the owner's add-a-guest form's postal block (ContactsAdmin's GuestForm
         contact={null}
         fallbackLocale="en"
         locales={["en"]}
+        username="ana"
         t={(key) => en[key] ?? key}
         busy={false}
         act={async () => null}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { codeConfirmErrorKey } from "@/lib/contacts/codeConfirmError";
 import { LOCALE_LABEL, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
+import AddressLookupField from "./AddressLookupField";
 import CountryField from "./CountryField";
 import TelField, { joinTel, splitTel } from "./TelField";
 
@@ -79,6 +80,7 @@ export default function InviteRedeem({
   postcardsEnabled = true,
   whatsappEnabled = true,
   defaultCountryCode,
+  addressLookupEnabled = false,
 }: {
   username: string;
   journalTitle: string;
@@ -118,6 +120,8 @@ export default function InviteRedeem({
    * (the "form" step is shown only to a brand-new reader — see the class
    * doc comment). */
   defaultCountryCode?: string;
+  /** B399: `isEnabled("addressLookup", username)`, from the page. */
+  addressLookupEnabled?: boolean;
 }) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [step, setStep] = useState<Step>(
@@ -409,13 +413,30 @@ export default function InviteRedeem({
                   <label className={LABEL} htmlFor="invite-addr-line1">
                     {t("contact.addrLine1")}
                   </label>
-                  <input
+                  <AddressLookupField
                     id="invite-addr-line1"
                     className={FIELD}
                     autoComplete="address-line1"
                     value={address.line1}
-                    onChange={(e) => setAddressField("line1", e.target.value)}
+                    onChange={(value) => setAddressField("line1", value)}
+                    onPick={(suggestion) => {
+                      setAddress((previous) => ({
+                        ...previous,
+                        line1: suggestion.line1,
+                        postcode: suggestion.postcode,
+                        city: suggestion.city,
+                        country: suggestion.country,
+                      }));
+                      setWantsPostcard(true);
+                    }}
+                    enabled={addressLookupEnabled}
+                    username={username}
+                    locale={locale}
+                    label={t("contact.addrLine1")}
                   />
+                  {addressLookupEnabled && (
+                    <p className="mt-2 text-base text-navy-600">{t("contact.addressLookupHint")}</p>
+                  )}
                 </div>
                 <div className="mt-4">
                   <label className={LABEL} htmlFor="invite-addr-line2">

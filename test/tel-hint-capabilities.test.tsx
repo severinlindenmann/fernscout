@@ -75,6 +75,7 @@ describe("the phone hint on the owner's add-a-guest form (GuestForm)", () => {
         contact={null}
         fallbackLocale="en"
         locales={["en"]}
+        username="ana"
         t={(key) => en[key] ?? key}
         busy={false}
         act={async () => null}

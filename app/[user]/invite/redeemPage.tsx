@@ -130,6 +130,9 @@ export default async function RedeemPage({
       // B385: same fallback `toE164` itself reads, offered here as the
       // dialling code's default rather than left for send time to discover.
       defaultCountryCode={whatsappCountryCode()}
+      // B399: same server-ceiling-and-journal-opt-in check as everywhere
+      // else this capability is read.
+      addressLookupEnabled={isEnabled("addressLookup", username)}
     />
   );
 }

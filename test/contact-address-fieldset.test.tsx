@@ -21,6 +21,7 @@ describe("the owner's address fieldset survives postcards being off", () => {
         contact={null}
         fallbackLocale="en"
         locales={["en"]}
+        username="ana"
         t={(key) => en[key] ?? key}
         busy={false}
         act={async () => null}
@@ -45,6 +46,7 @@ describe("the owner's address fieldset survives postcards being off", () => {
         contact={null}
         fallbackLocale="en"
         locales={["en"]}
+        username="ana"
         t={(key) => en[key] ?? key}
         busy={false}
         act={async () => null}

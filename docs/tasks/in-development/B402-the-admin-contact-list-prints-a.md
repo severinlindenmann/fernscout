@@ -42,3 +42,16 @@ A contact saved with country `CH` shows "Switzerland" (or the owner's own
 locale's name) in the admin's pending/approved list, not the bare code. A
 contact with an unresolved legacy string (e.g. "Elbonia") still shows exactly
 that string, unchanged.
+
+## Built
+
+`ContactRow` (`components/ContactsAdmin.tsx`) now takes `locale: Locale` and
+`locales: string[]`, and renders `postal.country` through
+`resolveCountry(postal.country, locales)` then `countryName(iso2, locale)`,
+falling back to the raw stored string when it does not resolve — same rule
+`CountryField` already applies, now also at read time. `ContactGroup` threads
+both props down from the three call sites in `ContactsAdmin`'s default
+export, which already had `locale`/`locales` in scope.
+
+`test/contact-country-name.test.tsx` — the acceptance line as written: `CH`
+renders "Switzerland", and "Elbonia" renders unchanged.

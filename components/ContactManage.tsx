@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import AddressLookupField from "./AddressLookupField";
 import CountryField from "./CountryField";
 import TelField, { joinTel, splitTel } from "./TelField";
 import { LOCALE_LABEL, translate, type TranslationKey } from "@/lib/i18n";
@@ -63,6 +64,7 @@ export default function ContactManage({
   dictionary,
   className = PAGE_CLASS,
   defaultCountryCode,
+  addressLookupEnabled = false,
 }: {
   username: string;
   /** The languages this journal offers, from its config. */
@@ -74,6 +76,8 @@ export default function ContactManage({
    * reader has never given a number at all; an existing one is always
    * parsed back (see `splitTel`), never overridden. */
   defaultCountryCode?: string;
+  /** B399: `isEnabled("addressLookup", username)`, from the page. */
+  addressLookupEnabled?: boolean;
   /**
    * The outer element's spacing and width. Defaults to a page's own centred
    * column — the standalone `/c/<token>` page every mail footer points at.
@@ -213,10 +217,46 @@ export default function ContactManage({
             {t("contact.address")}
           </legend>
           <p className="text-base text-navy-700">{t("contact.addressHint")}</p>
+          <div className="mt-4">
+            <label className={LABEL} htmlFor="manage-name">
+              {t("contact.addrName")}
+            </label>
+            <input
+              id="manage-name"
+              className={FIELD}
+              value={address.name}
+              onChange={(e) => setAddress((previous) => ({ ...previous, name: e.target.value }))}
+            />
+          </div>
+          <div className="mt-4">
+            <label className={LABEL} htmlFor="manage-line1">
+              {t("contact.addrLine1")}
+            </label>
+            <AddressLookupField
+              id="manage-line1"
+              className={FIELD}
+              value={address.line1}
+              onChange={(value) => setAddress((previous) => ({ ...previous, line1: value }))}
+              onPick={(suggestion) =>
+                setAddress((previous) => ({
+                  ...previous,
+                  line1: suggestion.line1,
+                  postcode: suggestion.postcode,
+                  city: suggestion.city,
+                  country: suggestion.country,
+                }))
+              }
+              enabled={addressLookupEnabled}
+              username={username}
+              locale={locale}
+              label={t("contact.addrLine1")}
+            />
+            {addressLookupEnabled && (
+              <p className="mt-2 text-base text-navy-600">{t("contact.addressLookupHint")}</p>
+            )}
+          </div>
           {(
             [
-              ["name", "contact.addrName"],
-              ["line1", "contact.addrLine1"],
               ["line2", "contact.addrLine2"],
               ["postcode", "contact.addrPostcode"],
               ["city", "contact.addrCity"],

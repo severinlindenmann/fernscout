@@ -92,6 +92,9 @@ export default async function InvitePage({ params }: PageProps<"/[user]/i/[token
       // `toE164` where a national number belongs. Independent of whether
       // WhatsApp is switched on — the same fallback exists for legacy rows.
       defaultCountryCode={whatsappCountryCode()}
+      // B399: same server-ceiling-and-journal-opt-in check as everywhere
+      // else this capability is read.
+      addressLookupEnabled={isEnabled("addressLookup", username)}
     />
   );
 }

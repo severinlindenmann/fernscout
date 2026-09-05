@@ -101,6 +101,9 @@ export default async function ManagePage({ params }: PageProps<"/[user]/c/[token
             }}
             // B385: same fallback `toE164` reads at send time.
             defaultCountryCode={whatsappCountryCode()}
+            // B399: same server-ceiling-and-journal-opt-in check as
+            // everywhere else this capability is read.
+            addressLookupEnabled={isEnabled("addressLookup", username)}
           />
         </main>
       </div>
