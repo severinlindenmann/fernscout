@@ -256,6 +256,78 @@ describe("choosing the front cover — B512", () => {
   });
 });
 
+describe("cropping from a focal point — B513", () => {
+  const src = (n: number) => `/alex/media/asia-2026/day/${n}.jpg`;
+
+  test("a photograph nobody has touched crops exactly as it did before", () => {
+    // The whole promise, same shape as the untouched-day test above:
+    // `focalPoints: {}` and the feature might as well not be there.
+    expect(JSON.stringify(plan({ focalPoints: {} }))).toBe(JSON.stringify(plan({})));
+  });
+
+  test("keeps a subject near the top of the photograph in a hero (full-bleed) slot", () => {
+    // Day one is a hero day by the automatic rhythm, and p1 is its hero.
+    const drawOf = (options: Partial<BookOptions>) => {
+      const page = plan(options)
+        .volumes.flatMap((v) => v.pages)
+        .find((p) => p.kind === "photos" && p.layout === "full-bleed");
+      return page?.kind === "photos" ? page.placements[0].draw : undefined;
+    };
+    const centred = drawOf({});
+    const top = drawOf({ focalPoints: { [src(1)]: { x: 0.5, y: 0 } } });
+    const bottom = drawOf({ focalPoints: { [src(1)]: { x: 0.5, y: 1 } } });
+    expect(centred).toBeDefined();
+    expect(top).toBeDefined();
+    expect(bottom).toBeDefined();
+    // x is untouched — only the vertical anchor moved.
+    expect(top!.x).toBe(centred!.x);
+    // Asking to keep the top and the bottom must move the crop in opposite
+    // directions, with the untouched centre in between.
+    expect(top!.y).not.toBe(centred!.y);
+    expect(bottom!.y).not.toBe(centred!.y);
+    expect(top!.y).not.toBe(bottom!.y);
+  });
+
+  test("keeps a subject near an edge in a grid slot too", () => {
+    // The same fixture "grid puts four to a page" uses: day two's photographs
+    // after its own page's first (p5) go four to a page as a quad.
+    const five = day(1, [photo(5), photo(6), photo(7), photo(8), photo(9)]);
+    const quadOf = (options: Partial<BookOptions>) =>
+      planBook(source([DAYS[0], five]), SPEC, { ...DEFAULT_OPTIONS, ...options })
+        .volumes.flatMap((v) => v.pages)
+        .find((p) => p.kind === "photos" && p.layout === "quad");
+    const withDefault = { days: { "2026-01-02": { layout: "grid" as const } }, focalPoints: {} };
+    const withFocal = {
+      days: { "2026-01-02": { layout: "grid" as const } },
+      focalPoints: { [src(6)]: { x: 0, y: 0 } },
+    };
+    const before = quadOf(withDefault);
+    const after = quadOf(withFocal);
+    expect(before?.kind === "photos" && before.placements[0].photo.file).toBe("p6.jpg");
+    const beforeDraw = before?.kind === "photos" ? before.placements[0].draw : undefined;
+    const afterDraw = after?.kind === "photos" ? after.placements[0].draw : undefined;
+    expect(beforeDraw).not.toEqual(afterDraw);
+    // The other three photographs in the same grid are untouched.
+    const beforeRest = before?.kind === "photos" ? before.placements.slice(1) : [];
+    const afterRest = after?.kind === "photos" ? after.placements.slice(1) : [];
+    expect(afterRest).toEqual(beforeRest);
+  });
+
+  test("changes nothing on a photograph that is printed uncropped", () => {
+    // A square photograph in the (square, 216×216mm) full-bleed slot scales
+    // to fill it exactly on both axes — there is no overflow for a focal
+    // point to redistribute.
+    const square = day(0, [photo(1, { width: 3000, height: 3000 })]);
+    const drawOf = (options: Partial<BookOptions>) =>
+      planBook(source([square]), SPEC, { ...DEFAULT_OPTIONS, ...options })
+        .volumes.flatMap((v) => v.pages)
+        .find((p) => p.kind === "photos" && p.layout === "full-bleed");
+    const centred = drawOf({});
+    const corner = drawOf({ focalPoints: { [src(1)]: { x: 0, y: 1 } } });
+    expect(centred).toEqual(corner);
+  });
+});
+
 describe("what a request body may say", () => {
   const base = {
     size: "square-210",
@@ -333,5 +405,51 @@ describe("what a request body may say", () => {
     expect(
       parseOptions({ ...base, days: {}, cover: "/a".repeat(200) }, SIZES),
     ).toBeNull();
+  });
+
+  test("no focal points at all is an empty arrangement, not a refusal", () => {
+    expect(parseOptions({ ...base, days: {} }, SIZES)?.focalPoints).toEqual({});
+  });
+
+  test("a valid focal point survives the boundary", () => {
+    const parsed = parseOptions(
+      { ...base, days: {}, focalPoints: { "/a.jpg": { x: 0.2, y: 0.9 } } },
+      SIZES,
+    );
+    expect(parsed?.focalPoints).toEqual({ "/a.jpg": { x: 0.2, y: 0.9 } });
+  });
+
+  test("a focal point outside 0–1 is refused rather than clamped", () => {
+    for (const bad of [{ x: -0.1, y: 0.5 }, { x: 0.5, y: 1.1 }, { x: Number.NaN, y: 0.5 }]) {
+      expect(
+        parseOptions({ ...base, days: {}, focalPoints: { "/a.jpg": bad } }, SIZES),
+        JSON.stringify(bad),
+      ).toBeNull();
+    }
+  });
+
+  test("a focal point missing an axis is refused rather than defaulted", () => {
+    expect(
+      parseOptions({ ...base, days: {}, focalPoints: { "/a.jpg": { x: 0.5 } } }, SIZES),
+    ).toBeNull();
+  });
+
+  test("an arrangement of focal points is refused whole rather than half-honoured", () => {
+    const parsed = parseOptions(
+      {
+        ...base,
+        days: {},
+        focalPoints: { "/a.jpg": { x: 0.2, y: 0.2 }, "/b.jpg": { x: 2, y: 0.2 } },
+      },
+      SIZES,
+    );
+    expect(parsed).toBeNull();
+  });
+
+  test("more focal points than the ceiling allows are refused", () => {
+    const many = Object.fromEntries(
+      Array.from({ length: 20_001 }, (_, i) => [`/${i}.jpg`, { x: 0.5, y: 0.5 }]),
+    );
+    expect(parseOptions({ ...base, days: {}, focalPoints: many }, SIZES)).toBeNull();
   });
 });

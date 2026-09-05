@@ -217,6 +217,9 @@ export default function PhotobookPageContent({
   /** The cover picker's own disclosure — a book-level control, so it does not
    * share `expanded` with any one day. */
   const [coverOpen, setCoverOpen] = useState(false);
+  /** Which photograph's crop is being adjusted, by `src` — B513. A src is
+   * unique across the whole book, so one flag (not one per day) is enough. */
+  const [focalEditing, setFocalEditing] = useState<string | null>(null);
 
   /**
    * Arranging one day.
@@ -278,13 +281,61 @@ export default function PhotobookPageContent({
    * A day the owner has fiddled with has an entry in `options.days`; deleting
    * it is enough to hand the day back to the planner, because "no entry" is
    * already what "the planner decides" means everywhere else in this file.
+   *
+   * Any crop tapped onto one of the day's own photographs goes with it — a
+   * "start this day over" that left a subject nudged off-centre would not
+   * read as a reset.
    */
-  const resetDay = (date: string) =>
+  const resetDay = (date: string, dayPhotos: MediaTile[]) =>
     setOptions((o) => {
       const rest = { ...o.days };
       delete rest[date];
-      return { ...o, days: rest };
+      const focalPoints = { ...o.focalPoints };
+      for (const m of dayPhotos) delete focalPoints[m.src];
+      return { ...o, days: rest, focalPoints };
     });
+
+  /**
+   * Where a photograph is cropped from, when it is cropped at all — B513.
+   *
+   * `focalOf` is the default (0.5, 0.5) plus whatever a person has tapped;
+   * `setFocal` writes a tap or a keyboard nudge; `resetFocal` hands one
+   * photograph back to the centre. All three go through `options.focalPoints`,
+   * which is why persisting and resetting the whole book already covers them
+   * with no second mechanism.
+   */
+  const focalOf = (src: string) => options.focalPoints[src] ?? { x: 0.5, y: 0.5 };
+  const setFocal = (src: string, x: number, y: number) =>
+    setOptions((o) => ({
+      ...o,
+      focalPoints: { ...o.focalPoints, [src]: { x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) } },
+    }));
+  const resetFocal = (src: string) =>
+    setOptions((o) => {
+      const focalPoints = { ...o.focalPoints };
+      delete focalPoints[src];
+      return { ...o, focalPoints };
+    });
+  /** Tapping the thumbnail: the fraction across and down its own rendered
+   * box, which is exactly what `BookOptions.focalPoints` stores. */
+  const setFocalFromTap = (src: string, e: React.MouseEvent<HTMLElement>) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    setFocal(src, (e.clientX - box.left) / box.width, (e.clientY - box.top) / box.height);
+  };
+  /** Arrow keys move the point in 5% steps — twenty stops across the frame,
+   * fine enough to matter and coarse enough to reach the edge in a few
+   * presses. The only other keyboard route to the same value, since a tap
+   * target is not itself operable from a keyboard. */
+  const FOCAL_STEP = 0.05;
+  const nudgeFocalByKey = (src: string, e: React.KeyboardEvent<HTMLElement>) => {
+    const { x, y } = focalOf(src);
+    if (e.key === "ArrowLeft") setFocal(src, x - FOCAL_STEP, y);
+    else if (e.key === "ArrowRight") setFocal(src, x + FOCAL_STEP, y);
+    else if (e.key === "ArrowUp") setFocal(src, x, y - FOCAL_STEP);
+    else if (e.key === "ArrowDown") setFocal(src, x, y + FOCAL_STEP);
+    else return;
+    e.preventDefault();
+  };
 
   /**
    * The whole book, back to the planner's arrangement.
@@ -295,15 +346,16 @@ export default function PhotobookPageContent({
    * dialog of our own: this is the one native primitive built for exactly
    * "say what happens, then let the person stop it".
    *
-   * Clearing `days` is the whole fix for `localStorage` too: the effect above
-   * writes `options` on every change, so the stored arrangement shrinks along
-   * with the in-memory one rather than needing a second, separate erase.
+   * Clearing `days` and `focalPoints` is the whole fix for `localStorage` too:
+   * the effect above writes `options` on every change, so the stored
+   * arrangement shrinks along with the in-memory one rather than needing a
+   * second, separate erase.
    */
   const resetBook = () => {
     const count = Object.keys(options.days).length;
-    if (count === 0) return;
+    if (count === 0 && Object.keys(options.focalPoints).length === 0) return;
     if (!window.confirm(t("photobook.resetAllConfirm", { count: String(count) }))) return;
-    setOptions((o) => ({ ...o, days: {} }));
+    setOptions((o) => ({ ...o, days: {}, focalPoints: {} }));
   };
 
   /**
@@ -593,7 +645,10 @@ export default function PhotobookPageContent({
                     <button
                       type="button"
                       onClick={resetBook}
-                      disabled={Object.keys(options.days).length === 0}
+                      disabled={
+                        Object.keys(options.days).length === 0 &&
+                        Object.keys(options.focalPoints).length === 0
+                      }
                       className="text-xs font-semibold text-navy-600 underline disabled:cursor-not-allowed disabled:text-navy-300 disabled:no-underline"
                     >
                       {t("photobook.resetAll")}
@@ -682,7 +737,7 @@ export default function PhotobookPageContent({
                                 {plan && (
                                   <button
                                     type="button"
-                                    onClick={() => resetDay(day.date)}
+                                    onClick={() => resetDay(day.date, dayPhotos)}
                                     className="text-xs font-semibold text-navy-600 underline"
                                   >
                                     {t("photobook.day.reset")}
@@ -696,6 +751,10 @@ export default function PhotobookPageContent({
                                     // Starred only when the owner picked one. Starring whatever the
                                     // planner would choose anyway would claim a decision nobody made.
                                     const isHero = plan?.hero === tile.src;
+                                    // A "text" day prints none of its photographs — B513's rule
+                                    // that a crop control is only ever shown where cropping is
+                                    // something that actually happens.
+                                    const croppable = inBook && layout !== "text";
                                     return (
                                       <li key={tile.src} className="space-y-1">
                                         <button
@@ -767,10 +826,85 @@ export default function PhotobookPageContent({
                                             </button>
                                           </div>
                                         )}
+                                        {/* The crop control itself — B513.
+                                            Hidden for a photograph that would
+                                            print whole: offering it there is a
+                                            control that does nothing. */}
+                                        {croppable && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setFocalEditing((s) => (s === tile.src ? null : tile.src))
+                                            }
+                                            aria-pressed={focalEditing === tile.src}
+                                            aria-label={t("photobook.day.adjustCrop")}
+                                            className={`min-h-8 w-full rounded border text-xs ${
+                                              focalEditing === tile.src
+                                                ? "border-yellow-600 bg-yellow-400 text-yellow-950"
+                                                : "border-navy-200 text-navy-600"
+                                            }`}
+                                          >
+                                            {t("photobook.day.adjustCrop")}
+                                          </button>
+                                        )}
                                       </li>
                                     );
                                   })}
                                 </ul>
+                              )}
+                              {/* The editor for whichever photograph on this
+                                  day is being adjusted, one at a time and
+                                  outside the grid so it can be shown larger
+                                  than a 3-column thumbnail — tapping it, or
+                                  pressing the arrow keys once it has focus,
+                                  moves the point `cover()` crops from. */}
+                              {focalEditing && dayPhotos.some((m) => m.src === focalEditing) && (
+                                <div className="mt-3 border-t border-navy-100 pt-3">
+                                  <p className="text-xs text-navy-600">{t("photobook.day.cropHint")}</p>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => setFocalFromTap(focalEditing, e)}
+                                    onKeyDown={(e) => nudgeFocalByKey(focalEditing, e)}
+                                    aria-label={t("photobook.day.cropAriaLabel")}
+                                    className="relative mt-2 block aspect-square w-40 max-w-full overflow-hidden rounded-md border border-navy-300"
+                                  >
+                                    <Image
+                                      src={focalEditing}
+                                      loader={mediaLoader}
+                                      alt=""
+                                      fill
+                                      sizes="10vw"
+                                      className="object-cover"
+                                      style={{
+                                        objectPosition: `${focalOf(focalEditing).x * 100}% ${focalOf(focalEditing).y * 100}%`,
+                                      }}
+                                    />
+                                    <span
+                                      aria-hidden
+                                      className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-yellow-400 bg-yellow-400/60"
+                                      style={{
+                                        left: `${focalOf(focalEditing).x * 100}%`,
+                                        top: `${focalOf(focalEditing).y * 100}%`,
+                                      }}
+                                    />
+                                  </button>
+                                  <div className="mt-1 flex gap-3">
+                                    <button
+                                      type="button"
+                                      onClick={() => resetFocal(focalEditing)}
+                                      className="text-xs font-semibold text-navy-600 underline"
+                                    >
+                                      {t("photobook.day.cropReset")}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setFocalEditing(null)}
+                                      className="text-xs font-semibold text-navy-600 underline"
+                                    >
+                                      {t("photobook.day.cropDone")}
+                                    </button>
+                                  </div>
+                                </div>
                               )}
                             </div>
                           )}
