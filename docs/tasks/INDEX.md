@@ -205,7 +205,7 @@ _Nothing here._
 
 _Nothing here._
 
-## testing (208)
+## testing (209)
 
 ### security (2)
 
@@ -352,7 +352,7 @@ _Nothing here._
 | [B496](testing/big-feature/B496-the-printed-photobook-reads-as-a.md) | The printed photobook reads as a contact sheet, not a book | FEATURE | medium | high | — |
 | [B497](testing/big-feature/B497-the-photobook-draws-one-hardcoded-couple.md) | The photobook draws one hardcoded couple whoever travelled | FEATURE | medium | high | — |
 
-### small-feature (35)
+### small-feature (36)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -364,6 +364,7 @@ _Nothing here._
 | [B440](testing/small-feature/B440-nothing-ever-offers-notifications-to-a.md) | Nothing ever offers notifications to a reader who would want them, so the switch is only found by somebody already looking for it | FEATURE | high | medium | — |
 | [B470](testing/small-feature/B470-the-landing-page-the-docs-index.md) | The landing page, the docs index and the guides are three surfaces with no shared shell, so the documentation reads as a pile rather than a site | FEATURE | high | medium | — |
 | [B480](testing/small-feature/B480-one-instance-wide-address-opens-every.md) | One instance-wide address opens every journal | FEATURE | high | low | — |
+| [B511](testing/small-feature/B511-the-composer-has-one-default-and.md) | The composer has one default and no way to nudge it | FEATURE | high | medium | — |
 | [B273](testing/small-feature/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium | — |
 | [B324](testing/small-feature/B324-an-owner-in-the-browser-cannot.md) | An owner in the browser cannot send an invitation by mail, only an agent can | FEATURE | medium | low | — |
 | [B364](testing/small-feature/B364-the-lifetime-map-draws-a-bare.md) | The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries | FEATURE | medium | low | — |
