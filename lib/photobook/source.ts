@@ -272,6 +272,9 @@ export type SourceOptions = {
   excludePhotos?: readonly string[];
   /** Who travelled. `false` leaves the byline off. */
   includeNames?: boolean;
+  /** The journal's contacts, by name, for the "who came along" page. Names
+   * only — see `BookSource.followers`. */
+  followers?: string[];
 };
 
 export function buildBookSource(tripId: string, options: SourceOptions = {}): BookSource {
@@ -342,6 +345,17 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
       lng: day.lead.lng,
       paragraphs,
       photos,
+      // The lead entry's leg. A day written as several updates records the
+      // travelling on the one that did the travelling, which is the lead often
+      // enough that taking the first non-empty one would mostly agree and
+      // occasionally invent a journey nobody made.
+      transport: day.lead.transport
+        ? {
+            mode: day.lead.transport.mode,
+            from: day.lead.transport.from,
+            to: day.lead.transport.to,
+          }
+        : undefined,
     };
   });
 
@@ -366,6 +380,7 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
     travellers,
     days,
     notes,
+    followers: options.followers,
     route: routeFor(tripId),
     costs: costsFor(tripId),
     madeOn: options.madeOn ?? new Date().toISOString().slice(0, 10),

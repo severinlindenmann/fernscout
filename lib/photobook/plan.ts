@@ -16,12 +16,16 @@
  *  - **Every day opens with its own page** — date, place, what happened. The
  *    trip is a journal; a book of photographs without the writing is a
  *    different, lesser object.
- *  - **The first photo of each day runs full bleed**, without a caption. A
- *    photograph that fills the paper is the reason to print a book at all, and
- *    type over the top of it is a compromise nobody asked for. Its caption
- *    goes on the day's opening page instead.
+ *  - **A day's words share their page with a photograph**, which fills the
+ *    foot of it and bleeds off three edges. A heading and three lines of prose
+ *    alone on a 210mm page reads as a mistake rather than as space.
+ *  - **Some days open with a photograph that fills the paper**, and
+ *    deliberately not all of them: a chapter's first day and roughly every
+ *    third after it. When every photograph is the loudest, none of them is,
+ *    and the rhythm a reader moves through never changes.
  *  - **The rest are framed** in grids chosen by aspect ratio, with the caption
- *    underneath where there is room for it.
+ *    underneath where there is room for it. A photograph with no group to join
+ *    runs to the outer edge rather than floating in the middle of the page.
  *  - **Countries are chapters.** Not weeks, not "highlights" — a border is the
  *    thing a reader already has a mental model for.
  *  - **A book that would exceed the binder's maximum becomes several volumes**
@@ -90,6 +94,15 @@ export type BookDay = {
   lng: number;
   paragraphs: string[];
   photos: BookPhoto[];
+  /**
+   * How this day was travelled, when the entry recorded it.
+   *
+   * `mode` is one of the site's own `TransportMode` values. The book prints
+   * it on the day's page and counts it on the "how we moved" page; a day that
+   * never said is simply a day with no line about it, which is most of them
+   * on most trips.
+   */
+  transport?: { mode: string; from: string; to: string };
 };
 
 export type BookCosts = {
@@ -120,6 +133,18 @@ export type BookSource = {
    * clock so that a plan is reproducible and testable. */
   madeOn: string;
   siteUrl?: string;
+  /**
+   * The people this journal let in, by name.
+   *
+   * **Names and nothing else.** Never an address, never an email — the same
+   * rule `lib/postcard/receipt.ts` states for mail, and for the same reason:
+   * a book is handed around, left on a table and eventually given away, which
+   * is a worse place for somebody's address than an inbox.
+   *
+   * Passed in rather than read here: contacts are rows and this module is
+   * pure. `buildBookSource` cannot reach a database and should not learn how.
+   */
+  followers?: string[];
   /** Warnings raised while the source was assembled — a photograph printed
    * from its web copy, for instance. Whoever built the source knows things
    * the planner cannot see, and they belong in the same list. */
@@ -134,6 +159,7 @@ export type PhotoLayout =
   | "full-bleed"
   | "panorama"
   | "single"
+  | "feature"
   | "pair-portrait"
   | "pair-stacked"
   | "quad";
@@ -193,8 +219,22 @@ export type BookPage = { number: number; side: PageSide } & (
       lines: string[];
       truncated: boolean;
       captions: string[];
+      /** Set when the day's words share their page with a photograph — see
+       * the note beside PHOTO_SHARE in `materialise`. */
+      photo?: PhotoPlacement;
+      /** "Drove · Zion National Park → Bryce Canyon", when the entry said so. */
+      leg?: { mode: string; text: string };
     }
   | { kind: "photos"; layout: PhotoLayout; placements: PhotoPlacement[] }
+  | { kind: "followers"; heading: string; note: string; names: string[] }
+  | {
+      kind: "transport";
+      heading: string;
+      /** Most-used first. `label` is already the plural a reader wants. */
+      modes: { mode: string; label: string; days: number }[];
+      /** The longest single leg, when there is one worth naming. */
+      note?: string;
+    }
   | { kind: "costs"; costs: BookCosts; heading: string }
   | { kind: "colophon"; heading: string; lines: string[] }
   | { kind: "blank" }
@@ -368,6 +408,32 @@ function slotsFor(layout: PhotoLayout, spec: BookSpec, side: PageSide): RectMm[]
       return [{ x: b.x, y: c.y + c.height / 4, width: b.width, height: c.height / 2 }];
     case "single":
       return [c];
+    /**
+     * One photograph, printed as though somebody chose to print it.
+     *
+     * `single` contains the image in the whole content box, which is square,
+     * so a portrait photograph lands as a tall sliver with a hand's width of
+     * paper either side of it and the caption stranded underneath. That is
+     * not the deliberate white space a photobook wants — it is a picture
+     * nobody placed.
+     *
+     * This bleeds to three edges and stops at the gutter, so the photograph
+     * runs off the outer edge of the paper and the only margin left is the
+     * one the binding needs. The page reads as composed from the fold
+     * outwards, and every orientation fills it.
+     */
+    case "feature": {
+      const gutterSide = side === "right" ? spec.gutterMm : spec.safeMm;
+      const x = side === "right" ? gutterSide : -spec.bleedMm;
+      return [
+        {
+          x,
+          y: -spec.bleedMm,
+          width: spec.size.trimWidthMm - gutterSide + spec.bleedMm,
+          height: spec.size.trimHeightMm + spec.bleedMm * 2,
+        },
+      ];
+    }
     case "pair-portrait": {
       const w = (c.width - GAP_MM) / 2;
       return [
@@ -403,7 +469,11 @@ function placeAll(
 ): PhotoPlacement[] {
   const type = typeScale(spec);
   const slots = slotsFor(layout, spec, side);
-  const captionHeight = layout === "full-bleed" || layout === "panorama" ? 0 : type.caption * 2.1;
+  // A layout that runs off the paper has nowhere to put a caption: the words
+  // would be printed over the photograph or trimmed off. Those pages are
+  // captioned from the day's own index page instead.
+  const bleeds = layout === "full-bleed" || layout === "panorama" || layout === "feature";
+  const captionHeight = bleeds ? 0 : type.caption * 2.1;
   return photos.map((photo, i) => {
     const slot = slots[Math.min(i, slots.length - 1)];
     const hasCaption = captionHeight > 0 && Boolean(photo.caption);
@@ -437,11 +507,18 @@ export function groupPhotos(photos: BookPhoto[]): { layout: PhotoLayout; photos:
     ) {
       groups.push({ layout: "quad", photos: [a, b, c, d] });
       i += 4;
-    } else if (b && orientation(a) === orientation(b) && orientation(a) !== "portrait") {
+    } else if (b && !isPanorama(b)) {
+      // Any surviving two share a page, stacked. This used to require both to
+      // be landscape and the same shape as each other, which almost nothing
+      // is: two photographs of different orientations fell through to a page
+      // each, so a day with two pictures left became two more leaves and the
+      // book never showed two things at once. Stacking a portrait beside a
+      // landscape crops one of them, which is a smaller loss than a page of
+      // white either side of it.
       groups.push({ layout: "pair-stacked", photos: [a, b] });
       i += 2;
     } else {
-      groups.push({ layout: "single", photos: [a] });
+      groups.push({ layout: "feature", photos: [a] });
       i += 1;
     }
   }
@@ -457,6 +534,40 @@ type Chapter = {
   countryCode?: string;
   days: BookDay[];
 };
+
+/**
+ * What each way of travelling is called in print.
+ *
+ * The site draws these as icons (`components/TravelScene.tsx`); a book has no
+ * hover and no tooltip, so it says the word. Past tense, because the book is
+ * written after the fact — "Flew", not "Flight".
+ *
+ * An unknown mode falls back to the raw value rather than being dropped: a
+ * journal that invents `transportMode: "ferry"` should print "Ferry" and not
+ * silently lose the leg.
+ */
+const MODE_WORDS: Record<string, { verb: string; one: string; many: string }> = {
+  flight: { verb: "Flew", one: "flight", many: "flights" },
+  train: { verb: "Took the train", one: "day by train", many: "days by train" },
+  bus: { verb: "Took the bus", one: "day by bus", many: "days by bus" },
+  car: { verb: "Drove", one: "day driving", many: "days driving" },
+  motorbike: { verb: "Rode", one: "day on the bike", many: "days on the bike" },
+  boat: { verb: "Sailed", one: "day on the water", many: "days on the water" },
+  walk: { verb: "Walked", one: "day walking", many: "days walking" },
+};
+
+/** The verb for a day's own line — "Drove". */
+function modeVerb(mode: string): string {
+  return MODE_WORDS[mode]?.verb ?? mode.charAt(0).toUpperCase() + mode.slice(1);
+}
+
+/** The counted noun for the summary — "17 days driving", "1 flight". A book
+ * that says "1 flights" is a book that was generated rather than written. */
+function modeCount(mode: string, days: number): string {
+  const words = MODE_WORDS[mode];
+  if (words) return days === 1 ? words.one : words.many;
+  return days === 1 ? `day by ${mode}` : `days by ${mode}`;
+}
 
 /** Consecutive days in the same country. A country revisited later in the trip
  * becomes a second chapter, which is what actually happened. */
@@ -482,8 +593,10 @@ type Draft =
   | { kind: "intro" }
   | { kind: "route"; half: "left" | "right"; align?: "verso" }
   | { kind: "chapter"; chapter: Chapter; index: number; of: number; align: "recto" }
-  | { kind: "day"; day: BookDay; captions: string[] }
+  | { kind: "day"; day: BookDay; captions: string[]; photo?: BookPhoto }
   | { kind: "photos"; layout: PhotoLayout; photos: BookPhoto[] }
+  | { kind: "followers"; align: "recto" }
+  | { kind: "transport"; align: "recto" }
   | { kind: "costs"; align: "recto" }
   | { kind: "colophon" }
   | { kind: "blank" };
@@ -497,21 +610,49 @@ function draftsForChapter(
   const drafts: Draft[] = options.includeChapters
     ? [{ kind: "chapter", chapter, index, of, align: "recto" }]
     : [];
-  for (const day of chapter.days) {
-    const [lead, ...rest] = day.photos;
-    // The lead photo runs full bleed, so its caption has nowhere to live on
-    // its own page. It joins the day's opening page instead.
+  for (const [dayIndex, day] of chapter.days.entries()) {
     const captions = options.includeText
       ? day.photos.map((p) => p.caption).filter((c): c is string => Boolean(c))
       : [];
     // Text off still leaves a dated page in front of each day: a photo album
     // that cannot say when it was is worse than one with a heading.
     const written = options.includeText ? day : { ...day, paragraphs: [] };
+
+    /**
+     * Which photograph, if any, gets the whole page to itself.
+     *
+     * Every day's first photograph used to run full bleed. Nineteen days
+     * meant nineteen full-bleed pages, and a book where every photograph is
+     * the loudest is a book with no loud photographs in it — the rhythm never
+     * changes, so nothing stands out. A hero is now the opening day of a
+     * chapter and then roughly every third day, which leaves the others to be
+     * grouped and gives the eye somewhere to arrive.
+     */
+    // Never at the cost of the day's own page: a day with one photograph
+    // spends it beside the words rather than on a hero, because the
+    // alternative is a page of prose with nothing on it facing a page of
+    // photograph with nothing to say.
+    const wantsHero = dayIndex === 0 || dayIndex % 3 === 0;
+    const hero = wantsHero && day.photos.length > 1 ? day.photos[0] : undefined;
+    const rest = hero ? day.photos.slice(1) : day.photos;
+
+    /**
+     * The day's words share their page with a photograph.
+     *
+     * A heading, a location and three lines of prose occupy the top third of
+     * a 210mm page; the rest was white. Printed, that reads as a mistake
+     * rather than as space. The first of the day's remaining photographs now
+     * fills the lower half, so the page carries both and the book stops
+     * alternating between walls of text and lone pictures.
+     */
+    const withText = rest[0];
+    const grouped = withText ? rest.slice(1) : rest;
+
     if (written.paragraphs.length > 0 || day.photos.length > 0) {
-      drafts.push({ kind: "day", day: written, captions });
+      drafts.push({ kind: "day", day: written, captions, photo: withText });
     }
-    if (lead) drafts.push({ kind: "photos", layout: "full-bleed", photos: [lead] });
-    for (const group of groupPhotos(rest)) {
+    if (hero) drafts.push({ kind: "photos", layout: "full-bleed", photos: [hero] });
+    for (const group of groupPhotos(grouped)) {
       drafts.push({ kind: "photos", layout: group.layout, photos: group.photos });
     }
   }
@@ -530,6 +671,13 @@ function draftsForFront(source: BookSource, options: BookOptions): Draft[] {
 
 function draftsForBack(source: BookSource, options: BookOptions): Draft[] {
   const drafts: Draft[] = [];
+  // Present only when the trip said how it moved. A page reading "0 days
+  // driving" on a journal that never filled the field in is worse than no
+  // page, and most journals never fill it in.
+  if (source.followers && source.followers.length > 0) {
+    drafts.push({ kind: "followers", align: "recto" });
+  }
+  if (source.days.some((d) => d.transport)) drafts.push({ kind: "transport", align: "recto" });
   if (source.costs && options.includeCosts) drafts.push({ kind: "costs", align: "recto" });
   drafts.push({ kind: "colophon" });
   return drafts;
@@ -589,8 +737,32 @@ function expandToMinimum(drafts: Draft[], target: number): Draft[] {
 }
 
 function layoutFor(photos: BookPhoto[]): PhotoLayout {
-  if (photos.length === 1) return isPanorama(photos[0]) ? "panorama" : "single";
+  if (photos.length === 1) return isPanorama(photos[0]) ? "panorama" : "feature";
   return groupPhotos(photos)[0].layout;
+}
+
+/**
+ * Whether this photograph is big enough for the size it is printed at.
+ *
+ * Shared, because a photograph is soft on paper wherever it was placed and a
+ * check that only ran on `photos` pages would go quiet the moment a picture
+ * moved onto a day's own page — which is exactly what happened when it did.
+ * This is the class of fault the whole warning list exists for: invisible on
+ * screen, obvious once it is printed.
+ */
+function checkResolution(p: PhotoPlacement, spec: BookSpec, warnings: BookWarning[]): void {
+  const need = requiredPixels(p.draw.width, spec.dpi);
+  if (p.photo.width >= need) return;
+  warnings.push({
+    code: "low-resolution",
+    detail:
+      `${labelOf(p.photo)} is ${p.photo.width}px wide but is printed ` +
+      `${p.draw.width.toFixed(0)}mm wide, which needs ${need}px — it will print ` +
+      `at about ${p.dpi} DPI.` +
+      // Resolution alone reads as "the photograph is small", which sends
+      // somebody looking for a bigger one they may already have.
+      (p.photo.fallbackReason ? ` This is the web copy: ${p.photo.fallbackReason}.` : ""),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -678,9 +850,41 @@ function materialise(
       // wrong shortens the column by a factor of nearly three, which shows up
       // as prose truncated on a page that is visibly two-thirds empty.
       const toMm = (points: number) => points / mm(1);
+      /**
+       * A photograph across the foot of the page, and the words above it.
+       *
+       * It bleeds off three edges rather than sitting in the content box: the
+       * page then reads as one composition instead of a picture parked under
+       * some type. The words keep the column they always had, only shorter.
+       *
+       * `PHOTO_SHARE` is the fraction of the trim the photograph takes. Much
+       * less and it is a decoration; much more and a day with anything to say
+       * gets truncated, which the warning below would then report on every
+       * page. Slightly over half reads as a photograph with a caption above
+       * it, which is what this page is.
+       */
+      const PHOTO_SHARE = 0.52;
+      const photoHeight = draft.photo ? spec.size.trimHeightMm * PHOTO_SHARE : 0;
+      const photo = draft.photo
+        ? placement(
+            draft.photo,
+            {
+              x: -spec.bleedMm,
+              y: -spec.bleedMm,
+              width: spec.size.trimWidthMm + spec.bleedMm * 2,
+              height: photoHeight + spec.bleedMm,
+            },
+            "cover",
+          )
+        : undefined;
+      if (photo) checkResolution(photo, spec, warnings);
       // Room for the heading block above and the caption index at the foot.
-      const captionRoom = toMm(draft.captions.length * type.caption * 1.6 + type.body * 2);
-      const available = c.height - toMm(type.heading * 3.4) - captionRoom;
+      // A page carrying a photograph has no room for the caption index — the
+      // photograph is where the foot of the page went.
+      const captionRoom = photo
+        ? 0
+        : toMm(draft.captions.length * type.caption * 1.6 + type.body * 2);
+      const available = c.height - toMm(type.heading * 3.4) - captionRoom - photoHeight;
       const maxLines = Math.max(0, Math.floor(available / toMm(type.body * type.leading)));
       const truncated = lines.length > maxLines;
       if (truncated) {
@@ -699,28 +903,70 @@ function materialise(
         location: [day.location, day.country].filter(Boolean).join(", "),
         lines: lines.slice(0, maxLines),
         truncated,
-        captions: draft.captions,
+        // A captioned photograph on the page makes the foot-of-page caption
+        // index redundant, and there is no room for it either.
+        captions: photo ? [] : draft.captions,
+        photo,
+        leg: day.transport
+          ? {
+              mode: day.transport.mode,
+              // "Drove · Zion → Bryce" when both ends were recorded, and just
+              // the verb when they were not: an arrow with nothing on one side
+              // of it is worse than no arrow.
+              text: [
+                modeVerb(day.transport.mode),
+                [day.transport.from, day.transport.to].every(Boolean)
+                  ? `${day.transport.from} \u2192 ${day.transport.to}`
+                  : "",
+              ]
+                .filter(Boolean)
+                .join("  \u00b7  "),
+            }
+          : undefined,
       };
     }
 
     case "photos": {
       const placements = placeAll(draft.layout, draft.photos, spec, side);
-      for (const p of placements) {
-        const need = requiredPixels(p.draw.width, spec.dpi);
-        if (p.photo.width < need) {
-          warnings.push({
-            code: "low-resolution",
-            detail:
-              `${labelOf(p.photo)} is ${p.photo.width}px wide but is printed ` +
-              `${p.draw.width.toFixed(0)}mm wide, which needs ${need}px — it will print ` +
-              `at about ${p.dpi} DPI.` +
-              // Resolution alone reads as "the photograph is small", which
-              // sends somebody looking for a bigger one they may already have.
-              (p.photo.fallbackReason ? ` This is the web copy: ${p.photo.fallbackReason}.` : ""),
-          });
-        }
-      }
+      for (const p of placements) checkResolution(p, spec, warnings);
       return { number, side, kind: "photos", layout: draft.layout, placements };
+    }
+
+    case "followers": {
+      const names = source.followers ?? [];
+      return {
+        number,
+        side,
+        kind: "followers",
+        heading: "Who came along",
+        note:
+          names.length === 1
+            ? "One person followed this journey from home."
+            : `${names.length} people followed this journey from home.`,
+        names,
+      };
+    }
+
+    case "transport": {
+      const counts = new Map<string, number>();
+      for (const day of source.days) {
+        if (day.transport) counts.set(day.transport.mode, (counts.get(day.transport.mode) ?? 0) + 1);
+      }
+      const modes = [...counts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([mode, days]) => ({ mode, label: modeCount(mode, days), days }));
+      const named = source.days.filter((d) => d.transport?.from && d.transport?.to);
+      return {
+        number,
+        side,
+        kind: "transport",
+        heading: "How we got about",
+        modes,
+        note:
+          named.length > 0
+            ? `${named.length} legs written down, from ${named[0].transport!.from} to ${named[named.length - 1].transport!.to}.`
+            : undefined,
+      };
     }
 
     case "costs":
@@ -811,9 +1057,22 @@ export function routeView(route: RoutePoint[]): RouteView {
   const minY = Math.min(...points.map((p) => p.y));
   const maxY = Math.max(...points.map((p) => p.y));
 
-  // A generous margin: the route should sit in a place, not fill the frame.
-  const padX = Math.max((maxX - minX) * 0.35, 30);
-  const padY = Math.max((maxY - minY) * 0.35, 15);
+  /**
+   * Enough margin to sit in a place, and no more.
+   *
+   * This used to be 35% of the span or 30 units, whichever was larger. The
+   * floor is what did the damage: `MAP_SPACE` is 1000 units for 360°, so 30
+   * units is about eleven degrees of longitude *on each side*. A fortnight's
+   * driving across Utah spans about twelve degrees, so the route was given a
+   * frame three times its own width and printed as a squiggle in one corner
+   * of a two-page spread — with the whole American west around it for
+   * company.
+   *
+   * 15% and a floor of 6 units (a bit over two degrees) keeps a coastline in
+   * view without letting the frame run away from the journey.
+   */
+  const padX = Math.max((maxX - minX) * 0.15, 6);
+  const padY = Math.max((maxY - minY) * 0.15, 4);
   let x = minX - padX;
   let y = minY - padY;
   let width = maxX - minX + padX * 2;
@@ -1072,7 +1331,13 @@ export function planBook(
 /** Every photo a plan will actually draw, in page order. Used by the renderer
  * to load exactly the files it needs and by the preview to size its grid. */
 export function photosIn(volume: BookVolume): PhotoPlacement[] {
-  return volume.pages.flatMap((p) => (p.kind === "photos" ? p.placements : []));
+  return volume.pages.flatMap((p) => {
+    if (p.kind === "photos") return p.placements;
+    // A day page carries one photograph too. Leaving it out here understates
+    // every count and resolution check built on this.
+    if (p.kind === "day" && p.photo) return [p.photo];
+    return [];
+  });
 }
 
 /** A page-by-page summary, for the CLI and for tests to assert against. */

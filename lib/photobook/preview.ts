@@ -29,6 +29,8 @@ import {
   type RouteView,
 } from "./plan.ts";
 import { landPaths } from "./worldland.ts";
+import { graticuleStep } from "./graticule.ts";
+import { travellersSvg } from "./travellers.ts";
 
 function escape(text: string): string {
   return text
@@ -36,6 +38,86 @@ function escape(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/**
+ * Where the browser fetches one photograph from.
+ *
+ * Two page kinds draw images now — `photos` and a `day` sharing its page with
+ * one — and they must resolve a file identically or the preview stops being
+ * evidence about the printed page.
+ */
+function imageSrc(
+  photo: BookPhoto,
+  outDir: string,
+  resolveFile: (file: string) => string,
+  srcFor?: SrcFor,
+): string {
+  if (srcFor) return srcFor(photo);
+  return path.relative(outDir, resolveFile(photo.file)).split(path.sep).join("/");
+}
+
+/**
+ * The cost page, in the same shape the renderer draws it.
+ *
+ * It used to be a two-column table here and a stacked bar with a budget
+ * comparison on paper — so the preview said the page was fine and the printed
+ * page was a different page. This file exists to stop exactly that, and the
+ * cost page is the one it had quietly stopped doing it for.
+ *
+ * The tints match `categoryTint` in render.ts: the same accent, lightened in
+ * the same steps.
+ */
+function costsHtml(
+  heading: string,
+  costs: { baseCurrency: string; total: number; byCategory: { category: string; amount: number }[]; budget?: { total: number } },
+  money: (n: number) => string,
+  type: ReturnType<typeof typeScale>,
+  /** Passed in rather than rebuilt: it closes over the page's own scale, and a
+   * second copy of that formula is a second thing to get wrong. */
+  pt: (size: number) => string,
+): string {
+  const shown = costs.byCategory.slice(0, 6);
+  const sum = shown.reduce((n, r) => n + r.amount, 0);
+  const tint = (i: number) => {
+    const k = Math.min(i, 5) * 0.145;
+    const mix = (v: number) => Math.round((v + (1 - v) * k) * 255);
+    return `rgb(${mix(0.17)},${mix(0.36)},${mix(0.52)})`;
+  };
+  const bar = shown
+    .map(
+      (r, i) =>
+        `<span style="display:inline-block;height:100%;width:${sum > 0 ? (r.amount / sum) * 100 : 0}%;background:${tint(i)}"></span>`,
+    )
+    .join("");
+  const key = shown
+    .map(
+      (r, i) =>
+        `<tr><td><span style="display:inline-block;width:0.7em;height:0.7em;background:${tint(i)}"></span> ` +
+        `${escape(r.category)}</td><td>${money(r.amount)}</td></tr>`,
+    )
+    .join("");
+  const most = costs.budget ? Math.max(costs.budget.total, costs.total) : costs.total;
+  const budget = costs.budget
+    ? `<p class="muted eyebrow" style="${pt(type.caption)}">Budget and what happened</p>` +
+      [
+        ["Budgeted", costs.budget.total, "#d9d7d2"],
+        ["Spent", costs.total, "rgb(43,92,133)"],
+      ]
+        .map(
+          ([label, value, colour]) =>
+            `<p style="${pt(type.caption)};margin:0">${label} — ${money(value as number)}</p>` +
+            `<div style="height:0.5em;width:${((value as number) / most) * 100}%;background:${colour}"></div>`,
+        )
+        .join("")
+    : "";
+  return (
+    `<p class="muted eyebrow" style="${pt(type.caption)}">${escape(heading)}</p>` +
+    `<h1 style="${pt(type.display)}">${money(costs.total)}</h1>` +
+    `<div style="display:flex;height:1.2em;width:100%">${bar}</div>` +
+    `<table>${key}</table>` +
+    budget
+  );
 }
 
 /** trim-relative mm → percentages of the bleed box, with y flipped for CSS. */
@@ -85,6 +167,24 @@ function routeSvg(
     .map((l) => svgPath(l.d, to))
     .join(" ");
 
+  // The same graticule the renderer draws, and for the same reason: a spread
+  // framed on one country is otherwise a grey rectangle. Without it here the
+  // preview would show a page the printer will not produce.
+  const step = graticuleStep(map.window.width);
+  const firstLine = (v: number) => Math.ceil(v / step) * step;
+  const lines: string[] = [];
+  for (let gx = firstLine(map.window.x); gx < map.window.x + map.window.width; gx += step) {
+    const [x0, y0] = to(gx, map.window.y);
+    const [x1, y1] = to(gx, map.window.y + map.window.height);
+    lines.push(`M${x0.toFixed(2)},${y0.toFixed(2)}L${x1.toFixed(2)},${y1.toFixed(2)}`);
+  }
+  for (let gy = firstLine(map.window.y); gy < map.window.y + map.window.height; gy += step) {
+    const [x0, y0] = to(map.window.x, gy);
+    const [x1, y1] = to(map.window.x + map.window.width, gy);
+    lines.push(`M${x0.toFixed(2)},${y0.toFixed(2)}L${x1.toFixed(2)},${y1.toFixed(2)}`);
+  }
+  const graticule = lines.join(" ");
+
   const route = points
     .map((p, i) => {
       const [x, y] = to(p.x, p.y);
@@ -106,6 +206,7 @@ function routeSvg(
     `width="${clip.width}" height="${height}"/></clipPath>` +
     `<g clip-path="url(#c-${half}-${points.length})">` +
     `<path class="land" d="${land}"/>` +
+    `<path class="graticule" d="${graticule}"/>` +
     (points.length >= 2 ? `<path class="route" d="${route}"/>` : "") +
     dots +
     `</g></svg>`
@@ -157,6 +258,10 @@ function pageHtml(
   switch (page.kind) {
     case "title":
       parts.push(
+        `<div style="position:absolute;left:${((spec.safeMm / (spec.size.trimWidthMm + spec.bleedMm * 2)) * 100).toFixed(3)}%;` +
+          `bottom:52%">${travellersSvg(20)}</div>`,
+      );
+      parts.push(
         textBlock(
           spec,
           page,
@@ -170,8 +275,24 @@ function pageHtml(
       );
       break;
 
-    case "intro":
+    // Two pages of the same shape — a heading and some lines — but only one
+    // of them signs the book off, so they no longer share a body.
     case "colophon":
+      parts.push(
+        `<div style="position:absolute;left:${((spec.safeMm / (spec.size.trimWidthMm + spec.bleedMm * 2)) * 100).toFixed(3)}%;` +
+          `bottom:52%">${travellersSvg(12)}</div>`,
+      );
+      parts.push(
+        textBlock(
+          spec,
+          page,
+          `<h2 style="${pt(type.caption)}">${escape(page.heading)}</h2>` +
+            page.lines.map((l) => `<p style="${pt(type.body)}">${escape(l) || "&nbsp;"}</p>`).join(""),
+        ),
+      );
+      break;
+
+    case "intro":
       parts.push(
         textBlock(
           spec,
@@ -203,6 +324,14 @@ function pageHtml(
       break;
 
     case "day":
+      if (page.photo) {
+        const src = imageSrc(page.photo.photo, outDir, resolveFile, srcFor);
+        parts.push(
+          `<div class="slot" style="${style(spec, page.photo.clip)}">` +
+            `<img src="${escape(src)}" alt="" style="${imgStyle(page.photo.clip, page.photo.draw)}">` +
+            `</div>`,
+        );
+      }
       parts.push(
         textBlock(
           spec,
@@ -210,6 +339,9 @@ function pageHtml(
           `<p class="muted eyebrow" style="${pt(type.caption)}">${escape(page.dateLabel)}</p>` +
             `<h2 style="${pt(type.heading)}">${escape(page.title)}</h2>` +
             `<p class="accent" style="${pt(type.caption)}">${escape(page.location)}</p>` +
+            (page.leg
+              ? `<p class="muted" style="${pt(type.caption)}">${escape(page.leg.text)}</p>`
+              : "") +
             page.lines.map((l) => `<p style="${pt(type.body)}">${escape(l) || "&nbsp;"}</p>`).join("") +
             page.captions
               .map((c) => `<p class="muted caption" style="${pt(type.caption)}">${escape(c)}</p>`)
@@ -220,9 +352,7 @@ function pageHtml(
 
     case "photos":
       for (const p of page.placements) {
-        const src = srcFor
-          ? srcFor(p.photo)
-          : path.relative(outDir, resolveFile(p.photo.file)).split(path.sep).join("/");
+        const src = imageSrc(p.photo, outDir, resolveFile, srcFor);
         parts.push(
           `<div class="slot" style="${style(spec, p.clip)}">` +
             `<img src="${escape(src)}" alt="" style="${imgStyle(p.clip, p.draw)}">` +
@@ -236,20 +366,45 @@ function pageHtml(
       }
       break;
 
+    case "followers":
+      parts.push(
+        textBlock(
+          spec,
+          page,
+          `<p class="muted eyebrow" style="${pt(type.caption)}">${escape(page.heading)}</p><hr>` +
+            `<p style="${pt(type.subheading)}">${escape(page.note)}</p>` +
+            `<p class="muted" style="${pt(type.body)}">${escape(page.names.join("  \u00b7  "))}</p>`,
+        ),
+      );
+      break;
+
+    case "transport":
+      parts.push(
+        textBlock(
+          spec,
+          page,
+          `<p class="muted eyebrow" style="${pt(type.caption)}">${escape(page.heading)}</p>` +
+            page.modes
+              .map(
+                (m) =>
+                  `<p><span class="accent" style="${pt(type.display)}"><strong>${m.days}</strong></span> ` +
+                  `<span style="${pt(type.subheading)}">${escape(m.label)}</span></p>`,
+              )
+              .join("") +
+            (page.note
+              ? `<hr><p class="muted" style="${pt(type.caption)}">${escape(page.note)}</p>`
+              : ""),
+        ),
+      );
+      break;
+
     case "costs": {
       const money = (n: number) => `${page.costs.baseCurrency} ${Math.round(n).toLocaleString("en-GB")}`;
       parts.push(
         textBlock(
           spec,
           page,
-          `<h2 style="${pt(type.caption)}">${escape(page.heading)}</h2>` +
-            `<h1 style="${pt(type.display)}">${money(page.costs.total)}</h1>` +
-            `<table>${page.costs.byCategory
-              .map(
-                (c) =>
-                  `<tr><td>${escape(c.category)}</td><td>${money(c.amount)}</td></tr>`,
-              )
-              .join("")}</table>`,
+          costsHtml(page.heading, page.costs, money, type, pt),
         ),
       );
       break;
@@ -368,6 +523,7 @@ export function renderPreview(
          display:flex; align-items:flex-end; }
   .map { position:absolute; inset:0; width:100%; height:100%; }
   .map .land { fill:#eceae7; stroke:#d6d3ce; stroke-width:.3; }
+  .map .graticule { fill:none; stroke:#dedbd6; stroke-width:.25; }
   .map .route { fill:none; stroke:var(--accent); stroke-width:1.6;
                 stroke-linecap:round; stroke-linejoin:round; }
   .map .stop { fill:var(--accent); stroke:#fff; stroke-width:.5; }

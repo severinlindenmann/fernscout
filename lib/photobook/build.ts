@@ -2,6 +2,8 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "../contentRoot";
+import { isEnabled } from "../capabilities";
+import { listContacts } from "../contacts";
 import { photobookCredits } from "../credits/pricing";
 import { planBook, type Photobook } from "./plan";
 import { buildBookSource, resolvePrintFile } from "./source";
@@ -31,12 +33,42 @@ export function specFor(options: BookOptions): BookSpec {
   return { ...spec, pageCount: options.binding === "saddle" ? SADDLE_STITCH : portableRule() };
 }
 
-export function planFor(trip: string, options: BookOptions): Photobook {
+export function planFor(trip: string, options: BookOptions, followers?: string[]): Photobook {
   const source = buildBookSource(trip, {
     excludePhotos: options.excludePhotos,
     includeNames: options.includeNames,
+    followers,
   });
   return planBook(source, specFor(options), options);
+}
+
+/**
+ * The journal's contacts, by name, for the "who came along" page.
+ *
+ * Here rather than in `buildBookSource` because contacts are rows and that
+ * module is a filesystem reader; and `async` is the reason it cannot move —
+ * the planner and the source are both synchronous and are better for it.
+ *
+ * **Names only.** `ContactRecord` carries an address and a postal address
+ * beside the name, and neither has any business in a book that gets handed
+ * around and eventually given away.
+ *
+ * Empty whenever there is nothing to say: contacts switched off, no database,
+ * an error reaching it. The page is omitted rather than printed empty, and a
+ * book is not worth failing over a list of names.
+ */
+export async function followerNames(owner: string): Promise<string[]> {
+  if (!isEnabled("contacts", owner)) return [];
+  try {
+    const contacts = await listContacts(owner);
+    return contacts
+      .filter((c) => c.status === "active" && c.name)
+      .map((c) => c.name as string)
+      .sort((a, b) => a.localeCompare(b));
+  } catch (error) {
+    console.error(`[photobook] could not read contacts for ${owner}:`, error);
+    return [];
+  }
 }
 
 /** Per volume, because each volume is a separate book with its own cover and
@@ -54,6 +86,7 @@ export function buildPhotobook(
   orderId: string,
   trip: string,
   options: BookOptions,
+  followers?: string[],
 ): { files: string[]; pages: number; volumes: number; missing: string[] } {
   // Built once, not through `planFor`: the document metadata below needs the
   // `BookSource` `planFor` discards, and building it twice would mean two
@@ -61,6 +94,7 @@ export function buildPhotobook(
   const source = buildBookSource(trip, {
     excludePhotos: options.excludePhotos,
     includeNames: options.includeNames,
+    followers,
   });
   const spec = specFor(options);
   const book = planBook(source, spec, options);

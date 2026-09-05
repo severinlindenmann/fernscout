@@ -29,6 +29,7 @@ import {
   type RectMm,
 } from "./spec.ts";
 import {
+  MAP_SPACE,
   labelOf,
   mapClipMm,
   mapProjector,
@@ -40,6 +41,8 @@ import {
   type RouteView,
 } from "./plan.ts";
 import { measure, toWinAnsi, wrap } from "./text.ts";
+import { drawTravellers } from "./travellers.ts";
+import { graticuleStep } from "./graticule.ts";
 import { landPaths, toPdfPath } from "./worldland.ts";
 
 /**
@@ -58,6 +61,29 @@ const RULE = { r: 0.82, g: 0.83, b: 0.85 };
 const PAPER = { r: 1, g: 1, b: 1 };
 const ACCENT = { r: 0.17, g: 0.36, b: 0.52 };
 const LAND = { r: 0.925, g: 0.918, b: 0.902 };
+/** Faint enough to be structure rather than decoration; it must never compete
+ * with the route. */
+const GRATICULE = { r: 0.87, g: 0.86, b: 0.84 };
+/** A wash behind a per-country row: present, never competing with the type. */
+const BAR_FAINT = { r: 0.87, g: 0.9, b: 0.93 };
+
+/**
+ * Six tints of the one accent, darkest first.
+ *
+ * Not six hues. A budget is one quantity split up, so the segments belong to
+ * each other; six colours would say they were six unrelated things, and a
+ * book printed in CMYK on uncoated stock cannot be trusted to keep them
+ * distinguishable anyway. Lightening one ink always survives the press.
+ */
+function categoryTint(index: number): { r: number; g: number; b: number } {
+  const t = Math.min(index, 5) * 0.145;
+  return {
+    r: ACCENT.r + (1 - ACCENT.r) * t,
+    g: ACCENT.g + (1 - ACCENT.g) * t,
+    b: ACCENT.b + (1 - ACCENT.b) * t,
+  };
+}
+
 const LAND_EDGE = { r: 0.84, g: 0.83, b: 0.81 };
 const GUIDE = { r: 0.9, g: 0.2, b: 0.5 };
 
@@ -288,6 +314,41 @@ function drawRoutePage(
     });
   }
 
+  /**
+   * A graticule, drawn over the land.
+   *
+   * A spread framed tightly on a fortnight's driving can land entirely inside
+   * one country, and the baked outline holds coastlines and nothing else — so
+   * that page came out as a rectangle of flat grey with a line on it, which
+   * reads as a rendering failure rather than as the middle of a continent.
+   * Meridians and parallels give the page structure and, more usefully, a
+   * sense of how far apart the stops actually are. Drawn after the land and
+   * not before it: the land is a filled path, so a graticule underneath it is
+   * a graticule nobody sees.
+   *
+   * The spacing is chosen so the spread carries roughly six lines each way at
+   * any zoom: a fixed interval would be one line across Utah and four hundred
+   * across the Pacific.
+   */
+  const step = graticuleStep(map.window.width);
+  const first = (v: number) => Math.ceil(v / step) * step;
+  for (let gx = first(map.window.x); gx < map.window.x + map.window.width; gx += step) {
+    const [x0, y0] = project(gx, map.window.y);
+    const [x1, y1] = project(gx, map.window.y + map.window.height);
+    PdfBuilder.drawPath(page, `${x0.toFixed(2)} ${y0.toFixed(2)} m ${x1.toFixed(2)} ${y1.toFixed(2)} l`, {
+      stroke: GRATICULE,
+      lineWidth: 0.25,
+    });
+  }
+  for (let gy = first(map.window.y); gy < map.window.y + map.window.height; gy += step) {
+    const [x0, y0] = project(map.window.x, gy);
+    const [x1, y1] = project(map.window.x + map.window.width, gy);
+    PdfBuilder.drawPath(page, `${x0.toFixed(2)} ${y0.toFixed(2)} m ${x1.toFixed(2)} ${y1.toFixed(2)} l`, {
+      stroke: GRATICULE,
+      lineWidth: 0.25,
+    });
+  }
+
   if (points.length >= 2) {
     const path = points
       .map((p, i) => {
@@ -315,13 +376,44 @@ function drawRoutePage(
   // A label every so often. Every stop labelled turns a map into a list, and
   // on a long trip the names simply overlap.
   let lastLabel: { x: number; y: number } | null = null;
+  //
+  // A label runs to the right of its dot unless that would take it off the
+  // paper, in which case it runs to the left. Without this the names at the
+  // edges of the spread were cut in half by the trim and by the gutter —
+  // "Archa", "s National Park" — which the preview cannot show you because
+  // its labels are HTML and simply overflow.
+  const box = contentBoxMm(spec, half);
+  const leftEdge = frame.x(box.x);
+  const rightEdge = frame.x(box.x + box.width);
   plotted.forEach((p, i) => {
+    // Both halves draw every stop, so each page can carry the whole route
+    // line across its own edge. Only the page a dot actually lands on names
+    // it: labelling from the facing page is what printed "onal Park" and
+    // "National Park" against the fold, one fragment per stop that belonged
+    // to the other leaf.
+    if (p.x < leftEdge || p.x > rightEdge) return;
     const far = !lastLabel || Math.hypot(p.x - lastLabel.x, p.y - lastLabel.y) > mm(9);
     if (!far && i !== plotted.length - 1) return;
+    const width = measure(p.location, type.caption, "bold");
+    // Bounded by the content box, which already carries the gutter on the
+    // correct side for this page. Not the clip box: that runs into the bleed
+    // and across the fold, so a label can sit well inside it and still be
+    // guillotined off the finished page or swallowed by the binding. A name
+    // goes to the right of its dot, to the left if it will not fit there, and
+    // is pushed back inside the margin if it fits on neither — a stop in the
+    // corner of a spread is still a stop somebody drove to.
+    const right = p.x + mm(2.2);
+    const left = p.x - mm(2.2) - width;
+    const x =
+      right + width <= rightEdge
+        ? right
+        : left >= leftEdge
+          ? left
+          : Math.min(Math.max(right, leftEdge), rightEdge - width);
     PdfBuilder.drawText(
       page,
       toWinAnsi(p.location),
-      p.x + mm(2.2),
+      x,
       p.y - mm(1),
       type.caption,
       INK,
@@ -376,6 +468,17 @@ function drawPage(
 
   switch (plan.kind) {
     case "title": {
+      // The two of us, standing above the title, at a size that reads as a
+      // mark rather than an illustration. See lib/photobook/travellers.ts.
+      drawTravellers(page, (xMm, yMm) => [frame.x(xMm), frame.y(yMm)], {
+        x: c.x,
+        y: c.y + c.height * 0.52,
+        // Left-aligned with the title rather than centred over it: everything
+        // else on this page hangs off the same margin, and a centred mark
+        // above ranged-left type reads as two decisions instead of one.
+        width: c.height * 0.28,
+        height: c.height * 0.2,
+      });
       // One group, sitting on the lower third — the title page's whole job is
       // to be quiet and unmistakably the front of something.
       const lines = wrap(plan.title, type.display, mm(c.width), "bold");
@@ -437,6 +540,14 @@ function drawPage(
     }
 
     case "day": {
+      // Before the type, so the words are never printed over the picture: the
+      // photograph occupies the foot of the page and the column above it was
+      // shortened to match (see PHOTO_SHARE in plan.ts).
+      if (plan.photo) {
+        const image = images.get(plan.photo.photo.file);
+        if (image) drawPhoto(page, frame, spec, plan.photo, image);
+        else drawMissing(page, frame, spec, plan.photo);
+      }
       let y = c.y + c.height - 4;
       text(page, frame, eyebrow(plan.dateLabel), c.x, y, type.caption, MUTED);
       y -= 8;
@@ -446,6 +557,10 @@ function drawPage(
       }
       text(page, frame, plan.location, c.x, y - 1, type.caption, ACCENT);
       y -= 9;
+      if (plan.leg) {
+        text(page, frame, plan.leg.text, c.x, y + 3, type.caption, MUTED, "F3");
+        y -= 5;
+      }
       rule(page, frame, c.x, y, Math.min(c.width, 30), RULE);
       y -= 8;
       y = block(page, frame, plan.lines, c.x, y, type.body, type.leading);
@@ -473,6 +588,61 @@ function drawPage(
         else drawMissing(page, frame, spec, placement);
       }
       if (plan.layout !== "full-bleed") folio(page, frame, spec, plan.number, plan.side);
+      break;
+    }
+
+    case "followers": {
+      let fy = c.y + c.height * 0.72;
+      text(page, frame, eyebrow(plan.heading), c.x, fy, type.caption, MUTED);
+      fy -= 10;
+      rule(page, frame, c.x, fy, Math.min(c.width, 30), ACCENT);
+      fy -= 12;
+      for (const line of wrap(plan.note, type.subheading, mm(c.width))) {
+        text(page, frame, line, c.x, fy, type.subheading, INK);
+        fy -= (type.subheading * 1.4) / mm(1);
+      }
+      fy -= 6;
+      // Set as running text rather than a column of one name per line: forty
+      // names down the left edge is a phone book, and these are people who
+      // read somebody's days as they were written.
+      for (const line of wrap(plan.names.join("  ·  "), type.body, mm(c.width))) {
+        if (fy < c.y + 8) break;
+        text(page, frame, line, c.x, fy, type.body, MUTED);
+        fy -= (type.body * 1.6) / mm(1);
+      }
+      folio(page, frame, spec, plan.number, plan.side);
+      break;
+    }
+
+    case "transport": {
+      // Set from a little above the middle rather than the top corner: the
+      // page carries three or four short lines, and hung from the head it
+      // reads as the top of a page somebody forgot to finish.
+      const block = plan.modes.length * ((type.display * 1.5) / mm(1)) + 24;
+      let ty = c.y + c.height * 0.62 + block / 2;
+      text(page, frame, eyebrow(plan.heading), c.x, ty, type.caption, MUTED);
+      ty -= 14;
+      for (const mode of plan.modes) {
+        text(page, frame, String(mode.days), c.x, ty, type.display, ACCENT, "F2");
+        text(
+          page,
+          frame,
+          mode.label,
+          c.x + measure(String(mode.days), type.display, "bold") / mm(1) + 3,
+          ty,
+          type.subheading,
+          INK,
+        );
+        ty -= (type.display * 1.5) / mm(1);
+      }
+      if (plan.note) {
+        rule(page, frame, c.x, ty + 6, Math.min(c.width, 30), RULE);
+        for (const line of wrap(plan.note, type.caption, mm(c.width))) {
+          text(page, frame, line, c.x, ty - 2, type.caption, MUTED, "F3");
+          ty -= (type.caption * 1.4) / mm(1);
+        }
+      }
+      folio(page, frame, spec, plan.number, plan.side);
       break;
     }
 
@@ -504,28 +674,91 @@ function drawPage(
       }
 
       if (costs.byCategory.length > 0) {
-        y -= 6;
-        text(page, frame, eyebrow("Where it went"), c.x, y, type.caption, MUTED);
         y -= 8;
-        const biggest = Math.max(...costs.byCategory.map((x) => x.amount));
-        for (const row of costs.byCategory.slice(0, 8)) {
-          const barWidth = biggest > 0 ? (row.amount / biggest) * (c.width * 0.45) : 0;
-          text(page, frame, row.category, c.x, y, type.caption, INK);
-          const r = rect(frame, { x: c.x + c.width * 0.4, y: y - 0.6, width: barWidth, height: 2.4 });
-          PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, ACCENT);
-          textRight(page, frame, money(row.amount), c.x + c.width, y, type.caption, MUTED);
-          y -= 7;
+        text(page, frame, eyebrow("Where it went"), c.x, y, type.caption, MUTED);
+        y -= 10;
+
+        /**
+         * One bar, divided in proportion, rather than a column of numbers.
+         *
+         * A reader wants to know what the money mostly went on, and a stacked
+         * bar answers that before they have read a single figure — which a
+         * list of eight right-aligned amounts never does. It is drawn from
+         * rectangles because the PDF writer has rectangles; an arc would need
+         * beziers and a pie is harder to read than a bar anyway.
+         */
+        const shown = costs.byCategory.slice(0, 6);
+        const sum = shown.reduce((n, r) => n + r.amount, 0);
+        const barH = 7;
+        let bx = c.x;
+        shown.forEach((row, i) => {
+          const w = sum > 0 ? (row.amount / sum) * c.width : 0;
+          const r = rect(frame, { x: bx, y: y - barH, width: Math.max(w - 0.4, 0), height: barH });
+          PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, categoryTint(i));
+          bx += w;
+        });
+        y -= barH + 8;
+
+        // The key, two to a row, in the order of the bar.
+        const half = Math.ceil(shown.length / 2);
+        shown.forEach((row, i) => {
+          const col = i < half ? 0 : 1;
+          const rowY = y - (i % half) * 7;
+          const x = c.x + col * (c.width / 2);
+          const sw = rect(frame, { x, y: rowY - 0.4, width: 3, height: 3 });
+          PdfBuilder.drawRect(page, sw.x, sw.y, sw.width, sw.height, categoryTint(i));
+          text(page, frame, row.category, x + 5, rowY, type.caption, INK);
+          textRight(
+            page,
+            frame,
+            money(row.amount),
+            x + c.width / 2 - (col === 0 ? 6 : 0),
+            rowY,
+            type.caption,
+            MUTED,
+          );
+        });
+        y -= half * 7 + 6;
+      }
+
+      // Budgeted against spent, when the trip was budgeted: two bars on one
+      // scale, which is the only honest way to show one number against
+      // another. A percentage alone hides which way round they are.
+      if (costs.budget && costs.budget.total > 0 && y > c.y + 34) {
+        const most = Math.max(costs.budget.total, costs.total);
+        const barW = (n: number) => (n / most) * c.width;
+        y -= 2;
+        text(page, frame, eyebrow("Budget and what happened"), c.x, y, type.caption, MUTED);
+        y -= 9;
+        for (const [label, value, color] of [
+          ["Budgeted", costs.budget.total, RULE],
+          ["Spent", costs.total, ACCENT],
+        ] as [string, number, typeof ACCENT][]) {
+          const r = rect(frame, { x: c.x, y: y - 4.5, width: barW(value), height: 4.5 });
+          PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, color);
+          text(page, frame, label, c.x, y + 1.5, type.caption, INK);
+          textRight(page, frame, money(value), c.x + c.width, y + 1.5, type.caption, MUTED);
+          y -= 12;
         }
       }
 
-      if (costs.byCountry.length > 0 && y > c.y + 24) {
-        y -= 4;
+      if (costs.byCountry.length > 0 && y > c.y + 22) {
+        y -= 2;
         text(page, frame, eyebrow("By country"), c.x, y, type.caption, MUTED);
         y -= 8;
-        for (const row of costs.byCountry.slice(0, 6)) {
-          text(page, frame, `${row.country} — ${row.nights} days`, c.x, y, type.caption, INK);
+        const most = Math.max(...costs.byCountry.map((x) => x.amount));
+        for (const row of costs.byCountry.slice(0, 5)) {
+          if (y < c.y + 6) break;
+          const r = rect(frame, {
+            x: c.x,
+            y: y - 1.2,
+            width: most > 0 ? (row.amount / most) * c.width : 0,
+            height: 3,
+          });
+          PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, BAR_FAINT);
+          text(page, frame, `${row.country} — ${row.nights} nights`, c.x, y, type.caption, INK);
           textRight(page, frame, money(row.amount), c.x + c.width, y, type.caption, MUTED);
-          y -= 6;
+          y -= 8;
         }
       }
       folio(page, frame, spec, plan.number, plan.side);
@@ -533,6 +766,12 @@ function drawPage(
     }
 
     case "colophon": {
+      drawTravellers(page, (xMm, yMm) => [frame.x(xMm), frame.y(yMm)], {
+        x: c.x,
+        y: c.y + c.height * 0.52,
+        width: c.height * 0.17,
+        height: c.height * 0.12,
+      });
       let y = c.y + c.height * 0.42;
       text(page, frame, eyebrow(plan.heading), c.x, y + 14, type.caption, MUTED);
       rule(page, frame, c.x, y + 8, Math.min(c.width, 30), ACCENT);
@@ -567,6 +806,9 @@ function loadAll(volume: BookVolume, options: RenderOptions) {
   const files = new Set<string>();
   for (const page of volume.pages) {
     if (page.kind === "photos") for (const p of page.placements) files.add(p.photo.file);
+    // A day page carries one too, and forgetting it here prints a "missing"
+    // box on every day of the book rather than failing anywhere visible.
+    if (page.kind === "day" && page.photo) files.add(page.photo.photo.file);
   }
   if (volume.cover.frontPhoto) files.add(volume.cover.frontPhoto.file);
   for (const file of files) {
