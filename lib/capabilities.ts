@@ -28,7 +28,9 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   signup: { env: ["SESSION_SECRET"], db: true },
   contacts: { env: ["CONTACTS_ENCRYPTION_KEY"], db: true },
   postcards: { env: [], db: true }, // provider-specific; see providerRequirements()
-  photobook: { env: [], db: false },
+  // Orders are rows and so is the balance that pays for them, so a journal
+  // with no database has no photobook button — /api/health says which.
+  photobook: { env: [], db: true },
   logging: { env: [], db: false },
   // B366. The balance and its ledger are rows, so charging without a database
   // would be a number nobody could decrement — and `spend` refusing every
