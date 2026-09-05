@@ -191,13 +191,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B405](in-development/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | `3d8b93dd` |
+_Nothing here._
 
-## testing (155)
+## testing (156)
 
 ### security (3)
 
@@ -306,7 +304,7 @@ _Nothing here._
 | [B402](testing/issue/B402-the-admin-contact-list-prints-a.md) | The admin contact list prints a saved country code, not its name | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
-### big-feature (9)
+### big-feature (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -319,6 +317,7 @@ _Nothing here._
 | [B361](testing/big-feature/B361-the-lifetime-map-cannot-answer-which.md) | The lifetime map cannot answer which countries somebody has been to, only where individual stops fell | FEATURE | medium | high | — |
 | [B39](testing/big-feature/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
 | [B399](testing/big-feature/B399-every-address-in-the-book-is.md) | Every address in the book is typed out by hand, line by line, with nothing to check it against | FEATURE | medium | high | — |
+| [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 
 ### small-feature (17)
 

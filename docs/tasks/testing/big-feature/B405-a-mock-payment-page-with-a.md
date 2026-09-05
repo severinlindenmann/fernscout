@@ -7,8 +7,7 @@ complexity: high
 area: credits, payments
 found: "2026-09-05T09:50:00Z"
 started: "2026-09-05T07:49:47Z"
-session: 3d8b93dd-e447-4c3c-bcd1-fa37e2bd17f9
-claimed: "2026-09-05T07:49:47Z"
+merged: "2026-09-05T08:01:46Z"
 ---
 
 # B405 — A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link
