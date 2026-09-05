@@ -218,6 +218,25 @@ describe("German address is consistently informal (B432)", () => {
   });
 });
 
+/**
+ * B481: the same four sign-in-path keys addressed the reader as "Ön" (formal)
+ * in Hungarian while the rest of the dictionary uses "te" (informal). Not a
+ * blanket "no Ön" check — "Önmagában" ("by itself") contains the string "Ön"
+ * but isn't the formal pronoun, the same shape as German's sentence-initial
+ * "Sie" false positives — so this pins the four keys that were actually
+ * wrong, rather than grepping the whole file.
+ */
+describe("Hungarian address is consistently informal (B481)", () => {
+  const formalMarkers = /\b(Ön|Önt|Önnek|Öné|Önnel|Önök\w*|Kérjen|Várjon|Nyomja|próbálja|kérjen)\b/;
+
+  test("the four keys that used formal address now use te", () => {
+    const hu = dictionaryFor("hu");
+    for (const key of ["me.signinExpired", "me.signinThrottled", "signin.body", "signin.failed"]) {
+      expect(hu[key], key).not.toMatch(formalMarkers);
+    }
+  });
+});
+
 describe("localeForPath", () => {
   test("a journal's own default, not the instance's", () => {
     expect(localeForPath("/bea")).toBe("hr");
