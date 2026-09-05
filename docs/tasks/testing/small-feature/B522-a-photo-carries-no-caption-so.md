@@ -7,8 +7,7 @@ complexity: medium
 area: content model, day page, gallery
 found: "2026-09-05T21:15:32Z"
 started: "2026-09-05T21:20:00Z"
-session: bc89508d-1c7f-472c-b9ee-ef3437daaed8
-claimed: "2026-09-05T21:20:00Z"
+merged: "2026-09-05T21:43:49Z"
 ---
 
 # B522 — A photo carries no caption, so nothing can be said about a picture
