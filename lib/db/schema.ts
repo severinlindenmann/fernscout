@@ -53,11 +53,21 @@ export type SessionsTable = {
   owner_id: string;
   user_id: string;
   /** "guest" (read, long-lived) or "agent" (write, seven days) — decision 24.
-   * Checked at every use, so the two are never interchangeable. */
+   * Checked at every use, so the two are never interchangeable. Also "signup"
+   * and "handover", which exchange and do nothing else, and "identity" (B410),
+   * which proves an address and authorises nothing. */
   kind: string;
   /** A hash of the session token, never the token itself. */
   token_hash: string | null;
   scope: string | null;
+  /** The identity session that minted this one, for a session the handshake
+   * derived. Null for everything a code issued. Revoking an identity walks
+   * this column; see `019-identity`. */
+  parent_id: string | null;
+  /** An identity's opaque public name — safe to return in a response body and
+   * to write into a service worker's cache name, never accepted as
+   * authentication. Null on every other kind. */
+  public_id: string | null;
   created_at: string;
   expires_at: string;
   last_seen_at: string | null;

@@ -1,5 +1,5 @@
 import { LOCALE_LIST } from "@/lib/api/agentCopy";
-import { SESSION_SCOPE, SIGNUP_OWNER, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
+import { SESSION_SCOPE, NO_JOURNAL, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { normalizeJournalVisibility } from "@/lib/config";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
   // behind it was verified for *that* journal, and a token that can mint
   // journals should have been issued for the purpose.
   const session = await resolveSession(match[1].trim(), "signup");
-  if (!session || session.owner !== SIGNUP_OWNER) {
+  if (!session || session.owner !== NO_JOURNAL) {
     /**
      * One message for both ways a signup token stops working — spent, or
      * expired — because `resolveSession` answers `null` to both and inventing

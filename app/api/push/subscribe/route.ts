@@ -1,6 +1,5 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { GUEST_COOKIE, resolveSession } from "@/lib/auth";
+import { resolveAccess } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
 import { findActiveContactId, removeSubscription, saveSubscription } from "@/lib/push";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
@@ -64,10 +63,14 @@ export async function POST(request: Request) {
   // can actually read it (`lib/push.ts#subscribersFor`).
   // Nobody else's subscription is any less valid for a public or unlisted
   // trip — it just can't be scoped to a restricted one.
-  const jar = await cookies();
-  const guest = await resolveSession(jar.get(GUEST_COOKIE)?.value, "guest");
-  const contactId =
-    guest && guest.owner === username ? await findActiveContactId(username, guest.email) : null;
+  // Either browser credential (B410). A reader who arrived on an instance-wide
+  // identity is exactly as approved as one holding this journal's own session
+  // — `findActiveContactId` asks the contacts table, which is the same
+  // question for both — and missing them here would quietly drop them out of
+  // the per-recipient fan-out that keeps a closed trip's notification off the
+  // wrong lock screen.
+  const { email } = await resolveAccess(username);
+  const contactId = email ? await findActiveContactId(username, email) : null;
 
   await saveSubscription({
     username,

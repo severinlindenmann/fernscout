@@ -1,4 +1,4 @@
-import { CODE_TTL_MINUTES, SIGNUP_OWNER, isEmail, issueCode, revokeCodes } from "@/lib/auth";
+import { CODE_TTL_MINUTES, NO_JOURNAL, isEmail, issueCode, revokeCodes } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { sendMail } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  * Step one of making a journal: prove you can read an address.
  *
  * Unlike `/api/auth/request` this names no journal, because the whole point is
- * that none exists yet. The code is filed under `SIGNUP_OWNER`, which is not a
+ * that none exists yet. The code is filed under `NO_JOURNAL`, which is not a
  * username and cannot become one, so the session it eventually produces can
  * never satisfy `ownsUser` for a real journal — it can create one and nothing
  * else.
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   );
   if (!isEmail(email)) return accepted;
 
-  const { code } = await issueCode(SIGNUP_OWNER, email, "signup");
+  const { code } = await issueCode(NO_JOURNAL, email, "signup");
 
   /**
    * The send is guarded, and a failure takes the code back with it.
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
     );
   } catch (err) {
     console.error("[auth] signup code could not be sent:", err);
-    await revokeCodes(SIGNUP_OWNER, email, "signup").catch(() => {});
+    await revokeCodes(NO_JOURNAL, email, "signup").catch(() => {});
     return Response.json(
       {
         error: "mail_failed",

@@ -9,7 +9,7 @@ import LocaleProvider from "@/components/LocaleProvider";
 import TripListProvider from "@/components/TripListProvider";
 import { isIndexable } from "@/lib/access";
 import { siteSummaryFor } from "@/lib/site";
-import { GUEST_COOKIE, resolveSession } from "@/lib/auth";
+import { resolveAccess } from "@/lib/auth/handshake";
 import { listableTrips } from "@/lib/tripGate";
 import { getCurrentTrip, getTrips } from "@/lib/trips";
 import { currencyOptions } from "@/lib/rates";
@@ -60,9 +60,11 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
   // Whether to offer the access panel at all. A stranger opening it would find
   // one line telling them to follow the link they were sent, and a menu entry
   // that leads to "you have nothing" is worse than no entry.
-  const signedIn = Boolean(
-    await resolveSession((await cookies()).get(GUEST_COOKIE)?.value, "guest"),
-  );
+  // Either credential counts (B410). A reader holding only an instance-wide
+  // identity is as signed in as one holding this journal's own session, and
+  // hiding the panel from them would hide the one page that tells them what
+  // they may open.
+  const signedIn = Boolean((await resolveAccess(username)).email);
 
   // A reader's choice from the language switcher, honoured only if this
   // journal actually offers it — otherwise a cookie set on one journal would

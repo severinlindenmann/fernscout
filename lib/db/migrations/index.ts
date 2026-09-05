@@ -17,6 +17,7 @@ import * as contactWhatsapp from "./015-contact-whatsapp";
 import * as credits from "./016-credits";
 import * as dropDigestSends from "./017-drop-digest-sends";
 import * as payments from "./018-payments";
+import * as identity from "./019-identity";
 
 /**
  * Every migration, listed by hand.
@@ -49,6 +50,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "016-credits": credits,
   "017-drop-digest-sends": dropDigestSends,
   "018-payments": payments,
+  "019-identity": identity,
 };
 
 export const migrationProvider: MigrationProvider = {

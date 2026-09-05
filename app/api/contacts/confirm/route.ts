@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { GUEST_COOKIE, SESSION_TTL_MS, isEmail } from "@/lib/auth";
+import { issueIdentityCookie } from "@/lib/auth/identityCookie";
 import { isEnabled } from "@/lib/capabilities";
 import { approveContact, confirmContact, manageUrl, markOwnerNotified } from "@/lib/contacts";
 import { preapprovedEmailFor } from "@/lib/contacts/invites";
@@ -88,6 +89,13 @@ export async function POST(request: Request) {
       path: "/",
       maxAge: Math.floor(SESSION_TTL_MS.guest / 1000),
     });
+    // And an identity, because confirming proved the address — B410. Guarded:
+    // the confirmation stands whatever happens here.
+    try {
+      await issueIdentityCookie(result.contact.email);
+    } catch (err) {
+      console.warn("[contacts] confirmed, but no identity could be issued:", err);
+    }
   }
 
   // Both best-effort (B272): neither mail may fail this confirmation. The

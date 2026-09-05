@@ -525,6 +525,7 @@ the record and never corrected, so do not update one to match what shipped.
 | `GET /agent.md` | the full guide: authenticate, read, write |
 | `GET /<user>/day/<slug>.md` | a day's markdown source |
 | `POST /api/auth/request` + `/verify` | a six-digit code → a 7-day agent token |
+| `POST /api/auth/identity/request` + `/verify` | a six-digit code → a year-long **identity** cookie: proves an address to the whole instance and authorises nothing |
 | `POST /api/v1/<user>/handover` | owner only: a 20-minute credential to paste into an agent |
 | `POST /api/auth/handover` | an agent spends that credential for its own 7-day token |
 | `GET /api/v1/<user>/status` | where an agent stands: drafts waiting, trips, capabilities |
@@ -540,6 +541,25 @@ arrive in a cookie and nowhere else. The two are not interchangeable, and
 caller asked for, which is also what makes a *new* kind refused everywhere by
 default. That is decision 24: reading the site on your phone must not put a
 credential that can rewrite it in your pocket.
+
+**A third browser credential says who you are and opens nothing.** Since B410
+an `fs_identity` cookie is bound to an address and to no journal — the
+`NO_JOURNAL` (`"*"`) sentinel in `owner_id`, which `USERNAME_RE` can never
+collide with. It lasts a year, and it is handed out by the identity code flow
+*and* by every ordinary journal sign-in, because proving an address for one
+journal proves the address. It authorises nothing by itself: every gate asks
+`resolveSession` for `"guest"` or `"agent"` and an `identity` row is refused to
+all of them. `resolveAccess()` in `lib/auth/handshake.ts` is the one place that
+turns it into an answer about a particular journal, and the answer is **an
+address, not a permission** — `journalReader` still asks `hasReadGrant`,
+`isOwner` still reads `owner.email`, `isPersonOnWith` still reads `people:`, on
+every request. So a year-old identity opens exactly what its holder is entitled
+to today, and revoking it (`/api/auth/logout`, or the device list) ends it
+outright with nothing downstream left holding access.
+
+Read a journal's access through `resolveAccess(username)` rather than reading
+`fs_session` yourself: a reader may hold either credential, and a gate that
+looks only at the cookie silently refuses everyone who arrived by identity.
 
 **One thing crosses that line, deliberately, in one direction only.** Since
 B283 the owner's own page — a cookie session — can mint a **`handover`
