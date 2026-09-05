@@ -243,6 +243,25 @@ function textBlock(spec: BookSpec, page: BookPage, html: string, klass = "copy")
 /** Where the browser should fetch each photograph from. */
 export type SrcFor = (photo: BookPhoto) => string;
 
+/**
+ * Groups a volume's pages into spreads: page one alone (it is a recto, and
+ * there is no page zero to face it), then the rest in facing pairs — 2-3,
+ * 4-5, and so on, exactly as `sideOf()` already has them.
+ *
+ * A remainder falls out of the arithmetic rather than being special-cased: if
+ * the pairs run out with one page left over, that last group is a single
+ * page rather than a dropped one. Generic over the element type so a unit
+ * test can hand it plain numbers instead of a real `BookPage`.
+ */
+export function spreadsOf<T>(pages: T[]): T[][] {
+  if (pages.length === 0) return [];
+  const groups: T[][] = [[pages[0]]];
+  for (let i = 1; i < pages.length; i += 2) {
+    groups.push(pages.slice(i, i + 2));
+  }
+  return groups;
+}
+
 function pageHtml(
   spec: BookSpec,
   page: BookPage,
@@ -459,13 +478,21 @@ export function renderPreview(
   const spec = book.spec;
   const ratio = (spec.size.trimWidthMm + spec.bleedMm * 2) / (spec.size.trimHeightMm + spec.bleedMm * 2);
   const volumes = book.volumes
-    .map(
-      (volume: BookVolume) =>
+    .map((volume: BookVolume) => {
+      const spreads = spreadsOf(volume.pages)
+        .map((group) => {
+          const cls = group.length === 1 ? "spread solo" : "spread";
+          return `<div class="${cls}">${group
+            .map((p) => pageHtml(spec, p, outDir, resolveFile, srcFor))
+            .join("")}</div>`;
+        })
+        .join("");
+      return (
         `<section><h2>${escape(volume.title)} — ${volume.interiorPages} pages, ` +
         `spine ${volume.spineWidthMm.toFixed(1)} mm</h2>` +
-        `<div class="spreads">${volume.pages.map((p) => pageHtml(spec, p, outDir, resolveFile, srcFor)).join("")}</div>` +
-        `</section>`,
-    )
+        `<div class="spreads">${spreads}</div></section>`
+      );
+    })
     .join("");
 
   // Folded away by default. They matter, but a list of forty is not what you
@@ -496,12 +523,37 @@ export function renderPreview(
   .warnings code { background:#0001; padding:0 .25em; border-radius:3px; }
   section { max-width:1400px; margin:0 auto 3rem; }
   section > h2 { font-size:1rem; font-weight:600; color:var(--muted); }
-  .spreads { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:1.25rem; }
-  figure { margin:0; }
+  figure { margin:0; min-width:0; }
   figcaption { font-size:11px; color:var(--muted); margin-top:.35rem; }
   .sheet { position:relative; aspect-ratio:${ratio.toFixed(4)}; background:var(--paper);
            container-type:size; overflow:hidden; box-shadow:0 1px 3px #0003,0 8px 24px #0002; }
   .page.left .sheet { box-shadow:inset 6px 0 12px -10px #0006,0 1px 3px #0003; }
+  .page.right .sheet { box-shadow:inset -6px 0 12px -10px #0006,0 1px 3px #0003; }
+
+  /* Single-page view: the flat grid this preview always had. The .spread
+     wrapper added for the spread view is unwrapped with display:contents so
+     every page still lands as its own grid cell. */
+  body[data-view="pages"] .spreads { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:1.25rem; }
+  body[data-view="pages"] .spread { display:contents; }
+
+  /* Spread view: pages stacked as facing pairs, page one alone because there
+     is no page zero to face it. The fold is drawn once per pair rather than
+     simulated per photo — a shaded band at the seam, over both halves, which
+     is the cheapest thing that reads as a gutter. */
+  body[data-view="spreads"] .spreads { display:flex; flex-direction:column; align-items:center; gap:2.5rem; }
+  body[data-view="spreads"] .spread { display:flex; width:min(920px,100%); }
+  body[data-view="spreads"] .spread.solo { width:min(460px,50%); }
+  body[data-view="spreads"] .spread figure { flex:1 1 0; }
+  body[data-view="spreads"] .spread:not(.solo) { position:relative; }
+  body[data-view="spreads"] .spread:not(.solo)::before {
+    content:""; position:absolute; top:0; bottom:0; left:50%; width:16px; margin-left:-8px;
+    background:linear-gradient(90deg,transparent,#0002 40%,#0005 50%,#0002 60%,transparent);
+    pointer-events:none; z-index:1;
+  }
+
+  .viewToggle { margin-top:.75rem; }
+  .viewToggle button { font:inherit; padding:.35em .8em; border:1px solid #0002; border-radius:6px;
+                        background:var(--paper); color:var(--ink); cursor:pointer; }
   .trim { position:absolute; outline:1px dashed #d33a; pointer-events:none; }
   .copy { position:absolute; display:flex; flex-direction:column; justify-content:flex-start;
           gap:.15em; overflow:hidden; color:var(--ink); }
@@ -530,15 +582,30 @@ export function renderPreview(
   .mapcap { position:absolute; right:6%; bottom:5%; font-size:2.6cqh; font-style:italic;
             color:var(--muted); }
   .blank { position:absolute; inset:0; display:grid; place-items:center; color:#0000001a; }
-</style></head><body>
+</style></head><body data-view="spreads">
 <header>
   <h1>${escape(book.title)}</h1>
   <p class="muted">${book.volumes.length} volume(s) · ${book.photoCount} photographs ·
      ${escape(spec.size.name)} · ${spec.bleedMm} mm bleed · ${spec.dpi} DPI target</p>
   <p class="muted">Dashed line is the trim. Everything outside it is bleed and gets cut off.</p>
+  <p class="muted">Page one is a recto and sits alone; after that pages face each other across
+     the fold, which is how the book is actually read.</p>
+  <div class="viewToggle">
+    <button type="button" id="view-toggle">Single pages</button>
+  </div>
 </header>
 ${warnings}
 ${volumes}
+<script>
+  // The only script in the file, and it does one thing: flip which of the two
+  // CSS layouts above applies. No framework and no build step — this has to
+  // open from a file:// URL with nothing else running.
+  document.getElementById("view-toggle").addEventListener("click", function () {
+    var spreads = document.body.dataset.view === "spreads";
+    document.body.dataset.view = spreads ? "pages" : "spreads";
+    this.textContent = spreads ? "Spreads" : "Single pages";
+  });
+</script>
 </body></html>
 `;
 }

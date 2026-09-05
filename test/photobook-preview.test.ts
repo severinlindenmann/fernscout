@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { planBook, type BookDay, type BookPhoto, type BookSource } from "@/lib/photobook/plan";
 import { defaultSpec } from "@/lib/photobook/spec";
-import { renderPreview } from "@/lib/photobook/preview";
+import { renderPreview, spreadsOf } from "@/lib/photobook/preview";
 
 function photo(file: string): BookPhoto {
   return { file, width: 4000, height: 3000 };
@@ -64,5 +64,56 @@ describe("the preview's image sources", () => {
   test("without srcFor the output is the relative-path form the CLI writes", () => {
     const html = renderPreview(BOOK, "/tmp/out", (file) => `/tmp/out/${file}`);
     expect(html).toContain('src="p0.jpg"');
+  });
+});
+
+describe("spreadsOf", () => {
+  test("page one is alone; the rest pair 2-3, 4-5, ...", () => {
+    expect(spreadsOf([1, 2, 3, 4, 5])).toEqual([[1], [2, 3], [4, 5]]);
+  });
+
+  test("an odd total does not lose the last page — it sits alone", () => {
+    expect(spreadsOf([1, 2, 3, 4])).toEqual([[1], [2, 3], [4]]);
+  });
+
+  test("a single-page volume is just that page, alone", () => {
+    expect(spreadsOf([1])).toEqual([[1]]);
+  });
+
+  test("no pages, no groups", () => {
+    expect(spreadsOf([])).toEqual([]);
+  });
+});
+
+describe("the preview's spread view", () => {
+  test("every page still appears, none dropped by grouping", () => {
+    const html = renderPreview(BOOK, "/tmp/out", (file) => `/tmp/out/${file}`);
+    const total = BOOK.volumes.reduce((n, v) => n + v.pages.length, 0);
+    expect((html.match(/<figure class="page/g) ?? []).length).toBe(total);
+    // The last page's own figcaption must be present — the acceptance case an
+    // off-by-one in the chunking would silently drop.
+    const lastVolume = BOOK.volumes[BOOK.volumes.length - 1];
+    const lastPage = lastVolume.pages[lastVolume.pages.length - 1];
+    expect(html).toContain(`>${lastPage.number} ·`);
+  });
+
+  test("page one is wrapped in its own solo spread, not paired", () => {
+    const html = renderPreview(BOOK, "/tmp/out", (file) => `/tmp/out/${file}`);
+    // `.indexOf("spread")` would also match the outer `.spreads` container,
+    // so anchor on the exact wrapper class instead.
+    const start = html.search(/<div class="spread( solo)?">/);
+    expect(html.startsWith('<div class="spread solo">', start)).toBe(true);
+    // The next spread group starts only after exactly one figure — page one
+    // holds the group alone.
+    const nextGroup = html.slice(start + 1).search(/<div class="spread( solo)?">/) + start + 1;
+    const soloBody = html.slice(start, nextGroup);
+    expect((soloBody.match(/<figure/g) ?? []).length).toBe(1);
+  });
+
+  test("the single-page view is still available via a toggle", () => {
+    const html = renderPreview(BOOK, "/tmp/out", (file) => `/tmp/out/${file}`);
+    expect(html).toContain('id="view-toggle"');
+    expect(html).toContain('data-view="pages"');
+    expect(html).toContain('data-view="spreads"');
   });
 });
