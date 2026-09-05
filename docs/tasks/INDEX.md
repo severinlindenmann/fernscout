@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (104)
+## backlog (103)
 
 ### security (6)
 
@@ -62,13 +62,12 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (34)
+### issue (33)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B329](backlog/issue/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium |
 | [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
-| [B486](backlog/issue/B486-the-photobook-gate-asks-for-credits.md) | The photobook gate asks for credits per journal, so the button never appears | ISSUE | high | low |
 | [B228](backlog/issue/B228-the-guest-list-issues-a-link.md) | The guest list issues a link that never expires | ISSUE | medium | low |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
@@ -207,7 +206,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B485](in-development/B485-hu-json-calls-a-trip-utaz.md) | hu.json calls a trip utazás where the guides and B449 settled on út | CHORE | medium | medium | `e5747799` |
 
-## testing (188)
+## testing (189)
 
 ### security (2)
 
@@ -216,7 +215,7 @@ Do not edit them by hand; run the script.
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 | [B473](testing/security/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | — |
 
-### issue (106)
+### issue (107)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -248,6 +247,7 @@ Do not edit them by hand; run the script.
 | [B461](testing/issue/B461-the-postcard-preview-is-english-on.md) | The postcard preview is English on a German journal, and its language note explains nothing | ISSUE | high | low | — |
 | [B465](testing/issue/B465-the-postcard-preview-follows-the-journal.md) | The postcard preview follows the journal's language, not the reader's chosen one | ISSUE | high | low | — |
 | [B474](testing/issue/B474-a-sent-postcard-order-still-says.md) | A sent postcard order still says nothing has been printed, and names the day by its slug | ISSUE | high | low | — |
+| [B486](testing/issue/B486-the-photobook-gate-asks-for-credits.md) | The photobook gate asks for credits per journal, so the button never appears | ISSUE | high | low | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
