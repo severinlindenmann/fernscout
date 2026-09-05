@@ -7,8 +7,7 @@ complexity: low
 area: i18n, costs, metadata
 found: "2026-09-04T09:40:06Z"
 started: "2026-09-05T15:04:59Z"
-session: e5747799-fd3e-4d40-a335-82fa4e24333e
-claimed: "2026-09-05T15:04:59Z"
+merged: "2026-09-05T15:16:09Z"
 ---
 
 # B250 — The trip-scoped costs page describes an upcoming trip in the past tense, in English only

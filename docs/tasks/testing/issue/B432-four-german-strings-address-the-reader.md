@@ -7,8 +7,7 @@ complexity: low
 area: i18n, copy
 found: "2026-09-05T09:55:14Z"
 started: "2026-09-05T15:05:00Z"
-session: e5747799-fd3e-4d40-a335-82fa4e24333e
-claimed: "2026-09-05T15:05:00Z"
+merged: "2026-09-05T15:16:08Z"
 ---
 
 # B432 — Four German strings address the reader formally where the rest use du

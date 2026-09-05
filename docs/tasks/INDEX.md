@@ -196,20 +196,18 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (8)
+## in-development (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B476](in-development/B476-a-photobook-cannot-be-ordered-from.md) | A photobook cannot be ordered from the site, only from a shell | FEATURE | high | high | `d9c396ea` |
 | [B449](in-development/B449-the-hungarian-reader-guides-were-written.md) | The Hungarian reader guides were written by an agent and have never been read by a speaker | DOCS | medium | low | `e5747799` |
 | [B469](in-development/B469-the-contacts-admin-page-ignores-the.md) | The contacts admin page ignores the language the owner picked | ISSUE | medium | low | `e5747799` |
-| [B250](in-development/B250-the-trip-scoped-costs-page-describes.md) | The trip-scoped costs page describes an upcoming trip in the past tense, in English only | ISSUE | low | low | `e5747799` |
 | [B251](in-development/B251-the-404-page-s-tab-title.md) | The 404 page's tab title is the bare site name, because not-found.tsx exports metadata Next never asks for | ISSUE | low | medium | `e5747799` |
 | [B305](in-development/B305-a-reader-shown-a-day-in.md) | A reader shown a day in a language they did not ask for is told nothing about it | FEATURE | low | low | `e5747799` |
 | [B424](in-development/B424-the-language-toggle-changes-the-navigation.md) | The language toggle changes the navigation but leaves the owner's contacts page in the journal's locale | ISSUE | low | low | `e5747799` |
-| [B432](in-development/B432-six-german-strings-address-the-reader.md) | Six German strings address the reader formally where a hundred and thirty use du | ISSUE | low | low | `e5747799` |
 
-## testing (177)
+## testing (179)
 
 ### security (2)
 
@@ -218,7 +216,7 @@ _Nothing here._
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 | [B473](testing/security/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | — |
 
-### issue (100)
+### issue (102)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -304,6 +302,7 @@ _Nothing here._
 | [B210](testing/issue/B210-media-originals-dir-outside-the-content.md) | MEDIA_ORIGINALS_DIR outside the content root writes a ../ chain into the photobook plan | ISSUE | low | low | — |
 | [B214](testing/issue/B214-the-costs-page-s-meta-description.md) | The costs page's meta description is present-tense on a trip that has not started | ISSUE | low | low | — |
 | [B218](testing/issue/B218-a-postcard-run-reports-three-files.md) | A postcard run reports three files per recipient and writes four | ISSUE | low | low | — |
+| [B250](testing/issue/B250-the-trip-scoped-costs-page-describes.md) | The trip-scoped costs page describes an upcoming trip in the past tense, in English only | ISSUE | low | low | — |
 | [B284](testing/issue/B284-a-dictionary-read-that-fails-for.md) | A dictionary read that fails for any reason but absence is cached as empty until the file changes | ISSUE | low | low | — |
 | [B337](testing/issue/B337-a-day-with-no-location-renders.md) | A day with no location: renders a blank, unlabelled filter chip in the gallery | ISSUE | low | low | — |
 | [B358](testing/issue/B358-the-invite-copy-button-s-accessible.md) | The invite copy button's accessible name ends in two dangling em-dashes and reports no success | ISSUE | low | low | — |
@@ -316,6 +315,7 @@ _Nothing here._
 | [B400](testing/issue/B400-a-non-boolean-send-mail-on.md) | A non-boolean send_mail on publish is silently ignored, so an agent thinks it sent | ISSUE | low | low | — |
 | [B413](testing/issue/B413-the-buy-credits-dialog-is-off.md) | The Buy-credits dialog is off-centre; make it an animated dropdown under its button | ISSUE | low | low | — |
 | [B414](testing/issue/B414-three-places-tell-an-owner-to.md) | Three places tell an owner to edit trip.md for a change the API can now make | ISSUE | low | low | `62683d95` |
+| [B432](testing/issue/B432-four-german-strings-address-the-reader.md) | Four German strings address the reader formally where the rest use du | ISSUE | low | low | — |
 | [B443](testing/issue/B443-every-signed-out-visit-to-logs.md) | Every signed-out visit to / logs a 401 in the browser console | ISSUE | low | low | — |
 | [B447](testing/issue/B447-the-home-screen-hint-says-iphone.md) | The Home Screen hint says iPhone to somebody holding an iPad | ISSUE | low | low | — |
 | [B448](testing/issue/B448-the-notifications-heading-on-me-stands.md) | The notifications heading on /me stands over an empty box where push cannot work | ISSUE | low | low | — |
