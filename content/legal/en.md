@@ -4,7 +4,7 @@ Fernscout is run as a **hobby project** by Severin Lindenmann, Switzerland.
 It is not a company, there is no support desk, and there is no service level
 agreement behind it.
 
-Contact: <severin.lindenmann@altyca.ch>
+Contact: <agent@fernscout.ch>
 
 The software is open source under the AGPL-3.0 licence and can be read in
 full at [github.com/severinlindenmann/fernscout](https://github.com/severinlindenmann/fernscout).
