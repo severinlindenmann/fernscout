@@ -158,9 +158,17 @@ export function AgentBlock({
         {/* The instruction itself, visible — the same string, from the same
             key, that the button below copies. B255: a postal-style address
             and a sentence fragment used to sit here, showing a different
-            thing than the clipboard carried. `break-words` keeps the long
-            URL from forcing horizontal scroll at phone width. */}
-        <p className="mt-3 break-words font-mono text-base leading-7 text-navy-900 sm:text-lg">
+            thing than the clipboard carried.
+
+            `overflow-wrap: anywhere` rather than Tailwind's `break-words`
+            (`break-word`) — B431. The two wrap a rendered line identically;
+            they differ in the one place that mattered here, which is that
+            `anywhere` also lets the **min-content** width of this paragraph
+            fall below the length of the URL. `break-word` does not, so the
+            block reported a min-content width of the whole URL, the flex item
+            above refused to shrink under it, and the entire page laid out
+            wider than the phone. */}
+        <p className="mt-3 font-mono text-base leading-7 text-navy-900 [overflow-wrap:anywhere] sm:text-lg">
           {t("landing.instruction", { docUrl, agentUrl })}
         </p>
         <div className="mt-4">
