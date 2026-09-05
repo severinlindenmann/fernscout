@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (102)
+## backlog (101)
 
 ### security (6)
 
@@ -169,13 +169,12 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (8)
+### docs-and-skills (7)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B155](backlog/docs-and-skills/B155-nothing-in-the-repo-tells-a.md) | Nothing in the repo tells a reader that fernscout.ch will host their journal, or what it promises | DOCS | medium | low |
 | [B372](backlog/docs-and-skills/B372-a-private-trip-s-photograph-is.md) | A private trip's photograph is handed to Meta, and nothing a reader or owner sees says so | DOCS | medium | low |
-| [B449](backlog/docs-and-skills/B449-the-hungarian-reader-guides-were-written.md) | The Hungarian reader guides were written by an agent and have never been read by a speaker | DOCS | medium | low |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 | [B289](backlog/docs-and-skills/B289-nothing-records-that-a-hungarian-string.md) | Nothing records that a Hungarian string cannot take a case suffix on an interpolated name | DOCS | low | low |
 | [B404](backlog/docs-and-skills/B404-a-journal-s-own-documentation-txt.md) | A journal's own documentation.txt does not say a private trip stays shut to approved guests | DOCS | low | low |
@@ -197,11 +196,12 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (7)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B476](in-development/B476-a-photobook-cannot-be-ordered-from.md) | A photobook cannot be ordered from the site, only from a shell | FEATURE | high | high | `d9c396ea` |
+| [B449](in-development/B449-the-hungarian-reader-guides-were-written.md) | The Hungarian reader guides were written by an agent and have never been read by a speaker | DOCS | medium | low | `e5747799` |
 | [B469](in-development/B469-the-contacts-admin-page-ignores-the.md) | The contacts admin page ignores the language the owner picked | ISSUE | medium | low | `e5747799` |
 | [B250](in-development/B250-the-trip-scoped-costs-page-describes.md) | The trip-scoped costs page describes an upcoming trip in the past tense, in English only | ISSUE | low | low | `e5747799` |
 | [B251](in-development/B251-the-404-page-s-tab-title.md) | The 404 page's tab title is the bare site name, because not-found.tsx exports metadata Next never asks for | ISSUE | low | medium | `e5747799` |
