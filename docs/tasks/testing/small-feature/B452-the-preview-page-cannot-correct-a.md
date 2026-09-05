@@ -7,8 +7,7 @@ complexity: low
 area: postcards, preview page
 found: "2026-09-05T15:10:10Z"
 started: "2026-09-05T12:47:27Z"
-session: 8af79b62-fe04-4cc3-b94b-9609f44a5f9d
-claimed: "2026-09-05T12:47:27Z"
+merged: "2026-09-05T12:55:47Z"
 ---
 
 # B452 — The preview page cannot correct a word, and says nothing about language

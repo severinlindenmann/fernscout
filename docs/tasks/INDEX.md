@@ -203,18 +203,16 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (4)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B451](in-development/B451-the-postcard-preview-prints-the-message.md) | The postcard preview prints the message at four times its real size | ISSUE | high | low | `8af79b62` |
-| [B452](in-development/B452-the-preview-page-cannot-correct-a.md) | The preview page cannot correct a word, and says nothing about language | FEATURE | medium | low | `8af79b62` |
 | [B456](in-development/B456-the-guides-describe-controls-in-words.md) | The guides describe controls in words alone, so a reader on a phone has to find them by hunting | DOCS | medium | low | `3744307d` |
 | [B458](in-development/B458-a-backup-that-works-says-nothing.md) | A backup that works says nothing, so the only evidence the alarm is alive is an alarm | FEATURE | medium | low | `7c3dd4ae` |
 
-## testing (152)
+## testing (154)
 
-### issue (89)
+### issue (90)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -240,6 +238,7 @@ _Nothing here._
 | [B426](testing/issue/B426-the-root-page-can-show-a.md) | The root page can show a signed-in reader their journals but offers nobody a way to sign in | ISSUE | high | low | — |
 | [B438](testing/issue/B438-the-push-control-renders-nothing-when.md) | The push control renders nothing when it cannot decide, so a reader who could enable notifications sees no reason why they cannot | ISSUE | high | low | — |
 | [B450](testing/issue/B450-comm-runs-in-the-ambient-locale.md) | comm runs in the ambient locale against LC_ALL=C-sorted input, so the backup names readable files as missing | ISSUE | high | low | — |
+| [B451](testing/issue/B451-the-postcard-preview-prints-the-message.md) | The postcard preview prints the message at four times its real size | ISSUE | high | low | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
@@ -324,7 +323,7 @@ _Nothing here._
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 | [B425](testing/big-feature/B425-until-a-psp-exists-a-payment.md) | Until a PSP exists, a payment is a request the instance admin approves by an emailed link, which grants the credits | FEATURE | medium | high | — |
 
-### small-feature (17)
+### small-feature (18)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -341,6 +340,7 @@ _Nothing here._
 | [B392](testing/small-feature/B392-the-owner-console-on-me-is.md) | The owner console on /me is a flat wall of same-weight headings | FEATURE | medium | medium | — |
 | [B412](testing/small-feature/B412-the-service-worker-caches-every-reader.md) | The service worker caches every reader into one shared bucket, so a signed-in home view cannot be cached at all | FEATURE | medium | medium | — |
 | [B441](testing/small-feature/B441-a-postcard-can-only-be-started.md) | A postcard can only be started by an agent — the gallery has no way in | FEATURE | medium | medium | — |
+| [B452](testing/small-feature/B452-the-preview-page-cannot-correct-a.md) | The preview page cannot correct a word, and says nothing about language | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
