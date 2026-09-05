@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (96)
+## backlog (97)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (31)
+### issue (32)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -79,6 +79,7 @@ Do not edit them by hand; run the script.
 | [B340](backlog/issue/B340-a-disabled-capability-answers-404-across.md) | A disabled capability answers 404 across every gated route, hiding a real refusal as no-such-route | ISSUE | medium | low |
 | [B342](backlog/issue/B342-readcostsfile-has-no-guard-around-matter.md) | readCostsFile has no guard around matter() and throws on a malformed costs.md | ISSUE | medium | low |
 | [B378](backlog/issue/B378-the-whatsapp-checkbox-is-offered-on.md) | The WhatsApp checkbox is offered on a journal with WhatsApp switched off, one line under a hint saying nothing sends there | ISSUE | medium | low |
+| [B420](backlog/issue/B420-delete-costs-always-answers-costspagegone-true.md) | DELETE .../costs always answers costsPageGone true even when a day's costs: block keeps the page alive | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
@@ -191,21 +192,20 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (9)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B332](in-development/B332-the-documents-still-say-deleting-a.md) | The documents still say deleting a budget removes the costs page, which B328 made untrue | ISSUE | high | low | `62683d95` |
 | [B406](in-development/B406-the-invite-form-swallows-a-refusal.md) | The invite form swallows a refusal, so a reader clicks join and nothing at all happens | ISSUE | high | low | `62683d95` |
 | [B408](in-development/B408-status-reports-credits-enabled-while-config.md) | status reports credits enabled while config reports it off, on the same journal | ISSUE | medium | low | `62683d95` |
-| [B412](in-development/B412-the-service-worker-caches-every-reader.md) | The service worker caches every reader into one shared bucket, so a signed-in home view cannot be cached at all | FEATURE | medium | medium | `3744307d` |
 | [B407](in-development/B407-two-mail-refusals-blame-the-server.md) | Two mail refusals blame the server when it is the journal's own switch that is off | ISSUE | low | low | `62683d95` |
 | [B409](in-development/B409-the-error-table-says-a-trip.md) | The error table says a trip-scoped token gets out_of_scope for another trip, and it gets unknown_trip | DOCS | low | low | `62683d95` |
 | [B414](in-development/B414-three-places-tell-an-owner-to.md) | Three places tell an owner to edit trip.md for a change the API can now make | ISSUE | low | low | `62683d95` |
 | [B417](in-development/B417-access-gate-test-ts-still-carries.md) | access-gate.test.ts still carries a digest column for a function B387 deleted | CHORE | low | low | `62683d95` |
 | [B418](in-development/B418-a-journal-with-no-tagline-renders.md) | A journal with no tagline renders a dangling em-dash in its title and og:title | ISSUE | low | low | `62683d95` |
 
-## testing (148)
+## testing (149)
 
 ### security (3)
 
@@ -323,7 +323,7 @@ _Nothing here._
 | [B399](testing/big-feature/B399-every-address-in-the-book-is.md) | Every address in the book is typed out by hand, line by line, with nothing to check it against | FEATURE | medium | high | `39691533` |
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 
-### small-feature (14)
+### small-feature (15)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -336,6 +336,7 @@ _Nothing here._
 | [B390](testing/small-feature/B390-the-dialling-code-picker-is-eleven.md) | The dialling-code picker is eleven bare numbers with no country, no search and no way to find your own | FEATURE | medium | low | `39691533` |
 | [B392](testing/small-feature/B392-the-owner-console-on-me-is.md) | The owner console on /me is a flat wall of same-weight headings | FEATURE | medium | medium | — |
 | [B398](testing/small-feature/B398-the-country-on-an-address-is.md) | The country on an address is free text, so nothing downstream can tell Schweiz from Switzerland | FEATURE | medium | low | `39691533` |
+| [B412](testing/small-feature/B412-the-service-worker-caches-every-reader.md) | The service worker caches every reader into one shared bucket, so a signed-in home view cannot be cached at all | FEATURE | medium | medium | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
