@@ -996,6 +996,13 @@ export function openApiDocument() {
             "contacts who ticked the WhatsApp box and left a usable number, because Meta " +
             "requires opt-in to WhatsApp specifically and the digest's consent does not " +
             "carry over.\n\n" +
+            "**Both flags must be the JSON boolean `true`** — B400. `\"send_mail\": \"true\"` " +
+            "(a string) or `1` is not read as yes; it is ignored the same as if it had never " +
+            "been sent, and nothing goes out for it. That case is reported rather than left " +
+            "silent: the response carries `flagsIgnored` (e.g. `[\"send_mail\"]`) and a " +
+            "`flagsIgnoredMessage` naming which key was present but not a boolean. Absence of " +
+            "the key stays silent — that is the honest \"did not ask\" — only a present, " +
+            "wrong-typed value is called out.\n\n" +
             "**Sending costs credits where this server charges for them** — B366, one per " +
             "email and one per WhatsApp message. Both requested channels are priced " +
             "together against one balance *before* anything is published: if the journal " +

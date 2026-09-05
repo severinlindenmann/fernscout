@@ -365,10 +365,12 @@ describe("both publish flags survive sharing one request body", () => {
     expect(await readPublishFlags(bodied({ send_mail: true }))).toEqual({
       sendMail: true,
       sendWhatsapp: false,
+      ignored: [],
     });
     expect(await readPublishFlags(bodied({ send_whatsapp: true }))).toEqual({
       sendMail: false,
       sendWhatsapp: true,
+      ignored: [],
     });
   });
 
@@ -379,17 +381,53 @@ describe("both publish flags survive sharing one request body", () => {
     expect(await readPublishFlags(bodied({ send_mail: true, send_whatsapp: true }))).toEqual({
       sendMail: true,
       sendWhatsapp: true,
+      ignored: [],
     });
   });
 
-  test("absent, malformed and non-boolean all mean no", async () => {
-    expect(await readPublishFlags(bodied({}))).toEqual({ sendMail: false, sendWhatsapp: false });
+  test("absent and false both mean no, silently", async () => {
+    expect(await readPublishFlags(bodied({}))).toEqual({
+      sendMail: false,
+      sendWhatsapp: false,
+      ignored: [],
+    });
+    expect(await readPublishFlags(bodied({ send_mail: false, send_whatsapp: false }))).toEqual({
+      sendMail: false,
+      sendWhatsapp: false,
+      ignored: [],
+    });
+    const broken = new Request("https://t.test/x", { method: "POST", body: "{not json" });
+    expect(await readPublishFlags(broken)).toEqual({
+      sendMail: false,
+      sendWhatsapp: false,
+      ignored: [],
+    });
+  });
+
+  // B400: a non-boolean value still reads as `false` (the strict `=== true`
+  // is unchanged) but is no longer indistinguishable from absence — it is
+  // named in `ignored` so the route can report it.
+  test("present but non-boolean reads as false, and is named as ignored", async () => {
     expect(await readPublishFlags(bodied({ send_whatsapp: "yes" }))).toEqual({
       sendMail: false,
       sendWhatsapp: false,
+      ignored: ["send_whatsapp"],
     });
-    const broken = new Request("https://t.test/x", { method: "POST", body: "{not json" });
-    expect(await readPublishFlags(broken)).toEqual({ sendMail: false, sendWhatsapp: false });
+    expect(await readPublishFlags(bodied({ send_mail: "true" }))).toEqual({
+      sendMail: false,
+      sendWhatsapp: false,
+      ignored: ["send_mail"],
+    });
+    expect(await readPublishFlags(bodied({ send_mail: 1 }))).toEqual({
+      sendMail: false,
+      sendWhatsapp: false,
+      ignored: ["send_mail"],
+    });
+    expect(await readPublishFlags(bodied({ send_mail: "true", send_whatsapp: 0 }))).toEqual({
+      sendMail: false,
+      sendWhatsapp: false,
+      ignored: ["send_mail", "send_whatsapp"],
+    });
   });
 });
 

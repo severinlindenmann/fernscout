@@ -558,6 +558,66 @@ describe("the two triggers, and what only the owner may pull", () => {
   });
 });
 
+/**
+ * B400 — `readPublishFlags`'s `=== true` is unchanged and load-bearing: a
+ * non-boolean `send_mail` must still send nothing. What changes is that the
+ * response now says so, instead of looking identical to nobody asking.
+ */
+describe("a non-boolean send_mail is ignored, and the response names it", () => {
+  test("a string still publishes, still sends nothing, and now names the flag", async () => {
+    writeTrip("stringy", { visibility: "public" });
+    writeEntry("stringy", { date: "2026-09-08", slug: "stringy-day", draft: true });
+    await addReader("reader@example.test", "en");
+
+    const token = await agentToken();
+    const result = await publish(token, "stringy", "stringy-day", { send_mail: "true" });
+    expect(result.status).toBe(200);
+    expect(result.body.status).toBe("published");
+    expect(result.body.mail).toBeUndefined();
+    expect(mailFiles()).toHaveLength(0);
+    expect(result.body.flagsIgnored).toEqual(["send_mail"]);
+    expect(typeof result.body.flagsIgnoredMessage).toBe("string");
+  });
+
+  test("a number is the same story", async () => {
+    writeTrip("numeric", { visibility: "public" });
+    writeEntry("numeric", { date: "2026-09-08", slug: "numeric-day", draft: true });
+    await addReader("reader@example.test", "en");
+
+    const token = await agentToken();
+    const result = await publish(token, "numeric", "numeric-day", { send_mail: 1 });
+    expect(result.status).toBe(200);
+    expect(result.body.mail).toBeUndefined();
+    expect(mailFiles()).toHaveLength(0);
+    expect(result.body.flagsIgnored).toEqual(["send_mail"]);
+  });
+
+  test("send_mail: true still sends, and reports nothing ignored", async () => {
+    writeTrip("boolean", { visibility: "public" });
+    writeEntry("boolean", { date: "2026-09-08", slug: "boolean-day", draft: true });
+    await addReader("reader@example.test", "en");
+
+    const token = await agentToken();
+    const result = await publish(token, "boolean", "boolean-day", { send_mail: true });
+    expect(result.status).toBe(200);
+    expect(result.body.mail).toMatchObject({ attempted: true, sent: 2, failed: 0 });
+    expect(result.body.flagsIgnored).toBeUndefined();
+  });
+
+  test("no send_mail key at all sends nothing and reports nothing ignored", async () => {
+    writeTrip("silent", { visibility: "public" });
+    writeEntry("silent", { date: "2026-09-08", slug: "silent-day", draft: true });
+    await addReader("reader@example.test", "en");
+
+    const token = await agentToken();
+    const result = await publish(token, "silent", "silent-day", {});
+    expect(result.status).toBe(200);
+    expect(result.body.mail).toBeUndefined();
+    expect(mailFiles()).toHaveLength(0);
+    expect(result.body.flagsIgnored).toBeUndefined();
+  });
+});
+
 describe("mail is best-effort", () => {
   test("a send that fails for one reader does not fail the publish, and is reported", async () => {
     writeTrip("flaky", { visibility: "public" });

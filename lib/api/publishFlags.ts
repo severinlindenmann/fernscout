@@ -19,13 +19,25 @@
  * the default publishing must never silently widen: absence means no letter
  * and no message, because publishing fifteen days must not mail fifteen
  * letters or buzz fifteen times in somebody's pocket.
+ *
+ * **`ignored` is B400's.** `=== true` is deliberately strict — a client
+ * sending `"send_mail": "no"` must not be read as a yes — but that strictness
+ * used to collapse two different callers into the same `false`: one who
+ * never asked, and one who asked with a string or a number and got silently
+ * refused. `ignored` names the keys that were present but not a boolean, so
+ * the route can report the second case instead of looking identical to the
+ * first. A key that is simply absent, or sent as `false`, is not ignored —
+ * both are the honest "no", not a mistake to surface.
  */
 export type PublishFlags = {
   sendMail: boolean;
   sendWhatsapp: boolean;
+  ignored: string[];
 };
 
-const NOTHING: PublishFlags = { sendMail: false, sendWhatsapp: false };
+const NOTHING: PublishFlags = { sendMail: false, sendWhatsapp: false, ignored: [] };
+
+const FLAG_KEYS = ["send_mail", "send_whatsapp"] as const;
 
 export async function readPublishFlags(request: Request): Promise<PublishFlags> {
   let body: unknown;
@@ -42,5 +54,6 @@ export async function readPublishFlags(request: Request): Promise<PublishFlags> 
   return {
     sendMail: record.send_mail === true,
     sendWhatsapp: record.send_whatsapp === true,
+    ignored: FLAG_KEYS.filter((key) => key in record && typeof record[key] !== "boolean"),
   };
 }
