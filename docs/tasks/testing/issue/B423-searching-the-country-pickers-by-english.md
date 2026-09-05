@@ -7,8 +7,7 @@ complexity: low
 area: contacts, i18n
 found: "2026-09-05T11:55:00Z"
 started: "2026-09-05T09:16:44Z"
-session: 39691533-1e0d-44dd-a2e5-b2a7ce844518
-claimed: "2026-09-05T09:16:44Z"
+merged: "2026-09-05T09:22:13Z"
 ---
 
 # B423 — Searching the country pickers by English name finds nothing on a journal that is not in English
