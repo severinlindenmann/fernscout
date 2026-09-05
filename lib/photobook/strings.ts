@@ -37,6 +37,9 @@ export type BookStrings = {
   chapter: string;
   volume: string;
   continued: string;
+  /** A day's own heading, run on to a second page — B517. `{title}` is the
+   * day's title, printed as written; only the suffix is this file's. */
+  continuedTitle: string;
 
   followers: string;
   followersOne: string;
@@ -77,6 +80,7 @@ const EN: BookStrings = {
   chapter: "Chapter {index} of {of}",
   volume: "Volume {index} of {of}",
   continued: "(continued on the website)",
+  continuedTitle: "{title} — continued",
 
   followers: "Who came along",
   followersOne: "One person followed this journey from home.",
@@ -139,6 +143,7 @@ const DE: BookStrings = {
   chapter: "Kapitel {index} von {of}",
   volume: "Band {index} von {of}",
   continued: "(weiter auf der Website)",
+  continuedTitle: "{title} — Fortsetzung",
 
   followers: "Wer mitgereist ist",
   followersOne: "Eine Person hat diese Reise von zu Hause aus verfolgt.",
@@ -201,6 +206,7 @@ const HU: BookStrings = {
   chapter: "{index}. fejezet, összesen {of}",
   volume: "{index}. kötet, összesen {of}",
   continued: "(folytatás a weboldalon)",
+  continuedTitle: "{title} — folytatás",
 
   followers: "Kik tartottak velünk",
   followersOne: "Egy ember követte ezt az utat otthonról.",

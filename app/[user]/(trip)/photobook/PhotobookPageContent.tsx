@@ -22,7 +22,7 @@ type PreviewState = {
   pages: number;
   volumes: number;
   credits: number;
-  warnings: { code: string; detail: string }[];
+  warnings: { code: string; detail: string; date?: string }[];
   /** `false` for a book with no photographs — legal to lay out (padding fills
    * the page-count minimum) but not one anybody should pay for. */
   buyable: boolean;
@@ -436,16 +436,14 @@ export default function PhotobookPageContent({
   /**
    * Which days are actually being cut short — B517.
    *
-   * `BookWarning.detail` for `text-truncated` opens with the day's own ISO
-   * date (`plan.ts`'s `${day.date} "${day.title}": …`), which is the only
-   * place the planner says which day it means; there is no structured field
-   * to read this from instead. The run-on control is worth showing only
-   * here — a day that already fits has nothing for a second page to solve.
+   * Reads `BookWarning.date`, not `detail`: `detail` is a sentence for a
+   * person and must be free to be reworded or translated without silently
+   * hiding this control on every day.
    */
   const truncatedDates = new Set(
     (preview?.warnings ?? [])
-      .filter((w) => w.code === "text-truncated")
-      .map((w) => w.detail.slice(0, 10)),
+      .filter((w) => w.code === "text-truncated" && w.date)
+      .map((w) => w.date as string),
   );
 
   return (

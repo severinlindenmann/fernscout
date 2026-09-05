@@ -315,6 +315,14 @@ export type BookWarning = {
     | "blank-padding"
     | "page-count";
   detail: string;
+  /**
+   * The day this warning is about, when it is about one — `text-truncated`
+   * only, so far. A UI that needs to know which day overflowed has to read
+   * this rather than parse `detail`: that string is prose for a person, and
+   * rewording it (or translating it, or reordering it) must not silently
+   * break something that was reading it as data.
+   */
+  date?: string;
 };
 
 export type Photobook = {
@@ -1164,15 +1172,29 @@ function materialise(
         warnings.push({
           code: "text-truncated",
           detail: `${day.date} "${day.title}": ${fit.lines.length - skip} lines written, ${fit.maxLines} fit on the page.`,
+          date: day.date,
         });
       }
+      /**
+       * A continuation page (`skip > 0`) says so in its own heading rather
+       * than printing the day's date and title again — B517. Two facing (or
+       * near-facing) pages carrying the same date would read as two days
+       * that happen to share one, not as one day that ran long, so the date
+       * eyebrow is dropped here rather than repeated. `continuedTitle` is a
+       * short suffix rather than a sentence: `dayTextBudget` reserves a fixed
+       * height for the heading block, sized for a one-line title, and a
+       * suffix long enough to wrap the title onto a second line would eat
+       * into the room already promised to the prose above — exactly what
+       * ruling 1 exists to prevent two measurements disagreeing about.
+       */
+      const title = skip > 0 ? fill(s.continuedTitle, { title: day.title }) : day.title;
       return {
         number,
         side,
         kind: "day",
         date: day.date,
-        dateLabel: formatDate(day.date),
-        title: day.title,
+        dateLabel: skip > 0 ? "" : formatDate(day.date),
+        title,
         location: [day.location, day.country].filter(Boolean).join(", "),
         lines,
         truncated,

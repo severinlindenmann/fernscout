@@ -3,6 +3,7 @@ import { planBook, type BookDay, type BookPhoto, type BookSource } from "@/lib/p
 import { BOOK_SIZES, defaultSpec } from "@/lib/photobook/spec";
 import { DEFAULT_OPTIONS, parseOptions, type BookOptions } from "@/lib/photobook/options";
 import { priceOf } from "@/lib/photobook/build";
+import { bookStrings, fill } from "@/lib/photobook/strings";
 
 /**
  * Shaping one day by hand — B504.
@@ -484,7 +485,11 @@ describe("letting a day run on — B517", () => {
 
   test("a day nobody has asked about still truncates and still says so", () => {
     const book = planBook(source(overflowing), SPEC, DEFAULT_OPTIONS);
-    expect(book.warnings.some((w) => w.code === "text-truncated")).toBe(true);
+    const warning = book.warnings.find((w) => w.code === "text-truncated");
+    expect(warning).toBeDefined();
+    // The day this warning is about is a structured field, not something a
+    // reader has to parse out of `detail` — B517.
+    expect(warning?.date).toBe(DATE);
     const dayPages = book.volumes[0].pages.filter((p) => p.kind === "day" && p.date === DATE);
     expect(dayPages).toHaveLength(1);
     expect(dayPages[0].kind === "day" && dayPages[0].truncated).toBe(true);
@@ -505,6 +510,24 @@ describe("letting a day run on — B517", () => {
     const allLines = dayPages.flatMap((p) => (p.kind === "day" ? p.lines : []));
     expect(allLines.some((l) => l.includes("Word0"))).toBe(true);
     expect(allLines.some((l) => l.includes("Word199"))).toBe(true);
+  });
+
+  test("the continuation page says it is one, and does not repeat the date", () => {
+    const book = planBook(source(overflowing), SPEC, {
+      ...DEFAULT_OPTIONS,
+      days: { [DATE]: { runOn: true } },
+    });
+    const dayPages = book.volumes[0].pages.filter((p) => p.kind === "day" && p.date === DATE);
+    const [first, second] = dayPages;
+    const title = overflowing[1].title; // "Day 2"
+    expect(first.kind === "day" && first.title).toBe(title);
+    expect(first.kind === "day" && first.dateLabel).not.toBe("");
+    expect(second.kind === "day" && second.title).toBe(
+      fill(bookStrings("en").continuedTitle, { title }),
+    );
+    // Two pages carrying the same date would read as two different days that
+    // happen to share one, not as one day that ran long — B517.
+    expect(second.kind === "day" && second.dateLabel).toBe("");
   });
 
   test("the continuation page carries the day's spare photograph rather than none", () => {
