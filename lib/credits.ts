@@ -76,7 +76,7 @@ export type LedgerReason =
  * or four weekly digests" — a distinction that costs one string here and
  * cannot be recovered later from rows that never carried it.
  */
-export type SpendReason = "day_mail" | "day_whatsapp" | "digest" | "postcard";
+export type SpendReason = "day_mail" | "day_whatsapp" | "digest" | "postcard" | "photobook";
 
 export type LedgerRow = {
   id: string;
