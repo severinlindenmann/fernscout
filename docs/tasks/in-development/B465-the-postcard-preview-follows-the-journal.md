@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: postcards, i18n
 found: "2026-09-05T17:00:00Z"
+started: "2026-09-05T13:20:09Z"
+session: 8af79b62-fe04-4cc3-b94b-9609f44a5f9d
+claimed: "2026-09-05T13:20:09Z"
 ---
 
 # B465 — The postcard preview follows the journal's language, not the reader's chosen one
