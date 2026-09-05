@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
+import { tellWorkerSignedOut } from "@/lib/signedOut";
 
 /**
  * What a signed-in reader may open, and the devices they are signed in on —
@@ -177,7 +178,17 @@ export function YourDevices({
     setBusy(id);
     try {
       const res = await fetch(`/api/v1/me/devices/${id}`, { method: "DELETE" });
-      if (res.ok) onRevoke(id);
+      if (!res.ok) return;
+      const { current } = (await res.json()) as { current?: boolean };
+      if (current) {
+        // Signing *this* device out is a sign-out, and has to be treated as
+        // one: drop the worker's cached copy and reload, rather than leaving
+        // the page listing journals the credential behind it no longer opens.
+        tellWorkerSignedOut();
+        window.location.reload();
+        return;
+      }
+      onRevoke(id);
     } finally {
       setBusy(null);
     }

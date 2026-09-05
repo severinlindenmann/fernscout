@@ -40,22 +40,57 @@ function fakeCaches(entries: Cached[]) {
     keys: async () => held.map((h) => ({ url: h.url })),
     match: async (key: { url: string }) => find(key.url)?.response.clone(),
   };
+
+  /**
+   * Named caches that actually store things — B412.
+   *
+   * The original fake answers every `open()` with one read-only cache, which
+   * was enough while the worker only ever read. The personal cache is the
+   * first thing it writes and then reads back under a name it computed, so
+   * the name has to be real: a fake that ignored it would pass a worker that
+   * served one reader's data to another.
+   */
+  const named = new Map<string, Map<string, Response>>();
+  const openNamed = (name: string) => {
+    let store = named.get(name);
+    if (!store) {
+      store = new Map();
+      named.set(name, store);
+    }
+    const key = (k: { url: string } | string) => (typeof k === "string" ? k : k.url);
+    return {
+      addAll: async () => {},
+      put: async (k: { url: string } | string, res: Response) => {
+        store!.set(key(k), res);
+      },
+      keys: async () => [...store!.keys()].map((url) => ({ url })),
+      match: async (k: { url: string } | string) => store!.get(key(k))?.clone(),
+    };
+  };
+
   return {
+    named,
     match: async (request: { url: string } | string, options?: { ignoreSearch?: boolean }) => {
       const url = typeof request === "string" ? new URL(request, "https://journal.test").href : request.url;
       return find(url, options?.ignoreSearch)?.response.clone();
     },
-    open: async () => cache,
-    keys: async () => [],
+    open: async (name?: string) =>
+      name && name.startsWith("personal-") ? openNamed(name) : cache,
+    keys: async () => [...named.keys()],
+    delete: async (name: string) => named.delete(name),
   };
 }
 
-function loadWorker(cached: Cached[] = [], network: "ok" | "fail" = "ok") {
+function loadWorker(
+  cached: Cached[] = [],
+  network: "ok" | "fail" | ((request: { url: string }) => Promise<Response>) = "ok",
+) {
   const handlers: Handlers = {};
   const scope = {
     self: null as unknown,
     caches: fakeCaches(cached),
-    fetch: async () => {
+    fetch: async (request: { url: string }) => {
+      if (typeof network === "function") return network(request);
       if (network === "fail") throw new Error("offline");
       return new Response("");
     },
@@ -77,6 +112,72 @@ function loadWorker(cached: Cached[] = [], network: "ok" | "fail" = "ok") {
   vm.createContext(scope);
   vm.runInContext(fs.readFileSync(path.join(process.cwd(), "public", "sw.js"), "utf8"), scope);
   return handlers;
+}
+
+/** The same, but keeping the fake cache store so a test can inspect it. */
+function loadWorkerWithCaches(
+  network: (request: { url: string }) => Promise<Response>,
+): { handlers: Handlers; caches: ReturnType<typeof fakeCaches> } {
+  const handlers: Handlers = {};
+  const store = fakeCaches([]);
+  const scope = {
+    self: null as unknown,
+    caches: store,
+    fetch: async (request: { url: string }) => network(request),
+    setTimeout,
+    clearTimeout,
+    Response,
+    URL,
+    Promise,
+  };
+  scope.self = {
+    addEventListener: (name: string, fn: (event: unknown) => void) => {
+      handlers[name] = fn;
+    },
+    location: { origin: "https://journal.test" },
+    skipWaiting: () => {},
+    clients: { claim: () => {} },
+    registration: {},
+  };
+  vm.createContext(scope);
+  vm.runInContext(fs.readFileSync(path.join(process.cwd(), "public", "sw.js"), "utf8"), scope);
+  return { handlers, caches: store };
+}
+
+const HOME = "https://journal.test/api/v1/me/home";
+
+/** Drive one request through the fetch handler and wait for the answer, plus
+ * anything the worker asked to finish afterwards. */
+async function run(
+  handlers: Handlers,
+  url: string,
+): Promise<Response | undefined> {
+  let answer: Promise<Response> | Response | undefined;
+  const pending: Promise<unknown>[] = [];
+  handlers.fetch({
+    request: {
+      url,
+      method: "GET",
+      mode: "cors",
+      headers: { get: () => null },
+    },
+    respondWith: (r: Promise<Response> | Response) => {
+      answer = r;
+    },
+    waitUntil: (p: Promise<unknown>) => {
+      pending.push(p);
+    },
+  });
+  const res = await answer;
+  await Promise.all(pending);
+  return res;
+}
+
+function homePayload(id: string) {
+  return new Response(JSON.stringify({ id, email: "a@e.test", journals: [], devices: [] }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
 }
 
 /** Runs the fetch handler and reports whether the worker took the request. */
@@ -280,5 +381,146 @@ describe("what a failed subresource fetch is answered with", () => {
       { url: window_, type: "application/json", body: '{"days":[]}' },
     ]);
     expect(await answer?.text()).toBe('{"days":[]}');
+  });
+});
+
+/**
+ * B412 — the one authenticated response this worker keeps.
+ *
+ * The whole risk of caching it is that its content is *the list of private
+ * journals one person may open*. Cached the way everything else here is —
+ * one bucket keyed by URL — the next person to open the app on a shared phone
+ * is served the previous reader's list. So most of this describes the wall
+ * rather than the caching.
+ */
+describe("the signed-in home payload", () => {
+  test("the worker takes it, unlike everything else under /api/", async () => {
+    expect(handles(HOME)).toBe(true);
+    // The exemption is one exact path, not a loosened prefix. A prefix test is
+    // one careless route away from caching somebody's contacts page.
+    expect(handles("https://journal.test/api/v1/me/devices/abc")).toBe(false);
+    expect(handles("https://journal.test/api/v1/ana/status")).toBe(false);
+    expect(handles("https://journal.test/api/auth/logout")).toBe(false);
+  });
+
+  test("a fresh answer is stored under a cache named for the reader", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(async () => homePayload("aaaa1111"));
+    await run(handlers, HOME);
+    expect([...caches.named.keys()]).toContain("personal-aaaa1111");
+  });
+
+  /** The point of the exercise: the list of journal names this device last
+   * saw, when there is no network to ask. */
+  test("offline, it serves the copy this device last saw", async () => {
+    let online = true;
+    const { handlers } = loadWorkerWithCaches(async () => {
+      if (!online) throw new Error("offline");
+      return homePayload("aaaa1111");
+    });
+
+    await run(handlers, HOME);
+    online = false;
+    const offline = await run(handlers, HOME);
+    expect(offline?.status).toBe(200);
+    expect(await offline!.json()).toMatchObject({ id: "aaaa1111" });
+  });
+
+  /**
+   * The one that matters. Two readers, one browser profile, in sequence — the
+   * shared-phone case this whole arrangement exists for.
+   */
+  test("a second reader is never served the first one's list", async () => {
+    let id = "aaaa1111";
+    let online = true;
+    const { handlers, caches } = loadWorkerWithCaches(async () => {
+      if (!online) throw new Error("offline");
+      return homePayload(id);
+    });
+
+    await run(handlers, HOME);
+    id = "bbbb2222";
+    await run(handlers, HOME);
+
+    // One identity cached at a time: the first reader's copy is gone, not
+    // merely unreferenced. A cache nothing points at is still a cache a bug
+    // can open.
+    expect([...caches.named.keys()]).not.toContain("personal-aaaa1111");
+
+    online = false;
+    const offline = await run(handlers, HOME);
+    expect(await offline!.json()).toMatchObject({ id: "bbbb2222" });
+  });
+
+  test("a refused credential takes the cached copy with it", async () => {
+    let status = 200;
+    const { handlers, caches } = loadWorkerWithCaches(async () =>
+      status === 200
+        ? homePayload("aaaa1111")
+        : new Response(JSON.stringify({ error: "not_signed_in" }), { status }),
+    );
+
+    await run(handlers, HOME);
+    expect([...caches.named.keys()]).toContain("personal-aaaa1111");
+
+    // Revoked elsewhere, or expired.
+    status = 401;
+    await run(handlers, HOME);
+    expect([...caches.named.keys()].filter((k) => k.startsWith("personal-"))).toEqual([]);
+  });
+
+  /** The capability being switched off is the same answer as being signed
+   * out, as far as a device holding a cached copy is concerned. */
+  test("a 404 from a disabled capability purges too", async () => {
+    let status = 200;
+    const { handlers, caches } = loadWorkerWithCaches(async () =>
+      status === 200 ? homePayload("aaaa1111") : new Response("{}", { status }),
+    );
+    await run(handlers, HOME);
+    status = 404;
+    await run(handlers, HOME);
+    expect([...caches.named.keys()].filter((k) => k.startsWith("personal-"))).toEqual([]);
+  });
+
+  test("signing out clears it at once, without waiting for a refusal", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(async () => homePayload("aaaa1111"));
+    await run(handlers, HOME);
+    expect([...caches.named.keys()]).toContain("personal-aaaa1111");
+
+    const pending: Promise<unknown>[] = [];
+    handlers.message({
+      data: { type: "fernscout-signed-out" },
+      waitUntil: (p: Promise<unknown>) => pending.push(p),
+    });
+    await Promise.all(pending);
+
+    expect([...caches.named.keys()].filter((k) => k.startsWith("personal-"))).toEqual([]);
+  });
+
+  /**
+   * A response with no id is not cached under some fallback name. A fallback
+   * name is a shared name, and a shared name is the bug this exists to stop.
+   */
+  test("an answer with no reader id in it is not cached at all", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(
+      async () => new Response("not json", { status: 200 }),
+    );
+    await run(handlers, HOME);
+    expect([...caches.named.keys()].filter((k) => k.startsWith("personal-"))).toEqual([]);
+  });
+
+  /**
+   * Personal caches are named after a reader rather than a build, so the
+   * activate step must not sweep them with the rest: doing so would sign every
+   * installed app out of its offline copy on every deploy.
+   */
+  test("a version bump does not drop the reader's copy", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(async () => homePayload("aaaa1111"));
+    await run(handlers, HOME);
+
+    const pending: Promise<unknown>[] = [];
+    handlers.activate({ waitUntil: (p: Promise<unknown>) => pending.push(p) });
+    await Promise.all(pending);
+
+    expect([...caches.named.keys()]).toContain("personal-aaaa1111");
   });
 });

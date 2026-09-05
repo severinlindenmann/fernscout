@@ -23,6 +23,10 @@
  *                 behind it is both instant and eventually correct.
  *   Everything    Cache first. Build assets and photographs: their filenames
  *   else          are content-hashed, so a hit is never stale.
+ *   The home      Network first, cache only when there is no network at all,
+ *   payload       and kept in a cache named after the reader — B412. The one
+ *                 authenticated response here, and the only thing under
+ *                 `/api/` that is written down at all. See PERSONAL_PATH.
  *
  * Two kinds of request are handed straight back to the network, uncached:
  * anything under /api/, and the App Router's own `?_rsc=` payloads. See the
@@ -39,9 +43,39 @@
  * only a guess.
  */
 
-const VERSION = "v4";
+const VERSION = "v5";
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
+
+/**
+ * The one authenticated response this worker is allowed to keep, and the
+ * separate caches it keeps it in — B412.
+ *
+ * Everything else under `/api/` goes straight to the network and is never
+ * written down. This one is the signed-in home view's payload: the list of
+ * journals one person may open. Without it the installed PWA opens to nothing
+ * on a bad connection, which is the opposite of the point; with it cached the
+ * way this worker caches everything else — one bucket keyed by URL — the next
+ * person to open the app on a shared phone is served the previous reader's
+ * list.
+ *
+ * So it is kept apart, in a cache named after the reader. The name is the
+ * **opaque public id** from the response body, never the credential:
+ * `fs_identity` is httpOnly and a service worker cannot read it, which is the
+ * correct state and the reason `public_id` exists at all (`019-identity`).
+ *
+ * `PERSONAL_POINTER` holds one entry whose body is the id currently cached. A
+ * cold offline open has no response to read an id from, so without it the
+ * worker would not know which `personal-…` cache is the right one. It is a
+ * Cache rather than IndexedDB deliberately: this file must keep working when
+ * everything else has failed, and that is a weaker promise with two storage
+ * APIs in it than with one.
+ */
+const PERSONAL_PATH = "/api/v1/me/home";
+const PERSONAL_PREFIX = "personal-";
+const PERSONAL_POINTER = `${PERSONAL_PREFIX}pointer`;
+/** A URL that is never fetched. It only has to be a stable cache key. */
+const POINTER_KEY = "https://fernscout.invalid/personal-id";
 
 /** Long enough for a slow but working connection, short enough that nobody
  * decides the site is broken. */
@@ -76,7 +110,16 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => !k.endsWith(VERSION)).map((k) => caches.delete(k))),
+        Promise.all(
+          keys
+            // Personal caches are named after a reader rather than a build, so
+            // a version bump must not sweep them: doing so would sign every
+            // installed app out of its offline copy on every deploy. They are
+            // cleared by signing out, by a 401, and by a different identity
+            // arriving — see `rememberPersonal`.
+            .filter((k) => !k.endsWith(VERSION) && !k.startsWith(PERSONAL_PREFIX))
+            .map((k) => caches.delete(k)),
+        ),
       )
       .then(() => self.clients.claim()),
   );
@@ -162,12 +205,137 @@ async function navigationFallback(request) {
   return offline || unavailable();
 }
 
+/**
+ * Remember one reader's home payload, under a cache named after them.
+ *
+ * **One identity at a time.** Caching a second reader's list beside the first
+ * would leave the first sitting there, readable by any future bug that opened
+ * the wrong cache, for the sake of making a sign-in the phone's owner rarely
+ * performs marginally faster. So arriving as a different identity clears every
+ * other personal cache first.
+ *
+ * A response with no id in it is not cached at all rather than cached under
+ * some fallback name: a fallback name is a shared name, and a shared name is
+ * the bug this whole arrangement exists to prevent.
+ */
+async function rememberPersonal(request, response) {
+  let id = null;
+  try {
+    id = (await response.clone().json()).id;
+  } catch {
+    id = null;
+  }
+  if (typeof id !== "string" || id.length === 0) return;
+
+  const mine = `${PERSONAL_PREFIX}${id}`;
+  const keys = await caches.keys();
+  await Promise.all(
+    keys
+      .filter((k) => k.startsWith(PERSONAL_PREFIX) && k !== mine && k !== PERSONAL_POINTER)
+      .map((k) => caches.delete(k)),
+  );
+
+  const cache = await caches.open(mine);
+  await cache.put(request, response.clone());
+
+  const pointer = await caches.open(PERSONAL_POINTER);
+  await pointer.put(POINTER_KEY, new Response(id));
+}
+
+/**
+ * The cached home payload for whoever this device last knew, or null.
+ *
+ * **Known limit, and it is a real one.** A device that is offline still shows
+ * this list after the identity behind it has been revoked somewhere else,
+ * until it next reaches the network. Journal names and trip titles, never
+ * content — every page they link to is its own request, and each of those is
+ * refused by the server the moment there is a server to refuse it.
+ *
+ * It is not fixable here: knowing that a credential was revoked requires
+ * asking, and the thing that has failed is the asking. The alternative is to
+ * cache nothing, which costs every reader on a bad connection a working app to
+ * protect against a case where the phone is already in someone else's hands
+ * *and* has no signal.
+ */
+async function cachedPersonal(request) {
+  const pointer = await caches.open(PERSONAL_POINTER);
+  const held = await pointer.match(POINTER_KEY);
+  if (!held) return null;
+  const id = await held.text();
+  if (!id) return null;
+  const cache = await caches.open(`${PERSONAL_PREFIX}${id}`);
+  return (await cache.match(request)) || null;
+}
+
+/**
+ * Forget everything personal on this device.
+ *
+ * Three callers, and they are the three ways a credential stops being valid:
+ * signing out (the page tells us), the server refusing the credential, and the
+ * capability being switched off. All of them mean the same thing here.
+ */
+async function purgePersonal() {
+  const keys = await caches.keys();
+  await Promise.all(
+    keys.filter((k) => k.startsWith(PERSONAL_PREFIX)).map((k) => caches.delete(k)),
+  );
+}
+
+/**
+ * The signed-in home payload: network first, cache only as a fallback.
+ *
+ * Never stale-while-revalidate, which is how the rest of the JSON on this site
+ * is served. That policy shows the cached copy *and then* refreshes, which is
+ * right for a day's photographs and wrong for an access list: it would show a
+ * journal somebody had just been removed from, every time, for one paint. The
+ * cached copy here is strictly a fallback for having no network at all.
+ */
+async function personalRequest(event, request) {
+  try {
+    const res = await fetch(request);
+    // 401 is a revoked or expired identity; 404 is the capability being off.
+    // Either way this device is not entitled to a cached copy any more.
+    if (res.status === 401 || res.status === 404) {
+      event.waitUntil(purgePersonal());
+      return res;
+    }
+    if (res.ok) event.waitUntil(rememberPersonal(request, res.clone()));
+    return res;
+  } catch {
+    // Offline. The list of journal names this device last saw is the whole
+    // point of the exercise.
+    return (await cachedPersonal(request)) || unavailable();
+  }
+}
+
+/**
+ * Signing out clears the cached copy at once, rather than waiting for the next
+ * request to be refused.
+ *
+ * The page sends this because it is the only party that knows a sign-out
+ * happened: the request goes to `/api/auth/logout`, which this worker stands
+ * aside for and must keep standing aside for.
+ */
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "fernscout-signed-out") {
+    event.waitUntil(purgePersonal());
+  }
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  // The one authenticated response this worker keeps, and it is kept apart —
+  // see PERSONAL_PATH. Named exactly, never by prefix: a prefix test here is
+  // one careless route away from caching somebody's contacts page.
+  if (url.pathname === PERSONAL_PATH) {
+    event.respondWith(personalRequest(event, request));
+    return;
+  }
+
   // Reaction counts, auth and anything that writes must never come from a
   // cache, and must never be written to one.
   if (url.pathname.startsWith("/api/")) return;
