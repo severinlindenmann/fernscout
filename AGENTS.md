@@ -531,6 +531,8 @@ the record and never corrected, so do not update one to match what shipped.
 | `GET /api/v1/<user>/status` | where an agent stands: drafts waiting, trips, capabilities |
 | `/api/v1/<user>/…` | REST: trips, days, drafts |
 | `/api/v1/<user>/invites` | issue, list and revoke the two invite links — see below |
+| `/api/v1/<user>/postcards` | propose printed postcards — see below |
+| `/<user>/postcards/<id>` | where a person looks at them and sends them |
 | `/<user>/invite/guest/<token>` | where a guest link lands |
 | `/<user>/invite/buddy/<token>` | where a buddy link lands |
 | `DELETE /api/v1/<user>` and `…/trips/<trip>` | ask to delete — see below |
@@ -586,6 +588,23 @@ always, and — since B280 — a reversible copy beside it where the instance ha
 a contacts encryption key, so the owner's own `/<user>/contacts` page can show
 a lost link again; without that key it is hash-only and a lost link can only
 be reissued. `lib/contacts/invites.ts`.
+
+**Posting a real postcard is the other thing an agent cannot finish** — B434,
+and the same shape as deleting, for a different reason. `POST
+/api/v1/<user>/postcards` writes a proposal and answers with a URL; it charges
+nothing and prints nothing. The owner opens that page, sees the photograph, the
+message on the back, who each card is going to, the cost and their balance, and
+presses one button. That button is the only thing in the codebase that spends
+credits at a printer.
+
+Addresses never reach an agent. `GET …/postcards/recipients` answers with a
+name, a town and a country, and cards are addressed by `contactId` — so a card
+can only ever go to somebody who asked this journal for one, and never to an
+address that arrived in a conversation. The send route is outside `/api/v1/`,
+takes the owner's cookie only, and refuses a bearer token outright;
+`test/postcard-orders.test.ts` fails if anything under `app/api` ever imports
+`sendOrder`. **Hand over the URL and say a preview is waiting. Do not say the
+cards have been sent.** `lib/postcard/orders.ts` and `lib/postcard/send.ts`.
 
 **Deleting is the one thing an agent cannot finish.** `DELETE` on a journal or
 a trip removes nothing and answers `202`: the server mails the address in that

@@ -5,6 +5,26 @@ description: Render print-ready postcards from a trip photo and a message, one p
 
 # Send postcards
 
+**Two doors, and they are not the same job.** This skill is the one for a
+shell on the machine: it renders files and stops. If you are working against a
+running site — or if the author wants cards actually *posted* rather than
+rendered — use the order flow instead, which is `/agent.md`'s "Real postcards,
+in the post" and three calls:
+
+```
+GET  /api/v1/<user>/postcards/recipients   who could get one — names and towns, never streets
+POST /api/v1/<user>/postcards              propose the cards; charges nothing, prints nothing
+GET  /api/v1/<user>/postcards/<id>         whether they went, later
+```
+
+It answers with a URL. **Hand the URL over and stop.** The owner opens it, sees
+the photograph, the message on the back, who each card is going to and what it
+costs, and presses Send — which is the only thing anywhere that puts a card in
+the post. There is no send call, and an agent that reports these as sent has
+said something false. B434.
+
+The rest of this file is the shell route.
+
 ```bash
 npm run postcard -- --user <username> \
   --photo <file.jpg> \

@@ -9,9 +9,15 @@ import { getDatabaseOrNull, newId, nowIso } from "./db";
  *
  * **Reader-facing bulk costs.** One credit per email delivered by
  * `lib/digest/dayLetter.ts`, one per WhatsApp message delivered by
- * `lib/digest/dayWhatsapp.ts`. Those two are the only callers of `spend` that
- * should ever exist: they are the sends that fan out to everybody a journal
- * knows, and they are the ones that arrive on a card statement.
+ * `lib/digest/dayWhatsapp.ts`, and `POSTCARD_CREDITS` per printed card posted
+ * by `lib/postcard/send.ts` (B434). Those three are the only callers of
+ * `spend` that should ever exist: they are the sends that fan out to people a
+ * journal knows, and they are the ones that arrive on a card statement.
+ *
+ * The postcard is the odd one of the three and the reason to be careful: it
+ * costs real money at a printer rather than fractions of a cent at an SMTP
+ * relay, and it is the only one a person presses a button for. See
+ * `lib/postcard/send.ts` for why the claim comes before the spend.
  *
  * **Transactional mail is free.** A login code, a deletion confirmation, an
  * approval notice, an invite, a purchase receipt — each goes to one person
@@ -51,7 +57,13 @@ import { getDatabaseOrNull, newId, nowIso } from "./db";
 
 /** `grant` is one of these too, but it is deliberately not in the union a
  * send can pass — see `SpendReason`. */
-export type LedgerReason = "grant" | "day_mail" | "day_whatsapp" | "digest" | "refund";
+export type LedgerReason =
+  | "grant"
+  | "day_mail"
+  | "day_whatsapp"
+  | "digest"
+  | "postcard"
+  | "refund";
 
 /**
  * What a *send* may charge for. Narrower than `LedgerReason` on purpose: it is
@@ -64,7 +76,7 @@ export type LedgerReason = "grant" | "day_mail" | "day_whatsapp" | "digest" | "r
  * or four weekly digests" — a distinction that costs one string here and
  * cannot be recovered later from rows that never carried it.
  */
-export type SpendReason = "day_mail" | "day_whatsapp" | "digest";
+export type SpendReason = "day_mail" | "day_whatsapp" | "digest" | "postcard";
 
 export type LedgerRow = {
   id: string;
