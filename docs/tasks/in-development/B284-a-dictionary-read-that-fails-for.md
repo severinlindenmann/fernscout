@@ -59,3 +59,29 @@ B257's request logging makes that visible where it was not before.
 
 A dictionary file that fails to read once is read again on the next request,
 and a test proves the cache holds no empty entry afterwards.
+
+## What changed
+
+`readDictionary` in `lib/locales.ts` now tracks a local `failed` flag, set
+whenever a per-file read or parse throws something other than `ENOENT`. The
+`cache.set(...)` call at the end is skipped when `failed` is true — the
+function still returns whatever it managed to assemble (the existing
+fallback behaviour, unchanged), it just does not memoise that result under
+the file's current signature. ENOENT is untouched: it neither sets `failed`
+nor logs, so a genuinely absent file is still cached as absent and does not
+turn into a per-request stat storm.
+
+## Evidence
+
+- New test in `test/locales.test.ts`: "a transient, non-ENOENT read failure
+  is not cached — the next call retries". It injects one `EACCES` throw on a
+  `readFileSync` call for an override file (via `vi.spyOn`, restored after one
+  throw), with the file's mtime/size never touched between the two
+  `dictionaryFor("de")` calls. Confirmed failing against the pre-fix code
+  (`git stash` the fix, rerun: `AssertionError: expected 'Karte' to be
+  'Sonderkarte'` — the cached-empty override served forever), and passing
+  with the fix (second call retries the read and gets the override value).
+- `npm run verify` in the worktree: build, `tsc --noEmit`, `eslint .` (0
+  errors, 7 pre-existing warnings unrelated to this change), `vitest run`
+  (229 files, 3124 passed, 6 skipped — the Postgres-dialect tests, which need
+  a running Postgres and are unrelated). All four stages passed.

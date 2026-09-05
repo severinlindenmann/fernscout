@@ -182,6 +182,11 @@ function readDictionary(code: string): Dictionary {
   // Shipped strings first, then the instance's own on top, so an override file
   // may replace a handful of strings without restating all 284.
   const parsed: Dictionary = {};
+  // B284: a non-ENOENT failure below must not get cached as an empty
+  // dictionary under the file's unchanged signature — that would serve the
+  // empty result to this process for the file's whole remaining lifetime.
+  // Track it and skip the cache write instead, so the next call retries.
+  let failed = false;
   for (const file of files) {
     let raw: string;
     try {
@@ -194,6 +199,7 @@ function readDictionary(code: string): Dictionary {
       // not, and was previously indistinguishable from "absent" (B279).
       if ((err as NodeJS.ErrnoException)?.code !== "ENOENT") {
         console.warn(`[locales] could not read ${file}:`, err);
+        failed = true;
       }
       continue;
     }
@@ -208,9 +214,10 @@ function readDictionary(code: string): Dictionary {
       // Valid bytes on disk, invalid JSON: most plausibly this file caught
       // mid-write — see the B279 note below. Loud rather than silent.
       console.warn(`[locales] ${file} did not parse as JSON:`, err);
+      failed = true;
     }
   }
-  cache.set(key, { signature, dictionary: parsed });
+  if (!failed) cache.set(key, { signature, dictionary: parsed });
   return parsed;
 }
 
