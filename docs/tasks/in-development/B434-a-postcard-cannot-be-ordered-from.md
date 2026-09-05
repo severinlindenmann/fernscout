@@ -26,18 +26,25 @@ that a person can look at, price and press Send on. There is no object for it
 today, so there is nothing for the preview page to render and nothing for the
 `spend` to refer to.
 
-Design: `docs/superpowers/specs/2026-09-05-postcard-orders-design.md`.
+The design is the Work section below rather than a separate document: a spec
+kept beside the ticket is a spec that disagrees with the ticket within a month,
+and this repository keeps intent in the task file.
 
 ## Work
 
-- Migration `021-postcard-orders.ts`:
-  - `postcard_orders` — `id, owner_id, trip_ref, day_slug, photo, message,
-    sender, status, credits_each, created_at, expires_at, sent_at, provider,
-    error`.
-  - `postcard_recipients` — `id, order_id, contact_id, status, provider_ref`.
-    A **`contact_id`, never a copied address**: addresses stay encrypted in
-    `lib/contacts`, in one place, and are read at render and at send.
-  - `status`: `draft → sent | failed | expired`. Orders expire after 7 days.
+- **No migration.** `print_orders` has been in the schema since `001-initial`
+  with `kind` documented as `postcard | photobook`, a `provider`, a
+  `provider_ref`, a JSON `payload`, a `status` defaulting to `draft` and an
+  index on `(owner_id, status)` — scaffolded for this and used by nothing. One
+  row per order, `kind: "postcard"`:
+  - `payload` (JSON text) — `{trip, day, photo, message, from, recipients:
+    [contactId], creditsEach, expiresAt, results}`. Recipients are
+    **`contact_id`s, never copied addresses**: addresses stay encrypted in
+    `lib/contacts`, in one place, read at render and at send.
+  - `status`: `draft → sent | failed`. Expiry is a timestamp in the payload
+    compared at send, not a fourth state — nothing has to sweep.
+  - `cost_minor`/`currency` stay null. The credit ledger is what money is
+    recorded in, and a second number here would be the one that goes stale.
 - `POSTCARD_CREDITS = 15` in `lib/credits/pricing.ts` (plain data — the preview
   page renders the price and `lib/credits.ts` is `server-only`).
   `SpendReason` gains `"postcard"`.
