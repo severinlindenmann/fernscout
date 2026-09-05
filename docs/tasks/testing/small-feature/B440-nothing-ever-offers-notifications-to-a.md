@@ -7,8 +7,7 @@ complexity: medium
 area: push, pwa, ux
 found: "2026-09-05T12:14:29Z"
 started: "2026-09-05T12:14:36Z"
-session: 3744307d-de1f-4fd7-a058-d689389ddc6c
-claimed: "2026-09-05T12:14:36Z"
+merged: "2026-09-05T12:21:08Z"
 ---
 
 # B440 — Nothing ever offers notifications to a reader who would want them, so the switch is only found by somebody already looking for it
