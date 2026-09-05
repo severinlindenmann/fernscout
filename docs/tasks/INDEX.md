@@ -202,11 +202,12 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B476](in-development/B476-a-photobook-cannot-be-ordered-from.md) | A photobook cannot be ordered from the site, only from a shell | FEATURE | high | high | `d9c396ea` |
+| [B478](in-development/B478-the-postcard-composer-offers-no-choice.md) | The postcard composer offers no choice of day or language for the prefilled text | FEATURE | medium | low | `c1b5210b` |
 | [B475](in-development/B475-the-nightly-status-mail-is-a.md) | The nightly status mail is a wall of monospace while every other letter this instance sends is designed | FEATURE | low | medium | `7c3dd4ae` |
 
 ## testing (174)
