@@ -240,7 +240,7 @@ _Nothing here._
 | [B353](testing/issue/B353-a-trip-whose-currency-has-no.md) | A trip whose currency has no rate shows CHF 0 everywhere except the costs page | ISSUE | high | low | — |
 | [B380](testing/issue/B380-the-weekly-digest-mails-every-reader.md) | The weekly digest mails every reader without spending a credit | ISSUE | high | low | — |
 | [B381](testing/issue/B381-a-day-with-no-coordinates-becomes.md) | A day with no coordinates becomes a nameless place, inflating the stop and country counts a page contradicts itself about | ISSUE | high | low | — |
-| [B384](testing/issue/B384-a-guest-the-owner-adds-by.md) | A guest the owner adds by hand is a dead end: a bare code, no link, no way to be approved | ISSUE | high | medium | — |
+| [B384](testing/issue/B384-a-guest-the-owner-adds-by.md) | A guest the owner adds by hand is a dead end: a bare code, no link, no way to be approved | ISSUE | high | medium | `39691533` |
 | [B393](testing/issue/B393-photographs-cannot-be-added-to-a.md) | Photographs cannot be added to a published day, and the refusal tells the agent to ask somebody who has no way to do it | ISSUE | high | medium | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
@@ -274,7 +274,7 @@ _Nothing here._
 | [B360](testing/issue/B360-the-invite-landing-page-offers-a.md) | The invite landing page offers a postcard on a server with postcards switched off | ISSUE | medium | low | — |
 | [B375](testing/issue/B375-flag-fills-are-near-black-and.md) | Flag fills are near-black and six European blues are indistinguishable, because the collision test compares hex rather than perceived colour | ISSUE | medium | low | — |
 | [B379](testing/issue/B379-publishing-a-test-day-is-refused.md) | Publishing a test day is refused for want of credits, though sending it would cost none | ISSUE | medium | low | — |
-| [B383](testing/issue/B383-the-owner-s-address-book-loses.md) | The owner's address book loses the postal address when postcards are off | ISSUE | medium | low | — |
+| [B383](testing/issue/B383-the-owner-s-address-book-loses.md) | The owner's address book loses the postal address when postcards are off | ISSUE | medium | low | `39691533` |
 | [B395](testing/issue/B395-an-approved-reader-who-can-see.md) | An approved reader who can see nothing is told on one page to ask for an invitation they already have | ISSUE | medium | low | — |
 | [B396](testing/issue/B396-the-contacts-page-tells-an-owner.md) | The contacts page tells an owner to change a trip's visibility, which no door can do | ISSUE | medium | low | — |
 | [B397](testing/issue/B397-health-and-status-report-credits-off.md) | health and status report credits off per-journal though it is server-only and live | ISSUE | medium | low | — |
@@ -303,7 +303,7 @@ _Nothing here._
 | [B382](testing/issue/B382-the-costs-page-meta-description-names.md) | The costs page meta description names the journal by its URL slug instead of its title | ISSUE | low | low | — |
 | [B394](testing/issue/B394-media-is-served-as-webp-whatever.md) | Media is served as WebP whatever the client says it accepts, and Vary does not mention Accept | ISSUE | low | low | — |
 | [B400](testing/issue/B400-a-non-boolean-send-mail-on.md) | A non-boolean send_mail on publish is silently ignored, so an agent thinks it sent | ISSUE | low | low | — |
-| [B402](testing/issue/B402-the-admin-contact-list-prints-a.md) | The admin contact list prints a saved country code, not its name | ISSUE | low | low | — |
+| [B402](testing/issue/B402-the-admin-contact-list-prints-a.md) | The admin contact list prints a saved country code, not its name | ISSUE | low | low | `39691533` |
 | [B413](testing/issue/B413-the-buy-credits-dialog-is-off.md) | The Buy-credits dialog is off-centre; make it an animated dropdown under its button | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
@@ -319,7 +319,7 @@ _Nothing here._
 | [B283](testing/big-feature/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high | — |
 | [B294](testing/big-feature/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high | — |
 | [B39](testing/big-feature/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
-| [B399](testing/big-feature/B399-every-address-in-the-book-is.md) | Every address in the book is typed out by hand, line by line, with nothing to check it against | FEATURE | medium | high | — |
+| [B399](testing/big-feature/B399-every-address-in-the-book-is.md) | Every address in the book is typed out by hand, line by line, with nothing to check it against | FEATURE | medium | high | `39691533` |
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 
 ### small-feature (13)
@@ -330,15 +330,15 @@ _Nothing here._
 | [B364](testing/small-feature/B364-the-lifetime-map-draws-a-bare.md) | The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries | FEATURE | medium | low | — |
 | [B367](testing/small-feature/B367-an-owner-cannot-see-what-they.md) | An owner cannot see what they have left to spend or what one send would cost | FEATURE | medium | medium | — |
 | [B374](testing/small-feature/B374-deleting-a-journal-silently-destroys-the.md) | Deleting a journal silently destroys the credits left in it | FEATURE | medium | low | — |
-| [B385](testing/small-feature/B385-a-phone-number-typed-into-any.md) | A phone number typed into any of the four guest forms has no country, and only the sender finds out | FEATURE | medium | low | — |
-| [B390](testing/small-feature/B390-the-dialling-code-picker-is-eleven.md) | The dialling-code picker is eleven bare numbers with no country, no search and no way to find your own | FEATURE | medium | low | — |
+| [B385](testing/small-feature/B385-a-phone-number-typed-into-any.md) | A phone number typed into any of the four guest forms has no country, and only the sender finds out | FEATURE | medium | low | `39691533` |
+| [B390](testing/small-feature/B390-the-dialling-code-picker-is-eleven.md) | The dialling-code picker is eleven bare numbers with no country, no search and no way to find your own | FEATURE | medium | low | `39691533` |
 | [B392](testing/small-feature/B392-the-owner-console-on-me-is.md) | The owner console on /me is a flat wall of same-weight headings | FEATURE | medium | medium | — |
-| [B398](testing/small-feature/B398-the-country-on-an-address-is.md) | The country on an address is free text, so nothing downstream can tell Schweiz from Switzerland | FEATURE | medium | low | — |
+| [B398](testing/small-feature/B398-the-country-on-an-address-is.md) | The country on an address is free text, so nothing downstream can tell Schweiz from Switzerland | FEATURE | medium | low | `39691533` |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
 | [B368](testing/small-feature/B368-there-is-no-way-to-ask.md) | There is no way to ask for more credits, and the payment provider does not exist yet | FEATURE | low | medium | — |
-| [B416](testing/small-feature/B416-the-address-lookup-disclosure-is-a.md) | The address-lookup disclosure is a paragraph under every street field, before there is anything to disclose | FEATURE | low | low | — |
+| [B416](testing/small-feature/B416-the-address-lookup-disclosure-is-a.md) | The address-lookup disclosure is a paragraph under every street field, before there is anything to disclose | FEATURE | low | low | `39691533` |
 
 ### chore (14)
 

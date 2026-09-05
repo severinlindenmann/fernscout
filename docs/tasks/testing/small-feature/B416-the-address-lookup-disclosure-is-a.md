@@ -8,6 +8,8 @@ area: contacts, address lookup, brand
 found: "2026-09-05T10:35:00Z"
 started: "2026-09-05T08:31:10Z"
 merged: "2026-09-05T08:41:09Z"
+session: 39691533-1e0d-44dd-a2e5-b2a7ce844518
+claimed: "2026-09-05T08:53:14Z"
 ---
 
 # B416 — The address-lookup disclosure is a paragraph under every street field, before there is anything to disclose
