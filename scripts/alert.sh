@@ -133,9 +133,17 @@ else
   DETAIL="$(printf 'No journal was readable from this unit; run: journalctl -u %s -n 50' "$UNIT")"
 fi
 
-BODY="$SUMMARY
+# `$SUMMARY` only where it says something `scripts/alert.mts` does not. That
+# script opens every mail with the unit, the host and the time; on a failure
+# this line adds `(result=…)` and the exit status, and on a success it is the
+# same sentence twice at the top of the report (B472).
+if [[ "$OUTCOME" == "success" ]]; then
+  BODY="$DETAIL"
+else
+  BODY="$SUMMARY
 
 $DETAIL"
+fi
 
 if printf '%s\n' "$BODY" | (cd "$APP_DIR" && npm run --silent alert -- --unit "$UNIT" --outcome "$OUTCOME"); then
   MAILED=1

@@ -63,3 +63,17 @@ the day either is reworded.
 
 A success mail opens with one sentence and then the report. A failure mail
 still shows `result=` and the exit status above the journal tail.
+
+## What was built
+
+One branch in `scripts/alert.sh`: the success body is the detail alone, the
+failure body keeps `$SUMMARY` above it. Branched on `$OUTCOME` rather than on
+comparing the two sentences — they are composed in two files and two languages,
+and a string comparison would quietly start passing both through the day either
+is reworded.
+
+The existing B464 test already read the piped body, so it asserts this
+directly: the success body must *not* contain "finished cleanly", and the
+failure body must contain the full `failed (result=exit-code) (exit 1)` — the
+part that is not in the mailer's opening line and is the whole reason the
+summary survives on that path.
