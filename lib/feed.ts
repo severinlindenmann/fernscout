@@ -6,6 +6,7 @@ import { serverSite } from "./site";
 import { getCurrentTrip, getTrips } from "./trips";
 import { getUser } from "./users";
 import type { Entry, Trip } from "./types";
+import { titleWithLocation } from "./i18n";
 
 /**
  * RSS for one user's public journal.
@@ -103,7 +104,7 @@ export function buildFeedXml(username: string): string | null {
 
   const itemsXml = items
     .map(({ entry, trip, url }) => {
-      const title = `${entry.title} — ${entry.location}`;
+      const title = titleWithLocation(entry.title, entry.location);
       const categoriesXml = [trip.title, ...entry.tags]
         .map((tag) => `      <category>${escapeXml(tag)}</category>`)
         .join("\n");

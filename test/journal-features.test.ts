@@ -81,6 +81,17 @@ function rawConfig(): Record<string, unknown> {
   >;
 }
 
+async function get(bearer = token) {
+  const { GET } = await import("@/app/api/v1/[user]/config/route");
+  const response = await GET(
+    new Request(`${SITE}/api/v1/ana/config`, {
+      headers: { Authorization: `Bearer ${bearer}` },
+    }),
+    { params: Promise.resolve({ user: "ana" }) },
+  );
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+}
+
 async function patch(body: unknown, bearer = token) {
   const { PATCH } = await import("@/app/api/v1/[user]/config/route");
   const response = await PATCH(
@@ -124,6 +135,19 @@ afterEach(async () => {
   clearConfigCache();
   clearUserCache();
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+describe("B408 — config agrees with status and health about server-only capabilities", () => {
+  test("credits enabled on the server reads true here though the journal never opted in", async () => {
+    writeServerConfig({ contacts: { enabled: true }, credits: { enabled: true } });
+    const { body } = await get();
+    expect((body.features as Record<string, boolean>).credits).toBe(true);
+  });
+
+  test("credits off on the server reads false, matching /api/health", async () => {
+    const { body } = await get();
+    expect((body.features as Record<string, boolean>).credits).toBe(false);
+  });
 });
 
 describe("switching a capability on", () => {

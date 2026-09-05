@@ -388,4 +388,43 @@ describe("DELETE .../costs", () => {
     const { status } = await call(deleteRoute, "DELETE", token);
     expect(status).toBe(404);
   });
+
+  /**
+   * B420 — B328 widened `hasCostsData` to true when a day carries its own
+   * `costs:` block, so deleting the budget on such a trip leaves the costs
+   * page exactly where it was. `costsPageGone` must say so, not `true`.
+   */
+  test("a day still logging costs keeps the page alive, and the response says so", async () => {
+    fs.writeFileSync(
+      tripFile("costs.md"),
+      ["---", "budget: { total: 900, days: 4 }", "---", "", "Body.", ""].join("\n"),
+    );
+    fs.writeFileSync(
+      tripFile("entries/2026-09-01-day-one.md"),
+      [
+        "---",
+        'title: "Day one"',
+        'date: "2026-09-01"',
+        "costs:",
+        "  - label: Lunch",
+        "    category: food",
+        "    amount: 20",
+        "    currency: CHF",
+        "---",
+        "",
+        "Body.",
+        "",
+      ].join("\n"),
+    );
+    expect(hasCostsData(REF)).toBe(true);
+
+    const token = await agentToken();
+    const { status, body } = await call(deleteRoute, "DELETE", token);
+    expect(status).toBe(200);
+    expect(fs.existsSync(tripFile("costs.md"))).toBe(false);
+    expect(hasCostsData(REF)).toBe(true);
+    expect(body).toMatchObject({ ok: true, costsPageGone: false });
+    expect(String(body.note)).not.toMatch(/no longer exists/);
+    expect(String(body.note)).toContain("still there");
+  });
 });
