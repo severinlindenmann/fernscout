@@ -4,11 +4,13 @@ import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
-import type { MediaTile } from "@/lib/types";
+import type { MediaTile, PostcardEntry } from "@/lib/types";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "./LocaleProvider";
 import FullPhoto from "./FullPhoto";
 import Lightbox from "./Lightbox";
+import PostcardSheet from "./PostcardSheet";
+import { Send } from "lucide-react";
 
 /**
  * How many tiles render at once, before "load more" is needed.
@@ -20,9 +22,33 @@ import Lightbox from "./Lightbox";
  */
 const BATCH = 60;
 
-export default function GalleryGrid({ media }: { media: MediaTile[] }) {
+/**
+ * `postcard` is absent for everybody except the journal's owner on a journal
+ * that has postcards and contacts switched on — B441. Absent rather than
+ * disabled: this is a public reader page, and a guest has no business being
+ * shown a control that would only tell them no.
+ *
+ * It is a prop of its own rather than the `canPublish` already riding in
+ * `TripProvider`. That one happens to equal `isOwner` today
+ * (`lib/tripGate.ts:126`) and means something else — reusing it is how two
+ * questions end up sharing one answer and then need to stop.
+ */
+export default function GalleryGrid({
+  media,
+  postcard,
+  picking = false,
+  onPicked,
+}: {
+  media: MediaTile[];
+  postcard?: PostcardEntry;
+  /** The gallery header's "choose a photograph" mode: a tile opens the sheet
+   * instead of the viewer. */
+  picking?: boolean;
+  onPicked?: () => void;
+}) {
   const { t, formatShortDate } = useI18n();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [composing, setComposing] = useState<MediaTile | null>(null);
   const [place, setPlace] = useState<string>("all");
   const [visibleCount, setVisibleCount] = useState(BATCH);
 
@@ -92,7 +118,17 @@ export default function GalleryGrid({ media }: { media: MediaTile[] }) {
         {visible.map((tile, i) => (
           <motion.button
             key={`${tile.src}-${i}`}
-            onClick={() => setOpenIndex(i)}
+            onClick={() => {
+              // A clip cannot become a postcard, so picking mode leaves videos
+              // behaving normally rather than opening a sheet that would only
+              // fail at the server.
+              if (picking && postcard && tile.type === "image") {
+                setComposing(tile);
+                onPicked?.();
+              } else {
+                setOpenIndex(i);
+              }
+            }}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.4) }}
@@ -179,11 +215,33 @@ export default function GalleryGrid({ media }: { media: MediaTile[] }) {
                 {flagFor(open.country, open.countryCode)} {open.location}, {open.country} ·{" "}
                 {formatShortDate(open.date)}
               </p>
+              {postcard && open.type === "image" && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setComposing(open);
+                    close();
+                  }}
+                  className="mt-3 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-white/15 px-4 text-sm font-semibold text-white transition-colors hover:bg-white/25"
+                >
+                  <Send className="h-4 w-4" />
+                  {t("postcard.start")}
+                </button>
+              )}
             </div>
           </>
         )}
       </Lightbox>
 
+      {composing && postcard && (
+        <PostcardSheet
+          username={postcard.username}
+          trip={postcard.trip}
+          from={postcard.from}
+          tile={composing}
+          onClose={() => setComposing(null)}
+        />
+      )}
     </div>
   );
 }
