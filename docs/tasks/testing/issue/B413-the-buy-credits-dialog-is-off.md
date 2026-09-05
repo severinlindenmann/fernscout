@@ -7,8 +7,7 @@ complexity: low
 area: me page, credits, design
 found: "2026-09-05T10:20:00Z"
 started: "2026-09-05T08:27:37Z"
-session: 3d8b93dd-e447-4c3c-bcd1-fa37e2bd17f9
-claimed: "2026-09-05T08:27:37Z"
+merged: "2026-09-05T08:39:16Z"
 ---
 
 # B413 — The Buy-credits dialog is off-centre; make it an animated dropdown under its button

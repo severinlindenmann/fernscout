@@ -197,15 +197,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B410](in-development/B410-a-reader-s-access-is-trapped.md) | A reader's access is trapped in one journal's cookie, so the instance cannot tell them what they may open | FEATURE | high | high | `3744307d` |
-| [B413](in-development/B413-the-buy-credits-dialog-is-off.md) | The Buy-credits dialog is off-centre; make it an animated dropdown under its button | ISSUE | low | low | `3d8b93dd` |
 | [B416](in-development/B416-the-address-lookup-disclosure-is-a.md) | The address-lookup disclosure is a paragraph under every street field, before there is anything to disclose | FEATURE | low | low | `39691533` |
 
-## testing (145)
+## testing (146)
 
 ### security (3)
 
@@ -215,7 +214,7 @@ _Nothing here._
 | [B280](testing/security/B280-an-invite-link-cannot-be-handed.md) | An invite link cannot be handed out a second time, because the token is only stored hashed | SECURITY | medium | medium | — |
 | [B03](testing/security/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium | — |
 
-### issue (88)
+### issue (89)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -306,6 +305,7 @@ _Nothing here._
 | [B394](testing/issue/B394-media-is-served-as-webp-whatever.md) | Media is served as WebP whatever the client says it accepts, and Vary does not mention Accept | ISSUE | low | low | — |
 | [B400](testing/issue/B400-a-non-boolean-send-mail-on.md) | A non-boolean send_mail on publish is silently ignored, so an agent thinks it sent | ISSUE | low | low | — |
 | [B402](testing/issue/B402-the-admin-contact-list-prints-a.md) | The admin contact list prints a saved country code, not its name | ISSUE | low | low | — |
+| [B413](testing/issue/B413-the-buy-credits-dialog-is-off.md) | The Buy-credits dialog is off-centre; make it an animated dropdown under its button | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
 ### big-feature (9)
