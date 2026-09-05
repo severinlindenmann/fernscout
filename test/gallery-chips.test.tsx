@@ -18,6 +18,7 @@ import type { MediaTile } from "@/lib/types";
 function tile(location: string, n: number): MediaTile {
   return {
     src: `/alex/media/alps-2024/day-${n}/01.jpg`,
+    slug: `2026-08-0${n}-a-day`,
     type: "image",
     location,
     country: location ? "Switzerland" : "",

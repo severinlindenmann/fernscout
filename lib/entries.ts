@@ -402,6 +402,7 @@ export function getAllMedia(ref: string, options?: ReadOptions): MediaTile[] {
     .flatMap((entry) =>
       entry.gallery.map((item) => ({
         src: item.src,
+        slug: entry.slug,
         type: item.type,
         caption: item.caption,
         width: item.width,

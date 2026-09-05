@@ -41,6 +41,15 @@ export type GalleryItem = {
  */
 export type MediaTile = {
   src: string;
+  /**
+   * The day this photograph belongs to.
+   *
+   * Carried since B441, for the postcard sheet: an order is addressed as trip
+   * + day + photo, and the day was the one part of that a tile could not
+   * supply. Everything else on this type is here to *render* the tile; this is
+   * here to act on it.
+   */
+  slug: string;
   type: "image" | "video";
   caption?: string;
   width?: number;
@@ -50,6 +59,25 @@ export type MediaTile = {
   country: string;
   countryCode?: string;
   date: string;
+};
+
+/**
+ * What a page needs to offer "send a postcard" — B441, and `undefined` for
+ * everybody who may not.
+ *
+ * Here rather than beside the function that computes it
+ * (`lib/postcard/entry.ts`), because that module is `server-only` and the
+ * component rendering the button is a client one. A type is erased at build
+ * time and could be imported across that line with `import type`, but a
+ * client file importing anything at all from a server-only module is a
+ * confusing thing to leave for the next person to check.
+ */
+export type PostcardEntry = {
+  username: string;
+  /** The trip id — the API takes the id, not the qualified ref. */
+  trip: string;
+  /** The signature on the card, from the journal's own config. */
+  from: string;
 };
 
 export type Transport = {
