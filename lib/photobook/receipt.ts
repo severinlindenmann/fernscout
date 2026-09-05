@@ -29,6 +29,10 @@ export type PhotobookReceiptInput = {
   creditsSpent: number;
   balance: number | null;
   files: string[];
+  /** Photographs the build could not read — pages that print as gaps. The
+   * owner has already paid for the book; this is how they find out, since
+   * this mail is the one place written for them to actually read. */
+  missing?: string[];
 };
 
 export async function sendPhotobookReceipt(input: PhotobookReceiptInput): Promise<void> {
@@ -67,6 +71,14 @@ export async function sendPhotobookReceipt(input: PhotobookReceiptInput): Promis
         title: `${t("photobook.receipt.download")} — ${file}`,
         href: `${base}/${file}`,
       })),
+      ...(input.missing && input.missing.length > 0
+        ? [
+            {
+              kind: "paragraph" as const,
+              text: t("photobook.receipt.missing", { count: String(input.missing.length) }),
+            },
+          ]
+        : []),
       { kind: "paragraph" as const, text: t("photobook.receipt.notPrinted") },
     ],
     footer: t("photobook.receipt.footer"),

@@ -713,6 +713,7 @@ export type TranslationKey =
   | "photobook.receipt.cost"
   | "photobook.receipt.costAndBalance"
   | "photobook.receipt.download"
+  | "photobook.receipt.missing"
   | "photobook.receipt.notPrinted"
   | "photobook.receipt.footer"
   | "postcard.cancel"

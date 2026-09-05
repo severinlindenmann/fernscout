@@ -632,6 +632,7 @@
   "photobook.receipt.cost": "{total} Credits.",
   "photobook.receipt.costAndBalance": "{total} Credits. Du hast noch {balance}.",
   "photobook.receipt.download": "Herunterladen",
+  "photobook.receipt.missing": "{count} Foto(s) konnten nicht gelesen werden und erscheinen als Lücken.",
   "photobook.receipt.notPrinted": "Es wurde nichts gedruckt und nichts verschickt. Diese Instanz hat noch kein Druckkonto — die Dateien gehören dir.",
   "photobook.receipt.footer": "Fernscout",
   "postcard.cancel": "Abbrechen",

@@ -632,6 +632,7 @@
   "photobook.receipt.cost": "{total} credits.",
   "photobook.receipt.costAndBalance": "{total} credits. You have {balance} left.",
   "photobook.receipt.download": "Download",
+  "photobook.receipt.missing": "{count} photograph(s) could not be read and will print as gaps.",
   "photobook.receipt.notPrinted": "Nothing has been printed, and nothing has left this server. This instance has no print account yet — the files are yours to send anywhere.",
   "photobook.receipt.footer": "Fernscout",
   "postcard.cancel": "Cancel",

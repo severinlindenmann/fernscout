@@ -632,6 +632,7 @@
   "photobook.receipt.cost": "{total} kredit.",
   "photobook.receipt.costAndBalance": "{total} kredit. Maradt {balance}.",
   "photobook.receipt.download": "Letöltés",
+  "photobook.receipt.missing": "{count} fénykép nem volt olvasható, ezek üres oldalként jelennek meg.",
   "photobook.receipt.notPrinted": "Semmi nem került nyomtatásra és postázásra. Ennek a példánynak még nincs nyomdai fiókja — a fájlok a tieid.",
   "photobook.receipt.footer": "Fernscout",
   "postcard.cancel": "Mégse",
