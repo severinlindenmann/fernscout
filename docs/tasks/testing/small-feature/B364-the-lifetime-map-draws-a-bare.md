@@ -71,3 +71,35 @@ already detailed. Not B46.
   and never drops a fill.
 - A journal with no basemap built still renders (coastline, fills, no water).
 - `npm run verify`.
+
+---
+
+**2026-09-05, verified on fernscout.ch (f01c97b): built, and one bullet needs a
+decision rather than more code.**
+
+Items 1 and 2 shipped. `components/LifetimeMap.tsx` now draws `basemap.borders`
+(line 161) in the fill branch, with `basemap.rivers` and `basemap.lakes` (208,
+213) and the draw order the ticket asked for. Country borders are visibly
+rendered across Europe, Asia and Africa on `/example/trips`.
+
+**Lakes and rivers are empty at this scale, and not because of this work.**
+`lib/basemap.ts:408-409` gates both behind `detailed`, which is
+`spanKm < DETAIL_BELOW_KM` (900 km, line 129). A lifetime map spans continents
+by definition — `example` reaches from the United States to Vietnam — so it is
+never "detailed" and both arrays arrive empty. The component asks for them
+correctly; the basemap declines to supply them.
+
+So the remaining acceptance bullet cannot be met without loosening that gate
+for the lifetime map's frame, **and that is a trade this ticket never argued
+for**: the gate exists to keep the basemap small, which is the same concern
+**B177** is open about ("half a megabyte for a route sixty-eight kilometres
+across"). Rivers at world scale are also the wall-of-noise the file's own
+comments refuse elsewhere.
+
+**Item 3, the labels, is moot.** B370 deleted on-map country names by an
+explicit owner decision half a day later, and moved the information into the
+legend. The crowding guard item 4 asks for has nothing left to guard.
+
+Left in `testing/`. What it needs is a person's answer to one question: are
+lakes and rivers wanted on a continental map at the cost of the bytes, or does
+this ticket close as delivered-minus-a-reversed-bullet?
