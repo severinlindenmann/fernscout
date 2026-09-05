@@ -53,7 +53,7 @@
   "contact.adminNeedName": "Írd be a nevét, hogy tudd, ki ő.",
   "contact.adminNever": "soha",
   "contact.adminNewInvite": "Új link",
-  "contact.adminNoGuestTrip": "Akit jóváhagysz, bekerül a naplóba — de egyik utazásod sincs még megnyitva vendégeknek, így nincs mit olvasnia. Állítsd egy utazás láthatóságát guest értékre, hogy ez megváltozzon.",
+  "contact.adminNoGuestTrip": "Akit jóváhagysz, bekerül a naplóba — de egyik utazásod sincs még megnyitva vendégeknek, így nincs mit olvasnia. Kérd meg a naplón dolgozó ügynököt, hogy egy utazás láthatóságát állítsa guest értékre.",
   "contact.adminNone": "Még senki.",
   "contact.adminOther": "Nincs jóváhagyva",
   "contact.adminPending": "Rád vár",

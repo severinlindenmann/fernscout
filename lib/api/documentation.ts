@@ -1520,6 +1520,52 @@ shelf \`visibility\` and \`people\` sit on, and not content a traveller logs.
 That is different from the trip's budget, above, which anyone on the trip may
 write.
 
+### Who may read the trip
+
+\`createTrip\` could also only ever write \`visibility:\` once — B396 opened
+the same kind of door \`rates\` above got from B352, because "set a trip's
+visibility to guest" was, until this, advice with nowhere to go once a trip
+already existed.
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/trips/<trip-id>/visibility
+Authorization: Bearer fs_agent_…
+\`\`\`
+
+\`\`\`json
+{"trip": "${example}/<trip-id>", "visibility": "private", "listed": false}
+\`\`\`
+
+\`\`\`http
+PATCH ${site.url}/api/v1/${example}/trips/<trip-id>/visibility
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"visibility": "guest"}
+\`\`\`
+
+Send \`visibility\`, \`listed\`, or both — only what changes. \`visibility\` is
+one of \`private\` (the people who were there, and the owner), \`public\`
+(everyone) or \`guest\` (everyone the owner has approved into the journal, and
+the people who were there); an unrecognised value is refused rather than
+written, the same rule the file's own reader already follows so a typo can
+never end up read as \`public\`. \`listed\` only ever narrows: \`true\` is
+refused on a trip whose visibility does not already advertise it — only a
+\`public\` trip is — and omitting it when visibility narrows away from
+\`public\` drops a stale \`listed: true\` rather than leaving it sitting inert
+in the file.
+
+**Widening is said out loud.** Moving from \`private\` or \`guest\` towards
+\`public\`, or from \`private\` to \`guest\`, exposes every day already
+published on this trip to a wider audience the instant this call returns — say
+that plainly before reporting it done. Narrowing needs no such warning: it can
+only take readers away, never add one.
+
+**Owner only**, like \`visibility\` at creation and for the same reason
+\`rates\` is above — a trip-scoped token is refused with \`out_of_scope\`.
+Somebody on the trip may write days into it; deciding who else may read the
+whole journey is not that authority.
+
 ### Photographs and video
 
 \`\`\`http

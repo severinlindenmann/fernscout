@@ -118,6 +118,17 @@ Five fields decide behaviour rather than decoration:
 
   The two older words still parse: `password` means a `guest` trip, and
   `unlisted` means `public` with `listed: false`.
+
+  **This can be amended later, too — since B396.** `PATCH
+  /api/v1/<user>/trips/<trip>/visibility` with `{"visibility": "guest"}`,
+  `{"listed": false}` or both changes it after creation, owner only — a
+  trip-scoped token is refused with `out_of_scope`, the same as for `rates`
+  below. Widening (towards `public`, or `private` to `guest`) exposes every
+  day already published on the trip to whoever the new visibility lets in,
+  and the response says so; narrowing gets no such warning, since it can only
+  take readers away. `listed: true` is still refused there whenever the
+  visibility being asked for would not advertise the trip — the same B51 rule
+  the file's own reader enforces.
 - **`costsVisibility`** — who, among the readers already allowed to open the
   trip, may see what it cost. `public` (the default, and what leaving the key
   out means) shows the numbers to everybody who can read the trip; `guests`
@@ -192,8 +203,9 @@ Everything above except `cover` can also be sent to `POST
 /api/v1/<user>/trips` or `create_trip` when the trip is created. For `people`
 and `translations`, that is the only moment: there is no call that edits a
 `trip.md` afterwards, so a `people:` list or a `translations:` block sent
-wrongly is corrected here, in the file. `rates` is the exception — see above —
-and can be amended after the fact through the API.
+wrongly is corrected here, in the file. `rates` and `visibility` (with
+`listed`) are the exceptions — see above, for each — and can be amended after
+the fact through the API.
 
 ### 3. Optional — a budget (`costs.md`)
 
