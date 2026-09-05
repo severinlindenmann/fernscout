@@ -7,8 +7,7 @@ complexity: low
 area: api, publish, dx
 found: "2026-09-05T07:24:42Z"
 started: "2026-09-05T07:30:50Z"
-session: 3d8b93dd-e447-4c3c-bcd1-fa37e2bd17f9
-claimed: "2026-09-05T07:30:50Z"
+merged: "2026-09-05T07:37:03Z"
 ---
 
 # B400 — A non-boolean send_mail on publish is silently ignored, so an agent thinks it sent
