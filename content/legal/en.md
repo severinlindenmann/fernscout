@@ -78,9 +78,15 @@ advertising or profiling.
 | **Meta Platforms Ireland** (WhatsApp Cloud API) | A reader asked to hear about new days by WhatsApp | Their phone number, and the message |
 | **Stannp Ltd** (United Kingdom) | Somebody ordered a printed postcard | The photograph, the message and the recipient's postal address |
 | **Gelato ASA** (Norway) | Somebody ordered a printed photobook | The book's PDF and the delivery address |
-| **The mail provider carrying this site's email** | Sign-in codes, invitations, notifications | The recipient's address and the message |
+| **Proton AG** (Switzerland) | Sign-in codes, invitations, notifications | The recipient's address and the message |
 
 That is the whole list. There is nobody else.
+
+The mail this site sends goes through **Proton Mail in Switzerland** —
+encrypted at rest and under Swiss privacy law, rather than through a provider
+that reads mail to sell against it. Once a message leaves for an address that
+is not itself on Proton it is ordinary email, which is worth knowing before
+anybody puts something sensitive in a reply.
 
 ## Your rights
 
