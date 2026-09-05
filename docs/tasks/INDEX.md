@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (109)
+## backlog (108)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (34)
+### issue (33)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -99,7 +99,6 @@ Do not edit them by hand; run the script.
 | [B484](backlog/issue/B484-the-photobook-result-panel-can-render.md) | The photobook result panel can render with no download links | ISSUE | low | low |
 | [B500](backlog/issue/B500-minimap-hydrates-with-a-mismatch-on.md) | MiniMap hydrates with a mismatch on the last decimal place of every coordinate | ISSUE | low | low |
 | [B508](backlog/issue/B508-mail-sent-from-a-dev-server.md) | Mail sent from a dev server links to the production site | ISSUE | low | low |
-| [B519](backlog/issue/B519-the-preview-s-map-has-no.md) | The preview's map has no place names but the printed one does | ISSUE | low | low |
 
 ### big-feature (12)
 
@@ -207,11 +206,12 @@ Do not edit them by hand; run the script.
 | [B512](open/B512-the-front-cover-is-whatever-photograph.md) | The front cover is whatever photograph happened to be first | FEATURE | medium | medium |
 | [B516](open/B516-a-layout-has-to-be-chosen.md) | A layout has to be chosen one day at a time | FEATURE | medium | low |
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B515](in-development/B515-there-is-no-way-back-from.md) | There is no way back from an arrangement you regret | FEATURE | medium | low | `d9c396ea` |
+| [B519](in-development/B519-the-preview-s-map-has-no.md) | The preview's map has no place names but the printed one does | ISSUE | low | low | `d9c396ea` |
 
 ## testing (211)
 
