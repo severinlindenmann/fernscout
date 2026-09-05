@@ -204,7 +204,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (4)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -212,6 +212,7 @@ _Nothing here._
 | [B470](in-development/B470-the-landing-page-the-docs-index.md) | The landing page, the docs index and the guides are three surfaces with no shared shell, so the documentation reads as a pile rather than a site | FEATURE | high | medium | `3744307d` |
 | [B466](in-development/B466-the-send-button-spends-money-with.md) | The send button spends money with no moment to reconsider | FEATURE | medium | low | `8af79b62` |
 | [B467](in-development/B467-a-sent-postcard-leaves-the-owner.md) | A sent postcard leaves the owner no record of what was posted | FEATURE | medium | medium | `8af79b62` |
+| [B472](in-development/B472-the-outcome-mail-opens-with-the.md) | The outcome mail opens with the same sentence twice | ISSUE | low | low | `7c3dd4ae` |
 
 ## testing (164)
 
