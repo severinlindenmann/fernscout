@@ -16,6 +16,17 @@ Wants=network-online.target
 # report its own failure for weeks.
 OnFailure=fernscout-alert@%n.service
 
+# And the good night is told too (B458). A quiet mailbox is otherwise
+# indistinguishable from a broken alarm — which this deployment has already
+# been once: fernscout-alert@.service was never copied to the server and
+# nobody noticed for two days, because an alarm that works and an alarm that
+# is absent send the same number of messages (B138).
+#
+# Same handler, same instance name. `scripts/alert.sh` asks systemd which of
+# the two ran it, and treats anything it cannot prove was a success as a
+# failure. In [Unit] for the reason above — [Service] would swallow it.
+OnSuccess=fernscout-alert@%n.service
+
 [Service]
 Type=oneshot
 User=fernscout

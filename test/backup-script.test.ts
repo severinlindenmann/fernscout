@@ -847,6 +847,53 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     120_000,
   );
 
+  test(
+    "scripts/alert.sh calls it a success only when systemd says so, and stamps nothing",
+    () => {
+      // B458: the same handler serves OnFailure= and OnSuccess=, and the
+      // instance name is identical for both, so the only thing that can tell
+      // them apart is what systemd says about the run. The two tests above
+      // cover the default — no systemctl, so no proof, so "failed". This is
+      // the other half.
+      const proofBin = path.join(scratch, "systemctl-says-success");
+      fs.mkdirSync(proofBin, { recursive: true });
+      fs.writeFileSync(
+        path.join(proofBin, "systemctl"),
+        // The two properties alert.sh asks for, and nothing else.
+        '#!/bin/sh\ncase "$*" in *Result*) echo success ;; *ExecMainStatus*) echo 0 ;; *) ;; esac\n',
+        { mode: 0o755 },
+      );
+      // Both stamps cleared, so "did not write one" is this run's answer and
+      // not an earlier test's leftover.
+      fs.rmSync(failureStamp(), { force: true });
+      fs.rmSync(successStamp(), { force: true });
+      const emptyApp = path.join(scratch, "no-app");
+      fs.mkdirSync(emptyApp, { recursive: true });
+
+      const run = spawnSync("bash", [path.join(process.cwd(), "scripts", "alert.sh"), "fernscout-backup.service"], {
+        encoding: "utf8",
+        env: { ...process.env, PATH: `${proofBin}:${process.env.PATH}`, DATA_DIR: dataDir, APP_DIR: emptyApp },
+      });
+
+      expect(run.stdout).toContain("finished cleanly");
+      expect(run.stdout).not.toContain("fernscout-backup.service failed");
+
+      // Nothing written: scripts/backup.sh is the one author of
+      // ".backup worked", at the point where it knows the snapshot is whole.
+      // A handler that only knows systemd's exit code stamping that fact could
+      // record a success over a run that pushed a partial snapshot.
+      expect(fs.existsSync(failureStamp())).toBe(false);
+      expect(fs.existsSync(successStamp()), "the success stamp is backup.sh's to write, not the alert's").toBe(false);
+
+      // And it does not fail itself when it could not mail. A success nobody
+      // could send is not news: the stamp and /api/health already carry it,
+      // and exiting non-zero here would put the alert unit into `failed` and
+      // ask OnFailure= for a second mail about the first one not going out.
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+    },
+    120_000,
+  );
+
   // --- B114: one file nobody needed may not cost the night's backup --------
 
   /** Snapshots carrying restic's `partial` tag — the label a run puts on a

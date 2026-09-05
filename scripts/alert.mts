@@ -1,9 +1,14 @@
 /**
- * Mail an operator that a systemd unit failed.
+ * Mail an operator how a systemd unit ended.
  *
  *   scripts/alert.sh fernscout-backup.service      # the normal caller
  *   npm run alert -- --unit fernscout-backup.service < detail.txt
+ *   npm run alert -- --unit fernscout-backup.service --outcome success
  *   npm run alert -- --unit fernscout-backup.service --dry-run
+ *
+ * **`--outcome` defaults to `failure`**, and every other value reads as
+ * `failure` too. A caller that cannot tell how the run ended must not be able
+ * to announce a success by saying nothing (B458).
  *
  * The message body is read from stdin, so the caller decides how much journal
  * to include and this script never shells out to `journalctl` itself.
@@ -39,6 +44,9 @@ const valueOf = (flag: string): string | undefined => {
 
 const unit = valueOf("--unit") ?? "an unnamed unit";
 const dryRun = argv.includes("--dry-run");
+// Anything that is not exactly "success" is a failure, including a typo and
+// including nothing at all. See the note at the top of this file.
+const succeeded = valueOf("--outcome") === "success";
 
 function readStdin(): Promise<string> {
   // A caller with nothing to add closes stdin immediately; a tty means somebody
@@ -78,20 +86,20 @@ const site = (() => {
   }
 })();
 
-const subject = `[${site.name}] ${unit} failed`;
+const subject = `[${site.name}] ${unit} ${succeeded ? "succeeded" : "failed"}`;
 // Blank lines are content here, so nothing is filtered out of the array — only
 // the health URL, which is absent when the config could not be read at all.
 const lines = [
-  `${unit} failed on ${process.env.HOSTNAME ?? "this host"} at ${new Date().toISOString()}.`,
+  `${unit} ${succeeded ? "finished cleanly" : "failed"} on ${process.env.HOSTNAME ?? "this host"} at ${new Date().toISOString()}.`,
   "",
   detail || "(no detail was supplied)",
   "",
   "What to look at:",
   `  systemctl status ${unit}       how the last run ended`,
-  `  journalctl -u ${unit} -n 50    why`,
+  `  journalctl -u ${unit} -n 50    ${succeeded ? "what it did" : "why"}`,
 ];
 if (site.url) lines.push(`  ${site.url}/api/health    the .backup block, from anywhere`);
-lines.push("", "Sent by scripts/alert.sh, from the unit's OnFailure=.");
+lines.push("", `Sent by scripts/alert.sh, from the unit's ${succeeded ? "OnSuccess=" : "OnFailure="}.`);
 const text = lines.join("\n");
 
 const html = `<pre style="font:14px/1.5 ui-monospace,monospace;white-space:pre-wrap">${escapeHtml(text)}</pre>`;
@@ -108,8 +116,8 @@ if (!isEnabled("mail")) {
   // ordinary case, not a fault. Say what still knows, so the operator reading
   // the journal does not go looking for a mail that was never going to exist.
   console.error(
-    `[alert] mail is switched off on this instance — no alert was sent for ${unit}. ` +
-      "The failure is recorded in DATA_DIR and reported by /api/health.",
+    `[alert] mail is switched off on this instance — nothing was sent for ${unit}. ` +
+      "How the run ended is recorded in DATA_DIR and reported by /api/health.",
   );
   process.exit(3);
 }
@@ -123,7 +131,7 @@ if (!target) {
 }
 
 try {
-  // Transactional on purpose: this is the box saying its backup failed, not
+  // Transactional on purpose: this is the box saying how its backup went, not
   // the journal writing to anybody. `username` here only decides which folder
   // the `.eml` lands in, and a journal that has switched off letters to its
   // readers has said nothing about whether the operator should hear that the
@@ -136,7 +144,7 @@ try {
     console.error(`[alert] mail declined to send for ${unit}.`);
     process.exit(1);
   }
-  console.log(`[alert] ${unit} failure mailed to ${target.to} via ${result.transport}`);
+  console.log(`[alert] ${unit} ${succeeded ? "success" : "failure"} mailed to ${target.to} via ${result.transport}`);
 } catch (error) {
   console.error(`[alert] could not send: ${(error as Error).message}`);
   process.exit(1);

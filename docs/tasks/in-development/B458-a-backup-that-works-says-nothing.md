@@ -78,3 +78,49 @@ capture of its own and it is a smaller change than guessing now.
 subject says it succeeded, and a run that fails still sends the failure mail
 with the failure stamp written. `npm run alert -- --unit x --outcome success
 --dry-run` prints the success wording without sending.
+
+## What was built
+
+One branch in `scripts/alert.sh`, one flag on `scripts/alert.mts`, one line in
+the unit. No second script and no second template: systemd gives both handlers
+the same instance name, so the script asks `systemctl show` which one ran it.
+
+`OUTCOME=success` requires `Result=success` **and** `ExecMainStatus=0`. Every
+other state — no `systemctl` on the box, an empty property, a Result nobody has
+seen — is a failure, and `--outcome` on the mailer applies the same rule to its
+own argument: anything that is not exactly `success` reads as a failure. A mail
+that wrongly says the backup worked is the only outcome worse than no mail.
+
+The success path writes no stamp and does not exit non-zero when it cannot
+mail. `scripts/backup.sh` is the one author of "the backup worked", at the point
+where it knows the snapshot is whole; a handler that knows only systemd's exit
+code could otherwise stamp a success over a run that pushed a partial snapshot.
+And a success that could not be sent is not news worth putting the alert unit
+into `failed` for — which, with `OnFailure=` wired up, would ask for a second
+mail about the first one not going out.
+
+### One thing found on the way, and fixed here rather than captured
+
+`readMail` in `test/alert-script.test.ts` decoded the `.eml` wrongly. It matched
+runs of `^[A-Za-z0-9+/=]{60,}$`, and a base64 block's last line is shorter than
+the rest — so each block was decoded in fragments, every fragment starting at
+whatever offset the last one ended on. The output read almost right, with words
+broken across invented newlines (`how th\ne last run ended`) and a tail left as
+raw base64. Assertions in that file were passing or failing on message length.
+
+It is fixed to decode by MIME part, honouring CRLF. Not a separate capture
+because it is the instrument this task's acceptance is read with: the first
+version of the success test failed against a correct mail, which is exactly the
+error in the other direction.
+
+## Evidence
+
+- `npm run alert -- --unit fernscout-backup.service --outcome success --dry-run`
+  prints *"finished cleanly"* and *"from the unit's OnSuccess=."*
+- `test/alert-script.test.ts` — the success wording, and that `[]`,
+  `--outcome ""`, `--outcome Success` and `--outcome ok` all read as failures.
+- `test/backup-script.test.ts` — a stubbed `systemctl` reporting
+  `Result=success`/`0` takes the success path, writes neither stamp and exits 0.
+  The two tests beside it already cover the no-systemctl default.
+- `test/systemd-units.test.ts` needed no change: its allow-list already places
+  `OnSuccess=` in `[Unit]`, which is the trap B203 was.
