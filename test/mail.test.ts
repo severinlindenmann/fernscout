@@ -377,6 +377,67 @@ describe("the text alternative", () => {
   });
 });
 
+describe("the two blocks the operator alert needed — B475", () => {
+  const TABLE = {
+    kind: "table" as const,
+    head: ["journal", "days", "size"],
+    rows: [
+      { cells: ["example", "31", "17 MB"], note: "on the road: Across and back" },
+      { cells: ["quiet", "0", "1 KB"] },
+    ],
+  };
+
+  test("a table is a real table in HTML and a padded grid in text", () => {
+    const mail = renderMail("r@example.test", "S", { ...SAMPLE, blocks: [TABLE] });
+
+    expect(mail.html).toContain("<th");
+    expect(mail.html).toContain("<td");
+    expect(mail.html).toContain("example");
+    // The note spans the row rather than becoming a fourth column.
+    expect(mail.html).toContain('colspan="3"');
+
+    // Padded to the widest cell in each column, header included. Numbers are
+    // right-aligned, so it is the *ends* that line up — which is what makes a
+    // column of figures comparable at a glance in a terminal client.
+    const lines = mail.text.split("\n");
+    const head = lines.find((l) => l.startsWith("journal"))!;
+    const row = lines.find((l) => l.startsWith("example"))!;
+    const other = lines.find((l) => l.startsWith("quiet"))!;
+    expect(head.indexOf("days") + "days".length).toBe(row.indexOf("31") + "31".length);
+    expect(row.indexOf("31") + "31".length).toBe(other.indexOf("0") + "0".length);
+    expect(head).toHaveLength(row.length);
+    expect(lines.some((l) => l.includes("on the road: Across and back"))).toBe(true);
+  });
+
+  test("a code block keeps its own layout, and cannot widen the letter", () => {
+    const log = "Sep 05 03:32:13 host fernscout-backup[820704]: a line far longer than any phone is wide";
+    const mail = renderMail("r@example.test", "S", { ...SAMPLE, blocks: [{ kind: "code", text: log }] });
+
+    expect(mail.html).toContain("white-space:pre");
+    // The scroller. Without a definite width a table cell grows to its
+    // content, and the *body* scrolls sideways instead of the block —
+    // `table-layout:fixed` is what gives it one.
+    expect(mail.html).toContain("table-layout:fixed");
+    expect(mail.html).toContain("overflow-x:auto");
+    // Text part: the log unchanged, because it was already laid out for a
+    // fixed-width reader.
+    expect(mail.text).toContain(log);
+  });
+
+  test("neither can break out of the HTML", () => {
+    const mail = renderMail("r@example.test", "S", {
+      ...SAMPLE,
+      blocks: [
+        { kind: "code", text: "</pre><script>alert(1)</script>" },
+        { kind: "table", head: ["<script>"], rows: [{ cells: ["<img onerror=x>"], note: "</td><script>" }] },
+      ],
+    });
+    expect(mail.html).not.toContain("<script>");
+    expect(mail.html).not.toContain("<img onerror");
+    expect(mail.html).toContain("&lt;script&gt;");
+  });
+});
+
 describe("escaping", () => {
   test("content cannot break out of the HTML", () => {
     const mail = renderMail("r@example.test", "S", {
