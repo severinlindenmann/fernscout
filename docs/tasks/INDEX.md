@@ -207,14 +207,13 @@ Do not edit them by hand; run the script.
 | [B512](open/B512-the-front-cover-is-whatever-photograph.md) | The front cover is whatever photograph happened to be first | FEATURE | medium | medium |
 | [B516](open/B516-a-layout-has-to-be-chosen.md) | A layout has to be chosen one day at a time | FEATURE | medium | low |
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B514](in-development/B514-the-preview-shows-pages-but-a.md) | The preview shows pages, but a book is read in spreads | FEATURE | medium | medium | `d9c396ea` |
 | [B515](in-development/B515-there-is-no-way-back-from.md) | There is no way back from an arrangement you regret | FEATURE | medium | low | `d9c396ea` |
 
-## testing (210)
+## testing (211)
 
 ### security (2)
 
@@ -361,7 +360,7 @@ Do not edit them by hand; run the script.
 | [B496](testing/big-feature/B496-the-printed-photobook-reads-as-a.md) | The printed photobook reads as a contact sheet, not a book | FEATURE | medium | high | — |
 | [B497](testing/big-feature/B497-the-photobook-draws-one-hardcoded-couple.md) | The photobook draws one hardcoded couple whoever travelled | FEATURE | medium | high | — |
 
-### small-feature (36)
+### small-feature (37)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -394,6 +393,7 @@ Do not edit them by hand; run the script.
 | [B494](testing/small-feature/B494-the-admin-s-journal-list-is.md) | The admin's journal list is a page of identical cards | FEATURE | medium | low | — |
 | [B498](testing/small-feature/B498-every-traveller-is-drawn-in-trousers.md) | Every traveller is drawn in trousers | FEATURE | medium | low | — |
 | [B503](testing/small-feature/B503-the-photobook-is-printed-in-english.md) | The photobook is printed in English whatever language the journal is written in | FEATURE | medium | medium | — |
+| [B514](testing/small-feature/B514-the-preview-shows-pages-but-a.md) | The preview shows pages, but a book is read in spreads | FEATURE | medium | medium | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B11](testing/small-feature/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium | — |
