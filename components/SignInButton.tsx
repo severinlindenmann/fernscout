@@ -23,7 +23,16 @@ export default function SignInButton({
   working,
   failed,
 }: {
-  username: string;
+  /**
+   * The journal this link signs somebody into, or absent for an instance-wide
+   * identity link — B430.
+   *
+   * One component rather than two, because the difference is an endpoint and a
+   * fallback path; everything that makes this file worth reading — the button
+   * instead of a redirect, the copy when a link has already been spent — is
+   * identical for both and would have been copied wrongly into the second one.
+   */
+  username?: string;
   token: string;
   label: string;
   working: string;
@@ -33,11 +42,14 @@ export default function SignInButton({
 
   async function open() {
     setState("working");
-    const response = await fetch("/api/auth/link", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user: username, token }),
-    }).catch(() => null);
+    const response = await fetch(
+      username ? "/api/auth/link" : "/api/auth/identity/link",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(username ? { user: username, token } : { token }),
+      },
+    ).catch(() => null);
 
     const body = (await response?.json().catch(() => null)) as { next?: string } | null;
     if (!response?.ok) {
@@ -51,7 +63,7 @@ export default function SignInButton({
       return;
     }
 
-    window.location.href = body?.next ?? `/${username}`;
+    window.location.href = body?.next ?? (username ? `/${username}` : "/");
   }
 
   return (
