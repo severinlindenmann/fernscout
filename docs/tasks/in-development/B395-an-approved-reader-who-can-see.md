@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: contacts
 found: "2026-09-04T22:44:09Z"
+started: "2026-09-05T07:11:50Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:11:50Z"
 ---
 
 # B395 — An approved reader who can see nothing is told on one page to ask for an invitation they already have

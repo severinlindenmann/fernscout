@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: media
 found: "2026-09-04T22:39:22Z"
+started: "2026-09-05T07:11:49Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:11:49Z"
 ---
 
 # B393 — Photographs cannot be added to a published day, and the refusal tells the agent to ask somebody who has no way to do it

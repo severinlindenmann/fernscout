@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: trips
 found: "2026-09-04T22:44:10Z"
+started: "2026-09-05T07:11:50Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:11:50Z"
 ---
 
 # B396 — The contacts page tells an owner to change a trip's visibility, which no door can do
