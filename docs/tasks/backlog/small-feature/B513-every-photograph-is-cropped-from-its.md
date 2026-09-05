@@ -12,12 +12,53 @@ found: "2026-09-05T20:42:56Z"
 
 ## Why
 
-TODO — the problem, not the fix.
+`cover()` in `lib/photobook/plan.ts:377` centres every crop:
+`x: slot.x + (slot.width - width) / 2`. Always, for every photograph, in every
+slot.
+
+A portrait photograph in a landscape slot loses its top and bottom; a landscape
+in a square slot loses its sides. Centred is the right default and it is wrong
+often — a face near the top of the frame, a person standing at the left of a
+wide shot, a horizon deliberately low. The reader gets a beheaded subject and
+no way to say so.
+
+This is the one thing the research on photo book editors singles out. Journi's
+focal-point positioning is described as what "reduces cropping iterations
+across varied photo sizes", and the tools without it "shift emphasis when
+templates place images at different sizes" — which is precisely what a book
+that puts the same photograph in a hero slot on one page and a quarter slot on
+another does.
 
 ## Work
 
-TODO
+A focal point per photograph: two numbers, 0–1, defaulting to the centre, so a
+photograph nobody has touched crops exactly as it does today.
+
+Where it is stored is the decision. Options, and they are not equivalent:
+
+- **In the book's options**, beside `hero` and `photos` — the arrangement's
+  business, does not touch anybody's content, and is lost when a different book
+  is made from the same photograph.
+- **In the entry's frontmatter**, beside the caption — belongs to the
+  photograph rather than to one book, so the website could use it too, and it
+  means the composer writing to content, which nothing in the browser does
+  today and which decision 24 has opinions about.
+
+The first is the smaller change and the honest starting point; say why in the
+ticket if that is what is chosen.
+
+In the composer: tap a point on the thumbnail. That is the whole gesture, and
+it wants to be visible only for a photograph that is actually being cropped —
+offering it where the whole frame is printed is a control that does nothing.
+
+**Not doing:** face detection. A tap is one gesture and always right; a
+detector is a dependency, a model, and an opinion that is sometimes wrong about
+somebody's family.
 
 ## Acceptance
 
-TODO
+- A photograph with a subject near an edge can be made to keep it, in a hero
+  slot and in a grid slot.
+- A photograph nobody has touched is placed exactly as it is today — assert it
+  by comparing whole plans, as B504 does.
+- A focal point on a photograph that is printed uncropped changes nothing.
