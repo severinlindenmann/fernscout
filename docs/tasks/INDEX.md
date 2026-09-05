@@ -200,14 +200,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B445](in-development/B445-there-is-nothing-a-guest-a.md) | There is nothing a guest, a buddy or a new owner can read that explains what they can do here | DOCS | high | medium | `3744307d` |
-| [B441](in-development/B441-a-postcard-can-only-be-started.md) | A postcard can only be started by an agent — the gallery has no way in | FEATURE | medium | medium | `8af79b62` |
 
-## testing (144)
+## testing (145)
 
 ### issue (83)
 
@@ -313,7 +312,7 @@ _Nothing here._
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 | [B425](testing/big-feature/B425-until-a-psp-exists-a-payment.md) | Until a PSP exists, a payment is a request the instance admin approves by an emailed link, which grants the credits | FEATURE | medium | high | — |
 
-### small-feature (16)
+### small-feature (17)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -329,6 +328,7 @@ _Nothing here._
 | [B374](testing/small-feature/B374-deleting-a-journal-silently-destroys-the.md) | Deleting a journal silently destroys the credits left in it | FEATURE | medium | low | — |
 | [B392](testing/small-feature/B392-the-owner-console-on-me-is.md) | The owner console on /me is a flat wall of same-weight headings | FEATURE | medium | medium | — |
 | [B412](testing/small-feature/B412-the-service-worker-caches-every-reader.md) | The service worker caches every reader into one shared bucket, so a signed-in home view cannot be cached at all | FEATURE | medium | medium | — |
+| [B441](testing/small-feature/B441-a-postcard-can-only-be-started.md) | A postcard can only be started by an agent — the gallery has no way in | FEATURE | medium | medium | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
