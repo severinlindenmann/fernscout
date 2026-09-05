@@ -8,6 +8,8 @@ area: agent guide
 found: "2026-09-04T19:17:31Z"
 started: "2026-09-04T19:17:54Z"
 merged: "2026-09-04T19:25:09Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T08:24:24Z"
 ---
 
 # B335 — The guide says almost nothing about how a day's money and coordinates should be formed

@@ -8,6 +8,8 @@ area: trips, maps
 found: "2026-09-04T19:52:00Z"
 started: "2026-09-04T19:56:10Z"
 merged: "2026-09-04T20:02:52Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T08:24:21Z"
 ---
 
 # B346 — Every trip is the same colour because the scaffold writes `accent: sky` and nothing assigns a distinct one

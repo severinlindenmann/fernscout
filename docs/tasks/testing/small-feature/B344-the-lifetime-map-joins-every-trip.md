@@ -8,6 +8,8 @@ area: maps, trips
 found: "2026-09-04T19:45:00Z"
 started: "2026-09-04T19:42:35Z"
 merged: "2026-09-04T19:48:08Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T08:24:20Z"
 ---
 
 # B344 — The lifetime map joins every trip's stops with a line, reading as a route when it is an overview of everywhere somebody has been

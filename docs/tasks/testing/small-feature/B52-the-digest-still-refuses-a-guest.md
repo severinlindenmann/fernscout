@@ -8,6 +8,8 @@ area: digest, access
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T08:24:22Z"
 ---
 
 # B52 — The digest still refuses a guest trip to a reader who can now open it

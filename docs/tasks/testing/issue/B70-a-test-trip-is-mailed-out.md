@@ -8,6 +8,8 @@ area: digest, test-flag, push
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T08:24:22Z"
 ---
 
 # B70 — A test trip is mailed out in the digest as if somebody had lived it

@@ -8,6 +8,8 @@ area: maps, trips
 found: "2026-09-04T20:15:00Z"
 started: "2026-09-04T20:12:15Z"
 merged: "2026-09-04T20:28:24Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T08:24:20Z"
 ---
 
 # B361 — The lifetime map cannot answer which countries somebody has been to, only where individual stops fell

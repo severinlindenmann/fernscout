@@ -8,6 +8,8 @@ area: trips, costs, agent docs
 found: "2026-09-04T11:35:51Z"
 started: "2026-09-04T13:56:45Z"
 merged: "2026-09-04T14:22:02Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T08:24:23Z"
 ---
 
 # B267 — Nothing tells an agent that a trip decides its own budget and coordinates, and an empty costs page is offered anyway

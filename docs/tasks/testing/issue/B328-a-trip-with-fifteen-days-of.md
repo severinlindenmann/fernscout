@@ -8,6 +8,8 @@ area: costs, viewer
 found: "2026-09-04T18:41:32Z"
 started: "2026-09-04T18:42:19Z"
 merged: "2026-09-04T18:56:12Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T08:24:22Z"
 ---
 
 # B328 — A trip with fifteen days of costs and no budget file has no costs page

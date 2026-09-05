@@ -221,12 +221,12 @@ _Nothing here._
 | [B300](testing/issue/B300-approving-a-guest-opens-nothing-when.md) | Approving a guest opens nothing when every trip is private, and neither the owner nor the guest is told | ISSUE | high | low | — |
 | [B306](testing/issue/B306-a-journal-s-visibility-borrows-the.md) | A journal's visibility borrows the trip's words for a different meaning, and everyone reads them as the trip's | ISSUE | high | medium | — |
 | [B307](testing/issue/B307-onboarding-is-prose-so-an-agent.md) | Onboarding is prose, so an agent asks a different set of questions in a different order every time | ISSUE | high | medium | — |
-| [B316](testing/issue/B316-the-rule-against-translating-prose-reads.md) | The rule against translating prose reads as absolute, so an agent refuses an owner who asks for it | ISSUE | high | low | — |
+| [B316](testing/issue/B316-the-rule-against-translating-prose-reads.md) | The rule against translating prose reads as absolute, so an agent refuses an owner who asks for it | ISSUE | high | low | `62683d95` |
 | [B318](testing/issue/B318-a-draft-day-shows-three-of.md) | A draft day shows three of its nine photographs and all nine once published | ISSUE | high | medium | — |
 | [B320](testing/issue/B320-a-buddy-on-a-trip-is.md) | A buddy on a trip is told the journal is not theirs to write, and never learns they hold write access | ISSUE | high | medium | — |
-| [B326](testing/issue/B326-nothing-says-which-language-a-day.md) | Nothing says which language a day's own title and content must be in, so an agent sent the wrong one fifteen times | ISSUE | high | low | — |
-| [B328](testing/issue/B328-a-trip-with-fifteen-days-of.md) | A trip with fifteen days of costs and no budget file has no costs page | ISSUE | high | low | — |
-| [B332](testing/issue/B332-the-documents-still-say-deleting-a.md) | The documents still say deleting a budget removes the costs page, which B328 made untrue | ISSUE | high | low | — |
+| [B326](testing/issue/B326-nothing-says-which-language-a-day.md) | Nothing says which language a day's own title and content must be in, so an agent sent the wrong one fifteen times | ISSUE | high | low | `62683d95` |
+| [B328](testing/issue/B328-a-trip-with-fifteen-days-of.md) | A trip with fifteen days of costs and no budget file has no costs page | ISSUE | high | low | `62683d95` |
+| [B332](testing/issue/B332-the-documents-still-say-deleting-a.md) | The documents still say deleting a budget removes the costs page, which B328 made untrue | ISSUE | high | low | `62683d95` |
 | [B339](testing/issue/B339-getplaces-merges-every-unnamed-day-into.md) | getPlaces merges every unnamed day into one place, collapsing a whole trip's coordinates to a single point | ISSUE | high | low | — |
 | [B347](testing/issue/B347-a-buddy-approved-onto-a-trip.md) | A buddy approved onto a trip is mailed "follow along whenever you like" and never told they can write | ISSUE | high | low | — |
 | [B348](testing/issue/B348-the-agent-code-mail-tells-a.md) | The agent-code mail tells a buddy the token writes to "your journal", when it writes one trip in somebody else's | ISSUE | high | low | — |
@@ -261,7 +261,7 @@ _Nothing here._
 | [B301](testing/issue/B301-the-handover-block-still-offers-the.md) | The handover block still offers the read-out-a-code route beside the key, which is two ways to do one thing | ISSUE | medium | low | — |
 | [B312](testing/issue/B312-a-malformed-trip-md-that-gray.md) | A malformed trip.md that gray-matter has already failed to parse once can silently succeed on re-parse | ISSUE | medium | low | — |
 | [B313](testing/issue/B313-getplan-s-own-doc-comment-claims.md) | getPlan's own doc comment claims a malformed plan.md returns empty, but readPlanFile has no guard and throws | ISSUE | medium | low | — |
-| [B317](testing/issue/B317-the-scripts-say-what-to-ask.md) | The scripts say what to ask and never what to offer next, so an agent stops after each step | ISSUE | medium | low | — |
+| [B317](testing/issue/B317-the-scripts-say-what-to-ask.md) | The scripts say what to ask and never what to offer next, so an agent stops after each step | ISSUE | medium | low | `62683d95` |
 | [B336](testing/issue/B336-the-map-pages-drop-the-owner.md) | The map pages drop the owner's draft days while the same page's planned route keeps them | ISSUE | medium | low | — |
 | [B349](testing/issue/B349-the-owner-s-queue-notification-calls.md) | The owner's queue notification calls a buddy a follower, naming neither the link kind nor the trip | ISSUE | medium | low | — |
 | [B351](testing/issue/B351-the-pre-approved-invite-page-still.md) | The pre-approved invite page still speaks the queue's language and contradicts itself | ISSUE | medium | low | — |
@@ -276,7 +276,7 @@ _Nothing here._
 | [B397](testing/issue/B397-health-and-status-report-credits-off.md) | health and status report credits off per-journal though it is server-only and live | ISSUE | medium | low | — |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
-| [B70](testing/issue/B70-a-test-trip-is-mailed-out.md) | A test trip is mailed out in the digest as if somebody had lived it | ISSUE | medium | low | — |
+| [B70](testing/issue/B70-a-test-trip-is-mailed-out.md) | A test trip is mailed out in the digest as if somebody had lived it | ISSUE | medium | low | `62683d95` |
 | [B82](testing/issue/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
 | [B04](testing/issue/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium | — |
 | [B130](testing/issue/B130-re-approving-a-contact-leaves.md) | Re-approving a contact leaves an expired grant expired, so the approval does nothing | ISSUE | low | low | — |
@@ -314,7 +314,7 @@ _Nothing here._
 | [B366](testing/big-feature/B366-sending-a-letter-or-a-message.md) | Sending a letter or a message costs a credit, and a journal starts with none | FEATURE | high | high | — |
 | [B283](testing/big-feature/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high | — |
 | [B294](testing/big-feature/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high | — |
-| [B361](testing/big-feature/B361-the-lifetime-map-cannot-answer-which.md) | The lifetime map cannot answer which countries somebody has been to, only where individual stops fell | FEATURE | medium | high | — |
+| [B361](testing/big-feature/B361-the-lifetime-map-cannot-answer-which.md) | The lifetime map cannot answer which countries somebody has been to, only where individual stops fell | FEATURE | medium | high | `62683d95` |
 | [B39](testing/big-feature/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
 | [B399](testing/big-feature/B399-every-address-in-the-book-is.md) | Every address in the book is typed out by hand, line by line, with nothing to check it against | FEATURE | medium | high | — |
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
@@ -324,29 +324,29 @@ _Nothing here._
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B273](testing/small-feature/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium | — |
-| [B344](testing/small-feature/B344-the-lifetime-map-joins-every-trip.md) | The lifetime map joins every trip's stops with a line, reading as a route when it is an overview of everywhere somebody has been | FEATURE | medium | low | — |
-| [B346](testing/small-feature/B346-every-trip-is-the-same-colour.md) | Every trip is the same colour because the scaffold writes accent sky and nothing assigns a distinct one | FEATURE | medium | low | — |
-| [B364](testing/small-feature/B364-the-lifetime-map-draws-a-bare.md) | The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries | FEATURE | medium | low | — |
+| [B344](testing/small-feature/B344-the-lifetime-map-joins-every-trip.md) | The lifetime map joins every trip's stops with a line, reading as a route when it is an overview of everywhere somebody has been | FEATURE | medium | low | `62683d95` |
+| [B346](testing/small-feature/B346-every-trip-is-the-same-colour.md) | Every trip is the same colour because the scaffold writes accent sky and nothing assigns a distinct one | FEATURE | medium | low | `62683d95` |
+| [B364](testing/small-feature/B364-the-lifetime-map-draws-a-bare.md) | The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries | FEATURE | medium | low | `62683d95` |
 | [B367](testing/small-feature/B367-an-owner-cannot-see-what-they.md) | An owner cannot see what they have left to spend or what one send would cost | FEATURE | medium | medium | — |
-| [B370](testing/small-feature/B370-country-names-written-across-the-lifetime.md) | Country names written across the lifetime map are unreadable, and one hue for every country makes the map say little | FEATURE | medium | medium | — |
+| [B370](testing/small-feature/B370-country-names-written-across-the-lifetime.md) | Country names written across the lifetime map are unreadable, and one hue for every country makes the map say little | FEATURE | medium | medium | `62683d95` |
 | [B374](testing/small-feature/B374-deleting-a-journal-silently-destroys-the.md) | Deleting a journal silently destroys the credits left in it | FEATURE | medium | low | — |
 | [B385](testing/small-feature/B385-a-phone-number-typed-into-any.md) | A phone number typed into any of the four guest forms has no country, and only the sender finds out | FEATURE | medium | low | — |
 | [B390](testing/small-feature/B390-the-dialling-code-picker-is-eleven.md) | The dialling-code picker is eleven bare numbers with no country, no search and no way to find your own | FEATURE | medium | low | — |
 | [B392](testing/small-feature/B392-the-owner-console-on-me-is.md) | The owner console on /me is a flat wall of same-weight headings | FEATURE | medium | medium | — |
 | [B398](testing/small-feature/B398-the-country-on-an-address-is.md) | The country on an address is free text, so nothing downstream can tell Schweiz from Switzerland | FEATURE | medium | low | — |
-| [B52](testing/small-feature/B52-the-digest-still-refuses-a-guest.md) | The digest still refuses a guest trip to a reader who can now open it | FEATURE | medium | low | — |
+| [B52](testing/small-feature/B52-the-digest-still-refuses-a-guest.md) | The digest still refuses a guest trip to a reader who can now open it | FEATURE | medium | low | `62683d95` |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
 | [B368](testing/small-feature/B368-there-is-no-way-to-ask.md) | There is no way to ask for more credits, and the payment provider does not exist yet | FEATURE | low | medium | — |
-| [B88](testing/small-feature/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low | — |
+| [B88](testing/small-feature/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low | `62683d95` |
 
 ### chore (15)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B258](testing/chore/B258-a-deploy-re-installs-re-migrates.md) | A deploy re-installs, re-migrates and rebuilds whatever changed | CHORE | high | medium | — |
-| [B184](testing/chore/B184-the-digest-cannot-be-exercised-end.md) | The digest cannot be exercised end to end, because everything an agent may write is filtered out of it | CHORE | medium | low | — |
+| [B184](testing/chore/B184-the-digest-cannot-be-exercised-end.md) | The digest cannot be exercised end to end, because everything an agent may write is filtered out of it | CHORE | medium | low | `62683d95` |
 | [B257](testing/chore/B257-nothing-logs-http-requests-so-a.md) | Nothing logs HTTP requests, so a client reporting failed to fetch cannot be diagnosed | CHORE | medium | low | — |
 | [B35](testing/chore/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
 | [B387](testing/chore/B387-the-weekly-digest-was-never-scheduled.md) | The weekly digest was never scheduled or wanted, and is a second mail system to keep correct | CHORE | medium | medium | — |
@@ -378,9 +378,9 @@ _Nothing here._
 | [B144](testing/docs-and-skills/B144-enterworktree-refuses-for-a-dispatched-subagent.md) | EnterWorktree refuses for a dispatched subagent, so work-on-a-task's second step cannot be followed | DOCS | medium | low | — |
 | [B215](testing/docs-and-skills/B215-the-manual-privacy-tests-still-walk.md) | The manual privacy tests still walk an operator through a trip password | DOCS | medium | low | — |
 | [B248](testing/docs-and-skills/B248-the-main-checkout-rule-is-prose.md) | The main-checkout rule is prose, and prose does not stop an Edit | DOCS | medium | low | — |
-| [B267](testing/docs-and-skills/B267-nothing-tells-an-agent-that-a.md) | Nothing tells an agent that a trip decides its own budget and coordinates, and an empty costs page is offered anyway | DOCS | medium | medium | — |
+| [B267](testing/docs-and-skills/B267-nothing-tells-an-agent-that-a.md) | Nothing tells an agent that a trip decides its own budget and coordinates, and an empty costs page is offered anyway | DOCS | medium | medium | `62683d95` |
 | [B292](testing/docs-and-skills/B292-four-things-an-agent-had-to.md) | Four things an agent had to learn by failing are documented somewhere it was not looking | DOCS | medium | low | — |
-| [B335](testing/docs-and-skills/B335-the-guide-says-almost-nothing-about.md) | The guide says almost nothing about how a day's money and coordinates should be formed | DOCS | medium | low | — |
+| [B335](testing/docs-and-skills/B335-the-guide-says-almost-nothing-about.md) | The guide says almost nothing about how a day's money and coordinates should be formed | DOCS | medium | low | `62683d95` |
 | [B355](testing/docs-and-skills/B355-agent-md-says-an-invite-token.md) | agent.md says an invite token is only stored hashed and can never be shown again, which B280 changed | DOCS | medium | low | — |
 | [B186](testing/docs-and-skills/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | DOCS | low | low | — |
 | [B198](testing/docs-and-skills/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | DOCS | low | low | — |
