@@ -7,8 +7,7 @@ complexity: low
 area: tests, generators
 found: "2026-09-05T15:51:42Z"
 started: "2026-09-05T15:52:15Z"
-session: e5747799-fd3e-4d40-a335-82fa4e24333e
-claimed: "2026-09-05T15:52:15Z"
+merged: "2026-09-05T15:54:44Z"
 ---
 
 # B495 — The generator tests symlink generated-output folders into their temp root

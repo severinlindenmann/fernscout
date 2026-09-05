@@ -202,14 +202,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B495](in-development/B495-the-generator-tests-symlink-generated-output.md) | The generator tests symlink generated-output folders into their temp root, so a hand-run script fails the suite | ISSUE | medium | low | `e5747799` |
 | [B11](in-development/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium | `c3c8ffc8` |
 
-## testing (193)
+## testing (194)
 
 ### security (2)
 
@@ -218,7 +217,7 @@ _Nothing here._
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 | [B473](testing/security/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | — |
 
-### issue (110)
+### issue (111)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -291,6 +290,7 @@ _Nothing here._
 | [B455](testing/issue/B455-trip-switcher-lists-now-above-planned.md) | Trip switcher lists Now above Planned, and its menu runs off the left edge on mobile | ISSUE | medium | low | — |
 | [B469](testing/issue/B469-the-contacts-admin-page-ignores-the.md) | The contacts admin page ignores the language the owner picked | ISSUE | medium | low | — |
 | [B488](testing/issue/B488-the-home-view-calls-another-journal.md) | The home view calls another journal DEINS to the instance admin | ISSUE | medium | low | — |
+| [B495](testing/issue/B495-the-generator-tests-symlink-generated-output.md) | The generator tests symlink generated-output folders into their temp root, so a hand-run script fails the suite | ISSUE | medium | low | — |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
 | [B82](testing/issue/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
