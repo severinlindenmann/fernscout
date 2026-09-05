@@ -7,8 +7,7 @@ complexity: low
 area: travellers, demo content, agent-interface
 found: "2026-09-05T16:28:47Z"
 started: "2026-09-05T16:29:15Z"
-session: c3c8ffc8-e9b2-4d46-b1b7-942387750255
-claimed: "2026-09-05T16:29:15Z"
+merged: "2026-09-05T16:41:46Z"
 ---
 
 # B499 — Nothing shows an agent how to build a character, and the demo journal has one party shape

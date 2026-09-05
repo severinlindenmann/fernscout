@@ -7,8 +7,7 @@ complexity: low
 area: travellers, brand
 found: "2026-09-05T16:26:59Z"
 started: "2026-09-05T16:29:14Z"
-session: c3c8ffc8-e9b2-4d46-b1b7-942387750255
-claimed: "2026-09-05T16:29:14Z"
+merged: "2026-09-05T16:41:46Z"
 ---
 
 # B498 — Every traveller is drawn in trousers
