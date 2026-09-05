@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: contacts, push
 found: "2026-09-05T12:47:44Z"
+merged: "2026-09-05T13:03:20Z"
 ---
 
 # B453 — A reader's card on /contacts is a wall of labels, and says nothing about notifications on their phone
