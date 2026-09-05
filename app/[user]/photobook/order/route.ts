@@ -59,7 +59,7 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
       { status: 403 },
     );
   }
-  if (!isEnabled("photobook", user) || !isEnabled("credits", user) || !(await isOwner(user))) {
+  if (!isEnabled("photobook", user) || !isEnabled("credits") || !(await isOwner(user))) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
