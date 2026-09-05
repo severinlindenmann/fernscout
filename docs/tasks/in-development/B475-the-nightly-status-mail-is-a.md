@@ -77,3 +77,54 @@ The success mail renders as a table on cream with the site name at the top, in
 a mail client and in a browser. `npm run status` prints what it prints today.
 A failure mail still shows its journal tail, monospaced, and still reaches the
 fallback address. `scripts/alert.sh` no longer runs `npm run status`.
+
+## What was built
+
+The pipe went first, and everything else followed from that.
+
+`lib/statusReport.ts` holds the counting and both renderings.
+`scripts/status.mts` is now nine lines over it. `scripts/alert.mts` calls
+`collectStatus()` in its own process — so `scripts/alert.sh` runs no
+subprocess on the success path at all, and nothing is counted when B468 is
+going to withhold the report anyway. That last part used to walk every journal
+and every byte to build something it then dropped.
+
+Two new `MailBlock` kinds, `code` and `table`, and the letter goes through
+`renderMail()` like the other five. Cream paper, ink, the 560px column.
+
+**Three decisions inside the layout:**
+
+- **The `<h1>` is not the subject line.** It was `[Fernscout]
+  fernscout-backup.service succeeded`, brackets and all — a mail shouting its
+  own inbox filing label at its reader. It is "The backup finished cleanly"
+  now, with the unit, host and time as the paragraph under it.
+- **Minute precision, and a space instead of the `T`.** A full ISO instant is
+  24 characters of unbroken punctuation, and a 560px column wraps it in the
+  middle. Nobody reading a backup mail wants the milliseconds.
+- **Both new blocks scroll inside a single-cell `table-layout:fixed` table.**
+  `overflow-x:auto` alone contains nothing in a table cell: a `<td>` grows to
+  its content's min-content width, fixed-width text does not wrap, and one long
+  log line was widening the whole letter so the *body* scrolled sideways. The
+  fix is contained in the two blocks rather than put on the letter's own
+  column, because five other letters render through that table and none of them
+  needed changing.
+
+## Evidence
+
+Rendered to PNG through headless Chrome at 680px and at 420px, both outcomes.
+The phone-width failure mail is what caught the scrolling bug — the opening
+paragraph was being clipped rather than wrapped, which is the body being wider
+than the viewport.
+
+- `test/mail.test.ts` — a table is a real `<table>` in HTML with the note on a
+  `colspan` row, and a padded grid in text whose right edges line up across
+  header and rows; a code block keeps `white-space:pre` and carries the
+  scroller; neither can break out of the HTML.
+- `test/backup-script.test.ts` — a stub `npm` that shouts if anything asks it
+  for the status report proves `alert.sh` no longer shells out, and that a
+  success pipes nothing while a failure pipes its journal.
+- `test/alert-script.test.ts` — the roster now comes from `CONTENT_DIR` in the
+  alert's own process, and is still withheld from a non-operator address.
+- `npm run status` prints exactly what it printed before the refactor.
+- `npm run unused` clean; `formatBytes` and `statusTotal` unexported rather
+  than left as API nothing imports.

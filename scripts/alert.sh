@@ -26,8 +26,9 @@
 #   2. Mail to the operator, via the app's own transport (`npm run alert`).
 #      Off-box, and the only one that reaches somebody who is not looking.
 #      What it carries depends on how the run ended: the journal tail when it
-#      failed, and `npm run status` — the state of the instance — when it did
-#      not. Nobody reads a restic log to learn that nothing is wrong (B464).
+#      failed, and the state of the instance when it did not. Nobody reads a
+#      restic log to learn that nothing is wrong (B464). The status half is
+#      collected by `npm run alert` itself, not piped from here — see B475.
 #
 # Deliberately not `set -e`: an alarm that gives up halfway is the failure this
 # script exists to prevent. Every step is attempted, whatever the last one did.
@@ -126,11 +127,12 @@ fi
 # summary line above is true either way and goes out regardless.
 DETAIL=""
 if [[ "$OUTCOME" == "success" ]]; then
-  if ! DETAIL="$(cd "$APP_DIR" && npm run --silent status 2>&1)"; then
-    DETAIL="The status report could not be built on this host:
-
-$DETAIL"
-  fi
+  # Nothing. `npm run alert` collects the status itself and lays it out as a
+  # table (B475); this script used to run `npm run status` and pipe its
+  # terminal output, which could only ever be re-printed as a block of
+  # monospace. It also counted every journal on a run whose report was about to
+  # be withheld (B468).
+  DETAIL=""
 elif [[ -n "$JOURNAL" ]]; then
   DETAIL="$JOURNAL"
 else

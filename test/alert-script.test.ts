@@ -212,19 +212,17 @@ describe("npm run alert", () => {
       // With an operator address, because since B468 a success sent to the
       // fallback carries no report at all — and the wording is what this test
       // is about.
-      const run = runAlert(
-        ["--outcome", "success"],
-        { BACKUP_ALERT_EMAIL: "oncall@example.test" },
-        "recorded success in /var/lib/fernscout/.backup-last-success\n",
-      );
+      const run = runAlert(["--outcome", "success"], { BACKUP_ALERT_EMAIL: "oncall@example.test" });
       expect(run.status, run.stdout + run.stderr).toBe(0);
 
       const files = mailFiles();
       const eml = readMail(path.join(contentDir, "keeper", "mail", files.at(-1)!));
       expect(eml).toContain("fernscout-backup.service succeeded");
-      expect(eml).toContain("finished cleanly");
+      expect(eml).toContain("The backup finished cleanly");
       expect(eml).toContain("OnSuccess=");
-      expect(eml).toContain("recorded success in");
+      // Since B475 the report is collected here rather than piped in, so the
+      // journal this fixture holds is what proves it ran.
+      expect(eml).toContain("keeper");
       expect(eml, "a success mail must not use the word for the other outcome").not.toContain(
         "fernscout-backup.service failed",
       );
@@ -269,11 +267,13 @@ describe("npm run alert", () => {
       // journal's* owner.email — a journal's own file, not the operator's
       // configuration — and on a shared instance those are different people.
       writeContent(true, "ops@example.test");
-      const run = runAlert(["--outcome", "success"], { BACKUP_ALERT_EMAIL: "" }, "quiet-journal  3 trips  40 days\n");
+      const run = runAlert(["--outcome", "success"], { BACKUP_ALERT_EMAIL: "" });
       expect(run.status, run.stdout + run.stderr).toBe(0);
 
       const eml = readMail(path.join(contentDir, "keeper", "mail", mailFiles().at(-1)!));
-      expect(eml, "the roster must not be in the message at all").not.toContain("quiet-journal");
+      // Not merely absent from the message — since B475 it is not collected at
+      // all, so no journal is walked to build a report that would be dropped.
+      expect(eml, "the roster must not be in the message at all").not.toContain("journals listed");
       expect(eml).toContain("The status report is not included");
       expect(eml).toContain("BACKUP_ALERT_EMAIL");
       // Still a success mail: the reader is told the backup worked, which is
@@ -288,15 +288,13 @@ describe("npm run alert", () => {
     () => {
       writeContent(true, "ops@example.test");
 
-      const withOperator = runAlert(
-        ["--outcome", "success"],
-        { BACKUP_ALERT_EMAIL: "oncall@example.test" },
-        "quiet-journal  3 trips  40 days\n",
-      );
+      const withOperator = runAlert(["--outcome", "success"], { BACKUP_ALERT_EMAIL: "oncall@example.test" });
       expect(withOperator.status, withOperator.stdout + withOperator.stderr).toBe(0);
       let eml = readMail(path.join(contentDir, "keeper", "mail", mailFiles().at(-1)!));
       expect(eml).toContain("oncall@example.test");
-      expect(eml).toContain("quiet-journal");
+      // The roster, collected in this process from CONTENT_DIR (B475).
+      expect(eml).toContain("keeper");
+      expect(eml).toContain("journals listed");
       expect(eml).not.toContain("The status report is not included");
 
       // And the half that must not have been broken in the process: a failure

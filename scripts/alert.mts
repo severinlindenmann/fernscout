@@ -33,8 +33,15 @@
  */
 import { isEnabled } from "../lib/capabilities";
 import { sendTransactional } from "../lib/mail";
+import { renderMail, type MailBlock } from "../lib/mail/template";
 import { loadServerConfig } from "../lib/config";
 import { getDefaultUsername, getUser } from "../lib/users";
+import {
+  collectStatus,
+  statusColumns,
+  statusNotes,
+  statusSummary,
+} from "../lib/statusReport";
 
 const argv = process.argv.slice(2);
 const valueOf = (flag: string): string | undefined => {
@@ -62,12 +69,6 @@ function readStdin(): Promise<string> {
   });
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
 
 function recipient(): { to: string; username?: string; isOperator: boolean } | null {
   const configured = process.env.BACKUP_ALERT_EMAIL?.trim();
@@ -101,13 +102,20 @@ const to = recipient();
  * unreachable backup has to reach *somebody*, and the journal tail it carries
  * is the same one it has always carried.
  */
-const withheld =
-  succeeded && to !== null && !to.isOperator
-    ? "The status report is not included: it names every journal on this instance, and this\n" +
-      "mail is going to the default journal's owner rather than to an operator address.\n" +
-      "Set BACKUP_ALERT_EMAIL in the environment to receive it."
-    : null;
-const detail = withheld ?? piped;
+const mayHaveReport = succeeded && to !== null && to.isOperator;
+
+/**
+ * Collected here rather than piped in as prose (B475). `scripts/alert.sh` used
+ * to run `npm run status` and hand over its terminal output, which this file
+ * could only wrap in a `<pre>` — a table already padded to a monospace grid is
+ * not something a mail client can lay out. With the data in hand the HTML part
+ * gets a real `<table>` and the text part gets the same grid as before.
+ *
+ * And it is only collected when it will be sent: withholding used to happen
+ * after the walk, so a report going nowhere still counted every journal and
+ * walked every byte.
+ */
+const report = mayHaveReport ? await collectStatus() : null;
 const site = (() => {
   try {
     return loadServerConfig().site;
@@ -117,33 +125,106 @@ const site = (() => {
 })();
 
 const subject = `[${site.name}] ${unit} ${succeeded ? "succeeded" : "failed"}`;
-// Blank lines are content here, so nothing is filtered out of the array — only
-// the health URL, which is absent when the config could not be read at all.
-const lines = [
-  `${unit} ${succeeded ? "finished cleanly" : "failed"} on ${process.env.HOSTNAME ?? "this host"} at ${new Date().toISOString()}.`,
-  "",
-  detail || "(no detail was supplied)",
-  "",
-  "What to look at:",
-];
+// The heading inside the letter is not the subject line. The subject carries
+// the instance name in brackets so it sorts in an inbox; repeating that as an
+// `<h1>` is how a mail ends up shouting its own filing label at its reader.
+const title = succeeded ? "The backup finished cleanly" : "The backup failed";
+// The heading says the outcome; this says which unit, where and when. Saying
+// "finished cleanly" twice, once under the other, is what it did first.
+//
+// Minute precision, and a space instead of the `T`: an ISO instant is 24
+// characters of unbroken punctuation that a 560px column wraps in the middle
+// of, and nobody reading a backup mail needs the milliseconds.
+const when = `${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC`;
+const opening = `${unit} on ${process.env.HOSTNAME ?? "this host"}, ${when}.`;
+
+const blocks: MailBlock[] = [{ kind: "paragraph", text: opening }];
+
+if (report) {
+  const summary = statusSummary(report);
+  const columns = statusColumns(report);
+  blocks.push(
+    { kind: "heading", text: summary.headline },
+    { kind: "meta", text: summary.lines.join(" · ") },
+    {
+      kind: "table",
+      head: ["journal", ...columns.map((c) => c.head)],
+      rows: report.journals.map((row) => ({
+        cells: [row.username, ...columns.map((c) => c.of(row))],
+        // The two facts only some journals have, and neither of which earns a
+        // column: where they are, and whether anybody is told they exist.
+        note: [row.current ? `on the road: ${row.current}` : "", row.listed ? "" : "unlisted"]
+          .filter(Boolean)
+          .join(" · ") || undefined,
+      })),
+    },
+  );
+  for (const note of statusNotes(report)) blocks.push({ kind: "meta", text: note });
+  if (report.problems.length) {
+    const n = report.problems.length;
+    blocks.push({ kind: "paragraph", text: `${n} part${n === 1 ? "" : "s"} of this report could not be read:` });
+    blocks.push({ kind: "code", text: report.problems.join("\n") });
+  }
+} else if (succeeded && to !== null && !to.isOperator) {
+  // B468: the roster names every journal on the instance, and this address
+  // came out of a journal's config rather than the operator's. Withheld rather
+  // than redacted — a summary of a report nobody may read is still a report.
+  blocks.push({
+    kind: "paragraph",
+    text:
+      "The status report is not included: it names every journal on this instance, and this mail is " +
+      "going to the default journal's owner rather than to an operator address. Set BACKUP_ALERT_EMAIL " +
+      "in the environment to receive it.",
+  });
+} else if (piped) {
+  // A failure: the journal tail, monospaced, as it has always been.
+  blocks.push({ kind: "code", text: piped });
+}
+
 // A failure's next question is "why", and the two commands that answer it. A
 // success has no next question — pointing a reader at `journalctl` to confirm
 // that nothing is wrong is exactly the log-reading this mail exists to replace
 // (B464). It keeps the health URL, which is the one thing worth a click.
 if (!succeeded) {
-  lines.push(`  systemctl status ${unit}       how the last run ended`, `  journalctl -u ${unit} -n 50    why`);
+  blocks.push({ kind: "heading", text: "What to look at" });
+  blocks.push({
+    kind: "code",
+    text: [`systemctl status ${unit}     # how the last run ended`, `journalctl -u ${unit} -n 50  # why`].join("\n"),
+  });
 }
-if (site.url) lines.push(`  ${site.url}/api/health    the .backup block, from anywhere`);
-if (succeeded && !site.url) lines.push("  nothing — this is the whole report");
-lines.push("", `Sent by scripts/alert.sh, from the unit's ${succeeded ? "OnSuccess=" : "OnFailure="}.`);
-const text = lines.join("\n");
+// A link rather than a line of monospace: it is a URL, and the one thing in
+// this letter worth a click.
+if (site.url) {
+  blocks.push({
+    kind: "item",
+    title: `${site.url}/api/health`,
+    meta: "the .backup block, from anywhere",
+    href: `${site.url}/api/health`,
+  });
+}
 
-const html = `<pre style="font:14px/1.5 ui-monospace,monospace;white-space:pre-wrap">${escapeHtml(text)}</pre>`;
+const footer = `Sent by scripts/alert.sh, from the unit's ${succeeded ? "OnSuccess=" : "OnFailure="}.`;
+
+/** The plain-text part, which is also what `--dry-run` prints and what lands in
+ * a terminal mail client. `renderMail` builds it from the same blocks, so there
+ * is no second composition to keep in step. */
+function textOf(mail: { text: string }): string {
+  return mail.text;
+}
 
 if (dryRun) {
   const target = to;
   console.log(`[alert] --dry-run; would send to ${target?.to ?? "(nobody — no BACKUP_ALERT_EMAIL and no owner email)"}`);
-  console.log(text);
+  console.log(
+    textOf(
+      renderMail(target?.to ?? "nobody@invalid", subject, {
+        preheader: opening,
+        title,
+        blocks,
+        footer,
+      }),
+    ),
+  );
   process.exit(target ? 0 : 1);
 }
 
@@ -173,7 +254,12 @@ try {
   // readers has said nothing about whether the operator should hear that the
   // backups stopped — B64 is what that silence costs. See B60.
   const result = await sendTransactional(
-    { to: target.to, subject, text, html, username: target.username },
+    renderMail(
+      target.to,
+      subject,
+      { preheader: opening, title, blocks, footer },
+      target.username,
+    ),
     "an operator alert about the machine, not a letter from the journal",
   );
   if (!result) {

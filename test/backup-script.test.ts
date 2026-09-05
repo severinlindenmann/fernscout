@@ -895,63 +895,51 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
   );
 
   test(
-    "the success mail carries the status report, and the failure mail the journal",
+    "the success mail is handed no journal tail, and the failure mail is",
     () => {
-      // B464: the two bodies are not the same thing. A failure's reader is
-      // asking why, and the journal tail answers it; a success's reader is
-      // asking what is on the instance, and a restic log answers nothing.
-      //
-      // Asserted through alert.sh with a stubbed `systemctl`, because the
-      // branch that picks between them is in the shell and not in the mailer.
+      // B464 split the two bodies; B475 moved the status half out of this
+      // script entirely — `npm run alert` collects it in its own process, so
+      // what is left here is which detail gets piped. A failure's reader is
+      // asking why, and the journal answers it.
       const proofBin = path.join(scratch, "systemctl-body-check");
       fs.mkdirSync(proofBin, { recursive: true });
-      fs.writeFileSync(
-        path.join(proofBin, "systemctl"),
-        '#!/bin/sh\ncase "$*" in *Result*) echo success ;; *ExecMainStatus*) echo 0 ;; *) ;; esac\n',
-        { mode: 0o755 },
-      );
-      // A stub `npm` that records the body it was piped and prints what it was
-      // asked to run — the real one would need a content root and a mail
-      // transport, and neither is what this test is about.
       const record = path.join(scratch, "mail-body.txt");
+      // A stub `npm` that records what it was piped, and shouts if anything
+      // asks it for the status report — that subprocess is the thing B475
+      // removed, and its return would be silent otherwise.
       fs.writeFileSync(
         path.join(proofBin, "npm"),
-        `#!/bin/sh\ncase "$*" in *status*) echo "STATUS-REPORT-STANDIN" ;; *) cat > ${JSON.stringify(record)} ;; esac\n`,
+        `#!/bin/sh\ncase "$*" in *status*) echo "ALERT_SH_RAN_STATUS" >&2; exit 1 ;; *) cat > ${JSON.stringify(record)} ;; esac\n`,
         { mode: 0o755 },
       );
+      const systemctlSaying = (result: string, status: string) =>
+        fs.writeFileSync(
+          path.join(proofBin, "systemctl"),
+          `#!/bin/sh\ncase "$*" in *Result*) echo ${result} ;; *ExecMainStatus*) echo ${status} ;; *) ;; esac\n`,
+          { mode: 0o755 },
+        );
       const env = { ...process.env, PATH: `${proofBin}:${process.env.PATH}`, DATA_DIR: dataDir };
+      const run = () =>
+        spawnSync("bash", [path.join(process.cwd(), "scripts", "alert.sh"), "fernscout-backup.service"], {
+          encoding: "utf8",
+          env,
+        });
 
+      systemctlSaying("success", "0");
       fs.rmSync(record, { force: true });
-      spawnSync("bash", [path.join(process.cwd(), "scripts", "alert.sh"), "fernscout-backup.service"], {
-        encoding: "utf8",
-        env,
-      });
-      const success = fs.readFileSync(record, "utf8");
-      expect(success).toContain("STATUS-REPORT-STANDIN");
-      // And the summary is *not* repeated above it: scripts/alert.mts opens
-      // every mail with that sentence already, and on a success this line adds
-      // nothing to it (B472).
-      expect(success).not.toContain("finished cleanly");
+      const success = run();
+      expect(success.stdout + success.stderr, "alert.sh must not shell out for the report").not.toContain(
+        "ALERT_SH_RAN_STATUS",
+      );
+      expect(fs.readFileSync(record, "utf8").trim(), "nothing to pipe on a success").toBe("");
 
-      // The same handler, the same stub, the one difference being what systemd
+      // The same handler, the same stubs, the one difference being what systemd
       // says about the run.
-      fs.writeFileSync(
-        path.join(proofBin, "systemctl"),
-        '#!/bin/sh\ncase "$*" in *Result*) echo exit-code ;; *ExecMainStatus*) echo 1 ;; *) ;; esac\n',
-        { mode: 0o755 },
-      );
+      systemctlSaying("exit-code", "1");
       fs.rmSync(record, { force: true });
-      spawnSync("bash", [path.join(process.cwd(), "scripts", "alert.sh"), "fernscout-backup.service"], {
-        encoding: "utf8",
-        env,
-      });
+      run();
       const failure = fs.readFileSync(record, "utf8");
-      // Kept here, because on a failure it carries the result and the exit
-      // status, which the mailer's own opening line does not have.
       expect(failure).toContain("fernscout-backup.service failed (result=exit-code) (exit 1)");
-      expect(failure, "a failure must not be handed a status report instead of the log").not.toContain(
-        "STATUS-REPORT-STANDIN",
-      );
     },
     120_000,
   );

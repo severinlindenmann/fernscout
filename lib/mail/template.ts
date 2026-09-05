@@ -23,7 +23,26 @@ export type MailBlock =
   | { kind: "image"; cid: string; alt: string }
   /** A line of small type — place, local date, cost — under the title.
    * B345's day-published letter is the first caller. */
-  | { kind: "meta"; text: string };
+  | { kind: "meta"; text: string }
+  /**
+   * Pre-formatted text, monospaced and scrollable — a journal tail, a stack
+   * trace, a command's output. B475's operator alert is the first caller, and
+   * it replaces the raw `<pre>` that letter used to build for itself.
+   *
+   * The plain-text rendering is the text unchanged: it was already laid out
+   * for a fixed-width reader, which is the whole reason it is this kind.
+   */
+  | { kind: "code"; text: string }
+  /**
+   * A table. `rows` are cells in the order `head` names them, and a row may be
+   * followed by a `note` — a line of small type spanning the width, for the
+   * facts only some rows have and none deserves a column of its own.
+   *
+   * In plain text it is padded to a fixed-width grid; in HTML it is a real
+   * `<table>`, because padding a proportional font to a monospace grid is what
+   * B475 was fixing.
+   */
+  | { kind: "table"; head: string[]; rows: { cells: string[]; note?: string }[] };
 
 export type MailContent = {
   /** Shown in the inbox preview line, before anyone opens it. */
@@ -58,6 +77,11 @@ export type MailContent = {
 };
 
 const INK = "#1e293b";
+/** The tint behind a code block, and the rule under a table row. Two more
+ * greys from the same ramp the three below are on — light enough that neither
+ * competes with the paper. */
+const WASH = "#f6f2e8";
+const RULE = "#e2e8f0";
 const MUTED = "#475569";
 const ACCENT = "#0369a1";
 const PAPER = "#fffaf0";
@@ -68,6 +92,28 @@ function escapeHtml(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/**
+ * A scroller that actually scrolls, inside a table cell.
+ *
+ * `overflow-x:auto` alone does not contain anything here: a `<td>` grows to
+ * its content's min-content width, and fixed-width text does not wrap, so a
+ * long log line widens the whole letter and the *body* scrolls sideways
+ * instead of the block. A single-cell table with `table-layout:fixed` gives
+ * the div a definite width to be scrolled within.
+ *
+ * Contained here rather than by putting `table-layout:fixed` on the letter's
+ * own column: five other letters render through that table and none of them
+ * needed changing.
+ */
+function scroller(inner: string, marginBottom: string): string {
+  return (
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" ` +
+    `style="table-layout:fixed;margin:0 0 ${marginBottom}"><tr><td style="overflow-x:auto">` +
+    inner +
+    `</td></tr></table>`
+  );
 }
 
 function blockHtml(block: MailBlock): string {
@@ -97,6 +143,52 @@ function blockHtml(block: MailBlock): string {
       );
     case "meta":
       return `<p style="margin:-8px 0 20px;font-size:14px;line-height:1.5;color:${MUTED}">${escapeHtml(block.text)}</p>`;
+    case "code":
+      // `overflow-x:auto` because the content is fixed-width by definition and
+      // a phone is not: the alternative is a body that scrolls sideways.
+      return scroller(
+        `<div style="padding:14px 16px;background:${WASH};border-radius:10px">` +
+          `<pre style="margin:0;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;` +
+          `color:${INK};white-space:pre">${escapeHtml(block.text)}</pre></div>`,
+        "16px",
+      );
+    case "table":
+      // Wrapped in its own scroller, for the reason the code block above is:
+      // the cells do not wrap (a number split over two lines is not a number),
+      // so a table with enough columns is wider than a phone. Without this the
+      // whole letter scrolls sideways instead of the table.
+      return scroller(
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" ` +
+        `style="border-collapse:collapse;font-size:15px;color:${INK}">` +
+        `<tr>${block.head
+          .map(
+            (head, i) =>
+              `<th align="${i === 0 ? "left" : "right"}" style="padding:0 0 6px;border-bottom:1px solid ${RULE};` +
+              `font-size:13px;font-weight:600;color:${MUTED};text-transform:uppercase;letter-spacing:.04em">` +
+              `${escapeHtml(head)}</th>`,
+          )
+          .join("")}</tr>` +
+        block.rows
+          .map(
+            (row) =>
+              `<tr>${row.cells
+                .map(
+                  (cell, i) =>
+                    `<td align="${i === 0 ? "left" : "right"}" style="padding:8px 0 ${row.note ? "2px" : "8px"};` +
+                    `border-bottom:${row.note ? "none" : `1px solid ${RULE}`};` +
+                    `${i === 0 ? "font-weight:600;" : "font-variant-numeric:tabular-nums;"}white-space:nowrap">` +
+                    `${escapeHtml(cell)}</td>`,
+                )
+                .join("")}</tr>` +
+              (row.note
+                ? `<tr><td colspan="${row.cells.length}" style="padding:0 0 8px;border-bottom:1px solid ${RULE};` +
+                  `font-size:13px;color:${MUTED}">${escapeHtml(row.note)}</td></tr>`
+                : ""),
+          )
+          .join("") +
+          `</table>`,
+        "20px",
+      );
   }
 }
 
@@ -115,6 +207,25 @@ function blockText(block: MailBlock): string {
       return `[Photo: ${block.alt}]`;
     case "meta":
       return block.text;
+    case "code":
+      return block.text;
+    case "table": {
+      // Padded to the widest cell in each column, header included. The same
+      // grid `npm run status` prints, arrived at independently — this renderer
+      // knows nothing about what is in the table.
+      const widths = block.head.map((head, i) =>
+        Math.max(head.length, ...block.rows.map((row) => (row.cells[i] ?? "").length)),
+      );
+      const line = (cells: string[]) =>
+        cells.map((cell, i) => (i === 0 ? cell.padEnd(widths[i]) : cell.padStart(widths[i]))).join("  ");
+      return [
+        line(block.head),
+        ...block.rows.flatMap((row) => [
+          line(row.cells),
+          ...(row.note ? [`${" ".repeat(widths[0])}  ${row.note}`] : []),
+        ]),
+      ].join("\n");
+    }
   }
 }
 
