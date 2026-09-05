@@ -129,14 +129,39 @@ The alternative — the drawing living inside the component — is what makes th
 preview impossible without booting Next, and the preview is not a nice-to-have
 here. A person cannot confirm a description they cannot see.
 
-### 6. A party has a width budget, not a gap
+### 6. A composition, not a row
 
-Five figures at 76px is 380px and a phone hero is narrower than that. The
+Five figures at 76px is 380px and a phone hero is narrower than that, so the
 layout takes a container width and solves for scale: figures shrink together
-to a floor of about 60% of the nominal size, and past that they overlap by a
-fifth of a figure width, drawn in list order so later figures stand slightly
-in front. The per-figure gait delay stays — B11 is right that a group bobbing
-in lockstep looks like a bug.
+to a floor of about 60% of the nominal size, and the gap closes as the party
+grows — generous for two, nothing for four, a real overlap at six and up.
+
+But scale alone gives a police line-up, and a party of five is not standing
+for a photograph. **The party arranges in two ranks.**
+
+- **Children and teenagers take the front rank.** They are shorter by
+  `AGE_SCALE`, so behind an adult they would simply be gone. This is the rule
+  that matters and it fires at any size: two parents and two children is four
+  figures with the children in front, not a row of four.
+- **With no children and four or more figures, the ranks alternate** — a group
+  of five friends stands some in front, some behind. One to three adults stay
+  a single row: a couple side by side should not be staggered into a tableau.
+- **The front rank sits half a figure across**, in the gaps of the back rank,
+  so nobody is squarely hidden by the person in front.
+- **Depth is three small things together**: the front rank is drawn last so it
+  overlaps, offset a few pixels lower on the ground (nearer the viewer means
+  lower on the horizon), and scaled about 6% up against the back rank's 6%
+  down. Any one of the three alone reads as a mistake; together they read as
+  distance.
+
+**The arrangement is derived, never random.** Rank and offset come from the
+figure's index in the list, so a trip renders identically on every load and in
+the photobook. A layout that reshuffles on refresh is a bug that looks like a
+feature for about a day.
+
+The per-figure gait delay stays — B11 is right that a group bobbing in
+lockstep looks like a bug — and it is derived from the same index, so the
+front rank does not accidentally bob in unison.
 
 ### 7. The agent asks, and records the answer
 
