@@ -17,10 +17,10 @@ import type { MediaTile } from "@/lib/types";
  * that page, and it is the only thing anywhere that spends credits at a
  * printer — see `app/[user]/postcards/[id]/send/route.ts`.
  *
- * ## It calls the endpoints that already existed
+ * ## It calls the endpoints the owner already had
  *
- * No route was added for this. `GET …/postcards/recipients` and
- * `POST …/postcards` both authenticate through `isOwner(user, request)`, which
+ * `GET …/postcards/recipients`, `GET …/postcards/texts` and
+ * `POST …/postcards` all authenticate through `isOwner(user, request)`, which
  * accepts the owner's session cookie as readily as an agent's bearer token —
  * so the browser is simply another owner, and every guard those routes carry
  * applies here unchanged. That is also why this component can be wrong about
@@ -32,9 +32,8 @@ import type { MediaTile } from "@/lib/types";
  * The photograph is chosen and the people are a list of checkboxes; the words
  * are the only real work, and starting from a blank box at the moment somebody
  * wanted this to be easy is how a feature goes unused. So it opens with the
- * day's own beginning, fetched from `/{user}/day/<slug>.md` — the markdown twin
- * that already exists and needs no new endpoint — trimmed to what fits on a
- * card.
+ * day's own beginning, trimmed to what fits on a card by `openingOf` on the
+ * server side of `…/postcards/texts`.
  *
  * It is a **prefill and not a default**: the text is editable, and what gets
  * printed is whatever is in the box when the button is pressed. A journal entry
