@@ -4,11 +4,15 @@ title: The travellers are always the same two people
 type: FEATURE
 priority: low
 complexity: medium
-area: animation, brand, mcp
+area: animation, brand, agent-interface
 found: "2026-09-01"
 ---
 
 # B11 — The travellers are always the same two people
+
+**The design is `docs/plans/2026-09-05-traveller-characters.md`.** It carries
+the attribute schema, the preset question, the layer order and the agent
+interview, with the reasoning. This file is the ticket.
 
 ## Why
 
@@ -44,32 +48,72 @@ up to ten, and `lib/tripPeople.ts` resolves them owner-first.
 
 1. **A party, not a couple.** `Travelers` takes a list of figures and draws
    them — one, two, a group, a family with children at a smaller scale. Keep
-   the gait offset per figure so a group does not bob in lockstep.
-2. **A figure is data.** Skin, hair colour, hair length, build, height,
-   clothing — a small named record, with a set of ready-made presets so an
-   author picks rather than mixes hex codes. Presets must span more than one
-   part of the world; this is the whole point of the task.
-3. **Where it is configured.** A `travellers:` block in the journal's
-   `config.json`, overridable per trip in `trip.md` — a trip is who was on it,
-   and that changes between trips in one journal. Absent means a sensible
-   neutral default, not the current two.
-4. **Reachable by agent.** The trip write path (`lib/tripWrite.ts`, the REST
-   trip endpoints and the `create_trip` MCP tool at `lib/mcp/tools.ts:708`)
-   should accept the block, and a read tool should be able to list the
-   available presets so an agent can offer them rather than invent hex codes.
-   Generating a figure from a free-text description is out of scope — an
-   agent choosing somebody's appearance from a prompt is exactly the kind of
-   invention `AGENTS.md` forbids.
+   the gait offset per figure so a group does not bob in lockstep. Layout
+   solves for a container width rather than a fixed gap; see the plan.
+2. **A figure is data.** Skin, hair colour, hair style, eyes, build, age,
+   shirt, pants, pack, accessories — a named record with a vocabulary of
+   tokens, hex allowed as the escape hatch, and ready-made **starting points**
+   an author picks rather than mixing hex codes. They span more than one part
+   of the world; this is the whole point of the task.
+3. **A starting point resolves when it is chosen.** It expands into plain
+   attributes and the preset name is never written to disk. No file under
+   `content/` should contain the word `european`: that would be a sentence
+   about somebody's ethnicity in a file the owner did not think they were
+   writing, and it would be false anyway once they corrected it.
+4. **Its own block, not inside `people:`.** `parsePeople` (`lib/trips.ts:139`)
+   fails closed — one malformed entry drops the whole list, and that list is
+   who may write to the trip. A cosmetic field must not be able to revoke
+   write access, so `travellers:` is separate, parses independently, and fails
+   open to the neutral default. An optional `for:` ties a figure to an email
+   in `people:`.
+5. **Where it is configured.** `travellers:` in the journal's `config.json`,
+   overridden per trip in `trip.md` — a trip is who was on it, and that
+   changes between trips in one journal. Absent means one neutral figure, not
+   the current two.
+6. **One renderer, three consumers.** `lib/travellers/render.ts` is pure —
+   figure in, SVG out, no React. The component wraps it in `motion`;
+   `GET /api/v1/<user>/travellers/preview` returns it as `image/svg+xml`; a
+   node script renders a sheet for an agent with no server running.
+7. **Reachable by agent.** `GET …/travellers/presets` lists the vocabulary and
+   the starting points so an agent offers what exists instead of inventing hex
+   codes, and `lib/tripWrite.ts` plus the REST trip endpoints round-trip the
+   block. Not owner-only: a trip-scoped token belongs to somebody on the trip,
+   and how they are drawn on it is theirs.
+8. **The agent asks.** A `describe-a-traveller` skill and a section in
+   `/agent.md`: ask *how would you like to be drawn*, render it, show them,
+   read back what was set **and what was left at the default**, write on yes.
 
-Not doing: a full character editor in the browser. There is no editing
-interface and there will not be one (decision 24).
+**Reversing an earlier line in this ticket.** It used to say free-text →
+figure was out of scope as agent invention. That is too broad: the rule in
+`AGENTS.md` is that *what happened* is never an agent's to decide, and a
+person describing their own hair is not the agent inventing it. What the skill
+must forbid instead, in as many words — no inference from a name, from a
+photograph on the trip, or from a country, and an unanswered attribute gets
+the neutral default rather than a plausible guess.
+
+**Open question for the author, argued in the plan:** there is no `gender`
+field in the proposed schema. Everything it would control is already a
+directly chosen attribute (hair style and length, clothing, `build`), and a
+two-way switch would make the software assert something about a person and
+leave a non-binary traveller nowhere. Gender lives in the *picking* instead —
+starting points are labelled by presentation. If you want the field anyway it
+is one line; say so.
+
+Not doing: a character editor in the browser (decision 24). The preview is
+read-only and has no controls. Not doing: per-entry figures, or faces derived
+from photographs.
 
 ## Acceptance
 
 - A journal configured with one traveller shows one figure; five shows five,
   laid out without overflowing the hero on a phone.
 - No skin or hair colour is a module constant in `Travelers.tsx` any more.
-- The preset list is readable through MCP, and `create_trip` round-trips a
-  `travellers:` block into `trip.md`.
+- A malformed `travellers:` entry draws the neutral default and does **not**
+  change what `peopleOf()` returns — a test asserts write access survives a
+  broken hair colour.
+- No file under `content/` contains a starting-point name.
+- `GET /api/v1/<user>/travellers/presets` lists the vocabulary, and
+  `GET …/travellers/preview` returns an SVG for a figure given in the query.
+- A trip create/update round-trips a `travellers:` block into `trip.md`.
 - A journal with no `travellers:` configured still renders, unchanged in
   layout, and `npm run build` prerenders the demo journal as before.
