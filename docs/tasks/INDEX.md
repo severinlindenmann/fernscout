@@ -192,9 +192,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B427](in-development/B427-the-root-page-speaks-only-to.md) | The root page speaks only to somebody starting a journal, so an invited reader has to find a small link in the corner | FEATURE | high | low | `3744307d` |
 
 ## testing (144)
 
