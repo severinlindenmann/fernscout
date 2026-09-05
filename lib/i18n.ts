@@ -727,6 +727,8 @@ export type TranslationKey =
   | "photobook.day.layout.text"
   | "photobook.day.layoutLegend"
   | "photobook.day.reset"
+  | "photobook.day.applyToAll"
+  | "photobook.day.applyToAllConfirm"
   | "photobook.resetAll"
   | "photobook.resetAllConfirm"
   | "photobook.warning.many"

@@ -644,6 +644,8 @@
   "photobook.day.layout.text": "Words only",
   "photobook.day.layoutLegend": "How this day is laid out",
   "photobook.day.reset": "Let the book decide again",
+  "photobook.day.applyToAll": "Apply to every day",
+  "photobook.day.applyToAllConfirm": "{count} other day(s) were arranged by hand and will be set to this layout too. Continue?",
   "photobook.resetAll": "Let the book decide, for every day",
   "photobook.resetAllConfirm": "This clears {count} day(s) you've arranged and cannot be undone.",
   "photobook.warning.many": "{count} × {code}",

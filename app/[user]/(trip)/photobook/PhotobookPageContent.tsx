@@ -279,6 +279,38 @@ export default function PhotobookPageContent({
     setOptions((o) => ({ ...o, days: {} }));
   };
 
+  /**
+   * One layout, everywhere — B516.
+   *
+   * The ticket offers two shapes: this simple action, or a book-level default
+   * a day's `DayPlan` inherits until it says otherwise. The inheriting
+   * default is the larger change — it needs a third layout state ("this day
+   * says pairs" vs. "this day inherits pairs") read by the planner, by the
+   * summary row above, and by `resetBook`, and nobody has asked for that yet.
+   * This writes the chosen layout into every day's own entry once, which
+   * everything downstream already knows how to read — a day arranged this
+   * way is indistinguishable from one arranged by hand, one at a time.
+   *
+   * Confirms first, and only when it would actually overwrite a choice: a day
+   * already sitting at `auto` costs nothing to skip past silently, but a day
+   * somebody laid out by hand does not lose that without being told how many
+   * are about to change — the "obvious before, not after" the ticket asks
+   * for.
+   */
+  const applyLayoutToAll = (layout: DayLayout) => {
+    const overridden = days.filter(
+      (d) => options.days[d.date]?.layout !== undefined && options.days[d.date]?.layout !== layout,
+    ).length;
+    if (overridden > 0 && !window.confirm(t("photobook.day.applyToAllConfirm", { count: String(overridden) }))) {
+      return;
+    }
+    setOptions((o) => {
+      const next = { ...o.days };
+      for (const d of days) next[d.date] = { ...next[d.date], layout };
+      return { ...o, days: next };
+    });
+  };
+
   // Debounced: every keystroke and every tile click changes `options`, and
   // each one plans and lays out the whole book server-side. 400 ms is long
   // enough that a run of clicks collapses into one request and short enough
@@ -533,20 +565,29 @@ export default function PhotobookPageContent({
                                   </button>
                                 ))}
                               </div>
-                              {/* Only for a day the owner has actually
-                                  touched — plan is undefined for every day
-                                  still left to the planner, and a button
-                                  that undoes nothing has no reason to be
-                                  there. */}
-                              {plan && (
+                              <div className="mt-2 flex flex-wrap items-center gap-3">
                                 <button
                                   type="button"
-                                  onClick={() => resetDay(day.date)}
-                                  className="mt-2 text-xs font-semibold text-navy-600 underline"
+                                  onClick={() => applyLayoutToAll(layout)}
+                                  className="text-xs font-semibold text-navy-600 underline"
                                 >
-                                  {t("photobook.day.reset")}
+                                  {t("photobook.day.applyToAll")}
                                 </button>
-                              )}
+                                {/* Only for a day the owner has actually
+                                    touched — plan is undefined for every day
+                                    still left to the planner, and a button
+                                    that undoes nothing has no reason to be
+                                    there. */}
+                                {plan && (
+                                  <button
+                                    type="button"
+                                    onClick={() => resetDay(day.date)}
+                                    className="text-xs font-semibold text-navy-600 underline"
+                                  >
+                                    {t("photobook.day.reset")}
+                                  </button>
+                                )}
+                              </div>
                               {dayPhotos.length > 0 && (
                                 <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
                                   {ordered(dayPhotos, plan).map((tile, i) => {

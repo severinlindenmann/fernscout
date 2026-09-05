@@ -644,6 +644,8 @@
   "photobook.day.layout.text": "Csak szöveg",
   "photobook.day.layoutLegend": "Hogyan legyen elrendezve ez a nap",
   "photobook.day.reset": "Döntse el újra a könyv",
+  "photobook.day.applyToAll": "Alkalmazás minden napra",
+  "photobook.day.applyToAllConfirm": "{count} másik napot kézzel rendeztél el, ezek is erre az elrendezésre állnak. Folytatod?",
   "photobook.resetAll": "Döntsön a könyv minden napról újra",
   "photobook.resetAllConfirm": "Ez törli a {count} általad elrendezett napot, és nem vonható vissza.",
   "photobook.warning.many": "{count} × {code}",

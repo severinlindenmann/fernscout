@@ -644,6 +644,8 @@
   "photobook.day.layout.text": "Nur Text",
   "photobook.day.layoutLegend": "Wie dieser Tag gestaltet wird",
   "photobook.day.reset": "Das Buch wieder entscheiden lassen",
+  "photobook.day.applyToAll": "Auf jeden Tag anwenden",
+  "photobook.day.applyToAllConfirm": "{count} andere Tag(e) wurden von Hand angeordnet und werden ebenfalls auf dieses Layout gesetzt. Fortfahren?",
   "photobook.resetAll": "Das Buch für jeden Tag wieder entscheiden lassen",
   "photobook.resetAllConfirm": "Das löscht {count} von dir angeordnete(n) Tag(e) unwiderruflich.",
   "photobook.warning.many": "{count} × {code}",
