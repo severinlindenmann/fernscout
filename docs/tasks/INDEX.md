@@ -200,13 +200,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B11](in-development/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium | `c3c8ffc8` |
+_Nothing here._
 
-## testing (196)
+## testing (197)
 
 ### security (2)
 
@@ -349,7 +347,7 @@ _Nothing here._
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 | [B425](testing/big-feature/B425-until-a-psp-exists-a-payment.md) | Until a PSP exists, a payment is a request the instance admin approves by an emailed link, which grants the credits | FEATURE | medium | high | — |
 
-### small-feature (31)
+### small-feature (32)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -380,6 +378,7 @@ _Nothing here._
 | [B494](testing/small-feature/B494-the-admin-s-journal-list-is.md) | The admin's journal list is a page of identical cards | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
+| [B11](testing/small-feature/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium | — |
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
 | [B305](testing/small-feature/B305-a-reader-shown-a-day-in.md) | A reader shown a day in a language they did not ask for is told nothing about it | FEATURE | low | low | — |
 | [B368](testing/small-feature/B368-there-is-no-way-to-ask.md) | There is no way to ask for more credits, and the payment provider does not exist yet | FEATURE | low | medium | — |
