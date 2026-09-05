@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import EntryContent from "@/components/EntryContent";
+import GuideNav from "@/components/GuideNav";
 import { readRepoFile, section } from "@/lib/docs";
+import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -33,7 +35,8 @@ const PILL =
  * (`docs/screenshots/*.jpg`), served by `app/docs/screenshots/[file]/route.ts`
  * rather than copied into `public/` — see that route for why.
  */
-export default function DocsPage() {
+export default async function DocsPage() {
+  const locale = await requestLocale();
   const readme = readRepoFile("README.md");
   const contributing = readRepoFile("CONTRIBUTING.md");
   const site = serverSite();
@@ -84,6 +87,30 @@ export default function DocsPage() {
           API <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden />
         </Link>
       </nav>
+
+      {/*
+        First, and above the three sections below — B445.
+
+        Everything else on this page is written for somebody deciding whether
+        to hand an agent their photographs, host this themselves, or send a
+        patch. The guides are for the people who already have a journal in
+        front of them and want to know what they can do with it, which is a far
+        larger group and the one that arrives here confused rather than
+        curious. They are also the only part of `/docs` that is translated,
+        for the same reason.
+      */}
+      <section
+        aria-labelledby="guides"
+        className="mt-10 rounded-2xl border border-navy-200 bg-cream-100 p-5 sm:p-6"
+      >
+        <h2 id="guides" className="font-display text-2xl font-semibold text-navy-900">
+          {translateIn(locale, "guides.title")}
+        </h2>
+        <p className="mt-2 max-w-prose text-navy-700">{translateIn(locale, "guides.lede")}</p>
+        <div className="mt-4">
+          <GuideNav locale={locale} />
+        </div>
+      </section>
 
       {/* How to Use — the part every reader of this instance actually came
           for: what to hand an agent, and what it becomes. */}

@@ -781,6 +781,26 @@ export default function MePageContent({
         )}
 
         {/*
+          The guide that fits who this reader actually is — B445.
+
+          `/<user>/me` is where somebody lands when they are not sure what they
+          have here, so the link is aimed rather than generic: an owner is sent
+          the owner's guide, somebody who was on a trip the buddy one, and
+          everybody else the reader's. A menu of three would make a confused
+          person choose before they know which one they are.
+        */}
+        <p className="mt-8">
+          <Link
+            href={`/docs/guide/${viewer.owner ? "creator" : writableTrips.length > 0 ? "buddy" : "guest"}`}
+            className="text-base text-navy-700 underline decoration-navy-300 underline-offset-4
+                       transition-colors hover:decoration-navy-700
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            {t("guides.readMore")}
+          </Link>
+        </p>
+
+        {/*
           Where notifications are switched on, for a reader who is not standing
           on a trip's landing step — B439.
 

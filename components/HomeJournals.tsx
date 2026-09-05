@@ -136,6 +136,21 @@ export function YourJournals({ email, journals }: { email: string; journals: Hom
         {t("home.signedInAs", { email })}
       </p>
 
+      {/* The three guides, for somebody who has just arrived and is working out
+          what any of this is — B445. Above the list rather than below it: a
+          reader with no journals yet is exactly who needs them, and they would
+          never scroll past an empty state to find them. */}
+      <p className="mt-3">
+        <Link
+          href="/docs/guide/guest"
+          className="text-sm text-navy-700 underline decoration-navy-300 underline-offset-4
+                     transition-colors hover:decoration-navy-700
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        >
+          {t("guides.readMore")}
+        </Link>
+      </p>
+
       {journals.length === 0 ? (
         /* Not an empty heading with nothing under it. Somebody signed in with
            no journals is in a real and explicable state — nobody has approved
