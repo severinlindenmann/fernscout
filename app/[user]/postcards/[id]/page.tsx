@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import NoticeShell from "@/components/NoticeShell";
 import PageHeader from "@/components/PageHeader";
 import { isEnabled } from "@/lib/capabilities";
-import { pickLocale } from "@/lib/contacts/locale";
 import { isOwner } from "@/lib/contacts/session";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
 import { translateIn } from "@/lib/locales";
@@ -15,7 +14,8 @@ import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
 import { LOCALE_LABEL } from "@/lib/i18n";
-import { defaultLocaleFor, localesFor } from "@/lib/locales";
+import { defaultLocaleFor, localesFor, requestLocale } from "@/lib/locales";
+import { pickLocale } from "@/lib/contacts/locale";
 import { formatDigestDate } from "@/lib/digest/content";
 import { orderPhotoFile } from "@/lib/postcard/send";
 import { getUser } from "@/lib/users";
@@ -75,12 +75,25 @@ export default async function PostcardOrderPage({
   searchParams,
 }: PageProps<"/[user]/postcards/[id]">) {
   const { user: username, id } = await params;
-  const result = (await searchParams).result;
+  const query = await searchParams;
+  const result = query.result;
+  // B466. The second step, and it is a query parameter rather than a dialog
+  // on purpose: the whole flow is form posts so that it works on a phone with
+  // a bad connection and no JavaScript, and a JS-only confirmation would leave
+  // that path sending on the first click — the exact case this guards.
+  const confirming = query.confirm === "1";
 
   const user = getUser(username);
   if (!user || !isEnabled("postcards", username)) notFound();
 
-  const locale = pickLocale(user.defaultLocale);
+  // **The reader's chosen language, not the journal's** — B465. This page read
+  // `pickLocale(user.defaultLocale)` and therefore stayed English for an owner
+  // who had picked German in the switcher, because the example journal's own
+  // default is English. `/[user]/me` draws the same line and names it
+  // `uiLocale`: `requestLocale()` is the person looking at the screen,
+  // `pickLocale(...)` is a fact about somebody else — a contact's own language.
+  // The two are not interchangeable and this page had conflated them.
+  const locale = pickLocale(await requestLocale());
   const t = (key: TranslationKey, vars?: Record<string, string>) =>
     translateIn(locale, key, vars);
 
@@ -363,7 +376,10 @@ export default async function PostcardOrderPage({
               total: String(cost),
             })}
             {balance !== null ? (
-              <> {t("postcard.page.balance", { balance: String(balance) })}</>
+              <>
+                {" — "}
+                {t("postcard.page.balance", { balance: String(balance) })}
+              </>
             ) : null}
           </p>
           {short ? (
@@ -387,21 +403,70 @@ export default async function PostcardOrderPage({
               })}
             </p>
           ) : (
-            <form method="post" action={`/${username}/postcards/${id}/send`} className="mt-3">
-              <button
-                type="submit"
-                disabled={!sendable || short}
-                className="rounded bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
-              >
-                {live.length === 1
-                  ? t("postcard.page.sendOne", { total: String(cost) })
-                  : t("postcard.page.sendMany", {
-                      count: String(live.length),
-                      total: String(cost),
-                    })}
-              </button>
-              <p className="mt-2 text-xs opacity-70">{t("postcard.page.sendWarning")}</p>
-            </form>
+            confirming && sendable && !short ? (
+              <div className="mt-3 rounded-lg border-2 border-navy-900 bg-cream-100 px-4 py-3">
+                <p className="font-semibold">{t("postcard.confirm.heading")}</p>
+                <p className="mt-1 text-sm">
+                  {live.length === 1
+                    ? t("postcard.confirm.bodyOne", { name: people.get(live[0])!.to.name })
+                    : t("postcard.confirm.bodyMany", { count: String(live.length) })}
+                </p>
+                <p className="mt-1 text-sm">
+                  {t("postcard.confirm.cost", {
+                    total: String(cost),
+                    rest: String((balance ?? cost) - cost),
+                  })}
+                </p>
+                <p className="mt-1 text-sm font-medium">{t("postcard.confirm.undone")}</p>
+                <form
+                  method="post"
+                  action={`/${username}/postcards/${id}/send`}
+                  className="mt-3 flex flex-wrap items-center gap-3"
+                >
+                  <button
+                    type="submit"
+                    // The weight is CSS only — a press that visibly moves, and
+                    // a ring while it is held. A spinner would need
+                    // JavaScript, and this button's whole design is that it
+                    // does not.
+                    className="min-h-11 rounded-full bg-navy-900 px-5 text-sm font-semibold text-white shadow-md transition-all duration-150 hover:bg-navy-700 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-yellow-400 active:translate-y-px active:shadow-sm motion-safe:animate-[pulse_2.5s_ease-in-out_infinite]"
+                  >
+                    {live.length === 1
+                      ? t("postcard.confirm.yesOne")
+                      : t("postcard.confirm.yesMany")}
+                  </button>
+                  <a
+                    className="text-sm underline"
+                    href={`/${username}/postcards/${id}`}
+                  >
+                    {t("postcard.confirm.back")}
+                  </a>
+                </form>
+              </div>
+            ) : (
+              <div className="mt-3">
+                {/* A link, not a submit: the first press only *asks*. */}
+                <a
+                  href={
+                    sendable && !short ? `/${username}/postcards/${id}?confirm=1` : undefined
+                  }
+                  aria-disabled={!sendable || short}
+                  className={`inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold transition-colors ${
+                    sendable && !short
+                      ? "bg-navy-900 text-white hover:bg-navy-700"
+                      : "pointer-events-none bg-navy-900/40 text-white"
+                  }`}
+                >
+                  {live.length === 1
+                    ? t("postcard.page.sendOne", { total: String(cost) })
+                    : t("postcard.page.sendMany", {
+                        count: String(live.length),
+                        total: String(cost),
+                      })}
+                </a>
+                <p className="mt-2 text-xs opacity-70">{t("postcard.page.sendWarning")}</p>
+              </div>
+            )
           )}
         </section>
       </main>

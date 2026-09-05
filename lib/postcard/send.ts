@@ -18,6 +18,7 @@ import {
   type RecipientResult,
 } from "./orders";
 import { renderPostcard, type PostalAddress, type PostcardWarning } from "./render";
+import { sendPostcardReceipt } from "./receipt";
 
 /**
  * Turning an order into paper — B434, and the only place in this codebase
@@ -180,6 +181,10 @@ export async function sendOrder(owner: string, id: string): Promise<SendOutcome>
   const bases = recipientBases(recipients.map((r) => r.to.name));
   const warnings: PostcardWarning[] = [];
   const results: RecipientResult[] = [];
+  // The first card, kept for the receipt — B467. One, not all: the design is
+  // identical on every card, and attaching five would put five households'
+  // addresses in one inbox to prove one photograph.
+  let firstCard: Uint8Array | undefined;
 
   for (const [index, { contactId, to }] of recipients.entries()) {
     const common = { photo, message: order.payload.message, from: order.payload.from, to };
@@ -187,7 +192,10 @@ export async function sendOrder(owner: string, id: string): Promise<SendOutcome>
     // One card's warnings stand for the order: the photograph and the message
     // are the same on every one of them, so repeating them per recipient would
     // be the same sentence four times.
-    if (index === 0) warnings.push(...both.warnings);
+    if (index === 0) {
+      warnings.push(...both.warnings);
+      firstCard = both.pdf;
+    }
     const front = renderPostcard({ ...common, sides: "front" }).pdf;
     const back = renderPostcard({ ...common, sides: "back" }).pdf;
 
@@ -206,6 +214,28 @@ export async function sendOrder(owner: string, id: string): Promise<SendOutcome>
   const failed = results.filter((r) => !r.ok).length;
   if (failed > 0) await refund(owner, failed * order.payload.creditsEach, id);
   await recordResults(owner, id, order.payload, results);
+
+  const sent = results.length - failed;
+  if (sent > 0) {
+    // Best effort, and never awaited into the outcome: the cards are already
+    // at the printer, so a dead SMTP host must not turn a send that happened
+    // into a send that reports failure. `sendPostcardReceipt` swallows its own
+    // errors; this catch is the belt to that braces.
+    await sendPostcardReceipt({
+      owner,
+      orderId: id,
+      day: order.payload.day,
+      // Names only. Never an address in a mail — the rule
+      // `lib/contacts/mail.ts` states for its own letters.
+      names: recipients
+        .filter((_, i) => results[i]?.ok)
+        .map((r) => r.to.name),
+      sent,
+      creditsSpent: charge - failed * order.payload.creditsEach,
+      balance: await balanceOf(owner),
+      pdf: firstCard ? Buffer.from(firstCard) : undefined,
+    }).catch(() => {});
+  }
 
   return {
     ok: true,

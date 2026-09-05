@@ -6,12 +6,25 @@
  * message instead.
  */
 export type MailAttachment = {
-  /** Shown to a client that offers to save it; cosmetic only. */
+  /** Shown to a client that offers to save it; cosmetic only for an inline
+   * part, and the name the reader actually saves for an attached one. */
   filename: string;
   contentType: string;
   data: Buffer;
-  /** The `<img src="cid:…">` this attachment answers. */
+  /** The `<img src="cid:…">` this attachment answers. Still required for an
+   * attached file, where nothing references it — a `Content-ID` on a part
+   * costs nothing and keeps the encoder from branching twice. */
   contentId: string;
+  /**
+   * `inline` — part of the message, referenced by `cid:` from the HTML. The
+   * default, and what every mail before B467 was.
+   *
+   * `attachment` — a file the reader saves, referenced by nothing. It changes
+   * the envelope as well as the part: a message carrying one is
+   * `multipart/mixed` rather than `multipart/related`, because `related` means
+   * "these parts are one document" and a receipt's PDF is not.
+   */
+  disposition?: "inline" | "attachment";
 };
 
 /** One message, independent of how it gets sent. */
