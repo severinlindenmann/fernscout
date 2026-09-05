@@ -73,6 +73,35 @@ The demo now covers every party size and both fallback levels:
 | `parks-2025` | 4 | a family — two adults, two children in front |
 | `asia-2023` | 5 | five friends, ranks alternating |
 
+## Deploying demo content is a second, manual step
+
+Worth writing down, because it cost a confused half hour and the next person
+will hit it too.
+
+`scripts/deploy.sh` deliberately does **not** copy `content/` into
+`$CONTENT_DIR` — only `locales/`, `rates/` and `legal/`. It prints a note
+saying so, which is easy to miss in the tail of a build log. On this instance
+`CONTENT_DIR=/var/lib/fernscout/content`, so the demo journal a reader sees
+lives there and is seeded by hand.
+
+The trap is that `git pull` **does** update `/srv/fernscout/content/example`,
+because that is the checkout. So the obvious check — ssh in, grep the trip
+file, see the new block — passes while the live site still shows the old
+party. The two directories are different and only one of them is served.
+
+Deployed here by copying the four changed `trip.md` files from the checkout
+into `$CONTENT_DIR` (the repo was a strict superset — zero live-only lines),
+and by inserting only the `travellers` key into the live `config.json`, which
+is hand-edited and says "Four journeys" where the repo says five. A backup of
+the journal as it was is at
+`/var/lib/fernscout/content/.example-backup-b498`; it is inert (a leading dot
+cannot match `USERNAME_RE`, and `/documentation.txt` does not list it) and can
+be deleted whenever.
+
+Whether the demo journal *should* be hand-seeded is a real question and not
+this task's — it is the reason the repo's copy and the live one had already
+drifted before any of this.
+
 ## Acceptance
 
 - `/agent.md` carries one complete worked example, answer to written block.
