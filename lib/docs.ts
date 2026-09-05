@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { TranslationKey } from "./i18n";
 
 /**
  * The `/docs` page's content strategy, for the parts that can honestly be
@@ -92,4 +93,64 @@ export function readGuide(guide: Guide, locale: string): { markdown: string; loc
     }
   }
   throw new Error(`no copy of the "${guide}" guide, in any language`);
+}
+
+/**
+ * Every documentation page, once — B470.
+ *
+ * The hub renders these as cards and the inner pages render them as a nav, and
+ * both read this list. Before it existed the guides were an array in one
+ * component and the technical sections were anchors hand-written in another,
+ * which is exactly how they came to be drawn as the same kind of control while
+ * behaving differently — one navigated, one scrolled.
+ *
+ * The `group` is the axis the old page flattened: **who you are** (a reader, an
+ * owner, somebody who was on the trip) against **what you want to build**
+ * (host it, change it, call it). Keeping the two apart is what lets the hub
+ * say, in the reader's own language, that only one of the halves is
+ * translated.
+ */
+export type DocsPageId = Guide | "hosting" | "contributing" | "api";
+
+export type DocsPage = {
+  id: DocsPageId;
+  href: string;
+  /** Resolved by whoever renders it, never here — this module is imported by
+   * server components that already hold a locale. Typed rather than left as a
+   * `string` so a renamed key fails the typecheck here instead of rendering
+   * the key itself onto the page. */
+  labelKey: TranslationKey;
+  group: "guides" | "technical";
+};
+
+export const DOCS_PAGES: readonly DocsPage[] = [
+  { id: "guest", href: "/docs/guide/guest", labelKey: "guides.guest.title", group: "guides" },
+  { id: "creator", href: "/docs/guide/creator", labelKey: "guides.creator.title", group: "guides" },
+  { id: "buddy", href: "/docs/guide/buddy", labelKey: "guides.buddy.title", group: "guides" },
+  { id: "hosting", href: "/docs/hosting", labelKey: "docs.hosting.title", group: "technical" },
+  {
+    id: "contributing",
+    href: "/docs/contributing",
+    labelKey: "docs.contributing.title",
+    group: "technical",
+  },
+  { id: "api", href: "/docs/api", labelKey: "docs.api.title", group: "technical" },
+];
+
+/**
+ * The same list, shaped for `DocsNav`, with the group boundary marked.
+ *
+ * Returns a structural shape rather than importing `DocsNavEntry`: `lib/` does
+ * not import from `components/`, and the two would be the same type anyway.
+ */
+export function docsNavEntries(): {
+  href: string;
+  labelKey: TranslationKey;
+  startsGroup: boolean;
+}[] {
+  return DOCS_PAGES.map((page, i) => ({
+    href: page.href,
+    labelKey: page.labelKey,
+    startsGroup: page.group === "technical" && DOCS_PAGES[i - 1]?.group !== "technical",
+  }));
 }

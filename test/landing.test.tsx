@@ -253,3 +253,19 @@ describe("the landing page", () => {
     expect(html).toContain("fernscout.test/agent.md");
   });
 });
+
+/**
+ * B470 — one door to the documentation, not three.
+ *
+ * The landing page linked `/docs`, `/docs/api` and `/docs/guide/guest`, so a
+ * visitor met the documentation at three different depths depending on which
+ * one they happened to press.
+ */
+test("the landing page has one door to the docs, plus the aimed guide link", () => {
+  const html = renderLanding();
+  const hrefs = [...html.matchAll(/href="(\/docs[^"]*)"/g)].map((m) => m[1]);
+  // The guest guide stays because it is *aimed*: it is addressed to one person
+  // at the moment they are confused, where a docs link is addressed to nobody
+  // in particular.
+  expect(new Set(hrefs)).toEqual(new Set(["/docs", "/docs/guide/guest"]));
+});

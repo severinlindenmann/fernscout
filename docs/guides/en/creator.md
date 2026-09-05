@@ -30,9 +30,14 @@ your agent a ready-made instruction, so there is no code to read out.
 
 ## Writing a day
 
-Tell your agent what happened. Give it photographs if you have them —
-timestamps and location are read automatically from most phones and cameras,
-so the day lands on the right date without you saying so.
+Tell your agent what happened.
+
+**Photographs help most when they carry a timestamp.** Any common format
+works. JPEG and HEIC record the capture time — and often the location —
+automatically on most phones and cameras, which is what lets an agent put a
+day on the right date without being told. If you are exporting, scanning or
+renaming files by hand, keep the date in the filename instead:
+`2026-08-26-hoi-an-01.jpg`.
 
 **Everything an agent writes arrives as a draft.** It is not on the site until
 you say so. Read it back first: an agent writes what it was told, and the one

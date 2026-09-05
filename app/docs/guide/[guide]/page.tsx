@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import DocsNav from "@/components/DocsNav";
 import EntryContent from "@/components/EntryContent";
-import GuideNav from "@/components/GuideNav";
-import { GUIDES, isGuide, readGuide } from "@/lib/docs";
+import { GUIDES, docsNavEntries, isGuide, readGuide } from "@/lib/docs";
 import { requestLocale, translateIn } from "@/lib/locales";
 
 /**
@@ -44,17 +42,7 @@ export default async function GuidePage({ params }: PageProps<"/docs/guide/[guid
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
-      <Link
-        href="/docs"
-        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-navy-600
-                   transition-colors hover:text-navy-900
-                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        {translateIn(locale, "guides.backToDocs")}
-      </Link>
-
-      <h1 className="mt-3 font-display text-3xl font-semibold text-navy-900 sm:text-4xl">
+      <h1 className=" font-display text-3xl font-semibold text-navy-900 sm:text-4xl">
         {translateIn(locale, `guides.${guide}.title`)}
       </h1>
       <p className="mt-3 text-lg leading-relaxed text-navy-700">
@@ -62,7 +50,7 @@ export default async function GuidePage({ params }: PageProps<"/docs/guide/[guid
       </p>
 
       <div className="mt-6">
-        <GuideNav locale={locale} current={guide} />
+        <DocsNav locale={locale} entries={docsNavEntries()} current={`/docs/guide/${guide}`} />
       </div>
 
       {/*

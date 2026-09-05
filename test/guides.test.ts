@@ -76,6 +76,20 @@ describe("the route only accepts the three", () => {
   });
 });
 
+describe("the guides sit in the shared shell", () => {
+  test("they render the shared nav rather than one of their own", () => {
+    const src = fs.readFileSync(
+      path.join(process.cwd(), "app/docs/guide/[guide]/page.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("DocsNav");
+    expect(src).not.toContain("GuideNav");
+    // The shell's header is the way out; a second one under it was the
+    // "Alle Dokumente" link that led to a page with no way home at all.
+    expect(src).not.toContain("guides.backToDocs");
+  });
+});
+
 describe("the figures", () => {
   const FIGURES = "docs/guides/figures";
 
@@ -170,6 +184,18 @@ describe("what the guides have to cover", () => {
       expect(read(locale, "buddy"), locale).toMatch(
         /cannot publish|nicht veröffentlichen|nem tudsz közzétenni/i,
       );
+    }
+  });
+
+  /**
+   * The one thing "How to Use" said that lives nowhere else — B470. The rest
+   * of that section (hand this to your agent) is on the landing page in the
+   * dashed box and in this guide's own opening, which is why the section
+   * could be retired rather than moved.
+   */
+  test("every creator guide explains that photographs need a timestamp", () => {
+    for (const locale of LOCALES) {
+      expect(read(locale, "creator"), locale).toMatch(/timestamp|Zeitstempel|időbélyeg/i);
     }
   });
 
