@@ -7,8 +7,7 @@ complexity: low
 area: landing, react, hydration
 found: "2026-09-05T12:49:15Z"
 started: "2026-09-05T12:57:44Z"
-session: 3744307d-de1f-4fd7-a058-d689389ddc6c
-claimed: "2026-09-05T12:57:44Z"
+merged: "2026-09-05T13:02:44Z"
 ---
 
 # B454 — The landing page reads localStorage during render, so a signed-in reader gets a hydration mismatch on every load
