@@ -171,15 +171,13 @@ export default function AddressLookupField({
               </li>
             ))}
           </ul>
-          {/* Not a result, so not a `role="option"` and not read as one — B416.
-              `aria-hidden` on top of sitting outside the `listbox` keeps a
-              screen reader from ever announcing it as a choice. */}
-          <p
-            aria-hidden="true"
-            className="border-t border-navy-100 px-4 py-1.5 text-xs text-navy-400"
-          >
-            {attribution}
-          </p>
+          {/* Attribution has to reach assistive tech, not just eyes — hiding
+              it would silence the one signal a screen-reader user gets that a
+              query left the server. Sitting outside the `<ul>`, after it, is
+              what keeps it from being read as an option: nothing in here
+              carries `role="option"` or an `aria-selected`, and `aria-controls`
+              on the input still names only `listId`, the `<ul>` itself. */}
+          <p className="border-t border-navy-100 px-4 py-1.5 text-xs text-navy-400">{attribution}</p>
         </div>
       )}
     </div>
