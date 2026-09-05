@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: home view
 found: 2026-09-05T00:00:00Z
+merged: "2026-09-05T15:38:43Z"
 ---
 
 ## Why
