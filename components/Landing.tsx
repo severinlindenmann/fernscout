@@ -102,10 +102,31 @@ export default function Landing({
   const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>("unknown");
   const [home, setHome] = useState<Home | null>(null);
-  // Read once, before the fetch resolves, to decide what to show meanwhile.
-  const [expected] = useState(() =>
-    typeof window === "undefined" ? false : window.localStorage.getItem(SEEN_KEY) === "1",
-  );
+  /**
+   * Read *after* the first render, not during it — B454.
+   *
+   * This began as a `useState` initialiser, which is a hydration bug: the
+   * server has no `localStorage`, so it renders `false`, and a browser that
+   * was signed in last time renders `true` on its very first pass. React sees
+   * two different trees for the same render and discards the server's HTML —
+   * "Minified React error #418", once per load, for exactly the readers this
+   * flag exists to help.
+   *
+   * The cost of moving it into an effect is one extra paint before the
+   * skeleton appears, which nobody can see. What it buys back is the thing
+   * the flag was *for*: React keeping the server's markup instead of throwing
+   * it away and rebuilding, which is a far bigger flash than the one being
+   * avoided.
+   */
+  const [expected, setExpected] = useState(false);
+  useEffect(() => {
+    // Reading a browser store is exactly the "synchronise with an external
+    // system" case the rule exempts in prose but cannot detect; the same
+    // disable sits on `CurrencyProvider`, which adopts a stored currency the
+    // same way and for the same reason.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExpected(window.localStorage.getItem(SEEN_KEY) === "1");
+  }, []);
   const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
