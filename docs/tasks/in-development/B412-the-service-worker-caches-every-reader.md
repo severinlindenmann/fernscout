@@ -7,6 +7,9 @@ complexity: medium
 area: pwa, service worker, cache
 found: "2026-09-05"
 related: B410, B411, B330
+started: "2026-09-05T09:02:06Z"
+session: 3744307d-de1f-4fd7-a058-d689389ddc6c
+claimed: "2026-09-05T09:02:06Z"
 ---
 
 # B412 — The service worker caches every reader into one shared bucket, so a signed-in home view cannot be cached at all
