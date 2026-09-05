@@ -790,7 +790,9 @@ describe("a verb these routes do not have", () => {
     const body = (await response.json()) as { error: string; message: string };
     expect(body.error).toBe("method_not_allowed");
     expect(body.message).toContain("/api/v1/alex/config");
-    expect(body.message).toContain("features are not writable");
+    // B293 gave features a door, so the message must not still say they have none.
+    expect(body.message).not.toMatch(/features are not writable through any door/i);
+    expect(body.message).toMatch(/features/i);
   });
 
   test("PATCH on a trip points at the budget, the day and the media doors", async () => {
@@ -803,5 +805,8 @@ describe("a verb these routes do not have", () => {
     expect(body.message).toContain("/api/v1/alex/trips/alps/costs");
     expect(body.message).toContain("/api/v1/alex/trips/alps/days/<slug>");
     expect(body.message).toContain("/api/v1/alex/trips/alps/media");
+    // B352 and B396 opened these two, so the message names them as well.
+    expect(body.message).toContain("/api/v1/alex/trips/alps/visibility");
+    expect(body.message).toContain("/api/v1/alex/trips/alps/rates");
   });
 });
