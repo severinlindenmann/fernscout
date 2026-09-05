@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: i18n
 found: "2026-09-05T15:27:05Z"
+started: "2026-09-05T15:33:12Z"
+session: e5747799-fd3e-4d40-a335-82fa4e24333e
+claimed: "2026-09-05T15:33:12Z"
 ---
 
 # B485 — hu.json calls a trip utazás where the guides and B449 settled on út

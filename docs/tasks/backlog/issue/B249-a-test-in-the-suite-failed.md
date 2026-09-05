@@ -77,3 +77,23 @@ original failure was very probably a different test. And the second problem it
 names — that the failing run was piped through `tail -5`, which discarded the
 reporter line naming the file — is untouched by any of this and is the half
 that made the first one unfindable.
+
+## 2026-09-05: the flake now has a name
+
+Seen again while merging B449, and this time the failing test was recorded
+rather than lost: `test/generator-output.test.ts > npm run postcard`. It failed
+once inside a full `npm run verify`, passed 12/12 when run alone immediately
+afterwards, and the re-run of the whole gate was clean.
+
+It is a subprocess test with a **5-second timeout** that shells out to `npm run
+postcard`, run concurrently with the rest of the suite. That is the shape of a
+load-dependent timeout rather than a defect in the generator: the machine was
+building and running 241 test files at the time, and the same command finishes
+comfortably when it is the only thing running.
+
+So the answer this ticket was waiting for is probably "the timeout is too tight
+for a subprocess test under a loaded suite", not "something is wrong with the
+postcard generator". The cheap fix is to raise that one timeout or take the
+subprocess test out of the concurrent pool; the honest check is to run the
+suite under load a few times and see whether anything else with a subprocess
+and a short timeout joins it.

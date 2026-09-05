@@ -7,8 +7,7 @@ complexity: low
 area: i18n, guides
 found: "2026-09-05T12:37:30Z"
 started: "2026-09-05T15:23:37Z"
-session: e5747799-fd3e-4d40-a335-82fa4e24333e
-claimed: "2026-09-05T15:23:37Z"
+merged: "2026-09-05T15:33:11Z"
 ---
 
 # B449 — The Hungarian reader guides were written by an agent and have never been read by a speaker
