@@ -1,3 +1,4 @@
+import { isAdminEmail } from "@/lib/admin";
 import { isEnabled } from "@/lib/capabilities";
 import {
   CODE_TTL_MINUTES,
@@ -309,6 +310,10 @@ async function mayRequestAgentToken(
 ): Promise<boolean> {
   const address = email.trim().toLowerCase();
   if (user.owner.email === address) return true;
+  // The instance admin owns every journal here (B480), so a code for any of
+  // them is theirs to ask for. Named before the trip check because they need
+  // no trip: what they get is the unqualified `write:content` an owner gets.
+  if (isAdminEmail(address)) return true;
   if (!tripId) return false;
   const trip = getTrip(tripRef(user.username, tripId));
   // `isPersonOn` reads the trip's `people:` block **and** the buddy places the

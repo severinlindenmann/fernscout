@@ -537,6 +537,15 @@ the record and never corrected, so do not update one to match what shipped.
 | `/<user>/invite/buddy/<token>` | where a buddy link lands |
 | `DELETE /api/v1/<user>` and `…/trips/<trip>` | ask to delete — see below |
 
+**One address can sit above all of this, and it is not in any config file.**
+`FERNSCOUT_ADMIN_EMAIL` in the environment names the instance's operator, and
+`isOwner` answers yes for them on every journal — reading, publishing, the
+contacts page, credits, the lot. Unset is the default and every instance that
+does not set it behaves as though `lib/admin.ts` were not there. It is
+deliberately not a role, a rank or a row in a table: one address, read from the
+environment on each call, so it is an operations decision rather than something
+a journal's own file can widen. B480.
+
 Agent tokens arrive in `Authorization: Bearer` and nowhere else; guest sessions
 arrive in a cookie and nowhere else. The two are not interchangeable, and
 `resolveSession()` enforces it — it compares a row's `kind` against what the

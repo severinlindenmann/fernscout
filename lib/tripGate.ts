@@ -27,6 +27,20 @@ import type { Trip } from "./types";
 export async function mayReadTrip(trip: Trip): Promise<boolean> {
   if (isOpenToLink(trip)) return true;
 
+  /**
+   * The journal's owner, which since B480 can also mean the instance's — and
+   * this is not the `session !== null` test the long note below warns about.
+   * It turns on an address matching `owner.email` on disk or
+   * `FERNSCOUT_ADMIN_EMAIL` in the environment, neither of which a reader can
+   * make true by proving an inbox.
+   *
+   * A journal's own owner already passed further down, through
+   * `isTravellerOn` — `peopleNamedIn` puts them at the head of every trip's
+   * list. The admin is not on any trip and deliberately never will be (the
+   * digest reads that list), so the question has to be asked here instead.
+   */
+  if (await isOwner(trip.username)) return true;
+
   // The people who took it are always let in, whichever way the trip is
   // closed. Somebody who was on the bus should not have to be invited back to
   // read their own week, and for a `private` trip they are the only way in.
@@ -206,6 +220,9 @@ export async function mayViewCosts(trip: Trip): Promise<boolean> {
 export async function isGuestOf(trip: Trip): Promise<boolean> {
   // Somebody who took the trip has already seen what it cost.
   if (await isTravellerOn(trip)) return true;
+  // And whoever owns the journal, including the instance admin of B480 — who
+  // is not on the trip, so the line above cannot answer for them.
+  if (await isOwner(trip.username)) return true;
   if (trip.visibility === "private") return false;
   return isJournalGuest(trip.username);
 }
