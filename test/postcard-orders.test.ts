@@ -67,6 +67,9 @@ beforeEach(async () => {
         credits: { enabled: true },
         postcards: { enabled: true, provider: "dry-run" },
         contacts: { enabled: true },
+        // B467's receipt. `file` writes .eml under content/<user>/mail, which
+        // is what the address assertions below read.
+        mail: { enabled: true, transport: "file" },
       },
     }),
   );
@@ -78,7 +81,11 @@ beforeEach(async () => {
       owner: { name: "Ana A", nickname: "Ana", email: "ana@example.test" },
       // Both are opt-in per journal: the server ceiling above permits them,
       // and this is the journal actually asking for them.
-      features: { postcards: { enabled: true }, contacts: { enabled: true } },
+      features: {
+        postcards: { enabled: true },
+        contacts: { enabled: true },
+        mail: { enabled: true },
+      },
     }),
   );
 
@@ -385,5 +392,83 @@ describe("coming back from a form", () => {
       expect(src).not.toContain("Response.redirect");
       expect(src).not.toContain("request.url");
     }
+  });
+});
+
+
+/**
+ * B467 — the receipt, and the one thing it must never carry.
+ *
+ * `lib/contacts/mail.ts` states the rule for its own five letters: no mail
+ * this project sends contains a postal address. A receipt naming who got a
+ * card is exactly the letter most tempting to put one in, so the assertion is
+ * made against a contact whose street this test knows by name.
+ */
+describe("the receipt for a send", () => {
+  function mailFiles(): string[] {
+    const dir = path.join(dir_(), OWNER, "mail");
+    try {
+      return fs.readdirSync(dir).filter((f) => f.endsWith(".eml"));
+    } catch {
+      return [];
+    }
+  }
+  function dir_(): string {
+    return process.env.CONTENT_DIR!;
+  }
+
+  test("names the person, attaches the card, and carries no address", async () => {
+    const contact = await reader("receipt@example.test");
+    await grant(OWNER, 100);
+    const made = await order([contact]);
+    expect(await sendOrder(OWNER, made.id)).toMatchObject({ ok: true, sent: 1 });
+
+    const files = mailFiles();
+    expect(files.length).toBeGreaterThan(0);
+    const raw = files.map((f) => fs.readFileSync(path.join(dir_(), OWNER, "mail", f), "utf8")).join("\n");
+
+    // **The address is the thing the message must not become** — and the
+    // scope of that claim matters. The attached PDF is the card as printed,
+    // and the back of a postcard carries the address by necessity; that is the
+    // documented exception in `lib/postcard/receipt.ts`. What must be clean is
+    // everything a mail client shows without opening the attachment, so the
+    // PDF part is excluded and the rest is decoded from base64.
+    const readable = raw
+      .split(/--fs-[a-z0-9-]+/)
+      .filter((part) => !part.includes("application/pdf"))
+      .map((part) => {
+        const body = part.split(/\r?\n\r?\n/).slice(1).join("\n");
+        let decoded = "";
+        try {
+          decoded = Buffer.from(body.replace(/\s+/g, ""), "base64").toString("utf8");
+        } catch {
+          decoded = "";
+        }
+        return `${part}\n${decoded}`;
+      })
+      .join("\n");
+
+    expect(readable).toContain("A Reader");
+    for (const secret of ["Bahnhofstrasse", "8001"]) {
+      expect(readable).not.toContain(secret);
+    }
+
+    // The card itself rides along, as a saved file rather than part of the
+    // message — which is why lib/mail/rfc822.ts learned multipart/mixed.
+    expect(raw).toContain("application/pdf");
+    expect(raw).toContain("Content-Disposition: attachment");
+    expect(raw).toContain("multipart/mixed");
+  });
+
+  test("the receipt is free — no credit moves for it", async () => {
+    const contact = await reader("free@example.test");
+    await grant(OWNER, 100);
+    const made = await order([contact]);
+    await sendOrder(OWNER, made.id);
+
+    // Exactly the card, and nothing for the letter about it.
+    expect(await balanceOf(OWNER)).toBe(100 - POSTCARD_CREDITS);
+    const spends = (await ledgerFor(OWNER)).filter((r) => r.delta < 0);
+    expect(spends).toHaveLength(1);
   });
 });

@@ -69,9 +69,17 @@ export function buildMessage(mail: Mail, from: string, date = new Date()): strin
      * 2387). The alternative stays nested rather than flattened so a client
      * that does not understand `related` at all still finds a normal
      * text-or-html choice inside it.
+     *
+     * **Unless something is attached rather than inline** (B467). `related`
+     * asserts that every part is a piece of one document, which is true of a
+     * photograph the HTML shows by `cid:` and false of a PDF receipt the
+     * reader saves — a client honouring `related` may not offer it at all.
+     * One attached part makes the whole message `multipart/mixed`, which is
+     * the envelope that means "a message, plus files".
      */
     const relBoundary = newBoundary();
-    contentType = `multipart/related; boundary="${relBoundary}"`;
+    const mixed = attachments.some((a) => a.disposition === "attachment");
+    contentType = `multipart/${mixed ? "mixed" : "related"}; boundary="${relBoundary}"`;
     const parts = [
       "",
       `--${relBoundary}`,
@@ -85,7 +93,7 @@ export function buildMessage(mail: Mail, from: string, date = new Date()): strin
         `Content-Type: ${attachment.contentType}`,
         "Content-Transfer-Encoding: base64",
         `Content-ID: <${attachment.contentId}>`,
-        `Content-Disposition: inline; filename="${attachment.filename}"`,
+        `Content-Disposition: ${attachment.disposition ?? "inline"}; filename="${attachment.filename}"`,
         "",
         foldBase64(attachment.data.toString("base64")),
         "",
