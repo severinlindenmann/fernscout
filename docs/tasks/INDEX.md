@@ -185,7 +185,7 @@ Do not edit them by hand; run the script.
 | [B525](backlog/docs-and-skills/B525-the-trip-script-asks-about-what.md) | The trip script asks about what is repairable and stays quiet about what is permanent | DOCS | high | low |
 | [B155](backlog/docs-and-skills/B155-nothing-in-the-repo-tells-a.md) | The README offers hosting on fernscout.ch and never says what it does not promise | DOCS | medium | low |
 | [B372](backlog/docs-and-skills/B372-a-private-trip-s-photograph-is.md) | A private trip's photograph is handed to Meta, and nothing a reader or owner sees says so | DOCS | medium | low |
-| [B526](backlog/docs-and-skills/B526-two-fields-lists-three-and-the.md) | "Two fields" lists three, and the journal script never asks for the required title | DOCS | medium | low |
+| [B526](backlog/docs-and-skills/B526-two-fields-lists-three-and-the.md) | \"Two fields\" lists three, and the journal script never asks for the required title | DOCS | medium | low |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 | [B289](backlog/docs-and-skills/B289-nothing-records-that-a-hungarian-string.md) | Nothing records that a Hungarian string cannot take a case suffix on an interpolated name | DOCS | low | low |
 | [B404](backlog/docs-and-skills/B404-a-journal-s-own-documentation-txt.md) | A journal's own documentation.txt does not say a private trip stays shut to approved guests | DOCS | low | low |
