@@ -549,6 +549,23 @@ describe("what somebody on a trip is told they can write", () => {
  * sibling, not a React test) is where the count itself is checked against
  * `recipientsFor`'s own predicate.
  */
+/**
+ * B448 — the heading that stood over an empty box.
+ *
+ * `PushOptIn` decides on the first effect, so at render time it is still
+ * `checking` and renders nothing. That is exactly the state this asserts on:
+ * whatever the component ends up deciding, the page must not have written a
+ * heading and a paragraph promising notifications above a control that is not
+ * there. A browser that cannot subscribe never leaves this state.
+ */
+describe("the notifications section", () => {
+  test("is absent whole while nothing can be offered", () => {
+    const html = render({ viewer: owner });
+    expect(html).not.toContain(dictionaryFor("en")["me.notifyTitle"]);
+    expect(html).not.toContain(dictionaryFor("en")["me.notifyLede"]);
+  });
+});
+
 describe("the payment section", () => {
   const payment: PaymentPanel = {
     balance: 12,

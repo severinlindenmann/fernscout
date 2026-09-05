@@ -47,6 +47,22 @@ type State =
 
 export default function PushOptIn({
   /**
+   * The heading and the sentence under it, for a mount that is a whole section
+   * of a page rather than a control inside one — B448.
+   *
+   * The page cannot decide this for itself, which is the bug: only this
+   * component knows whether push can work in this browser, on this journal,
+   * and `/<user>/me` rendered a heading and a paragraph promising
+   * notifications "on this device" above a control that had returned `null`.
+   * Its own comment claimed the section was conditional on the same answer. It
+   * was not, and `unsupported` is also where every unexpected error lands, so
+   * the empty box was the failure mode of everything above it.
+   *
+   * So the words come *in* and the whole section goes out together, or none of
+   * it does. The trip hero passes nothing and is unchanged.
+   */
+  heading,
+  /**
    * The journal to subscribe to, for a mount with no trip in context — B439.
    *
    * A subscription has only ever been per **journal**: `push_subscriptions` is
@@ -59,6 +75,7 @@ export default function PushOptIn({
    */
   journal,
 }: {
+  heading?: { title: string; lede: string };
   journal?: string;
 } = {}) {
   const { t } = useI18n();
@@ -198,14 +215,33 @@ export default function PushOptIn({
     }
   }, [username]);
 
+  // Nothing at all, and — since B448 — nothing around it either: no heading
+  // over an empty box. `checking` is the first paint on every visit, so this
+  // section arrives a beat late rather than promising something and then
+  // proving it cannot be had.
   if (state === "checking" || state === "unsupported") return null;
+
+  const inSection = (children: React.ReactNode) =>
+    heading ? (
+      <section className="mt-8">
+        <h2 className="font-display text-2xl font-semibold tracking-tight text-navy-900">
+          {heading.title}
+        </h2>
+        <p className="mt-1.5 text-base leading-7 text-navy-600">{heading.lede}</p>
+        {children}
+      </section>
+    ) : (
+      children
+    );
 
   // Three dead ends, and each one names what the reader would have to change:
   // add to the Home Screen, re-allow the permission, or switch the browser's
   // push service back on. None of them offers the button, because pressing it
-  // again cannot work until they do — B446.
+  // again cannot work until they do — B446. The heading stays for these: they
+  // are the answer to "why can I not turn this on", which is a question the
+  // heading is what makes somebody ask.
   if (state === "needs-install" || state === "blocked" || state === "unavailable") {
-    return (
+    return inSection(
       <p className="mt-3 max-w-md text-[11px] leading-relaxed text-navy-500">
         {t(
           state === "needs-install"
@@ -214,12 +250,12 @@ export default function PushOptIn({
               ? "push.blocked"
               : "push.unavailable",
         )}
-      </p>
+      </p>,
     );
   }
 
   if (state === "on") {
-    return (
+    return inSection(
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-navy-500">
         <span className="inline-flex items-center gap-1.5 font-medium text-green-700">
           <BellRing className="h-3.5 w-3.5" aria-hidden />
@@ -232,11 +268,11 @@ export default function PushOptIn({
           <BellOff className="h-3 w-3" aria-hidden />
           {t("push.turnOff")}
         </button>
-      </div>
+      </div>,
     );
   }
 
-  return (
+  return inSection(
     <div className="mt-3">
       <button
         onClick={enable}
@@ -249,6 +285,6 @@ export default function PushOptIn({
       {state === "failed" && (
         <p className="mt-1.5 text-[11px] text-coral-600">{t("push.failed")}</p>
       )}
-    </div>
+    </div>,
   );
 }

@@ -59,8 +59,25 @@ describe("where notifications can be switched on", () => {
 
   test("the reader's own page offers it, not only a trip's hero", () => {
     const me = read("app/[user]/me/MePageContent.tsx");
-    expect(me).toContain("<PushOptIn journal={username} />");
+    expect(me).toContain("<PushOptIn");
     expect(me).toContain("me.notifyTitle");
+  });
+
+  /**
+   * B448 — the heading belongs to the control, not to the page around it.
+   *
+   * The page cannot know whether push can work in this browser; the component
+   * can, and used to answer `null` under a heading the page had already
+   * written. The words are a prop now, so a section that cannot be offered is
+   * absent whole. `test/access-panel.test.tsx` is where that is rendered and
+   * asserted; this pins the wiring, which is what a later edit would undo.
+   */
+  test("the page hands over the words rather than writing them around it", () => {
+    const me = read("app/[user]/me/MePageContent.tsx");
+    expect(me).toMatch(/heading=\{\{\s*title: t\("me\.notifyTitle"\)/);
+    // No section element of the page's own around it — that was the bug.
+    expect(me).not.toMatch(/<section[^>]*>\s*<h2[^>]*>\s*\{t\("me\.notifyTitle"\)/);
+    expect(read("components/PushOptIn.tsx")).toContain("heading?: { title: string; lede: string }");
   });
 
   test("the hero still offers it, for somebody who meets it there first", () => {

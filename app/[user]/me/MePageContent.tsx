@@ -960,18 +960,19 @@ export default function MePageContent({
           here, and what does it do" — see the panel above — so it is where
           somebody goes looking.
 
-          `PushOptIn` renders nothing at all unless this browser can actually
-          subscribe and this journal has push switched on, so there is no case
-          where this heading stands over an empty box: the whole section is
-          conditional on the same answer.
+          **The heading is handed to `PushOptIn` rather than written around
+          it** — B448. It used to be a `<section>` here with the control
+          inside, above a comment claiming the two were conditional on the same
+          answer. They were not: the control returns `null` on a browser that
+          cannot subscribe and on a journal with push off, and the heading and
+          its paragraph stayed — promising notifications "on this device" over
+          nothing at all. Only the component knows, so only the component can
+          decide, and now it renders both or neither.
         */}
-        <section className="mt-8">
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-navy-900">
-            {t("me.notifyTitle")}
-          </h2>
-          <p className="mt-1.5 text-base leading-7 text-navy-600">{t("me.notifyLede")}</p>
-          <PushOptIn journal={username} />
-        </section>
+        <PushOptIn
+          journal={username}
+          heading={{ title: t("me.notifyTitle"), lede: t("me.notifyLede") }}
+        />
 
         {/*
           Last on the page, and only when there is a session to end.
