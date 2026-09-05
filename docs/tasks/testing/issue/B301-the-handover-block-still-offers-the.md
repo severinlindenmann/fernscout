@@ -8,6 +8,8 @@ area: me-page, agents
 found: "2026-09-04T14:22:00Z"
 started: "2026-09-04T14:16:23Z"
 merged: "2026-09-04T14:39:48Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T09:14:26Z"
 ---
 
 # B301 — The handover block still offers the read-out-a-code route beside the key, which is two ways to do one thing

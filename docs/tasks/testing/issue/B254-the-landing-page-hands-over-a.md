@@ -8,6 +8,8 @@ area: landing page
 found: "2026-09-04T10:13:42Z"
 started: "2026-09-04T10:14:03Z"
 merged: "2026-09-04T10:19:48Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T09:14:25Z"
 ---
 
 # B254 — The landing page hands over a bare URL where an agent needs an instruction

@@ -8,6 +8,8 @@ area: rate-limiting, deploy
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T09:14:24Z"
 ---
 
 # B01 — `X-Forwarded-For` is taken on trust

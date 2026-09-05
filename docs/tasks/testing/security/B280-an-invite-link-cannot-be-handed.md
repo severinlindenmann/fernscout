@@ -8,6 +8,8 @@ area: contacts, invites, db, crypto
 found: "2026-09-04T12:40:00Z"
 started: "2026-09-04T12:50:47Z"
 merged: "2026-09-04T13:00:51Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T09:14:25Z"
 ---
 
 # B280 — An invite link cannot be handed out a second time, because the token is only stored hashed
