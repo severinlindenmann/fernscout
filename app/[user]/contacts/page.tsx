@@ -11,7 +11,7 @@ import { listInvitesWithLinks } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
 import { isOwner } from "@/lib/contacts/session";
 
-import { dictionaryFor, localesFor, translateIn } from "@/lib/locales";
+import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 import { getTrips } from "@/lib/trips";
 import { getUser } from "@/lib/users";
@@ -48,7 +48,14 @@ export default async function ContactsAdminPage({
   const user = getUser(username);
   if (!user || !isEnabled("contacts", username)) notFound();
 
-  const locale = pickLocale(user.defaultLocale);
+  // **The reader's chosen language, not the journal's** — B469. This page read
+  // `pickLocale(user.defaultLocale)` and therefore stayed in the journal's
+  // default for an owner who had picked a different language in the switcher.
+  // `/[user]/me` draws the same line and names it `uiLocale`:
+  // `requestLocale()` is the person looking at the screen, `pickLocale(...)`
+  // is a fact about somebody else — a contact's own language, which each
+  // contact row still carries on its own (`contact.locale`, untouched below).
+  const locale = pickLocale(await requestLocale());
 
   if (!(await isOwner(username))) {
     return (
