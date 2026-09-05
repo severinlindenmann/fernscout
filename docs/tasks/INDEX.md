@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (108)
+## backlog (109)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (37)
+### issue (38)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -103,6 +103,7 @@ Do not edit them by hand; run the script.
 | [B429](backlog/issue/B429-the-invite-form-shows-a-canned.md) | The invite form shows a canned mail-off line instead of the server's, losing which switch is off | ISSUE | low | low |
 | [B432](backlog/issue/B432-six-german-strings-address-the-reader.md) | Six German strings address the reader formally where a hundred and thirty use du | ISSUE | low | low |
 | [B448](backlog/issue/B448-the-notifications-heading-on-me-stands.md) | The notifications heading on /me stands over an empty box where push cannot work | ISSUE | low | low |
+| [B471](backlog/issue/B471-the-channel-switch-wraps-under-the.md) | The channel switch wraps under the channel name on a phone, and the estimate table is too wide for one | ISSUE | low | low |
 
 ### big-feature (12)
 
