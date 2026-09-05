@@ -80,6 +80,40 @@ describe("the route only accepts the three", () => {
   });
 });
 
+/**
+ * B449 — a translation that quietly loses a paragraph.
+ *
+ * The Hungarian guides were translated from the German rather than from the
+ * English, and inherited what the German had already dropped: the
+ * "Send me a code" button in step 2 of the sign-in, and the two screenshots
+ * either side of it. Nothing failed. Every existing check here is per-file —
+ * a figure that is never referenced is never looked for — so the missing
+ * content was invisible to the suite and to everybody who does not read
+ * Hungarian.
+ *
+ * These three counts are the cheap language-neutral shape of a guide. They do
+ * not judge a word of the prose; they fail when one language stops saying
+ * something the others still say. Bold is the load-bearing one: in these
+ * pages it marks the name of a control the reader has to press.
+ */
+describe("the translations keep the original's shape", () => {
+  const shape = (text: string) => ({
+    headings: [...text.matchAll(/^(#+) /gm)].map(([, h]) => h.length),
+    steps: [...text.matchAll(/^\s*\d+\. /gm)].length,
+    bullets: [...text.matchAll(/^\s*- /gm)].length,
+    controls: [...text.matchAll(/\*\*/g)].length / 2,
+  });
+
+  test("every guide has the same headings, steps and named controls in every language", () => {
+    for (const guide of GUIDES) {
+      const english = shape(read("en", guide));
+      for (const locale of LOCALES) {
+        expect(shape(read(locale, guide)), `${locale}/${guide}`).toEqual(english);
+      }
+    }
+  });
+});
+
 describe("the guides sit in the shared shell", () => {
   test("they render the shared nav rather than one of their own", () => {
     const src = fs.readFileSync(

@@ -4,14 +4,14 @@ annál, akié a napló.
 
 ## Mit jelent egy úton lenni
 
-Az úton vagy, ha a tulajdonos felvett rá, vagy **buddy-hivatkozást** adott és
+Az úton vagy, ha a tulajdonos felvett rá, vagy **útitárs-hivatkozást** adott és
 jóváhagyott. Mindkét esetben:
 
 - **Olvashatod** azt az utat, bármilyen a láthatósága — még a privátat is,
   amelyet a napló jóváhagyott vendégei sem látnak.
 - **Írhatsz** bele napokat, ügynökön keresztül, pontosan úgy, ahogy a
   tulajdonos.
-- **Meg vagy nevezve** az úton, ha a tulajdonos kézzel írt bele.
+- **Meg vagy nevezve** az úton, ha a tulajdonos kézzel írta be a nevedet.
 
 A hozzáférésed **arra az útra szól és semmi másra**. Ugyanannak a naplónak a
 többi útját nem írhatod, és a neked kiállított token nem is ér el odáig.
@@ -63,7 +63,7 @@ mint bármelyik olvasó.
 
 ## Ha valami nem működik
 
-- **Az ügynöködnek azt mondják, a napló nem az övé íráshoz.** Valószínűleg az
+- **Az ügynöködnek azt mondják, hogy a naplóba nem írhatsz.** Valószínűleg az
   egész naplóra kért tokent. Kérd meg, hogy nevezze meg az utat, amelyen vagy.
 - **Olvasni tudod az utat, de az ügynököd nem tud írni.** Ellenőrizd, hogy a
   token arra az útra szólt-e, és hogy még rajta vagy-e — a tulajdonos
