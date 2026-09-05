@@ -6,7 +6,7 @@ import { POST } from "@/app/api/v1/journals/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser, listedUsernames } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
-import { SIGNUP_OWNER, issueCode, verifyCode } from "@/lib/auth";
+import { NO_JOURNAL, issueCode, verifyCode } from "@/lib/auth";
 import { instanceDocumentation } from "@/lib/api/documentation";
 import { firstQuestions } from "@/lib/api/agentCopy";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
@@ -30,8 +30,8 @@ let dir: string;
 let caller = 0;
 
 async function signupToken(email: string): Promise<string> {
-  const { code } = await issueCode(SIGNUP_OWNER, email, "signup");
-  const result = await verifyCode(SIGNUP_OWNER, email, code, "signup");
+  const { code } = await issueCode(NO_JOURNAL, email, "signup");
+  const result = await verifyCode(NO_JOURNAL, email, code, "signup");
   if (!result.ok) throw new Error("could not mint a signup token");
   return result.token;
 }

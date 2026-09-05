@@ -26,16 +26,24 @@ import { getDatabase } from "../db";
  * journal for it to belong to. It can do exactly one thing — create one — and
  * it expires in twenty minutes.
  */
-export type SessionKind = "guest" | "agent" | "signup" | "handover";
+export type SessionKind = "guest" | "agent" | "signup" | "handover" | "identity";
 
 /**
- * The owner a signup code is filed under.
+ * The owner column for a session that belongs to an **address** rather than to
+ * a journal.
  *
  * Not a username, and it cannot become one: `USERNAME_RE` in `lib/users.ts`
- * has no `*`, so no journal can ever collide with this and no session issued
- * here can satisfy `ownsUser` for anything real.
+ * has no `*`, so no journal can ever collide with this and no session filed
+ * under it can satisfy `ownsUser` for anything real.
+ *
+ * It was called `SIGNUP_OWNER` while `signup` was the only kind that needed
+ * it. `identity` (B410) is the second, and the old name asserted something
+ * false about it — an identity is not a signup and never becomes one. The
+ * property the two share is the one worth naming: neither has a journal yet,
+ * for opposite reasons. A signup code has no journal because it is about to
+ * create one; an identity has none because it spans all of them.
  */
-export const SIGNUP_OWNER = "*";
+export const NO_JOURNAL = "*";
 
 /**
  * How long a one-time code stays valid.
@@ -68,6 +76,24 @@ export const MAX_CODE_ATTEMPTS = 5;
 export const SESSION_TTL_MS: Record<SessionKind, number> = {
   agent: 7 * 24 * 60 * 60 * 1000,
   guest: 365 * 24 * 60 * 60 * 1000,
+  /**
+   * A year, matching `guest`, and for the same reason — B410.
+   *
+   * This is the credential that says "this address has been proved", and the
+   * thing it saves a reader from is re-proving it on every journal and every
+   * device. A short one would put the ceremony straight back.
+   *
+   * A year is affordable here only because of what an identity *cannot* do.
+   * It reads nothing and writes nothing: `lookUpSession` refuses it to every
+   * caller asking for `"guest"` or `"agent"`, which is every gate in the
+   * codebase. What it can do is be exchanged, per journal, for a session whose
+   * access is re-derived from grants, `people:` and `config.json` at that
+   * moment. So a year-old identity opens exactly what its holder is entitled
+   * to today, not what they were entitled to when it was issued — and
+   * revoking it (`revokeSession`) ends it outright, with nothing downstream
+   * left holding access it was the only source of.
+   */
+  identity: 365 * 24 * 60 * 60 * 1000,
   // Long enough to finish the call it was issued for, short enough that a
   // token which can create journals is not lying around afterwards.
   signup: 20 * 60 * 1000,
@@ -105,9 +131,35 @@ export const SESSION_SCOPE: Record<SessionKind, string> = {
    * mistake it for content access.
    */
   handover: "exchange:token",
+  /**
+   * It identifies, and that is all it does — B410.
+   *
+   * Nothing branches on this string either. It is here so an identity row
+   * describes itself in the same vocabulary as the rest, and so that a future
+   * caller which *does* read scope cannot mistake it for access to anything.
+   * The two places an identity is deliberately let in — the handshake, and the
+   * home endpoint — ask for the kind, not for this.
+   */
+  identity: "identity",
 };
 
 export const GUEST_COOKIE = "fs_session";
+
+/**
+ * Where the identity credential rides — B410.
+ *
+ * A **second** cookie rather than a wider `fs_session`, and the reason is the
+ * blast radius of getting it wrong. Fourteen call sites read `fs_session` and
+ * every one of them means "the person's access to the journal this request is
+ * about". Teaching all fourteen that the cookie might now hold something that
+ * grants nothing is fourteen chances to mishandle it; `resolveSession(token,
+ * "guest")` refusing an identity token outright is none.
+ *
+ * httpOnly, like the other. B412 names a cache after an identity and cannot
+ * read this to do it — see `public_id` in `019-identity`, which exists for
+ * exactly that reason.
+ */
+export const IDENTITY_COOKIE = "fs_identity";
 
 /**
  * The scope string a token that may write **one trip** carries.
@@ -378,7 +430,19 @@ export async function issueCode(
 }
 
 export type VerifyResult =
-  | { ok: true; token: string; expiresAt: string; scope: string; userId: string }
+  | {
+      ok: true;
+      token: string;
+      expiresAt: string;
+      scope: string;
+      userId: string;
+      /** The address the session was opened for, normalised. Returned because
+       * a link carries no address in its URL by design (`verifyLink`), so its
+       * caller has no other way to learn whose sign-in just succeeded. */
+      email: string;
+      /** An identity's opaque public name; null for every other kind. */
+      publicId: string | null;
+    }
   /**
    * `out-of-scope` is the one that is not about the six digits: the code was
    * right, and the caller asked for a session wider than the code it holds —
@@ -789,7 +853,7 @@ export async function exchangeHandover(
   return openAgentSession(session.owner, session.email);
 }
 
-/** Mint the session both redemption paths end at. */
+/** Mint the session every redemption path ends at. */
 async function openSession(
   owner: string,
   address: string,
@@ -802,6 +866,19 @@ async function openSession(
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS[kind]).toISOString();
   const granted = kind === "agent" && scope ? scope : SESSION_SCOPE[kind];
 
+  /**
+   * An identity's opaque public name, minted here so that **every** path that
+   * creates one gets it — the identity code flow goes through `verifyCode`,
+   * and the three side doors go through `openIdentitySession`, and both end
+   * here. Generating it in either caller instead left the other minting rows
+   * with a null name, which the device list then had to filter and B412 could
+   * not key a cache by.
+   *
+   * Random rather than derived from the address: a hash of an email is not an
+   * opaque id, it is the email, to anybody holding candidates to hash.
+   */
+  const publicId = kind === "identity" ? crypto.randomBytes(16).toString("hex") : null;
+
   await db
     .insertInto("sessions")
     .values({
@@ -811,6 +888,7 @@ async function openSession(
       kind,
       token_hash: hashSecret(token),
       scope: granted,
+      public_id: publicId,
       created_at: nowIso(),
       expires_at: expiresAt,
       last_seen_at: null,
@@ -820,7 +898,54 @@ async function openSession(
     })
     .execute();
 
-  return { ok: true, token, expiresAt, scope: granted, userId };
+  return { ok: true, token, expiresAt, scope: granted, userId, email: address, publicId };
+}
+
+/**
+ * The identity credential itself — B410.
+ *
+ * Filed under `NO_JOURNAL`, because it is about an address and the instance
+ * rather than about any one journal. It authorises nothing: what it is *for*
+ * is `resolveAccess` in `lib/auth/handshake.ts`, and B411's home endpoint.
+ *
+ * **Every caller has already proved the address**, and there are two shapes of
+ * proof. The identity code flow proves it directly. Every existing journal
+ * sign-in — a guest code, a sign-in link, a contact confirmation — proves the
+ * same address for a journal, and proving it for one journal proves it. That
+ * second door is deliberate and is what makes this reach people who already
+ * read this site without a new flow for them to discover; it is safe because
+ * an identity opens nothing by itself, and each journal's access is re-derived
+ * from grants, `people:` and `config.json` at the moment it is asked for.
+ */
+export async function openIdentitySession(
+  email: string,
+): Promise<{ token: string; expiresAt: string; publicId: string }> {
+  const result = await openSession(NO_JOURNAL, normaliseEmail(email), "identity");
+  if (!result.ok || !result.publicId) throw new Error("could not open an identity session");
+  return { token: result.token, expiresAt: result.expiresAt, publicId: result.publicId };
+}
+
+/** Every device this address has proved itself on, newest first. Never returns
+ * a token; `public_id` is the opaque name B412 keys a cache by. */
+export async function listIdentities(email: string) {
+  const { db } = await getDatabase();
+  return db
+    .selectFrom("sessions")
+    .innerJoin("users", "users.id", "sessions.user_id")
+    .select([
+      "sessions.id as id",
+      "sessions.public_id as publicId",
+      "sessions.created_at as createdAt",
+      "sessions.expires_at as expiresAt",
+      "sessions.last_seen_at as lastSeenAt",
+      "sessions.user_agent as userAgent",
+    ])
+    .where("sessions.kind", "=", "identity")
+    .where("sessions.owner_id", "=", NO_JOURNAL)
+    .where("sessions.revoked_at", "is", null)
+    .where("users.email", "=", normaliseEmail(email))
+    .orderBy("sessions.created_at", "desc")
+    .execute();
 }
 
 async function upsertUser(owner: string, email: string): Promise<string> {
@@ -866,6 +991,10 @@ export type Session = {
   kind: SessionKind;
   scope: string;
   email: string;
+  /** An identity's opaque public name, and null on every other kind. Safe to
+   * return in a response body; never accepted as authentication. B412 names a
+   * service worker cache after it. */
+  publicId: string | null;
 };
 
 /**
@@ -895,6 +1024,7 @@ async function lookUpSession(
       "sessions.owner_id as owner",
       "sessions.kind as kind",
       "sessions.scope as scope",
+      "sessions.public_id as publicId",
       "sessions.expires_at as expiresAt",
       "sessions.revoked_at as revokedAt",
       "users.email as email",
@@ -920,6 +1050,7 @@ async function lookUpSession(
     kind: row.kind as SessionKind,
     scope: row.scope ?? SESSION_SCOPE[expected],
     email: row.email,
+    publicId: row.publicId,
   };
 }
 

@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { GUEST_COOKIE, SESSION_TTL_MS, verifyLink } from "@/lib/auth";
+import { issueIdentityCookie } from "@/lib/auth/identityCookie";
 import { isEnabled } from "@/lib/capabilities";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -68,6 +69,14 @@ export async function POST(request: Request) {
     path: "/",
     maxAge: Math.floor(SESSION_TTL_MS.guest / 1000),
   });
+
+  // The link proved the address, so it earns an identity too — B410. Guarded:
+  // the sign-in already succeeded and must not be lost to a failure here.
+  try {
+    await issueIdentityCookie(result.email);
+  } catch (err) {
+    console.warn("[auth] link signed in, but no identity could be issued:", err);
+  }
 
   return Response.json({ ok: true, next: landing(username, result.destination) });
 }

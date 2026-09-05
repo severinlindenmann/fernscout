@@ -230,6 +230,12 @@ describe("a machine that fetches the link does not spend it", () => {
     return (await db.selectFrom("sessions").select(["id"]).execute()).length;
   }
 
+  async function sessionKinds(): Promise<string[]> {
+    const { db } = await getDatabase();
+    const rows = await db.selectFrom("sessions").select(["kind"]).execute();
+    return rows.map((r) => r.kind).sort();
+  }
+
   test("the fetch leaves the link live, and the person still gets in", async () => {
     const token = await askFrom(`/${OWNER}/trips/vietnam-2026`);
 
@@ -252,7 +258,18 @@ describe("a machine that fetches the link does not spend it", () => {
     expect(await sessionCount()).toBe(0);
 
     await follow(token);
-    expect(await sessionCount()).toBe(1);
+    /**
+     * Two now, and both belong to the person who pressed the link — B410. The
+     * journal session they asked for, and the instance-wide identity that
+     * proving the address also earns them.
+     *
+     * Asserted by kind rather than by count, because the count was never what
+     * this test was about: what matters is that a machine gets nothing and a
+     * person gets exactly the credentials the sign-in is meant to produce. A
+     * bare number would have been satisfied by two guest sessions, which would
+     * be a bug.
+     */
+    expect(await sessionKinds()).toEqual(["guest", "identity"]);
   });
 
   test("a sweep of the whole inbox spends nothing", async () => {

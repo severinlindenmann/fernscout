@@ -1,8 +1,7 @@
 import "server-only";
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { isOpenToLink, maySeeCosts } from "./access";
-import { GUEST_COOKIE, resolveSession } from "./auth";
+import { resolveAccess } from "./auth/handshake";
 import { isEnabled } from "./capabilities";
 import { isJournalGuest, isOwner, journalReader } from "./contacts/session";
 import { isPersonOn, isPersonOnWith, redeemedTripsFor } from "./tripPeople";
@@ -70,10 +69,13 @@ export async function mayReadTrip(trip: Trip): Promise<boolean> {
  * answer here.
  */
 export async function isTravellerOn(trip: Trip): Promise<boolean> {
-  const jar = await cookies();
-  const session = await resolveSession(jar.get(GUEST_COOKIE)?.value, "guest");
-  if (!session || session.owner !== trip.username) return false;
-  return isPersonOn(trip, session.email);
+  // `resolveAccess` rather than the cookie: since B410 the address can arrive
+  // on the journal session *or* on an instance-wide identity, and being on a
+  // trip is a fact about the address either way. The journal check that used
+  // to live here — `session.owner !== trip.username` — is inside it.
+  const { email } = await resolveAccess(trip.username);
+  if (!email) return false;
+  return isPersonOn(trip, email);
 }
 
 /** What a reader may do with this trip's unpublished days. */
@@ -245,24 +247,26 @@ export async function guestBlockedByPrivateTrip(trip: Trip): Promise<boolean> {
  * "unlisted" quietly stops meaning anything.
  */
 export async function listableTrips(trips: Trip[]): Promise<Trip[]> {
-  const jar = await cookies();
-  const session = await resolveSession(jar.get(GUEST_COOKIE)?.value, "guest");
+  // Every trip in the list belongs to one journal — the switcher never mixes
+  // two — so the journal to resolve against is the first one's.
+  const username = trips[0]?.username;
+  const { email } = username ? await resolveAccess(username) : { email: null };
   // One lookup for the whole list rather than one per trip: a grant is
   // journal-wide, so the answer cannot differ between two trips in it. Only
-  // asked when somebody is signed in, and only for the journal they are signed
-  // in to — the switcher renders on every page, including for strangers.
-  const owner = session?.owner;
+  // asked when somebody is signed in — the switcher renders on every page,
+  // including for strangers.
+  const owner = email && username ? username : undefined;
   const guest = owner !== undefined && (await isJournalGuest(owner));
   // The trips this reader holds a redeemed place on, in one query rather than
   // one per trip — the switcher renders on every page.
-  const redeemed = owner === undefined ? new Set<string>() : await redeemedTripsFor(owner, session?.email);
+  const redeemed = owner === undefined ? new Set<string>() : await redeemedTripsFor(owner, email);
 
   return trips.filter((trip) => {
     // `listed: false` is the old `unlisted` — reachable by link, never
     // advertised, not even to somebody who could open it.
     if (trip.visibility === "public") return trip.listed;
     // A trip you were on is listed for you: it is yours to find again.
-    if (session?.owner === trip.username && isPersonOnWith(trip, session.email, redeemed)) return true;
+    if (owner === trip.username && isPersonOnWith(trip, email, redeemed)) return true;
     // `private` is nobody else's — not even a guest of the journal's, which
     // `mayReadTrip` refuses before it asks anything else. Listing it here
     // would advertise a trip the switcher cannot open.

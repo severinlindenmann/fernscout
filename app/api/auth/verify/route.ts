@@ -8,6 +8,7 @@ import {
   verifyCode,
   type SessionKind,
 } from "@/lib/auth";
+import { issueIdentityCookie } from "@/lib/auth/identityCookie";
 import { isEnabled } from "@/lib/capabilities";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
@@ -100,6 +101,27 @@ export async function POST(request: Request) {
       path: "/",
       maxAge: Math.floor(SESSION_TTL_MS.guest / 1000),
     });
+    /**
+     * And an identity, because this code proved the address — B410.
+     *
+     * The reader asked to sign in to one journal and gets, in addition, the
+     * instance-wide credential that lets `/` tell them what else they may
+     * open. That is not a widening of what they were granted: an identity
+     * authorises nothing on its own, and every journal it is presented to
+     * re-derives access from grants, `people:` and `config.json` on each
+     * request. What it removes is having to prove the same address again for
+     * the next journal and on the next device.
+     *
+     * Guarded, because it is a bonus and not the thing that was asked for. A
+     * database hiccup here must not turn a successful sign-in into a 500 and
+     * lose the session the reader has already earned.
+     */
+    try {
+      await issueIdentityCookie(email);
+    } catch (err) {
+      console.warn("[auth] signed in, but no identity could be issued:", err);
+    }
+
     // The token is in the cookie; echoing it in the body would put a
     // credential somewhere script can read it.
     return Response.json({ ok: true, expires: result.expiresAt, scope: result.scope });

@@ -1,4 +1,4 @@
-import { SIGNUP_OWNER, isEmail, verifyCode } from "@/lib/auth";
+import { NO_JOURNAL, isEmail, verifyCode } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const result = await verifyCode(SIGNUP_OWNER, email, code, "signup");
+  const result = await verifyCode(NO_JOURNAL, email, code, "signup");
   if (!result.ok) {
     // One answer for every failure, as everywhere else here.
     return Response.json({ error: "invalid_code" }, { status: 401 });

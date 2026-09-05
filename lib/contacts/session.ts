@@ -1,6 +1,6 @@
 import "server-only";
-import { cookies } from "next/headers";
-import { GUEST_COOKIE, resolveSession } from "../auth";
+import { resolveSession } from "../auth";
+import { resolveAccess } from "../auth/handshake";
 import { hasReadGrant } from "../grants";
 import { getUser } from "../users";
 import { getContactByEmail, type ContactRecord } from "./index";
@@ -31,9 +31,12 @@ export async function isOwner(username: string, request?: Request): Promise<bool
   if (!user?.owner.email) return false;
   const ownerEmail = user.owner.email;
 
-  const jar = await cookies();
-  const guest = await resolveSession(jar.get(GUEST_COOKIE)?.value, "guest");
-  if (guest && guest.owner === username && guest.email === ownerEmail) return true;
+  // Either browser credential proves the address: the journal session this
+  // reader signed in with, or the instance-wide identity of B410. Which one
+  // they hold is not a fact about whether they own this journal — `owner.email`
+  // is — so the question is asked of the address, once, through `resolveAccess`.
+  const { email } = await resolveAccess(username);
+  if (email === ownerEmail) return true;
 
   const header = request?.headers.get("authorization") ?? "";
   const bearer = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : undefined;
@@ -86,9 +89,11 @@ export type JournalReader = {
  * grant, and `lib/grants.ts` is where "live" is defined.
  */
 export async function journalReader(username: string): Promise<JournalReader> {
-  const jar = await cookies();
-  const session = await resolveSession(jar.get(GUEST_COOKIE)?.value, "guest");
-  const email = session?.owner === username ? session.email : null;
+  // B410: the address may arrive on this journal's session or on an
+  // instance-wide identity, and being a guest here is a question about the
+  // address. Everything below is unchanged — an identity opens nothing on its
+  // own, and `hasReadGrant` is still asked on every request.
+  const { email } = await resolveAccess(username);
   if (!email) return { email: null, contact: null, guest: false };
 
   const contact = await getContactByEmail(username, email);
