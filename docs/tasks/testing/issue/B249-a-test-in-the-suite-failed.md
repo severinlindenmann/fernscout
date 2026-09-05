@@ -7,8 +7,7 @@ complexity: medium
 area: Test suite
 found: "2026-09-04T09:23:12Z"
 started: "2026-09-05T15:45:03Z"
-session: e5747799-fd3e-4d40-a335-82fa4e24333e
-claimed: "2026-09-05T15:45:03Z"
+merged: "2026-09-05T15:47:39Z"
 ---
 
 # B249 — A test in the suite failed once in six runs and left no name behind

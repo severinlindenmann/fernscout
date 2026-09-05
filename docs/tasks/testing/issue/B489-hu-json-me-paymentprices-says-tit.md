@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: i18n
 found: "2026-09-05T15:36:30Z"
+merged: "2026-09-05T15:47:39Z"
 ---
 
 # B489 — hu.json me.paymentPrices says útitól, which is not a Hungarian word
