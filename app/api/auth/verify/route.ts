@@ -117,7 +117,7 @@ export async function POST(request: Request) {
      * lose the session the reader has already earned.
      */
     try {
-      await issueIdentityCookie(email);
+      await issueIdentityCookie(email, request.headers.get("user-agent"));
     } catch (err) {
       console.warn("[auth] signed in, but no identity could be issued:", err);
     }

@@ -57,17 +57,36 @@ function describe(trip: Trip, through: ViewerTrip["through"], current: string | 
   };
 }
 
-export async function resolveViewer(username: string): Promise<Viewer> {
-  const user = getUser(username);
-  if (!user) return { email: null, owner: false, guest: false, trips: [] };
+/**
+ * What a reader's standing in one journal is, before any trip is considered.
+ *
+ * Three facts, from three unrelated places — `config.json`'s `owner.email`, the
+ * contacts table plus a live grant, and the address itself. Split out from
+ * `resolveViewer` for B411, which asks the same question of every journal on
+ * the instance for one address and therefore cannot go through the cookie.
+ */
+export type Standing = {
+  /** The address asking, or null for a stranger. */
+  email: string | null;
+  /** True when this is the journal's owner. */
+  owner: boolean;
+  /** True when they hold a live `read` grant here. */
+  guest: boolean;
+};
 
-  // The session, the contact record and the answer to "have they been let in?"
-  // — all three from `journalReader`, which is also what `mayReadTrip` asks.
-  // The panel computing its own answer is exactly how this page came to list
-  // trips the gate then refused (B41).
-  const { email, contact, guest } = await journalReader(username);
-  const owner = await isOwner(username);
-
+/**
+ * The trips one standing may see, and why — the loop that was inside
+ * `resolveViewer`.
+ *
+ * Pulled out whole rather than reimplemented, which is the point: B411 needs
+ * this answer for every journal an address touches, and a second copy of these
+ * four arms is how the home view and the trip gate would start disagreeing
+ * about who may open what. B41 is the record of what that costs.
+ */
+export async function tripsVisibleTo(
+  username: string,
+  { email, owner, guest }: Standing,
+): Promise<ViewerTrip[]> {
   const trips = getTrips(username);
   const current = trips.find((t) => t.status === "current")?.id;
   // Every trip this reader was let onto by a buddy link, in one query. Asking
@@ -107,6 +126,25 @@ export async function resolveViewer(username: string): Promise<Viewer> {
       visible.push(describe(trip, "guest", current));
     }
   }
+  return visible;
+}
 
-  return { email, name: contact?.name ?? undefined, owner, guest, trips: visible };
+export async function resolveViewer(username: string): Promise<Viewer> {
+  const user = getUser(username);
+  if (!user) return { email: null, owner: false, guest: false, trips: [] };
+
+  // The session, the contact record and the answer to "have they been let in?"
+  // — all three from `journalReader`, which is also what `mayReadTrip` asks.
+  // The panel computing its own answer is exactly how this page came to list
+  // trips the gate then refused (B41).
+  const { email, contact, guest } = await journalReader(username);
+  const owner = await isOwner(username);
+
+  return {
+    email,
+    name: contact?.name ?? undefined,
+    owner,
+    guest,
+    trips: await tripsVisibleTo(username, { email, owner, guest }),
+  };
 }

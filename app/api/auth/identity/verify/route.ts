@@ -44,7 +44,14 @@ export async function POST(request: Request) {
 
   // `verifyCode` redeems the six digits and opens the identity in one step —
   // the attempt counter, the burn and the supersede rules all live in there.
-  const result = await verifyCode(NO_JOURNAL, email, code, "identity");
+  const result = await verifyCode(
+    NO_JOURNAL,
+    email,
+    code,
+    "identity",
+    undefined,
+    request.headers.get("user-agent"),
+  );
   if (!result.ok) {
     // One answer for every failure, as everywhere else: which of "no code",
     // "expired", "wrong" and "burned" applies is what an attacker wants.

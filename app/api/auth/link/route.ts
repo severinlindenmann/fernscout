@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   // The link proved the address, so it earns an identity too — B410. Guarded:
   // the sign-in already succeeded and must not be lost to a failure here.
   try {
-    await issueIdentityCookie(result.email);
+    await issueIdentityCookie(result.email, request.headers.get("user-agent"));
   } catch (err) {
     console.warn("[auth] link signed in, but no identity could be issued:", err);
   }

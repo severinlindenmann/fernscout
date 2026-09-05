@@ -29,8 +29,14 @@ import { IDENTITY_COOKIE, SESSION_TTL_MS, openIdentitySession } from "./index";
  * name a cache after. Never the token — that is in the cookie, and echoing it
  * into a body would put a year-long credential somewhere script can read.
  */
-export async function issueIdentityCookie(email: string): Promise<string> {
-  const { token, publicId } = await openIdentitySession(email);
+export async function issueIdentityCookie(
+  email: string,
+  /** The `user-agent` of the request that proved the address, so the device
+   * list can name this browser. Never trusted for anything; see
+   * `openIdentitySession`. */
+  userAgent?: string | null,
+): Promise<string> {
+  const { token, publicId } = await openIdentitySession(email, userAgent);
   await setIdentityCookie(token);
   return publicId;
 }

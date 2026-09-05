@@ -92,7 +92,7 @@ export async function POST(request: Request) {
     // And an identity, because confirming proved the address — B410. Guarded:
     // the confirmation stands whatever happens here.
     try {
-      await issueIdentityCookie(result.contact.email);
+      await issueIdentityCookie(result.contact.email, request.headers.get("user-agent"));
     } catch (err) {
       console.warn("[contacts] confirmed, but no identity could be issued:", err);
     }
