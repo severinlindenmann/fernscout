@@ -4,7 +4,7 @@ import { mayReadTrip } from "@/lib/tripGate";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { notFound } from "next/navigation";
 import TripProvider from "@/components/TripProvider";
-import { getAllMedia } from "@/lib/entries";
+import { getAllMedia, getDays } from "@/lib/entries";
 import { balanceOf } from "@/lib/credits";
 import { bookLocalesFor, photobookEntryFor } from "@/lib/photobook/entry";
 import { outcomeFrom } from "@/lib/photobook/orders";
@@ -40,6 +40,11 @@ export default async function PhotobookPage({
         // the grid starts fully selected. Drafts are the owner's own and are
         // included: this page is only ever the owner's.
         media={getAllMedia(trip.ref, { includeDrafts: true }).filter((m) => m.type === "image")}
+        days={getDays(trip.ref, { includeDrafts: true }).map((d) => ({
+          date: d.date,
+          title: d.lead.title,
+          location: [d.lead.location, d.lead.country].filter(Boolean).join(", "),
+        }))}
         balance={await balanceOf(user)}
         locales={bookLocalesFor(user)}
         outcome={await outcomeFrom(user, await searchParams)}

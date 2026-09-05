@@ -47,7 +47,7 @@ import {
 } from "./spec.ts";
 import { formatDate, formatDateRange, wrap } from "./text.ts";
 import { isPlottable } from "../mapFrame.ts";
-import { DEFAULT_OPTIONS, type BookOptions } from "./options.ts";
+import { DEFAULT_OPTIONS, type BookOptions, type DayLayout } from "./options.ts";
 import { bookStrings, fill, type BookStrings } from "./strings.ts";
 
 // ---------------------------------------------------------------------------
@@ -511,6 +511,56 @@ function placeAll(
   });
 }
 
+/**
+ * The owner's arrangement for one day, or the planner's if they made none.
+ *
+ * `groupPhotos` chooses by shape — is this a portrait, is that a panorama —
+ * which is the right default and is what `auto` keeps. The named layouts are a
+ * person overruling it for one particular day, so they force the grouping and
+ * let `placeAll` crop to fit rather than asking again what shape anything is.
+ *
+ * `grid` still asks, because four photographs to a page only works when the
+ * shapes allow it: forcing a panorama into a quarter-page crops it to a strip
+ * of nothing. Where they do not, it falls back to pairs, which is the nearest
+ * honest answer to "small, several to a page".
+ */
+function groupsFor(
+  layout: DayLayout,
+  photos: BookPhoto[],
+): { layout: PhotoLayout; photos: BookPhoto[] }[] {
+  if (layout === "auto" || layout === "hero" || photos.length === 0) return groupPhotos(photos);
+  if (layout === "text") return [];
+  if (layout === "single") return photos.map((photo) => ({ layout: "feature" as const, photos: [photo] }));
+
+  const size = layout === "grid" ? 4 : 2;
+  const groups: { layout: PhotoLayout; photos: BookPhoto[] }[] = [];
+  for (let i = 0; i < photos.length; i += size) {
+    const slice = photos.slice(i, i + size);
+    if (slice.length === 1) {
+      groups.push({ layout: "feature", photos: slice });
+      continue;
+    }
+    const squarish = slice.every((p) => !isPanorama(p));
+    if (size === 4 && slice.length === 4 && squarish) {
+      groups.push({ layout: "quad", photos: slice });
+      continue;
+    }
+    // Two at a time: side by side if both stand up, one above the other
+    // otherwise, which is the arrangement that crops least.
+    const portraits = slice.slice(0, 2).every((p) => orientation(p) === "portrait");
+    groups.push({ layout: portraits ? "pair-portrait" : "pair-stacked", photos: slice.slice(0, 2) });
+    if (slice.length > 2) {
+      const tail = slice.slice(2);
+      const tailPortraits = tail.every((p) => orientation(p) === "portrait");
+      groups.push({
+        layout: tail.length === 1 ? "feature" : tailPortraits ? "pair-portrait" : "pair-stacked",
+        photos: tail,
+      });
+    }
+  }
+  return groups;
+}
+
 /** How photographs are grouped onto pages. See the module note for why. */
 export function groupPhotos(photos: BookPhoto[]): { layout: PhotoLayout; photos: BookPhoto[] }[] {
   const groups: { layout: PhotoLayout; photos: BookPhoto[] }[] = [];
@@ -609,7 +659,14 @@ type Draft =
   | { kind: "route"; half: "left" | "right"; align?: "verso" }
   | { kind: "chapter"; chapter: Chapter; index: number; of: number; align: "recto" }
   | { kind: "day"; day: BookDay; captions: string[]; photo?: BookPhoto }
-  | { kind: "photos"; layout: PhotoLayout; photos: BookPhoto[] }
+  | {
+      kind: "photos";
+      layout: PhotoLayout;
+      photos: BookPhoto[];
+      /** Set when this page's arrangement was chosen by a person rather than
+       * by `groupPhotos`. `expandToMinimum` leaves it alone — see there. */
+      chosen?: true;
+    }
   | { kind: "followers"; align: "recto" }
   | { kind: "transport"; align: "recto" }
   | { kind: "costs"; align: "recto" }
@@ -625,7 +682,39 @@ function draftsForChapter(
   const drafts: Draft[] = options.includeChapters
     ? [{ kind: "chapter", chapter, index, of, align: "recto" }]
     : [];
-  for (const [dayIndex, day] of chapter.days.entries()) {
+  for (const [dayIndex, chapterDay] of chapter.days.entries()) {
+    /**
+     * What the owner said about this day, if anything.
+     *
+     * Keyed by date, which is what a day is here. A day nobody touched has no
+     * entry and everything below runs exactly as it did before per-day plans
+     * existed — which is the promise this feature has to keep, because most
+     * days in most books will never be touched.
+     */
+    const chosen = options.days[chapterDay.date];
+
+    /**
+     * The photographs, in the order the owner put them.
+     *
+     * `chosen.photos` names them by their gallery `src`, so the day is rebuilt
+     * from that list rather than filtered by it — which is what makes
+     * reordering possible at all. A named photograph the day does not have is
+     * dropped rather than invented: the list can outlive an entry being
+     * edited, and a book must not print a picture that is no longer there.
+     *
+     * An empty list is a day the owner emptied on purpose, and is not the same
+     * as never having said.
+     */
+    const day = chosen?.photos
+      ? {
+          ...chapterDay,
+          photos: chosen.photos
+            .map((src) => chapterDay.photos.find((p) => p.webSrc === src))
+            .filter((p): p is BookPhoto => Boolean(p)),
+        }
+      : chapterDay;
+
+    const layout = chosen?.layout ?? "auto";
     const captions = options.includeText
       ? day.photos.map((p) => p.caption).filter((c): c is string => Boolean(c))
       : [];
@@ -647,9 +736,12 @@ function draftsForChapter(
     // spends it beside the words rather than on a hero, because the
     // alternative is a page of prose with nothing on it facing a page of
     // photograph with nothing to say.
-    const wantsHero = dayIndex === 0 || dayIndex % 3 === 0;
+    // `auto` is the rhythm described above. Anything else is the owner having
+    // looked at this particular day and decided, which outranks a rule about
+    // every third one.
+    const wantsHero = layout === "hero" || (layout === "auto" && (dayIndex === 0 || dayIndex % 3 === 0));
     const hero = wantsHero && day.photos.length > 1 ? day.photos[0] : undefined;
-    const rest = hero ? day.photos.slice(1) : day.photos;
+    const rest = layout === "text" ? [] : hero ? day.photos.slice(1) : day.photos;
 
     /**
      * The day's words share their page with a photograph.
@@ -667,8 +759,13 @@ function draftsForChapter(
       drafts.push({ kind: "day", day: written, captions, photo: withText });
     }
     if (hero) drafts.push({ kind: "photos", layout: "full-bleed", photos: [hero] });
-    for (const group of groupPhotos(grouped)) {
-      drafts.push({ kind: "photos", layout: group.layout, photos: group.photos });
+    for (const group of groupsFor(layout, grouped)) {
+      drafts.push({
+        kind: "photos",
+        layout: group.layout,
+        photos: group.photos,
+        ...(layout === "auto" ? {} : { chosen: true as const }),
+      });
     }
   }
   return drafts;
@@ -727,6 +824,13 @@ function expandToMinimum(drafts: Draft[], target: number): Draft[] {
     let bestIndex = -1;
     let bestSize = 1;
     out.forEach((d, i) => {
+      // Never break apart a page somebody arranged. A short trip needs
+      // thirty-two pages and this is how it gets them — by splitting
+      // multi-photo pages until there are enough — which would quietly undo a
+      // grid the owner chose and leave them pressing the same button again.
+      // Padding with blanks is the worse outcome only when nobody has said
+      // what they wanted.
+      if (d.kind === "photos" && d.chosen) return;
       if (d.kind === "photos" && d.photos.length > bestSize) {
         bestSize = d.photos.length;
         bestIndex = i;
