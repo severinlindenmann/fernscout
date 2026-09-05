@@ -66,10 +66,16 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   const form = await request.formData();
   const trip = String(form.get("trip") ?? "");
   const orderId = String(form.get("orderId") ?? "");
-  const options = parseOptions(
-    JSON.parse(String(form.get("options") ?? "null")),
-    Object.keys(BOOK_SIZES),
-  );
+  // Parsed the same guarded way `preview/route.ts` parses its JSON body — a
+  // malformed field used to reach `JSON.parse` unguarded and turn into a 500,
+  // where the sibling route already answered a clean 400 for the same input.
+  let optionsInput: unknown = null;
+  try {
+    optionsInput = JSON.parse(String(form.get("options") ?? "null"));
+  } catch {
+    optionsInput = null;
+  }
+  const options = parseOptions(optionsInput, Object.keys(BOOK_SIZES));
   const parsed = parseTripRef(trip);
   // `ORDER_ID_RE` here, before the id reaches anything that joins it into a
   // path — `claimOrder`, and later `buildPhotobook`/`orderDir` — is not
@@ -81,7 +87,16 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   }
   const back_ = (state: string, extra?: Record<string, string>) => back(user, parsed.tripId, state, extra);
 
-  const book = planFor(trip, options);
+  // A stale page (the trip was deleted mid-session) or a malformed ref that
+  // happened to parse throws here — the same case `preview/route.ts` guards
+  // against with the same answer, rather than a 500 upstream of any money
+  // moving.
+  let book;
+  try {
+    book = planFor(trip, options);
+  } catch {
+    return Response.json({ error: "not_found" }, { status: 404 });
+  }
   const credits = priceOf(book, options);
   const payload = {
     trip,
@@ -111,8 +126,24 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
     built = buildPhotobook(user, orderId, trip, options);
   } catch (error) {
     console.error(`[photobook] building ${orderId} failed:`, error);
-    await refund(user, credits, orderId);
-    await markFailed(user, orderId, payload, String(error));
+    // The one branch where a failure costs the owner money: the build has
+    // already failed, and now the database that would give the credits back
+    // is unreachable too. Nested rather than left to escape — an uncaught
+    // throw here would leave the row `submitted`, the balance down, and the
+    // owner looking at whatever Next's default error page says, which is
+    // nothing true about any of that. `refund_failed` says the one thing that
+    // is true: something needs a person's attention, and pressing Pay again
+    // is not it.
+    try {
+      await refund(user, credits, orderId);
+      await markFailed(user, orderId, payload, String(error));
+    } catch (refundError) {
+      console.error(
+        `[photobook] refund/markFailed for ${orderId} failed after a failed build:`,
+        refundError,
+      );
+      return back_("refund_failed");
+    }
     return back_("failed");
   }
 

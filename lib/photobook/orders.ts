@@ -133,6 +133,38 @@ export async function getPhotobookOrder(owner: string, id: string): Promise<Phot
   };
 }
 
+/** What the options page shows above the form, once the button has actually
+ * been pressed. `orderId` is carried alongside `files` — rather than left for
+ * the page to re-read off `window.location` — so the download links below
+ * can be built without touching a browser API that does not exist during the
+ * server render. */
+export type PhotobookOutcome = { state: string; orderId: string | null; files: string[] };
+
+/**
+ * Turn `order/route.ts`'s redirect query into what the page needs to render
+ * it — both `photobook/page.tsx` and `trips/[trip]/photobook/page.tsx` read
+ * an identical `?state=&order=` this way, since `back()` always lands on the
+ * second one but both accept the query.
+ *
+ * Only a successful order has files to hand over, and the lookup only runs
+ * for `state=done` with an id shaped like one this route would ever have
+ * produced — a stray query parameter must not turn into a lookup of somebody
+ * else's order, and every other state needs no row at all.
+ */
+export async function outcomeFrom(
+  owner: string,
+  query: Record<string, string | string[] | undefined>,
+): Promise<PhotobookOutcome | null> {
+  const state = query.state;
+  const order = query.order;
+  if (typeof state !== "string") return null;
+  if (state !== "done" || typeof order !== "string" || !ORDER_ID_RE.test(order)) {
+    return { state, orderId: null, files: [] };
+  }
+  const found = await getPhotobookOrder(owner, order);
+  return { state, orderId: order, files: found?.payload.files ?? [] };
+}
+
 /**
  * Move a claimed order to a terminal status, and say whether it happened.
  *

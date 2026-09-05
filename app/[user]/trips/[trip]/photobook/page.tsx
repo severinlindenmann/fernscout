@@ -7,6 +7,7 @@ import { getAllMedia } from "@/lib/entries";
 import { balanceOf } from "@/lib/credits";
 import { photobookEntryFor } from "@/lib/photobook/entry";
 import { getTrip, tripRef } from "@/lib/trips";
+import { outcomeFrom } from "@/lib/photobook/orders";
 import PhotobookPageContent from "../../../(trip)/photobook/PhotobookPageContent";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,6 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 // otherwise mirrors — this page is owner-only and must never be prerendered.
 export default async function TripPhotobookPage({
   params,
+  searchParams,
 }: PageProps<"/[user]/trips/[trip]/photobook">) {
   const { user, trip: id } = await params;
   const trip = getTrip(tripRef(user, id));
@@ -35,6 +37,11 @@ export default async function TripPhotobookPage({
         tripTitle={trip.title}
         media={getAllMedia(trip.ref, { includeDrafts: true }).filter((m) => m.type === "image")}
         balance={await balanceOf(user)}
+        // `order/route.ts` always redirects here — this is the URL its
+        // `back()` builds — so this copy of the page, and not the
+        // current-trip one above, is the one that actually needs to read the
+        // outcome back. Both accept it; only one is ever asked.
+        outcome={await outcomeFrom(user, await searchParams)}
       />
     </TripProvider>
   );

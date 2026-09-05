@@ -36,7 +36,10 @@ export async function POST(
       { status: 403 },
     );
   }
-  if (!isEnabled("photobook", user) || !(await isOwner(user))) {
+  // `credits` alongside `photobook` — the same pair `order/route.ts` checks.
+  // Without it this route quotes a price nobody at this journal can pay,
+  // which is worse than a 404: it looks like an offer.
+  if (!isEnabled("photobook", user) || !isEnabled("credits", user) || !(await isOwner(user))) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
@@ -82,5 +85,11 @@ export async function POST(
     volumes: book.volumes.length,
     credits: priceOf(book, options),
     warnings: book.warnings,
+    // A book with no photographs still plans — `expandToMinimum` pads it to a
+    // legal page count — but it is not one anybody should pay 90+ credits
+    // for. Refused here, once, rather than trusted to a client-side check the
+    // options form might skip: the page disables Pay on `buyable: false`
+    // rather than on counting `warnings` itself.
+    buyable: book.photoCount > 0,
   });
 }

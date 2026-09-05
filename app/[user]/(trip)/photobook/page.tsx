@@ -7,6 +7,7 @@ import TripProvider from "@/components/TripProvider";
 import { getAllMedia } from "@/lib/entries";
 import { balanceOf } from "@/lib/credits";
 import { photobookEntryFor } from "@/lib/photobook/entry";
+import { outcomeFrom } from "@/lib/photobook/orders";
 import PhotobookPageContent from "./PhotobookPageContent";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,7 +15,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: translateIn(reader, "photobook.title"), robots: { index: false } };
 }
 
-export default async function PhotobookPage({ params }: PageProps<"/[user]/photobook">) {
+export default async function PhotobookPage({
+  params,
+  searchParams,
+}: PageProps<"/[user]/photobook">) {
   const { user } = await params;
   const trip = currentTripOrRedirect(user);
   if (!(await mayReadTrip(trip))) return null;
@@ -37,6 +41,7 @@ export default async function PhotobookPage({ params }: PageProps<"/[user]/photo
         // included: this page is only ever the owner's.
         media={getAllMedia(trip.ref, { includeDrafts: true }).filter((m) => m.type === "image")}
         balance={await balanceOf(user)}
+        outcome={await outcomeFrom(user, await searchParams)}
       />
     </TripProvider>
   );
