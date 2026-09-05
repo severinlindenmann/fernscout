@@ -622,6 +622,7 @@ export type TranslationKey =
   | "nav.costs"
   | "nav.gallery"
   | "nav.map"
+  | "nav.myJournals"
   | "nav.overview"
   | "nav.search"
   | "nav.signIn"

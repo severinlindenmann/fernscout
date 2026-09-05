@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import SiteNav from "./SiteNav";
 import SkipLink from "./SkipLink";
 import CurrencySwitcher from "./CurrencySwitcher";
@@ -20,7 +21,7 @@ export default function PageHeader({
    * that page handles it itself instead of linking. */
   onHome?: () => void;
 }) {
-  const { localizedTrip } = useI18n();
+  const { localizedTrip, t } = useI18n();
   const site = useSite();
   // Null on pages with no trip in context, such as /trips — the site logo
   // there has nowhere trip-relative to go, so it falls back to "/".
@@ -87,6 +88,38 @@ export default function PageHeader({
       */}
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-2">
         <div className="min-w-0 flex-[1_1_12rem]">
+          {/*
+            The way back out of this journal — B433.
+
+            Inside the title box rather than as an eighth entry in `SiteNav`.
+            That row is measured, twice, in the comments above: seven controls
+            already wrap onto their own line at phone widths and were the cause
+            of both B170 and B212. An eighth would be spent on the one control
+            that is not about this journal at all.
+
+            Above the title because it is a breadcrumb: it names where this
+            journal sits, which is the same relationship `/` now has to it.
+            Small, quiet, and the same at every width — a reader who arrived on
+            a phone and one who arrived on a laptop are equally stuck without
+            it, so this is not a mobile affordance with a desktop equivalent
+            somewhere else.
+
+            Drawn only for a reader holding an identity, because only they have
+            somewhere to go: `/` is their journals, and for everybody else it
+            is the pitch. See `hasIdentity` in lib/site.ts for why that is not
+            `signedIn`.
+          */}
+          {site.hasIdentity && (
+            <Link
+              href="/"
+              className="-ml-1 mb-0.5 inline-flex min-h-6 items-center gap-1 rounded px-1 text-xs
+                         font-semibold text-navy-600 transition-colors hover:text-navy-900
+                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden strokeWidth={2.4} />
+              <span className="truncate">{t("nav.myJournals")}</span>
+            </Link>
+          )}
           {onHome ? (
             <button
               onClick={onHome}

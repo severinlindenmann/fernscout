@@ -139,6 +139,24 @@ export type SiteSummary = {
    */
   canSignIn: boolean;
   /**
+   * Whether this reader holds an instance-wide identity — B433.
+   *
+   * The header's way back out of a journal, and the only thing that decides
+   * whether it is drawn. It is **not** `signedIn`: that is a guest session on
+   * *this* journal, and a reader can hold one without holding an identity —
+   * every session issued before B410, and every one issued by a journal's own
+   * `/<user>/me` form. Sending those readers to `/` would land them on the
+   * public landing page having promised them "your journals".
+   *
+   * Deliberately not "does this reader have more than one journal". That would
+   * be `journalsFor()` — a walk of every journal on the instance with two
+   * indexed queries each — on every page render of every journal, to decide
+   * whether to draw one link. The link is honest either way: somebody with one
+   * journal who follows it gets that journal and the page that lists it, which
+   * is where the way to the rest of the instance is.
+   */
+  hasIdentity: boolean;
+  /**
    * Whether this journal's costs page has anything to show — `features.costs`
    * on (`isEnabled`), *and* at least one trip actually has a `costs.md`
    * (`costsAvailable` in lib/costs.ts).
@@ -163,6 +181,7 @@ export function siteSummaryFor(
   user: UserConfig,
   isDefaultUser: boolean,
   signedIn = false,
+  hasIdentity = false,
 ): SiteSummary {
   return {
     username: user.username,
@@ -174,6 +193,7 @@ export function siteSummaryFor(
     locales: user.locales,
     base: `/${user.username}`,
     signedIn,
+    hasIdentity,
     // Asked here rather than threaded through as a fourth positional boolean:
     // it is a property of the journal, so every caller would compute the same
     // answer, and one of them would eventually forget to.
@@ -187,7 +207,8 @@ export function siteSummary(
   username: string,
   isDefaultUser: boolean,
   signedIn = false,
+  hasIdentity = false,
 ): SiteSummary | null {
   const user = getUser(username);
-  return user ? siteSummaryFor(user, isDefaultUser, signedIn) : null;
+  return user ? siteSummaryFor(user, isDefaultUser, signedIn, hasIdentity) : null;
 }
