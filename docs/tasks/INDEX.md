@@ -207,15 +207,14 @@ Do not edit them by hand; run the script.
 | [B512](open/B512-the-front-cover-is-whatever-photograph.md) | The front cover is whatever photograph happened to be first | FEATURE | medium | medium |
 | [B516](open/B516-a-layout-has-to-be-chosen.md) | A layout has to be chosen one day at a time | FEATURE | medium | low |
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B510](in-development/B510-content-holds-four-things-that-are.md) | content/ holds four things that are not journals | CHORE | medium | high | `aa0ba348` |
 | [B514](in-development/B514-the-preview-shows-pages-but-a.md) | The preview shows pages, but a book is read in spreads | FEATURE | medium | medium | `d9c396ea` |
 | [B515](in-development/B515-there-is-no-way-back-from.md) | There is no way back from an arrangement you regret | FEATURE | medium | low | `d9c396ea` |
 
-## testing (209)
+## testing (210)
 
 ### security (2)
 
@@ -403,7 +402,7 @@ Do not edit them by hand; run the script.
 | [B368](testing/small-feature/B368-there-is-no-way-to-ask.md) | There is no way to ask for more credits, and the payment provider does not exist yet | FEATURE | low | medium | — |
 | [B475](testing/small-feature/B475-the-nightly-status-mail-is-a.md) | The nightly status mail is a wall of monospace while every other letter this instance sends is designed | FEATURE | low | medium | — |
 
-### chore (17)
+### chore (18)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -415,6 +414,7 @@ Do not edit them by hand; run the script.
 | [B40](testing/chore/B40-a-six-digit-code-expires-in.md) | A six-digit code expires in ten minutes, which is shorter than people take to find the mail | CHORE | medium | low | — |
 | [B485](testing/chore/B485-hu-json-calls-a-trip-utaz.md) | hu.json calls a trip utazás where the guides and B449 settled on út | CHORE | medium | medium | — |
 | [B501](testing/chore/B501-the-demo-journal-keeps-no-originals.md) | The demo journal keeps no originals, so every demo book prints soft | CHORE | medium | low | — |
+| [B510](testing/chore/B510-content-holds-four-things-that-are.md) | content/ holds four things that are not journals | CHORE | medium | high | — |
 | [B66](testing/chore/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium | — |
 | [B08](testing/chore/B08-serve-webp-alongside-jpeg-with-picture.md) | Serve WebP alongside JPEG with <picture> in the gallery (W30 gap) | CHORE | low | low | — |
 | [B133](testing/chore/B133-nothing-tests-the-url-upload-branch.md) | Nothing tests the URL upload branch end to end, so the kept-original promise rests on one shared writer | CHORE | low | low | — |
