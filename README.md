@@ -27,7 +27,7 @@ configure:
 | | |
 | --- | --- |
 | **WhatsApp** | tell your readers a new day is up, on the app they already have |
-| **Email** | the same, by mail — plus a weekly digest |
+| **Email** | the same, by mail |
 | **Phone notifications** | web push to a phone or desktop, no app to install |
 | **Postcards** | pick a photo, write a back, order real printed cards to real addresses |
 | **Photobook** | a whole trip laid out as a print-ready PDF |

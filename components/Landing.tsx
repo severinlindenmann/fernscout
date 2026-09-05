@@ -77,6 +77,7 @@ export default function Landing({
   locales,
   repository,
   credit,
+  legal,
   codeMinutes,
 }: {
   siteName: string;
@@ -93,6 +94,8 @@ export default function Landing({
   locales?: string[];
   /** Where the source lives, if this instance says. */
   repository?: string;
+  /** Whether `/legal` exists on this instance — see lib/legal.ts. */
+  legal?: boolean;
   /** Who runs it, if this instance says. */
   credit?: { name: string; url?: string; countryCode?: string };
   /** How long a sign-in code lasts, from `CODE_TTL_MINUTES` — B426. Passed
@@ -175,7 +178,7 @@ export default function Landing({
 
   const header = <SiteHeader siteName={siteName} locales={locales} />;
   const publicList = <PublicJournals journals={journals} />;
-  const colophon = <Colophon repository={repository} credit={credit} />;
+  const colophon = <Colophon repository={repository} credit={credit} legal={legal} />;
 
   if (phase === "in" && home) {
     return (

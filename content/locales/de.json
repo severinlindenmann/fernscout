@@ -406,8 +406,11 @@
   "landing.docs": "Dokumentation lesen",
   "landing.handTitle": "Gib das deinem Agenten",
   "landing.hero": "Ein Reisetagebuch, das dein Agent für dich schreibt.",
+  "landing.hostedIn": "In Europa gehostet",
+  "landing.hostedInBody": "Auf einem Hetzner-Server in Deutschland. Keine Analytics, keine Tracker, keine Werbung — hier misst dich niemand.",
   "landing.instruction": "Führe mich durch das Anlegen meines eigenen Reisetagebuchs, nach der Übersicht unter {docUrl} und der vollständigen Anleitung unter {agentUrl}. Du brauchst dafür eine E-Mail-Adresse, die mir gehört.",
   "landing.lede": "Dein Reisetagebuch besteht aus Markdown-Dateien und Fotos in einem Ordner, der dir gehört. Du liest es im Browser. Ein Agent schreibt es — du gibst ihm nur einen Link und eine E-Mail-Adresse.",
+  "landing.legal": "Impressum & Datenschutz",
   "landing.madeBy": "Mit Liebe gemacht in {flag} von {name}",
   "landing.metaDescription": "Markdown-Dateien und Fotos in einem Ordner, der dir gehört. Du liest es im Browser; ein Agent schreibt es.",
   "landing.metaTitle": "{name} — ein Reisetagebuch, das dein Agent schreibt",
@@ -428,6 +431,9 @@
   "landing.trips": "{count} Reisen",
   "landing.trips.one": "{count} Reise",
   "lang.label": "Sprache",
+  "legal.lede": "Wer diese Seite betreibt, was mit deinen Daten passiert und was nicht versprochen wird.",
+  "legal.notTranslated": "Diese Seite gibt es noch nicht in deiner Sprache, du liest gerade eine andere.",
+  "legal.title": "Impressum & Datenschutz",
   "mail.identityApp": "Wenn du {site} auf deinem Startbildschirm hast, öffne es dort und tippe den Code ein — der Knopf öffnet deinen Browser und meldet dich dort an.",
   "mail.identityButton": "Anmelden",
   "mail.identityCode": "Dein Code lautet {code}. Er gilt {minutes} Minuten.",
@@ -835,7 +841,6 @@
   "welcome.title": "Dein Reisetagebuch ist bereit",
   "welcome.token": "Bitte deinen Agenten, bei {guide} anzufangen. Er lässt sich von diesem Server einen sechsstelligen Code an {email} schicken — an diese Adresse und an keine andere — und aus diesem Code wird ein Token, das sieben Tage lang schreiben darf.",
   "welcome.tokenHeading": "Wenn du später hineinschreiben willst",
-
   "fallback.writtenIn.en": "Auf Englisch geschrieben — dieser Tag hat keine deutsche Fassung.",
   "fallback.writtenIn.hu": "Auf Ungarisch geschrieben — dieser Tag hat keine deutsche Fassung."
 }

@@ -18,14 +18,22 @@ import { isDeletedUsername } from "./tombstones";
 const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 
 /**
- * Not people: shared currency rates, shared UI dictionaries.
+ * Not people: shared currency rates, shared UI dictionaries, and the
+ * instance's own imprint.
  *
  * Exported because it is also the list `scripts/sync-shipped-content.sh` is
- * allowed to overwrite on a deploy — the same two names for the same reason,
+ * allowed to overwrite on a deploy — the same names for the same reason,
  * and `test/sync-shipped-content.test.ts` holds the shell copy against this
- * one so a third instance directory cannot be added to only one of them.
+ * one so a fourth instance directory cannot be added to only one of them.
+ *
+ * `legal/` is here rather than among the operator-owned folders because an
+ * imprint has to *reach* production to be worth writing: it is the only page
+ * on the site whose absence is a legal problem, and leaving it to a one-time
+ * manual copy is how it would have said last year's sub-processors for a
+ * year. An instance whose imprint differs from the repository's marks the
+ * folder `.keep-local`, which is the same escape hatch the dictionaries have.
  */
-export const INSTANCE_DIRS = new Set(["rates", "locales"]);
+export const INSTANCE_DIRS = new Set(["rates", "locales", "legal"]);
 
 /**
  * Route segments a username would shadow.

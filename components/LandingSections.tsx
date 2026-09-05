@@ -309,13 +309,43 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
 export function Colophon({
   repository,
   credit,
+  legal,
 }: {
   repository?: string;
   credit?: { name: string; url?: string; countryCode?: string };
+  /** Whether this instance has written a `content/legal/` page. Absent
+   * instances draw no link rather than one that 404s — the same bargain every
+   * optional capability makes. */
+  legal?: boolean;
 }) {
   const { t } = useI18n();
   return (
     <>
+      {/*
+        What this instance can honestly say about itself before anybody signs
+        up: where the server is, and that nothing here measures the reader.
+
+        Deliberately above the two columns rather than a third one in them —
+        it is the answer to a question a visitor has before they read either,
+        and it is the only place the imprint is linked from.
+      */}
+      <section className="mt-10 rounded-xl border border-navy-200 bg-cream-100 px-4 py-4">
+        <h2 className="font-display text-base font-semibold text-navy-900">
+          {t("landing.hostedIn")}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-navy-700">{t("landing.hostedInBody")}</p>
+        {legal && (
+          <Link
+            href="/legal"
+            className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-navy-900
+                       underline decoration-blue-500 decoration-2 underline-offset-4
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            {t("landing.legal")}
+          </Link>
+        )}
+      </section>
+
       <section className="mt-10 grid gap-6 border-t border-navy-200 pt-8 sm:grid-cols-2">
         <div>
           <h2 className="font-display text-base font-semibold text-navy-900">
