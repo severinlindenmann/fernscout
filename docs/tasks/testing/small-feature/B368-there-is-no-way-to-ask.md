@@ -7,8 +7,7 @@ complexity: medium
 area: credits, payments
 found: "2026-09-04T21:03:12Z"
 started: "2026-09-05T07:30:49Z"
-session: 3d8b93dd-e447-4c3c-bcd1-fa37e2bd17f9
-claimed: "2026-09-05T07:30:49Z"
+merged: "2026-09-05T07:48:17Z"
 ---
 
 # B368 — There is no way to ask for more credits, and the payment provider does not exist yet
