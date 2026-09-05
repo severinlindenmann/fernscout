@@ -397,7 +397,7 @@
   "landing.trips": "{count} trips",
   "landing.trips.one": "{count} trip",
   "lang.label": "Language",
-  "mail.identityApp": "If you added {site} to your home screen, open it there and type the code in — the button below opens your browser, which signs you in there instead.",
+  "mail.identityApp": "If you added {site} to your home screen, open it there and type the code in — the button opens your browser, which signs you in there instead.",
   "mail.identityButton": "Sign in",
   "mail.identityCode": "Your code is {code}. It works for {minutes} minutes.",
   "mail.identityFooter": "Sent by {site}.",
