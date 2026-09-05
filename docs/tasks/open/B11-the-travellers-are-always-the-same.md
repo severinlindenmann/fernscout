@@ -49,15 +49,23 @@ up to ten, and `lib/tripPeople.ts` resolves them owner-first.
 1. **A party, not a couple.** `Travelers` takes a list of figures and draws
    them — one, two, a group, a family with children at a smaller scale. Keep
    the gait offset per figure so a group does not bob in lockstep.
-2. **It is a composition, not a row.** The gap closes as the party grows, and
-   past three the party stands in **two ranks**. Children and teenagers take
+2. **It is a composition, not a row.** The party stands close enough that
+   shoulders, arms and packs **overlap** — a row of evenly spaced figures
+   reads as a line-up, not a group. The step goes below a figure width as the
+   party grows, floored at **0.62 of a width**: the head spans half a figure,
+   so anything tighter puts one head squarely over another, which reads as a
+   rendering bug rather than as depth. Past three the party also stands in
+   **two ranks**. Children and teenagers take
    the front one at any size — `AGE_SCALE` makes them shorter, so behind an
    adult they are simply gone; two parents and two children is four figures
    with the children in front. With no children, four or more alternate, so a
    group of five friends stands some in front and some behind; one to three
-   adults stay a single row. The front rank sits half a figure across so
-   nobody is squarely hidden, is drawn last, sits a few pixels lower on the
-   ground, and is scaled ~6% up against the back rank's 6% down — all three
+   adults stay a single row. Every figure gets its own column and depth
+   alternates along the line — centring each rank and nudging the front one
+   half a step is the obvious version and it is wrong, because when the counts
+   differ by one both ranks land on the same x and the back rank disappears.
+   The front rank is drawn last, sits a few pixels lower on the ground, and is
+   scaled ~6% up against the back rank's 6% down — all three
    together, because any one alone reads as a mistake. **Derived from the list
    index, never random**, so the hero and the photobook agree and a refresh
    does not reshuffle the family.
@@ -118,6 +126,10 @@ from photographs.
 
 - A journal configured with one traveller shows one figure; five shows five,
   laid out without overflowing the hero on a phone.
+- **No head is drawn over another head, at any party size up to ten** — a test
+  measures the rendered head circles and asserts a positive gap between every
+  adjacent pair. This is the acceptance criterion for the overlap: bodies may
+  cross, heads may not.
 - No skin or hair colour is a module constant in `Travelers.tsx` any more.
 - A malformed `travellers:` entry draws the neutral default and does **not**
   change what `peopleOf()` returns — a test asserts write access survives a
