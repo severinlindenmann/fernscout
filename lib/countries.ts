@@ -134,14 +134,28 @@ function namedCountries(locale: string): { iso2: string; name: string }[] {
   return named;
 }
 
+/**
+ * Whether `iso2`'s name matches `q` in the journal's own locale *or* in
+ * English — the same `[...locales, "en"]` idea `resolveCountry` already
+ * uses, shrunk to the one locale a live filter has. Without the English leg,
+ * "swi" finds nothing on a `de` journal even though "Schw" and "CH" do,
+ * because the list shown is named in `de` alone (B423). Shared by both
+ * pickers below so the fix lives once rather than twice.
+ */
+export function matchesName(iso2: string, q: string, locale: string): boolean {
+  return [...new Set([locale, "en"])].some((l) => countryName(iso2, l).toLowerCase().includes(q));
+}
+
 /** The postal address's own country picker, narrowed to what `query` matches
- * (name or ISO2 code) the same way `TelField.filterCountries` does, minus the
- * dial-digit branch that has no meaning here. */
+ * (name in this locale or English, or the ISO2 code) the same way
+ * `TelField.filterCountries` does, minus the dial-digit branch: nothing here
+ * ever carries a phone number, so there is no digit string to compare a query
+ * against. */
 export function filterCountryList(query: string, locale: string): { iso2: string; name: string }[] {
   const named = namedCountries(locale);
   const q = query.trim().toLowerCase();
   if (q === "") return named;
-  return named.filter((c) => c.name.toLowerCase().includes(q) || c.iso2.toLowerCase().includes(q));
+  return named.filter((c) => matchesName(c.iso2, q, locale) || c.iso2.toLowerCase().includes(q));
 }
 
 /**
