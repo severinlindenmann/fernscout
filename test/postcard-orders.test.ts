@@ -10,7 +10,7 @@ import { issueCode } from "@/lib/auth";
 import { balanceOf, grant, ledgerFor } from "@/lib/credits";
 import { POSTCARD_CREDITS } from "@/lib/credits/pricing";
 import { postcardCandidates } from "@/lib/postcard/contacts";
-import { createOrder, getOrder, ORDER_TTL_MS } from "@/lib/postcard/orders";
+import { createOrder, getOrder, updateOrderText, ORDER_TTL_MS } from "@/lib/postcard/orders";
 import { sendOrder } from "@/lib/postcard/send";
 import { makeJpeg } from "./support/exif-jpeg";
 
@@ -129,6 +129,7 @@ async function order(recipients: string[]) {
     message: "Over the pass in the rain. Worth it.",
     from: "Ana",
     recipients,
+    locale: "en",
     provider: "dry-run",
   });
   if (!made) throw new Error("no order");
@@ -254,12 +255,70 @@ describe("sending an order", () => {
   });
 });
 
+describe("correcting the words before it goes", () => {
+  test("the message, the signature and the language are editable while it is a draft", async () => {
+    const contact = await reader("edit@example.test");
+    await grant(OWNER, 100);
+    const made = await order([contact]);
+
+    expect(
+      await updateOrderText(OWNER, made.id, {
+        message: "Corrected.",
+        from: "Ana & Bo",
+        locale: "de",
+      }),
+    ).toBe(true);
+
+    const again = await getOrder(OWNER, made.id);
+    expect(again?.payload).toMatchObject({
+      message: "Corrected.",
+      from: "Ana & Bo",
+      locale: "de",
+    });
+    // The words changed and nothing else did — not the people, not the price.
+    expect(again?.payload.recipients).toEqual(made.payload.recipients);
+    expect(again?.payload.creditsEach).toBe(made.payload.creditsEach);
+  });
+
+  test("a card that has gone cannot be reworded", async () => {
+    const contact = await reader("sent@example.test");
+    await grant(OWNER, 100);
+    const made = await order([contact]);
+    await sendOrder(OWNER, made.id);
+
+    expect(
+      await updateOrderText(OWNER, made.id, { message: "Too late.", from: "X", locale: "en" }),
+    ).toBe(false);
+    expect((await getOrder(OWNER, made.id))?.payload.message).toBe(made.payload.message);
+  });
+
+  test("one journal cannot reword another's order", async () => {
+    const contact = await reader("mine2@example.test");
+    await grant(OWNER, 100);
+    const made = await order([contact]);
+    expect(
+      await updateOrderText("someone-else", made.id, {
+        message: "Not yours.",
+        from: "X",
+        locale: "en",
+      }),
+    ).toBe(false);
+    expect((await getOrder(OWNER, made.id))?.payload.message).toBe(made.payload.message);
+  });
+});
+
 describe("what an agent may learn", () => {
   test("the recipient list carries a town and never a street", async () => {
     await reader("street@example.test");
     const candidates = await postcardCandidates(OWNER);
     expect(candidates).toHaveLength(1);
-    expect(candidates[0]).toMatchObject({ city: "Zurich", country: "Switzerland" });
+    expect(candidates[0]).toMatchObject({
+      city: "Zurich",
+      country: "Switzerland",
+      // A language is not an address, and it is what lets an agent ask
+      // whether a card should be written in German — B452.
+      locale: "en",
+    });
     expect(JSON.stringify(candidates)).not.toContain("Bahnhofstrasse");
     expect(JSON.stringify(candidates)).not.toContain("8001");
   });

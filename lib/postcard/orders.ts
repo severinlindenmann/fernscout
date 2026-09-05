@@ -88,6 +88,21 @@ export type OrderPayload = {
   /** Contact ids. Never addresses; see the module comment. */
   recipients: string[];
   /**
+   * What language the card is written in — B452.
+   *
+   * Stored rather than guessed. Nothing here inspects the words and decides:
+   * a journal writes in three languages, its readers each prefer one, and a
+   * label that asserted the wrong one would be worse than no label. It
+   * defaults to the journal's own default locale because that is what the
+   * message was prefilled from, and the owner changes it when they write the
+   * card in something else.
+   *
+   * It changes nothing about what is printed. Its whole job is to be compared
+   * against each recipient's own `locale` so the owner notices before the
+   * button, not never — a postcard has no reply.
+   */
+  locale: string;
+  /**
    * The price at the moment the order was made, not read from
    * `POSTCARD_CREDITS` at send.
    *
@@ -144,6 +159,48 @@ export function isPending(order: PostcardOrder): boolean {
   return order.status === "draft";
 }
 
+/**
+ * Correct the words on a card that has not gone yet — B452.
+ *
+ * `where status = 'draft'` is the whole guard, and it is the same
+ * rows-affected reasoning as `claimForSend`: an edit arriving while a send is
+ * in flight must not change what is being printed, and the honest way to
+ * express that is a statement that changes nothing rather than a check that
+ * raced. Returns false when the order has moved on.
+ *
+ * **Only the text.** Not the photograph, not the recipients, not the price. A
+ * preview whose every field is editable is a compose form with a Send button
+ * on it, and the reason this page exists is to be the moment somebody looks at
+ * what an agent proposed. Changing who it goes to is a new order.
+ */
+export async function updateOrderText(
+  owner: string,
+  id: string,
+  text: OrderText,
+): Promise<boolean> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return false;
+  const order = await getOrder(owner, id);
+  if (!order || !isPending(order)) return false;
+
+  const result = await handle.db
+    .updateTable("print_orders")
+    .set({
+      payload: JSON.stringify({
+        ...order.payload,
+        message: text.message,
+        from: text.from,
+        locale: text.locale,
+      }),
+      updated_at: nowIso(),
+    })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("status", "=", "draft")
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows ?? 0) === 1;
+}
+
 function toOrder(row: {
   id: string;
   owner_id: string;
@@ -168,6 +225,9 @@ export type NewOrder = Omit<OrderPayload, "creditsEach" | "expiresAt" | "results
   provider: string;
 };
 
+/** What the preview page may correct: the words, and nothing else. */
+export type OrderText = { message: string; from: string; locale: string };
+
 /**
  * Write a proposal down. Charges nothing, prints nothing, tells nobody.
  *
@@ -186,6 +246,7 @@ export async function createOrder(owner: string, input: NewOrder): Promise<Postc
     message: input.message,
     from: input.from,
     recipients: input.recipients,
+    locale: input.locale,
     creditsEach: POSTCARD_CREDITS,
     expiresAt: new Date(Date.now() + ORDER_TTL_MS).toISOString(),
   };

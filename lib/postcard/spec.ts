@@ -79,3 +79,37 @@ export const STAMP_AREA = {
 
 /** The divider between message and address on the back of the card. */
 export const DIVIDER_X_MM = 72;
+
+/**
+ * The type on the back, in points — print sizes, not screen ones.
+ *
+ * Here rather than as locals in `render.ts` because `preview.ts` sizes the
+ * on-screen card from them too, and its whole promise is that it is drawn from
+ * the same numbers as the paper. It was not: the page carried a hand-written
+ * `2.4cqw` that happened to be about right and was applied against the wrong
+ * container, so the preview showed the message at roughly twice its real size
+ * (B451). A constant in one file and a percentage copied into another is the
+ * same fact in two places, which is the thing this codebase keeps saying not
+ * to do.
+ */
+export const MESSAGE_PT = 10;
+
+/** The signature under the message. */
+export const SIGNATURE_PT = 8;
+
+/** Line spacing, as a multiple of the font size. */
+export const LEADING = 1.45;
+
+/** The address block's own type, and its fixed line spacing. Larger than the
+ * message and set in points rather than a multiple, because this is the block
+ * a sorting machine reads. */
+export const ADDRESS_PT = 11;
+export const ADDRESS_LEADING_PT = 14;
+
+/**
+ * A point size as a fraction of the card's full width including bleed — what
+ * a `cqw` on screen has to be to match the paper.
+ */
+export function fontFraction(points: number, spec: PostcardSpec = A6_LANDSCAPE): number {
+  return points / mm(spec.trimWidthMm + spec.bleedMm * 2);
+}

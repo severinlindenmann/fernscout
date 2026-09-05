@@ -1,7 +1,12 @@
 import {
   A6_LANDSCAPE,
   ADDRESS_BLOCK,
+  ADDRESS_LEADING_PT,
+  ADDRESS_PT,
   DIVIDER_X_MM,
+  LEADING,
+  MESSAGE_PT,
+  SIGNATURE_PT,
   STAMP_AREA,
   mm,
   mediaBox,
@@ -199,8 +204,8 @@ export function renderPostcard(input: PostcardInput): RenderedPostcard {
     PdfBuilder.drawLine(back, x1, y1, x2, y2, 0.4, faint);
   }
 
-  const messageSize = 10;
-  const leading = messageSize * 1.45;
+  const messageSize = MESSAGE_PT;
+  const leading = messageSize * LEADING;
   const messageLeft = bleed + mm(spec.safeMm + 3);
   const messageWidth = mm(DIVIDER_X_MM - spec.safeMm - 8);
   const messageTop = bleed + mm(spec.trimHeightMm - spec.safeMm - 8);
@@ -223,7 +228,7 @@ export function renderPostcard(input: PostcardInput): RenderedPostcard {
     input.from,
     messageLeft,
     bleed + mm(spec.safeMm + 1),
-    8,
+    SIGNATURE_PT,
     { r: 0.45, g: 0.5, b: 0.55 },
   );
 
@@ -238,7 +243,15 @@ export function renderPostcard(input: PostcardInput): RenderedPostcard {
   ].filter((l): l is string => Boolean(l && l.trim()));
 
   addressLines.forEach((line, i) => {
-    PdfBuilder.drawText(back, line, addressLeft, addressTop - i * 14, 11, ink, i === 0 ? "F2" : "F1");
+    PdfBuilder.drawText(
+      back,
+      line,
+      addressLeft,
+      addressTop - i * ADDRESS_LEADING_PT,
+      ADDRESS_PT,
+      ink,
+      i === 0 ? "F2" : "F1",
+    );
   });
 
   if (input.guides) {

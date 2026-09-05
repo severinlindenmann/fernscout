@@ -9,10 +9,12 @@ import { isOwner } from "@/lib/contacts/session";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
 import { translateIn } from "@/lib/locales";
 import { mediaUrl } from "@/lib/media";
-import { addressesFor } from "@/lib/postcard/contacts";
+import { recipientsOf } from "@/lib/postcard/contacts";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
+import { LOCALE_LABEL } from "@/lib/i18n";
+import { localesFor } from "@/lib/locales";
 import { orderPhotoFile } from "@/lib/postcard/send";
 import { getUser } from "@/lib/users";
 
@@ -61,6 +63,8 @@ const RESULTS: Record<string, string> = {
   postcards_off: "Postcards are switched off for this journal.",
   contacts_off: "Contacts are switched off for this journal.",
   unknown_order: "There is no such order.",
+  saved: "Saved. Nothing has been printed or charged.",
+  empty_text: "A card needs a message and a signature. Nothing was changed.",
   provider_unavailable: "No print provider is configured, so nothing was sent.",
 };
 
@@ -95,9 +99,9 @@ export default async function PostcardOrderPage({
   const order = await getOrder(username, id);
   if (!order) notFound();
 
-  const addresses = await addressesFor(username, order.payload.recipients);
-  const lost = order.payload.recipients.filter((c) => !addresses.has(c)).length;
-  const live = order.payload.recipients.filter((c) => addresses.has(c));
+  const people = await recipientsOf(username, order.payload.recipients);
+  const lost = order.payload.recipients.filter((c) => !people.has(c)).length;
+  const live = order.payload.recipients.filter((c) => people.has(c));
   const cost = order.payload.creditsEach * live.length;
   const balance = creditsEnabled() ? await balanceOf(username) : null;
   const expired = isExpired(order);
@@ -108,6 +112,18 @@ export default async function PostcardOrderPage({
   const photo = photoFile ? dimensionsOf(photoFile) : null;
   const resolution = photo ? resolutionNote(photo.width, photo.height) : null;
   const back = backLayout();
+  // B452. The card's own language, and the journals's — so the picker offers
+  // what this journal actually writes in rather than every locale that exists.
+  const cardLocale = order.payload.locale || localesFor(username)[0];
+  const offered = localesFor(username);
+  const label = (code: string | null) =>
+    code ? (LOCALE_LABEL[code] ?? code.toUpperCase()) : null;
+  // Somebody writing to a German reader in English is often doing it on
+  // purpose, so this is a note and never a refusal.
+  const mismatched = live.filter((id) => {
+    const other = people.get(id)!.locale;
+    return other && other !== cardLocale;
+  }).length;
 
   return (
     <div className="min-h-screen">
@@ -145,16 +161,33 @@ export default async function PostcardOrderPage({
           </figure>
 
           <figure>
+            {/* The container query container is *this* element — the card —
+                and not the paragraph inside it. B451: `containerType` was on
+                the `<p>`, so every `cqw` resolved against the message column's
+                own width and the type came out at roughly twice its real size,
+                five words to a card. */}
             <div
               className="relative overflow-hidden rounded border bg-white text-black"
-              style={{ aspectRatio: back.aspect }}
+              style={{ aspectRatio: back.aspect, containerType: "inline-size" }}
             >
               <p
-                className="absolute overflow-hidden text-[2.4cqw] leading-snug whitespace-pre-wrap"
-                style={{ ...back.message, containerType: "size" }}
+                className="absolute overflow-hidden whitespace-pre-wrap"
+                style={{
+                  ...back.message,
+                  fontSize: back.font.message,
+                  lineHeight: back.font.leading,
+                }}
               >
                 {order.payload.message}
-                {"\n\n"}
+              </p>
+              <p
+                className="absolute text-black/50"
+                style={{
+                  left: back.message.left,
+                  bottom: "6%",
+                  fontSize: back.font.signature,
+                }}
+              >
                 {order.payload.from}
               </p>
               <span
@@ -162,17 +195,92 @@ export default async function PostcardOrderPage({
                 style={{ left: back.dividerLeft, top: "8%", height: "84%" }}
               />
               <span className="absolute rounded-sm border border-black/20" style={back.stamp} />
+              {/* The address, drawn where the sorting machine reads it. An
+                  empty dotted box proved the half of the card that does not
+                  get it delivered. */}
               <div
-                className="absolute border-b border-dotted border-black/20 text-[2.2cqw]"
-                style={back.address}
-                aria-hidden
-              />
+                className="absolute"
+                style={{
+                  ...back.address,
+                  fontSize: back.font.address,
+                  lineHeight: back.font.addressLeading,
+                }}
+              >
+                {live[0] ? (
+                  <>
+                    <span className="font-semibold">{people.get(live[0])!.to.name}</span>
+                    <br />
+                    {people.get(live[0])!.to.line1}
+                    <br />
+                    {people.get(live[0])!.to.postcode} {people.get(live[0])!.to.city}
+                  </>
+                ) : null}
+              </div>
             </div>
             <figcaption className="mt-1 text-xs opacity-70">
-              The back — message, stamp and the address block where the sorting machine reads it
+              The back, at print size
+              {live.length > 1 ? ` — addressed to the first of ${live.length}` : ""}
             </figcaption>
           </figure>
         </section>
+
+        {isPending(order) && !expired ? (
+          <form
+            method="post"
+            action={`/${username}/postcards/${id}/message`}
+            className="mt-6 rounded border px-4 py-3"
+          >
+            <label className="block text-sm font-semibold">
+              What it says
+              <textarea
+                name="message"
+                rows={4}
+                maxLength={600}
+                defaultValue={order.payload.message}
+                className="mt-1 w-full rounded border px-2 py-1.5 text-sm font-normal"
+              />
+            </label>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <label className="text-sm font-semibold">
+                Signed
+                <input
+                  name="from"
+                  defaultValue={order.payload.from}
+                  className="mt-1 block rounded border px-2 py-1.5 text-sm font-normal"
+                />
+              </label>
+              <label className="text-sm font-semibold">
+                Written in
+                <select
+                  name="locale"
+                  defaultValue={cardLocale}
+                  className="mt-1 block rounded border px-2 py-1.5 text-sm font-normal"
+                >
+                  {offered.map((code) => (
+                    <option key={code} value={code}>
+                      {label(code)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <button type="submit" className="mt-3 rounded border px-3 py-1.5 text-sm font-medium">
+              Save the words
+            </button>
+            <p className="mt-2 text-xs opacity-70">
+              The photograph and the people are fixed — changing those means a new order.
+            </p>
+          </form>
+        ) : null}
+
+        {mismatched > 0 ? (
+          <p className="mt-4 rounded border px-3 py-2 text-sm">
+            This card is written in {label(cardLocale)}, and{" "}
+            {mismatched === 1 ? "one person on it reads" : `${mismatched} people on it read`}{" "}
+            another language. That may be exactly what you meant — nothing is translated either
+            way.
+          </p>
+        ) : null}
 
         {resolution && !resolution.ok ? (
           <p className="mt-4 rounded border px-3 py-2 text-sm">
@@ -193,13 +301,20 @@ export default async function PostcardOrderPage({
           ) : null}
           <ul className="mt-2 space-y-1 text-sm">
             {live.map((contactId) => {
-              const to = addresses.get(contactId)!;
+              const { to, locale } = people.get(contactId)!;
               return (
                 <li key={contactId}>
                   <details>
                     <summary className="cursor-pointer">
                       {to.name} — {to.city}
                       {to.country ? `, ${to.country}` : ""}
+                      {/* B452: the language this journal writes to them in. It
+                          is how an owner notices a German reader being sent an
+                          English card, which a postcard gives them no other
+                          way to find out. */}
+                      {locale ? (
+                        <span className="opacity-60"> · reads {label(locale)}</span>
+                      ) : null}
                     </summary>
                     <address className="mt-1 pl-4 text-xs not-italic opacity-80">
                       {to.line1}

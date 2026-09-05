@@ -24,9 +24,11 @@ import type { PostalAddress } from "./render.ts";
  * an envelope needs, and `lib/postcard/render.ts`'s own type has no field for
  * it.
  */
-async function eligible(owner: string): Promise<{ id: string; to: PostalAddress }[]> {
+async function eligible(
+  owner: string,
+): Promise<{ id: string; to: PostalAddress; locale: string | null }[]> {
   const contacts = await listContacts(owner);
-  const out: { id: string; to: PostalAddress }[] = [];
+  const out: { id: string; to: PostalAddress; locale: string | null }[] = [];
   for (const contact of contacts) {
     const postal = contact.postalAddress;
     if (contact.status !== "active" || !contact.wantsPostcard || !postal || !isPostable(postal)) {
@@ -34,6 +36,10 @@ async function eligible(owner: string): Promise<{ id: string; to: PostalAddress 
     }
     out.push({
       id: contact.id,
+      // The language this journal writes to them in. Carried through to the
+      // preview page so the owner can see a card going out in a language its
+      // reader does not read — B452.
+      locale: contact.locale,
       to: {
         // The name on the envelope first, falling back to the contact's own
         // name and then their address — the same order the admin panel and the
@@ -69,14 +75,19 @@ export type PostcardCandidate = {
   name: string;
   city: string;
   country: string | null;
+  /** The language this journal writes to them in, or null if they never said.
+   * A language is not an address, so this side of the line is fine to hand an
+   * agent — and it is what lets one ask "shall I write Marta's in German?" */
+  locale: string | null;
 };
 
 export async function postcardCandidates(owner: string): Promise<PostcardCandidate[]> {
-  return (await eligible(owner)).map(({ id, to }) => ({
+  return (await eligible(owner)).map(({ id, to, locale }) => ({
     contactId: id,
     name: to.name,
     city: to.city,
     country: to.country ?? null,
+    locale,
   }));
 }
 
@@ -97,6 +108,21 @@ export async function addressesFor(
   const map = new Map<string, PostalAddress>();
   for (const { id, to } of await eligible(owner)) {
     if (wanted.has(id)) map.set(id, to);
+  }
+  return map;
+}
+
+/** The same recipients an order names, with their languages, for the preview
+ * page — which needs the address *and* the locale in one pass rather than two
+ * decryptions of the same rows. */
+export async function recipientsOf(
+  owner: string,
+  contactIds: string[],
+): Promise<Map<string, { to: PostalAddress; locale: string | null }>> {
+  const wanted = new Set(contactIds);
+  const map = new Map<string, { to: PostalAddress; locale: string | null }>();
+  for (const { id, to, locale } of await eligible(owner)) {
+    if (wanted.has(id)) map.set(id, { to, locale });
   }
   return map;
 }
