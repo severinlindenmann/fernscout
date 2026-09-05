@@ -8,6 +8,7 @@ import {
   LandingHero,
   LandingSteps,
   PublicJournals,
+  ReaderInvite,
   SiteHeader,
   type PublicJournal,
 } from "@/components/LandingSections";
@@ -136,38 +137,20 @@ export default function Landing({
   }, []);
 
   /**
-   * Whether to offer the way in — B426.
+   * Whether to offer the way in — B426, made prominent by B427.
    *
    * Shown once we know nobody is signed in, and *also* while the answer is
    * still unknown on a browser that was not signed in last time. Waiting for
    * the fetch in that case would mean a first-time visitor — the whole
-   * audience of this page — gets a beat with no door on it.
+   * audience of this card — gets a beat with no door on it.
    *
-   * The `expected` guard is what keeps that from flashing "sign in" at
-   * somebody who is: a browser that was signed in a moment ago waits for the
-   * real answer, which is the same trade the skeleton below makes.
+   * The `expected` guard is what keeps that from flashing at somebody who is
+   * signed in: a browser that was signed in a moment ago waits for the real
+   * answer, which is the same trade the skeleton below makes.
    */
   const offerSignIn = phase === "out" || (phase === "unknown" && !expected);
 
-  const header = (
-    <SiteHeader
-      siteName={siteName}
-      locales={locales}
-      action={
-        offerSignIn && !signingIn ? (
-          <button
-            type="button"
-            onClick={() => setSigningIn(true)}
-            className="min-h-11 rounded-full px-2.5 text-xs font-bold text-navy-600
-                       transition-colors hover:bg-cream-100 hover:text-navy-900
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          >
-            {t("home.signIn")}
-          </button>
-        ) : undefined
-      }
-    />
-  );
+  const header = <SiteHeader siteName={siteName} locales={locales} />;
   const publicList = <PublicJournals journals={journals} />;
   const colophon = <Colophon repository={repository} credit={credit} />;
 
@@ -200,7 +183,18 @@ export default function Landing({
   return (
     <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
       {header}
-      {signingIn && (
+      {/*
+        The reader's half of the page, and it comes first — B427.
+
+        Two people arrive at the bare domain and only one of them was ever
+        addressed here. The card names the other one in their own words
+        ("a guest, or you were on the trip yourself") so they can recognise
+        themselves without knowing what a journal, a trip or a grant is, and
+        the form replaces it in place rather than moving them to another page:
+        somebody who has already lost one link should not be asked to follow
+        another.
+      */}
+      {signingIn ? (
         <IdentitySignIn
           codeMinutes={codeMinutes}
           // The cookie is set by the server and this page renders from it, so
@@ -208,6 +202,8 @@ export default function Landing({
           // reloads. What comes back is the signed-in order of this page.
           onDone={() => window.location.reload()}
         />
+      ) : (
+        offerSignIn && <ReaderInvite onSignIn={() => setSigningIn(true)} />
       )}
       {phase === "unknown" && expected ? (
         /* A browser that was signed in a moment ago, waiting on the fetch.
