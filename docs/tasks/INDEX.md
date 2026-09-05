@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (90)
+## backlog (91)
 
 ### security (6)
 
@@ -96,7 +96,7 @@ Do not edit them by hand; run the script.
 | [B389](backlog/issue/B389-a-contact-s-stored-phone-number.md) | A contact's stored phone number that toE164 cannot parse is shown to the owner as if it were fine | ISSUE | low | low |
 | [B391](backlog/issue/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low |
 
-### big-feature (12)
+### big-feature (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -107,6 +107,7 @@ Do not edit them by hand; run the script.
 | [B275](backlog/big-feature/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
 | [B325](backlog/big-feature/B325-a-day-carries-coordinates-and-a.md) | A day carries coordinates and a date but no way to say what the weather actually was | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
+| [B399](backlog/big-feature/B399-every-address-in-the-book-is.md) | Every address in the book is typed out by hand, line by line, with nothing to check it against | FEATURE | medium | high |
 | [B43](backlog/big-feature/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B89](backlog/big-feature/B89-nothing-that-costs-the-operator-money.md) | Nothing that costs the operator money can be paid for, so every paid feature is dry-run only | FEATURE | medium | high |
@@ -185,13 +186,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (4)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B393](in-development/B393-photographs-cannot-be-added-to-a.md) | Photographs cannot be added to a published day, and the refusal tells the agent to ask somebody who has no way to do it | ISSUE | high | medium | `62683d95` |
 | [B395](in-development/B395-an-approved-reader-who-can-see.md) | An approved reader who can see nothing is told on one page to ask for an invitation they already have | ISSUE | medium | low | `62683d95` |
 | [B396](in-development/B396-the-contacts-page-tells-an-owner.md) | The contacts page tells an owner to change a trip's visibility, which no door can do | ISSUE | medium | low | `62683d95` |
+| [B398](in-development/B398-the-country-on-an-address-is.md) | The country on an address is free text, so nothing downstream can tell Schweiz from Switzerland | FEATURE | medium | low | `39691533` |
 | [B394](in-development/B394-media-is-served-as-webp-whatever.md) | Media is served as WebP whatever the client says it accepts, and Vary does not mention Accept | ISSUE | low | low | `62683d95` |
 
 ## testing (166)
