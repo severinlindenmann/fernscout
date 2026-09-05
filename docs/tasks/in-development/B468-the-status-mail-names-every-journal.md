@@ -83,3 +83,37 @@ asking.
 `BACKUP_ALERT_EMAIL` sends no journal names, and says which variable to set.
 With it set, the full report goes. A failure mail is unchanged either way, and
 still reaches the fallback address.
+
+## What was built
+
+`recipient()` now says *how* it found the address — `isOperator` is true only
+when `BACKUP_ALERT_EMAIL` supplied it — and the success body is withheld when
+it is false, replaced by three lines naming the variable to set.
+
+**Withheld, not redacted.** A summary of a report nobody may read is still a
+report, and deciding which of ten journal names is safe to keep is a judgement
+this script has no basis for.
+
+The failure path is untouched and tested to stay that way: it still reaches the
+fallback address, in full, with the journal tail it has always carried. An
+unreachable backup has to reach somebody, which is B64, and B468 must not be
+the reason a broken backup goes quiet.
+
+Documented where the variable is described rather than only in the code:
+`.env.example` and `docs/runbook.md` both now say it is not optional on an
+instance hosting journals other than your own, and why.
+
+## Evidence
+
+- `test/alert-script.test.ts` — a success to the fallback carries no journal
+  name and names the variable; the same success to `BACKUP_ALERT_EMAIL` carries
+  the roster; a failure to the fallback is unchanged and withholds nothing.
+- One existing B458 test now passes an operator address, since it asserts the
+  success *wording* and would otherwise be reading a withheld body.
+- `npm run verify` — all four, green.
+
+## Still to do on the host
+
+`BACKUP_ALERT_EMAIL` is unset in `/etc/fernscout/env` on fernscout.ch, which is
+what made this reachable. Set it to the operator's address, or tonight's
+success mail correctly carries no report.
