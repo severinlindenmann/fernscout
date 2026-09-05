@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: auth
 found: 2026-09-05T00:00:00Z
+merged: "2026-09-05T15:19:00Z"
 ---
 
 ## Why
