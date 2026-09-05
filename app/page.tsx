@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Landing from "@/components/Landing";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { publicJournals } from "@/lib/home";
+import { hasLegal } from "@/lib/legal";
 import { installedLocales, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
@@ -65,6 +66,9 @@ export default function Root() {
       // site.credit in content/config.json. A fork gets to name itself.
       repository={site.repository}
       credit={site.credit}
+      // Absent unless this instance wrote one — see lib/legal.ts. A fork that
+      // has not written its own imprint gets no link to mine.
+      legal={hasLegal()}
       // The number comes from CODE_TTL_MS rather than from a sentence, so the
       // three locale files cannot outlive a change to it — see B426 and the
       // note on CODE_TTL_MINUTES.

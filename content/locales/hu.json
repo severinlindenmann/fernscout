@@ -406,8 +406,11 @@
   "landing.docs": "Dokumentáció",
   "landing.handTitle": "Ezt add az ügynöködnek",
   "landing.hero": "Útinapló, amit az ügynököd ír helyetted.",
+  "landing.hostedIn": "Európában tárolva",
+  "landing.hostedInBody": "Egy németországi Hetzner-szerveren. Nincs analitika, nincs nyomkövetés, nincs hirdetés — itt senki nem mér téged.",
   "landing.instruction": "Vezess végig a saját útinaplóm létrehozásán az áttekintés szerint itt: {docUrl}, és a teljes útmutató szerint itt: {agentUrl}. Szükséged lesz egy e-mail-címre, ami az enyém.",
   "landing.lede": "A naplód markdown fájlokból és fényképekből áll, egy mappában, ami a tiéd. Böngészőben olvasod. Egy ügynök írja meg helyetted — csak egy linket és egy e-mail-címet adsz neki.",
+  "landing.legal": "Impresszum és adatvédelem",
   "landing.madeBy": "Szeretettel készült itt: {flag} — {name}",
   "landing.metaDescription": "Markdown fájlok és fényképek egy mappában, ami a tiéd. Böngészőben olvasod; egy ügynök írja.",
   "landing.metaTitle": "{name} — útinapló, amit az ügynököd ír",
@@ -428,6 +431,9 @@
   "landing.trips": "{count} utazás",
   "landing.trips.one": "{count} utazás",
   "lang.label": "Nyelv",
+  "legal.lede": "Ki üzemelteti ezt az oldalt, mi történik az adataiddal, és mit nem ígérünk.",
+  "legal.notTranslated": "Ez az oldal még nem készült el a te nyelveden, ezért egy másikat olvasol.",
+  "legal.title": "Impresszum és adatvédelem",
   "mail.identityApp": "Ha a {site} fent van a kezdőképernyődön, ott nyisd meg, és oda írd be a kódot — a gomb a böngésződet nyitja meg, és ott jelentkeztet be.",
   "mail.identityButton": "Bejelentkezés",
   "mail.identityCode": "A kódod: {code}. {minutes} percig érvényes.",
@@ -835,7 +841,6 @@
   "welcome.title": "A naplód készen áll",
   "welcome.token": "Kérd meg az ügynököt, hogy itt kezdjen: {guide}. Kér a szervertől egy hatjegyű kódot a(z) {email} címre — erre és semmilyen másikra —, és ebből a kódból lesz a token, amely hét napig írhat.",
   "welcome.tokenHeading": "Ha később bele akarsz írni",
-
   "fallback.writtenIn.de": "Németül íródott — ehhez a naphoz nincs magyar változat.",
   "fallback.writtenIn.en": "Angolul íródott — ehhez a naphoz nincs magyar változat."
 }

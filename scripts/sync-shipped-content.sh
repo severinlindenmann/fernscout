@@ -9,7 +9,8 @@
 # `content/` holds two things with two lifecycles, and only one of them is a
 # deploy's business:
 #
-#   shipped with the code   locales/, rates/   belongs to the release
+#   shipped with the code   locales/, rates/,   belongs to the release
+#                           legal/
 #   owned by the operator   config.json,       must survive every deploy
 #                           <username>/        untouched
 #
@@ -48,9 +49,10 @@ SRC_DIR="$APP_DIR/content"
 DEST_DIR="${CONTENT_DIR:-$APP_DIR/content}"
 
 # The directories that ship with the software. Kept in step with
-# `INSTANCE_DIRS` in lib/users.ts by a test — those are the same two names for
-# the same reason: they are not people.
-SHIPPED=(locales rates)
+# `INSTANCE_DIRS` in lib/users.ts by a test — those are the same names for the
+# same reason: they are not people. `legal/` is the instance's imprint, which
+# an instance with its own overrides by putting `.keep-local` in it.
+SHIPPED=(locales rates legal)
 
 log() { printf '\033[36m==>\033[0m %s\n' "$*"; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }

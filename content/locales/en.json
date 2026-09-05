@@ -406,8 +406,11 @@
   "landing.docs": "Read the docs",
   "landing.handTitle": "Hand this to your agent",
   "landing.hero": "A travel journal your agent writes for you.",
+  "landing.hostedIn": "Hosted in Europe",
+  "landing.hostedInBody": "On a Hetzner server in Germany. No analytics, no trackers, no advertising — nobody is measuring you here.",
   "landing.instruction": "Guide me through creating my own travel journal, following the overview at {docUrl} and the full guide at {agentUrl}. You will need an email address I control.",
   "landing.lede": "Your journal is markdown and photographs in a folder you own. You read it in a browser. An agent writes it — you hand it a link and an email address.",
+  "landing.legal": "Imprint & privacy",
   "landing.madeBy": "Made in {flag} with love by {name}",
   "landing.metaDescription": "Markdown and photographs in a folder you own. Read it in a browser; write it through an agent.",
   "landing.metaTitle": "{name} — a travel journal your agent writes",
@@ -428,6 +431,9 @@
   "landing.trips": "{count} trips",
   "landing.trips.one": "{count} trip",
   "lang.label": "Language",
+  "legal.lede": "Who runs this site, what it does with your data, and what it does not promise.",
+  "legal.notTranslated": "This page has not been written in your language yet, so you are reading another one.",
+  "legal.title": "Imprint & privacy",
   "mail.identityApp": "If you added {site} to your home screen, open it there and type the code in — the button opens your browser, which signs you in there instead.",
   "mail.identityButton": "Sign in",
   "mail.identityCode": "Your code is {code}. It works for {minutes} minutes.",
@@ -835,7 +841,6 @@
   "welcome.title": "Your journal is ready",
   "welcome.token": "Ask your agent to start at {guide}. It will ask this server to mail a six-digit code to {email} — this address, and no other — and that code becomes a token that can write for seven days.",
   "welcome.tokenHeading": "If you want to write to it later",
-
   "fallback.writtenIn.de": "Written in German — no English version of this day.",
   "fallback.writtenIn.hu": "Written in Hungarian — no English version of this day."
 }
