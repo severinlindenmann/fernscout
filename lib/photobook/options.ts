@@ -39,3 +39,46 @@ export const DEFAULT_OPTIONS: BookOptions = {
   includeNames: true,
   includeCosts: true,
 };
+
+/**
+ * Read options off a request body.
+ *
+ * Every field is checked against what the catalogue actually offers. An
+ * unrecognised size is not "probably square", it is a request nobody wrote,
+ * and the caller gets `null` rather than a book they did not ask for.
+ */
+export function parseOptions(input: unknown, sizes: readonly string[]): BookOptions | null {
+  if (typeof input !== "object" || input === null) return null;
+  const raw = input as Record<string, unknown>;
+  const bool = (key: keyof BookOptions) =>
+    typeof raw[key] === "boolean" ? (raw[key] as boolean) : null;
+
+  const size = typeof raw.size === "string" && sizes.includes(raw.size) ? raw.size : null;
+  const binding = raw.binding === "perfect" || raw.binding === "saddle" ? raw.binding : null;
+  const excludePhotos = Array.isArray(raw.excludePhotos)
+    ? raw.excludePhotos.filter((s): s is string => typeof s === "string")
+    : null;
+  const flags = {
+    includeText: bool("includeText"),
+    includeMap: bool("includeMap"),
+    includeChapters: bool("includeChapters"),
+    includeNames: bool("includeNames"),
+    includeCosts: bool("includeCosts"),
+  };
+  if (!size || !binding || !excludePhotos || Object.values(flags).some((v) => v === null)) {
+    return null;
+  }
+  // Each of `flags`' values is checked non-null above, but that check does not
+  // narrow the object's own type — hence the individual casts rather than one
+  // spread, which is what TS actually complained about.
+  return {
+    size,
+    binding,
+    excludePhotos,
+    includeText: flags.includeText as boolean,
+    includeMap: flags.includeMap as boolean,
+    includeChapters: flags.includeChapters as boolean,
+    includeNames: flags.includeNames as boolean,
+    includeCosts: flags.includeCosts as boolean,
+  };
+}
