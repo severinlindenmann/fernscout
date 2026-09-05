@@ -8,8 +8,7 @@ area: landing page
 found: "2026-09-04T11:00:53Z"
 started: "2026-09-04T11:01:16Z"
 merged: "2026-09-04T11:08:30Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T09:14:26Z"
+completed: "2026-09-05T09:28:02Z"
 ---
 
 # B261 — The copied instruction names one document, so the agent discovers the other one and is refused it

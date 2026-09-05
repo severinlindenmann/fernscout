@@ -8,8 +8,7 @@ area: landing page
 found: "2026-09-04T10:25:39Z"
 started: "2026-09-04T10:25:56Z"
 merged: "2026-09-04T10:29:28Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T09:14:25Z"
+completed: "2026-09-05T09:28:02Z"
 ---
 
 # B255 — The landing page's handover block shows one thing and copies another

@@ -8,8 +8,7 @@ area: agent docs, onboarding
 found: "2026-09-04T15:33:58Z"
 started: "2026-09-04T16:10:28Z"
 merged: "2026-09-04T16:29:36Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T09:14:26Z"
+completed: "2026-09-05T09:28:03Z"
 ---
 
 # B307 — Onboarding is prose, so an agent asks a different set of questions in a different order every time
