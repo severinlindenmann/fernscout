@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: postcards, csp
 found: "2026-09-05T16:05:00Z"
+started: "2026-09-05T13:02:30Z"
+session: 8af79b62-fe04-4cc3-b94b-9609f44a5f9d
+claimed: "2026-09-05T13:02:30Z"
 ---
 
 # B460 — Neither postcard form can be submitted: the redirect leaves the origin and CSP blocks it
