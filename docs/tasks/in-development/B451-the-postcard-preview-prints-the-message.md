@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: postcards, preview page
 found: "2026-09-05T15:10:00Z"
+started: "2026-09-05T12:47:21Z"
+session: 8af79b62-fe04-4cc3-b94b-9609f44a5f9d
+claimed: "2026-09-05T12:47:21Z"
 ---
 
 # B451 — The postcard preview prints the message at four times its real size
