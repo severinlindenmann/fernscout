@@ -133,11 +133,24 @@ here. A person cannot confirm a description they cannot see.
 
 Five figures at 76px is 380px and a phone hero is narrower than that, so the
 layout takes a container width and solves for scale: figures shrink together
-to a floor of about 60% of the nominal size, and the gap closes as the party
-grows — generous for two, nothing for four, a real overlap at six and up.
+to a floor of about 60% of the nominal size.
 
-But scale alone gives a police line-up, and a party of five is not standing
-for a photograph. **The party arranges in two ranks.**
+**They stand close enough to overlap.** The step between figures closes as the
+party grows and goes below a figure's width — shoulders, arms and packs cross,
+which is what a group standing together looks like and what a row of evenly
+spaced figures conspicuously does not. Roughly: a full width apart for two,
+three quarters at four, two thirds at five and beyond.
+
+**The floor on that step is geometry, not taste.** The head is a circle of
+r=16 in a 64-wide viewBox, so it spans half the figure; two figures closer
+than half a width have their heads touching, and one standing squarely in
+front of another is precisely the thing to avoid. **0.62 of a figure width is
+the minimum step**, which leaves a clear sliver between every pair of heads at
+every party size up to the ten-person ceiling. Overlapping bodies read as a
+group; overlapping heads read as a rendering bug.
+
+But closeness alone gives a police line-up, and a party of five is not
+standing for a photograph. **The party arranges in two ranks.**
 
 - **Children and teenagers take the front rank.** They are shorter by
   `AGE_SCALE`, so behind an adult they would simply be gone. This is the rule
@@ -146,8 +159,15 @@ for a photograph. **The party arranges in two ranks.**
 - **With no children and four or more figures, the ranks alternate** — a group
   of five friends stands some in front, some behind. One to three adults stay
   a single row: a couple side by side should not be staggered into a tableau.
-- **The front rank sits half a figure across**, in the gaps of the back rank,
-  so nobody is squarely hidden by the person in front.
+- **Every figure gets its own column, and depth alternates along the line.**
+  The obvious implementation — centre each rank, then nudge the front one half
+  a step into the gaps — is wrong, and wrong in a way that only shows up at
+  particular counts: with two behind and three in front the two ranks land on
+  exactly the same x and the adults vanish behind the children. Build one
+  left-to-right sequence instead, interleaving from the longer rank. That
+  keeps the children *among* the adults rather than appended to one end, and
+  it makes "nobody is hidden" a property of the arrangement rather than
+  something to check for.
 - **Depth is three small things together**: the front rank is drawn last so it
   overlaps, offset a few pixels lower on the ground (nearer the viewer means
   lower on the horizon), and scaled about 6% up against the back rank's 6%
