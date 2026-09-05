@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: photobook, i18n
 found: "2026-09-05T17:14:56Z"
+merged: "2026-09-05T17:43:34Z"
 ---
 
 # B503 — The photobook is printed in English whatever language the journal is written in

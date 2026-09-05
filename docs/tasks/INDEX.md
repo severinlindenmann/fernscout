@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (105)
+## backlog (103)
 
 ### security (6)
 
@@ -98,12 +98,11 @@ Do not edit them by hand; run the script.
 | [B484](backlog/issue/B484-the-photobook-result-panel-can-render.md) | The photobook result panel can render with no download links | ISSUE | low | low |
 | [B500](backlog/issue/B500-minimap-hydrates-with-a-mismatch-on.md) | MiniMap hydrates with a mismatch on the last decimal place of every coordinate | ISSUE | low | low |
 
-### big-feature (12)
+### big-feature (11)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
-| [B504](backlog/big-feature/B504-a-photobook-cannot-be-shaped-day.md) | A photobook cannot be shaped day by day | FEATURE | high | high |
 | [B06](backlog/big-feature/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B112](backlog/big-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts write straight to content, bypassing the token, draft status and rate limits every network write goes through | FEATURE | medium | high |
 | [B262](backlog/big-feature/B262-writing-to-a-journal-requires-bringing.md) | Writing to a journal requires bringing your own agent, so an owner without one cannot write at all | FEATURE | medium | high |
@@ -115,7 +114,7 @@ Do not edit them by hand; run the script.
 | [B492](backlog/big-feature/B492-a-self-hosted-instance-cannot-use.md) | A self-hosted instance cannot use our printing service, so its owner has no way to order a photobook or postcards | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
-### small-feature (13)
+### small-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -126,7 +125,6 @@ Do not edit them by hand; run the script.
 | [B42](backlog/small-feature/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B436](backlog/small-feature/B436-nothing-ever-suggests-sending-postcards-so.md) | Nothing ever suggests sending postcards, so nobody discovers the feature | FEATURE | medium | low |
 | [B502](backlog/small-feature/B502-a-photograph-is-given-a-page.md) | A photograph is given a page it has not the pixels to fill | FEATURE | medium | medium |
-| [B503](backlog/small-feature/B503-the-photobook-is-printed-in-english.md) | The photobook is printed in English whatever language the journal is written in | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
 | [B07](backlog/small-feature/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium |
@@ -204,7 +202,7 @@ _Nothing here._
 
 _Nothing here._
 
-## testing (203)
+## testing (205)
 
 ### security (2)
 
@@ -330,7 +328,7 @@ _Nothing here._
 | [B489](testing/issue/B489-hu-json-me-paymentprices-says-tit.md) | hu.json me.paymentPrices says útitól, which is not a Hungarian word | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
-### big-feature (14)
+### big-feature (15)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -341,6 +339,7 @@ _Nothing here._
 | [B410](testing/big-feature/B410-a-reader-s-access-is-trapped.md) | A reader's access is trapped in one journal's cookie, so the instance cannot tell them what they may open | FEATURE | high | high | — |
 | [B434](testing/big-feature/B434-a-postcard-cannot-be-ordered-from.md) | A postcard cannot be ordered from the site — only rendered by hand on a shell | FEATURE | high | high | — |
 | [B476](testing/big-feature/B476-a-photobook-cannot-be-ordered-from.md) | A photobook cannot be ordered from the site, only from a shell | FEATURE | high | high | — |
+| [B504](testing/big-feature/B504-a-photobook-cannot-be-shaped-day.md) | A photobook cannot be shaped day by day | FEATURE | high | high | — |
 | [B283](testing/big-feature/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high | — |
 | [B294](testing/big-feature/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high | — |
 | [B39](testing/big-feature/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
@@ -349,7 +348,7 @@ _Nothing here._
 | [B496](testing/big-feature/B496-the-printed-photobook-reads-as-a.md) | The printed photobook reads as a contact sheet, not a book | FEATURE | medium | high | — |
 | [B497](testing/big-feature/B497-the-photobook-draws-one-hardcoded-couple.md) | The photobook draws one hardcoded couple whoever travelled | FEATURE | medium | high | — |
 
-### small-feature (34)
+### small-feature (35)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -380,6 +379,7 @@ _Nothing here._
 | [B487](testing/small-feature/B487-the-instance-has-no-imprint-or.md) | The instance has no imprint or privacy page | FEATURE | medium | low | — |
 | [B494](testing/small-feature/B494-the-admin-s-journal-list-is.md) | The admin's journal list is a page of identical cards | FEATURE | medium | low | — |
 | [B498](testing/small-feature/B498-every-traveller-is-drawn-in-trousers.md) | Every traveller is drawn in trousers | FEATURE | medium | low | — |
+| [B503](testing/small-feature/B503-the-photobook-is-printed-in-english.md) | The photobook is printed in English whatever language the journal is written in | FEATURE | medium | medium | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B11](testing/small-feature/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium | — |
