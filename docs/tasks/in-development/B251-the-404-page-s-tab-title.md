@@ -73,3 +73,127 @@ Not doing: the notice's body, which is right.
 - The response carries one `robots` directive, and it says `noindex`.
 - Nothing in `app/` exports a `generateMetadata` that the framework does not
   call.
+
+## Decision
+
+Went with (a): `app/layout.tsx`'s static `metadata` became a `generateMetadata`
+whose `title.default` is `translateIn(await requestLocale(), "err.notFoundTitle")`.
+Not (b): `global-not-found.tsx` needs `experimental.globalNotFound`, its own
+fonts, styles and `<html lang>` — a bigger, flag-gated diff to solve a `low`
+priority ticket, and the docs are explicit that it exists for apps with
+*multiple* root layouts or a dynamic top-level segment in the root layout
+itself, neither of which is true here (`[user]` is one level under it).
+
+Checked the blast radius before committing to (a): every real route under
+`app/` already carries its own `metadata` or `generateMetadata` **except**
+`app/welcome/page.tsx`, which is a bare `redirect("/")` that never renders a
+document, and `app/not-found.tsx`. So `title.default` changing to a
+translated "not found" string changes nothing for any page that actually
+paints — confirmed with `grep -rl "export.*Metadata|generateMetadata" app`
+against `find app -name page.tsx -o -name layout.tsx`.
+
+The `robots` half of the same block turned out to need more than a one-line
+tweak, and is now more than the ticket's own diagnosis. Building and curling
+first: the double meta on `/nobody-here` isn't specific to unmatched routes.
+`notFound()` is called directly from ~40 sites across `app/` (an unknown
+username in `app/[user]/layout.tsx`, a disabled capability, a missing trip,
+day or postcard order…), and every one of them bubbles to this same
+`app/not-found.tsx` under this same root layout. Confirmed by curling
+`/nosuchuser123` (a real 404 path, not the literal-typo case the ticket
+named) before and after: same two-meta bug, same fix. Next's own
+`<meta name="robots" content="noindex"/>` on a `notFound()` boundary is an
+injection into the response, not a merge into the resolved `Metadata` object
+(the file-conventions doc says "injects"; the behaviour confirms it — the
+parent's `robots` field survived alongside it rather than being overridden).
+So no `generateMetadata`, root or otherwise, can conditionally suppress it for
+"only the 404 case": the one lever available is to stop asserting a `robots`
+value that conflicts with it in the first place.
+
+Root's `robots: {index:true, follow:true, googleBot:{...,"max-image-preview":
+"large"}}` is deleted rather than special-cased. It cost nothing real: a page
+with no `robots` meta at all is indexed by default anyway, which is all that
+block was asserting for the handful of pages that relied on inheriting it
+(the landing page, four `/docs/*` pages, and a public journal's `[user]`
+layout when its own computed `robots` is `undefined`). The one thing also lost
+is the `max-image-preview: large` hint, never load-bearing for correctness;
+not re-added anywhere, per "don't leave half done" balanced against "don't
+gold-plate" — a route that wants it back can set it itself, in a separate
+capture if it turns out to matter.
+
+## What changed
+
+- `app/layout.tsx`: static `metadata` → `generateMetadata`, translated
+  `title.default`, `robots` block removed entirely (see Decision).
+- `app/not-found.tsx`: deleted the dead `generateMetadata` (and its now-unused
+  imports); left a comment pointing at where the title and the `noindex` now
+  come from.
+- `test/landing-metadata.test.tsx`: updated the comment above the "every page
+  outside a journal" describe block — it referenced the now-deleted function
+  by name and needed to say what actually replaced it (still deliberately no
+  unit assertion for the 404: this is exactly the case where a direct call
+  passing proves nothing about what the framework serves).
+
+## Evidence
+
+Built with `npm run build`, started with `npm run start` on port 3702.
+
+Baseline (before this change, same build tooling), confirming the bug:
+
+```
+$ curl -s -H 'Cookie: fs.locale=de' localhost:3701/nobody-here-xyz -w '%{http_code}\n'
+404
+$ grep -o '<title>[^<]*</title>' page.html
+<title>Fernscout</title>
+$ grep -o '<meta name="robots"[^>]*/>' page.html
+<meta name="robots" content="noindex"/>
+<meta name="robots" content="index, follow"/>
+```
+
+After the fix, German and Hungarian, both a literal unmatched path and an
+unknown-username 404 (the `app/[user]/layout.tsx` `notFound()` trigger, not
+the one the ticket named — checked because the fix has to cover it too):
+
+```
+$ curl -s -H 'Cookie: fs.locale=de' localhost:3702/nobody-here-xyz -w 'http_status=%{http_code}\n'
+http_status=404
+$ grep -o '<title>[^<]*</title>' de.html
+<title>Nicht gefunden</title>
+
+$ curl -s -H 'Cookie: fs.locale=hu' localhost:3702/nobody-here-xyz -w 'http_status=%{http_code}\n'
+http_status=404
+$ grep -o '<title>[^<]*</title>' hu.html
+<title>Nem található</title>
+
+$ grep -o '<meta name="robots"[^>]*/>' de.html; grep -o '<meta name="robots"' de.html | wc -l
+<meta name="robots" content="noindex"/>
+       1
+
+$ curl -s -H 'Cookie: fs.locale=de' localhost:3702/nosuchuser123 -w 'status=%{http_code}\n'
+status=404
+$ grep -o '<title>[^<]*</title>' unk.html
+<title>Nicht gefunden</title>
+$ grep -o '<meta name="robots"[^>]*/>' unk.html; grep -o '<meta name="robots"' unk.html | wc -l
+<meta name="robots" content="noindex"/>
+       1
+```
+
+Landing page (`/`) still 200s and now carries no `robots` meta at all (was
+`index, follow`) — confirms the removed default cost nothing real:
+
+```
+$ curl -s localhost:3702/ -w 'status=%{http_code}\n' -o landing.html
+status=200
+$ grep -c '<meta name="robots"' landing.html
+0
+```
+
+"Nothing in `app/` exports a `generateMetadata` the framework does not call":
+`grep -rn "generateMetadata" app` now has exactly one hit outside
+`app/layout.tsx` and `app/not-found.tsx`'s own doc-comment mentioning the
+term — every other `generateMetadata` in `app/` belongs to a `layout.tsx` or
+`page.tsx` Next actually renders.
+
+`npm run verify`: build → tsc → eslint → vitest, all four stages passed.
+229 test files, 3126 tests passed, 3 skipped (the two Postgres-dialect tests
+that need a local Postgres, unrelated to this change). 7 pre-existing eslint
+warnings, none in a file this ticket touched.

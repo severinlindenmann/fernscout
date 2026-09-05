@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fredoka, Plus_Jakarta_Sans } from "next/font/google";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import LocaleProvider from "@/components/LocaleProvider";
-import { dictionaryFor, requestLocale } from "@/lib/locales";
+import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 import "./globals.css";
 
@@ -22,17 +22,39 @@ const jakarta = Plus_Jakarta_Sans({
  * Deliberately thin: a title, a description and an OG image belong to whoever
  * owns the page, and that is a user — see app/[user]/layout.tsx. What is left
  * here is what is true of the server regardless of whose journal is being read.
+ *
+ * `title.default` is this layout's fallback for a page with no title of its
+ * own — every real route sets one, except `app/not-found.tsx` (B251). Next
+ * never calls a `not-found.js`'s own `generateMetadata` — see the note there —
+ * so this is the only place a 404's tab title can come from, and it is why
+ * this is `generateMetadata` rather than a static object: the title has to
+ * follow the reader's language. `app/welcome/page.tsx` is the other route with
+ * no metadata of its own, and never renders this title — it redirects before
+ * anything paints.
+ *
+ * `robots` used to default every untitled page to `index, follow`. It is gone
+ * on purpose, not merely untranslated: Next injects its own `noindex` into any
+ * response that reaches a not-found boundary (there are ~40 `notFound()` call
+ * sites in `app/`, not just unmatched routes), and that injection is additive
+ * rather than a metadata merge — the old default meant every one of those
+ * responses carried two conflicting `<meta name="robots">` tags. Dropping it
+ * costs nothing real: a page with no `robots` meta at all is still indexed by
+ * default, which is all the removed block asserted for the pages that relied
+ * on it (the landing page, the docs pages, and a public journal's `[user]`
+ * layout). The one thing it also carried — `max-image-preview: large` — was
+ * never load-bearing for correctness, so it is not being re-added elsewhere;
+ * a route that wants that hint back can set it itself.
  */
-export const metadata: Metadata = {
-  metadataBase: new URL(serverSite().url),
-  title: { default: serverSite().name, template: `%s · ${serverSite().name}` },
-  applicationName: serverSite().name,
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true, "max-image-preview": "large" },
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    metadataBase: new URL(serverSite().url),
+    title: {
+      default: translateIn(await requestLocale(), "err.notFoundTitle"),
+      template: `%s · ${serverSite().name}`,
+    },
+    applicationName: serverSite().name,
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#ffd23f",
