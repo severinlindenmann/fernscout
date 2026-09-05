@@ -41,11 +41,29 @@ export const DEFAULT_OPTIONS: BookOptions = {
 };
 
 /**
+ * A ceiling on `excludePhotos`, past the trust boundary a request body
+ * crosses to get here.
+ *
+ * 20,000 photographs is a trip nobody has taken through this codebase — the
+ * example journal has five, a heavily ingested year-long trip has a few
+ * thousand — so this is "generous", not "sized to the case at hand". A
+ * `src` is a media path (`/user/media/trip/day/file.jpg`); 300 bytes is
+ * several times the longest one this repo writes.
+ */
+const MAX_EXCLUDED_PHOTOS = 20_000;
+const MAX_SRC_LENGTH = 300;
+
+/**
  * Read options off a request body.
  *
  * Every field is checked against what the catalogue actually offers. An
  * unrecognised size is not "probably square", it is a request nobody wrote,
  * and the caller gets `null` rather than a book they did not ask for.
+ *
+ * `excludePhotos` gets the same treatment as everything else here — rejected
+ * outright past the ceiling above, not truncated. Truncating would silently
+ * un-exclude whatever got cut, printing photographs the owner asked to leave
+ * out; refusing the whole request is the only answer that cannot do that.
  */
 export function parseOptions(input: unknown, sizes: readonly string[]): BookOptions | null {
   if (typeof input !== "object" || input === null) return null;
@@ -55,9 +73,12 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
 
   const size = typeof raw.size === "string" && sizes.includes(raw.size) ? raw.size : null;
   const binding = raw.binding === "perfect" || raw.binding === "saddle" ? raw.binding : null;
-  const excludePhotos = Array.isArray(raw.excludePhotos)
-    ? raw.excludePhotos.filter((s): s is string => typeof s === "string")
-    : null;
+  const excludePhotos =
+    Array.isArray(raw.excludePhotos) &&
+    raw.excludePhotos.length <= MAX_EXCLUDED_PHOTOS &&
+    raw.excludePhotos.every((s) => typeof s === "string" && s.length <= MAX_SRC_LENGTH)
+      ? (raw.excludePhotos as string[])
+      : null;
   const flags = {
     includeText: bool("includeText"),
     includeMap: bool("includeMap"),

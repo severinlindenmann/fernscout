@@ -697,6 +697,7 @@ export type TranslationKey =
   | "photobook.option.names"
   | "photobook.option.costs"
   | "photobook.option.photos"
+  | "photobook.option.photoName"
   | "photobook.pages"
   | "photobook.price"
   | "photobook.balance"

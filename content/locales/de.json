@@ -616,6 +616,7 @@
   "photobook.option.names": "Wer unterwegs war",
   "photobook.option.costs": "Kostenübersicht mitdrucken",
   "photobook.option.photos": "Fotos",
+  "photobook.option.photoName": "Foto {index} von {total}",
   "photobook.pages": "{pages} Seiten in {volumes} Band/Bänden",
   "photobook.price": "{credits} Credits",
   "photobook.balance": "Du hast {balance} Credits",

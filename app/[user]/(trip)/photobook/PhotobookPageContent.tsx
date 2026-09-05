@@ -168,12 +168,26 @@ export default function PhotobookPageContent({
               <p className="text-sm font-semibold text-navy-800">{t("photobook.option.photos")}</p>
               <p className="mt-1 text-xs text-navy-600">{media.length - excluded.size} / {media.length}</p>
               <div className="mt-2 grid grid-cols-4 gap-1.5">
-                {media.map((tile) => (
+                {media.map((tile, i) => (
                   <button
                     key={tile.src}
                     type="button"
                     onClick={() => toggle(tile.src)}
+                    // Pressed means "included in the book" — the state the
+                    // grid started every tile in, and the one the toggle's
+                    // label below names.
                     aria-pressed={!excluded.has(tile.src)}
+                    // `alt=""` on the `<Image>` below is correct — the tile
+                    // is decorative next to this label, not the other way
+                    // round. Without it a screen reader announces a grid of
+                    // unlabelled toggle buttons; the caption is the best name
+                    // when there is one, and a position when there is not.
+                    aria-label={
+                      tile.caption || t("photobook.option.photoName", {
+                        index: String(i + 1),
+                        total: String(media.length),
+                      })
+                    }
                     className={`relative aspect-square overflow-hidden rounded-md border ${
                       excluded.has(tile.src) ? "border-navy-200 opacity-30" : "border-yellow-500"
                     }`}

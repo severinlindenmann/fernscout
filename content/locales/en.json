@@ -616,6 +616,7 @@
   "photobook.option.names": "Include who travelled",
   "photobook.option.costs": "Include the cost summary",
   "photobook.option.photos": "Photographs",
+  "photobook.option.photoName": "Photo {index} of {total}",
   "photobook.pages": "{pages} pages in {volumes} volume(s)",
   "photobook.price": "{credits} credits",
   "photobook.balance": "You have {balance} credits",
