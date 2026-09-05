@@ -2,7 +2,8 @@ import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import LocaleProvider from "@/components/LocaleProvider";
 import GalleryPageContent from "@/app/[user]/(trip)/gallery/GalleryPageContent";
-import { openingOf, photoPathOf } from "@/components/PostcardSheet";
+import { photoPathOf } from "@/components/PostcardSheet";
+import { openingOf } from "@/lib/postcard/opening";
 import { dictionaryFor } from "@/lib/locales";
 import type { MediaTile } from "@/lib/types";
 

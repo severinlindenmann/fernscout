@@ -679,6 +679,7 @@
   "postcard.result.sent": "Sent. The cards have gone to the printer.",
   "postcard.result.unknown": "There is no such order.",
   "postcard.start": "Send a postcard",
+  "postcard.textFrom": "Take the text from",
   "postcard.title": "Send a postcard",
   "postcard.videoOnly": "Postcards are printed from photographs, not clips.",
   "push.blocked": "Notifications are blocked — turn them back on in your browser settings.",

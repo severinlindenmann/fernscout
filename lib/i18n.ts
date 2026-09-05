@@ -760,6 +760,7 @@ export type TranslationKey =
   | "postcard.result.sent"
   | "postcard.result.unknown"
   | "postcard.start"
+  | "postcard.textFrom"
   | "postcard.title"
   | "postcard.videoOnly"
   | "push.blocked"

@@ -679,6 +679,7 @@
   "postcard.result.sent": "Gesendet. Die Karten sind in der Druckerei.",
   "postcard.result.unknown": "Diese Bestellung gibt es nicht.",
   "postcard.start": "Postkarte senden",
+  "postcard.textFrom": "Text übernehmen von",
   "postcard.title": "Postkarte senden",
   "postcard.videoOnly": "Postkarten werden von Fotos gedruckt, nicht von Videos.",
   "push.blocked": "Benachrichtigungen sind blockiert — bitte in den Browser-Einstellungen wieder erlauben.",
