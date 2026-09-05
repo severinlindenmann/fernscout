@@ -7,8 +7,7 @@ complexity: low
 area: api
 found: "2026-09-05T13:36:44Z"
 started: "2026-09-05T13:37:12Z"
-session: 7c3dd4ae-2d91-4172-8ea8-52deb35f9f42
-claimed: "2026-09-05T13:37:12Z"
+merged: "2026-09-05T13:47:33Z"
 ---
 
 # B473 — Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json
