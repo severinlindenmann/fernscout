@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (106)
+## backlog (108)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (36)
+### issue (38)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -79,6 +79,8 @@ Do not edit them by hand; run the script.
 | [B340](backlog/issue/B340-a-disabled-capability-answers-404-across.md) | A disabled capability answers 404 across every gated route, hiding a real refusal as no-such-route | ISSUE | medium | low |
 | [B342](backlog/issue/B342-readcostsfile-has-no-guard-around-matter.md) | readCostsFile has no guard around matter() and throws on a malformed costs.md | ISSUE | medium | low |
 | [B378](backlog/issue/B378-the-whatsapp-checkbox-is-offered-on.md) | The WhatsApp checkbox is offered on a journal with WhatsApp switched off, one line under a hint saying nothing sends there | ISSUE | medium | low |
+| [B454](backlog/issue/B454-the-landing-page-reads-localstorage-during.md) | The landing page reads localStorage during render, so a signed-in reader gets a hydration mismatch on every load | ISSUE | medium | low |
+| [B455](backlog/issue/B455-trip-switcher-lists-now-above-planned.md) | Trip switcher lists Now above Planned, and its menu runs off the left edge on mobile | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
@@ -201,13 +203,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B450](in-development/B450-comm-runs-in-the-ambient-locale.md) | comm runs in the ambient locale against LC_ALL=C-sorted input, so the backup names readable files as missing | ISSUE | high | low | `7c3dd4ae` |
 | [B451](in-development/B451-the-postcard-preview-prints-the-message.md) | The postcard preview prints the message at four times its real size | ISSUE | high | low | `8af79b62` |
 | [B452](in-development/B452-the-preview-page-cannot-correct-a.md) | The preview page cannot correct a word, and says nothing about language | FEATURE | medium | low | `8af79b62` |
+| [B456](in-development/B456-the-guides-describe-controls-in-words.md) | The guides describe controls in words alone, so a reader on a phone has to find them by hunting | DOCS | medium | low | `3744307d` |
 
 ## testing (150)
 
