@@ -534,7 +534,7 @@
   "me.paymentEmailEstimate.one": "Egy teljes küldés 1 embert ér el, és 1 kreditbe kerül.",
   "me.paymentEstimateTitle": "Mennyibe kerülne most egy küldés",
   "me.paymentPostcardPrice": "Egy nyomtatott képeslap {credits} pont kártyánként.",
-  "me.paymentPrices": "1 kredit e-mailenként, 1 kredit WhatsApp-üzenetenként — mindig ugyanennyi, útitól függetlenül.",
+  "me.paymentPrices": "1 kredit e-mailenként, 1 kredit WhatsApp-üzenetenként — mindig ugyanennyi, úttól függetlenül.",
   "me.paymentPricesTitle": "Árak",
   "me.paymentTitle": "Kredit",
   "me.paymentUnit": "kredit",
