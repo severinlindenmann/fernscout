@@ -192,13 +192,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B427](in-development/B427-the-root-page-speaks-only-to.md) | The root page speaks only to somebody starting a journal, so an invited reader has to find a small link in the corner | FEATURE | high | low | `3744307d` |
+_Nothing here._
 
-## testing (144)
+## testing (145)
 
 ### issue (88)
 
@@ -308,11 +306,12 @@ _Nothing here._
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 | [B425](testing/big-feature/B425-until-a-psp-exists-a-payment.md) | Until a PSP exists, a payment is a request the instance admin approves by an emailed link, which grants the credits | FEATURE | medium | high | — |
 
-### small-feature (11)
+### small-feature (12)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B411](testing/small-feature/B411-the-root-page-shows-a-stranger.md) | The root page shows a stranger's welcome to somebody who is signed in and holds three journals | FEATURE | high | medium | — |
+| [B427](testing/small-feature/B427-the-root-page-speaks-only-to.md) | The root page speaks only to somebody starting a journal, so an invited reader has to find a small link in the corner | FEATURE | high | low | — |
 | [B273](testing/small-feature/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium | — |
 | [B364](testing/small-feature/B364-the-lifetime-map-draws-a-bare.md) | The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries | FEATURE | medium | low | — |
 | [B367](testing/small-feature/B367-an-owner-cannot-see-what-they.md) | An owner cannot see what they have left to spend or what one send would cost | FEATURE | medium | medium | — |
