@@ -538,6 +538,9 @@ export async function verifyCode(
    * guest session, which reads and has nothing to narrow.
    */
   scope?: string,
+  /** The browser redeeming it, for a credential that becomes a cookie. Only
+   * the identity flow passes one — see `openIdentitySession`. */
+  userAgent?: string | null,
 ): Promise<VerifyResult> {
   const { db } = await getDatabase();
   const address = normaliseEmail(email);
@@ -608,7 +611,7 @@ export async function verifyCode(
     .where("id", "=", row.id)
     .execute();
 
-  return openSession(owner, address, kind, granted);
+  return openSession(owner, address, kind, granted, userAgent?.slice(0, 300) ?? null);
 }
 
 /**
@@ -859,6 +862,10 @@ async function openSession(
   address: string,
   kind: SessionKind,
   scope?: string,
+  /** The browser a session was opened on, where the caller knows it. Null for
+   * every path where the credential is not a cookie — an agent token is held
+   * by a program, and its user agent says nothing about a person. */
+  userAgent: string | null = null,
 ): Promise<VerifyResult> {
   const { db } = await getDatabase();
   const userId = await upsertUser(owner, address);
@@ -893,7 +900,7 @@ async function openSession(
       expires_at: expiresAt,
       last_seen_at: null,
       revoked_at: null,
-      user_agent: null,
+      user_agent: userAgent,
       ip: null,
     })
     .execute();
@@ -919,8 +926,24 @@ async function openSession(
  */
 export async function openIdentitySession(
   email: string,
+  /**
+   * The browser this was proved on, for the device list — B411.
+   *
+   * Stored because the list is otherwise unusable: every row reads "unknown
+   * device" and somebody trying to sign out the phone they lost has no way to
+   * tell which row is which. Truncated, because it is an untrusted header that
+   * goes into a column and onto a page, and no honest user agent is 300
+   * characters.
+   */
+  userAgent?: string | null,
 ): Promise<{ token: string; expiresAt: string; publicId: string }> {
-  const result = await openSession(NO_JOURNAL, normaliseEmail(email), "identity");
+  const result = await openSession(
+    NO_JOURNAL,
+    normaliseEmail(email),
+    "identity",
+    undefined,
+    userAgent?.slice(0, 300) ?? null,
+  );
   if (!result.ok || !result.publicId) throw new Error("could not open an identity session");
   return { token: result.token, expiresAt: result.expiresAt, publicId: result.publicId };
 }

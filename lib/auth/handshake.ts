@@ -96,3 +96,21 @@ async function lookUpAccess(username: string): Promise<JournalAccess> {
 }
 
 export const resolveAccess = cache(lookUpAccess);
+
+/**
+ * The identity alone, for the surfaces that are not about a journal — B411's
+ * home view and the device list.
+ *
+ * Separate from `resolveAccess` because it asks a different question and must
+ * not be satisfiable by a journal cookie. `fs_session` proves an address too,
+ * but only for one journal; answering "what may this person open across the
+ * instance?" from it would be answering a question it cannot know — and would
+ * quietly turn one journal's year-long read cookie into a directory of every
+ * other journal that address touches.
+ */
+async function lookUpIdentity(): Promise<Session | null> {
+  const jar = await cookies();
+  return resolveSession(jar.get(IDENTITY_COOKIE)?.value, "identity");
+}
+
+export const resolveIdentity = cache(lookUpIdentity);

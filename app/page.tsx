@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import Landing, { type PublicJournal } from "@/components/Landing";
-import { isIndexable } from "@/lib/access";
-import { getAllEntries } from "@/lib/entries";
+import Landing from "@/components/Landing";
+import { publicJournals } from "@/lib/home";
 import { installedLocales, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
-import { getTrips } from "@/lib/trips";
-import { getUser, listedUsernames } from "@/lib/users";
 
 /**
  * The bare domain is the landing page.
@@ -47,46 +44,19 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-/** A journal's first public photograph, for the preview card. */
-function coverFor(username: string): string | undefined {
-  for (const trip of getTrips(username).filter(isIndexable)) {
-    for (const entry of getAllEntries(trip.ref)) {
-      const image = entry.gallery.find((item) => item.type === "image");
-      if (image) return image.src;
-    }
-  }
-  return undefined;
-}
-
 export default function Root() {
   const site = serverSite();
-
-  // listedUsernames() rather than getUsernames(): a journal whose config says
-  // `visibility: "guest"` (or the old word, `"private"`) is not advertised,
-  // and the landing page is the most advertised surface there is.
-  const journals: PublicJournal[] = listedUsernames().flatMap((username) => {
-    const user = getUser(username);
-    if (!user) return [];
-    const trips = getTrips(username).filter(isIndexable);
-    // A journal with nothing public has nothing to show a stranger.
-    if (trips.length === 0) return [];
-    return [
-      {
-        username,
-        title: user.title,
-        tagline: user.tagline,
-        trips: trips.length,
-        cover: coverFor(username),
-      },
-    ];
-  });
 
   return (
     <Landing
       siteName={site.name}
       docUrl={`${site.url}/documentation.txt`}
       agentUrl={`${site.url}/agent.md`}
-      journals={journals}
+      // The advertised list, and nothing personal: this page is the same
+      // document for everybody, so it stays cacheable. What one signed-in
+      // reader may open arrives separately from `/api/v1/me/home` — see
+      // `Landing`, and B412 for the cache that keeps the two apart.
+      journals={publicJournals()}
       // No journal owns this page, so the choice is every language this build
       // ships chrome for rather than one person's `locales:` list.
       locales={installedLocales()}
