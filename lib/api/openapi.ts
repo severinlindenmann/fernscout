@@ -1413,6 +1413,83 @@ export function openApiDocument() {
           },
         },
       },
+      "/api/v1/{user}/trips/{trip}/visibility": {
+        get: {
+          summary: "Who may read this trip, as stored",
+          description:
+            "`visibility:` and `listed:` on this trip's `trip.md` — `private` (the people who " +
+            "were there, and the owner), `public` (everyone) or `guest` (everyone the owner " +
+            "has approved into the journal, and the people who were there), and whether the " +
+            "trip is advertised in the sitemap, the feed and the trip switcher.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "The trip's visibility and listed flag" },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal, or is scoped to a trip" },
+            "404": { description: "No such trip" },
+          },
+        },
+        patch: {
+          summary: "Change who may read this trip after it was created — B396",
+          description:
+            "`createTrip` could only ever write `visibility:` once, at the moment a trip is " +
+            "made (B207); this is the door to change it afterwards, for a hosted instance " +
+            "where nobody has a shell to edit `trip.md` by hand — the contacts page's own " +
+            "advice, \"set a trip's visibility to guest\", had nowhere else to send an owner.\n\n" +
+            "**Send only what changes** — `visibility`, `listed`, or both. An unrecognised " +
+            "`visibility` is refused rather than written and read back as `private` later, " +
+            "the same rule the file's own reader already follows. `listed: true` is refused " +
+            "on a trip whose visibility does not already advertise it (B51) — only `public` " +
+            "does.\n\n" +
+            "**Widening is said out loud.** Moving towards `public`, or from `private` to " +
+            "`guest`, exposes every day already published on this trip to a wider audience " +
+            "the instant this call returns; the response's `note` says so. Narrowing needs no " +
+            "such warning: it can only take readers away.\n\n" +
+            "**Owner only, like `visibility` at creation** — a trip-scoped token is refused " +
+            "with `out_of_scope`: this is metadata about the trip, the same shelf `rates` and " +
+            "`people` sit on, and deciding who else may read the whole journey is not the " +
+            "authority writing a day into it grants.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    visibility: { type: "string", enum: ["private", "public", "guest"] },
+                    listed: { type: "boolean" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Written and read back. `note` says whether this widened who may read the trip.",
+            },
+            "400": {
+              description:
+                "Invalid JSON, neither field named, an unrecognised visibility, or a listed: " +
+                "true this trip's visibility does not advertise.",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "The token belongs to a different journal, or is scoped to a trip rather than " +
+                "the journal's owner (`out_of_scope`).",
+            },
+            "404": { description: "No such trip" },
+          },
+        },
+      },
       "/api/v1/{user}/trips/{trip}/media": {
         post: {
           summary: "Upload photographs or video to a day, and add them to it",

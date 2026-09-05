@@ -26,7 +26,9 @@ const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 const ACCENTS = ["sky", "yellow", "green", "coral", "navy"] as const;
 const STATUSES = ["upcoming", "current", "past"] as const;
-const VISIBILITIES = ["private", "public", "guest"] as const;
+/** Exported so `lib/api/tripVisibility.ts` (B396) validates a later change
+ * against the same list `createTrip` validates the first one against. */
+export const VISIBILITIES = ["private", "public", "guest"] as const;
 /** Mirrors `CostsVisibility` in lib/types.ts and `parseCostsVisibility` in
  * lib/trips.ts — the two spellings the reader understands. */
 const COSTS_VISIBILITIES = ["public", "guests"] as const;

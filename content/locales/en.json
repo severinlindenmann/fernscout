@@ -53,7 +53,7 @@
   "contact.adminNeedName": "Write their name, so you know who they are.",
   "contact.adminNever": "never",
   "contact.adminNewInvite": "New link",
-  "contact.adminNoGuestTrip": "Approving someone lets them into the journal, but none of your trips are open to guests yet — there is nothing for them to read. Set a trip's visibility to guest to change that.",
+  "contact.adminNoGuestTrip": "Approving someone lets them into the journal, but none of your trips are open to guests yet — there is nothing for them to read. Ask an agent working on this journal to set a trip's visibility to guest.",
   "contact.adminNone": "Nobody yet.",
   "contact.adminOther": "Not approved",
   "contact.adminPending": "Waiting for you",

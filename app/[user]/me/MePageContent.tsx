@@ -239,12 +239,21 @@ export default function MePageContent({
           <section className="mt-6">
             <h2 className="font-display text-xl font-semibold text-navy-900">{t("me.canRead")}</h2>
             {/*
-              Two empty states, because there are two people who can reach one.
+              Three empty states, because there are three people who can
+              reach one — B395 added the third.
 
-              For a guest it means the invitation has not arrived, and the
-              answer is to ask whoever sent them. Said to the **owner** of a
-              journal with no trips in it yet, that is nonsense — nobody sent
-              them, and there is nothing to be invited to (B75).
+              For somebody who has never been let in, it means the invitation
+              has not arrived, and the answer is to ask whoever sent them.
+              For somebody `resolveViewer` already marks `guest` — a
+              confirmed contact of this journal — that sentence is false: they
+              were invited and approved, and an empty list here means every
+              trip is closed to them regardless, not that nobody sent them
+              anything. `/<user>/trips` already told that reader the true
+              thing (`trips.hiddenSignedInBody`, B264/B278); this reuses the
+              same sentence rather than inventing a third wording for the same
+              fact. Said to the **owner** of a journal with no trips in it at
+              all, neither sentence is true — nobody sent them, and there is
+              nothing to be invited to (B75).
 
               `resolveViewer` puts every trip in the journal into the list for
               an owner, so an empty list has exactly one meaning for them: the
@@ -255,7 +264,11 @@ export default function MePageContent({
             */}
             {viewer.trips.length === 0 ? (
               <p className="mt-2 text-lg leading-8 text-navy-700">
-                {t(viewer.owner ? "me.ownerNoTrips" : "me.nothing")}
+                {viewer.owner
+                  ? t("me.ownerNoTrips")
+                  : viewer.guest
+                    ? t("trips.hiddenSignedInBody", { name: ownerName ?? username })
+                    : t("me.nothing")}
               </p>
             ) : (
               <ul className="mt-3 divide-y divide-navy-200 overflow-hidden rounded-2xl border border-navy-200 bg-white">
