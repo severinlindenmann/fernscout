@@ -48,7 +48,7 @@ import {
 } from "./spec.ts";
 import { formatDate, formatDateRange, wrap } from "./text.ts";
 import { isPlottable } from "../mapFrame.ts";
-import { DEFAULT_OPTIONS, type BookOptions, type DayLayout } from "./options.ts";
+import { DEFAULT_OPTIONS, type BookOptions, type DayLayout, type Focal } from "./options.ts";
 import { bookStrings, fill, type BookStrings } from "./strings.ts";
 
 // ---------------------------------------------------------------------------
@@ -80,6 +80,14 @@ export type BookPhoto = {
    * reach a web preview, keep compiling; `buildBookSource` always sets it.
    */
   webSrc?: string;
+  /**
+   * Where `cover()` crops from, when it crops at all — B513.
+   *
+   * Set from `BookOptions.focalPoints` by `withFocal` below, keyed by
+   * `webSrc`, before a day's photographs reach any placement code. Absent
+   * means the centre, which is what `cover()` has always done.
+   */
+  focal?: Focal;
 };
 
 export function labelOf(photo: BookPhoto): string {
@@ -373,14 +381,32 @@ function isPanorama(photo: BookPhoto): boolean {
   return aspect(photo) >= 1.9;
 }
 
-/** Fills the slot, cropping the overflow. Used wherever a grid has to line up. */
-function cover(photo: BookPhoto, slot: RectMm): RectMm {
+/** The centre — every photograph's crop before B513, and still the default
+ * for one nobody has tapped. */
+const CENTRE: Focal = { x: 0.5, y: 0.5 };
+
+/**
+ * Fills the slot, cropping the overflow. Used wherever a grid has to line up.
+ *
+ * `photo.focal` says which part survives the crop: `x` is a fraction across
+ * the photograph and `y` a fraction down it, ordinary image-space, top-left
+ * origin. This file's rectangles are **y-upwards** (see `mapProjector`'s own
+ * note), so the two axes are not symmetric here — `x` scales the offset
+ * directly, `y` scales the offset from the far side, `(1 - focal.y)`, so that
+ * `y: 0` still means "keep the top" rather than "keep the bottom".
+ *
+ * At `CENTRE` this is exactly the old centring formula, and whenever a
+ * dimension is not actually cropped (`slot.width - width` or
+ * `slot.height - height` is 0) the corresponding half of `focal` has no
+ * effect at all — a focal point on an uncropped photograph changes nothing.
+ */
+function cover(photo: BookPhoto, slot: RectMm, focal: Focal = CENTRE): RectMm {
   const scale = Math.max(slot.width / photo.width, slot.height / photo.height);
   const width = photo.width * scale;
   const height = photo.height * scale;
   return {
-    x: slot.x + (slot.width - width) / 2,
-    y: slot.y + (slot.height - height) / 2,
+    x: slot.x + (slot.width - width) * focal.x,
+    y: slot.y + (slot.height - height) * (1 - focal.y),
     width,
     height,
   };
@@ -411,7 +437,7 @@ function placement(
     captionHeight > 0
       ? { ...slot, y: slot.y + captionHeight, height: slot.height - captionHeight }
       : slot;
-  const draw = mode === "cover" ? cover(photo, inner) : contain(photo, inner);
+  const draw = mode === "cover" ? cover(photo, inner, photo.focal) : contain(photo, inner);
   const clip = mode === "cover" ? inner : draw;
   return {
     photo,
@@ -683,6 +709,15 @@ type Draft =
   | { kind: "colophon" }
   | { kind: "blank" };
 
+/** Looks a photograph's crop up by `webSrc` and attaches it, if it has one. A
+ * hand-built fixture with no `webSrc` — every planner test — simply never
+ * matches, which is the same "nobody has touched it" default as a real
+ * photograph with no entry. */
+function withFocal(photo: BookPhoto, focalPoints: BookOptions["focalPoints"]): BookPhoto {
+  const focal = photo.webSrc ? focalPoints[photo.webSrc] : undefined;
+  return focal ? { ...photo, focal } : photo;
+}
+
 function draftsForChapter(
   chapter: Chapter,
   index: number,
@@ -715,7 +750,7 @@ function draftsForChapter(
      * An empty list is a day the owner emptied on purpose, and is not the same
      * as never having said.
      */
-    const day = chosen?.photos
+    const chosenDay = chosen?.photos
       ? {
           ...chapterDay,
           photos: chosen.photos
@@ -723,6 +758,13 @@ function draftsForChapter(
             .filter((p): p is BookPhoto => Boolean(p)),
         }
       : chapterDay;
+    // Every photograph the day is about to place, carrying whatever crop the
+    // owner tapped — B513. Done once, here, rather than at `cover()`'s call
+    // sites: a photograph keeps its focal point through `hero`, through the
+    // day's own shared photo, and through every grid it lands in, because it
+    // is a property of the photograph for the length of this book, not of one
+    // placement.
+    const day = { ...chosenDay, photos: chosenDay.photos.map((p) => withFocal(p, options.focalPoints)) };
 
     const layout = chosen?.layout ?? "auto";
     const captions = options.includeText

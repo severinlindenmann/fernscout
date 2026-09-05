@@ -65,7 +65,24 @@ export type BookOptions = {
    * chose.
    */
   cover?: string;
+  /**
+   * Where a photograph is cropped from, when it is cropped at all — B513.
+   *
+   * Keyed by `MediaTile.src`, the same key `excludePhotos` and `DayPlan.photos`
+   * use. `x` is a fraction across the photograph, `y` a fraction down it; a
+   * photograph with no entry crops from its centre (0.5, 0.5), which is what
+   * every photograph did before this existed.
+   *
+   * Lives here rather than on the photograph itself: the same picture prints
+   * as a hero on one page and a quarter on another, and which point saves it
+   * can differ between the two — see B513's decision record for why this is
+   * not written into the entry's frontmatter.
+   */
+  focalPoints: Record<string, Focal>;
 };
+
+/** A crop's anchor, both axes 0–1. See `BookOptions.focalPoints`. */
+export type Focal = { x: number; y: number };
 
 /**
  * One day's arrangement, as a person chose it.
@@ -131,6 +148,7 @@ export const DEFAULT_OPTIONS: BookOptions = {
   includeChapters: true,
   includeNames: true,
   includeCosts: true,
+  focalPoints: {},
 };
 
 /**
@@ -152,6 +170,11 @@ const MAX_PHOTOS_PER_DAY = 500;
 
 const MAX_EXCLUDED_PHOTOS = 20_000;
 const MAX_SRC_LENGTH = 300;
+/** One entry per photograph anybody has actually tapped, which is a small
+ * fraction of a journal's photographs. Sized like `MAX_EXCLUDED_PHOTOS`
+ * rather than smaller: both are the same shape of dictionary keyed by `src`,
+ * and there is no reason a crop would be rarer than an exclusion. */
+const MAX_FOCAL_POINTS = 20_000;
 
 /**
  * Read options off a request body.
@@ -217,6 +240,31 @@ function parseDays(input: unknown): Record<string, DayPlan> | null {
   return out;
 }
 
+/**
+ * The crop points, checked one at a time — rejected whole rather than
+ * repaired, like `parseDays`: a body that named a bad point is a request
+ * nobody wrote, not a request to leave that one photograph centred.
+ */
+function parseFocalPoints(input: unknown): Record<string, Focal> | null {
+  if (input === undefined) return {};
+  if (typeof input !== "object" || input === null || Array.isArray(input)) return null;
+
+  const entries = Object.entries(input as Record<string, unknown>);
+  if (entries.length > MAX_FOCAL_POINTS) return null;
+
+  const isFraction = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1;
+
+  const out: Record<string, Focal> = {};
+  for (const [src, value] of entries) {
+    if (src.length > MAX_SRC_LENGTH) return null;
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+    const { x, y } = value as Record<string, unknown>;
+    if (!isFraction(x) || !isFraction(y)) return null;
+    out[src] = { x, y };
+  }
+  return out;
+}
+
 export function parseOptions(input: unknown, sizes: readonly string[]): BookOptions | null {
   if (typeof input !== "object" || input === null) return null;
   const raw = input as Record<string, unknown>;
@@ -230,6 +278,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
   // better failure than refusing the order.
   const locale = typeof raw.locale === "string" && isBookLocale(raw.locale) ? raw.locale : null;
   const days = parseDays(raw.days);
+  const focalPoints = parseFocalPoints(raw.focalPoints);
   // Optional, and rejected rather than defaulted like every other field here:
   // a `cover` that fails the check is a request nobody wrote, not a request
   // for the planner's own pick — that is what leaving the key out is for.
@@ -258,6 +307,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     !binding ||
     !excludePhotos ||
     !days ||
+    !focalPoints ||
     Object.values(flags).some((v) => v === null)
   ) {
     return null;
@@ -271,6 +321,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     binding,
     excludePhotos,
     days,
+    focalPoints,
     includeText: flags.includeText as boolean,
     includeMap: flags.includeMap as boolean,
     includeChapters: flags.includeChapters as boolean,
