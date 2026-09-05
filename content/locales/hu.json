@@ -679,6 +679,7 @@
   "postcard.result.sent": "Elküldve. A lapok a nyomdába kerültek.",
   "postcard.result.unknown": "Nincs ilyen rendelés.",
   "postcard.start": "Képeslap küldése",
+  "postcard.textFrom": "A szöveg innen",
   "postcard.title": "Képeslap küldése",
   "postcard.videoOnly": "A képeslapok fényképekről készülnek, nem videókról.",
   "push.blocked": "Az értesítések le vannak tiltva — engedélyezd újra a böngésző beállításaiban.",

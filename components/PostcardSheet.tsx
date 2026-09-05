@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
+import { LOCALE_LABEL } from "@/lib/i18n";
 import type { MediaTile } from "@/lib/types";
 
 /**
@@ -40,12 +41,31 @@ import type { MediaTile } from "@/lib/types";
  * is written for everybody who reads the site; a postcard is read by one person
  * who knows you, and those are not the same words. The trim is a starting
  * point to correct, not a suggestion to accept.
+ *
+ * ## Which day, and which language — B478
+ *
+ * The day the photograph belongs to and the language the journal is written in
+ * are where it starts, and neither is where it has to stay: `GET
+ * …/postcards/texts` hands over the whole trip in every language the journal
+ * keeps, and the two selects above the box are local state after that. A card
+ * carries one photograph and often a week's worth of words, and a card to
+ * somebody in Budapest should start from the Hungarian the day already has.
+ *
+ * Switching either **replaces** what is in the box, edits included. Asking for
+ * another day's words is an explicit request for them, and a merge of two
+ * prefills is not a thing anybody wanted. The language also travels with the
+ * order — `locale` in the body — so the preview page's "usually reads another
+ * language" comparison is against the language actually written, not the
+ * journal's default.
  */
 
 /** The API's own cap, repeated so the box can say so before the server does. */
 const MAX_MESSAGE = 600;
 
 type Candidate = { contactId: string; name: string; city: string; country: string | null };
+
+/** One day of the trip, with its opening in every language it has one in. */
+type DayText = { slug: string; date: string; title: string; texts: Record<string, string> };
 
 export default function PostcardSheet({
   username,
@@ -70,6 +90,9 @@ export default function PostcardSheet({
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [creditsEach, setCreditsEach] = useState(0);
   const [chosen, setChosen] = useState<string[]>([]);
+  const [days, setDays] = useState<DayText[]>([]);
+  const [day, setDay] = useState(tile.slug);
+  const [locale, setLocale] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -94,18 +117,48 @@ export default function PostcardSheet({
   useEffect(() => {
     let live = true;
     (async () => {
-      const res = await fetch(`/${username}/day/${tile.slug}.md`);
+      const res = await fetch(
+        `/api/v1/${username}/postcards/texts?trip=${encodeURIComponent(trip)}`,
+      );
       if (!res.ok || !live) return;
-      const text = await res.text();
-      if (live) setMessage(openingOf(text));
+      const body = (await res.json()) as { writtenLocale: string; days: DayText[] };
+      if (!live) return;
+      setDays(body.days);
+      // The day the photograph is from, in the language the journal is written
+      // in — the same two answers this component gave before there was
+      // anything to choose. Either can be missing: a day whose prose is empty
+      // is not offered at all, and then the first day that has words is a
+      // better start than an empty box with a select pointing at nothing.
+      const start = body.days.find((d) => d.slug === tile.slug) ?? body.days[0];
+      if (!start) return;
+      const loc = start.texts[body.writtenLocale] ? body.writtenLocale : Object.keys(start.texts)[0];
+      setDay(start.slug);
+      setLocale(loc);
+      setMessage(start.texts[loc] ?? "");
     })().catch(() => {
-      // No twin, or offline. An empty box is a fine place to start and a
-      // failure to prefill is not a failure to compose.
+      // Offline, or a journal with no days worth quoting. An empty box is a
+      // fine place to start and a failure to prefill is not a failure to
+      // compose.
     });
     return () => {
       live = false;
     };
-  }, [username, tile.slug]);
+  }, [username, trip, tile.slug]);
+
+  const current = days.find((d) => d.slug === day);
+  /** Only the languages this day actually has words in — see the route. */
+  const languages = current ? Object.keys(current.texts) : [];
+
+  /** Both selects do the same thing: put that day's words, in that language,
+   * in the box. Written once so they cannot drift into disagreeing about
+   * which of the two is the one that reloads the text. */
+  function take(nextDay: string, nextLocale: string) {
+    const found = days.find((d) => d.slug === nextDay);
+    const loc = found?.texts[nextLocale] ? nextLocale : Object.keys(found?.texts ?? {})[0] ?? "";
+    setDay(nextDay);
+    setLocale(loc);
+    setMessage(found?.texts[loc] ?? "");
+  }
 
   const total = creditsEach * chosen.length;
   const ready = chosen.length > 0 && message.trim().length > 0 && !busy;
@@ -124,6 +177,7 @@ export default function PostcardSheet({
           message: message.trim(),
           from,
           recipients: chosen,
+          ...(locale ? { locale } : {}),
         }),
       });
       if (!res.ok) throw new Error(String(res.status));
@@ -162,6 +216,46 @@ export default function PostcardSheet({
             <X className="h-5 w-5" />
           </button>
         </div>
+
+        {/* Rendered only when there is a choice to make. One day in one
+            language is the common case for a journal that keeps no
+            translations, and a select with a single option is furniture. */}
+        {days.length > 1 || languages.length > 1 ? (
+          <div className="mt-4 flex flex-wrap gap-3">
+            {days.length > 1 ? (
+              <label className="text-sm font-semibold text-navy-700">
+                {t("postcard.textFrom")}
+                <select
+                  value={day}
+                  onChange={(e) => take(e.target.value, locale)}
+                  className="mt-1 block rounded-lg border border-navy-200 px-2 py-1.5 text-sm font-normal text-navy-900"
+                >
+                  {days.map((d) => (
+                    <option key={d.slug} value={d.slug}>
+                      {d.date} — {d.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            {languages.length > 1 ? (
+              <label className="text-sm font-semibold text-navy-700">
+                {t("postcard.page.writtenIn")}
+                <select
+                  value={locale}
+                  onChange={(e) => take(day, e.target.value)}
+                  className="mt-1 block rounded-lg border border-navy-200 px-2 py-1.5 text-sm font-normal text-navy-900"
+                >
+                  {languages.map((code) => (
+                    <option key={code} value={code}>
+                      {LOCALE_LABEL[code] ?? code}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+          </div>
+        ) : null}
 
         <label className="mt-4 block text-sm font-semibold text-navy-700">
           {t("postcard.messageLabel")}
@@ -226,28 +320,6 @@ export default function PostcardSheet({
       </div>
     </div>
   );
-}
-
-/**
- * The day's opening, short enough for a card.
- *
- * The twin is the file on disk: frontmatter, then prose. Drop the frontmatter,
- * drop headings and image lines, and take whole sentences until there is no
- * room for another — cutting mid-word would look like a bug in the box the
- * owner is about to edit.
- */
-export function openingOf(markdown: string, limit = 320): string {
-  const body = markdown.replace(/^---\n[\s\S]*?\n---\n/, "");
-  const prose = body
-    .split("\n")
-    .filter((line) => line.trim() && !line.startsWith("#") && !line.trim().startsWith("!["))
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (prose.length <= limit) return prose;
-  const cut = prose.slice(0, limit);
-  const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "));
-  return end > 0 ? cut.slice(0, end + 1) : cut.slice(0, cut.lastIndexOf(" "));
 }
 
 /**
