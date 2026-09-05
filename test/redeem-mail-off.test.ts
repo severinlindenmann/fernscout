@@ -41,6 +41,25 @@ function headers(): Record<string, string> {
   return { "content-type": "application/json", "x-forwarded-for": `10.1.0.${calls % 250}` };
 }
 
+/** B407: toggling the journal's own switch, independent of the server's. */
+function writeJournalConfig(mail: boolean) {
+  fs.writeFileSync(
+    path.join(dir, OWNER, "config.json"),
+    JSON.stringify({
+      title: "Two Backpacks",
+      tagline: "t",
+      owner: { name: "A B", nickname: "A", email: OWNER_EMAIL },
+      startLocation: "X",
+      defaultLocale: "en",
+      locales: ["en"],
+      baseCurrency: "CHF",
+      displayCurrencies: ["CHF"],
+      units: "metric",
+      features: { auth: { enabled: true }, contacts: { enabled: true }, mail: { enabled: mail } },
+    }),
+  );
+}
+
 function writeServerConfig(mail: boolean) {
   fs.writeFileSync(
     path.join(dir, "config.json"),
@@ -146,6 +165,10 @@ describe("a guest link redeemed on a server with mail off", () => {
     // The refusal has to be usable by whoever reads it: it says what is broken
     // and that nothing was taken.
     expect(result.body.message).toContain("still live");
+    // B407: the server's own switch really is off here, so blaming the
+    // server is correct — the message must not point at the journal instead.
+    expect(result.body.message).toContain("server");
+    expect(result.body.message).not.toContain("journal");
   });
 
   /** The other half of the cost, and the one nobody would have noticed: the
@@ -178,6 +201,31 @@ describe("a guest link redeemed on a server with mail off", () => {
     const result = await redeem({ token: "not-a-token", kind: "guest", name: "Oma", email: READER });
     expect(result.status).toBe(202);
     expect(result.body.status).toBe("expired");
+  });
+});
+
+/**
+ * B407: the same 503, produced by the journal's own switch instead of the
+ * server's. The two must not be told apart to each other — see B406's test
+ * above — but the refusal has to say which one it actually is, since only one
+ * of them is the reader's owner's to change.
+ */
+describe("a guest link redeemed with the journal's own mail off, server mail on", () => {
+  test("names the journal's switch, not the server's", async () => {
+    writeServerConfig(true);
+    writeJournalConfig(false);
+    await reloadConfig();
+    try {
+      const result = await redeem({ token: await guestLink(), kind: "guest", name: "Oma", email: READER });
+      expect(result.status).toBe(503);
+      expect(result.body.error).toBe("mail_disabled");
+      expect(result.body.message).toContain("journal");
+      expect(result.body.message).not.toContain("This server cannot send");
+    } finally {
+      writeJournalConfig(true);
+      writeServerConfig(false);
+      await reloadConfig();
+    }
   });
 });
 

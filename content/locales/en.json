@@ -592,7 +592,7 @@
   "trips.allTrips": "All trips",
   "trips.daysAway": "days away",
   "trips.emptyOwnerBody": "This journal is empty. You do not start a trip here — there is no form, and there never will be. Press the button below for a prompt to hand an agent, and it will set the first one up.",
-  "trips.emptyOwnerFilteredBody": "You have a trip, but its trip.md marks it `listed: false` — which keeps it out of this list too, not only the sitemap and the switcher. Set `listed: true` there to see it here.",
+  "trips.emptyOwnerFilteredBody": "You have a trip, but it is marked `listed: false` — which keeps it out of this list too, not only the sitemap and the switcher. Ask an agent working on this journal to switch it back to listed.",
   "trips.emptyOwnerFilteredTitle": "Nothing listed here",
   "trips.emptyTitle": "No trips yet",
   "trips.hiddenBody": "There is nothing here you can read. Journeys in this journal may be private — ask {name} for an invite link, or sign in below with the address they invited.",

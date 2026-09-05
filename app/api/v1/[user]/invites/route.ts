@@ -9,6 +9,7 @@ import {
   type InviteKind,
 } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
+import { mailFailedNote } from "@/lib/contacts/inviteMailNote";
 import { sendInviteMail } from "@/lib/contacts/mail";
 import { isOwner } from "@/lib/contacts/session";
 import { serverSite } from "@/lib/site";
@@ -257,8 +258,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
         ? sent
           ? `Mailed to ${rawEmail}. That address is pre-approved: proving it is all that is ` +
             "left, and it will not sit in your queue."
-          : `Could not send to ${rawEmail} — this server's mail may be off. The link above ` +
-            "still works and that address is still pre-approved; send it another way."
+          : mailFailedNote(rawEmail, user)
         : kind === "buddy"
           ? "Send this only to the people who were actually on the trip. Redeeming it puts " +
             "them in your queue; approving them lets them write to the trip and read the " +
