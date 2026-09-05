@@ -342,6 +342,17 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
       lng: day.lead.lng,
       paragraphs,
       photos,
+      // The lead entry's leg. A day written as several updates records the
+      // travelling on the one that did the travelling, which is the lead often
+      // enough that taking the first non-empty one would mostly agree and
+      // occasionally invent a journey nobody made.
+      transport: day.lead.transport
+        ? {
+            mode: day.lead.transport.mode,
+            from: day.lead.transport.from,
+            to: day.lead.transport.to,
+          }
+        : undefined,
     };
   });
 

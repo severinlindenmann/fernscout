@@ -235,6 +235,9 @@ function pageHtml(
           `<p class="muted eyebrow" style="${pt(type.caption)}">${escape(page.dateLabel)}</p>` +
             `<h2 style="${pt(type.heading)}">${escape(page.title)}</h2>` +
             `<p class="accent" style="${pt(type.caption)}">${escape(page.location)}</p>` +
+            (page.leg
+              ? `<p class="muted" style="${pt(type.caption)}">${escape(page.leg.text)}</p>`
+              : "") +
             page.lines.map((l) => `<p style="${pt(type.body)}">${escape(l) || "&nbsp;"}</p>`).join("") +
             page.captions
               .map((c) => `<p class="muted caption" style="${pt(type.caption)}">${escape(c)}</p>`)
@@ -257,6 +260,26 @@ function pageHtml(
           );
         }
       }
+      break;
+
+    case "transport":
+      parts.push(
+        textBlock(
+          spec,
+          page,
+          `<p class="muted eyebrow" style="${pt(type.caption)}">${escape(page.heading)}</p>` +
+            page.modes
+              .map(
+                (m) =>
+                  `<p><span class="accent" style="${pt(type.display)}"><strong>${m.days}</strong></span> ` +
+                  `<span style="${pt(type.subheading)}">${escape(m.label)}</span></p>`,
+              )
+              .join("") +
+            (page.note
+              ? `<hr><p class="muted" style="${pt(type.caption)}">${escape(page.note)}</p>`
+              : ""),
+        ),
+      );
       break;
 
     case "costs": {

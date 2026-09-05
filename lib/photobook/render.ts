@@ -535,6 +535,10 @@ function drawPage(
       }
       text(page, frame, plan.location, c.x, y - 1, type.caption, ACCENT);
       y -= 9;
+      if (plan.leg) {
+        text(page, frame, plan.leg.text, c.x, y + 3, type.caption, MUTED, "F3");
+        y -= 5;
+      }
       rule(page, frame, c.x, y, Math.min(c.width, 30), RULE);
       y -= 8;
       y = block(page, frame, plan.lines, c.x, y, type.body, type.leading);
@@ -562,6 +566,38 @@ function drawPage(
         else drawMissing(page, frame, spec, placement);
       }
       if (plan.layout !== "full-bleed") folio(page, frame, spec, plan.number, plan.side);
+      break;
+    }
+
+    case "transport": {
+      // Set from a little above the middle rather than the top corner: the
+      // page carries three or four short lines, and hung from the head it
+      // reads as the top of a page somebody forgot to finish.
+      const block = plan.modes.length * ((type.display * 1.5) / mm(1)) + 24;
+      let ty = c.y + c.height * 0.62 + block / 2;
+      text(page, frame, eyebrow(plan.heading), c.x, ty, type.caption, MUTED);
+      ty -= 14;
+      for (const mode of plan.modes) {
+        text(page, frame, String(mode.days), c.x, ty, type.display, ACCENT, "F2");
+        text(
+          page,
+          frame,
+          mode.label,
+          c.x + measure(String(mode.days), type.display, "bold") / mm(1) + 3,
+          ty,
+          type.subheading,
+          INK,
+        );
+        ty -= (type.display * 1.5) / mm(1);
+      }
+      if (plan.note) {
+        rule(page, frame, c.x, ty + 6, Math.min(c.width, 30), RULE);
+        for (const line of wrap(plan.note, type.caption, mm(c.width))) {
+          text(page, frame, line, c.x, ty - 2, type.caption, MUTED, "F3");
+          ty -= (type.caption * 1.4) / mm(1);
+        }
+      }
+      folio(page, frame, spec, plan.number, plan.side);
       break;
     }
 

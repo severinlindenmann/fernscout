@@ -94,6 +94,15 @@ export type BookDay = {
   lng: number;
   paragraphs: string[];
   photos: BookPhoto[];
+  /**
+   * How this day was travelled, when the entry recorded it.
+   *
+   * `mode` is one of the site's own `TransportMode` values. The book prints
+   * it on the day's page and counts it on the "how we moved" page; a day that
+   * never said is simply a day with no line about it, which is most of them
+   * on most trips.
+   */
+  transport?: { mode: string; from: string; to: string };
 };
 
 export type BookCosts = {
@@ -201,8 +210,18 @@ export type BookPage = { number: number; side: PageSide } & (
       /** Set when the day's words share their page with a photograph — see
        * the note beside PHOTO_SHARE in `materialise`. */
       photo?: PhotoPlacement;
+      /** "Drove · Zion National Park → Bryce Canyon", when the entry said so. */
+      leg?: { mode: string; text: string };
     }
   | { kind: "photos"; layout: PhotoLayout; placements: PhotoPlacement[] }
+  | {
+      kind: "transport";
+      heading: string;
+      /** Most-used first. `label` is already the plural a reader wants. */
+      modes: { mode: string; label: string; days: number }[];
+      /** The longest single leg, when there is one worth naming. */
+      note?: string;
+    }
   | { kind: "costs"; costs: BookCosts; heading: string }
   | { kind: "colophon"; heading: string; lines: string[] }
   | { kind: "blank" }
@@ -503,6 +522,40 @@ type Chapter = {
   days: BookDay[];
 };
 
+/**
+ * What each way of travelling is called in print.
+ *
+ * The site draws these as icons (`components/TravelScene.tsx`); a book has no
+ * hover and no tooltip, so it says the word. Past tense, because the book is
+ * written after the fact — "Flew", not "Flight".
+ *
+ * An unknown mode falls back to the raw value rather than being dropped: a
+ * journal that invents `transportMode: "ferry"` should print "Ferry" and not
+ * silently lose the leg.
+ */
+const MODE_WORDS: Record<string, { verb: string; one: string; many: string }> = {
+  flight: { verb: "Flew", one: "flight", many: "flights" },
+  train: { verb: "Took the train", one: "day by train", many: "days by train" },
+  bus: { verb: "Took the bus", one: "day by bus", many: "days by bus" },
+  car: { verb: "Drove", one: "day driving", many: "days driving" },
+  motorbike: { verb: "Rode", one: "day on the bike", many: "days on the bike" },
+  boat: { verb: "Sailed", one: "day on the water", many: "days on the water" },
+  walk: { verb: "Walked", one: "day walking", many: "days walking" },
+};
+
+/** The verb for a day's own line — "Drove". */
+function modeVerb(mode: string): string {
+  return MODE_WORDS[mode]?.verb ?? mode.charAt(0).toUpperCase() + mode.slice(1);
+}
+
+/** The counted noun for the summary — "17 days driving", "1 flight". A book
+ * that says "1 flights" is a book that was generated rather than written. */
+function modeCount(mode: string, days: number): string {
+  const words = MODE_WORDS[mode];
+  if (words) return days === 1 ? words.one : words.many;
+  return days === 1 ? `day by ${mode}` : `days by ${mode}`;
+}
+
 /** Consecutive days in the same country. A country revisited later in the trip
  * becomes a second chapter, which is what actually happened. */
 export function chaptersOf(days: BookDay[]): Chapter[] {
@@ -529,6 +582,7 @@ type Draft =
   | { kind: "chapter"; chapter: Chapter; index: number; of: number; align: "recto" }
   | { kind: "day"; day: BookDay; captions: string[]; photo?: BookPhoto }
   | { kind: "photos"; layout: PhotoLayout; photos: BookPhoto[] }
+  | { kind: "transport"; align: "recto" }
   | { kind: "costs"; align: "recto" }
   | { kind: "colophon" }
   | { kind: "blank" };
@@ -603,6 +657,10 @@ function draftsForFront(source: BookSource, options: BookOptions): Draft[] {
 
 function draftsForBack(source: BookSource, options: BookOptions): Draft[] {
   const drafts: Draft[] = [];
+  // Present only when the trip said how it moved. A page reading "0 days
+  // driving" on a journal that never filled the field in is worse than no
+  // page, and most journals never fill it in.
+  if (source.days.some((d) => d.transport)) drafts.push({ kind: "transport", align: "recto" });
   if (source.costs && options.includeCosts) drafts.push({ kind: "costs", align: "recto" });
   drafts.push({ kind: "colophon" });
   return drafts;
@@ -832,6 +890,22 @@ function materialise(
         // index redundant, and there is no room for it either.
         captions: photo ? [] : draft.captions,
         photo,
+        leg: day.transport
+          ? {
+              mode: day.transport.mode,
+              // "Drove · Zion → Bryce" when both ends were recorded, and just
+              // the verb when they were not: an arrow with nothing on one side
+              // of it is worse than no arrow.
+              text: [
+                modeVerb(day.transport.mode),
+                [day.transport.from, day.transport.to].every(Boolean)
+                  ? `${day.transport.from} \u2192 ${day.transport.to}`
+                  : "",
+              ]
+                .filter(Boolean)
+                .join("  \u00b7  "),
+            }
+          : undefined,
       };
     }
 
@@ -839,6 +913,28 @@ function materialise(
       const placements = placeAll(draft.layout, draft.photos, spec, side);
       for (const p of placements) checkResolution(p, spec, warnings);
       return { number, side, kind: "photos", layout: draft.layout, placements };
+    }
+
+    case "transport": {
+      const counts = new Map<string, number>();
+      for (const day of source.days) {
+        if (day.transport) counts.set(day.transport.mode, (counts.get(day.transport.mode) ?? 0) + 1);
+      }
+      const modes = [...counts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([mode, days]) => ({ mode, label: modeCount(mode, days), days }));
+      const named = source.days.filter((d) => d.transport?.from && d.transport?.to);
+      return {
+        number,
+        side,
+        kind: "transport",
+        heading: "How we got about",
+        modes,
+        note:
+          named.length > 0
+            ? `${named.length} legs written down, from ${named[0].transport!.from} to ${named[named.length - 1].transport!.to}.`
+            : undefined,
+      };
     }
 
     case "costs":
