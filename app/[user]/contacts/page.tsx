@@ -5,6 +5,7 @@ import NoticeShell from "@/components/NoticeShell";
 import PageHeader from "@/components/PageHeader";
 import { isEnabled } from "@/lib/capabilities";
 import { listContacts } from "@/lib/contacts";
+import { deviceCountByContact } from "@/lib/push";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { listInvitesWithLinks } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
@@ -65,6 +66,12 @@ export default async function ContactsAdminPage({
     );
   }
 
+  // Notifications are a fact about a reader, not a consent the owner records —
+  // B453. `null` where this journal has push off, so the card says nothing
+  // about a channel it never offered rather than reporting a hard zero.
+  const pushOn = isEnabled("push", username);
+  const devices = pushOn ? await deviceCountByContact(username) : {};
+
   const contacts: AdminContact[] = (await listContacts(username)).map((contact) => ({
     id: contact.id,
     name: contact.name,
@@ -77,6 +84,7 @@ export default async function ContactsAdminPage({
     // Decrypted here and nowhere else on the public side: the owner is the one
     // person besides its owner who is entitled to read it.
     postalAddress: contact.hasPostalAddress ? (contact.postalAddress ?? EMPTY_ADDRESS) : null,
+    pushDevices: pushOn ? (devices[contact.id] ?? 0) : null,
     createdVia: contact.createdVia,
     createdAt: contact.createdAt,
     confirmedAt: contact.confirmedAt,
@@ -133,6 +141,7 @@ export default async function ContactsAdminPage({
         // address, so the form stops asking for one — `lib/capabilities.ts`
         // decides, same as everywhere else this reads.
         postcardsEnabled={isEnabled("postcards", username)}
+        pushEnabled={pushOn}
         // B376: same reasoning, for the phone hint's own mention of WhatsApp.
         whatsappEnabled={isEnabled("whatsapp", username)}
         // B385: default a new guest's dialling code to the operator's own

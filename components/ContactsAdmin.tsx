@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BellRing, Mail, MessageCircle, Stamp } from "lucide-react";
 import AddressLookupField from "./AddressLookupField";
 import CopyLine from "./CopyLine";
 import CountryField from "./CountryField";
 import TelField, { joinTel, splitTel } from "./TelField";
 import { countryName, resolveCountry } from "@/lib/countries";
-import { LOCALE_LABEL, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
+import { LOCALE_LABEL, plural, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
 /**
@@ -49,6 +50,18 @@ export type AdminContact = {
   wantsPostcard: boolean;
   wantsWhatsapp: boolean;
   postalAddress: AdminAddress | null;
+  /**
+   * How many devices this reader has subscribed to notifications — B453.
+   *
+   * `null` where the journal has push off, which is not the same as zero and
+   * must not read as it: nothing is missing from a card that never offered the
+   * channel. A number is a fact the owner can act on; `null` means say nothing.
+   *
+   * It is not a consent and cannot be edited here. A subscription is made by
+   * the reader's own browser, on one device, behind a permission prompt — see
+   * the note under the tick boxes in `GuestForm`.
+   */
+  pushDevices: number | null;
   createdVia: string | null;
   createdAt: string;
   confirmedAt: string | null;
@@ -204,6 +217,36 @@ const ERROR_KEY: Record<string, TranslationKey> = {
 };
 
 type Translate = (key: TranslationKey, vars?: Record<string, string>) => string;
+/** The same, for a string that has a `<key>.one` beside it. */
+type Count = (key: TranslationKey, count: number, vars?: Record<string, string>) => string;
+
+/**
+ * One channel this reader is on — B453.
+ *
+ * A chip rather than a line of the list, and two words rather than the
+ * sentence. The sentences live in the tick boxes, where each one is a consent
+ * being given and reads as one; here they were three of them joined with a
+ * dot, which turned the most scannable fact about a person — how they hear
+ * from this journal — into the least scannable thing on the card.
+ *
+ * Only what somebody actually asked for is shown. A row of greyed-out chips
+ * for the channels they declined would say the same thing in colour alone,
+ * which is not something everyone can read.
+ */
+function Channel({
+  icon: Icon,
+  label,
+}: {
+  icon: typeof Mail;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-navy-200 bg-cream-100 px-2.5 py-1 text-sm text-navy-900">
+      <Icon className="h-3.5 w-3.5 text-navy-600" aria-hidden />
+      {label}
+    </span>
+  );
+}
 
 /** One person. Declared at module scope rather than inside the page component:
  * a component created during render is a new type on every keystroke, and
@@ -213,6 +256,7 @@ function ContactRow({
   via,
   canResend = false,
   t,
+  tn,
   busy,
   act,
   onEdit,
@@ -224,6 +268,8 @@ function ContactRow({
   /** How they came to be here, already in words — see `viaLabel`. Resolved by
    * the caller, which is where the invite list and the trip titles are. */
   via: string | null;
+  /** For the device count, which is the one number on this card. */
+  tn: Count;
   /** Whether an invitation this contact hasn't opened yet can be mailed
    * again — B384. Only ever true for a `pending`, unconfirmed row; false for
    * anything else, including the ordinary case of nothing to resend. */
@@ -246,11 +292,13 @@ function ContactRow({
 }) {
   // Owner-facing copy, not the guest form's first-person "Send me…" — this
   // list is read by the owner, about somebody else.
-  const wants = [
-    contact.wantsEmailDigest ? t("contact.adminWantsDigest") : null,
-    contact.wantsPostcard ? t("contact.adminWantsPostcard") : null,
-    contact.wantsWhatsapp ? t("contact.adminWantsWhatsapp") : null,
-  ].filter(Boolean);
+  const channels = [
+    contact.wantsEmailDigest ? { icon: Mail, label: t("contact.adminChannelEmail") } : null,
+    contact.wantsPostcard ? { icon: Stamp, label: t("contact.adminChannelPostcard") } : null,
+    contact.wantsWhatsapp
+      ? { icon: MessageCircle, label: t("contact.adminChannelWhatsapp") }
+      : null,
+  ].filter((channel) => channel !== null);
 
   const postal = contact.postalAddress;
 
@@ -263,19 +311,42 @@ function ContactRow({
     >
       <p className="font-display text-xl text-navy-900">{contact.name ?? contact.email}</p>
       <p className="text-base text-navy-700">{contact.email}</p>
-      <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm text-navy-600">
-        <dt>{t("contact.language")}</dt>
+      {/* What this person hears from, before anything about them. It is the
+          question the owner opens this page with — B453. */}
+      {channels.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {channels.map((channel) => (
+            <Channel icon={channel.icon} label={channel.label} key={channel.label} />
+          ))}
+        </div>
+      )}
+      {/* Labels in the quiet grey, values in the ink. One weight for both is
+          what made this a wall: everything on the card asked for the same
+          amount of attention, so none of it got any. `navy-500` is a
+          border-and-label token — see apply-the-brand — and the values it
+          labels are `navy-900`. */}
+      <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm text-navy-900">
+        <dt className="text-navy-500">{t("contact.language")}</dt>
         <dd>{contact.locale ? LOCALE_LABEL[contact.locale] : "—"}</dd>
-        <dt>{t("contact.adminVia")}</dt>
+        <dt className="text-navy-500">{t("contact.adminVia")}</dt>
         <dd>{via ?? "—"}</dd>
-        <dt>{t("contact.adminLastSeen")}</dt>
+        <dt className="text-navy-500">{t("contact.adminLastSeen")}</dt>
         <dd>{contact.lastSeenAt?.slice(0, 10) ?? t("contact.adminNever")}</dd>
-        <dt>{t(STATUS_KEY[contact.status])}</dt>
+        <dt className="text-navy-500">{t(STATUS_KEY[contact.status])}</dt>
         <dd>{contact.confirmedAt?.slice(0, 10) ?? "—"}</dd>
-        {wants.length > 0 && (
+        {/* The fourth channel, and the only one that is state rather than
+            consent — B453. Absent, not zero, where this journal has push off:
+            `null` means the channel was never offered here. */}
+        {contact.pushDevices !== null && (
           <>
-            <dt>{t("contact.adminWants")}</dt>
-            <dd>{wants.join(" · ")}</dd>
+            <dt className="text-navy-500">{t("contact.adminPush")}</dt>
+            <dd className={contact.pushDevices === 0 ? "text-navy-500" : undefined}>
+              {contact.pushDevices === 0
+                ? t("contact.adminPushNone")
+                : tn("contact.adminPushDevices", contact.pushDevices, {
+                    count: String(contact.pushDevices),
+                  })}
+            </dd>
           </>
         )}
         {postal && (
@@ -467,6 +538,7 @@ export function GuestForm({
   act,
   onClose,
   postcardsEnabled = true,
+  pushEnabled = false,
   whatsappEnabled = true,
   defaultCountryCode,
   addressLookupEnabled = false,
@@ -492,6 +564,9 @@ export function GuestForm({
    * `test/contact-tel-hint.test.tsx` (which predates this capability check)
    * keeps rendering the checkbox it asserts against. */
   postcardsEnabled?: boolean;
+  /** Whether this journal offers notifications at all. Off, the note below the
+   * tick boxes describes a channel that does not exist here. */
+  pushEnabled?: boolean;
   /** B376: whether this server can act on a WhatsApp update at all —
    * `isEnabled("whatsapp", username)`. Only changes the phone hint's wording. */
   whatsappEnabled?: boolean;
@@ -757,6 +832,24 @@ export function GuestForm({
           />
           <span>{t("contact.adminWantsWhatsapp")}</span>
         </label>
+        {/*
+          The fourth channel, said rather than offered — B453.
+
+          There is no tick box here and there must not be one: a push
+          subscription is made by the reader's own browser, on one device,
+          behind a permission prompt nobody else can answer. An owner ticking a
+          box would be recording a wish that nothing acts on. What they need
+          instead is to know the channel exists, that it is the reader's to
+          switch on, and the one condition that makes it look broken — an
+          iPhone that has not added the site to the Home Screen, where the API
+          is simply absent. The card above says whether it worked.
+        */}
+        {pushEnabled && (
+          <p className="rounded-xl bg-cream-100 px-4 py-3 text-sm text-navy-700">
+            <span className="font-medium text-navy-900">{t("contact.adminPush")}</span>{" "}
+            {t("contact.adminPushHint")}
+          </p>
+        )}
       </div>
 
       {error && (
@@ -792,6 +885,7 @@ function ContactGroup({
   via,
   canResend,
   t,
+  tn,
   busy,
   act,
   onEdit,
@@ -810,6 +904,7 @@ function ContactGroup({
    * could answer true. */
   canResend?: (contact: AdminContact) => boolean;
   t: Translate;
+  tn: Count;
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
   onEdit: (contact: AdminContact) => void;
@@ -831,6 +926,7 @@ function ContactGroup({
               via={via(contact)}
               canResend={canResend?.(contact) ?? false}
               t={t}
+              tn={tn}
               busy={busy}
               act={act}
               onEdit={onEdit}
@@ -970,6 +1066,7 @@ export default function ContactsAdmin({
   hasGuestTrip,
   highlightId,
   postcardsEnabled = true,
+  pushEnabled = false,
   whatsappEnabled = true,
   defaultCountryCode,
   addressLookupEnabled = false,
@@ -1004,6 +1101,9 @@ export default function ContactsAdmin({
    * `isEnabled("postcards", username)`, from the page. Defaults to shown, the
    * same reasoning as `GuestForm`'s own default below. */
   postcardsEnabled?: boolean;
+  /** Whether this journal offers notifications at all. Off, the note below the
+   * tick boxes describes a channel that does not exist here. */
+  pushEnabled?: boolean;
   /** B376: whether this server can act on a WhatsApp update at all —
    * `isEnabled("whatsapp", username)`, from the page. Same default reasoning. */
   whatsappEnabled?: boolean;
@@ -1032,6 +1132,8 @@ export default function ContactsAdmin({
 
   const t = (key: TranslationKey, vars?: Record<string, string>) =>
     translate(dictionary, key, vars);
+  const tn = (key: TranslationKey, count: number, vars?: Record<string, string>) =>
+    plural(dictionary, key, count, vars);
 
   async function refresh() {
     const response = await fetch(
@@ -1129,6 +1231,7 @@ export default function ContactsAdmin({
             onClose={() => setFormTarget(null)}
             defaultCountryCode={defaultCountryCode}
             postcardsEnabled={postcardsEnabled}
+            pushEnabled={pushEnabled}
             whatsappEnabled={whatsappEnabled}
             addressLookupEnabled={addressLookupEnabled}
           />
@@ -1141,6 +1244,7 @@ export default function ContactsAdmin({
         canResend={contactCanResend}
         rows={pending}
         t={t}
+        tn={tn}
         busy={busy}
         act={act}
         onEdit={setFormTarget}
@@ -1153,6 +1257,7 @@ export default function ContactsAdmin({
         via={contactVia}
         rows={approved}
         t={t}
+        tn={tn}
         busy={busy}
         act={act}
         onEdit={setFormTarget}
@@ -1166,6 +1271,7 @@ export default function ContactsAdmin({
           via={contactVia}
           rows={other}
           t={t}
+          tn={tn}
           busy={busy}
           act={act}
           onEdit={setFormTarget}

@@ -41,6 +41,27 @@ export async function removeSubscriptions(username: string, endpoints: string[])
 }
 
 /**
+ * How many devices each contact has subscribed, for one journal — B453.
+ *
+ * The owner's own list is the only caller: a card that says "wants an email"
+ * and nothing about the phone in the reader's hand is missing the channel that
+ * actually interrupts. Counted from the same read `listSubscriptions` does
+ * rather than asked per contact, because a journal has tens of subscriptions
+ * and a query each would be a page of them.
+ *
+ * A subscription with no `contactId` is a browser nobody was signed in on. It
+ * is a real subscriber and it is counted nowhere here, because there is no
+ * card to put it on.
+ */
+export async function deviceCountByContact(username: string): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  for (const sub of await listSubscriptions(username)) {
+    if (sub.contactId) counts[sub.contactId] = (counts[sub.contactId] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/**
  * The contact a subscribing browser belongs to, if it can be told.
  *
  * Looked up directly against the `contacts` table rather than through

@@ -43,6 +43,7 @@ function contact(over: Partial<AdminContact>): AdminContact {
     wantsPostcard: false,
     wantsWhatsapp: false,
     postalAddress: null,
+    pushDevices: null,
     createdVia: null,
     createdAt: new Date().toISOString(),
     confirmedAt: new Date().toISOString(),
