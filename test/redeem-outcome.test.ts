@@ -31,15 +31,18 @@ describe("redeemOutcome", () => {
   });
 
   test("the client-independent 400s", () => {
-    expect(redeemOutcome({ ok: false, status: 400 }, { error: "invalid_email" }).error).toBe(
-      "contact.needEmail",
-    );
-    expect(redeemOutcome({ ok: false, status: 400 }, { error: "invalid_name" }).error).toBe(
-      "contact.needName",
-    );
-    expect(redeemOutcome({ ok: false, status: 400 }, { error: "invalid_address" }).error).toBe(
-      "contact.needAddress",
-    );
+    expect(redeemOutcome({ ok: false, status: 400 }, { error: "invalid_email" })).toEqual({
+      kind: "error",
+      error: "contact.needEmail",
+    });
+    expect(redeemOutcome({ ok: false, status: 400 }, { error: "invalid_name" })).toEqual({
+      kind: "error",
+      error: "contact.needName",
+    });
+    expect(redeemOutcome({ ok: false, status: 400 }, { error: "invalid_address" })).toEqual({
+      kind: "error",
+      error: "contact.needAddress",
+    });
   });
 
   test("an unrecognised failure still says something rather than nothing", () => {
