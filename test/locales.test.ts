@@ -199,6 +199,25 @@ describe("translate", () => {
  * inner provider hydrated — visible, and already wrong for a reader with no
  * JavaScript or a screen reader that has announced the language.
  */
+/**
+ * B432: four German strings addressed the reader as "Sie" (formal) while
+ * the rest of the dictionary uses "du" (informal). Not a blanket "no Sie"
+ * check — a sentence-initial, capitalised "Sie" is often just "sie" (she/it/
+ * they) capitalised by ordinary German grammar, e.g. "Die Seite … Sie zeigt
+ * dir …", and that is legitimate and stays. So this pins the four keys that
+ * were actually wrong, rather than grepping the whole file.
+ */
+describe("German address is consistently informal (B432)", () => {
+  const formalMarkers = /\b(Sie|Ihnen|Ihre[nrms]?|Ihres)\b/;
+
+  test("the four keys that used formal address now use du", () => {
+    const de = dictionaryFor("de");
+    for (const key of ["me.signinExpired", "me.signinThrottled", "signin.body", "signin.failed"]) {
+      expect(de[key], key).not.toMatch(formalMarkers);
+    }
+  });
+});
+
 describe("localeForPath", () => {
   test("a journal's own default, not the instance's", () => {
     expect(localeForPath("/bea")).toBe("hr");
