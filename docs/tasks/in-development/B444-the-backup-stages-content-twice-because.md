@@ -54,3 +54,27 @@ behaviour. That is B114 and it is correct.
 A run with `CONTENT_DIR` under `DATA_DIR` stages once, says so in the log, and
 `restic snapshots` still shows the content tree in the snapshot. A run with the
 two separate stages both, as now. `test/backup-script.test.ts` covers both.
+
+## What was built
+
+`is_inside <child> <ancestor>` in `scripts/backup.sh`, resolving both with
+`cd … && pwd -P` so a symlinked `CONTENT_DIR` is answered by where it points
+rather than how it was spelled, and one branch on the content stage:
+
+```
+elif [[ -d "$DATA_DIR" ]] && is_inside "$CONTENT_DIR" "$DATA_DIR"; then
+  log "content/ ($CONTENT_DIR) is inside DATA_DIR — already staged at data/, not copying it twice"
+```
+
+The log line is not decoration. Skipping a stage silently is how an operator
+reads the journal after an incident and concludes the journals were left out of
+the snapshot; it says where they are instead.
+
+`docs/runbook.md` step 6 said `$STAGED/content/` "is a second copy of the same
+bytes" — true when it was written, and now there is no such directory in a
+snapshot from the nested layout. Corrected, along with the note below it, which
+told an operator not to rsync a directory that no longer exists.
+
+Not done: nothing about `stage_tree` or the refusal to stamp a success on an
+incomplete snapshot. That is B114 and it is correct — the double-counting was
+the caller, not the counter.

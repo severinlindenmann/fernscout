@@ -111,6 +111,16 @@ unreadable_paths() (
   find . -mindepth 1 ! -type l ! -exec test -r {} \; -print 2>/dev/null | LC_ALL=C sort || true
 )
 
+# is_inside <child> <ancestor> — true when <child> is <ancestor> or sits under
+# it. Both are resolved first, so a symlinked CONTENT_DIR is answered by where
+# it points rather than by how it was spelled.
+is_inside() {
+  local child ancestor
+  child="$(cd "$1" 2>/dev/null && pwd -P)" || return 1
+  ancestor="$(cd "$2" 2>/dev/null && pwd -P)" || return 1
+  [[ "$child" == "$ancestor" || "$child" == "$ancestor"/* ]]
+}
+
 # stage_tree <label> <source> <destination>
 stage_tree() {
   local label="$1" src="$2" dest="$3"
@@ -219,11 +229,23 @@ fi
 # on the VPS (or media that was rsynced but never committed, see ROADMAP A9)
 # is exactly the kind of state a "just re-clone the repo" recovery
 # would silently lose.
-if [[ -d "$CONTENT_DIR" ]]; then
+#
+# Unless it is already in the DATA_DIR stage. This deployment sets
+# CONTENT_DIR=/var/lib/fernscout/content with DATA_DIR=/var/lib/fernscout, so
+# step 2 has just copied the whole tree — staging it again cost ~320 MiB of
+# disk and the time to write it, and counted every unreadable path twice, which
+# is how B401's two files were reported as "4 path(s) missing" (B444). The
+# separate stage still matters for the un-nested layout .env.example gives,
+# where CONTENT_DIR is the git checkout and DATA_DIR is somewhere else.
+if [[ ! -d "$CONTENT_DIR" ]]; then
+  log "WARNING: content dir ($CONTENT_DIR) does not exist"
+elif [[ -d "$DATA_DIR" ]] && is_inside "$CONTENT_DIR" "$DATA_DIR"; then
+  # Said out loud every night: an operator reading this log must not conclude
+  # the journals are missing from the snapshot. They are, under data/.
+  log "content/ ($CONTENT_DIR) is inside DATA_DIR — already staged at data/, not copying it twice"
+else
   log "staging content/ ($CONTENT_DIR)"
   stage_tree "content/" "$CONTENT_DIR" "$STAGING_DIR/content"
-else
-  log "WARNING: content dir ($CONTENT_DIR) does not exist"
 fi
 
 # --- 4. Push to off-VPS storage with restic --------------------------------
