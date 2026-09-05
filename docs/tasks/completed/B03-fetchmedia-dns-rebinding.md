@@ -8,8 +8,7 @@ area: media, ssrf
 found: "2026-09-01"
 started: "2026-09-04T06:50:26Z"
 merged: "2026-09-04T07:42:56Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T09:14:24Z"
+completed: "2026-09-05T09:30:17Z"
 ---
 
 # B03 — A DNS rebinding window in `fetchImage`

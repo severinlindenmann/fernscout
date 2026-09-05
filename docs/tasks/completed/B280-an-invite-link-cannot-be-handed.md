@@ -8,8 +8,7 @@ area: contacts, invites, db, crypto
 found: "2026-09-04T12:40:00Z"
 started: "2026-09-04T12:50:47Z"
 merged: "2026-09-04T13:00:51Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T09:14:25Z"
+completed: "2026-09-05T09:30:17Z"
 ---
 
 # B280 — An invite link cannot be handed out a second time, because the token is only stored hashed
@@ -139,3 +138,29 @@ One consequence worth stating for whoever builds B281: every live invite URL
 will now be present in the contacts page's HTML and RSC payload. That page is
 behind `isOwner` and `noindex`, and it already carries addresses — but it is a
 change in what a cached copy of that page is worth, which is what B287 is for.
+
+---
+
+**2026-09-05, campaign verdict: second bullet verified, first has no fixture.**
+
+The live half holds. On `/<user>/contacts` the copy control yields the same URL
+across a full page reload —
+`https://fernscout.ch/xydhd-quiet/invite/buddy/fs_inv_Q7G11TTiQjGyD8yEbGyYI4tG`
+both times — and that URL still opens a live invite form, so it genuinely
+redeems rather than merely being displayed. `GET /api/v1/<user>/invites`
+carries neither `token` nor `url` on any of its eight rows, and a revoked row
+renders with no copy control at all, which is the null-url case showing through
+the UI.
+
+**The first bullet cannot be checked here.** It needs an invite created *before*
+B280 merged (2026-09-04 ~14:59); every invite in every QA journal was created
+from ~19:40 that day onward. Nothing in reach predates the fix, so the
+"old invite still redeems, and lists with a null url" case has no specimen.
+
+Moved to `completed/` on the bullet that could be tested. The other is a
+migration property, and the honest way to check it is the unit test that already
+covers it — not a live probe against fixtures that are all too young.
+
+**Note on this ticket's Work section:** it describes removing a duplicate
+`clientIp` from `app/api/trip-access/route.ts`. That route no longer exists —
+B39 deleted it wholesale — so that half closed as a side effect elsewhere.
