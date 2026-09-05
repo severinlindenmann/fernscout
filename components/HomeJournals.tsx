@@ -31,6 +31,16 @@ export type HomeJournal = {
   trips: HomeTrip[];
 };
 
+/** A journal the address holds a role in of its own — everything but `admin`,
+ * which B494 renders as a row rather than a card. A predicate rather than a
+ * bare `filter`, so the card and its badge are typed against the four-value
+ * union minus the one they cannot draw. */
+type MineJournal = HomeJournal & { role: Exclude<HomeJournal["role"], "admin"> };
+
+function isMine(journal: HomeJournal): journal is MineJournal {
+  return journal.role !== "admin";
+}
+
 export type HomeDevice = {
   id: string;
   createdAt: string;
@@ -51,21 +61,18 @@ const TRIPS_SHOWN = 4;
  * journals somebody else let them into, and which is which should survive
  * being skimmed.
  *
- * `admin` is the loudest of the four on purpose (B488). It is the only row
- * that is somebody *else's* journal opened by an instance-wide credential, and
- * the mistake it guards against — reading a journal as yours and publishing
- * into it — is the one that cannot be taken back.
+ * `admin` never reaches here: B488 gave it a colour of its own and B494 took
+ * the card away entirely, so those journals are rows under their own heading
+ * and the heading says what the badge used to.
  */
-function RoleBadge({ role }: { role: HomeJournal["role"] }) {
+function RoleBadge({ role }: { role: MineJournal["role"] }) {
   const { t } = useI18n();
   const tone =
-    role === "admin"
-      ? "bg-coral-300 text-navy-900"
-      : role === "owner"
-        ? "bg-yellow-100 text-navy-900"
-        : role === "traveller"
-          ? "bg-sky-100 text-navy-900"
-          : "bg-cream-100 text-navy-700";
+    role === "owner"
+      ? "bg-yellow-100 text-navy-900"
+      : role === "traveller"
+        ? "bg-sky-100 text-navy-900"
+        : "bg-cream-100 text-navy-700";
   return (
     <span
       className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.12em] ${tone}`}
@@ -75,7 +82,7 @@ function RoleBadge({ role }: { role: HomeJournal["role"] }) {
   );
 }
 
-function JournalCard({ journal }: { journal: HomeJournal }) {
+function JournalCard({ journal }: { journal: MineJournal }) {
   const { t, tn } = useI18n();
   const shown = journal.trips.slice(0, TRIPS_SHOWN);
   const rest = journal.trips.length - shown.length;
@@ -86,23 +93,34 @@ function JournalCard({ journal }: { journal: HomeJournal }) {
         <div className="min-w-0">
           <Link
             href={journal.href}
-            className="font-display text-base font-semibold text-navy-900
+            className="font-display text-base font-semibold break-words text-navy-900
                        underline decoration-blue-500 decoration-2 underline-offset-4
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           >
             {journal.title}
           </Link>
-          <p className="mt-1 line-clamp-2 text-sm leading-5 text-navy-600">{journal.tagline}</p>
+          <p className="mt-1 line-clamp-2 break-words text-sm leading-5 text-navy-600">
+            {journal.tagline}
+          </p>
         </div>
         <RoleBadge role={journal.role} />
       </div>
 
+      {/* B493. A title is somebody else's `trip.md` and can be three hundred
+          characters with no space in it — which `flex-wrap` cannot break, so
+          the card grew to the width of the word and took the document's
+          horizontal scrollbar with it. `max-w-full` caps the row against the
+          card and `truncate` ends it in an ellipsis; the trip's own page still
+          shows the title whole. `min-w-0` on the `li` is what lets a flex item
+          shrink below its content at all. */}
       <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
         {shown.map((trip) => (
-          <li key={trip.id}>
+          <li key={trip.id} className="min-w-0 max-w-full">
             <Link
               href={trip.href}
-              className="text-sm leading-6 text-navy-700 underline decoration-navy-200 underline-offset-4
+              title={trip.title}
+              className="block max-w-full truncate text-sm leading-6 text-navy-700
+                         underline decoration-navy-200 underline-offset-4
                          hover:decoration-blue-500
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             >
@@ -125,15 +143,72 @@ function JournalCard({ journal }: { journal: HomeJournal }) {
       {journal.role === "owner" && (
         <p className="mt-2 text-xs leading-5 text-navy-600">{t("home.ownerHint")}</p>
       )}
-      {journal.role === "admin" && (
-        <p className="mt-2 text-xs leading-5 text-navy-600">{t("home.adminHint")}</p>
-      )}
     </li>
+  );
+}
+
+/**
+ * Every journal the operator reaches because they run the server — B494.
+ *
+ * A row each rather than a card each. These are not this person's journals in
+ * any sense they care about while they are looking for their own, and the card
+ * repeated the same nine words of small print under every one of them; on an
+ * instance where anybody can sign up the list only ever grows. The sentence is
+ * said once, above, where it applies to all of them.
+ *
+ * No badge on a row, deliberately: the heading is the badge, and a colour
+ * repeated down a list of identical rows says nothing the heading has not.
+ * Deliberately uncapped as well — an operator scanning for one journal wants
+ * to find it, not to be told there are eleven more.
+ */
+function AdminJournals({ journals }: { journals: HomeJournal[] }) {
+  const { t, tn } = useI18n();
+  if (journals.length === 0) return null;
+
+  return (
+    <section aria-labelledby="admin-journals" className="mt-10">
+      <h2
+        id="admin-journals"
+        className="font-display text-lg font-semibold text-navy-900"
+      >
+        {t("home.adminSection")}
+      </h2>
+      <p className="mt-1 text-xs leading-5 text-navy-600">{t("home.adminSectionBody")}</p>
+
+      <ul className="mt-3 divide-y divide-navy-200 border-y border-navy-200">
+        {journals.map((journal) => (
+          <li key={journal.username} className="py-2">
+            <Link
+              href={journal.href}
+              className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5
+                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            >
+              <span
+                className="min-w-0 max-w-full truncate text-sm font-semibold text-navy-900
+                           underline decoration-navy-200 underline-offset-4"
+              >
+                {journal.title}
+              </span>
+              <span className="font-mono text-xs text-navy-600">
+                /{journal.username} ·{" "}
+                {tn("landing.trips", journal.trips.length, {
+                  count: String(journal.trips.length),
+                })}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
 export function YourJournals({ email, journals }: { email: string; journals: HomeJournal[] }) {
   const { t } = useI18n();
+  // Two lists, one query: a journal this address holds a real role in is a
+  // card, and one it merely runs the server for is a row below (B494).
+  const mine = journals.filter(isMine);
+  const admin = journals.filter((j) => j.role === "admin");
   return (
     <section aria-labelledby="your-journals" className="mt-6">
       <h1
@@ -161,7 +236,7 @@ export function YourJournals({ email, journals }: { email: string; journals: Hom
         </Link>
       </p>
 
-      {journals.length === 0 ? (
+      {mine.length === 0 && admin.length > 0 ? null : mine.length === 0 ? (
         /* Not an empty heading with nothing under it. Somebody signed in with
            no journals is in a real and explicable state — nobody has approved
            them yet, or they have not started their own — and saying so is the
@@ -169,11 +244,13 @@ export function YourJournals({ email, journals }: { email: string; journals: Hom
         <p className="mt-4 text-base leading-6 text-navy-700">{t("home.none")}</p>
       ) : (
         <ul className="mt-5 grid gap-4">
-          {journals.map((journal) => (
+          {mine.map((journal) => (
             <JournalCard key={journal.username} journal={journal} />
           ))}
         </ul>
       )}
+
+      <AdminJournals journals={admin} />
     </section>
   );
 }
