@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { COUNTRIES, countryName, flagOf } from "@/lib/countries";
+import { COUNTRIES, countryName, flagOf, matchesName } from "@/lib/countries";
 
 /**
  * The dialling-code half of a phone box — B385, made searchable and complete
@@ -51,10 +51,13 @@ export { countryName, flagOf };
 
 /**
  * Every entry this picker offers, sorted by name and — when `query` is
- * non-empty — narrowed to what it matches: the name, the ISO2 code, or the
- * dial digits, so `swi`, `CH` and `41` all find Switzerland. Exported apart
- * from the component so it can be unit-tested without rendering anything
- * (this checkout has no DOM testing library — see `test/tel-field.test.ts`).
+ * non-empty — narrowed to what it matches: the name in this locale *or* in
+ * English (`matchesName`, `lib/countries.ts` — B423, so "swi" finds
+ * Switzerland on a `de` journal and not only on an `en` one), the ISO2 code,
+ * or the dial digits, so `swi`, `Schw`, `CH` and `41` all find it. Exported
+ * apart from the component so it can be unit-tested without rendering
+ * anything (this checkout has no DOM testing library — see
+ * `test/tel-field.test.ts`).
  */
 export function filterCountries(
   query: string,
@@ -67,7 +70,7 @@ export function filterCountries(
   const digits = q.replace(/^\+/, "");
   return named.filter(
     (d) =>
-      d.name.toLowerCase().includes(q) ||
+      matchesName(d.iso2, q, locale) ||
       d.iso2.toLowerCase().includes(q) ||
       (digits !== "" && d.cc.includes(digits)),
   );

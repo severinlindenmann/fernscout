@@ -95,6 +95,13 @@ describe("filterCountries — the search box's match rules (B390)", () => {
   test("no match returns an empty list rather than falling back to everything", () => {
     expect(filterCountries("zzzznotacountry", "en")).toEqual([]);
   });
+
+  test("matches the English name on a non-English journal (B423)", () => {
+    // On a `de` journal the list is named in German ("Schweiz"); "swi" must
+    // still find Switzerland via its English name, not only via "Schw"/"CH"/"41".
+    const hits = filterCountries("swi", "de");
+    expect(hits.some((d) => d.iso2 === "CH")).toBe(true);
+  });
 });
 
 describe("flagOf — regional-indicator flags with no image asset (B390)", () => {

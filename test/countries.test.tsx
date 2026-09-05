@@ -32,6 +32,12 @@ describe("filterCountryList — the postal address picker's own search, no dial 
     const sorted = [...all].sort((a, b) => a.name.localeCompare(b.name, "de"));
     expect(all).toEqual(sorted);
   });
+
+  test("matches the English name on a non-English journal (B423)", () => {
+    // On a `de` journal the list is named in German ("Schweiz"); "swi" must
+    // still find Switzerland via its English name, not only via "Schw"/"CH".
+    expect(filterCountryList("swi", "de").some((c) => c.iso2 === "CH")).toBe(true);
+  });
 });
 
 describe("resolveCountry — B398's legacy-row rule", () => {
