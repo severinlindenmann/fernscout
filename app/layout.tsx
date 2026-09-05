@@ -53,7 +53,22 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
 
   return (
     <html lang={locale} className={`${fredoka.variable} ${jakarta.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-background text-foreground">
+      {/*
+        `min-w-0` is load-bearing, not tidying — B431.
+
+        This is a column flex container, so every direct child is a flex item
+        with the default `min-width: auto`, which refuses to shrink below its
+        **min-content** width. One unbreakable string anywhere inside — and the
+        agent instruction carries two, `https://<site>/documentation.txt` and
+        `/agent.md` — therefore sets a floor on the width of the whole page.
+        `break-words` wraps the rendered line but leaves min-content alone, so
+        the symptom is not a stray URL sticking out: it is the entire document
+        laid out wider than the phone, every paragraph clipped on the right,
+        and a sideways scroll. It appeared on some phones and not others
+        because it depends on the viewport and on how long the sentence is in
+        the reader's language.
+      */}
+      <body className="flex min-h-full min-w-0 flex-col bg-background text-foreground">
         <ServiceWorkerRegistrar />
         {/* Site identity, the trip list and currency options are all per-user,
             so they are provided by app/[user]/layout.tsx rather than here. */}
