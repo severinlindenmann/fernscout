@@ -281,7 +281,7 @@ function UpdateBlock({
   first: boolean;
 }) {
   const { t, localized } = useI18n();
-  const { title, content } = localized(entry);
+  const { title, content, fallbackNotice } = localized(entry);
 
   return (
     <div className={`relative ${first ? "" : "mt-9"}`}>
@@ -304,6 +304,12 @@ function UpdateBlock({
       <h2 className="mb-4 font-display text-2xl font-semibold tracking-tight text-navy-900 sm:text-3xl">
         {title}
       </h2>
+
+      {/* B305 — a day carried over from before B294 that has no translation
+          for this reader's language. Quiet on purpose: unlike DraftNotice
+          and TestNotice this is a legacy-only path, not a caution, so it is
+          a line rather than a banner. */}
+      {fallbackNotice && <p className="mb-4 text-xs italic text-navy-500">{t(fallbackNotice)}</p>}
 
       <EntryContent markdown={content} />
 

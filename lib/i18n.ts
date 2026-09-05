@@ -400,6 +400,8 @@ export type TranslationKey =
   | "err.tripGoneTitle"
   | "err.unknownUserBody"
   | "err.unknownUserTitle"
+  | "fallback.writtenIn.de"
+  | "fallback.writtenIn.hu"
   | "gallery.all"
   | "gallery.description"
   | "gallery.loadMore"

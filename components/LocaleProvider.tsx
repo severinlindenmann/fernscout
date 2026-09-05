@@ -26,8 +26,18 @@ type Ctx = {
   formatLongDate: (date: string) => string;
   formatShortDate: (date: string) => string;
   formatStay: (nights: number) => string;
-  /** Entry title/content in the active locale, falling back to the original. */
-  localized: (entry: Entry) => { title: string; content: string };
+  /**
+   * Entry title/content in the active locale, falling back to the original.
+   * `fallbackNotice` is set to the key for "written in {writtenLocale}, no
+   * {locale} version" exactly when the fallback happened — undefined when
+   * the day carries a translation for `locale`, or reads in the language it
+   * was written in.
+   */
+  localized: (entry: Entry) => {
+    title: string;
+    content: string;
+    fallbackNotice?: TranslationKey;
+  };
   /** Trip title/tagline in the active locale, falling back to the original.
    * Takes just the fields it needs, not the full `Trip` — the header's trip
    * switcher only ever has a `TripSummary` (no `tagline`) on hand for the
@@ -120,6 +130,15 @@ export default function LocaleProvider({
      * The fallback stays a fallback rather than becoming an error: a day
      * written before B294 required every language still reads, in the
      * language it has, for everybody.
+     *
+     * `fallbackNotice` is B305: since it is legacy-only (B294 refuses a new
+     * day missing a declared language at the door), a reader handed the
+     * wrong language gets told, quietly, which language they are actually
+     * reading. The key is built from `writtenLocale` rather than the
+     * language name being interpolated into a string — B289: a Hungarian
+     * sentence marking case with a suffix on an interpolated name has no
+     * suffix that is correct for every language, so each (reader locale,
+     * written locale) pair is its own dictionary key instead.
      */
     const localized = (entry: Entry) => {
       if (locale === writtenLocale) return { title: entry.title, content: entry.content };
@@ -127,6 +146,7 @@ export default function LocaleProvider({
       return {
         title: localizedEntryTitle(entry, locale, writtenLocale),
         content: tr?.content ?? entry.content,
+        fallbackNotice: tr === undefined ? (`fallback.writtenIn.${writtenLocale}` as TranslationKey) : undefined,
       };
     };
 

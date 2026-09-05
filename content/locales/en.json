@@ -796,5 +796,8 @@
   "welcome.subject": "Your journal is ready — {title}",
   "welcome.title": "Your journal is ready",
   "welcome.token": "Ask your agent to start at {guide}. It will ask this server to mail a six-digit code to {email} — this address, and no other — and that code becomes a token that can write for seven days.",
-  "welcome.tokenHeading": "If you want to write to it later"
+  "welcome.tokenHeading": "If you want to write to it later",
+
+  "fallback.writtenIn.de": "Written in German — no English version of this day.",
+  "fallback.writtenIn.hu": "Written in Hungarian — no English version of this day."
 }
