@@ -41,25 +41,67 @@ function GithubMark({ className }: { className?: string }) {
  * cannot read the hero has no way to guess that the rest of the site is
  * translated.
  */
-export function SiteHeader({
-  siteName,
-  locales,
-  /** The sign-in control, when there is somebody to offer it to — B426. Passed
-   * in rather than rendered here so this stays the header and nothing else. */
-  action,
-}: {
-  siteName: string;
-  locales?: string[];
-  action?: React.ReactNode;
-}) {
+export function SiteHeader({ siteName, locales }: { siteName: string; locales?: string[] }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <p className="pt-3 font-mono text-xs uppercase tracking-[0.2em] text-navy-600">{siteName}</p>
-      <div className="flex items-center gap-1">
-        {action}
-        <LocaleSwitcher locales={locales} subtle />
-      </div>
+      <LocaleSwitcher locales={locales} subtle />
     </div>
+  );
+}
+
+/**
+ * The other reader — B427.
+ *
+ * This page was written for one person: whoever is deciding whether to run
+ * Fernscout. But two people arrive at the bare domain, and the second is the
+ * one this project is actually *for* — somebody whose daughter shared a
+ * journal, who has lost the email, and who typed the address into a browser
+ * because that is what you do when a link is gone. Until B426 there was
+ * nothing here for them at all; after it there was a small word in the corner,
+ * next to the language switcher, in the same weight as the language switcher.
+ *
+ * So the page forks at the top and lets each of them self-select. This is
+ * first because for the reader it is the whole page, and a person who has to
+ * hunt for the way in has already been told this software is not for them.
+ *
+ * **Deliberately not another airmail border.** That frame is the agent block's
+ * signature and it is the one thing this page is remembered by; a second one
+ * would make it wallpaper. What this gets instead is the waymark's yellow down
+ * its edge — a Swiss trail marker means *you are on the right path, keep
+ * going*, which is exactly what is being said. `navy-900` on `cream-100`
+ * throughout: `yellow-600` is 2.36:1 on cream and is not a text colour.
+ */
+export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
+  const { t } = useI18n();
+  return (
+    <section
+      aria-labelledby="reader-invite"
+      className="mt-6 overflow-hidden rounded-2xl border border-navy-200 border-l-8 border-l-yellow-400 bg-cream-100 p-5 sm:p-6"
+    >
+      <h2
+        id="reader-invite"
+        className="font-display text-xl font-semibold leading-tight text-navy-900 sm:text-2xl"
+      >
+        {t("home.inviteTitle")}
+      </h2>
+      <p className="mt-2 max-w-prose text-base leading-7 text-navy-800 sm:text-lg">
+        {t("home.inviteBody")}
+      </p>
+      {/* Full width on a phone and min-h-14 rather than the 11 used elsewhere:
+          this one control is the entire page for the person it is aimed at,
+          and it is aimed at people who miss small targets. */}
+      <button
+        type="button"
+        onClick={onSignIn}
+        className="mt-4 inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-navy-900 px-6
+                   text-lg font-semibold text-cream-50 transition-colors hover:bg-navy-700
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500
+                   sm:w-auto"
+      >
+        {t("home.inviteAction")}
+      </button>
+    </section>
   );
 }
 
