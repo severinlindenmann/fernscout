@@ -68,6 +68,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B329](backlog/issue/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium |
 | [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
+| [B459](backlog/issue/B459-a-reader-signed-in-before-b410.md) | A reader signed in before B410 never gets an identity, so the way out of a journal stays hidden | ISSUE | high | low |
 | [B228](backlog/issue/B228-the-guest-list-issues-a-link.md) | The guest list issues a link that never expires | ISSUE | medium | low |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
@@ -79,7 +80,6 @@ Do not edit them by hand; run the script.
 | [B340](backlog/issue/B340-a-disabled-capability-answers-404-across.md) | A disabled capability answers 404 across every gated route, hiding a real refusal as no-such-route | ISSUE | medium | low |
 | [B342](backlog/issue/B342-readcostsfile-has-no-guard-around-matter.md) | readCostsFile has no guard around matter() and throws on a malformed costs.md | ISSUE | medium | low |
 | [B378](backlog/issue/B378-the-whatsapp-checkbox-is-offered-on.md) | The WhatsApp checkbox is offered on a journal with WhatsApp switched off, one line under a hint saying nothing sends there | ISSUE | medium | low |
-| [B454](backlog/issue/B454-the-landing-page-reads-localstorage-during.md) | The landing page reads localStorage during render, so a signed-in reader gets a hydration mismatch on every load | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
@@ -207,10 +207,10 @@ _Nothing here._
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B456](in-development/B456-the-guides-describe-controls-in-words.md) | The guides describe controls in words alone, so a reader on a phone has to find them by hunting | DOCS | medium | low | `3744307d` |
+| [B454](in-development/B454-the-landing-page-reads-localstorage-during.md) | The landing page reads localStorage during render, so a signed-in reader gets a hydration mismatch on every load | ISSUE | medium | low | `3744307d` |
 | [B458](in-development/B458-a-backup-that-works-says-nothing.md) | A backup that works says nothing, so the only evidence the alarm is alive is an alarm | FEATURE | medium | low | `7c3dd4ae` |
 
-## testing (154)
+## testing (155)
 
 ### issue (90)
 
@@ -373,7 +373,7 @@ _Nothing here._
 | [B401](testing/ops/B401-nightly-backups-have-been-failing-since.md) | Nightly backups have been failing since two unreadable config.json.bak files appeared in the content root | OPS | high | low | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
-### docs-and-skills (12)
+### docs-and-skills (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -386,6 +386,7 @@ _Nothing here._
 | [B248](testing/docs-and-skills/B248-the-main-checkout-rule-is-prose.md) | The main-checkout rule is prose, and prose does not stop an Edit | DOCS | medium | low | — |
 | [B292](testing/docs-and-skills/B292-four-things-an-agent-had-to.md) | Four things an agent had to learn by failing are documented somewhere it was not looking | DOCS | medium | low | — |
 | [B355](testing/docs-and-skills/B355-agent-md-says-an-invite-token.md) | agent.md says an invite token is only stored hashed and can never be shown again, which B280 changed | DOCS | medium | low | — |
+| [B456](testing/docs-and-skills/B456-the-guides-describe-controls-in-words.md) | The guides describe controls in words alone, so a reader on a phone has to find them by hunting | DOCS | medium | low | — |
 | [B186](testing/docs-and-skills/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | DOCS | low | low | — |
 | [B198](testing/docs-and-skills/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | DOCS | low | low | — |
 | [B221](testing/docs-and-skills/B221-a-comment-in-mapframe-points-at.md) | A comment in mapFrame points at a file and a helper that do not exist | DOCS | low | low | — |
