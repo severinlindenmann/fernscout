@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: backups
 found: "2026-09-05T12:27:12Z"
+started: "2026-09-05T12:33:20Z"
+session: 7c3dd4ae-2d91-4172-8ea8-52deb35f9f42
+claimed: "2026-09-05T12:33:20Z"
 ---
 
 # B444 — The backup stages content/ twice because CONTENT_DIR lives inside DATA_DIR
