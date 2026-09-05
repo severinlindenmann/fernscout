@@ -28,6 +28,8 @@ import { parseTripRef } from "../lib/trips.ts";
 import { buildBookSource, resolvePrintFile } from "../lib/photobook/source.ts";
 import { outline, planBook, type Photobook } from "../lib/photobook/plan.ts";
 import { renderCover, renderVolume } from "../lib/photobook/render.ts";
+import { DEFAULT_OPTIONS } from "../lib/photobook/options.ts";
+import { isBookLocale } from "../lib/photobook/strings.ts";
 import { renderPreview } from "../lib/photobook/preview.ts";
 import { BOOK_SIZES, SADDLE_STITCH, defaultSpec } from "../lib/photobook/spec.ts";
 import {
@@ -86,6 +88,7 @@ if (!tripId) {
     "Usage: npm run photobook -- --trip <username>/<trip-id> [--out <dir>] [--guides]\n" +
       "       npm run photobook -- --trip <id> --binding saddle --size portrait-a4\n" +
       "       npm run photobook -- --trip <id> --icc <profile.icc>\n" +
+      "       npm run photobook -- --trip <id> --locale de\n" +
       "       npm run photobook -- --trip <id> --outline\n" +
       "       npm run photobook -- --providers\n\n" +
       `Sizes:    ${Object.keys(BOOK_SIZES).join(", ")}\n` +
@@ -170,7 +173,14 @@ if (iccPath) {
 // ---- plan ------------------------------------------------------------------
 
 const source = buildBookSource(tripId, { madeOn: str("made-on") });
-const book: Photobook = planBook(source, spec);
+// The book's own words. `--locale de` prints German headings over the same
+// days; the days themselves are printed in whatever language they were
+// written in, which is the author's business and not a flag's.
+const locale = str("locale") ?? "en";
+if (!isBookLocale(locale)) {
+  fail(`Unknown --locale "${locale}". One of: en, de, hu.`);
+}
+const book: Photobook = planBook(source, spec, { ...DEFAULT_OPTIONS, locale });
 
 if (args.outline) {
   for (const volume of book.volumes) {

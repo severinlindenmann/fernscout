@@ -619,6 +619,8 @@
   "photobook.option.bindingPerfect": "Ragasztott (32–160 oldal)",
   "photobook.option.bindingSaddle": "Tűzött (4–48 oldal)",
   "photobook.option.text": "Szövegekkel",
+  "photobook.option.language": "A könyv nyelve",
+  "photobook.option.languageHint": "Csak a címek és feliratok. A napjaid úgy kerülnek nyomtatásra, ahogy megírtad őket.",
   "photobook.option.map": "Útvonaltérképpel",
   "photobook.option.chapters": "Fejezetelválasztókkal",
   "photobook.option.names": "Kik utaztak",

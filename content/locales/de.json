@@ -619,6 +619,8 @@
   "photobook.option.bindingPerfect": "Klebebindung (32–160 Seiten)",
   "photobook.option.bindingSaddle": "Rückenstich (4–48 Seiten)",
   "photobook.option.text": "Texte mitdrucken",
+  "photobook.option.language": "Sprache des Buchs",
+  "photobook.option.languageHint": "Nur Überschriften und Beschriftungen. Deine Tage werden so gedruckt, wie du sie geschrieben hast.",
   "photobook.option.map": "Routenkarte mitdrucken",
   "photobook.option.chapters": "Kapiteltrenner mitdrucken",
   "photobook.option.names": "Wer unterwegs war",

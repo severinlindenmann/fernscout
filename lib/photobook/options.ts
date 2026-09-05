@@ -11,9 +11,22 @@
  * request is made, so this module must import nothing server-only.
  */
 
+import { isBookLocale } from "./strings";
+
 export type BookOptions = {
   /** A key of `BOOK_SIZES`. */
   size: string;
+  /**
+   * What language the book's own words are printed in — headings, labels, the
+   * colophon, the names of the ways of travelling. See
+   * `lib/photobook/strings.ts`.
+   *
+   * Never the trip's prose, its title or a caption: those are the author's and
+   * are printed as written. A German journal was getting German days inside an
+   * English book, which is the inconsistency this exists to end — not a
+   * translation service.
+   */
+  locale: string;
   binding: "perfect" | "saddle";
   /** `MediaTile.src` values left out of the book. */
   excludePhotos: readonly string[];
@@ -31,6 +44,7 @@ export type BookOptions = {
 
 export const DEFAULT_OPTIONS: BookOptions = {
   size: "square-210",
+  locale: "en",
   binding: "perfect",
   excludePhotos: [],
   includeText: true,
@@ -72,6 +86,11 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     typeof raw[key] === "boolean" ? (raw[key] as boolean) : null;
 
   const size = typeof raw.size === "string" && sizes.includes(raw.size) ? raw.size : null;
+  // Checked against what the book can actually print rather than against the
+  // journal's own locale list: a journal may offer a language the book has no
+  // words for, and printing English headings under a Hungarian title is a
+  // better failure than refusing the order.
+  const locale = typeof raw.locale === "string" && isBookLocale(raw.locale) ? raw.locale : null;
   const binding = raw.binding === "perfect" || raw.binding === "saddle" ? raw.binding : null;
   const excludePhotos =
     Array.isArray(raw.excludePhotos) &&
@@ -86,7 +105,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     includeNames: bool("includeNames"),
     includeCosts: bool("includeCosts"),
   };
-  if (!size || !binding || !excludePhotos || Object.values(flags).some((v) => v === null)) {
+  if (!size || !locale || !binding || !excludePhotos || Object.values(flags).some((v) => v === null)) {
     return null;
   }
   // Each of `flags`' values is checked non-null above, but that check does not
@@ -94,6 +113,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
   // spread, which is what TS actually complained about.
   return {
     size,
+    locale,
     binding,
     excludePhotos,
     includeText: flags.includeText as boolean,

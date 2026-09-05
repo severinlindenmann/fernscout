@@ -619,6 +619,8 @@
   "photobook.option.bindingPerfect": "Perfect bound (32–160 pages)",
   "photobook.option.bindingSaddle": "Saddle stitch (4–48 pages)",
   "photobook.option.text": "Include the writing",
+  "photobook.option.language": "Language of the book",
+  "photobook.option.languageHint": "Headings and labels only. Your days are printed as you wrote them.",
   "photobook.option.map": "Include the route map",
   "photobook.option.chapters": "Include chapter dividers",
   "photobook.option.names": "Include who travelled",

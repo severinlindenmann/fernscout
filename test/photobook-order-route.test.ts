@@ -42,6 +42,10 @@ function orderRequest(orderId: string) {
       orderId,
       options: JSON.stringify({
         size: "square-210",
+        // Required since the book learned to be printed in a language.
+        // `parseOptions` rejects a body without it rather than defaulting,
+        // which is why leaving it out here failed with a 400 rather than a 303.
+        locale: "en",
         binding: "perfect",
         excludePhotos: [],
         includeText: true,

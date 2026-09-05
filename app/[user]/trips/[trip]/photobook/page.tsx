@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import TripProvider from "@/components/TripProvider";
 import { getAllMedia } from "@/lib/entries";
 import { balanceOf } from "@/lib/credits";
-import { photobookEntryFor } from "@/lib/photobook/entry";
+import { bookLocalesFor, photobookEntryFor } from "@/lib/photobook/entry";
 import { getTrip, tripRef } from "@/lib/trips";
 import { outcomeFrom } from "@/lib/photobook/orders";
 import PhotobookPageContent from "../../../(trip)/photobook/PhotobookPageContent";
@@ -37,6 +37,7 @@ export default async function TripPhotobookPage({
         tripTitle={trip.title}
         media={getAllMedia(trip.ref, { includeDrafts: true }).filter((m) => m.type === "image")}
         balance={await balanceOf(user)}
+        locales={bookLocalesFor(user)}
         // `order/route.ts` always redirects here — this is the URL its
         // `back()` builds — so this copy of the page, and not the
         // current-trip one above, is the one that actually needs to read the

@@ -1,5 +1,7 @@
 import "server-only";
 import { isEnabled } from "../capabilities";
+import { getUser } from "../users";
+import { isBookLocale } from "./strings";
 import { isOwner } from "../contacts/session";
 import type { PhotobookEntry, Trip } from "../types";
 
@@ -34,4 +36,26 @@ export async function photobookEntryFor(trip: Trip): Promise<PhotobookEntry | un
   if (!isEnabled("photobook", username) || !isEnabled("credits")) return undefined;
   if (!(await isOwner(username))) return undefined;
   return { username, trip: trip.id };
+}
+
+/**
+ * Which languages this journal can have its book printed in.
+ *
+ * The journal's own `locales`, narrowed to the ones the book has words for
+ * (`lib/photobook/strings.ts`). A journal offering a language the book cannot
+ * set its headings in should not be offered it — the alternative is a picker
+ * whose choices silently do nothing.
+ *
+ * Its default language first, so the picker opens on the journal's own voice
+ * rather than on whatever happens to sort first.
+ */
+export function bookLocalesFor(username: string): string[] {
+  const user = getUser(username);
+  if (!user) return ["en"];
+  const offered = user.locales.filter(isBookLocale);
+  if (offered.length === 0) return ["en"];
+  const preferred = user.defaultLocale;
+  return isBookLocale(preferred)
+    ? [preferred, ...offered.filter((l) => l !== preferred)]
+    : offered;
 }

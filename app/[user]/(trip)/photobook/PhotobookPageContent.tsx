@@ -41,12 +41,21 @@ const OUTCOME_MESSAGE: Record<string, TranslationKey> = {
  * `BookOptions` in state, ask for a new preview whenever they change, and
  * render whatever comes back. It never lays out a page itself.
  */
+/** Each language named in itself, which is how a language picker should read
+ * — a German owner looks for "Deutsch", not for "German". */
+const LANGUAGE_NAME: Record<string, string> = {
+  en: "English",
+  de: "Deutsch",
+  hu: "Magyar",
+};
+
 export default function PhotobookPageContent({
   entry,
   tripRef,
   tripTitle,
   media,
   balance,
+  locales,
   outcome,
 }: {
   entry: PhotobookEntry;
@@ -54,13 +63,20 @@ export default function PhotobookPageContent({
   tripTitle: string;
   media: MediaTile[];
   balance: number | null;
+  /** The languages this journal offers, from its own config. The picker is
+   * hidden entirely where there is only one. */
+  locales: string[];
   /** What the last press of Pay came back with, if this page was reached by
    * `order/route.ts`'s redirect rather than opened fresh. `null` on a first
    * visit. */
   outcome: PhotobookOutcome | null;
 }) {
   const { t } = useI18n();
-  const [options, setOptions] = useState<BookOptions>(DEFAULT_OPTIONS);
+  // Opens in the journal's own default language rather than in English.
+  const [options, setOptions] = useState<BookOptions>({
+    ...DEFAULT_OPTIONS,
+    locale: locales[0] ?? DEFAULT_OPTIONS.locale,
+  });
   const [preview, setPreview] = useState<PreviewState>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -179,6 +195,32 @@ export default function PhotobookPageContent({
                     ))}
                   </select>
                 </label>
+
+                {locales.length > 1 && (
+                  <label className="block">
+                    <span className="text-sm font-semibold text-navy-800">
+                      {t("photobook.option.language")}
+                    </span>
+                    {/* The book's own words only — headings, the colophon, how
+                        the travelling is named. The days keep whatever language
+                        they were written in. Shown at all only where the journal
+                        offers more than one. */}
+                    <select
+                      value={options.locale}
+                      onChange={(e) => setOptions((o) => ({ ...o, locale: e.target.value }))}
+                      className="mt-1 block w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm"
+                    >
+                      {locales.map((code) => (
+                        <option key={code} value={code}>
+                          {LANGUAGE_NAME[code] ?? code}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="mt-1 block text-xs text-navy-600">
+                      {t("photobook.option.languageHint")}
+                    </span>
+                  </label>
+                )}
 
                 <fieldset>
                   <legend className="text-sm font-semibold text-navy-800">

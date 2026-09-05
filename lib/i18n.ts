@@ -697,6 +697,8 @@ export type TranslationKey =
   | "photobook.start"
   | "photobook.title"
   | "photobook.intro"
+  | "photobook.option.language"
+  | "photobook.option.languageHint"
   | "photobook.option.size"
   | "photobook.option.binding"
   | "photobook.option.bindingPerfect"

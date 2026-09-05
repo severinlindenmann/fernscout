@@ -315,7 +315,7 @@ function pageHtml(
         textBlock(
           spec,
           page,
-          `<div class="stack"><p class="muted" style="${pt(type.caption)}">Chapter ${page.index} of ${page.of}</p>` +
+          `<div class="stack"><p class="muted" style="${pt(type.caption)}">${escape(page.label)}</p>` +
             `<h1 style="${pt(type.display)}">${escape(page.country)}</h1><hr>` +
             `<p style="${pt(type.subheading)}">${escape(page.dates)}</p>` +
             `<p class="muted" style="${pt(type.caption)}">${escape(page.stats)}</p></div>`,

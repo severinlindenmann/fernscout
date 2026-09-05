@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import TripProvider from "@/components/TripProvider";
 import { getAllMedia } from "@/lib/entries";
 import { balanceOf } from "@/lib/credits";
-import { photobookEntryFor } from "@/lib/photobook/entry";
+import { bookLocalesFor, photobookEntryFor } from "@/lib/photobook/entry";
 import { outcomeFrom } from "@/lib/photobook/orders";
 import PhotobookPageContent from "./PhotobookPageContent";
 
@@ -41,6 +41,7 @@ export default async function PhotobookPage({
         // included: this page is only ever the owner's.
         media={getAllMedia(trip.ref, { includeDrafts: true }).filter((m) => m.type === "image")}
         balance={await balanceOf(user)}
+        locales={bookLocalesFor(user)}
         outcome={await outcomeFrom(user, await searchParams)}
       />
     </TripProvider>
