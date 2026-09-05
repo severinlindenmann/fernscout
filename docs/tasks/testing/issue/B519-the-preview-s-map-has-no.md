@@ -7,8 +7,7 @@ complexity: low
 area: photobook, preview
 found: "2026-09-05T20:56:48Z"
 started: "2026-09-05T20:59:39Z"
-session: d9c396ea-a80a-4f80-954a-d37a0bf2c8c8
-claimed: "2026-09-05T20:59:39Z"
+merged: "2026-09-05T21:19:43Z"
 ---
 
 # B519 — The preview's map has no place names but the printed one does

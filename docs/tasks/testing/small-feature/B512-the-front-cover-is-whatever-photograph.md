@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: photobook, ui
 found: "2026-09-05T20:42:56Z"
+merged: "2026-09-05T21:19:42Z"
 ---
 
 # B512 — The front cover is whatever photograph happened to be first

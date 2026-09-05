@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: photobook, ui
 found: "2026-09-05T20:42:57Z"
+merged: "2026-09-05T21:19:43Z"
 ---
 
 # B516 — A layout has to be chosen one day at a time
