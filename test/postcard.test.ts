@@ -3,11 +3,14 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   A6_LANDSCAPE,
+  MESSAGE_PT,
+  fontFraction,
   mediaBox,
   mm,
   requiredPixelHeight,
   requiredPixelWidth,
 } from "@/lib/postcard/spec";
+import { backLayout } from "@/lib/postcard/preview";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { renderPostcard, type PostalAddress } from "@/lib/postcard/render";
 import { recipientBase, recipientBases, slug } from "@/lib/postcard/filename";
@@ -281,5 +284,37 @@ describe("two recipients with the same name", () => {
     // function sees it — but the rule has to hold through it.
     const files = recipientBases(["Δημήτρης", "Владимир", "山田 太郎"]);
     expect(new Set(files.map((f) => f.base)).size).toBe(3);
+  });
+});
+
+
+/**
+ * B451 — the on-screen card is sized from the printer's own numbers.
+ *
+ * The preview showed the message at roughly twice its real size because the
+ * page carried a hand-typed `2.4cqw` and applied it against the wrong
+ * container. The number is now derived, and this is what keeps it that way:
+ * change `MESSAGE_PT` and the preview has to move with it, because there is
+ * nowhere else for the percentage to come from.
+ */
+describe("the preview is drawn to the printer's measurements", () => {
+  test("the message percentage is the point size over the card width", () => {
+    const expected = `${(fontFraction(MESSAGE_PT) * 100).toFixed(3)}cqw`;
+    expect(backLayout().font.message).toBe(expected);
+  });
+
+  test("and that is about 2.3% of the card, not 2.4", () => {
+    // 10pt on a 154mm (436.5pt) bleed box. Spelled out because the old value
+    // was close enough to look right and wrong enough to double the type.
+    const pct = Number(backLayout().font.message.replace("cqw", ""));
+    expect(pct).toBeGreaterThan(2.25);
+    expect(pct).toBeLessThan(2.35);
+  });
+
+  test("the address block is set larger than the message, as on paper", () => {
+    const layout = backLayout();
+    expect(Number(layout.font.address.replace("cqw", ""))).toBeGreaterThan(
+      Number(layout.font.message.replace("cqw", "")),
+    );
   });
 });

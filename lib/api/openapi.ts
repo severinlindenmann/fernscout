@@ -480,7 +480,11 @@ export function openApiDocument() {
             "postcard and left an address themselves. Owner only.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
           responses: {
-            "200": { description: "`creditsEach`, and a `recipients` array of contact ids" },
+            "200": {
+              description:
+                "`creditsEach`, and a `recipients` array of contact ids, each with the language " +
+                "this journal writes to that person in",
+            },
             "403": { description: "Not this journal's owner" },
             "404": { description: "No such journal, or postcards or contacts are off on it" },
           },
@@ -524,6 +528,16 @@ export function openApiDocument() {
                         "makes an invented detail worse rather than more forgivable.",
                     },
                     from: { type: "string", description: "The signature on the card." },
+                    locale: {
+                      type: "string",
+                      description:
+                        "What language the card is written in. Defaults to the journal's own " +
+                        "default. Nothing inspects the words and decides — a wrong language " +
+                        "asserted confidently is worse than the sensible default. It changes " +
+                        "nothing about what is printed; it is compared against each " +
+                        "recipient's own language so the owner can notice a mismatch before " +
+                        "the button. `.../postcards/recipients` reports theirs.",
+                    },
                     recipients: {
                       type: "array",
                       maxItems: 25,

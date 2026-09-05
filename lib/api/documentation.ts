@@ -1769,7 +1769,7 @@ Authorization: Bearer fs_agent_…
 
 \`\`\`json
 {"creditsEach": 15, "recipients": [
-  {"contactId": "…", "name": "Marta", "city": "Lisbon", "country": "Portugal"}
+  {"contactId": "…", "name": "Marta", "city": "Lisbon", "country": "Portugal", "locale": "de"}
 ]}
 \`\`\`
 
@@ -1788,7 +1788,7 @@ Content-Type: application/json
 
 {"trip": "<trip-id>", "day": "<slug>", "photo": "<file in the trip's media>",
  "message": "Over the pass in the rain. Worth it.", "from": "Ana",
- "recipients": ["<contactId>", "<contactId>"]}
+ "locale": "en", "recipients": ["<contactId>", "<contactId>"]}
 \`\`\`
 
 \`\`\`json
@@ -1811,6 +1811,12 @@ So: **hand over the URL and stop.** Do not say the cards have been sent, or are
 being sent, or are on their way. Say a preview is waiting and what it will
 cost. \`GET /api/v1/${example}/postcards/<id>\` tells you later whether they
 actually went.
+
+\`locale\` is what language you wrote the card in — the journal's default if you
+omit it. Nothing here reads the words and decides, and nothing is translated;
+it exists so the owner can see on the preview page that a card is going to
+somebody who reads another language. Each recipient's own language is in the
+list above, so **ask** before writing one in the wrong one.
 
 The message is the same as everything else you write here — the author's words,
 in the author's voice, about what they actually told you. A postcard is read by

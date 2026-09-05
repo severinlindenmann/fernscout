@@ -1,8 +1,14 @@
 import {
   ADDRESS_BLOCK,
+  ADDRESS_LEADING_PT,
+  ADDRESS_PT,
   A6_LANDSCAPE,
   DIVIDER_X_MM,
+  LEADING,
+  MESSAGE_PT,
+  SIGNATURE_PT,
   STAMP_AREA,
+  fontFraction,
   type PostcardSpec,
 } from "./spec.ts";
 
@@ -77,6 +83,25 @@ export function backLayout(spec: PostcardSpec = A6_LANDSCAPE) {
       STAMP_AREA.widthMm,
       STAMP_AREA.heightMm,
     ),
+    /**
+     * Type sizes as `cqw` — percentages of the *card's* width.
+     *
+     * Derived, never written down. B451: the page carried a hand-typed
+     * `2.4cqw`, which was close to right and applied against the wrong
+     * container-query container — `containerType` was on the paragraph, so the
+     * message sized itself against its own 46%-wide column and came out at
+     * roughly twice the size, five words to a card.
+     *
+     * The container is the card element; these are meaningless anywhere else.
+     */
+    font: {
+      message: `${(fontFraction(MESSAGE_PT, spec) * 100).toFixed(3)}cqw`,
+      signature: `${(fontFraction(SIGNATURE_PT, spec) * 100).toFixed(3)}cqw`,
+      address: `${(fontFraction(ADDRESS_PT, spec) * 100).toFixed(3)}cqw`,
+      /** Unitless, so it multiplies whatever font size it lands on. */
+      leading: LEADING,
+      addressLeading: ADDRESS_LEADING_PT / ADDRESS_PT,
+    },
   };
 }
 

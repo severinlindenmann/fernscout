@@ -63,6 +63,7 @@ type Body = {
   message?: unknown;
   from?: unknown;
   recipients?: unknown;
+  locale?: unknown;
 };
 
 function bad(message: string, extra: Record<string, unknown> = {}) {
@@ -176,8 +177,23 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   // of the mistake is a duplicate card and a duplicate charge.
   const recipients = [...new Set(wanted)];
 
+  // What language the card is written in — B452. Taken on the caller's word
+  // when given, because they are the one writing the words; the journal's own
+  // default otherwise. Nothing inspects the message and decides: a wrong
+  // language asserted confidently is worse than the sensible default.
+  const locale = str(body.locale) || getUser(user)?.defaultLocale || "en";
+
   const provider = "dry-run";
-  const order = await createOrder(user, { trip: ref, day, photo, message, from, recipients, provider });
+  const order = await createOrder(user, {
+    trip: ref,
+    day,
+    photo,
+    message,
+    from,
+    recipients,
+    locale,
+    provider,
+  });
   if (!order) {
     return Response.json(
       {
@@ -198,6 +214,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
       url: `${serverSite().url}/${user}/postcards/${order.id}`,
       expiresAt: order.payload.expiresAt,
       recipients: recipients.length,
+      locale,
       credits: {
         each: POSTCARD_CREDITS,
         total,
