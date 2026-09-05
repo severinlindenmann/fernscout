@@ -8,8 +8,7 @@ area: landing, viewer, api
 found: "2026-09-05"
 related: B410, B412
 started: "2026-09-05T08:42:42Z"
-session: 3744307d-de1f-4fd7-a058-d689389ddc6c
-claimed: "2026-09-05T08:42:42Z"
+merged: "2026-09-05T09:01:49Z"
 ---
 
 # B411 — The root page shows a stranger's welcome to somebody who is signed in and holds three journals
