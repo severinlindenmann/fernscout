@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
+import { tellWorkerSignedOut } from "@/lib/signedOut";
 
 /**
  * The way out.
@@ -35,6 +36,9 @@ export default function SignOut() {
     const response = await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
 
     if (response?.ok) {
+      // Before the reload, not after: the reload is what re-requests the home
+      // payload, and a worker still holding the old copy would answer it.
+      tellWorkerSignedOut();
       window.location.reload();
       return;
     }
