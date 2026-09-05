@@ -8,6 +8,8 @@ area: header, nav, ui
 found: "2026-09-03"
 started: "2026-09-04T06:22:43Z"
 merged: "2026-09-04T07:11:29Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:33:15Z"
 ---
 
 # B170 — The journal's title is clipped in the header at exactly the width where the nav labels appear

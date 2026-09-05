@@ -8,6 +8,8 @@ area: agent onboarding docs
 found: "2026-09-04T10:59:16Z"
 started: "2026-09-04T11:00:01Z"
 merged: "2026-09-04T11:10:02Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:33:18Z"
 ---
 
 # B259 — Nothing tells an agent it lacks the tools to write here, so it invents workarounds instead

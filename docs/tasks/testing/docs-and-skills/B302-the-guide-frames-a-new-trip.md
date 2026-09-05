@@ -8,6 +8,8 @@ area: documentation, agents, api
 found: "2026-09-04T14:40:00Z"
 started: "2026-09-04T15:01:17Z"
 merged: "2026-09-04T15:09:42Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:33:19Z"
 ---
 
 # B302 — The guide frames a new trip as private-or-public, so an agent never offers guest and its user ends up with an approved reader who cannot read

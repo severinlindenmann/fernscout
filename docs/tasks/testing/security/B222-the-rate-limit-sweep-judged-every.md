@@ -7,6 +7,8 @@ complexity: low
 area: rate-limiting
 found: "2026-09-04T07:29:26Z"
 merged: "2026-09-04T15:41:21Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:33:17Z"
 ---
 
 # B222 — The rate-limit sweep judged every bucket by the default window, resetting the longer ones
