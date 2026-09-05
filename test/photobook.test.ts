@@ -522,6 +522,25 @@ describe("the route view", () => {
     test("an empty route still frames the whole world", () => {
       expect(routeView([])).toEqual({ x: 0, y: 0, width: 1000, height: 500 });
     });
+
+    /**
+     * The first version of `centreAwayFromFold` shifted whenever a clearing
+     * gap existed, without checking the shift actually helped — on
+     * `parks-2025` that moved the frame a fifth of its width and still left
+     * a stop in the band, while doubling how many times the route crossed
+     * it. Eight stops spread evenly enough that no gap clears the band
+     * without moving a stop into a worse crossing count is the same shape:
+     * every candidate here ties or loses, so the frame's own untouched
+     * midpoint — `(minX + maxX) / 2`, same as before this ticket — must
+     * come back unchanged.
+     */
+    test("a route no shift can improve keeps its own midpoint", () => {
+      const lngs = Array.from({ length: 8 }, (_, i) => -15 + i * (30 / 7));
+      const view = routeView(stopsAtLngs(...lngs));
+      const xs = lngs.map(lngToX);
+      const untouchedCx = (Math.min(...xs) + Math.max(...xs)) / 2;
+      expect(view.x + view.width / 2).toBeCloseTo(untouchedCx, 6);
+    });
   });
 });
 
