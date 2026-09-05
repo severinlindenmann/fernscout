@@ -198,16 +198,15 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B434](in-development/B434-a-postcard-cannot-be-ordered-from.md) | A postcard cannot be ordered from the site — only rendered by hand on a shell | FEATURE | high | high | `8af79b62` |
-| [B438](in-development/B438-the-push-control-renders-nothing-when.md) | The push control renders nothing when it cannot decide, so a reader who could enable notifications sees no reason why they cannot | ISSUE | high | low | `3744307d` |
 
-## testing (139)
+## testing (141)
 
-### issue (82)
+### issue (83)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -231,6 +230,7 @@ _Nothing here._
 | [B381](testing/issue/B381-a-day-with-no-coordinates-becomes.md) | A day with no coordinates becomes a nameless place, inflating the stop and country counts a page contradicts itself about | ISSUE | high | low | — |
 | [B393](testing/issue/B393-photographs-cannot-be-added-to-a.md) | Photographs cannot be added to a published day, and the refusal tells the agent to ask somebody who has no way to do it | ISSUE | high | medium | — |
 | [B426](testing/issue/B426-the-root-page-can-show-a.md) | The root page can show a signed-in reader their journals but offers nobody a way to sign in | ISSUE | high | low | — |
+| [B438](testing/issue/B438-the-push-control-renders-nothing-when.md) | The push control renders nothing when it cannot decide, so a reader who could enable notifications sees no reason why they cannot | ISSUE | high | low | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
@@ -309,7 +309,7 @@ _Nothing here._
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 | [B425](testing/big-feature/B425-until-a-psp-exists-a-payment.md) | Until a PSP exists, a payment is a request the instance admin approves by an emailed link, which grants the credits | FEATURE | medium | high | — |
 
-### small-feature (14)
+### small-feature (15)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -317,6 +317,7 @@ _Nothing here._
 | [B427](testing/small-feature/B427-the-root-page-speaks-only-to.md) | The root page speaks only to somebody starting a journal, so an invited reader has to find a small link in the corner | FEATURE | high | low | — |
 | [B430](testing/small-feature/B430-the-identity-code-mail-is-english.md) | The identity code mail is English whatever language the reader chose, and offers six digits to type where a button would do | FEATURE | high | medium | — |
 | [B433](testing/small-feature/B433-a-reader-inside-a-journal-has.md) | A reader inside a journal has no way back to the other journals they can open | FEATURE | high | low | — |
+| [B439](testing/small-feature/B439-notifications-can-only-be-switched-on.md) | Notifications can only be switched on from a trip's hero, which is gone the moment a reader starts reading | FEATURE | high | low | — |
 | [B273](testing/small-feature/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium | — |
 | [B364](testing/small-feature/B364-the-lifetime-map-draws-a-bare.md) | The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries | FEATURE | medium | low | — |
 | [B367](testing/small-feature/B367-an-owner-cannot-see-what-they.md) | An owner cannot see what they have left to spend or what one send would cost | FEATURE | medium | medium | — |
