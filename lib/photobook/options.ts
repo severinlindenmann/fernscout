@@ -54,6 +54,17 @@ export type BookOptions = {
   includeNames: boolean;
   /** The cost summary page. */
   includeCosts: boolean;
+  /**
+   * The photograph on the front cover, as a `MediaTile.src`.
+   *
+   * Absent means the planner picks, which is what every book did before this
+   * existed — the first photograph of the first chapter, via `coverFor` in
+   * `lib/photobook/plan.ts`. Ignored the same way `hero` is when the named
+   * photograph is no longer in the book: an arrangement outlives the entry it
+   * was made against, and a cover that names a gap is worse than one nobody
+   * chose.
+   */
+  cover?: string;
 };
 
 /**
@@ -219,6 +230,14 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
   // better failure than refusing the order.
   const locale = typeof raw.locale === "string" && isBookLocale(raw.locale) ? raw.locale : null;
   const days = parseDays(raw.days);
+  // Optional, and rejected rather than defaulted like every other field here:
+  // a `cover` that fails the check is a request nobody wrote, not a request
+  // for the planner's own pick — that is what leaving the key out is for.
+  let cover: string | undefined;
+  if (raw.cover !== undefined) {
+    if (typeof raw.cover !== "string" || raw.cover.length > MAX_SRC_LENGTH) return null;
+    cover = raw.cover;
+  }
   const binding = raw.binding === "perfect" || raw.binding === "saddle" ? raw.binding : null;
   const excludePhotos =
     Array.isArray(raw.excludePhotos) &&
@@ -257,5 +276,6 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     includeChapters: flags.includeChapters as boolean,
     includeNames: flags.includeNames as boolean,
     includeCosts: flags.includeCosts as boolean,
+    ...(cover !== undefined ? { cover } : {}),
   };
 }

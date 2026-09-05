@@ -190,6 +190,9 @@ export default function PhotobookPageContent({
   const [orderId] = useState(() => crypto.randomUUID());
 
   const [expanded, setExpanded] = useState<string | null>(null);
+  /** The cover picker's own disclosure — a book-level control, so it does not
+   * share `expanded` with any one day. */
+  const [coverOpen, setCoverOpen] = useState(false);
 
   /**
    * Arranging one day.
@@ -410,6 +413,80 @@ export default function PhotobookPageContent({
                     ))}
                   </select>
                 </label>
+
+                {/*
+                 * The front cover — B512.
+                 *
+                 * A book-level control, deliberately not a seventh button
+                 * under every thumbnail on every day: the page a stranger
+                 * actually sees is one choice for the whole book, not a
+                 * property of any single photograph's tile. Placed beside
+                 * format and language, the other decisions that apply to the
+                 * book as a whole rather than to one day of it.
+                 *
+                 * A radiogroup, not a select: there is no text label for a
+                 * photograph worth putting in a dropdown, and — as with the
+                 * day layout above — exactly one of these is ever chosen.
+                 */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setCoverOpen((v) => !v)}
+                    aria-expanded={coverOpen}
+                    className="flex w-full items-center justify-between gap-2 text-left"
+                  >
+                    <span className="text-sm font-semibold text-navy-800">
+                      {t("photobook.option.cover")}
+                    </span>
+                    <span aria-hidden className="text-navy-500">
+                      {coverOpen ? "−" : "+"}
+                    </span>
+                  </button>
+                  <p className="mt-1 text-xs text-navy-600">{t("photobook.option.coverHint")}</p>
+                  {coverOpen && (
+                    <div
+                      role="radiogroup"
+                      aria-label={t("photobook.option.coverLegend")}
+                      className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4"
+                    >
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={!options.cover}
+                        onClick={() => setOptions((o) => ({ ...o, cover: undefined }))}
+                        className={`flex aspect-square items-center justify-center rounded-md border p-1 text-center text-[10px] font-semibold ${
+                          !options.cover
+                            ? "border-yellow-600 bg-yellow-400 text-yellow-950"
+                            : "border-navy-200 text-navy-600"
+                        }`}
+                      >
+                        {t("photobook.option.coverDefault")}
+                      </button>
+                      {media.map((tile) => (
+                        <button
+                          key={tile.src}
+                          type="button"
+                          role="radio"
+                          aria-checked={options.cover === tile.src}
+                          aria-label={tile.caption || tile.src}
+                          onClick={() => setOptions((o) => ({ ...o, cover: tile.src }))}
+                          className={`relative block aspect-square w-full overflow-hidden rounded-md border ${
+                            options.cover === tile.src ? "border-yellow-500" : "border-navy-200"
+                          }`}
+                        >
+                          <Image
+                            src={tile.src}
+                            loader={mediaLoader}
+                            alt=""
+                            fill
+                            sizes="10vw"
+                            className="object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 {locales.length > 1 && (
                   <label className="block">

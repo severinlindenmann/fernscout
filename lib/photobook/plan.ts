@@ -1427,6 +1427,26 @@ export function planBook(
     });
   }
 
+  /**
+   * The owner's choice of front cover, if it is still in the book — B512.
+   *
+   * Searched across every chapter rather than one volume's slice of them,
+   * because the choice is the owner's for the whole trip and a multi-volume
+   * split is an accident of page count, not something they were asked about.
+   * Looked up once, outside the per-volume loop below, for the same reason
+   * `firstPhoto` there is per-volume: each volume still falls back to its own
+   * first photograph when this is absent or gone, exactly as `hero` falls
+   * back to a day's own first photograph.
+   */
+  const chosenCover = options.cover
+    ? blocks
+        .flat()
+        .flatMap((d) =>
+          d.kind === "photos" ? d.photos : d.kind === "day" && d.photo ? [d.photo] : [],
+        )
+        .find((p) => p.webSrc === options.cover)
+    : undefined;
+
   const volumes: BookVolume[] = grouped.map((chapterBlocks, i) => {
     const meta = { index: i + 1, of: grouped.length };
     let drafts = [...front, ...chapterBlocks.flat(), ...back];
@@ -1479,7 +1499,7 @@ export function planBook(
       pages: materialised,
       interiorPages: materialised.length,
       spineWidthMm: spineWidthMm(materialised.length, spec),
-      cover: coverFor(source, spec, materialised.length, meta, firstPhoto, s),
+      cover: coverFor(source, spec, materialised.length, meta, chosenCover ?? firstPhoto, s),
     };
   });
 
