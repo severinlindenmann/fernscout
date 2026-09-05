@@ -63,6 +63,34 @@ refusing to save one the provider does not recognise. Half the world's
 addresses are not in OSM and a family member's farm is likelier than most to
 be one of them.
 
+## What Photon actually answers
+
+Checked against the live service on 2026-09-05 so nobody has to guess the
+shape. `GET https://photon.komoot.io/api/?q=Bahnhofstrasse%2012%20Zurich&limit=2&lang=de`
+returns GeoJSON whose first feature carries exactly the fields this needs:
+
+```json
+{"properties": {"housenumber": "12", "street": "Bahnhofstrasse",
+  "postcode": "8001", "city": "Zürich", "state": "Zürich",
+  "country": "Schweiz", "countrycode": "CH", "type": "house"},
+ "geometry": {"type": "Point", "coordinates": [8.5400775, 47.3682932]}}
+```
+
+So `line1` is `street` + `housenumber` (order is a per-country question —
+`12 Bahnhofstrasse` is wrong in Zürich and right in Paris), `postcode` and
+`city` map straight across, and `countrycode` is the ISO code B398's field
+takes. `country` comes back already translated, which is why the code is the
+thing to store.
+
+`lang` is honoured and accepts `de`, `en`, `fr` and `it` — not `hu`, so map an
+unsupported journal locale to `en` rather than sending it and hoping.
+
+`type: "house"` marks a result precise enough to post to; a `street` or `city`
+result is not, and offering one as if it were an address is how a card gets
+sent to a road. Prefer the precise ones, and do not silently accept a vague
+one when the person picks it — fill what it does know and leave the rest for
+them.
+
 ## Acceptance
 
 With the capability off: the address block is exactly what it is today, no
