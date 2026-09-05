@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (116)
+## backlog (115)
 
 ### security (6)
 
@@ -120,7 +120,7 @@ Do not edit them by hand; run the script.
 | [B507](backlog/big-feature/B507-the-photobook-composer-is-a-desktop.md) | The photobook composer is a desktop sidebar on a phone-shaped job | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
-### small-feature (17)
+### small-feature (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -134,7 +134,6 @@ Do not edit them by hand; run the script.
 | [B502](backlog/small-feature/B502-a-photograph-is-given-a-page.md) | A photograph is given a page it has not the pixels to fill | FEATURE | medium | medium |
 | [B513](backlog/small-feature/B513-every-photograph-is-cropped-from-its.md) | Every photograph is cropped from its centre, whatever is in it | FEATURE | medium | medium |
 | [B517](backlog/small-feature/B517-a-day-that-wrote-too-much.md) | A day that wrote too much is silently truncated | FEATURE | medium | medium |
-| [B522](backlog/small-feature/B522-a-photo-carries-no-caption-so.md) | A photo carries no caption, so nothing can be said about a picture | FEATURE | medium | medium |
 | [B527](backlog/small-feature/B527-after-a-partly-failed-media-batch.md) | After a partly-failed media batch an agent cannot tell which photographs landed | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
@@ -211,9 +210,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B522](in-development/B522-a-photo-carries-no-caption-so.md) | A photo carries no caption, so nothing can be said about a picture | FEATURE | medium | medium | `bc89508d` |
 
 ## testing (215)
 
