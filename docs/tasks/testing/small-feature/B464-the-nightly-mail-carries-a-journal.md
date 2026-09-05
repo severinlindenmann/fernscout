@@ -7,8 +7,7 @@ complexity: medium
 area: ops
 found: "2026-09-05T13:06:52Z"
 started: "2026-09-05T13:07:10Z"
-session: 7c3dd4ae-2d91-4172-8ea8-52deb35f9f42
-claimed: "2026-09-05T13:07:10Z"
+merged: "2026-09-05T13:19:04Z"
 ---
 
 # B464 — The nightly mail carries a journal tail nobody reads, when what an operator wants is the state of the instance
