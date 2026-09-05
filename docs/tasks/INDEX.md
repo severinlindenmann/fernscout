@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (104)
+## backlog (105)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (35)
+### issue (36)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -101,6 +101,7 @@ Do not edit them by hand; run the script.
 | [B428](backlog/issue/B428-the-patch-config-response-echoes-a.md) | The PATCH config response echoes a stale features block that a GET moments later contradicts | ISSUE | low | low |
 | [B429](backlog/issue/B429-the-invite-form-shows-a-canned.md) | The invite form shows a canned mail-off line instead of the server's, losing which switch is off | ISSUE | low | low |
 | [B432](backlog/issue/B432-six-german-strings-address-the-reader.md) | Six German strings address the reader formally where a hundred and thirty use du | ISSUE | low | low |
+| [B443](backlog/issue/B443-every-signed-out-visit-to-logs.md) | Every signed-out visit to / logs a 401 in the browser console | ISSUE | low | low |
 
 ### big-feature (12)
 
