@@ -8,7 +8,7 @@ import { pickLocale } from "@/lib/contacts/locale";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { balanceOf } from "@/lib/credits";
-import { formatChf } from "@/lib/credits/pricing";
+import { formatChf, POSTCARD_CREDITS } from "@/lib/credits/pricing";
 import { listPayments } from "@/lib/payments";
 import { ownerShortName, serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
@@ -128,14 +128,29 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
         status: tx.status,
         createdAt: tx.createdAt,
       }));
+      // What the owner may switch, and what they may not — B463. The server
+      // ceiling and the journal's own flag are two different answers and the
+      // panel needs both: a channel this server cannot offer has no switch,
+      // because there is nothing an owner could do about it, while one they
+      // have muted themselves has to stay visible to be un-muted.
+      // `isEnabled(name)` with no username is the server ceiling and nothing
+      // else — the same question `setJournalFeatures` asks before it allows a
+      // capability to be switched on — while `journal.features` is what this
+      // journal asks for. `isEnabled(name, user)` is the two together and
+      // cannot tell them apart, which is why it is not what is read here.
+      const channelState = (name: "mail" | "whatsapp") =>
+        isEnabled(name) ? journal.features[name].enabled : null;
+
       payment = {
         balance,
         transactions,
         emailRecipients: counts.email,
-        // `null` rather than 0 when WhatsApp itself is off — B369 hasn't
-        // shipped the channel yet, and a bare 0 would read as "nobody wants
-        // it" rather than "this journal doesn't offer it".
-        whatsappRecipients: isEnabled("whatsapp", user) ? counts.whatsapp : null,
+        whatsappRecipients: counts.whatsapp,
+        channels: { mail: channelState("mail"), whatsapp: channelState("whatsapp") },
+        // The price of a card, where cards can be posted at all. Not a
+        // per-send estimate like the rows above: it is a flat price, and the
+        // count is whatever the owner chooses on the preview page.
+        postcardCredits: isEnabled("postcards", user) ? POSTCARD_CREDITS : null,
       };
     }
   }

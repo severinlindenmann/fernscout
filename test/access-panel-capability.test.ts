@@ -27,6 +27,11 @@ vi.mock("@/lib/capabilities", () => ({
 const JOURNAL = {
   title: "Alex's journal",
   owner: { name: "Robin Berger", nickname: "Robin", email: "owner@example.test" },
+  // Always populated by `lib/users.ts` from `DEFAULT_FEATURES`, so a fixture
+  // without it is a shape that cannot occur — and since B463 the page reads
+  // it, to tell a channel this journal has muted from one the server cannot
+  // offer at all.
+  features: { mail: { enabled: true }, whatsapp: { enabled: true } },
 };
 vi.mock("@/lib/users", () => ({ getUser: () => JOURNAL }));
 vi.mock("@/lib/viewer", () => ({

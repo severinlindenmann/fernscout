@@ -33,6 +33,80 @@ import type { Viewer } from "@/lib/viewer";
  * nothing — see that route's doc comment. On success this sends the owner to
  * that payment page (B405); the email carries the same link for later.
  */
+/**
+ * One channel's mute switch — B463.
+ *
+ * The two capabilities that spend the balance this card is about, next to the
+ * balance, for the person already signed in as the owner of it. Not a settings
+ * page and deliberately not the shape of one: two named channels, and the
+ * route behind it (`POST /api/v1/<user>/channels`) accepts no other key.
+ *
+ * `router.refresh()` rather than local state, because the numbers beside it —
+ * what a day costs now — are the server's and are exactly what changed.
+ * Optimism here would show a total that the next navigation contradicts.
+ */
+function ChannelSwitch({
+  username,
+  channel,
+  label,
+  enabled,
+}: {
+  username: string;
+  channel: "mail" | "whatsapp";
+  label: string;
+  enabled: boolean;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function toggle() {
+    setBusy(true);
+    setFailed(false);
+    const response = await fetch(`/api/v1/${username}/channels`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ channel, enabled: !enabled }),
+    }).catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      setFailed(true);
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      {/* A real checkbox with a switch role rather than a styled div: it is
+          reachable by keyboard and announced as on or off without anything
+          here having to say so. */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={enabled}
+        aria-label={label}
+        disabled={busy}
+        onClick={toggle}
+        className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-50 ${
+          enabled ? "border-navy-900 bg-navy-900" : "border-navy-200 bg-cream-100"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-[left] ${
+            enabled ? "left-[22px]" : "left-0.5"
+          }`}
+          aria-hidden="true"
+        />
+      </button>
+      <span className="text-sm text-navy-600">
+        {failed ? t("me.paymentChannelFailed") : t(enabled ? "me.channelOn" : "me.channelOff")}
+      </span>
+    </span>
+  );
+}
+
 function BuyCreditsDialog({ username }: { username: string }) {
   const { t, tn } = useI18n();
   const router = useRouter();
@@ -196,9 +270,26 @@ export type PaymentPanel = {
   /** Contacts `active` and opted in to the email digest, journal-wide. Not
    * one trip's count — see the long comment on this prop's caller. */
   emailRecipients: number;
-  /** `null` when this journal does not offer WhatsApp at all, so the row is
-   * omitted rather than rendered as a confident zero. */
-  whatsappRecipients: number | null;
+  /** The same count for WhatsApp. A number whether or not the channel is
+   * currently on: muting it does not un-opt anybody in, and the owner
+   * switching it back on wants to see who it would reach. */
+  whatsappRecipients: number;
+  /**
+   * Whether each channel is switched on for this journal — B463.
+   *
+   * `null` is **this server cannot offer it**: no transport configured, no
+   * WhatsApp credentials. That is not a state an owner can change, so the row
+   * and its switch are absent rather than shown off — the same rule the rest
+   * of the site follows for a capability that is not there (B74).
+   *
+   * `false` is the owner having muted it, which is a state they can undo and
+   * must therefore be able to see.
+   */
+  channels: { mail: boolean | null; whatsapp: boolean | null };
+  /** What one printed card costs, or `null` where this journal does not offer
+   * postcards. The largest single thing a balance is spent on, and until B463
+   * the one panel about credits never mentioned it. */
+  postcardCredits: number | null;
   /** Recent purchases, newest first — the history under the buy button (B413).
    * Each is a mock transaction; an unpaid one links back to its payment page. */
   transactions: PaymentRow[];
@@ -318,6 +409,38 @@ export default function MePageContent({
    * decides whether a code is issued.
    */
   const writableTrips = viewer.owner ? [] : viewer.trips.filter((t) => t.through === "traveller");
+
+  /**
+   * The two channels a published day can cost credits on — B463.
+   *
+   * Declared here rather than inline so the table, the total and the switches
+   * are reading one list: a third channel added to one of them and not the
+   * others is exactly the bug this shape prevents.
+   */
+  const CHANNELS = payment
+    ? ([
+        {
+          key: "mail",
+          icon: Mail,
+          labelKey: "me.paymentChannelEmail",
+          recipients: payment.emailRecipients,
+        },
+        {
+          key: "whatsapp",
+          icon: MessageCircle,
+          labelKey: "me.paymentChannelWhatsapp",
+          recipients: payment.whatsappRecipients,
+        },
+      ] as const)
+    : [];
+
+  /** What one published day would cost right now — the muted channels
+   * contributing nothing, which is the whole point of being able to mute
+   * them. */
+  const dayCost = CHANNELS.reduce(
+    (total, { key, recipients }) => total + (payment?.channels[key] ? recipients : 0),
+    0,
+  );
 
   return (
     <div className="min-h-screen">
@@ -648,43 +771,74 @@ export default function MePageContent({
                           </tr>
                         </thead>
                         <tbody className="text-navy-700">
-                          <tr className="border-t border-navy-200">
-                            <td className="py-1.5">
-                              <span className="flex items-center gap-2">
-                                <Mail className="h-4 w-4 shrink-0 text-navy-600" aria-hidden="true" />
-                                {t("me.paymentChannelEmail")}
-                              </span>
-                            </td>
-                            <td className="py-1.5">
-                              {t("me.paymentUpTo", { count: String(payment.emailRecipients) })}
+                          {/*
+                            One row per channel the server can actually offer —
+                            B463. A muted channel keeps its row and its
+                            recipient count, greyed, because the owner muted it
+                            and can un-mute it; a channel this server has no
+                            transport for has no row at all, because there is
+                            nothing here anybody could do about it.
+                          */}
+                          {CHANNELS.map(({ key, icon: Icon, labelKey, recipients }) => {
+                            const on = payment.channels[key];
+                            if (on === null) return null;
+                            return (
+                              <tr className="border-t border-navy-200" key={key}>
+                                <td className="py-1.5">
+                                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                    <Icon
+                                      className="h-4 w-4 shrink-0 text-navy-600"
+                                      aria-hidden="true"
+                                    />
+                                    {t(labelKey)}
+                                    <ChannelSwitch
+                                      username={username}
+                                      channel={key}
+                                      label={t(labelKey)}
+                                      enabled={on}
+                                    />
+                                  </span>
+                                </td>
+                                <td className={`py-1.5 ${on ? "" : "text-navy-500"}`}>
+                                  {t("me.paymentUpTo", { count: String(recipients) })}
+                                </td>
+                                <td
+                                  className={`py-1.5 text-right font-semibold tabular-nums ${
+                                    on ? "text-navy-900" : "text-navy-500"
+                                  }`}
+                                >
+                                  {on ? recipients : 0}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {/*
+                            The number the owner actually came for, which was
+                            the one thing the card made them work out for
+                            themselves: what publishing a day costs right now.
+                            It follows the switches above it, so muting a
+                            channel answers the question in place.
+                          */}
+                          <tr className="border-t-2 border-navy-200">
+                            <td className="py-1.5 font-semibold text-navy-900" colSpan={2}>
+                              {t("me.paymentDayTotal")}
                             </td>
                             <td className="py-1.5 text-right font-semibold tabular-nums text-navy-900">
-                              {payment.emailRecipients}
+                              {dayCost}
                             </td>
                           </tr>
-                          {payment.whatsappRecipients !== null && (
-                            <tr className="border-t border-navy-200">
-                              <td className="py-1.5">
-                                <span className="flex items-center gap-2">
-                                  <MessageCircle
-                                    className="h-4 w-4 shrink-0 text-navy-600"
-                                    aria-hidden="true"
-                                  />
-                                  {t("me.paymentChannelWhatsapp")}
-                                </span>
-                              </td>
-                              <td className="py-1.5">
-                                {t("me.paymentUpTo", { count: String(payment.whatsappRecipients) })}
-                              </td>
-                              <td className="py-1.5 text-right font-semibold tabular-nums text-navy-900">
-                                {payment.whatsappRecipients}
-                              </td>
-                            </tr>
-                          )}
                         </tbody>
                       </table>
                       <p className="mt-2.5 text-sm leading-6 text-navy-600">
                         {t("me.paymentPrices")}
+                        {payment.postcardCredits !== null && (
+                          <>
+                            {" "}
+                            {t("me.paymentPostcardPrice", {
+                              credits: String(payment.postcardCredits),
+                            })}
+                          </>
+                        )}
                       </p>
                     </div>
                   </div>
