@@ -1,7 +1,7 @@
 Ez a te útinaplód. Ez az oldal elmagyarázza, hogyan írhatsz bele, ki mit lát,
 és hogyan engedhetsz be másokat.
 
-A legmeglepőbb elsőként: **itt nincs szerkesztőfelület, és nem is lesz.** Nincs
+Kezdjük a legmeglepőbbel: **itt nincs szerkesztőfelület, és nem is lesz.** Nincs
 űrlap, nincs feltöltőmező, nincs adminfelület. Úgy írsz, hogy beszélsz egy
 ügynökkel — a Claude-dal vagy más asszisztenssel, amely követni tud
 utasításokat és webes kéréseket tud küldeni —, és ő megírja helyetted a
@@ -12,9 +12,8 @@ napokat.
 Az útinaplód markdown-fájlokból és fényképekből áll egy mappában, amely a tiéd.
 Egy ügynök jól alakít megírt nappá egy ilyen mondatot — „lesétáltunk a
 kikötőbe, és a komp elmaradt" —, a helyes dátummal és a hozzá tartozó
-fényképekkel. Egy
-webes űrlap ezt nem csinálja jobban, viszont még egy dolog lenne, amit
-karbantartani, megtanulni és amibe belépni kell.
+fényképekkel. Egy webes űrlap ezt nem csinálja jobban, viszont még egy dolog
+lenne, amit karban kell tartani, meg kell tanulni, és amibe be kell lépni.
 
 Azt is jelenti, hogy a naplód nem ragad ide. A fájlok a tieid.
 
@@ -62,8 +61,7 @@ Két külön kérdés, és az összekeverésük a leggyakoribb hiba.
 
 Az az út, amelyet vissza akarsz tartani azok elől, akiket egyébként beengedsz,
 legyen **privát**. Szándékosan nincs szűkebb beállítás: vendégnek lenni egy
-döntés az egész naplódról, nem pedig
-utanként meghozott döntés.
+döntés az egész naplódról, nem pedig az egyes utakról külön hozott döntés.
 
 **A naplódnak is van láthatósága**, és ez másik kérdés — csak az, hogy ez a
 kiszolgáló hirdeti-e egyáltalán. A `guest` naplót nem sorolja fel a nyitóoldal

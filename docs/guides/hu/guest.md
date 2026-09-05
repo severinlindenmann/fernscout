@@ -69,14 +69,14 @@ kezdőképernyődhöz, ezért van egy plusz lépés. Megéri egyszer megcsináln
    ![A Safari menüje, az első pontja a „Share", fölötte az „Add to Bookmarks".](/docs/guides/figures/ios-share.webp)
 
 3. Megnyílik a megosztási panel. **Görgess le benne** — az alkalmazásokon túl — és
-   válaszd a **Hozzáadás a Főképernyőhöz** lehetőséget, majd a **Hozzáadás**
+   válaszd a **Hozzáadás a kezdőképernyőhöz** lehetőséget, majd a **Hozzáadás**
    gombot. Egészen alul van, ezért könnyű átsiklani fölötte.
 
    ![A megosztási panel, legörgetve az „Add to Home Screen" pontig.](/docs/guides/figures/ios-add-home.webp)
 
    > A képek angol nyelvű iPhone-t mutatnak — ott „Share" és „Add to Home
    > Screen" a két pont neve. Magyar nyelvű iPhone-on ugyanezeken a helyeken
-   > „Megosztás" és „Hozzáadás a Főképernyőhöz"
+   > „Megosztás" és „Hozzáadás a kezdőképernyőhöz"
    > szerepel.
 4. Zárd be a Safarit, és nyisd meg a naplót újra **az új ikonról** a
    kezdőképernyőn.
@@ -103,7 +103,7 @@ róla, a kártyán ott van a **Ne kérdezzétek többet** gomb, és ezt megjegyz
 ## Az adataid és a címed
 
 Ha a napló tulajdonosa képeslapot küld, ahhoz postai cím kell — és lehet, hogy
-javítanád, más nyelvet választanál, amelyen írnak neked, vagy egészen
+javítanád, megváltoztatnád a nyelvet, amelyen írnak neked, vagy egészen
 leállítanád az e-maileket.
 
 Minden e-mail alján, amelyet egy naplótól kapsz, van egy hivatkozás **az
