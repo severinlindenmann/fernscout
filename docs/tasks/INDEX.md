@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (104)
+## backlog (103)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (34)
+### issue (33)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -87,7 +87,6 @@ Do not edit them by hand; run the script.
 | [B243](backlog/issue/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |
 | [B246](backlog/issue/B246-openapi-json-does-not-document-costsvisibility.md) | openapi.json does not document costsVisibility on POST trips | ISSUE | low | low |
 | [B247](backlog/issue/B247-the-shape-of-an-email-address.md) | The shape of an email address is checked by three different regexes | ISSUE | low | low |
-| [B249](backlog/issue/B249-a-test-in-the-suite-failed.md) | A test in the suite failed once in six runs and left no name behind | ISSUE | low | medium |
 | [B274](backlog/issue/B274-the-self-serve-link-in-a.md) | The self-serve link in a reader's mail is labelled as a detail change when it is their standing way back | ISSUE | low | low |
 | [B288](backlog/issue/B288-an-agent-orienting-through-status-is.md) | An agent orienting through status is not told a trip.md failed to load, though the trip list would tell it | ISSUE | low | low |
 | [B388](backlog/issue/B388-resending-a-mailed-guest-invitation-has.md) | Resending a mailed guest invitation has no rate limit | ISSUE | low | low |
@@ -201,11 +200,12 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B11](open/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium |
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B485](in-development/B485-hu-json-calls-a-trip-utaz.md) | hu.json calls a trip utazás where the guides and B449 settled on út | CHORE | medium | medium | `e5747799` |
+| [B249](in-development/B249-a-test-in-the-suite-failed.md) | A test in the suite failed once in six runs and left no name behind | ISSUE | low | medium | `e5747799` |
 
 ## testing (190)
 
