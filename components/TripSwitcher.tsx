@@ -11,8 +11,11 @@ import { useTripList } from "./TripListProvider";
 import type { TripStatus } from "@/lib/types";
 
 const GROUPS: { status: TripStatus; key: "trips.now" | "trips.upcoming" | "trips.past" }[] = [
-  { status: "current", key: "trips.now" },
+  // Newest first, all the way down: what has not happened yet, then what is
+  // happening, then the past in descending years. "Now" above "planned" was
+  // the one step that read backwards.
   { status: "upcoming", key: "trips.upcoming" },
+  { status: "current", key: "trips.now" },
   { status: "past", key: "trips.past" },
 ];
 
@@ -101,7 +104,12 @@ export default function TripSwitcher() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-2xl border border-navy-200 bg-white shadow-lg"
+          /* Anchored left below sm, where the button sits at the left edge of
+             its row and a right-anchored 15rem menu hangs off the screen with
+             no way to scroll it back. The width cap is for the narrowest
+             phones, where 15rem plus the header's padding still would not
+             fit. */
+          className="absolute left-0 right-auto z-40 mt-2 w-60 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-navy-200 bg-white shadow-lg sm:left-auto sm:right-0"
         >
           {GROUPS.map(({ status, key }) => {
             const group = trips.filter((tr) => tr.status === status);
