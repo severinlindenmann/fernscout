@@ -34,7 +34,10 @@
 #
 # Env (systemd supplies it from /etc/fernscout/env):
 #   DATA_DIR             where the stamp is written; without it, only mail runs
-#   BACKUP_ALERT_EMAIL   who to tell — defaults to the default journal's owner
+#   BACKUP_ALERT_EMAIL   who to tell. Falls back to the default journal's
+#                        owner, which is enough for a failure and deliberately
+#                        not enough for the success report — see B468 and the
+#                        note in scripts/alert.mts
 #   APP_DIR              default: this script's directory, minus /scripts
 
 set -uo pipefail

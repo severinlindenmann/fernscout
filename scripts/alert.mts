@@ -69,15 +69,45 @@ function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
-function recipient(): { to: string; username?: string } | null {
+function recipient(): { to: string; username?: string; isOperator: boolean } | null {
   const configured = process.env.BACKUP_ALERT_EMAIL?.trim();
   const username = getDefaultUsername() ?? undefined;
-  if (configured) return { to: configured, username };
+  if (configured) return { to: configured, username, isOperator: true };
   const owner = username ? getUser(username)?.owner : undefined;
-  return owner?.email ? { to: owner.email, username } : null;
+  // The fallback, and what it is *not*. This address comes out of a journal's
+  // own config.json, so it is "somebody who will notice", which is the whole
+  // point on a box nobody configured — B64 is what silence costs. It is not
+  // evidence that the reader operates the machine, and B468 is where that
+  // distinction started to matter: see `detail` below.
+  return owner?.email ? { to: owner.email, username, isOperator: false } : null;
 }
 
-const detail = (await readStdin()).trimEnd();
+const piped = (await readStdin()).trimEnd();
+const to = recipient();
+
+/**
+ * The success body names every journal on the instance — unlisted ones
+ * included — with its guests, its credits and its size (B464). That is an
+ * operator's inventory, and it may only go to an address an *operator* chose.
+ *
+ * `BACKUP_ALERT_EMAIL` is that address. The fallback is the default journal's
+ * `owner.email`, which is a journal's file rather than the machine's
+ * configuration: on a shared instance the person who happens to own the
+ * default journal is not the person running the box, and one edit to that
+ * field would redirect the roster. Withheld rather than redacted — a summary
+ * of a report nobody may read is still a report.
+ *
+ * Only the success path. A failure still goes to the fallback in full: an
+ * unreachable backup has to reach *somebody*, and the journal tail it carries
+ * is the same one it has always carried.
+ */
+const withheld =
+  succeeded && to !== null && !to.isOperator
+    ? "The status report is not included: it names every journal on this instance, and this\n" +
+      "mail is going to the default journal's owner rather than to an operator address.\n" +
+      "Set BACKUP_ALERT_EMAIL in the environment to receive it."
+    : null;
+const detail = withheld ?? piped;
 const site = (() => {
   try {
     return loadServerConfig().site;
@@ -111,7 +141,7 @@ const text = lines.join("\n");
 const html = `<pre style="font:14px/1.5 ui-monospace,monospace;white-space:pre-wrap">${escapeHtml(text)}</pre>`;
 
 if (dryRun) {
-  const target = recipient();
+  const target = to;
   console.log(`[alert] --dry-run; would send to ${target?.to ?? "(nobody — no BACKUP_ALERT_EMAIL and no owner email)"}`);
   console.log(text);
   process.exit(target ? 0 : 1);
@@ -128,7 +158,7 @@ if (!isEnabled("mail")) {
   process.exit(3);
 }
 
-const target = recipient();
+const target = to;
 if (!target) {
   console.error(
     "[alert] nobody to tell: set BACKUP_ALERT_EMAIL, or give the default journal an owner.email in content/<user>/config.json.",

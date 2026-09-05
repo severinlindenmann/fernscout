@@ -644,8 +644,17 @@ systemctl cat 'fernscout-alert@fernscout-backup.service' | head -3
 ```
 
 Set `RESTIC_REPOSITORY` and `RESTIC_PASSWORD` in `/etc/fernscout/env`, and
-`BACKUP_ALERT_EMAIL` if the alert should go somewhere other than the default
-journal's owner.
+`BACKUP_ALERT_EMAIL` — which is not optional on an instance hosting journals
+other than your own.
+
+Unset, a failed run still mails the default journal's `owner.email`, so a
+broken backup always reaches somebody. A *successful* run carries the instance
+status report — every journal by name, unlisted ones included, with its guest
+count, credit balance and size — and that is withheld unless this variable
+names an operator. `owner.email` is a journal's own file: on a shared instance
+the person who happens to own the default journal is not the person running
+the box, and one edit to that field would otherwise redirect the roster
+(B468).
 
 **Then initialise the repository, once, by hand.** The nightly run will not do
 it for you, on purpose:

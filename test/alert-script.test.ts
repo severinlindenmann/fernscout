@@ -209,7 +209,14 @@ describe("npm run alert", () => {
       // The detail is whatever the caller pipes in — for a real success that
       // is the journal tail, which does not carry the word "failed". Piping
       // the failure fixture here would only prove that the fixture survives.
-      const run = runAlert(["--outcome", "success"], {}, "recorded success in /var/lib/fernscout/.backup-last-success\n");
+      // With an operator address, because since B468 a success sent to the
+      // fallback carries no report at all — and the wording is what this test
+      // is about.
+      const run = runAlert(
+        ["--outcome", "success"],
+        { BACKUP_ALERT_EMAIL: "oncall@example.test" },
+        "recorded success in /var/lib/fernscout/.backup-last-success\n",
+      );
       expect(run.status, run.stdout + run.stderr).toBe(0);
 
       const files = mailFiles();
@@ -248,6 +255,59 @@ describe("npm run alert", () => {
         );
         expect(eml).not.toContain("succeeded");
       }
+    },
+    120_000,
+  );
+
+  // --- B468: an inventory only goes to somebody who runs the machine --------
+
+  test(
+    "the status report is withheld when the mail is going to a journal owner",
+    () => {
+      // The success body names every journal on the instance, unlisted ones
+      // included. Without BACKUP_ALERT_EMAIL the recipient is the *default
+      // journal's* owner.email — a journal's own file, not the operator's
+      // configuration — and on a shared instance those are different people.
+      writeContent(true, "ops@example.test");
+      const run = runAlert(["--outcome", "success"], { BACKUP_ALERT_EMAIL: "" }, "quiet-journal  3 trips  40 days\n");
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+
+      const eml = readMail(path.join(contentDir, "keeper", "mail", mailFiles().at(-1)!));
+      expect(eml, "the roster must not be in the message at all").not.toContain("quiet-journal");
+      expect(eml).toContain("The status report is not included");
+      expect(eml).toContain("BACKUP_ALERT_EMAIL");
+      // Still a success mail: the reader is told the backup worked, which is
+      // the part they are entitled to.
+      expect(eml).toContain("fernscout-backup.service succeeded");
+    },
+    120_000,
+  );
+
+  test(
+    "an operator address gets the report, and a failure is never withheld",
+    () => {
+      writeContent(true, "ops@example.test");
+
+      const withOperator = runAlert(
+        ["--outcome", "success"],
+        { BACKUP_ALERT_EMAIL: "oncall@example.test" },
+        "quiet-journal  3 trips  40 days\n",
+      );
+      expect(withOperator.status, withOperator.stdout + withOperator.stderr).toBe(0);
+      let eml = readMail(path.join(contentDir, "keeper", "mail", mailFiles().at(-1)!));
+      expect(eml).toContain("oncall@example.test");
+      expect(eml).toContain("quiet-journal");
+      expect(eml).not.toContain("The status report is not included");
+
+      // And the half that must not have been broken in the process: a failure
+      // still reaches the fallback address, in full. An unreachable backup has
+      // to reach somebody (B64), and its journal tail is what it always was.
+      const failure = runAlert([], { BACKUP_ALERT_EMAIL: "" });
+      expect(failure.status, failure.stdout + failure.stderr).toBe(0);
+      eml = readMail(path.join(contentDir, "keeper", "mail", mailFiles().at(-1)!));
+      expect(eml).toContain("ops@example.test");
+      expect(eml).toContain("control process exited with error code");
+      expect(eml).not.toContain("The status report is not included");
     },
     120_000,
   );
