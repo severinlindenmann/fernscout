@@ -1255,6 +1255,96 @@ export function projectEquirectangular(lat: number, lng: number): { x: number; y
  * window-culling to work in a latitude-corrected space, or having `frameRoute`
  * grow an uncorrected mode — both bigger than the NaN hole this task closes.
  */
+/**
+ * The fraction of a spread's width the fold makes hard to read (B518).
+ *
+ * `mapProjector` puts `view`'s horizontal midpoint on the spine, so this
+ * fraction of `view.width`, centred there, is the band a stop should not
+ * fall in. `routeView` has no `BookSpec` to ask for the real gutter, so this
+ * is sized against the default one instead (`lib/photobook/spec.ts`): a
+ * 16mm gutter on each of two 210mm pages is 32mm of a 420mm spread, about
+ * 8% — close enough for the other sizes on offer, and a constant here keeps
+ * `routeView` pure.
+ */
+const FOLD_BAND_FRACTION = 0.08;
+
+/**
+ * The horizontal centre `routeView` should use instead of the frame's own
+ * midpoint, so the fold's band (`FOLD_BAND_FRACTION` of `width`, which does
+ * not change) costs the route less.
+ *
+ * Shifts rather than widens (B518): looks for the gap between two stops, or
+ * between a stop and empty space beyond the rest, that is nearest the
+ * middle and wide enough to hold the band whole, and puts the band there.
+ * Never moves far enough to let a stop reach the frame's own edge — that
+ * would break `routeView`'s contract that every stop stays inside `view`.
+ *
+ * A shift is only worth taking if it is actually better, so every candidate
+ * is scored — first by how many stops still fall in the band, then by how
+ * many times the route (in travel order, which is what `xs` is passed in)
+ * crosses it — and the frame's own untouched midpoint is scored the same
+ * way and kept unless some candidate beats it outright. On `parks-2025`
+ * (B518) every gap on offer left a stop in the band and doubled the
+ * crossings over doing nothing, which is what made the first version of
+ * this function a regression rather than a fix: it shifted whenever a gap
+ * existed, without checking the shift was an improvement. Ties keep the
+ * untouched midpoint — a frame centred on the journey is worth giving up
+ * only for a real gain.
+ *
+ * A perfectly clear band is not reachable for every route this way: with
+ * the band at 8% of the frame, a sufficiently spread-out or evenly-covered
+ * route has no gap wide enough anywhere near the middle, and the honest
+ * result is "no worse than the fold got no consideration at all", not "the
+ * gutter is always empty".
+ */
+function centreAwayFromFold(xs: number[], x: number, width: number): number {
+  const cx0 = x + width / 2;
+  const band = width * FOLD_BAND_FRACTION;
+  const half = band / 2;
+  const sorted = [...xs].sort((a, b) => a - b);
+  const minX = sorted[0];
+  const maxX = sorted[sorted.length - 1];
+
+  // How far the centre can move before a stop would reach the frame's edge.
+  const eps = Math.max(width * 1e-9, 1e-9);
+  const lo = maxX - width / 2 + eps;
+  const hi = minX + width / 2 - eps;
+
+  const inBand = (c: number) => sorted.filter((v) => Math.abs(v - c) < half).length;
+  const crossings = (c: number) => {
+    let count = 0;
+    let side: boolean | undefined;
+    for (const v of xs) {
+      const thisSide = v < c;
+      if (side !== undefined && thisSide !== side) count++;
+      side = thisSide;
+    }
+    return count;
+  };
+  const score = (c: number): [number, number] => [inBand(c), crossings(c)];
+  const better = (a: [number, number], b: [number, number]) => a[0] < b[0] || (a[0] === b[0] && a[1] < b[1]);
+
+  let best = cx0;
+  let bestScore = score(cx0);
+  if (lo <= hi) {
+    // A hair past the band's edge, so a candidate that just clears a stop
+    // does so with room rather than landing it exactly on the line.
+    const candidates = [minX - half - eps, maxX + half + eps];
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] - sorted[i - 1] >= band) candidates.push((sorted[i] + sorted[i - 1]) / 2);
+    }
+    for (const raw of candidates) {
+      const c = Math.max(lo, Math.min(hi, raw));
+      const s = score(c);
+      if (better(s, bestScore)) {
+        best = c;
+        bestScore = s;
+      }
+    }
+  }
+  return best;
+}
+
 export function routeView(route: RoutePoint[]): RouteView {
   const plottable = route.filter(isPlottable);
   if (plottable.length === 0) {
@@ -1297,6 +1387,11 @@ export function routeView(route: RoutePoint[]): RouteView {
     x -= (wanted - width) / 2;
     width = wanted;
   }
+
+  // Slide the frame so the fold — the spine `mapProjector` puts at this
+  // frame's horizontal midpoint — lands off the route rather than on it.
+  x = centreAwayFromFold(points.map((p) => p.x), x, width) - width / 2;
+
   return { x, y, width, height };
 }
 
