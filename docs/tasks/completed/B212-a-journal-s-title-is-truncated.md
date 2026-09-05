@@ -8,8 +8,7 @@ area: frontend, header
 found: "2026-09-04T06:15:57Z"
 started: "2026-09-04T09:30:25Z"
 merged: "2026-09-04T10:00:32Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T07:33:15Z"
+completed: "2026-09-05T07:49:37Z"
 ---
 
 # B212 — A journal's title is truncated to five characters in the trip header on a 1440px desktop

@@ -8,8 +8,7 @@ area: header, nav, ui
 found: "2026-09-04T12:50:12Z"
 started: "2026-09-04T12:53:05Z"
 merged: "2026-09-04T12:59:12Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T07:33:15Z"
+completed: "2026-09-05T07:49:37Z"
 ---
 
 # B285 — The header's language/currency chip drifts to the middle of the row on desktop

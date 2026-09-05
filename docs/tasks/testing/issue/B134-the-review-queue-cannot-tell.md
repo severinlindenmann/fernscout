@@ -8,8 +8,6 @@ area: api, mcp, test-content
 found: "2026-09-03"
 started: "2026-09-04T06:22:43Z"
 merged: "2026-09-04T06:50:21Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T07:38:38Z"
 ---
 
 # B134 — The review queue cannot tell a person which drafts nobody lived

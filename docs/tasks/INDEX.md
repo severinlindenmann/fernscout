@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (92)
+## backlog (96)
 
 ### security (6)
 
@@ -62,12 +62,13 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (29)
+### issue (32)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B329](backlog/issue/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium |
 | [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
+| [B406](backlog/issue/B406-the-invite-form-swallows-a-refusal.md) | The invite form swallows a refusal, so a reader clicks join and nothing at all happens | ISSUE | high | low |
 | [B228](backlog/issue/B228-the-guest-list-issues-a-link.md) | The guest list issues a link that never expires | ISSUE | medium | low |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
@@ -79,6 +80,7 @@ Do not edit them by hand; run the script.
 | [B340](backlog/issue/B340-a-disabled-capability-answers-404-across.md) | A disabled capability answers 404 across every gated route, hiding a real refusal as no-such-route | ISSUE | medium | low |
 | [B342](backlog/issue/B342-readcostsfile-has-no-guard-around-matter.md) | readCostsFile has no guard around matter() and throws on a malformed costs.md | ISSUE | medium | low |
 | [B378](backlog/issue/B378-the-whatsapp-checkbox-is-offered-on.md) | The WhatsApp checkbox is offered on a journal with WhatsApp switched off, one line under a hint saying nothing sends there | ISSUE | medium | low |
+| [B408](backlog/issue/B408-status-reports-credits-enabled-while-config.md) | status reports credits enabled while config reports it off, on the same journal | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
@@ -95,6 +97,7 @@ Do not edit them by hand; run the script.
 | [B388](backlog/issue/B388-resending-a-mailed-guest-invitation-has.md) | Resending a mailed guest invitation has no rate limit | ISSUE | low | low |
 | [B389](backlog/issue/B389-a-contact-s-stored-phone-number.md) | A contact's stored phone number that toE164 cannot parse is shown to the owner as if it were fine | ISSUE | low | low |
 | [B391](backlog/issue/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low |
+| [B407](backlog/issue/B407-two-mail-refusals-blame-the-server.md) | Two mail refusals blame the server when it is the journal's own switch that is off | ISSUE | low | low |
 
 ### big-feature (12)
 
@@ -162,7 +165,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (5)
+### docs-and-skills (6)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -171,6 +174,7 @@ Do not edit them by hand; run the script.
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 | [B289](backlog/docs-and-skills/B289-nothing-records-that-a-hungarian-string.md) | Nothing records that a Hungarian string cannot take a case suffix on an interpolated name | DOCS | low | low |
 | [B404](backlog/docs-and-skills/B404-a-journal-s-own-documentation-txt.md) | A journal's own documentation.txt does not say a private trip stays shut to approved guests | DOCS | low | low |
+| [B409](backlog/docs-and-skills/B409-the-error-table-says-a-trip.md) | The error table says a trip-scoped token gets out_of_scope for another trip, and it gets unknown_trip | DOCS | low | low |
 
 ### superseded (6)
 
@@ -187,14 +191,15 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B399](in-development/B399-every-address-in-the-book-is.md) | Every address in the book is typed out by hand, line by line, with nothing to check it against | FEATURE | medium | high | `39691533` |
+| [B405](in-development/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | `3d8b93dd` |
 | [B402](in-development/B402-the-admin-contact-list-prints-a.md) | The admin contact list prints a saved country code, not its name | ISSUE | low | low | `39691533` |
 
-## testing (159)
+## testing (153)
 
 ### security (3)
 
@@ -204,7 +209,7 @@ _Nothing here._
 | [B280](testing/security/B280-an-invite-link-cannot-be-handed.md) | An invite link cannot be handed out a second time, because the token is only stored hashed | SECURITY | medium | medium | — |
 | [B03](testing/security/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium | — |
 
-### issue (99)
+### issue (93)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -241,7 +246,7 @@ _Nothing here._
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
 | [B116](testing/issue/B116-a-test-day-inside-a-real.md) | A test day inside a real trip is unmarked in the day list and in MCP's readable summary | ISSUE | medium | low | `62683d95` |
 | [B13](testing/issue/B13-the-photobook-prints-from-the-web.md) | The photobook prints from the web derivatives, not the originals | ISSUE | medium | medium | — |
-| [B134](testing/issue/B134-the-review-queue-cannot-tell.md) | The review queue cannot tell a person which drafts nobody lived | ISSUE | medium | low | `62683d95` |
+| [B134](testing/issue/B134-the-review-queue-cannot-tell.md) | The review queue cannot tell a person which drafts nobody lived | ISSUE | medium | low | — |
 | [B135](testing/issue/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low | — |
 | [B136](testing/issue/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low | — |
 | [B16](testing/issue/B16-the-day-photo-viewer-does-not.md) | The day photo viewer does not answer to touch and never says where you are | ISSUE | medium | low | — |
@@ -249,7 +254,6 @@ _Nothing here._
 | [B177](testing/issue/B177-a-trip-map-s-basemap-is.md) | A trip map's basemap is half a megabyte for a route sixty-eight kilometres across | ISSUE | medium | medium | — |
 | [B178](testing/issue/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low | — |
 | [B179](testing/issue/B179-one-failed-read-of-the-basemap.md) | One failed read of the basemap bundle turns every map on the instance blank until restart | ISSUE | medium | low | — |
-| [B205](testing/issue/B205-redeeming-an-invite-promises-a-code.md) | Redeeming an invite promises a code the server may have no way to send | ISSUE | medium | low | — |
 | [B217](testing/issue/B217-a-refused-journal-creation-still-burns.md) | A refused journal creation still burns a rate-limit slot, so correcting a typo can lock the person out for an hour | ISSUE | medium | low | — |
 | [B219](testing/issue/B219-the-postcard-and-photobook-scripts-write.md) | The postcard and photobook scripts write beside the code, not into the content root | ISSUE | medium | low | — |
 | [B227](testing/issue/B227-nothing-notices-a-conflict-marker-in.md) | Nothing notices a conflict marker in deploy/Caddyfile, because every check greps for a line rather than parsing the file | ISSUE | medium | low | — |
@@ -258,13 +262,11 @@ _Nothing here._
 | [B25](testing/issue/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low | — |
 | [B268](testing/issue/B268-the-slideshow-map-projects-coordinates-without.md) | The slideshow map projects coordinates without mapFrame, so a coordinate-less day breaks it the same way | ISSUE | medium | low | — |
 | [B269](testing/issue/B269-the-photobook-has-its-own-bounding.md) | The photobook has its own bounding-box code with the same NaN hole B265 closed for the web maps | ISSUE | medium | low | — |
-| [B285](testing/issue/B285-the-header-s-language-currency-chip.md) | The header's language/currency chip drifts to the middle of the row on desktop | ISSUE | medium | low | `62683d95` |
 | [B301](testing/issue/B301-the-handover-block-still-offers-the.md) | The handover block still offers the read-out-a-code route beside the key, which is two ways to do one thing | ISSUE | medium | low | — |
 | [B312](testing/issue/B312-a-malformed-trip-md-that-gray.md) | A malformed trip.md that gray-matter has already failed to parse once can silently succeed on re-parse | ISSUE | medium | low | — |
 | [B313](testing/issue/B313-getplan-s-own-doc-comment-claims.md) | getPlan's own doc comment claims a malformed plan.md returns empty, but readPlanFile has no guard and throws | ISSUE | medium | low | — |
 | [B317](testing/issue/B317-the-scripts-say-what-to-ask.md) | The scripts say what to ask and never what to offer next, so an agent stops after each step | ISSUE | medium | low | — |
 | [B336](testing/issue/B336-the-map-pages-drop-the-owner.md) | The map pages drop the owner's draft days while the same page's planned route keeps them | ISSUE | medium | low | — |
-| [B338](testing/issue/B338-a-mailed-invitation-knows-the-address.md) | A mailed invitation knows the address it was sent to and asks the reader to type it again | ISSUE | medium | low | `62683d95` |
 | [B349](testing/issue/B349-the-owner-s-queue-notification-calls.md) | The owner's queue notification calls a buddy a follower, naming neither the link kind nor the trip | ISSUE | medium | low | — |
 | [B351](testing/issue/B351-the-pre-approved-invite-page-still.md) | The pre-approved invite page still speaks the queue's language and contradicts itself | ISSUE | medium | low | — |
 | [B356](testing/issue/B356-reading-a-day-back-omits-its.md) | Reading a day back omits its translations, so an agent cannot verify the ones it wrote | ISSUE | medium | low | — |
@@ -286,17 +288,14 @@ _Nothing here._
 | [B150](testing/issue/B150-two-recipients-with-the-same.md) | Two recipients with the same Latin name overwrite each other's postcards | ISSUE | low | low | — |
 | [B158](testing/issue/B158-the-publish-confirmation-promises-feed-and.md) | The publish confirmation promises feed and search for a day that is excluded from both | ISSUE | low | low | `62683d95` |
 | [B161](testing/issue/B161-an-expired-place-on-a-trip.md) | An expired place on a trip is not restored by re-approving the contact | ISSUE | low | low | — |
-| [B170](testing/issue/B170-the-journal-title-is-clipped.md) | The journal's title is clipped in the header at exactly the width where the nav labels appear | ISSUE | low | low | `62683d95` |
 | [B199](testing/issue/B199-the-agent-handover-copy-control-has.md) | The agent-handover copy control has two values and a newline in one accessible name | ISSUE | low | low | — |
 | [B207](testing/issue/B207-four-trip-fields-are-read-from.md) | Four trip fields are read from trip.md and nothing can write them | ISSUE | low | low | — |
 | [B208](testing/issue/B208-createdraft-never-reads-its-entry-back.md) | createDraft never reads its entry back, so an unwritable day is reported as written | ISSUE | low | low | — |
 | [B209](testing/issue/B209-two-different-limits-are-refused-with.md) | Two different limits are refused with the same sentence, so an agent cannot tell which it broke | ISSUE | low | low | `62683d95` |
 | [B210](testing/issue/B210-media-originals-dir-outside-the-content.md) | MEDIA_ORIGINALS_DIR outside the content root writes a ../ chain into the photobook plan | ISSUE | low | low | — |
-| [B212](testing/issue/B212-a-journal-s-title-is-truncated.md) | A journal's title is truncated to five characters in the trip header on a 1440px desktop | ISSUE | low | low | `62683d95` |
 | [B214](testing/issue/B214-the-costs-page-s-meta-description.md) | The costs page's meta description is present-tense on a trip that has not started | ISSUE | low | low | — |
 | [B218](testing/issue/B218-a-postcard-run-reports-three-files.md) | A postcard run reports three files per recipient and writes four | ISSUE | low | low | — |
 | [B270](testing/issue/B270-an-owner-whose-only-trip-is.md) | An owner whose only trip is public but unlisted sees four zeroes and no empty state | ISSUE | low | low | — |
-| [B286](testing/issue/B286-the-trip-nav-wraps-to-one.md) | The trip nav wraps to one row on one trip and two rows on another at the same width | ISSUE | low | medium | `62683d95` |
 | [B337](testing/issue/B337-a-day-with-no-location-renders.md) | A day with no location: renders a blank, unlabelled filter chip in the gallery | ISSUE | low | low | — |
 | [B358](testing/issue/B358-the-invite-copy-button-s-accessible.md) | The invite copy button's accessible name ends in two dangling em-dashes and reports no success | ISSUE | low | low | — |
 | [B359](testing/issue/B359-the-used-link-warning-stays-on.md) | The used-link warning stays on the access page after a successful sign-in | ISSUE | low | low | — |
@@ -395,7 +394,7 @@ _Nothing here._
 | [B175](testing/superseded/B175-create_trip-over-mcp-cannot-ask.md) | create_trip over MCP cannot ask for an unadvertised trip, because it has no listed field | ISSUE | low | low | — |
 | [B206](testing/superseded/B206-mcp-create-trip-cannot-set-listed.md) | MCP create_trip cannot set listed, so the two doors do not accept the same trip | ISSUE | low | low | — |
 
-## completed (113)
+## completed (119)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -445,6 +444,7 @@ _Nothing here._
 | [B182](completed/B182-a-journal-s-features-cannot-be.md) | A journal's features cannot be changed after it is created, so every journal made before today is stuck as it was | ISSUE | medium | medium |
 | [B19](completed/B19-a-planned-trip-s-costs-page.md) | A planned trip's costs page reports spending that has not happened | ISSUE | medium | medium |
 | [B20](completed/B20-the-stranger-s-me-page-never.md) | The stranger's me page never says who to ask | ISSUE | medium | low |
+| [B205](completed/B205-redeeming-an-invite-promises-a-code.md) | Redeeming an invite promises a code the server may have no way to send | ISSUE | medium | low |
 | [B222](completed/B222-the-rate-limit-sweep-judged-every.md) | The rate-limit sweep judged every bucket by the default window, resetting the longer ones | SECURITY | medium | low |
 | [B232](completed/B232-the-reactions-endpoint-answers-for-a.md) | The reactions endpoint answers for a trip nobody may read | SECURITY | medium | low |
 | [B26](completed/B26-the-welcome-mail-is-english-only.md) | The welcome mail is English only, and nobody is asked which language the journal is in | FEATURE | medium | low |
@@ -454,6 +454,7 @@ _Nothing here._
 | [B28](completed/B28-publishing-a-draft-requires-editing-a.md) | Publishing a draft requires editing a file by hand, so an agent cannot close the loop it opened | FEATURE | medium | high |
 | [B281](completed/B281-the-invite-panel-asks-who-a.md) | The invite panel asks who a link is for and then shows neither that nor the language, and offers a third link kind nobody needs | FEATURE | medium | medium |
 | [B282](completed/B282-the-access-panel-creates-a-guest.md) | The access panel creates a guest link itself, so link management lives on two pages and the page is long enough to scroll past what matters | ISSUE | medium | low |
+| [B285](completed/B285-the-header-s-language-currency-chip.md) | The header's language/currency chip drifts to the middle of the row on desktop | ISSUE | medium | low |
 | [B293](completed/B293-a-journal-s-features-cannot-be.md) | A journal's features cannot be changed by any door, and the route that refuses says only 405 | ISSUE | medium | medium |
 | [B298](completed/B298-mcp-is-live-and-unused-and.md) | MCP is live and unused, and costs maintenance surface nobody exercises | CHORE | medium | high |
 | [B299](completed/B299-no-visual-page-to-browse-the.md) | No visual page to browse the API endpoints | FEATURE | medium | low |
@@ -461,6 +462,7 @@ _Nothing here._
 | [B315](completed/B315-the-invite-form-offers-a-postcard.md) | The invite form offers a postcard but never asks about email updates, so a new reader is silently opted out | ISSUE | medium | low |
 | [B32](completed/B32-a-taken-username-answers-409-with.md) | A taken username answers 409 with no route onward for somebody who already owns it | ISSUE | medium | low |
 | [B33](completed/B33-a-journal-can-be-shared-only.md) | A journal can be shared only by password or by hand-edited frontmatter, so an agent cannot invite anybody | FEATURE | medium | medium |
+| [B338](completed/B338-a-mailed-invitation-knows-the-address.md) | A mailed invitation knows the address it was sent to and asks the reader to type it again | ISSUE | medium | low |
 | [B36](completed/B36-address-checks-match-one-spelling-each.md) | Address checks match one spelling each, and the URL parser writes another | SECURITY | medium | low |
 | [B37](completed/B37-anybody-who-finds-a-journal-can.md) | Anybody who finds a journal can put themselves on its guest list uninvited | FEATURE | medium | low |
 | [B38](completed/B38-a-journal-or-a-trip-can.md) | A journal or a trip can be created through the API but never removed | FEATURE | medium | high |
@@ -492,13 +494,16 @@ _Nothing here._
 | [B140](completed/B140-the-tab-title-can-be.md) | The tab title can be in a language the journal does not offer, while the page is not | ISSUE | low | low |
 | [B151](completed/B151-the-mail-filename-slug-has.md) | The mail filename slug has no NFD pass, so a German umlaut loses its vowel | CHORE | low | low |
 | [B152](completed/B152-the-guide-calls-the-relayed-sign.md) | The guide calls the relayed sign-in link the same link as the mailed one, and never says what kills it | DOCS | low | low |
+| [B170](completed/B170-the-journal-title-is-clipped.md) | The journal's title is clipped in the header at exactly the width where the nav labels appear | ISSUE | low | low |
 | [B183](completed/B183-mcp-advertises-the-invite-tools-to.md) | MCP advertises the invite tools to a journal that has contacts switched off | CHORE | low | low |
 | [B185](completed/B185-a-locale-cookie-the-journal-does.md) | A locale cookie the journal does not list translates the tab title but not the page under it | ISSUE | low | low |
+| [B212](completed/B212-a-journal-s-title-is-truncated.md) | A journal's title is truncated to five characters in the trip header on a 1440px desktop | ISSUE | low | low |
 | [B220](completed/B220-the-rest-of-a-journal-s.md) | The rest of a journal's config.json still cannot be changed after it is created | ISSUE | low | medium |
 | [B225](completed/B225-the-landing-page-s-tab-title.md) | The landing page's tab title is English over a translated page | ISSUE | low | low |
 | [B23](completed/B23-everything-in-docs-was-archived-and.md) | Everything in docs was archived and nobody decided what is still current | CHORE | low | low |
 | [B233](completed/B233-the-https-only-rule-is-not.md) | The https-only rule is not re-applied after a redirect | SECURITY | low | low |
 | [B234](completed/B234-an-unauthenticated-health-check-discloses-server.md) | An unauthenticated health check discloses server paths and journal names | SECURITY | low | low |
+| [B286](completed/B286-the-trip-nav-wraps-to-one.md) | The trip nav wraps to one row on one trip and two rows on another at the same width | ISSUE | low | medium |
 | [B29](completed/B29-an-agent-has-no-way-to.md) | An agent has no way to hand its owner a working sign-in link | FEATURE | low | medium |
 | [B30](completed/B30-a-url-upload-never-says-whether.md) | A URL upload never says whether an original was kept | ISSUE | low | low |
 | [B303](completed/B303-the-phone-number-field-on-the.md) | The phone number field on the guestbook and the admin guest form never says what it is for | ISSUE | low | low |

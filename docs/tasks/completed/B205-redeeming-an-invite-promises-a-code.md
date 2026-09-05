@@ -8,6 +8,7 @@ area: contacts, mail
 found: "2026-09-04T06:07:17Z"
 started: "2026-09-04T07:52:18Z"
 merged: "2026-09-04T08:19:52Z"
+completed: "2026-09-05T07:49:38Z"
 ---
 
 # B205 — Redeeming an invite promises a code the server may have no way to send
