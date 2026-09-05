@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (108)
+## backlog (109)
 
 ### security (6)
 
@@ -62,13 +62,14 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (37)
+### issue (38)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B329](backlog/issue/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium |
 | [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
-| [B459](backlog/issue/B459-a-reader-signed-in-before-b410.md) | A reader signed in before B410 never gets an identity, so the way out of a journal stays hidden | ISSUE | high | low |
+| [B460](backlog/issue/B460-neither-postcard-form-can-be-submitted.md) | Neither postcard form can be submitted: the redirect leaves the origin and CSP blocks it | ISSUE | high | low |
+| [B461](backlog/issue/B461-the-postcard-preview-is-english-on.md) | The postcard preview is English on a German journal, and its language note explains nothing | ISSUE | high | low |
 | [B228](backlog/issue/B228-the-guest-list-issues-a-link.md) | The guest list issues a link that never expires | ISSUE | medium | low |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
@@ -203,16 +204,15 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B454](in-development/B454-the-landing-page-reads-localstorage-during.md) | The landing page reads localStorage during render, so a signed-in reader gets a hydration mismatch on every load | ISSUE | medium | low | `3744307d` |
-| [B458](in-development/B458-a-backup-that-works-says-nothing.md) | A backup that works says nothing, so the only evidence the alarm is alive is an alarm | FEATURE | medium | low | `7c3dd4ae` |
 
-## testing (155)
+## testing (157)
 
-### issue (90)
+### issue (91)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -239,6 +239,7 @@ _Nothing here._
 | [B438](testing/issue/B438-the-push-control-renders-nothing-when.md) | The push control renders nothing when it cannot decide, so a reader who could enable notifications sees no reason why they cannot | ISSUE | high | low | — |
 | [B450](testing/issue/B450-comm-runs-in-the-ambient-locale.md) | comm runs in the ambient locale against LC_ALL=C-sorted input, so the backup names readable files as missing | ISSUE | high | low | — |
 | [B451](testing/issue/B451-the-postcard-preview-prints-the-message.md) | The postcard preview prints the message at four times its real size | ISSUE | high | low | — |
+| [B459](testing/issue/B459-a-reader-signed-in-before-b410.md) | A reader signed in before B410 never gets an identity, so the way out of a journal stays hidden | ISSUE | high | low | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
@@ -323,7 +324,7 @@ _Nothing here._
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 | [B425](testing/big-feature/B425-until-a-psp-exists-a-payment.md) | Until a PSP exists, a payment is a request the instance admin approves by an emailed link, which grants the credits | FEATURE | medium | high | — |
 
-### small-feature (18)
+### small-feature (19)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -341,6 +342,7 @@ _Nothing here._
 | [B412](testing/small-feature/B412-the-service-worker-caches-every-reader.md) | The service worker caches every reader into one shared bucket, so a signed-in home view cannot be cached at all | FEATURE | medium | medium | — |
 | [B441](testing/small-feature/B441-a-postcard-can-only-be-started.md) | A postcard can only be started by an agent — the gallery has no way in | FEATURE | medium | medium | — |
 | [B452](testing/small-feature/B452-the-preview-page-cannot-correct-a.md) | The preview page cannot correct a word, and says nothing about language | FEATURE | medium | low | — |
+| [B458](testing/small-feature/B458-a-backup-that-works-says-nothing.md) | A backup that works says nothing, so the only evidence the alarm is alive is an alarm | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
