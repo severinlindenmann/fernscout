@@ -7,8 +7,7 @@ complexity: medium
 area: api, media upload
 found: "2026-09-05T21:30:00Z"
 started: "2026-09-05T21:20:43Z"
-session: 5813be44-d8aa-40f5-ab31-affc7af3746a
-claimed: "2026-09-05T21:20:43Z"
+merged: "2026-09-05T21:32:13Z"
 ---
 
 # B527 — After a partly-failed media batch an agent cannot tell which photographs landed
