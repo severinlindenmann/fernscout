@@ -8,7 +8,13 @@ Nem kell fiók, és sehol nincs jelszó.
 
 Itt minden az e-mail-címeddel és egy hatjegyű kóddal működik. Semmi mással.
 
-1. Nyisd meg az oldalt, és nyomd meg a **Bejelentkezés és olvasás** gombot.
+> A képernyőképek angol nyelvűek — magyar felvételek még nincsenek. A gombok
+> helye ugyanaz, a feliratok magyarul jelennek meg nálad.
+
+![A nyitóoldal telefonon: egy kártya, rajta a „Has someone shared a travel journal with you?" felirat és a „Sign in to read" gomb.](/docs/guides/figures/guide-signin-en.webp)
+
+1. Nyisd meg az oldalt, és nyomd meg a **Bejelentkezés és olvasás** gombot. Ez
+   az első dolog az oldalon, minden más fölött.
 2. Írd be azt az e-mail-címet, amelyre a meghívó érkezett.
 3. A kód e-mailben érkezik. Írd be — vagy nyomd meg a gombot abban az
    e-mailben, az ugyanezt teszi, gépelés nélkül.
@@ -32,6 +38,8 @@ mindig a legfrissebb e-mailt használd.
 A nyitóoldal a saját listáddá válik: egy helyen az összes útinapló ezen a
 kiszolgálón, amelyhez hozzáférést kaptál. Mindegyiknél ott áll, hogyan jutsz
 be — a tiéd-e, ott voltál-e az úton, vagy megosztották-e veled.
+
+![A nyitóoldal bejelentkezés után, két naplóval és a „Yours" illetve „You travelled" jelöléssel.](/docs/guides/figures/guide-home-en.webp)
 
 Erre a listára bármikor visszatérhetsz a napló neve fölötti hivatkozással az
 oldal tetején.
@@ -60,6 +68,8 @@ kezdőképernyődhöz, ezért van egy plusz lépés. Megéri egyszer megcsináln
 
 Ha nem akarsz a kártyára várni: ugyanez a kapcsoló ott van a saját oldaladon
 az **Értesítések** alatt — hogy hol találod, lentebb olvasod.
+
+![Az „Értesítések" szakasz a saját oldaladon, egy gombbal, és alatta a kártya, amely ugyanezt ajánlja fel a képernyő alján.](/docs/guides/figures/guide-notify-en.webp)
 
 ### Androidon vagy számítógépen
 

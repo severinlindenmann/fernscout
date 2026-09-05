@@ -76,6 +76,68 @@ describe("the route only accepts the three", () => {
   });
 });
 
+describe("the figures", () => {
+  const FIGURES = "docs/guides/figures";
+
+  test("every image a guide references is actually on disk", () => {
+    for (const locale of LOCALES) {
+      for (const guide of GUIDES) {
+        const text = fs.readFileSync(
+          path.join(process.cwd(), `docs/guides/${locale}/${guide}.md`),
+          "utf8",
+        );
+        for (const [, src] of text.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)) {
+          expect(src, `${locale}/${guide}`).toMatch(/^\/docs\/guides\/figures\//);
+          const file = src.replace("/docs/guides/figures/", "");
+          expect(
+            fs.existsSync(path.join(process.cwd(), FIGURES, file)),
+            `${locale}/${guide} references ${file}`,
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
+  /** Every figure carries alt text. These pages are read by people who are
+   * already unsure; an unlabelled picture is one more thing to puzzle over,
+   * and for a screen-reader it is nothing at all. */
+  test("no figure is unlabelled", () => {
+    for (const locale of LOCALES) {
+      for (const guide of GUIDES) {
+        const text = fs.readFileSync(
+          path.join(process.cwd(), `docs/guides/${locale}/${guide}.md`),
+          "utf8",
+        );
+        for (const [, alt] of text.matchAll(/!\[([^\]]*)\]\([^)]+\)/g)) {
+          expect(alt.length, `${locale}/${guide}`).toBeGreaterThan(20);
+        }
+      }
+    }
+  });
+
+  /**
+   * A screenshot committed at retina resolution bloats every clone of this
+   * repository for ever — `docs/screenshots/README.md` sets that rule for the
+   * four it owns, and these are held to the same one.
+   */
+  test("the figures stay inside their byte budget", () => {
+    const dir = path.join(process.cwd(), FIGURES);
+    const total = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith(".webp"))
+      .reduce((sum, f) => sum + fs.statSync(path.join(dir, f)).size, 0);
+    expect(total).toBeLessThan(200 * 1024);
+  });
+
+  /** Hungarian has no captures of its own, so it borrows the English ones —
+   * and must say so rather than showing a reader a language they did not ask
+   * for with no explanation. */
+  test("the Hungarian guide warns that its screenshots are in English", () => {
+    const text = fs.readFileSync(path.join(process.cwd(), "docs/guides/hu/guest.md"), "utf8");
+    expect(text).toMatch(/angol nyelv/i);
+  });
+});
+
 describe("what the guides have to cover", () => {
   const read = (locale: string, guide: string) =>
     fs.readFileSync(path.join(process.cwd(), `docs/guides/${locale}/${guide}.md`), "utf8");
