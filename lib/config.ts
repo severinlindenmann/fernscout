@@ -18,6 +18,7 @@ export const FEATURE_NAMES = [
   "photobook",
   "logging",
   "credits",
+  "addressLookup",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -226,6 +227,14 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // checkout rather than a business model. The operator switches it on where
   // sends are actually being paid for.
   credits: { enabled: false },
+  // B399. Off by default like every optional capability, and the one
+  // provider that needs no key (`photon`, no signup at all) is the default —
+  // AGENTS.md's rule that nothing here may require a paid account to
+  // develop or test. `url` and `provider` are both overridable so an
+  // instance that wants MapTiler or a self-hosted Photon can point at it
+  // without a code change; any key that provider needs comes from
+  // `ADDRESS_LOOKUP_API_KEY` (see lib/capabilities.ts), never from this file.
+  addressLookup: { enabled: false, provider: "photon", url: "https://photon.komoot.io/api/" },
 };
 
 /**

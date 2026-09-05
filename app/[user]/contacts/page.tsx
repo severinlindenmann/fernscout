@@ -138,6 +138,9 @@ export default async function ContactsAdminPage({
         // B385: default a new guest's dialling code to the operator's own
         // fallback for a national number, when there is one.
         defaultCountryCode={whatsappCountryCode()}
+        // B399: same server-ceiling-and-journal-opt-in check as everywhere
+        // else this capability is read.
+        addressLookupEnabled={isEnabled("addressLookup", username)}
       />
     </div>
   );

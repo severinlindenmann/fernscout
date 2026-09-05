@@ -34,6 +34,9 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // would be a number nobody could decrement — and `spend` refusing every
   // send is the safe reading of that, not a silent free-for-all.
   credits: { env: [], db: true },
+  // B399. See configuredEnv() for the provider-specific half — `photon`
+  // needs nothing, which is the whole point of defaulting to it.
+  addressLookup: { env: [], db: false },
 };
 
 /** Transport and provider choices carry their own credential requirements.
@@ -69,6 +72,19 @@ const PROVIDER_ENV: Record<string, readonly string[]> = {
   // Lulu is OAuth2 client credentials rather than a static key, so it needs a
   // pair. See docs/providers/photobook.md.
   lulu: ["LULU_CLIENT_KEY", "LULU_CLIENT_SECRET"],
+};
+
+/**
+ * What each address lookup provider needs. Unlike `PROVIDER_ENV` above, this
+ * is not the whole list of providers this capability can talk to — any URL
+ * an operator points `features.addressLookup.url` at is fair game, since the
+ * request is a plain query-string GET the same shape for all of them
+ * (`lib/addressLookup.ts`). `photon` is named because it is the one that
+ * needs no key at all; everything else is assumed to, since we cannot know
+ * from a provider's name alone whether it does.
+ */
+const ADDRESS_LOOKUP_PROVIDER_ENV: Record<string, readonly string[]> = {
+  photon: [],
 };
 
 export type CapabilityState =
@@ -116,6 +132,14 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
         problem: `features.${name}.provider "${provider}" is unknown (expected one of: ${Object.keys(PROVIDER_ENV).join(", ")})`,
       };
     }
+    return { env };
+  }
+  if (name === "addressLookup") {
+    const provider = optionOf(feature, "provider") ?? "photon";
+    // No "unknown provider" problem here, unlike the two blocks above: those
+    // enumerate backends this codebase has actual client code for, and this
+    // one is a single GET request that works the same against any of them.
+    const env = ADDRESS_LOOKUP_PROVIDER_ENV[provider] ?? ["ADDRESS_LOOKUP_API_KEY"];
     return { env };
   }
   return { env: [] };

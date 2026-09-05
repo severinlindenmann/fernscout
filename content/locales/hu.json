@@ -16,6 +16,7 @@
   "contact.addrPostcode": "Irányítószám",
   "contact.address": "Postai cím",
   "contact.addressHint": "csak ha szeretnél igazi képeslapot a postaládádba",
+  "contact.addressLookupHint": "A javaslatok a Photontól, egy OpenStreetMap-alapú szolgáltatástól érkeznek — semmi nem kerül elküldésre, amíg nem kezdesz el ide gépelni.",
   "contact.adminAddGuest": "Vendég hozzáadása",
   "contact.adminAddressHint": "csak ha szeretne igazi képeslapot kapni",
   "contact.adminAddressHintNoPostcards": "megmarad, akkor is, ha soha nem nyomtatunk képeslapot",

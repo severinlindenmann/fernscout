@@ -104,3 +104,70 @@ still editable. The provider is never contacted from the browser (check the
 network panel). The proxy refuses an over-long query, an over-short one, and a
 flood from one session. Tests cover the proxy's shape and its refusals with
 the provider stubbed; the live provider is not called from the suite.
+
+## Built
+
+`lib/capabilities.ts`/`lib/config.ts` — a new `addressLookup` capability, off
+by default, ceiling-then-opt-in like every other one. `ADDRESS_LOOKUP_PROVIDER_ENV`
+in `lib/capabilities.ts` needs nothing for `provider: "photon"` (the default)
+and requires `ADDRESS_LOOKUP_API_KEY` for any other provider name — unlike
+`postcards`/`photobook`, an unrecognised provider is not refused, since every
+provider here is the same plain GET and there is no per-backend client code to
+be missing.
+
+`lib/addressLookupTypes.ts` (no `server-only`) carries `MIN_QUERY_LEN` (3),
+`MAX_QUERY_LEN` (200) and the `AddressSuggestion` shape, so the client
+component can share both without pulling the fetch logic into the browser
+bundle. `lib/addressLookup.ts` (`server-only`) is the actual Photon client:
+`lookupAddresses(query, locale)`, capped at 8 results, `type: "house"` only,
+housenumber-after-street for `DE`/`AT`/`CH`/`LI` and before elsewhere, `lang`
+narrowed to `de`/`en`/`fr`/`it` (else `en`), never throws.
+
+`app/api/address-lookup/route.ts` — the public proxy. `GET
+?user=&q=&locale=`; 404 when the capability (per-journal) is off; 400 under
+`MIN_QUERY_LEN` or over `MAX_QUERY_LEN`; `rateLimitFor("address-lookup",
+clientIp, {max: 30, windowMs: 60_000})`; `cache-control: no-store`.
+
+`components/AddressLookupField.tsx` — the shared combobox (same interaction
+pattern as `CountryField`/`TelField`), a 300ms debounce, and `enabled={false}`
+makes it exactly today's plain `<input>` with no timer and no fetch ever
+started. Wired into the street field of all four forms (`ContactForm.tsx`,
+`ContactsAdmin.tsx`'s `GuestForm`, `InviteRedeem.tsx`, `ContactManage.tsx`),
+each gated on a new `addressLookupEnabled` prop threaded down from its page
+the same way `postcardsEnabled`/`whatsappEnabled` already are. A pick fills
+`line1`/`postcode`/`city`/`country` (the ISO2 `CountryField` already reads)
+and leaves every field editable. `contact.addressLookupHint` (all three
+locale files) names Photon/OpenStreetMap under the field whenever the
+capability is on.
+
+Tests: `test/address-lookup.test.ts` (provider client — DACH vs. French
+ordering, `type` filtering, `hu`→`en`, key present/absent, provider failure/
+throw both resolve to `[]`) and `test/address-lookup-route.test.ts` (capability
+off → 404 with no fetch, length refusals before any fetch, a 30-request flood
+from one address → 429). `global.fetch` is stubbed in every test; the live
+service is never called from the suite.
+
+Manual check against the live Photon service (dev server, capability on, no
+key) reproduced the ticket's own recorded shape exactly — `Bahnhofstrasse 12`
+in Zürich (CH), `112 rue de Maubeuge` in Paris (FR) housenumber-first — and
+confirmed: off → 404 from the proxy and `/api/health` names the reason; on →
+real suggestions at 4 characters; `grep` over `.next/static` and
+`components/`/`app/` finds no `photon.komoot` string anywhere reachable from
+the browser bundle; 30 requests/minute per IP triggers 429 with `Retry-After`.
+
+## Security review
+
+`claude-security:scan` could not run in this session — the `Workflow` tool
+it depends on was not present here (dispatched via the `claude-security`
+orchestrator agent, which confirmed the same and did nothing rather than
+improvise a scan by hand). A manual pass over the diff instead: the proxy's
+`user` param only ever answers the capability check (off and "no such user"
+both return the same generic 404, so it cannot be used to enumerate
+journals); `features.addressLookup.url` is operator-set server config, the
+same trust boundary `postcards`/`photobook` provider URLs already sit at, not
+new attacker-reachable surface; query building goes through
+`URLSearchParams`/`new URL()`, never string concatenation; the response sets
+`cache-control: no-store` and carries no secret. Whoever picks this up next
+with a working `Workflow` tool should run `claude-security:scan` properly
+against this diff before it ships — this note is a stand-in, not a
+replacement.

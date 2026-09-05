@@ -27,6 +27,9 @@ export type ManagePanel = {
    * else this panel carries — see the note on `PaymentPanel` below for why
    * that rule exists. */
   defaultCountryCode?: string;
+  /** B399: `isEnabled("addressLookup", username)`, resolved server-side for
+   * the same reason. */
+  addressLookupEnabled?: boolean;
 };
 
 /**
@@ -326,6 +329,7 @@ export default function MePageContent({
                   token={manage.token}
                   contact={manage.contact}
                   defaultCountryCode={manage.defaultCountryCode}
+                  addressLookupEnabled={manage.addressLookupEnabled}
                 />
               </div>
             </details>

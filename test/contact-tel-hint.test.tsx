@@ -74,6 +74,7 @@ describe("the phone field says what it is for, everywhere it is asked", () => {
         contact={null}
         fallbackLocale="en"
         locales={["en"]}
+        username="ana"
         t={(key) => en[key] ?? key}
         busy={false}
         act={async () => null}
