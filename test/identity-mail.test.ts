@@ -155,6 +155,32 @@ describe("the language of the mail", () => {
     }
   });
 
+  /**
+   * The landing page is the instance-wide one, so it must not borrow the
+   * journal's words. It shipped doing exactly that: the edit that was meant to
+   * swap the keys silently matched nothing, and the German page greeted
+   * readers with "Journal öffnen" for a sign-in that opens no journal in
+   * particular.
+   */
+  test("the link's landing page uses the instance-wide strings", () => {
+    const src = fs.readFileSync(path.join(process.cwd(), "app/s/[token]/page.tsx"), "utf8");
+    expect(src).toContain("signin.identityTitle");
+    expect(src).toContain("signin.identityAction");
+    // The journal's own keys, which are a different sentence about a
+    // different thing.
+    expect(src).not.toMatch(/"signin\.(title|body|action|working|failed)"/);
+  });
+
+  /** The button renders above this sentence in both the HTML and the text
+   * part, so a word pointing downwards sends the reader the wrong way. */
+  test("the app hint does not point at the button's old position", async () => {
+    const { dictionaryFor } = await import("@/lib/locales");
+    for (const locale of ["en", "de", "hu"]) {
+      const text = dictionaryFor(locale)["mail.identityApp"];
+      expect(text).not.toMatch(/\bbelow\b|\bunten\b|\balábbi\b/);
+    }
+  });
+
   /** The number comes from CODE_TTL_MS, so no locale file may spell it out. */
   test("no language writes the code's lifetime into the sentence", async () => {
     const { dictionaryFor } = await import("@/lib/locales");

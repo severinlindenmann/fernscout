@@ -37,14 +37,14 @@ export default async function IdentitySignInPage({
 
   return (
     <NoticeShell
-      title={translateIn(locale, "signin.title")}
-      body={translateIn(locale, "signin.body")}
+      title={translateIn(locale, "signin.identityTitle")}
+      body={translateIn(locale, "signin.identityBody")}
     >
       <SignInButton
         token={token}
-        label={translateIn(locale, "signin.action")}
-        working={translateIn(locale, "signin.working")}
-        failed={translateIn(locale, "signin.failed")}
+        label={translateIn(locale, "signin.identityAction")}
+        working={translateIn(locale, "signin.identityWorking")}
+        failed={translateIn(locale, "signin.identityFailed")}
       />
     </NoticeShell>
   );

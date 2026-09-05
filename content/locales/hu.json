@@ -397,7 +397,7 @@
   "landing.trips": "{count} utazás",
   "landing.trips.one": "{count} utazás",
   "lang.label": "Nyelv",
-  "mail.identityApp": "Ha a {site} fent van a kezdőképernyődön, ott nyisd meg, és oda írd be a kódot — az alábbi gomb a böngésződet nyitja meg, és ott jelentkeztet be.",
+  "mail.identityApp": "Ha a {site} fent van a kezdőképernyődön, ott nyisd meg, és oda írd be a kódot — a gomb a böngésződet nyitja meg, és ott jelentkeztet be.",
   "mail.identityButton": "Bejelentkezés",
   "mail.identityCode": "A kódod: {code}. {minutes} percig érvényes.",
   "mail.identityFooter": "Küldte: {site}.",

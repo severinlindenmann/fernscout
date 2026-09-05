@@ -397,7 +397,7 @@
   "landing.trips": "{count} Reisen",
   "landing.trips.one": "{count} Reise",
   "lang.label": "Sprache",
-  "mail.identityApp": "Wenn du {site} auf deinem Startbildschirm hast, öffne es dort und tippe den Code ein — der Knopf unten öffnet deinen Browser und meldet dich dort an.",
+  "mail.identityApp": "Wenn du {site} auf deinem Startbildschirm hast, öffne es dort und tippe den Code ein — der Knopf öffnet deinen Browser und meldet dich dort an.",
   "mail.identityButton": "Anmelden",
   "mail.identityCode": "Dein Code lautet {code}. Er gilt {minutes} Minuten.",
   "mail.identityFooter": "Gesendet von {site}.",
