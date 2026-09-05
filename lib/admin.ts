@@ -11,12 +11,12 @@ import "server-only";
  * one, because `mayRequestAgentToken` refuses an address the journal does not
  * recognise.
  *
- * **Environment, never `content/config.json`.** Not because an address is a
+ * **Environment, never `site/config.json`.** Not because an address is a
  * secret — it is not, and it will appear in a mail header the first time it is
  * used — but because this is an authorisation control. It changes on the
  * server without a content commit, it does not travel in the repository to
  * somebody else's instance, and a journal's own config can therefore never
- * widen it. `content/config.json` is content; this is operations.
+ * widen it. `site/config.json` is content; this is operations.
  *
  * **Absent is the default and the safe one.** No variable, no admin, and every
  * gate below behaves exactly as it did before this file existed — which is

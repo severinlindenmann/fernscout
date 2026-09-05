@@ -61,7 +61,7 @@ function personalTerms(): RegExp[] {
     }
   };
 
-  const server = readJson(path.join(contentRoot, "config.json"));
+  const server = readJson(path.join(ROOT, "site", "config.json"));
   const credit = (server?.site as { credit?: { name?: unknown } } | undefined)?.credit;
   add(credit?.name);
 
@@ -77,8 +77,9 @@ function personalTerms(): RegExp[] {
 
   for (const username of usernames) {
     // The demo journal is *meant* to be referred to by name in the code that
-    // builds it, and its trips are the ones the tests use.
-    if (username === "example" || username === "locales" || username === "rates") continue;
+    // builds it, and its trips are the ones the tests use. Since B510 nothing
+    // else is under content/ — locales, rates and legal moved to site/.
+    if (username === "example") continue;
     const user = readJson(path.join(contentRoot, username, "config.json"));
     if (!user) continue;
     add(user.title);
@@ -150,7 +151,7 @@ describe("nothing personal in code", () => {
           if (pattern.test(line)) hits.push(`${path.relative(ROOT, file)}:${i + 1}: ${line.trim()}`);
         });
       }
-      expect(hits, `move this into content/config.json or content/:\n${hits.join("\n")}`).toEqual(
+      expect(hits, `move this into site/config.json or content/:\n${hits.join("\n")}`).toEqual(
         [],
       );
     });

@@ -21,7 +21,7 @@ regenerate the lockfile with the matching npm.
 
 The repo ships with a demo journal at `/example`, rebuilt with
 `npm run demo:build`, so the app works end to end with no real trip data. Real configuration lives in
-`content/config.json`, read by `lib/config.ts` — don't put personal data or
+`site/config.json`, read by `lib/config.ts` — don't put personal data or
 secrets in code; see `docs/plans/INDEX.md` for the ground rules the codebase
 follows (feature flags default off, secrets stay in the environment, and so
 on).

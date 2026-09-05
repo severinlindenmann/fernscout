@@ -56,7 +56,7 @@ export const dynamic = "force-dynamic";
  * ## What it cannot do
  *
  * Switch on something the server has not configured. `lib/capabilities.ts`
- * treats `content/config.json` as a ceiling, so such a write would be inert
+ * treats `site/config.json` as a ceiling, so such a write would be inert
  * rather than dangerous — and inert is the problem, so `setJournalFeatures`
  * refuses it and passes on the server's own reason. Switching a capability
  * *off* is always allowed: a journal narrowing itself asks nobody.

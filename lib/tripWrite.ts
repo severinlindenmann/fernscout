@@ -465,7 +465,7 @@ function travellersBlock(raw: unknown): BlockResult {
  * The direction is the one that is easy to get backwards, so the doors say it
  * in words: **units of the journal's base currency for one unit of the keyed
  * currency**, `THB: 0.0245` being "1 THB = 0.0245 CHF". The ECB table in
- * `content/rates/ecb.json` points the other way. `docs/currencies.md` carries
+ * `site/rates/ecb.json` points the other way. `docs/currencies.md` carries
  * the comparison and the rule of thumb — a currency worth less than the base
  * one has a small number.
  */

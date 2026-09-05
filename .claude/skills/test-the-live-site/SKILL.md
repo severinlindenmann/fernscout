@@ -107,7 +107,7 @@ your own mistake.
 ## The live content directory is not the checkout
 
 `/var/lib/fernscout/content/` is what the site serves. `/srv/fernscout` is the
-code. Deploys sync `content/locales/` and `content/rates/` and deliberately
+code. Deploys sync `site/locales/` and `site/rates/` and deliberately
 nothing else, so **anything under `content/<username>/` in the repo may not be
 on the server** — including the demo journal. Check before concluding a feature
 is broken; more than once the code was fine and the specimen was missing.

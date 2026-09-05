@@ -3,13 +3,14 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "./contentRoot";
+import { siteRoot } from "./siteRoot";
 import { loadServerConfig, loadUserConfig } from "./config";
 import { MAINTAINED_LOCALES, translate, type TranslationKey } from "./i18n";
 
 /**
  * The two language layers (ROADMAP §1.2, decision 13).
  *
- * **UI chrome** is translated by us in a maintained set — `content/locales/<code>.json`
+ * **UI chrome** is translated by us in a maintained set — `site/locales/<code>.json`
  * — and anything missing falls back to English. **Content** is written in
  * whatever language the author writes in, and needs no dictionary at all.
  *
@@ -48,13 +49,14 @@ export type Dictionary = Record<string, string>;
  * Where a dictionary is looked for, most specific first.
  *
  * The strings ship *with the software* — they are its UI, not somebody's
- * travel writing — but an instance may override them by dropping its own
- * `locales/` into its content folder. When `CONTENT_DIR` points somewhere with
- * none (a test fixture, a fresh instance), the shipped set still applies:
- * a site with no words is not a useful fallback.
+ * travel writing — so they live in `site/`, inside the checkout, where a
+ * `git pull` is the whole update (B510). An instance may still override them
+ * by dropping its own `locales/` into its content folder. When `CONTENT_DIR`
+ * points somewhere with none (a test fixture, a fresh instance), the shipped
+ * set still applies: a site with no words is not a useful fallback.
  */
 function localeFiles(code: string): string[] {
-  const shipped = path.join(process.cwd(), "content", "locales", `${code}.json`);
+  const shipped = path.join(siteRoot(), "locales", `${code}.json`);
   const own = path.join(contentRoot(), "locales", `${code}.json`);
   return own === shipped ? [shipped] : [shipped, own];
 }
@@ -108,9 +110,9 @@ export function defaultLocaleFor(username: string): string {
  * move is to go back and check the JSON, and the JSON is correct.
  *
  * A file that does not exist is part of the signature too, as `-`. That is not
- * a detail: `$CONTENT_DIR/locales/` arriving for the first time — a deploy
- * syncing the shipped dictionaries (B56), or an author dropping in their own
- * override — has to count as a change, and it is a change from "absent".
+ * a detail: `$CONTENT_DIR/locales/` arriving for the first time — an author
+ * dropping in their own override — has to count as a change, and it is a
+ * change from "absent".
  *
  * Two or three `stat` calls per render, against a `readFileSync` and a
  * `JSON.parse` of two files it saves.
@@ -143,17 +145,15 @@ function dictionarySignature(files: string[]): string {
  * and never this cache, so "shortly after the journal was created" is
  * coincidental timing, not a shared invalidation path.
  *
- * **Ruled out: the deploy sync's directory swap.**
- * `scripts/sync-shipped-content.sh` replaces `$CONTENT_DIR/locales/` by
- * renaming the old directory out and the new one in — two renames, so there
- * is a real window where that directory does not exist. But `localeFiles()`
- * reads the *shipped* copy under `process.cwd()/content/locales/` first,
- * which that script never touches, and only reads `$CONTENT_DIR/locales/` as
- * a second, optional override — so the window can only blank an override
- * that most journals do not have, never the baseline English or shipped
- * strings. The one setup where `$CONTENT_DIR` *is* the repository's own
- * `content/` — where the swap would matter — is exactly the one the script
- * detects and skips ("nothing to copy") before it ever runs.
+ * **Ruled out: the deploy sync's directory swap.** A deploy used to replace
+ * `$CONTENT_DIR/locales/` by renaming the old directory out and the new one
+ * in — two renames, so there was a real window where that directory did not
+ * exist. But `localeFiles()` reads the *shipped* copy first, which that script
+ * never touched, and only reads `$CONTENT_DIR/locales/` as a second, optional
+ * override — so the window could only blank an override that most journals do
+ * not have, never the baseline English or shipped strings. B510 has since
+ * deleted the script outright: the shipped set lives in `site/` and nothing
+ * copies it anywhere.
  *
  * **Not ruled out, and the leading hypothesis:** every read below is
  * try/caught and, before this task, every failure — a missing file, a

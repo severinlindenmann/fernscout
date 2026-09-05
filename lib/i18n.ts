@@ -70,7 +70,7 @@ export function titleWithLocation(title: string, location: string): string {
 /**
  * UI strings.
  *
- * The dictionaries live in `content/locales/<code>.json` and are read on the
+ * The dictionaries live in `site/locales/<code>.json` and are read on the
  * server by `lib/locales.ts`, then handed to `LocaleProvider` as props. They
  * are not imported here: a static import would ship every language to every
  * reader, and would mean adding a language required a code change.

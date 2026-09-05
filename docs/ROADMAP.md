@@ -64,7 +64,7 @@ Cheap now, expensive to retrofit. This is the whole cost of keeping §12 alive:
 - Media paths are `<trip>/<…>`, never `public/media/<slug>`.
 - Nothing personal in code — `test/depersonalised.test.ts` fails the build.
 - Config is data, never constants in `lib/`: server config in
-  `content/config.json`, user config in `content/<username>/config.json`.
+  `site/config.json`, user config in `content/<username>/config.json`.
 - Anything a person owns — including generated postcards, books and mail — is
   written under `content/<username>/`, never to a shared directory.
 
@@ -87,7 +87,7 @@ use the name is lost.
 
 Every optional feature ships **disabled**. Turning one on is the self-hoster's
 act and requires their own credentials; a hosted tier would supply them instead
-(L9). `content/config.json` says *what* is on; `lib/capabilities.ts` decides,
+(L9). `site/config.json` says *what* is on; `lib/capabilities.ts` decides,
 and `/api/health` explains why something is off.
 
 **Off means absent, not broken.** A disabled capability must not render a dead

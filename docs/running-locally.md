@@ -119,7 +119,7 @@ It works with no accounts. Mail written to a file is a real transport, and the
 one-time code is in the file.
 
 ```bash
-# 1. The capabilities the page needs, in content/config.json — the *server's*
+# 1. The capabilities the page needs, in site/config.json — the *server's*
 #    switches. `credits` is asked of the instance; `photobook` is asked of the
 #    journal too, so it needs to be on in content/<user>/config.json as well.
 #    Leave `contacts` off unless you have set CONTACTS_ENCRYPTION_KEY: the boot
@@ -180,7 +180,7 @@ To spend credits locally, grant some: `npm run credits -- grant example 500`.
 
 ## Testing the agent surface
 
-Auth, contacts and mail are **off by default** in `content/config.json`, so
+Auth, contacts and mail are **off by default** in `site/config.json`, so
 `/api/auth/request` answers 404 and there is no way to get a token. That is
 deliberate — every optional capability is absent rather than half-working — but
 it means trying the agent API needs a few minutes of setup.
@@ -196,7 +196,7 @@ ceiling and the journal's own config is the opt-in, so a feature that is on in
 only one of them stays off:
 
 ```jsonc
-// /tmp/fs-content/config.json          → features
+// /tmp/fs-site/config.json          → features
 "mail":     { "enabled": true, "transport": "file" },
 "auth":     { "enabled": true },
 "contacts": { "enabled": true }

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { serverConfigPath } from "./config";
 
 /**
- * The `content/config.json` schema version this build understands.
+ * The `site/config.json` schema version this build understands.
  *
  * Bump this whenever a change to the server config's shape would silently
  * misbehave on an older file — a renamed key, a field that changes meaning —
@@ -56,7 +56,7 @@ export function checkConfigVersion(): ConfigVersionCheck {
       ok: false,
       version,
       message:
-        `content/config.json declares "configVersion": ${version}, but this build expects ` +
+        `site/config.json declares "configVersion": ${version}, but this build expects ` +
         `${CURRENT_CONFIG_VERSION}. A \`git pull\` brought in a config change your file ` +
         `predates. See docs/config-upgrades.md for what changed between version ${version} ` +
         `and ${CURRENT_CONFIG_VERSION} and how to migrate, then set ` +
@@ -68,7 +68,7 @@ export function checkConfigVersion(): ConfigVersionCheck {
     ok: false,
     version,
     message:
-      `content/config.json declares "configVersion": ${version}, but this build only ` +
+      `site/config.json declares "configVersion": ${version}, but this build only ` +
       `understands up to ${CURRENT_CONFIG_VERSION}. The content folder was set up by a newer ` +
       `version of the app than the one currently running — update the app ` +
       `(\`git pull && npm install\`) before starting it again.`,

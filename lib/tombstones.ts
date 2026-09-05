@@ -25,7 +25,7 @@ import { contentRoot } from "./contentRoot";
  * operator does on purpose, on their own instance, and can see in a directory
  * listing. That is B38's first decision: reserved, but visibly so.
  *
- * Deliberately *not* `content/config.json`'s `users.reserved`. That file is
+ * Deliberately *not* `site/config.json`'s `users.reserved`. That file is
  * hand-written by the operator, and a program that rewrites it on every
  * deletion is a program that reformats somebody's configuration and drops
  * their comments. The tombstone is additive on top of that list, lives in a

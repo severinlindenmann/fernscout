@@ -37,7 +37,7 @@ skip() { printf '    \033[2m%-9s skipped — %s\033[0m\n' "$1" "$2"; }
 # documentation, and being wrong that way costs 40 seconds rather than a
 # stale site.
 # ---------------------------------------------------------------------------
-do_install=0 do_migrate=0 do_sync=0 do_build=0 do_units=0 do_caddy=0 do_restart=0
+do_install=0 do_migrate=0 do_build=0 do_units=0 do_caddy=0 do_restart=0
 notes=()
 
 note() {
@@ -60,18 +60,20 @@ classify() {
       lib/db/migrations/* | lib/db/migrate.ts | lib/db/schema.ts)
         do_migrate=1 do_build=1 do_restart=1 ;;
 
-      # The half of content/ that belongs to the release. It has to be copied
-      # into $CONTENT_DIR to reach a reader at all (B56), and it is baked into
-      # prerendered pages, so it builds too.
-      content/locales/* | content/rates/* | content/legal/*)
-        do_sync=1 do_build=1 do_restart=1 ;;
+      # The instance itself: dictionaries, rates, the imprint, the server
+      # config. It arrives with the `git pull` above and the app reads it from
+      # the checkout, so nothing is copied anywhere (B510 — this used to be a
+      # sync step, which is what B56 cost). It is baked into prerendered
+      # pages, so it builds.
+      site/*)
+        do_build=1 do_restart=1 ;;
 
-      # The other half belongs to the operator, and a deploy deliberately does
-      # not copy it — including content/example, which is seeded by hand. Said
-      # out loud rather than silently skipped, because "I edited the example
-      # journal and deployed" is a reasonable thing to have expected to work.
+      # content/ belongs to the people on it, and a deploy never touches it —
+      # including content/example, which is seeded by hand. Said out loud
+      # rather than silently skipped, because "I edited the example journal
+      # and deployed" is a reasonable thing to have expected to work.
       content/*)
-        note "content/ outside locales/, rates/ and legal/ changed — a deploy does not copy it into \$CONTENT_DIR" ;;
+        note "content/ changed — a deploy does not copy it into \$CONTENT_DIR" ;;
 
       # systemd units, and the proxy config that is only ever reported on.
       deploy/*.service | deploy/*.timer | deploy/*.socket | deploy/*.target)
@@ -94,7 +96,7 @@ classify() {
   done
 }
 
-full_plan() { do_install=1 do_migrate=1 do_sync=1 do_build=1 do_units=1 do_caddy=1 do_restart=1; }
+full_plan() { do_install=1 do_migrate=1 do_build=1 do_units=1 do_caddy=1 do_restart=1; }
 
 # The plan, in the order it will run, one line per step. Printed before
 # anything happens: a deploy that is about to skip the build should say so
@@ -103,7 +105,6 @@ print_plan() {
   local yes=0
   [ "$do_install" = 1 ] && { log "will install dependencies"; yes=1; }
   [ "$do_migrate" = 1 ] && { log "will run migrations"; yes=1; }
-  [ "$do_sync" = 1 ] && { log "will sync shipped content"; yes=1; }
   [ "$do_build" = 1 ] && { log "will build"; yes=1; }
   [ "$do_units" = 1 ] && { log "will install systemd units"; yes=1; }
   [ "$do_restart" = 1 ] && { log "will restart ${SERVICE}"; yes=1; }
@@ -207,19 +208,6 @@ else
   skip "install" "package-lock.json unchanged"
 fi
 
-# The half of content/ that belongs to the release — locales/, rates/ and the
-# instance's legal/ — into the folder the app actually reads. `git pull`
-# updates $APP_DIR/content, and the app reads $CONTENT_DIR, so without this a
-# translation shipped today never reaches a reader (B56). It copies those
-# directories and refuses to write anywhere else: config.json and the journals
-# are not a deploy's to touch.
-if [ "$do_sync" = 1 ]; then
-  log "syncing shipped content into ${CONTENT_DIR:-$APP_DIR/content}"
-  as_service "$APP_DIR/scripts/sync-shipped-content.sh"
-else
-  skip "sync" "no shipped locales, rates or legal pages changed"
-fi
-
 if [ "$do_migrate" = 1 ]; then
   log "running migrations (no-op when DATABASE_URL is unset)"
   if [ -n "${DATABASE_URL:-}" ]; then
@@ -316,7 +304,7 @@ report_logging() {
     2>/dev/null)" || enabled=""
   case "$enabled" in
     true) log "logging: on — requests are in journalctl -u ${SERVICE}" ;;
-    false) log "logging: off (features.logging.enabled in content/config.json)" ;;
+    false) log "logging: off (features.logging.enabled in site/config.json)" ;;
     *) ;;  # an older build with no logging capability at all
   esac
 }

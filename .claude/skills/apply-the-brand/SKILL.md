@@ -44,7 +44,7 @@ One word, capital F, no camel case: **Fernscout**. Not *FernScout*, not
 *Fern Scout*. Never split the halves across two colours or weights.
 
 The site name is config, not a literal — read it from `serverSite().name`
-(`content/config.json`). Do not hardcode it in a component.
+(`site/config.json`). Do not hardcode it in a component.
 
 ## Colour
 

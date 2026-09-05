@@ -84,7 +84,7 @@ async function main() {
         console.log(
           "Note: the `credits` capability is off on this server, so nothing is being " +
             "charged yet and these credits will not be spent. Switch it on in " +
-            "content/config.json when you want sends to start costing.",
+            "site/config.json when you want sends to start costing.",
         );
       }
       break;

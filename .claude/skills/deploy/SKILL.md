@@ -50,8 +50,8 @@ cd /srv/fernscout && ./scripts/deploy.sh
 1. `git pull --ff-only` — no merge commits happen on the server.
 2. `npm ci` — when `package-lock.json` or `package.json` changed. The exact
    lockfile, never `npm install`.
-3. `scripts/sync-shipped-content.sh` — when `content/locales/` or
-   `content/rates/` changed (B56).
+3. `scripts/sync-shipped-content.sh` — when `site/locales/` or
+   `site/rates/` changed (B56).
 4. `npm run db:migrate` — when a migration, `lib/db/migrate.ts` or
    `lib/db/schema.ts` changed, and only when `DATABASE_URL` is set. Unset is
    supported and means a public-only site.
@@ -101,7 +101,7 @@ feature reports whether it is on and — when it is not — **why**, without eve
 printing a secret value. That block is the answer to "I enabled mail and
 nothing happened".
 
-`503` means config failed to resolve. Check `content/config.json` first.
+`503` means config failed to resolve. Check `site/config.json` first.
 
 ## When it does not come up
 
@@ -116,7 +116,7 @@ The usual causes, in order of likelihood:
 | --- | --- |
 | Health never goes green | Build succeeded, boot failed — read `journalctl` |
 | A capability is off after enabling it | Missing env var; `/api/health` names it |
-| `503` from health | `content/config.json` did not parse |
+| `503` from health | `site/config.json` did not parse |
 | TLS fails on a new domain | DNS does not resolve yet; Caddy needs port 80 |
 | Migrations "did nothing" | `DATABASE_URL` is unset — that is supported, not a bug |
 
@@ -125,7 +125,7 @@ Nothing here is fixed by re-running the deploy. Read the log first.
 ## Secrets
 
 Every secret on the machine lives in `/etc/fernscout/env`, mode `640`, owned by
-root and readable by the service group. **Never** in `content/config.json`,
+root and readable by the service group. **Never** in `site/config.json`,
 never in the repository, never in a commit message, and never echoed back into
 a chat. If you need a new one, add the name to `.env.example` with an empty
 value and tell the author to set it on the server.

@@ -12,7 +12,7 @@ import { requestLocale, translateIn } from "@/lib/locales";
  * whether to trust the instance in front of them. `legal` is in the reserved
  * usernames so no journal can take the address.
  *
- * The whole body comes from `content/legal/<locale>.md` — see lib/legal.ts for
+ * The whole body comes from `site/legal/<locale>.md` — see lib/legal.ts for
  * why it is content and not code. 404 when there is none, which is also what
  * keeps the footer link honest: `hasLegal()` decides whether it is drawn.
  */

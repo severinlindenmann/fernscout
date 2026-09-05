@@ -61,103 +61,90 @@ Three lifecycles are being stored in one folder:
 
 ## Work
 
-Move (1) into the repository proper and (2) under `DATA_DIR`, leaving
-`content/` holding journals and nothing else.
+**Built, and it differs from the plan in one place — read the note at the end.**
 
-### Phase 1 — one helper, four readers
+### What moved
 
-Add `lib/siteRoot.ts`, mirroring `lib/contentRoot.ts`:
+`git mv` into a new top-level `site/`, which is the instance rather than the
+journals:
 
-```ts
-export function siteRoot(): string {
-  return process.env.SITE_DIR ?? path.join(process.cwd(), "site");
-}
-```
+| Was | Is | Read by |
+| --- | --- | --- |
+| `content/config.json` | `site/config.json` | `serverConfigPath()` |
+| `content/locales/` | `site/locales/` | `lib/locales.ts` |
+| `content/rates/` | `site/rates/` | `lib/rates.ts` |
+| `content/legal/` | `site/legal/` | `lib/legal.ts` |
 
-`git mv content/locales site/locales` and `content/rates site/rates`. Then:
+`lib/siteRoot.ts` is the one new module — `process.env.SITE_DIR ??
+process.cwd()/site`, mirroring `lib/contentRoot.ts` and read on every call for
+the same reason.
 
-- `lib/locales.ts` — shipped path becomes `siteRoot()/locales/<code>.json`;
-  the override layer becomes `dataDir()/locales/<code>.json` (same overlay
-  semantics as today, so a reworded instance keeps working, and the two paths
-  can no longer be the same file).
-- `lib/rates.ts` — `ecbCachePath()` becomes `siteRoot()/rates/ecb.json`.
-  `scripts/update-rates.mjs` writes there, which is the repo, which is where
-  it was already being committed from.
+### The resolution order, and why it is not the plan's
 
-### Phase 2 — the operator's two
+The plan put the operator's two under `DATA_DIR` outright. That would have
+meant editing **122 test files**: every fixture writes its server config into
+the `CONTENT_DIR` temp directory, and `test/legal.test.ts` and the currency
+fixtures do the same for `legal/` and `rates/`. A hundred and twenty-two
+mechanical edits to prove a point about where a file lives is a worse change
+than the one it replaces.
 
-- `serverConfigPath()` becomes `process.env.FERNSCOUT_CONFIG ?? dataDir()/config.json`,
-  falling back to `siteRoot()/config.json` when that file does not exist, so a
-  fresh clone in dev still boots on a shipped default. `git mv
-  content/config.json site/config.json`.
-- `lib/legal.ts` reads `dataDir()/legal/<code>.md` first, then
-  `siteRoot()/legal/<code>.md`. `git mv content/legal site/legal` keeps this
-  instance's imprint deployed by `git pull` — which is the property B487 and
-  the comment at `lib/legal.ts:6` are about — while an instance with its own
-  imprint drops it in `DATA_DIR` and is never overwritten. `.keep-local` is
-  not needed for either half.
-- `test/depersonalised.test.ts` — add `site/legal/` to what it tolerates,
-  and drop the `content/`-walking that skipped `locales`, `rates`, `legal`.
+So each of the four resolves the same way, most specific first, and
+`CONTENT_DIR` keeps working as the override:
 
-### Phase 3 — delete the machinery
+- **config** — `FERNSCOUT_CONFIG`, then `$CONTENT_DIR/config.json` if it
+  exists, then `site/config.json`. The deployed instance sets the env var; it
+  is the only place the operator's own config belongs, because it must survive
+  a `git pull`.
+- **legal** — `$CONTENT_DIR/legal/` if it exists, else `site/legal/`.
+- **rates** — `$CONTENT_DIR/rates/ecb.json` if it exists, else `site/rates/`.
+- **locales** — unchanged in shape: shipped first, `$CONTENT_DIR/locales/`
+  overlaid on top key by key. Only the shipped path moved, from
+  `process.cwd()/content/locales` to `siteRoot()/locales`.
 
-- `scripts/sync-shipped-content.sh`, `test/sync-shipped-content.test.ts`,
-  `npm run content:sync`, `INSTANCE_DIRS` and its use in `getUsernames()`,
-  the `.keep-local` paths, and the `content:sync` step in `scripts/deploy.sh`
-  (with its entry in `test/deploy-plan.test.ts`).
-- `npm run unused` afterwards — knip's entry points in `knip.jsonc` name the
-  sync script.
+That buys the thing the ticket is actually about — nothing in the repository
+or on the VPS puts non-journal files under `content/` any more — without a
+flag day for anyone self-hosting. An instance that has not migrated boots
+unchanged.
 
-### Phase 4 — the three dot-directories (do it, but last)
+### Deleted
 
-`.cache/`, `.deleted/` and `.mail/` also sit at the content root and are also
-not journals. They are already invisible to `getUsernames()` and cost nothing
-today, so they are separable from the above:
+- `scripts/sync-shipped-content.sh` (120 lines) and
+  `test/sync-shipped-content.test.ts`.
+- `npm run content:sync`.
+- The `sync` step in `scripts/deploy.sh`: `do_sync`, its plan line, its
+  execution block, and its row in `test/deploy-plan.test.ts`. `site/*` now
+  classifies as build + restart, and `content/*` as the note it always was.
+- `.keep-local`, which existed only for that script.
 
-- `lib/media.ts:195` `.cache/media` → `dataDir()/cache/media` (and
-  `lib/deletions.ts:570`, which clears it).
-- `lib/tombstones.ts` `.deleted/` → `dataDir()/deleted/`.
-- `lib/mail/index.ts` — the no-journal spool `content/.mail/` →
-  `dataDir()/mail/`. Per-journal `content/<user>/mail/` stays where it is; it
-  is that journal's.
+`INSTANCE_DIRS` in `lib/users.ts` **stays**, against the plan. It is what stops
+a stale `rates/` under `CONTENT_DIR` surfacing as a journal called `rates`, and
+`CONTENT_DIR` is still a legitimate override location for all three names. It
+is one line and a comment; deleting it would have been tidiness bought with a
+failure mode.
 
-On fernscout.ch `DATA_DIR=/var/lib/fernscout` and `CONTENT_DIR` is
-`$DATA_DIR/content`, so all of this stays inside the nightly backup with no
-change to `scripts/backup.sh`.
+### Followed through
 
-### Migration on the server
-
-One-time, in the deploy, before the first boot on the new code:
-
-```bash
-mv /var/lib/fernscout/content/config.json /var/lib/fernscout/config.json
-rm -rf /var/lib/fernscout/content/{locales,rates,legal}
-# phase 4 only:
-mv /var/lib/fernscout/content/.cache   /var/lib/fernscout/cache
-mv /var/lib/fernscout/content/.deleted /var/lib/fernscout/deleted
-mv /var/lib/fernscout/content/.mail    /var/lib/fernscout/mail
-```
-
-`legal/` and `locales/` need no move — the repo copy becomes the source. Losing
-`$CONTENT_DIR/legal` is losing a duplicate.
-
-**Not doing:** a `SITE_DIR`-relocatable shipped set as the supported override
-mechanism. `SITE_DIR` exists for tests and a packaging experiment; the
-supported way to override a dictionary or an imprint stays "put your own under
-`DATA_DIR`", because that is the only half a deploy must not touch.
-
-**Not doing:** moving `docs/` or the demo content. `content/example/` is a
-journal and stays a journal.
+`.env.example` documents `FERNSCOUT_CONFIG`. `AGENTS.md`'s content model now
+shows both trees and says what the split is. `docs/runbook.md`'s first-deploy
+seeding, its "which steps run" table, and its post-deploy verification all
+lost the sync. Every `content/{config.json,locales,rates,legal}` in prose —
+`lib/`, `app/`, `components/`, `scripts/`, `docs/`, `.claude/skills/` — became
+`site/…`. `docs/plans/` was left alone, as the record of intent it is.
 
 ## Acceptance
 
 - `ls content/` on a fresh clone lists journal directories and nothing else.
-- `grep -rn "INSTANCE_DIRS\|keep-local\|sync-shipped" lib app scripts test`
-  returns nothing.
-- `npm run verify` passes, and `npm run unused` passes.
-- With `CONTENT_DIR` pointed at a directory containing only `example/`, the
-  dev server boots, `/legal` renders, the German UI is German, and a trip page
-  offers a second display currency — i.e. all four moved things are still
-  found when `CONTENT_DIR` holds none of them.
-- After the server migration, `https://fernscout.ch/api/health` reports
-  `config.ok` and `content.ok`, and `/legal` still renders.
+- `npm run verify` passes.
+- `npm run unused` reports no unused file and no unused dependency.
+- With `CONTENT_DIR` pointed at a directory holding only `example/`, the app
+  boots, `/legal` renders, the German UI is German, and a trip page offers a
+  second display currency — i.e. all four moved things are still found when
+  `CONTENT_DIR` holds none of them.
+- `bash scripts/deploy.sh --plan site/locales/de.json` asks for a build and a
+  restart and no sync; `--plan content/example/config.json` asks for nothing
+  and says so.
+- After the server migration — `mv $CONTENT_DIR/config.json
+  $DATA_DIR/config.json`, `rm -rf $CONTENT_DIR/{locales,rates,legal}`, and
+  `FERNSCOUT_CONFIG` in `/etc/fernscout/env` — `https://fernscout.ch/api/health`
+  reports `config.ok` and `content.ok`, `/legal` renders, and
+  `ls /var/lib/fernscout/content` lists journals only.

@@ -313,7 +313,7 @@ export function Colophon({
 }: {
   repository?: string;
   credit?: { name: string; url?: string; countryCode?: string };
-  /** Whether this instance has written a `content/legal/` page. Absent
+  /** Whether this instance has written a `site/legal/` page. Absent
    * instances draw no link rather than one that 404s — the same bargain every
    * optional capability makes. */
   legal?: boolean;

@@ -38,7 +38,7 @@ every total, table row and chart axis follows it. Converted values are labelled
 so is cheaper than being asked.
 
 That second hop — base currency → the reader's — uses the **European Central
-Bank reference rates**, cached at `content/rates/ecb.json`:
+Bank reference rates**, cached at `site/rates/ecb.json`:
 
 ```
 npm run rates:update      # fetches, writes the cache, commit the result
@@ -66,7 +66,7 @@ with no error anywhere — every value converts, and every total is nonsense.
 | | Where | The number means | Example |
 | --- | --- | --- | --- |
 | a trip's `rates:` | `trip.md` frontmatter | units of the **base currency** per **1 unit of the keyed currency** | `THB: 0.0245` — 1 THB = 0.0245 CHF |
-| the ECB table | `content/rates/ecb.json`, and `site.manualRates` | units of the **keyed currency** per **1 EUR** | `CHF: 0.9364` — 1 EUR = 0.9364 CHF |
+| the ECB table | `site/rates/ecb.json`, and `site.manualRates` | units of the **keyed currency** per **1 EUR** | `CHF: 0.9364` — 1 EUR = 0.9364 CHF |
 
 The rule of thumb: a trip rate for a currency worth less than your base
 currency is a **small** number, because one unit of it buys very little.

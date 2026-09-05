@@ -151,7 +151,7 @@ Five fields decide behaviour rather than decoration:
   `JPY: 0.0057` reads "1 JPY = 0.0057 CHF" — units of the *base* currency per
   one unit of the keyed currency, so a currency worth less than the base
   currency gets a small number. That is the opposite of the convention
-  `content/rates/ecb.json` and `npm run rates:update` use, which is units per
+  `site/rates/ecb.json` and `npm run rates:update` use, which is units per
   one euro; writing an ECB figure in here converts nothing correctly and
   reports no error. Ask the author for a rate from the middle of the trip,
   best taken from a card statement or a withdrawal receipt — the amount

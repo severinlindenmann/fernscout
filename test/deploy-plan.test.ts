@@ -30,7 +30,6 @@ const BUILD = "build";
 const RESTART = "restart fernscout";
 const INSTALL = "install dependencies";
 const MIGRATE = "run migrations";
-const SYNC = "sync shipped content";
 const UNITS = "install systemd units";
 const CADDY = "check the Caddy config";
 
@@ -101,14 +100,17 @@ describe("what a change costs a deploy", () => {
     expect(await plan("lib/db/client.ts")).not.toContain(MIGRATE);
   });
 
-  test("shipped locales and rates are copied, and the rest of content is not", async () => {
-    // B56 is the bug this half exists for: a translation that never left the
-    // repository.
-    expect(await plan("content/locales/de.json")).toEqual(new Set([SYNC, BUILD, RESTART]));
-    expect(await plan("content/rates/ecb.json")).toContain(SYNC);
+  test("the instance's own files build, and content/ is not touched", async () => {
+    // B56 was a translation that never left the repository, because the app
+    // read $CONTENT_DIR and a deploy only updated the checkout. Since B510 the
+    // app reads site/ in the checkout, so `git pull` is the whole delivery and
+    // a dictionary change costs a build and nothing else.
+    expect(await plan("site/locales/de.json")).toEqual(new Set([BUILD, RESTART]));
+    expect(await plan("site/rates/ecb.json")).toEqual(new Set([BUILD, RESTART]));
+    expect(await plan("site/legal/en.md")).toEqual(new Set([BUILD, RESTART]));
 
-    // And the operator's own half, which a deploy must not touch — but must
-    // not pass over in silence either.
+    // And the journals, which a deploy must not touch — but must not pass
+    // over in silence either.
     const { stdout } = await run("bash", [script, "--plan", "content/example/config.json"]);
     expect(stdout).toContain("nothing to do");
     expect(stdout).toContain("a deploy does not copy it");
@@ -127,12 +129,12 @@ describe("what a change costs a deploy", () => {
       await plan(
         "package-lock.json",
         "lib/db/migrations/011-a-new-table.ts",
-        "content/locales/hu.json",
+        "site/locales/hu.json",
         "deploy/fernscout.service",
         "deploy/fernscout.caddy",
         "docs/README.md",
       ),
-    ).toEqual(new Set([INSTALL, MIGRATE, SYNC, BUILD, UNITS, RESTART, CADDY]));
+    ).toEqual(new Set([INSTALL, MIGRATE, BUILD, UNITS, RESTART, CADDY]));
   });
 
   test("--plan with no paths is a usage error, not an empty plan", async () => {

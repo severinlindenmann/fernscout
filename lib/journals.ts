@@ -420,7 +420,7 @@ export async function sendWelcome(input: {
               // The translation keys keep their old names — they are
               // internal identifiers, not the copy a reader sees — but the
               // copy itself has been reworded for `guest`. See
-              // content/locales/*.json.
+              // site/locales/*.json.
               text: t(input.visibility === "guest" ? "welcome.private" : "welcome.public"),
             },
             { kind: "heading", text: t("welcome.draftsHeading") },
@@ -550,7 +550,7 @@ function editUserConfigFile(
  * is an operator's job, at the file.
  *
  * **It cannot widen past the server.** `resolveOne` in lib/capabilities.ts
- * already treats `content/config.json` as a ceiling, so a journal that wrote
+ * already treats `site/config.json` as a ceiling, so a journal that wrote
  * `"contacts": { "enabled": true }` under a server with contacts off would stay
  * off regardless — the write would simply do nothing. That silence is the
  * problem, so this refuses instead, with the server's own reason for the
@@ -633,7 +633,7 @@ export function setJournalFeatures(
         error: "capability_unavailable",
         message:
           `This server cannot offer "${name}", so this journal cannot switch it on — ` +
-          `${state.reason}. That is an operator's decision, in content/config.json and the ` +
+          `${state.reason}. That is an operator's decision, in site/config.json and the ` +
           `environment; /api/health says what is missing. Nothing was changed.`,
       };
     }

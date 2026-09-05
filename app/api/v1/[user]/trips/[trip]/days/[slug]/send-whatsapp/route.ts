@@ -103,7 +103,7 @@ function capabilityMessage(reason: string): string {
     case "no_template":
       return (
         "Readers have opted in, but no approved template is configured for any language they " +
-        "could be written in. Set features.whatsapp.templates in content/config.json."
+        "could be written in. Set features.whatsapp.templates in site/config.json."
       );
     case "no_credits":
       return "This journal does not have enough credits left to send this message. Nothing was sent.";

@@ -68,7 +68,7 @@ function megabytes(bytes: number): string {
  *
  * Defaults to the constants above, which is what every caller wanted before
  * they were configurable. An instance passes its own — see lib/mediaLimits.ts
- * and the `media` block in content/config.json.
+ * and the `media` block in site/config.json.
  */
 export type Limits = {
   imageBytes: number;
