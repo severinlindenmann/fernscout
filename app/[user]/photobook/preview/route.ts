@@ -1,7 +1,7 @@
 import { isOwner } from "@/lib/contacts/session";
 import { isEnabled } from "@/lib/capabilities";
 import { parseOptions } from "@/lib/photobook/options";
-import { planFor, priceOf } from "@/lib/photobook/build";
+import { followerNames, planFor, priceOf } from "@/lib/photobook/build";
 import { renderPreview } from "@/lib/photobook/preview";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
 import { parseTripRef } from "@/lib/trips";
@@ -59,7 +59,7 @@ export async function POST(
   // is the same "not found" as an unparseable ref, not a 500.
   let book;
   try {
-    book = planFor(trip, options);
+    book = planFor(trip, options, await followerNames(user));
   } catch {
     return Response.json({ error: "not_found" }, { status: 404 });
   }

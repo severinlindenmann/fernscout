@@ -2,7 +2,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
 import { balanceOf, refund, spend } from "@/lib/credits";
 import { parseOptions } from "@/lib/photobook/options";
-import { buildPhotobook, planFor, priceOf } from "@/lib/photobook/build";
+import { buildPhotobook, followerNames, planFor, priceOf } from "@/lib/photobook/build";
 import { ORDER_ID_RE, claimOrder, markFailed, markPrinted } from "@/lib/photobook/orders";
 import { sendPhotobookReceipt } from "@/lib/photobook/receipt";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
@@ -91,9 +91,13 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   // happened to parse throws here — the same case `preview/route.ts` guards
   // against with the same answer, rather than a 500 upstream of any money
   // moving.
+  // Fetched once and reused for the build below, so the book somebody is
+  // charged for is the book that was planned and priced — not one that grew a
+  // page because a contact was approved in between.
+  const followers = await followerNames(user);
   let book;
   try {
-    book = planFor(trip, options);
+    book = planFor(trip, options, followers);
   } catch {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
@@ -123,7 +127,7 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   // written to recover from a *build* failure can never fire on a success.
   let built: { files: string[]; pages: number; volumes: number; missing: string[] };
   try {
-    built = buildPhotobook(user, orderId, trip, options);
+    built = buildPhotobook(user, orderId, trip, options, followers);
   } catch (error) {
     console.error(`[photobook] building ${orderId} failed:`, error);
     // The one branch where a failure costs the owner money: the build has
