@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: backups
 found: "2026-09-05T07:28:44Z"
+merged: "2026-09-05T12:27:40Z"
 ---
 
 # B401 — Nightly backups have been failing since two unreadable config.json.bak files appeared in the content root
@@ -64,3 +65,34 @@ fix is in.
 
 `curl -s https://fernscout.ch/api/health | jq .backup` reports `state: "ok"`
 with a `lastSuccessAt` from the most recent nightly run.
+
+## What was done (2026-09-05)
+
+Operator work on the host. `find /var/lib/fernscout ! -user fernscout` found
+**four** root-owned files, not the two the journal named — the other two had
+appeared after the 03:32 run and would have failed tonight as well:
+
+```
+/var/lib/fernscout/content/config.json.bak-b365
+/var/lib/fernscout/content/config.json.bak-before-credits
+/var/lib/fernscout/content/config.json.bak-20260905102530
+/var/lib/fernscout/content/example/config.json.bak-addresslookup
+```
+
+All four are superseded hand copies of a live `config.json`; they were
+`chown`ed to `fernscout` rather than deleted, since deleting somebody's copy of
+a config is not an agent's call. `systemctl start fernscout-backup.service`
+then exited 0, wrote `.backup-last-success`, and `/api/health` reports
+
+```
+"backup": {"state": "ok", "lastSuccessAt": "2026-09-05T12:26:28.000Z", "ageHours": 0}
+```
+
+The find now returns nothing, so the nightly timer has a clean tree.
+
+**No code change.** The unit behaved exactly as B114 designed it to: it staged
+what it could, tagged the snapshot `partial`, refused to stamp a success and
+fired `OnFailure=`. Excluding `*.bak*` from staging would have hidden a real
+unreadable file, which is the failure mode B114 exists to prevent. The
+follow-up this task asked for is captured as **B444** — the confusing
+*"4 path(s) missing"* for two files, and the doubled staging behind it.
