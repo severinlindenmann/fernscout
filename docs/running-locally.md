@@ -92,6 +92,19 @@ SESSION_SECRET=$(openssl rand -hex 32) npm start
 A throwaway value is fine locally. Changing it invalidates every guest cookie
 already issued, which on your own machine is nothing.
 
+### Address lookup, and what leaves the server
+
+`features.addressLookup` (B399) turns the street field in every contact form
+into suggestions as somebody types. Off by default, like everything else here.
+On, a server route proxies each query to a geocoder — Photon
+(`photon.komoot.io`) unless `features.addressLookup.url` names another —
+so the provider never sees a reader's IP, and the key (if the provider needs
+one) never reaches the browser. Nothing is sent until a person has typed at
+least `MIN_QUERY_LEN` characters into that field themselves; what is sent is
+exactly those characters. The form itself only carries the short attribution
+line the suggestions require while they are on screen (B416) — this is the
+place for the fuller account of where a query goes.
+
 ---
 
 ## Testing the agent surface

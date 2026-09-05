@@ -32,6 +32,7 @@ export default function AddressLookupField({
   username,
   locale,
   label,
+  attribution,
   className,
   autoComplete,
 }: {
@@ -50,6 +51,11 @@ export default function AddressLookupField({
   locale: string;
   /** Accessible name for the listbox. */
   label: string;
+  /** The ODbL attribution line — B416. Shown as a muted footer under the
+   * suggestions, never above the field: it is only true once a query has
+   * actually produced results, which is the same moment the attribution
+   * obligation for showing them attaches. */
+  attribution: string;
   className: string;
   autoComplete?: string;
 }) {
@@ -143,32 +149,38 @@ export default function AddressLookupField({
         onKeyDown={onKeyDown}
       />
       {showList && (
-        <ul
-          id={listId}
-          role="listbox"
-          aria-label={label}
-          className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-navy-200 bg-white shadow-lg"
-        >
-          {suggestions.map((suggestion, i) => (
-            <li
-              key={`${suggestion.line1}-${suggestion.postcode}-${suggestion.city}-${i}`}
-              role="option"
-              aria-selected={i === highlight}
-              className={`cursor-pointer px-4 py-2 text-base ${i === highlight ? "bg-cream-100" : ""}`}
-              // mousedown, not click — CountryField's own note applies here
-              // too: it fires before the input's blur closes the list.
-              onMouseDown={(e) => {
-                e.preventDefault();
-                choose(suggestion);
-              }}
-              onMouseEnter={() => setHighlight(i)}
-            >
-              {[suggestion.line1, `${suggestion.postcode} ${suggestion.city}`.trim(), suggestion.country]
-                .filter((part) => part !== "")
-                .join(", ")}
-            </li>
-          ))}
-        </ul>
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-navy-200 bg-white shadow-lg">
+          <ul id={listId} role="listbox" aria-label={label} className="max-h-64 overflow-y-auto">
+            {suggestions.map((suggestion, i) => (
+              <li
+                key={`${suggestion.line1}-${suggestion.postcode}-${suggestion.city}-${i}`}
+                role="option"
+                aria-selected={i === highlight}
+                className={`cursor-pointer px-4 py-2 text-base ${i === highlight ? "bg-cream-100" : ""}`}
+                // mousedown, not click — CountryField's own note applies here
+                // too: it fires before the input's blur closes the list.
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  choose(suggestion);
+                }}
+                onMouseEnter={() => setHighlight(i)}
+              >
+                {[suggestion.line1, `${suggestion.postcode} ${suggestion.city}`.trim(), suggestion.country]
+                  .filter((part) => part !== "")
+                  .join(", ")}
+              </li>
+            ))}
+          </ul>
+          {/* Not a result, so not a `role="option"` and not read as one — B416.
+              `aria-hidden` on top of sitting outside the `listbox` keeps a
+              screen reader from ever announcing it as a choice. */}
+          <p
+            aria-hidden="true"
+            className="border-t border-navy-100 px-4 py-1.5 text-xs text-navy-400"
+          >
+            {attribution}
+          </p>
+        </div>
       )}
     </div>
   );

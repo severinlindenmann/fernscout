@@ -16,7 +16,7 @@
   "contact.addrPostcode": "Postcode",
   "contact.address": "Postal address",
   "contact.addressHint": "only if you'd like a real postcard in the mail",
-  "contact.addressLookupHint": "Suggestions come from Photon, an OpenStreetMap-based service — nothing is sent until you start typing here.",
+  "contact.addressLookupAttribution": "Addresses from OpenStreetMap",
   "contact.adminAddGuest": "Add a guest",
   "contact.adminAddressHint": "only if they'd like a real postcard in the mail",
   "contact.adminAddressHintNoPostcards": "kept on file, whether or not you ever print a postcard",
