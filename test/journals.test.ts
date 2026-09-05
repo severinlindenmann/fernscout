@@ -1177,6 +1177,7 @@ describe("the trip fields that had no writer", () => {
       "people",
       "rates",
       "translations",
+      "travellers",
     ];
     const decidedAgainst = { cover: "no media exists when a trip is created — B245" };
 
@@ -1194,6 +1195,7 @@ describe("the trip fields that had no writer", () => {
       people: [{ name: "Ana", email: "ana@example.test" }],
       rates: { THB: 0.0245 },
       translations: { en: { title: "Everything" } },
+      travellers: [{ skin: "deep", hairStyle: "coils" }],
     });
     expect(trip.ok).toBe(true);
 

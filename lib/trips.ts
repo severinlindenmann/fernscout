@@ -5,6 +5,7 @@ import { contentRoot } from "./contentRoot";
 import { calendarStatus, earliestTodayISO, effectiveStatus } from "./tripTime";
 import { getUsernames } from "./users";
 import { parseRateTable, type RateTable } from "./currency";
+import { parseTravellers } from "./travellers/parse";
 import type { CostsVisibility, Trip, TripAccent, TripPerson, TripStatus, TripTranslations, TripVisibility } from "./types";
 
 const ACCENTS: readonly TripAccent[] = ["sky", "yellow", "green", "coral", "navy"];
@@ -398,6 +399,7 @@ export const KNOWN_TRIP_FIELDS = new Set([
   "rates",
   "translations",
   "people",
+  "travellers",
   "test",
   "visibility",
   "listed",
@@ -585,6 +587,10 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
     intro: content.trim(),
     translations: parseTranslations(data.translations),
     people: parsePeople(data.people, folder),
+    // Its own parser, and it fails open where `parsePeople` fails closed.
+    // See `Trip["travellers"]` in lib/types.ts for why that asymmetry is
+    // the point rather than an inconsistency.
+    travellers: parseTravellers(data.travellers, `${folder}/trip.md`),
     // `true` and nothing else. Absent is the overwhelming case, and a flag
     // that quietly accepted "no" or "false" as truthy would put a banner on
     // somebody's actual holiday.

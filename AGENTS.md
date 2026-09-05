@@ -445,6 +445,7 @@ that carry all of this in full.
 | --- | --- |
 | `add-a-day` | Write one day's entry, as a draft |
 | `add-a-trip` | Scaffold a new trip folder |
+| `describe-a-traveller` | Ask somebody how they would like to be drawn, and write it down |
 | `ingest-photos` | A folder of camera files → dated, geotagged entries |
 | `generate-photobook` | A trip → a print-ready PDF |
 | `send-postcards` | A photo + a message → print-ready postcards |
@@ -524,6 +525,8 @@ the record and never corrected, so do not update one to match what shipped.
 | `GET /<user>/documentation.txt` | one journal's own summary |
 | `GET /agent.md` | the full guide: authenticate, read, write |
 | `GET /<user>/day/<slug>.md` | a day's markdown source |
+| `GET /api/v1/<user>/travellers/presets` | the vocabulary the walking figures are described in, and twelve starting points |
+| `GET /api/v1/<user>/travellers/preview` | that description as a picture, so a person can see themselves before it is written |
 | `POST /api/auth/request` + `/verify` | a six-digit code → a 7-day agent token |
 | `POST /api/auth/identity/request` + `/verify` | a six-digit code → a year-long **identity** cookie: proves an address to the whole instance and authorises nothing |
 | `POST /api/v1/<user>/handover` | owner only: a 20-minute credential to paste into an agent |

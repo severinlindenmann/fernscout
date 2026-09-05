@@ -10,6 +10,7 @@ import type { Basemap } from "@/lib/basemap";
 import PushInstallOnboarding from "./PushInstallOnboarding";
 import PushOptIn from "./PushOptIn";
 import Travelers from "./Travelers";
+import { partyFor } from "@/lib/travellers/parse";
 import UnconvertedNotice from "./UnconvertedNotice";
 import { StackedShareBar, BarList } from "./charts/Charts";
 import { useI18n } from "./LocaleProvider";
@@ -230,7 +231,14 @@ export default function TripHero({
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-navy-900/40 to-transparent" />
             <div className="pointer-events-none absolute bottom-2 right-3">
-              <Travelers size={54} />
+              {/* Who was actually on this trip — its own `travellers:` block,
+                  or the journal's default, or one neutral figure. Never the
+                  two that used to be compiled in. */}
+              <Travelers
+                figures={partyFor(active.trip.travellers, site.travellerFigures)}
+                size={54}
+                available={220}
+              />
             </div>
           </div>
         </div>

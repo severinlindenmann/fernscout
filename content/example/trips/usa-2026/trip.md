@@ -14,6 +14,18 @@ people:
   - name: "Priya Fenwick"
     email: "priya@example.com"
     nickname: "Priya"
+travellers:
+  - for: "agent@fernscout.ch"
+    skin: light-medium
+    hair: brown
+    hairStyle: short
+    shirt: sky
+    accessories: [glasses]
+  - for: "priya@example.com"
+    skin: medium-deep
+    hair: black
+    hairStyle: braids
+    shirt: coral
 visibility: public
 costsVisibility: public
 rates:

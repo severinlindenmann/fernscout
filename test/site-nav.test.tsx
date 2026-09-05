@@ -42,6 +42,7 @@ const site: SiteSummary = {
   baseCurrency: "CHF",
   locales: ["en"],
   base: "/alex",
+  travellerFigures: [],
   signedIn: false,
   hasIdentity: false,
   canSignIn: false,
