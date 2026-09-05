@@ -20,6 +20,10 @@ answers 405 and names them (B293). What is still writable only by editing
 one that matters most, because it is write access. Read the list below with
 rates and visibility struck out.
 
+**Narrowed again, 2026-09-05.** `people:` — and `travellers:`, which this
+ticket never listed — are B524's, with a door each. What is left here is
+**title, start/end and cover**.
+
 Found while building B207, which decided the four trip fields nothing could
 write. Three of them — `people`, `rates`, `translations` — are now accepted by
 `POST /api/v1/<user>/trips`, and that is the *only* moment
