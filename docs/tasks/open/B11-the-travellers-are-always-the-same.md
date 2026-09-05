@@ -61,36 +61,36 @@ up to ten, and `lib/tripPeople.ts` resolves them owner-first.
    together, because any one alone reads as a mistake. **Derived from the list
    index, never random**, so the hero and the photobook agree and a refresh
    does not reshuffle the family.
-2. **A figure is data.** Skin, hair colour, hair style, eyes, build, age,
+3. **A figure is data.** Skin, hair colour, hair style, eyes, build, age,
    shirt, pants, pack, accessories — a named record with a vocabulary of
    tokens, hex allowed as the escape hatch, and ready-made **starting points**
    an author picks rather than mixing hex codes. They span more than one part
    of the world; this is the whole point of the task.
-3. **A starting point resolves when it is chosen.** It expands into plain
+4. **A starting point resolves when it is chosen.** It expands into plain
    attributes and the preset name is never written to disk. No file under
    `content/` should contain the word `european`: that would be a sentence
    about somebody's ethnicity in a file the owner did not think they were
    writing, and it would be false anyway once they corrected it.
-4. **Its own block, not inside `people:`.** `parsePeople` (`lib/trips.ts:139`)
+5. **Its own block, not inside `people:`.** `parsePeople` (`lib/trips.ts:139`)
    fails closed — one malformed entry drops the whole list, and that list is
    who may write to the trip. A cosmetic field must not be able to revoke
    write access, so `travellers:` is separate, parses independently, and fails
    open to the neutral default. An optional `for:` ties a figure to an email
    in `people:`.
-5. **Where it is configured.** `travellers:` in the journal's `config.json`,
+6. **Where it is configured.** `travellers:` in the journal's `config.json`,
    overridden per trip in `trip.md` — a trip is who was on it, and that
    changes between trips in one journal. Absent means one neutral figure, not
    the current two.
-6. **One renderer, three consumers.** `lib/travellers/render.ts` is pure —
+7. **One renderer, three consumers.** `lib/travellers/render.ts` is pure —
    figure in, SVG out, no React. The component wraps it in `motion`;
    `GET /api/v1/<user>/travellers/preview` returns it as `image/svg+xml`; a
    node script renders a sheet for an agent with no server running.
-7. **Reachable by agent.** `GET …/travellers/presets` lists the vocabulary and
+8. **Reachable by agent.** `GET …/travellers/presets` lists the vocabulary and
    the starting points so an agent offers what exists instead of inventing hex
    codes, and `lib/tripWrite.ts` plus the REST trip endpoints round-trip the
    block. Not owner-only: a trip-scoped token belongs to somebody on the trip,
    and how they are drawn on it is theirs.
-8. **The agent asks.** A `describe-a-traveller` skill and a section in
+9. **The agent asks.** A `describe-a-traveller` skill and a section in
    `/agent.md`: ask *how would you like to be drawn*, render it, show them,
    read back what was set **and what was left at the default**, write on yes.
 
