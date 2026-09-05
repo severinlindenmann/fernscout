@@ -437,6 +437,14 @@ function drawPage(
     }
 
     case "day": {
+      // Before the type, so the words are never printed over the picture: the
+      // photograph occupies the foot of the page and the column above it was
+      // shortened to match (see PHOTO_SHARE in plan.ts).
+      if (plan.photo) {
+        const image = images.get(plan.photo.photo.file);
+        if (image) drawPhoto(page, frame, spec, plan.photo, image);
+        else drawMissing(page, frame, spec, plan.photo);
+      }
       let y = c.y + c.height - 4;
       text(page, frame, eyebrow(plan.dateLabel), c.x, y, type.caption, MUTED);
       y -= 8;
@@ -567,6 +575,9 @@ function loadAll(volume: BookVolume, options: RenderOptions) {
   const files = new Set<string>();
   for (const page of volume.pages) {
     if (page.kind === "photos") for (const p of page.placements) files.add(p.photo.file);
+    // A day page carries one too, and forgetting it here prints a "missing"
+    // box on every day of the book rather than failing anywhere visible.
+    if (page.kind === "day" && page.photo) files.add(page.photo.photo.file);
   }
   if (volume.cover.frontPhoto) files.add(volume.cover.frontPhoto.file);
   for (const file of files) {

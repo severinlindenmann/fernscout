@@ -285,7 +285,15 @@ describe("planning a trip with no photographs", () => {
 
 describe("planning a trip with one enormous photograph", () => {
   const huge = photo({ file: "huge.jpg", width: 12000, height: 9000 });
-  const book = planBook(source([day(0, { photos: [huge] })]), SPEC);
+  // Two photographs, not one. A day with a single picture spends it beside
+  // the day's own words rather than on a hero page — see the note beside
+  // `wantsHero` in plan.ts — so a one-photo fixture would no longer produce
+  // the full-bleed page this block is about. The second is the day's, the
+  // first is still the hero.
+  const book = planBook(
+    source([day(0, { photos: [huge, photo({ file: "second.jpg", width: 6000, height: 4000 })] })]),
+    SPEC,
+  );
   const [volume] = book.volumes;
 
   test("places it without warning about resolution", () => {

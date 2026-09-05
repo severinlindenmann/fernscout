@@ -38,6 +38,23 @@ function escape(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/**
+ * Where the browser fetches one photograph from.
+ *
+ * Two page kinds draw images now — `photos` and a `day` sharing its page with
+ * one — and they must resolve a file identically or the preview stops being
+ * evidence about the printed page.
+ */
+function imageSrc(
+  photo: BookPhoto,
+  outDir: string,
+  resolveFile: (file: string) => string,
+  srcFor?: SrcFor,
+): string {
+  if (srcFor) return srcFor(photo);
+  return path.relative(outDir, resolveFile(photo.file)).split(path.sep).join("/");
+}
+
 /** trim-relative mm → percentages of the bleed box, with y flipped for CSS. */
 function style(spec: BookSpec, r: RectMm): string {
   const w = spec.size.trimWidthMm + spec.bleedMm * 2;
@@ -203,6 +220,14 @@ function pageHtml(
       break;
 
     case "day":
+      if (page.photo) {
+        const src = imageSrc(page.photo.photo, outDir, resolveFile, srcFor);
+        parts.push(
+          `<div class="slot" style="${style(spec, page.photo.clip)}">` +
+            `<img src="${escape(src)}" alt="" style="${imgStyle(page.photo.clip, page.photo.draw)}">` +
+            `</div>`,
+        );
+      }
       parts.push(
         textBlock(
           spec,
@@ -220,9 +245,7 @@ function pageHtml(
 
     case "photos":
       for (const p of page.placements) {
-        const src = srcFor
-          ? srcFor(p.photo)
-          : path.relative(outDir, resolveFile(p.photo.file)).split(path.sep).join("/");
+        const src = imageSrc(p.photo, outDir, resolveFile, srcFor);
         parts.push(
           `<div class="slot" style="${style(spec, p.clip)}">` +
             `<img src="${escape(src)}" alt="" style="${imgStyle(p.clip, p.draw)}">` +
