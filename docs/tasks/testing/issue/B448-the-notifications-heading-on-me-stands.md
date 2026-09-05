@@ -7,8 +7,7 @@ complexity: low
 area: push, me page
 found: "2026-09-05T12:36:21Z"
 started: "2026-09-05T13:41:24Z"
-session: f20cc410-8085-4b17-accd-9280089147b4
-claimed: "2026-09-05T13:41:24Z"
+merged: "2026-09-05T13:47:10Z"
 ---
 
 # B448 — The notifications heading on /me stands over an empty box where push cannot work

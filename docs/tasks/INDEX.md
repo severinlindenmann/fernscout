@@ -202,14 +202,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B473](in-development/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | `7c3dd4ae` |
-| [B448](in-development/B448-the-notifications-heading-on-me-stands.md) | The notifications heading on /me stands over an empty box where push cannot work | ISSUE | low | low | `f20cc410` |
 
-## testing (171)
+## testing (172)
 
 ### security (1)
 
@@ -217,7 +216,7 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 
-### issue (98)
+### issue (99)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -316,6 +315,7 @@ _Nothing here._
 | [B414](testing/issue/B414-three-places-tell-an-owner-to.md) | Three places tell an owner to edit trip.md for a change the API can now make | ISSUE | low | low | `62683d95` |
 | [B443](testing/issue/B443-every-signed-out-visit-to-logs.md) | Every signed-out visit to / logs a 401 in the browser console | ISSUE | low | low | — |
 | [B447](testing/issue/B447-the-home-screen-hint-says-iphone.md) | The Home Screen hint says iPhone to somebody holding an iPad | ISSUE | low | low | — |
+| [B448](testing/issue/B448-the-notifications-heading-on-me-stands.md) | The notifications heading on /me stands over an empty box where push cannot work | ISSUE | low | low | — |
 | [B471](testing/issue/B471-the-channel-switch-wraps-under-the.md) | The channel switch wraps under the channel name on a phone, and the estimate table is too wide for one | ISSUE | low | low | — |
 | [B472](testing/issue/B472-the-outcome-mail-opens-with-the.md) | The outcome mail opens with the same sentence twice | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
