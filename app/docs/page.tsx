@@ -5,10 +5,26 @@ import { DOCS_PAGES, type DocsPageId } from "@/lib/docs";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: "Docs",
-  description: "How to use, host and contribute to this journal.",
-};
+/**
+ * The tab title and the description, in the language the page renders in.
+ *
+ * These were a static `Metadata` object with English literals, which is B225
+ * exactly one page over: a German reader got "How to use, host and contribute
+ * to this journal" in the browser tab, in the search result and in every link
+ * preview, above a page rendered entirely in German. A static `metadata`
+ * export cannot see the request, so it cannot see the locale — the fix is the
+ * same one `app/page.tsx` uses, and it is `generateMetadata`.
+ *
+ * `absolute` because the root layout's template appends the site name, and
+ * these titles are complete sentences on their own.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await requestLocale();
+  return {
+    title: { absolute: translateIn(locale, "docs.title") },
+    description: translateIn(locale, "docs.lede"),
+  };
+}
 
 /**
  * The documentation hub — B470.
