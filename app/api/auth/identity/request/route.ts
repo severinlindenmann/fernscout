@@ -1,5 +1,13 @@
-import { CODE_TTL_MINUTES, NO_JOURNAL, isEmail, issueCode, revokeCodes } from "@/lib/auth";
+import {
+  CODE_TTL_MINUTES,
+  NO_JOURNAL,
+  identitySignInUrl,
+  isEmail,
+  issueCode,
+  revokeCodes,
+} from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
+import { requestLocale, translateIn } from "@/lib/locales";
 import { sendMail } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -64,7 +72,22 @@ export async function POST(request: Request) {
   );
   if (!isEmail(email)) return accepted;
 
-  const { code } = await issueCode(NO_JOURNAL, email, "identity");
+  const { code, linkToken } = await issueCode(NO_JOURNAL, email, "identity");
+
+  /**
+   * The language the reader chose on the site, not the server's default —
+   * B430.
+   *
+   * `requestLocale()` reads the cookie `proxy.ts` writes from `?lang=` and the
+   * language switcher sets, so the mail arrives in the language the page was
+   * in when they asked for it. There is nowhere else to get it from: an
+   * identity belongs to no journal, so there is no `user.locales` to narrow
+   * against and no contact record carrying a `locale` — this address may be
+   * one this instance has never seen.
+   */
+  const locale = await requestLocale();
+  const site = serverSite();
+  const vars = { site: site.name, code, minutes: CODE_TTL_MINUTES };
 
   /**
    * Guarded, and a failure takes the code back with it — the same shape as the
@@ -74,33 +97,30 @@ export async function POST(request: Request) {
    */
   try {
     await sendMail(
-      renderMail(email, `Your code for ${serverSite().name}`, {
-        preheader: `Your code is ${code}`,
-        title: "Sign in",
+      renderMail(email, translateIn(locale, "mail.identitySubject", vars), {
+        preheader: translateIn(locale, "mail.identityCode", vars),
+        title: translateIn(locale, "mail.identityTitle"),
         blocks: [
-          {
-            kind: "paragraph",
-            text: `Your code is ${code}. It works for ${CODE_TTL_MINUTES} minutes.`,
-          },
-          {
-            kind: "paragraph",
-            text:
-              "Signing in shows you the journals on this server you have been let into, in one " +
-              "place. It does not by itself give you access to anything — each journal still " +
-              "decides, and you will only see what its owner has already shared with you.",
-          },
-          {
-            kind: "paragraph",
-            text:
-              "It lasts a year, on this device. You can end it any time from the page it signs " +
-              "you in to.",
-          },
-          {
-            kind: "paragraph",
-            text: "If you did not ask for this, ignore it — nothing has been opened.",
-          },
+          // The code first, and it stays first. On iOS a home-screen web app
+          // has its own storage container, so the button below signs somebody
+          // in *in Safari* and leaves the installed app signed out — looking
+          // like it worked. The code is the only thing that works everywhere.
+          { kind: "paragraph", text: translateIn(locale, "mail.identityCode", vars) },
+          ...(linkToken
+            ? ([
+                {
+                  kind: "button",
+                  text: translateIn(locale, "mail.identityButton"),
+                  href: identitySignInUrl(site.url, linkToken),
+                },
+                { kind: "paragraph", text: translateIn(locale, "mail.identityApp", vars) },
+              ] as const)
+            : []),
+          { kind: "paragraph", text: translateIn(locale, "mail.identityWhat") },
+          { kind: "paragraph", text: translateIn(locale, "mail.identityLasts") },
+          { kind: "paragraph", text: translateIn(locale, "mail.identityIgnore") },
         ],
-        footer: `Sent by ${serverSite().name}.`,
+        footer: translateIn(locale, "mail.identityFooter", vars),
       }),
     );
   } catch (err) {

@@ -231,6 +231,18 @@ export function signInUrl(base: string, username: string, linkToken: string): st
   return `${base.replace(/\/$/, "")}/${username}/s/${linkToken}`;
 }
 
+/**
+ * Where an identity sign-in link points — B430.
+ *
+ * `/s/<token>`, at the root, because an identity belongs to no journal and so
+ * has no `/<username>/` to live under. It cannot collide with one either:
+ * `USERNAME_RE` needs at least two characters, so no journal can ever be
+ * called `s`, and the static segment therefore shadows nothing.
+ */
+export function identitySignInUrl(base: string, linkToken: string): string {
+  return `${base.replace(/\/$/, "")}/s/${linkToken}`;
+}
+
 /** The longest destination worth keeping. Real ones are a trip id or a day
  * slug; anything past this is somebody filling a column. */
 const MAX_DESTINATION = 512;
@@ -392,10 +404,17 @@ export async function issueCode(
   await revokeCodes(owner, email, kind);
 
   const code = generateCode();
-  // Only a guest code gets a link. An agent token is handed back through the
-  // API to a program with no cookie jar; a URL that quietly creates a browser
-  // session is the wrong shape of credential to mail one.
-  const linkToken = kind === "guest" ? generateLinkToken() : undefined;
+  /**
+   * A link goes with the codes that end in a **browser**, and only those.
+   *
+   * `guest` since W08, and `identity` since B430 — both are redeemed by a
+   * person looking at a page, and for both the six digits are the part that
+   * loses people. An agent token is handed back through the API to a program
+   * with no cookie jar, and a `signup` code creates a journal; a URL that
+   * quietly creates a browser session is the wrong shape of credential to mail
+   * either of them.
+   */
+  const linkToken = kind === "guest" || kind === "identity" ? generateLinkToken() : undefined;
   await db
     .insertInto("login_codes")
     .values({
@@ -735,6 +754,8 @@ export async function verifyLink(
   owner: string,
   linkToken: string,
   kind: SessionKind = "guest",
+  /** The browser spending it, for the device list — B411. */
+  userAgent?: string | null,
 ): Promise<VerifyLinkResult> {
   const { db } = await getDatabase();
 
@@ -772,7 +793,7 @@ export async function verifyLink(
     .where("id", "=", row.id)
     .execute();
 
-  const session = await openSession(owner, row.email, kind);
+  const session = await openSession(owner, row.email, kind, undefined, userAgent?.slice(0, 300) ?? null);
   if (!session.ok) return session;
 
   /**
