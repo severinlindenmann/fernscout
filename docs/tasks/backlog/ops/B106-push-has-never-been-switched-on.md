@@ -13,8 +13,14 @@ related: B102, B103, B104, B105, B107, B108, B109, B110
 
 ## Why
 
-`/api/health` reports `push` as `not enabled on this server`, and there are no
-VAPID keys anywhere — it has never been switched on, here or in development.
+`/api/health` reported `push` as `not enabled on this server`, and there were
+no VAPID keys anywhere — it had never been switched on, here or in development.
+
+**Partly stale as of 2026-09-05**: `/api/health` at fernscout.ch now reports
+`push: {"enabled": true}`, so keys have been set on the server since this was
+written. What has still never happened is the part this task is actually for —
+a notification demonstrably arriving on a phone, and the audience questions
+below. Read the first paragraph as history and the Work section as still open.
 `lib/push.ts` and `/api/push/subscribe` are code nobody has ever run against a
 real browser.
 
