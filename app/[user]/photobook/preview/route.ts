@@ -39,7 +39,7 @@ export async function POST(
   // `credits` alongside `photobook` — the same pair `order/route.ts` checks.
   // Without it this route quotes a price nobody at this journal can pay,
   // which is worse than a 404: it looks like an offer.
-  if (!isEnabled("photobook", user) || !isEnabled("credits", user) || !(await isOwner(user))) {
+  if (!isEnabled("photobook", user) || !isEnabled("credits") || !(await isOwner(user))) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
