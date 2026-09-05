@@ -6,6 +6,9 @@ priority: medium
 complexity: high
 area: content layout, config, locales, legal, rates, deploy
 found: "2026-09-05T18:58:55Z"
+started: "2026-09-05T20:43:18Z"
+session: aa0ba348-4c80-495c-9b6f-492691bb331d
+claimed: "2026-09-05T20:43:18Z"
 ---
 
 # B510 — content/ holds four things that are not journals
