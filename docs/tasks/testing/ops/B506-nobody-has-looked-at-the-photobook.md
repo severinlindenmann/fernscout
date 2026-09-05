@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook, travellers, testing
 found: "2026-09-05T17:50:06Z"
+merged: "2026-09-05T18:36:44Z"
 ---
 
 # B506 — Nobody has looked at the photobook composer or the drawn travellers in a browser

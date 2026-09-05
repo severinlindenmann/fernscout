@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (106)
+## backlog (105)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (31)
+### issue (32)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -97,6 +97,7 @@ Do not edit them by hand; run the script.
 | [B429](backlog/issue/B429-the-invite-form-shows-a-canned.md) | The invite form shows a canned mail-off line instead of the server's, losing which switch is off | ISSUE | low | low |
 | [B484](backlog/issue/B484-the-photobook-result-panel-can-render.md) | The photobook result panel can render with no download links | ISSUE | low | low |
 | [B500](backlog/issue/B500-minimap-hydrates-with-a-mismatch-on.md) | MiniMap hydrates with a mismatch on the last decimal place of every coordinate | ISSUE | low | low |
+| [B508](backlog/issue/B508-mail-sent-from-a-dev-server.md) | Mail sent from a dev server links to the production site | ISSUE | low | low |
 
 ### big-feature (12)
 
@@ -132,11 +133,10 @@ Do not edit them by hand; run the script.
 | [B176](backlog/small-feature/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 
-### chore (12)
+### chore (11)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B505](backlog/chore/B505-an-owner-only-page-cannot-be.md) | An owner-only page cannot be opened on a local dev server | CHORE | high | medium |
 | [B363](backlog/chore/B363-the-letter-s-permission-gate-is.md) | The letter's permission gate is a second copy of the site's, and nothing holds them together | CHORE | medium | medium |
 | [B483](backlog/chore/B483-generated-photobooks-are-counted-against-no.md) | Generated photobooks are counted against no quota and never pruned | CHORE | medium | medium |
 | [B216](backlog/chore/B216-nothing-helps-an-author-find-the.md) | Nothing helps an author find the rate to freeze into a trip | CHORE | low | low |
@@ -149,7 +149,7 @@ Do not edit them by hand; run the script.
 | [B462](backlog/chore/B462-systemd-logs-multiple-trigger-source-candidates.md) | systemd logs 'multiple trigger source candidates' every backup run now that one handler serves both OnFailure and OnSuccess | CHORE | low | low |
 | [B479](backlog/chore/B479-the-photobook-receipt-test-bans-an.md) | The photobook receipt test bans an English word rather than checking a claim | CHORE | low | low |
 
-### ops (17)
+### ops (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -159,7 +159,6 @@ Do not edit them by hand; run the script.
 | [B373](backlog/ops/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
 | [B377](backlog/ops/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
 | [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
-| [B506](backlog/ops/B506-nobody-has-looked-at-the-photobook.md) | Nobody has looked at the photobook composer or the drawn travellers in a browser | OPS | high | medium |
 | [B65](backlog/ops/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
 | [B104](backlog/ops/B104-signup-is-on-at-the-server.md) | Signup is on at the server and off in every journal, so no account has ever been created on the live site | OPS | medium | medium |
 | [B105](backlog/ops/B105-contacts-is-on-at-the-server.md) | Contacts is on at the server and off in every journal, so no invitation has ever been carried through on the live site | OPS | medium | medium |
@@ -205,7 +204,7 @@ _Nothing here._
 
 _Nothing here._
 
-## testing (205)
+## testing (207)
 
 ### security (2)
 
@@ -391,11 +390,12 @@ _Nothing here._
 | [B368](testing/small-feature/B368-there-is-no-way-to-ask.md) | There is no way to ask for more credits, and the payment provider does not exist yet | FEATURE | low | medium | — |
 | [B475](testing/small-feature/B475-the-nightly-status-mail-is-a.md) | The nightly status mail is a wall of monospace while every other letter this instance sends is designed | FEATURE | low | medium | — |
 
-### chore (16)
+### chore (17)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B258](testing/chore/B258-a-deploy-re-installs-re-migrates.md) | A deploy re-installs, re-migrates and rebuilds whatever changed | CHORE | high | medium | — |
+| [B505](testing/chore/B505-an-owner-only-page-cannot-be.md) | An owner-only page cannot be opened on a local dev server | CHORE | high | medium | — |
 | [B257](testing/chore/B257-nothing-logs-http-requests-so-a.md) | Nothing logs HTTP requests, so a client reporting failed to fetch cannot be diagnosed | CHORE | medium | low | — |
 | [B35](testing/chore/B35-per-trip-read-grants-are-honoured.md) | Per-trip read grants are honoured in three places and written by nothing | CHORE | medium | low | — |
 | [B387](testing/chore/B387-the-weekly-digest-was-never-scheduled.md) | The weekly digest was never scheduled or wanted, and is a second mail system to keep correct | CHORE | medium | medium | — |
@@ -412,12 +412,13 @@ _Nothing here._
 | [B71](testing/chore/B71-the-per-day-media-ceiling-test.md) | The per-day media ceiling test asserts on problems[0], and failed once in a full run | CHORE | low | low | — |
 | [B81](testing/chore/B81-the-notify-script-still-calls-a.md) | The notify script still calls a closed trip password-protected | CHORE | low | low | — |
 
-### ops (3)
+### ops (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B21](testing/ops/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | OPS | high | medium | — |
 | [B401](testing/ops/B401-nightly-backups-have-been-failing-since.md) | Nightly backups have been failing since two unreadable config.json.bak files appeared in the content root | OPS | high | low | — |
+| [B506](testing/ops/B506-nobody-has-looked-at-the-photobook.md) | Nobody has looked at the photobook composer or the drawn travellers in a browser | OPS | high | medium | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
 ### docs-and-skills (16)

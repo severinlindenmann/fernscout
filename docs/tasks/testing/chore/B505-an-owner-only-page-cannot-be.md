@@ -6,6 +6,8 @@ priority: high
 complexity: medium
 area: dev experience, auth, mail
 found: "2026-09-05T17:50:05Z"
+started: "2026-09-05T18:19:57Z"
+merged: "2026-09-05T18:36:44Z"
 ---
 
 # B505 — An owner-only page cannot be opened on a local dev server
