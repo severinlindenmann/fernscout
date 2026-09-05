@@ -36,7 +36,7 @@ const SITE = "https://features.test";
 let dir: string;
 let token: string;
 
-/** `content/config.json` — what this server is able to offer. */
+/** `site/config.json` — what this server is able to offer. */
 function writeServerConfig(features: Record<string, unknown>) {
   fs.writeFileSync(
     path.join(dir, "config.json"),

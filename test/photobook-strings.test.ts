@@ -4,7 +4,7 @@ import { bookStrings, fill, isBookLocale } from "@/lib/photobook/strings";
 /**
  * The book's own vocabulary, held to the same standard as the site's.
  *
- * `test/locales.test.ts` does this for `content/locales/*.json`; the book keeps
+ * `test/locales.test.ts` does this for `site/locales/*.json`; the book keeps
  * its words in `lib/photobook/strings.ts` instead, for the reason stated at the
  * top of that file, so it needs its own parity check or the second and third
  * languages quietly fall behind the first.

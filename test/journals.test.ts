@@ -464,11 +464,9 @@ describe("the welcome mail", () => {
         features: { mail: { enabled: true, transport: "file" } },
       }),
     );
-    // The dictionaries live beside the journals, under content/locales.
-    fs.symlinkSync(
-      path.join(process.cwd(), "content", "locales"),
-      path.join(dir, "locales"),
-    );
+    // No locales symlink: since B510 the dictionaries ship in site/ and
+    // resolve from the checkout, so the German welcome mail renders in German
+    // without anything under CONTENT_DIR.
     clearConfigCache();
     make("reisender", { defaultLocale: "de", locales: ["de"] });
 

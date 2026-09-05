@@ -50,17 +50,15 @@ cd /srv/fernscout && ./scripts/deploy.sh
 1. `git pull --ff-only` — no merge commits happen on the server.
 2. `npm ci` — when `package-lock.json` or `package.json` changed. The exact
    lockfile, never `npm install`.
-3. `scripts/sync-shipped-content.sh` — when `site/locales/` or
-   `site/rates/` changed (B56).
-4. `npm run db:migrate` — when a migration, `lib/db/migrate.ts` or
+3. `npm run db:migrate` — when a migration, `lib/db/migrate.ts` or
    `lib/db/schema.ts` changed, and only when `DATABASE_URL` is set. Unset is
    supported and means a public-only site.
-5. `npm run build` — for anything under `app/`, `lib/`, `components/`,
+4. `npm run build` — for anything under `app/`, `lib/`, `components/`,
    `public/`, config, or any path the classifier does not recognise.
    **Before** the restart, on purpose.
-6. `scripts/install-units.sh` — when a `deploy/*.service` or `*.timer` changed.
-7. `systemctl restart fernscout` (and the worker, if it is enabled).
-8. Polls `/api/health` for 30 seconds and fails loudly if it never goes green.
+5. `scripts/install-units.sh` — when a `deploy/*.service` or `*.timer` changed.
+6. `systemctl restart fernscout` (and the worker, if it is enabled).
+7. Polls `/api/health` for 30 seconds and fails loudly if it never goes green.
 
 So a deploy carrying only task files or docs takes about three seconds and
 builds nothing, and a code deploy skips `npm ci`. The plan is printed before
