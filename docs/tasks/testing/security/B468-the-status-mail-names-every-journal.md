@@ -7,8 +7,7 @@ complexity: low
 area: backups
 found: "2026-09-05T13:20:01Z"
 started: "2026-09-05T13:20:22Z"
-session: 7c3dd4ae-2d91-4172-8ea8-52deb35f9f42
-claimed: "2026-09-05T13:20:22Z"
+merged: "2026-09-05T13:24:33Z"
 ---
 
 # B468 — The status mail names every journal, including unlisted ones, to an address a journal's own config chooses
