@@ -55,6 +55,9 @@ export function galleryLines(items: IngestGalleryItem[]): string[] {
     if (item.width) lines.push(`    width: ${item.width}`);
     if (item.height) lines.push(`    height: ${item.height}`);
     if (item.caption) lines.push(`    caption: ${yamlString(item.caption)}`);
+    // Last, because it is the least interesting line to a person reading the
+    // file and the most useful one to an agent reconciling a batch. B527.
+    if (item.from) lines.push(`    from: ${yamlString(item.from)}`);
   }
   return lines;
 }

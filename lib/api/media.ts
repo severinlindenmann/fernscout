@@ -345,6 +345,7 @@ export async function storeUploads(
           width: result.width,
           height: result.height,
           poster: frontmatterSrc(tripId, path.join(slug, poster)),
+          from: upload.filename,
         });
         index += 1;
         continue;
@@ -384,6 +385,9 @@ export async function storeUploads(
           type: "image",
           width: derivative.width,
           height: derivative.height,
+          // What the caller called it, so reading the day back tells them
+          // which of their files landed and not merely how many — B527.
+          from: upload.filename,
         });
         originals.push({
           filename: upload.filename,

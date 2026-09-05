@@ -27,6 +27,24 @@ export type GalleryItem = {
    * with the owner in the same place.
    */
   poster?: string;
+  /**
+   * What the file was called before this software renamed it — B527.
+   *
+   * Everything else on a gallery item is server-assigned: `01.jpg`, `02.jpg`,
+   * in position order, and the original on disk is renamed to match. So an
+   * agent that sent a batch and had it refused — which B523 made routine —
+   * could read a day back and learn how many photographs it holds, never
+   * which. Resuming by count duplicates some files and silently drops others.
+   *
+   * This is the field that makes a resume a comparison rather than
+   * arithmetic. Ingest writes it too, from the file it read.
+   *
+   * It becomes visible in a published day's markdown twin. A camera's own
+   * `IMG_4821.JPG` carries nothing personal, and the alternative — a sidecar
+   * nothing renders — would be a second source of truth about a folder people
+   * edit by hand.
+   */
+  from?: string;
 };
 
 /**

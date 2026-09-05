@@ -122,6 +122,25 @@ describe("storing an upload", () => {
     expect(result.items[0]).toMatchObject({ type: "image", width: 2000, height: 1333 });
   });
 
+  /**
+   * B527 — everything else on a gallery item is server-assigned and in
+   * position order, so an agent whose batch was refused could read a day back
+   * and learn how many photographs it holds, never which. Resuming by count
+   * duplicates some and silently drops others; this is the field that makes a
+   * resume a comparison.
+   */
+  test("carries the name the caller sent, through to the day read back", async () => {
+    writeDay("day-two", "2026-08-27");
+    const result = await storeUploads(REF, "day-two", [
+      { filename: "IMG_4821.JPG", bytes: await jpeg(800, 600) },
+    ]);
+    if (!result.ok) throw new Error("expected success");
+    expect(result.items[0].from).toBe("IMG_4821.JPG");
+
+    expect(attachGallery(REF, "day-two", result.items).ok).toBe(true);
+    expect(getEntryBySlug(REF, "day-two")!.gallery[0].from).toBe("IMG_4821.JPG");
+  });
+
   /** The owner is prefixed at read time — that is what let the move to
    * multi-user rewrite no entry file. */
   test("the gallery src is trip-relative, with no username in it", async () => {

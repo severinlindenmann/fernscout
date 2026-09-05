@@ -172,7 +172,7 @@ function yamlNumber(n: number): string | null {
  * somebody is listening, and a 201 for a `people:` block the site then ignores
  * is worse than a 400 naming the entry.
  */
-function peopleBlock(raw: unknown): BlockResult {
+export function peopleBlock(raw: unknown): BlockResult {
   if (raw === undefined || raw === null) return NO_LINES;
   if (!Array.isArray(raw)) {
     return {
@@ -313,7 +313,7 @@ const HEX_COLOUR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
  * attributes are written. `preset` is refused here by name rather than
  * quietly dropped, because a caller that passed one believes it landed.
  */
-function travellersBlock(raw: unknown): BlockResult {
+export function travellersBlock(raw: unknown): BlockResult {
   if (raw === undefined || raw === null) return NO_LINES;
   if (!Array.isArray(raw)) {
     return {

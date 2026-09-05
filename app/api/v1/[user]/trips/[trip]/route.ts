@@ -130,10 +130,13 @@ export async function PATCH(_request: Request, { params }: RouteContext<"/api/v1
         `down, one field to a door: who may read the trip at ` +
         `/api/v1/${user}/trips/${trip}/visibility (PATCH, owner only — it writes ` +
         `visibility and listed), its exchange rates at ` +
-        `/api/v1/${user}/trips/${trip}/rates (PATCH, owner only), the budget at ` +
+        `/api/v1/${user}/trips/${trip}/rates (PATCH, owner only), who was on it at ` +
+        `/api/v1/${user}/trips/${trip}/people and how they are drawn at ` +
+        `/api/v1/${user}/trips/${trip}/travellers (both PATCH, owner only, both replacing ` +
+        `the whole list), the budget at ` +
         `/api/v1/${user}/trips/${trip}/costs, a day at ` +
         `/api/v1/${user}/trips/${trip}/days/<slug>, and photographs at ` +
-        `/api/v1/${user}/trips/${trip}/media. A trip's title, dates and people: are ` +
+        `/api/v1/${user}/trips/${trip}/media. A trip's title, dates and cover are ` +
         `still trip.md alone and no call writes them.`,
     },
     { status: 405, headers: { Allow: "DELETE" } },

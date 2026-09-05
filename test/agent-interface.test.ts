@@ -470,6 +470,55 @@ describe("what the guide has to tell an agent before it starts", () => {
     }
   });
 
+  /**
+   * B525 — the trip script asked about `visibility` and the money, both of
+   * which have a door to correct them, and said nothing about the two fields
+   * that could be written once and never again. An agent following it exactly
+   * — which the script's own intro demands — created a trip that could not
+   * carry its travellers, and that is what happened in the run that reported
+   * it.
+   */
+  test("the trip script asks about who was on the trip and how they are drawn", () => {
+    const guide = agentGuide();
+    const document = instanceDocumentation();
+    for (const text of [guide, document]) {
+      expect(text).toMatch(/Who was on it/i);
+      expect(text).toMatch(/How the party should be drawn/i);
+    }
+    // And the count in front of the list follows the list.
+    expect(guide).toMatch(/ask all seven of the questions/i);
+  });
+
+  /**
+   * B526 — `title` is required to create a journal and the script never asked
+   * for it, so an agent following the script hit the refusal or, worse,
+   * invented one.
+   */
+  test("the journal script asks what the journal is called", () => {
+    expect(agentGuide()).toMatch(/journal is called/i);
+  });
+
+  /**
+   * B526 — "Two fields can only be set here" stood in front of a table of
+   * three, because `travellers` was added and the number was not.
+   */
+  test("no sentence promises a count the trip-fields table does not have", () => {
+    expect(agentGuide()).not.toMatch(/Two fields can only be set here/);
+  });
+
+  /** B523 — the request-body cap is a different limit from the per-file one,
+   * and only one of them was ever written down. */
+  test("the guide states the request-body cap beside the per-file cap", () => {
+    const guide = agentGuide();
+    expect(guide).toMatch(/64 MB/);
+    expect(guide).toMatch(/body_too_large/);
+  });
+
+  /** B527 — resuming a partly-failed batch is a comparison, not a count. */
+  test("the guide says how to tell which photographs landed", () => {
+    expect(agentGuide()).toMatch(/resumed by reading the day, not by counting/i);
+  });
+
   test("says that asking for a second code kills the first", () => {
     // The failure this prevents: the person reads out the code from the email
     // they have, and it has already been superseded by an identical one.
