@@ -77,8 +77,8 @@ function writeJournal(username: string, email: string) {
   );
 }
 
-function writeTrip(id: string) {
-  const root = path.join(dir, OWNER, "trips", id);
+function writeTrip(username: string, id: string) {
+  const root = path.join(dir, username, "trips", id);
   fs.mkdirSync(path.join(root, "entries"), { recursive: true });
   fs.writeFileSync(
     path.join(root, "trip.md"),
@@ -173,8 +173,13 @@ beforeAll(async () => {
   );
   writeJournal(OWNER, OWNER_EMAIL);
   writeJournal(ADMIN_JOURNAL, ADMIN);
-  writeTrip("honeymoon-2026");
-  writeTrip("alps-2026");
+  writeTrip(OWNER, "honeymoon-2026");
+  writeTrip(OWNER, "alps-2026");
+  // The operator's own journal has a trip in it too, because a journal with
+  // nothing to open is dropped from this list whoever is asking — and a
+  // fixture where their own journal is missing for an unrelated reason would
+  // prove nothing about the two roles.
+  writeTrip(ADMIN_JOURNAL, "their-own-2026");
 
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");
@@ -265,8 +270,29 @@ describe("with FERNSCOUT_ADMIN_EMAIL set, the address owns every journal", () =>
     jar.cookies = {};
     const { isOwner } = await import("@/lib/contacts/session");
     const { mayReadTrip } = await import("@/lib/tripGate");
+    const { journalsFor } = await import("@/lib/home");
     expect(await isOwner(OWNER)).toBe(false);
     expect(await mayReadTrip(await tripFor("honeymoon-2026"))).toBe(false);
+    expect(await journalsFor(OWNER_EMAIL)).toEqual([
+      expect.objectContaining({ username: OWNER, role: "owner" }),
+    ]);
+  });
+
+  test("the home view lists both journals, and calls only one of them theirs", async () => {
+    const { journalsFor } = await import("@/lib/home");
+    const listed = await journalsFor(ADMIN);
+    // Their own journal reads `owner`; Ana's reads `admin` — B488. The badge
+    // said "yours" about somebody else's journal, and the hint under it told
+    // them to publish into it.
+    expect(new Map(listed.map((j) => [j.username, j.role]))).toEqual(
+      new Map([
+        [ADMIN_JOURNAL, "owner"],
+        [OWNER, "admin"],
+      ]),
+    );
+    // Their own first: on this instance every other journal is `admin`, and
+    // the one they came for should not be at the bottom of that list.
+    expect(listed[0].username).toBe(ADMIN_JOURNAL);
   });
 
   test("is issued a journal-wide code for a journal it does not own", async () => {

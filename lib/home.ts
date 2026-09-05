@@ -31,7 +31,7 @@ import { tripsVisibleTo, type ViewerTrip } from "./viewer";
  * worse than a query.
  */
 
-export type HomeRole = "owner" | "traveller" | "guest";
+export type HomeRole = "admin" | "owner" | "traveller" | "guest";
 
 export type HomeJournal = {
   username: string;
@@ -41,9 +41,17 @@ export type HomeJournal = {
   /**
    * How this address gets in, at the journal level.
    *
-   * The strongest reason wins, in the order owner → traveller → guest, which
-   * is `ViewerTrip.through`'s order and for the same reasoning (B80): the one
-   * to print is the one that would survive the others being edited away.
+   * The strongest reason wins, in the order admin → owner → traveller → guest,
+   * which is `ViewerTrip.through`'s order and for the same reasoning (B80): the
+   * one to print is the one that would survive the others being edited away.
+   *
+   * `admin` is the instance operator (B480) on a journal that is **not**
+   * theirs, and it is a separate word from `owner` rather than a shade of it —
+   * B488. The badge said "yours" about somebody else's journal, which is the
+   * one thing this list exists to keep straight, and the hint underneath told
+   * them to hand an agent an instruction for publishing into it. Their own
+   * journal still reads `owner`: the operator address owns journals like
+   * anybody else, and those are theirs in the ordinary sense.
    * `public` is not a value here — a journal you can only read the public
    * trips of is not *yours*, and listing it under "your journals" would be a
    * claim about access nobody granted. Those are in the public list instead.
@@ -113,10 +121,13 @@ export async function journalsFor(email: string): Promise<HomeJournal[]> {
     const user = getUser(username);
     if (!user) continue;
 
-    // The instance admin owns every journal on it (B480), so the home view
-    // lists them all rather than only the ones whose config names them.
-    const owner =
-      isAdminEmail(email) || (Boolean(user.owner.email) && user.owner.email === email);
+    // Two ways to hold owner-level access here, and the list has to keep them
+    // apart even though every gate downstream treats them alike: the config
+    // names this address (B480 changed nothing about that), or this address
+    // runs the instance and therefore reaches every journal on it.
+    const named = Boolean(user.owner.email) && user.owner.email === email;
+    const admin = !named && isAdminEmail(email);
+    const owner = named || admin;
 
     // Asked only when it can change the answer. A journal the address owns is
     // already in at the strongest level, and two indexed queries per journal
@@ -135,7 +146,9 @@ export async function journalsFor(email: string): Promise<HomeJournal[]> {
     // trips rather than asked separately: being on a trip *is* what makes
     // somebody a traveller here, and asking again would be a second answer to
     // the same question.
-    const role: HomeRole | null = owner
+    const role: HomeRole | null = admin
+      ? "admin"
+      : named
       ? "owner"
       : trips.some((t) => t.through === "traveller")
         ? "traveller"
@@ -159,7 +172,10 @@ export async function journalsFor(email: string): Promise<HomeJournal[]> {
 
   // Owner first, then traveller, then guest; alphabetical inside each. The
   // person's own journal is the one they came for.
-  const order: Record<HomeRole, number> = { owner: 0, traveller: 1, guest: 2 };
+  // The operator's own journals first — they came for one of those far more
+  // often than for somebody else's, and on this instance `admin` is every
+  // other journal on the server.
+  const order: Record<HomeRole, number> = { owner: 0, traveller: 1, guest: 2, admin: 3 };
   return out.sort(
     (a, b) => order[a.role] - order[b.role] || a.title.localeCompare(b.title),
   );

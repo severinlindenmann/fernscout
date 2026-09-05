@@ -27,7 +27,7 @@ export type HomeJournal = {
   title: string;
   tagline: string;
   href: string;
-  role: "owner" | "traveller" | "guest";
+  role: "admin" | "owner" | "traveller" | "guest";
   trips: HomeTrip[];
 };
 
@@ -46,19 +46,26 @@ const TRIPS_SHOWN = 4;
 /**
  * The badge beside a journal's name.
  *
- * The three roles get three colours rather than three words in one colour,
- * because the whole point of this list is that it mixes journals a person owns
- * with journals somebody else let them into, and which is which should survive
+ * The roles get a colour each rather than four words in one colour, because
+ * the whole point of this list is that it mixes journals a person owns with
+ * journals somebody else let them into, and which is which should survive
  * being skimmed.
+ *
+ * `admin` is the loudest of the four on purpose (B488). It is the only row
+ * that is somebody *else's* journal opened by an instance-wide credential, and
+ * the mistake it guards against — reading a journal as yours and publishing
+ * into it — is the one that cannot be taken back.
  */
 function RoleBadge({ role }: { role: HomeJournal["role"] }) {
   const { t } = useI18n();
   const tone =
-    role === "owner"
-      ? "bg-yellow-100 text-navy-900"
-      : role === "traveller"
-        ? "bg-sky-100 text-navy-900"
-        : "bg-cream-100 text-navy-700";
+    role === "admin"
+      ? "bg-coral-300 text-navy-900"
+      : role === "owner"
+        ? "bg-yellow-100 text-navy-900"
+        : role === "traveller"
+          ? "bg-sky-100 text-navy-900"
+          : "bg-cream-100 text-navy-700";
   return (
     <span
       className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.12em] ${tone}`}
@@ -117,6 +124,9 @@ function JournalCard({ journal }: { journal: HomeJournal }) {
 
       {journal.role === "owner" && (
         <p className="mt-2 text-xs leading-5 text-navy-600">{t("home.ownerHint")}</p>
+      )}
+      {journal.role === "admin" && (
+        <p className="mt-2 text-xs leading-5 text-navy-600">{t("home.adminHint")}</p>
       )}
     </li>
   );
