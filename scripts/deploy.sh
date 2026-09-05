@@ -63,7 +63,7 @@ classify() {
       # The half of content/ that belongs to the release. It has to be copied
       # into $CONTENT_DIR to reach a reader at all (B56), and it is baked into
       # prerendered pages, so it builds too.
-      content/locales/* | content/rates/*)
+      content/locales/* | content/rates/* | content/legal/*)
         do_sync=1 do_build=1 do_restart=1 ;;
 
       # The other half belongs to the operator, and a deploy deliberately does
@@ -71,7 +71,7 @@ classify() {
       # out loud rather than silently skipped, because "I edited the example
       # journal and deployed" is a reasonable thing to have expected to work.
       content/*)
-        note "content/ outside locales/ and rates/ changed — a deploy does not copy it into \$CONTENT_DIR" ;;
+        note "content/ outside locales/, rates/ and legal/ changed — a deploy does not copy it into \$CONTENT_DIR" ;;
 
       # systemd units, and the proxy config that is only ever reported on.
       deploy/*.service | deploy/*.timer | deploy/*.socket | deploy/*.target)
@@ -207,16 +207,17 @@ else
   skip "install" "package-lock.json unchanged"
 fi
 
-# The half of content/ that belongs to the release — locales/ and rates/ —
-# into the folder the app actually reads. `git pull` updates $APP_DIR/content,
-# and the app reads $CONTENT_DIR, so without this a translation shipped today
-# never reaches a reader (B56). It copies those two directories and refuses to
-# write anywhere else: config.json and the journals are not a deploy's to touch.
+# The half of content/ that belongs to the release — locales/, rates/ and the
+# instance's legal/ — into the folder the app actually reads. `git pull`
+# updates $APP_DIR/content, and the app reads $CONTENT_DIR, so without this a
+# translation shipped today never reaches a reader (B56). It copies those
+# directories and refuses to write anywhere else: config.json and the journals
+# are not a deploy's to touch.
 if [ "$do_sync" = 1 ]; then
   log "syncing shipped content into ${CONTENT_DIR:-$APP_DIR/content}"
   as_service "$APP_DIR/scripts/sync-shipped-content.sh"
 else
-  skip "sync" "no shipped locales or rates changed"
+  skip "sync" "no shipped locales, rates or legal pages changed"
 fi
 
 if [ "$do_migrate" = 1 ]; then
