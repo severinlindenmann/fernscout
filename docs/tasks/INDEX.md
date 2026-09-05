@@ -194,9 +194,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B430](in-development/B430-the-identity-code-mail-is-english.md) | The identity code mail is English whatever language the reader chose, and offers six digits to type where a button would do | FEATURE | high | medium | `3744307d` |
 
 ## testing (137)
 
