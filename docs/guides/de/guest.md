@@ -9,7 +9,10 @@ Du brauchst kein Konto, und es gibt hier nirgends ein Passwort.
 Alles hier funktioniert mit deiner E-Mail-Adresse und einem sechsstelligen
 Code. Sonst nichts.
 
-1. Öffne die Seite und drücke auf **Anmelden und lesen**.
+![Die Startseite auf dem Handy: eine Karte mit der Überschrift „Hat jemand ein Reisetagebuch mit dir geteilt?" und einem Knopf „Anmelden und lesen".](/docs/guides/figures/guide-signin-de.webp)
+
+1. Öffne die Seite und drücke auf **Anmelden und lesen**. Das ist das Erste
+   auf der Seite, noch über allem anderen.
 2. Gib die E-Mail-Adresse ein, an die die Einladung geschickt wurde.
 3. Ein Code kommt per E-Mail. Tippe ihn ein — oder drücke auf den Knopf in
    dieser E-Mail, der macht dasselbe, ohne dass du tippen musst.
@@ -35,6 +38,8 @@ Die Startseite wird zu deiner eigenen Liste: alle Reisetagebücher auf diesem
 Server, zu denen du Zugang hast, an einem Ort. Bei jedem steht, wie du
 hineinkommst — ob es deins ist, ob du selbst mitgereist bist, oder ob es mit
 dir geteilt wurde.
+
+![Die Startseite nach der Anmeldung, mit zwei Reisetagebüchern und den Markierungen „Deins" und „Du warst dabei".](/docs/guides/figures/guide-home-de.webp)
 
 Zu dieser Liste kommst du jederzeit über den Link oben über dem Namen des
 Tagebuchs zurück.
@@ -64,6 +69,8 @@ hast. Deshalb gibt es einen zusätzlichen Schritt. Er lohnt sich:
 Wenn du nicht auf die Karte warten willst: derselbe Schalter steht auf deiner
 eigenen Seite unter **Benachrichtigungen** — wie du sie findest, steht weiter
 unten.
+
+![Der Abschnitt „Benachrichtigungen" auf der eigenen Seite mit dem Knopf „Erzähl mir von neuen Tagen", und darunter die Karte, die unten am Bildschirm dasselbe anbietet.](/docs/guides/figures/guide-notify-de.webp)
 
 ### Auf Android oder am Computer
 

@@ -58,6 +58,10 @@ const MARKDOWN_LINK = /!?\[[^\]]*\]\(\s*([^)\s]+)(?:\s+"[^"]*")?\s*\)/g;
  */
 const RECORDS = [path.join("docs", "tasks"), path.join("docs", "plans")];
 
+/** The one served URL prefix backed by committed files — see the note in the
+ * link loop below. */
+const SERVED_FIGURES = "/docs/guides/figures/";
+
 describe("relative links in markdown resolve", () => {
   const files = [
     "README.md",
@@ -84,8 +88,27 @@ describe("relative links in markdown resolve", () => {
       if (/^(https?:|mailto:|tel:|#|<)/.test(href)) continue;
       const target = href.split("#")[0];
       if (!target) continue;
-      const resolved = path.resolve(path.dirname(path.join(ROOT, file)), target);
-      if (!fs.existsSync(resolved)) broken.push(href);
+      /**
+       * A root-relative href is a **URL on this site**, not a path on disk,
+       * so resolving it against the file's directory would check the wrong
+       * thing — and `path.resolve` would happily walk out of the repository
+       * to do it.
+       *
+       * One of them is still worth checking, because it is the only case
+       * where a served URL is backed by a committed file: the reader guides
+       * embed their screenshots as `/docs/guides/figures/…`, which
+       * `app/docs/guides/figures/[file]/route.ts` serves out of
+       * `docs/guides/figures/`. Mapping it back is what keeps a renamed
+       * screenshot from becoming a broken image in three languages at once.
+       * Every other absolute URL is a route, and a route is not this test's
+       * business.
+       */
+      const resolved = target.startsWith("/")
+        ? target.startsWith(SERVED_FIGURES)
+          ? path.join(ROOT, "docs/guides/figures", target.slice(SERVED_FIGURES.length))
+          : null
+        : path.resolve(path.dirname(path.join(ROOT, file)), target);
+      if (resolved && !fs.existsSync(resolved)) broken.push(href);
     }
 
     expect(broken, `${file} links to files that do not exist`).toEqual([]);

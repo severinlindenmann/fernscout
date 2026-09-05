@@ -9,10 +9,19 @@ You do not need an account, and there is no password anywhere in this.
 Everything here works with your email address and a six-digit code. Nothing
 else.
 
-1. Open the site and press **Sign in to read**.
-2. Type the email address the invitation was sent to.
+![The front page on a phone: a card headed "Has someone shared a travel journal with you?" with a "Sign in to read" button.](/docs/guides/figures/guide-signin-en.webp)
+
+1. Open the site and press **Sign in to read**. It is the first thing on the
+   page, above everything else.
+2. Type the email address the invitation was sent to, and press **Send me a
+   code**.
+
+   ![The sign-in card asking for an email address, with a "Send me a code" button.](/docs/guides/figures/guide-signin-form-en.webp)
+
 3. A code arrives by email. Type it in — or press the button in that email,
    which does the same thing without typing.
+
+   ![The same card, now asking for the six-digit code.](/docs/guides/figures/guide-signin-code-en.webp)
 
 You stay signed in on that device for a year. If you read on a phone and a
 laptop, you sign in once on each.
@@ -33,6 +42,8 @@ always use the newest email.
 The front page becomes your own list: every journal on this server you have
 been let into, in one place. Each one says how you got in — whether it is
 yours, whether you were on the trip, or whether it was shared with you.
+
+![The front page after signing in, listing two journals with badges reading "Yours" and "You travelled".](/docs/guides/figures/guide-home-en.webp)
 
 You can get back to that list at any time from the link above the journal's
 name at the top of the page.
@@ -59,6 +70,8 @@ is one extra step. It is worth doing once:
 
 If you would rather not wait for the card, the same switch is on your own page
 under **Notifications** — see below for how to find it.
+
+![The Notifications section on your own page, with a "Tell me about new days" button, and the card that offers the same thing at the bottom of the screen.](/docs/guides/figures/guide-notify-en.webp)
 
 ### On Android, or on a computer
 
