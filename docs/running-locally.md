@@ -107,6 +107,77 @@ place for the fuller account of where a query goes.
 
 ---
 
+## Opening an owner-only page
+
+`/<user>/photobook`, `/<user>/contacts`, the postcard preview and the credits
+page all answer 404 to everybody but the journal's owner, and `isOwner` has no
+development shortcut on purpose — an environment variable that makes you an
+owner is a thing that eventually ships. So the way in locally is the way in
+everywhere: request a code, read it, redeem it.
+
+It works with no accounts. Mail written to a file is a real transport, and the
+one-time code is in the file.
+
+```bash
+# 1. The capabilities the page needs, in content/config.json — the *server's*
+#    switches. `credits` is asked of the instance; `photobook` is asked of the
+#    journal too, so it needs to be on in content/<user>/config.json as well.
+#    Leave `contacts` off unless you have set CONTACTS_ENCRYPTION_KEY: the boot
+#    refuses a capability it cannot honour, which is the point of it.
+#
+#      features.auth.enabled       true
+#      features.credits.enabled    true
+#      features.photobook.enabled  true            (server *and* journal)
+#      features.mail               { enabled: true, transport: "file" }
+
+# 2. A database, and a secret to sign sessions with.
+export SESSION_SECRET="anything-long-enough-for-local-use-only"
+export DATABASE_URL="file:./.local-dev.db"
+npm run db:migrate
+
+npm run dev
+
+# 3. Ask for a code. The field is `user`, not `username` — see below.
+curl -s -X POST http://localhost:3000/api/auth/request \
+  -H "Content-Type: application/json" \
+  -d '{"user":"example","email":"agent@fernscout.ch"}'
+
+# 4. Read it. The terminal prints the path; the body is base64, so decode it
+#    rather than grepping the file for six digits.
+python3 - <<'PY'
+import email, glob, os, pathlib, re
+f = max(glob.glob("content/*/mail/*.eml"), key=os.path.getmtime)
+msg = email.message_from_string(pathlib.Path(f).read_text())
+for part in msg.walk():
+    if part.get_content_maintype() == "text":
+        body = part.get_payload(decode=True).decode("utf-8", "replace")
+        found = re.findall(r"\b\d{6}\b", body)
+        if found:
+            print(found[0])
+            break
+PY
+
+# 5. Redeem it **in the browser**, not with curl: the cookies are HttpOnly, so
+#    a jar on disk cannot be handed to Chrome. From the site's own console:
+#
+#      await fetch('/api/auth/verify', { method: 'POST', credentials: 'include',
+#        headers: { 'Content-Type': 'application/json' },
+#        body: JSON.stringify({ user: 'example', email: 'agent@fernscout.ch',
+#                               code: '123456', kind: 'guest' }) })
+```
+
+**The field is `user`.** `app/api/auth/request/route.ts` reads `body.user`;
+posting `username` leaves it empty and the route answers `202` anyway, because
+every address-dependent outcome on that endpoint is a `202` by design — a
+status that varied by address would say which of somebody's family is
+registered. The cost of that uniformity is that a typo in a field name is
+indistinguishable from a wrong address, and it is worth an hour if you do not
+know. Nothing is issued, so `login_codes` stays empty and no `[mail]` line is
+printed: **an empty `login_codes` table is the tell that a guard returned early
+rather than that delivery failed.**
+
+To spend credits locally, grant some: `npm run credits -- grant example 500`.
+
 ## Testing the agent surface
 
 Auth, contacts and mail are **off by default** in `content/config.json`, so
