@@ -1325,12 +1325,14 @@ export function openApiDocument() {
           },
         },
         delete: {
-          summary: "Remove costs.md — how the costs page goes away",
+          summary: "Remove costs.md — not always how the costs page goes away",
           description:
             "Whole file, not just the `budget:` line: the costs page is presence-driven " +
-            "(B293) and `hasCostsData` (B267) is what decides it exists, by asking whether " +
-            "`costs.md` is there at all — so this removes the file entirely, and the " +
-            "response says the page is gone rather than leaving that to be inferred.\n\n" +
+            "(B293) and `hasCostsData` (B267, widened B328) is what decides it exists, by " +
+            "asking whether `costs.md` is there **or** any day carries its own `costs:` " +
+            "block — so removing the file takes the budget away but leaves the page " +
+            "standing if a day still logs spend (B332). The response's `costsPageGone` " +
+            "says whether the page actually went, rather than leaving that to be inferred.\n\n" +
             "Not idempotent in status: calling this on a trip with no costs.md answers 404, " +
             "since there was nothing here to remove.\n\n" +
             "Same authority as writing a day: whoever may write to this trip may remove its " +
@@ -1340,7 +1342,11 @@ export function openApiDocument() {
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
           ],
           responses: {
-            "200": { description: "Removed. `costsPageGone: true` — the page will not appear in the trip's nav." },
+            "200": {
+              description:
+                "Removed. `costsPageGone` says whether the trip's costs page is actually " +
+                "gone — false if a day still carries its own `costs:` block.",
+            },
             "401": { description: "Missing or invalid token" },
             "403": { description: "The token belongs to a different journal" },
             "404": { description: "No such trip, or this trip has no costs.md" },

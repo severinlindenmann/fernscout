@@ -1412,9 +1412,10 @@ somebody's journey is not authority to end it.
 ### The trip's budget
 
 A trip's costs page (\`/${example}/trips/<trip-id>/costs\`) is presence-driven:
-no \`costs.md\`, no page; a \`costs.md\`, one. Before B295 the only way to write
-one was by hand, over SSH or with the \`add-a-trip\` skill on a local checkout —
-this is the door.
+it appears the moment there is a \`costs.md\` **or** any day carrying its own
+\`costs:\` block, and only goes away once both are gone (B332). Before B295 the
+only way to write a \`costs.md\` was by hand, over SSH or with the
+\`add-a-trip\` skill on a local checkout — this is the door.
 
 \`\`\`http
 PUT ${site.url}/api/v1/${example}/trips/<trip-id>/costs
@@ -1485,10 +1486,11 @@ Authorization: Bearer fs_agent_…
 \`GET\` reads the budget and the preparation costs back as stored, plus the
 journal's base currency, so you can confirm what you wrote before telling
 somebody it is there — \`"exists": false\` means there is no \`costs.md\` yet,
-which is not an error. \`DELETE\` removes the file entirely, which is how the
-budget — and the costs page with it — goes away; the response says so
-(\`"costsPageGone": true\`) rather than leaving it to be inferred, and calling
-it again once the file is gone answers \`404\`.
+which is not an error. \`DELETE\` removes the file entirely, which takes the
+budget away but **not necessarily the costs page** — a day still carrying its
+own \`costs:\` block keeps the page standing (B332), so \`"costsPageGone"\` in
+the response says whether it actually did rather than leaving that to be
+inferred. Calling \`DELETE\` again once the file is gone answers \`404\`.
 
 **Same authority as writing a day.** Whoever may \`POST\` a day into this trip
 may read, write, amend or delete its budget too, trip-scoped tokens included —
@@ -1762,9 +1764,9 @@ what tells them apart.
 | --- | --- | --- |
 | \`400\` | \`invalid_entry\` | The body has a \`problems\` list: every problem at once, each naming the field, what arrived and what was expected. |
 | \`401\` | \`missing_token\`, \`invalid_token\` | No token, a wrong one, or an expired one. Ask for a new code. |
-| \`403\` | \`out_of_scope\` | The token is valid but belongs to a different journal, or is scoped to one trip and you asked about another. |
+| \`403\` | \`out_of_scope\` | The token is valid but belongs to a different journal, or asks for something above a trip-scoped token's authority (the journal's rates, visibility, or a call restricted to the owner). |
 | \`403\` | \`access_revoked\` | The person this token belongs to has been taken off the trip. The token stays valid for everything else it can reach, and **will not work on this trip again** — do not ask for a new code, it will be refused too. Tell the person to talk to the journal's owner. |
-| \`404\` | \`unknown_trip\` | No such trip, or not one this token may write to. **Fix the id.** |
+| \`404\` | \`unknown_trip\` | No such trip **in this journal** — or a trip-scoped token asking about a different trip in its own journal, which answers exactly as if that trip did not exist rather than \`403\`: the trip is not disclosed to a token that may not read it. Either way, **fix the id.** |
 | \`404\` | \`auth_disabled\` | This server has authentication off entirely. Nothing you send will work; **stop** and tell the person. \`/api/health\` says which capabilities are on. |
 | \`409\` | — | That entry already exists, or an \`idempotency_key\` was reused for a different day. |
 | \`429\` | \`too_many_requests\` | Too many attempts. Wait; the response says how long. Creating a journal adds \`reason\`: \`journals_created\` is the real limit, and \`failed_attempts\` means a run of *refused* names from this address — your token is still good and the wait is not about it. |

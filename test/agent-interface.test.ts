@@ -500,6 +500,17 @@ describe("what the guide has to tell an agent before it starts", () => {
     expect(guide).toContain("unknown_trip");
   });
 
+  test("the error table gives a trip-scoped token unknown_trip for another trip, not out_of_scope", () => {
+    // B409: measured live, a token scoped to one trip gets 404 unknown_trip
+    // for a different trip in its own journal (the trip is not disclosed to a
+    // token that may not read it) and 403 out_of_scope only for a different
+    // journal, or a call above its authority. The table used to conflate the
+    // two under out_of_scope.
+    const guide = agentGuide();
+    expect(guide).not.toMatch(/out_of_scope.*scoped to one trip and you asked about another/);
+    expect(guide).toMatch(/unknown_trip.*trip-scoped token asking about a different trip/);
+  });
+
   test("lists the optional day fields the write example does not show", () => {
     const guide = agentGuide();
     for (const field of ["costs", "transportMode", "travelScene", "test"]) {
@@ -647,6 +658,24 @@ describe("what the guide has to tell an agent before it starts", () => {
     for (const doc of [agentGuide(), instanceDocumentation()]) {
       expect(flat(doc)).not.toMatch(/DELETE it and the page goes/);
     }
+  });
+
+  test("neither document's costs-endpoint prose claims DELETE always removes the page", () => {
+    // B332: the same false claim also lived in hand-written prose describing
+    // the costs endpoint itself ("presence-driven: no costs.md, no page" and
+    // "DELETE removes the file entirely, which is how the ... page ... goes
+    // away") — not only in NOT_WRITABLE, which a separate test already pins.
+    for (const doc of [agentGuide(), instanceDocumentation()]) {
+      const flatDoc = flat(doc);
+      expect(flatDoc).not.toMatch(/no `?costs\.md`?, no page/);
+      expect(flatDoc).not.toMatch(/removes the file entirely, which is how the\s*budget — and the costs page with it — goes away/);
+    }
+    const openApiDelete = JSON.stringify(
+      openApiDocument().paths["/api/v1/{user}/trips/{trip}/costs"].delete,
+    );
+    expect(openApiDelete).not.toMatch(/summary":"Remove costs\.md — how the costs page goes away/);
+    expect(openApiDelete).toMatch(/leaves the page standing if a day still logs spend/);
+    expect(openApiDelete).toMatch(/costsPageGone/);
   });
 
   test("both documents say what no call changes", () => {
