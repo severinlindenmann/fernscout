@@ -330,4 +330,47 @@ describe("a locale file that changes under a running process", () => {
       warn.mockRestore();
     }
   });
+
+  /**
+   * B284: the non-ENOENT branch above used to write its (empty, for that
+   * file) result into the cache under the file's own, unchanged signature —
+   * so a transient failure was served for the rest of the process's life,
+   * indistinguishable from a real edit. Nothing here touches the file
+   * between the two calls: the signature is identical both times, so a
+   * second, different answer is only possible if the failed read was never
+   * cached.
+   */
+  test("a transient, non-ENOENT read failure is not cached — the next call retries", () => {
+    writeOverride("de", { "nav.map": "Sonderkarte" });
+    const overridePath = path.join(overrideDir(), "de.json");
+    const real = fs.readFileSync.bind(fs);
+    let thrown = false;
+    const readSpy = vi
+      .spyOn(fs, "readFileSync")
+      .mockImplementation((file: fs.PathOrFileDescriptor, opts?: unknown) => {
+        if (!thrown && String(file) === overridePath) {
+          thrown = true;
+          const err = new Error("boom") as NodeJS.ErrnoException;
+          err.code = "EACCES";
+          throw err;
+        }
+        return real(file, opts as never);
+      });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      // First call hits the injected failure: the override contributes
+      // nothing, so this falls back to the shipped string underneath.
+      const shipped = dictionaryFor("de")["nav.map"];
+      expect(shipped).not.toBe("Sonderkarte");
+      expect(warn).toHaveBeenCalled();
+
+      // The file on disk never changed — same mtime, same size — so the
+      // only way the next call can see the override is if the failed read
+      // was never written into the cache.
+      expect(dictionaryFor("de")["nav.map"]).toBe("Sonderkarte");
+    } finally {
+      readSpy.mockRestore();
+      warn.mockRestore();
+    }
+  });
 });
