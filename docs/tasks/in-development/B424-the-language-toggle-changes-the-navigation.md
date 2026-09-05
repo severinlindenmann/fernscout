@@ -52,3 +52,30 @@ the answer is one answer rather than a page-by-page accident.
 On the owner's contacts page, either the whole page follows the language
 control or the control is absent, and whichever was chosen is written down
 where the next person will find it.
+
+## What changed
+
+Decided: **a gap**, not intended. B469 (found and fixed alongside this
+ticket, same root cause) traced it to one line —
+`app/[user]/contacts/page.tsx` resolved the page's own chrome as
+`pickLocale(user.defaultLocale)`, the journal's default, instead of
+`pickLocale(await requestLocale())`, the reader's own choice. That is exactly
+why switching the header's toggle moved the navigation (which reads the
+locale from `requestLocale()`/the `LocaleProvider` context) but left the
+headings, hints and form labels under it in the journal's language — they
+were never wired to the toggle at all, on any client/server split. The fix in
+B469 makes the whole page read one locale, so the toggle now changes all of
+it rather than half.
+
+Checked `/[user]/me` as asked: it already resolves its own chrome from
+`requestLocale()` (named `uiLocale`) and was the correct pattern this fix
+copies — not a second instance of the bug. It is the sibling surface to point
+to when this question comes up again.
+
+## Evidence
+
+Same fix, same evidence as B469: `app/[user]/contacts/page.tsx` now uses
+`requestLocale()`; `test/contacts-admin-locale.test.tsx` asserts the page's
+own chrome follows a `de` cookie on an English-default journal (fails on the
+old code, passes now); `npm run verify` passed in full (build, tsc, eslint,
+3128 tests).

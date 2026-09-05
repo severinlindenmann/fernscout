@@ -34,6 +34,14 @@ vi.mock("next/navigation", () => ({
     throw new Error("notFound");
   },
 }));
+// B469: the page's own chrome locale now comes from `requestLocale()`, which
+// reads the request's cookies and headers — this page has neither outside a
+// real request, so both need a stand-in. No cookie and this path: the
+// journal's own default, "en", same as the fixture below.
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+  headers: async () => ({ get: () => "/alex/contacts" }),
+}));
 
 // Everything the page reaches for on disk or in the database. The subject is
 // the composition, so the data is the least a signed-in owner can have: a
@@ -49,6 +57,7 @@ vi.mock("@/lib/users", () => ({
     baseCurrency: "CHF",
   }),
   getDefaultUsername: () => null,
+  userExists: (u: string) => u === "alex",
 }));
 vi.mock("@/lib/capabilities", () => ({ isEnabled: () => true }));
 vi.mock("@/lib/contacts", () => ({ listContacts: async () => [] }));
