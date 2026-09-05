@@ -133,6 +133,18 @@ export type BookSource = {
    * clock so that a plan is reproducible and testable. */
   madeOn: string;
   siteUrl?: string;
+  /**
+   * The people this journal let in, by name.
+   *
+   * **Names and nothing else.** Never an address, never an email — the same
+   * rule `lib/postcard/receipt.ts` states for mail, and for the same reason:
+   * a book is handed around, left on a table and eventually given away, which
+   * is a worse place for somebody's address than an inbox.
+   *
+   * Passed in rather than read here: contacts are rows and this module is
+   * pure. `buildBookSource` cannot reach a database and should not learn how.
+   */
+  followers?: string[];
   /** Warnings raised while the source was assembled — a photograph printed
    * from its web copy, for instance. Whoever built the source knows things
    * the planner cannot see, and they belong in the same list. */
@@ -214,6 +226,7 @@ export type BookPage = { number: number; side: PageSide } & (
       leg?: { mode: string; text: string };
     }
   | { kind: "photos"; layout: PhotoLayout; placements: PhotoPlacement[] }
+  | { kind: "followers"; heading: string; note: string; names: string[] }
   | {
       kind: "transport";
       heading: string;
@@ -582,6 +595,7 @@ type Draft =
   | { kind: "chapter"; chapter: Chapter; index: number; of: number; align: "recto" }
   | { kind: "day"; day: BookDay; captions: string[]; photo?: BookPhoto }
   | { kind: "photos"; layout: PhotoLayout; photos: BookPhoto[] }
+  | { kind: "followers"; align: "recto" }
   | { kind: "transport"; align: "recto" }
   | { kind: "costs"; align: "recto" }
   | { kind: "colophon" }
@@ -660,6 +674,9 @@ function draftsForBack(source: BookSource, options: BookOptions): Draft[] {
   // Present only when the trip said how it moved. A page reading "0 days
   // driving" on a journal that never filled the field in is worse than no
   // page, and most journals never fill it in.
+  if (source.followers && source.followers.length > 0) {
+    drafts.push({ kind: "followers", align: "recto" });
+  }
   if (source.days.some((d) => d.transport)) drafts.push({ kind: "transport", align: "recto" });
   if (source.costs && options.includeCosts) drafts.push({ kind: "costs", align: "recto" });
   drafts.push({ kind: "colophon" });
@@ -913,6 +930,21 @@ function materialise(
       const placements = placeAll(draft.layout, draft.photos, spec, side);
       for (const p of placements) checkResolution(p, spec, warnings);
       return { number, side, kind: "photos", layout: draft.layout, placements };
+    }
+
+    case "followers": {
+      const names = source.followers ?? [];
+      return {
+        number,
+        side,
+        kind: "followers",
+        heading: "Who came along",
+        note:
+          names.length === 1
+            ? "One person followed this journey from home."
+            : `${names.length} people followed this journey from home.`,
+        names,
+      };
     }
 
     case "transport": {

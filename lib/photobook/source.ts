@@ -272,6 +272,9 @@ export type SourceOptions = {
   excludePhotos?: readonly string[];
   /** Who travelled. `false` leaves the byline off. */
   includeNames?: boolean;
+  /** The journal's contacts, by name, for the "who came along" page. Names
+   * only — see `BookSource.followers`. */
+  followers?: string[];
 };
 
 export function buildBookSource(tripId: string, options: SourceOptions = {}): BookSource {
@@ -377,6 +380,7 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
     travellers,
     days,
     notes,
+    followers: options.followers,
     route: routeFor(tripId),
     costs: costsFor(tripId),
     madeOn: options.madeOn ?? new Date().toISOString().slice(0, 10),

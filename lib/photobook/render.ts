@@ -41,6 +41,8 @@ import {
   type RouteView,
 } from "./plan.ts";
 import { measure, toWinAnsi, wrap } from "./text.ts";
+import { drawTravellers } from "./travellers.ts";
+import { graticuleStep } from "./graticule.ts";
 import { landPaths, toPdfPath } from "./worldland.ts";
 
 /**
@@ -82,16 +84,6 @@ function categoryTint(index: number): { r: number; g: number; b: number } {
   };
 }
 
-/** Degrees between graticule lines, in MAP_SPACE units, for a window this
- * wide. `MAP_SPACE.width` is 1000 units to 360°, so one degree is 2.78 units.
- * Picks the first interval that leaves fewer than about eight lines. */
-function graticuleStep(windowWidth: number): number {
-  const perDegree = MAP_SPACE.width / 360;
-  for (const degrees of [1, 2, 5, 10, 20, 30, 45, 60]) {
-    if (windowWidth / (degrees * perDegree) <= 8) return degrees * perDegree;
-  }
-  return 60 * perDegree;
-}
 const LAND_EDGE = { r: 0.84, g: 0.83, b: 0.81 };
 const GUIDE = { r: 0.9, g: 0.2, b: 0.5 };
 
@@ -476,6 +468,17 @@ function drawPage(
 
   switch (plan.kind) {
     case "title": {
+      // The two of us, standing above the title, at a size that reads as a
+      // mark rather than an illustration. See lib/photobook/travellers.ts.
+      drawTravellers(page, (xMm, yMm) => [frame.x(xMm), frame.y(yMm)], {
+        x: c.x,
+        y: c.y + c.height * 0.52,
+        // Left-aligned with the title rather than centred over it: everything
+        // else on this page hangs off the same margin, and a centred mark
+        // above ranged-left type reads as two decisions instead of one.
+        width: c.height * 0.28,
+        height: c.height * 0.2,
+      });
       // One group, sitting on the lower third — the title page's whole job is
       // to be quiet and unmistakably the front of something.
       const lines = wrap(plan.title, type.display, mm(c.width), "bold");
@@ -585,6 +588,29 @@ function drawPage(
         else drawMissing(page, frame, spec, placement);
       }
       if (plan.layout !== "full-bleed") folio(page, frame, spec, plan.number, plan.side);
+      break;
+    }
+
+    case "followers": {
+      let fy = c.y + c.height * 0.72;
+      text(page, frame, eyebrow(plan.heading), c.x, fy, type.caption, MUTED);
+      fy -= 10;
+      rule(page, frame, c.x, fy, Math.min(c.width, 30), ACCENT);
+      fy -= 12;
+      for (const line of wrap(plan.note, type.subheading, mm(c.width))) {
+        text(page, frame, line, c.x, fy, type.subheading, INK);
+        fy -= (type.subheading * 1.4) / mm(1);
+      }
+      fy -= 6;
+      // Set as running text rather than a column of one name per line: forty
+      // names down the left edge is a phone book, and these are people who
+      // read somebody's days as they were written.
+      for (const line of wrap(plan.names.join("  ·  "), type.body, mm(c.width))) {
+        if (fy < c.y + 8) break;
+        text(page, frame, line, c.x, fy, type.body, MUTED);
+        fy -= (type.body * 1.6) / mm(1);
+      }
+      folio(page, frame, spec, plan.number, plan.side);
       break;
     }
 
@@ -740,6 +766,12 @@ function drawPage(
     }
 
     case "colophon": {
+      drawTravellers(page, (xMm, yMm) => [frame.x(xMm), frame.y(yMm)], {
+        x: c.x,
+        y: c.y + c.height * 0.52,
+        width: c.height * 0.17,
+        height: c.height * 0.12,
+      });
       let y = c.y + c.height * 0.42;
       text(page, frame, eyebrow(plan.heading), c.x, y + 14, type.caption, MUTED);
       rule(page, frame, c.x, y + 8, Math.min(c.width, 30), ACCENT);
