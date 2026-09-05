@@ -100,3 +100,38 @@ postcard generator". The cheap fix is to raise that one timeout or take the
 subprocess test out of the concurrent pool; the honest check is to run the
 suite under load a few times and see whether anything else with a subprocess
 and a short timeout joins it.
+
+## What changed
+
+`vitest.config.mts` gains `testTimeout: 30_000` and `hookTimeout: 30_000`.
+
+**The root cause was the default, not the test.** Nothing in this repository
+ever set a timeout, so every test ran on Vitest's default of 5 seconds. That is
+ample for the assertions this suite makes and is not ample for the fourteen
+files that `spawnSync` a subprocess — `tsx` compiling and running a generator
+script, a shell running a deploy check — and then wait for it. Under
+`fileParallelism` those fourteen are competing with 240-odd other files for the
+machine, so the subprocess start-up that takes well under a second alone can
+cross five seconds under load. That is the whole defect: it is timing, not
+behaviour, which is why the failure never reproduced and why it moved around.
+
+**Fixed once in the config rather than fourteen times in the files.** The
+per-file alternative — `vi.setConfig({ testTimeout })` at the top of each — was
+written and then reverted: it is the same line fourteen times, it has to be
+remembered by the fifteenth file that spawns something, and it leaves the
+default in place as a trap. A repository whose tests shell out this much wants
+a higher floor.
+
+**What it costs, stated plainly.** A test that genuinely hangs now takes 30
+seconds to say so rather than 5. Against a suite that finishes in about 75
+seconds that is a bad minute rather than a bad afternoon, and it is the price
+of not loosening assertions to hide a timing problem.
+
+## Evidence
+
+Named on 2026-09-05 while merging B449: `test/generator-output.test.ts > npm
+run postcard` failed inside a full `npm run verify` and passed 12/12 when run
+alone immediately after. Seen a second time the same evening during B489's
+gate — one failing run, then `npx vitest run` clean at 3210 passed, then a full
+`npm run verify` clean at "all 4 passed in 72s". Two sightings, same file, both
+under a loaded suite, neither reproducible in isolation.
