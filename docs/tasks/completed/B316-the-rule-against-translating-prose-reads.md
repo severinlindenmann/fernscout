@@ -8,8 +8,7 @@ area: agent docs, i18n
 found: "2026-09-04T16:55:51Z"
 started: "2026-09-04T16:57:40Z"
 merged: "2026-09-04T17:02:36Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T08:24:23Z"
+completed: "2026-09-05T08:31:02Z"
 ---
 
 # B316 — The rule against translating prose reads as absolute, so an agent refuses an owner who asks for it

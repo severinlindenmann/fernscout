@@ -10,6 +10,7 @@ started: "2026-09-01"
 merged: "2026-09-01"
 session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
 claimed: "2026-09-05T08:24:22Z"
+superseded: "B387 — the weekly digest was removed; lib/digest/index.ts, visibility.ts, mail.ts and scripts/digest.mts are absent from the deployed tree as of 2026-09-05"
 ---
 
 # B52 — The digest still refuses a guest trip to a reader who can now open it

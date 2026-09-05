@@ -8,8 +8,7 @@ area: agent docs
 found: "2026-09-04T16:55:51Z"
 started: "2026-09-04T17:02:45Z"
 merged: "2026-09-04T17:10:16Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T08:24:24Z"
+completed: "2026-09-05T08:31:02Z"
 ---
 
 # B317 — The scripts say what to ask and never what to offer next, so an agent stops after each step
