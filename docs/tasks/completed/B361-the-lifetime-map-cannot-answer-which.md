@@ -8,8 +8,7 @@ area: maps, trips
 found: "2026-09-04T20:15:00Z"
 started: "2026-09-04T20:12:15Z"
 merged: "2026-09-04T20:28:24Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T08:24:20Z"
+completed: "2026-09-05T08:37:07Z"
 ---
 
 # B361 — The lifetime map cannot answer which countries somebody has been to, only where individual stops fell
@@ -125,3 +124,20 @@ wide); the per-trip `WorldMap`; widening the accent palette.
 - The per-trip map at `/<user>/map` is pixel-identical to before.
 - `lib/worldCountries.json` is regenerable from `npm run` with no network.
 - `npm run verify`, and `npm run unused` for the new script and data file.
+
+---
+
+**2026-09-05, verified on fernscout.ch (f01c97b): passes, minus one bullet that
+a later ticket deliberately reversed.**
+
+Countries are filled and each is reachable: a single-trip country renders as a
+real `link` naming its trip, and the one multi-trip country is a
+`graphics-symbol` whose accessible name lists both trips rather than picking
+one — the "offer the list" resolution this ticket asked for. `/<user>/map` is
+untouched and still draws its route line over ringed stops.
+
+The colour-intensity bullet — the United States darker than Switzerland because
+two trips reached it — **no longer describes the system, by decision**. B370,
+merged about half an hour later, moved visit count off the map and into the
+legend, where it now reads "United States ×2". That bullet is superseded by
+B370 rather than failed.

@@ -10,6 +10,7 @@ started: "2026-09-04T15:49:33Z"
 merged: "2026-09-04T16:04:34Z"
 session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
 claimed: "2026-09-05T08:24:20Z"
+superseded: "B361 — the lifetime map now fills countries instead of drawing per-stop markers, so /<user>/trips draws no pins at all; the pin code survives only as a fallback for a journal whose stops resolve to no country"
 ---
 
 # B88 — Every stop on a map is a dot, which says nothing about where the point actually is

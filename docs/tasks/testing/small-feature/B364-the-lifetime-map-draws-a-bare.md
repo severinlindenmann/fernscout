@@ -8,8 +8,6 @@ area: maps, trips
 found: "2026-09-04T20:45:00Z"
 started: "2026-09-04T20:42:43Z"
 merged: "2026-09-04T20:49:33Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T08:24:21Z"
 ---
 
 # B364 — The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries
