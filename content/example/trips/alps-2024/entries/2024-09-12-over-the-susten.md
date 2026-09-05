@@ -11,6 +11,7 @@ gallery:
     type: "image"
     width: 1600
     height: 1067
+    caption: "The last hairpin before the pass"
   - src: "/media/alps-2024/over-the-susten/02.jpg"
     type: "image"
     width: 1600

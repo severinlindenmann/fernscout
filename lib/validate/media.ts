@@ -1,3 +1,5 @@
+import { singleLineProblem } from "./frontmatter";
+
 // Limits on the photographs and clips a day may include.
 //
 // Pure, like lib/validate/entry.ts: no fs, no decoding, just numbers in and
@@ -56,6 +58,10 @@ export const MAX_ITEMS_PER_DAY = 40;
  * the refusal says so rather than leaving it to be discovered.
  */
 export const REQUEST_MAX_BYTES = 64 * 1024 * 1024;
+/** A caption is one line under a picture; the day's prose is where the rest
+ * belongs. Applied on the way in through the media endpoint and again on a
+ * `PATCH` that corrects one. B522. */
+export const CAPTION_MAX_CHARS = 300;
 
 export type Problem = {
   field: string;
@@ -188,4 +194,79 @@ export function validateMediaBatch(items: MediaCandidate[], limits: Limits = BUI
     });
   }
   return problems;
+}
+
+/**
+ * Captions off a request, positionally — `captions[n]` describes the n-th file
+ * sent, through either door.
+ *
+ * A caption is the only part of a gallery item a caller supplies: `src`,
+ * `width` and `height` are measured off the file, and until the server has
+ * named the file there is no key to address it by. So the list runs alongside
+ * `files` (or `urls`), and **more captions than files is refused rather than
+ * quietly dropped** — the shape that would put somebody's line under the wrong
+ * photograph, which is worse than no caption at all. Fewer is fine: most
+ * pictures have nothing said about them.
+ *
+ * Correcting one afterwards is `PATCH .../days/<slug>` with `captions` keyed
+ * by `src`, which by then exists. B522.
+ */
+export function captionsFor(
+  raw: unknown,
+  count: number,
+): { ok: true; captions: string[] } | { ok: false; problem: Problem } {
+  if (raw === undefined || raw === null) return { ok: true, captions: [] };
+  if (!Array.isArray(raw) || raw.some((caption) => typeof caption !== "string")) {
+    return {
+      ok: false,
+      problem: {
+        field: "captions",
+        got: "something that is not a list of strings",
+        expected: "one caption per file, as strings, in the same order as the files",
+      },
+    };
+  }
+  const captions = (raw as string[]).map((caption) => caption.trim());
+  if (captions.length > count) {
+    return {
+      ok: false,
+      problem: {
+        field: "captions",
+        got: `${captions.length} captions for ${count} ${count === 1 ? "file" : "files"}`,
+        expected:
+          "at most one caption per file, in the same order. Fewer is fine — send an empty " +
+          "one, or none at all, for a picture nobody said anything about.",
+      },
+    };
+  }
+  for (const caption of captions) {
+    const problem = captionProblem(caption, "captions");
+    if (problem) return { ok: false, problem };
+  }
+  return { ok: true, captions };
+}
+
+/**
+ * The two things a caption has to be, wherever it arrives from — the media
+ * endpoint on the way in, and a `PATCH` correcting one later.
+ *
+ * Short, and one line. `quoteScalar` guarantees the file parses whatever it is
+ * handed, so neither check is what keeps the day readable; they are here so a
+ * caller who sent two lines by accident is told which field is wrong now,
+ * rather than finding a caption with a stray `\n` in it on the site. Same
+ * pairing, and the same reasoning, as `singleLineProblem` beside a title.
+ */
+export function captionProblem(caption: string, field: string): Problem | null {
+  if (caption.length > CAPTION_MAX_CHARS) {
+    return {
+      field,
+      got: `${caption.length} characters`,
+      expected: `at most ${CAPTION_MAX_CHARS} — the day's prose is where the rest belongs`,
+    };
+  }
+  const multiLine = singleLineProblem(field, caption);
+  if (multiLine) {
+    return { field, got: "more than one line", expected: multiLine };
+  }
+  return null;
 }

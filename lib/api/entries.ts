@@ -474,13 +474,31 @@ export const EDITABLE_DAY_FIELDS = [
   "travelScene",
   "test",
   "translations",
+  "captions",
 ] as const;
 
 /** A partial `DraftInput` — every field optional, since a PATCH names only
  * what it is changing. `idempotency_key` is not among them: an edit is
  * naturally safe to repeat, since resending the same fields just writes the
  * same file again. */
-export type EditInput = Partial<Omit<DraftInput, "idempotency_key">>;
+export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
+  /**
+   * A caption per photograph, keyed by the item's `src` — the one part of a
+   * `gallery:` block a PATCH may change (B522).
+   *
+   * The rest of the block is the server's: `src`, `width` and `height` are
+   * measured off the file, and rewriting them from a request body is how a
+   * day comes to point at photographs that are not there. So this edits the
+   * `caption:` line inside items that already exist and touches nothing else
+   * — a `src` the day does not carry is ignored rather than added, and an
+   * empty string removes the caption it names.
+   *
+   * The key is forgiving about the owner prefix: a day read back over the API
+   * carries `/<user>/media/…` while the file on disk carries `/media/…`, and
+   * sending back what you were given has to work.
+   */
+  captions?: Record<string, string>;
+};
 
 /**
  * The line naming `key` inside the frontmatter block (`lines[1..closing)`),
@@ -562,6 +580,63 @@ function spliceTranslations(
 }
 
 /**
+ * Rewrite `caption:` inside the `gallery:` block, leaving every other byte of
+ * it alone — B522.
+ *
+ * Wholesale replacement (what `spliceCosts` does) is the wrong shape here: an
+ * edit carrying the whole gallery would let a partial payload delete
+ * photographs, and the `src`, `width` and `height` the server measured off
+ * the file are not the caller's to restate. So this walks the block item by
+ * item and touches only the one line each item may own.
+ */
+function spliceCaptions(lines: string[], closing: number, captions: Record<string, string>): number {
+  const at = frontmatterLineOf(lines, closing, "gallery");
+  if (at < 0) return closing;
+
+  // `/alex/media/trip/day/01.jpg` on the way in, `/media/trip/day/01.jpg` on
+  // disk — the owner is prefixed at read time (`mediaWithOwner`), so compare
+  // what follows `/media/` and nothing before it.
+  const key = (src: string) => src.replace(/^.*\/media\//, "");
+  const wanted = new Map(Object.entries(captions).map(([src, text]) => [key(src), text.trim()]));
+
+  let end = at + 1;
+  while (end < closing && /^\s+\S/.test(lines[end])) end++;
+
+  const starts: number[] = [];
+  for (let i = at + 1; i < end; i++) if (/^\s*-\s/.test(lines[i])) starts.push(i);
+
+  // Walked backwards: each splice moves everything after it, and going from
+  // the end leaves the indices still ahead of the cursor valid.
+  for (let n = starts.length - 1; n >= 0; n--) {
+    const from = starts[n];
+    const to = n + 1 < starts.length ? starts[n + 1] : end;
+    const item = lines.slice(from, to);
+    const srcAt = item.findIndex((line) => /^\s*-?\s*src:/.test(line));
+    if (srcAt < 0) continue;
+    const src = item[srcAt].replace(/^\s*-?\s*src:\s*/, "").trim().replace(/^["']|["']$/g, "");
+    const text = wanted.get(key(src));
+    if (text === undefined) continue;
+
+    const captionAt = item.findIndex((line) => /^\s+caption:/.test(line));
+    if (text === "") {
+      if (captionAt >= 0) {
+        lines.splice(from + captionAt, 1);
+        closing -= 1;
+      }
+      continue;
+    }
+    const rendered = `    caption: ${quote(text)}`;
+    if (captionAt >= 0) {
+      lines[from + captionAt] = rendered;
+    } else {
+      lines.splice(to, 0, rendered);
+      closing += 1;
+    }
+  }
+  return closing;
+}
+
+/**
  * Splice `input`'s fields into `markdown`, textually — parsed and re-emitted
  * for nothing. A field the day already has is replaced in place, so a
  * comment or a hand-chosen key order two lines away survives; a field new to
@@ -613,6 +688,7 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
   if (input.translations !== undefined) {
     closing = spliceTranslations(lines, closing, input.translations);
   }
+  if (input.captions !== undefined) closing = spliceCaptions(lines, closing, input.captions);
 
   if (input.content !== undefined) {
     lines.splice(closing + 1, lines.length - (closing + 1), "", input.content.trim(), "");

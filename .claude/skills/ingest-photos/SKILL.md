@@ -95,6 +95,14 @@ Fill in the prose using the `add-a-day` skill's rules: the author's voice, the
 author's language, and **nothing you were not told**. A photograph is not a
 memory — do not narrate what you think it shows.
 
+That rule is the whole of the `caption:` field, which ingest leaves empty and
+which is the one line under a picture anybody reads. If the author said what a
+particular photograph is, add it — `caption: "The lanterns going up on the
+bridge"` on that item in the `gallery:` block, and re-running ingest leaves it
+alone. If they said nothing, leave it out. A caption is not a description of
+the image: never write one from what you can see in it, and never guess who is
+in it. Empty beats plausible.
+
 Every entry ingest writes carries `status: draft`, so nothing you import is on
 the site yet. Leave the line there. Write the words under it and tell them it
 is ready.

@@ -13,7 +13,7 @@ import {
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 import { TRAVEL_SCENE_VARIANTS } from "@/lib/validate/entry";
-import { REQUEST_MAX_BYTES } from "@/lib/validate/media";
+import { CAPTION_MAX_CHARS, REQUEST_MAX_BYTES } from "@/lib/validate/media";
 
 /**
  * The machine contract for the same API `/agent.md` describes in prose.
@@ -131,15 +131,23 @@ export function openApiDocument() {
           type: "object",
           required: ["src", "type"],
           description:
-            "A photograph or clip on a day. **You do not write these** — POST to the media " +
-            "endpoint and it puts them in the day for you. Described here because they come " +
-            "back when you read a day.",
+            "A photograph or clip on a day. **You do not compose these** — POST to the media " +
+            "endpoint and it puts them in the day for you. The one part that is yours is " +
+            "`caption`: send `captions` alongside the files, or PATCH the day later. " +
+            "Everything else is measured off the file.",
           properties: {
             src: { type: "string", description: "/{user}/media/{trip}/{day}/01.jpg" },
             type: { type: "string", enum: ["image", "video"] },
             width: { type: "integer" },
             height: { type: "integer" },
-            caption: { type: "string" },
+            caption: {
+              type: "string",
+              description:
+                "One line about this photograph — what you were told about it, never what it " +
+                "looks like to you. No invented weather, no invented names. An empty caption " +
+                `beats a plausible one. One line, at most ${CAPTION_MAX_CHARS} characters; a ` +
+                "line break is refused rather than folded.",
+            },
             poster: { type: "string", description: "A still, for a clip." },
             from: {
               type: "string",
@@ -1670,6 +1678,16 @@ export function openApiDocument() {
                       description: "A day that already exists in this trip. Write the day first.",
                     },
                     files: { type: "array", items: { type: "string", format: "binary" } },
+                    captions: {
+                      type: "array",
+                      items: { type: "string" },
+                      description:
+                        "Optional, one per file and in the same order — `captions` may repeat " +
+                        "like `files`. Fewer captions than files is fine; more is refused " +
+                        "rather than misaligned, since a caption on the wrong photograph is " +
+                        "worse than none. Write what you were told about the picture, never " +
+                        "what it looks like to you.",
+                    },
                   },
                 },
               },
@@ -1685,6 +1703,13 @@ export function openApiDocument() {
                       description:
                         "https URLs on public hosts. All or nothing: if any is refused, " +
                         "nothing is written and the reply names which and why.",
+                    },
+                    captions: {
+                      type: "array",
+                      items: { type: "string" },
+                      description:
+                        "Optional, one per URL and in the same order. Same rules as the " +
+                        "multipart door.",
                     },
                   },
                 },

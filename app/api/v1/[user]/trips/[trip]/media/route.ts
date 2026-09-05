@@ -4,7 +4,12 @@ import { storeUploads, type KeptOriginal, type UploadCandidate } from "@/lib/api
 import { getTrip, tripRef } from "@/lib/trips";
 import { fetchImage } from "@/lib/api/fetchMedia";
 import { getUser } from "@/lib/users";
-import { IMAGE_MAX_BYTES, MAX_ITEMS_PER_DAY, REQUEST_MAX_BYTES } from "@/lib/validate/media";
+import {
+  IMAGE_MAX_BYTES,
+  MAX_ITEMS_PER_DAY,
+  REQUEST_MAX_BYTES,
+  captionsFor,
+} from "@/lib/validate/media";
 import type { GalleryItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -144,12 +149,17 @@ export async function POST(
       );
     }
 
+    const captions = captionsFor(body?.captions, urls.length);
+    if (!captions.ok) {
+      return Response.json({ error: "invalid_media", problems: [captions.problem] }, { status: 400 });
+    }
+
     const limits = getUser(user)!.media;
     const fetched: UploadCandidate[] = [];
     const failures: { url: string; reason: string }[] = [];
-    for (const url of urls.slice(0, limits.itemsPerDay)) {
+    for (const [at, url] of urls.slice(0, limits.itemsPerDay).entries()) {
       const got = await fetchImage(url, limits.imageBytes);
-      if (got.ok) fetched.push(got.media);
+      if (got.ok) fetched.push({ ...got.media, caption: captions.captions[at] });
       else failures.push(got.problem);
     }
     // All or nothing: a half-imported day is the state that is annoying to
@@ -262,9 +272,18 @@ export async function POST(
     );
   }
 
+  const captions = captionsFor(form.getAll("captions"), files.length);
+  if (!captions.ok) {
+    return Response.json({ error: "invalid_media", problems: [captions.problem] }, { status: 400 });
+  }
+
   const uploads: UploadCandidate[] = [];
-  for (const file of files) {
-    uploads.push({ filename: file.name, bytes: Buffer.from(await file.arrayBuffer()) });
+  for (const [at, file] of files.entries()) {
+    uploads.push({
+      filename: file.name,
+      bytes: Buffer.from(await file.arrayBuffer()),
+      caption: captions.captions[at],
+    });
   }
 
   const result = await storeUploads(ref, day, uploads);

@@ -64,12 +64,11 @@ export default function Gallery({ items }: { items: GalleryItem[] }) {
                 <Image
                   src={item.src}
                   loader={mediaLoader}
-                  // Empty on purpose. When there is a caption it is drawn
-                  // below and is already the button's accessible name, so
-                  // repeating it here made a screen reader announce every
-                  // photograph's description twice; the button's aria-label
-                  // covers the case where there is no caption.
-                  alt=""
+                  // The caption, and empty when there is none — the button's
+                  // aria-label covers that case. The caption drawn below is
+                  // `aria-hidden` so the two do not both reach a screen
+                  // reader; the same rule as the trip gallery's tiles (B522).
+                  alt={item.caption ?? ""}
                   fill
                   sizes="(max-width: 640px) 50vw, 33vw"
                   className="object-cover"
@@ -82,7 +81,10 @@ export default function Gallery({ items }: { items: GalleryItem[] }) {
               )}
             </span>
             {item.caption && (
-              <span className="mt-1.5 block truncate px-0.5 text-left font-display text-xs italic text-navy-700">
+              <span
+                aria-hidden
+                className="mt-1.5 block truncate px-0.5 text-left font-display text-xs italic text-navy-700"
+              >
                 {item.caption}
               </span>
             )}
