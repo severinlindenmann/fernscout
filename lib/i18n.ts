@@ -556,6 +556,8 @@ export type TranslationKey =
   | "me.keysUnused"
   | "me.keysUsed"
   | "me.nothing"
+  | "me.notifyLede"
+  | "me.notifyTitle"
   | "me.ownerLede"
   | "me.ownerNoTrips"
   | "me.ownerTitle"

@@ -9,6 +9,7 @@ import AgentKeys from "@/components/AgentKeys";
 import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
+import PushOptIn from "@/components/PushOptIn";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
@@ -778,6 +779,30 @@ export default function MePageContent({
             </div>
           </section>
         )}
+
+        {/*
+          Where notifications are switched on, for a reader who is not standing
+          on a trip's landing step — B439.
+
+          The only other switch is inside `TripHero`, which `TripStory` renders
+          on the story's landing step alone: it is gone the moment somebody
+          pages into a day, and a reader who resumed where they left off never
+          meets it at all. This page is the one that answers "what do I have
+          here, and what does it do" — see the panel above — so it is where
+          somebody goes looking.
+
+          `PushOptIn` renders nothing at all unless this browser can actually
+          subscribe and this journal has push switched on, so there is no case
+          where this heading stands over an empty box: the whole section is
+          conditional on the same answer.
+        */}
+        <section className="mt-8">
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-navy-900">
+            {t("me.notifyTitle")}
+          </h2>
+          <p className="mt-1.5 text-base leading-7 text-navy-600">{t("me.notifyLede")}</p>
+          <PushOptIn journal={username} />
+        </section>
 
         {/*
           Last on the page, and only when there is a session to end.
