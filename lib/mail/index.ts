@@ -430,6 +430,24 @@ export async function sendMail(mail: Mail): Promise<SendResult | null> {
 }
 
 /**
+ * Which switch is the reason `sendMail` would refuse — B407.
+ *
+ * The two checks `sendMail` itself makes, named rather than collapsed: a
+ * caller that needs to tell somebody mail cannot go out also needs to say
+ * *whose* setting that is. `"server"` is this instance's own
+ * `isEnabled("mail")` — an operator's problem, pointed at `/api/health`.
+ * `"journal"` is one journal's own `features.mail.enabled: false` — the
+ * owner's own setting, changeable through `PATCH /api/v1/<user>/config`. Null
+ * means `sendMail` would actually try, so a send that still failed was a real
+ * transport error and neither switch is to blame.
+ */
+export function mailDisabledReason(username?: string): "server" | "journal" | null {
+  if (!isEnabled("mail")) return "server";
+  if (username && hasSwitchedOff("mail", username)) return "journal";
+  return null;
+}
+
+/**
  * Send one message a journal's own mail switch does not govern.
  *
  * The exception, and deliberately harder to reach than `sendMail`: `reason`

@@ -575,7 +575,7 @@
   "trips.allTrips": "Összes út",
   "trips.daysAway": "nap múlva",
   "trips.emptyOwnerBody": "Ez a napló még üres. Utat nem itt hozol létre — nincs űrlap, és nem is lesz. Nyomd meg lent a gombot egy szövegért, amit átadhatsz egy ügynöknek, és elkészíti az elsőt.",
-  "trips.emptyOwnerFilteredBody": "Van egy utad, de a trip.md fájlban `listed: false` szerepel — ez ebből a listából is kihagyja, nemcsak a webhelytérképből és a váltóból. Állítsd `listed: true`-ra, hogy itt is megjelenjen.",
+  "trips.emptyOwnerFilteredBody": "Van egy utad, de `listed: false` van rajta megjelölve — ez ebből a listából is kihagyja, nemcsak a webhelytérképből és a váltóból. Kérd meg a naplón dolgozó ügynököt, hogy állítsa vissza listázottra.",
   "trips.emptyOwnerFilteredTitle": "Semmi sincs listázva",
   "trips.emptyTitle": "Még nincs egyetlen út sem",
   "trips.hiddenBody": "Lehet, hogy az ebben a naplóban szereplő utak privátak — {name} tud küldeni meghívólinket, vagy jelentkezz be alább azzal a címmel, amelyet meghívtak.",

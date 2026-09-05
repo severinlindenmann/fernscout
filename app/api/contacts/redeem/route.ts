@@ -1,5 +1,6 @@
 import { isEmail, issueCode } from "@/lib/auth";
-import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
+import { isEnabled } from "@/lib/capabilities";
+import { mailDisabledReason } from "@/lib/mail";
 import {
   approveContact,
   confirmContactFromSession,
@@ -167,15 +168,25 @@ export async function POST(request: Request) {
    * courtesies — and the request it files is real work that mail being off
    * does not undo.
    */
-  if (!sessionEmail && (!isEnabled("mail") || hasSwitchedOff("mail", username))) {
+  const mailOff = sessionEmail ? null : mailDisabledReason(username);
+  if (mailOff) {
     return Response.json(
       {
         error: "mail_disabled",
+        // B407: name the switch that is actually off, and point at the one
+        // that can be changed. A journal's own `features.mail.enabled: false`
+        // is not the server's problem, and telling an owner to look at a
+        // healthy `/api/health` teaches them nothing.
         message:
-          "This server cannot send the six-digit code that redeeming a link needs, so nothing " +
-          "was written and no code was issued — including any code you already hold, which is " +
-          "still live. The person who runs this server has to turn mail on; /api/health says " +
-          "why it is off.",
+          mailOff === "journal"
+            ? "This journal's own mail is switched off, so there is no way to send you the " +
+              "six-digit code that redeeming a link needs — nothing was written and no code " +
+              "was issued, including any code you already hold, which is still live. The " +
+              "owner can turn it back on through PATCH /api/v1/<user>/config."
+            : "This server cannot send the six-digit code that redeeming a link needs, so nothing " +
+              "was written and no code was issued — including any code you already hold, which is " +
+              "still live. The person who runs this server has to turn mail on; /api/health says " +
+              "why it is off.",
       },
       { status: 503 },
     );

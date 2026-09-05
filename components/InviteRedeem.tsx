@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { codeConfirmErrorKey } from "@/lib/contacts/codeConfirmError";
+import { redeemOutcome } from "@/lib/contacts/redeemOutcome";
 import { LOCALE_LABEL, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 import AddressLookupField from "./AddressLookupField";
@@ -228,27 +229,13 @@ export default function InviteRedeem({
     setBusy(false);
 
     if (!response) return setError("contact.error");
-    if (response.status === 429) return setError("contact.tooMany");
-    if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as { error?: string };
-      if (body.error === "invalid_email") return setError("contact.needEmail");
-      if (body.error === "invalid_name") return setError("contact.needName");
-      // The client already checked this before sending; the server checks
-      // again because the client is not the boundary (B273).
-      if (body.error === "invalid_address") return setError("contact.needAddress");
-      // The server cannot send the code this needs (B205). Said in words
-      // rather than as "something went wrong", because there is nothing the
-      // reader can do differently and waiting for a mail that is not coming is
-      // what the old answer left them doing.
-      if (body.error === "mail_disabled") return setError("invite.noMail");
-      return setError("contact.error");
-    }
-
-    const body = (await response.json().catch(() => ({}))) as { status?: string };
-    if (body.status === "expired") return setError("invite.expired");
-    if (body.status === "in") return setStep("in");
-    if (body.status === "waiting") return setStep("waiting");
-    setStep("code");
+    const body = (await response.json().catch(() => ({}))) as { error?: string; status?: string };
+    // B406: every refusal this endpoint can return has to reach the reader —
+    // `redeemOutcome` is the one place that decides how, shared with the test
+    // that checks each one does.
+    const outcome = redeemOutcome(response, body);
+    if (outcome.kind === "error") return setError(outcome.error);
+    setStep(outcome.step);
   }
 
   /** The same six digits and the same endpoint the guestbook uses — one code
@@ -535,7 +522,7 @@ export default function InviteRedeem({
             {t(preapproved ? "invite.notYetPreapproved" : "invite.notYet")}
           </p>
 
-          {error && <p className="mt-6 text-lg text-red-700">{t(error)}</p>}
+          {error && <p role="alert" className="mt-6 text-lg text-red-700">{t(error)}</p>}
           <button className={BUTTON} disabled={busy} type="submit">
             {step === "confirm"
               ? t("invite.confirmSubmit")
@@ -562,7 +549,7 @@ export default function InviteRedeem({
               onChange={(e) => setCode(e.target.value)}
             />
           </div>
-          {error && <p className="mt-6 text-lg text-red-700">{t(error)}</p>}
+          {error && <p role="alert" className="mt-6 text-lg text-red-700">{t(error)}</p>}
           <button className={BUTTON} disabled={busy} type="submit">
             {t("contact.codeSubmit")}
           </button>
