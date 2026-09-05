@@ -199,6 +199,34 @@ describe("choosing the layout for a day", () => {
     ).toContain("quad");
   });
 
+  test("hero picks the photograph the owner starred, not the first", () => {
+    // Day one is a hero day by the automatic rhythm, so one photograph runs
+    // across the paper either way. Which one is the owner's to say.
+    const heroOf = (options: Partial<BookOptions>) => {
+      const page = plan(options)
+        .volumes.flatMap((v) => v.pages)
+        .find((p) => p.kind === "photos" && p.layout === "full-bleed");
+      return page?.kind === "photos" ? page.placements[0].photo.file : undefined;
+    };
+    expect(heroOf({})).toBe("p1.jpg");
+    expect(heroOf({ days: { "2026-01-01": { hero: "/alex/media/asia-2026/day/3.jpg" } } })).toBe(
+      "p3.jpg",
+    );
+  });
+
+  test("a starred photograph that is gone falls back rather than losing the hero", () => {
+    const page = plan({ days: { "2026-01-01": { hero: "/alex/media/asia-2026/day/999.jpg" } } })
+      .volumes.flatMap((v) => v.pages)
+      .find((p) => p.kind === "photos" && p.layout === "full-bleed");
+    expect(page?.kind === "photos" && page.placements[0].photo.file).toBe("p1.jpg");
+  });
+
+  test("the starred photograph is not also printed among the rest", () => {
+    const files = printed({ days: { "2026-01-01": { hero: "/alex/media/asia-2026/day/3.jpg" } } });
+    // Day one has four photographs; p3 is the hero and must appear once.
+    expect(files.filter((f) => f === "p3.jpg")).toHaveLength(1);
+  });
+
   test("grid falls back rather than cropping a panorama to a strip", () => {
     const wide = [photo(20, { width: 6000, height: 1500 }), photo(21), photo(22), photo(23)];
     const got = planBook(source([day(0, wide)]), SPEC, {

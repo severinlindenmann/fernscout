@@ -7,7 +7,13 @@ import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
-import { DAY_LAYOUTS, DEFAULT_OPTIONS, type BookOptions, type DayLayout } from "@/lib/photobook/options";
+import {
+  DAY_LAYOUTS,
+  DEFAULT_OPTIONS,
+  type BookOptions,
+  type DayLayout,
+  type DayPlan,
+} from "@/lib/photobook/options";
 import type { PhotobookOutcome } from "@/lib/photobook/orders";
 import type { MediaTile, PhotobookEntry } from "@/lib/types";
 
@@ -79,6 +85,21 @@ function groupWarnings(
   }));
 }
 
+/**
+ * The day's photographs in the order the book will print them.
+ *
+ * The grid has to show the arrangement, not the gallery: somebody who moved a
+ * photograph to the front and then saw it still third would reasonably think
+ * the button did nothing.
+ */
+function ordered(dayPhotos: MediaTile[], plan: DayPlan | undefined): MediaTile[] {
+  if (!plan?.photos) return dayPhotos;
+  const rank = new Map(plan.photos.map((src, i) => [src, i]));
+  return [...dayPhotos].sort(
+    (a, b) => (rank.get(a.src) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b.src) ?? Number.MAX_SAFE_INTEGER),
+  );
+}
+
 const LANGUAGE_NAME: Record<string, string> = {
   en: "English",
   de: "Deutsch",
@@ -112,11 +133,52 @@ export default function PhotobookPageContent({
   outcome: PhotobookOutcome | null;
 }) {
   const { t } = useI18n();
-  // Opens in the journal's own default language rather than in English.
-  const [options, setOptions] = useState<BookOptions>({
-    ...DEFAULT_OPTIONS,
-    locale: locales[0] ?? DEFAULT_OPTIONS.locale,
+  /**
+   * The arrangement, kept in the browser between visits.
+   *
+   * Eighteen days of choices is an evening's work, and losing it to a phone
+   * locking or a tab being closed is the thing that makes somebody give up on
+   * a tool rather than complain about it. `localStorage` and not a server-side
+   * draft: a draft is a table, a lifetime, a thing to clean up and a thing to
+   * decide who else can see — and this belongs to one person on one device,
+   * which is exactly what `localStorage` already is.
+   *
+   * Keyed by trip, so arranging one journey does not disturb another. Read
+   * once, in the initialiser, because a later read would fight the user's own
+   * edits; written on every change, which is cheap for an object this size.
+   *
+   * A stored arrangement from an older version is ignored rather than merged:
+   * `parseOptions` on the server would refuse it anyway, and starting from the
+   * default is a better failure than a form that cannot be submitted.
+   */
+  const storageKey = `fernscout:photobook:${tripRef}`;
+  const [options, setOptions] = useState<BookOptions>(() => {
+    const fresh = { ...DEFAULT_OPTIONS, locale: locales[0] ?? DEFAULT_OPTIONS.locale };
+    if (typeof window === "undefined") return fresh;
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      if (!saved) return fresh;
+      const parsed = JSON.parse(saved) as Partial<BookOptions>;
+      // Every key the default has, taken from the saved copy only where the
+      // saved copy has one of the right shape.
+      return {
+        ...fresh,
+        ...parsed,
+        days: typeof parsed.days === "object" && parsed.days !== null ? parsed.days : {},
+      };
+    } catch {
+      return fresh;
+    }
   });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(options));
+    } catch {
+      // A full or disabled store is not a reason to stop working; the
+      // arrangement simply does not outlive the tab.
+    }
+  }, [storageKey, options]);
   const [preview, setPreview] = useState<PreviewState>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -146,6 +208,30 @@ export default function PhotobookPageContent({
       ...o,
       days: { ...o.days, [date]: { ...o.days[date], layout } },
     }));
+
+  /** One tap: this is the photograph that should run big. Tapping the current
+   * one again gives the choice back to the planner. */
+  const setHero = (date: string, src: string) =>
+    setOptions((o) => {
+      const current = o.days[date]?.hero;
+      const next = { ...o.days[date] };
+      if (current === src) delete next.hero;
+      else next.hero = src;
+      return { ...o, days: { ...o.days, [date]: next } };
+    });
+
+  /** Move a photograph one place earlier or later within its day. Buttons
+   * rather than dragging: a drag on a phone fights the page's own scroll, and
+   * these lists are three or four items long. */
+  const movePhoto = (date: string, src: string, by: -1 | 1, dayPhotos: MediaTile[]) =>
+    setOptions((o) => {
+      const current = [...(o.days[date]?.photos ?? dayPhotos.map((m) => m.src))];
+      const at = current.indexOf(src);
+      const to = at + by;
+      if (at === -1 || to < 0 || to >= current.length) return o;
+      [current[at], current[to]] = [current[to], current[at]];
+      return { ...o, days: { ...o.days, [date]: { ...o.days[date], photos: current } } };
+    });
 
   const toggleDayPhoto = (date: string, src: string, dayPhotos: MediaTile[]) =>
     setOptions((o) => {
@@ -402,37 +488,87 @@ export default function PhotobookPageContent({
                                 ))}
                               </div>
                               {dayPhotos.length > 0 && (
-                                <div className="mt-3 grid grid-cols-4 gap-1.5">
-                                  {dayPhotos.map((tile, i) => (
-                                    <button
-                                      key={tile.src}
-                                      type="button"
-                                      onClick={() => toggleDayPhoto(day.date, tile.src, dayPhotos)}
-                                      aria-pressed={included.has(tile.src)}
-                                      aria-label={
-                                        tile.caption ||
-                                        t("photobook.option.photoName", {
-                                          index: String(i + 1),
-                                          total: String(dayPhotos.length),
-                                        })
-                                      }
-                                      className={`relative aspect-square overflow-hidden rounded-md border ${
-                                        included.has(tile.src)
-                                          ? "border-yellow-500"
-                                          : "border-navy-200 opacity-30"
-                                      }`}
-                                    >
-                                      <Image
-                                        src={tile.src}
-                                        loader={mediaLoader}
-                                        alt=""
-                                        fill
-                                        sizes="10vw"
-                                        className="object-cover"
-                                      />
-                                    </button>
-                                  ))}
-                                </div>
+                                <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                  {ordered(dayPhotos, plan).map((tile, i) => {
+                                    const inBook = included.has(tile.src);
+                                    // Starred only when the owner picked one. Starring whatever the
+                                    // planner would choose anyway would claim a decision nobody made.
+                                    const isHero = plan?.hero === tile.src;
+                                    return (
+                                      <li key={tile.src} className="space-y-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleDayPhoto(day.date, tile.src, dayPhotos)}
+                                          aria-pressed={inBook}
+                                          aria-label={
+                                            tile.caption ||
+                                            t("photobook.option.photoName", {
+                                              index: String(i + 1),
+                                              total: String(dayPhotos.length),
+                                            })
+                                          }
+                                          className={`relative block aspect-square w-full overflow-hidden rounded-md border ${
+                                            inBook ? "border-yellow-500" : "border-navy-200 opacity-30"
+                                          }`}
+                                        >
+                                          <Image
+                                            src={tile.src}
+                                            loader={mediaLoader}
+                                            alt=""
+                                            fill
+                                            sizes="10vw"
+                                            className="object-cover"
+                                          />
+                                          {isHero && (
+                                            <span
+                                              aria-hidden
+                                              className="absolute left-1 top-1 rounded-full bg-yellow-400 px-1.5 text-[10px] font-bold text-yellow-950"
+                                            >
+                                              ★
+                                            </span>
+                                          )}
+                                        </button>
+                                        {/* Only for photographs that are in the
+                                            book: nudging the order of one that
+                                            is not would be a control with no
+                                            visible effect. */}
+                                        {inBook && (
+                                          <div className="flex items-center justify-between gap-0.5">
+                                            <button
+                                              type="button"
+                                              onClick={() => movePhoto(day.date, tile.src, -1, dayPhotos)}
+                                              aria-label={t("photobook.day.moveEarlier")}
+                                              className="min-h-8 flex-1 rounded border border-navy-200 text-xs text-navy-600"
+                                            >
+                                              ‹
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => setHero(day.date, tile.src)}
+                                              aria-pressed={isHero}
+                                              aria-label={t("photobook.day.makeBig")}
+                                              className={`min-h-8 flex-1 rounded border text-xs ${
+                                                isHero
+                                                  ? "border-yellow-600 bg-yellow-400 text-yellow-950"
+                                                  : "border-navy-200 text-navy-600"
+                                              }`}
+                                            >
+                                              ★
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => movePhoto(day.date, tile.src, 1, dayPhotos)}
+                                              aria-label={t("photobook.day.moveLater")}
+                                              className="min-h-8 flex-1 rounded border border-navy-200 text-xs text-navy-600"
+                                            >
+                                              ›
+                                            </button>
+                                          </div>
+                                        )}
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
                               )}
                             </div>
                           )}

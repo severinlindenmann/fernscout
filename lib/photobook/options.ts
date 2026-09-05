@@ -77,6 +77,20 @@ export type DayPlan = {
    */
   photos?: string[];
   layout?: DayLayout;
+  /**
+   * Which photograph runs big, when the day has a page that runs big.
+   *
+   * A `MediaTile.src`, and only a hint: the planner decides *whether* this day
+   * gets a hero at all — a chapter's first day and roughly every third after
+   * it, or a day the owner set to `hero`. This says *which* photograph takes
+   * it when one is going. Somebody looking at four pictures knows which is the
+   * one; the planner only knows which is first.
+   *
+   * Ignored when the named photograph is not in the day's list, for the same
+   * reason `photos` drops what no longer exists: an arrangement outlives the
+   * entry it was made against.
+   */
+  hero?: string;
 };
 
 export type DayLayout =
@@ -174,6 +188,10 @@ function parseDays(input: unknown): Record<string, DayPlan> | null {
       }
       plan.layout = day.layout as DayLayout;
     }
+    if (day.hero !== undefined) {
+      if (typeof day.hero !== "string" || day.hero.length > MAX_SRC_LENGTH) return null;
+      plan.hero = day.hero;
+    }
     if (day.photos !== undefined) {
       if (!Array.isArray(day.photos) || day.photos.length > MAX_PHOTOS_PER_DAY) return null;
       if (!day.photos.every((s) => typeof s === "string" && s.length <= MAX_SRC_LENGTH)) return null;
@@ -181,7 +199,9 @@ function parseDays(input: unknown): Record<string, DayPlan> | null {
     }
     // A day carrying neither is the planner's again, and saying so by leaving
     // it out keeps the posted body honest about what was actually chosen.
-    if (plan.layout !== undefined || plan.photos !== undefined) out[date] = plan;
+    if (plan.layout !== undefined || plan.photos !== undefined || plan.hero !== undefined) {
+      out[date] = plan;
+    }
   }
   return out;
 }
