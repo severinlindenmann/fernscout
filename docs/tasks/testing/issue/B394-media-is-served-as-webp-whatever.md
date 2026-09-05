@@ -7,8 +7,7 @@ complexity: low
 area: media
 found: "2026-09-04T22:39:23Z"
 started: "2026-09-05T07:11:49Z"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T07:11:49Z"
+merged: "2026-09-05T07:28:03Z"
 ---
 
 # B394 — Media is served as WebP whatever the client says it accepts, and Vary does not mention Accept

@@ -187,17 +187,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (5)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B393](in-development/B393-photographs-cannot-be-added-to-a.md) | Photographs cannot be added to a published day, and the refusal tells the agent to ask somebody who has no way to do it | ISSUE | high | medium | `62683d95` |
-| [B395](in-development/B395-an-approved-reader-who-can-see.md) | An approved reader who can see nothing is told on one page to ask for an invitation they already have | ISSUE | medium | low | `62683d95` |
-| [B396](in-development/B396-the-contacts-page-tells-an-owner.md) | The contacts page tells an owner to change a trip's visibility, which no door can do | ISSUE | medium | low | `62683d95` |
 | [B398](in-development/B398-the-country-on-an-address-is.md) | The country on an address is free text, so nothing downstream can tell Schweiz from Switzerland | FEATURE | medium | low | `39691533` |
-| [B394](in-development/B394-media-is-served-as-webp-whatever.md) | Media is served as WebP whatever the client says it accepts, and Vary does not mention Accept | ISSUE | low | low | `62683d95` |
 
-## testing (166)
+## testing (170)
 
 ### security (7)
 
@@ -211,7 +207,7 @@ _Nothing here._
 | [B03](testing/security/B03-fetchmedia-dns-rebinding.md) | fetchImage re-resolves the hostname after checking it, leaving a rebinding window | SECURITY | low | medium | — |
 | [B233](testing/security/B233-the-https-only-rule-is-not.md) | The https-only rule is not re-applied after a redirect | SECURITY | low | low | — |
 
-### issue (100)
+### issue (104)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -243,6 +239,7 @@ _Nothing here._
 | [B380](testing/issue/B380-the-weekly-digest-mails-every-reader.md) | The weekly digest mails every reader without spending a credit | ISSUE | high | low | — |
 | [B381](testing/issue/B381-a-day-with-no-coordinates-becomes.md) | A day with no coordinates becomes a nameless place, inflating the stop and country counts a page contradicts itself about | ISSUE | high | low | — |
 | [B384](testing/issue/B384-a-guest-the-owner-adds-by.md) | A guest the owner adds by hand is a dead end: a bare code, no link, no way to be approved | ISSUE | high | medium | — |
+| [B393](testing/issue/B393-photographs-cannot-be-added-to-a.md) | Photographs cannot be added to a published day, and the refusal tells the agent to ask somebody who has no way to do it | ISSUE | high | medium | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
@@ -282,6 +279,8 @@ _Nothing here._
 | [B375](testing/issue/B375-flag-fills-are-near-black-and.md) | Flag fills are near-black and six European blues are indistinguishable, because the collision test compares hex rather than perceived colour | ISSUE | medium | low | — |
 | [B379](testing/issue/B379-publishing-a-test-day-is-refused.md) | Publishing a test day is refused for want of credits, though sending it would cost none | ISSUE | medium | low | — |
 | [B383](testing/issue/B383-the-owner-s-address-book-loses.md) | The owner's address book loses the postal address when postcards are off | ISSUE | medium | low | — |
+| [B395](testing/issue/B395-an-approved-reader-who-can-see.md) | An approved reader who can see nothing is told on one page to ask for an invitation they already have | ISSUE | medium | low | — |
+| [B396](testing/issue/B396-the-contacts-page-tells-an-owner.md) | The contacts page tells an owner to change a trip's visibility, which no door can do | ISSUE | medium | low | — |
 | [B397](testing/issue/B397-health-and-status-report-credits-off.md) | health and status report credits off per-journal though it is server-only and live | ISSUE | medium | low | — |
 | [B41](testing/issue/B41-an-approved-contact-is-shown-a.md) | An approved contact is shown a trip in their own panel and then asked for a password nobody gave them | ISSUE | medium | medium | — |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
@@ -314,6 +313,7 @@ _Nothing here._
 | [B371](testing/issue/B371-the-markdown-twin-of-a-day.md) | The markdown twin of a day carries only the default locale, so a translated day has no readable source | ISSUE | low | low | — |
 | [B376](testing/issue/B376-the-phone-field-offers-postcards-on.md) | The phone field offers postcards on a server with postcards switched off | ISSUE | low | low | — |
 | [B382](testing/issue/B382-the-costs-page-meta-description-names.md) | The costs page meta description names the journal by its URL slug instead of its title | ISSUE | low | low | — |
+| [B394](testing/issue/B394-media-is-served-as-webp-whatever.md) | Media is served as WebP whatever the client says it accepts, and Vary does not mention Accept | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
 ### big-feature (8)
