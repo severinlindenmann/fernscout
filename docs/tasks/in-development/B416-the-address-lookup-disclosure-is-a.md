@@ -67,3 +67,38 @@ With the capability on, the street field carries no explanatory paragraph. As
 soon as suggestions appear, the list ends with the attribution line, and it
 goes when the list closes. `contact.addressLookupHint` no longer exists in
 `lib/i18n.ts` or any locale file, and `npm run unused` stays clean.
+
+## Done
+
+`AddressLookupField.tsx` now takes an `attribution` prop and renders the
+listbox and the footer line inside one panel `<div>`; the footer is a `<p
+aria-hidden="true">` after the `</ul>`, so it sits outside `role="listbox"`'s
+options *and* is marked non-content for a screen reader — belt and braces on
+the acceptance line about not announcing it as a result. It appears and
+disappears with `showList`, same as the list itself.
+
+`contact.addressLookupHint` is gone from `lib/i18n.ts:89` and all three
+locale files; `contact.addressLookupAttribution` replaces it in the same spot
+alphabetically, worth "Addresses from OpenStreetMap" / "Adressen von
+OpenStreetMap" / "Címek az OpenStreetMap-től". All four call sites
+(`ContactForm.tsx`, `ContactsAdmin.tsx`, `InviteRedeem.tsx`,
+`ContactManage.tsx`) dropped the standing `<p>` and now pass
+`attribution={t("contact.addressLookupAttribution")}`.
+
+The fuller explanation — what the capability does, that a query proxies
+through the server to Photon (or whatever `features.addressLookup.url`
+names) rather than the browser talking to it directly, and that nothing is
+sent below `MIN_QUERY_LEN` characters — is a new subsection in
+`docs/running-locally.md`, right after the `SESSION_SECRET` one: no existing
+file already documented this capability's behaviour (`grep -rl
+"addressLookup" docs/` found nothing before this change), and
+`running-locally.md` is where every other capability's behaviour is written
+in the same prose-plus-env-vars shape, so this follows that rather than
+starting a new doc.
+
+`npm run verify` (build → tsc → eslint → vitest): all four stages passed,
+2799 tests passed / 3 skipped (the skipped ones are the Postgres-only tests,
+skipped for lack of a local Postgres, unrelated to this change).
+`npm run unused`: clean, exit 0 — the only output is the same ~59
+pre-existing unused-export warnings (B235) that were there before this
+change; nothing new, and no unused files/dependencies.

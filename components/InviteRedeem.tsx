@@ -433,10 +433,8 @@ export default function InviteRedeem({
                     username={username}
                     locale={locale}
                     label={t("contact.addrLine1")}
+                    attribution={t("contact.addressLookupAttribution")}
                   />
-                  {addressLookupEnabled && (
-                    <p className="mt-2 text-base text-navy-600">{t("contact.addressLookupHint")}</p>
-                  )}
                 </div>
                 <div className="mt-4">
                   <label className={LABEL} htmlFor="invite-addr-line2">

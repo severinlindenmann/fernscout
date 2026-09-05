@@ -353,10 +353,8 @@ export default function ContactForm({
                 username={username}
                 locale={locale}
                 label={t("contact.addrLine1")}
+                attribution={t("contact.addressLookupAttribution")}
               />
-              {addressLookupEnabled && (
-                <p className="mt-2 text-base text-navy-600">{t("contact.addressLookupHint")}</p>
-              )}
             </div>
             <div className="mt-4">
               <label className={LABEL} htmlFor="addr-line2">

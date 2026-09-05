@@ -86,7 +86,7 @@ export type TranslationKey =
   | "contact.addrPostcode"
   | "contact.address"
   | "contact.addressHint"
-  | "contact.addressLookupHint"
+  | "contact.addressLookupAttribution"
   | "contact.adminAddGuest"
   | "contact.adminAddressHint"
   | "contact.adminAddressHintNoPostcards"
