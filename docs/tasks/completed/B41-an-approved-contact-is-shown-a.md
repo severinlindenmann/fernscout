@@ -8,8 +8,7 @@ area: access, contacts, trips
 found: "2026-09-01"
 started: "2026-09-01"
 merged: "2026-09-01"
-session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
-claimed: "2026-09-05T07:38:38Z"
+completed: "2026-09-05T07:45:55Z"
 ---
 
 # B41 — An approved contact is shown a trip in their own panel and then asked for a password nobody gave them
