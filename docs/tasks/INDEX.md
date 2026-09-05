@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (107)
+## backlog (106)
 
 ### security (6)
 
@@ -134,13 +134,12 @@ Do not edit them by hand; run the script.
 | [B176](backlog/small-feature/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 
-### chore (12)
+### chore (11)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B363](backlog/chore/B363-the-letter-s-permission-gate-is.md) | The letter's permission gate is a second copy of the site's, and nothing holds them together | CHORE | medium | medium |
 | [B483](backlog/chore/B483-generated-photobooks-are-counted-against-no.md) | Generated photobooks are counted against no quota and never pruned | CHORE | medium | medium |
-| [B501](backlog/chore/B501-the-demo-journal-keeps-no-originals.md) | The demo journal keeps no originals, so every demo book prints soft | CHORE | medium | low |
 | [B216](backlog/chore/B216-nothing-helps-an-author-find-the.md) | Nothing helps an author find the rate to freeze into a trip | CHORE | low | low |
 | [B226](backlog/chore/B226-two-new-deploy-time-checks-run.md) | Two new deploy-time checks run only where a binary happens to exist, and CI may have neither | CHORE | low | low |
 | [B235](backlog/chore/B235-seventy-one-exports-and-fifty-nine.md) | Seventy-one exports and fifty-nine exported types are used only inside their own file | CHORE | low | medium |
@@ -208,7 +207,7 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B497](in-development/B497-the-photobook-draws-one-hardcoded-couple.md) | The photobook draws one hardcoded couple whoever travelled | FEATURE | medium | high | `c3c8ffc8` |
 
-## testing (200)
+## testing (201)
 
 ### security (2)
 
@@ -390,7 +389,7 @@ _Nothing here._
 | [B368](testing/small-feature/B368-there-is-no-way-to-ask.md) | There is no way to ask for more credits, and the payment provider does not exist yet | FEATURE | low | medium | — |
 | [B475](testing/small-feature/B475-the-nightly-status-mail-is-a.md) | The nightly status mail is a wall of monospace while every other letter this instance sends is designed | FEATURE | low | medium | — |
 
-### chore (15)
+### chore (16)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -400,6 +399,7 @@ _Nothing here._
 | [B387](testing/chore/B387-the-weekly-digest-was-never-scheduled.md) | The weekly digest was never scheduled or wanted, and is a second mail system to keep correct | CHORE | medium | medium | — |
 | [B40](testing/chore/B40-a-six-digit-code-expires-in.md) | A six-digit code expires in ten minutes, which is shorter than people take to find the mail | CHORE | medium | low | — |
 | [B485](testing/chore/B485-hu-json-calls-a-trip-utaz.md) | hu.json calls a trip utazás where the guides and B449 settled on út | CHORE | medium | medium | — |
+| [B501](testing/chore/B501-the-demo-journal-keeps-no-originals.md) | The demo journal keeps no originals, so every demo book prints soft | CHORE | medium | low | — |
 | [B66](testing/chore/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium | — |
 | [B08](testing/chore/B08-serve-webp-alongside-jpeg-with-picture.md) | Serve WebP alongside JPEG with <picture> in the gallery (W30 gap) | CHORE | low | low | — |
 | [B133](testing/chore/B133-nothing-tests-the-url-upload-branch.md) | Nothing tests the URL upload branch end to end, so the kept-original promise rests on one shared writer | CHORE | low | low | — |

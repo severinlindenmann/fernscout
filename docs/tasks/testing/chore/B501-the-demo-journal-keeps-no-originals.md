@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: demo content, photobook
 found: "2026-09-05T17:05:25Z"
+merged: "2026-09-05T17:12:47Z"
 ---
 
 # B501 — The demo journal keeps no originals, so every demo book prints soft
