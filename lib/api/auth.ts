@@ -1,4 +1,5 @@
 import "server-only";
+import { isAdminEmail } from "../admin";
 import { resolveSession, type Session } from "../auth";
 import { isEnabled } from "../capabilities";
 import { tripWriteVerdict } from "../tripPeople";
@@ -34,9 +35,19 @@ export async function authenticate(request: Request): Promise<ApiAuth> {
   return { ok: true, session };
 }
 
-/** A token is scoped to exactly one journal, and may not reach past it. */
+/**
+ * A token is scoped to exactly one journal, and may not reach past it.
+ *
+ * One exception, and it is an address rather than a token: the instance admin
+ * of B480 owns every journal here, so their journal-wide token answers for all
+ * of them rather than being re-minted per journal by the same person. The
+ * scope check is not relaxed — a trip-scoped token and the `exchange:token`
+ * handover credential are agent sessions too, and neither is a journal-wide
+ * grant. `isOwner` widens on exactly the same two conditions.
+ */
 export function ownsUser(session: Session, username: string): boolean {
-  return session.owner === username;
+  if (session.owner === username) return true;
+  return session.scope === "write:content" && isAdminEmail(session.email);
 }
 
 /**

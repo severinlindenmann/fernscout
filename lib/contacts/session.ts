@@ -1,4 +1,5 @@
 import "server-only";
+import { isAdminEmail } from "../admin";
 import { resolveSession } from "../auth";
 import { resolveAccess } from "../auth/handshake";
 import { hasReadGrant } from "../grants";
@@ -25,10 +26,19 @@ import { getContactByEmail, type ContactRecord } from "./index";
  *
  * A journal with no `owner.email` has no owner, and therefore no admin surface.
  * That is the right default: it fails closed.
+ *
+ * A third door since B480, and it is not a fact about this journal at all:
+ * `FERNSCOUT_ADMIN_EMAIL`, the address that owns every journal on the
+ * instance. Unset — which is every instance but the one that sets it — nothing
+ * below changes. See `lib/admin.ts` for why it lives in the environment.
  */
 export async function isOwner(username: string, request?: Request): Promise<boolean> {
+  // A journal that does not exist has no owner, and the admin owns nothing in
+  // it either. `owner.email` may still be absent below — an ownerless journal
+  // has no owner to match, and B480's address owns it anyway, which is the
+  // one case where somebody can reach a journal whose config names nobody.
   const user = getUser(username);
-  if (!user?.owner.email) return false;
+  if (!user) return false;
   const ownerEmail = user.owner.email;
 
   // Either browser credential proves the address: the journal session this
@@ -36,12 +46,29 @@ export async function isOwner(username: string, request?: Request): Promise<bool
   // they hold is not a fact about whether they own this journal — `owner.email`
   // is — so the question is asked of the address, once, through `resolveAccess`.
   const { email } = await resolveAccess(username);
-  if (email === ownerEmail) return true;
+  if (email && (email === ownerEmail || isAdminEmail(email))) return true;
 
   const header = request?.headers.get("authorization") ?? "";
   const bearer = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : undefined;
   const agent = await resolveSession(bearer, "agent");
-  return Boolean(agent && agent.owner === username && agent.email === ownerEmail);
+  if (!agent) return false;
+  /**
+   * The admin's token reaches past the journal it was minted for — B480.
+   *
+   * `agent.owner` is the journal the code was issued against, and for everyone
+   * else it is a wall: a token for one journal is refused on the next. The
+   * admin address is the owner of all of them, so requiring a token per
+   * journal would be a bookkeeping ritual rather than a control — the same
+   * address would ask for each one and be given it.
+   *
+   * The **scope** is still a wall, and has to be: a trip-scoped token
+   * (`write:trip:…`) and the twenty-minute `exchange:token` handover
+   * credential both arrive here as agent sessions, and neither is the journal
+   * -wide grant this widens. Only the unqualified `write:content` an owner's
+   * own code mints passes.
+   */
+  if (agent.scope === "write:content" && isAdminEmail(agent.email)) return true;
+  return agent.owner === username && Boolean(ownerEmail) && agent.email === ownerEmail;
 }
 
 /**

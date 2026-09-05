@@ -1,5 +1,6 @@
 import "server-only";
 import { isIndexable } from "./access";
+import { isAdminEmail } from "./admin";
 import { getContactByEmail } from "./contacts";
 import { getAllEntries } from "./entries";
 import { hasReadGrant } from "./grants";
@@ -112,7 +113,10 @@ export async function journalsFor(email: string): Promise<HomeJournal[]> {
     const user = getUser(username);
     if (!user) continue;
 
-    const owner = Boolean(user.owner.email) && user.owner.email === email;
+    // The instance admin owns every journal on it (B480), so the home view
+    // lists them all rather than only the ones whose config names them.
+    const owner =
+      isAdminEmail(email) || (Boolean(user.owner.email) && user.owner.email === email);
 
     // Asked only when it can change the answer. A journal the address owns is
     // already in at the strongest level, and two indexed queries per journal
