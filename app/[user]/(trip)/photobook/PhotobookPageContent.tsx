@@ -245,6 +245,39 @@ export default function PhotobookPageContent({
       return { ...o, days: { ...o.days, [date]: { ...o.days[date], photos: next } } };
     });
 
+  /**
+   * The way back — B515.
+   *
+   * A day the owner has fiddled with has an entry in `options.days`; deleting
+   * it is enough to hand the day back to the planner, because "no entry" is
+   * already what "the planner decides" means everywhere else in this file.
+   */
+  const resetDay = (date: string) =>
+    setOptions((o) => {
+      const rest = { ...o.days };
+      delete rest[date];
+      return { ...o, days: rest };
+    });
+
+  /**
+   * The whole book, back to the planner's arrangement.
+   *
+   * Eighteen days of choices is an evening's work, so this asks first — in
+   * words, naming how many days are about to be undone, rather than a bare
+   * "are you sure?" that could mean anything. `window.confirm` rather than a
+   * dialog of our own: this is the one native primitive built for exactly
+   * "say what happens, then let the person stop it".
+   *
+   * Clearing `days` is the whole fix for `localStorage` too: the effect above
+   * writes `options` on every change, so the stored arrangement shrinks along
+   * with the in-memory one rather than needing a second, separate erase.
+   */
+  const resetBook = () => {
+    const count = Object.keys(options.days).length;
+    if (count === 0) return;
+    if (!window.confirm(t("photobook.resetAllConfirm", { count: String(count) }))) return;
+    setOptions((o) => ({ ...o, days: {} }));
+  };
 
   // Debounced: every keystroke and every tile click changes `options`, and
   // each one plans and lays out the whole book server-side. 400 ms is long
@@ -417,9 +450,22 @@ export default function PhotobookPageContent({
                 </fieldset>
 
                 <div>
-                  <p className="text-sm font-semibold text-navy-800">
-                    {t("photobook.day.heading")}
-                  </p>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm font-semibold text-navy-800">
+                      {t("photobook.day.heading")}
+                    </p>
+                    {/* Disabled rather than hidden when there is nothing to
+                        lose: a control that vanishes the moment it would do
+                        nothing is harder to find the one time it matters. */}
+                    <button
+                      type="button"
+                      onClick={resetBook}
+                      disabled={Object.keys(options.days).length === 0}
+                      className="text-xs font-semibold text-navy-600 underline disabled:cursor-not-allowed disabled:text-navy-300 disabled:no-underline"
+                    >
+                      {t("photobook.resetAll")}
+                    </button>
+                  </div>
                   <p className="mt-1 text-xs text-navy-600">{t("photobook.day.hint")}</p>
                   <ul className="mt-2 space-y-1">
                     {days.map((day) => {
@@ -487,6 +533,20 @@ export default function PhotobookPageContent({
                                   </button>
                                 ))}
                               </div>
+                              {/* Only for a day the owner has actually
+                                  touched — plan is undefined for every day
+                                  still left to the planner, and a button
+                                  that undoes nothing has no reason to be
+                                  there. */}
+                              {plan && (
+                                <button
+                                  type="button"
+                                  onClick={() => resetDay(day.date)}
+                                  className="mt-2 text-xs font-semibold text-navy-600 underline"
+                                >
+                                  {t("photobook.day.reset")}
+                                </button>
+                              )}
                               {dayPhotos.length > 0 && (
                                 <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
                                   {ordered(dayPhotos, plan).map((tile, i) => {
