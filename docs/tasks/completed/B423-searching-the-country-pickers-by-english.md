@@ -8,6 +8,7 @@ area: contacts, i18n
 found: "2026-09-05T11:55:00Z"
 started: "2026-09-05T09:16:44Z"
 merged: "2026-09-05T09:22:13Z"
+completed: "2026-09-05T09:26:08Z"
 ---
 
 # B423 — Searching the country pickers by English name finds nothing on a journal that is not in English
