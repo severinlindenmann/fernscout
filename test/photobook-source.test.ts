@@ -343,3 +343,80 @@ describe("originals kept outside the content root", () => {
     expect(fs.existsSync(resolvePrintFile(photo.file))).toBe(true);
   });
 });
+
+describe("what the source leaves out", () => {
+  test("excludePhotos drops exactly the named photographs", async () => {
+    writeDay("day-one", "2026-01-01", [
+      { width: 2000, height: 1333 },
+      { width: 1333, height: 2000 },
+    ]);
+    writeDay("day-two", "2026-01-02", [{ width: 2000, height: 1333 }]);
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
+    write(path.join(tripPath(), "media", "day-one", "02.jpg"), await jpeg(1333, 2000));
+    write(path.join(tripPath(), "media", "day-two", "01.jpg"), await jpeg(2000, 1333));
+
+    const all = buildBookSource(REF);
+    const files = all.days.flatMap((d) => d.photos.map((p) => p.file));
+    expect(files.length).toBeGreaterThan(1);
+
+    const firstSrc = "/alex/media/asia-2026/day-one/01.jpg"; // the gallery src, not the print file
+    const fewer = buildBookSource(REF, { excludePhotos: [firstSrc] });
+    expect(fewer.days.flatMap((d) => d.photos).length).toBe(files.length - 1);
+  });
+
+  test("includeNames: false leaves the travellers out", async () => {
+    writeDay("day-one", "2026-01-01", [{ width: 2000, height: 1333 }]);
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
+
+    expect(buildBookSource(REF).travellers.length).toBeGreaterThan(0);
+    expect(buildBookSource(REF, { includeNames: false }).travellers).toEqual([]);
+  });
+
+  test("excluding everything is a book with no photographs, not a crash", async () => {
+    writeDay("day-one", "2026-01-01", [
+      { width: 2000, height: 1333 },
+      { width: 1333, height: 2000 },
+    ]);
+    writeDay("day-two", "2026-01-02", [{ width: 2000, height: 1333 }]);
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
+    write(path.join(tripPath(), "media", "day-one", "02.jpg"), await jpeg(1333, 2000));
+    write(path.join(tripPath(), "media", "day-two", "01.jpg"), await jpeg(2000, 1333));
+
+    const srcs = [
+      "/alex/media/asia-2026/day-one/01.jpg",
+      "/alex/media/asia-2026/day-one/02.jpg",
+      "/alex/media/asia-2026/day-two/01.jpg",
+    ];
+    const empty = buildBookSource(REF, { excludePhotos: srcs });
+    expect(empty.days.flatMap((d) => d.photos)).toEqual([]);
+  });
+});
+
+describe("the web preview handle", () => {
+  test("buildBookSource sets webSrc to the entry's own gallery src on every photograph", async () => {
+    writeDay("day-one", "2026-01-01", [
+      { width: 2000, height: 1333 },
+      { width: 1333, height: 2000 },
+    ]);
+    writeDay("day-two", "2026-01-02", [{ width: 2000, height: 1333 }]);
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
+    write(path.join(tripPath(), "media", "day-one", "02.jpg"), await jpeg(1333, 2000));
+    write(path.join(tripPath(), "media", "day-two", "01.jpg"), await jpeg(2000, 1333));
+    // A kept original, so `file` carries the print path and cannot double as
+    // the preview's src — the exact case webSrc exists for.
+    write(path.join(tripPath(), "originals", "day-one", "01.jpg"), await jpeg(4200, 2800));
+
+    const source = buildBookSource(REF, { madeOn: "2026-02-01" });
+    const photos = source.days.flatMap((d) => d.photos);
+    expect(photos.length).toBeGreaterThan(1);
+    expect(photos.map((p) => p.webSrc)).toEqual([
+      "/alex/media/asia-2026/day-one/01.jpg",
+      "/alex/media/asia-2026/day-one/02.jpg",
+      "/alex/media/asia-2026/day-two/01.jpg",
+    ]);
+    // Distinct from the print file wherever a kept original wins.
+    const withOriginal = photos.find((p) => p.file.includes("originals/"));
+    expect(withOriginal?.webSrc).toBe("/alex/media/asia-2026/day-one/01.jpg");
+    expect(withOriginal?.webSrc).not.toBe(withOriginal?.file);
+  });
+});

@@ -64,6 +64,16 @@ export type BookPhoto = {
    * be printed. The planner says so in any low-resolution warning, so a soft
    * page is never explained by resolution alone (B13). */
   fallbackReason?: string;
+  /**
+   * The entry's own gallery `src` — the web derivative a browser can actually
+   * fetch, e.g. `/media/alps-2024/grimsel-and-rain/01.jpg`. Never the print
+   * file: `file` above may be content-root-relative or carry an `originals:`
+   * prefix pointing outside anything the web server serves (see `bookFile` in
+   * `source.ts`), so a preview needs this instead. Optional only so the
+   * hand-built `BookPhoto` fixtures in the planner's own tests, which never
+   * reach a web preview, keep compiling; `buildBookSource` always sets it.
+   */
+  webSrc?: string;
 };
 
 export function labelOf(photo: BookPhoto): string {

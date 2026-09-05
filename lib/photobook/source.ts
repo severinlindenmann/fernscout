@@ -261,6 +261,17 @@ export type SourceOptions = {
    * them soft. Off by default — a soft photo of something that happened once
    * still beats a gap. */
   minPixelWidth?: number;
+  /**
+   * Gallery `src` values to leave out, as chosen in the browser.
+   *
+   * Keyed on the entry's own `src` rather than on the resolved print file,
+   * because that is the string the page has: `MediaTile.src` is what the
+   * gallery renders and what the form posts back. The print file is derived
+   * from it a line later and is not knowable to a browser.
+   */
+  excludePhotos?: readonly string[];
+  /** Who travelled. `false` leaves the byline off. */
+  includeNames?: boolean;
 };
 
 export function buildBookSource(tripId: string, options: SourceOptions = {}): BookSource {
@@ -268,20 +279,25 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
   if (!trip) throw new Error(`No trip "${tripId}" in ${tripDir(tripId)}`);
 
   const config = loadUserConfig(trip.username);
-  const travellers = travellersOf(config, trip)
-    .map((p) => p.nickname || p.name)
-    .filter(Boolean);
+  const travellers =
+    options.includeNames === false
+      ? []
+      : travellersOf(config, trip)
+          .map((p) => p.nickname || p.name)
+          .filter(Boolean);
 
   // Photographs printed from the web copy, and why. Reported once for the
   // book rather than once per plate; the per-photograph half rides along on
   // any low-resolution warning, where a reader is already looking.
   const fallbacks = new Map<string, string[]>();
+  const excluded = new Set(options.excludePhotos ?? []);
 
   const days: BookDay[] = getDays(tripId).map((day) => {
     const photos: BookPhoto[] = [];
     for (const entry of day.entries) {
       for (const item of entry.gallery) {
         if (item.type !== "image") continue;
+        if (excluded.has(item.src)) continue;
         const print = printSourceFor(tripId, item.src);
         // The original's own header wins: the frontmatter records what the
         // browser is served, which is the smaller of the two by construction.
@@ -299,6 +315,7 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
         }
         photos.push({
           file: print.file,
+          webSrc: item.src,
           width: size.width,
           height: size.height,
           caption: item.caption,
