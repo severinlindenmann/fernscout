@@ -203,12 +203,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (4)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B465](in-development/B465-the-postcard-preview-follows-the-journal.md) | The postcard preview follows the journal's language, not the reader's chosen one | ISSUE | high | low | `8af79b62` |
 | [B468](in-development/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | `7c3dd4ae` |
+| [B470](in-development/B470-the-landing-page-the-docs-index.md) | The landing page, the docs index and the guides are three surfaces with no shared shell, so the documentation reads as a pile rather than a site | FEATURE | high | medium | `3744307d` |
 | [B466](in-development/B466-the-send-button-spends-money-with.md) | The send button spends money with no moment to reconsider | FEATURE | medium | low | `8af79b62` |
 | [B467](in-development/B467-a-sent-postcard-leaves-the-owner.md) | A sent postcard leaves the owner no record of what was posted | FEATURE | medium | medium | `8af79b62` |
 
