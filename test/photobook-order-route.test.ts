@@ -4,7 +4,6 @@ vi.mock("@/lib/contacts/session", () => ({ isOwner: vi.fn().mockResolvedValue(tr
 vi.mock("@/lib/capabilities", () => ({ isEnabled: vi.fn().mockReturnValue(true) }));
 vi.mock("@/lib/credits", () => ({
   spend: vi.fn(),
-  refund: vi.fn(),
   balanceOf: vi.fn().mockResolvedValue(null),
 }));
 vi.mock("@/lib/photobook/receipt", () => ({ sendPhotobookReceipt: vi.fn() }));
@@ -23,9 +22,9 @@ vi.mock("@/lib/photobook/orders", async (importOriginal) => {
 
 import { POST } from "@/app/[user]/photobook/order/route";
 import { GET } from "@/app/[user]/photobooks/[id]/[file]/route";
-import { refund, spend } from "@/lib/credits";
+import { balanceOf, spend } from "@/lib/credits";
 import { planFor, priceOf, buildPhotobook } from "@/lib/photobook/build";
-import { claimOrder, markFailed } from "@/lib/photobook/orders";
+import { claimOrder, markFailed, markPrinted } from "@/lib/photobook/orders";
 
 const params = Promise.resolve({ user: "alex" });
 
@@ -69,18 +68,28 @@ describe("the order route", () => {
     expect(response.status).toBe(403);
   });
 
-  describe("the money path — claim, spend, build, and what unwinds when it doesn't", () => {
+  describe("the money path — claim, build, charge, and what happens when it does not finish", () => {
     beforeEach(() => {
       vi.clearAllMocks();
       vi.mocked(planFor).mockReturnValue(BOOK as never);
       vi.mocked(priceOf).mockReturnValue(CREDITS);
       vi.mocked(claimOrder).mockResolvedValue(true);
       vi.mocked(markFailed).mockResolvedValue(true);
-      vi.mocked(refund).mockResolvedValue(undefined);
+      vi.mocked(markPrinted).mockResolvedValue(true);
+      vi.mocked(balanceOf).mockResolvedValue(CREDITS * 4);
     });
 
-    test("a build that throws is refunded for exactly what was spent, and marked failed", async () => {
-      vi.mocked(spend).mockResolvedValue(true);
+    /**
+     * B509. The order used to spend and then build, so anything that ended the
+     * request in the tens of seconds a build takes — a deploy restarting the
+     * service, a proxy timeout — took the money and left no book and no
+     * refund, because the code that would have given it back died with the
+     * request. It cost 357 credits on the live instance in one afternoon.
+     *
+     * Reversed, the worst case is a book nobody paid for. These tests are the
+     * ordering, which is the whole of the fix.
+     */
+    test("a build that throws costs nothing, because nothing was charged yet", async () => {
       vi.mocked(buildPhotobook).mockImplementation(() => {
         throw new Error("no ICC profile for this size");
       });
@@ -89,10 +98,7 @@ describe("the order route", () => {
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toContain("state=failed");
-      // The same `credits` the order was priced and spent at — a refund for
-      // any other number would either shortchange the owner or hand back
-      // more than was ever taken.
-      expect(refund).toHaveBeenCalledWith("alex", CREDITS, "order-build-fails");
+      expect(spend).not.toHaveBeenCalled();
       expect(markFailed).toHaveBeenCalledWith(
         "alex",
         "order-build-fails",
@@ -101,18 +107,59 @@ describe("the order route", () => {
       );
     });
 
-    test("no credits, no build — spend refusing the charge stops the pipeline before a page is drawn", async () => {
-      vi.mocked(spend).mockResolvedValue(false);
+    test("the book is built before a single credit moves", async () => {
+      const calls: string[] = [];
+      vi.mocked(buildPhotobook).mockImplementation(() => {
+        calls.push("build");
+        return { files: ["book-interior.pdf"], pages: 52, volumes: 1, missing: [] };
+      });
+      vi.mocked(spend).mockImplementation(async () => {
+        calls.push("spend");
+        return true;
+      });
+
+      await POST(orderRequest("order-ordering"), { params });
+
+      // The assertion this whole ticket is about.
+      expect(calls).toEqual(["build", "spend"]);
+    });
+
+    test("a balance too small to cover the book draws no pages at all", async () => {
+      vi.mocked(balanceOf).mockResolvedValue(CREDITS - 1);
 
       const response = await POST(orderRequest("order-no-credits"), { params });
 
       expect(response.status).toBe(303);
       expect(response.headers.get("location")).toContain("state=no_credits");
       expect(buildPhotobook).not.toHaveBeenCalled();
-      expect(refund).not.toHaveBeenCalled();
+      expect(spend).not.toHaveBeenCalled();
       expect(markFailed).toHaveBeenCalledWith(
         "alex",
         "order-no-credits",
+        expect.any(Object),
+        "no_credits",
+      );
+    });
+
+    test("a balance that moves under a finished book keeps the files and says so", async () => {
+      // The narrow race the check above cannot close: two of the owner's own
+      // sessions. The book exists, so it is kept — pressing Pay again after
+      // topping up costs nothing extra, the id and the files being the same.
+      vi.mocked(buildPhotobook).mockReturnValue({
+        files: ["book-interior.pdf"],
+        pages: 52,
+        volumes: 1,
+        missing: [],
+      });
+      vi.mocked(spend).mockResolvedValue(false);
+
+      const response = await POST(orderRequest("order-raced"), { params });
+
+      expect(response.headers.get("location")).toContain("state=no_credits");
+      expect(buildPhotobook).toHaveBeenCalled();
+      expect(markFailed).toHaveBeenCalledWith(
+        "alex",
+        "order-raced",
         expect.any(Object),
         "no_credits",
       );
