@@ -22,6 +22,7 @@ import {
   mapProjector,
   typeScale,
   type BookPage,
+  type BookPhoto,
   type BookVolume,
   type MappedPoint,
   type Photobook,
@@ -138,11 +139,15 @@ function textBlock(spec: BookSpec, page: BookPage, html: string, klass = "copy")
   return `<div class="${klass}" style="${style(spec, c)}">${html}</div>`;
 }
 
+/** Where the browser should fetch each photograph from. */
+export type SrcFor = (photo: BookPhoto) => string;
+
 function pageHtml(
   spec: BookSpec,
   page: BookPage,
   outDir: string,
   resolveFile: (file: string) => string,
+  srcFor: SrcFor | undefined,
 ): string {
   const type = typeScale(spec);
   const scale = 100 / (spec.size.trimHeightMm + spec.bleedMm * 2);
@@ -215,7 +220,9 @@ function pageHtml(
 
     case "photos":
       for (const p of page.placements) {
-        const src = path.relative(outDir, resolveFile(p.photo.file)).split(path.sep).join("/");
+        const src = srcFor
+          ? srcFor(p.photo)
+          : path.relative(outDir, resolveFile(p.photo.file)).split(path.sep).join("/");
         parts.push(
           `<div class="slot" style="${style(spec, p.clip)}">` +
             `<img src="${escape(src)}" alt="" style="${imgStyle(p.clip, p.draw)}">` +
@@ -284,6 +291,15 @@ export function renderPreview(
   /** `BookPhoto.file` → a real path. Identity for a source that already
    * hands over absolute ones, which is what a test usually does. */
   resolveFile: (file: string) => string = (file) => file,
+  /**
+   * Where the browser should fetch each photograph from.
+   *
+   * The CLI writes a folder and wants relative paths; the site serves
+   * `/<user>/media/…` and has no folder. One callback rather than two
+   * renderers — this file exists precisely so there is one layout, and a
+   * second copy of it for the web would be the drift it was written to avoid.
+   */
+  srcFor?: SrcFor,
 ): string {
   const spec = book.spec;
   const ratio = (spec.size.trimWidthMm + spec.bleedMm * 2) / (spec.size.trimHeightMm + spec.bleedMm * 2);
@@ -292,7 +308,7 @@ export function renderPreview(
       (volume: BookVolume) =>
         `<section><h2>${escape(volume.title)} — ${volume.interiorPages} pages, ` +
         `spine ${volume.spineWidthMm.toFixed(1)} mm</h2>` +
-        `<div class="spreads">${volume.pages.map((p) => pageHtml(spec, p, outDir, resolveFile)).join("")}</div>` +
+        `<div class="spreads">${volume.pages.map((p) => pageHtml(spec, p, outDir, resolveFile, srcFor)).join("")}</div>` +
         `</section>`,
     )
     .join("");
