@@ -5,6 +5,11 @@ import { journalsFor } from "@/lib/home";
 
 export const dynamic = "force-dynamic";
 
+/** Never stored by a shared cache, and never revalidated from one. This is one
+ * person's list of private journals; the only cache it may sit in is the
+ * identity-keyed one B412 keeps in the service worker. */
+const NO_STORE = { "Cache-Control": "private, no-store" };
+
 /**
  * What this person may open, and on which devices they are signed in — B411.
  *
@@ -19,18 +24,29 @@ export const dynamic = "force-dynamic";
  * been let into. `resolveIdentity` asks `resolveSession` for the `identity`
  * kind, so a guest cookie, an agent bearer token and a handover credential are
  * each refused by the same comparison that refuses them everywhere else.
+ *
+ * ## Why nobody is a `200` and not a `401` — B443
+ *
+ * This is a probe for who the reader is, not a protected resource, and `/`
+ * fires it on every load — most of which are strangers, because `fs_identity`
+ * is httpOnly and the page is deliberately impersonal, so nothing on it can
+ * know not to ask. Answering `401` put a red line in the console of an
+ * ordinary working visit, every time, and a console that is never clean is one
+ * nobody reads. Nothing is withheld by saying it plainly instead: there is no
+ * credential to retry with and no list to hide.
+ *
+ * `id: null` is the whole signal, and both readers of this route take it that
+ * way — the page shows the landing view, and the service worker purges its
+ * cached copy on a body with no id in it exactly as it did on the status.
+ * The capability being off is the same answer for the same reason.
  */
 export async function GET() {
-  if (!isEnabled("auth")) {
-    return Response.json({ error: "auth_disabled" }, { status: 404 });
-  }
-
-  const identity = await resolveIdentity();
+  const identity = isEnabled("auth") ? await resolveIdentity() : null;
   if (!identity) {
-    // 401 rather than an empty body: B412's service worker purges its cached
-    // copy on exactly this status, which is what makes a revoked identity stop
-    // showing a stale list on the next load.
-    return Response.json({ error: "not_signed_in" }, { status: 401 });
+    return Response.json(
+      { id: null, email: null, journals: [], devices: [] },
+      { headers: NO_STORE },
+    );
   }
 
   const [journals, devices] = await Promise.all([
@@ -55,11 +71,6 @@ export async function GET() {
         current: row.id === identity.id,
       })),
     },
-    {
-      // Never stored by a shared cache, and never revalidated from one. This
-      // is one person's list of private journals; the only cache it may sit in
-      // is the identity-keyed one B412 keeps in the service worker.
-      headers: { "Cache-Control": "private, no-store" },
-    },
+    { headers: NO_STORE },
   );
 }
