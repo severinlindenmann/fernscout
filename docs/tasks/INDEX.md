@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (103)
+## backlog (105)
 
 ### security (6)
 
@@ -98,11 +98,12 @@ Do not edit them by hand; run the script.
 | [B484](backlog/issue/B484-the-photobook-result-panel-can-render.md) | The photobook result panel can render with no download links | ISSUE | low | low |
 | [B500](backlog/issue/B500-minimap-hydrates-with-a-mismatch-on.md) | MiniMap hydrates with a mismatch on the last decimal place of every coordinate | ISSUE | low | low |
 
-### big-feature (11)
+### big-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
+| [B504](backlog/big-feature/B504-a-photobook-cannot-be-shaped-day.md) | A photobook cannot be shaped day by day | FEATURE | high | high |
 | [B06](backlog/big-feature/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B112](backlog/big-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts write straight to content, bypassing the token, draft status and rate limits every network write goes through | FEATURE | medium | high |
 | [B262](backlog/big-feature/B262-writing-to-a-journal-requires-bringing.md) | Writing to a journal requires bringing your own agent, so an owner without one cannot write at all | FEATURE | medium | high |
@@ -114,7 +115,7 @@ Do not edit them by hand; run the script.
 | [B492](backlog/big-feature/B492-a-self-hosted-instance-cannot-use.md) | A self-hosted instance cannot use our printing service, so its owner has no way to order a photobook or postcards | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
-### small-feature (12)
+### small-feature (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -125,6 +126,7 @@ Do not edit them by hand; run the script.
 | [B42](backlog/small-feature/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B436](backlog/small-feature/B436-nothing-ever-suggests-sending-postcards-so.md) | Nothing ever suggests sending postcards, so nobody discovers the feature | FEATURE | medium | low |
 | [B502](backlog/small-feature/B502-a-photograph-is-given-a-page.md) | A photograph is given a page it has not the pixels to fill | FEATURE | medium | medium |
+| [B503](backlog/small-feature/B503-the-photobook-is-printed-in-english.md) | The photobook is printed in English whatever language the journal is written in | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
 | [B07](backlog/small-feature/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium |
