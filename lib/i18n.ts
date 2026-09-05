@@ -78,6 +78,8 @@ export type TranslationKey =
   | "a11y.skipToContent"
   | "contact.addrCity"
   | "contact.addrCountry"
+  | "contact.addrCountryNoMatches"
+  | "contact.addrCountrySearchPlaceholder"
   | "contact.addrLine1"
   | "contact.addrLine2"
   | "contact.addrName"
