@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: i18n
 found: "2026-09-05T15:15:00Z"
+started: "2026-09-05T15:23:38Z"
+session: e5747799-fd3e-4d40-a335-82fa4e24333e
+claimed: "2026-09-05T15:23:38Z"
 ---
 
 # B481 — The Hungarian and German interfaces switch between addressing the reader as te and as Ön

@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (103)
+## backlog (102)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (33)
+### issue (32)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -97,7 +97,6 @@ Do not edit them by hand; run the script.
 | [B419](backlog/issue/B419-the-three-comboboxes-never-tell-assistive.md) | The three comboboxes never tell assistive tech which suggestion the arrow keys are on | ISSUE | low | low |
 | [B428](backlog/issue/B428-the-patch-config-response-echoes-a.md) | The PATCH config response echoes a stale features block that a GET moments later contradicts | ISSUE | low | low |
 | [B429](backlog/issue/B429-the-invite-form-shows-a-canned.md) | The invite form shows a canned mail-off line instead of the server's, losing which switch is off | ISSUE | low | low |
-| [B481](backlog/issue/B481-the-hungarian-and-german-interfaces-switch.md) | The Hungarian and German interfaces switch between addressing the reader as te and as Ön | ISSUE | low | low |
 | [B484](backlog/issue/B484-the-photobook-result-panel-can-render.md) | The photobook result panel can render with no download links | ISSUE | low | low |
 
 ### big-feature (12)
@@ -200,11 +199,14 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B11](open/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium |
 
-## in-development (0)
+## in-development (2)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B449](in-development/B449-the-hungarian-reader-guides-were-written.md) | The Hungarian reader guides were written by an agent and have never been read by a speaker | DOCS | medium | low | `e5747799` |
+| [B481](in-development/B481-the-hungarian-and-german-interfaces-switch.md) | The Hungarian and German interfaces switch between addressing the reader as te and as Ön | ISSUE | low | low | `e5747799` |
 
-## testing (186)
+## testing (185)
 
 ### security (2)
 
@@ -401,7 +403,7 @@ _Nothing here._
 | [B401](testing/ops/B401-nightly-backups-have-been-failing-since.md) | Nightly backups have been failing since two unreadable config.json.bak files appeared in the content root | OPS | high | low | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
-### docs-and-skills (15)
+### docs-and-skills (14)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -414,7 +416,6 @@ _Nothing here._
 | [B248](testing/docs-and-skills/B248-the-main-checkout-rule-is-prose.md) | The main-checkout rule is prose, and prose does not stop an Edit | DOCS | medium | low | — |
 | [B292](testing/docs-and-skills/B292-four-things-an-agent-had-to.md) | Four things an agent had to learn by failing are documented somewhere it was not looking | DOCS | medium | low | — |
 | [B355](testing/docs-and-skills/B355-agent-md-says-an-invite-token.md) | agent.md says an invite token is only stored hashed and can never be shown again, which B280 changed | DOCS | medium | low | — |
-| [B449](testing/docs-and-skills/B449-the-hungarian-reader-guides-were-written.md) | The Hungarian reader guides were written by an agent and have never been read by a speaker | DOCS | medium | low | — |
 | [B456](testing/docs-and-skills/B456-the-guides-describe-controls-in-words.md) | The guides describe controls in words alone, so a reader on a phone has to find them by hunting | DOCS | medium | low | — |
 | [B477](testing/docs-and-skills/B477-the-ios-home-screen-steps-are.md) | The iOS Home Screen steps are the ones readers get lost in and the only ones with no picture | DOCS | medium | low | — |
 | [B186](testing/docs-and-skills/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | DOCS | low | low | — |
