@@ -7,8 +7,7 @@ complexity: medium
 area: i18n, metadata, 404
 found: "2026-09-04T09:45:51Z"
 started: "2026-09-05T15:05:00Z"
-session: e5747799-fd3e-4d40-a335-82fa4e24333e
-claimed: "2026-09-05T15:05:00Z"
+merged: "2026-09-05T15:17:17Z"
 ---
 
 # B251 — The 404 page's tab title is the bare site name, because not-found.tsx exports metadata Next never asks for
