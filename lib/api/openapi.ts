@@ -1,6 +1,6 @@
 import "server-only";
 import { serverSite } from "@/lib/site";
-import { getDefaultUsername, getUsernames } from "@/lib/users";
+import { getDefaultUsername, listedUsernames } from "@/lib/users";
 // Shared with /agent.md and /documentation.txt. A machine contract that
 // disagrees with the prose about what `private` means is worse than either.
 import {
@@ -31,7 +31,12 @@ import { TRAVEL_SCENE_VARIANTS } from "@/lib/validate/entry";
  */
 export function openApiDocument() {
   const site = serverSite();
-  const example = getDefaultUsername() ?? getUsernames()[0] ?? "username";
+  // `listedUsernames()`, not `getUsernames()`: this document is public, and the
+  // worked example would otherwise name whichever journal directory sorts
+  // first — including one whose config asked not to be advertised. The same
+  // line in lib/api/documentation.ts:455 does it this way; this one did not.
+  // B473.
+  const example = getDefaultUsername() ?? listedUsernames()[0] ?? "username";
 
   const errorSchema = {
     type: "object",

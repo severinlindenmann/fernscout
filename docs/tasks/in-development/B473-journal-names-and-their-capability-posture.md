@@ -110,3 +110,47 @@ is kept.
 `journalsWithheld` key. The same call with `Authorization: Bearer $HEALTH_TOKEN`
 has both, unfiltered. `/openapi.json` on an instance with no `defaultUser` and
 one unlisted journal names neither.
+
+## What was built
+
+`journals` is now `...(detailed ? { journals } : {})` — present in full for a
+caller holding `HEALTH_TOKEN`, absent for everybody else. `journalsWithheld`
+went with it, along with the `listedUsernames()` filter it existed to explain.
+
+`lib/api/openapi.ts` takes its example username from `listedUsernames()`, the
+way `lib/api/documentation.ts:455` always did.
+
+**Absent, not empty**, and the reason is worth keeping: an empty object reads
+as "this instance has no journals", which is the ambiguity B197 was written to
+remove. `content: { ok: false, code: "unreadable" }` still says "cannot tell"
+and is still public — so the diagnostic survives losing the roster, which is
+what made taking the roster away safe rather than a regression of B197.
+
+### Four tests had to change, and which probe each one uses is now the point
+
+Three files were reading `body.journals` anonymously because they could:
+`mail-journal-switch` (does the block agree with what mail does), `request-log`
+(logging is never a per-journal narrowing) and the B397 credits case. Each
+claim is about what the block *contains*, so each now sends the token — and in
+`mail-journal-switch` the anonymous `probe()` is kept beside a new `operator()`,
+because the test right below it is specifically about what a caller *without*
+a token is refused. Two probes in one file, and choosing between them is the
+assertion.
+
+## Evidence
+
+- `test/health-disclosure.test.ts` — no journal named at all to an anonymous
+  caller (neither the private nor the listed one), no `journalsWithheld`, the
+  full roster with the token, and a new test that B197's `content.ok` survives
+  the redaction with the path still held back.
+- The `/openapi.json` test turns on the sort order: `hidden` < `shown`, so the
+  old line returned the unadvertised name and the new one cannot.
+- Reverting `route.ts` and `openapi.ts` fails 3 of the 10, including both new
+  ones. Verified.
+- `npm run verify` — all four, green.
+
+## Still to do on the host
+
+`HEALTH_TOKEN` is unset in `/etc/fernscout/env`. Until it is set, fernscout.ch
+has no journal roster on `/api/health` for anybody — which is the safe state,
+and also means the block an operator wants is unreachable.

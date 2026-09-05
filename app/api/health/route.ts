@@ -6,7 +6,7 @@ import { resolveCapabilities } from "@/lib/capabilities";
 import { loadServerConfig } from "@/lib/config";
 import { FEATURE_NAMES } from "@/lib/config";
 import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
-import { contentRootProblem, getUsernames, listedUsernames } from "@/lib/users";
+import { contentRootProblem, getUsernames } from "@/lib/users";
 import pkg from "@/package.json";
 
 // Never cache or prerender: this reflects the live state of the process
@@ -84,9 +84,10 @@ export const dynamic = "force-dynamic";
  *
  * **Behind `HEALTH_TOKEN`:** the free-text `error` on `config`, `content` and
  * `basemap`, which carries the absolute content-root path and errno text; and
- * the `journals` rows of journals this instance does not advertise. Present it
- * as `Authorization: Bearer <token>`. Unset means nobody is entitled, never
- * everybody — a fresh install is safe before it is configured.
+ * the whole `journals` block. Present it as `Authorization: Bearer <token>`.
+ * Unset means nobody is entitled, never everybody — a fresh install is safe
+ * before it is configured, and an instance that never sets it simply has no
+ * roster on this page.
  *
  * **The diagnostic that B197 added survives the redaction**, which is the
  * point of drawing the line here rather than dropping the field. B197's
@@ -96,16 +97,23 @@ export const dynamic = "force-dynamic";
  * the path is held back, and `getUsernames()` has already written the whole
  * message to stdout, where the operator entitled to it already is.
  *
- * **`journals` is filtered by `listedUsernames()`**, which is the function
- * whose docstring already says "use this for anything that hands out the
- * existence of a journal". A journal whose config says `visibility: guest`
- * (or the old word, `private`) is meant to be absent from `/documentation.txt`,
- * the landing page and
- * `sitemap.xml`; it had its name here instead, as soon as it narrowed a
- * capability. `journalsWithheld` counts what the filter dropped, so the
- * redaction is visible to the operator debugging a 404 rather than silently
- * handing them a list that looks complete. A count names nobody and cannot be
- * turned into a URL.
+ * **`journals` is the whole roster, and it needs the token** (B473). B234
+ * filtered it through `listedUsernames()` instead, which held back the
+ * journals this instance does not advertise and left the advertised ones with
+ * their capability posture attached. Two things were wrong with stopping
+ * there. A listed journal's *name* is public by design — it is on
+ * `/documentation.txt` and the landing page — but which capabilities it has
+ * switched on is a fact about a deployment, and the only reader who wants it
+ * is the operator comparing this block against a 404, who is the reader
+ * `HEALTH_TOKEN` exists for. And `journalsWithheld` was a live count of the
+ * journals that asked not to be found: it names nobody, which is not the same
+ * as saying nothing.
+ *
+ * **Absent, not empty.** An unentitled caller gets no `journals` key at all. An
+ * empty object would read as "this instance has no journals" — precisely the
+ * ambiguity B197 existed to remove — and `content: { ok: false }` with its
+ * `code` is public for exactly that reason: it still distinguishes "cannot
+ * tell" from "nothing to report" without the roster.
  */
 
 /**
@@ -222,15 +230,10 @@ export async function GET(request: Request) {
 
   const healthy = configOk && !contentProblem;
 
-  // Only the journals this instance already advertises, unless the caller is
-  // entitled to the rest. See the note above; `listedUsernames()` is the same
-  // filter `/documentation.txt` and the sitemap use, so there is one answer to
-  // "may this journal's name be handed out" rather than two.
-  const listed = detailed ? null : new Set(listedUsernames());
-  const shownJournals = listed
-    ? Object.fromEntries(Object.entries(journals).filter(([name]) => listed.has(name)))
-    : journals;
-  const withheld = Object.keys(journals).length - Object.keys(shownJournals).length;
+  // The whole roster is operator detail, and it is absent rather than empty for
+  // an unentitled caller — see the note above on why the middle ground B234
+  // built is not enough, and why `content.ok` is what carries B197's
+  // diagnostic instead.
 
   const body = {
     status: healthy ? "ok" : "error",
@@ -250,8 +253,7 @@ export async function GET(request: Request) {
     // not move `status`.
     basemap: basemapFault ? fault("unreadable", basemapFault, detailed) : { ok: true },
     capabilities,
-    journals: shownJournals,
-    ...(withheld > 0 ? { journalsWithheld: withheld } : {}),
+    ...(detailed ? { journals } : {}),
     backup: readBackupStatus(),
     responseTimeMs: Date.now() - startedAt,
   };

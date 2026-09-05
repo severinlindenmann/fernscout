@@ -153,10 +153,21 @@ describe("/api/health and logging", () => {
     );
     clearUserCache();
 
-    const response = await health(new Request("https://example.test/api/health"));
-    const body = await response.json();
+    // As the operator: since B473 an unentitled caller has no `journals` block
+    // to inspect, and the claim here is about what that block does not contain.
+    process.env.HEALTH_TOKEN = "s3cret-health-token-logging";
+    try {
+      const response = await health(
+        new Request("https://example.test/api/health", {
+          headers: { authorization: "Bearer s3cret-health-token-logging" },
+        }),
+      );
+      const body = await response.json();
 
-    expect(body.capabilities.logging).toEqual({ enabled: true });
-    expect(body.journals.alice?.logging).toBeUndefined();
+      expect(body.capabilities.logging).toEqual({ enabled: true });
+      expect(body.journals.alice?.logging).toBeUndefined();
+    } finally {
+      delete process.env.HEALTH_TOKEN;
+    }
   });
 });

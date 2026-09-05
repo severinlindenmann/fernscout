@@ -25,6 +25,15 @@ import { clearUserCache } from "@/lib/users";
  * stay anonymous — AGENTS.md requires a capability that is off to explain
  * itself, and B197 requires an unreadable content root to be reportable here.
  * The path and the unadvertised names need `HEALTH_TOKEN`.
+ *
+ * **B473 moved the line once more**, and this file is where both positions are
+ * recorded. B234 filtered `journals` through `listedUsernames()`; B473 takes
+ * the block away from an unentitled caller entirely, because a listed
+ * journal's capability posture is a fact about a deployment rather than about
+ * a journal, and `journalsWithheld` was a live count of the journals that
+ * asked not to be found. The same audit found `lib/api/openapi.ts` naming a
+ * journal by `getUsernames()[0]` in a public document, four files from the
+ * line that does it correctly; the last test here is that one.
  */
 
 const TOKEN = "s3cret-health-token";
@@ -144,6 +153,9 @@ describe("what a stranger is told", () => {
     // one the server answer and the per-journal answer would both be "off" and
     // the skip would never be exercised.
     process.env.DATABASE_URL = `sqlite:${path.join(dir, "health-credits.sqlite")}`;
+    // Read as the operator: since B473 an unentitled caller has no `journals`
+    // block to inspect, and the claim here is about what that block contains.
+    process.env.HEALTH_TOKEN = TOKEN;
     clearConfigCache();
     clearUserCache();
     const { migrateToLatest } = await import("@/lib/db/migrate");
@@ -160,6 +172,7 @@ describe("what a stranger is told", () => {
     } finally {
       await closeDatabase();
       delete process.env.DATABASE_URL;
+      delete process.env.HEALTH_TOKEN;
       fs.writeFileSync(
         path.join(dir, "config.json"),
         JSON.stringify({
@@ -173,18 +186,41 @@ describe("what a stranger is told", () => {
     }
   });
 
-  test("a journal this instance does not advertise is not named", async () => {
+  test("no journal is named at all, advertised or not", async () => {
+    // B234 filtered this list through `listedUsernames()`; B473 took the whole
+    // block away from an unentitled caller. A listed journal's *name* is
+    // public by design, but which capabilities it has switched on is a fact
+    // about a deployment — and `journalsWithheld` was a live count of the
+    // journals that asked not to be found.
     const body = await (await health(anonymous())).json();
 
-    expect(body.journals[PUBLIC_JOURNAL]?.reactions).toEqual({
-      enabled: false,
-      reason: `not enabled by ${PUBLIC_JOURNAL}`,
-    });
-    expect(body.journals[PRIVATE_JOURNAL]).toBeUndefined();
+    expect(body.journals, "absent, not empty — see the note in the route").toBeUndefined();
+    expect(body.journalsWithheld).toBeUndefined();
     expect(JSON.stringify(body)).not.toContain(PRIVATE_JOURNAL);
-    // The redaction is visible rather than silent: an operator debugging a 404
-    // must not read a filtered list as a complete one. A count names nobody.
-    expect(body.journalsWithheld).toBe(1);
+    expect(JSON.stringify(body)).not.toContain(PUBLIC_JOURNAL);
+  });
+
+  test("B197's diagnostic survives the redaction", async () => {
+    // The constraint that makes taking the roster away safe. B197's complaint
+    // was that an empty `journals` block reads exactly like an instance with
+    // no journals, so nothing could say "cannot tell" rather than "nothing to
+    // report". `content` is what says it, and it stays public.
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(fs, "readdirSync").mockImplementation(() => {
+      throw new Error("EACCES: permission denied");
+    });
+    clearUserCache();
+    try {
+      const response = await health(anonymous());
+      const body = await response.json();
+      expect(response.status).toBe(503);
+      expect(body.content).toEqual({ ok: false, code: "unreadable" });
+      // The code, yes. The path it could not read, no.
+      expect(JSON.stringify(body)).not.toContain(dir);
+    } finally {
+      vi.restoreAllMocks();
+      clearUserCache();
+    }
   });
 
   test("why a capability is off is still public", async () => {
@@ -219,25 +255,51 @@ describe("what the operator is told", () => {
 
     expect(body.journals[PRIVATE_JOURNAL]?.reactions.enabled).toBe(false);
     expect(body.journals[PUBLIC_JOURNAL]?.reactions.enabled).toBe(false);
-    // Nothing was withheld, so nothing says so.
+    // The whole roster or none of it — there is no filtered middle any more,
+    // so nothing counts what was dropped.
     expect(body.journalsWithheld).toBeUndefined();
   });
 
   test("a wrong token is a stranger, and so is an unset one", async () => {
     process.env.HEALTH_TOKEN = TOKEN;
     const wrong = await (await health(operator("not-the-token"))).json();
-    expect(wrong.journals[PRIVATE_JOURNAL]).toBeUndefined();
+    expect(wrong.journals).toBeUndefined();
 
     // The dangerous default is the one where an operator who never set the
     // variable has been serving the full page all along.
     delete process.env.HEALTH_TOKEN;
     const unset = await (await health(operator())).json();
-    expect(unset.journals[PRIVATE_JOURNAL]).toBeUndefined();
+    expect(unset.journals).toBeUndefined();
 
     // An empty variable is not a token either — `Bearer ` would otherwise
     // match it.
     process.env.HEALTH_TOKEN = "";
     const empty = await (await health(operator(""))).json();
-    expect(empty.journals[PRIVATE_JOURNAL]).toBeUndefined();
+    expect(empty.journals).toBeUndefined();
+  });
+});
+
+describe("the other public document that names a journal", () => {
+  test("/openapi.json's example username never names an unadvertised journal", async () => {
+    // B473. `getUsernames()` is sorted, so with no `defaultUser` the worked
+    // example took whichever journal directory sorts first — and here that is
+    // the private one, which is the whole point of the two fixture names.
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "R", url: "https://example.test" },
+        users: { reserved: [] },
+        features: { reactions: { enabled: true } },
+      }),
+    );
+    clearConfigCache();
+    clearUserCache();
+
+    const { openApiDocument } = await import("@/lib/api/openapi");
+    const document = JSON.stringify(openApiDocument());
+
+    expect(PRIVATE_JOURNAL < PUBLIC_JOURNAL, "the fixture only bites if the private name sorts first").toBe(true);
+    expect(document).not.toContain(PRIVATE_JOURNAL);
+    expect(document).toContain(PUBLIC_JOURNAL);
   });
 });
