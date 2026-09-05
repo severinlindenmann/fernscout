@@ -475,6 +475,8 @@
   "me.keysUnused": "még nem használták",
   "me.keysUsed": "utoljára használva: {date}",
   "me.nothing": "Még semmi. Kérd meg azt, aki ideküldött, hogy hívjon meg.",
+  "me.notifyLede": "Kapj értesítést ezen az eszközön, amikor új nap jelenik meg itt. Bármikor kikapcsolhatod.",
+  "me.notifyTitle": "Értesítések",
   "me.ownerLede": "Minden, amit csak te kezelsz: adj kulcsot egy ügynöknek, tartsd szemmel a kreditjeidet, és döntsd el, ki olvashat.",
   "me.ownerNoTrips": "Még semmi — ebben a naplóban egyelőre nincs út. Új utat egy ügynök ír; a szöveg, amire ehhez szüksége van, lejjebb található ezen az oldalon.",
   "me.ownerTitle": "Ez a te naplód",

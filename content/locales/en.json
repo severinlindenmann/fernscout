@@ -475,6 +475,8 @@
   "me.keysUnused": "not used yet",
   "me.keysUsed": "last used {date}",
   "me.nothing": "Nothing yet. Ask whoever sent you here to invite you.",
+  "me.notifyLede": "Get a notification on this device when a new day is published here. You can turn it off again at any time.",
+  "me.notifyTitle": "Notifications",
   "me.ownerLede": "Everything that is yours to run: hand an agent the keys, keep an eye on your credits, and choose who reads along.",
   "me.ownerNoTrips": "Nothing yet — there are no trips in this journal so far. A new trip is written by an agent; the prompt it needs is further down this page.",
   "me.ownerTitle": "This is your journal",

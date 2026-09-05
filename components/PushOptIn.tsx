@@ -34,6 +34,16 @@ export function needsHomeScreenInstall() {
   return !standalone;
 }
 
+/**
+ * How long to wait for the service worker before giving up on it — B438.
+ *
+ * Generous on purpose. The cost of waiting too long is that the button appears
+ * a moment late on a slow connection; the cost of not waiting long enough is
+ * that it never appears at all, with nothing on the page to say why. Those are
+ * not comparable, so this errs at the end that is merely untidy.
+ */
+const WORKER_WAIT_MS = 8000;
+
 type State =
   | "checking"
   | "unsupported"
@@ -44,14 +54,29 @@ type State =
   | "working"
   | "failed";
 
-export default function PushOptIn() {
+export default function PushOptIn({
+  /**
+   * The journal to subscribe to, for a mount with no trip in context — B439.
+   *
+   * A subscription has only ever been per **journal**: `push_subscriptions` is
+   * keyed by username and endpoint, and `subscribersFor` takes a trip only to
+   * answer who may be *told* about it. The trip context was how this component
+   * found a username, not something it needed, and taking that as a limit is
+   * what left the only switch inside the hero — which `TripStory` renders on
+   * the story's landing step alone, so it vanishes the moment somebody starts
+   * reading.
+   */
+  journal,
+}: {
+  journal?: string;
+} = {}) {
   const { t } = useI18n();
-  // TripHero — the only place this mounts — is always inside TripProvider,
-  // so `username` is null only in the unexpected case where that stops being
-  // true. Push has nothing to subscribe to without a trip in view, so it
-  // degrades to rendering nothing rather than guessing a journal.
+  // The trip, when there is one — the hero. `journal` covers the mounts that
+  // have no trip in context, such as the reader's own page. With neither there
+  // is no journal to subscribe to and this renders nothing rather than
+  // guessing one.
   const trip = useTrip();
-  const username = trip?.trip.username ?? null;
+  const username = journal ?? trip?.trip.username ?? null;
   const [state, setState] = useState<State>("checking");
   const [publicKey, setPublicKey] = useState<string | null>(null);
 
@@ -98,17 +123,38 @@ export default function PushOptIn() {
         return;
       }
 
-      // `.ready` never rejects — with no worker registered it simply never
-      // settles, and this component would sit in its initial state forever.
-      // In development there deliberately is no worker at all.
-      const registered = await navigator.serviceWorker.getRegistration();
+      /**
+       * Wait for the worker rather than sampling once — B438.
+       *
+       * `ServiceWorkerRegistrar` defers `register()` to the window `load`
+       * event, and this effect runs at hydration, which is usually earlier.
+       * A single `getRegistration()` therefore loses that race on a first
+       * visit — and losing it set `unsupported`, which renders **null**. The
+       * control did not appear, said nothing about why, and never re-checked;
+       * only a reload brought it back. On a phone, where the load event comes
+       * late and a cold PWA start later still, that is the common case rather
+       * than the rare one.
+       *
+       * `.ready` is the right thing to wait on and cannot be waited on alone:
+       * it never rejects, and with nothing ever registered it never settles
+       * either — which is exactly the state a development build is in, and
+       * would leave this component stuck on `checking` for ever. So it is
+       * raced against a clock, and the clock losing is the only honest
+       * `unsupported`.
+       */
+      const registered =
+        (await navigator.serviceWorker.getRegistration()) ??
+        (await Promise.race([
+          navigator.serviceWorker.ready.catch(() => null),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), WORKER_WAIT_MS)),
+        ]));
+      if (cancelled) return;
       if (!registered) {
-        if (!cancelled) setState("unsupported");
+        setState("unsupported");
         return;
       }
 
-      const reg = await navigator.serviceWorker.ready.catch(() => null);
-      const existing = await reg?.pushManager.getSubscription();
+      const existing = await registered.pushManager.getSubscription();
       if (!cancelled) setState(existing ? "on" : "off");
     };
 

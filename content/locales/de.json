@@ -475,6 +475,8 @@
   "me.keysUnused": "noch nicht benutzt",
   "me.keysUsed": "zuletzt benutzt {date}",
   "me.nothing": "Noch nichts. Bitte die Person, die dich hergeschickt hat, dich einzuladen.",
+  "me.notifyLede": "Lass dich auf diesem Gerät benachrichtigen, wenn hier ein neuer Tag veröffentlicht wird. Du kannst das jederzeit wieder ausschalten.",
+  "me.notifyTitle": "Benachrichtigungen",
   "me.ownerLede": "Alles, was nur du steuerst: einem Agenten die Schlüssel geben, dein Guthaben im Blick behalten und wählen, wer mitliest.",
   "me.ownerNoTrips": "Noch nichts — in diesem Tagebuch gibt es bisher keine Reise. Eine neue Reise schreibt ein Agent; den Text, den er dafür braucht, findest du weiter unten auf dieser Seite.",
   "me.ownerTitle": "Das ist dein Tagebuch",
