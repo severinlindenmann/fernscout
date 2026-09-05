@@ -29,6 +29,7 @@ import {
   type RectMm,
 } from "./spec.ts";
 import {
+  MAP_SPACE,
   labelOf,
   mapClipMm,
   mapProjector,
@@ -58,6 +59,20 @@ const RULE = { r: 0.82, g: 0.83, b: 0.85 };
 const PAPER = { r: 1, g: 1, b: 1 };
 const ACCENT = { r: 0.17, g: 0.36, b: 0.52 };
 const LAND = { r: 0.925, g: 0.918, b: 0.902 };
+/** Faint enough to be structure rather than decoration; it must never compete
+ * with the route. */
+const GRATICULE = { r: 0.87, g: 0.86, b: 0.84 };
+
+/** Degrees between graticule lines, in MAP_SPACE units, for a window this
+ * wide. `MAP_SPACE.width` is 1000 units to 360°, so one degree is 2.78 units.
+ * Picks the first interval that leaves fewer than about eight lines. */
+function graticuleStep(windowWidth: number): number {
+  const perDegree = MAP_SPACE.width / 360;
+  for (const degrees of [1, 2, 5, 10, 20, 30, 45, 60]) {
+    if (windowWidth / (degrees * perDegree) <= 8) return degrees * perDegree;
+  }
+  return 60 * perDegree;
+}
 const LAND_EDGE = { r: 0.84, g: 0.83, b: 0.81 };
 const GUIDE = { r: 0.9, g: 0.2, b: 0.5 };
 
@@ -288,6 +303,41 @@ function drawRoutePage(
     });
   }
 
+  /**
+   * A graticule, drawn over the land.
+   *
+   * A spread framed tightly on a fortnight's driving can land entirely inside
+   * one country, and the baked outline holds coastlines and nothing else — so
+   * that page came out as a rectangle of flat grey with a line on it, which
+   * reads as a rendering failure rather than as the middle of a continent.
+   * Meridians and parallels give the page structure and, more usefully, a
+   * sense of how far apart the stops actually are. Drawn after the land and
+   * not before it: the land is a filled path, so a graticule underneath it is
+   * a graticule nobody sees.
+   *
+   * The spacing is chosen so the spread carries roughly six lines each way at
+   * any zoom: a fixed interval would be one line across Utah and four hundred
+   * across the Pacific.
+   */
+  const step = graticuleStep(map.window.width);
+  const first = (v: number) => Math.ceil(v / step) * step;
+  for (let gx = first(map.window.x); gx < map.window.x + map.window.width; gx += step) {
+    const [x0, y0] = project(gx, map.window.y);
+    const [x1, y1] = project(gx, map.window.y + map.window.height);
+    PdfBuilder.drawPath(page, `${x0.toFixed(2)} ${y0.toFixed(2)} m ${x1.toFixed(2)} ${y1.toFixed(2)} l`, {
+      stroke: GRATICULE,
+      lineWidth: 0.25,
+    });
+  }
+  for (let gy = first(map.window.y); gy < map.window.y + map.window.height; gy += step) {
+    const [x0, y0] = project(map.window.x, gy);
+    const [x1, y1] = project(map.window.x + map.window.width, gy);
+    PdfBuilder.drawPath(page, `${x0.toFixed(2)} ${y0.toFixed(2)} m ${x1.toFixed(2)} ${y1.toFixed(2)} l`, {
+      stroke: GRATICULE,
+      lineWidth: 0.25,
+    });
+  }
+
   if (points.length >= 2) {
     const path = points
       .map((p, i) => {
@@ -315,13 +365,44 @@ function drawRoutePage(
   // A label every so often. Every stop labelled turns a map into a list, and
   // on a long trip the names simply overlap.
   let lastLabel: { x: number; y: number } | null = null;
+  //
+  // A label runs to the right of its dot unless that would take it off the
+  // paper, in which case it runs to the left. Without this the names at the
+  // edges of the spread were cut in half by the trim and by the gutter —
+  // "Archa", "s National Park" — which the preview cannot show you because
+  // its labels are HTML and simply overflow.
+  const box = contentBoxMm(spec, half);
+  const leftEdge = frame.x(box.x);
+  const rightEdge = frame.x(box.x + box.width);
   plotted.forEach((p, i) => {
+    // Both halves draw every stop, so each page can carry the whole route
+    // line across its own edge. Only the page a dot actually lands on names
+    // it: labelling from the facing page is what printed "onal Park" and
+    // "National Park" against the fold, one fragment per stop that belonged
+    // to the other leaf.
+    if (p.x < leftEdge || p.x > rightEdge) return;
     const far = !lastLabel || Math.hypot(p.x - lastLabel.x, p.y - lastLabel.y) > mm(9);
     if (!far && i !== plotted.length - 1) return;
+    const width = measure(p.location, type.caption, "bold");
+    // Bounded by the content box, which already carries the gutter on the
+    // correct side for this page. Not the clip box: that runs into the bleed
+    // and across the fold, so a label can sit well inside it and still be
+    // guillotined off the finished page or swallowed by the binding. A name
+    // goes to the right of its dot, to the left if it will not fit there, and
+    // is pushed back inside the margin if it fits on neither — a stop in the
+    // corner of a spread is still a stop somebody drove to.
+    const right = p.x + mm(2.2);
+    const left = p.x - mm(2.2) - width;
+    const x =
+      right + width <= rightEdge
+        ? right
+        : left >= leftEdge
+          ? left
+          : Math.min(Math.max(right, leftEdge), rightEdge - width);
     PdfBuilder.drawText(
       page,
       toWinAnsi(p.location),
-      p.x + mm(2.2),
+      x,
       p.y - mm(1),
       type.caption,
       INK,

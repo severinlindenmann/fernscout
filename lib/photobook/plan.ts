@@ -929,9 +929,22 @@ export function routeView(route: RoutePoint[]): RouteView {
   const minY = Math.min(...points.map((p) => p.y));
   const maxY = Math.max(...points.map((p) => p.y));
 
-  // A generous margin: the route should sit in a place, not fill the frame.
-  const padX = Math.max((maxX - minX) * 0.35, 30);
-  const padY = Math.max((maxY - minY) * 0.35, 15);
+  /**
+   * Enough margin to sit in a place, and no more.
+   *
+   * This used to be 35% of the span or 30 units, whichever was larger. The
+   * floor is what did the damage: `MAP_SPACE` is 1000 units for 360°, so 30
+   * units is about eleven degrees of longitude *on each side*. A fortnight's
+   * driving across Utah spans about twelve degrees, so the route was given a
+   * frame three times its own width and printed as a squiggle in one corner
+   * of a two-page spread — with the whole American west around it for
+   * company.
+   *
+   * 15% and a floor of 6 units (a bit over two degrees) keeps a coastline in
+   * view without letting the frame run away from the journey.
+   */
+  const padX = Math.max((maxX - minX) * 0.15, 6);
+  const padY = Math.max((maxY - minY) * 0.15, 4);
   let x = minX - padX;
   let y = minY - padY;
   let width = maxX - minX + padX * 2;
