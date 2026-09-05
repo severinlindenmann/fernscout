@@ -1,4 +1,5 @@
 import "server-only";
+import crypto from "node:crypto";
 import { getDatabaseOrNull, newId, nowIso } from "./db";
 import { type CreditTier } from "./credits/pricing";
 
@@ -19,7 +20,7 @@ import { type CreditTier } from "./credits/pricing";
  * payment to a `spend`/`grant`.
  */
 
-export type PaymentStatus = "pending" | "paid";
+export type PaymentStatus = "pending" | "requested" | "paid";
 export type PaymentMethod = "twint" | "card";
 
 export type Payment = {
@@ -53,7 +54,7 @@ function toPayment(row: {
     owner: row.owner_id,
     credits: Number(row.credits),
     amountRappen: Number(row.amount_rappen),
-    status: row.status === "paid" ? "paid" : "pending",
+    status: row.status === "paid" ? "paid" : row.status === "requested" ? "requested" : "pending",
     method: isPaymentMethod(row.method) ? row.method : null,
     createdAt: row.created_at,
     paidAt: row.paid_at,
@@ -122,44 +123,131 @@ export async function getPayment(owner: string, id: string): Promise<Payment | n
   return row ? toPayment(row) : null;
 }
 
-export type MarkPaidResult =
-  | { ok: true; payment: Payment; alreadyPaid: boolean }
+export type SubmitResult =
+  | { ok: true; payment: Payment; token: string; alreadyRequested: boolean }
   | { ok: false; reason: "unknown" | "bad_method" };
 
+function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 /**
- * The mock Pay button. Moves a pending payment to `paid` and records the
- * method — and does **nothing else**, deliberately: no credits, no ledger, no
- * grant. Idempotent: paying an already-paid row succeeds without changing it
- * (so a double click, or a re-followed link, sends no second receipt and — the
- * point — still adds nothing), and `alreadyPaid` tells the caller which
- * happened so it does not mail a receipt twice.
+ * The buyer presses Pay — B425. A pending payment becomes a **request**: it
+ * records the method, stamps `requested_at`, and mints a single-use approval
+ * token whose hash it stores (the raw token is returned once, for the operator
+ * email). It does **not** grant anything; approval does that.
+ *
+ * Idempotent on an already-requested row: it does not mint a second token or
+ * move the state, and `alreadyRequested` tells the caller not to email the
+ * operator again. A paid row is refused as `unknown` (there is nothing to
+ * request).
  */
-export async function markPaid(
+export async function submitRequest(
   owner: string,
   id: string,
   method: PaymentMethod,
-): Promise<MarkPaidResult> {
+): Promise<SubmitResult> {
   if (!isPaymentMethod(method)) return { ok: false, reason: "bad_method" };
   const handle = await getDatabaseOrNull();
   if (!handle) return { ok: false, reason: "unknown" };
 
   const existing = await getPayment(owner, id);
   if (!existing) return { ok: false, reason: "unknown" };
-  if (existing.status === "paid") return { ok: true, payment: existing, alreadyPaid: true };
+  if (existing.status === "paid") return { ok: false, reason: "unknown" };
+  if (existing.status === "requested") {
+    // Already in the queue; do not re-mail or re-token.
+    return { ok: true, payment: existing, token: "", alreadyRequested: true };
+  }
 
+  const token = crypto.randomBytes(32).toString("base64url");
   await handle.db
     .updateTable("payments")
-    .set({ status: "paid", method, paid_at: nowIso() })
-    // Re-assert both the owner and that it is still pending, so two concurrent
-    // pays cannot both count as "the one that paid it".
+    .set({
+      status: "requested",
+      method,
+      requested_at: nowIso(),
+      approve_token_hash: hashToken(token),
+    })
     .where("id", "=", id)
     .where("owner_id", "=", owner)
     .where("status", "=", "pending")
     .execute();
 
   const payment = await getPayment(owner, id);
+  if (!payment || payment.status !== "requested") return { ok: false, reason: "unknown" };
+  return { ok: true, payment, token, alreadyRequested: false };
+}
+
+/**
+ * Does this token match a request still awaiting approval? A read for the
+ * operator's confirm page — it does not consume anything, so the page can show
+ * "approve N credits?" before the operator presses the button.
+ */
+export async function approvableByToken(
+  owner: string,
+  id: string,
+  token: string,
+): Promise<Payment | null> {
+  const payment = await getPayment(owner, id);
+  if (!payment) return null;
+  if (payment.status !== "requested") return null;
+  const handle = await getDatabaseOrNull();
+  if (!handle) return null;
+  const row = await handle.db
+    .selectFrom("payments")
+    .select("approve_token_hash")
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .executeTakeFirst();
+  if (!row?.approve_token_hash) return null;
+  // Constant-time compare of the two hex digests.
+  const a = Buffer.from(row.approve_token_hash);
+  const b = Buffer.from(hashToken(token));
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  return payment;
+}
+
+export type ClaimResult =
+  | { ok: true; credits: number }
+  | { ok: false; reason: "unknown" | "not_requested" | "bad_token" };
+
+/**
+ * The atomic heart of approval — B425. In one conditional UPDATE it flips a
+ * request to paid, marks it granted, clears the token and stamps `paid_at`,
+ * **only** when the row is still `requested`, still ungranted, and the token
+ * matches. Rows-affected is the whole answer: exactly one caller can ever
+ * claim a given request, so the grant the route does next runs at most once,
+ * however many times the link is followed or two operators race it.
+ *
+ * It returns the credit count for the route to `grant` — deliberately, so the
+ * one `grant` call stays in the approve route and the "only that route imports
+ * grant" invariant remains true and checkable. It never grants here.
+ */
+export async function claimApproval(
+  owner: string,
+  id: string,
+  token: string,
+): Promise<ClaimResult> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return { ok: false, reason: "unknown" };
+  const payment = await getPayment(owner, id);
   if (!payment) return { ok: false, reason: "unknown" };
-  // It was pending when we read it above and we just moved it to paid, so this
-  // is a first payment, not a repeat.
-  return { ok: true, payment, alreadyPaid: false };
+  if (payment.status !== "requested") return { ok: false, reason: "not_requested" };
+
+  const result = await handle.db
+    .updateTable("payments")
+    .set({ status: "paid", granted: 1, paid_at: nowIso(), approve_token_hash: null })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("status", "=", "requested")
+    .where("granted", "=", 0)
+    .where("approve_token_hash", "=", hashToken(token))
+    .executeTakeFirst();
+
+  if (Number(result.numUpdatedRows ?? 0) === 0) {
+    // Either the token was wrong or somebody claimed it first. Both mean "not
+    // yours to grant"; the token being wrong is the common case.
+    return { ok: false, reason: "bad_token" };
+  }
+  return { ok: true, credits: payment.credits };
 }

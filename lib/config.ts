@@ -158,6 +158,15 @@ export type ServerConfig = {
      */
     repository?: string;
     credit?: { name: string; url?: string; countryCode?: string };
+    /**
+     * The instance admin who approves credit purchases while there is no
+     * payment provider (B425). The accept link for every purchase is mailed
+     * here and nowhere else — never to the buying journal's owner, because an
+     * owner who could approve their own purchase would mint free credits. An
+     * address, not a secret, so it lives here; absent means purchases record a
+     * request that only the CLI (`npm run credits -- grant`) can then fulfil.
+     */
+    operatorEmail?: string;
   };
   users: { reserved: string[] };
   features: Record<FeatureName, FeatureConfig>;
@@ -546,6 +555,10 @@ export function parseServerConfig(raw: unknown): ServerConfig {
       defaultUser,
       repository: optionalUrl(site, "repository", "site.repository", problems),
       credit: parseCredit(site.credit, problems),
+      operatorEmail:
+        typeof site.operatorEmail === "string" && site.operatorEmail.trim() !== ""
+          ? site.operatorEmail.trim()
+          : undefined,
     },
     users: { reserved },
     features: parseFeatures(src.features, problems),

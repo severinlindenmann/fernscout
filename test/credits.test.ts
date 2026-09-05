@@ -194,7 +194,13 @@ describe("the grant path is not reachable over HTTP", () => {
    * HTTP request can spend. B368 adds a "buy credits" button that mails
    * information and grants nothing — this is the test that keeps it honest.
    */
-  test("nothing under app/ imports grant from lib/credits", () => {
+  // Since B425 there is exactly one sanctioned exception: the operator approve
+  // route, which grants after a single-use token (mailed only to
+  // site.operatorEmail) is spent atomically. Anything else importing grant
+  // still fails, which keeps a second unreviewed grant path from appearing.
+  const GRANT_ALLOWED = ["app/api/v1/[user]/payments/[id]/approve/route.ts"];
+
+  test("only the operator approve route imports grant from lib/credits", () => {
     const offenders: string[] = [];
     const walk = (d: string): void => {
       for (const item of fs.readdirSync(d, { withFileTypes: true })) {
@@ -205,12 +211,21 @@ describe("the grant path is not reachable over HTTP", () => {
           // Any import from the credits module that pulls in `grant`.
           for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["'][^"']*credits["']/g)) {
             const named = m[1].split(",").map((s) => s.trim().split(/\s+as\s+/)[0].trim());
-            if (named.includes("grant")) offenders.push(full);
+            const rel = path.relative(process.cwd(), full);
+            if (named.includes("grant") && !GRANT_ALLOWED.includes(rel)) offenders.push(rel);
           }
         }
       }
     };
     walk(path.join(process.cwd(), "app"));
     expect(offenders).toEqual([]);
+  });
+
+  test("the allowed grant importer exists and imports grant (allowlist not stale)", () => {
+    for (const rel of GRANT_ALLOWED) {
+      const full = path.join(process.cwd(), rel);
+      expect(fs.existsSync(full)).toBe(true);
+      expect(fs.readFileSync(full, "utf8")).toMatch(/\bgrant\b/);
+    }
   });
 });
