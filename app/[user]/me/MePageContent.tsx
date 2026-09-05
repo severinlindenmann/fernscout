@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { KeyRound, Wallet, UserRound, Mail, MessageCircle, TriangleAlert, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
 import AgentKeys from "@/components/AgentKeys";
 import BuddyHandover from "@/components/BuddyHandover";
@@ -23,13 +24,14 @@ import type { Viewer } from "@/lib/viewer";
  * the browser already traps focus inside it and closes it on Escape, so there
  * is nothing here to get wrong that a dependency would get right instead.
  *
- * Pressing Buy on a tier posts to the purchase route, which mails the journal's
- * own owner address and grants nothing — see that route's doc comment. This
- * component only ever reports what the route answered: `me.paymentBuySent`
- * is the exact claim the route's success justifies, and nothing stronger.
+ * Pressing Buy on a tier posts to the purchase route, which records a pending
+ * transaction, mails the journal's own owner the payment link, and grants
+ * nothing — see that route's doc comment. On success this sends the owner to
+ * that payment page (B405); the email carries the same link for later.
  */
 function BuyCreditsDialog({ username }: { username: string }) {
   const { t, tn } = useI18n();
+  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [busyTier, setBusyTier] = useState<string | null>(null);
   const [result, setResult] = useState<"sent" | "failed" | null>(null);
@@ -44,8 +46,15 @@ function BuyCreditsDialog({ username }: { username: string }) {
     setBusyTier(null);
 
     if (response?.ok) {
-      setResult("sent");
+      // The purchase created a pending transaction; go to its payment page.
+      // The same link was emailed too, so this can be finished later — B405.
+      const body = (await response.json().catch(() => null)) as { paymentUrl?: string } | null;
       dialogRef.current?.close();
+      if (body?.paymentUrl) {
+        router.push(body.paymentUrl);
+        return;
+      }
+      setResult("sent");
     } else {
       setResult("failed");
     }

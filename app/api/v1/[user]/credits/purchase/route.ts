@@ -1,4 +1,5 @@
 import { creditsEnabled } from "@/lib/credits";
+import { createPayment } from "@/lib/payments";
 import { formatChf, tierFor } from "@/lib/credits/pricing";
 import { isOwner } from "@/lib/contacts/session";
 import { sendTransactional } from "@/lib/mail";
@@ -17,8 +18,10 @@ export const dynamic = "force-dynamic";
  * `lib/credits.ts`, does not touch `credits.balance`, and writes no ledger
  * row — `test/credits.test.ts` asserts that nothing under `app/` imports
  * `grant`, and this is the route most likely to have broken that. All it
- * does is mail the journal's own owner the tier they asked for and a link to
- * a dead page (`/<user>/credits/pay/<tier>`) that says so.
+ * does is record a **pending** transaction (`lib/payments.ts`) and mail the
+ * journal's own owner a link to its payment page (`/<user>/payment/<id>`) —
+ * B405. Paying there is a mock that adds nothing either; a real provider's
+ * verified webhook is the only future thing that will grant.
  *
  * **The recipient is `journal.owner.email`, never a value from the request
  * body.** A request that named a different address would be a way to make
@@ -98,29 +101,41 @@ export async function POST(
     return Response.json({ error: "no_owner_address" }, { status: 409 });
   }
 
+  // Record the pending transaction. Amount and credits are the tier's, never
+  // a body value — see `createPayment`.
+  const payment = await createPayment(user, tier);
+  if (!payment) {
+    return Response.json(
+      { error: "no_database", message: "This server cannot record a transaction." },
+      { status: 503 },
+    );
+  }
+
   const base = serverSite().url;
-  const payUrl = `${base}/${user}/credits/pay/${tier.id}`;
+  const payUrl = `${base}/${user}/payment/${payment.id}`;
   const price = formatChf(tier.priceRappen);
   const discount = tier.discount ? ` (${tier.discount} off the per-credit price)` : "";
 
+  // The same link the browser is sent to, so it can be finished from a phone
+  // later — the email is the "come back to it" half of the flow.
   const mail = renderMail(
     to,
-    `Buy ${tier.credits} credits — ${price}`,
+    `Your credit purchase — ${price}`,
     {
       preheader: `${tier.credits} credits for ${price}${discount}`,
-      title: "You asked about buying credits",
+      title: "Finish your credit purchase",
       blocks: [
         {
           kind: "paragraph",
-          text: `${tier.credits} credits for ${price}${discount}, requested from your own page.`,
+          text: `${tier.credits} credits for ${price}${discount}, started from your own page. Transaction ${payment.id}.`,
         },
         {
           kind: "paragraph",
-          text: "Payment is not live on this instance yet. Nothing has been charged and nothing has been added to your balance.",
+          text: "Open the link below to choose how to pay. You can do it now or come back to the same link later — it shows where the transaction stands.",
         },
-        { kind: "button", text: "See where things stand", href: payUrl },
+        { kind: "button", text: "Go to payment", href: payUrl },
       ],
-      footer: `Sent because ${user}'s own page asked for it.`,
+      footer: `Sent because ${user}'s own page started this purchase.`,
     },
     user,
   );
@@ -129,6 +144,8 @@ export async function POST(
 
   return Response.json({
     ok: true,
+    transactionId: payment.id,
+    paymentUrl: `/${user}/payment/${payment.id}`,
     tier: tier.id,
     credits: tier.credits,
     priceRappen: tier.priceRappen,

@@ -16,6 +16,7 @@ import * as invitePreapproval from "./014-invite-preapproval";
 import * as contactWhatsapp from "./015-contact-whatsapp";
 import * as credits from "./016-credits";
 import * as dropDigestSends from "./017-drop-digest-sends";
+import * as payments from "./018-payments";
 
 /**
  * Every migration, listed by hand.
@@ -47,6 +48,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "015-contact-whatsapp": contactWhatsapp,
   "016-credits": credits,
   "017-drop-digest-sends": dropDigestSends,
+  "018-payments": payments,
 };
 
 export const migrationProvider: MigrationProvider = {

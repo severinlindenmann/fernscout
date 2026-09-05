@@ -408,6 +408,18 @@ export type CreditLedgerTable = {
   created_at: string;
 };
 
+export type PaymentsTable = {
+  id: string;
+  owner_id: string;
+  credits: number;
+  amount_rappen: number;
+  status: Generated<string>;
+  /** "twint" | "card", null until the mock Pay button is pressed. */
+  method: string | null;
+  created_at: string;
+  paid_at: string | null;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -424,6 +436,7 @@ export type Database = {
   deletion_requests: DeletionRequestsTable;
   credits: CreditsTable;
   credit_ledger: CreditLedgerTable;
+  payments: PaymentsTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -444,4 +457,5 @@ export const TABLE_NAMES = [
   "deletion_requests",
   "credits",
   "credit_ledger",
+  "payments",
 ] as const satisfies readonly (keyof Database)[];
