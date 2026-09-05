@@ -71,6 +71,31 @@ function base(): string {
 }
 
 /** The instance-level document: what this is, and who is on it. */
+/**
+ * Where an owner's content comes from, when the software has no editing
+ * interface (decision 24). A separate repository of agent skills that run on
+ * the owner's own machine — a photo library, a bank statement — and write
+ * this project's content format. Named in both agent-facing documents,
+ * because an agent handed a fresh journal and a person with a laptop full of
+ * holiday photographs otherwise has to invent the pipeline.
+ */
+const HELPER_REPO = "https://github.com/severinlindenmann/fernscout-helper";
+
+/**
+ * The instruction the site gives an owner to paste into an agent, in German
+ * because that is the language it is offered in — an agent matching on it is
+ * matching on what was actually pasted.
+ *
+ * Built from this instance's own URL rather than written out: quoting
+ * fernscout.ch on somebody else's server would hand their owner a prompt
+ * pointing at a journal that is not theirs.
+ */
+const ownerPromptDe = (url: string) =>
+  "Führe mich durch das Anlegen meines eigenen Reisetagebuchs, nach der " +
+  `Übersicht unter ${url}/documentation.txt und der vollständigen Anleitung ` +
+  `unter ${url}/agent.md. Du brauchst dafür eine E-Mail-Adresse, die mir ` +
+  "gehört.";
+
 export function instanceDocumentation(): string {
   const site = serverSite();
   const questions = firstQuestions(base());
@@ -345,6 +370,36 @@ export function instanceDocumentation(): string {
     "",
     `- [Agent guide](${base()}/agent.md): how to authenticate and write, with worked examples`,
     `- [OpenAPI](${base()}/openapi.json): the same API as a machine contract`,
+    "",
+    // Where the content comes from, for an agent handed an account and no
+    // material. The owner's prompt is quoted because it is what this site
+    // gives them to copy — recognising it is what tells an agent it is at the
+    // very beginning rather than halfway through a journal.
+    "## If you need help extracting pictures or data",
+    "",
+    ...wrap(
+      "The owner's photographs and receipts are on their own machine, and " +
+        "nothing here can reach them. Fernscout Helper is a separate, " +
+        "MIT-licensed toolbox of agent skills that runs there: it exports a " +
+        "date range out of a photo library, opens a page where the owner picks " +
+        "the pictures that belong and says what happened, reads a bank " +
+        "statement into per-day costs, and asks about the flights and the car " +
+        "that no statement shows. What it writes is this project's own content " +
+        "format, as drafts.",
+      78,
+    ),
+    "",
+    `- ${HELPER_REPO}`,
+    `- [How to use it](${base()}/docs/helper)`,
+    "",
+    ...wrap(
+      "It is optional and nothing here depends on it. If the owner opened " +
+        "with the instruction below, they are at the very beginning — no " +
+        "journal, no trip, and a laptop full of holiday photographs:",
+      78,
+    ),
+    "",
+    `  ${ownerPromptDe(base())}`,
     "",
   );
 
@@ -1860,6 +1915,36 @@ attachments you then have to describe.
 Over the network you have only the endpoint, which is fine: send the files and
 they are added to the day. Both routes keep the original and both mark what
 they create a draft.
+
+## If you need help extracting pictures or data
+
+The photographs are on the owner's machine and so are the receipts, and
+neither this API nor ingest can reach them from here.
+**[Fernscout Helper](${HELPER_REPO})** is a separate, MIT-licensed repository
+of agent skills that runs *there* — a toolbox, not a service, and this
+journal does not depend on it.
+
+| It does | So you get |
+| --- | --- |
+| Exports a date range or an album out of a photo library, counting and sizing it before anything is downloaded | A folder of dated, located photographs |
+| Opens a page where the owner turns off what does not belong and writes a few words per day | Their words, which is the only thing a day may be written from |
+| Reads a bank statement into per-day costs, and works out the rate the money actually cost | \`costs:\` blocks and a \`rates:\` table nobody has to remember |
+| Asks about the flights, the car and the hotel booked months earlier | The lines no statement covering the trip dates will ever show |
+
+What it writes is this project's own format — \`trip.md\`, \`costs.md\`,
+\`entries/YYYY-MM-DD-slug.md\` — as drafts, which you then publish through the
+calls above when the owner says so. The guide is at
+[${site.url}/docs/helper](${site.url}/docs/helper).
+
+**One prompt is worth recognising.** This is the instruction the site gives an
+owner to copy, and an owner who opens with it is at the very beginning — no
+journal, no trip, and a laptop full of holiday photographs:
+
+> ${ownerPromptDe(site.url)}
+
+If that is where you are, say early that the pictures and the costs can be
+extracted rather than typed, and point at the repository. It is the difference
+between a journal with ten days in it and a journal with an account.
 
 ## Real postcards, in the post
 

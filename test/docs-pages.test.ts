@@ -3,7 +3,7 @@ import { DOCS_PAGES, docsNavEntries } from "@/lib/docs";
 import { dictionaryFor } from "@/lib/locales";
 
 /**
- * B470 — the six pages, listed once.
+ * B470 — the pages, listed once.
  *
  * The hub's cards, the inner pages' nav and the routes themselves all have to
  * agree about what exists. Before this they did not: the guides were a list in
@@ -12,10 +12,10 @@ import { dictionaryFor } from "@/lib/locales";
  * navigated and the other scrolled.
  */
 describe("the documentation pages", () => {
-  test("there are six, in two groups", () => {
-    expect(DOCS_PAGES).toHaveLength(6);
+  test("there are seven, in two groups", () => {
+    expect(DOCS_PAGES).toHaveLength(7);
     expect(DOCS_PAGES.filter((p) => p.group === "guides")).toHaveLength(3);
-    expect(DOCS_PAGES.filter((p) => p.group === "technical")).toHaveLength(3);
+    expect(DOCS_PAGES.filter((p) => p.group === "technical")).toHaveLength(4);
   });
 
   test("every page has a real route and a label in every language", () => {
@@ -29,7 +29,7 @@ describe("the documentation pages", () => {
 
   test("the nav marks where the second group begins, exactly once", () => {
     const entries = docsNavEntries();
-    expect(entries).toHaveLength(6);
+    expect(entries).toHaveLength(DOCS_PAGES.length);
     expect(entries.filter((e) => e.startsGroup)).toHaveLength(1);
     // And it is the first technical page, not an arbitrary one.
     expect(entries.findIndex((e) => e.startsGroup)).toBe(3);

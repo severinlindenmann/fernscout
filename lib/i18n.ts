@@ -367,6 +367,7 @@ export type TranslationKey =
   | "docs.contributing.title"
   | "docs.guidesGroup"
   | "docs.guidesGroupNote"
+  | "docs.helper.title"
   | "docs.hosting.title"
   | "docs.lede"
   | "docs.navLabel"
