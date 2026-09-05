@@ -7,8 +7,7 @@ complexity: low
 area: postcards, i18n
 found: "2026-09-05T16:05:10Z"
 started: "2026-09-05T13:02:31Z"
-session: 8af79b62-fe04-4cc3-b94b-9609f44a5f9d
-claimed: "2026-09-05T13:02:31Z"
+merged: "2026-09-05T13:11:58Z"
 ---
 
 # B461 — The postcard preview is English on a German journal, and its language note explains nothing

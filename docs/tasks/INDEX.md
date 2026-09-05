@@ -203,17 +203,15 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B460](in-development/B460-neither-postcard-form-can-be-submitted.md) | Neither postcard form can be submitted: the redirect leaves the origin and CSP blocks it | ISSUE | high | low | `8af79b62` |
-| [B461](in-development/B461-the-postcard-preview-is-english-on.md) | The postcard preview is English on a German journal, and its language note explains nothing | ISSUE | high | low | `8af79b62` |
 | [B464](in-development/B464-the-nightly-mail-carries-a-journal.md) | The nightly mail carries a journal tail nobody reads, when what an operator wants is the state of the instance | FEATURE | medium | medium | `7c3dd4ae` |
 
-## testing (159)
+## testing (161)
 
-### issue (92)
+### issue (94)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -241,6 +239,8 @@ _Nothing here._
 | [B450](testing/issue/B450-comm-runs-in-the-ambient-locale.md) | comm runs in the ambient locale against LC_ALL=C-sorted input, so the backup names readable files as missing | ISSUE | high | low | — |
 | [B451](testing/issue/B451-the-postcard-preview-prints-the-message.md) | The postcard preview prints the message at four times its real size | ISSUE | high | low | — |
 | [B459](testing/issue/B459-a-reader-signed-in-before-b410.md) | A reader signed in before B410 never gets an identity, so the way out of a journal stays hidden | ISSUE | high | low | — |
+| [B460](testing/issue/B460-neither-postcard-form-can-be-submitted.md) | Neither postcard form can be submitted: the redirect leaves the origin and CSP blocks it | ISSUE | high | low | — |
+| [B461](testing/issue/B461-the-postcard-preview-is-english-on.md) | The postcard preview is English on a German journal, and its language note explains nothing | ISSUE | high | low | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
