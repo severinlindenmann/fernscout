@@ -1558,8 +1558,9 @@ a URL it is the last path segment, so \`…/seed/x/3000/2000\` reports
 \`kept[n]\` is \`items[n]\` is the n-th file you sent.
 
 \`day\` is required and must name a day that already exists in this trip. A
-**published** day is refused with \`409\`: adding photographs to something people
-have already read changes what they read, and that is a person's decision.
+**published** day is allowed — the same as \`PATCH\` on the day itself — and the
+reply's \`note\` says plainly that anyone who already read it can now see the
+addition.
 
 **Send the largest file you have.** Two files are written from each one you
 send: a resized copy at 2000px which is what the site serves, and **the

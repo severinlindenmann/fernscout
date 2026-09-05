@@ -411,9 +411,10 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
  * a second batch arrives somebody may have fixed the title, written the prose
  * and added captions, and a YAML round-trip would restyle all of it.
  *
- * Drafts and published days both, but the caller decides: the media route
- * refuses a published day before any bytes are written. Writing new pictures
- * into a day people have already read is a person's job.
+ * Drafts and published days both — the media route no longer refuses a
+ * published day (B393): the same reasoning that lets `PATCH` correct a
+ * published day's prose applies here, and the response says plainly that
+ * readers will see the addition.
  */
 export function attachGallery(
   ref: string,
