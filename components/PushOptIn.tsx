@@ -4,18 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Bell, BellOff, BellRing } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
-
-/** VAPID keys travel as URL-safe base64; PushManager wants raw bytes.
- * Built over an explicit ArrayBuffer so the result is a Uint8Array<ArrayBuffer>,
- * which is what BufferSource requires — Uint8Array.from() widens to
- * ArrayBufferLike and no longer satisfies it. */
-function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-  const raw = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
-  const bytes = new Uint8Array(new ArrayBuffer(raw.length));
-  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-  return bytes;
-}
+import { subscribeToPush } from "./pushSubscribe";
 
 /** iOS only allows Web Push from a PWA that's been added to the Home Screen —
  * there is no push at all in a normal Safari tab, however the page asks.
@@ -169,29 +158,20 @@ export default function PushOptIn({
   const enable = useCallback(async () => {
     if (!publicKey || !username) return;
     setState("working");
-    try {
-      // Must be inside the click for Safari to accept it.
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setState(permission === "denied" ? "blocked" : "off");
-        return;
-      }
-
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
-      });
-
-      const res = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ user: username, ...sub.toJSON() }),
-      });
-      setState(res.ok ? "on" : "failed");
-    } catch {
-      setState("failed");
-    }
+    // Through the shared module, which is also what `PushPrompt` presses —
+    // B440. Two copies of the VAPID dance is how one of them ends up passing
+    // the key in the wrong encoding, or forgetting that the permission request
+    // has to happen inside the click for Safari to accept it.
+    const result = await subscribeToPush(username, publicKey);
+    setState(
+      result === "subscribed"
+        ? "on"
+        : result === "denied"
+          ? "blocked"
+          : result === "dismissed"
+            ? "off"
+            : "failed",
+    );
   }, [publicKey, username]);
 
   const disable = useCallback(async () => {

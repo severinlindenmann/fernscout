@@ -9,6 +9,7 @@ import LocaleProvider from "@/components/LocaleProvider";
 import TripListProvider from "@/components/TripListProvider";
 import { isIndexable } from "@/lib/access";
 import { siteSummaryFor } from "@/lib/site";
+import PushPrompt from "@/components/PushPrompt";
 import { resolveAccess } from "@/lib/auth/handshake";
 import { listableTrips } from "@/lib/tripGate";
 import { getCurrentTrip, getTrips } from "@/lib/trips";
@@ -108,6 +109,14 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
 
   return (
     <SiteProvider value={siteSummaryFor(user, isDefault, signedIn, hasIdentity)}>
+      {/*
+        Offered on any page of this journal, once the reader has read
+        something — B440. At the layout rather than inside `TripHero`, which
+        `TripStory` renders on the story's landing step alone: the reader most
+        worth asking is the one who has paged into a day, and that is exactly
+        the reader the hero has already scrolled away from (B439).
+      */}
+      <PushPrompt username={username} />
       {/* The journal's own language, rendered on the server. This used to be
           English on the server and the reader's choice after hydration, which
           is why no German page had a URL of its own and search engines only
