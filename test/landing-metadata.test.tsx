@@ -101,7 +101,8 @@ function headingOf(locale: string): string {
         siteName={SITE_NAME}
         docUrl="https://example.test/documentation.txt"
         agentUrl="https://example.test/agent.md"
-        journals={[]}
+        codeMinutes="30"
+      journals={[]}
       />
     </LocaleProvider>,
   );

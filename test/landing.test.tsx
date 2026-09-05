@@ -116,7 +116,8 @@ function renderLanding(locale = "en") {
         siteName="Fernscout"
         docUrl="https://fernscout.test/documentation.txt"
         agentUrl="https://fernscout.test/agent.md"
-        journals={journals}
+        codeMinutes="30"
+      journals={journals}
         locales={installedLocales()}
       />
     </LocaleProvider>,

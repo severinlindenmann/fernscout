@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Landing from "@/components/Landing";
+import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { publicJournals } from "@/lib/home";
 import { installedLocales, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
@@ -64,6 +65,10 @@ export default function Root() {
       // site.credit in content/config.json. A fork gets to name itself.
       repository={site.repository}
       credit={site.credit}
+      // The number comes from CODE_TTL_MS rather than from a sentence, so the
+      // three locale files cannot outlive a change to it — see B426 and the
+      // note on CODE_TTL_MINUTES.
+      codeMinutes={CODE_TTL_MINUTES}
     />
   );
 }
