@@ -196,7 +196,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (9)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -205,12 +205,11 @@ _Nothing here._
 | [B469](in-development/B469-the-contacts-admin-page-ignores-the.md) | The contacts admin page ignores the language the owner picked | ISSUE | medium | low | `e5747799` |
 | [B250](in-development/B250-the-trip-scoped-costs-page-describes.md) | The trip-scoped costs page describes an upcoming trip in the past tense, in English only | ISSUE | low | low | `e5747799` |
 | [B251](in-development/B251-the-404-page-s-tab-title.md) | The 404 page's tab title is the bare site name, because not-found.tsx exports metadata Next never asks for | ISSUE | low | medium | `e5747799` |
-| [B284](in-development/B284-a-dictionary-read-that-fails-for.md) | A dictionary read that fails for any reason but absence is cached as empty until the file changes | ISSUE | low | low | `e5747799` |
 | [B305](in-development/B305-a-reader-shown-a-day-in.md) | A reader shown a day in a language they did not ask for is told nothing about it | FEATURE | low | low | `e5747799` |
 | [B424](in-development/B424-the-language-toggle-changes-the-navigation.md) | The language toggle changes the navigation but leaves the owner's contacts page in the journal's locale | ISSUE | low | low | `e5747799` |
 | [B432](in-development/B432-six-german-strings-address-the-reader.md) | Six German strings address the reader formally where a hundred and thirty use du | ISSUE | low | low | `e5747799` |
 
-## testing (176)
+## testing (177)
 
 ### security (2)
 
@@ -219,7 +218,7 @@ _Nothing here._
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 | [B473](testing/security/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | — |
 
-### issue (99)
+### issue (100)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -305,6 +304,7 @@ _Nothing here._
 | [B210](testing/issue/B210-media-originals-dir-outside-the-content.md) | MEDIA_ORIGINALS_DIR outside the content root writes a ../ chain into the photobook plan | ISSUE | low | low | — |
 | [B214](testing/issue/B214-the-costs-page-s-meta-description.md) | The costs page's meta description is present-tense on a trip that has not started | ISSUE | low | low | — |
 | [B218](testing/issue/B218-a-postcard-run-reports-three-files.md) | A postcard run reports three files per recipient and writes four | ISSUE | low | low | — |
+| [B284](testing/issue/B284-a-dictionary-read-that-fails-for.md) | A dictionary read that fails for any reason but absence is cached as empty until the file changes | ISSUE | low | low | — |
 | [B337](testing/issue/B337-a-day-with-no-location-renders.md) | A day with no location: renders a blank, unlabelled filter chip in the gallery | ISSUE | low | low | — |
 | [B358](testing/issue/B358-the-invite-copy-button-s-accessible.md) | The invite copy button's accessible name ends in two dangling em-dashes and reports no success | ISSUE | low | low | — |
 | [B359](testing/issue/B359-the-used-link-warning-stays-on.md) | The used-link warning stays on the access page after a successful sign-in | ISSUE | low | low | — |
