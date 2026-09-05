@@ -34,6 +34,7 @@ export default function PaymentCheckout({
 }) {
   const { t, tn } = useI18n();
   const [status, setStatus] = useState<PaymentStatus>(payment.status);
+  const [approver, setApprover] = useState<string | null>(null);
   const [method, setMethod] = useState<PaymentMethod>(payment.method ?? "twint");
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -47,11 +48,17 @@ export default function PaymentCheckout({
       body: JSON.stringify({ method }),
     }).catch(() => null);
     setBusy(false);
-    if (response?.ok) setStatus("paid");
-    else setFailed(true);
+    if (response?.ok) {
+      const b = (await response.json().catch(() => null)) as { approver?: string | null } | null;
+      setApprover(b?.approver ?? null);
+      setStatus("requested");
+    } else {
+      setFailed(true);
+    }
   }
 
   const paid = status === "paid";
+  const requested = status === "requested";
 
   return (
     <>
@@ -77,7 +84,7 @@ export default function PaymentCheckout({
           <div className="flex justify-between gap-4">
             <dt className="text-navy-600">{t("pay.status")}</dt>
             <dd className={`font-semibold ${paid ? "text-green-700" : "text-navy-900"}`}>
-              {t(paid ? "pay.statusPaid" : "pay.statusPending")}
+              {t(paid ? "pay.statusPaid" : requested ? "pay.statusRequested" : "pay.statusPending")}
             </dd>
           </div>
         </dl>
@@ -86,10 +93,23 @@ export default function PaymentCheckout({
           <div className="mt-5 rounded-xl border border-green-500/40 bg-green-100 p-4">
             <p className="flex items-center gap-2 font-display text-base font-semibold text-green-700">
               <Check className="h-5 w-5" aria-hidden="true" />
-              {t("pay.recorded")}
+              {t("pay.paidTitle")}
             </p>
-            {/* Never "credits added" — nothing was charged and nothing credited. */}
-            <p className="mt-1.5 text-base leading-7 text-navy-700">{t("pay.previewNote")}</p>
+            <p className="mt-1.5 text-base leading-7 text-navy-700">
+              {t("pay.paidNote", { credits: String(payment.credits) })}
+            </p>
+          </div>
+        ) : requested ? (
+          <div className="mt-5 rounded-xl border border-navy-200 bg-cream-50 p-4">
+            <p className="font-display text-base font-semibold text-navy-900">
+              {t("pay.requestedTitle")}
+            </p>
+            {/* The manual-approval bridge, in plain words. */}
+            <p className="mt-1.5 text-base leading-7 text-navy-700">
+              {approver
+                ? t("pay.requestedNote", { admin: approver })
+                : t("pay.requestedNoteNoAdmin")}
+            </p>
           </div>
         ) : (
           <div className="mt-5">

@@ -428,6 +428,13 @@ export type PaymentsTable = {
   method: string | null;
   created_at: string;
   paid_at: string | null;
+  /** sha-256 of the single-use approval token, mailed to the operator; null
+   * except while awaiting approval — B425. */
+  approve_token_hash: string | null;
+  /** 0/1 — whether credits have been granted for this payment, the guard that
+   * keeps approval from crediting twice. */
+  granted: Generated<number>;
+  requested_at: string | null;
 };
 
 export type Database = {

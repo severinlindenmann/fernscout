@@ -210,7 +210,7 @@ export type PaymentRow = {
   id: string;
   credits: number;
   amount: string;
-  status: "pending" | "paid";
+  status: "pending" | "requested" | "paid";
   createdAt: string;
 };
 
@@ -724,6 +724,13 @@ export default function MePageContent({
                                 <Check className="h-4 w-4" aria-hidden="true" />
                                 {t("me.txPaid")}
                               </span>
+                            ) : tx.status === "requested" ? (
+                              <Link
+                                href={`${site.base}/payment/${tx.id}`}
+                                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-navy-200 bg-cream-50 px-3 py-1 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500"
+                              >
+                                {t("me.txAwaiting")}
+                              </Link>
                             ) : (
                               <Link
                                 href={`${site.base}/payment/${tx.id}`}

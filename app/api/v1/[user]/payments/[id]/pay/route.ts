@@ -1,33 +1,32 @@
 import { formatChf } from "@/lib/credits/pricing";
+import { loadServerConfig } from "@/lib/config";
 import { sendTransactional } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
-import { getPayment, isPaymentMethod, markPaid } from "@/lib/payments";
+import { isPaymentMethod, submitRequest } from "@/lib/payments";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
 /**
- * The mock "Pay now" button — B405.
+ * "Pay now" — B425, and no longer a preview that records nothing.
  *
- * **It adds no credits, and it must never.** It flips a pending transaction to
- * `paid`, records whether TWINT or a card was chosen, and mails a receipt. That
- * is the whole of it. `grant()` in `lib/credits.ts` is still the only thing that
- * raises a balance, and it is still reachable only from a shell script — this
- * route does not import it, and `test/credits.test.ts` fails the build if any
- * file under `app/` does.
+ * Since there is no payment provider yet, pressing Pay files a **request**:
+ * `submitRequest` moves the transaction to `requested` and mints a single-use
+ * approval token, and this route mails that token — as a link — to the
+ * **instance operator** (`site.operatorEmail`) and to nobody else. The
+ * operator opening the link and accepting is what grants the credits
+ * (`.../approve`); this route grants nothing and imports no `grant`.
  *
- * When a real provider is wired in, the thing that grants will be a *verified
- * server-to-server webhook* from that provider — signature-checked, not a
- * browser POST — because a browser can claim anything. This route is the
- * browser POST, which is exactly why it is trusted with nothing but "show me a
- * receipt". Do not "finish" it by adding a grant here.
+ * **The recipient is the operator, never the journal owner.** An owner who
+ * could approve their own purchase would mint free credits, so the approval
+ * mail must never go to the buying journal's address. It goes to the one human
+ * who runs the server and reconciles real money.
  *
- * **No session.** The transaction id is an unguessable token and is the whole
- * capability, the same shape as the manage and delete links: whoever the owner
- * forwarded the email to can pay it, and paying adds nothing, so there is
- * nothing here worth stealing. The URL's `<user>` must still match the row's
- * owner, so one journal's id cannot be driven under another's path.
+ * No session: the payment id is the capability, mailed to the owner as the
+ * checkout link — the same shape as the manage and delete links. The URL's
+ * `<user>` must match the row, which `submitRequest`/`getPayment` enforce.
  */
 export async function POST(
   request: Request,
@@ -36,14 +35,9 @@ export async function POST(
   const { user, id } = await params;
 
   const journal = getUser(user);
-  if (!journal) {
-    return Response.json({ error: "unknown_payment" }, { status: 404 });
-  }
+  if (!journal) return Response.json({ error: "unknown_payment" }, { status: 404 });
 
-  const limit = rateLimitFor("payment-pay", clientIp(request), {
-    max: 10,
-    windowMs: 60 * 1000,
-  });
+  const limit = rateLimitFor("payment-pay", clientIp(request), { max: 10, windowMs: 60 * 1000 });
   if (!limit.ok) {
     return Response.json(
       { error: "too_many_requests", retryAfter: limit.retryAfter },
@@ -54,59 +48,55 @@ export async function POST(
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const method = body.method;
   if (!isPaymentMethod(method)) {
-    return Response.json(
-      {
-        error: "bad_method",
-        message: 'Choose how to pay: "twint" or "card".',
-      },
-      { status: 400 },
-    );
+    return Response.json({ error: "bad_method", message: 'Choose "twint" or "card".' }, { status: 400 });
   }
 
-  const result = await markPaid(user, id, method);
+  const result = await submitRequest(user, id, method);
   if (!result.ok) {
-    // The same answer for an id that never existed as for one that belongs to
-    // another journal — `getPayment` scopes by owner, so both arrive here as
-    // "unknown", and neither reveals which.
+    // The same 404 for an unknown id, a foreign id, and a payment already paid
+    // — none is a distinguishable oracle.
     return Response.json({ error: "unknown_payment" }, { status: 404 });
   }
 
-  // The receipt goes once, on the transition to paid. A re-followed link that
-  // was already paid sends no second mail (and, the point, adds nothing).
-  if (!result.alreadyPaid && journal.owner.email) {
-    const { payment } = result;
+  const operator = loadServerConfig().site.operatorEmail;
+
+  // Mail the operator the approval link — but only for a fresh request (not a
+  // re-submit of one already in the queue), and only if an operator address is
+  // configured. With none, the request is on file and the CLI can fulfil it.
+  if (!result.alreadyRequested && operator) {
+    const base = serverSite().url;
+    const approveUrl = `${base}/${user}/payment/${id}/approve/${result.token}`;
+    const price = formatChf(result.payment.amountRappen);
     const mail = renderMail(
-      journal.owner.email,
-      `Payment recorded — ${formatChf(payment.amountRappen)}`,
+      operator,
+      `Approve credit purchase — ${user} — ${price}`,
       {
-        preheader: `Transaction ${payment.id}`,
-        title: "Payment recorded",
+        preheader: `${result.payment.credits} credits for ${user}`,
+        title: "A credit purchase is waiting for you to approve",
         blocks: [
           {
             kind: "paragraph",
-            text: `We recorded a ${formatChf(payment.amountRappen)} payment for ${payment.credits} credits by ${method}. Transaction ${payment.id}.`,
+            text: `${user} asked to buy ${result.payment.credits} credits for ${price} by ${method}. There is no payment provider yet, so you approve it by hand.`,
           },
           {
             kind: "paragraph",
-            // Never "credits added" — nothing was charged and nothing was
-            // credited. This is a preview of the flow, not a purchase.
-            text: "This instance is running a preview of the payment flow: no card was charged and no credits have been added to your balance yet.",
+            text: "Open the link below and accept it to add the credits to their balance. The link works once.",
           },
+          { kind: "button", text: "Review and approve", href: approveUrl },
         ],
-        footer: `Sent because a payment was recorded for ${user}.`,
+        footer: "You are receiving this because you are the operator of this Fernscout instance.",
       },
       user,
     );
-    await sendTransactional(mail, "payment receipt");
+    await sendTransactional(mail, "credit purchase approval request");
   }
 
   return Response.json({
     ok: true,
-    status: result.payment.status,
-    transactionId: result.payment.id,
-    method: result.payment.method,
-    alreadyPaid: result.alreadyPaid,
-    // Stated in the response too, so no client can render "credits added".
+    status: "requested",
+    transactionId: id,
+    // What the buyer is told — never that credits were added.
+    approver: operator ?? null,
     creditsAdded: 0,
   });
 }
