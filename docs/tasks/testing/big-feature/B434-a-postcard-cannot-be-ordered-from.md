@@ -7,8 +7,7 @@ complexity: high
 area: postcards, credits
 found: "2026-09-05T10:12:07Z"
 started: "2026-09-05T10:13:35Z"
-session: 8af79b62-fe04-4cc3-b94b-9609f44a5f9d
-claimed: "2026-09-05T10:13:35Z"
+merged: "2026-09-05T10:32:33Z"
 ---
 
 # B434 — A postcard cannot be ordered from the site — only rendered by hand on a shell
