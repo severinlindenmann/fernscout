@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, Code2, GitPullRequest, PenLine, Server, Users } from "lucide-react";
+import { BookOpen, Code2, GitPullRequest, PenLine, Server, Users, Wand2 } from "lucide-react";
 import { DOCS_PAGES, type DocsPageId } from "@/lib/docs";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
@@ -53,6 +53,7 @@ const ICONS: Record<DocsPageId, typeof BookOpen> = {
   hosting: Server,
   contributing: GitPullRequest,
   api: Code2,
+  helper: Wand2,
 };
 
 function Group({

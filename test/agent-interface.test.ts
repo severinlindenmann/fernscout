@@ -852,6 +852,8 @@ describe("the discovery document does not point at 404s", () => {
       // Rewritten in next.config.ts to /api/well-known/… — RFC 9728 requires
       // the well-known segment first, which Next cannot express as a directory.
       p.startsWith("/.well-known/") ||
+      // The documentation hub and its pages — app/docs/**.
+      p.startsWith("/docs/") ||
       /^\/[a-z0-9-]+\/documentation\.txt$/.test(p) ||
       /^\/[a-z0-9-]+(\/(trips(\/.+)?|feed\.xml|export\.zip|search-index\.json))?$/.test(p) ||
       p.startsWith("/api/");

@@ -10,6 +10,7 @@ maintained guidance for an agent; this folder is the long form for a person.
 | [runbook.md](runbook.md) | deploying to a VPS, backups, restore |
 | [architecture.md](architecture.md) | where things live, and why they are shaped that way |
 | [ingest.md](ingest.md) | photographs, EXIF, geodata |
+| [helper.md](helper.md) | Fernscout Helper — agent tools that make content for a journal |
 | [currencies.md](currencies.md) | how money is stored, converted and refused |
 | [config-upgrades.md](config-upgrades.md) | moving a config file forward a version |
 | [deploy-mail.md](deploy-mail.md) | mail, and the file transport that needs no SMTP |
