@@ -554,6 +554,8 @@ describe("the payment section", () => {
     balance: 12,
     emailRecipients: 5,
     whatsappRecipients: 2,
+    channels: { mail: true, whatsapp: true },
+    postcardCredits: null,
     transactions: [],
   };
 
@@ -609,13 +611,57 @@ describe("the payment section", () => {
   test("omits the WhatsApp row rather than showing a zero, when it is not offered", () => {
     const html = render({
       viewer: owner,
-      payment: { ...payment, whatsappRecipients: null },
+      payment: { ...payment, channels: { mail: true, whatsapp: null } },
     });
     expect(html).toContain("up to 5");
     // The WhatsApp table row is absent, so its "up to 2" cell never renders.
     // ("WhatsApp" itself still appears in the flat-price caption, so that is
     // not the thing to assert on.)
     expect(html).not.toContain("up to 2");
+  });
+
+  /**
+   * B463 — the three things the card would not say.
+   *
+   * A muted channel is not the same as one this server cannot offer: the
+   * first is the owner's own decision and keeps its row, greyed and costing
+   * nothing, because they have to be able to undo it. The second has no row,
+   * because nothing an owner does here would change it.
+   */
+  test("totals what one published day costs right now", () => {
+    const html = render({ viewer: owner, payment });
+    expect(html).toContain(dictionaryFor("en")["me.paymentDayTotal"]);
+    // 5 email + 2 WhatsApp, both switched on.
+    expect(html).toContain(">7<");
+  });
+
+  test("a muted channel still has a row, and costs nothing", () => {
+    const html = render({
+      viewer: owner,
+      payment: { ...payment, channels: { mail: true, whatsapp: false } },
+    });
+    // Still listed — it is the owner's own switch and they can put it back.
+    expect(html).toContain("up to 2");
+    // …but the day now costs the email side alone.
+    expect(html).toContain(">5<");
+  });
+
+  test("both channels muted means a day costs nothing at all", () => {
+    const html = render({
+      viewer: owner,
+      payment: { ...payment, channels: { mail: false, whatsapp: false } },
+    });
+    expect(html).toContain(">0<");
+  });
+
+  test("names the price of a printed postcard where cards can be sent", () => {
+    const html = render({ viewer: owner, payment: { ...payment, postcardCredits: 15 } });
+    expect(html).toContain("A printed postcard is 15 credits per card.");
+  });
+
+  test("says nothing about postcards on a journal that does not offer them", () => {
+    const html = render({ viewer: owner, payment });
+    expect(html).not.toContain("A printed postcard");
   });
 
   /**
