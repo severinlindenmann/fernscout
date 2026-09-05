@@ -7,6 +7,9 @@ complexity: high
 area: auth, sessions, identity
 found: "2026-09-05"
 related: B411, B412, B283, B33, B34
+started: "2026-09-05T08:26:54Z"
+session: 3744307d-de1f-4fd7-a058-d689389ddc6c
+claimed: "2026-09-05T08:26:54Z"
 ---
 
 # B410 — A reader's access is trapped in one journal's cookie, so the instance cannot tell them what they may open

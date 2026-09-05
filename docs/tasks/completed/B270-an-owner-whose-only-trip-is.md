@@ -8,6 +8,7 @@ area: trips, access
 found: "2026-09-04T11:52:43Z"
 started: "2026-09-04T15:49:33Z"
 merged: "2026-09-04T16:00:10Z"
+completed: "2026-09-05T08:27:14Z"
 ---
 
 # B270 — An owner whose only trip is public but unlisted sees four zeroes and no empty state
