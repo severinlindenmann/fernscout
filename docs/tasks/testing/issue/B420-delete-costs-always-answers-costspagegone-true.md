@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: costs api
 found: "2026-09-05T08:51:36Z"
+merged: "2026-09-05T09:08:37Z"
 ---
 
 # B420 — DELETE .../costs always answers costsPageGone true even when a day's costs: block keeps the page alive
