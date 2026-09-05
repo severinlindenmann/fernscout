@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: postcards, i18n
 found: "2026-09-05T18:00:00Z"
+started: "2026-09-05T13:38:30Z"
+session: 8af79b62-fe04-4cc3-b94b-9609f44a5f9d
+claimed: "2026-09-05T13:38:30Z"
 ---
 
 # B474 — A sent postcard order still says nothing has been printed, and names the day by its slug
