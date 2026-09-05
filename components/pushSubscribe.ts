@@ -27,7 +27,7 @@ export function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   return bytes;
 }
 
-export type SubscribeResult = "subscribed" | "denied" | "dismissed" | "failed";
+export type SubscribeResult = "subscribed" | "denied" | "dismissed" | "unavailable" | "failed";
 
 /**
  * Ask the browser, then tell the server.
@@ -53,10 +53,27 @@ export async function subscribeToPush(
     if (permission !== "granted") return "dismissed";
 
     const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
-    });
+    /**
+     * The browser's own push service can refuse, and one browser refuses by
+     * default — B446.
+     *
+     * Brave ships with *Use Google services for push messaging* off, and this
+     * call then rejects with an `AbortError`. Permission was granted a line
+     * ago, the server has not been asked yet, and nothing the page does will
+     * change it: it is the reader's setting. Told apart from every other
+     * failure here so the copy can name it instead of inviting a retry that
+     * cannot work.
+     */
+    let sub: PushSubscription;
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+    } catch (err) {
+      console.warn("[fernscout] the browser refused to subscribe to push", err);
+      return "unavailable";
+    }
 
     const res = await fetch("/api/push/subscribe", {
       method: "POST",
@@ -69,11 +86,17 @@ export async function subscribeToPush(
       // Leave nothing behind that the server does not know about: a live
       // browser subscription the server cannot send to is a reader who has
       // agreed to notifications and will never receive one.
+      console.warn("[fernscout] the server refused the subscription", res.status);
       await sub.unsubscribe().catch(() => undefined);
       return "failed";
     }
     return "subscribed";
-  } catch {
+  } catch (err) {
+    // Say what went wrong somewhere. The reader gets one sentence and a
+    // retry; whoever they send the screenshot to needs the error, and before
+    // B446 this line threw it away — leaving a failure nobody could diagnose
+    // from anything the page showed.
+    console.warn("[fernscout] subscribing to push failed", err);
     return "failed";
   }
 }

@@ -684,6 +684,7 @@ export type TranslationKey =
   | "push.prompt.title"
   | "push.prompt.yes"
   | "push.turnOff"
+  | "push.unavailable"
   | "push.working"
   | "react.prompt"
   | "react.yours"
