@@ -750,8 +750,20 @@ function draftsForChapter(
     // looked at this particular day and decided, which outranks a rule about
     // every third one.
     const wantsHero = layout === "hero" || (layout === "auto" && (dayIndex === 0 || dayIndex % 3 === 0));
-    const hero = wantsHero && day.photos.length > 1 ? day.photos[0] : undefined;
-    const rest = layout === "text" ? [] : hero ? day.photos.slice(1) : day.photos;
+    /**
+     * Which photograph runs big, when one is going to.
+     *
+     * The owner's pick if they made one and it is still in the day; otherwise
+     * the first, which is what the planner has always chosen. Somebody looking
+     * at four pictures knows which is the one — the planner only knows which
+     * is first — so this is a hint worth honouring and never a decision worth
+     * demanding.
+     */
+    const picked = chosen?.hero
+      ? day.photos.find((p) => p.webSrc === chosen.hero)
+      : undefined;
+    const hero = wantsHero && day.photos.length > 1 ? (picked ?? day.photos[0]) : undefined;
+    const rest = layout === "text" ? [] : hero ? day.photos.filter((p) => p !== hero) : day.photos;
 
     /**
      * The day's words share their page with a photograph.

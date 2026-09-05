@@ -39,7 +39,15 @@ export default async function PhotobookPage({
         // Every photograph is in the book until the owner says otherwise, so
         // the grid starts fully selected. Drafts are the owner's own and are
         // included: this page is only ever the owner's.
-        media={getAllMedia(trip.ref, { includeDrafts: true }).filter((m) => m.type === "image")}
+        media={// Un-reversed. `getAllMedia` returns newest first, which is what a
+        // gallery wants and the opposite of what a book prints: the planner
+        // walks each entry's `gallery` in the order it was written. Showing
+        // the composer's grid the other way round meant the first photograph
+        // of a day appeared last, and moving one "earlier" moved it later on
+        // paper — a control that lies about its own direction.
+        [...getAllMedia(trip.ref, { includeDrafts: true })]
+          .reverse()
+          .filter((m) => m.type === "image")}
         days={getDays(trip.ref, { includeDrafts: true }).map((d) => ({
           date: d.date,
           title: d.lead.title,
