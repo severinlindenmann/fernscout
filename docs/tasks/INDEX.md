@@ -200,13 +200,11 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B11](open/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium |
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B476](in-development/B476-a-photobook-cannot-be-ordered-from.md) | A photobook cannot be ordered from the site, only from a shell | FEATURE | high | high | `d9c396ea` |
+_Nothing here._
 
-## testing (185)
+## testing (186)
 
 ### security (2)
 
@@ -325,7 +323,7 @@ Do not edit them by hand; run the script.
 | [B472](testing/issue/B472-the-outcome-mail-opens-with-the.md) | The outcome mail opens with the same sentence twice | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
-### big-feature (11)
+### big-feature (12)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -335,6 +333,7 @@ Do not edit them by hand; run the script.
 | [B366](testing/big-feature/B366-sending-a-letter-or-a-message.md) | Sending a letter or a message costs a credit, and a journal starts with none | FEATURE | high | high | — |
 | [B410](testing/big-feature/B410-a-reader-s-access-is-trapped.md) | A reader's access is trapped in one journal's cookie, so the instance cannot tell them what they may open | FEATURE | high | high | — |
 | [B434](testing/big-feature/B434-a-postcard-cannot-be-ordered-from.md) | A postcard cannot be ordered from the site — only rendered by hand on a shell | FEATURE | high | high | — |
+| [B476](testing/big-feature/B476-a-photobook-cannot-be-ordered-from.md) | A photobook cannot be ordered from the site, only from a shell | FEATURE | high | high | — |
 | [B283](testing/big-feature/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high | — |
 | [B294](testing/big-feature/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high | — |
 | [B39](testing/big-feature/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |

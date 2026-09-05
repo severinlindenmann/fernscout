@@ -7,8 +7,7 @@ complexity: high
 area: photobook, credits, gallery
 found: "2026-09-05T13:49:29Z"
 started: "2026-09-05T13:56:01Z"
-session: d9c396ea-a80a-4f80-954a-d37a0bf2c8c8
-claimed: "2026-09-05T13:56:01Z"
+merged: "2026-09-05T15:22:41Z"
 ---
 
 # B476 — A photobook cannot be ordered from the site, only from a shell
