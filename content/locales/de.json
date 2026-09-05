@@ -8,6 +8,8 @@
   "a11y.skipToContent": "Zum Inhalt springen",
   "contact.addrCity": "Ort",
   "contact.addrCountry": "Land",
+  "contact.addrCountryNoMatches": "Kein Land passt dazu",
+  "contact.addrCountrySearchPlaceholder": "Land eingeben",
   "contact.addrLine1": "Strasse und Nummer",
   "contact.addrLine2": "Zusatz",
   "contact.addrName": "Name auf dem Umschlag",

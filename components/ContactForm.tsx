@@ -4,6 +4,7 @@ import { useState } from "react";
 import { codeConfirmErrorKey } from "@/lib/contacts/codeConfirmError";
 import { LOCALE_LABEL, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
+import CountryField from "./CountryField";
 import TelField, { joinTel, splitTel } from "./TelField";
 
 /**
@@ -374,12 +375,15 @@ export default function ContactForm({
               <label className={LABEL} htmlFor="addr-country">
                 {t("contact.addrCountry")}
               </label>
-              <input
+              <CountryField
                 id="addr-country"
-                className={FIELD}
-                autoComplete="country-name"
                 value={address.country}
-                onChange={(e) => setAddressField("country", e.target.value)}
+                locales={locales}
+                onChange={(code) => setAddressField("country", code)}
+                label={t("contact.addrCountry")}
+                searchPlaceholder={t("contact.addrCountrySearchPlaceholder")}
+                noMatches={t("contact.addrCountryNoMatches")}
+                locale={locale}
               />
             </div>
           </fieldset>

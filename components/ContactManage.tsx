@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import CountryField from "./CountryField";
 import TelField, { joinTel, splitTel } from "./TelField";
 import { LOCALE_LABEL, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
@@ -219,7 +220,6 @@ export default function ContactManage({
               ["line2", "contact.addrLine2"],
               ["postcode", "contact.addrPostcode"],
               ["city", "contact.addrCity"],
-              ["country", "contact.addrCountry"],
             ] as [keyof ManageAddress, TranslationKey][]
           ).map(([field, key]) => (
             <div className="mt-4" key={field}>
@@ -236,6 +236,21 @@ export default function ContactManage({
               />
             </div>
           ))}
+          <div className="mt-4">
+            <label className={LABEL} htmlFor="manage-country">
+              {t("contact.addrCountry")}
+            </label>
+            <CountryField
+              id="manage-country"
+              value={address.country}
+              locales={locales}
+              onChange={(code) => setAddress((previous) => ({ ...previous, country: code }))}
+              label={t("contact.addrCountry")}
+              searchPlaceholder={t("contact.addrCountrySearchPlaceholder")}
+              noMatches={t("contact.addrCountryNoMatches")}
+              locale={locale}
+            />
+          </div>
         </fieldset>
 
         <div className="mt-8 space-y-4">

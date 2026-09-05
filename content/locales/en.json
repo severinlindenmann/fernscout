@@ -8,6 +8,8 @@
   "a11y.skipToContent": "Skip to content",
   "contact.addrCity": "Town",
   "contact.addrCountry": "Country",
+  "contact.addrCountryNoMatches": "No country matches that",
+  "contact.addrCountrySearchPlaceholder": "Type a country",
   "contact.addrLine1": "Street and number",
   "contact.addrLine2": "Extra line",
   "contact.addrName": "Name on the envelope",

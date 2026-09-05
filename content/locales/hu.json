@@ -8,6 +8,8 @@
   "a11y.skipToContent": "Ugrás a tartalomra",
   "contact.addrCity": "Város",
   "contact.addrCountry": "Ország",
+  "contact.addrCountryNoMatches": "Nincs ilyen ország",
+  "contact.addrCountrySearchPlaceholder": "Írj be egy országot",
   "contact.addrLine1": "Utca és házszám",
   "contact.addrLine2": "Kiegészítés",
   "contact.addrName": "Név a borítékon",

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import CopyLine from "./CopyLine";
+import CountryField from "./CountryField";
 import TelField, { joinTel, splitTel } from "./TelField";
 import { LOCALE_LABEL, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
@@ -673,11 +674,15 @@ export function GuestForm({
           <label className={LABEL} htmlFor="guest-addr-country">
             {t("contact.addrCountry")}
           </label>
-          <input
+          <CountryField
             id="guest-addr-country"
-            className={FIELD}
             value={form.country}
-            onChange={(e) => field("country", e.target.value)}
+            locales={locales}
+            onChange={(code) => field("country", code)}
+            label={t("contact.addrCountry")}
+            searchPlaceholder={t("contact.addrCountrySearchPlaceholder")}
+            noMatches={t("contact.addrCountryNoMatches")}
+            locale={form.locale}
           />
         </div>
       </fieldset>
