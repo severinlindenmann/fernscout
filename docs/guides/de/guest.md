@@ -13,7 +13,8 @@ Code. Sonst nichts.
 
 1. Öffne die Seite und drücke auf **Anmelden und lesen**. Das ist das Erste
    auf der Seite, noch über allem anderen.
-2. Gib die E-Mail-Adresse ein, an die die Einladung geschickt wurde.
+2. Gib die E-Mail-Adresse ein, an die die Einladung geschickt wurde, und
+   drücke auf **Code schicken**.
 3. Ein Code kommt per E-Mail. Tippe ihn ein — oder drücke auf den Knopf in
    dieser E-Mail, der macht dasselbe, ohne dass du tippen musst.
 

@@ -10,8 +10,9 @@ napokat.
 ## Miért így működik
 
 Az útinaplód markdown-fájlokból és fényképekből áll egy mappában, amely a tiéd.
-Egy ügynök jól átalakítja azt, hogy „lesétáltunk a kikötőbe, és a komp
-elmaradt", megírt nappá, a helyes dátummal és a hozzá tartozó fényképekkel. Egy
+Egy ügynök jól alakít megírt nappá egy ilyen mondatot — „lesétáltunk a
+kikötőbe, és a komp elmaradt" —, a helyes dátummal és a hozzá tartozó
+fényképekkel. Egy
 webes űrlap ezt nem csinálja jobban, viszont még egy dolog lenne, amit
 karbantartani, megtanulni és amibe belépni kell.
 
@@ -43,7 +44,7 @@ fájlokat, írd inkább a dátumot a fájlnévbe: `2026-08-26-hoi-an-01.jpg`.
 **Amit egy ügynök ír, az piszkozatként érkezik.** Addig nincs fenn az oldalon,
 amíg te nem mondod. Olvasd át előtte: az ügynök azt írja, amit mondtak neki, és
 az egyetlen dolog, amit soha nem szabad tennie, az az, hogy kitalálja, mi
-történt. Ha egy adat hiányzik, maradjon hiányzó.
+történt. Ha egy adat hiányzik, akkor hiányozzon.
 
 Ha elégedett vagy, kérd meg, hogy tegye közzé. A közzététel szándékosan külön
 lépés, és egyedül a tiéd — akit meghívsz, nem tud közzétenni, bármennyit is ír.
@@ -61,7 +62,8 @@ Két külön kérdés, és az összekeverésük a leggyakoribb hiba.
 
 Az az út, amelyet vissza akarsz tartani azok elől, akiket egyébként beengedsz,
 legyen **privát**. Szándékosan nincs szűkebb beállítás: vendégnek lenni egy
-döntés az egész naplódról, nem utanként egy.
+döntés az egész naplódról, nem pedig
+utanként meghozott döntés.
 
 **A naplódnak is van láthatósága**, és ez másik kérdés — csak az, hogy ez a
 kiszolgáló hirdeti-e egyáltalán. A `guest` naplót nem sorolja fel a nyitóoldal
@@ -75,12 +77,12 @@ biztonságos továbbküldeni:
 
 - A **vendéghivatkozás** a `guest`-re állított utak olvasásához vezet. Ez való
   a családi csoportba.
-- A **buddy-hivatkozás** egy utat nevez meg, és az **írásához** vezet. Add oda
+- Az **útitárs-hivatkozás** egy utat nevez meg, és az **írásához** vezet. Add oda
   a személynek, ne egy csoportnak.
 
 Egyik sem ad senkinek semmit önmagában. Aki megnyitja, igazolja a saját
-e-mail-címét, és a te jóváhagyási sorodba kerül — te döntesz. Addig semmi nincs
-megosztva.
+e-mail-címét, és a te jóváhagyási sorodba kerül — te döntesz. Amíg jóvá nem hagyod
+őket, semmi nincs megosztva.
 
 A vendéglistád a naplód kapcsolatok oldalán van. Ott hagyhatsz jóvá,
 módosíthatsz vagy távolíthatsz el bárkit, és látod a kiadott meghívóidat.
