@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (105)
+## backlog (106)
 
 ### security (6)
 
@@ -62,12 +62,13 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (32)
+### issue (33)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B329](backlog/issue/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium |
 | [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
+| [B509](backlog/issue/B509-a-photobook-order-charges-before-it.md) | A photobook order charges before it builds, so an interrupted build takes the money | ISSUE | high | medium |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
 | [B252](backlog/issue/B252-the-trip-gate-says-a-journal.md) | The trip gate says a journal has no sign-in while /api/auth still issues it sessions | ISSUE | medium | low |
