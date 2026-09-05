@@ -202,15 +202,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B473](in-development/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | `7c3dd4ae` |
-| [B474](in-development/B474-a-sent-postcard-order-still-says.md) | A sent postcard order still says nothing has been printed, and names the day by its slug | ISSUE | high | low | `8af79b62` |
 | [B448](in-development/B448-the-notifications-heading-on-me-stands.md) | The notifications heading on /me stands over an empty box where push cannot work | ISSUE | low | low | `f20cc410` |
 
-## testing (170)
+## testing (171)
 
 ### security (1)
 
@@ -218,7 +217,7 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 
-### issue (97)
+### issue (98)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -249,6 +248,7 @@ _Nothing here._
 | [B460](testing/issue/B460-neither-postcard-form-can-be-submitted.md) | Neither postcard form can be submitted: the redirect leaves the origin and CSP blocks it | ISSUE | high | low | — |
 | [B461](testing/issue/B461-the-postcard-preview-is-english-on.md) | The postcard preview is English on a German journal, and its language note explains nothing | ISSUE | high | low | — |
 | [B465](testing/issue/B465-the-postcard-preview-follows-the-journal.md) | The postcard preview follows the journal's language, not the reader's chosen one | ISSUE | high | low | — |
+| [B474](testing/issue/B474-a-sent-postcard-order-still-says.md) | A sent postcard order still says nothing has been printed, and names the day by its slug | ISSUE | high | low | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
