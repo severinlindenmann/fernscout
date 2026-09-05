@@ -7,7 +7,7 @@ import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
-import { DEFAULT_OPTIONS, type BookOptions } from "@/lib/photobook/options";
+import { DAY_LAYOUTS, DEFAULT_OPTIONS, type BookOptions, type DayLayout } from "@/lib/photobook/options";
 import type { PhotobookOutcome } from "@/lib/photobook/orders";
 import type { MediaTile, PhotobookEntry } from "@/lib/types";
 
@@ -41,26 +41,57 @@ const OUTCOME_MESSAGE: Record<string, TranslationKey> = {
  * `BookOptions` in state, ask for a new preview whenever they change, and
  * render whatever comes back. It never lays out a page itself.
  */
+/** Each language named in itself, which is how a language picker should read
+ * — a German owner looks for "Deutsch", not for "German". */
+/** What each arrangement is called on the page. `auto` first, because it is
+ * what every day starts as and what most days should stay. */
+const LAYOUT_LABEL: Record<DayLayout, TranslationKey> = {
+  auto: "photobook.day.layout.auto",
+  hero: "photobook.day.layout.hero",
+  single: "photobook.day.layout.single",
+  pair: "photobook.day.layout.pair",
+  grid: "photobook.day.layout.grid",
+  text: "photobook.day.layout.text",
+};
+
+const LANGUAGE_NAME: Record<string, string> = {
+  en: "English",
+  de: "Deutsch",
+  hu: "Magyar",
+};
+
 export default function PhotobookPageContent({
   entry,
   tripRef,
   tripTitle,
   media,
+  days,
   balance,
+  locales,
   outcome,
 }: {
   entry: PhotobookEntry;
   tripRef: string;
   tripTitle: string;
   media: MediaTile[];
+  /** The trip's days, in the order the book prints them, so the composer can
+   * be a list of days rather than a heap of photographs. */
+  days: { date: string; title: string; location: string }[];
   balance: number | null;
+  /** The languages this journal offers, from its own config. The picker is
+   * hidden entirely where there is only one. */
+  locales: string[];
   /** What the last press of Pay came back with, if this page was reached by
    * `order/route.ts`'s redirect rather than opened fresh. `null` on a first
    * visit. */
   outcome: PhotobookOutcome | null;
 }) {
   const { t } = useI18n();
-  const [options, setOptions] = useState<BookOptions>(DEFAULT_OPTIONS);
+  // Opens in the journal's own default language rather than in English.
+  const [options, setOptions] = useState<BookOptions>({
+    ...DEFAULT_OPTIONS,
+    locale: locales[0] ?? DEFAULT_OPTIONS.locale,
+  });
   const [preview, setPreview] = useState<PreviewState>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -71,14 +102,38 @@ export default function PhotobookPageContent({
   // form a second id to race the first against.
   const [orderId] = useState(() => crypto.randomUUID());
 
-  const excluded = new Set(options.excludePhotos);
-  const toggle = (src: string) =>
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  /**
+   * Arranging one day.
+   *
+   * Both of these write an explicit list rather than a set of exclusions. A
+   * day the owner has not opened has no entry at all and the book decides it,
+   * which is the normal case; the moment they touch one, what they see is what
+   * gets printed, in the order they see it.
+   *
+   * The flat photograph grid this replaced wrote `excludePhotos`, which the
+   * planner and the API still honour for callers that are not this page — an
+   * agent proposing a book has no day list to work from.
+   */
+  const setDayLayout = (date: string, layout: DayLayout) =>
     setOptions((o) => ({
       ...o,
-      excludePhotos: excluded.has(src)
-        ? o.excludePhotos.filter((s) => s !== src)
-        : [...o.excludePhotos, src],
+      days: { ...o.days, [date]: { ...o.days[date], layout } },
     }));
+
+  const toggleDayPhoto = (date: string, src: string, dayPhotos: MediaTile[]) =>
+    setOptions((o) => {
+      const current = o.days[date]?.photos ?? dayPhotos.map((m) => m.src);
+      const next = current.includes(src)
+        ? current.filter((s) => s !== src)
+        : // Put it back where the day has it rather than at the end, so
+          // toggling a photograph off and on again does not silently reorder
+          // the day.
+          dayPhotos.filter((m) => current.includes(m.src) || m.src === src).map((m) => m.src);
+      return { ...o, days: { ...o.days, [date]: { ...o.days[date], photos: next } } };
+    });
+
 
   // Debounced: every keystroke and every tile click changes `options`, and
   // each one plans and lays out the whole book server-side. 400 ms is long
@@ -180,6 +235,32 @@ export default function PhotobookPageContent({
                   </select>
                 </label>
 
+                {locales.length > 1 && (
+                  <label className="block">
+                    <span className="text-sm font-semibold text-navy-800">
+                      {t("photobook.option.language")}
+                    </span>
+                    {/* The book's own words only — headings, the colophon, how
+                        the travelling is named. The days keep whatever language
+                        they were written in. Shown at all only where the journal
+                        offers more than one. */}
+                    <select
+                      value={options.locale}
+                      onChange={(e) => setOptions((o) => ({ ...o, locale: e.target.value }))}
+                      className="mt-1 block w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm"
+                    >
+                      {locales.map((code) => (
+                        <option key={code} value={code}>
+                          {LANGUAGE_NAME[code] ?? code}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="mt-1 block text-xs text-navy-600">
+                      {t("photobook.option.languageHint")}
+                    </span>
+                  </label>
+                )}
+
                 <fieldset>
                   <legend className="text-sm font-semibold text-navy-800">
                     {t("photobook.option.binding")}
@@ -225,44 +306,103 @@ export default function PhotobookPageContent({
                 </fieldset>
 
                 <div>
-                  <p className="text-sm font-semibold text-navy-800">{t("photobook.option.photos")}</p>
-                  <p className="mt-1 text-xs text-navy-600">{media.length - excluded.size} / {media.length}</p>
-                  <div className="mt-2 grid grid-cols-4 gap-1.5">
-                    {media.map((tile, i) => (
-                      <button
-                        key={tile.src}
-                        type="button"
-                        onClick={() => toggle(tile.src)}
-                        // Pressed means "included in the book" — the state the
-                        // grid started every tile in, and the one the toggle's
-                        // label below names.
-                        aria-pressed={!excluded.has(tile.src)}
-                        // `alt=""` on the `<Image>` below is correct — the tile
-                        // is decorative next to this label, not the other way
-                        // round. Without it a screen reader announces a grid of
-                        // unlabelled toggle buttons; the caption is the best name
-                        // when there is one, and a position when there is not.
-                        aria-label={
-                          tile.caption || t("photobook.option.photoName", {
-                            index: String(i + 1),
-                            total: String(media.length),
-                          })
-                        }
-                        className={`relative aspect-square overflow-hidden rounded-md border ${
-                          excluded.has(tile.src) ? "border-navy-200 opacity-30" : "border-yellow-500"
-                        }`}
-                      >
-                        <Image
-                          src={tile.src}
-                          loader={mediaLoader}
-                          alt=""
-                          fill
-                          sizes="10vw"
-                          className="object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
+                  <p className="text-sm font-semibold text-navy-800">
+                    {t("photobook.day.heading")}
+                  </p>
+                  <p className="mt-1 text-xs text-navy-600">{t("photobook.day.hint")}</p>
+                  <ul className="mt-2 space-y-1">
+                    {days.map((day) => {
+                      const dayPhotos = media.filter((m) => m.date === day.date);
+                      if (dayPhotos.length === 0 && !day.title) return null;
+                      const plan = options.days[day.date];
+                      // No entry means the book decides, which is the normal
+                      // case and has to stay the cheapest one to read.
+                      const chosen = plan?.photos ?? dayPhotos.map((m) => m.src);
+                      const included = new Set(chosen);
+                      const layout = plan?.layout ?? "auto";
+                      const open = expanded === day.date;
+                      return (
+                        <li key={day.date} className="rounded-lg border border-navy-200 bg-white">
+                          <button
+                            type="button"
+                            onClick={() => setExpanded(open ? null : day.date)}
+                            aria-expanded={open}
+                            className="flex w-full items-baseline justify-between gap-2 px-3 py-2 text-left"
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-semibold text-navy-800">
+                                {day.title || day.date}
+                              </span>
+                              <span className="block truncate text-xs text-navy-600">
+                                {t("photobook.day.photos", {
+                                  shown: String(included.size),
+                                  total: String(dayPhotos.length),
+                                })}
+                                {layout !== "auto" ? ` · ${t(LAYOUT_LABEL[layout])}` : ""}
+                              </span>
+                            </span>
+                            <span aria-hidden className="text-navy-500">
+                              {open ? "\u2212" : "+"}
+                            </span>
+                          </button>
+                          {open && (
+                            <div className="border-t border-navy-100 px-3 py-3">
+                              <div className="flex flex-wrap gap-1">
+                                {DAY_LAYOUTS.map((option) => (
+                                  <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => setDayLayout(day.date, option)}
+                                    aria-pressed={layout === option}
+                                    className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                                      layout === option
+                                        ? "border-yellow-600 bg-yellow-400 text-yellow-950"
+                                        : "border-navy-200 text-navy-700"
+                                    }`}
+                                  >
+                                    {t(LAYOUT_LABEL[option])}
+                                  </button>
+                                ))}
+                              </div>
+                              {dayPhotos.length > 0 && (
+                                <div className="mt-3 grid grid-cols-4 gap-1.5">
+                                  {dayPhotos.map((tile, i) => (
+                                    <button
+                                      key={tile.src}
+                                      type="button"
+                                      onClick={() => toggleDayPhoto(day.date, tile.src, dayPhotos)}
+                                      aria-pressed={included.has(tile.src)}
+                                      aria-label={
+                                        tile.caption ||
+                                        t("photobook.option.photoName", {
+                                          index: String(i + 1),
+                                          total: String(dayPhotos.length),
+                                        })
+                                      }
+                                      className={`relative aspect-square overflow-hidden rounded-md border ${
+                                        included.has(tile.src)
+                                          ? "border-yellow-500"
+                                          : "border-navy-200 opacity-30"
+                                      }`}
+                                    >
+                                      <Image
+                                        src={tile.src}
+                                        loader={mediaLoader}
+                                        alt=""
+                                        fill
+                                        sizes="10vw"
+                                        className="object-cover"
+                                      />
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
               </div>
 

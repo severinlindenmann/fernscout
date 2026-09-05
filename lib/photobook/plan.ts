@@ -48,7 +48,8 @@ import {
 } from "./spec.ts";
 import { formatDate, formatDateRange, wrap } from "./text.ts";
 import { isPlottable } from "../mapFrame.ts";
-import { DEFAULT_OPTIONS, type BookOptions } from "./options.ts";
+import { DEFAULT_OPTIONS, type BookOptions, type DayLayout } from "./options.ts";
+import { bookStrings, fill, type BookStrings } from "./strings.ts";
 
 // ---------------------------------------------------------------------------
 // What the planner is given
@@ -213,6 +214,8 @@ export type BookPage = { number: number; side: PageSide } & (
     }
   | {
       kind: "chapter";
+      /** "Chapter 2 of 5", already in the book's language. */
+      label: string;
       country: string;
       countryCode?: string;
       dates: string;
@@ -229,6 +232,8 @@ export type BookPage = { number: number; side: PageSide } & (
       lines: string[];
       truncated: boolean;
       captions: string[];
+      /** "(continued on the website)", in the book's language. */
+      continued: string;
       /** Set when the day's words share their page with a photograph — see
        * the note beside PHOTO_SHARE in `materialise`. */
       photo?: PhotoPlacement;
@@ -245,7 +250,26 @@ export type BookPage = { number: number; side: PageSide } & (
       /** The longest single leg, when there is one worth naming. */
       note?: string;
     }
-  | { kind: "costs"; costs: BookCosts; heading: string }
+  | {
+      kind: "costs";
+      costs: BookCosts;
+      heading: string;
+      /** Every word on the page, decided here. The renderer draws what it is
+       * given — it had these as English literals, which is how the book stayed
+       * English while the days it printed were translated. */
+      labels: {
+        total: string;
+        before: string;
+        onRoad: string;
+        perDay: string;
+        budgeted: string;
+        spent: string;
+        where: string;
+        budgetVsActual: string;
+        byCountry: string;
+        nights: string;
+      };
+    }
   | { kind: "colophon"; heading: string; lines: string[]; figures: Figure[] }
   | { kind: "blank" }
 );
@@ -497,6 +521,56 @@ function placeAll(
   });
 }
 
+/**
+ * The owner's arrangement for one day, or the planner's if they made none.
+ *
+ * `groupPhotos` chooses by shape — is this a portrait, is that a panorama —
+ * which is the right default and is what `auto` keeps. The named layouts are a
+ * person overruling it for one particular day, so they force the grouping and
+ * let `placeAll` crop to fit rather than asking again what shape anything is.
+ *
+ * `grid` still asks, because four photographs to a page only works when the
+ * shapes allow it: forcing a panorama into a quarter-page crops it to a strip
+ * of nothing. Where they do not, it falls back to pairs, which is the nearest
+ * honest answer to "small, several to a page".
+ */
+function groupsFor(
+  layout: DayLayout,
+  photos: BookPhoto[],
+): { layout: PhotoLayout; photos: BookPhoto[] }[] {
+  if (layout === "auto" || layout === "hero" || photos.length === 0) return groupPhotos(photos);
+  if (layout === "text") return [];
+  if (layout === "single") return photos.map((photo) => ({ layout: "feature" as const, photos: [photo] }));
+
+  const size = layout === "grid" ? 4 : 2;
+  const groups: { layout: PhotoLayout; photos: BookPhoto[] }[] = [];
+  for (let i = 0; i < photos.length; i += size) {
+    const slice = photos.slice(i, i + size);
+    if (slice.length === 1) {
+      groups.push({ layout: "feature", photos: slice });
+      continue;
+    }
+    const squarish = slice.every((p) => !isPanorama(p));
+    if (size === 4 && slice.length === 4 && squarish) {
+      groups.push({ layout: "quad", photos: slice });
+      continue;
+    }
+    // Two at a time: side by side if both stand up, one above the other
+    // otherwise, which is the arrangement that crops least.
+    const portraits = slice.slice(0, 2).every((p) => orientation(p) === "portrait");
+    groups.push({ layout: portraits ? "pair-portrait" : "pair-stacked", photos: slice.slice(0, 2) });
+    if (slice.length > 2) {
+      const tail = slice.slice(2);
+      const tailPortraits = tail.every((p) => orientation(p) === "portrait");
+      groups.push({
+        layout: tail.length === 1 ? "feature" : tailPortraits ? "pair-portrait" : "pair-stacked",
+        photos: tail,
+      });
+    }
+  }
+  return groups;
+}
+
 /** How photographs are grouped onto pages. See the module note for why. */
 export function groupPhotos(photos: BookPhoto[]): { layout: PhotoLayout; photos: BookPhoto[] }[] {
   const groups: { layout: PhotoLayout; photos: BookPhoto[] }[] = [];
@@ -556,27 +630,18 @@ type Chapter = {
  * journal that invents `transportMode: "ferry"` should print "Ferry" and not
  * silently lose the leg.
  */
-const MODE_WORDS: Record<string, { verb: string; one: string; many: string }> = {
-  flight: { verb: "Flew", one: "flight", many: "flights" },
-  train: { verb: "Took the train", one: "day by train", many: "days by train" },
-  bus: { verb: "Took the bus", one: "day by bus", many: "days by bus" },
-  car: { verb: "Drove", one: "day driving", many: "days driving" },
-  motorbike: { verb: "Rode", one: "day on the bike", many: "days on the bike" },
-  boat: { verb: "Sailed", one: "day on the water", many: "days on the water" },
-  walk: { verb: "Walked", one: "day walking", many: "days walking" },
-};
-
-/** The verb for a day's own line — "Drove". */
-function modeVerb(mode: string): string {
-  return MODE_WORDS[mode]?.verb ?? mode.charAt(0).toUpperCase() + mode.slice(1);
+/** The verb for a day's own line — "Drove", "Gefahren". */
+function modeVerb(mode: string, s: BookStrings): string {
+  return s.modeVerb[mode] ?? mode.charAt(0).toUpperCase() + mode.slice(1);
 }
 
 /** The counted noun for the summary — "17 days driving", "1 flight". A book
- * that says "1 flights" is a book that was generated rather than written. */
-function modeCount(mode: string, days: number): string {
-  const words = MODE_WORDS[mode];
-  if (words) return days === 1 ? words.one : words.many;
-  return days === 1 ? `day by ${mode}` : `days by ${mode}`;
+ * that says "1 flights" is a book that was generated rather than written, so
+ * every language spells both out rather than deriving one from the other. */
+function modeCount(mode: string, days: number, s: BookStrings): string {
+  const table = days === 1 ? s.modeOne : s.modeMany;
+  if (table[mode]) return table[mode];
+  return fill(days === 1 ? s.modeOtherOne : s.modeOtherMany, { mode });
 }
 
 /** Consecutive days in the same country. A country revisited later in the trip
@@ -604,7 +669,14 @@ type Draft =
   | { kind: "route"; half: "left" | "right"; align?: "verso" }
   | { kind: "chapter"; chapter: Chapter; index: number; of: number; align: "recto" }
   | { kind: "day"; day: BookDay; captions: string[]; photo?: BookPhoto }
-  | { kind: "photos"; layout: PhotoLayout; photos: BookPhoto[] }
+  | {
+      kind: "photos";
+      layout: PhotoLayout;
+      photos: BookPhoto[];
+      /** Set when this page's arrangement was chosen by a person rather than
+       * by `groupPhotos`. `expandToMinimum` leaves it alone — see there. */
+      chosen?: true;
+    }
   | { kind: "followers"; align: "recto" }
   | { kind: "transport"; align: "recto" }
   | { kind: "costs"; align: "recto" }
@@ -620,7 +692,39 @@ function draftsForChapter(
   const drafts: Draft[] = options.includeChapters
     ? [{ kind: "chapter", chapter, index, of, align: "recto" }]
     : [];
-  for (const [dayIndex, day] of chapter.days.entries()) {
+  for (const [dayIndex, chapterDay] of chapter.days.entries()) {
+    /**
+     * What the owner said about this day, if anything.
+     *
+     * Keyed by date, which is what a day is here. A day nobody touched has no
+     * entry and everything below runs exactly as it did before per-day plans
+     * existed — which is the promise this feature has to keep, because most
+     * days in most books will never be touched.
+     */
+    const chosen = options.days[chapterDay.date];
+
+    /**
+     * The photographs, in the order the owner put them.
+     *
+     * `chosen.photos` names them by their gallery `src`, so the day is rebuilt
+     * from that list rather than filtered by it — which is what makes
+     * reordering possible at all. A named photograph the day does not have is
+     * dropped rather than invented: the list can outlive an entry being
+     * edited, and a book must not print a picture that is no longer there.
+     *
+     * An empty list is a day the owner emptied on purpose, and is not the same
+     * as never having said.
+     */
+    const day = chosen?.photos
+      ? {
+          ...chapterDay,
+          photos: chosen.photos
+            .map((src) => chapterDay.photos.find((p) => p.webSrc === src))
+            .filter((p): p is BookPhoto => Boolean(p)),
+        }
+      : chapterDay;
+
+    const layout = chosen?.layout ?? "auto";
     const captions = options.includeText
       ? day.photos.map((p) => p.caption).filter((c): c is string => Boolean(c))
       : [];
@@ -642,9 +746,12 @@ function draftsForChapter(
     // spends it beside the words rather than on a hero, because the
     // alternative is a page of prose with nothing on it facing a page of
     // photograph with nothing to say.
-    const wantsHero = dayIndex === 0 || dayIndex % 3 === 0;
+    // `auto` is the rhythm described above. Anything else is the owner having
+    // looked at this particular day and decided, which outranks a rule about
+    // every third one.
+    const wantsHero = layout === "hero" || (layout === "auto" && (dayIndex === 0 || dayIndex % 3 === 0));
     const hero = wantsHero && day.photos.length > 1 ? day.photos[0] : undefined;
-    const rest = hero ? day.photos.slice(1) : day.photos;
+    const rest = layout === "text" ? [] : hero ? day.photos.slice(1) : day.photos;
 
     /**
      * The day's words share their page with a photograph.
@@ -662,8 +769,13 @@ function draftsForChapter(
       drafts.push({ kind: "day", day: written, captions, photo: withText });
     }
     if (hero) drafts.push({ kind: "photos", layout: "full-bleed", photos: [hero] });
-    for (const group of groupPhotos(grouped)) {
-      drafts.push({ kind: "photos", layout: group.layout, photos: group.photos });
+    for (const group of groupsFor(layout, grouped)) {
+      drafts.push({
+        kind: "photos",
+        layout: group.layout,
+        photos: group.photos,
+        ...(layout === "auto" ? {} : { chosen: true as const }),
+      });
     }
   }
   return drafts;
@@ -722,6 +834,13 @@ function expandToMinimum(drafts: Draft[], target: number): Draft[] {
     let bestIndex = -1;
     let bestSize = 1;
     out.forEach((d, i) => {
+      // Never break apart a page somebody arranged. A short trip needs
+      // thirty-two pages and this is how it gets them — by splitting
+      // multi-photo pages until there are enough — which would quietly undo a
+      // grid the owner chose and leave them pressing the same button again.
+      // Padding with blanks is the worse outcome only when nobody has said
+      // what they wanted.
+      if (d.kind === "photos" && d.chosen) return;
       if (d.kind === "photos" && d.photos.length > bestSize) {
         bestSize = d.photos.length;
         bestIndex = i;
@@ -786,6 +905,7 @@ function materialise(
   source: BookSource,
   volume: { index: number; of: number },
   warnings: BookWarning[],
+  s: BookStrings,
 ): BookPage {
   const side = sideOf(number);
   const type = typeScale(spec);
@@ -802,7 +922,10 @@ function materialise(
         dates: formatDateRange(source.trip.start, source.trip.end),
         travellers: source.travellers.join(" & "),
         figures: source.figures,
-        volume: volume.of > 1 ? `Volume ${volume.index} of ${volume.of}` : undefined,
+        volume:
+          volume.of > 1
+            ? fill(s.volume, { index: String(volume.index), of: String(volume.of) })
+            : undefined,
       };
 
     case "intro": {
@@ -810,7 +933,7 @@ function materialise(
       const lines = source.trip.intro
         .split(/\n{2,}/)
         .flatMap((p) => [...wrap(p.replace(/\s*\n\s*/g, " ").trim(), type.body, width), ""]);
-      return { number, side, kind: "intro", heading: "The idea", lines };
+      return { number, side, kind: "intro", heading: s.intro, lines };
     }
 
     case "route": {
@@ -844,6 +967,7 @@ function materialise(
         number,
         side,
         kind: "chapter",
+        label: fill(s.chapter, { index: String(draft.index), of: String(draft.of) }),
         country: draft.chapter.country,
         countryCode: draft.chapter.countryCode,
         dates: formatDateRange(days[0].date, days[days.length - 1].date),
@@ -916,6 +1040,7 @@ function materialise(
         truncated,
         // A captioned photograph on the page makes the foot-of-page caption
         // index redundant, and there is no room for it either.
+        continued: s.continued,
         captions: photo ? [] : draft.captions,
         photo,
         leg: day.transport
@@ -925,7 +1050,7 @@ function materialise(
               // the verb when they were not: an arrow with nothing on one side
               // of it is worse than no arrow.
               text: [
-                modeVerb(day.transport.mode),
+                modeVerb(day.transport.mode, s),
                 [day.transport.from, day.transport.to].every(Boolean)
                   ? `${day.transport.from} \u2192 ${day.transport.to}`
                   : "",
@@ -949,11 +1074,11 @@ function materialise(
         number,
         side,
         kind: "followers",
-        heading: "Who came along",
+        heading: s.followers,
         note:
           names.length === 1
-            ? "One person followed this journey from home."
-            : `${names.length} people followed this journey from home.`,
+            ? s.followersOne
+            : fill(s.followersMany, { count: String(names.length) }),
         names,
       };
     }
@@ -965,17 +1090,21 @@ function materialise(
       }
       const modes = [...counts.entries()]
         .sort((a, b) => b[1] - a[1])
-        .map(([mode, days]) => ({ mode, label: modeCount(mode, days), days }));
+        .map(([mode, days]) => ({ mode, label: modeCount(mode, days, s), days }));
       const named = source.days.filter((d) => d.transport?.from && d.transport?.to);
       return {
         number,
         side,
         kind: "transport",
-        heading: "How we got about",
+        heading: s.transport,
         modes,
         note:
           named.length > 0
-            ? `${named.length} legs written down, from ${named[0].transport!.from} to ${named[named.length - 1].transport!.to}.`
+            ? fill(s.transportNote, {
+                count: String(named.length),
+                from: named[0].transport!.from,
+                to: named[named.length - 1].transport!.to,
+              })
             : undefined,
       };
     }
@@ -986,7 +1115,19 @@ function materialise(
         side,
         kind: "costs",
         costs: source.costs ?? EMPTY_COSTS,
-        heading: "What it cost",
+        labels: {
+          total: s.costsTotal,
+          before: s.costsBefore,
+          onRoad: s.costsOnRoad,
+          perDay: s.costsPerDay,
+          budgeted: s.costsBudgeted,
+          spent: s.costsSpent,
+          where: s.costsWhere,
+          budgetVsActual: s.costsBudgetVsActual,
+          byCountry: s.costsByCountry,
+          nights: s.nights,
+        },
+        heading: s.costs,
       };
 
     case "colophon":
@@ -995,15 +1136,17 @@ function materialise(
         side,
         kind: "colophon",
         figures: source.figures,
-        heading: "Colophon",
+        heading: s.colophon,
         lines: [
           source.trip.title,
           formatDateRange(source.trip.start, source.trip.end),
           "",
-          `Written and photographed by ${source.travellers.join(" and ") || "the travellers"}.`,
-          source.siteUrl ? `Originally published at ${source.siteUrl}` : "",
+          source.travellers.length > 0
+        ? fill(s.colophonBy, { names: source.travellers.join(" & ") })
+        : s.colophonByNobody,
+          source.siteUrl ? fill(s.colophonPublished, { url: source.siteUrl }) : "",
           "",
-          `Laid out by Fernscout and printed on demand. Made ${formatDate(source.madeOn)}.`,
+          fill(s.colophonMade, { date: formatDate(source.madeOn) }),
           `${spec.size.name}, ${spec.bleedMm} mm bleed, ${spec.dpi} DPI target.`,
         ].filter((l, i, all) => !(l === "" && all[i - 1] === "")),
       };
@@ -1165,6 +1308,7 @@ function coverFor(
   interiorPages: number,
   volume: { index: number; of: number },
   frontPhoto: BookPhoto | undefined,
+  s: BookStrings,
 ): CoverPlan {
   const spine = spineWidthMm(interiorPages, spec);
   return {
@@ -1173,7 +1317,7 @@ function coverFor(
     spineWidthMm: spine,
     frontPhoto,
     title: source.trip.title,
-    subtitle: volume.of > 1 ? `Volume ${volume.index} of ${volume.of}` : source.trip.tagline,
+    subtitle: volume.of > 1 ? fill(s.volume, { index: String(volume.index), of: String(volume.of) }) : source.trip.tagline,
     dates: formatDateRange(source.trip.start, source.trip.end),
     spineText: `${source.trip.title} · ${source.trip.start.slice(0, 4)}`,
     backLines: wrap(
@@ -1243,6 +1387,10 @@ export function planBook(
   spec: BookSpec,
   options: BookOptions = DEFAULT_OPTIONS,
 ): Photobook {
+  // The book's own words — headings, labels, the names of the ways of
+  // travelling — in the language the owner chose. Not the trip's prose, which
+  // is printed as its author wrote it.
+  const s = bookStrings(options.locale);
   const warnings: BookWarning[] = [...(source.notes ?? [])];
   const photoCount = source.days.reduce((n, d) => n + d.photos.length, 0);
   if (photoCount === 0) {
@@ -1301,7 +1449,7 @@ export function planBook(
     }
 
     const materialised = pages.map((draft, n) =>
-      materialise(draft, n + 1, spec, source, meta, warnings),
+      materialise(draft, n + 1, spec, source, meta, warnings, s),
     );
 
     const firstPhoto = chapterBlocks
@@ -1312,11 +1460,14 @@ export function planBook(
     return {
       index: meta.index,
       of: meta.of,
-      title: meta.of > 1 ? `${source.trip.title} — Volume ${meta.index}` : source.trip.title,
+      title:
+        meta.of > 1
+          ? `${source.trip.title} \u2014 ${fill(s.volume, { index: String(meta.index), of: String(meta.of) })}`
+          : source.trip.title,
       pages: materialised,
       interiorPages: materialised.length,
       spineWidthMm: spineWidthMm(materialised.length, spec),
-      cover: coverFor(source, spec, materialised.length, meta, firstPhoto),
+      cover: coverFor(source, spec, materialised.length, meta, firstPhoto, s),
     };
   });
 

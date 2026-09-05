@@ -523,7 +523,7 @@ function drawPage(
       text(
         page,
         frame,
-        eyebrow(`Chapter ${plan.index} of ${plan.of}`),
+        eyebrow(plan.label),
         c.x,
         y + (type.display * 1.6) / mm(1),
         type.caption,
@@ -565,7 +565,7 @@ function drawPage(
       y -= 8;
       y = block(page, frame, plan.lines, c.x, y, type.body, type.leading);
       if (plan.truncated) {
-        text(page, frame, "(continued on the website)", c.x, y, type.caption, MUTED, "F3");
+        text(page, frame, plan.continued, c.x, y, type.caption, MUTED, "F3");
       }
       if (plan.captions.length > 0) {
         let cy = c.y + 4 + (plan.captions.length - 1) * (type.caption * 1.5) / mm(1);
@@ -656,15 +656,15 @@ function drawPage(
       y -= 16;
       text(page, frame, money(costs.total), c.x, y, type.display, INK, "F2");
       y -= 8;
-      text(page, frame, "total, everything included", c.x, y, type.caption, MUTED, "F3");
+      text(page, frame, plan.labels.total, c.x, y, type.caption, MUTED, "F3");
       y -= 14;
 
       const rows: [string, string][] = [
-        ["Before we left", money(costs.preparation)],
-        ["On the road", money(costs.onTheRoad)],
-        ["Per day on the road", money(costs.perDay)],
+        [plan.labels.before, money(costs.preparation)],
+        [plan.labels.onRoad, money(costs.onTheRoad)],
+        [plan.labels.perDay, money(costs.perDay)],
       ];
-      if (costs.budget) rows.push(["Budgeted", money(costs.budget.total)]);
+      if (costs.budget) rows.push([plan.labels.budgeted, money(costs.budget.total)]);
       for (const [label, value] of rows) {
         text(page, frame, label, c.x, y, type.body, INK);
         textRight(page, frame, value, c.x + c.width, y, type.body, INK);
@@ -675,7 +675,7 @@ function drawPage(
 
       if (costs.byCategory.length > 0) {
         y -= 8;
-        text(page, frame, eyebrow("Where it went"), c.x, y, type.caption, MUTED);
+        text(page, frame, eyebrow(plan.labels.where), c.x, y, type.caption, MUTED);
         y -= 10;
 
         /**
@@ -728,11 +728,11 @@ function drawPage(
         const most = Math.max(costs.budget.total, costs.total);
         const barW = (n: number) => (n / most) * c.width;
         y -= 2;
-        text(page, frame, eyebrow("Budget and what happened"), c.x, y, type.caption, MUTED);
+        text(page, frame, eyebrow(plan.labels.budgetVsActual), c.x, y, type.caption, MUTED);
         y -= 9;
         for (const [label, value, color] of [
-          ["Budgeted", costs.budget.total, RULE],
-          ["Spent", costs.total, ACCENT],
+          [plan.labels.budgeted, costs.budget.total, RULE],
+          [plan.labels.spent, costs.total, ACCENT],
         ] as [string, number, typeof ACCENT][]) {
           const r = rect(frame, { x: c.x, y: y - 4.5, width: barW(value), height: 4.5 });
           PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, color);
@@ -744,7 +744,7 @@ function drawPage(
 
       if (costs.byCountry.length > 0 && y > c.y + 22) {
         y -= 2;
-        text(page, frame, eyebrow("By country"), c.x, y, type.caption, MUTED);
+        text(page, frame, eyebrow(plan.labels.byCountry), c.x, y, type.caption, MUTED);
         y -= 8;
         const most = Math.max(...costs.byCountry.map((x) => x.amount));
         for (const row of costs.byCountry.slice(0, 5)) {
@@ -756,7 +756,7 @@ function drawPage(
             height: 3,
           });
           PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, BAR_FAINT);
-          text(page, frame, `${row.country} — ${row.nights} nights`, c.x, y, type.caption, INK);
+          text(page, frame, `${row.country} \u2014 ${row.nights} ${plan.labels.nights}`, c.x, y, type.caption, INK);
           textRight(page, frame, money(row.amount), c.x + c.width, y, type.caption, MUTED);
           y -= 8;
         }
