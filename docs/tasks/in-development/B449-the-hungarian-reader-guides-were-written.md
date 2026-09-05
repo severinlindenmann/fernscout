@@ -107,51 +107,139 @@ Not doing, deliberately:
 - Not touching register, rhythm or word choice on instinct. Every change above
   answers to a rule; anything that only answered to taste was left alone and
   written into the list below.
-- Not renaming `út` → `utazás` across the guides. `hu.json` is itself split
-  between the two (`gate.privateBody` says *utazás*, `me.buddyAgent` says *út*)
-  and picking a winner is a decision about the product's vocabulary, not a
-  translation fix.
+- Not renaming `út` → `utazás` across the guides — and the second pass
+  settled it the other way round: `út` is the word (see item 7 below).
+  `hu.json` is the file that disagrees, and it is captured as B485 rather than
+  edited here, because B481 was rewriting the same file on a parallel branch.
 - Not adding the two English screenshots to `docs/guides/de/guest.md`. The
   German guide shows German captures; dropping two English ones into it would
   be worse than the gap. Hungarian already carries a note saying its
   screenshots are English, which is why they belong there.
 
-## What only a Hungarian speaker can settle
+## The eight items, decided
 
-This is the whole of what is left, and it should take about ten minutes. Read
-only the lines named; the rest was checked against the English.
+**The owner decided not to wait for a Hungarian speaker.** The instruction was
+to settle these items on the best judgement available, accepting a small error
+rate, rather than leave the ticket parked indefinitely on a person who may
+never appear. That is a deliberate, owner-sanctioned change to how this task
+closes, and the Acceptance section below was rewritten to match it. It is
+recorded here so it does not read as an agent quietly moving the goalposts.
 
-1. **Register.** The guides use informal *te* throughout. Is that right for a
-   stranger's travel journal, or should a guide be neutral? (`hu.json` is
-   informal too, mostly — B481 covers the four strings that are not.)
-2. **`hu/creator.md:4` — "A legmeglepőbb elsőként:"** for *"The most
-   surprising thing first"*. Understandable; is it something a Hungarian text
-   would actually write, or is it visibly a translation?
-3. **`hu/creator.md:15` — "még egy dolog lenne, amit karbantartani, megtanulni
-   és amibe belépni kell."** Two relative pronouns sharing one *kell*. Legal?
-   Readable?
-4. **`hu/buddy.md:14` — "Meg vagy nevezve az úton"** for *"You are credited on
-   the trip"*. Is *meg van nevezve* the word, or should it be *fel vagy
-   tüntetve*?
-5. **`hu/guest.md:98` — "más nyelvet választanál, amelyen írnak neked"**. The
-   relative clause is doing something awkward. Say it better.
-6. **`hu/creator.md:64` — "utanként meghozott döntés"**. Is *utanként* the
-   distributive form of *út* you would write, or does it need rephrasing away?
-7. **`út` or `utazás` for a trip?** The guides say *út* everywhere and the
-   interface says both. One answer, and then B481's sibling can carry it into
-   `hu.json`. This is the one item on the list that changes more than a
-   sentence.
-8. **The three iOS steps in `hu/guest.md:58-78`** against an actual Hungarian
-   iPhone, if one is to hand. The menu names were corrected from Apple's
-   Hungarian wording rather than from a device.
+Each decision names the rule it rests on. Three are marked *lower confidence*:
+they are the ones where the rule is idiom rather than grammar, and they are the
+short list a speaker would check if one ever does read this.
+
+1. **Register — informal *te*, unchanged.** The interface is being made
+   consistently informal in both German (B432, merged) and Hungarian (B481, in
+   flight), so informal is the house style; a guide in a different register
+   from the buttons it tells you to press would be two voices in one product.
+   Checked mechanically: `Ön`/`Önnek` appears nowhere in
+   `docs/guides/hu/`, so the guides are already internally consistent and no
+   edit was needed.
+
+2. **`hu/creator.md:4` — changed.** *A legmeglepőbb elsőként:* →
+   **Kezdjük a legmeglepőbbel:**. Rule: Hungarian does not license the
+   verbless English fronting *"The most surprising thing first:"* — a
+   topicalised fragment of that shape needs a finite verb. `Kezdjük a X-vel`
+   is the ordinary Hungarian way to say "X first", and it keeps the bold
+   clause that follows exactly as it was.
+
+3. **`hu/creator.md:15` — repaired.** *… amit karbantartani, megtanulni és
+   amibe belépni kell* → *… amit karban kell tartani, meg kell tanulni, és
+   amibe be kell lépni.* Two rules, both nameable. First, a single `kell`
+   cannot serve two relative clauses whose pronouns carry different cases
+   (`amit` accusative, `amibe` illative); each clause needs its own. Second,
+   with `kell` a verbal prefix separates and precedes it — *karban kell
+   tartani*, *be kell lépni*, never *karbantartani … kell*.
+
+4. **`hu/buddy.md:14` — *fel vagy tüntetve*.** *Megnevez* is "to name, to
+   specify which one"; *feltüntet* is the verb for entering a name into a
+   visible list — a credit, a byline, a table. The English is *credited*, and
+   AGENTS.md is explicit that `people:` is the owner's editorial statement of
+   whose trip it was, i.e. a byline. So: **Fel vagy tüntetve** az úton.
+   *Lower confidence* — the two verbs overlap, and this rests on which one a
+   Hungarian byline uses rather than on a grammatical rule.
+
+5. **`hu/guest.md:98` — rewritten.** *más nyelvet választanál, amelyen
+   írnak neked* → *megváltoztatnád a nyelvet, amelyen írnak neked.* Rule: a
+   restrictive relative clause hanging off an indefinite antecedent
+   (*más nyelvet*) needs the correlative *olyan… amelyen*; with a definite
+   antecedent (*a nyelvet*) the bare *amelyen* is standard. Making the
+   antecedent definite is the smaller repair, and it also matches the
+   definite conjugation of its neighbours — *javítanád*, *leállítanád*,
+   and now *megváltoztatnád*.
+
+6. **`hu/creator.md:64` — the distributive dropped.** *utanként meghozott
+   döntés* → *az egyes utakról külön hozott döntés.* `-nként` attaches
+   productively to time and measure words (*naponként*, *fejenként*), not to
+   an arbitrary count noun, and *utanként* additionally collides with the
+   reading "per road". Rephrasing away from the distributive entirely, as the
+   item asked, says what the English says without inventing a form.
+
+7. **`út`, not `utazás` — decided by the owner, and already satisfied.**
+   `út` is the idiomatic noun for one named journey; `utazás` survives only
+   where the sense is travel in the abstract. Checked: `utazás` occurs
+   nowhere in `docs/guides/hu/`, so the guides needed no edit. `hu.json` is
+   the file that disagrees — about thirty strings, `gate.privateTitle`,
+   `del.tripTitle`, `landing.trips` and the rest — and it is deliberately not
+   touched here because B481 is rewriting it on a parallel branch. Captured as
+   **B485**, which carries the decision.
+
+8. **The three iOS steps — closed against `hu.json`, and one disagreement
+   found.** No iPhone was available, so Apple's published Hungarian wording is
+   taken as authoritative and the product's own strings are the check that the
+   guide and the interface say the same thing. `push.install.step1`
+   (*Koppints a Megosztás ikonra a Safariban*), `push.prompt.yes`
+   (*Igen, értesítsetek*), `push.prompt.never` (*Ne kérdezzétek többet*) and
+   `me.notifyTitle` (*Értesítések*) all match the guide exactly. One did
+   not: `push.iosInstall` and `push.install.step2` both say **Hozzáadás a
+   kezdőképernyőhöz**, where the guide said *Hozzáadás a Főképernyőhöz*
+   — in two places, while its own surrounding prose already said
+   *kezdőképernyő*. The first pass's note that this wording came from
+   `push.iosInstall` was simply wrong about what that string says. Both are now
+   *kezdőképernyőhöz*, so the guide agrees with itself and with the product.
+   *Lower confidence* — Apple has used both words for the Home Screen across
+   iOS versions, and with no device to look at, agreeing with our own product
+   is the tie-break rather than proof of Apple's current string.
+
+## What changed in the second pass
+
+- `docs/guides/hu/creator.md` — *Kezdjük a legmeglepőbbel:* (item 2); the
+  `kell` chain rebuilt with one `kell` per verb and separated prefixes
+  (item 3); *az egyes utakról külön hozott döntés* (item 6); the paragraph
+  touched by item 3 re-wrapped, since the edit left a two-word line.
+- `docs/guides/hu/buddy.md` — **Fel vagy tüntetve** for the credit line
+  (item 4).
+- `docs/guides/hu/guest.md` — *megváltoztatnád a nyelvet, amelyen írnak
+  neked* (item 5); **Hozzáadás a kezdőképernyőhöz** in the step and in the
+  note that tells a Hungarian iPhone owner what their phone will say (item 8).
+- No change to `content/locales/hu.json`, to the German or English guides, or
+  to `test/guides.test.ts`. The parity assertion added in the first pass still
+  passes: no bold run was added or removed, only its contents changed.
+- New capture: **B485**, `hu.json`'s `utazás`/`út` split.
 
 ## Acceptance
 
-**This task cannot be closed by an agent, and nothing here pretends otherwise.**
-The corrections above are checkable and are done; `npm run verify` passes and
-the new parity assertion holds. What the title claims — that no Hungarian
-speaker has read these — is still true after this branch merges.
+**Rewritten, on the owner's instruction.** This section used to say the task
+was closable only once a Hungarian speaker had worked through the eight items.
+The owner decided not to wait for one, so as written the ticket could never
+close. What replaces it is checkable by anybody:
 
-It is accepted when a Hungarian speaker has worked through the eight items
-above and either confirmed them or said what to change. Until then it stays in
-`testing/` as a ticket waiting on a person, not on a build.
+- `npx vitest run test/guides.test.ts` passes — including the parity
+  assertion that headings, numbered steps, bullets and bold runs match across
+  `en`/`de`/`hu` for all three guides.
+- `npm run verify` passes.
+- Every control the Hungarian guides name in bold is named identically in
+  `content/locales/hu.json`: **Megosztás**, **Hozzáadás a
+  kezdőképernyőhöz**, **Igen, értesítsetek**, **Ne kérdezzétek többet**,
+  **Értesítések**, **Kijelentkezés**.
+- `grep -c utaz docs/guides/hu/*.md` is zero: a trip is `út` throughout.
+- Each of the eight items has a recorded decision above, and the three
+  lower-confidence ones (4, 8, and the idiom half of 2) are marked as such —
+  that list, not the whole ticket, is what a Hungarian speaker would review if
+  one ever appears.
+
+What the title claims remains true — no Hungarian speaker has read these
+guides. That is now a known and accepted state of the file rather than an open
+item, and B485 carries the one piece of work this pass deliberately left
+undone.

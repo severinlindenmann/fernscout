@@ -11,7 +11,7 @@ jóváhagyott. Mindkét esetben:
   amelyet a napló jóváhagyott vendégei sem látnak.
 - **Írhatsz** bele napokat, ügynökön keresztül, pontosan úgy, ahogy a
   tulajdonos.
-- **Meg vagy nevezve** az úton, ha a tulajdonos kézzel írta be a nevedet.
+- **Fel vagy tüntetve** az úton, ha a tulajdonos kézzel írta be a nevedet.
 
 A hozzáférésed **arra az útra szól és semmi másra**. Ugyanannak a naplónak a
 többi útját nem írhatod, és a neked kiállított token nem is ér el odáig.
