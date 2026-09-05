@@ -694,7 +694,22 @@ type Draft =
   | { kind: "intro" }
   | { kind: "route"; half: "left" | "right"; align?: "verso" }
   | { kind: "chapter"; chapter: Chapter; index: number; of: number; align: "recto" }
-  | { kind: "day"; day: BookDay; captions: string[]; photo?: BookPhoto }
+  | {
+      kind: "day";
+      day: BookDay;
+      captions: string[];
+      photo?: BookPhoto;
+      /** How many of the day's wrapped lines already ran on an earlier page —
+       * B517. Set only on a continuation page; a normal day page starts at 0
+       * implicitly by leaving this out. */
+      skipLines?: number;
+      /** This page's own overflow continues onto a following page rather
+       * than being cut — B517. Set on the *first* page of a run-on day so
+       * `materialise` neither truncates it nor warns about it; the
+       * continuation page carries no such flag, so it truncates and warns
+       * exactly as any other day page would if it still runs long. */
+      continuesOnNextPage?: true;
+    }
   | {
       kind: "photos";
       layout: PhotoLayout;
@@ -708,6 +723,51 @@ type Draft =
   | { kind: "costs"; align: "recto" }
   | { kind: "colophon" }
   | { kind: "blank" };
+
+/**
+ * How much of a day's page is left for its own prose, once the heading, the
+ * caption index (when there is no shared photo) and the shared photograph
+ * (when there is one) have taken their share — B517.
+ *
+ * Pulled out of `materialise`'s "day" case so `draftsForChapter` can ask the
+ * same question while a day is still a draft, before it has a page number.
+ * `contentBoxMm`'s width and height do not depend on `side` — only its `x`
+ * does, for the gutter — so either side answers this the same way.
+ */
+function dayTextBudget(
+  spec: BookSpec,
+  type: ReturnType<typeof typeScale>,
+  hasPhoto: boolean,
+  captionCount: number,
+): { columnWidthMm: number; availableHeightMm: number; photoHeightMm: number } {
+  const c = contentBoxMm(spec, "right");
+  const toMm = (points: number) => points / mm(1);
+  // Slightly over half the trim reads as a photograph with a caption above
+  // it — see PHOTO_SHARE's own note where it used to live, in `materialise`.
+  const photoHeightMm = hasPhoto ? spec.size.trimHeightMm * 0.52 : 0;
+  const captionRoomMm = hasPhoto ? 0 : toMm(captionCount * type.caption * 1.6 + type.body * 2);
+  const availableHeightMm = c.height - toMm(type.heading * 3.4) - captionRoomMm - photoHeightMm;
+  return { columnWidthMm: c.width, availableHeightMm, photoHeightMm };
+}
+
+/**
+ * Wraps a day's paragraphs and says how many of the resulting lines fit in
+ * the room `dayTextBudget` measured out — the one place this happens, called
+ * from `draftsForChapter` to decide whether a day needs a second page and
+ * from `materialise` to render both. Two callers computing this separately
+ * is how a book truncates on a page the planner thought was fine.
+ */
+function fitDayText(
+  paragraphs: string[],
+  type: ReturnType<typeof typeScale>,
+  columnWidthMm: number,
+  availableHeightMm: number,
+): { lines: string[]; maxLines: number; truncated: boolean } {
+  const lines = paragraphs.flatMap((p) => [...wrap(p, type.body, mm(columnWidthMm)), ""]);
+  const toMm = (points: number) => points / mm(1);
+  const maxLines = Math.max(0, Math.floor(availableHeightMm / toMm(type.body * type.leading)));
+  return { lines, maxLines, truncated: lines.length > maxLines };
+}
 
 /** Looks a photograph's crop up by `webSrc` and attaches it, if it has one. A
  * hand-built fixture with no `webSrc` — every planner test — simply never
@@ -723,7 +783,9 @@ function draftsForChapter(
   index: number,
   of: number,
   options: BookOptions,
+  spec: BookSpec,
 ): Draft[] {
+  const type = typeScale(spec);
   const drafts: Draft[] = options.includeChapters
     ? [{ kind: "chapter", chapter, index, of, align: "recto" }]
     : [];
@@ -817,10 +879,40 @@ function draftsForChapter(
      * alternating between walls of text and lone pictures.
      */
     const withText = rest[0];
-    const grouped = withText ? rest.slice(1) : rest;
+    let grouped = withText ? rest.slice(1) : rest;
 
     if (written.paragraphs.length > 0 || day.photos.length > 0) {
-      drafts.push({ kind: "day", day: written, captions, photo: withText });
+      /**
+       * Whether this day's words need a second page — B517.
+       *
+       * Measured with the same helper `materialise` renders with, against
+       * the same budget: a day with a shared photograph gets the shorter
+       * column that photograph leaves, exactly as it would if it were never
+       * split. `runOn` is the owner's opt-in; a day nobody has touched
+       * truncates here exactly as it always has.
+       */
+      const budget = dayTextBudget(spec, type, Boolean(withText), captions.length);
+      const fit = fitDayText(written.paragraphs, type, budget.columnWidthMm, budget.availableHeightMm);
+      const runOn = chosen?.runOn === true && fit.truncated;
+      if (runOn) {
+        // The day's next photograph, if it has a spare one, moves to the
+        // continuation page with the words rather than being manufactured or
+        // left as a half-empty page — B517's ruling. `grouped`'s first
+        // photograph is the next one the day would otherwise have printed,
+        // in a "photos" page below or on a later day's chapter.
+        const spare = grouped[0];
+        drafts.push({
+          kind: "day",
+          day: written,
+          captions,
+          photo: withText,
+          continuesOnNextPage: true,
+        });
+        drafts.push({ kind: "day", day: written, captions: [], photo: spare, skipLines: fit.maxLines });
+        if (spare) grouped = grouped.slice(1);
+      } else {
+        drafts.push({ kind: "day", day: written, captions, photo: withText });
+      }
     }
     if (hero) drafts.push({ kind: "photos", layout: "full-bleed", photos: [hero] });
     for (const group of groupsFor(layout, grouped)) {
@@ -1033,12 +1125,6 @@ function materialise(
 
     case "day": {
       const day = draft.day;
-      const lines = day.paragraphs.flatMap((p) => [...wrap(p, type.body, mm(c.width)), ""]);
-      // Type sizes are points and the content box is millimetres, so
-      // everything below is converted before it is subtracted. Getting this
-      // wrong shortens the column by a factor of nearly three, which shows up
-      // as prose truncated on a page that is visibly two-thirds empty.
-      const toMm = (points: number) => points / mm(1);
       /**
        * A photograph across the foot of the page, and the words above it.
        *
@@ -1046,14 +1132,13 @@ function materialise(
        * page then reads as one composition instead of a picture parked under
        * some type. The words keep the column they always had, only shorter.
        *
-       * `PHOTO_SHARE` is the fraction of the trim the photograph takes. Much
-       * less and it is a decoration; much more and a day with anything to say
-       * gets truncated, which the warning below would then report on every
-       * page. Slightly over half reads as a photograph with a caption above
-       * it, which is what this page is.
+       * `dayTextBudget`'s 0.52 is the fraction of the trim the photograph
+       * takes. Much less and it is a decoration; much more and a day with
+       * anything to say gets truncated, which the warning below would then
+       * report on every page. Slightly over half reads as a photograph with a
+       * caption above it, which is what this page is.
        */
-      const PHOTO_SHARE = 0.52;
-      const photoHeight = draft.photo ? spec.size.trimHeightMm * PHOTO_SHARE : 0;
+      const budget = dayTextBudget(spec, type, Boolean(draft.photo), draft.captions.length);
       const photo = draft.photo
         ? placement(
             draft.photo,
@@ -1061,25 +1146,24 @@ function materialise(
               x: -spec.bleedMm,
               y: -spec.bleedMm,
               width: spec.size.trimWidthMm + spec.bleedMm * 2,
-              height: photoHeight + spec.bleedMm,
+              height: budget.photoHeightMm + spec.bleedMm,
             },
             "cover",
           )
         : undefined;
       if (photo) checkResolution(photo, spec, warnings);
-      // Room for the heading block above and the caption index at the foot.
-      // A page carrying a photograph has no room for the caption index — the
-      // photograph is where the foot of the page went.
-      const captionRoom = photo
-        ? 0
-        : toMm(draft.captions.length * type.caption * 1.6 + type.body * 2);
-      const available = c.height - toMm(type.heading * 3.4) - captionRoom - photoHeight;
-      const maxLines = Math.max(0, Math.floor(available / toMm(type.body * type.leading)));
-      const truncated = lines.length > maxLines;
+      const fit = fitDayText(day.paragraphs, type, budget.columnWidthMm, budget.availableHeightMm);
+      const skip = draft.skipLines ?? 0;
+      const lines = fit.lines.slice(skip, skip + fit.maxLines);
+      // A page whose overflow already has a continuation page waiting for it
+      // — B517 — is not truncated: it is exactly as long as it was always
+      // going to be. Only the *last* page of a day can honestly say the rest
+      // is gone.
+      const truncated = fit.lines.length > skip + fit.maxLines && !draft.continuesOnNextPage;
       if (truncated) {
         warnings.push({
           code: "text-truncated",
-          detail: `${day.date} "${day.title}": ${lines.length} lines written, ${maxLines} fit on the page.`,
+          detail: `${day.date} "${day.title}": ${fit.lines.length - skip} lines written, ${fit.maxLines} fit on the page.`,
         });
       }
       return {
@@ -1090,7 +1174,7 @@ function materialise(
         dateLabel: formatDate(day.date),
         title: day.title,
         location: [day.location, day.country].filter(Boolean).join(", "),
-        lines: lines.slice(0, maxLines),
+        lines,
         truncated,
         // A captioned photograph on the page makes the foot-of-page caption
         // index redundant, and there is no room for it either.
@@ -1457,7 +1541,7 @@ export function planBook(
   const chapters = chaptersOf(source.days);
   const front = draftsForFront(source, options);
   const back = draftsForBack(source, options);
-  const blocks = chapters.map((ch, i) => draftsForChapter(ch, i + 1, chapters.length, options));
+  const blocks = chapters.map((ch, i) => draftsForChapter(ch, i + 1, chapters.length, options, spec));
 
   const grouped = splitIntoVolumes(blocks, front.length, back.length, spec.pageCount.max);
   if (grouped.length > 1) {

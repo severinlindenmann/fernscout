@@ -731,6 +731,8 @@ export type TranslationKey =
   | "photobook.day.layout.grid"
   | "photobook.day.layout.text"
   | "photobook.day.layoutLegend"
+  | "photobook.day.runOn"
+  | "photobook.day.runOnHint"
   | "photobook.day.reset"
   | "photobook.day.applyToAll"
   | "photobook.day.applyToAllConfirm"

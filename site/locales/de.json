@@ -648,6 +648,8 @@
   "photobook.day.layout.grid": "Vier pro Seite",
   "photobook.day.layout.text": "Nur Text",
   "photobook.day.layoutLegend": "Wie dieser Tag gestaltet wird",
+  "photobook.day.runOn": "Diesem Tag eine zweite Seite geben, statt zu kürzen",
+  "photobook.day.runOnHint": "Fügt eine Seite hinzu, der Preis ändert sich also auch.",
   "photobook.day.reset": "Das Buch wieder entscheiden lassen",
   "photobook.day.applyToAll": "Auf jeden Tag anwenden",
   "photobook.day.applyToAllConfirm": "{count} andere Tag(e) wurden von Hand angeordnet und werden ebenfalls auf dieses Layout gesetzt. Fortfahren?",
