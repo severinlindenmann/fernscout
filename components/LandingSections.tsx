@@ -101,6 +101,18 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
       >
         {t("home.inviteAction")}
       </button>
+      {/* For the reader who is not sure they are in the right place at all —
+          B445. Quiet, under the control, so it never competes with it. */}
+      <p className="mt-3">
+        <Link
+          href="/docs/guide/guest"
+          className="text-sm text-navy-700 underline decoration-navy-300 underline-offset-4
+                     transition-colors hover:decoration-navy-700
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        >
+          {t("guides.readMore")}
+        </Link>
+      </p>
     </section>
   );
 }
