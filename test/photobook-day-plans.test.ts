@@ -240,6 +240,22 @@ describe("choosing the layout for a day", () => {
   });
 });
 
+describe("choosing the front cover — B512", () => {
+  const coverOf = (options: Partial<BookOptions>) => plan(options).volumes[0].cover.frontPhoto?.file;
+
+  test("an untouched book keeps today's choice: the first photograph", () => {
+    expect(coverOf({})).toBe("p1.jpg");
+  });
+
+  test("a chosen photograph runs on the cover instead", () => {
+    expect(coverOf({ cover: "/alex/media/asia-2026/day/9.jpg" })).toBe("p9.jpg");
+  });
+
+  test("a cover naming a photograph no longer in the book falls back rather than printing a gap", () => {
+    expect(coverOf({ cover: "/alex/media/asia-2026/day/999.jpg" })).toBe("p1.jpg");
+  });
+});
+
 describe("what a request body may say", () => {
   const base = {
     size: "square-210",
@@ -305,6 +321,17 @@ describe("what a request body may say", () => {
         { ...base, days: { "2026-01-01": { photos: Array(501).fill("/a.jpg") } } },
         SIZES,
       ),
+    ).toBeNull();
+  });
+
+  test("a cover is optional, and a valid one survives the boundary", () => {
+    expect(parseOptions({ ...base, days: {} }, SIZES)?.cover).toBeUndefined();
+    expect(parseOptions({ ...base, days: {}, cover: "/a.jpg" }, SIZES)?.cover).toBe("/a.jpg");
+  });
+
+  test("a cover past the length ceiling is refused rather than truncated", () => {
+    expect(
+      parseOptions({ ...base, days: {}, cover: "/a".repeat(200) }, SIZES),
     ).toBeNull();
   });
 });

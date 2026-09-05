@@ -190,6 +190,9 @@ export default function PhotobookPageContent({
   const [orderId] = useState(() => crypto.randomUUID());
 
   const [expanded, setExpanded] = useState<string | null>(null);
+  /** The cover picker's own disclosure — a book-level control, so it does not
+   * share `expanded` with any one day. */
+  const [coverOpen, setCoverOpen] = useState(false);
 
   /**
    * Arranging one day.
@@ -245,6 +248,71 @@ export default function PhotobookPageContent({
       return { ...o, days: { ...o.days, [date]: { ...o.days[date], photos: next } } };
     });
 
+  /**
+   * The way back — B515.
+   *
+   * A day the owner has fiddled with has an entry in `options.days`; deleting
+   * it is enough to hand the day back to the planner, because "no entry" is
+   * already what "the planner decides" means everywhere else in this file.
+   */
+  const resetDay = (date: string) =>
+    setOptions((o) => {
+      const rest = { ...o.days };
+      delete rest[date];
+      return { ...o, days: rest };
+    });
+
+  /**
+   * The whole book, back to the planner's arrangement.
+   *
+   * Eighteen days of choices is an evening's work, so this asks first — in
+   * words, naming how many days are about to be undone, rather than a bare
+   * "are you sure?" that could mean anything. `window.confirm` rather than a
+   * dialog of our own: this is the one native primitive built for exactly
+   * "say what happens, then let the person stop it".
+   *
+   * Clearing `days` is the whole fix for `localStorage` too: the effect above
+   * writes `options` on every change, so the stored arrangement shrinks along
+   * with the in-memory one rather than needing a second, separate erase.
+   */
+  const resetBook = () => {
+    const count = Object.keys(options.days).length;
+    if (count === 0) return;
+    if (!window.confirm(t("photobook.resetAllConfirm", { count: String(count) }))) return;
+    setOptions((o) => ({ ...o, days: {} }));
+  };
+
+  /**
+   * One layout, everywhere — B516.
+   *
+   * The ticket offers two shapes: this simple action, or a book-level default
+   * a day's `DayPlan` inherits until it says otherwise. The inheriting
+   * default is the larger change — it needs a third layout state ("this day
+   * says pairs" vs. "this day inherits pairs") read by the planner, by the
+   * summary row above, and by `resetBook`, and nobody has asked for that yet.
+   * This writes the chosen layout into every day's own entry once, which
+   * everything downstream already knows how to read — a day arranged this
+   * way is indistinguishable from one arranged by hand, one at a time.
+   *
+   * Confirms first, and only when it would actually overwrite a choice: a day
+   * already sitting at `auto` costs nothing to skip past silently, but a day
+   * somebody laid out by hand does not lose that without being told how many
+   * are about to change — the "obvious before, not after" the ticket asks
+   * for.
+   */
+  const applyLayoutToAll = (layout: DayLayout) => {
+    const overridden = days.filter(
+      (d) => options.days[d.date]?.layout !== undefined && options.days[d.date]?.layout !== layout,
+    ).length;
+    if (overridden > 0 && !window.confirm(t("photobook.day.applyToAllConfirm", { count: String(overridden) }))) {
+      return;
+    }
+    setOptions((o) => {
+      const next = { ...o.days };
+      for (const d of days) next[d.date] = { ...next[d.date], layout };
+      return { ...o, days: next };
+    });
+  };
 
   // Debounced: every keystroke and every tile click changes `options`, and
   // each one plans and lays out the whole book server-side. 400 ms is long
@@ -346,6 +414,80 @@ export default function PhotobookPageContent({
                   </select>
                 </label>
 
+                {/*
+                 * The front cover — B512.
+                 *
+                 * A book-level control, deliberately not a seventh button
+                 * under every thumbnail on every day: the page a stranger
+                 * actually sees is one choice for the whole book, not a
+                 * property of any single photograph's tile. Placed beside
+                 * format and language, the other decisions that apply to the
+                 * book as a whole rather than to one day of it.
+                 *
+                 * A radiogroup, not a select: there is no text label for a
+                 * photograph worth putting in a dropdown, and — as with the
+                 * day layout above — exactly one of these is ever chosen.
+                 */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setCoverOpen((v) => !v)}
+                    aria-expanded={coverOpen}
+                    className="flex w-full items-center justify-between gap-2 text-left"
+                  >
+                    <span className="text-sm font-semibold text-navy-800">
+                      {t("photobook.option.cover")}
+                    </span>
+                    <span aria-hidden className="text-navy-500">
+                      {coverOpen ? "−" : "+"}
+                    </span>
+                  </button>
+                  <p className="mt-1 text-xs text-navy-600">{t("photobook.option.coverHint")}</p>
+                  {coverOpen && (
+                    <div
+                      role="radiogroup"
+                      aria-label={t("photobook.option.coverLegend")}
+                      className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4"
+                    >
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={!options.cover}
+                        onClick={() => setOptions((o) => ({ ...o, cover: undefined }))}
+                        className={`flex aspect-square items-center justify-center rounded-md border p-1 text-center text-[10px] font-semibold ${
+                          !options.cover
+                            ? "border-yellow-600 bg-yellow-400 text-yellow-950"
+                            : "border-navy-200 text-navy-600"
+                        }`}
+                      >
+                        {t("photobook.option.coverDefault")}
+                      </button>
+                      {media.map((tile) => (
+                        <button
+                          key={tile.src}
+                          type="button"
+                          role="radio"
+                          aria-checked={options.cover === tile.src}
+                          aria-label={tile.caption || tile.src}
+                          onClick={() => setOptions((o) => ({ ...o, cover: tile.src }))}
+                          className={`relative block aspect-square w-full overflow-hidden rounded-md border ${
+                            options.cover === tile.src ? "border-yellow-500" : "border-navy-200"
+                          }`}
+                        >
+                          <Image
+                            src={tile.src}
+                            loader={mediaLoader}
+                            alt=""
+                            fill
+                            sizes="10vw"
+                            className="object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {locales.length > 1 && (
                   <label className="block">
                     <span className="text-sm font-semibold text-navy-800">
@@ -417,9 +559,22 @@ export default function PhotobookPageContent({
                 </fieldset>
 
                 <div>
-                  <p className="text-sm font-semibold text-navy-800">
-                    {t("photobook.day.heading")}
-                  </p>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm font-semibold text-navy-800">
+                      {t("photobook.day.heading")}
+                    </p>
+                    {/* Disabled rather than hidden when there is nothing to
+                        lose: a control that vanishes the moment it would do
+                        nothing is harder to find the one time it matters. */}
+                    <button
+                      type="button"
+                      onClick={resetBook}
+                      disabled={Object.keys(options.days).length === 0}
+                      className="text-xs font-semibold text-navy-600 underline disabled:cursor-not-allowed disabled:text-navy-300 disabled:no-underline"
+                    >
+                      {t("photobook.resetAll")}
+                    </button>
+                  </div>
                   <p className="mt-1 text-xs text-navy-600">{t("photobook.day.hint")}</p>
                   <ul className="mt-2 space-y-1">
                     {days.map((day) => {
@@ -486,6 +641,29 @@ export default function PhotobookPageContent({
                                     {t(LAYOUT_LABEL[option])}
                                   </button>
                                 ))}
+                              </div>
+                              <div className="mt-2 flex flex-wrap items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => applyLayoutToAll(layout)}
+                                  className="text-xs font-semibold text-navy-600 underline"
+                                >
+                                  {t("photobook.day.applyToAll")}
+                                </button>
+                                {/* Only for a day the owner has actually
+                                    touched — plan is undefined for every day
+                                    still left to the planner, and a button
+                                    that undoes nothing has no reason to be
+                                    there. */}
+                                {plan && (
+                                  <button
+                                    type="button"
+                                    onClick={() => resetDay(day.date)}
+                                    className="text-xs font-semibold text-navy-600 underline"
+                                  >
+                                    {t("photobook.day.reset")}
+                                  </button>
+                                )}
                               </div>
                               {dayPhotos.length > 0 && (
                                 <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
