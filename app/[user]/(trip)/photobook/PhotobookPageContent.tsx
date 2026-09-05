@@ -54,6 +54,31 @@ const LAYOUT_LABEL: Record<DayLayout, TranslationKey> = {
   text: "photobook.day.layout.text",
 };
 
+/**
+ * One row per kind of warning rather than one per photograph.
+ *
+ * A book whose photographs are all web copies raises a `low-resolution` line
+ * for every one of them — forty-three on the demo journal — and rendering them
+ * flat buried the price, the preview and the Pay button under a wall of
+ * yellow. The count is the part somebody needs to see; the files are the part
+ * they need when they go looking.
+ */
+function groupWarnings(
+  warnings: { code: string; detail: string }[],
+): { code: string; count: number; details: string[] }[] {
+  const groups = new Map<string, string[]>();
+  for (const w of warnings) {
+    const seen = groups.get(w.code) ?? [];
+    seen.push(w.detail);
+    groups.set(w.code, seen);
+  }
+  return [...groups.entries()].map(([code, details]) => ({
+    code,
+    count: details.length,
+    details,
+  }));
+}
+
 const LANGUAGE_NAME: Record<string, string> = {
   en: "English",
   de: "Deutsch",
@@ -347,13 +372,25 @@ export default function PhotobookPageContent({
                           </button>
                           {open && (
                             <div className="border-t border-navy-100 px-3 py-3">
-                              <div className="flex flex-wrap gap-1">
+                              {/* A radio group, not six toggle buttons. They are
+                                  mutually exclusive — exactly one is true — and
+                                  `aria-pressed` on each said the opposite: a
+                                  screen reader announced six independent
+                                  toggles, any of which might be on. The Binding
+                                  control on this same page has always been a
+                                  fieldset of radios; this now matches it. */}
+                              <div
+                                role="radiogroup"
+                                aria-label={t("photobook.day.layoutLegend")}
+                                className="flex flex-wrap gap-1"
+                              >
                                 {DAY_LAYOUTS.map((option) => (
                                   <button
                                     key={option}
                                     type="button"
+                                    role="radio"
+                                    aria-checked={layout === option}
                                     onClick={() => setDayLayout(day.date, option)}
-                                    aria-pressed={layout === option}
                                     className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
                                       layout === option
                                         ? "border-yellow-600 bg-yellow-400 text-yellow-950"
@@ -437,13 +474,43 @@ export default function PhotobookPageContent({
                       these describe failures invisible on screen and obvious on
                       paper, and folding them away is how one gets missed. */}
                   {preview && preview.warnings.length > 0 && (
-                    <ul className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-yellow-900">
-                      {preview.warnings.map((w, i) => (
-                        <li key={i}>
-                          <code>{w.code}</code> {w.detail}
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-yellow-900">
+                      {/* Grouped by kind, with the detail behind a disclosure.
+                          These describe failures invisible on screen and obvious
+                          on paper, so they are not folded away — but forty-three
+                          of them, one paragraph each, pushed the Pay button
+                          nearly three thousand pixels down the page, which hides
+                          the warning and the button together. What is folded is
+                          the repetition, never the fact. */}
+                      <ul className="space-y-2">
+                        {groupWarnings(preview.warnings).map((group) => (
+                          <li key={group.code}>
+                            <p className="text-sm font-semibold">
+                              {group.count > 1
+                                ? t("photobook.warning.many", {
+                                    count: String(group.count),
+                                    code: group.code,
+                                  })
+                                : group.code}
+                            </p>
+                            {group.count === 1 ? (
+                              <p className="text-sm">{group.details[0]}</p>
+                            ) : (
+                              <details>
+                                <summary className="cursor-pointer text-sm">
+                                  {t("photobook.warning.each")}
+                                </summary>
+                                <ul className="mt-1 space-y-1 text-sm">
+                                  {group.details.map((detail, i) => (
+                                    <li key={i}>{detail}</li>
+                                  ))}
+                                </ul>
+                              </details>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
 
                   <form
