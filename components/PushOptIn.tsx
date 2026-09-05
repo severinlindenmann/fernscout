@@ -40,6 +40,8 @@ type State =
   | "off"
   | "on"
   | "blocked"
+  /** The browser's push service refused — see `subscribeToPush`. B446. */
+  | "unavailable"
   | "working"
   | "failed";
 
@@ -170,7 +172,9 @@ export default function PushOptIn({
           ? "blocked"
           : result === "dismissed"
             ? "off"
-            : "failed",
+            : result === "unavailable"
+              ? "unavailable"
+              : "failed",
     );
   }, [publicKey, username]);
 
@@ -196,10 +200,20 @@ export default function PushOptIn({
 
   if (state === "checking" || state === "unsupported") return null;
 
-  if (state === "needs-install" || state === "blocked") {
+  // Three dead ends, and each one names what the reader would have to change:
+  // add to the Home Screen, re-allow the permission, or switch the browser's
+  // push service back on. None of them offers the button, because pressing it
+  // again cannot work until they do — B446.
+  if (state === "needs-install" || state === "blocked" || state === "unavailable") {
     return (
       <p className="mt-3 max-w-md text-[11px] leading-relaxed text-navy-500">
-        {state === "needs-install" ? t("push.iosInstall") : t("push.blocked")}
+        {t(
+          state === "needs-install"
+            ? "push.iosInstall"
+            : state === "blocked"
+              ? "push.blocked"
+              : "push.unavailable",
+        )}
       </p>
     );
   }
