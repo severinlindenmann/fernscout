@@ -3,14 +3,14 @@
 //   npm run rates:update -- --dry-run
 //
 // This is a *refresh* script, never a build step. The build reads
-// content/rates/ecb.json off disk and must succeed with no network at all —
+// site/rates/ecb.json off disk and must succeed with no network at all —
 // see lib/rates.ts. Run this occasionally, commit the result.
 //
 // The ECB publishes one euro-quoted table a day, free, with no API key:
 // https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml
 // Every value is "units of this currency for one euro". Around 30 currencies
 // are covered; anything outside that list gets a manual rate in
-// content/config.json under site.manualRates.
+// site/config.json under site.manualRates.
 import fs from "node:fs";
 import path from "node:path";
 
@@ -76,7 +76,7 @@ const written = [];
 // Rates are server-wide, not per user: they convert every journal's base
 // currency into whatever a reader picked, so there is one cache for the
 // instance rather than a copy under each person.
-const file = path.join(ROOT, "content", "rates", "ecb.json");
+const file = path.join(ROOT, "site", "rates", "ecb.json");
 if (!dryRun) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, json);

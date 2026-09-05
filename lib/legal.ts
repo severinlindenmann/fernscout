@@ -2,28 +2,40 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "./contentRoot";
+import { siteRoot } from "./siteRoot";
 
 /**
  * The instance's own legal page — imprint, liability, privacy.
  *
- * Markdown under `content/legal/<locale>.md`, and deliberately **not** under
+ * Markdown under `site/legal/<locale>.md`, and deliberately **not** under
  * `docs/`: this is the operator's statement about their own company, their own
  * hosting and their own sub-processors, and a fork that inherited it would be
- * publishing somebody else's imprint under its own domain. `content/` is the
- * folder whose whole promise is that you delete it and drop in your own, which
- * is exactly the promise this text needs. It is also why nothing here is in
- * the locale files or in a component: `test/depersonalised.test.ts` fails the
- * build over a real name in `lib/`, `app/` or `components/`, and an imprint is
- * nothing but real names.
+ * publishing somebody else's imprint under its own domain. That is also why
+ * nothing here is in the locale files or in a component:
+ * `test/depersonalised.test.ts` fails the build over a real name in `lib/`,
+ * `app/` or `components/`, and an imprint is nothing but real names.
+ *
+ * It sits in the checkout rather than under `CONTENT_DIR` because an imprint
+ * has to *reach* production to be worth writing, and `git pull` is the only
+ * thing that reliably does that — B56 is what the alternative cost. A fork
+ * deletes `site/legal/` and writes its own; an instance that would rather keep
+ * its imprint out of the repository puts one under `CONTENT_DIR`, which still
+ * wins. B510.
  *
  * Absent by default, like every optional capability: an instance with no
- * `content/legal/` has no page and no footer link, rather than a page that
- * renders an empty promise.
+ * `legal/` in either place has no page and no footer link, rather than a page
+ * that renders an empty promise.
  */
+/** The instance's own imprint if it has one, otherwise the checkout's. */
+function legalDir(): string {
+  const own = path.join(contentRoot(), "legal");
+  return fs.existsSync(own) ? own : path.join(siteRoot(), "legal");
+}
+
 export function legalLocales(): string[] {
   try {
     return fs
-      .readdirSync(path.join(contentRoot(), "legal"))
+      .readdirSync(legalDir())
       .filter((f) => /^[a-z]{2}\.md$/.test(f))
       .map((f) => f.slice(0, 2))
       .sort();
@@ -51,7 +63,7 @@ export function readLegal(locale: string): { markdown: string; locale: string } 
   const asked = /^[a-z]{2}$/.test(locale) ? locale : "en";
   for (const code of [asked, "en", ...legalLocales()]) {
     try {
-      const file = path.join(contentRoot(), "legal", `${code}.md`);
+      const file = path.join(legalDir(), `${code}.md`);
       return { markdown: fs.readFileSync(file, "utf-8"), locale: code };
     } catch {
       // Next candidate.

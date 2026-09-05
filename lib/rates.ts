@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "./contentRoot";
+import { siteRoot } from "./siteRoot";
 import { loadUserConfig } from "./config";
 import { ECB_BASE, crossRate, normalizeCurrency, parseRateTable, type RateTable } from "./currency";
 
@@ -10,7 +11,7 @@ import { ECB_BASE, crossRate, normalizeCurrency, parseRateTable, type RateTable 
  * The trip's own frozen rates handle local → base (`lib/trips.ts`). Going on
  * from there to a reader's currency needs a *current* rate, and that comes
  * from the European Central Bank reference rates cached at
- * `content/rates/ecb.json` by `npm run rates:update`.
+ * `site/rates/ecb.json` by `npm run rates:update`.
  *
  * Read off disk, never fetched here. The build has to work on a machine with
  * no network, so the fetch is a thing you run and commit, not a thing the
@@ -25,7 +26,11 @@ export type EcbSnapshot = {
 };
 
 export function ecbCachePath(): string {
-  return path.join(contentRoot(), "rates", "ecb.json");
+  // Shipped in the checkout, because it arrives by `git pull` the way the code
+  // does. An instance's own copy under CONTENT_DIR still wins — that is where
+  // this file lived before B510, and an instance that has one keeps working.
+  const own = path.join(contentRoot(), "rates", "ecb.json");
+  return fs.existsSync(own) ? own : path.join(siteRoot(), "rates", "ecb.json");
 }
 
 const cache = new Map<string, EcbSnapshot | null>();

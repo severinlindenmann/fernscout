@@ -63,17 +63,32 @@ to know whether you bothered.
 ## The content model
 
 Everything a person owns lives under `content/<username>/`. Nothing user-owned
-is written anywhere else.
+is written anywhere else — and since B510, nothing *else* is written under
+`content/` either. The instance's own four files are in `site/`, in the
+checkout, where a `git pull` is the whole update:
 
 ```
-content/
+site/
   config.json                 server config — site name, URL, default user,
                               reserved usernames, capability switches, and the
                               `media` block: how large uploads may be, how many
                               per day, and an optional per-journal byte quota.
                               A user's own config.json may narrow these, never
-                              widen them.
+                              widen them. A deployed instance overrides this
+                              file with FERNSCOUT_CONFIG, because its config is
+                              the operator's and must survive a `git pull`.
+  locales/<code>.json         the UI's own strings, per language
   rates/ecb.json              shared currency reference rates
+  legal/<code>.md             this instance's imprint (optional — no file, no
+                              page and no footer link)
+```
+
+An instance may still override `locales/`, `rates/` and `legal/` by putting
+its own beside its journals under `CONTENT_DIR`; that is where all four lived
+before B510, so an instance that has not migrated keeps working.
+
+```
+content/
   .deleted/<username>.json    a journal that was deleted. Keeps the name
                               reserved and makes its old URLs answer 410.
                               Gitignored; an operator frees the name by
@@ -183,9 +198,11 @@ touched since before the rename — but nothing writes it back out; ask for
 - **Every optional capability is off by default** and must be *absent* rather
   than broken when disabled. `lib/capabilities.ts` decides, and `/api/health`
   explains why something is off.
-- **Secrets never enter `content/config.json`** — environment only.
+- **Secrets never enter `site/config.json`** — environment only.
 - **Nothing personal in code.** `test/depersonalised.test.ts` fails the build if
-  a real name or trip id appears outside `content/`.
+  a real name or trip id appears in `lib/`, `app/`, `components/`, `scripts/`
+  or `public/`. `content/` and `site/` are where those names belong — an
+  imprint is nothing but real names.
 
 ### Verifying a change
 

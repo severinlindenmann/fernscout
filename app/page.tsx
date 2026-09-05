@@ -63,7 +63,7 @@ export default function Root() {
       // ships chrome for rather than one person's `locales:` list.
       locales={installedLocales()}
       // Both absent unless this instance sets them — see site.repository and
-      // site.credit in content/config.json. A fork gets to name itself.
+      // site.credit in site/config.json. A fork gets to name itself.
       repository={site.repository}
       credit={site.credit}
       // Absent unless this instance wrote one — see lib/legal.ts. A fork that

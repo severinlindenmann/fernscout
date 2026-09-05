@@ -125,7 +125,7 @@ effect on the next request with no restart and no rebuild.
 
 🔑 F4 onwards need sign-in: the `DATABASE_URL`, `SESSION_SECRET` and
 `AUTH_DEV_CODE` block in **G**, `npm run db:migrate`, and
-`features.auth.enabled: true` in **both** `content/config.json` *and*
+`features.auth.enabled: true` in **both** `site/config.json` *and*
 `content/example/config.json` — a journal opts in to sign-in separately, and
 without the journal's own flag the gate offers no form at all, only "ask
 whoever writes this journal". (The API does not ask that second question, which
@@ -159,7 +159,7 @@ export SESSION_SECRET=$(openssl rand -hex 32)
 export AUTH_DEV_CODE=123456          # so no real email is needed
 ```
 
-and in `content/config.json` set `features.auth.enabled` and
+and in `site/config.json` set `features.auth.enabled` and
 `features.mail.enabled` to `true`. Then `npm run db:migrate`, rebuild, start.
 
 | # | Do this | ✅ Expect |

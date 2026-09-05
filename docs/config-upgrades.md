@@ -1,6 +1,6 @@
 # Config upgrades
 
-`content/config.json` — the server-wide file, not a user's own
+`site/config.json` — the server-wide file, not a user's own
 `content/<username>/config.json` — carries a `configVersion` field. It exists
 so that a `git pull` six months from now, into a content folder nobody has
 touched since, fails with a message naming the problem instead of a stack
@@ -26,7 +26,7 @@ action until the changelog below moves past it.
 
 ### 1 — initial version (W21)
 
-The field itself. No shape change — every `content/config.json` written before
+The field itself. No shape change — every `site/config.json` written before
 this package already matches version 1. Adding the field is optional right up
 until a future version bump; from then on a file still on an old version stops
 the server at boot with a message pointing back here, rather than starting up
@@ -34,7 +34,7 @@ against a schema it no longer matches.
 
 ## Outside configVersion
 
-Everything above is about `content/config.json`, the server-wide file, and
+Everything above is about `site/config.json`, the server-wide file, and
 its boot-time version check. A user's own `content/<username>/config.json`
 carries no `configVersion` at all — it is validated at parse time instead, so
 a shape `lib/config.ts` no longer recognises surfaces as a `ConfigError`

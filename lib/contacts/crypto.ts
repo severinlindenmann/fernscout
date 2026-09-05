@@ -11,7 +11,7 @@ import crypto from "node:crypto";
  * stored in a form the database can read.
  *
  * **AES-256-GCM**, key from `CONTACTS_ENCRYPTION_KEY` — environment only, never
- * `content/config.json`, which is a file people commit. GCM rather than CBC
+ * `site/config.json`, which is a file people commit. GCM rather than CBC
  * because it authenticates as well as hides: a row that has been edited in the
  * database fails to decrypt instead of quietly becoming a different address.
  *

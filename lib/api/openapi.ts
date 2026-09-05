@@ -797,7 +797,7 @@ export function openApiDocument() {
                         "This trip's frozen rates: units of the journal's BASE currency for " +
                         "one unit of the keyed currency. `{\"THB\": 0.0245}` is " +
                         "\"1 THB = 0.0245 CHF\", so a currency worth less than the base one " +
-                        "has a small number — `content/rates/ecb.json` points the other way. " +
+                        "has a small number — `site/rates/ecb.json` points the other way. " +
                         "Omitting a currency is supported: its costs are reported as " +
                         "unconverted rather than converted at a guess.",
                     },

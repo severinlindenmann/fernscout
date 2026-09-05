@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "./contentRoot";
+import { siteRoot } from "./siteRoot";
 import { normalizeCurrency, type RateTable } from "./currency";
 import { DEFAULT_MEDIA_LIMITS, narrowest, parseMediaLimits, type MediaLimits } from "./mediaLimits";
 import { parseTravellers } from "./travellers/parse";
@@ -141,7 +142,7 @@ export type UserConfig = {
 };
 
 /**
- * Deployment settings, from `content/config.json`. A user cannot change these.
+ * Deployment settings, from `site/config.json`. A user cannot change these.
  *
  * `features` here is a **ceiling**: it says what this server is able to offer,
  * because it is the server that holds the credentials. A user opts in to what
@@ -204,11 +205,11 @@ export class ConfigError extends Error {
   /**
    * Which file this is. Defaults to the server config for callers that
    * predate this parameter, but every caller in this module now passes its
-   * own path — this class carries both `content/config.json` problems and
+   * own path — this class carries both `site/config.json` problems and
    * `content/<username>/config.json` ones, and a hardcoded filename in the
    * message named the wrong file for the second case.
    */
-  constructor(problems: string[], file = "content/config.json") {
+  constructor(problems: string[], file = "site/config.json") {
     super(`${file} is not usable:\n  - ${problems.join("\n  - ")}`);
     this.name = "ConfigError";
     this.problems = problems;
@@ -583,8 +584,23 @@ export function parseServerConfig(raw: unknown): ServerConfig {
   return config;
 }
 
+/**
+ * The server's own config, which is not a journal and no longer lives among
+ * them.
+ *
+ * Three places, most specific first. `FERNSCOUT_CONFIG` is what a deployed
+ * instance sets, because its config is the operator's and must survive a
+ * `git pull` — on this instance that is `$DATA_DIR/config.json`. A copy under
+ * `CONTENT_DIR` is where this file lived before B510 and is still honoured, so
+ * an instance that has not migrated keeps booting; it is also what every test
+ * fixture writes. `site/config.json` in the checkout is the shipped default,
+ * which is what a fresh clone runs on.
+ */
 export function serverConfigPath(): string {
-  return path.join(contentRoot(), "config.json");
+  const configured = process.env.FERNSCOUT_CONFIG;
+  if (configured && configured.trim() !== "") return configured;
+  const legacy = path.join(contentRoot(), "config.json");
+  return fs.existsSync(legacy) ? legacy : path.join(siteRoot(), "config.json");
 }
 
 /**

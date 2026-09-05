@@ -5,7 +5,7 @@
  *   node scripts/migrate-users.ts --user <username>
  *
  * Before:  content/{config.json,trips/<id>/…}
- * After:   content/config.json           (server settings)
+ * After:   site/config.json           (server settings)
  *          content/<user>/config.json    (personal settings)
  *          content/<user>/trips/<id>/…
  *

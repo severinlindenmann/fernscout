@@ -501,7 +501,7 @@ describe("what a sent order says about itself", () => {
     // Written against the English so the assertion is legible; the German was
     // the one a person actually read wrong.
     const en = JSON.parse(
-      fs.readFileSync(path.join(process.cwd(), "content/locales/en.json"), "utf8"),
+      fs.readFileSync(path.join(process.cwd(), "site/locales/en.json"), "utf8"),
     ) as Record<string, string>;
     expect(en["postcard.page.intro"]).toContain("Nothing has been printed");
     expect(en["postcard.page.introSent"]).not.toContain("Nothing has been printed");

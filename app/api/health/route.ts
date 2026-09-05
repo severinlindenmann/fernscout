@@ -169,7 +169,7 @@ export async function GET(request: Request) {
       capabilities.mail.keepingCopies = true;
     }
   } catch (err) {
-    // loadConfig() throws ConfigError for a missing/invalid content/config.json.
+    // loadConfig() throws ConfigError for a missing/invalid site/config.json.
     // That is a real health problem, not a 500 — report it as unhealthy instead
     // of crashing the health check itself.
     configOk = false;

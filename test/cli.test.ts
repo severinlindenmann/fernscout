@@ -87,7 +87,7 @@ describe("CLI wiring", () => {
         ["scripts/update-rates.mjs", "--dry-run"],
         { env: { ...process.env, ECB_RATES_URL: `http://127.0.0.1:${port}/` } },
       );
-      expect(out).toContain("content/rates/ecb.json");
+      expect(out).toContain("site/rates/ecb.json");
       // The date is the bank's own publication date, not the day it ran.
       expect(out).toContain("2026-08-28");
       expect(out).toContain("2 rates");

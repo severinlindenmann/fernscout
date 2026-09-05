@@ -53,7 +53,7 @@ const TRANSPORT_ENV: Record<string, readonly string[]> = {
 /**
  * What each WhatsApp backend needs before it can honestly claim to be on.
  *
- * The token is an environment variable and never `content/config.json`: it is
+ * The token is an environment variable and never `site/config.json`: it is
  * a bearer credential for an account that can message real people, and that
  * file is one people commit. `WHATSAPP_WABA_ID` is not here — nothing in the
  * send path uses it (it identifies the *account*, and messages are addressed
@@ -273,7 +273,7 @@ export function assertCapabilities(): void {
   if (broken.length > 0) {
     throw new Error(
       `Some capabilities are enabled but not configured:\n  - ${broken.join("\n  - ")}\n` +
-        `Set the variables above, or turn the feature off in content/config.json.`,
+        `Set the variables above, or turn the feature off in site/config.json.`,
     );
   }
 }

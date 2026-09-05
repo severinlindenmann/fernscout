@@ -1029,7 +1029,7 @@ rates" below for the door that opened.
 \`rates\` can still be sent here too, at creation, and reads the same way it
 always did: \`{"THB": 0.0245}\` means "1 THB = 0.0245" of the journal's base
 currency, so a currency worth less than the base one has a **small** number.
-\`content/rates/ecb.json\` points the other way round. Leaving a currency out
+\`site/rates/ecb.json\` points the other way round. Leaving a currency out
 is supported: its costs are reported as unconverted rather than guessed at.
 
 There is no \`cover\`. A trip has no photographs when it is created — media is
@@ -1804,7 +1804,7 @@ bytes instead.
 | travel scene | ${TRAVEL_SCENE_VARIANTS.join(", ")} — absent plays the default |
 
 These are this instance's defaults, from lib/validate/. An operator can change
-any of them in the \`media\` block of \`content/config.json\`, and a journal may
+any of them in the \`media\` block of \`site/config.json\`, and a journal may
 narrow its own further — so if a refusal quotes a different number, that number
 is the real one.
 

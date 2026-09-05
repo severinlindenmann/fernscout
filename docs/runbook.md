@@ -106,42 +106,42 @@ sudo nano /etc/fernscout/env
 At minimum set `NEXT_PUBLIC_SITE_URL` and `DATA_DIR=/var/lib/fernscout`.
 Leave `DATABASE_URL` unset for a public-only site.
 
-Set `CONTENT_DIR=/var/lib/fernscout/content` too, and seed it once.
+Set `CONTENT_DIR=/var/lib/fernscout/content` and
+`FERNSCOUT_CONFIG=/var/lib/fernscout/config.json` too, and seed them once.
 
-**`content/` is two things with two lifecycles**, and the seeding step is only
-about one of them:
+**Three lifecycles, three places** (B510). Only the middle row is seeded by
+hand; the top row arrives with every `git pull` and needs nothing done to it:
 
 | | | |
 | --- | --- | --- |
-| **Shipped with the code** | `locales/`, `rates/` | belongs to the release; every deploy replaces it |
-| **Owned by the operator** | `config.json`, `<username>/` | belongs to this machine; no deploy ever touches it |
+| **Shipped with the code** | `site/locales/`, `site/rates/`, `site/legal/`, `site/config.json` | belongs to the release, read straight out of the checkout |
+| **Owned by the operator** | `$DATA_DIR/config.json` | belongs to this machine; no deploy ever touches it |
+| **Owned by a person** | `$CONTENT_DIR/<username>/` | their journal; no deploy ever touches it either |
 
-Seed the operator's half by hand — this instance's config and its journals —
-and let the deploy put the shipped half there:
+`CONTENT_DIR` holds journals and nothing else. Seed it with them, and put this
+machine's server config beside it under `DATA_DIR`:
 
 ```bash
 sudo -u fernscout mkdir -p /var/lib/fernscout/content
-# The operator's half: this machine's config, and the journals on it.
-sudo -u fernscout cp -a /srv/fernscout/content/config.json /var/lib/fernscout/content/
+# The journals on this machine.
 sudo -u fernscout cp -a /srv/fernscout/content/example /var/lib/fernscout/content/
-# The shipped half. Every deploy repeats exactly this — see "Day-to-day deploys".
-sudo -u fernscout env CONTENT_DIR=/var/lib/fernscout/content \
-  /srv/fernscout/scripts/sync-shipped-content.sh
+# This machine's own server config — outside the repository, because it names
+# this instance and must survive `git pull`. FERNSCOUT_CONFIG points at it.
+sudo -u fernscout cp -a /srv/fernscout/site/config.json /var/lib/fernscout/config.json
 ```
 
+> **The dictionaries, the rates and the imprint need no seeding at all.** They
+> live in `site/` in the checkout since B510, so `git pull` is the whole
+> update and nothing is copied anywhere.
+>
 > **Do not hand-edit `locales/` under `CONTENT_DIR`.** `lib/locales.ts` reads
 > the shipped dictionary first and then merges the content folder's on top, key
 > by key, so a copy taken at install time wins for every string it holds, for
 > ever — a wording fix shipped six months later silently does not appear, and
 > the only clue is that the site disagrees with the repository. That is what
-> B56 was: fernscout.ch served August's German for as long as it was up.
->
-> The deploy now replaces `locales/` and `rates/` from the repository on every
-> run, which is what keeps them honest. An instance that really does want its
-> own wording keeps a file with *only* the keys it is changing **and** puts an
-> empty `.keep-local` file next to it — `scripts/sync-shipped-content.sh` then
-> leaves that directory alone and says so in its output. Without the marker,
-> local edits there are overwritten by design.
+> B56 was: fernscout.ch served August's German for as long as it was up. An
+> instance that really does want its own wording keeps a file there with *only*
+> the keys it is changing.
 
 The journal then lives outside the repository, which matters for two reasons
 that only show up later. `scripts/deploy.sh` runs `git pull --ff-only`, and an
@@ -151,9 +151,9 @@ that switches on `mail` and `auth` belongs to *this* machine, where the
 credentials are; committed to the repository it would fail the boot check
 (`instrumentation.ts` → `assertCapabilities`) for everyone who cloned it.
 
-`content/locales/` also resolves from the repo when the content folder has no
-copy of its own (`lib/locales.ts`), so a fresh instance renders in English
-before the first sync rather than rendering nothing.
+`site/locales/` resolves from the repo whether or not the content folder has
+a copy of its own (`lib/locales.ts`), so a fresh instance renders in English
+from its first boot rather than rendering nothing.
 
 > `/etc/fernscout/env` holds every secret on the machine. Mode `640`,
 > owned by root, readable by the service group — never world-readable, and
@@ -240,7 +240,7 @@ curl -sI https://<your-domain>/api/health | head -1
 cd /srv/fernscout && sudo ./scripts/deploy.sh
 ```
 
-Pull, then **only the steps the diff needs** — install, migrate, sync, build,
+Pull, then **only the steps the diff needs** — install, migrate, build,
 units, restart — and wait for health. **The build runs before the restart**, so
 a broken build leaves the running site untouched instead of taking it down and
 then failing.
@@ -253,8 +253,8 @@ pulled, and asks each changed path what it costs:
 | Changed | Adds |
 | --- | --- |
 | `docs/`, `test/`, `scripts/`, `.claude/`, `.github/`, root `*.md`, tooling config | nothing |
-| `content/locales/`, `content/rates/` | sync, build, restart |
-| other `content/` | nothing, and it says so — a deploy does not copy that half |
+| `site/` — config, locales, rates, the imprint | build, restart |
+| `content/` | nothing, and it says so — a deploy never copies journals |
 | `app/`, `lib/`, `components/`, `public/`, `next.config.ts`, **anything unrecognised** | build, restart |
 | `package.json`, `package-lock.json` | `npm ci` |
 | `lib/db/migrations/`, `lib/db/migrate.ts`, `lib/db/schema.ts` | `npm run db:migrate` |
@@ -278,17 +278,8 @@ sudo ./scripts/deploy.sh --full          # every step, whatever changed
 `--plan` touches nothing and needs no server; `test/deploy-plan.test.ts` is
 that mode held to the table above.
 
-Six things it does that are not obvious from the name:
+Five things it does that are not obvious from the name:
 
-- **It syncs the shipped half of `content/` into `CONTENT_DIR`** —
-  `scripts/sync-shipped-content.sh`, run after the pull and before the build.
-  `git pull` updates `/srv/fernscout/content`, the app reads
-  `/var/lib/fernscout/content`, and until B56 nothing crossed the gap: every
-  string added or reworded since the machine was set up was invisible, and
-  three strings *deleted* from the repository were still being served. It
-  replaces `locales/` and `rates/` rather than merging into them, so a deleted
-  key actually disappears, and it refuses to write anywhere else — a deploy
-  that could overwrite `<username>/` is a worse bug than the one it fixes.
 - **It reads `/etc/fernscout/env` itself.** A root shell has no `DATABASE_URL`,
   and without this the migration step takes its "running without a database
   (supported)" branch on a deployment that has had Postgres since its first
@@ -321,22 +312,16 @@ Six things it does that are not obvious from the name:
   pull` somebody ran by hand — the diff is taken from the last healthy commit,
   not from the pull.
 
-**Check the shipped content actually arrived**, rather than reading the log and
-believing it. Both commands are silent on success:
-
-```bash
-# The dictionaries and the rates the site is serving are the ones in the repo.
-sudo diff -r /srv/fernscout/content/locales /var/lib/fernscout/content/locales
-sudo diff -r /srv/fernscout/content/rates   /var/lib/fernscout/content/rates
-```
-
-And the other half is still the operator's — nothing a deploy wrote:
+**Check the deploy left the journals alone**, rather than reading the log and
+believing it. There is nothing to copy any more — the dictionaries, the rates
+and the imprint are read out of `/srv/fernscout/site`, which `git pull`
+updated — so the only thing worth asserting is that `CONTENT_DIR` is
+untouched:
 
 ```bash
 # Run before and after a deploy; the two lines must be identical.
-sudo find /var/lib/fernscout/content \
-  \( -path '*/content/locales' -o -path '*/content/rates' \) -prune \
-  -o -type f -print0 | sudo xargs -0 sha256sum | sort | sha256sum
+sudo find /var/lib/fernscout/content -type f -print0 \
+  | sudo xargs -0 sha256sum | sort | sha256sum
 ```
 
 > **Editing `scripts/deploy.sh` itself?** The running script pulls its own
@@ -536,7 +521,7 @@ B197 removed. Absent says the question was not answered.
 
 ### Request logging
 
-Off by default. `features.logging.enabled: true` in `content/config.json`
+Off by default. `features.logging.enabled: true` in `site/config.json`
 turns it on, the same shape as every other capability here:
 
 ```json

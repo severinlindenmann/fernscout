@@ -37,7 +37,7 @@ export function whatsappCountryCode(): string | undefined {
  * 30 days.** Deleting `fernscout_day_published` to recreate it without a
  * footer produced `(#100/2388023)` on every attempt to create it again, with
  * no way to undo and no way to use the name until October. The recovery was
- * `fernscout_day_published_v2` and one line in `content/config.json`, which is
+ * `fernscout_day_published_v2` and one line in `site/config.json`, which is
  * only cheap because the name lives there rather than in this file.
  *
  * So: **never delete a template to fix it. Create the next version under a

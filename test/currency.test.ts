@@ -23,6 +23,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   delete process.env.CONTENT_DIR;
+  delete process.env.SITE_DIR;
   clearConfigCache();
   clearRatesCache();
   vi.restoreAllMocks();
@@ -96,8 +97,12 @@ describe("the cached ECB snapshot", () => {
     expect(snapshot?.rates.THB).toBe(38.37);
   });
 
-  test("is absent, not fatal, when the content folder has none", () => {
-    process.env.CONTENT_DIR = path.join(process.cwd(), "test", "fixtures", "content");
+  test("is absent, not fatal, when neither folder has one", () => {
+    const bare = path.join(process.cwd(), "test", "fixtures", "content");
+    process.env.CONTENT_DIR = bare;
+    // Since B510 the shipped snapshot lives in `site/`, and this repository
+    // has one — so an empty content folder alone no longer means "no rates".
+    process.env.SITE_DIR = bare;
     clearConfigCache();
     clearRatesCache();
     expect(loadEcbRates()).toBeUndefined();

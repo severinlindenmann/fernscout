@@ -21,19 +21,14 @@ const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
  * Not people: shared currency rates, shared UI dictionaries, and the
  * instance's own imprint.
  *
- * Exported because it is also the list `scripts/sync-shipped-content.sh` is
- * allowed to overwrite on a deploy — the same names for the same reason,
- * and `test/sync-shipped-content.test.ts` holds the shell copy against this
- * one so a fourth instance directory cannot be added to only one of them.
- *
- * `legal/` is here rather than among the operator-owned folders because an
- * imprint has to *reach* production to be worth writing: it is the only page
- * on the site whose absence is a legal problem, and leaving it to a one-time
- * manual copy is how it would have said last year's sub-processors for a
- * year. An instance whose imprint differs from the repository's marks the
- * folder `.keep-local`, which is the same escape hatch the dictionaries have.
+ * All three ship in `site/` since B510 and none of them belongs here any more.
+ * The names stay skipped because they are still the *override* locations — an
+ * instance may drop its own `locales/` or `legal/` beside its journals, and
+ * one that has not migrated has all three sitting here — and a stale directory
+ * surfacing as a journal called `rates` is a worse failure than a check that
+ * usually matches nothing.
  */
-export const INSTANCE_DIRS = new Set(["rates", "locales", "legal"]);
+const INSTANCE_DIRS = new Set(["rates", "locales", "legal"]);
 
 /**
  * Route segments a username would shadow.

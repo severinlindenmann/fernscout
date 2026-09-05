@@ -22,7 +22,7 @@ in this project requires a paid mailbox to build or test.
 
 ## What a journal's own mail switch governs
 
-`features.mail.enabled` in `content/config.json` says whether this instance can
+`features.mail.enabled` in `site/config.json` says whether this instance can
 send at all. It is off unless you set it, because it is the server that holds
 the credentials.
 
@@ -162,7 +162,7 @@ SMTP_PASSWORD=
 MAIL_FROM="Fernscout <hello@fernscout.ch>"
 ```
 
-and `features.mail.transport` to `smtp` in `content/config.json`.
+and `features.mail.transport` to `smtp` in `site/config.json`.
 
 `SMTP_PASSWORD` is Proton's **SMTP token**, generated per-address under
 Settings → Import/Export → SMTP submission. It is not the account password and

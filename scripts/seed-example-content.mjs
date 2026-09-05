@@ -39,4 +39,4 @@ if (fs.existsSync(DEST) && !force) {
 fs.cpSync(SRC, DEST, { recursive: true });
 console.log(`Copied ${path.relative(ROOT, SRC)} → ${path.relative(ROOT, DEST)}`);
 console.log(`Run \`npm run dev\` and open http://localhost:3000/${username}`);
-console.log(`Then set site.defaultUser to "${username}" in content/config.json to own the bare domain.`);
+console.log(`Then set site.defaultUser to "${username}" in site/config.json to own the bare domain.`);
