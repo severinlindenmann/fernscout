@@ -7,8 +7,7 @@ complexity: medium
 area: photobook, credits, reliability
 found: "2026-09-05T18:57:29Z"
 started: "2026-09-05T18:58:35Z"
-session: d9c396ea-a80a-4f80-954a-d37a0bf2c8c8
-claimed: "2026-09-05T18:58:35Z"
+merged: "2026-09-05T19:04:26Z"
 ---
 
 # B509 — A photobook order charges before it builds, so an interrupted build takes the money
