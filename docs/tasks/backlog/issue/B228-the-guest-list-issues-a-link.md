@@ -17,7 +17,7 @@ found: "2026-09-04T07:49:53Z"
 'both still need an expiry and a revoke' is the point of leaving the shared
 password behind". Every door honours that. `POST /api/v1/{user}/invites` passes
 `expiresAt: inviteExpiry(days)` and comments that a link which never expires is
-the shared password again wearing a URL; `create_invite` over MCP does the same.
+the shared password again wearing a URL.
 
 The guest list does not. `app/api/contacts/admin/route.ts`, `case "invite"`,
 calls `createInvite` with a name and a locale and no `expiresAt` at all, so

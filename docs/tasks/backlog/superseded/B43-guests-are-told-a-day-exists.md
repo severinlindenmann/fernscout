@@ -6,11 +6,22 @@ priority: medium
 complexity: high
 area: digest, contacts, mail, drafts, media
 found: "2026-09-01"
+superseded: "B345 — the day letter shipped on the publish call"
 ---
 
 # B43 — Guests are told a day exists in a batched list of links, and never sent the day itself
 
 ## Why
+
+> **Superseded, 2026-09-05.** B345 built it, and the blocker this task named
+> is gone with it: publishing is an operation now
+> (`POST .../days/<slug>/publish`), so there is an event to hang a send on.
+> `lib/digest/dayLetter.ts` mails the day itself — its prose, one photograph
+> (`dayPhoto.ts`), a signed link, in the reader's own locale — to the contacts
+> with a read grant, on `send_mail: true` at publish; B365 does the same over
+> WhatsApp. The media gate this task worried about is answered by the mail
+> carrying the picture as an attachment rather than an `<img src>`, and the
+> send is metered (B366).
 
 The one thing that reaches everybody today is the digest (`lib/digest/`, ROADMAP
 D2). It is a batch: it runs on a schedule, waits for a decent hour

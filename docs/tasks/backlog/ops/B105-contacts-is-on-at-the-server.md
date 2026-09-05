@@ -13,6 +13,11 @@ related: B102, B103, B104, B106, B107, B108, B109, B110
 
 ## Why
 
+**Partly stale as of 2026-09-05**: the server switch is still on
+(`contacts: {"enabled": true}`), but the per-journal half of the evidence
+below can no longer be re-read from outside — B473 stopped `/api/health`
+naming journals and their capability posture. Check the server itself.
+
 `/api/health` reports `contacts` enabled at the server — so
 `CONTACTS_ENCRYPTION_KEY` is set and the database is there — and disabled in
 every journal. The guest list, the two invite links and the approval queue

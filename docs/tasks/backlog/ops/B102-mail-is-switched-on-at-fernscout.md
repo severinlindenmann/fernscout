@@ -13,6 +13,11 @@ related: B103, B104, B105, B106, B107, B108, B109, B110
 
 ## Why
 
+**Note, 2026-09-05.** The per-journal half of the reading below can no longer
+be taken from `/api/health`: B473 stopped it naming journals and their
+capability posture. The server switches are all still on. Whether a journal
+has this one on is a question for the server now, not the endpoint.
+
 `/api/health` on 2026-09-03 (commit `3592ad3`) reports `mail` **enabled at the
 server**, with `keepingCopies: true` — and disabled in every journal on the
 instance: `not enabled by sevi`, `by sevi2`, `by test1`. So there is a

@@ -99,7 +99,7 @@ Do not edit them by hand; run the script.
 | [B484](backlog/issue/B484-the-photobook-result-panel-can-render.md) | The photobook result panel can render with no download links | ISSUE | low | low |
 | [B490](backlog/issue/B490-the-photobook-generator-test-fails-on.md) | The photobook generator test fails on any checkout that has generated a photobook | ISSUE | low | low |
 
-### big-feature (15)
+### big-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -110,14 +110,11 @@ Do not edit them by hand; run the script.
 | [B275](backlog/big-feature/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
 | [B325](backlog/big-feature/B325-a-day-carries-coordinates-and-a.md) | A day carries coordinates and a date but no way to say what the weather actually was | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
-| [B43](backlog/big-feature/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | There is no way to manage a journal's content folder locally and sync it to a running instance | FEATURE | medium | high |
 | [B492](backlog/big-feature/B492-a-self-hosted-instance-cannot-use.md) | A self-hosted instance cannot use our printing service, so its owner has no way to order a photobook or postcards | FEATURE | medium | high |
 | [B496](backlog/big-feature/B496-the-printed-photobook-reads-as-a.md) | The printed photobook reads as a contact sheet, not a book | FEATURE | medium | high |
-| [B89](backlog/big-feature/B89-nothing-that-costs-the-operator-money.md) | Nothing that costs the operator money can be paid for, so every paid feature is dry-run only | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
-| [B90](backlog/big-feature/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
 ### small-feature (12)
 
@@ -162,7 +159,7 @@ Do not edit them by hand; run the script.
 | [B373](backlog/ops/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
 | [B377](backlog/ops/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
 | [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
-| [B65](backlog/ops/B65-the-deployed-server-has-no-backup.md) | The deployed server has no backup at all — restic, the units and the credentials were never installed | OPS | high | medium |
+| [B65](backlog/ops/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
 | [B104](backlog/ops/B104-signup-is-on-at-the-server.md) | Signup is on at the server and off in every journal, so no account has ever been created on the live site | OPS | medium | medium |
 | [B105](backlog/ops/B105-contacts-is-on-at-the-server.md) | Contacts is on at the server and off in every journal, so no invitation has ever been carried through on the live site | OPS | medium | medium |
 | [B106](backlog/ops/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
@@ -177,7 +174,7 @@ Do not edit them by hand; run the script.
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B155](backlog/docs-and-skills/B155-nothing-in-the-repo-tells-a.md) | Nothing in the repo tells a reader that fernscout.ch will host their journal, or what it promises | DOCS | medium | low |
+| [B155](backlog/docs-and-skills/B155-nothing-in-the-repo-tells-a.md) | The README offers hosting on fernscout.ch and never says what it does not promise | DOCS | medium | low |
 | [B372](backlog/docs-and-skills/B372-a-private-trip-s-photograph-is.md) | A private trip's photograph is handed to Meta, and nothing a reader or owner sees says so | DOCS | medium | low |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 | [B289](backlog/docs-and-skills/B289-nothing-records-that-a-hungarian-string.md) | Nothing records that a Hungarian string cannot take a case suffix on an interpolated name | DOCS | low | low |
@@ -185,7 +182,7 @@ Do not edit them by hand; run the script.
 | [B421](backlog/docs-and-skills/B421-the-live-testing-skill-sends-agents.md) | The live-testing skill sends agents to a mail directory that does not exist on the server | DOCS | low | low |
 | [B422](backlog/docs-and-skills/B422-nothing-tells-an-agent-that-the.md) | Nothing tells an agent that the owner's pages are cookie-only, so a bearer token that works on every API call renders none of them | DOCS | low | low |
 
-### superseded (6)
+### superseded (9)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -193,8 +190,11 @@ Do not edit them by hand; run the script.
 | [B260](backlog/superseded/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |
 | [B341](backlog/superseded/B341-a-malformed-plan-md-throws-uncaught.md) | A malformed plan.md throws uncaught out of getPlan, crashing the trip and map pages | ISSUE | medium | low |
 | [B369](backlog/superseded/B369-whatsapp-announcements-are-sent-without-being.md) | WhatsApp announcements are sent without being charged, because B365 landed after the ledger | CHORE | medium | low |
+| [B43](backlog/superseded/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
+| [B89](backlog/superseded/B89-nothing-that-costs-the-operator-money.md) | Nothing that costs the operator money can be paid for, so every paid feature is dry-run only | FEATURE | medium | high |
 | [B253](backlog/superseded/B253-the-demo-journal-s-tagline-says.md) | The demo journal's tagline says four journeys and the count beside it says five | ISSUE | low | low |
 | [B297](backlog/superseded/B297-a-nul-byte-in-the-idempotency.md) | A NUL byte in the idempotency key separator makes git treat the whole file as binary | CHORE | low | low |
+| [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
 ## open (0)
 

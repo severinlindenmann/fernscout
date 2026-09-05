@@ -18,6 +18,11 @@ related: B102, B104, B105, B106, B107, B108, B109, B110
 > deleted code, and "the network door" now means the REST API alone. The
 > reasoning is unchanged — the paths it names are one fewer than it says.
 
+**Note, 2026-09-05.** The per-journal half of the reading below can no longer
+be taken from `/api/health`: B473 stopped it naming journals and their
+capability posture. The server switches are all still on. Whether a journal
+has this one on is a question for the server now, not the endpoint.
+
 `/api/health` reports `auth` enabled on the server. Auth is the gate in front
 of everything an agent may write, and nothing records that a person has been
 through the flow on the deployed instance: `POST /api/auth/request` → a

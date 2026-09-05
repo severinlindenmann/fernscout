@@ -1,6 +1,6 @@
 ---
 id: B65
-title: The deployed server has no backup at all — restic, the units and the credentials were never installed
+title: Every backup of the deployed server sits on the same machine it is backing up
 type: OPS
 priority: high
 complexity: medium
@@ -8,14 +8,15 @@ area: backup, ops, deploy
 found: "2026-09-01"
 ---
 
-# B65 — The deployed server has no backup at all
+# B65 — Every backup of the deployed server sits on the same machine it is backing up
 
 
-## Amendment, 2026-09-03 — the title is now half wrong
+## Amendment, 2026-09-03 — retitled 2026-09-05
 
 Checked on the live server while verifying B21, B63 and B64. **The installation
-half of this task has since been done.** Anyone picking it up should not go
-looking for the absence it describes:
+half of this task has since been done**, which is why the title now names what
+is left rather than the absence it was written about. Anyone picking it up
+should not go looking for that absence:
 
 - `restic 0.18.0` at `/usr/bin/restic`.
 - `fernscout-backup.service` and `fernscout-backup.timer` are installed and the

@@ -13,6 +13,13 @@ related: B102, B103, B105, B106, B107, B108, B109, B110
 
 ## Why
 
+**Partly stale as of 2026-09-05**: the server switch is still on
+(`signup: {"enabled": true}`), but the per-journal half of the evidence below
+can no longer be re-read from outside — B473 stopped `/api/health` naming
+journals and their capability posture. Whether any journal has signup on has
+to be checked on the server itself now, not from the endpoint this was
+written against.
+
 `/api/health` reports `signup` enabled at the server and disabled in every
 single journal — `not enabled by example`, `by sevi`, `by sevi2`, `by test1`.
 The route that turns a stranger into the owner of a journal

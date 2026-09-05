@@ -13,6 +13,13 @@ related: B102, B103, B104, B105, B106, B108, B109, B110
 
 ## Why
 
+**Partly stale as of 2026-09-05**: `/api/health` at fernscout.ch now reports
+`postcards: {"enabled": true}`, and `credits` with it. The switch has been
+thrown since this was written, so read the line below as history. What has
+still never happened is the rest of the task — a card built from a photograph
+the live instance holds, and what an agent is told it may do now the
+capability is on. B437 is the separate question of a real provider account.
+
 `/api/health` reports `postcards` as `not enabled on this server`.
 
 B14 ran the pipeline end to end and it worked — but that was
@@ -53,7 +60,7 @@ Then drive it against a test journal on fernscout.ch:
 - open the PDFs and look at the geometry, the bleed and the address block;
 - read the built provider request and check it contains what a provider would
   actually need;
-- then read what `/agent.md` and MCP tell an agent about this capability now
+- then read what `/agent.md` tells an agent about this capability now
   that it is switched on, and check the promise against what happens (B89).
 
 Standing rules for this run: any secret goes in `/etc/fernscout/env` and

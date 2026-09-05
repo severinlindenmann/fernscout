@@ -6,11 +6,25 @@ priority: medium
 complexity: high
 area: credits, billing, postcards, photobook
 found: "2026-09-03"
+superseded: "B366 — the credits ledger shipped; what is left is filed as B435, B437 and B07"
 ---
 
 # B89 — Nothing that costs the operator money can be paid for, so every paid feature is dry-run only
 
 ## Why
+
+> **Superseded, 2026-09-05.** The decision this task made — one prepaid
+> credits ledger every paid feature draws from — was built. `lib/credits.ts`
+> and `lib/payments.ts` are the ledger and the top-up (TWINT and card, B368);
+> WhatsApp, email sends, postcards and photobooks all draw from it (B366,
+> B379, B482, B486); and the agent guide no longer promises per-order payment
+> links — `lib/api/documentation.ts:1289` describes credits and the 402.
+> `/api/health` at fernscout.ch reports `credits: {"enabled": true}`.
+>
+> What this task also named and is *not* done stays filed on its own: no print
+> provider actually posts anything (B435), no card has gone through a real
+> provider account (B437), and the paid-order state machine that refuses a
+> provider request without a recorded payment is B07.
 
 > **Stale reference, 2026-09-04.** B298 removed MCP: there is no `lib/mcp/`
 > and no `/api/mcp`. Every mention of an MCP tool or endpoint below describes

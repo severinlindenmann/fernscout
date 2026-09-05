@@ -53,7 +53,7 @@ wall clock at the entry's own `location`/`lat`/`lng`, always, with no
 exceptions. That sentence belongs in `AGENTS.md` (it is a rule that applies to
 every writing path, not one skill), in `.claude/skills/add-a-day/SKILL.md` next
 to the field, in the ingest skill where EXIF supplies the time, in
-`/agent.md` and in the REST and MCP field documentation. Every door that
+`/agent.md` and in the REST field documentation. Every door that
 accepts a `time` should say the same thing in the same words.
 
 **Record the zone rather than infer it forever.** Add an optional `timezone:`

@@ -1,6 +1,6 @@
 ---
 id: B155
-title: Nothing in the repo tells a reader that fernscout.ch will host their journal, or what it promises
+title: The README offers hosting on fernscout.ch and never says what it does not promise
 type: DOCS
 priority: medium
 complexity: low
@@ -8,9 +8,23 @@ area: readme, docs, hosting
 found: "2026-09-03"
 ---
 
-# B155 — Nothing in the repo tells a reader that fernscout.ch will host their journal, or what it promises
+# B155 — The README offers hosting on fernscout.ch and never says what it does not promise
 
 ## Why
+
+> **Half done, 2026-09-05.** The README now opens with
+> *"Use it hosted: fernscout.ch"* — signup, the one address to hand an agent,
+> and a table of the capabilities the hosted instance runs. That table is also
+> true again: postcards, photobook, push and WhatsApp are all
+> `enabled` at fernscout.ch as of today, so the mismatch this task found is
+> gone.
+>
+> **What is still missing is the second half, which this task called the more
+> important one**: the promise a free instance run by one person as a hobby
+> cannot keep. `grep -i 'uptime\|guarantee' README.md` returns nothing. No
+> uptime, no durability, no support — said in the same paragraph that offers
+> the hosting, next to the escape hatch (`npm run export`, and the folder of
+> markdown) rather than on a terms page.
 
 > **Stale reference, 2026-09-04.** B298 removed MCP: there is no `lib/mcp/`
 > and no `/api/mcp`. Every mention of an MCP tool or endpoint below describes

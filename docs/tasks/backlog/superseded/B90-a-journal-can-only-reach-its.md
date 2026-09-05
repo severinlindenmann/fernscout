@@ -6,11 +6,20 @@ priority: low
 complexity: high
 area: whatsapp, notifications, credits
 found: "2026-09-03"
+superseded: "B365 — the WhatsApp channel was built; B366 metered it"
 ---
 
 # B90 — A journal can only reach its readers by email or push, and neither is where most people are
 
 ## Why
+
+> **Superseded, 2026-09-05.** B365 built this: `lib/whatsapp/` (Cloud API,
+> template send), an explicit `wantsWhatsapp` consent beside the digest and
+> postcard consents (`lib/contacts/index.ts:69`), and a send wired to
+> `POST .../days/<slug>/publish`. B366 put it behind the credits ledger, so
+> it is metered as this task asked. What is left is filed on its own: B403
+> (never delivered a real announcement), B386 (no way to stop from inside
+> WhatsApp), B378, B389, B372.
 
 A journal has two ways to tell a reader something new is up: the email digest
 (`lib/digest/`, ROADMAP D2, "the only notification channel that reaches
