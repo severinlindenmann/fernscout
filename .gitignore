@@ -45,6 +45,15 @@ next-env.d.ts
 # On the VPS this lives in DATA_DIR outside the repo instead.
 .data/
 
+# The SQLite file docs/running-locally.md tells you to make:
+#   export DATABASE_URL="file:./.local-dev.db"
+# Three files, in the repository root, that nothing ignored — so every agent
+# who followed that page left them untracked in the shared checkout, where
+# they read as somebody's uncommitted work and get in the way of the next
+# `git merge`. Found on 2026-09-05 with all three sitting on `main`.
+.local-dev.db
+.local-dev.db-*
+
 # Local development artefacts.
 # `/mail` is where signup mail used to land, from a `process.cwd()` fallback
 # that B111 removed. Still ignored so an old checkout's plaintext codes cannot
