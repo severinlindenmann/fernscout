@@ -7,8 +7,7 @@ complexity: high
 area: photobook, travellers
 found: "2026-09-05T16:23:52Z"
 started: "2026-09-05T17:03:18Z"
-session: c3c8ffc8-e9b2-4d46-b1b7-942387750255
-claimed: "2026-09-05T17:03:18Z"
+merged: "2026-09-05T17:17:15Z"
 ---
 
 # B497 — The photobook draws one hardcoded couple whoever travelled
