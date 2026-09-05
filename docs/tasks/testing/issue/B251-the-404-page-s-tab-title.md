@@ -196,3 +196,26 @@ term — every other `generateMetadata` in `app/` belongs to a `layout.tsx` or
 229 test files, 3126 tests passed, 3 skipped (the two Postgres-dialect tests
 that need a local Postgres, unrelated to this change). 7 pre-existing eslint
 warnings, none in a file this ticket touched.
+
+## Considered and declined: restoring `max-image-preview: large`
+
+Deleting the root layout's blanket `robots` also dropped
+`max-image-preview: large`, which is what tells Google it may show a large
+image beside a result rather than a thumbnail. On a journal whose content is
+photographs that looks like a loss, so it was weighed rather than waved
+through.
+
+Restoring it is safe in the narrow sense: `noindex` and an image-preview hint
+are not contradictory the way `index` and `noindex` were, and a crawler meeting
+both combines them — `noindex` still wins for indexing. So the 404 would carry
+two `robots` metas and behave correctly.
+
+It stays out anyway, for two reasons. The hint only does anything on a page a
+crawler indexes, and on this instance those are the landing page, the docs and
+whatever journals are `public` and `listed:` — the photographs this would be
+for are mostly behind `private` and `guest` trips that are never fetched. And
+the acceptance line above says one `robots` directive; meeting it exactly is
+worth more than a speculative preview size.
+
+If a public, listed, photograph-heavy journal ever becomes the common case,
+this is one line in `app/layout.tsx` and the reasoning to overturn is here.
