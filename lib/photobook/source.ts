@@ -20,6 +20,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { isEnabled } from "../capabilities";
 import { serverSite, travellersOf } from "../site";
+import { partyFor } from "../travellers/parse";
+import type { Figure } from "../travellers/vocabulary";
 import { loadUserConfig } from "../config";
 import { contentRoot } from "../contentRoot";
 import { getDays, getPlaces } from "../entries";
@@ -289,6 +291,22 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
           .map((p) => p.nickname || p.name)
           .filter(Boolean);
 
+  /**
+   * How the party is **drawn**, as opposed to `travellers` above, which is
+   * who is credited by name. Two different questions and B497 needed both:
+   * the byline is the owner's editorial statement, and this is the picture.
+   *
+   * Empty when nobody has been described — and the book then draws nobody,
+   * rather than a placeholder couple on the title page of a trip whose
+   * travellers nobody asked about.
+   */
+  const figures: Figure[] =
+    options.includeNames === false
+      ? []
+      : partyFor(trip.travellers, config.travellers).filter(
+          (f) => Object.keys(f).length > 0,
+        );
+
   // Photographs printed from the web copy, and why. Reported once for the
   // book rather than once per plate; the per-photograph half rides along on
   // any low-resolution warning, where a reader is already looking.
@@ -378,6 +396,7 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
       intro: trip.intro,
     },
     travellers,
+    figures,
     days,
     notes,
     followers: options.followers,

@@ -32,6 +32,7 @@
  *    rather than a brick or a silent truncation.
  */
 
+import type { Figure } from "../travellers/vocabulary";
 import {
   bleedBoxMm,
   contentBoxMm,
@@ -125,7 +126,14 @@ export type RoutePoint = {
 
 export type BookSource = {
   trip: { id: string; title: string; tagline?: string; start: string; end: string; intro: string };
+  /** Who is credited, by name. The byline. */
   travellers: string[];
+  /**
+   * How they are **drawn** — see lib/travellers/. A different question from
+   * the byline above, and empty when nobody has been described, in which case
+   * the book prints no figures at all rather than guessing (B497).
+   */
+  figures: Figure[];
   days: BookDay[];
   route: RoutePoint[];
   costs?: BookCosts;
@@ -190,6 +198,8 @@ export type BookPage = { number: number; side: PageSide } & (
       tagline?: string;
       dates: string;
       travellers: string;
+      /** How to draw the party above the title. Empty draws nobody. */
+      figures: Figure[];
       volume?: string;
     }
   | { kind: "intro"; heading: string; lines: string[] }
@@ -236,7 +246,7 @@ export type BookPage = { number: number; side: PageSide } & (
       note?: string;
     }
   | { kind: "costs"; costs: BookCosts; heading: string }
-  | { kind: "colophon"; heading: string; lines: string[] }
+  | { kind: "colophon"; heading: string; lines: string[]; figures: Figure[] }
   | { kind: "blank" }
 );
 
@@ -791,6 +801,7 @@ function materialise(
         tagline: source.trip.tagline,
         dates: formatDateRange(source.trip.start, source.trip.end),
         travellers: source.travellers.join(" & "),
+        figures: source.figures,
         volume: volume.of > 1 ? `Volume ${volume.index} of ${volume.of}` : undefined,
       };
 
@@ -983,6 +994,7 @@ function materialise(
         number,
         side,
         kind: "colophon",
+        figures: source.figures,
         heading: "Colophon",
         lines: [
           source.trip.title,

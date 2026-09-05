@@ -30,6 +30,7 @@ const SOURCE: BookSource = {
     end: "2026-01-03",
     intro: "The plan was simple.",
   },
+  figures: [],
   travellers: ["A"],
   days: [day(0), day(1), day(2)],
   route: [],
