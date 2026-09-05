@@ -928,7 +928,10 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
       });
       const success = fs.readFileSync(record, "utf8");
       expect(success).toContain("STATUS-REPORT-STANDIN");
-      expect(success).toContain("finished cleanly");
+      // And the summary is *not* repeated above it: scripts/alert.mts opens
+      // every mail with that sentence already, and on a success this line adds
+      // nothing to it (B472).
+      expect(success).not.toContain("finished cleanly");
 
       // The same handler, the same stub, the one difference being what systemd
       // says about the run.
@@ -943,7 +946,9 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
         env,
       });
       const failure = fs.readFileSync(record, "utf8");
-      expect(failure).toContain("fernscout-backup.service failed");
+      // Kept here, because on a failure it carries the result and the exit
+      // status, which the mailer's own opening line does not have.
+      expect(failure).toContain("fernscout-backup.service failed (result=exit-code) (exit 1)");
       expect(failure, "a failure must not be handed a status report instead of the log").not.toContain(
         "STATUS-REPORT-STANDIN",
       );
