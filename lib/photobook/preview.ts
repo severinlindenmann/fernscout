@@ -259,7 +259,7 @@ function pageHtml(
     case "title":
       parts.push(
         `<div style="position:absolute;left:${((spec.safeMm / (spec.size.trimWidthMm + spec.bleedMm * 2)) * 100).toFixed(3)}%;` +
-          `bottom:52%">${travellersSvg(20)}</div>`,
+          `bottom:52%">${travellersSvg(20, page.figures)}</div>`,
       );
       parts.push(
         textBlock(
@@ -280,7 +280,7 @@ function pageHtml(
     case "colophon":
       parts.push(
         `<div style="position:absolute;left:${((spec.safeMm / (spec.size.trimWidthMm + spec.bleedMm * 2)) * 100).toFixed(3)}%;` +
-          `bottom:52%">${travellersSvg(12)}</div>`,
+          `bottom:52%">${travellersSvg(12, page.figures)}</div>`,
       );
       parts.push(
         textBlock(

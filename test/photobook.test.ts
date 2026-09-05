@@ -84,7 +84,8 @@ function source(days: BookDay[], over: Partial<BookSource> = {}): BookSource {
       end: days[days.length - 1]?.date ?? "2026-01-03",
       intro: "The plan was simple and it stayed simple.\n\nThat rarely happens.",
     },
-    travellers: ["A", "B"],
+    figures: [],
+  travellers: ["A", "B"],
     days,
     route: days.map((d) => ({
       location: d.location,

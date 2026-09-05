@@ -478,7 +478,7 @@ function drawPage(
         // above ranged-left type reads as two decisions instead of one.
         width: c.height * 0.28,
         height: c.height * 0.2,
-      });
+      }, plan.figures);
       // One group, sitting on the lower third — the title page's whole job is
       // to be quiet and unmistakably the front of something.
       const lines = wrap(plan.title, type.display, mm(c.width), "bold");
@@ -771,7 +771,7 @@ function drawPage(
         y: c.y + c.height * 0.52,
         width: c.height * 0.17,
         height: c.height * 0.12,
-      });
+      }, plan.figures);
       let y = c.y + c.height * 0.42;
       text(page, frame, eyebrow(plan.heading), c.x, y + 14, type.caption, MUTED);
       rule(page, frame, c.x, y + 8, Math.min(c.width, 30), ACCENT);

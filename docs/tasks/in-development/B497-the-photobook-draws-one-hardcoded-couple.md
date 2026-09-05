@@ -89,6 +89,33 @@ described, so the title page needs to look composed without them.
 **Not doing:** changing the likeness. The book is a port of the site's figure,
 and any shape that differs is a bug in the port.
 
+## What building it turned up
+
+**`PdfBuilder.drawPath` takes PDF operators, not SVG path data.** It
+interpolates the string straight into the content stream. That is the whole
+reason the duplication existed, and it means "share the paths" was never going
+to be a one-line change — `lib/travellers/path.ts` is the answer: an SVG path
+parser and an arc-to-cubic converter, tested against a quarter circle's known
+control points.
+
+**Arc flags can be packed against the number after them.** `a4.6 4.6 0 109.2 0`
+is large-arc=1, sweep=0, x=9.2 — not a number 109.2. A tokeniser that reads
+numbers greedily lands the endpoint hundreds of units away and the shape
+deforms silently. It has its own test.
+
+**The refactor went the other way round from the plan.** The Work section said
+to map the block onto `Look`. What actually happened is that `Look` is gone:
+`lib/travellers/shapes.ts` now holds the figure as geometry and both
+`render.ts` (SVG) and `lib/photobook/travellers.ts` (PDF) serialise it. With
+11 hair styles, 5 outfits and 8 accessories a parallel colour record would
+have been a second description of the same person, which is the thing that
+broke in the first place.
+
+**Opacity has to be flattened.** The site uses it on the shirt yoke, the
+cheeks, the eye highlights and half the hair detail; the PDF writer has no
+alpha and the PDF/X report counts transparency against us. Composited against
+white, which is what a printer would have done anyway.
+
 ## Acceptance
 
 - A trip whose `travellers:` says one person with black coiled hair in a dress
