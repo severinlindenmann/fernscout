@@ -70,7 +70,13 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
   // identity is as signed in as one holding this journal's own session, and
   // hiding the panel from them would hide the one page that tells them what
   // they may open.
-  const signedIn = Boolean((await resolveAccess(username)).email);
+  const access = await resolveAccess(username);
+  const signedIn = Boolean(access.email);
+  // Whether there is anywhere to go *back* to — B433. An identity is what
+  // makes `/` a list of this reader's journals rather than the pitch, so it is
+  // the only credential the way out can be drawn from. Free here:
+  // `resolveAccess` is memoised per request and has already been asked.
+  const hasIdentity = Boolean(access.identity);
 
   // A reader's choice from the language switcher, honoured only if this
   // journal actually offers it — otherwise a cookie set on one journal would
@@ -101,7 +107,7 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
   );
 
   return (
-    <SiteProvider value={siteSummaryFor(user, isDefault, signedIn)}>
+    <SiteProvider value={siteSummaryFor(user, isDefault, signedIn, hasIdentity)}>
       {/* The journal's own language, rendered on the server. This used to be
           English on the server and the reader's choice after hydration, which
           is why no German page had a URL of its own and search engines only

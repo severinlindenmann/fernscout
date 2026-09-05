@@ -43,6 +43,7 @@ const site: SiteSummary = {
   locales: ["en"],
   base: "/alex",
   signedIn: false,
+  hasIdentity: false,
   canSignIn: false,
   costsEnabled: true,
 };
