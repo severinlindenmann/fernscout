@@ -11,8 +11,18 @@
  *    because by the time you import the second batch of a day you have
  *    already written the prose, fixed the title and added captions, and a
  *    YAML round-trip would quietly restyle all of it.
+ *
+ * Quoting is `quoteScalar`'s, not this file's. It had a private `yamlString`
+ * escaping backslash and quote and nothing else, which was the third copy of
+ * that function and the second one to be wrong — B204 is what the first cost.
+ * It went unnoticed while every value here came off a file or a validated
+ * field; a caption is written straight from a request body (B522), and a
+ * control character in one produced a day that no reading path could parse
+ * and no API call could delete. The shared one cannot emit invalid YAML
+ * whatever it is handed, which is exactly why it exists.
  */
 import type { GalleryItem } from "../types.ts";
+import { quoteScalar } from "../validate/frontmatter.ts";
 
 /** A gallery item as ingest writes it. `poster` is extra: nothing renders it
  * yet, but a clip without one is a black rectangle in any future grid, and it
@@ -35,11 +45,6 @@ export type EntryDraft = {
   body: string;
 };
 
-/** Double-quoted YAML: the only escapes it needs are backslash and quote. */
-function yamlString(value: string): string {
-  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-}
-
 /** Five decimals is about a metre — more would imply a precision no consumer
  * GPS has, and would make the numbers hard to read. */
 function coordinate(value: number): string {
@@ -49,12 +54,12 @@ function coordinate(value: number): string {
 export function galleryLines(items: IngestGalleryItem[]): string[] {
   const lines: string[] = [];
   for (const item of items) {
-    lines.push(`  - src: ${yamlString(item.src)}`);
-    lines.push(`    type: ${yamlString(item.type)}`);
-    if (item.poster) lines.push(`    poster: ${yamlString(item.poster)}`);
+    lines.push(`  - src: ${quoteScalar(item.src)}`);
+    lines.push(`    type: ${quoteScalar(item.type)}`);
+    if (item.poster) lines.push(`    poster: ${quoteScalar(item.poster)}`);
     if (item.width) lines.push(`    width: ${item.width}`);
     if (item.height) lines.push(`    height: ${item.height}`);
-    if (item.caption) lines.push(`    caption: ${yamlString(item.caption)}`);
+    if (item.caption) lines.push(`    caption: ${quoteScalar(item.caption)}`);
   }
   return lines;
 }
@@ -66,12 +71,12 @@ export const BODY_PLACEHOLDER =
 
 export function renderEntry(draft: EntryDraft): string {
   const lines: string[] = ["---"];
-  lines.push(`title: ${yamlString(draft.title)}`);
-  lines.push(`date: ${yamlString(draft.date)}`);
-  if (draft.time) lines.push(`time: ${yamlString(draft.time)}`);
-  lines.push(`location: ${yamlString(draft.location)}`);
-  lines.push(`country: ${yamlString(draft.country)}`);
-  if (draft.countryCode) lines.push(`countryCode: ${yamlString(draft.countryCode)}`);
+  lines.push(`title: ${quoteScalar(draft.title)}`);
+  lines.push(`date: ${quoteScalar(draft.date)}`);
+  if (draft.time) lines.push(`time: ${quoteScalar(draft.time)}`);
+  lines.push(`location: ${quoteScalar(draft.location)}`);
+  lines.push(`country: ${quoteScalar(draft.country)}`);
+  if (draft.countryCode) lines.push(`countryCode: ${quoteScalar(draft.countryCode)}`);
   if (draft.lat !== undefined) lines.push(`lat: ${coordinate(draft.lat)}`);
   if (draft.lng !== undefined) lines.push(`lng: ${coordinate(draft.lng)}`);
   if (draft.gallery.length > 0) {
@@ -79,12 +84,12 @@ export function renderEntry(draft: EntryDraft): string {
     lines.push(...galleryLines(draft.gallery));
   }
   if (draft.tags.length > 0) {
-    lines.push(`tags: [${draft.tags.map(yamlString).join(", ")}]`);
+    lines.push(`tags: [${draft.tags.map(quoteScalar).join(", ")}]`);
   }
   if (draft.transport) {
-    lines.push(`transportMode: ${yamlString(draft.transport.mode)}`);
-    lines.push(`transportFrom: ${yamlString(draft.transport.from)}`);
-    lines.push(`transportTo: ${yamlString(draft.transport.to)}`);
+    lines.push(`transportMode: ${quoteScalar(draft.transport.mode)}`);
+    lines.push(`transportFrom: ${quoteScalar(draft.transport.from)}`);
+    lines.push(`transportTo: ${quoteScalar(draft.transport.to)}`);
   }
   // A fresh entry's body is BODY_PLACEHOLDER — "write the day here" — and
   // without this it was on the public site the moment it was written, which

@@ -58,6 +58,66 @@ place to say it is the prose, where it is detached from the picture.
 Not doing: rich text, per-caption translations, or a caption on the postcard
 and photobook renderers. Separate captures if they turn out to be wanted.
 
+## What was built, and what the Why got wrong
+
+The Why held up — half the feature really was there. Four things it did not
+say, found while building:
+
+- **`galleryLines` already wrote `caption:`** (`lib/ingest/entry.ts:57`), so
+  the write path was one field on `UploadCandidate` and one line in each of
+  `storeUploads`' two `items.push` calls. Nothing about the `gallery:` block
+  needed rewriting.
+- **`lib/ingest/entry.ts` carried a third private copy of the YAML escaper**,
+  and it was the second one to be wrong in the way B204 already cost a trip id.
+  `yamlString` escaped backslash and quote and nothing else. That was harmless
+  while every value it rendered came off a file or a validated field; a caption
+  is written straight from a request body, and a vertical tab, form feed,
+  escape or NUL in one produced a day gray-matter could not parse — invisible
+  at every reading path, and undeletable through the API, because every delete
+  path resolves the day first.
+
+  The first fix here was a newline escape added to that private copy, which
+  was the same mistake one layer down. `lib/validate/frontmatter.ts` already
+  holds `quoteScalar`, written for B204, which escapes the whole C0 range and
+  "cannot emit invalid YAML whatever it is handed" — so the actual fix was to
+  **delete `yamlString` and call the shared one**, which is a smaller diff than
+  the wrong fix was. `singleLineProblem` from the same module is the paired
+  door check, and refuses a two-line caption by name rather than folding it.
+
+  Found by the security pass over the branch, not by the tests, which is worth
+  recording: `test/photo-captions.test.ts` was already testing `\n`, `\r\n` and
+  `\r` through that exact path and asserting the frontmatter survived. It
+  tested the characters the private escaper happened to handle.
+
+  `attachGallery` still writes its splice without re-reading it, where
+  `editEntry` parses first and refuses — the missing second defence, captured
+  as **B528** rather than absorbed here.
+- **The captions arrive positionally, not as a map**, which the Work section
+  offered as one of two options. There is no key to use: `src` does not exist
+  until the server has named the file. So `captions[n]` describes the n-th file
+  through both doors, and *more* captions than files is refused rather than
+  shifted along — a caption under the wrong photograph is worse than none. The
+  map keyed by `src` is the **PATCH**, where the src does exist.
+- **`captionsFor` lives in `lib/validate/media.ts`, not in the route.** A
+  `route.ts` may export only handlers, and this needed a test of its own.
+  `CAPTION_MAX_CHARS` (300) moved there with it, and `lib/validate/entry.ts`
+  imports it for the PATCH side, so one number answers both doors.
+
+`spliceCaptions` walks the `gallery:` block item by item and touches only the
+`caption:` line — it deliberately does *not* replace the block wholesale the
+way `spliceCosts` does, because a partial payload could then delete
+photographs, and `src`/`width`/`height` are measured off the file and are not
+the caller's to restate. `test/photo-captions.test.ts` asserts the surrounding
+bytes are unchanged rather than merely that the caption changed.
+
+One judgement call on the alt text. The ticket asks for `alt={caption}` on both
+grids; on the day's `Gallery` the caption was already drawn inside the button,
+so alt was empty *on purpose* — repeating it made a screen reader say every
+photograph's description twice. Both grids now carry `alt={caption ?? ""}` with
+the visible caption marked `aria-hidden`, which is the same accessible name as
+before and gains the alt where an image fails to load. Nothing regresses; it is
+just not the improvement the ticket implies for that one component.
+
 ## Acceptance
 
 - `POST …/trips/<trip>/media` with a caption per file writes `caption:` into

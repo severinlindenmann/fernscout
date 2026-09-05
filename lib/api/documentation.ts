@@ -3,6 +3,7 @@ import { serverSite } from "../site";
 // The limits are published from the constants that enforce them: a table
 // typed out a second time is a table that goes stale.
 import {
+  CAPTION_MAX_CHARS,
   IMAGE_FORMATS,
   IMAGE_MAX_BYTES,
   IMAGE_MAX_EDGE,
@@ -1235,7 +1236,10 @@ one. The full schema, with the shape of each nested item, is in
 | \`idempotency_key\` | Names this one write — see below. |
 
 There is no \`gallery\` field and no \`status\` field — photographs are attached
-separately, above, and what this writes is always a draft.
+separately, above, and what this writes is always a draft. The one part of a
+photograph that is yours to write is its \`caption\`, and that travels with the
+files or arrives later as \`captions\` on a \`PATCH\`; see **Photographs and
+video**.
 
 **Money is stored as it was spent, and converted only when it is read.** A
 day's \`costs\` keep their own currencies on disk; the trip's \`rates:\` block
@@ -1756,6 +1760,8 @@ Content-Type: multipart/form-data
 day=lanterns-of-hoi-an
 files=@DSC_4471.HEIC
 files=@DSC_4472.HEIC
+captions=The lanterns going up on the bridge
+captions=
 \`\`\`
 
 **The photographs are put into the day for you.** There is nothing to paste,
@@ -1776,6 +1782,30 @@ dimensions differ on purpose — the served copy is resized, the original is not
 touched — and \`kept\` is there so you can see that the original survived rather
 than inferring it from a promise. If \`kept\` shows the same numbers you sent,
 the full-resolution file is on disk.
+
+**A caption is the one part of a photograph you write.** \`captions\` runs
+alongside \`files\` (or \`urls\`), one per picture and in the same order — send
+an empty one, or simply fewer, for a picture nobody said anything about. More
+captions than files is refused rather than shifted along, because a caption on
+the wrong photograph is worse than no caption at all. It is drawn under the
+picture on the day, on the tile in the trip gallery, and is the image's alt
+text.
+
+Write **what you were told**, and nothing else. Not what the picture looks like
+to you, not the weather in it, not who you think is in it — a caption is read
+by the family of the person who was there, and an invented one is a
+misremembering presented to them as a record. An empty caption beats a
+plausible one. **One line, at most ${CAPTION_MAX_CHARS} characters** — a
+caption carrying a line break is refused rather than folded, and the day's
+prose is where the longer version belongs.
+
+**Correcting one later needs no re-upload:** \`PATCH .../days/<slug>\` with
+\`captions\` as an object keyed by the photograph's \`src\`, exactly as you read
+it back — \`{"captions": {"/${example}/media/<trip>/lanterns-of-hoi-an/01.jpg":
+"The lanterns going up"}}\`. An empty string removes a caption; a \`src\` the
+day does not carry is ignored. Nothing else in the day changes, prose and
+title included, and the photographs themselves are never rewritten by that
+call.
 
 \`kept.filename\` is **advisory** — it is what the source called the file, not
 what is on disk. Sending bytes, that is your own filename and correlates. From

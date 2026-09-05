@@ -114,6 +114,9 @@ const TRIPS = [
         lng: 8.4444,
         transport: null,
         photos: 3,
+        // One picture out of three, which is about the honest rate. A caption
+        // is what somebody said about a photograph, so most have none.
+        captions: ["The last hairpin before the pass"],
         tags: ["alps", "passes", "driving"],
         costs: [
           { label: "Fuel", amount: 78, category: "transport" },
@@ -1057,9 +1060,15 @@ function galleryBlock(trip, day) {
   const items = [];
   for (let i = 1; i <= day.photos; i++) {
     const shape = SHAPES[(i - 1) % SHAPES.length];
+    // A caption on some photographs and not on others, which is the real
+    // shape of a journal — most pictures have nothing said about them, and a
+    // demo where every one carries a line would not show that the layout
+    // holds either way. `captions` is indexed from the first photo (B522).
+    const caption = day.captions?.[i - 1];
     items.push(
       `  - src: "/media/${trip.id}/${day.slug}/${String(i).padStart(2, "0")}.jpg"\n` +
-        `    type: "image"\n    width: ${shape.w}\n    height: ${shape.h}`,
+        `    type: "image"\n    width: ${shape.w}\n    height: ${shape.h}` +
+        (caption ? `\n    caption: ${quote(caption)}` : ""),
     );
   }
   if (day.video) {

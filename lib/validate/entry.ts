@@ -10,6 +10,7 @@
 // mistake needs the whole list in one round trip; a single "something is
 // wrong" forces it to guess, fix, resubmit, and find the next one.
 import { COST_CATEGORIES, type CostCategory } from "../costFormat";
+import { captionProblem } from "./media";
 
 /** Mirrors `TransportMode` in lib/types.ts. TypeScript has no way to turn a
  * type union back into a runtime array, so this list is kept in sync by hand
@@ -109,6 +110,8 @@ export type EntryInput = {
   content?: unknown;
   /** The day's title and content in the journal's other languages. B294. */
   translations?: unknown;
+  /** A caption per photograph, keyed by `src`. Edit only — B522. */
+  captions?: unknown;
 };
 
 /**
@@ -528,7 +531,43 @@ export function validateEntryEdit(
   checkTags(input, problems);
   checkTest(input, problems);
   checkBody(input, problems, false);
+  checkCaptions(input, problems);
   return problems;
+}
+
+/**
+ * `captions` is `{ "<src>": "<text>" }` and nothing else.
+ *
+ * Refused rather than ignored, like every other malformed field here: a
+ * caption that silently did not land would be reported as written, and what
+ * an agent tells somebody it wrote has to be what is on disk.
+ */
+function checkCaptions(input: EntryInput, problems: Problem[]): void {
+  if (input.captions === undefined) return;
+  const value = input.captions;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    problems.push({
+      field: "captions",
+      got: describe(value),
+      expected: 'an object keyed by the photograph\'s src — {"/you/media/trip/day/01.jpg": "…"}',
+    });
+    return;
+  }
+  for (const [src, text] of Object.entries(value as Record<string, unknown>)) {
+    const field = `captions[${JSON.stringify(src)}]`;
+    if (typeof text !== "string") {
+      problems.push({
+        field,
+        got: describe(text),
+        expected: "a string — an empty one removes the caption",
+      });
+      continue;
+    }
+    // The same two rules the media endpoint applies on the way in, from the
+    // same function: a caption corrected later is still a caption.
+    const problem = captionProblem(text.trim(), field);
+    if (problem) problems.push(problem);
+  }
 }
 
 /**

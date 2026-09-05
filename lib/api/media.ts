@@ -29,6 +29,15 @@ import type { GalleryItem } from "../types";
 export type UploadCandidate = {
   filename: string;
   bytes: Buffer;
+  /**
+   * What the person said about this picture, if they said anything.
+   *
+   * The one field on a gallery item an agent can supply, because it is the one
+   * the server cannot work out for itself — everything else here is measured
+   * off the file. It is what you were told, never what the picture looks like
+   * to you; an empty caption beats a plausible one (B522).
+   */
+  caption?: string;
 };
 
 /**
@@ -342,6 +351,7 @@ export async function storeUploads(
         items.push({
           src: frontmatterSrc(tripId, path.join(slug, name)),
           type: "video",
+          caption: upload.caption || undefined,
           width: result.width,
           height: result.height,
           poster: frontmatterSrc(tripId, path.join(slug, poster)),
@@ -382,6 +392,7 @@ export async function storeUploads(
           // entry file.
           src: frontmatterSrc(tripId, path.join(slug, name)),
           type: "image",
+          caption: upload.caption || undefined,
           width: derivative.width,
           height: derivative.height,
         });

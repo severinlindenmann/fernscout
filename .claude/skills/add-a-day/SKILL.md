@@ -80,6 +80,21 @@ The prose, in plain markdown.
 - `countryCode` is looked up from `country`; only set it if the lookup is wrong.
 - Gallery items use **trip-relative** paths (`/media/<trip-id>/…`). The username
   is added at read time — never write it into frontmatter.
+- A gallery item may carry a `caption:`, and it is the only line under a
+  photograph anybody ever reads:
+
+  ```yaml
+  gallery:
+    - src: "/media/vietnam-2026/lanterns-of-hoi-an/01.jpg"
+      type: "image"
+      caption: "The lanterns going up on the bridge"
+  ```
+
+  **A caption is what you were told, not what the picture looks like to you.**
+  No weather nobody mentioned, no names nobody said, no guess at who is in it.
+  An empty caption beats a plausible one — these are read by the family of the
+  person who was there, and an invented line is a misremembering handed to them
+  as a record. Keep it to a line; the prose is where the rest belongs.
 - A cost with no `currency` is read as the site's `baseCurrency`. A currency
   that this trip has no entry for in `trip.md`'s `rates:` block shows as
   unconverted rather than being counted wrong.

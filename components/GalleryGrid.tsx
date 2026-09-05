@@ -153,10 +153,12 @@ export default function GalleryGrid({
                 <Image
                   src={tile.src}
                   loader={mediaLoader}
-                  // The tile prints the location and the date over the
-                  // picture, so an alt here only made the button's accessible
-                  // name say the same words twice.
-                  alt=""
+                  // The caption where there is one — it is the only thing said
+                  // about this particular photograph. Without one the alt stays
+                  // empty: the tile prints the location and the date over the
+                  // picture, and repeating those would make the button's
+                  // accessible name say the same words twice (B522).
+                  alt={tile.caption ?? ""}
                   fill
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -169,6 +171,17 @@ export default function GalleryGrid({
               )}
             </span>
             <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy-900/80 to-transparent px-2.5 py-2 text-left">
+              {/* `aria-hidden` because the image's alt already carries it — see
+                  the alt above. A caption written today used to be invisible
+                  here until somebody opened the lightbox (B522). */}
+              {tile.caption && (
+                <span
+                  aria-hidden
+                  className="mb-0.5 block truncate font-display text-[11px] italic text-white/95"
+                >
+                  {tile.caption}
+                </span>
+              )}
               <span className="block truncate text-xs font-semibold text-white">
                 {tile.location}
               </span>
