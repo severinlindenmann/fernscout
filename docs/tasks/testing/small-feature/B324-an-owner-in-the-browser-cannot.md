@@ -6,11 +6,24 @@ priority: medium
 complexity: low
 area: contacts, ui
 found: "2026-09-04T17:26:38Z"
+merged: "2026-09-05T17:13:16Z"
 ---
 
 # B324 — An owner in the browser cannot send an invitation by mail, only an agent can
 
 ## Why
+
+> **Built by B384, 2026-09-05 — moved to `testing/` rather than closed.**
+> The owner's own form at `/<user>/contacts` posts `action: "create"` with a
+> name and an address; the route mints a guest invite, dates it, mails it with
+> `sendInviteMail`, and records `createdVia: invite:<id>` so the address is
+> pre-approved when it confirms. A `resend` button covers a mail that did not
+> arrive, and the guest list still shows the link itself (B280).
+>
+> Two of this task's three acceptance clauses are readable in the code. The
+> middle one — that the **owner** is told the address is pre-approved — is a
+> question about what the page says, and nobody has looked. That is why this
+> is in `testing/` and not `completed/`.
 
 B319 built mailing an invitation and pre-approving the address: an owner tells
 an agent to invite somebody, and the letter goes out in that person's language

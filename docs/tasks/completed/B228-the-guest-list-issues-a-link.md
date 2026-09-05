@@ -6,11 +6,24 @@ priority: medium
 complexity: low
 area: contacts, access
 found: "2026-09-04T07:49:53Z"
+completed: "2026-09-05T17:13:16Z"
 ---
 
 # B228 — The guest list issues a link that never expires
 
 ## Why
+
+> **Fixed by B281, verified 2026-09-05.** The route this task is about is
+> gone: `case "invite"` was removed from `app/api/contacts/admin/route.ts`
+> (the comment where it stood says so), and the panel now posts to
+> `POST /api/v1/{user}/invites`, "which always dates the link". Both remaining
+> callers of `createInvite` pass an `expiresAt` — the API route via
+> `inviteExpiry(days)`, the admin route's `case "create"` via
+> `inviteExpiry()`. No door issues an undated link any more.
+>
+> The second Work item — what happens to `personal` links already issued with
+> `expires_at = null` — was left, which this task allowed for: "leaving them
+> and letting the list show 'no end date' may be the honest answer".
 
 `lib/contacts/invites.ts` says it in as many words: thirty days by default,
 `null` — never expires — "is deliberately not something this offers, because

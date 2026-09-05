@@ -15,6 +15,12 @@ found: "2026-09-04T15:33:58Z"
 Measured on 2026-09-04: `/documentation.txt` is **12.4KB** and `/agent.md` is
 **55.8KB**.
 
+**Re-measured on 2026-09-05, against fernscout.ch: 19.4KB and 83.7KB.** In one
+day the small document grew by half again and the guide by half. Nothing has
+been done about this task; it is getting worse at roughly the rate the code is
+getting better, which is the argument for doing it. B311 is the structural
+answer (one guide holding every task); this one is the measurement.
+
 `/documentation.txt` was **3.7KB** at the start of the day. B256 inlined the
 signup calls into it, B259 added the capability check and the whole minimum
 write path, and B267, B277, B292, B293 and B294 each added a question or a

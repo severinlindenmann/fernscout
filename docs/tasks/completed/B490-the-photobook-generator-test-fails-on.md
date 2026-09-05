@@ -6,9 +6,18 @@ priority: low
 complexity: low
 area: tests
 found: 2026-09-05T00:00:00Z
+completed: "2026-09-05T17:13:15Z"
 ---
 
 ## Why
+
+> **Verified fixed, 2026-09-05.** B495 is the same defect, found and merged
+> the same afternoon: the generator tests symlinked generated-output folders
+> into their temp root. Its acceptance command — this task's acceptance
+> command — was run in the shared checkout after the fix:
+> `npm run photobook -- --trip example/alps-2024`, then
+> `npx vitest run test/generator-output.test.ts` → **12 passed**. The
+> generated `content/example/photobooks/` was removed afterwards.
 
 `npm run verify` fails on a working checkout, with three red tests in
 `test/generator-output.test.ts` and an assertion that reads as though B219 had
