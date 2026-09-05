@@ -143,35 +143,59 @@ export default function PhotobookPageContent({
    * decide who else can see — and this belongs to one person on one device,
    * which is exactly what `localStorage` already is.
    *
-   * Keyed by trip, so arranging one journey does not disturb another. Read
-   * once, in the initialiser, because a later read would fight the user's own
-   * edits; written on every change, which is cheap for an object this size.
+   * Keyed by trip, so arranging one journey does not disturb another.
+   *
+   * **Read after mounting, not in the initialiser.** The server renders this
+   * page too, and it has no `localStorage` — so an initialiser that reads one
+   * makes the first client render disagree with the server's, and React says
+   * so: "a tree hydrated but some attributes of the server rendered HTML
+   * didn't match". It showed up on B515's reset button, which is disabled
+   * when nothing has been arranged and was therefore enabled on the client and
+   * disabled on the server. Every control that reads the arrangement had the
+   * same fault; only that one happened to render an attribute React compares.
+   *
+   * The cost is one frame of the default arrangement before the stored one
+   * arrives, which is the standard trade and is invisible at this size.
    *
    * A stored arrangement from an older version is ignored rather than merged:
    * `parseOptions` on the server would refuse it anyway, and starting from the
    * default is a better failure than a form that cannot be submitted.
    */
   const storageKey = `fernscout:photobook:${tripRef}`;
-  const [options, setOptions] = useState<BookOptions>(() => {
-    const fresh = { ...DEFAULT_OPTIONS, locale: locales[0] ?? DEFAULT_OPTIONS.locale };
-    if (typeof window === "undefined") return fresh;
-    try {
-      const saved = window.localStorage.getItem(storageKey);
-      if (!saved) return fresh;
-      const parsed = JSON.parse(saved) as Partial<BookOptions>;
-      // Every key the default has, taken from the saved copy only where the
-      // saved copy has one of the right shape.
-      return {
-        ...fresh,
-        ...parsed,
-        days: typeof parsed.days === "object" && parsed.days !== null ? parsed.days : {},
-      };
-    } catch {
-      return fresh;
-    }
-  });
+  const [options, setOptions] = useState<BookOptions>(() => ({
+    ...DEFAULT_OPTIONS,
+    locale: locales[0] ?? DEFAULT_OPTIONS.locale,
+  }));
+
+  /** Whether the stored arrangement has been read yet. Until it has, nothing
+   * may be written back — the first effect would otherwise overwrite a real
+   * arrangement with the defaults this component started from. */
+  const restored = useRef(false);
 
   useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<BookOptions>;
+        // The same shape, and the same disable, as `CurrencyProvider` and
+        // `LocaleProvider`: the default renders on the server and on the first
+        // client paint, then the stored preference is adopted. Reading it any
+        // earlier is the hydration mismatch this effect exists to avoid.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setOptions((o) => ({
+          ...o,
+          ...parsed,
+          days: typeof parsed.days === "object" && parsed.days !== null ? parsed.days : {},
+        }));
+      }
+    } catch {
+      // A stored arrangement that will not parse is one nobody can use.
+    }
+    restored.current = true;
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!restored.current) return;
     try {
       window.localStorage.setItem(storageKey, JSON.stringify(options));
     } catch {
