@@ -8,6 +8,8 @@ import { pickLocale } from "@/lib/contacts/locale";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { balanceOf } from "@/lib/credits";
+import { formatChf } from "@/lib/credits/pricing";
+import { listPayments } from "@/lib/payments";
 import { ownerShortName, serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
 import { getUser } from "@/lib/users";
@@ -119,8 +121,16 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       // credit. `optedInCounts` handles the case where the owner is also a
       // contact of their own journal.
       const counts = optedInCounts(await listContacts(user), journal.owner.email);
+      const transactions = (await listPayments(user)).map((tx) => ({
+        id: tx.id,
+        credits: tx.credits,
+        amount: formatChf(tx.amountRappen),
+        status: tx.status,
+        createdAt: tx.createdAt,
+      }));
       payment = {
         balance,
+        transactions,
         emailRecipients: counts.email,
         // `null` rather than 0 when WhatsApp itself is off — B369 hasn't
         // shipped the channel yet, and a bare 0 would read as "nobody wants

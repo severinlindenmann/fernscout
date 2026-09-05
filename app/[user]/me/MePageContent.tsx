@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { KeyRound, Wallet, UserRound, Mail, MessageCircle, TriangleAlert, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, KeyRound, Wallet, UserRound, Mail, MessageCircle, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
@@ -18,11 +18,14 @@ import type { TranslationKey } from "@/lib/i18n";
 import type { Viewer } from "@/lib/viewer";
 
 /**
- * The tiers dialog behind the Payment card's "Buy credits" button — B368.
+ * The tiers picker behind the Payment card's "Buy credits" button — B368/B405,
+ * and a dropdown rather than a modal since B413.
  *
- * A native `<dialog>` with `showModal()` rather than a hand-rolled overlay:
- * the browser already traps focus inside it and closes it on Escape, so there
- * is nothing here to get wrong that a dependency would get right instead.
+ * It opens as a small popover anchored under its own button, not a centred
+ * `<dialog>`: `showModal()` centres against the viewport, which an ancestor's
+ * transform/containment can throw off (the owner saw it land top-left), and a
+ * three-item picker reads better dropping out of the button that summoned it
+ * anyway. Escape and a click outside close it; focus returns to the button.
  *
  * Pressing Buy on a tier posts to the purchase route, which records a pending
  * transaction, mails the journal's own owner the payment link, and grants
@@ -32,9 +35,33 @@ import type { Viewer } from "@/lib/viewer";
 function BuyCreditsDialog({ username }: { username: string }) {
   const { t, tn } = useI18n();
   const router = useRouter();
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [open, setOpen] = useState(false);
   const [busyTier, setBusyTier] = useState<string | null>(null);
-  const [result, setResult] = useState<"sent" | "failed" | null>(null);
+  const [result, setResult] = useState<"failed" | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Escape and click-outside close it — the two things a modal `<dialog>` gave
+  // for free and a popover has to wire up. Only while open, so the listeners
+  // are not attached for every owner who never presses the button.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    }
+    function onPointer(event: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onPointer);
+    };
+  }, [open]);
 
   async function buy(tierId: string) {
     setBusyTier(tierId);
@@ -49,87 +76,90 @@ function BuyCreditsDialog({ username }: { username: string }) {
       // The purchase created a pending transaction; go to its payment page.
       // The same link was emailed too, so this can be finished later — B405.
       const body = (await response.json().catch(() => null)) as { paymentUrl?: string } | null;
-      dialogRef.current?.close();
+      setOpen(false);
       if (body?.paymentUrl) {
         router.push(body.paymentUrl);
         return;
       }
-      setResult("sent");
+      setResult("failed");
     } else {
       setResult("failed");
     }
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => {
-          setResult(null);
-          dialogRef.current?.showModal();
-        }}
-        className="inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-      >
-        {t("me.paymentBuyTitle")}
-      </button>
-      <span className="text-sm text-navy-600">{t("me.paymentBuyBody")}</span>
-      {result && (
-        <span
-          role="status"
-          className={`w-full text-sm ${result === "failed" ? "text-coral-600" : "text-navy-700"}`}
+    <div ref={wrapRef} className="relative">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => {
+            setResult(null);
+            setOpen((o) => !o);
+          }}
+          className="inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
         >
-          {t(result === "sent" ? "me.paymentBuySent" : "me.paymentBuyFailed")}
+          {t("me.paymentBuyTitle")}
+        </button>
+        <span className="text-sm text-navy-600">{t("me.paymentBuyBody")}</span>
+      </div>
+      {result && (
+        <span role="status" className="mt-1 block text-sm text-coral-600">
+          {t("me.paymentBuyFailed")}
         </span>
       )}
 
-      <dialog
-        ref={dialogRef}
-        aria-labelledby="buy-credits-title"
-        className="w-[calc(100%-2rem)] max-w-md rounded-2xl border border-navy-200 bg-white p-0 shadow-xl backdrop:bg-navy-900/40"
+      {/*
+        The panel stays in the DOM so it can animate both ways; `open` toggles
+        opacity + a short downward slide, and turns off pointer events and tab
+        focus while hidden. `motion-reduce` drops the slide for readers who ask
+        for less motion.
+      */}
+      <div
+        role="menu"
+        aria-label={t("me.buyDialogTitle")}
+        aria-hidden={!open}
+        className={`absolute left-0 top-full z-20 mt-2 w-[min(22rem,100%)] origin-top rounded-2xl border border-navy-200 bg-white p-4 shadow-xl transition duration-150 ease-out motion-reduce:transition-none ${
+          open
+            ? "pointer-events-auto translate-y-0 opacity-100"
+            : "pointer-events-none -translate-y-1 opacity-0"
+        }`}
       >
-        <div className="p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <h3 id="buy-credits-title" className="font-display text-lg font-semibold text-navy-900">
-              {t("me.buyDialogTitle")}
-            </h3>
-            <button
-              type="button"
-              aria-label={t("me.buyDialogClose")}
-              onClick={() => dialogRef.current?.close()}
-              className="rounded-full p-1 text-navy-500 transition-colors hover:text-navy-900"
+        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-navy-600">
+          {t("me.buyDialogTitle")}
+        </p>
+        <ul className="mt-2 space-y-2.5">
+          {TIERS.map((tier) => (
+            <li
+              key={tier.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-navy-200 bg-cream-50 px-4 py-3"
             >
-              <X className="h-5 w-5" aria-hidden="true" />
-            </button>
-          </div>
-          <ul className="mt-4 space-y-3">
-            {TIERS.map((tier) => (
-              <li
-                key={tier.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-navy-200 bg-cream-50 px-4 py-3"
+              <div>
+                <p className="font-display text-base font-semibold text-navy-900">
+                  {tier.credits} {tn("me.paymentUnit", tier.credits)}
+                </p>
+                <p className="text-sm text-navy-600">
+                  {formatChf(tier.priceRappen)}
+                  {tier.discount && ` · ${t("me.buyDialogDiscount", { discount: tier.discount })}`}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="menuitem"
+                tabIndex={open ? 0 : -1}
+                disabled={busyTier !== null}
+                onClick={() => buy(tier.id)}
+                className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-yellow-400 px-4 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <div>
-                  <p className="font-display text-base font-semibold text-navy-900">
-                    {tier.credits} {tn("me.paymentUnit", tier.credits)}
-                  </p>
-                  <p className="text-sm text-navy-600">
-                    {formatChf(tier.priceRappen)}
-                    {tier.discount && ` · ${t("me.buyDialogDiscount", { discount: tier.discount })}`}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  disabled={busyTier !== null}
-                  onClick={() => buy(tier.id)}
-                  className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-yellow-400 px-4 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {busyTier === tier.id ? t("me.buyDialogBusy") : t("me.buyDialogBuy")}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </dialog>
-    </>
+                {busyTier === tier.id ? t("me.buyDialogBusy") : t("me.buyDialogBuy")}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }
 
@@ -168,6 +198,20 @@ export type PaymentPanel = {
   /** `null` when this journal does not offer WhatsApp at all, so the row is
    * omitted rather than rendered as a confident zero. */
   whatsappRecipients: number | null;
+  /** Recent purchases, newest first — the history under the buy button (B413).
+   * Each is a mock transaction; an unpaid one links back to its payment page. */
+  transactions: PaymentRow[];
+};
+
+/** One row of the transaction history. `amount` is a preformatted CHF string
+ * (server-side, from the pricing table) so the component never does money
+ * arithmetic. */
+export type PaymentRow = {
+  id: string;
+  credits: number;
+  amount: string;
+  status: "pending" | "paid";
+  createdAt: string;
 };
 
 /**
@@ -580,25 +624,64 @@ export default function MePageContent({
                       <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
                         {t("me.paymentEstimateTitle")}
                       </p>
-                      <ul className="mt-2 space-y-1.5">
-                        <li className="flex items-center gap-2.5 text-base leading-7 text-navy-700">
-                          <Mail className="h-4 w-4 shrink-0 text-navy-600" aria-hidden="true" />
-                          {tn("me.paymentEmailLine", payment.emailRecipients, {
-                            count: String(payment.emailRecipients),
-                          })}
-                        </li>
-                        {payment.whatsappRecipients !== null && (
-                          <li className="flex items-center gap-2.5 text-base leading-7 text-navy-700">
-                            <MessageCircle
-                              className="h-4 w-4 shrink-0 text-navy-600"
-                              aria-hidden="true"
-                            />
-                            {tn("me.paymentWhatsappLine", payment.whatsappRecipients, {
-                              count: String(payment.whatsappRecipients),
-                            })}
-                          </li>
-                        )}
-                      </ul>
+                      {/*
+                        A small table rather than a sentence per channel (B413):
+                        the owner asked to see plainly what a send is billed for —
+                        the receivers on each channel, and the credits that costs.
+                        The count is journal-wide (the most a send could reach);
+                        a private trip reaches fewer, which is why it reads "up
+                        to" and the caption says the price is flat per receiver.
+                      */}
+                      <table className="mt-2 w-full text-left text-base">
+                        <thead>
+                          <tr className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+                            <th scope="col" className="pb-1 font-semibold">
+                              {t("me.paymentColChannel")}
+                            </th>
+                            <th scope="col" className="pb-1 font-semibold">
+                              {t("me.paymentColReceivers")}
+                            </th>
+                            <th scope="col" className="pb-1 text-right font-semibold">
+                              {t("me.paymentColCost")}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-navy-700">
+                          <tr className="border-t border-navy-200">
+                            <td className="py-1.5">
+                              <span className="flex items-center gap-2">
+                                <Mail className="h-4 w-4 shrink-0 text-navy-600" aria-hidden="true" />
+                                {t("me.paymentChannelEmail")}
+                              </span>
+                            </td>
+                            <td className="py-1.5">
+                              {t("me.paymentUpTo", { count: String(payment.emailRecipients) })}
+                            </td>
+                            <td className="py-1.5 text-right font-semibold tabular-nums text-navy-900">
+                              {payment.emailRecipients}
+                            </td>
+                          </tr>
+                          {payment.whatsappRecipients !== null && (
+                            <tr className="border-t border-navy-200">
+                              <td className="py-1.5">
+                                <span className="flex items-center gap-2">
+                                  <MessageCircle
+                                    className="h-4 w-4 shrink-0 text-navy-600"
+                                    aria-hidden="true"
+                                  />
+                                  {t("me.paymentChannelWhatsapp")}
+                                </span>
+                              </td>
+                              <td className="py-1.5">
+                                {t("me.paymentUpTo", { count: String(payment.whatsappRecipients) })}
+                              </td>
+                              <td className="py-1.5 text-right font-semibold tabular-nums text-navy-900">
+                                {payment.whatsappRecipients}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
                       <p className="mt-2.5 text-sm leading-6 text-navy-600">
                         {t("me.paymentPrices")}
                       </p>
@@ -612,6 +695,48 @@ export default function MePageContent({
                   <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-navy-200 pt-4">
                     <BuyCreditsDialog username={username} />
                   </div>
+
+                  {/*
+                    The transaction history — B413. Only when there is one.
+                    A pending row is a purchase the owner started and did not
+                    finish; it stays a link back to its payment page so it can
+                    be paid (or abandoned). Nothing here is a balance change —
+                    a paid mock transaction still added no credits.
+                  */}
+                  {payment.transactions.length > 0 && (
+                    <div className="mt-5 border-t border-navy-200 pt-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+                        {t("me.txHistoryTitle")}
+                      </p>
+                      <ul className="mt-2 divide-y divide-navy-200">
+                        {payment.transactions.map((tx) => (
+                          <li key={tx.id} className="flex items-center justify-between gap-3 py-2">
+                            <div className="min-w-0">
+                              <p className="text-base text-navy-900">
+                                {tx.credits} {tn("me.paymentUnit", tx.credits)} · {tx.amount}
+                              </p>
+                              <p className="text-sm tabular-nums text-navy-600">
+                                {tx.createdAt.slice(0, 10)}
+                              </p>
+                            </div>
+                            {tx.status === "paid" ? (
+                              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
+                                <Check className="h-4 w-4" aria-hidden="true" />
+                                {t("me.txPaid")}
+                              </span>
+                            ) : (
+                              <Link
+                                href={`${site.base}/payment/${tx.id}`}
+                                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-coral-300 bg-coral-300/15 px-3 py-1 text-sm font-semibold text-coral-600 transition-colors hover:bg-coral-300/30"
+                              >
+                                {t("me.txPay")}
+                              </Link>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
 

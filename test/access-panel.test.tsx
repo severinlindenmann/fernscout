@@ -554,6 +554,7 @@ describe("the payment section", () => {
     balance: 12,
     emailRecipients: 5,
     whatsappRecipients: 2,
+    transactions: [],
   };
 
   test("renders for the owner", () => {
@@ -563,8 +564,8 @@ describe("the payment section", () => {
     // a sentence — the digit and the word are separate elements.
     expect(html).toContain("12");
     expect(html).toContain(dictionaryFor("en")["me.paymentUnit"]);
-    expect(html).toContain("Up to 5 by email");
-    expect(html).toContain("Up to 2 by WhatsApp");
+    expect(html).toContain("up to 5");
+    expect(html).toContain("up to 2");
   });
 
   test("says plainly that a zero balance sends nothing", () => {
@@ -580,13 +581,41 @@ describe("the payment section", () => {
 
   /** B369 has not shipped the channel yet; the row is omitted rather than a
    * confident zero that would read as "nobody wants WhatsApp". */
+  test("lists recent transactions, with an unpaid one as a link to pay", () => {
+    const html = render({
+      viewer: owner,
+      payment: {
+        ...payment,
+        transactions: [
+          { id: "tx-pending", credits: 100, amount: "CHF 18.00", status: "pending", createdAt: "2026-09-05T10:00:00.000Z" },
+          { id: "tx-paid", credits: 50, amount: "CHF 10.00", status: "paid", createdAt: "2026-09-04T09:00:00.000Z" },
+        ],
+      },
+    });
+    expect(html).toContain(dictionaryFor("en")["me.txHistoryTitle"]);
+    // The pending one links to its payment page and is labelled unpaid.
+    expect(html).toContain("/alex/payment/tx-pending");
+    expect(html).toContain(dictionaryFor("en")["me.txPay"]);
+    // The paid one shows the paid label and is not a pay link.
+    expect(html).toContain(dictionaryFor("en")["me.txPaid"]);
+    expect(html).not.toContain("/alex/payment/tx-paid");
+  });
+
+  test("shows no transaction history when there are none", () => {
+    const html = render({ viewer: owner, payment: { ...payment, transactions: [] } });
+    expect(html).not.toContain(dictionaryFor("en")["me.txHistoryTitle"]);
+  });
+
   test("omits the WhatsApp row rather than showing a zero, when it is not offered", () => {
     const html = render({
       viewer: owner,
       payment: { ...payment, whatsappRecipients: null },
     });
-    expect(html).toContain("Up to 5 by email");
-    expect(html).not.toContain("by WhatsApp");
+    expect(html).toContain("up to 5");
+    // The WhatsApp table row is absent, so its "up to 2" cell never renders.
+    // ("WhatsApp" itself still appears in the flat-price caption, so that is
+    // not the thing to assert on.)
+    expect(html).not.toContain("up to 2");
   });
 
   /**
