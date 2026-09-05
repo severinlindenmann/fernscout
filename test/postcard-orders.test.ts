@@ -13,6 +13,7 @@ import { postcardCandidates } from "@/lib/postcard/contacts";
 import { createOrder, getOrder, updateOrderText, ORDER_TTL_MS } from "@/lib/postcard/orders";
 import { sendOrder } from "@/lib/postcard/send";
 import { makeJpeg } from "./support/exif-jpeg";
+import { backToPreview } from "@/lib/postcard/redirectBack";
 
 /**
  * B434 — the properties that cost real money if they are wrong.
@@ -339,5 +340,50 @@ describe("what an agent may learn", () => {
     };
     walk(path.join(process.cwd(), "app", "api"));
     expect(hits).toEqual([]);
+  });
+});
+
+
+/**
+ * B460 — the redirect that made both forms unusable.
+ *
+ * `form-action 'self'` is checked against every hop of a form submission, and
+ * these routes were answering with `https://localhost:3000/…` because they
+ * built the URL from `request.url`, which behind a reverse proxy is the app's
+ * own origin. The browser blocked it and the send button had never once
+ * worked. Nothing caught it: the suite renders markup and asserts on strings,
+ * and there is no browser in it anywhere.
+ *
+ * This is the cheap assertion that would have.
+ */
+describe("coming back from a form", () => {
+  test("the location is relative, naming no host and no scheme", () => {
+    const location = backToPreview("ana", "abc123", "sent").headers.get("location")!;
+    expect(location).toBe("/ana/postcards/abc123?result=sent");
+    expect(location.startsWith("/")).toBe(true);
+    expect(location).not.toContain("://");
+    expect(location).not.toContain("localhost");
+  });
+
+  test("it is a 303, so a reload is not a second send", () => {
+    expect(backToPreview("ana", "abc", "sent").status).toBe(303);
+  });
+
+  test("a username or id with a slash in it cannot escape the path", () => {
+    const location = backToPreview("ana/../bob", "a b", "x").headers.get("location")!;
+    expect(location).toBe("/ana%2F..%2Fbob/postcards/a%20b?result=x");
+  });
+
+  test("neither form route builds an absolute redirect", () => {
+    // The shape of the bug, not its symptom: `Response.redirect` demands an
+    // absolute URL, which is what led to building one from `request.url`.
+    for (const file of [
+      "app/[user]/postcards/[id]/send/route.ts",
+      "app/[user]/postcards/[id]/message/route.ts",
+    ]) {
+      const src = fs.readFileSync(path.join(process.cwd(), file), "utf8");
+      expect(src).not.toContain("Response.redirect");
+      expect(src).not.toContain("request.url");
+    }
   });
 });
