@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (106)
+## backlog (105)
 
 ### security (6)
 
@@ -99,7 +99,7 @@ Do not edit them by hand; run the script.
 | [B484](backlog/issue/B484-the-photobook-result-panel-can-render.md) | The photobook result panel can render with no download links | ISSUE | low | low |
 | [B490](backlog/issue/B490-the-photobook-generator-test-fails-on.md) | The photobook generator test fails on any checkout that has generated a photobook | ISSUE | low | low |
 
-### big-feature (12)
+### big-feature (11)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -113,7 +113,6 @@ Do not edit them by hand; run the script.
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | There is no way to manage a journal's content folder locally and sync it to a running instance | FEATURE | medium | high |
 | [B492](backlog/big-feature/B492-a-self-hosted-instance-cannot-use.md) | A self-hosted instance cannot use our printing service, so its owner has no way to order a photobook or postcards | FEATURE | medium | high |
-| [B496](backlog/big-feature/B496-the-printed-photobook-reads-as-a.md) | The printed photobook reads as a contact sheet, not a book | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
 ### small-feature (13)
@@ -208,7 +207,7 @@ _Nothing here._
 | [B498](in-development/B498-every-traveller-is-drawn-in-trousers.md) | Every traveller is drawn in trousers | FEATURE | medium | low | `c3c8ffc8` |
 | [B499](in-development/B499-nothing-shows-an-agent-how-to.md) | Nothing shows an agent how to build a character, and the demo journal has one party shape | DOCS | medium | low | `c3c8ffc8` |
 
-## testing (197)
+## testing (198)
 
 ### security (2)
 
@@ -334,7 +333,7 @@ _Nothing here._
 | [B489](testing/issue/B489-hu-json-me-paymentprices-says-tit.md) | hu.json me.paymentPrices says útitól, which is not a Hungarian word | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
-### big-feature (12)
+### big-feature (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -350,6 +349,7 @@ _Nothing here._
 | [B39](testing/big-feature/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 | [B425](testing/big-feature/B425-until-a-psp-exists-a-payment.md) | Until a PSP exists, a payment is a request the instance admin approves by an emailed link, which grants the credits | FEATURE | medium | high | — |
+| [B496](testing/big-feature/B496-the-printed-photobook-reads-as-a.md) | The printed photobook reads as a contact sheet, not a book | FEATURE | medium | high | — |
 
 ### small-feature (32)
 
