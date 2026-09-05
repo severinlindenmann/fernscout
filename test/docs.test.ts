@@ -24,11 +24,11 @@ describe("section()", () => {
 
   test("stops at the next heading, not the whole rest of the file", () => {
     const readme = readRepoFile("README.md");
-    const running = section(readme, "Running it");
+    const running = section(readme, "Or self-host it");
     expect(running).toContain("npm run dev");
-    // "Writing with an agent" is the next `##` — its own heading text must
+    // "What it looks like" is the next `##` — its own heading text must
     // not leak into the section above it.
-    expect(running).not.toContain("Writing with an agent");
+    expect(running).not.toContain("What it looks like");
   });
 
   test("the four checks, from CONTRIBUTING.md's own words", () => {
