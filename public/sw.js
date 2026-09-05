@@ -214,9 +214,13 @@ async function navigationFallback(request) {
  * performs marginally faster. So arriving as a different identity clears every
  * other personal cache first.
  *
- * A response with no id in it is not cached at all rather than cached under
- * some fallback name: a fallback name is a shared name, and a shared name is
- * the bug this whole arrangement exists to prevent.
+ * A response with no id in it is not cached under some fallback name — a
+ * fallback name is a shared name, and a shared name is the bug this whole
+ * arrangement exists to prevent. It also takes any copy already here with it:
+ * since B443 "nobody is signed in" arrives as a `200` with `id: null` rather
+ * than as a `401`, so the body is now the thing that says a credential has
+ * stopped being one. The status check in `personalRequest` stays anyway — an
+ * older worker outlives a deploy, and a refusal is a refusal.
  */
 async function rememberPersonal(request, response) {
   let id = null;
@@ -225,7 +229,7 @@ async function rememberPersonal(request, response) {
   } catch {
     id = null;
   }
-  if (typeof id !== "string" || id.length === 0) return;
+  if (typeof id !== "string" || id.length === 0) return purgePersonal();
 
   const mine = `${PERSONAL_PREFIX}${id}`;
   const keys = await caches.keys();

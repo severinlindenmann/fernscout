@@ -497,6 +497,29 @@ describe("the signed-in home payload", () => {
   });
 
   /**
+   * Since B443 a stranger gets a `200` with `id: null` rather than a `401`, so
+   * the body — not the status — is what tells a device holding a cached copy
+   * that the credential behind it is gone.
+   */
+  test("a 200 saying nobody is signed in purges the cached copy", async () => {
+    let signedIn = true;
+    const { handlers, caches } = loadWorkerWithCaches(async () =>
+      signedIn
+        ? homePayload("aaaa1111")
+        : new Response(JSON.stringify({ id: null, journals: [], devices: [] }), {
+            status: 200,
+          }),
+    );
+
+    await run(handlers, HOME);
+    expect([...caches.named.keys()]).toContain("personal-aaaa1111");
+
+    signedIn = false;
+    await run(handlers, HOME);
+    expect([...caches.named.keys()].filter((k) => k.startsWith("personal-"))).toEqual([]);
+  });
+
+  /**
    * A response with no id is not cached under some fallback name. A fallback
    * name is a shared name, and a shared name is the bug this exists to stop.
    */

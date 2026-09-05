@@ -49,6 +49,7 @@ export type { PublicJournal };
  */
 
 type Home = {
+  /** The reader's opaque identity id, or `null` for nobody — see the route. */
   id: string | null;
   email: string;
   journals: HomeJournal[];
@@ -110,17 +111,18 @@ export default function Landing({
   useEffect(() => {
     let live = true;
     fetch("/api/v1/me/home", { headers: { accept: "application/json" } })
-      .then(async (res) => {
+      .then(async (res) => (res.ok ? ((await res.json()) as Home) : null))
+      .then((data) => {
         if (!live) return;
-        if (!res.ok) {
-          // 401 is the ordinary answer for a stranger, and also what a revoked
-          // identity gets. Both mean the same thing to this page and to the
-          // remembered flag: not signed in.
+        // `id: null` is a stranger, a revoked identity, or auth switched off,
+        // and all three mean one thing here and to the remembered flag: not
+        // signed in. It arrives as a 200 so that the ordinary case of nobody
+        // does not print an error in every visitor's console — B443.
+        if (!data?.id) {
           window.localStorage.removeItem(SEEN_KEY);
           setPhase("out");
           return;
         }
-        const data = (await res.json()) as Home;
         window.localStorage.setItem(SEEN_KEY, "1");
         setHome(data);
         setPhase("in");
