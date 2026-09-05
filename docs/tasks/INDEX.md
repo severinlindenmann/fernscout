@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (97)
+## backlog (99)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (32)
+### issue (34)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -98,6 +98,8 @@ Do not edit them by hand; run the script.
 | [B415](backlog/issue/B415-the-address-lookup-offers-the-same.md) | The address lookup offers the same address twice when OSM holds a building and a shop at it | ISSUE | low | low |
 | [B419](backlog/issue/B419-the-three-comboboxes-never-tell-assistive.md) | The three comboboxes never tell assistive tech which suggestion the arrow keys are on | ISSUE | low | low |
 | [B424](backlog/issue/B424-the-language-toggle-changes-the-navigation.md) | The language toggle changes the navigation but leaves the owner's contacts page in the journal's locale | ISSUE | low | low |
+| [B428](backlog/issue/B428-the-patch-config-response-echoes-a.md) | The PATCH config response echoes a stale features block that a GET moments later contradicts | ISSUE | low | low |
+| [B429](backlog/issue/B429-the-invite-form-shows-a-canned.md) | The invite form shows a canned mail-off line instead of the server's, losing which switch is off | ISSUE | low | low |
 
 ### big-feature (12)
 
@@ -196,9 +198,9 @@ _Nothing here._
 
 _Nothing here._
 
-## testing (145)
+## testing (137)
 
-### issue (88)
+### issue (82)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -212,7 +214,6 @@ _Nothing here._
 | [B306](testing/issue/B306-a-journal-s-visibility-borrows-the.md) | A journal's visibility borrows the trip's words for a different meaning, and everyone reads them as the trip's | ISSUE | high | medium | — |
 | [B318](testing/issue/B318-a-draft-day-shows-three-of.md) | A draft day shows three of its nine photographs and all nine once published | ISSUE | high | medium | — |
 | [B320](testing/issue/B320-a-buddy-on-a-trip-is.md) | A buddy on a trip is told the journal is not theirs to write, and never learns they hold write access | ISSUE | high | medium | — |
-| [B332](testing/issue/B332-the-documents-still-say-deleting-a.md) | The documents still say deleting a budget removes the costs page, which B328 made untrue | ISSUE | high | low | `62683d95` |
 | [B339](testing/issue/B339-getplaces-merges-every-unnamed-day-into.md) | getPlaces merges every unnamed day into one place, collapsing a whole trip's coordinates to a single point | ISSUE | high | low | — |
 | [B347](testing/issue/B347-a-buddy-approved-onto-a-trip.md) | A buddy approved onto a trip is mailed "follow along whenever you like" and never told they can write | ISSUE | high | low | — |
 | [B348](testing/issue/B348-the-agent-code-mail-tells-a.md) | The agent-code mail tells a buddy the token writes to "your journal", when it writes one trip in somebody else's | ISSUE | high | low | — |
@@ -222,7 +223,6 @@ _Nothing here._
 | [B380](testing/issue/B380-the-weekly-digest-mails-every-reader.md) | The weekly digest mails every reader without spending a credit | ISSUE | high | low | — |
 | [B381](testing/issue/B381-a-day-with-no-coordinates-becomes.md) | A day with no coordinates becomes a nameless place, inflating the stop and country counts a page contradicts itself about | ISSUE | high | low | — |
 | [B393](testing/issue/B393-photographs-cannot-be-added-to-a.md) | Photographs cannot be added to a published day, and the refusal tells the agent to ask somebody who has no way to do it | ISSUE | high | medium | — |
-| [B406](testing/issue/B406-the-invite-form-swallows-a-refusal.md) | The invite form swallows a refusal, so a reader clicks join and nothing at all happens | ISSUE | high | low | `62683d95` |
 | [B426](testing/issue/B426-the-root-page-can-show-a.md) | The root page can show a signed-in reader their journals but offers nobody a way to sign in | ISSUE | high | low | — |
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
@@ -258,8 +258,6 @@ _Nothing here._
 | [B395](testing/issue/B395-an-approved-reader-who-can-see.md) | An approved reader who can see nothing is told on one page to ask for an invitation they already have | ISSUE | medium | low | — |
 | [B396](testing/issue/B396-the-contacts-page-tells-an-owner.md) | The contacts page tells an owner to change a trip's visibility, which no door can do | ISSUE | medium | low | — |
 | [B397](testing/issue/B397-health-and-status-report-credits-off.md) | health and status report credits off per-journal though it is server-only and live | ISSUE | medium | low | — |
-| [B408](testing/issue/B408-status-reports-credits-enabled-while-config.md) | status reports credits enabled while config reports it off, on the same journal | ISSUE | medium | low | `62683d95` |
-| [B420](testing/issue/B420-delete-costs-always-answers-costspagegone-true.md) | DELETE .../costs always answers costsPageGone true even when a day's costs: block keeps the page alive | ISSUE | medium | low | `62683d95` |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
 | [B82](testing/issue/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
@@ -285,10 +283,8 @@ _Nothing here._
 | [B382](testing/issue/B382-the-costs-page-meta-description-names.md) | The costs page meta description names the journal by its URL slug instead of its title | ISSUE | low | low | — |
 | [B394](testing/issue/B394-media-is-served-as-webp-whatever.md) | Media is served as WebP whatever the client says it accepts, and Vary does not mention Accept | ISSUE | low | low | — |
 | [B400](testing/issue/B400-a-non-boolean-send-mail-on.md) | A non-boolean send_mail on publish is silently ignored, so an agent thinks it sent | ISSUE | low | low | — |
-| [B407](testing/issue/B407-two-mail-refusals-blame-the-server.md) | Two mail refusals blame the server when it is the journal's own switch that is off | ISSUE | low | low | `62683d95` |
 | [B413](testing/issue/B413-the-buy-credits-dialog-is-off.md) | The Buy-credits dialog is off-centre; make it an animated dropdown under its button | ISSUE | low | low | — |
 | [B414](testing/issue/B414-three-places-tell-an-owner-to.md) | Three places tell an owner to edit trip.md for a change the API can now make | ISSUE | low | low | `62683d95` |
-| [B418](testing/issue/B418-a-journal-with-no-tagline-renders.md) | A journal with no tagline renders a dangling em-dash in its title and og:title | ISSUE | low | low | `62683d95` |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
 ### big-feature (10)
@@ -323,7 +319,7 @@ _Nothing here._
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
 | [B368](testing/small-feature/B368-there-is-no-way-to-ask.md) | There is no way to ask for more credits, and the payment provider does not exist yet | FEATURE | low | medium | — |
 
-### chore (15)
+### chore (14)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -339,7 +335,6 @@ _Nothing here._
 | [B200](testing/chore/B200-the-restore-drill-dumps-a-database.md) | The restore drill dumps a database no migration has touched, so the archive it proves restorable is empty | CHORE | low | low | — |
 | [B202](testing/chore/B202-a-postcard-recipient-s-ss-becomes.md) | A postcard recipient's ß becomes a hyphen, so a German surname loses a letter | CHORE | low | low | — |
 | [B24](testing/chore/B24-nothing-notices-when-a-file-stops.md) | Nothing notices when a file stops being used | CHORE | low | low | — |
-| [B417](testing/chore/B417-access-gate-test-ts-still-carries.md) | access-gate.test.ts still carries a digest column for a function B387 deleted | CHORE | low | low | `62683d95` |
 | [B71](testing/chore/B71-the-per-day-media-ceiling-test.md) | The per-day media ceiling test asserts on problems[0], and failed once in a full run | CHORE | low | low | — |
 | [B81](testing/chore/B81-the-notify-script-still-calls-a.md) | The notify script still calls a closed trip password-protected | CHORE | low | low | — |
 
@@ -350,7 +345,7 @@ _Nothing here._
 | [B21](testing/ops/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | OPS | high | medium | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
-### docs-and-skills (12)
+### docs-and-skills (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -365,7 +360,6 @@ _Nothing here._
 | [B186](testing/docs-and-skills/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | DOCS | low | low | — |
 | [B198](testing/docs-and-skills/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | DOCS | low | low | — |
 | [B221](testing/docs-and-skills/B221-a-comment-in-mapframe-points-at.md) | A comment in mapFrame points at a file and a helper that do not exist | DOCS | low | low | — |
-| [B409](testing/docs-and-skills/B409-the-error-table-says-a-trip.md) | The error table says a trip-scoped token gets out_of_scope for another trip, and it gets unknown_trip | DOCS | low | low | `62683d95` |
 
 ### superseded (6)
 
@@ -378,7 +372,7 @@ _Nothing here._
 | [B206](testing/superseded/B206-mcp-create-trip-cannot-set-listed.md) | MCP create_trip cannot set listed, so the two doors do not accept the same trip | ISSUE | low | low | — |
 | [B88](testing/superseded/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low | `62683d95` |
 
-## completed (147)
+## completed (155)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -413,8 +407,10 @@ _Nothing here._
 | [B327](completed/B327-a-buddy-writes-a-day-and.md) | A buddy writes a day and can see it nowhere on the site, because every reading path gates drafts on ownership | ISSUE | high | medium |
 | [B328](completed/B328-a-trip-with-fifteen-days-of.md) | A trip with fifteen days of costs and no budget file has no costs page | ISSUE | high | low |
 | [B331](completed/B331-a-journal-s-own-document-never.md) | A journal's own document never mentions invites, so an agent told its owner to use a dashboard that does not exist | ISSUE | high | low |
+| [B332](completed/B332-the-documents-still-say-deleting-a.md) | The documents still say deleting a budget removes the costs page, which B328 made untrue | ISSUE | high | low |
 | [B333](completed/B333-the-invitation-can-be-mailed-and.md) | The invitation can be mailed and pre-approved, and nothing anywhere says so | ISSUE | high | low |
 | [B384](completed/B384-a-guest-the-owner-adds-by.md) | A guest the owner adds by hand is a dead end: a bare code, no link, no way to be approved | ISSUE | high | medium |
+| [B406](completed/B406-the-invite-form-swallows-a-refusal.md) | The invite form swallows a refusal, so a reader clicks join and nothing at all happens | ISSUE | high | low |
 | [B47](completed/B47-the-test-flag-can-be-written.md) | The test flag can be written but never read back, so nothing can confirm it stuck | ISSUE | high | low |
 | [B56](completed/B56-deploying-ships-code-but-not-content.md) | Deploying ships code but not content/locales, so translations never reach the live site | ISSUE | high | low |
 | [B72](completed/B72-a-trip-whose-dates-have-passed.md) | A trip whose dates have passed still calls itself upcoming, and hides every day written to it | ISSUE | high | medium |
@@ -473,7 +469,9 @@ _Nothing here._
 | [B390](completed/B390-the-dialling-code-picker-is-eleven.md) | The dialling-code picker is eleven bare numbers with no country, no search and no way to find your own | FEATURE | medium | low |
 | [B398](completed/B398-the-country-on-an-address-is.md) | The country on an address is free text, so nothing downstream can tell Schweiz from Switzerland | FEATURE | medium | low |
 | [B399](completed/B399-every-address-in-the-book-is.md) | Every address in the book is typed out by hand, line by line, with nothing to check it against | FEATURE | medium | high |
+| [B408](completed/B408-status-reports-credits-enabled-while-config.md) | status reports credits enabled while config reports it off, on the same journal | ISSUE | medium | low |
 | [B41](completed/B41-an-approved-contact-is-shown-a.md) | An approved contact is shown a trip in their own panel and then asked for a password nobody gave them | ISSUE | medium | medium |
+| [B420](completed/B420-delete-costs-always-answers-costspagegone-true.md) | DELETE .../costs always answers costsPageGone true even when a day's costs: block keeps the page alive | ISSUE | medium | low |
 | [B423](completed/B423-searching-the-country-pickers-by-english.md) | Searching the country pickers by English name finds nothing on a journal that is not in English | ISSUE | medium | low |
 | [B44](completed/B44-a-guest-who-arrives-without-their.md) | A guest who arrives without their link sees a complete-looking journal and no way to say who they are | ISSUE | medium | medium |
 | [B45](completed/B45-the-access-panel-lists-guest-trips.md) | The access panel lists guest trips the reader cannot actually open | ISSUE | medium | low |
@@ -520,7 +518,11 @@ _Nothing here._
 | [B31](completed/B31-a-refused-url-does-not-say.md) | A refused URL does not say whether the host was checked or the check itself failed | ISSUE | low | low |
 | [B321](completed/B321-a-contact-row-shows-the-raw.md) | A contact row shows the raw invite id it came from, not which link or which trip | ISSUE | low | low |
 | [B402](completed/B402-the-admin-contact-list-prints-a.md) | The admin contact list prints a saved country code, not its name | ISSUE | low | low |
+| [B407](completed/B407-two-mail-refusals-blame-the-server.md) | Two mail refusals blame the server when it is the journal's own switch that is off | ISSUE | low | low |
+| [B409](completed/B409-the-error-table-says-a-trip.md) | The error table says a trip-scoped token gets out_of_scope for another trip, and it gets unknown_trip | DOCS | low | low |
 | [B416](completed/B416-the-address-lookup-disclosure-is-a.md) | The address-lookup disclosure is a paragraph under every street field, before there is anything to disclose | FEATURE | low | low |
+| [B417](completed/B417-access-gate-test-ts-still-carries.md) | access-gate.test.ts still carries a digest column for a function B387 deleted | CHORE | low | low |
+| [B418](completed/B418-a-journal-with-no-tagline-renders.md) | A journal with no tagline renders a dangling em-dash in its title and og:title | ISSUE | low | low |
 | [B48](completed/B48-nothing-says-what-ownernickname-should-be.md) | Nothing says what ownerNickname should be when the agent and the owner are the same person | CHORE | low | low |
 | [B50](completed/B50-two-mails-in-the-same-millisecond.md) | Two mails in the same millisecond overwrite each other in development | ISSUE | low | low |
 | [B54](completed/B54-an-upcoming-trip-s-map-is.md) | An upcoming trip's map is titled "Where we've been" | ISSUE | low | low |
