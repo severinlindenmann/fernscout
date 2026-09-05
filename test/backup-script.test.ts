@@ -1106,4 +1106,45 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     },
     180_000,
   );
+
+  // --- B450: the missing-path list is only as sorted as its consumer --------
+
+  test.skipIf(IS_ROOT)(
+    "the missing-path list is right under a UTF-8 locale, not only under C",
+    () => {
+      // `list_tree` and `unreadable_paths` sort under LC_ALL=C; `comm` used to
+      // read them in whatever locale the process had. systemd hands the unit
+      // LANG=en_US.UTF-8, and GNU comm then calls that input unsorted and
+      // answers with a wrong difference — on the VPS it named a readable
+      // config.json.bak as missing, and the same disorder can drop a genuinely
+      // unreadable file *out* of the list, which is a snapshot reported
+      // complete when it is not.
+      //
+      // The two names below are what makes the collations disagree: C puts all
+      // uppercase before lowercase, en_US.UTF-8 does not. macOS comm does not
+      // check its input's order, so this asserts the same thing there and only
+      // bites on Linux — which is what CI and the VPS both are.
+      const stray = path.join(dataDir, "root-owned-stray.txt");
+      fs.writeFileSync(stray, "left behind by an operator\n");
+      fs.chmodSync(stray, 0o000);
+
+      try {
+        const run = runBackup({ LANG: "en_US.UTF-8", LC_ALL: "en_US.UTF-8" });
+
+        expect(run.stdout + run.stderr, "comm must read the input the way it was sorted").not.toContain(
+          "not in sorted order",
+        );
+        expect(run.stdout).toContain("1 path(s) under DATA_DIR could not be staged");
+        expect(run.stdout).toContain(stray);
+        // The readable neighbours must not be swept in with it. This is the
+        // half that was actually wrong on the live server.
+        expect(run.stdout).not.toContain(path.join(dataDir, "reactions.json"));
+        expect(run.stdout).not.toContain(path.join(dataDir, "fernscout.db"));
+      } finally {
+        fs.chmodSync(stray, 0o600);
+        fs.rmSync(stray, { force: true });
+      }
+    },
+    180_000,
+  );
 });
