@@ -1045,4 +1045,65 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     },
     180_000,
   );
+
+  // --- B444: content/ inside DATA_DIR is one tree, not two ------------------
+  //
+  // The fixture above keeps DATA_DIR and CONTENT_DIR apart, which is the layout
+  // .env.example gives and every other test here exercises. The VPS does not:
+  // DATA_DIR=/var/lib/fernscout with CONTENT_DIR=/var/lib/fernscout/content.
+
+  test(
+    "content/ inside DATA_DIR is staged once, and is still in the snapshot",
+    () => {
+      const nestedData = fs.mkdtempSync(path.join(scratch, "nested-"));
+      const nestedContent = path.join(nestedData, "content");
+      const trip = path.join(nestedContent, "alex", "trips", "kyrgyzstan-2026");
+      fs.mkdirSync(trip, { recursive: true });
+      fs.writeFileSync(path.join(nestedData, "reactions.json"), "{}\n");
+      fs.writeFileSync(path.join(trip, "trip.md"), "---\ntitle: Kyrgyzstan\n---\n\nnested layout\n");
+
+      const run = runBackup({ DATA_DIR: nestedData, CONTENT_DIR: nestedContent });
+      expect(run.status).toBe(0);
+      expect(run.stdout).toContain("already staged at data/, not copying it twice");
+      expect(run.stdout, "the second stage must not have run").not.toContain(`staging content/ (${nestedContent})`);
+
+      // Said out loud, because the whole risk of skipping a stage is an
+      // operator reading the log and concluding the journals were left out.
+      const staged = restoreLatest("nested");
+      expect(
+        fs.readFileSync(path.join(staged, "data", "content", "alex", "trips", "kyrgyzstan-2026", "trip.md"), "utf8"),
+      ).toContain("nested layout");
+      expect(fs.existsSync(path.join(staged, "content")), "no second copy of the same bytes").toBe(false);
+    },
+    180_000,
+  );
+
+  test.skipIf(IS_ROOT)(
+    "an unreadable file under a nested content/ is counted once, not twice",
+    () => {
+      // B401 on the live server: two stray root-owned files were reported as
+      // "4 path(s) missing", because both stages found both of them. The
+      // arithmetic was right and an operator could not reconcile it against a
+      // WARNING list naming two files.
+      const nestedData = fs.mkdtempSync(path.join(scratch, "nested-unreadable-"));
+      const nestedContent = path.join(nestedData, "content");
+      fs.mkdirSync(nestedContent, { recursive: true });
+      fs.writeFileSync(path.join(nestedContent, "config.json"), "{}\n");
+      const stray = path.join(nestedContent, "config.json.bak-b365");
+      fs.writeFileSync(stray, "{}\n");
+      fs.chmodSync(stray, 0o000);
+
+      try {
+        const run = runBackup({ DATA_DIR: nestedData, CONTENT_DIR: nestedContent });
+
+        expect(run.status).not.toBe(0);
+        expect(run.stdout).toContain("1 path(s) under DATA_DIR could not be staged");
+        expect(run.stdout).toContain("this snapshot is incomplete (1 path(s) missing)");
+        expect(run.stdout).toContain("but 1 path(s) are missing from it");
+      } finally {
+        fs.chmodSync(stray, 0o600);
+      }
+    },
+    180_000,
+  );
 });

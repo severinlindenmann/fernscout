@@ -790,12 +790,17 @@ sudo -E -u fernscout pg_restore --dbname="$DATABASE_URL" --clean --if-exists \
   "$STAGED/db/postgres.dump"
 
 # 6. DATA_DIR. On this deployment CONTENT_DIR is *inside* DATA_DIR
-#    (/var/lib/fernscout/content), so this one rsync restores the journals too
-#    — and `$STAGED/content/` is a second copy of the same bytes.
+#    (/var/lib/fernscout/content), so this one rsync restores the journals too.
+#    There is no `$STAGED/content/` in a snapshot from this layout: since B444
+#    the backup skips the second stage rather than copying the same bytes
+#    twice, and says so in its log. On the un-nested layout (CONTENT_DIR is the
+#    git checkout, DATA_DIR elsewhere) `$STAGED/content/` is there as before —
+#    see the note below for what to do with it.
 sudo rsync -a "$STAGED/data/" /var/lib/fernscout/
 sudo chown -R fernscout:fernscout /var/lib/fernscout
 
-#    Do NOT rsync "$STAGED/content/" into /srv/fernscout/content/. That is the
+#    If a snapshot does carry "$STAGED/content/": do NOT rsync it into
+#    /srv/fernscout/content/. That is the
 #    git checkout, not what the app reads. It left 49 tracked files modified,
 #    and scripts/deploy.sh does `git pull --ff-only`, so the next deploy would
 #    have refused. Restore there only if CONTENT_DIR is unset — i.e. the app
