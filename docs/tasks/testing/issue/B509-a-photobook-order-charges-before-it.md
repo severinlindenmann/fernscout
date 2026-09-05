@@ -83,3 +83,27 @@ afternoon.
 - A test that kills the build between spend and mark, and asserts the balance
   comes back.
 - The reason the `print_orders` rows disappeared is written down.
+
+## Investigation, 2026-09-05 (controller, while wave two ran)
+
+Two possibilities ruled out, so nobody spends the time again:
+
+- **Nothing in the codebase deletes a `print_orders` row.** `grep` over
+  `lib/db/` finds the table in `schema.ts` and `001-initial.ts` and nowhere
+  else; there is no `deleteFrom("print_orders")` anywhere in `lib/` or `app/`.
+  So the missing rows were not deleted by this software.
+- **A rolled-back wrapping transaction is not the explanation.** In Postgres an
+  aborted insert still counts in `n_tup_ins` and leaves a dead tuple, which
+  would read exactly as "inserted, then gone" — but `claimOrder`
+  (`lib/photobook/orders.ts:65`) issues its insert as a single autocommitted
+  statement with no surrounding transaction, and returns `false` on any throw.
+  There is no open transaction for a later failure to roll back.
+
+What that leaves, and what to check next: whether the count came from a
+statistics view rather than the rows themselves (`n_tup_ins`/`n_tup_del` in
+`pg_stat_user_tables` count tuple versions, and an `UPDATE` writes a new version
+and marks the old one dead — so eight orders each updated once by `markPrinted`
+would read as eight inserts and eight deletes with eight live rows). If that is
+it, nothing was ever missing and this ticket closes as a misread instrument.
+**Confirm against `SELECT count(*) FROM print_orders` before concluding either
+way** — the refunds were real and the original reading has not been reproduced.
