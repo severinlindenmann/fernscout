@@ -34,6 +34,49 @@ wrong person a private trip exists is not a cosmetic bug.
 It also cannot be tested locally in any meaningful way: a service worker needs
 the real origin over HTTPS. This one genuinely has to happen on fernscout.ch.
 
+## What has been proved, 2026-09-05
+
+**A notification was received on a real iPhone, sent by fernscout.ch.** The
+first acceptance criterion, and the one the rest of this ticket was blocked
+behind.
+
+The run, so it can be repeated:
+
+- VAPID keys are set in `/etc/fernscout/env` and `/api/health` reports
+  `push: {"enabled": true}`. Push is enabled for `example` and for no other
+  journal — `severin` and `viki` both answer `enabled: false`, which is why no
+  bell renders on them.
+- One subscription exists: `owner_id=example`, tied to a contact record, via
+  `https://web.push.apple.com/…`, from `iPhone OS 18_7 / Safari 26.6.1`.
+- `npm run notify -- --latest --user example --dry-run` resolved 1 subscriber;
+  the real run reported `sent 1 / 1`, `pruned 0`.
+- The day was `usa-2026 / oregon-coast`, a **public** trip — so this exercises
+  the `isOpenToLink` arm of `subscribersFor`, where every subscription for the
+  journal qualifies. It says nothing yet about the restricted arms.
+- Confirmed received and correct by the person holding the phone.
+
+Two defects were found and fixed on the way, and both are why nobody had got
+this far before: **B438** (the control sampled for a service worker once, at
+hydration, lost the race against the registrar's `load` handler, and rendered
+`null` for ever) and **B439** (the only switch was inside `TripHero`, which
+renders on the story's landing step alone). **B440** then added the soft
+prompt, since finding the bell was the remaining barrier.
+
+## Still open on this ticket
+
+The audience questions, which are the part that matters and none of which the
+run above touched:
+
+- **B68** — a journal guest must not be notified about a `private` trip.
+- **B82** — an expired read grant must not notify.
+- A **draft** day, and a **`test: true`** day, must notify nobody at all.
+- What a stale subscription or a permission revoked after subscribing does —
+  loudly, quietly, or for ever.
+- Android. Only iOS has been tried.
+
+There is now a real subscription on the live instance to observe, so these can
+be driven rather than reasoned about.
+
 ## Related
 
 One campaign, not nine tasks: every capability this instance can switch on,
