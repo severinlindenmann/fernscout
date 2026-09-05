@@ -15,6 +15,10 @@ import { GUIDES, isGuide, readGuide } from "@/lib/docs";
 
 const LOCALES = ["en", "de", "hu"];
 
+/** One guide's markdown, in one language. */
+const read = (locale: string, guide: string) =>
+  fs.readFileSync(path.join(process.cwd(), `docs/guides/${locale}/${guide}.md`), "utf8");
+
 describe("the guides exist", () => {
   test("every guide, in every language this site offers", () => {
     for (const locale of LOCALES) {
@@ -134,6 +138,34 @@ describe("the figures", () => {
    * repository for ever — `docs/screenshots/README.md` sets that rule for the
    * four it owns, and these are held to the same one.
    */
+  /**
+   * B477 — the two pictures of iOS itself.
+   *
+   * Apple only allows notifications from an installed app, so the Home Screen
+   * step is the one instruction without which the whole feature is unreachable
+   * on an iPhone — and it was the only step with no picture, because it is
+   * system UI that no browser automation here can reach. These came from a
+   * real phone.
+   *
+   * They carry no language suffix on purpose: the words in them belong to the
+   * phone, not to us, so every guide shows the same English capture and says
+   * so in its own caption.
+   */
+  test("every guest guide shows the iOS Home Screen steps", () => {
+    for (const locale of LOCALES) {
+      const text = read(locale, "guest");
+      expect(text, locale).toContain("ios-share.webp");
+      expect(text, locale).toContain("ios-add-home.webp");
+    }
+  });
+
+  test("the translated guides say the iOS pictures are in English", () => {
+    // English needs no such note; the other two would otherwise show a reader
+    // a menu whose words do not match their own phone, with no explanation.
+    expect(read("de", "guest")).toMatch(/auf Englisch eingestellt/);
+    expect(read("hu", "guest")).toMatch(/angol nyelvű iPhone/);
+  });
+
   test("the figures stay inside their byte budget", () => {
     const dir = path.join(process.cwd(), FIGURES);
     const total = fs
@@ -153,9 +185,6 @@ describe("the figures", () => {
 });
 
 describe("what the guides have to cover", () => {
-  const read = (locale: string, guide: string) =>
-    fs.readFileSync(path.join(process.cwd(), `docs/guides/${locale}/${guide}.md`), "utf8");
-
   /**
    * The iOS Home Screen step is the one instruction without which the whole
    * notification feature is unreachable on an iPhone — Apple allows push only

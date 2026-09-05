@@ -16,12 +16,24 @@ import { GUIDES } from "@/lib/docs";
  * spells.
  */
 const LANGUAGES = ["en", "de"] as const;
-/** Which screens are captured. Not every guide needs every one. */
+/** Which screens are captured, per language. Not every guide needs every one. */
 const FIGURES = ["signin", "signin-form", "signin-code", "home", "notify"] as const;
 
-const ALLOWED = new Set(
-  LANGUAGES.flatMap((lang) => FIGURES.map((figure) => `guide-${figure}-${lang}.webp`)),
-);
+/**
+ * Figures with no language of their own — B477.
+ *
+ * These two are photographs of **iOS**, not of this site: the menu that offers
+ * Share, and the share sheet that holds "Add to Home Screen". Their words come
+ * from the phone's own language rather than from ours, so capturing one per
+ * locale would produce three pictures of an English iPhone. The guides say so
+ * in the caption instead.
+ */
+const UNLOCALISED = ["ios-share", "ios-add-home"] as const;
+
+const ALLOWED = new Set([
+  ...LANGUAGES.flatMap((lang) => FIGURES.map((figure) => `guide-${figure}-${lang}.webp`)),
+  ...UNLOCALISED.map((figure) => `${figure}.webp`),
+]);
 
 /** `GUIDES` is imported so this file fails to compile if the guides are ever
  * renamed out from under the figures — the names are related and nothing else
