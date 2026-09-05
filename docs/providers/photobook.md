@@ -114,6 +114,19 @@ expressed as a percentage of the page instead of in points. It is not a second
 layout engine: if a photograph is in the wrong place there it is in the wrong
 place on paper. Open it before ordering anything.
 
+### Ordering from the browser
+
+A book no longer needs the CLI: the trip's photobook page has a Pay button
+that spends the owner's credits, builds the same PDFs this section describes,
+and mails links to them. `app/[user]/photobook/order/route.ts` calls no
+provider — see [The comparison](#the-comparison) and its
+[recommendation](#recommendation) for which one eventually will.
+`app/[user]/photobooks/[id]/[file]/route.ts`, which serves those PDFs back to
+the owner, is also the beginning of the reachable-URL requirement
+[The fact that shapes the deployment](#the-fact-that-shapes-the-deployment)
+describes: Gelato fetches a PDF from a URL rather than accepting an upload, and
+this route is where that URL will eventually point.
+
 ### Warnings the planner raises
 
 All of them describe failures that are invisible on screen and obvious on paper:

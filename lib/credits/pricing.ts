@@ -49,6 +49,42 @@ export function tierFor(id: string): CreditTier | undefined {
   return TIERS.find((tier) => tier.id === id);
 }
 
+/**
+ * What one printed photobook costs the owner — and every number here is a
+ * guess.
+ *
+ * A postcard's fifteen credits came from a known unit cost. This one cannot,
+ * because no photobook has ever been ordered from this instance and Gelato's
+ * price endpoint needs an account and a real `productUid`. So the shape is
+ * right — a fixed cost for the cover, binding and postage, plus a per-page
+ * cost for paper and ink, times a factor for the larger sheet — and the
+ * magnitudes are arithmetic against `docs/providers/photobook.md`'s
+ * order-of-magnitude figures.
+ *
+ * `PHOTOBOOK_PRICING_VERIFIED` is how that is said in the data rather than
+ * only in a comment, the same discipline `BINDING_PROFILES` uses.
+ * `test/photobook-pricing.test.ts` asserts it, so the day somebody puts a real
+ * quote in is a day they have to change a test on purpose.
+ */
+export const PHOTOBOOK_BASE_CREDITS = 90;
+export const PHOTOBOOK_PAGE_CREDITS = 2;
+export const PHOTOBOOK_PRICING_VERIFIED = false;
+
+/** A4 is 1.4× the sheet area of the 210mm square, and paper is most of the
+ * marginal cost. Rounded down to something defensible rather than modelled. */
+const SIZE_FACTOR: Record<string, number> = {
+  "square-210": 1,
+  "landscape-a4": 1.25,
+  "portrait-a4": 1.25,
+};
+
+/** One volume, one copy. A book split into volumes is priced per volume by the
+ * caller, because each is a separate object with its own cover and postage. */
+export function photobookCredits(pages: number, sizeId: string): number {
+  const factor = SIZE_FACTOR[sizeId] ?? 1;
+  return Math.ceil((PHOTOBOOK_BASE_CREDITS + PHOTOBOOK_PAGE_CREDITS * pages) * factor);
+}
+
 /** `1800` -> `"CHF 18.00"`. The tiers are priced in CHF regardless of a
  * journal's own currency, so this is a fixed format rather than a currency
  * conversion. */

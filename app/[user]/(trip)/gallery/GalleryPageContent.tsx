@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Clapperboard, Send } from "lucide-react";
+import { BookOpen, Clapperboard, Send } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import GalleryGrid from "@/components/GalleryGrid";
 import type { PlaceView } from "@/components/WorldMap";
-import type { MediaTile, PostcardEntry } from "@/lib/types";
+import type { MediaTile, PhotobookEntry, PostcardEntry } from "@/lib/types";
 import { useI18n } from "@/components/LocaleProvider";
 
 // Behind a button — nobody should pay to download the presentation bundle
@@ -16,10 +16,19 @@ const SlideShow = dynamic(() => import("@/components/SlideShow"), { ssr: false }
 export default function GalleryPageContent({
   media,
   places,
+  photobook,
   postcard,
 }: {
   media: MediaTile[];
   places: PlaceView[];
+  /**
+   * Present only for the journal's owner, on a journal with photobook and
+   * credits switched on. The server decides (`page.tsx`, via
+   * `lib/photobook/entry.ts`); this component only renders what it was
+   * handed, and the routes the photobook page calls check for themselves
+   * rather than trusting either.
+   */
+  photobook?: PhotobookEntry;
   /**
    * Present only for the journal's owner, on a journal with postcards and
    * contacts switched on — B441. The server decides (`page.tsx`); this
@@ -43,6 +52,21 @@ export default function GalleryPageContent({
             {media.length} {t("gallery.subtitle")}
           </p>
           <div className="flex flex-wrap items-center gap-2">
+            {/* A link, not a picker: a book is the whole trip, so there is
+                nothing to select in the gallery first — unlike the postcard
+                button beside it, which does pick a photograph. Always the
+                trip-scoped URL, even from the current trip's own gallery
+                where the shorter path would also resolve — one href is one
+                thing to be wrong. */}
+            {photobook && media.length > 0 && (
+              <a
+                href={`/${photobook.username}/trips/${photobook.trip}/photobook`}
+                className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-navy-200 bg-white px-4 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500"
+              >
+                <BookOpen className="h-4 w-4" />
+                {t("photobook.start")}
+              </a>
+            )}
             {/* The header has no photograph selected, and a postcard is one
                 photograph — so this button asks for one rather than pretending
                 to have it. The lightbox's own control is the shorter path for

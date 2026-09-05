@@ -43,6 +43,7 @@ import {
 } from "./spec.ts";
 import { formatDate, formatDateRange, wrap } from "./text.ts";
 import { isPlottable } from "../mapFrame.ts";
+import { DEFAULT_OPTIONS, type BookOptions } from "./options.ts";
 
 // ---------------------------------------------------------------------------
 // What the planner is given
@@ -63,6 +64,16 @@ export type BookPhoto = {
    * be printed. The planner says so in any low-resolution warning, so a soft
    * page is never explained by resolution alone (B13). */
   fallbackReason?: string;
+  /**
+   * The entry's own gallery `src` — the web derivative a browser can actually
+   * fetch, e.g. `/media/alps-2024/grimsel-and-rain/01.jpg`. Never the print
+   * file: `file` above may be content-root-relative or carry an `originals:`
+   * prefix pointing outside anything the web server serves (see `bookFile` in
+   * `source.ts`), so a preview needs this instead. Optional only so the
+   * hand-built `BookPhoto` fixtures in the planner's own tests, which never
+   * reach a web preview, keep compiling; `buildBookSource` always sets it.
+   */
+  webSrc?: string;
 };
 
 export function labelOf(photo: BookPhoto): string {
@@ -477,15 +488,27 @@ type Draft =
   | { kind: "colophon" }
   | { kind: "blank" };
 
-function draftsForChapter(chapter: Chapter, index: number, of: number): Draft[] {
-  const drafts: Draft[] = [{ kind: "chapter", chapter, index, of, align: "recto" }];
+function draftsForChapter(
+  chapter: Chapter,
+  index: number,
+  of: number,
+  options: BookOptions,
+): Draft[] {
+  const drafts: Draft[] = options.includeChapters
+    ? [{ kind: "chapter", chapter, index, of, align: "recto" }]
+    : [];
   for (const day of chapter.days) {
     const [lead, ...rest] = day.photos;
     // The lead photo runs full bleed, so its caption has nowhere to live on
     // its own page. It joins the day's opening page instead.
-    const captions = day.photos.map((p) => p.caption).filter((c): c is string => Boolean(c));
-    if (day.paragraphs.length > 0 || day.photos.length > 0) {
-      drafts.push({ kind: "day", day, captions });
+    const captions = options.includeText
+      ? day.photos.map((p) => p.caption).filter((c): c is string => Boolean(c))
+      : [];
+    // Text off still leaves a dated page in front of each day: a photo album
+    // that cannot say when it was is worse than one with a heading.
+    const written = options.includeText ? day : { ...day, paragraphs: [] };
+    if (written.paragraphs.length > 0 || day.photos.length > 0) {
+      drafts.push({ kind: "day", day: written, captions });
     }
     if (lead) drafts.push({ kind: "photos", layout: "full-bleed", photos: [lead] });
     for (const group of groupPhotos(rest)) {
@@ -495,19 +518,19 @@ function draftsForChapter(chapter: Chapter, index: number, of: number): Draft[] 
   return drafts;
 }
 
-function draftsForFront(source: BookSource): Draft[] {
+function draftsForFront(source: BookSource, options: BookOptions): Draft[] {
   const drafts: Draft[] = [{ kind: "title", align: "recto" }];
-  if (source.trip.intro.trim()) drafts.push({ kind: "intro" });
-  if (source.route.length >= 2) {
+  if (source.trip.intro.trim() && options.includeText) drafts.push({ kind: "intro" });
+  if (options.includeMap && source.route.length >= 2) {
     drafts.push({ kind: "route", half: "left", align: "verso" });
     drafts.push({ kind: "route", half: "right" });
   }
   return drafts;
 }
 
-function draftsForBack(source: BookSource): Draft[] {
+function draftsForBack(source: BookSource, options: BookOptions): Draft[] {
   const drafts: Draft[] = [];
-  if (source.costs) drafts.push({ kind: "costs", align: "recto" });
+  if (source.costs && options.includeCosts) drafts.push({ kind: "costs", align: "recto" });
   drafts.push({ kind: "colophon" });
   return drafts;
 }
@@ -944,7 +967,11 @@ function cutBlock(block: Draft[], capacity: number): Draft[][] {
   return pieces;
 }
 
-export function planBook(source: BookSource, spec: BookSpec): Photobook {
+export function planBook(
+  source: BookSource,
+  spec: BookSpec,
+  options: BookOptions = DEFAULT_OPTIONS,
+): Photobook {
   const warnings: BookWarning[] = [...(source.notes ?? [])];
   const photoCount = source.days.reduce((n, d) => n + d.photos.length, 0);
   if (photoCount === 0) {
@@ -955,9 +982,9 @@ export function planBook(source: BookSource, spec: BookSpec): Photobook {
   }
 
   const chapters = chaptersOf(source.days);
-  const front = draftsForFront(source);
-  const back = draftsForBack(source);
-  const blocks = chapters.map((ch, i) => draftsForChapter(ch, i + 1, chapters.length));
+  const front = draftsForFront(source, options);
+  const back = draftsForBack(source, options);
+  const blocks = chapters.map((ch, i) => draftsForChapter(ch, i + 1, chapters.length, options));
 
   const grouped = splitIntoVolumes(blocks, front.length, back.length, spec.pageCount.max);
   if (grouped.length > 1) {

@@ -8,6 +8,7 @@ import { getAllMedia, getPlaces } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import TripProvider from "@/components/TripProvider";
 import { postcardEntryFor } from "@/lib/postcard/entry";
+import { photobookEntryFor } from "@/lib/photobook/entry";
 
 /**
  * Two languages on purpose.
@@ -50,14 +51,17 @@ export default async function GalleryPage({ params }: PageProps<"/[user]/gallery
 
   // B441. One call, and deliberately not `isOwner` inline: this file decides
   // draft visibility three lines up, and `lib/postcard/entry.ts` explains why
-  // the two questions must not sit in one file.
+  // the two questions must not sit in one file. `lib/photobook/entry.ts` is
+  // the same shape for the same reason.
   const postcard = await postcardEntryFor(trip);
+  const photobook = await photobookEntryFor(trip);
 
   return (
     <TripProvider trip={trip} isCurrent canPublish={drafts.canPublish}>
       <GalleryPageContent
         media={getAllMedia(tripId, read)}
         places={getPlaces(tripId, read)}
+        photobook={photobook}
         postcard={postcard}
       />
     </TripProvider>
