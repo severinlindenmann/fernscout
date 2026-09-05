@@ -17,6 +17,7 @@ import {
   type HomeDevice,
   type HomeJournal,
 } from "@/components/HomeJournals";
+import IdentitySignIn from "@/components/IdentitySignIn";
 import { useI18n } from "@/components/LocaleProvider";
 
 export type { PublicJournal };
@@ -74,6 +75,7 @@ export default function Landing({
   locales,
   repository,
   credit,
+  codeMinutes,
 }: {
   siteName: string;
   docUrl: string;
@@ -91,6 +93,9 @@ export default function Landing({
   repository?: string;
   /** Who runs it, if this instance says. */
   credit?: { name: string; url?: string; countryCode?: string };
+  /** How long a sign-in code lasts, from `CODE_TTL_MINUTES` — B426. Passed
+   * because this is a client component and `lib/auth` is server-only. */
+  codeMinutes: string;
 }) {
   const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>("unknown");
@@ -99,6 +104,7 @@ export default function Landing({
   const [expected] = useState(() =>
     typeof window === "undefined" ? false : window.localStorage.getItem(SEEN_KEY) === "1",
   );
+  const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -129,7 +135,39 @@ export default function Landing({
     };
   }, []);
 
-  const header = <SiteHeader siteName={siteName} locales={locales} />;
+  /**
+   * Whether to offer the way in — B426.
+   *
+   * Shown once we know nobody is signed in, and *also* while the answer is
+   * still unknown on a browser that was not signed in last time. Waiting for
+   * the fetch in that case would mean a first-time visitor — the whole
+   * audience of this page — gets a beat with no door on it.
+   *
+   * The `expected` guard is what keeps that from flashing "sign in" at
+   * somebody who is: a browser that was signed in a moment ago waits for the
+   * real answer, which is the same trade the skeleton below makes.
+   */
+  const offerSignIn = phase === "out" || (phase === "unknown" && !expected);
+
+  const header = (
+    <SiteHeader
+      siteName={siteName}
+      locales={locales}
+      action={
+        offerSignIn && !signingIn ? (
+          <button
+            type="button"
+            onClick={() => setSigningIn(true)}
+            className="min-h-11 rounded-full px-2.5 text-xs font-bold text-navy-600
+                       transition-colors hover:bg-cream-100 hover:text-navy-900
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            {t("home.signIn")}
+          </button>
+        ) : undefined
+      }
+    />
+  );
   const publicList = <PublicJournals journals={journals} />;
   const colophon = <Colophon repository={repository} credit={credit} />;
 
@@ -162,6 +200,15 @@ export default function Landing({
   return (
     <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
       {header}
+      {signingIn && (
+        <IdentitySignIn
+          codeMinutes={codeMinutes}
+          // The cookie is set by the server and this page renders from it, so
+          // a reload rather than a state flip — the same reason `GuestSignIn`
+          // reloads. What comes back is the signed-in order of this page.
+          onDone={() => window.location.reload()}
+        />
+      )}
       {phase === "unknown" && expected ? (
         /* A browser that was signed in a moment ago, waiting on the fetch.
            Two grey blocks rather than the hero: showing the pitch here and

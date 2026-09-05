@@ -41,11 +41,24 @@ function GithubMark({ className }: { className?: string }) {
  * cannot read the hero has no way to guess that the rest of the site is
  * translated.
  */
-export function SiteHeader({ siteName, locales }: { siteName: string; locales?: string[] }) {
+export function SiteHeader({
+  siteName,
+  locales,
+  /** The sign-in control, when there is somebody to offer it to — B426. Passed
+   * in rather than rendered here so this stays the header and nothing else. */
+  action,
+}: {
+  siteName: string;
+  locales?: string[];
+  action?: React.ReactNode;
+}) {
   return (
     <div className="flex items-start justify-between gap-4">
       <p className="pt-3 font-mono text-xs uppercase tracking-[0.2em] text-navy-600">{siteName}</p>
-      <LocaleSwitcher locales={locales} subtle />
+      <div className="flex items-center gap-1">
+        {action}
+        <LocaleSwitcher locales={locales} subtle />
+      </div>
     </div>
   );
 }
