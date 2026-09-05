@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: photobook, print
 found: "2026-09-05T20:56:48Z"
+started: "2026-09-05T21:52:32Z"
+session: d9c396ea-a80a-4f80-954a-d37a0bf2c8c8
+claimed: "2026-09-05T21:52:32Z"
 ---
 
 # B518 — The route map puts the middle of the journey in the fold

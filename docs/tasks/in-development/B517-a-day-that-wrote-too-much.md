@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: photobook, print
 found: "2026-09-05T20:42:58Z"
+started: "2026-09-05T21:52:32Z"
+session: d9c396ea-a80a-4f80-954a-d37a0bf2c8c8
+claimed: "2026-09-05T21:52:32Z"
 ---
 
 # B517 — A day that wrote too much is silently truncated
