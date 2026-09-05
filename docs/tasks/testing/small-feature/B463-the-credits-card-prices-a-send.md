@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: credits, me page
 found: "2026-09-05T13:06:35Z"
+merged: "2026-09-05T13:17:58Z"
 ---
 
 # B463 — The credits card prices a send but not a postcard, does not total a day, and offers no way to mute a channel
