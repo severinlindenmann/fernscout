@@ -1213,6 +1213,67 @@ export function projectEquirectangular(lat: number, lng: number): { x: number; y
  * window-culling to work in a latitude-corrected space, or having `frameRoute`
  * grow an uncorrected mode — both bigger than the NaN hole this task closes.
  */
+/**
+ * The fraction of a spread's width the fold makes hard to read (B518).
+ *
+ * `mapProjector` puts `view`'s horizontal midpoint on the spine, so this
+ * fraction of `view.width`, centred there, is the band a stop should not
+ * fall in. `routeView` has no `BookSpec` to ask for the real gutter, so this
+ * is sized against the default one instead (`lib/photobook/spec.ts`): a
+ * 16mm gutter on each of two 210mm pages is 32mm of a 420mm spread, about
+ * 8% — close enough for the other sizes on offer, and a constant here keeps
+ * `routeView` pure.
+ */
+const FOLD_BAND_FRACTION = 0.08;
+
+/**
+ * The horizontal centre `routeView` should use instead of the frame's own
+ * midpoint, so the fold's band (`FOLD_BAND_FRACTION` of `width`, which does
+ * not change) misses every stop.
+ *
+ * Shifts rather than widens (B518): looks for the gap between two stops, or
+ * between a stop and empty space beyond the rest, that is nearest the
+ * middle and wide enough to hold the band whole, and puts the band there.
+ * Never moves far enough to let a stop reach the frame's own edge — that
+ * would break `routeView`'s contract that every stop stays inside `view` —
+ * so a cluster too dense for any gap to fit gets the least-bad shift
+ * available instead: whichever side ends up with fewer stops in the band.
+ */
+function centreAwayFromFold(xs: number[], x: number, width: number): number {
+  const cx = x + width / 2;
+  const band = width * FOLD_BAND_FRACTION;
+  const eps = Math.max(width * 1e-9, 1e-9);
+  // A hair wider than the band itself, so a stop right at the edge of it
+  // clears with room rather than landing exactly on the line.
+  const half = band / 2 + eps;
+  const sorted = [...xs].sort((a, b) => a - b);
+  const minX = sorted[0];
+  const maxX = sorted[sorted.length - 1];
+
+  // How far the centre can move before a stop would reach the frame's edge.
+  const lo = maxX - width / 2 + eps;
+  const hi = minX + width / 2 - eps;
+  if (lo > hi) return cx; // no room to move without evicting a stop
+
+  const clamp = (c: number) => Math.max(lo, Math.min(hi, c));
+  const clear = (c: number) => sorted.every((v) => v <= c - half || v >= c + half);
+
+  const candidates = [minX - half, maxX + half];
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] - sorted[i - 1] >= band) candidates.push((sorted[i] + sorted[i - 1]) / 2);
+  }
+
+  const valid = candidates.map(clamp).filter(clear);
+  if (valid.length > 0) {
+    return valid.reduce((best, c) => (Math.abs(c - cx) < Math.abs(best - cx) ? c : best));
+  }
+
+  const countInside = (c: number) => sorted.filter((v) => v > c - half && v < c + half).length;
+  const left = clamp(minX - half);
+  const right = clamp(maxX + half);
+  return countInside(left) <= countInside(right) ? left : right;
+}
+
 export function routeView(route: RoutePoint[]): RouteView {
   const plottable = route.filter(isPlottable);
   if (plottable.length === 0) {
@@ -1255,6 +1316,11 @@ export function routeView(route: RoutePoint[]): RouteView {
     x -= (wanted - width) / 2;
     width = wanted;
   }
+
+  // Slide the frame so the fold — the spine `mapProjector` puts at this
+  // frame's horizontal midpoint — lands off the route rather than on it.
+  x = centreAwayFromFold(points.map((p) => p.x), x, width) - width / 2;
+
   return { x, y, width, height };
 }
 

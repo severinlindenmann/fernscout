@@ -462,6 +462,67 @@ describe("the route view", () => {
       }
     });
   });
+
+  /**
+   * B518. `mapProjector` (lib/photobook/plan.ts) always puts `view`'s
+   * horizontal midpoint at the spine, so a frame with no opinion about that
+   * put a route's middle in the one part of the paper a reader cannot
+   * flatten. These frame the fold itself, in map-space x — `view.x +
+   * view.width / 2` — against the 8% band `FOLD_BAND_FRACTION` reserves
+   * around it, rather than rendering anything.
+   */
+  describe("keeping stops off the fold", () => {
+    const lngToX = (lng: number) => ((lng + 180) / 360) * 1000;
+
+    function stopsAtLngs(...lngs: number[]) {
+      return lngs.map((lng, i) => ({ location: `stop-${i}`, country: "CH", lat: 47, lng }));
+    }
+
+    test("a clustered route is shifted clear of the gutter", () => {
+      // Stops with the largest gap between two of them right where the
+      // frame's untouched midpoint would otherwise fall.
+      const lngs = [9, 9.5, 10, 10.2, 10.5];
+      const view = routeView(stopsAtLngs(...lngs));
+      const fold = view.x + view.width / 2;
+      const half = (view.width * 0.08) / 2;
+      for (const lng of lngs) {
+        expect(Math.abs(lngToX(lng) - fold)).toBeGreaterThan(half);
+      }
+    });
+
+    test("a tight cluster with one distant stop is not split by the fold", () => {
+      // Five stops bunched together, and a sixth far enough away that the
+      // gap between the cluster and it is the obvious place for the fold —
+      // it should land there, leaving the cluster whole on one side.
+      const cluster = [9, 9.2, 9.3, 9.5, 9.6];
+      const view = routeView(stopsAtLngs(...cluster, 60));
+      const fold = view.x + view.width / 2;
+      const side = (x: number) => x < fold;
+      expect(new Set(cluster.map(lngToX).map(side)).size).toBe(1);
+    });
+
+    test("a single stop is not left sitting on the fold", () => {
+      const view = routeView(stopsAtLngs(10));
+      const fold = view.x + view.width / 2;
+      const half = (view.width * 0.08) / 2;
+      expect(Math.abs(lngToX(10) - fold)).toBeGreaterThan(half);
+    });
+
+    test("a straight-line route still gets a frame containing every stop", () => {
+      const lngs = [-120, -110, -100, -90, -80, -70];
+      const view = routeView(stopsAtLngs(...lngs));
+      expect(view.width / view.height).toBeCloseTo(2, 6);
+      for (const lng of lngs) {
+        const x = lngToX(lng);
+        expect(x).toBeGreaterThan(view.x);
+        expect(x).toBeLessThan(view.x + view.width);
+      }
+    });
+
+    test("an empty route still frames the whole world", () => {
+      expect(routeView([])).toEqual({ x: 0, y: 0, width: 1000, height: 500 });
+    });
+  });
 });
 
 describe("text", () => {
