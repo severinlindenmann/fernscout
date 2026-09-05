@@ -72,3 +72,22 @@ A test that sorts the two lists `LC_ALL=C`, runs the comparison under a UTF-8
 locale, and fails on the current code. On the VPS,
 `sudo systemctl start fernscout-backup.service` names two paths, not three, and
 prints no `not in sorted order`.
+
+## What was built
+
+`LC_ALL=C comm`, and a comment saying why the prefix on the sorts was not
+enough. The diff is one word plus the reasoning.
+
+**The test is honest about where it bites.** macOS `comm` does not check its
+input's order, so the case cannot be constructed on the machine this suite is
+usually run on. The test therefore asserts the correct outcome under
+`LC_ALL=en_US.UTF-8` and passes trivially on darwin, failing on Linux — CI is
+`ubuntu-latest` and so is the VPS, which are the two places it matters.
+
+Verified on the VPS itself, same tree, same user, same UTF-8 locale, script
+by hand with the staging trap off:
+
+| | Paths named | `not in sorted order` |
+| --- | --- | --- |
+| before | 3, one of them readable | yes |
+| after | 2, both genuinely unreadable | no |

@@ -157,7 +157,14 @@ stage_tree() {
   # that failed to copy — a socket, a device node, a full disk — without
   # anybody having to parse cp's platform-specific wording.
   local candidates=""
-  candidates="$( { unreadable_paths "$src"; comm -23 <(printf '%s\n' "$before") <(list_tree "$dest"); } | LC_ALL=C sort -u )" || true
+  # `LC_ALL=C` on comm, not only on the sorts that feed it. Both producers
+  # already sort that way; a comm collating in the unit's locale
+  # (systemd hands it LANG=en_US.UTF-8) calls that input unsorted and answers
+  # with a wrong difference in both directions — it named a readable
+  # `config.json.bak-…` as missing on the VPS, and the same disorder can drop a
+  # genuinely unreadable file out of the list, which is a snapshot reported
+  # complete when it is not. B450.
+  candidates="$( { unreadable_paths "$src"; LC_ALL=C comm -23 <(printf '%s\n' "$before") <(list_tree "$dest"); } | LC_ALL=C sort -u )" || true
 
   local filtered="" rel abs
   while IFS= read -r rel; do
