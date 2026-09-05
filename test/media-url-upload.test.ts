@@ -33,6 +33,7 @@ const OWNER = "ana";
 const OWNER_EMAIL = "ana@example.test";
 const TRIP = "asia-2026";
 const DAY = "lanterns-of-hoi-an";
+const PUBLISHED_DAY = "market-morning";
 
 let dir: string;
 let calls = 0;
@@ -64,13 +65,13 @@ async function ownerToken(): Promise<string> {
 }
 
 /** The JSON door, driven exactly as an agent drives it. */
-async function postUrls(token: string, urls: string[]) {
+async function postUrls(token: string, urls: string[], day: string = DAY) {
   const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/media/route");
   const response = await POST(
     new Request(`https://example.test/api/v1/${OWNER}/trips/${TRIP}/media`, {
       method: "POST",
       headers: headers({ authorization: `Bearer ${token}` }),
-      body: JSON.stringify({ day: DAY, urls }),
+      body: JSON.stringify({ day, urls }),
     }),
     { params: Promise.resolve({ user: OWNER, trip: TRIP }) },
   );
@@ -160,8 +161,8 @@ beforeAll(async () => {
       "",
     ].join("\n"),
   );
-  // A draft: photographs attach to a day that exists, and a published one is
-  // refused on purpose.
+  // A draft: photographs attach to a day that exists. See media-upload.test.ts
+  // for storeUploads()/attachGallery() coverage of drafts.
   fs.writeFileSync(
     path.join(tripPath(), "entries", `2026-01-01-${DAY}.md`),
     [
@@ -171,6 +172,22 @@ beforeAll(async () => {
       'location: "Hoi An"',
       'country: "Vietnam"',
       "status: draft",
+      "---",
+      "",
+      "Words.",
+      "",
+    ].join("\n"),
+  );
+  // Already published — B393: photographs attach here too now, and the reply
+  // says plainly that readers already see it.
+  fs.writeFileSync(
+    path.join(tripPath(), "entries", `2026-01-02-${PUBLISHED_DAY}.md`),
+    [
+      "---",
+      `title: "${PUBLISHED_DAY}"`,
+      'date: "2026-01-02"',
+      'location: "Hoi An"',
+      'country: "Vietnam"',
       "---",
       "",
       "Words.",
@@ -271,5 +288,33 @@ describe("a photograph fetched from a URL", () => {
     expect(status).toBe(400);
     expect((body as { error: string }).error).toBe("could_not_fetch");
     expect(fs.readdirSync(path.join(tripPath(), "media", DAY))).toHaveLength(before);
+  });
+});
+
+/**
+ * B393 — a published day used to be refused with 409 `day_published` and told
+ * to "ask the person to add these themselves", which nobody can do: there is
+ * no upload widget. Same reasoning as `PATCH` on a published day (B266): let
+ * it through, and say plainly that readers will see the change.
+ */
+describe("attaching media to a published day", () => {
+  test("lands, and the reply says readers already see it", async () => {
+    serve(await jpeg(1600, 1200));
+    const token = await ownerToken();
+
+    const { status, body } = await postUrls(
+      token,
+      ["https://example.com/seed/x/1600/1200"],
+      PUBLISHED_DAY,
+    );
+    expect(status).toBe(201);
+
+    const reply = body as { ok: boolean; attached: boolean; note: string };
+    expect(reply.ok).toBe(true);
+    expect(reply.attached).toBe(true);
+    expect(reply.note).toContain("Still published");
+    expect(reply.note).toContain("already read it can now see this change");
+
+    expect(fs.existsSync(path.join(tripPath(), "media", PUBLISHED_DAY, "01.jpg"))).toBe(true);
   });
 });

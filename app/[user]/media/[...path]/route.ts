@@ -98,6 +98,16 @@ export async function GET(
       : "public, max-age=3600, stale-while-revalidate=86400",
     "X-Content-Type-Options": "nosniff",
     /**
+     * B394: WebP is served here whatever `Accept` says — deliberately, since
+     * it is near-universal and honouring the header would mean keeping a
+     * JPEG derivative around too. `Vary: Accept` is the other half: without
+     * it a shared cache cannot tell that the bytes depend on the header, so a
+     * client that only takes JPEG could be handed a cached WebP response.
+     * Declaring it now is what keeps content negotiation possible later
+     * without a cache full of mislabelled entries to invalidate first.
+     */
+    Vary: "Accept",
+    /**
      * Nothing served out of a content folder is a document. B02.
      *
      * `default-src 'none'` leaves an SVG nothing to fetch and `sandbox` puts

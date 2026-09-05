@@ -26,14 +26,19 @@ export const dynamic = "force-dynamic";
  * The original of every file is kept; see lib/api/media.ts for why.
  */
 /**
- * The two ways a `day` can be wrong, answered before anything is read.
+ * The one way a `day` can be wrong, answered before anything is read.
  *
  * `day` was always required — `storeUploads` refuses a slug that names no
  * entry — but it used only to decide a folder name. Now that it decides which
  * file gets edited, saying so up front is worth the six lines: a request with
  * no day is one that would write photographs attached to nothing.
+ *
+ * A published day is no longer refused here — see B393. `PATCH` on the day
+ * route already lets a published day's prose be corrected, on the same
+ * reasoning: say plainly that readers will see the change, and let the owner
+ * decide, rather than refuse and point at a door that does not exist.
  */
-function dayProblem(ref: string, day: string): Response | null {
+function dayProblem(day: string): Response | null {
   if (!day) {
     return Response.json(
       {
@@ -43,20 +48,6 @@ function dayProblem(ref: string, day: string): Response | null {
           "already: write the day first, then send its pictures, and they are added to it.",
       },
       { status: 400 },
-    );
-  }
-  // Refused before the bytes are read, not after. Adding photographs to a day
-  // people have already read changes what they read, and that is a person's
-  // decision — the same line the delete route draws.
-  if (isPublished(ref, day)) {
-    return Response.json(
-      {
-        error: "day_published",
-        message:
-          `"${day}" is published, so this would change a day people have already read. ` +
-          "Ask the person to add these themselves, or write a new day for them.",
-      },
-      { status: 409 },
     );
   }
   return null;
@@ -71,12 +62,19 @@ function dayProblem(ref: string, day: string): Response | null {
  * `attached: false` and the block to add by hand.
  */
 function stored(
+  ref: string,
   day: string,
   items: GalleryItem[],
   kept: KeptOriginal[],
   attached: boolean,
   error?: string,
 ) {
+  const published = isPublished(ref, day);
+  const attachedNote = attached
+    ? `Added to "${day}". Nothing to paste — read the day back to see it. ` +
+      `\`kept\` is what was stored untouched for print; \`items\` is the resized copy the ` +
+      `site serves.`
+    : `${error} The originals in \`kept\` are stored either way.`;
   return Response.json(
     {
       ok: true,
@@ -92,11 +90,12 @@ function stored(
        */
       kept,
       attached,
-      note: attached
-        ? `Added to "${day}". Nothing to paste — read the day back to see it. ` +
-          `\`kept\` is what was stored untouched for print; \`items\` is the resized copy the ` +
-          `site serves.`
-        : `${error} The originals in \`kept\` are stored either way.`,
+      // Same honesty PATCH gives a prose edit to a published day (B266): say
+      // plainly that readers already see it, rather than let a 201 imply the
+      // change is still private. See B393.
+      note: published
+        ? `${attachedNote} Still published — anyone who already read it can now see this change.`
+        : attachedNote,
     },
     { status: 201 },
   );
@@ -128,7 +127,7 @@ export async function POST(
   if ((request.headers.get("content-type") ?? "").includes("application/json")) {
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const day = typeof body?.day === "string" ? body.day.trim() : "";
-    const wrongDay = dayProblem(ref, day);
+    const wrongDay = dayProblem(day);
     if (wrongDay) return wrongDay;
 
     const urls = Array.isArray(body?.urls) ? body.urls.filter((u): u is string => typeof u === "string") : [];
@@ -159,7 +158,7 @@ export async function POST(
       return Response.json({ error: "invalid_media", problems: written.problems }, { status: 400 });
     }
     const attached = attachGallery(ref, day, written.items);
-    return stored(day, written.items, written.kept, attached.ok, attached.ok ? undefined : attached.error);
+    return stored(ref, day, written.items, written.kept, attached.ok, attached.ok ? undefined : attached.error);
   }
 
   const form = await request.formData().catch(() => null);
@@ -176,7 +175,7 @@ export async function POST(
   }
 
   const day = String(form.get("day") ?? "").trim();
-  const wrongDay = dayProblem(ref, day);
+  const wrongDay = dayProblem(day);
   if (wrongDay) return wrongDay;
 
   const files = form.getAll("files").filter((f): f is File => f instanceof File);
@@ -226,5 +225,5 @@ export async function POST(
   }
 
   const attached = attachGallery(ref, day, result.items);
-  return stored(day, result.items, result.kept, attached.ok, attached.ok ? undefined : attached.error);
+  return stored(ref, day, result.items, result.kept, attached.ok, attached.ok ? undefined : attached.error);
 }

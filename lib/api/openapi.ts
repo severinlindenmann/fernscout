@@ -1475,10 +1475,10 @@ export function openApiDocument() {
                 "purpose, and `kept` is how you confirm the full-resolution file survived " +
                 "rather than taking it on trust. `attached` is false only if the entry has " +
                 "no frontmatter to write into, in which case the files are still on disk " +
-                "and `items` is what to add by hand.",
+                "and `items` is what to add by hand. `note` says plainly when the day is " +
+                "already published, so anyone reading it can now see the addition.",
             },
             "400": { description: "A file, a URL, or the day was rejected — the response says which and why" },
-            "409": { description: "That day is published; changing what people have read is a person's job" },
             "413": { description: "Over a size limit this instance sets" },
           },
         },

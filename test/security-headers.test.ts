@@ -199,4 +199,21 @@ describe("an SVG served out of somebody's content folder", () => {
     // A photograph a browser navigates to should still be a photograph.
     expect(response.headers.get("Content-Disposition")).toBeNull();
   });
+
+  /**
+   * B394: WebP is served whatever `Accept` says, so a shared cache needs
+   * `Vary: Accept` to know the two are not interchangeable — otherwise a
+   * client that only takes JPEG could be handed a cached WebP response.
+   */
+  test("carries Vary: Accept, regardless of what was sent", async () => {
+    const withJpegOnly = await (
+      await import("@/app/[user]/media/[...path]/route")
+    ).GET(
+      new Request("https://example.test/alex/media/asia-2023/day/photo.jpg", {
+        headers: { accept: "image/jpeg" },
+      }),
+      { params: Promise.resolve({ user: "alex", path: ["asia-2023", "day", "photo.jpg"] }) } as never,
+    );
+    expect(withJpegOnly.headers.get("Vary")).toContain("Accept");
+  });
 });
