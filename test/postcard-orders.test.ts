@@ -472,3 +472,39 @@ describe("the receipt for a send", () => {
     expect(spends).toHaveLength(1);
   });
 });
+
+
+/**
+ * B474 — a page that told the owner the opposite of what had happened.
+ *
+ * The heading and the line under it were written once and rendered whatever
+ * state the order was in, so an order already at the printer read "ready to
+ * send" above "nothing has been printed or charged yet" — directly above the
+ * banner saying it had been. These assert the strings the page picks between,
+ * which is where the mistake was; the page itself is a server component
+ * needing a request context, and there is no browser in this suite.
+ */
+describe("what a sent order says about itself", () => {
+  test("the two states have different words, in every locale", async () => {
+    const { dictionaryFor } = await import("@/lib/locales");
+    for (const loc of ["en", "de", "hu"]) {
+      const d = dictionaryFor(loc);
+      expect(d["postcard.page.title"]).toBeTruthy();
+      expect(d["postcard.page.titleSent"]).toBeTruthy();
+      expect(d["postcard.page.title"]).not.toBe(d["postcard.page.titleSent"]);
+      // The claim that cost the trust: it must appear only in the waiting one.
+      expect(d["postcard.page.introSent"]).not.toBe(d["postcard.page.intro"]);
+    }
+  });
+
+  test("the sent line never promises nothing was charged", () => {
+    // Written against the English so the assertion is legible; the German was
+    // the one a person actually read wrong.
+    const en = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), "content/locales/en.json"), "utf8"),
+    ) as Record<string, string>;
+    expect(en["postcard.page.intro"]).toContain("Nothing has been printed");
+    expect(en["postcard.page.introSent"]).not.toContain("Nothing has been printed");
+    expect(en["postcard.page.introSent"]).toContain("Sent");
+  });
+});

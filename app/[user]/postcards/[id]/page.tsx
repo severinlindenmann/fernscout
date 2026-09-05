@@ -13,6 +13,7 @@ import { recipientsOf } from "@/lib/postcard/contacts";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
+import { getEntryBySlug } from "@/lib/entries";
 import { LOCALE_LABEL } from "@/lib/i18n";
 import { defaultLocaleFor, localesFor, requestLocale } from "@/lib/locales";
 import { pickLocale } from "@/lib/contacts/locale";
@@ -125,6 +126,18 @@ export default async function PostcardOrderPage({
   const sendable = isPending(order) && !expired && live.length > 0;
   const short = balance !== null && balance < cost;
 
+  // B474. `payload.day` is a slug — a URL segment, not a name — and the page
+  // was printing it at a reader ("Vom sierra-smoke"). The day has a title, and
+  // a postcard is about a date, so both go in. Drafts included: an order can
+  // be made from a day that is not on the site yet.
+  const entry = getEntryBySlug(order.payload.trip, order.payload.day, { includeDrafts: true });
+  const dayName = entry
+    ? t("postcard.page.dayWithTitle", {
+        title: entry.title,
+        date: formatDigestDate(locale, entry.date),
+      })
+    : order.payload.day;
+
   const photoFile = orderPhotoFile(order);
   const photo = photoFile ? dimensionsOf(photoFile) : null;
   const resolution = photo ? resolutionNote(photo.width, photo.height) : null;
@@ -148,9 +161,20 @@ export default async function PostcardOrderPage({
     <div className="min-h-screen">
       <PageHeader />
       <main className="mx-auto w-full max-w-3xl px-4 py-8">
-        <h1 className="text-2xl font-semibold">{t("postcard.page.title")}</h1>
+        {/* B474. Both of these were written once and rendered whatever had
+            happened, so an order already at the printer was headed "ready to
+            send" above a line promising nothing had been printed or charged —
+            directly above the banner saying it had. */}
+        <h1 className="text-2xl font-semibold">
+          {isPending(order) ? t("postcard.page.title") : t("postcard.page.titleSent")}
+        </h1>
         <p className="mt-1 text-sm opacity-70">
-          {t("postcard.page.intro", { day: order.payload.day })}
+          {isPending(order)
+            ? t("postcard.page.intro", { day: dayName })
+            : t("postcard.page.introSent", {
+                day: dayName,
+                when: formatDigestDate(locale, order.updatedAt.slice(0, 10)),
+              })}
         </p>
 
         {typeof result === "string" && RESULTS[result] ? (
@@ -298,7 +322,7 @@ export default async function PostcardOrderPage({
           </form>
         ) : null}
 
-        {mismatched > 0 ? (
+        {mismatched > 0 && isPending(order) ? (
           <p className="mt-4 rounded border px-3 py-2 text-sm">
             {mismatched === 1 && firstMismatch
               ? t("postcard.page.mismatchOne", {
@@ -313,7 +337,7 @@ export default async function PostcardOrderPage({
           </p>
         ) : null}
 
-        {resolution && !resolution.ok ? (
+        {resolution && !resolution.ok && isPending(order) ? (
           <p className="mt-4 rounded border px-3 py-2 text-sm">
             {t("postcard.page.lowRes", { dpi: String(resolution.dpi) })}
           </p>
