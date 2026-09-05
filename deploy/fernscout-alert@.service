@@ -1,6 +1,7 @@
-# Somebody is told that %i failed.
+# Somebody is told how %i ended.
 #
 #   OnFailure=fernscout-alert@%n.service
+#   OnSuccess=fernscout-alert@%n.service
 #
 # on any unit that matters. systemd passes the failing unit's full name
 # (including the .service suffix) as the instance, so %i below is
@@ -12,10 +13,10 @@
 #
 #   sudo systemctl start fernscout-alert@fernscout-backup.service   # rehearse it
 #
-# Not enabled, and has no timer: it is started by systemd, on failure, only.
+# Not enabled, and has no timer: it is started by systemd when %i ends, only.
 # It cannot be enabled by bare name anyway — a template needs an instance.
 [Unit]
-Description=Alert that %i failed
+Description=Report how %i ended
 # The mail leaves this box, so do not race the network on a boot-time failure.
 After=network-online.target
 
