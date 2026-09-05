@@ -8,8 +8,6 @@ area: contacts, i18n
 found: "2026-09-05T00:30:00Z"
 started: "2026-09-04T22:19:01Z"
 merged: "2026-09-04T22:28:19Z"
-session: 39691533-1e0d-44dd-a2e5-b2a7ce844518
-claimed: "2026-09-05T08:53:13Z"
 ---
 
 # B390 — The dialling-code picker is eleven bare numbers with no country, no search and no way to find your own
