@@ -48,8 +48,19 @@ up to ten, and `lib/tripPeople.ts` resolves them owner-first.
 
 1. **A party, not a couple.** `Travelers` takes a list of figures and draws
    them — one, two, a group, a family with children at a smaller scale. Keep
-   the gait offset per figure so a group does not bob in lockstep. Layout
-   solves for a container width rather than a fixed gap; see the plan.
+   the gait offset per figure so a group does not bob in lockstep.
+2. **It is a composition, not a row.** The gap closes as the party grows, and
+   past three the party stands in **two ranks**. Children and teenagers take
+   the front one at any size — `AGE_SCALE` makes them shorter, so behind an
+   adult they are simply gone; two parents and two children is four figures
+   with the children in front. With no children, four or more alternate, so a
+   group of five friends stands some in front and some behind; one to three
+   adults stay a single row. The front rank sits half a figure across so
+   nobody is squarely hidden, is drawn last, sits a few pixels lower on the
+   ground, and is scaled ~6% up against the back rank's 6% down — all three
+   together, because any one alone reads as a mistake. **Derived from the list
+   index, never random**, so the hero and the photobook agree and a refresh
+   does not reshuffle the family.
 2. **A figure is data.** Skin, hair colour, hair style, eyes, build, age,
    shirt, pants, pack, accessories — a named record with a vocabulary of
    tokens, hex allowed as the escape hatch, and ready-made **starting points**

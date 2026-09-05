@@ -7,8 +7,7 @@ complexity: low
 area: i18n, viewer
 found: "2026-09-04T15:20:03Z"
 started: "2026-09-05T15:09:33Z"
-session: e5747799-fd3e-4d40-a335-82fa4e24333e
-claimed: "2026-09-05T15:09:33Z"
+merged: "2026-09-05T15:20:47Z"
 ---
 
 # B305 — A reader shown a day in a language they did not ask for is told nothing about it
