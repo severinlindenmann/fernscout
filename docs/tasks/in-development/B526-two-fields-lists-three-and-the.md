@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: agent.md
 found: "2026-09-05T21:30:00Z"
+started: "2026-09-05T21:20:43Z"
+session: 5813be44-d8aa-40f5-ab31-affc7af3746a
+claimed: "2026-09-05T21:20:43Z"
 ---
 
 # B526 — "Two fields" lists three, and the journal script never asks for the required title

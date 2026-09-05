@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: api, media upload
 found: "2026-09-05T21:30:00Z"
+started: "2026-09-05T21:20:42Z"
+session: 5813be44-d8aa-40f5-ab31-affc7af3746a
+claimed: "2026-09-05T21:20:42Z"
 ---
 
 # B523 — A request body over 10 MiB is refused as expected_multipart, and the cap is documented nowhere

@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: api, trips
 found: "2026-09-05T21:30:00Z"
+started: "2026-09-05T21:20:42Z"
+session: 5813be44-d8aa-40f5-ab31-affc7af3746a
+claimed: "2026-09-05T21:20:42Z"
 ---
 
 # B524 — travellers and people can be set when a trip is created and never again
