@@ -108,8 +108,11 @@ export async function POST(
   // asking two helpers in turn would give the second one an empty body and a
   // permanent `false` — indistinguishable from "the caller did not ask", and
   // therefore a bug that ships quietly. See `readPublishFlags`.
-  const { sendMail: sendMailRequested, sendWhatsapp: sendWhatsappRequested } =
-    await readPublishFlags(request);
+  const {
+    sendMail: sendMailRequested,
+    sendWhatsapp: sendWhatsappRequested,
+    ignored: flagsIgnored,
+  } = await readPublishFlags(request);
 
   /*
    * The credits pre-flight — B366. Before anything is published, ask what
@@ -224,5 +227,18 @@ export async function POST(
     }),
     ...(mail ? { mail } : {}),
     ...(whatsapp ? { whatsapp } : {}),
+    // B400: a flag that was present but not a boolean reads as `false`, same
+    // as absence — `readPublishFlags`'s `=== true` is load-bearing and stays.
+    // This is the one place that difference becomes audible: an agent that
+    // sent `"send_mail": "true"` gets told nothing was sent, instead of a
+    // quiet 200 it can only misreport.
+    ...(flagsIgnored.length > 0
+      ? {
+          flagsIgnored,
+          flagsIgnoredMessage:
+            `${flagsIgnored.join(" and ")} must be boolean \`true\` to send, not a string ` +
+            `or a number — it was ignored and nothing was sent for ${flagsIgnored.length > 1 ? "them" : "it"}.`,
+        }
+      : {}),
   });
 }

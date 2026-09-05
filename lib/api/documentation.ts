@@ -1215,6 +1215,22 @@ Content-Type: application/json
  "mail": {"attempted": true, "resend": false, "sent": 6, "failed": 0}}
 \`\`\`
 
+**The value must be the JSON boolean \`true\`, not a string or a number.**
+\`"send_mail": "true"\` and \`"send_mail": 1\` are both read as no — the check
+is strict on purpose, so nothing sent by mistake ever reads as a yes — but
+that case is reported rather than left silent: the response carries
+\`flagsIgnored\` and a short message naming which key was ignored.
+
+\`\`\`json
+{"ok": true, "slug": "lanterns-of-hoi-an", "status": "published",
+ "url": "${site.url}/${example}/day/lanterns-of-hoi-an",
+ "flagsIgnored": ["send_mail"],
+ "flagsIgnoredMessage": "send_mail must be boolean \`true\` to send, not a string or a number — it was ignored and nothing was sent for it."}
+\`\`\`
+
+Leaving the key out entirely is unaffected and stays silent — that is the
+honest "did not ask", not a mistake.
+
 **Afterwards**, for a day already on the site — sent it the first time and it
 is worth trying again, or nobody asked for it at publish and now they have:
 
