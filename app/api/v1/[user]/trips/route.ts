@@ -128,6 +128,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     // decision rather than an omission — see `NewTrip` in lib/tripWrite.ts.
     // B207.
     people: body.people,
+    // Cosmetic, and refused rather than dropped when it is wrong —
+    // `travellersBlock` in lib/tripWrite.ts says why.
+    travellers: body.travellers,
     rates: body.rates,
     translations: body.translations,
   });

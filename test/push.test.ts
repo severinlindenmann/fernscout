@@ -37,6 +37,7 @@ function fakeTrip(overrides: Partial<Trip> = {}): Trip {
     end: "2026-01-31",
     status: "current",
     people: [],
+    travellers: [],
     listed: true,
     accent: "sky",
     intro: "",

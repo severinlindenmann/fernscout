@@ -4,6 +4,17 @@ import path from "node:path";
 import { contentRoot } from "./contentRoot";
 import { normalizeCurrency } from "./currency";
 import { LOCALE_TAG_RE } from "./locales";
+import {
+  ACCESSORIES,
+  AGES,
+  BUILDS,
+  CLOTH,
+  EYES,
+  HAIR,
+  HAIR_STYLES,
+  MAX_FIGURES,
+  SKIN,
+} from "./travellers/vocabulary";
 import { getTrip, MAX_TRIP_PEOPLE, PERSON_EMAIL_RE, tripRef } from "./trips";
 import { calendarStatus } from "./tripTime";
 import { getUser } from "./users";
@@ -90,6 +101,9 @@ export type NewTrip = {
    * there is more to get wrong than a spelling.
    */
   people?: unknown;
+  /** How the party is drawn — see `travellersBlock`. Cosmetic, and
+   *  therefore not owner-only the way `people` effectively is. */
+  travellers?: unknown;
   rates?: unknown;
   translations?: unknown;
   /**
@@ -241,6 +255,198 @@ function peopleBlock(raw: unknown): BlockResult {
     lines.push(`  - name: ${quoteScalar(name)}`);
     lines.push(`    email: ${quoteScalar(email)}`);
     if (nickname) lines.push(`    nickname: ${quoteScalar(nickname)}`);
+  }
+  return { ok: true, lines };
+}
+
+/**
+ * Every field a figure may carry, and what each one accepts.
+ *
+ * Kept as data rather than a chain of `if`s so the refusal messages can list
+ * the vocabulary — an agent told "expected one of: buzz, short, tousled, …"
+ * can correct itself, and one told "invalid" cannot.
+ */
+const FIGURE_ENUMS: ReadonlyArray<[string, readonly string[]]> = [
+  ["hairStyle", HAIR_STYLES],
+  ["build", BUILDS],
+  ["age", AGES],
+];
+
+/** Colour fields: a named token from their own table, or a hex code. */
+const FIGURE_COLOURS: ReadonlyArray<[string, Record<string, string>]> = [
+  ["skin", SKIN],
+  ["hair", HAIR],
+  ["eyes", EYES],
+  ["shirt", CLOTH],
+  ["pants", CLOTH],
+  ["pack", CLOTH],
+  ["headscarf", CLOTH],
+];
+
+const FIGURE_FIELDS: ReadonlySet<string> = new Set([
+  "for",
+  "accessories",
+  ...FIGURE_ENUMS.map(([f]) => f),
+  ...FIGURE_COLOURS.map(([f]) => f),
+]);
+
+const HEX_COLOUR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+/**
+ * The `travellers:` block — how the people on the trip are drawn.
+ *
+ * **Refused, never dropped**, and it is the mirror image of `parseTravellers`
+ * in lib/travellers/parse.ts, which fails open. Both are right for where they
+ * stand: a reader has nobody to tell, so a bad hair colour draws the default
+ * and the party still appears; a *writer* is somebody listening, and a 201 for
+ * a figure the site then silently reinterprets is worse than a 400 naming the
+ * field. The same asymmetry as `peopleBlock` above, argued the same way.
+ *
+ * Unlike `people:`, nothing here decides who may write. Everything is
+ * appearance, and a trip-scoped token belongs to somebody who was on the trip
+ * — how they are drawn on it is theirs.
+ *
+ * **A starting point never reaches this function.** `resolvePreset` expands a
+ * name into plain attributes at the moment somebody picks it, and only the
+ * attributes are written. `preset` is refused here by name rather than
+ * quietly dropped, because a caller that passed one believes it landed.
+ */
+function travellersBlock(raw: unknown): BlockResult {
+  if (raw === undefined || raw === null) return NO_LINES;
+  if (!Array.isArray(raw)) {
+    return {
+      ok: false,
+      error: "invalid_travellers",
+      message:
+        "travellers must be a list of figures, e.g. " +
+        '[{"skin": "medium", "hair": "black", "hairStyle": "coils"}]. ' +
+        "GET /api/v1/<user>/travellers/presets lists every word this takes.",
+    };
+  }
+  if (raw.length === 0) return NO_LINES;
+  if (raw.length > MAX_FIGURES) {
+    return {
+      ok: false,
+      error: "invalid_travellers",
+      message:
+        `travellers draws ${raw.length} figures; the most a trip may have is ${MAX_FIGURES}. ` +
+        "Past that it is a crowd scene rather than a party, and it does not fit a hero.",
+    };
+  }
+
+  const lines = ["travellers:"];
+  for (const [index, item] of raw.entries()) {
+    const at = `travellers[${index}]`;
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return {
+        ok: false,
+        error: "invalid_travellers",
+        message: `${at} must be an object describing one figure.`,
+      };
+    }
+    const entry = item as Record<string, unknown>;
+
+    const unknown = Object.keys(entry).filter((k) => !FIGURE_FIELDS.has(k));
+    if (unknown.length > 0) {
+      return {
+        ok: false,
+        error: "invalid_travellers",
+        message: unknown.includes("preset")
+          ? `${at}.preset is not written to disk. Resolve a starting point into its ` +
+            `attributes first — GET /api/v1/<user>/travellers/presets returns them — so the ` +
+            `file records a hair colour rather than a claim about somebody's background.`
+          : `${at} has ${unknown.map((k) => JSON.stringify(k)).join(", ")}, which is not a ` +
+            `figure field. Expected: ${[...FIGURE_FIELDS].join(", ")}.`,
+      };
+    }
+
+    const out: string[] = [];
+
+    const forWhom = entry.for;
+    if (forWhom !== undefined && forWhom !== null) {
+      const email = typeof forWhom === "string" ? forWhom.trim().toLowerCase() : "";
+      if (!PERSON_EMAIL_RE.test(email)) {
+        return {
+          ok: false,
+          error: "invalid_travellers",
+          message:
+            `${at}.for is ${JSON.stringify(forWhom)}; it ties this figure to an address in ` +
+            `people:, so it has to be one.`,
+        };
+      }
+      out.push(`for: ${quoteScalar(email)}`);
+    }
+
+    for (const [field, table] of FIGURE_COLOURS) {
+      const value = entry[field];
+      if (value === undefined || value === null) continue;
+      const ok =
+        typeof value === "string" &&
+        (HEX_COLOUR_RE.test(value) ||
+          value in table ||
+          (field === "pack" && value === "none"));
+      if (!ok) {
+        return {
+          ok: false,
+          error: "invalid_travellers",
+          message:
+            `${at}.${field} is ${JSON.stringify(value)}; expected a hex colour like ` +
+            `"#8b5630"${field === "pack" ? `, "none",` : ","} or one of: ` +
+            `${Object.keys(table).join(", ")}.`,
+        };
+      }
+      out.push(`${field}: ${quoteScalar(value)}`);
+    }
+
+    for (const [field, allowed] of FIGURE_ENUMS) {
+      const value = entry[field];
+      if (value === undefined || value === null) continue;
+      if (typeof value !== "string" || !allowed.includes(value)) {
+        return {
+          ok: false,
+          error: "invalid_travellers",
+          message:
+            `${at}.${field} is ${JSON.stringify(value)}; expected one of: ${allowed.join(", ")}.`,
+        };
+      }
+      // Written unquoted, matching `status:` and `accent:` above — and safe
+      // only because `allowed` is a fixed list checked one line up. Widen one
+      // of those lists to anything free-form without quoting here and this
+      // becomes YAML injection into somebody's trip.md.
+      out.push(`${field}: ${value}`);
+    }
+
+    const accessories = entry.accessories;
+    if (accessories !== undefined && accessories !== null) {
+      if (!Array.isArray(accessories)) {
+        return {
+          ok: false,
+          error: "invalid_travellers",
+          message: `${at}.accessories must be a list, e.g. ["glasses", "hat"].`,
+        };
+      }
+      for (const one of accessories) {
+        if (typeof one !== "string" || !(ACCESSORIES as readonly string[]).includes(one)) {
+          return {
+            ok: false,
+            error: "invalid_travellers",
+            message:
+              `${at}.accessories has ${JSON.stringify(one)}; expected one of: ` +
+              `${ACCESSORIES.join(", ")}.`,
+          };
+        }
+      }
+      if (accessories.length > 0) out.push(`accessories: [${accessories.join(", ")}]`);
+    }
+
+    if (out.length === 0) {
+      // An empty figure means the neutral default, which is what an absent
+      // entry already means — but a party of three where the middle one is
+      // unspecified still needs a slot, so it gets one.
+      lines.push("  - {}");
+    } else {
+      lines.push(`  - ${out[0]}`, ...out.slice(1).map((line) => `    ${line}`));
+    }
   }
   return { ok: true, lines };
 }
@@ -581,6 +787,7 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
    */
   const blocks: BlockResult[] = [
     peopleBlock(input.people),
+    travellersBlock(input.travellers),
     ratesBlock(input.rates),
     translationsBlock(input.translations, user.locales),
   ];

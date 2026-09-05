@@ -28,6 +28,9 @@ const user = {
   startLocation: "Zurich",
   baseCurrency: "CHF",
   locales: ["en"],
+  // Carries a `for:` address on purpose — the point of the test below is that
+  // it does not survive into the summary.
+  travellers: [{ for: "alex@example.test", skin: "medium", hairStyle: "short" }],
 } as unknown as UserConfig;
 
 async function summaryFor() {
@@ -58,6 +61,18 @@ describe("what the header is told about signing in", () => {
    * pins that, because the tempting next change is to pass a filtered list in
    * "so the header can be smarter about it".
    */
+  /**
+   * B11. This summary is serialised into every page under `/<username>`,
+   * including the gate an uninvited reader meets — so a journal that names its
+   * default party by address must not hand those addresses out with it. The
+   * renderer never reads `for:`, so nothing is lost by dropping it here.
+   */
+  test("carries no address from the journal's default party", async () => {
+    enabled.mockImplementation(() => true);
+    const summary = await summaryFor();
+    expect(JSON.stringify(summary)).not.toContain("@");
+  });
+
   test("carries nothing derived from a trip", async () => {
     enabled.mockImplementation(() => true);
     const summary = await summaryFor();
@@ -76,6 +91,12 @@ describe("what the header is told about signing in", () => {
       "startLocation",
       "tagline",
       "title",
+      // B11. The **journal's** default party, from its own config.json — a
+      // property of the journal in exactly the way `title` is. The party a
+      // particular trip declares does not come through here at all; it
+      // arrives with the trip, through `TripProvider`. That split is what
+      // keeps this summary free of anything the gate could have filtered.
+      "travellerFigures",
       "url",
       "username",
     ]);

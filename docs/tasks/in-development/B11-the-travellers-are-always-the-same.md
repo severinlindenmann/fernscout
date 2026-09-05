@@ -125,6 +125,33 @@ Not doing: a character editor in the browser (decision 24). The preview is
 read-only and has no controls. Not doing: per-entry figures, or faces derived
 from photographs.
 
+## What building it turned up
+
+Three things the plan did not know, recorded here rather than in the plan
+(`docs/plans/` is intent as written, and is not corrected afterwards).
+
+**The journal's default party leaks addresses if you are not careful.**
+`SiteSummary` is serialised into every page under `/<username>` — the layout
+wraps the lot, including the sign-in gate an uninvited reader meets, which
+deliberately does not even name the trip (B117). A journal whose `config.json`
+names its party with `for:` addresses would have handed those to any anonymous
+visitor. `withoutAddress` in `lib/site.ts` strips `for:` on the way in; the
+renderer never reads it, so nothing is lost. `test/access-door.test.ts` asserts
+no `@` survives into the summary. The *trip*-level case is different and was
+already true: `TripProvider` ships the whole `Trip`, `people[].email` included.
+
+**A colour name must be looked up with `Object.hasOwn`.** A plain `map[value]`
+reaches `Object.prototype`, so `hair: "constructor"` resolved to the Object
+constructor and stringified into the SVG as
+`fill="function Object() { [native code] }"`. It carries no quote, so it could
+not break out of the attribute — but a value arriving in the markup from
+`Object.prototype` is a bug regardless. Fixed in `colour()`, with a test.
+
+**The write path's enum fields are written unquoted**, which is safe only
+because each is validated against a fixed allow-list first. Relaxing one of
+those lists without quoting the value would make `travellersBlock` a YAML
+injection. Noted in the code at the point it matters.
+
 ## Acceptance
 
 - A journal configured with one traveller shows one figure; five shows five,

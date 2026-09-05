@@ -1,4 +1,5 @@
 import type { RateTable } from "./currency";
+import type { Figure } from "./travellers/vocabulary";
 
 export type TransportMode =
   | "flight"
@@ -348,6 +349,21 @@ export type Trip = {
    * distinction nobody on the bus was making.
    */
   people: TripPerson[];
+  /**
+   * How the people on this trip are **drawn** — see lib/travellers/.
+   *
+   * Deliberately not a field inside `people:`, and the separation is the
+   * load-bearing part rather than a stylistic one. `parsePeople` fails closed:
+   * one malformed entry drops the whole list, because that list is who may
+   * write to the trip. A cosmetic field sharing that parser would mean a typo
+   * in a hair colour revoking everybody's write access. `parseTravellers`
+   * fails open instead, and nothing it does can change `peopleOf()`.
+   *
+   * Empty means "whatever the journal's config says", and ultimately one
+   * neutral figure. An optional `for:` on a figure ties it to an address in
+   * `people:`, which is all the two blocks ever say to each other.
+   */
+  travellers: Figure[];
   visibility: TripVisibility;
   /**
    * Whether the trip is advertised — sitemap, feed, the trip switcher.

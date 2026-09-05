@@ -12,6 +12,7 @@ function trip(over: Partial<Trip> = {}): Trip {
     end: "2026-01-05",
     status: "past",
     people: [],
+    travellers: [],
     listed: true,
     accent: "sky",
     rates: {},

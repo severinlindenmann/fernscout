@@ -423,6 +423,7 @@ export function userDocumentation(username: string): string | null {
     `- [Drafts](${base()}/api/v1/${username}/drafts): everything waiting for a person to approve`,
     `- Trips: POST to [the same URL](${base()}/api/v1/${username}/trips) to create one (owner only; defaults to this journal's own visibility)`,
     `- [Invites](${base()}/api/v1/${username}/invites): POST \`{"kind":"guest"}\` for a link that lets somebody read the journal's \`guest\` trips, or \`{"kind":"buddy","trip":"<trip-id>"}\` for one that leads to writing to a trip — owner only, see "Letting other people in" in the agent guide`,
+    `- [Travellers](${base()}/api/v1/${username}/travellers/presets): the vocabulary a traveller is drawn in, and twelve starting points; \`…/travellers/preview?figure={…}\` answers with the picture, so somebody can see themselves before it is written down`,
     `- Deleting: DELETE [a trip](${base()}/api/v1/${username}/trips/<trip-id>) or [the journal](${base()}/api/v1/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it, so a 202 means the mail was sent`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,
@@ -1023,6 +1024,7 @@ rates" below for the door that opened.
 | --- | --- |
 | \`people\` | Who took the trip — \`[{"name": …, "email": …, "nickname": …}]\`, at most ten. It is the byline **and it is write access**: everyone named may write to the whole trip and may ask for a token scoped to it, using the address given. A malformed entry is refused by name rather than dropped. |
 | \`translations\` | The title and tagline in the journal's other languages — \`{"de": {"title": …, "tagline": …}}\`. A language the journal does not declare is refused, since it would be written and never rendered. |
+| \`travellers\` | How the party is **drawn** — see "Drawing the travellers" below. Purely cosmetic: unlike \`people\`, nothing in it decides who may write. |
 
 \`rates\` can still be sent here too, at creation, and reads the same way it
 always did: \`{"THB": 0.0245}\` means "1 THB = 0.0245" of the journal's base
@@ -1033,6 +1035,55 @@ is supported: its costs are reported as unconverted rather than guessed at.
 There is no \`cover\`. A trip has no photographs when it is created — media is
 attached to a day, and there are no days yet — so a cover is a line somebody
 adds to \`trip.md\` once the pictures are in.
+
+## Drawing the travellers
+
+Every journal opens with figures walking. Who they are is the \`travellers\`
+block — on the trip, or in the journal's config as a default. Absent means one
+neutral figure.
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/travellers/presets
+\`\`\`
+
+That is the whole vocabulary — skin tones, hair colours and styles, eyes,
+build, age, clothing, accessories — and twelve **starting points**. Use it
+rather than inventing a hex code; any colour field also takes one, but a token
+is what a person can read back.
+
+**Ask, and never infer.** A person telling you their own hair is short and
+black is stating a fact about themselves, and writing it down is the job.
+Guessing it is not. Not from a name, not from a photograph on the trip, not
+from a country — and an attribute nobody answered gets the **default**, which
+you then say out loud, rather than a plausible guess. Ask once, openly — *how
+would you like to be drawn?* — rather than walking somebody through twelve
+fields.
+
+**Show them before you write.** A person cannot confirm a description they
+cannot see, and reading \`skin: medium-deep, hairStyle: braids\` down a phone
+is not confirmation:
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/travellers/preview?figure={"skin":"deep","hairStyle":"coils"}
+GET ${site.url}/api/v1/${example}/travellers/preview?party=[{…},{…}]
+\`\`\`
+
+It answers with \`image/svg+xml\` and nothing else — no form, no controls.
+There is no character editor in the browser and there will not be one; \`party\`
+draws the group exactly as the hero will arrange it, which is worth showing
+once there is more than one of them.
+
+**A starting point resolves when it is picked, and its name is never written.**
+Send the attributes under \`resolve\`, not the name. \`preset\` is refused by
+name, because a preset name in a trip file is a claim about somebody's
+background that the owner did not think they were making — and one that stops
+being true the moment they change the hair.
+
+There is deliberately no \`gender\` field. Everything it would control is
+already chosen directly — hair style and length, clothing, \`build\` — and a
+two-way switch would leave a non-binary traveller with no right answer. If
+somebody tells you their gender, that is context for what to *offer*, not a
+field to fill in.
 
 ${scriptIntro(dayQuestions().length)}
 

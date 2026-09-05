@@ -37,6 +37,7 @@
     "i18n:keys": "node scripts/i18n-keys.mjs",
     "tasks": "node scripts/tasks.mjs",
     "avatar": "node scripts/render-avatar.mjs",
+    "travellers": "tsx scripts/travellers.ts",
     "unused": "knip"
   },
   "dependencies": {

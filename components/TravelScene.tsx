@@ -11,6 +11,9 @@ import {
 import { Plane, TrainFront, Bus, Bike, Car, Ship, Footprints, Cloud } from "lucide-react";
 import type { DaySummary, TransportMode, TravelSceneVariant } from "@/lib/types";
 import Travelers from "./Travelers";
+import { useSite } from "./SiteProvider";
+import { useTrip } from "./TripProvider";
+import { partyFor } from "@/lib/travellers/parse";
 import Cityscape from "./Cityscape";
 
 const VEHICLE_ICON = {
@@ -114,6 +117,13 @@ export default function TravelScene({
   const p = useMotionValue(0);
   const [progress, setProgress] = useState(0);
 
+  // The same party the hero draws. `useTrip` is null outside a trip's story,
+  // which a travel scene never is — but the fallback costs one `?.` and keeps
+  // this component renderable on its own.
+  const site = useSite();
+  const active = useTrip();
+  const party = partyFor(active?.trip.travellers ?? [], site.travellerFigures);
+
   const variant: TravelSceneVariant = leg.travelScene ?? "default";
   const km = legDistanceKm(from, leg);
 
@@ -205,7 +215,7 @@ export default function TravelScene({
             style={{ x: peopleX, opacity: peopleOpacity }}
             className="absolute bottom-7 left-8"
           >
-            <Travelers size={58} />
+            <Travelers figures={party} size={58} available={200} />
           </motion.div>
 
           <motion.div

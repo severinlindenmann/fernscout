@@ -3,6 +3,8 @@ import path from "node:path";
 import { contentRoot } from "./contentRoot";
 import { normalizeCurrency, type RateTable } from "./currency";
 import { DEFAULT_MEDIA_LIMITS, narrowest, parseMediaLimits, type MediaLimits } from "./mediaLimits";
+import { parseTravellers } from "./travellers/parse";
+import type { Figure } from "./travellers/vocabulary";
 
 /** Every optional capability. Adding one here is the only place it gets named. */
 export const FEATURE_NAMES = [
@@ -127,6 +129,15 @@ export type UserConfig = {
    * paying for the disk decides its size. See lib/mediaLimits.ts.
    */
   media: MediaLimits;
+  /**
+   * The journal's default party — how its travellers are drawn when a trip
+   * does not say for itself. See lib/travellers/.
+   *
+   * A trip's own `travellers:` block wins outright rather than merging: a trip
+   * is who was on *it*, and that changes between trips in one journal. Empty
+   * here and empty on the trip means one neutral figure.
+   */
+  travellers: Figure[];
 };
 
 /**
@@ -463,6 +474,10 @@ function parseUser(username: string, raw: unknown, problems: string[]): UserConf
     units,
     features: parseFeatures(src.features, problems, USER_DEFAULT_FEATURES),
     media: parseMediaLimits(src.media),
+    // Cosmetic, so it never adds to `problems`: a mistyped hair colour must
+    // not be the thing that takes a journal off the site. `parseTravellers`
+    // warns and falls back; see lib/travellers/parse.ts.
+    travellers: parseTravellers(src.travellers, `${username}/config.json`),
   };
 }
 

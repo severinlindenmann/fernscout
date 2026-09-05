@@ -3,6 +3,7 @@ import { isEnabled } from "./capabilities";
 import { costsAvailable } from "./costs";
 import { loadServerConfig, type UserConfig } from "./config";
 import { getUser } from "./users";
+import type { Figure } from "./travellers/vocabulary";
 import type { Trip, TripPerson } from "./types";
 
 /**
@@ -115,6 +116,20 @@ export type SiteSummary = {
   /** Always "/<username>": that is the canonical form (W22). */
   base: string;
   /**
+   * The journal's default party — how its travellers are **drawn** on a trip
+   * that does not say for itself. See lib/travellers/.
+   *
+   * `travellerFigures` rather than `travellers`, because `travellersOf` above
+   * is in this same file and answers a different question: *who is credited*
+   * with a trip, as names. Two meanings of one word in one module is how a
+   * caller reaches for the wrong one, so the drawings say so in their name.
+   *
+   * Here rather than fetched, because the components that draw them are client
+   * components rendered deep inside the story, and a journal-wide default is
+   * exactly the kind of thing this summary already carries.
+   */
+  travellerFigures: Figure[];
+  /**
    * Whether this reader holds a guest session on this journal.
    *
    * It once decided whether the access panel was offered at all, and that was
@@ -177,6 +192,25 @@ export type SiteSummary = {
   costsEnabled: boolean;
 };
 
+/**
+ * A figure with its `for:` address removed.
+ *
+ * `SiteSummary` is serialised into the HTML of **every** page under
+ * `/<username>` — `app/[user]/layout.tsx` wraps the lot, including the sign-in
+ * gate an uninvited reader meets. A journal whose `config.json` names its
+ * default party by address would therefore hand those addresses to anyone who
+ * loaded the gate, on a page that deliberately does not even name the trip
+ * (B117).
+ *
+ * Nothing is lost: `for:` ties a figure to an entry in a *trip's* `people:`
+ * block, the renderer never reads it, and at journal level it means nothing at
+ * all. The drawing is the only part the browser needs.
+ */
+function withoutAddress(figure: Figure): Figure {
+  const { for: _address, ...rest } = figure;
+  return rest;
+}
+
 export function siteSummaryFor(
   user: UserConfig,
   isDefaultUser: boolean,
@@ -192,6 +226,7 @@ export function siteSummaryFor(
     baseCurrency: user.baseCurrency,
     locales: user.locales,
     base: `/${user.username}`,
+    travellerFigures: user.travellers.map(withoutAddress),
     signedIn,
     hasIdentity,
     // Asked here rather than threaded through as a fourth positional boolean:
