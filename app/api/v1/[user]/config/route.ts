@@ -1,5 +1,6 @@
 import { authenticate, errorResponse, ownsUser } from "@/lib/api/auth";
 import { SESSION_SCOPE } from "@/lib/auth";
+import { resolveCapabilities } from "@/lib/capabilities";
 import { FEATURE_NAMES, type FeatureName } from "@/lib/config";
 import {
   JOURNAL_FIELD_REFUSALS,
@@ -69,7 +70,19 @@ function view(username: string) {
   const user = getUser(username);
   if (!user) return null;
   const features = {} as Record<FeatureName, boolean>;
-  for (const name of FEATURE_NAMES) features[name] = user.features[name].enabled;
+  // `logging` and `credits` are never a journal's own opt-in — see the same
+  // skip in app/api/health/route.ts and lib/config.ts's DEFAULT_FEATURES —
+  // so the raw per-journal flag below is not the answer for them; the
+  // server-resolved one, the same `/status` and `/api/health` report, is.
+  // B408: a journal's config previously showed `false` for a server-enabled
+  // `credits` because it read the unused per-journal flag instead.
+  const serverOnly = resolveCapabilities();
+  for (const name of FEATURE_NAMES) {
+    features[name] =
+      name === "logging" || name === "credits"
+        ? serverOnly[name].enabled
+        : user.features[name].enabled;
+  }
   return features;
 }
 

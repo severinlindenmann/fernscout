@@ -57,6 +57,17 @@ export function localizedEntryTitle(
 }
 
 /**
+ * A title and where it happened, joined only when there is a place.
+ *
+ * `location` is optional on an entry (lib/api/entries.ts), so interpolating a
+ * fixed " — " left a dangling one in the tab and the share card for a day
+ * that never named where it was — B418.
+ */
+export function titleWithLocation(title: string, location: string): string {
+  return [title, location].filter(Boolean).join(" — ");
+}
+
+/**
  * UI strings.
  *
  * The dictionaries live in `content/locales/<code>.json` and are read on the

@@ -1,6 +1,6 @@
 import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { deleteCosts, patchCosts, putCosts, type CostsEditInput, type CostsFileInput } from "@/lib/api/costs";
-import { conversionFor, readCostsFile } from "@/lib/costs";
+import { conversionFor, hasCostsData, readCostsFile } from "@/lib/costs";
 import { parseBudget, parseCostItems } from "@/lib/costFormat";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateCostsPatch, validateCostsPut } from "@/lib/validate/costs";
@@ -215,10 +215,17 @@ export async function DELETE(
     return Response.json({ error: "no_costs_file", message: result.error }, { status: 404 });
   }
 
+  // B328 widened `hasCostsData` to true when a day still carries its own
+  // `costs:` block, so removing the budget file does not always take the
+  // page with it (B420) — asked fresh, after the delete, rather than assumed.
+  const pageGone = !hasCostsData(ref);
   return Response.json({
     ok: true,
     trip: ref,
-    costsPageGone: true,
-    note: `costs.md is removed. The costs page for ${ref} no longer exists and will not appear in the trip's nav.`,
+    costsPageGone: pageGone,
+    note: pageGone
+      ? `costs.md is removed. The costs page for ${ref} no longer exists and will not appear in the trip's nav.`
+      : `costs.md is removed, but the costs page for ${ref} is still there — one or more days ` +
+        `still carry their own costs: block.`,
   });
 }

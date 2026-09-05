@@ -43,7 +43,13 @@ export async function generateMetadata({
       : undefined;
 
   return {
-    title: { default: `${user.title} — ${user.tagline}`, template: `%s · ${user.title}` },
+    // A tagline is optional (lib/config.ts defaults it to ""), and joining
+    // parts that exist keeps a dangling "— " out of the tab and the og:title
+    // for a journal that has none — B418.
+    title: {
+      default: [user.title, user.tagline].filter(Boolean).join(" — "),
+      template: `%s · ${user.title}`,
+    },
     description: user.tagline,
     alternates: { canonical: `/${username}` },
     ...(robots ? { robots } : {}),

@@ -11,7 +11,7 @@ import { siteSummary, travellersOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripStory from "@/app/TripStory";
 import { defaultLocaleFor, requestLocale } from "@/lib/locales";
-import { localizedEntryTitle } from "@/lib/i18n";
+import { localizedEntryTitle, titleWithLocation } from "@/lib/i18n";
 
 /** Per-day permalinks. Each entry gets a real, shareable, indexable URL that
  * renders the same scrolling story, opened at that day. */
@@ -40,13 +40,13 @@ export async function generateMetadata({
 
   const image = entry.gallery.find((g) => g.type === "image")?.src;
   const description = entry.content.replace(/\s+/g, " ").slice(0, 160);
-  const shared = `${entry.title} — ${entry.location}`;
+  const shared = titleWithLocation(entry.title, entry.location);
   // The tab follows the *reader*, same as the heading below it; the share
   // card keeps the written title (`entry.location` has no translation slot
   // either way).
   const locale = await requestLocale();
   const writtenLocale = defaultLocaleFor(user);
-  const title = `${localizedEntryTitle(entry, locale, writtenLocale)} — ${entry.location}`;
+  const title = titleWithLocation(localizedEntryTitle(entry, locale, writtenLocale), entry.location);
   const url = `/${user}/day/${entry.slug}`;
 
   return {
