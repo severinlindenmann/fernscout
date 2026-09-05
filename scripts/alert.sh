@@ -54,16 +54,20 @@ log "$UNIT finished — working out how, and telling somebody"
 # to send nothing.
 RESULT="$(systemctl show "$UNIT" --property=Result --value 2>/dev/null)" || RESULT=""
 EXIT_STATUS="$(systemctl show "$UNIT" --property=ExecMainStatus --value 2>/dev/null)" || EXIT_STATUS=""
+LOAD_STATE="$(systemctl show "$UNIT" --property=LoadState --value 2>/dev/null)" || LOAD_STATE=""
 JOURNAL="$(journalctl -u "$UNIT" -n 25 --no-pager 2>/dev/null)" || JOURNAL=""
 
 # How it ended, and the asymmetry is deliberate: **success has to be proven,
 # failure is the default.** systemd must have said `Result=success` *and* an
-# exit status of exactly 0. A box without `systemctl`, a property that came
-# back empty, a Result nobody here has seen before — every one of those is
-# reported as a failure, because a mail wrongly saying the backup worked is the
-# one outcome worse than no mail at all (B458).
+# exit status of exactly 0, *and* the unit must actually be one systemd has
+# loaded — a unit it has never heard of reports those same two defaults
+# (`Result=success`, `ExecMainStatus=0`) with `LoadState=not-found`, which is
+# not proof of anything. A box without `systemctl`, a property that came back
+# empty, a Result nobody here has seen before, a unit systemd never loaded —
+# every one of those is reported as a failure, because a mail wrongly saying
+# the backup worked is the one outcome worse than no mail at all (B458).
 OUTCOME="failure"
-if [[ "$RESULT" == "success" && "$EXIT_STATUS" == "0" ]]; then
+if [[ "$LOAD_STATE" != "not-found" && "$RESULT" == "success" && "$EXIT_STATUS" == "0" ]]; then
   OUTCOME="success"
 fi
 
