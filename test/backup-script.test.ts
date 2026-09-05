@@ -894,6 +894,63 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     120_000,
   );
 
+  test(
+    "the success mail carries the status report, and the failure mail the journal",
+    () => {
+      // B464: the two bodies are not the same thing. A failure's reader is
+      // asking why, and the journal tail answers it; a success's reader is
+      // asking what is on the instance, and a restic log answers nothing.
+      //
+      // Asserted through alert.sh with a stubbed `systemctl`, because the
+      // branch that picks between them is in the shell and not in the mailer.
+      const proofBin = path.join(scratch, "systemctl-body-check");
+      fs.mkdirSync(proofBin, { recursive: true });
+      fs.writeFileSync(
+        path.join(proofBin, "systemctl"),
+        '#!/bin/sh\ncase "$*" in *Result*) echo success ;; *ExecMainStatus*) echo 0 ;; *) ;; esac\n',
+        { mode: 0o755 },
+      );
+      // A stub `npm` that records the body it was piped and prints what it was
+      // asked to run — the real one would need a content root and a mail
+      // transport, and neither is what this test is about.
+      const record = path.join(scratch, "mail-body.txt");
+      fs.writeFileSync(
+        path.join(proofBin, "npm"),
+        `#!/bin/sh\ncase "$*" in *status*) echo "STATUS-REPORT-STANDIN" ;; *) cat > ${JSON.stringify(record)} ;; esac\n`,
+        { mode: 0o755 },
+      );
+      const env = { ...process.env, PATH: `${proofBin}:${process.env.PATH}`, DATA_DIR: dataDir };
+
+      fs.rmSync(record, { force: true });
+      spawnSync("bash", [path.join(process.cwd(), "scripts", "alert.sh"), "fernscout-backup.service"], {
+        encoding: "utf8",
+        env,
+      });
+      const success = fs.readFileSync(record, "utf8");
+      expect(success).toContain("STATUS-REPORT-STANDIN");
+      expect(success).toContain("finished cleanly");
+
+      // The same handler, the same stub, the one difference being what systemd
+      // says about the run.
+      fs.writeFileSync(
+        path.join(proofBin, "systemctl"),
+        '#!/bin/sh\ncase "$*" in *Result*) echo exit-code ;; *ExecMainStatus*) echo 1 ;; *) ;; esac\n',
+        { mode: 0o755 },
+      );
+      fs.rmSync(record, { force: true });
+      spawnSync("bash", [path.join(process.cwd(), "scripts", "alert.sh"), "fernscout-backup.service"], {
+        encoding: "utf8",
+        env,
+      });
+      const failure = fs.readFileSync(record, "utf8");
+      expect(failure).toContain("fernscout-backup.service failed");
+      expect(failure, "a failure must not be handed a status report instead of the log").not.toContain(
+        "STATUS-REPORT-STANDIN",
+      );
+    },
+    120_000,
+  );
+
   // --- B114: one file nobody needed may not cost the night's backup --------
 
   /** Snapshots carrying restic's `partial` tag — the label a run puts on a

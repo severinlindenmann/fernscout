@@ -95,10 +95,16 @@ const lines = [
   detail || "(no detail was supplied)",
   "",
   "What to look at:",
-  `  systemctl status ${unit}       how the last run ended`,
-  `  journalctl -u ${unit} -n 50    ${succeeded ? "what it did" : "why"}`,
 ];
+// A failure's next question is "why", and the two commands that answer it. A
+// success has no next question — pointing a reader at `journalctl` to confirm
+// that nothing is wrong is exactly the log-reading this mail exists to replace
+// (B464). It keeps the health URL, which is the one thing worth a click.
+if (!succeeded) {
+  lines.push(`  systemctl status ${unit}       how the last run ended`, `  journalctl -u ${unit} -n 50    why`);
+}
 if (site.url) lines.push(`  ${site.url}/api/health    the .backup block, from anywhere`);
+if (succeeded && !site.url) lines.push("  nothing — this is the whole report");
 lines.push("", `Sent by scripts/alert.sh, from the unit's ${succeeded ? "OnSuccess=" : "OnFailure="}.`);
 const text = lines.join("\n");
 
