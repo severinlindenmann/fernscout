@@ -13,6 +13,7 @@ import {
   HAIR,
   HAIR_STYLES,
   MAX_FIGURES,
+  OUTFITS,
   SKIN,
 } from "./travellers/vocabulary";
 import { getTrip, MAX_TRIP_PEOPLE, PERSON_EMAIL_RE, tripRef } from "./trips";
@@ -268,6 +269,7 @@ function peopleBlock(raw: unknown): BlockResult {
  */
 const FIGURE_ENUMS: ReadonlyArray<[string, readonly string[]]> = [
   ["hairStyle", HAIR_STYLES],
+  ["outfit", OUTFITS],
   ["build", BUILDS],
   ["age", AGES],
 ];

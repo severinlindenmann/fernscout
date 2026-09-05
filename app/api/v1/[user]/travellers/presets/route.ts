@@ -7,9 +7,11 @@ import {
   HAIR,
   HAIR_STYLES,
   MAX_FIGURES,
+  OUTFITS,
   SKIN,
 } from "@/lib/travellers/vocabulary";
 import { STARTING_POINTS } from "@/lib/travellers/presets";
+import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +54,8 @@ export async function GET(
     );
   }
 
+  const base = serverSite().url;
+
   return Response.json({
     user,
     maxFigures: MAX_FIGURES,
@@ -60,13 +64,47 @@ export async function GET(
       hair: Object.keys(HAIR),
       eyes: Object.keys(EYES),
       hairStyle: HAIR_STYLES,
+      outfit: OUTFITS,
       build: BUILDS,
       age: AGES,
       accessories: ACCESSORIES,
       /** `shirt`, `pants`, `pack` and `headscarf` all take these. */
       cloth: Object.keys(CLOTH),
     },
+    /**
+     * What each field is *for*. The value lists above answer "what may I
+     * say"; without this the response never answers "what am I building", and
+     * an agent that has read the whole thing still has to guess at the shape
+     * of the object it is meant to send.
+     */
+    fields: {
+      for: "Optional. An address in the trip's people: block, tying this figure to a name. It grants nothing — nothing in this block can change who may write to the trip.",
+      skin: "A tone. Ordinal, from light to rich; it says how light or deep, and nothing about where anybody is from.",
+      hair: "Hair colour. grey and white are colours like any other — nothing greys on its own with age.",
+      hairStyle: "How the hair is worn. headscarf lives here rather than under accessories because it replaces the hair rather than resting on it.",
+      eyes: "Eye colour. Two pixels wide at hero size, so it reads in the preview and the photobook and nowhere else — do not spend a question on it.",
+      shirt: "The top. Also the colour of a dress or a robe, which are the top.",
+      pants: "The lower garment: trousers, shorts or a skirt. Ignored for a dress or a robe.",
+      outfit: "What they wear below the shoulders. Whatever covers the torso takes shirt (dress, robe); a separate lower garment takes pants (trousers, shorts, skirt). Absent is trousers.",
+      pack: 'Backpack colour, or "none" for no pack at all.',
+      headscarf: "The colour of a headscarf. Ignored for every other hairStyle; absent uses the shirt colour, so it reads as fabric rather than as hair.",
+      build: "The silhouette.",
+      age: "A height multiplier and nothing else. Children and teenagers are also drawn in the front rank, so they are not hidden behind an adult.",
+      accessories: "A list. Drawn last, over everything else.",
+    },
+    /** The shape to send. Every field is optional; absent means the default. */
+    example: {
+      for: "ana@example.test",
+      skin: "medium-deep",
+      hair: "black",
+      hairStyle: "braids",
+      shirt: "coral",
+      outfit: "skirt",
+      pants: "plum",
+      accessories: ["glasses"],
+    },
     hex: 'Any colour field also takes a hex code, e.g. "#8b5630".',
+    preview: `${base}/api/v1/${user}/travellers/preview?figure={…} draws one, ?party=[{…},{…}] draws the group as the hero will arrange it. Show somebody their figure before writing it down — a person cannot confirm a description they cannot see.`,
     startingPoints: STARTING_POINTS.map((p) => ({ name: p.name, resolve: p.figure })),
     note:
       "A starting point is one common combination out of many, not a rule about anybody — " +

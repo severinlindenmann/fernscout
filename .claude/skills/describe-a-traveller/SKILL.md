@@ -97,16 +97,24 @@ what they are agreeing to.
 ### 5. Read back what you set **and what you did not**
 
 ```
-skin: medium-deep
-hair: black
-hairStyle: braids
-eyes: brown          ← default, you didn't say
-build: average       ← default, you didn't say
-age: adult           ← default, you didn't say
+skin: deep           ← you said
+hair: black          ← you said
+hairStyle: braids    ← you said
+outfit: skirt        ← you said
+pants: plum          ← you said
+shirt: coral           default — you didn't say, shall I change it?
+eyes: brown            default
+build: average         default
+age: adult             default
 ```
 
 Both halves. A silent default reads as a choice, and this is the line that
 stops it.
+
+Watch for defaults you were *forced* into. Somebody who asks for a skirt has
+said nothing about the top that goes with it, so `shirt` is a colour you
+picked on their behalf — call it out by name rather than letting it sit in the
+list, because it is the one they are most likely to want changed.
 
 ### 6. Write it on yes
 
@@ -150,6 +158,10 @@ you ask anything:
   can change who may write to the trip.
 - **`eyes`** is two pixels wide in the hero. It is in the vocabulary because
   it reads in the preview and the photobook. **Do not spend a question on it.**
+- **`outfit`** is `trousers` (the default), `shorts`, `skirt`, `dress` or
+  `robe`. The colour rule catches people out: whatever covers the torso takes
+  `shirt`, so a **dress and a robe are `shirt`-coloured**, while trousers,
+  shorts and a skirt take `pants` under a separate `shirt`.
 
 ## There is no gender field
 
@@ -161,7 +173,9 @@ two-way switch and no right answer.
 
 If somebody says "I'm a woman", that is not a field to fill in — it is context
 for what to *offer*. Ask what they'd like their hair and clothes to be, or
-suggest a starting point and let them correct it.
+suggest a starting point and let them correct it. `outfit` is the field people
+usually mean when they reach for this: "in a dress rather than trousers" is a
+thing to ask about and record, and it is not a claim about anybody.
 
 ## Red flags — stop
 

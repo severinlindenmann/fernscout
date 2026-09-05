@@ -9,6 +9,13 @@ accent: green
 cover: "/media/alps-2024/grimsel-and-rain/01.jpg"
 visibility: public
 costsVisibility: public
+travellers:
+  - skin: light-medium
+    hair: brown
+    hairStyle: short
+    shirt: rust
+    pants: slate
+    accessories: [beanie, stick]
 rates:
   EUR: 0.94
 translations:

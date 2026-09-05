@@ -26,6 +26,16 @@ travellers:
     hair: black
     hairStyle: braids
     shirt: coral
+    outfit: shorts
+    pants: sand
+  - age: elder
+    skin: light
+    hair: grey
+    hairStyle: short
+    shirt: teal
+    pants: slate
+    pack: none
+    accessories: [hat]
 visibility: public
 costsVisibility: public
 rates:

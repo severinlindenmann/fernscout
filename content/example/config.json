@@ -8,6 +8,10 @@
   "baseCurrency": "CHF",
   "displayCurrencies": ["CHF", "EUR", "USD"],
   "units": "metric",
+  "travellers": [
+    { "for": "agent@fernscout.ch", "skin": "light-medium", "hair": "brown", "hairStyle": "short", "shirt": "sky", "pants": "slate", "accessories": ["glasses"] },
+    { "for": "priya@example.com", "skin": "medium-deep", "hair": "black", "hairStyle": "braids", "shirt": "coral", "outfit": "skirt", "pants": "plum" }
+  ],
   "features": {
     "reactions": { "enabled": true },
     "costs": { "enabled": true },

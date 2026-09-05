@@ -16,6 +16,40 @@ people:
     nickname: "Priya"
 visibility: public
 costsVisibility: public
+travellers:
+  - skin: light-medium
+    hair: brown
+    hairStyle: short
+    shirt: sky
+    pants: slate
+    accessories: [glasses]
+  - skin: medium-deep
+    hair: black
+    hairStyle: braids
+    shirt: coral
+    outfit: skirt
+    pants: plum
+  - skin: light
+    hair: blond
+    hairStyle: bun
+    shirt: teal
+    pants: slate
+    pack: none
+    accessories: [camera]
+  - skin: deep
+    hair: black
+    hairStyle: coils
+    shirt: yellow
+    outfit: dress
+    pack: none
+    accessories: [sunglasses]
+  - skin: medium
+    hair: black
+    hairStyle: headscarf
+    headscarf: cream
+    shirt: sand
+    outfit: robe
+    pack: none
 rates:
   THB: 0.0258
   VND: 0.0000372

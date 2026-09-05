@@ -132,6 +132,73 @@ function hairInFront(style: HairStyle, c: string): string {
   }
 }
 
+/**
+ * Everything below the shoulders — B498.
+ *
+ * It used to be two rounded rects in `pants` and nothing else, so every
+ * traveller on every journal was in trousers and a person who wears a dress
+ * could not be drawn as themselves.
+ *
+ * The colour rule is in `OUTFITS`: whatever covers the torso takes `shirt`, a
+ * separate lower garment takes `pants`. So `dress` and `robe` are drawn in
+ * `shirt` and swallow the torso entirely; the other three keep the torso and
+ * draw over the legs.
+ *
+ * Legs and feet come first in every case, because a skirt hem and a dress hem
+ * both have to sit *over* the top of them.
+ */
+function lowerBody(outfit: string, shirt: string, pants: string, skin: string): string {
+  const legs = (top: number, length: number) =>
+    `<rect x="21" y="${top}" width="9.5" height="${length}" rx="4.75" fill="${pants}"/>` +
+    `<rect x="33.5" y="${top}" width="9.5" height="${length}" rx="4.75" fill="${pants}"/>`;
+  const bareLegs = (top: number, length: number) =>
+    `<rect x="21.6" y="${top}" width="8.4" height="${length}" rx="4.2" fill="${skin}"/>` +
+    `<rect x="34" y="${top}" width="8.4" height="${length}" rx="4.2" fill="${skin}"/>`;
+  const feet =
+    `<ellipse cx="25.5" cy="89" rx="6.5" ry="3.2" fill="#2b3648"/>` +
+    `<ellipse cx="38.5" cy="89" rx="6.5" ry="3.2" fill="#2b3648"/>`;
+  const torso =
+    `<path d="M17 42q15-6 30 0l2 24q-17 6-34 0z" fill="${shirt}"/>` +
+    `<path d="M17 42q15-6 30 0l0.6 7q-15-5-31 0z" fill="${shade(shirt, 0.8)}" opacity="0.6"/>`;
+
+  switch (outfit) {
+    case "shorts":
+      // The hem clears the torso before it stops, or the garment is hidden
+      // under the shirt and all that reads is bare legs — which is any outfit
+      // at all. It is the one case where the leg colour changes partway down.
+      return bareLegs(64, 24) + feet + legs(64, 15) + torso;
+    case "skirt":
+      return (
+        bareLegs(64, 24) +
+        feet +
+        // A flared hem to just above the knee, over the top of the legs.
+        `<path d="M18.5 64q13.5-4 27 0l4 16q-17.5 5-35 0z" fill="${pants}"/>` +
+        `<path d="M18.5 64q13.5-4 27 0l0.5 3q-14-3.4-28 0z" fill="${shade(pants, 0.82)}" opacity="0.5"/>` +
+        torso
+      );
+    case "dress":
+      // One shape from the shoulders down: it *is* the top, so it is `shirt`
+      // coloured and there is no separate torso.
+      return (
+        bareLegs(70, 18) +
+        feet +
+        `<path d="M17 42q15-6 30 0l7 34q-22 6-44 0z" fill="${shirt}"/>` +
+        `<path d="M17 42q15-6 30 0l0.6 7q-15-5-31 0z" fill="${shade(shirt, 0.8)}" opacity="0.6"/>`
+      );
+    case "robe":
+      // To the ankles, and wider still. No legs show at all.
+      return (
+        feet +
+        `<path d="M17 42q15-6 30 0l6 46q-21 5-42 0z" fill="${shirt}"/>` +
+        `<path d="M17 42q15-6 30 0l0.6 7q-15-5-31 0z" fill="${shade(shirt, 0.8)}" opacity="0.6"/>` +
+        `<path d="M31 50h2l1 38h-4z" fill="${shade(shirt, 0.88)}" opacity="0.55"/>`
+      );
+    case "trousers":
+    default:
+      return legs(64, 24) + feet + torso;
+  }
+}
+
 function accessory(name: string): string {
   switch (name) {
     case "glasses":
@@ -265,12 +332,10 @@ export function renderFigure(figure: Figure, options: RenderOptions = {}): strin
 
   const torso =
     `<g transform="translate(32,0) scale(${build},1) translate(-32,0)">` +
-    `<rect x="21" y="64" width="9.5" height="24" rx="4.75" fill="${pants}"/>` +
-    `<rect x="33.5" y="64" width="9.5" height="24" rx="4.75" fill="${pants}"/>` +
-    `<ellipse cx="25.5" cy="89" rx="6.5" ry="3.2" fill="#2b3648"/>` +
-    `<ellipse cx="38.5" cy="89" rx="6.5" ry="3.2" fill="#2b3648"/>` +
-    `<path d="M17 42q15-6 30 0l2 24q-17 6-34 0z" fill="${shirt}"/>` +
-    `<path d="M17 42q15-6 30 0l0.6 7q-15-5-31 0z" fill="${shade(shirt, 0.8)}" opacity="0.6"/>` +
+    lowerBody(figure.outfit ?? "trousers", shirt, pants, skin) +
+    // Sleeves take the shirt colour whatever the outfit — for a dress or a
+    // robe that is the garment's own colour, which is what makes them read as
+    // one piece rather than as a top over a skirt.
     `<rect x="11.5" y="44" width="8" height="22" rx="4" fill="${shirt}"/>` +
     `<rect x="44.5" y="44" width="8" height="22" rx="4" fill="${shirt}"/>` +
     `<circle cx="15.5" cy="67" r="4.6" fill="${skin}"/>` +

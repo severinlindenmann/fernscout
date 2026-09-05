@@ -102,6 +102,22 @@ export const ACCESSORIES = [
   "stick",
 ] as const;
 
+/**
+ * What they are wearing below the shoulders.
+ *
+ * Everybody used to be drawn in trousers — two rounded rects in `pants` were
+ * the only garment there was — so a person who wears a dress, a skirt or a
+ * robe could not be drawn as themselves at all (B498).
+ *
+ * **Which colour a garment takes follows one rule**: whatever covers the
+ * torso takes `shirt`, and a separate lower garment takes `pants`. So a
+ * `dress` and a `robe` are `shirt`-coloured (they *are* the top), while
+ * `trousers`, `shorts` and a `skirt` are `pants`-coloured under a `shirt`.
+ * Worth stating because it is the one thing a person gets wrong when writing
+ * the block by hand.
+ */
+export const OUTFITS = ["trousers", "shorts", "skirt", "dress", "robe"] as const;
+
 export const BUILDS = ["slight", "average", "broad"] as const;
 export const AGES = ["child", "teen", "adult", "elder"] as const;
 
@@ -111,6 +127,7 @@ export type EyeColour = keyof typeof EYES;
 export type ClothColour = keyof typeof CLOTH;
 export type HairStyle = (typeof HAIR_STYLES)[number];
 export type Accessory = (typeof ACCESSORIES)[number];
+export type Outfit = (typeof OUTFITS)[number];
 export type Build = (typeof BUILDS)[number];
 export type Age = (typeof AGES)[number];
 
@@ -136,6 +153,8 @@ export type Figure = {
   pants?: ClothColour | string;
   /** `"none"` draws no pack at all. */
   pack?: ClothColour | "none" | string;
+  /** What they wear below the shoulders. See `OUTFITS` for the colour rule. */
+  outfit?: Outfit;
   /** The colour of a `headscarf`; ignored for every other style. */
   headscarf?: ClothColour | string;
   build?: Build;
