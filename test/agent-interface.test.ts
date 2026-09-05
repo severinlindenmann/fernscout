@@ -867,4 +867,31 @@ describe("the discovery document does not point at 404s", () => {
       expect(fs.existsSync(path.join(process.cwd(), route)), route).toBe(true);
     }
   });
+})
+
+describe("the wrong-verb messages name doors that exist (B414)", () => {
+  test("the trip route does not call visibility file-only, and does not promise the costs page goes", async () => {
+    const { PATCH } = await import("@/app/api/v1/[user]/trips/[trip]/route");
+    const res = await PATCH(new Request("https://x.test", { method: "PATCH" }), {
+      params: Promise.resolve({ user: "alex", trip: "andes-2025" }),
+    });
+    const body = (await res.json()) as { message: string };
+    expect(res.status).toBe(405);
+    // visibility and rates both have doors now — B396 and B352.
+    expect(body.message).toContain("/trips/andes-2025/visibility");
+    expect(body.message).toContain("/trips/andes-2025/rates");
+    expect(body.message).not.toMatch(/visibility[^.]*not writable/i);
+    // B332: deleting a budget does not necessarily take the page with it.
+    expect(body.message).not.toContain("removes the costs page");
+  });
+
+  test("the journal route does not claim features are writable through no door", async () => {
+    const { PATCH } = await import("@/app/api/v1/[user]/route");
+    const res = await PATCH(new Request("https://x.test", { method: "PATCH" }), {
+      params: Promise.resolve({ user: "alex" }),
+    });
+    const body = (await res.json()) as { message: string };
+    expect(res.status).toBe(405);
+    expect(body.message).not.toMatch(/features are not writable through any door/i);
+  });
 });

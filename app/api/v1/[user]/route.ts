@@ -114,8 +114,10 @@ export async function PATCH(_request: Request, { params }: RouteContext<"/api/v1
       error: "method_not_allowed",
       message:
         `This route takes DELETE and nothing else. To change a journal's title, tagline, ` +
-        `visibility, languages or currencies, use PATCH /api/v1/${user}/config. A journal's ` +
-        `features are not writable through any door — see /agent.md.`,
+        `visibility, languages or currencies, use PATCH /api/v1/${user}/config — and its ` +
+        `features through the same call, in a separate request, since a body naming both ` +
+        `is refused. owner.email, baseCurrency and media stay an edit at the file: see ` +
+        `/agent.md for why each one is.`,
     },
     { status: 405, headers: { Allow: "DELETE" } },
   );
