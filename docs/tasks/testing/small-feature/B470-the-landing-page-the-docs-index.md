@@ -7,8 +7,7 @@ complexity: medium
 area: docs, information architecture, navigation, i18n
 found: "2026-09-05T13:22:14Z"
 started: "2026-09-05T13:22:24Z"
-session: 3744307d-de1f-4fd7-a058-d689389ddc6c
-claimed: "2026-09-05T13:22:24Z"
+merged: "2026-09-05T13:35:40Z"
 ---
 
 # B470 — The landing page, the docs index and the guides are three surfaces with no shared shell, so the documentation reads as a pile rather than a site

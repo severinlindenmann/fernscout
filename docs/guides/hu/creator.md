@@ -31,9 +31,14 @@ utasítást ad az ügynöködnek, így nem kell kódot felolvasnod.
 
 ## Egy nap megírása
 
-Mondd el az ügynöködnek, mi történt. Add oda a fényképeket, ha vannak — az
-időbélyeget és a helyet a legtöbb telefonról és fényképezőgépről automatikusan
-kiolvassa, így a nap a helyes dátumra kerül anélkül, hogy mondanod kellene.
+Mondd el az ügynöködnek, mi történt.
+
+**A fényképek akkor segítenek a legtöbbet, ha van rajtuk időbélyeg.** Minden
+elterjedt formátum megfelel. A JPEG és a HEIC a legtöbb telefonon és
+fényképezőgépen automatikusan rögzíti a felvétel idejét — és gyakran a helyet
+is —, és épp ez teszi lehetővé, hogy az ügynök a helyes dátumra tegye a napot,
+anélkül hogy megmondanád. Ha kézzel exportálsz, szkennelsz vagy nevezel át
+fájlokat, írd inkább a dátumot a fájlnévbe: `2026-08-26-hoi-an-01.jpg`.
 
 **Amit egy ügynök ír, az piszkozatként érkezik.** Addig nincs fenn az oldalon,
 amíg te nem mondod. Olvasd át előtte: az ügynök azt írja, amit mondtak neki, és

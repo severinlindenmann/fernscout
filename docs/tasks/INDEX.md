@@ -203,13 +203,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B470](in-development/B470-the-landing-page-the-docs-index.md) | The landing page, the docs index and the guides are three surfaces with no shared shell, so the documentation reads as a pile rather than a site | FEATURE | high | medium | `3744307d` |
+_Nothing here._
 
-## testing (169)
+## testing (170)
 
 ### security (1)
 
@@ -335,7 +333,7 @@ _Nothing here._
 | [B405](testing/big-feature/B405-a-mock-payment-page-with-a.md) | A mock payment page with a transaction, status and TWINT/card options, emailed as a come-back-later link | FEATURE | medium | high | — |
 | [B425](testing/big-feature/B425-until-a-psp-exists-a-payment.md) | Until a PSP exists, a payment is a request the instance admin approves by an emailed link, which grants the credits | FEATURE | medium | high | — |
 
-### small-feature (24)
+### small-feature (25)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -345,6 +343,7 @@ _Nothing here._
 | [B433](testing/small-feature/B433-a-reader-inside-a-journal-has.md) | A reader inside a journal has no way back to the other journals they can open | FEATURE | high | low | — |
 | [B439](testing/small-feature/B439-notifications-can-only-be-switched-on.md) | Notifications can only be switched on from a trip's hero, which is gone the moment a reader starts reading | FEATURE | high | low | — |
 | [B440](testing/small-feature/B440-nothing-ever-offers-notifications-to-a.md) | Nothing ever offers notifications to a reader who would want them, so the switch is only found by somebody already looking for it | FEATURE | high | medium | — |
+| [B470](testing/small-feature/B470-the-landing-page-the-docs-index.md) | The landing page, the docs index and the guides are three surfaces with no shared shell, so the documentation reads as a pile rather than a site | FEATURE | high | medium | — |
 | [B273](testing/small-feature/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium | — |
 | [B364](testing/small-feature/B364-the-lifetime-map-draws-a-bare.md) | The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries | FEATURE | medium | low | — |
 | [B367](testing/small-feature/B367-an-owner-cannot-see-what-they.md) | An owner cannot see what they have left to spend or what one send would cost | FEATURE | medium | medium | — |

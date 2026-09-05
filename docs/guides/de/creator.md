@@ -33,10 +33,14 @@ keinen Code vorlesen.
 
 ## Einen Tag schreiben
 
-Erzähl deinem Agenten, was passiert ist. Gib ihm die Fotos, wenn du welche
-hast — Zeitstempel und Ort werden bei den meisten Handys und Kameras
-automatisch ausgelesen, der Tag landet also am richtigen Datum, ohne dass du
-es sagst.
+Erzähl deinem Agenten, was passiert ist.
+
+**Am meisten helfen Fotos, die einen Zeitstempel tragen.** Jedes übliche
+Format geht. JPEG und HEIC speichern die Aufnahmezeit — und oft den Ort — bei
+den meisten Handys und Kameras automatisch, und genau das lässt einen Agenten
+den Tag auf das richtige Datum legen, ohne dass du es sagst. Wenn du Dateien
+von Hand exportierst, scannst oder umbenennst, schreib das Datum stattdessen
+in den Dateinamen: `2026-08-26-hoi-an-01.jpg`.
 
 **Alles, was ein Agent schreibt, kommt als Entwurf an.** Es steht erst auf der
 Seite, wenn du es sagst. Lies es vorher nach: ein Agent schreibt, was ihm

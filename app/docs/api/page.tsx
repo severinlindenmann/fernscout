@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import DocsNav from "@/components/DocsNav";
 import { openApiDocument } from "@/lib/api/openapi";
 import EntryContent from "@/components/EntryContent";
+import { docsNavEntries } from "@/lib/docs";
+import { requestLocale } from "@/lib/locales";
 
 export const metadata: Metadata = { title: "API" };
 
@@ -35,17 +37,19 @@ const METHOD_ORDER = ["get", "post", "patch", "delete", "put"];
  * surface rather than a request sender (see B299) — nothing here needs a
  * request to run.
  */
-export default function ApiDocsPage() {
+export default async function ApiDocsPage() {
+  const locale = await requestLocale();
   const doc = openApiDocument();
   const paths = Object.entries(doc.paths) as [string, Record<string, Operation>][];
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
+      {/* The link back to `/docs` is gone: the shell's header carries the way
+          out now, and two of them is the duplication B470 exists to remove.
+          The two agent-facing documents stay, because they are what somebody
+          reading an API reference actually wants next. */}
       <p className="text-sm font-semibold text-navy-500">
-        <Link href="/docs" className="underline decoration-navy-200 hover:decoration-navy-500">
-          /docs
-        </Link>{" "}
-        · <a href="/agent.md" className="underline decoration-navy-200 hover:decoration-navy-500">
+        <a href="/agent.md" className="underline decoration-navy-200 hover:decoration-navy-500">
           /agent.md
         </a>{" "}
         · <a href="/openapi.json" className="underline decoration-navy-200 hover:decoration-navy-500">
@@ -55,6 +59,10 @@ export default function ApiDocsPage() {
       <h1 className="mt-2 font-display text-3xl font-semibold text-navy-900">{doc.info.title}</h1>
       <div className="mt-3">
         <EntryContent markdown={doc.info.description} />
+      </div>
+
+      <div className="mt-6">
+        <DocsNav locale={locale} entries={docsNavEntries()} current="/docs/api" />
       </div>
 
       <nav className="mt-8 rounded-2xl border border-navy-200 bg-white p-4" aria-label="Endpoints">

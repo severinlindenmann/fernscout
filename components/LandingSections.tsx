@@ -340,15 +340,10 @@ export function Colophon({
                 {t("landing.source")}
               </a>
             )}
-            <Link
-              href="/docs/api"
-              className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-navy-900
-                         underline decoration-blue-500 decoration-2 underline-offset-4
-                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            >
-              <BookOpen className="h-4 w-4" />
-              {t("landing.apiDocs")}
-            </Link>
+            {/* One door to the documentation, not three — B470. The API
+                reference is a card on `/docs`, one click away; three separate
+                links from this page is how a visitor came to meet the docs at
+                three different depths depending on which one they pressed. */}
           </div>
         </div>
       </section>
