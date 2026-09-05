@@ -30,6 +30,33 @@ export const VIDEO_MAX_BYTES = 200 * 1024 * 1024;
 
 export const MAX_ITEMS_PER_DAY = 40;
 
+/**
+ * The whole request body, which is a different limit from any of the above —
+ * B523.
+ *
+ * This app has a `proxy.ts`, and Next buffers the body of a proxied request in
+ * memory so it can be read more than once. Past
+ * `experimental.proxyClientMaxBodySize` it does not fail: it **truncates** and
+ * logs a warning server-side, and the route's `request.formData()` then cannot
+ * parse what is left. Next's default is 10 MB, which is below the ordinary
+ * output of a current phone — 15 of 75 photographs in one real import could
+ * not be sent at all, and the refusal said `expected_multipart`, which sends
+ * the caller to inspect its own Content-Type.
+ *
+ * So the number is set here rather than left to the default, and
+ * `next.config.ts` reads it from this file so the cap and the documentation
+ * cannot drift apart.
+ *
+ * Why 64 MiB and not 200 (`VIDEO_MAX_BYTES`): every byte of it is held in
+ * memory before the route sees the request, so this is the one limit whose
+ * ceiling is the server's RAM rather than somebody's disk. 64 MiB clears the
+ * 50 MB an image may be, with room for the multipart framing around it. A clip
+ * larger than this cannot come through the network door at all — `npm run
+ * ingest`, which reads a folder on the same machine, has no such ceiling — and
+ * the refusal says so rather than leaving it to be discovered.
+ */
+export const REQUEST_MAX_BYTES = 64 * 1024 * 1024;
+
 export type Problem = {
   field: string;
   got: string;

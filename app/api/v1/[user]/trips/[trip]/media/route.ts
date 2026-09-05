@@ -4,10 +4,16 @@ import { storeUploads, type KeptOriginal, type UploadCandidate } from "@/lib/api
 import { getTrip, tripRef } from "@/lib/trips";
 import { fetchImage } from "@/lib/api/fetchMedia";
 import { getUser } from "@/lib/users";
-import { IMAGE_MAX_BYTES, MAX_ITEMS_PER_DAY } from "@/lib/validate/media";
+import { IMAGE_MAX_BYTES, MAX_ITEMS_PER_DAY, REQUEST_MAX_BYTES } from "@/lib/validate/media";
 import type { GalleryItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+/** Same shape the media validator prints, so a size in a refusal here reads
+ *  like a size in a refusal there. */
+function megabytes(bytes: number): string {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 /**
  * `POST /api/v1/<user>/trips/<trip>/media` — put photographs on a day.
@@ -161,6 +167,45 @@ export async function POST(
     return stored(ref, day, written.items, written.kept, attached.ok, attached.ok ? undefined : attached.error);
   }
 
+  /**
+   * Too big, said as too big — B523.
+   *
+   * Read before the body is touched, because by the time `formData()` runs the
+   * body has already been silently truncated to `REQUEST_MAX_BYTES` (see that
+   * constant: Next buffers a proxied request and cuts rather than refuses).
+   * The parse then fails and the honest-looking answer is
+   * `expected_multipart`, which names a malformed Content-Type and sends the
+   * caller to inspect its own request. One real import spent three wrong
+   * hypotheses and fifteen uploads on that.
+   *
+   * `Content-Length` is what a multipart upload always carries. A chunked
+   * request has none, and falls through to the hint below, which now names
+   * this cap as the other thing that can be wrong.
+   */
+  const declared = Number(request.headers.get("content-length") ?? "");
+  if (Number.isFinite(declared) && declared > REQUEST_MAX_BYTES) {
+    return Response.json(
+      {
+        error: "body_too_large",
+        problems: [
+          {
+            field: "body",
+            got: `${megabytes(declared)} in one request`,
+            expected: `at most ${megabytes(REQUEST_MAX_BYTES)}`,
+          },
+        ],
+        message:
+          `This is the whole request, not one file: a photograph may be ` +
+          `${megabytes(IMAGE_MAX_BYTES)} and up to ${MAX_ITEMS_PER_DAY} may go in one call, ` +
+          `but together they have to fit in ${megabytes(REQUEST_MAX_BYTES)}. Send fewer files ` +
+          `per request — a day can be filled by several calls, and each one appends. A single ` +
+          `file larger than that cannot come through this door at all; \`npm run ingest\`, ` +
+          `which reads a folder on the same machine, has no such limit.`,
+      },
+      { status: 413 },
+    );
+  }
+
   const form = await request.formData().catch(() => null);
   if (!form) {
     return Response.json(
@@ -168,7 +213,10 @@ export async function POST(
         error: "expected_multipart",
         hint:
           "Content-Type: multipart/form-data with files under `files`, or " +
-          'application/json with {"day": "...", "urls": ["https://…"]}.',
+          'application/json with {"day": "...", "urls": ["https://…"]}. If the request really ' +
+          `was multipart, the other thing that produces this is a body over ` +
+          `${megabytes(REQUEST_MAX_BYTES)} sent without a Content-Length — that much is ` +
+          `buffered and the rest is dropped, so what arrives here no longer parses.`,
       },
       { status: 400 },
     );

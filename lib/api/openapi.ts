@@ -13,6 +13,7 @@ import {
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 import { TRAVEL_SCENE_VARIANTS } from "@/lib/validate/entry";
+import { REQUEST_MAX_BYTES } from "@/lib/validate/media";
 
 /**
  * The machine contract for the same API `/agent.md` describes in prose.
@@ -140,6 +141,16 @@ export function openApiDocument() {
             height: { type: "integer" },
             caption: { type: "string" },
             poster: { type: "string", description: "A still, for a clip." },
+            from: {
+              type: "string",
+              description:
+                "What the file was called when it was sent — `IMG_4821.JPG`. Everything " +
+                "else here is server-assigned and in position order, so this is the only " +
+                "thing that tells you *which* of your files a day holds. After a batch " +
+                "that was refused, read the day back and compare this rather than " +
+                "counting: a resume by count duplicates some files and drops others. " +
+                "Absent on days written before this existed.",
+            },
           },
         },
         Draft: {
@@ -1637,7 +1648,11 @@ export function openApiDocument() {
             "Two files are kept for each one sent: a resized copy for the browser and the " +
             "original for print. Send the largest you have — for a URL upload the original " +
             "is whatever the remote host served, so a 2000px source is what a photobook " +
-            "will be printed from, and there is no way to get the pixels back later.",
+            "will be printed from, and there is no way to get the pixels back later.\n\n" +
+            `**The whole request may carry ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB**, which is a different limit from ` +
+            "the per-file one and is the one a batch of phone originals meets first. Over " +
+            "it the answer is 413 `body_too_large`, naming the cap and what arrived; " +
+            "nothing is written, and a day may be filled by as many calls as you like.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
@@ -1689,7 +1704,11 @@ export function openApiDocument() {
                 "already published, so anyone reading it can now see the addition.",
             },
             "400": { description: "A file, a URL, or the day was rejected — the response says which and why" },
-            "413": { description: "Over a size limit this instance sets" },
+            "413": {
+              description:
+                "Over a size limit this instance sets — `body_too_large` when the request " +
+                "itself is too big to buffer, which is the limit a batch meets first",
+            },
           },
         },
       },

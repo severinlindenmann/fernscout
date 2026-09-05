@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { REQUEST_MAX_BYTES } from "./lib/validate/media";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -85,6 +86,21 @@ const documentCsp = [
 const mediaCsp = "default-src 'none'; sandbox";
 
 const nextConfig: NextConfig = {
+  /**
+   * How much of a request body Next buffers before a route ever sees it — B523.
+   *
+   * This exists because `proxy.ts` exists: Next clones and buffers the body of
+   * a proxied request so it can be read twice, and past this limit it
+   * truncates rather than refusing. The default is 10 MB, which silently cut
+   * every photograph a current phone takes down to something
+   * `request.formData()` could not parse — reported as `expected_multipart`,
+   * which is a lie about which end the problem was at.
+   *
+   * The number is `lib/validate/media.ts`'s, not one typed here, so the
+   * documented cap and the enforced one are the same value. Read that constant
+   * before raising it: it is buffered in memory.
+   */
+  experimental: { proxyClientMaxBodySize: REQUEST_MAX_BYTES },
   /**
    * Where the build goes. `.next` unless told otherwise.
    *

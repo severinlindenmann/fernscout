@@ -550,6 +550,7 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
             type: "image",
             width: derivative.width,
             height: derivative.height,
+            from: path.basename(item.file),
           });
           newRecords.push({
             source: path.basename(item.file),
@@ -563,7 +564,11 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
           const relative = path.join(slug, `${name}.mp4`);
           const posterRelative = path.join(slug, `${name}.jpg`);
           if (options.dryRun) {
-            gallery.push({ src: frontmatterSrc(tripId, relative), type: "video" });
+            gallery.push({
+              src: frontmatterSrc(tripId, relative),
+              type: "video",
+              from: path.basename(item.file),
+            });
           } else {
             fs.mkdirSync(folder, { recursive: true });
             const clip = transcodeVideo(item.file, path.join(mediaOut, relative), {
@@ -576,6 +581,7 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
               poster: frontmatterSrc(tripId, posterRelative),
               width: clip.width,
               height: clip.height,
+              from: path.basename(item.file),
             });
           }
           newRecords.push({

@@ -7,6 +7,7 @@ import {
   IMAGE_MAX_BYTES,
   IMAGE_MAX_EDGE,
   MAX_ITEMS_PER_DAY,
+  REQUEST_MAX_BYTES,
   VIDEO_FORMATS,
   VIDEO_MAX_BYTES,
   VIDEO_MAX_SECONDS,
@@ -1070,16 +1071,17 @@ Add \`"test": true\` if this trip is being made to check that the software works
 rather than to record a journey. Every day of it then carries the banner, and
 none of it reaches the feed, the search index or the sitemap.
 
-**Two fields can only be set here, because nothing edits a \`trip.md\` after
-creation for either of them.** Ask before sending either, and leave out what
-you were not told. \`rates\` used to be a third — see "The trip's exchange
-rates" below for the door that opened.
+**Three more fields are accepted here, and one of them is set here or
+nowhere.** Ask before sending any of them, and leave out what you were not
+told. \`rates\` used to be on this list and is not any more — see "The trip's
+exchange rates" below for the door that opened, and the two rows marked
+*correctable* for the ones that opened with it.
 
 | | |
 | --- | --- |
-| \`people\` | Who took the trip — \`[{"name": …, "email": …, "nickname": …}]\`, at most ten. It is the byline **and it is write access**: everyone named may write to the whole trip and may ask for a token scoped to it, using the address given. A malformed entry is refused by name rather than dropped. |
-| \`translations\` | The title and tagline in the journal's other languages — \`{"de": {"title": …, "tagline": …}}\`. A language the journal does not declare is refused, since it would be written and never rendered. |
-| \`travellers\` | How the party is **drawn** — see "Drawing the travellers" below. Purely cosmetic: unlike \`people\`, nothing in it decides who may write. |
+| \`people\` | Who took the trip — \`[{"name": …, "email": …, "nickname": …}]\`, at most ten. It is the byline **and it is write access**: everyone named may write to the whole trip and may ask for a token scoped to it, using the address given. A malformed entry is refused by name rather than dropped. *Correctable* at \`PATCH .../trips/<trip>/people\`, owner only, which replaces the whole list. |
+| \`travellers\` | How the party is **drawn** — see "Drawing the travellers" below. Purely cosmetic: unlike \`people\`, nothing in it decides who may write. *Correctable* at \`PATCH .../trips/<trip>/travellers\`, owner only, which replaces the whole party. |
+| \`translations\` | The title and tagline in the journal's other languages — \`{"de": {"title": …, "tagline": …}}\`. A language the journal does not declare is refused, since it would be written and never rendered. **This one is still set here or not at all**, so it is the row to be sure about before you post. |
 
 \`rates\` can still be sent here too, at creation, and reads the same way it
 always did: \`{"THB": 0.0245}\` means "1 THB = 0.0245" of the journal's base
@@ -1746,6 +1748,40 @@ only take readers away, never add one.
 Somebody on the trip may write days into it; deciding who else may read the
 whole journey is not that authority.
 
+### Who was on the trip, and how they are drawn
+
+The last two fields \`createTrip\` could write once and nothing could write
+again — B524, the same door \`rates\` and \`visibility\` got before it. "My
+partner was on this trip too", arriving after the trip exists, is the ordinary
+case, and until this the only answer was to delete the trip and rewrite every
+day and every photograph in it.
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/trips/<trip-id>/people
+PATCH ${site.url}/api/v1/${example}/trips/<trip-id>/travellers
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"travellers": [{"skin": "medium", "hair": "black", "hairStyle": "coils"}]}
+\`\`\`
+
+**These replace, they do not merge** — the opposite of \`rates\` above, and the
+difference is worth knowing before you send one. A rate table is a set of
+independent facts; a party is a list whose membership is the point, and a call
+naming one person would have to guess whether the others were being kept.
+So: read it back, change the list, send the whole thing. \`[]\` clears it.
+
+\`people\` **is write access**, and the response says what the call did in
+those terms rather than answering \`ok\`: who may now write to every day of the
+trip, and who may not. Removing somebody does not revoke a token they already
+hold — it expires on its own, and revoking it is a separate act. What you see
+here is \`trip.md\`'s own list, which is also the byline; anybody the owner
+approved through a buddy link may write too and is not in it.
+
+**Owner only**, both of them. \`travellers\` is cosmetic and could defensibly
+be looser; it is held to the same line so there is one answer to who may edit a
+trip's own fields rather than two.
+
 ### Photographs and video
 
 \`\`\`http
@@ -1852,11 +1888,27 @@ bytes instead.
 | images | ${IMAGE_FORMATS.join(", ")} — at most ${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB, ${IMAGE_MAX_EDGE}px on the longest edge |
 | video | ${VIDEO_FORMATS.join(", ")} — at most ${(VIDEO_MAX_BYTES / 1024 / 1024).toFixed(0)} MB and ${VIDEO_MAX_SECONDS}s. Needs ffmpeg on the server; if it is missing the refusal says so |
 | per day | at most ${MAX_ITEMS_PER_DAY} items, counting what the day already holds |
-| per request | at most ${MAX_ITEMS_PER_DAY} items — the same number, so a batch too big for one call is too big for one day, and splitting it will not help |
+| per request | at most ${MAX_ITEMS_PER_DAY} items — the same number, so a batch too big for one call is too big for one day, and splitting it will not help — **and at most ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB of body**, which is the limit you will actually meet |
 | per journal | whatever this instance's \`media.perUserBytes\` says, if anything |
 | tags | lowercase letters, digits and single hyphens, up to ${TAG_MAX_LENGTH} characters |
 | transport | ${TRANSPORT_MODES.join(", ")} |
 | travel scene | ${TRAVEL_SCENE_VARIANTS.join(", ")} — absent plays the default |
+
+**A batch that was refused is resumed by reading the day, not by counting.**
+Every gallery item comes back with \`from\` — what you called the file when you
+sent it — beside the \`src\` this server assigned it. Compare that list against
+what you meant to send and upload the difference. Counting instead is how the
+same photograph gets uploaded twice and another one silently never arrives.
+Days written before this field existed do not carry it.
+
+**The body limit is the one that bites, and it is not the per-file limit.**
+Forty photographs may go in one call and each may be ${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB, but the request
+carrying them may not exceed ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB in total — so a phone's originals go
+three or four to a call, not forty. Sending more is answered \`413 body_too_large\`
+with the cap and what arrived; nothing is written, and the day appends across as
+many calls as you like. A *single* file larger than ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB cannot come through
+this door at all — that is the one case where the per-file allowance above is
+not reachable over the network, and \`npm run ingest\` on the server is the way in.
 
 These are this instance's defaults, from lib/validate/. An operator can change
 any of them in the \`media\` block of \`site/config.json\`, and a journal may

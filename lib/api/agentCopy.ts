@@ -406,6 +406,15 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
         "their journal's address.",
     },
     {
+      ask: "What the **journal is called** (`title`)",
+      because:
+        "Required — a journal cannot be created without one, and it is the name on every " +
+        "page and in the browser tab. It was missing from this script for long enough that " +
+        "an agent following the script hit the refusal, or invented a title, which is worse. " +
+        "Unlike the address above it is correctable later, at `PATCH /api/v1/<user>/config`, " +
+        "so a plain answer now is fine.",
+    },
+    {
       ask: "**Public or guest?** (`visibility`)",
       because: `Whether this server advertises the journal at all — ${VISIBILITY_MEANING}`,
     },
@@ -493,6 +502,24 @@ export function tripQuestions(): FirstQuestion[] {
         `${VISIBILITY_CHOICE} Leaving it out is not a fourth answer: the trip then inherits ` +
         "this journal's own answer, never wider than that, and a value this server does not " +
         "recognise falls back to `private` instead, the narrowest state there is.",
+    },
+    {
+      ask: "**Who was on it** (`people`)",
+      because:
+        "A name and an email each, up to ten. It is the byline **and it is write access**: " +
+        "everyone named may write to the whole trip and may ask for a token scoped to it. " +
+        "Ask even when the answer is 'just me' — a trip created without the person who was " +
+        "actually on it is the commonest thing anybody comes back to fix. Correctable " +
+        "afterwards at `PATCH .../trips/<id>/people`, which replaces the whole list.",
+    },
+    {
+      ask: "**How the party should be drawn** (`travellers`)",
+      because:
+        "Every journal opens with figures walking, and this is who they are — see \"Drawing " +
+        "the travellers\". Ask once, openly: *how would you like to be drawn?* Never infer " +
+        "it from a name, a country or a photograph, and show them the preview before it is " +
+        "written. It is the one question here with an honest 'skip it' answer: no block " +
+        "draws one neutral figure. Correctable at `PATCH .../trips/<id>/travellers`.",
     },
     {
       ask: "**Does this trip track its money?**",
