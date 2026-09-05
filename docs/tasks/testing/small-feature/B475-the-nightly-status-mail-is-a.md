@@ -7,8 +7,7 @@ complexity: medium
 area: backups
 found: "2026-09-05T13:48:25Z"
 started: "2026-09-05T13:48:45Z"
-session: 7c3dd4ae-2d91-4172-8ea8-52deb35f9f42
-claimed: "2026-09-05T13:48:45Z"
+merged: "2026-09-05T14:08:54Z"
 ---
 
 # B475 — The nightly status mail is a wall of monospace while every other letter this instance sends is designed
