@@ -71,10 +71,9 @@ beforeEach(async () => {
       },
     }),
   );
-  // The dictionaries live beside the journals, under content/locales — needed
-  // for the German welcome mail to render in German rather than falling back
-  // to English.
-  fs.symlinkSync(path.join(process.cwd(), "content", "locales"), path.join(dir, "locales"));
+  // No locales symlink: since B510 the dictionaries ship in site/ and resolve
+  // from the checkout, so the German welcome mail renders in German rather
+  // than falling back to English without anything under CONTENT_DIR.
   clearConfigCache();
   clearUserCache();
 

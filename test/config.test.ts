@@ -73,7 +73,7 @@ describe("loadUserConfig", () => {
   });
 
   /**
-   * `ConfigError` used to hardcode `content/config.json is not usable`,
+   * `ConfigError` used to hardcode the server config's path — `is not usable` —
    * regardless of which file actually failed. It also carries the *user*
    * config's problems — `content/<username>/config.json` — and `getUser`
    * (`lib/users.ts`) downgrades exactly this error to a `console.warn` and a
