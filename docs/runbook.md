@@ -506,14 +506,15 @@ while travelling, you cannot debug what you cannot see.
 ### What it says to a stranger, and what it says to you
 
 It is unauthenticated, and stays that way — a monitor cannot hold a credential.
-So the *state* is public and the *detail* is not (B234):
+So the *state* is public and the *detail* is not (B234, and B473 for the
+journal roster):
 
 | Public, to anybody | Needs `HEALTH_TOKEN` |
 | --- | --- |
 | `status`, `time`, `uptimeSeconds`, `version`, `commit`, `backup`, `responseTimeMs` | — |
 | `config`/`content`/`basemap`: `ok` and a machine-readable `code` | their free-text `error`, which carries the absolute content path and the errno |
 | `capabilities`, including each `reason` | — |
-| `journals` for journals this instance advertises, plus `journalsWithheld` | `journals` rows for journals whose config says `visibility: private` |
+| — | the whole `journals` block: every journal on the instance and which capabilities each has switched on |
 
 ```bash
 curl -sH "Authorization: Bearer $HEALTH_TOKEN" localhost:3000/api/health | jq
@@ -521,9 +522,17 @@ curl -sH "Authorization: Bearer $HEALTH_TOKEN" localhost:3000/api/health | jq
 
 Set it in `/etc/fernscout/env` (`openssl rand -hex 32`). Unset entitles nobody
 rather than everybody, so an instance that never sets it serves the redacted
-page — which still distinguishes "cannot read the content directory" from
-"there are no journals", the thing B197 added the field for. The full message
-is on stdout either way: `journalctl -u fernscout`.
+page and has **no** journal roster on this endpoint for anybody, including you.
+
+The redacted page still distinguishes "cannot read the content directory" from
+"there are no journals" — the thing B197 added the field for — because
+`content: { ok: false, code: "unreadable" }` carries that and is public. Only
+the path behind it is held back, and the full message is on stdout either way:
+`journalctl -u fernscout`.
+
+**`journals` is absent for an unentitled caller, not empty.** An empty object
+would read as "this instance has no journals", which is exactly the ambiguity
+B197 removed. Absent says the question was not answered.
 
 ### Request logging
 

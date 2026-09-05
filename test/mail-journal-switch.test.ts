@@ -558,8 +558,27 @@ describe("/api/health agrees with what actually happens", () => {
   /** An anonymous probe, which is what an uptime monitor is. B234. */
   const probe = () => new Request("https://example.test/api/health");
 
+  /**
+   * And an operator, for the claims that are about what the `journals` block
+   * *contains* — since B473 an anonymous caller has no such block. Which of
+   * the two a test uses is the point of the test: what a monitor may see is
+   * test/health-disclosure.test.ts, and this file is about whether the block
+   * agrees with what mail actually does.
+   */
+  const TOKEN = "s3cret-health-token-mail";
+  const operator = () =>
+    new Request("https://example.test/api/health", {
+      headers: { authorization: `Bearer ${TOKEN}` },
+    });
+  beforeEach(() => {
+    process.env.HEALTH_TOKEN = TOKEN;
+  });
+  afterEach(() => {
+    delete process.env.HEALTH_TOKEN;
+  });
+
   test("a journal with mail off is reported off, and told what still arrives", async () => {
-    const body = await (await health(probe())).json();
+    const body = await (await health(operator())).json();
 
     expect(body.capabilities.mail.enabled).toBe(true);
     expect(body.journals[QUIET].mail).toEqual({
@@ -617,8 +636,16 @@ describe("/api/health agrees with what actually happens", () => {
       // The config file parsed fine; it is the directory around it that did
       // not, and conflating the two sends the operator to the wrong file.
       expect(body.config.ok).toBe(true);
-      // And the empty block is now explained rather than misleading.
-      expect(body.journals).toEqual({});
+      // And "cannot tell" is explained rather than misleading. Before B197
+      // an empty `journals` read exactly like an instance with no journals;
+      // since B473 the block is not sent to an unentitled caller at all, so
+      // `content.ok` is the whole of that signal — which is why it is public.
+      // "Cannot tell" is explained rather than misleading. Before B197 an empty
+      // `journals` read exactly like an instance with no journals; since B473
+      // an unentitled caller has no block at all, so `content.code` carries
+      // the whole of that signal — which is why it is public.
+      expect(body.journals).toBeUndefined();
+      expect(body.content.code).toBe("unreadable");
       expect(console.warn).toHaveBeenCalledWith(
         expect.stringContaining("no journal resolves until this is fixed"),
       );
