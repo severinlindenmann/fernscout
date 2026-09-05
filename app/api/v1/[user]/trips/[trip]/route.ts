@@ -126,12 +126,15 @@ export async function PATCH(_request: Request, { params }: RouteContext<"/api/v1
     {
       error: "method_not_allowed",
       message:
-        `This route takes DELETE and nothing else. A trip's own fields — title, dates, ` +
-        `visibility, people — are not writable through an API: they are trip.md, and ` +
-        `changing them is the owner's own edit. What is writable lives one level down: ` +
-        `the budget at /api/v1/${user}/trips/${trip}/costs (DELETE there removes the ` +
-        `costs page), a day at /api/v1/${user}/trips/${trip}/days/<slug>, and ` +
-        `photographs at /api/v1/${user}/trips/${trip}/media.`,
+        `This route takes DELETE and nothing else. What is writable lives one level ` +
+        `down, one field to a door: who may read the trip at ` +
+        `/api/v1/${user}/trips/${trip}/visibility (PATCH, owner only — it writes ` +
+        `visibility and listed), its exchange rates at ` +
+        `/api/v1/${user}/trips/${trip}/rates (PATCH, owner only), the budget at ` +
+        `/api/v1/${user}/trips/${trip}/costs, a day at ` +
+        `/api/v1/${user}/trips/${trip}/days/<slug>, and photographs at ` +
+        `/api/v1/${user}/trips/${trip}/media. A trip's title, dates and people: are ` +
+        `still trip.md alone and no call writes them.`,
     },
     { status: 405, headers: { Allow: "DELETE" } },
   );
