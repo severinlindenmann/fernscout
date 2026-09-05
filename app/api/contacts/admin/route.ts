@@ -29,6 +29,7 @@ import {
 import { pickLocale } from "@/lib/contacts/locale";
 import { sendApprovedMail, sendInviteMail } from "@/lib/contacts/mail";
 import { isOwner } from "@/lib/contacts/session";
+import { deviceCountByContact } from "@/lib/push";
 import { serverSite } from "@/lib/site";
 import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
@@ -46,7 +47,7 @@ export const dynamic = "force-dynamic";
 
 /** What the owner sees. The address is included — they are the one person
  * besides its owner entitled to it, and they need it to post anything. */
-function ownerView(contact: ContactRecord) {
+function ownerView(contact: ContactRecord, devices: Record<string, number> | null = null) {
   return {
     id: contact.id,
     name: contact.name,
@@ -58,6 +59,11 @@ function ownerView(contact: ContactRecord) {
     wantsWhatsapp: contact.wantsWhatsapp,
     hasPostalAddress: contact.hasPostalAddress,
     postalAddress: contact.postalAddress,
+    /** B453 — see the page, which shapes the first render of this. `null` is
+     * push being off for this journal and is not the same as nobody having
+     * subscribed. Passed in rather than looked up per contact: one read
+     * answers for the whole list. */
+    pushDevices: devices ? (devices[contact.id] ?? 0) : null,
     createdVia: contact.createdVia,
     createdAt: contact.createdAt,
     confirmedAt: contact.confirmedAt,
@@ -113,8 +119,9 @@ export async function GET(request: Request) {
   const denied = await guard(username, request);
   if (denied) return denied;
 
+  const devices = isEnabled("push", username) ? await deviceCountByContact(username) : null;
   return Response.json({
-    contacts: (await listContacts(username)).map(ownerView),
+    contacts: (await listContacts(username)).map((contact) => ownerView(contact, devices)),
     invites: (await listInvitesWithLinks(username, serverSite().url)).map(inviteView),
   });
 }

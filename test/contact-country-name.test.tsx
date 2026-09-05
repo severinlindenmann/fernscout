@@ -30,6 +30,7 @@ function contact(country: string): AdminContact {
       country,
       tel: "",
     },
+    pushDevices: null,
     createdVia: null,
     createdAt: new Date().toISOString(),
     confirmedAt: new Date().toISOString(),
