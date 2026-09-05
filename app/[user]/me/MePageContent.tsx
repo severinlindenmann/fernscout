@@ -78,10 +78,13 @@ function ChannelSwitch({
   }
 
   return (
-    <span className="inline-flex items-center gap-2">
-      {/* A real checkbox with a switch role rather than a styled div: it is
-          reachable by keyboard and announced as on or off without anything
-          here having to say so. */}
+    <span className="inline-flex shrink-0 items-center gap-2">
+      {/* The word beside it is gone — B471. `role="switch"` with `aria-checked`
+          announces on or off to a screen reader, and the control says it to
+          everybody else; repeating it in text cost the width that made the
+          switch wrap under the channel's name on a phone. The failure line
+          stays, because that one is not visible in the control. */}
+      {failed && <span className="text-sm text-coral-600">{t("me.paymentChannelFailed")}</span>}
       <button
         type="button"
         role="switch"
@@ -89,20 +92,21 @@ function ChannelSwitch({
         aria-label={label}
         disabled={busy}
         onClick={toggle}
+        // Off is `navy-500` rather than the `navy-200` the card's rules use:
+        // a border at 1.3:1 on white is a rule, not a control, and this one
+        // has to look pressable while it is off. `navy-500` is the palette's
+        // border-and-label ink (5.51:1 on white) — see apply-the-brand.
         className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-50 ${
-          enabled ? "border-navy-900 bg-navy-900" : "border-navy-200 bg-cream-100"
+          enabled ? "border-navy-900 bg-navy-900" : "border-navy-500 bg-white"
         }`}
       >
         <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-[left] ${
-            enabled ? "left-[22px]" : "left-0.5"
+          className={`absolute top-0.5 h-4 w-4 rounded-full transition-[left] ${
+            enabled ? "left-[22px] bg-white" : "left-0.5 bg-navy-500"
           }`}
           aria-hidden="true"
         />
       </button>
-      <span className="text-sm text-navy-600">
-        {failed ? t("me.paymentChannelFailed") : t(enabled ? "me.channelOn" : "me.channelOff")}
-      </span>
     </span>
   );
 }
@@ -749,86 +753,77 @@ export default function MePageContent({
                         {t("me.paymentEstimateTitle")}
                       </p>
                       {/*
-                        A small table rather than a sentence per channel (B413):
-                        the owner asked to see plainly what a send is billed for —
-                        the receivers on each channel, and the credits that costs.
-                        The count is journal-wide (the most a send could reach);
-                        a private trip reaches fewer, which is why it reads "up
-                        to" and the caption says the price is flat per receiver.
+                        A list rather than a table — B413 asked for the billing
+                        to be plain and got columns; B471 took the columns back
+                        out. Four things per row under three headings is a table
+                        that does not fit a phone: "Aktive Empfänger" wrapped to
+                        two lines and the switch wrapped under the channel's
+                        name, so the two rows were different heights and neither
+                        lined up with its own numbers.
+
+                        Nothing is compared down a column here — there are two
+                        rows and what the owner reads is each against the total
+                        under it — so a table was buying headings and paying for
+                        them in width.
+
+                        One row per channel the server can actually offer. A
+                        muted channel keeps its row, greyed and costing nothing,
+                        because the owner muted it and can put it back; a
+                        channel this server has no transport for has no row,
+                        because nothing here would change that.
                       */}
-                      <table className="mt-2 w-full text-left text-base">
-                        <thead>
-                          <tr className="text-xs font-semibold uppercase tracking-wide text-navy-600">
-                            <th scope="col" className="pb-1 font-semibold">
-                              {t("me.paymentColChannel")}
-                            </th>
-                            <th scope="col" className="pb-1 font-semibold">
-                              {t("me.paymentColReceivers")}
-                            </th>
-                            <th scope="col" className="pb-1 text-right font-semibold">
-                              {t("me.paymentColCost")}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-navy-700">
-                          {/*
-                            One row per channel the server can actually offer —
-                            B463. A muted channel keeps its row and its
-                            recipient count, greyed, because the owner muted it
-                            and can un-mute it; a channel this server has no
-                            transport for has no row at all, because there is
-                            nothing here anybody could do about it.
-                          */}
-                          {CHANNELS.map(({ key, icon: Icon, labelKey, recipients }) => {
-                            const on = payment.channels[key];
-                            if (on === null) return null;
-                            return (
-                              <tr className="border-t border-navy-200" key={key}>
-                                <td className="py-1.5">
-                                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                    <Icon
-                                      className="h-4 w-4 shrink-0 text-navy-600"
-                                      aria-hidden="true"
-                                    />
-                                    {t(labelKey)}
-                                    <ChannelSwitch
-                                      username={username}
-                                      channel={key}
-                                      label={t(labelKey)}
-                                      enabled={on}
-                                    />
+                      <ul className="mt-2 border-t border-navy-200">
+                        {CHANNELS.map(({ key, icon: Icon, labelKey, recipients }) => {
+                          const on = payment.channels[key];
+                          if (on === null) return null;
+                          return (
+                            <li
+                              className="flex items-center justify-between gap-3 border-b border-navy-200 py-2.5"
+                              key={key}
+                            >
+                              <div className="min-w-0">
+                                <span className="flex items-center gap-2 text-base text-navy-900">
+                                  <Icon
+                                    className="h-4 w-4 shrink-0 text-navy-600"
+                                    aria-hidden="true"
+                                  />
+                                  {t(labelKey)}
+                                </span>
+                                {/* What it would reach and what that costs, in
+                                    the quiet grey: the headings are gone, so
+                                    the count carries its own noun and the
+                                    credits their own unit. */}
+                                <span className="mt-0.5 block text-sm text-navy-500">
+                                  {tn("me.paymentUpTo", recipients, {
+                                    count: String(recipients),
+                                  })}
+                                  {" · "}
+                                  <span className={on ? "font-semibold text-navy-900" : undefined}>
+                                    {on ? recipients : 0} {tn("me.paymentUnit", on ? recipients : 0)}
                                   </span>
-                                </td>
-                                <td className={`py-1.5 ${on ? "" : "text-navy-500"}`}>
-                                  {t("me.paymentUpTo", { count: String(recipients) })}
-                                </td>
-                                <td
-                                  className={`py-1.5 text-right font-semibold tabular-nums ${
-                                    on ? "text-navy-900" : "text-navy-500"
-                                  }`}
-                                >
-                                  {on ? recipients : 0}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                          {/*
-                            The number the owner actually came for, which was
-                            the one thing the card made them work out for
-                            themselves: what publishing a day costs right now.
-                            It follows the switches above it, so muting a
-                            channel answers the question in place.
-                          */}
-                          <tr className="border-t-2 border-navy-200">
-                            <td className="py-1.5 font-semibold text-navy-900" colSpan={2}>
-                              {t("me.paymentDayTotal")}
-                            </td>
-                            <td className="py-1.5 text-right font-semibold tabular-nums text-navy-900">
-                              {dayCost}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                                </span>
+                              </div>
+                              <ChannelSwitch
+                                username={username}
+                                channel={key}
+                                label={t(labelKey)}
+                                enabled={on}
+                              />
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      {/*
+                        The number the owner actually came for, and the one
+                        thing the card used to make them work out themselves:
+                        what publishing a day costs right now. Directly under
+                        the switches, so muting a channel answers the question
+                        in place.
+                      */}
+                      <p className="flex items-baseline justify-between gap-3 py-2.5 text-base font-semibold text-navy-900">
+                        <span>{t("me.paymentDayTotal")}</span>
+                        <span className="tabular-nums">{dayCost}</span>
+                      </p>
                       <p className="mt-2.5 text-sm leading-6 text-navy-600">
                         {t("me.paymentPrices")}
                         {payment.postcardCredits !== null && (
