@@ -193,22 +193,21 @@ Do not edit them by hand; run the script.
 | [B253](backlog/superseded/B253-the-demo-journal-s-tagline-says.md) | The demo journal's tagline says four journeys and the count beside it says five | ISSUE | low | low |
 | [B297](backlog/superseded/B297-a-nul-byte-in-the-idempotency.md) | A NUL byte in the idempotency key separator makes git treat the whole file as binary | CHORE | low | low |
 
-## open (6)
+## open (0)
 
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B469](open/B469-the-contacts-admin-page-ignores-the.md) | The contacts admin page ignores the language the owner picked | ISSUE | medium | low |
-| [B250](open/B250-the-trip-scoped-costs-page-describes.md) | The trip-scoped costs page describes an upcoming trip in the past tense, in English only | ISSUE | low | low |
-| [B251](open/B251-the-404-page-s-tab-title.md) | The 404 page's tab title is the bare site name, because not-found.tsx exports metadata Next never asks for | ISSUE | low | medium |
-| [B284](open/B284-a-dictionary-read-that-fails-for.md) | A dictionary read that fails for any reason but absence is cached as empty until the file changes | ISSUE | low | low |
-| [B424](open/B424-the-language-toggle-changes-the-navigation.md) | The language toggle changes the navigation but leaves the owner's contacts page in the journal's locale | ISSUE | low | low |
-| [B432](open/B432-six-german-strings-address-the-reader.md) | Six German strings address the reader formally where a hundred and thirty use du | ISSUE | low | low |
+_Nothing here._
 
-## in-development (1)
+## in-development (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B476](in-development/B476-a-photobook-cannot-be-ordered-from.md) | A photobook cannot be ordered from the site, only from a shell | FEATURE | high | high | `d9c396ea` |
+| [B469](in-development/B469-the-contacts-admin-page-ignores-the.md) | The contacts admin page ignores the language the owner picked | ISSUE | medium | low | `e5747799` |
+| [B250](in-development/B250-the-trip-scoped-costs-page-describes.md) | The trip-scoped costs page describes an upcoming trip in the past tense, in English only | ISSUE | low | low | `e5747799` |
+| [B251](in-development/B251-the-404-page-s-tab-title.md) | The 404 page's tab title is the bare site name, because not-found.tsx exports metadata Next never asks for | ISSUE | low | medium | `e5747799` |
+| [B284](in-development/B284-a-dictionary-read-that-fails-for.md) | A dictionary read that fails for any reason but absence is cached as empty until the file changes | ISSUE | low | low | `e5747799` |
+| [B424](in-development/B424-the-language-toggle-changes-the-navigation.md) | The language toggle changes the navigation but leaves the owner's contacts page in the journal's locale | ISSUE | low | low | `e5747799` |
+| [B432](in-development/B432-six-german-strings-address-the-reader.md) | Six German strings address the reader formally where a hundred and thirty use du | ISSUE | low | low | `e5747799` |
 
 ## testing (176)
 

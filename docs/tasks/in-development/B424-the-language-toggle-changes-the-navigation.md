@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: contacts, i18n
 found: "2026-09-05T11:58:00Z"
+started: "2026-09-05T15:04:59Z"
+session: e5747799-fd3e-4d40-a335-82fa4e24333e
+claimed: "2026-09-05T15:04:59Z"
 ---
 
 # B424 — The language toggle changes the navigation but leaves the owner's contacts page in the journal's locale

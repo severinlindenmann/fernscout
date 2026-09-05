@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: contacts, i18n
 found: "2026-09-05T17:15:00Z"
+started: "2026-09-05T15:04:59Z"
+session: e5747799-fd3e-4d40-a335-82fa4e24333e
+claimed: "2026-09-05T15:04:59Z"
 ---
 
 # B469 — The contacts admin page ignores the language the owner picked

@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: i18n
 found: "2026-09-04T12:49:21Z"
+started: "2026-09-05T15:05:00Z"
+session: e5747799-fd3e-4d40-a335-82fa4e24333e
+claimed: "2026-09-05T15:05:00Z"
 ---
 
 # B284 — A dictionary read that fails for any reason but absence is cached as empty until the file changes
