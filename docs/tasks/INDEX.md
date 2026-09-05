@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (92)
+## backlog (91)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (30)
+### issue (29)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -95,9 +95,8 @@ Do not edit them by hand; run the script.
 | [B388](backlog/issue/B388-resending-a-mailed-guest-invitation-has.md) | Resending a mailed guest invitation has no rate limit | ISSUE | low | low |
 | [B389](backlog/issue/B389-a-contact-s-stored-phone-number.md) | A contact's stored phone number that toE164 cannot parse is shown to the owner as if it were fine | ISSUE | low | low |
 | [B391](backlog/issue/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low |
-| [B402](backlog/issue/B402-the-admin-contact-list-prints-a.md) | The admin contact list prints a saved country code, not its name | ISSUE | low | low |
 
-### big-feature (13)
+### big-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -108,7 +107,6 @@ Do not edit them by hand; run the script.
 | [B275](backlog/big-feature/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
 | [B325](backlog/big-feature/B325-a-day-carries-coordinates-and-a.md) | A day carries coordinates and a date but no way to say what the weather actually was | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
-| [B399](backlog/big-feature/B399-every-address-in-the-book-is.md) | Every address in the book is typed out by hand, line by line, with nothing to check it against | FEATURE | medium | high |
 | [B43](backlog/big-feature/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B89](backlog/big-feature/B89-nothing-that-costs-the-operator-money.md) | Nothing that costs the operator money can be paid for, so every paid feature is dry-run only | FEATURE | medium | high |
@@ -144,7 +142,7 @@ Do not edit them by hand; run the script.
 | [B322](backlog/chore/B322-the-photobook-and-the-digest-read.md) | The photobook and the digest read only published days, and nobody has said whether that is a decision | CHORE | low | low |
 | [B343](backlog/chore/B343-clearmattercache-is-defined-twice-with-its.md) | clearMatterCache is defined twice, with its reasoning written out twice | CHORE | low | low |
 
-### ops (14)
+### ops (15)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -154,6 +152,7 @@ Do not edit them by hand; run the script.
 | [B373](backlog/ops/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
 | [B377](backlog/ops/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
 | [B401](backlog/ops/B401-nightly-backups-have-been-failing-since.md) | Nightly backups have been failing since two unreadable config.json.bak files appeared in the content root | OPS | high | low |
+| [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
 | [B65](backlog/ops/B65-the-deployed-server-has-no-backup.md) | The deployed server has no backup at all — restic, the units and the credentials were never installed | OPS | high | medium |
 | [B104](backlog/ops/B104-signup-is-on-at-the-server.md) | Signup is on at the server and off in every journal, so no account has ever been created on the live site | OPS | medium | medium |
 | [B105](backlog/ops/B105-contacts-is-on-at-the-server.md) | Contacts is on at the server and off in every journal, so no invitation has ever been carried through on the live site | OPS | medium | medium |
@@ -187,12 +186,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B399](in-development/B399-every-address-in-the-book-is.md) | Every address in the book is typed out by hand, line by line, with nothing to check it against | FEATURE | medium | high | `39691533` |
 | [B368](in-development/B368-there-is-no-way-to-ask.md) | There is no way to ask for more credits, and the payment provider does not exist yet | FEATURE | low | medium | `3d8b93dd` |
 | [B400](in-development/B400-a-non-boolean-send-mail-on.md) | A non-boolean send_mail on publish is silently ignored, so an agent thinks it sent | ISSUE | low | low | `3d8b93dd` |
+| [B402](in-development/B402-the-admin-contact-list-prints-a.md) | The admin contact list prints a saved country code, not its name | ISSUE | low | low | `39691533` |
 
 ## testing (171)
 

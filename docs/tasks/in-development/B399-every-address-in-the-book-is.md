@@ -6,6 +6,9 @@ priority: medium
 complexity: high
 area: contacts, capabilities, privacy
 found: "2026-09-05T00:46:00Z"
+started: "2026-09-05T07:35:23Z"
+session: 39691533-1e0d-44dd-a2e5-b2a7ce844518
+claimed: "2026-09-05T07:35:23Z"
 ---
 
 # B399 — Every address in the book is typed out by hand, line by line, with nothing to check it against
