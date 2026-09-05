@@ -93,6 +93,23 @@ export async function createPayment(owner: string, tier: CreditTier): Promise<Pa
  * where the id is `userB`'s resolves to `null` here, the same answer as an id
  * that never existed — no cross-journal read, no existence oracle.
  */
+/**
+ * A journal's recent transactions, newest first — for the history under the
+ * Payment card (B413). Owner-facing only; the caller gates on ownership.
+ */
+export async function listPayments(owner: string, limit = 8): Promise<Payment[]> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const rows = await handle.db
+    .selectFrom("payments")
+    .selectAll()
+    .where("owner_id", "=", owner)
+    .orderBy("created_at", "desc")
+    .limit(limit)
+    .execute();
+  return rows.map(toPayment);
+}
+
 export async function getPayment(owner: string, id: string): Promise<Payment | null> {
   const handle = await getDatabaseOrNull();
   if (!handle) return null;

@@ -13,6 +13,13 @@ claimed: "2026-09-05T08:27:37Z"
 
 # B413 — The Buy-credits dialog is off-centre; make it an animated dropdown under its button
 
+> Widened in the same session, at the owner's request, to three related changes
+> to the Payment card: (1) the buy dialog becomes an animated dropdown anchored
+> under its button; (2) the "what a send costs" estimate becomes a
+> Channel / Active receivers / Cost **table**, so it is clear what is paid for;
+> (3) a **transaction history** with an unpaid status is shown under the buy
+> button, each unpaid row linking back to its payment page.
+
 ## Why
 
 The "Guthaben kaufen" tier picker (`BuyCreditsDialog` in
