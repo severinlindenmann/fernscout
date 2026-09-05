@@ -82,9 +82,16 @@ für Werbung oder zur Profilbildung.
 | **Meta Platforms Ireland** (WhatsApp Cloud API) | Eine Leserin möchte per WhatsApp von neuen Tagen hören | Ihre Telefonnummer und die Nachricht |
 | **Stannp Ltd** (Grossbritannien) | Jemand bestellt eine gedruckte Postkarte | Das Foto, den Text und die Postadresse der Empfängerin |
 | **Gelato ASA** (Norwegen) | Jemand bestellt ein gedrucktes Fotobuch | Das PDF des Buchs und die Lieferadresse |
-| **Der Mailanbieter dieser Seite** | Anmeldecodes, Einladungen, Benachrichtigungen | Die Empfängeradresse und die Nachricht |
+| **Proton AG** (Schweiz) | Anmeldecodes, Einladungen, Benachrichtigungen | Die Empfängeradresse und die Nachricht |
 
 Das ist die vollständige Liste. Mehr ist da nicht.
+
+Die E-Mails dieser Seite laufen über **Proton Mail in der Schweiz** —
+verschlüsselt gespeichert und unter Schweizer Datenschutzrecht, statt über
+einen Anbieter, der Post mitliest, um daran zu verdienen. Sobald eine
+Nachricht an eine Adresse geht, die nicht selbst bei Proton liegt, ist sie
+gewöhnliche E-Mail — gut zu wissen, bevor jemand etwas Heikles in eine
+Antwort schreibt.
 
 ## Deine Rechte
 

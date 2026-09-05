@@ -321,31 +321,6 @@ export function Colophon({
   const { t } = useI18n();
   return (
     <>
-      {/*
-        What this instance can honestly say about itself before anybody signs
-        up: where the server is, and that nothing here measures the reader.
-
-        Deliberately above the two columns rather than a third one in them —
-        it is the answer to a question a visitor has before they read either,
-        and it is the only place the imprint is linked from.
-      */}
-      <section className="mt-10 rounded-xl border border-navy-200 bg-cream-100 px-4 py-4">
-        <h2 className="font-display text-base font-semibold text-navy-900">
-          {t("landing.hostedIn")}
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-navy-700">{t("landing.hostedInBody")}</p>
-        {legal && (
-          <Link
-            href="/legal"
-            className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-navy-900
-                       underline decoration-blue-500 decoration-2 underline-offset-4
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          >
-            {t("landing.legal")}
-          </Link>
-        )}
-      </section>
-
       <section className="mt-10 grid gap-6 border-t border-navy-200 pt-8 sm:grid-cols-2">
         <div>
           <h2 className="font-display text-base font-semibold text-navy-900">
@@ -387,8 +362,10 @@ export function Colophon({
         one of their visitors with mine. Absent by default, and absent stays
         absent — there is no fallback that quietly credits the wrong person.
       */}
-      {credit && (
+      {(credit || legal) && (
         <footer className="mt-12 border-t border-navy-200 pt-6 text-sm text-navy-600">
+          {credit && (
+          <p>
           {/* Split on the {name} token rather than appending the link after
               the sentence: German ends "von {name}" and Hungarian puts it
               after a dash, and a name glued to the end would be wrong in both
@@ -417,6 +394,30 @@ export function Colophon({
               </>
             );
           })()}
+          </p>
+          )}
+          {/*
+            What this instance can honestly say about itself, in the place a
+            reader goes looking for it — B487 put it in a card above the
+            colophon, which gave a privacy claim more of the page than the
+            journals underneath it. A footer line is the honest weight: it is
+            reassurance for somebody who thought to ask, not a selling point.
+          */}
+          <p className="mt-2 text-xs leading-5 text-navy-600">
+            {t("landing.hostedIn")} · {t("landing.noTracking")}
+            {legal && (
+              <>
+                {" · "}
+                <Link
+                  href="/legal"
+                  className="underline decoration-blue-500 decoration-2 underline-offset-4
+                             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                >
+                  {t("landing.legal")}
+                </Link>
+              </>
+            )}
+          </p>
         </footer>
       )}
     </>
