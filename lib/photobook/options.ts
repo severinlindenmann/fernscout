@@ -119,6 +119,26 @@ export type DayPlan = {
    * entry it was made against.
    */
   hero?: string;
+  /**
+   * Let this day's words continue onto a second page when they do not fit
+   * beside its photograph — B517.
+   *
+   * Absent or `false` is today's behaviour exactly: the prose is measured
+   * against the space left beside the day's shared photograph, cut short at
+   * whatever fits, and the page says "(continued on the website)" —
+   * `text-truncated` in `BookWarning`. That default has to hold for a day
+   * nobody has touched, so it is opt-in rather than automatic even for a day
+   * that visibly overflows.
+   *
+   * `true` gives the day a second page instead of cutting it: the shared
+   * photograph moves there with it if the day has a spare photograph left
+   * once the first page's is spoken for, or the second page runs text alone
+   * if it does not — B517 ruled out manufacturing a photograph, or a
+   * half-empty page, to fill it. Not doing: shrinking the type to fit, which
+   * the ticket ruled out for the same reason every other page keeps one
+   * scale.
+   */
+  runOn?: boolean;
 };
 
 export type DayLayout =
@@ -231,9 +251,19 @@ function parseDays(input: unknown): Record<string, DayPlan> | null {
       if (!day.photos.every((s) => typeof s === "string" && s.length <= MAX_SRC_LENGTH)) return null;
       plan.photos = day.photos as string[];
     }
-    // A day carrying neither is the planner's again, and saying so by leaving
-    // it out keeps the posted body honest about what was actually chosen.
-    if (plan.layout !== undefined || plan.photos !== undefined || plan.hero !== undefined) {
+    if (day.runOn !== undefined) {
+      if (typeof day.runOn !== "boolean") return null;
+      plan.runOn = day.runOn;
+    }
+    // A day carrying none of these is the planner's again, and saying so by
+    // leaving it out keeps the posted body honest about what was actually
+    // chosen.
+    if (
+      plan.layout !== undefined ||
+      plan.photos !== undefined ||
+      plan.hero !== undefined ||
+      plan.runOn !== undefined
+    ) {
       out[date] = plan;
     }
   }

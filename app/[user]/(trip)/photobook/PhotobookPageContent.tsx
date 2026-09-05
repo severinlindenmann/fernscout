@@ -22,7 +22,7 @@ type PreviewState = {
   pages: number;
   volumes: number;
   credits: number;
-  warnings: { code: string; detail: string }[];
+  warnings: { code: string; detail: string; date?: string }[];
   /** `false` for a book with no photographs — legal to lay out (padding fills
    * the page-count minimum) but not one anybody should pay for. */
   buyable: boolean;
@@ -239,6 +239,18 @@ export default function PhotobookPageContent({
       days: { ...o.days, [date]: { ...o.days[date], layout } },
     }));
 
+  /** Let a day's words carry on to a second page instead of being cut short
+   * — B517. Off is the default `days` entry never says otherwise, so
+   * deleting the key when it is turned back off is what keeps a day nobody
+   * has touched indistinguishable from one this was explicitly set false. */
+  const setDayRunOn = (date: string, runOn: boolean) =>
+    setOptions((o) => {
+      const next = { ...o.days[date] };
+      if (runOn) next.runOn = true;
+      else delete next.runOn;
+      return { ...o, days: { ...o.days, [date]: next } };
+    });
+
   /** One tap: this is the photograph that should run big. Tapping the current
    * one again gives the choice back to the planner. */
   const setHero = (date: string, src: string) =>
@@ -420,6 +432,19 @@ export default function PhotobookPageContent({
   const credits = preview?.credits ?? null;
   const tooPoor = balance !== null && credits !== null && balance < credits;
   const unbuyable = preview?.buyable === false;
+
+  /**
+   * Which days are actually being cut short — B517.
+   *
+   * Reads `BookWarning.date`, not `detail`: `detail` is a sentence for a
+   * person and must be free to be reworded or translated without silently
+   * hiding this control on every day.
+   */
+  const truncatedDates = new Set(
+    (preview?.warnings ?? [])
+      .filter((w) => w.code === "text-truncated" && w.date)
+      .map((w) => w.date as string),
+  );
 
   return (
     <div className="min-h-screen">
@@ -721,6 +746,31 @@ export default function PhotobookPageContent({
                                   </button>
                                 ))}
                               </div>
+                              {/* Only worth showing where it would do
+                                  something: a day already fitting its column
+                                  has no overflow for a second page to
+                                  solve — B517. Once turned on, kept visible
+                                  even if a photograph change stops it
+                                  overflowing, so the box stays reachable to
+                                  turn back off. */}
+                              {(truncatedDates.has(day.date) || plan?.runOn) && (
+                                <label className="mt-2 flex items-start gap-2 text-xs text-navy-700">
+                                  <input
+                                    type="checkbox"
+                                    className="mt-0.5"
+                                    checked={plan?.runOn === true}
+                                    onChange={(e) => setDayRunOn(day.date, e.target.checked)}
+                                  />
+                                  <span>
+                                    <span className="block font-semibold text-navy-800">
+                                      {t("photobook.day.runOn")}
+                                    </span>
+                                    <span className="block text-navy-600">
+                                      {t("photobook.day.runOnHint")}
+                                    </span>
+                                  </span>
+                                </label>
+                              )}
                               <div className="mt-2 flex flex-wrap items-center gap-3">
                                 <button
                                   type="button"

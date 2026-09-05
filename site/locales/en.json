@@ -648,6 +648,8 @@
   "photobook.day.layout.grid": "Four to a page",
   "photobook.day.layout.text": "Words only",
   "photobook.day.layoutLegend": "How this day is laid out",
+  "photobook.day.runOn": "Give this day a second page instead of cutting it short",
+  "photobook.day.runOnHint": "Adds a page, so the price moves too.",
   "photobook.day.reset": "Let the book decide again",
   "photobook.day.applyToAll": "Apply to every day",
   "photobook.day.applyToAllConfirm": "{count} other day(s) were arranged by hand and will be set to this layout too. Continue?",

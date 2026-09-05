@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
 import { planBook, type BookDay, type BookPhoto, type BookSource } from "@/lib/photobook/plan";
 import { BOOK_SIZES, defaultSpec } from "@/lib/photobook/spec";
 import { DEFAULT_OPTIONS, parseOptions, type BookOptions } from "@/lib/photobook/options";
+import { priceOf } from "@/lib/photobook/build";
+import { bookStrings, fill } from "@/lib/photobook/strings";
 
 /**
  * Shaping one day by hand — B504.
@@ -353,6 +355,17 @@ describe("what a request body may say", () => {
     expect(parseOptions(base, SIZES)?.days).toEqual({});
   });
 
+  test("a run-on flag survives the boundary", () => {
+    const parsed = parseOptions({ ...base, days: { "2026-01-01": { runOn: true } } }, SIZES);
+    expect(parsed?.days["2026-01-01"]).toEqual({ runOn: true });
+  });
+
+  test("a run-on flag that is not a boolean is refused rather than coerced", () => {
+    expect(
+      parseOptions({ ...base, days: { "2026-01-01": { runOn: "true" } } }, SIZES),
+    ).toBeNull();
+  });
+
   test("a key that is not a date is refused outright", () => {
     // It never reaches a filesystem, but a loose record from a request body is
     // the shape that later grows into one.
@@ -451,5 +464,118 @@ describe("what a request body may say", () => {
       Array.from({ length: 20_001 }, (_, i) => [`/${i}.jpg`, { x: 0.5, y: 0.5 }]),
     );
     expect(parseOptions({ ...base, days: {}, focalPoints: many }, SIZES)).toBeNull();
+  });
+});
+
+describe("letting a day run on — B517", () => {
+  // Long enough to overflow the column beside a shared photograph on a
+  // square-210 page (about 11 lines fit there, this wraps to about 16) but
+  // not so long that a second page of the same size could not hold the rest.
+  const LONG_PARAGRAPH = Array.from({ length: 200 }, (_, i) => `Word${i}`).join(" ");
+
+  function longDay(index: number, photos: BookPhoto[]): BookDay {
+    return { ...day(index, photos), paragraphs: [LONG_PARAGRAPH] };
+  }
+
+  // Day index 1: not a hero day by the automatic rhythm (that is index 0 and
+  // every third after it), so its first photograph shares the day's own page
+  // rather than running full-bleed, which is the case B517 is about.
+  const DATE = day(1, []).date;
+  const overflowing = [day(0, [photo(1)]), longDay(1, [photo(2), photo(3)])];
+
+  test("a day nobody has asked about still truncates and still says so", () => {
+    const book = planBook(source(overflowing), SPEC, DEFAULT_OPTIONS);
+    const warning = book.warnings.find((w) => w.code === "text-truncated");
+    expect(warning).toBeDefined();
+    // The day this warning is about is a structured field, not something a
+    // reader has to parse out of `detail` — B517.
+    expect(warning?.date).toBe(DATE);
+    const dayPages = book.volumes[0].pages.filter((p) => p.kind === "day" && p.date === DATE);
+    expect(dayPages).toHaveLength(1);
+    expect(dayPages[0].kind === "day" && dayPages[0].truncated).toBe(true);
+  });
+
+  test("runOn gives the day the room, and the warning stops", () => {
+    const book = planBook(source(overflowing), SPEC, {
+      ...DEFAULT_OPTIONS,
+      days: { [DATE]: { runOn: true } },
+    });
+    expect(book.warnings.some((w) => w.code === "text-truncated")).toBe(false);
+    const dayPages = book.volumes[0].pages.filter((p) => p.kind === "day" && p.date === DATE);
+    // The words that overflowed the first page are on the second, not gone.
+    expect(dayPages).toHaveLength(2);
+    const [first, second] = dayPages;
+    expect(first.kind === "day" && first.truncated).toBe(false);
+    expect(second.kind === "day" && second.truncated).toBe(false);
+    const allLines = dayPages.flatMap((p) => (p.kind === "day" ? p.lines : []));
+    expect(allLines.some((l) => l.includes("Word0"))).toBe(true);
+    expect(allLines.some((l) => l.includes("Word199"))).toBe(true);
+  });
+
+  test("the continuation page says it is one, and does not repeat the date", () => {
+    const book = planBook(source(overflowing), SPEC, {
+      ...DEFAULT_OPTIONS,
+      days: { [DATE]: { runOn: true } },
+    });
+    const dayPages = book.volumes[0].pages.filter((p) => p.kind === "day" && p.date === DATE);
+    const [first, second] = dayPages;
+    const title = overflowing[1].title; // "Day 2"
+    expect(first.kind === "day" && first.title).toBe(title);
+    expect(first.kind === "day" && first.dateLabel).not.toBe("");
+    expect(second.kind === "day" && second.title).toBe(
+      fill(bookStrings("en").continuedTitle, { title }),
+    );
+    // Two pages carrying the same date would read as two different days that
+    // happen to share one, not as one day that ran long — B517.
+    expect(second.kind === "day" && second.dateLabel).toBe("");
+  });
+
+  test("the continuation page carries the day's spare photograph rather than none", () => {
+    const book = planBook(source(overflowing), SPEC, {
+      ...DEFAULT_OPTIONS,
+      days: { [DATE]: { runOn: true } },
+    });
+    const dayPages = book.volumes[0].pages.filter((p) => p.kind === "day" && p.date === DATE);
+    const [first, second] = dayPages;
+    expect(first.kind === "day" && first.photo?.photo.file).toBe("p2.jpg");
+    expect(second.kind === "day" && second.photo?.photo.file).toBe("p3.jpg");
+    // p3 is spent on the continuation page, so it is not printed again on a
+    // grouped photos page.
+    const files = printed({ days: { [DATE]: { runOn: true } } });
+    expect(files.filter((f) => f === "p3.jpg")).toHaveLength(1);
+  });
+
+  test("a day with no spare photograph runs text alone rather than manufacturing one", () => {
+    const solo = [day(0, [photo(1)]), longDay(1, [photo(2)])];
+    const book = planBook(source(solo), SPEC, {
+      ...DEFAULT_OPTIONS,
+      days: { [DATE]: { runOn: true } },
+    });
+    const dayPages = book.volumes[0].pages.filter((p) => p.kind === "day" && p.date === DATE);
+    expect(dayPages).toHaveLength(2);
+    const [first, second] = dayPages;
+    expect(first.kind === "day" && first.photo?.photo.file).toBe("p2.jpg");
+    expect(second.kind === "day" && second.photo).toBeUndefined();
+    expect(second.kind === "day" && second.truncated).toBe(false);
+  });
+
+  test("the page count and the price both follow", () => {
+    // A trip long enough that the binder's 32-page minimum is not what is
+    // padding the count — otherwise a book that already needed padding would
+    // absorb the extra page and this would test the padding rule instead.
+    const bigTrip = [
+      ...Array.from({ length: 15 }, (_, i) =>
+        day(i, [photo(i * 10 + 1), photo(i * 10 + 2), photo(i * 10 + 3), photo(i * 10 + 4)]),
+      ),
+      longDay(15, [photo(997), photo(998), photo(996), photo(995)]),
+    ];
+    const longDate = day(15, []).date;
+    const options = { ...DEFAULT_OPTIONS, days: { [longDate]: { runOn: true } } };
+    const withoutRunOn = planBook(source(bigTrip), SPEC, DEFAULT_OPTIONS);
+    const withRunOn = planBook(source(bigTrip), SPEC, options);
+    // Padding was not the thing doing the work here.
+    expect(withoutRunOn.volumes[0].interiorPages).toBeGreaterThan(SPEC.pageCount.min);
+    expect(withRunOn.volumes[0].interiorPages).toBeGreaterThan(withoutRunOn.volumes[0].interiorPages);
+    expect(priceOf(withRunOn, options)).toBeGreaterThan(priceOf(withoutRunOn, DEFAULT_OPTIONS));
   });
 });

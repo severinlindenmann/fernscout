@@ -648,6 +648,8 @@
   "photobook.day.layout.grid": "Oldalanként négy",
   "photobook.day.layout.text": "Csak szöveg",
   "photobook.day.layoutLegend": "Hogyan legyen elrendezve ez a nap",
+  "photobook.day.runOn": "Adjon ennek a napnak egy második oldalt levágás helyett",
+  "photobook.day.runOnHint": "Egy oldallal többet jelent, így az ár is változik.",
   "photobook.day.reset": "Döntse el újra a könyv",
   "photobook.day.applyToAll": "Alkalmazás minden napra",
   "photobook.day.applyToAllConfirm": "{count} másik napot kézzel rendeztél el, ezek is erre az elrendezésre állnak. Folytatod?",
