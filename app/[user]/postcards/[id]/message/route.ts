@@ -1,5 +1,6 @@
 import { isOwner } from "@/lib/contacts/session";
 import { updateOrderText } from "@/lib/postcard/orders";
+import { backToPreview } from "@/lib/postcard/redirectBack";
 import { defaultLocaleFor, localesFor } from "@/lib/locales";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,6 @@ export async function POST(
   { params }: RouteContext<"/[user]/postcards/[id]/message">,
 ) {
   const { user, id } = await params;
-  const back = new URL(`/${user}/postcards/${id}`, request.url);
 
   if (request.headers.get("authorization")) {
     return Response.json(
@@ -45,7 +45,7 @@ export async function POST(
   }
 
   if (!(await isOwner(user))) {
-    return Response.redirect(withResult(back, "forbidden"), 303);
+    return backToPreview(user, id, "forbidden");
   }
 
   const form = await request.formData();
@@ -54,7 +54,7 @@ export async function POST(
   const asked = String(form.get("locale") ?? "").trim();
 
   if (!message || !from) {
-    return Response.redirect(withResult(back, "empty_text"), 303);
+    return backToPreview(user, id, "empty_text");
   }
 
   // Only a language this journal actually writes in. Not a free string: it is
@@ -64,16 +64,5 @@ export async function POST(
   const locale = localesFor(user).includes(asked) ? asked : defaultLocaleFor(user);
 
   const saved = await updateOrderText(user, id, { message, from, locale });
-  return Response.redirect(
-    // 303 so the browser follows with a GET: reloading the preview must not
-    // repost the form.
-    withResult(back, saved ? "saved" : "already_sent"),
-    303,
-  );
-}
-
-function withResult(url: URL, result: string): string {
-  const next = new URL(url);
-  next.searchParams.set("result", result);
-  return next.toString();
+  return backToPreview(user, id, saved ? "saved" : "already_sent");
 }

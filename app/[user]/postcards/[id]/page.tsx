@@ -8,13 +8,15 @@ import { pickLocale } from "@/lib/contacts/locale";
 import { isOwner } from "@/lib/contacts/session";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
 import { translateIn } from "@/lib/locales";
+import type { TranslationKey } from "@/lib/i18n";
 import { mediaUrl } from "@/lib/media";
 import { recipientsOf } from "@/lib/postcard/contacts";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
 import { LOCALE_LABEL } from "@/lib/i18n";
-import { localesFor } from "@/lib/locales";
+import { defaultLocaleFor, localesFor } from "@/lib/locales";
+import { formatDigestDate } from "@/lib/digest/content";
 import { orderPhotoFile } from "@/lib/postcard/send";
 import { getUser } from "@/lib/users";
 
@@ -49,23 +51,23 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * so an id belonging to somebody else is a 404 whoever is asking.
  */
 
-const RESULTS: Record<string, string> = {
-  sent: "Sent. The cards have gone to the printer.",
-  forbidden: "You are not signed in as the owner of this journal, so nothing was sent.",
-  already_sent:
-    "This order has already been sent. Nothing was sent again, and nothing charged.",
-  expired: "This order is more than a week old, so it can no longer be sent. Ask for a new one.",
-  no_recipients:
-    "Nobody on this order can be posted to any more — they withdrew their address or their " +
-    "consent since it was made. Nothing was sent and nothing charged.",
-  no_credits: "There are not enough credits for this order. Nothing was sent and nothing charged.",
-  photo_missing: "The photograph on this order is no longer in the trip. Nothing was sent.",
-  postcards_off: "Postcards are switched off for this journal.",
-  contacts_off: "Contacts are switched off for this journal.",
-  unknown_order: "There is no such order.",
-  saved: "Saved. Nothing has been printed or charged.",
-  empty_text: "A card needs a message and a signature. Nothing was changed.",
-  provider_unavailable: "No print provider is configured, so nothing was sent.",
+/** Every outcome the two form routes can redirect back with, as a key rather
+ * than a sentence — B461. The page used to hold English here and on every
+ * label below, so a journal set to German met an English page. */
+const RESULTS: Record<string, TranslationKey> = {
+  sent: "postcard.result.sent",
+  saved: "postcard.result.saved",
+  forbidden: "postcard.result.forbidden",
+  empty_text: "postcard.result.emptyText",
+  already_sent: "postcard.result.alreadySent",
+  expired: "postcard.result.expired",
+  no_recipients: "postcard.result.noRecipients",
+  no_credits: "postcard.result.noCredits",
+  photo_missing: "postcard.result.photoMissing",
+  postcards_off: "postcard.result.off",
+  contacts_off: "postcard.result.off",
+  provider_unavailable: "postcard.result.off",
+  unknown_order: "postcard.result.unknown",
 };
 
 export default async function PostcardOrderPage({
@@ -79,13 +81,15 @@ export default async function PostcardOrderPage({
   if (!user || !isEnabled("postcards", username)) notFound();
 
   const locale = pickLocale(user.defaultLocale);
+  const t = (key: TranslationKey, vars?: Record<string, string>) =>
+    translateIn(locale, key, vars);
 
   if (!(await isOwner(username))) {
     return (
       <NoticeShell
         lang={locale}
         title={translateIn(locale, "err.notSignedInTitle")}
-        body="Sign in as the owner of this journal to see the postcards waiting to be sent."
+        body={t("postcard.page.signInBody")}
         actions={[
           {
             href: `/${username}`,
@@ -114,24 +118,26 @@ export default async function PostcardOrderPage({
   const back = backLayout();
   // B452. The card's own language, and the journals's — so the picker offers
   // what this journal actually writes in rather than every locale that exists.
-  const cardLocale = order.payload.locale || localesFor(username)[0];
+  const cardLocale = order.payload.locale || defaultLocaleFor(username);
   const offered = localesFor(username);
   const label = (code: string | null) =>
-    code ? (LOCALE_LABEL[code] ?? code.toUpperCase()) : null;
+    code ? (LOCALE_LABEL[code] ?? code.toUpperCase()) : "";
   // Somebody writing to a German reader in English is often doing it on
   // purpose, so this is a note and never a refusal.
-  const mismatched = live.filter((id) => {
+  const mismatches = live.filter((id) => {
     const other = people.get(id)!.locale;
     return other && other !== cardLocale;
-  }).length;
+  });
+  const mismatched = mismatches.length;
+  const firstMismatch = mismatches[0];
 
   return (
     <div className="min-h-screen">
       <PageHeader />
       <main className="mx-auto w-full max-w-3xl px-4 py-8">
-        <h1 className="text-2xl font-semibold">Postcards, ready to send</h1>
+        <h1 className="text-2xl font-semibold">{t("postcard.page.title")}</h1>
         <p className="mt-1 text-sm opacity-70">
-          From {order.payload.day}. Nothing has been printed or charged yet.
+          {t("postcard.page.intro", { day: order.payload.day })}
         </p>
 
         {typeof result === "string" && RESULTS[result] ? (
@@ -140,7 +146,7 @@ export default async function PostcardOrderPage({
             role="status"
             data-testid="send-result"
           >
-            {RESULTS[result]}
+            {t(RESULTS[result])}
           </p>
         ) : null}
 
@@ -157,7 +163,9 @@ export default async function PostcardOrderPage({
                 className="absolute inset-0 h-full w-full object-cover"
               />
             </div>
-            <figcaption className="mt-1 text-xs opacity-70">The front</figcaption>
+            <figcaption className="mt-1 text-xs opacity-70">
+              {t("postcard.page.front")}
+            </figcaption>
           </figure>
 
           <figure>
@@ -218,8 +226,9 @@ export default async function PostcardOrderPage({
               </div>
             </div>
             <figcaption className="mt-1 text-xs opacity-70">
-              The back, at print size
-              {live.length > 1 ? ` — addressed to the first of ${live.length}` : ""}
+              {live.length > 1
+                ? t("postcard.page.backFirstOf", { count: String(live.length) })
+                : t("postcard.page.back")}
             </figcaption>
           </figure>
         </section>
@@ -231,7 +240,7 @@ export default async function PostcardOrderPage({
             className="mt-6 rounded border px-4 py-3"
           >
             <label className="block text-sm font-semibold">
-              What it says
+              {t("postcard.page.messageLabel")}
               <textarea
                 name="message"
                 rows={4}
@@ -242,7 +251,7 @@ export default async function PostcardOrderPage({
             </label>
             <div className="mt-3 flex flex-wrap gap-3">
               <label className="text-sm font-semibold">
-                Signed
+                {t("postcard.page.signed")}
                 <input
                   name="from"
                   defaultValue={order.payload.from}
@@ -250,7 +259,7 @@ export default async function PostcardOrderPage({
                 />
               </label>
               <label className="text-sm font-semibold">
-                Written in
+                {t("postcard.page.writtenIn")}
                 <select
                   name="locale"
                   defaultValue={cardLocale}
@@ -265,38 +274,47 @@ export default async function PostcardOrderPage({
               </label>
             </div>
             <button type="submit" className="mt-3 rounded border px-3 py-1.5 text-sm font-medium">
-              Save the words
+              {t("postcard.page.save")}
             </button>
-            <p className="mt-2 text-xs opacity-70">
-              The photograph and the people are fixed — changing those means a new order.
-            </p>
+            {/* B461. Said once, next to the language picker, because "written
+                in Deutsch" invites exactly one question — does a German reader
+                get a German card? — and the answer is no. Nothing translates
+                anything; everybody gets these words. */}
+            <p className="mt-2 text-xs opacity-70">{t("postcard.page.sameCard")}</p>
+            <p className="mt-1 text-xs opacity-70">{t("postcard.page.fixed")}</p>
           </form>
         ) : null}
 
         {mismatched > 0 ? (
           <p className="mt-4 rounded border px-3 py-2 text-sm">
-            This card is written in {label(cardLocale)}, and{" "}
-            {mismatched === 1 ? "one person on it reads" : `${mismatched} people on it read`}{" "}
-            another language. That may be exactly what you meant — nothing is translated either
-            way.
+            {mismatched === 1 && firstMismatch
+              ? t("postcard.page.mismatchOne", {
+                  name: people.get(firstMismatch)!.to.name,
+                  theirs: label(people.get(firstMismatch)!.locale),
+                  card: label(cardLocale),
+                })
+              : t("postcard.page.mismatchMany", {
+                  count: String(mismatched),
+                  card: label(cardLocale),
+                })}
           </p>
         ) : null}
 
         {resolution && !resolution.ok ? (
           <p className="mt-4 rounded border px-3 py-2 text-sm">
-            This photograph prints at about {resolution.dpi} dpi, below the 300 dpi a card wants —
-            it will look soft on paper. A larger original would print better.
+            {t("postcard.page.lowRes", { dpi: String(resolution.dpi) })}
           </p>
         ) : null}
 
         <section className="mt-8">
           <h2 className="text-lg font-semibold">
-            Going to {live.length} {live.length === 1 ? "person" : "people"}
+            {live.length === 1
+              ? t("postcard.page.goingOne")
+              : t("postcard.page.goingMany", { count: String(live.length) })}
           </h2>
           {lost > 0 ? (
             <p className="mt-1 text-sm">
-              {lost} of the people on this order can no longer be posted to — they withdrew their
-              address or their consent since it was made. They are not counted or charged for.
+              {t("postcard.page.lost", { count: String(lost) })}
             </p>
           ) : null}
           <ul className="mt-2 space-y-1 text-sm">
@@ -312,8 +330,11 @@ export default async function PostcardOrderPage({
                           is how an owner notices a German reader being sent an
                           English card, which a postcard gives them no other
                           way to find out. */}
-                      {locale ? (
-                        <span className="opacity-60"> · reads {label(locale)}</span>
+                      {locale && locale !== cardLocale ? (
+                        <span className="opacity-60">
+                          {" · "}
+                          {t("postcard.page.reads", { language: label(locale) })}
+                        </span>
                       ) : null}
                     </summary>
                     <address className="mt-1 pl-4 text-xs not-italic opacity-80">
@@ -336,27 +357,34 @@ export default async function PostcardOrderPage({
 
         <section className="mt-8 rounded border px-4 py-3">
           <p className="text-sm">
-            {order.payload.creditsEach} credits each × {live.length} ={" "}
-            <strong>{cost} credits</strong>
-            {balance !== null ? <> — you have {balance}.</> : null}
+            {t("postcard.page.cost", {
+              each: String(order.payload.creditsEach),
+              count: String(live.length),
+              total: String(cost),
+            })}
+            {balance !== null ? (
+              <> {t("postcard.page.balance", { balance: String(balance) })}</>
+            ) : null}
           </p>
           {short ? (
             <p className="mt-2 text-sm">
-              That is {cost - (balance ?? 0)} short.{" "}
+              {t("postcard.page.short", {
+                missing: String(cost - (balance ?? 0)),
+                date: formatDigestDate(locale, order.payload.expiresAt.slice(0, 10)),
+              })}{" "}
               <a className="underline" href={`/${username}/me`}>
-                Buy credits
-              </a>{" "}
-              and come back to this page; the order keeps until{" "}
-              {new Date(order.payload.expiresAt).toLocaleDateString()}.
+                {t("postcard.page.buy")}
+              </a>
             </p>
           ) : null}
 
           {!isPending(order) ? (
-            <p className="mt-2 text-sm">These cards have already been sent.</p>
+            <p className="mt-2 text-sm">{t("postcard.page.alreadySent")}</p>
           ) : expired ? (
             <p className="mt-2 text-sm">
-              This order expired on {new Date(order.payload.expiresAt).toLocaleDateString()}. Ask
-              for a new one.
+              {t("postcard.page.expiredOn", {
+                date: formatDigestDate(locale, order.payload.expiresAt.slice(0, 10)),
+              })}
             </p>
           ) : (
             <form method="post" action={`/${username}/postcards/${id}/send`} className="mt-3">
@@ -365,11 +393,14 @@ export default async function PostcardOrderPage({
                 disabled={!sendable || short}
                 className="rounded bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
               >
-                Send {live.length} {live.length === 1 ? "postcard" : "postcards"} for {cost} credits
+                {live.length === 1
+                  ? t("postcard.page.sendOne", { total: String(cost) })
+                  : t("postcard.page.sendMany", {
+                      count: String(live.length),
+                      total: String(cost),
+                    })}
               </button>
-              <p className="mt-2 text-xs opacity-70">
-                This prints and posts real cards, and spends the credits. It cannot be undone.
-              </p>
+              <p className="mt-2 text-xs opacity-70">{t("postcard.page.sendWarning")}</p>
             </form>
           )}
         </section>
