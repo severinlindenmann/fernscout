@@ -8,6 +8,8 @@ area: api, mcp, test-content
 found: "2026-09-03"
 started: "2026-09-03"
 merged: "2026-09-03"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:38:39Z"
 ---
 
 # B116 — A test day inside a real trip is unmarked in two places

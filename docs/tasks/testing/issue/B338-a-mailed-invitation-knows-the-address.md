@@ -8,6 +8,8 @@ area: contacts, invites
 found: "2026-09-04T19:24:36Z"
 started: "2026-09-04T19:25:01Z"
 merged: "2026-09-04T19:36:46Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:38:40Z"
 ---
 
 # B338 — A mailed invitation knows the address it was sent to and asks the reader to type it again

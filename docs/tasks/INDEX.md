@@ -216,7 +216,7 @@ _Nothing here._
 | [B254](testing/issue/B254-the-landing-page-hands-over-a.md) | The landing page hands over a bare URL where an agent needs an instruction | ISSUE | high | low | — |
 | [B255](testing/issue/B255-the-landing-page-s-handover-block.md) | The landing page's handover block shows one thing and copies another | ISSUE | high | low | — |
 | [B261](testing/issue/B261-the-copied-instruction-names-one-document.md) | The copied instruction names one document, so the agent discovers the other one and is refused it | ISSUE | high | low | — |
-| [B264](testing/issue/B264-a-reader-who-may-see-nothing.md) | A reader who may see nothing in a journal is told there are no trips yet | ISSUE | high | medium | — |
+| [B264](testing/issue/B264-a-reader-who-may-see-nothing.md) | A reader who may see nothing in a journal is told there are no trips yet | ISSUE | high | medium | `62683d95` |
 | [B272](testing/issue/B272-a-transient-mail-failure-tells-a.md) | A transient mail failure tells a reader their code was wrong and loses the owner's notification for good | ISSUE | high | medium | — |
 | [B277](testing/issue/B277-the-reader-languages-stay-optional-at.md) | The reader languages stay optional at creation, so a journal asked for three gets one | ISSUE | high | low | — |
 | [B300](testing/issue/B300-approving-a-guest-opens-nothing-when.md) | Approving a guest opens nothing when every trip is private, and neither the owner nor the guest is told | ISSUE | high | low | — |
@@ -241,9 +241,9 @@ _Nothing here._
 | [B64](testing/issue/B64-a-failed-nightly-backup-tells-nobody.md) | A failed nightly backup tells nobody | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
-| [B116](testing/issue/B116-a-test-day-inside-a-real.md) | A test day inside a real trip is unmarked in the day list and in MCP's readable summary | ISSUE | medium | low | — |
+| [B116](testing/issue/B116-a-test-day-inside-a-real.md) | A test day inside a real trip is unmarked in the day list and in MCP's readable summary | ISSUE | medium | low | `62683d95` |
 | [B13](testing/issue/B13-the-photobook-prints-from-the-web.md) | The photobook prints from the web derivatives, not the originals | ISSUE | medium | medium | — |
-| [B134](testing/issue/B134-the-review-queue-cannot-tell.md) | The review queue cannot tell a person which drafts nobody lived | ISSUE | medium | low | — |
+| [B134](testing/issue/B134-the-review-queue-cannot-tell.md) | The review queue cannot tell a person which drafts nobody lived | ISSUE | medium | low | `62683d95` |
 | [B135](testing/issue/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low | — |
 | [B136](testing/issue/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low | — |
 | [B16](testing/issue/B16-the-day-photo-viewer-does-not.md) | The day photo viewer does not answer to touch and never says where you are | ISSUE | medium | low | — |
@@ -251,7 +251,7 @@ _Nothing here._
 | [B177](testing/issue/B177-a-trip-map-s-basemap-is.md) | A trip map's basemap is half a megabyte for a route sixty-eight kilometres across | ISSUE | medium | medium | — |
 | [B178](testing/issue/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low | — |
 | [B179](testing/issue/B179-one-failed-read-of-the-basemap.md) | One failed read of the basemap bundle turns every map on the instance blank until restart | ISSUE | medium | low | — |
-| [B205](testing/issue/B205-redeeming-an-invite-promises-a-code.md) | Redeeming an invite promises a code the server may have no way to send | ISSUE | medium | low | — |
+| [B205](testing/issue/B205-redeeming-an-invite-promises-a-code.md) | Redeeming an invite promises a code the server may have no way to send | ISSUE | medium | low | `62683d95` |
 | [B217](testing/issue/B217-a-refused-journal-creation-still-burns.md) | A refused journal creation still burns a rate-limit slot, so correcting a typo can lock the person out for an hour | ISSUE | medium | low | — |
 | [B219](testing/issue/B219-the-postcard-and-photobook-scripts-write.md) | The postcard and photobook scripts write beside the code, not into the content root | ISSUE | medium | low | — |
 | [B227](testing/issue/B227-nothing-notices-a-conflict-marker-in.md) | Nothing notices a conflict marker in deploy/Caddyfile, because every check greps for a line rather than parsing the file | ISSUE | medium | low | — |
@@ -260,15 +260,15 @@ _Nothing here._
 | [B25](testing/issue/B25-the-photobook-plan-records-absolute-paths.md) | The photobook plan records absolute paths, which breaks the depersonalisation test | ISSUE | medium | low | — |
 | [B268](testing/issue/B268-the-slideshow-map-projects-coordinates-without.md) | The slideshow map projects coordinates without mapFrame, so a coordinate-less day breaks it the same way | ISSUE | medium | low | — |
 | [B269](testing/issue/B269-the-photobook-has-its-own-bounding.md) | The photobook has its own bounding-box code with the same NaN hole B265 closed for the web maps | ISSUE | medium | low | — |
-| [B271](testing/issue/B271-the-owner-s-contacts-page-has.md) | The owner's contacts page has no way back to the journal | ISSUE | medium | low | — |
-| [B282](testing/issue/B282-the-access-panel-creates-a-guest.md) | The access panel creates a guest link itself, so link management lives on two pages and the page is long enough to scroll past what matters | ISSUE | medium | low | — |
+| [B271](testing/issue/B271-the-owner-s-contacts-page-has.md) | The owner's contacts page has no way back to the journal | ISSUE | medium | low | `62683d95` |
+| [B282](testing/issue/B282-the-access-panel-creates-a-guest.md) | The access panel creates a guest link itself, so link management lives on two pages and the page is long enough to scroll past what matters | ISSUE | medium | low | `62683d95` |
 | [B285](testing/issue/B285-the-header-s-language-currency-chip.md) | The header's language/currency chip drifts to the middle of the row on desktop | ISSUE | medium | low | `62683d95` |
 | [B301](testing/issue/B301-the-handover-block-still-offers-the.md) | The handover block still offers the read-out-a-code route beside the key, which is two ways to do one thing | ISSUE | medium | low | — |
 | [B312](testing/issue/B312-a-malformed-trip-md-that-gray.md) | A malformed trip.md that gray-matter has already failed to parse once can silently succeed on re-parse | ISSUE | medium | low | — |
 | [B313](testing/issue/B313-getplan-s-own-doc-comment-claims.md) | getPlan's own doc comment claims a malformed plan.md returns empty, but readPlanFile has no guard and throws | ISSUE | medium | low | — |
 | [B317](testing/issue/B317-the-scripts-say-what-to-ask.md) | The scripts say what to ask and never what to offer next, so an agent stops after each step | ISSUE | medium | low | — |
 | [B336](testing/issue/B336-the-map-pages-drop-the-owner.md) | The map pages drop the owner's draft days while the same page's planned route keeps them | ISSUE | medium | low | — |
-| [B338](testing/issue/B338-a-mailed-invitation-knows-the-address.md) | A mailed invitation knows the address it was sent to and asks the reader to type it again | ISSUE | medium | low | — |
+| [B338](testing/issue/B338-a-mailed-invitation-knows-the-address.md) | A mailed invitation knows the address it was sent to and asks the reader to type it again | ISSUE | medium | low | `62683d95` |
 | [B349](testing/issue/B349-the-owner-s-queue-notification-calls.md) | The owner's queue notification calls a buddy a follower, naming neither the link kind nor the trip | ISSUE | medium | low | — |
 | [B351](testing/issue/B351-the-pre-approved-invite-page-still.md) | The pre-approved invite page still speaks the queue's language and contradicts itself | ISSUE | medium | low | — |
 | [B356](testing/issue/B356-reading-a-day-back-omits-its.md) | Reading a day back omits its translations, so an agent cannot verify the ones it wrote | ISSUE | medium | low | — |
@@ -280,7 +280,7 @@ _Nothing here._
 | [B395](testing/issue/B395-an-approved-reader-who-can-see.md) | An approved reader who can see nothing is told on one page to ask for an invitation they already have | ISSUE | medium | low | — |
 | [B396](testing/issue/B396-the-contacts-page-tells-an-owner.md) | The contacts page tells an owner to change a trip's visibility, which no door can do | ISSUE | medium | low | — |
 | [B397](testing/issue/B397-health-and-status-report-credits-off.md) | health and status report credits off per-journal though it is server-only and live | ISSUE | medium | low | — |
-| [B41](testing/issue/B41-an-approved-contact-is-shown-a.md) | An approved contact is shown a trip in their own panel and then asked for a password nobody gave them | ISSUE | medium | medium | — |
+| [B41](testing/issue/B41-an-approved-contact-is-shown-a.md) | An approved contact is shown a trip in their own panel and then asked for a password nobody gave them | ISSUE | medium | medium | `62683d95` |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
 | [B70](testing/issue/B70-a-test-trip-is-mailed-out.md) | A test trip is mailed out in the digest as if somebody had lived it | ISSUE | medium | low | — |
@@ -289,18 +289,18 @@ _Nothing here._
 | [B130](testing/issue/B130-re-approving-a-contact-leaves.md) | Re-approving a contact leaves an expired grant expired, so the approval does nothing | ISSUE | low | low | — |
 | [B137](testing/issue/B137-a-refused-url-tells-the-caller.md) | A refused URL tells the caller to retry a permanent failure and says nothing about a transient one | ISSUE | low | low | — |
 | [B150](testing/issue/B150-two-recipients-with-the-same.md) | Two recipients with the same Latin name overwrite each other's postcards | ISSUE | low | low | — |
-| [B158](testing/issue/B158-the-publish-confirmation-promises-feed-and.md) | The publish confirmation promises feed and search for a day that is excluded from both | ISSUE | low | low | — |
+| [B158](testing/issue/B158-the-publish-confirmation-promises-feed-and.md) | The publish confirmation promises feed and search for a day that is excluded from both | ISSUE | low | low | `62683d95` |
 | [B161](testing/issue/B161-an-expired-place-on-a-trip.md) | An expired place on a trip is not restored by re-approving the contact | ISSUE | low | low | — |
 | [B170](testing/issue/B170-the-journal-title-is-clipped.md) | The journal's title is clipped in the header at exactly the width where the nav labels appear | ISSUE | low | low | `62683d95` |
 | [B199](testing/issue/B199-the-agent-handover-copy-control-has.md) | The agent-handover copy control has two values and a newline in one accessible name | ISSUE | low | low | — |
 | [B207](testing/issue/B207-four-trip-fields-are-read-from.md) | Four trip fields are read from trip.md and nothing can write them | ISSUE | low | low | — |
 | [B208](testing/issue/B208-createdraft-never-reads-its-entry-back.md) | createDraft never reads its entry back, so an unwritable day is reported as written | ISSUE | low | low | — |
-| [B209](testing/issue/B209-two-different-limits-are-refused-with.md) | Two different limits are refused with the same sentence, so an agent cannot tell which it broke | ISSUE | low | low | — |
+| [B209](testing/issue/B209-two-different-limits-are-refused-with.md) | Two different limits are refused with the same sentence, so an agent cannot tell which it broke | ISSUE | low | low | `62683d95` |
 | [B210](testing/issue/B210-media-originals-dir-outside-the-content.md) | MEDIA_ORIGINALS_DIR outside the content root writes a ../ chain into the photobook plan | ISSUE | low | low | — |
 | [B212](testing/issue/B212-a-journal-s-title-is-truncated.md) | A journal's title is truncated to five characters in the trip header on a 1440px desktop | ISSUE | low | low | `62683d95` |
 | [B214](testing/issue/B214-the-costs-page-s-meta-description.md) | The costs page's meta description is present-tense on a trip that has not started | ISSUE | low | low | — |
 | [B218](testing/issue/B218-a-postcard-run-reports-three-files.md) | A postcard run reports three files per recipient and writes four | ISSUE | low | low | — |
-| [B270](testing/issue/B270-an-owner-whose-only-trip-is.md) | An owner whose only trip is public but unlisted sees four zeroes and no empty state | ISSUE | low | low | — |
+| [B270](testing/issue/B270-an-owner-whose-only-trip-is.md) | An owner whose only trip is public but unlisted sees four zeroes and no empty state | ISSUE | low | low | `62683d95` |
 | [B286](testing/issue/B286-the-trip-nav-wraps-to-one.md) | The trip nav wraps to one row on one trip and two rows on another at the same width | ISSUE | low | medium | `62683d95` |
 | [B337](testing/issue/B337-a-day-with-no-location-renders.md) | A day with no location: renders a blank, unlabelled filter chip in the gallery | ISSUE | low | low | — |
 | [B358](testing/issue/B358-the-invite-copy-button-s-accessible.md) | The invite copy button's accessible name ends in two dangling em-dashes and reports no success | ISSUE | low | low | — |

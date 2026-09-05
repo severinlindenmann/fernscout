@@ -8,6 +8,8 @@ area: trips, access
 found: "2026-09-04T11:52:43Z"
 started: "2026-09-04T15:49:33Z"
 merged: "2026-09-04T16:00:10Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:38:37Z"
 ---
 
 # B270 — An owner whose only trip is public but unlisted sees four zeroes and no empty state

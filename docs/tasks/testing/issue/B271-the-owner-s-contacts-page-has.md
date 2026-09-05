@@ -8,6 +8,8 @@ area: web, contacts, navigation
 found: "2026-09-04T11:34:00Z"
 started: "2026-09-04T11:55:54Z"
 merged: "2026-09-04T12:08:09Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:38:38Z"
 ---
 
 # B271 — The owner's contacts page has no way back to the journal

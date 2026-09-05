@@ -8,6 +8,8 @@ area: trips, access, i18n
 found: "2026-09-04T11:26:21Z"
 started: "2026-09-04T11:27:17Z"
 merged: "2026-09-04T11:42:02Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:38:37Z"
 ---
 
 # B264 — A reader who may see nothing in a journal is told there are no trips yet

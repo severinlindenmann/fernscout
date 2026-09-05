@@ -8,6 +8,8 @@ area: web, me-page, contacts
 found: "2026-09-04T12:42:00Z"
 started: "2026-09-04T13:24:42Z"
 merged: "2026-09-04T13:39:49Z"
+session: 62683d95-33a6-4db0-a254-7a8fcbcf014e
+claimed: "2026-09-05T07:38:37Z"
 ---
 
 # B282 — The access panel creates a guest link itself, so link management lives on two pages and the page is long enough to scroll past what matters
