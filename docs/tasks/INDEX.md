@@ -203,14 +203,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B477](in-development/B477-the-ios-home-screen-steps-are.md) | The iOS Home Screen steps are the ones readers get lost in and the only ones with no picture | DOCS | medium | low | `3744307d` |
 | [B475](in-development/B475-the-nightly-status-mail-is-a.md) | The nightly status mail is a wall of monospace while every other letter this instance sends is designed | FEATURE | low | medium | `7c3dd4ae` |
 
-## testing (173)
+## testing (174)
 
 ### security (2)
 
@@ -396,7 +395,7 @@ _Nothing here._
 | [B401](testing/ops/B401-nightly-backups-have-been-failing-since.md) | Nightly backups have been failing since two unreadable config.json.bak files appeared in the content root | OPS | high | low | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
-### docs-and-skills (13)
+### docs-and-skills (14)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -410,6 +409,7 @@ _Nothing here._
 | [B292](testing/docs-and-skills/B292-four-things-an-agent-had-to.md) | Four things an agent had to learn by failing are documented somewhere it was not looking | DOCS | medium | low | — |
 | [B355](testing/docs-and-skills/B355-agent-md-says-an-invite-token.md) | agent.md says an invite token is only stored hashed and can never be shown again, which B280 changed | DOCS | medium | low | — |
 | [B456](testing/docs-and-skills/B456-the-guides-describe-controls-in-words.md) | The guides describe controls in words alone, so a reader on a phone has to find them by hunting | DOCS | medium | low | — |
+| [B477](testing/docs-and-skills/B477-the-ios-home-screen-steps-are.md) | The iOS Home Screen steps are the ones readers get lost in and the only ones with no picture | DOCS | medium | low | — |
 | [B186](testing/docs-and-skills/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | DOCS | low | low | — |
 | [B198](testing/docs-and-skills/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | DOCS | low | low | — |
 | [B221](testing/docs-and-skills/B221-a-comment-in-mapframe-points-at.md) | A comment in mapFrame points at a file and a helper that do not exist | DOCS | low | low | — |
