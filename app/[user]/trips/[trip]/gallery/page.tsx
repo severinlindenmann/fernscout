@@ -3,6 +3,7 @@ import { requestLocale, translateIn } from "@/lib/locales";
 import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import GalleryPageContent from "@/app/[user]/(trip)/gallery/GalleryPageContent";
+import { photobookEntryFor } from "@/lib/photobook/entry";
 import { getAllMedia, getPlaces } from "@/lib/entries";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUsernames } from "@/lib/users";
@@ -54,9 +55,17 @@ export default async function TripGalleryPage({
   const drafts = await draftsVisibleTo(trip);
   const read = { includeDrafts: drafts.visible };
 
+  // Not `isOwner` inline: see the note beside the equivalent call in the
+  // current-trip gallery page.
+  const photobook = await photobookEntryFor(trip);
+
   return (
     <TripProvider trip={trip} isCurrent={false} canPublish={drafts.canPublish}>
-      <GalleryPageContent media={getAllMedia(trip.ref, read)} places={getPlaces(trip.ref, read)} />
+      <GalleryPageContent
+        media={getAllMedia(trip.ref, read)}
+        places={getPlaces(trip.ref, read)}
+        photobook={photobook}
+      />
     </TripProvider>
   );
 }

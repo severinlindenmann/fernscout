@@ -80,6 +80,17 @@ export type PostcardEntry = {
   from: string;
 };
 
+/**
+ * What the gallery needs to offer a photobook: who, and of what. The rest of
+ * an order is chosen on the photobook page itself, so unlike `PostcardEntry`
+ * there is no signature to carry here.
+ */
+export type PhotobookEntry = {
+  username: string;
+  /** The trip id — the API takes the id, not the qualified ref. */
+  trip: string;
+};
+
 export type Transport = {
   mode: TransportMode;
   from: string;
