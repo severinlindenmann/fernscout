@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: credits, me page, mobile
 found: "2026-09-05T13:24:17Z"
+merged: "2026-09-05T13:32:33Z"
 ---
 
 # B471 — The channel switch wraps under the channel name on a phone, and the estimate table is too wide for one
