@@ -8,8 +8,7 @@ area: auth, sessions, identity
 found: "2026-09-05"
 related: B411, B412, B283, B33, B34
 started: "2026-09-05T08:26:54Z"
-session: 3744307d-de1f-4fd7-a058-d689389ddc6c
-claimed: "2026-09-05T08:26:54Z"
+merged: "2026-09-05T08:42:23Z"
 ---
 
 # B410 — A reader's access is trapped in one journal's cookie, so the instance cannot tell them what they may open
@@ -76,15 +75,22 @@ The handshake, in `lib/auth/handshake.ts`:
   `redeemedTripsFor`), guest (active contact + `hasReadGrant`), or nothing.
   Wrapped in `cache()` like `resolveSession`. The page is right on the **first**
   request; there is no reload and no flash.
-- The minted per-journal session is a **cache, not the source of truth**. A
-  client component POSTs `/api/auth/handshake` once to materialise `fs_session`
-  so later requests take today's cheap path. If it never fires nothing breaks.
-- Derived sessions carry `parent_id`, so revoking an identity cascades. Without
-  it, revocation is toothless for up to a year. Grant revocation already bites
-  per request, because `journalReader` asks `hasReadGrant` every time.
-- The derived session is `kind: "guest"`. **Role, never write power** —
-  `isOwner()` still decides every write, per call. Decision 24 is untouched and
-  this task must not touch it.
+- **No derived per-journal session, and that changed during the build.** The
+  plan was for the handshake to mint a `guest` session, keep `parent_id` so
+  revocation could cascade, and add `POST /api/auth/handshake` plus a client
+  component to materialise it. It earns nothing: every gate re-derives access
+  from the address on each request anyway, so the minted session saved no
+  lookup — one indexed `sessions` query either way — and existed only to create
+  rows a revocation then had to chase. Dropping it removes `parent_id`, the
+  cascade, a route and a component, and makes revocation absolute: an identity
+  has nothing downstream of it to outlive it.
+- **Role, never write power.** Nothing here mints anything an owner can write
+  with. `isOwner()` still decides every write, per call, from the address.
+  Decision 24 is untouched and this task must not touch it.
+- Every gate that read `fs_session` directly now asks `resolveAccess`:
+  `journalReader`, `isOwner`, `isTravellerOn`, `listableTrips`, the journal
+  layout's `signedIn` flag and `/api/push/subscribe`. A gate left reading the
+  cookie would silently refuse everyone who arrived by identity.
 
 **Not** in this task: the handshake in `proxy.ts`. Next's own documentation
 says proxy runs on every route including prefetches and must not do database
