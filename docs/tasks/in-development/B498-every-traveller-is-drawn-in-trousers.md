@@ -56,6 +56,19 @@ needs a line for this field.
 
 Not doing: a `gender` field. See B11 for why, and do not reopen it here.
 
+## What building it turned up
+
+**`outfit` is one field, not two.** The Work section left that open. A `dress`
+and a `robe` swallow the torso, so they take `shirt` and there is no second
+colour to name; a `skirt` keeps the torso and takes `pants`. One rule covers
+both — *whatever covers the torso takes `shirt`* — so a second field would
+only have restated it.
+
+**A hem has to clear the shirt.** `shorts` first drew to mid-thigh, which the
+torso covered completely, so all that read was bare legs — which is what a
+skirt and a dress look like too. The hem is lower now. Worth remembering for
+any garment added later: the torso path reaches y≈66.
+
 ## Acceptance
 
 - A figure with `outfit: dress` draws a dress, at every `age` and every

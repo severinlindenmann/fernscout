@@ -1080,10 +1080,66 @@ background that the owner did not think they were making — and one that stops
 being true the moment they change the hair.
 
 There is deliberately no \`gender\` field. Everything it would control is
-already chosen directly — hair style and length, clothing, \`build\` — and a
-two-way switch would leave a non-binary traveller with no right answer. If
-somebody tells you their gender, that is context for what to *offer*, not a
-field to fill in.
+already chosen directly — hair style and length, \`outfit\`, clothing colours,
+\`build\` — and a two-way switch would leave a non-binary traveller with no
+right answer. If somebody tells you their gender, that is context for what to
+*offer*, not a field to fill in.
+
+### One of these, end to end
+
+You ask, once and openly. Not twelve questions:
+
+> **How would you like to be drawn?**
+
+They answer in ordinary words:
+
+> *"Dark skin, black hair in braids, and I'd rather be in a skirt than
+> trousers. Purple, if that's an option."*
+
+That is five of the twelve fields. Map it, and leave the other seven alone:
+
+\`\`\`json
+{ "skin": "deep", "hair": "black", "hairStyle": "braids",
+  "outfit": "skirt", "pants": "plum", "shirt": "coral" }
+\`\`\`
+
+\`shirt\` is there because a skirt needs a top and they did not say — so it is a
+**default you have to declare**, which is what the next step is for. Draw it
+and hand over the URL:
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/travellers/preview?figure={"skin":"deep","hair":"black","hairStyle":"braids","outfit":"skirt","pants":"plum","shirt":"coral"}
+\`\`\`
+
+Then read back **both halves** — what they chose, and what they did not:
+
+    skin: deep            ← you said
+    hair: black           ← you said
+    hairStyle: braids     ← you said
+    outfit: skirt         ← you said
+    pants: plum           ← you said
+    shirt: coral            default — you didn't say, shall I change it?
+    eyes: brown             default
+    build: average          default
+    age: adult              default
+
+A silent default reads as a choice, and that list is the only thing stopping
+it. On yes, and not before:
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/trips
+Authorization: Bearer fs_agent_…
+
+{ "id": "kerala-2027", "title": "Kerala", "start": "2027-02-01", "end": "2027-02-20",
+  "travellers": [
+    { "for": "ana@example.test", "skin": "deep", "hair": "black",
+      "hairStyle": "braids", "outfit": "skirt", "pants": "plum", "shirt": "coral" }
+  ] }
+\`\`\`
+
+A trip that already exists takes the same block written into its \`trip.md\`;
+the journal's \`config.json\` takes it too, as the party for any trip that does
+not say for itself.
 
 ${scriptIntro(dayQuestions().length)}
 

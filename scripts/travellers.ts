@@ -6,6 +6,7 @@ import { figureHeight, renderFigure } from "../lib/travellers/render";
 import {
   ACCESSORIES,
   HAIR_STYLES,
+  OUTFITS,
   type Figure,
 } from "../lib/travellers/vocabulary";
 
@@ -81,6 +82,18 @@ function sheetSvg(size: number): string {
       label: hairStyle,
       figure: { skin: "medium", hair: "black", hairStyle } as Figure,
       crop: "head" as const,
+    })),
+    ...OUTFITS.map((outfit) => ({
+      label: outfit,
+      figure: {
+        skin: "medium",
+        hair: "black",
+        hairStyle: "short",
+        shirt: "teal",
+        pants: "slate",
+        pack: "none",
+        outfit,
+      } as Figure,
     })),
     ...ACCESSORIES.map((a) => ({
       label: a,

@@ -3,7 +3,7 @@ import { arrangeParty, frontRank, stepFraction, tightestHeadGap, MIN_STEP } from
 import { parseTravellers, partyFor } from "@/lib/travellers/parse";
 import { PRESET_NAMES, STARTING_POINTS, resolvePreset } from "@/lib/travellers/presets";
 import { renderFigure } from "@/lib/travellers/render";
-import { HAIR_STYLES, MAX_FIGURES, type Figure } from "@/lib/travellers/vocabulary";
+import { HAIR_STYLES, MAX_FIGURES, OUTFITS, type Figure } from "@/lib/travellers/vocabulary";
 
 const adult = (): Figure => ({ skin: "medium", hair: "black", hairStyle: "short" });
 const child = (): Figure => ({ ...adult(), age: "child" });
@@ -174,6 +174,63 @@ describe("the renderer", () => {
 
   it("has no skin or hair colour of its own — an empty figure still draws", () => {
     expect(renderFigure({})).toContain("<svg");
+  });
+
+  it("draws every outfit without throwing", () => {
+    for (const outfit of OUTFITS) {
+      const svg = renderFigure({ outfit, shirt: "teal", pants: "plum" });
+      expect(svg, outfit).toContain("</svg>");
+    }
+  });
+
+  /**
+   * Everybody used to be drawn in trousers, so `trousers` has to stay the
+   * default byte for byte — every figure written before B498 renders exactly
+   * as it did, and the change is purely additive.
+   */
+  it("is byte-identical with no outfit and with trousers", () => {
+    const figure = { skin: "medium", hair: "black", shirt: "teal", pants: "slate" };
+    expect(renderFigure({ ...figure, outfit: "trousers" })).toBe(renderFigure(figure));
+  });
+
+  /**
+   * The colour rule, and the one thing a person writing the block by hand
+   * gets wrong: whatever covers the torso takes `shirt`, a separate lower
+   * garment takes `pants`.
+   */
+  it("colours a dress and a robe from shirt, and a skirt from pants", () => {
+    const teal = "#159a9a";
+    const plum = "#7d5ba6";
+
+    for (const outfit of ["dress", "robe"] as const) {
+      const svg = renderFigure({ outfit, shirt: "teal", pants: "plum" });
+      expect(svg, outfit).toContain(teal);
+      expect(svg, `${outfit} must not use pants`).not.toContain(plum);
+    }
+
+    const skirt = renderFigure({ outfit: "skirt", shirt: "teal", pants: "plum" });
+    expect(skirt).toContain(teal);
+    expect(skirt).toContain(plum);
+  });
+
+  it("shows skin below the hem of shorts, a skirt and a dress", () => {
+    const skin = "#d9a273";
+    for (const outfit of ["shorts", "skirt", "dress"] as const) {
+      // The legs are drawn in skin and the garment over the top of them.
+      expect(renderFigure({ outfit, skin: "medium" }), outfit).toContain(skin);
+    }
+    // A robe reaches the ankles, so it does not.
+    const robe = renderFigure({ outfit: "robe", skin: "medium", shirt: "sand" });
+    const legRects = [...robe.matchAll(/<rect[^>]*fill="#d9a273"/g)];
+    expect(legRects).toHaveLength(0);
+  });
+
+  it("draws each outfit at child scale without losing it", () => {
+    for (const outfit of OUTFITS) {
+      const svg = renderFigure({ outfit, age: "child", shirt: "teal", pants: "plum" });
+      expect(svg, outfit).toContain("scale(0.7)");
+      expect(svg, outfit).toContain("</svg>");
+    }
   });
 
   it("draws a headscarf in cloth rather than in the hair colour", () => {

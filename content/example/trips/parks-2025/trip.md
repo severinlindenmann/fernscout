@@ -9,6 +9,34 @@ accent: navy
 cover: "/media/parks-2025/bryce-at-six/01.jpg"
 visibility: public
 costsVisibility: public
+travellers:
+  - skin: light-medium
+    hair: brown
+    hairStyle: short
+    shirt: sky
+    pants: slate
+    accessories: [cap]
+  - skin: medium-deep
+    hair: black
+    hairStyle: bun
+    shirt: green
+    outfit: shorts
+    pants: sand
+  - age: child
+    skin: medium
+    hair: black
+    hairStyle: coils
+    shirt: yellow
+    outfit: shorts
+    pants: slate
+    pack: none
+  - age: child
+    skin: light-medium
+    hair: auburn
+    hairStyle: curly
+    shirt: plum
+    outfit: dress
+    pack: none
 rates:
   USD: 0.8
 translations:

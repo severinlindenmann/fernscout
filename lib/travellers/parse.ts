@@ -4,11 +4,13 @@ import {
   BUILDS,
   HAIR_STYLES,
   MAX_FIGURES,
+  OUTFITS,
   type Accessory,
   type Age,
   type Build,
   type Figure,
   type HairStyle,
+  type Outfit,
 } from "./vocabulary";
 
 /**
@@ -83,6 +85,9 @@ function parseFigure(raw: unknown): Figure | null {
 
   const style = oneOf<HairStyle>(raw.hairStyle, HAIR_STYLES);
   if (style) figure.hairStyle = style;
+
+  const outfit = oneOf<Outfit>(raw.outfit, OUTFITS);
+  if (outfit) figure.outfit = outfit;
 
   const build = oneOf<Build>(raw.build, BUILDS);
   if (build) figure.build = build;
