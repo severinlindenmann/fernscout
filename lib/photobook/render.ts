@@ -62,6 +62,25 @@ const LAND = { r: 0.925, g: 0.918, b: 0.902 };
 /** Faint enough to be structure rather than decoration; it must never compete
  * with the route. */
 const GRATICULE = { r: 0.87, g: 0.86, b: 0.84 };
+/** A wash behind a per-country row: present, never competing with the type. */
+const BAR_FAINT = { r: 0.87, g: 0.9, b: 0.93 };
+
+/**
+ * Six tints of the one accent, darkest first.
+ *
+ * Not six hues. A budget is one quantity split up, so the segments belong to
+ * each other; six colours would say they were six unrelated things, and a
+ * book printed in CMYK on uncoated stock cannot be trusted to keep them
+ * distinguishable anyway. Lightening one ink always survives the press.
+ */
+function categoryTint(index: number): { r: number; g: number; b: number } {
+  const t = Math.min(index, 5) * 0.145;
+  return {
+    r: ACCENT.r + (1 - ACCENT.r) * t,
+    g: ACCENT.g + (1 - ACCENT.g) * t,
+    b: ACCENT.b + (1 - ACCENT.b) * t,
+  };
+}
 
 /** Degrees between graticule lines, in MAP_SPACE units, for a window this
  * wide. `MAP_SPACE.width` is 1000 units to 360°, so one degree is 2.78 units.
@@ -629,28 +648,91 @@ function drawPage(
       }
 
       if (costs.byCategory.length > 0) {
-        y -= 6;
-        text(page, frame, eyebrow("Where it went"), c.x, y, type.caption, MUTED);
         y -= 8;
-        const biggest = Math.max(...costs.byCategory.map((x) => x.amount));
-        for (const row of costs.byCategory.slice(0, 8)) {
-          const barWidth = biggest > 0 ? (row.amount / biggest) * (c.width * 0.45) : 0;
-          text(page, frame, row.category, c.x, y, type.caption, INK);
-          const r = rect(frame, { x: c.x + c.width * 0.4, y: y - 0.6, width: barWidth, height: 2.4 });
-          PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, ACCENT);
-          textRight(page, frame, money(row.amount), c.x + c.width, y, type.caption, MUTED);
-          y -= 7;
+        text(page, frame, eyebrow("Where it went"), c.x, y, type.caption, MUTED);
+        y -= 10;
+
+        /**
+         * One bar, divided in proportion, rather than a column of numbers.
+         *
+         * A reader wants to know what the money mostly went on, and a stacked
+         * bar answers that before they have read a single figure — which a
+         * list of eight right-aligned amounts never does. It is drawn from
+         * rectangles because the PDF writer has rectangles; an arc would need
+         * beziers and a pie is harder to read than a bar anyway.
+         */
+        const shown = costs.byCategory.slice(0, 6);
+        const sum = shown.reduce((n, r) => n + r.amount, 0);
+        const barH = 7;
+        let bx = c.x;
+        shown.forEach((row, i) => {
+          const w = sum > 0 ? (row.amount / sum) * c.width : 0;
+          const r = rect(frame, { x: bx, y: y - barH, width: Math.max(w - 0.4, 0), height: barH });
+          PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, categoryTint(i));
+          bx += w;
+        });
+        y -= barH + 8;
+
+        // The key, two to a row, in the order of the bar.
+        const half = Math.ceil(shown.length / 2);
+        shown.forEach((row, i) => {
+          const col = i < half ? 0 : 1;
+          const rowY = y - (i % half) * 7;
+          const x = c.x + col * (c.width / 2);
+          const sw = rect(frame, { x, y: rowY - 0.4, width: 3, height: 3 });
+          PdfBuilder.drawRect(page, sw.x, sw.y, sw.width, sw.height, categoryTint(i));
+          text(page, frame, row.category, x + 5, rowY, type.caption, INK);
+          textRight(
+            page,
+            frame,
+            money(row.amount),
+            x + c.width / 2 - (col === 0 ? 6 : 0),
+            rowY,
+            type.caption,
+            MUTED,
+          );
+        });
+        y -= half * 7 + 6;
+      }
+
+      // Budgeted against spent, when the trip was budgeted: two bars on one
+      // scale, which is the only honest way to show one number against
+      // another. A percentage alone hides which way round they are.
+      if (costs.budget && costs.budget.total > 0 && y > c.y + 34) {
+        const most = Math.max(costs.budget.total, costs.total);
+        const barW = (n: number) => (n / most) * c.width;
+        y -= 2;
+        text(page, frame, eyebrow("Budget and what happened"), c.x, y, type.caption, MUTED);
+        y -= 9;
+        for (const [label, value, color] of [
+          ["Budgeted", costs.budget.total, RULE],
+          ["Spent", costs.total, ACCENT],
+        ] as [string, number, typeof ACCENT][]) {
+          const r = rect(frame, { x: c.x, y: y - 4.5, width: barW(value), height: 4.5 });
+          PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, color);
+          text(page, frame, label, c.x, y + 1.5, type.caption, INK);
+          textRight(page, frame, money(value), c.x + c.width, y + 1.5, type.caption, MUTED);
+          y -= 12;
         }
       }
 
-      if (costs.byCountry.length > 0 && y > c.y + 24) {
-        y -= 4;
+      if (costs.byCountry.length > 0 && y > c.y + 22) {
+        y -= 2;
         text(page, frame, eyebrow("By country"), c.x, y, type.caption, MUTED);
         y -= 8;
-        for (const row of costs.byCountry.slice(0, 6)) {
-          text(page, frame, `${row.country} — ${row.nights} days`, c.x, y, type.caption, INK);
+        const most = Math.max(...costs.byCountry.map((x) => x.amount));
+        for (const row of costs.byCountry.slice(0, 5)) {
+          if (y < c.y + 6) break;
+          const r = rect(frame, {
+            x: c.x,
+            y: y - 1.2,
+            width: most > 0 ? (row.amount / most) * c.width : 0,
+            height: 3,
+          });
+          PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, BAR_FAINT);
+          text(page, frame, `${row.country} — ${row.nights} nights`, c.x, y, type.caption, INK);
           textRight(page, frame, money(row.amount), c.x + c.width, y, type.caption, MUTED);
-          y -= 6;
+          y -= 8;
         }
       }
       folio(page, frame, spec, plan.number, plan.side);

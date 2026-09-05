@@ -55,6 +55,69 @@ function imageSrc(
   return path.relative(outDir, resolveFile(photo.file)).split(path.sep).join("/");
 }
 
+/**
+ * The cost page, in the same shape the renderer draws it.
+ *
+ * It used to be a two-column table here and a stacked bar with a budget
+ * comparison on paper — so the preview said the page was fine and the printed
+ * page was a different page. This file exists to stop exactly that, and the
+ * cost page is the one it had quietly stopped doing it for.
+ *
+ * The tints match `categoryTint` in render.ts: the same accent, lightened in
+ * the same steps.
+ */
+function costsHtml(
+  heading: string,
+  costs: { baseCurrency: string; total: number; byCategory: { category: string; amount: number }[]; budget?: { total: number } },
+  money: (n: number) => string,
+  type: ReturnType<typeof typeScale>,
+  /** Passed in rather than rebuilt: it closes over the page's own scale, and a
+   * second copy of that formula is a second thing to get wrong. */
+  pt: (size: number) => string,
+): string {
+  const shown = costs.byCategory.slice(0, 6);
+  const sum = shown.reduce((n, r) => n + r.amount, 0);
+  const tint = (i: number) => {
+    const k = Math.min(i, 5) * 0.145;
+    const mix = (v: number) => Math.round((v + (1 - v) * k) * 255);
+    return `rgb(${mix(0.17)},${mix(0.36)},${mix(0.52)})`;
+  };
+  const bar = shown
+    .map(
+      (r, i) =>
+        `<span style="display:inline-block;height:100%;width:${sum > 0 ? (r.amount / sum) * 100 : 0}%;background:${tint(i)}"></span>`,
+    )
+    .join("");
+  const key = shown
+    .map(
+      (r, i) =>
+        `<tr><td><span style="display:inline-block;width:0.7em;height:0.7em;background:${tint(i)}"></span> ` +
+        `${escape(r.category)}</td><td>${money(r.amount)}</td></tr>`,
+    )
+    .join("");
+  const most = costs.budget ? Math.max(costs.budget.total, costs.total) : costs.total;
+  const budget = costs.budget
+    ? `<p class="muted eyebrow" style="${pt(type.caption)}">Budget and what happened</p>` +
+      [
+        ["Budgeted", costs.budget.total, "#d9d7d2"],
+        ["Spent", costs.total, "rgb(43,92,133)"],
+      ]
+        .map(
+          ([label, value, colour]) =>
+            `<p style="${pt(type.caption)};margin:0">${label} — ${money(value as number)}</p>` +
+            `<div style="height:0.5em;width:${((value as number) / most) * 100}%;background:${colour}"></div>`,
+        )
+        .join("")
+    : "";
+  return (
+    `<p class="muted eyebrow" style="${pt(type.caption)}">${escape(heading)}</p>` +
+    `<h1 style="${pt(type.display)}">${money(costs.total)}</h1>` +
+    `<div style="display:flex;height:1.2em;width:100%">${bar}</div>` +
+    `<table>${key}</table>` +
+    budget
+  );
+}
+
 /** trim-relative mm → percentages of the bleed box, with y flipped for CSS. */
 function style(spec: BookSpec, r: RectMm): string {
   const w = spec.size.trimWidthMm + spec.bleedMm * 2;
@@ -288,14 +351,7 @@ function pageHtml(
         textBlock(
           spec,
           page,
-          `<h2 style="${pt(type.caption)}">${escape(page.heading)}</h2>` +
-            `<h1 style="${pt(type.display)}">${money(page.costs.total)}</h1>` +
-            `<table>${page.costs.byCategory
-              .map(
-                (c) =>
-                  `<tr><td>${escape(c.category)}</td><td>${money(c.amount)}</td></tr>`,
-              )
-              .join("")}</table>`,
+          costsHtml(page.heading, page.costs, money, type, pt),
         ),
       );
       break;
