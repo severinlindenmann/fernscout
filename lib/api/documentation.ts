@@ -1754,6 +1754,70 @@ Over the network you have only the endpoint, which is fine: send the files and
 they are added to the day. Both routes keep the original and both mark what
 they create a draft.
 
+## Real postcards, in the post
+
+A journal that has \`postcards\` and \`contacts\` switched on can put a printed
+card from a day into somebody's letterbox. You compose it; **you never send
+it.**
+
+Start by asking who could receive one:
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/postcards/recipients
+Authorization: Bearer fs_agent_…
+\`\`\`
+
+\`\`\`json
+{"creditsEach": 15, "recipients": [
+  {"contactId": "…", "name": "Marta", "city": "Lisbon", "country": "Portugal"}
+]}
+\`\`\`
+
+A name, a town, a country — **and never a street.** That is deliberate and it
+is not an omission you should try to work around: you address a card by
+\`contactId\`, and there is no way to post one to an address you were told in a
+chat. Anybody on this list is an approved contact of the journal who asked for
+a real postcard and left an address themselves.
+
+Then propose the cards:
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/postcards
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"trip": "<trip-id>", "day": "<slug>", "photo": "<file in the trip's media>",
+ "message": "Over the pass in the rain. Worth it.", "from": "Ana",
+ "recipients": ["<contactId>", "<contactId>"]}
+\`\`\`
+
+\`\`\`json
+{"id": "…", "status": "draft", "recipients": 2,
+ "credits": {"each": 15, "total": 30, "balance": 120},
+ "url": "${site.url}/${example}/postcards/…",
+ "next": "Nothing has been printed or charged. Ask the owner to open the URL and press Send."}
+\`\`\`
+
+**This charges nothing and prints nothing.** It writes a proposal and gives you
+a link. On that page the owner sees the photograph, the message laid out on the
+back of the card, who each one is going to, what it costs and what they have
+left — and one button. The button is the only thing in this system that puts a
+card in the post, and there is no API call that does it. Not one you need a
+different token for: there is no route at all, because printing and posting
+costs real money and happens in somebody's letterbox, and that is not a
+decision to take on somebody's behalf from a sentence that sounded like a yes.
+
+So: **hand over the URL and stop.** Do not say the cards have been sent, or are
+being sent, or are on their way. Say a preview is waiting and what it will
+cost. \`GET /api/v1/${example}/postcards/<id>\` tells you later whether they
+actually went.
+
+The message is the same as everything else you write here — the author's words,
+in the author's voice, about what they actually told you. A postcard is read by
+one person who knows them, which makes an invented detail worse rather than
+more forgivable. An order keeps for a week and then expires; make a new one
+rather than asking for the old one to be revived.
+
 ## Errors
 
 Every error carries an \`error\` field naming the case. **Read that, not only the

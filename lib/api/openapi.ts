@@ -468,6 +468,107 @@ export function openApiDocument() {
        * description has to carry one warning the schema cannot, and it is the
        * only warning that matters here — a buddy link ends in write access.
        */
+      "/api/v1/{user}/postcards/recipients": {
+        get: {
+          summary: "Who a printed postcard could be addressed to",
+          description:
+            "A name, a town and a country each — **and never a street**. An agent addresses a " +
+            "card by `contactId` and never holds anybody's home address, which is what makes " +
+            "it impossible to post one to an address that was invented or mistyped in a " +
+            "conversation.\n\n" +
+            "Everybody here is an `active` contact of this journal who asked for a real " +
+            "postcard and left an address themselves. Owner only.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": { description: "`creditsEach`, and a `recipients` array of contact ids" },
+            "403": { description: "Not this journal's owner" },
+            "404": { description: "No such journal, or postcards or contacts are off on it" },
+          },
+        },
+      },
+      "/api/v1/{user}/postcards": {
+        post: {
+          summary: "Propose a set of postcards, for a person to send",
+          description:
+            "Writes a draft order and answers with a URL. **It charges nothing and prints " +
+            "nothing.**\n\n" +
+            "There is deliberately no endpoint that sends. Not an owner-only one — none at " +
+            "all: the send is a button on the page this returns, because printing and posting " +
+            "spends real money and ends up in somebody's letterbox, which is not a decision to " +
+            "take on their behalf. Hand the `url` over and stop; do not report the cards as " +
+            "sent, or as being sent. `GET .../postcards/{id}` says later whether they went.\n\n" +
+            "Owner only, and the recipients must be ids from `.../postcards/recipients`.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["trip", "day", "photo", "message", "from", "recipients"],
+                  properties: {
+                    trip: { type: "string", description: "The trip id." },
+                    day: { type: "string", description: "The slug of the day the card is from." },
+                    photo: {
+                      type: "string",
+                      description:
+                        "A path relative to the trip's media directory. Must already be in the " +
+                        "trip; a photograph the card is printed from is not an upload.",
+                    },
+                    message: {
+                      type: "string",
+                      maxLength: 600,
+                      description:
+                        "What is written on the back, in the author's own words about what " +
+                        "they actually told you. One person who knows them reads this, which " +
+                        "makes an invented detail worse rather than more forgivable.",
+                    },
+                    from: { type: "string", description: "The signature on the card." },
+                    recipients: {
+                      type: "array",
+                      maxItems: 25,
+                      items: { type: "string" },
+                      description:
+                        "Contact ids from `.../postcards/recipients`. Anything else is " +
+                        "refused by name — there is no way to address a card to somebody who " +
+                        "did not ask this journal for one.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description:
+                "The order: its `id`, the `url` a person opens to look at and send it, what it " +
+                "will cost and what the journal has left. Nothing has been charged.",
+            },
+            "400": { description: "A missing field, a photo not in the trip, a test day, or a recipient who cannot be posted to" },
+            "403": { description: "Not this journal's owner" },
+            "404": { description: "No such journal, trip or day, or postcards are off" },
+            "503": { description: "No database, so an order has nowhere to live" },
+          },
+        },
+      },
+      "/api/v1/{user}/postcards/{id}": {
+        get: {
+          summary: "Where one postcard order stands",
+          description:
+            "`draft` is waiting for a person, `expired` is past its week, `printed` means the " +
+            "cards went to a printer — which is not the same as delivered, and nothing here " +
+            "will ever know that. Owner only.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "The order, its cost and its status" },
+            "403": { description: "Not this journal's owner" },
+            "404": { description: "No such order in this journal" },
+          },
+        },
+      },
       "/api/v1/{user}/invites": {
         get: {
           summary: "Every invite link this journal has issued",
