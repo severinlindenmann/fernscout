@@ -7,8 +7,7 @@ complexity: high
 area: credits, payments, security
 found: "2026-09-05T11:00:00Z"
 started: "2026-09-05T09:16:01Z"
-session: 3d8b93dd-e447-4c3c-bcd1-fa37e2bd17f9
-claimed: "2026-09-05T09:16:01Z"
+merged: "2026-09-05T09:27:43Z"
 ---
 
 # B425 — Until a PSP exists, a payment is a request the instance admin approves by an emailed link, which grants the credits
