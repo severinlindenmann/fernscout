@@ -204,15 +204,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B513](in-development/B513-every-photograph-is-cropped-from-its.md) | Every photograph is cropped from its centre, whatever is in it | FEATURE | medium | medium | `d9c396ea` |
 | [B517](in-development/B517-a-day-that-wrote-too-much.md) | A day that wrote too much is silently truncated | FEATURE | medium | medium | `d9c396ea` |
-| [B518](in-development/B518-the-route-map-puts-the-middle.md) | The route map puts the middle of the journey in the fold | ISSUE | medium | medium | `d9c396ea` |
 
-## testing (221)
+## testing (223)
 
 ### security (2)
 
@@ -221,7 +219,7 @@ _Nothing here._
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 | [B473](testing/security/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | — |
 
-### issue (115)
+### issue (116)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -298,6 +296,7 @@ _Nothing here._
 | [B469](testing/issue/B469-the-contacts-admin-page-ignores-the.md) | The contacts admin page ignores the language the owner picked | ISSUE | medium | low | — |
 | [B488](testing/issue/B488-the-home-view-calls-another-journal.md) | The home view calls another journal DEINS to the instance admin | ISSUE | medium | low | — |
 | [B495](testing/issue/B495-the-generator-tests-symlink-generated-output.md) | The generator tests symlink generated-output folders into their temp root, so a hand-run script fails the suite | ISSUE | medium | low | — |
+| [B518](testing/issue/B518-the-route-map-puts-the-middle.md) | The route map puts the middle of the journey in the fold | ISSUE | medium | medium | — |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
 | [B82](testing/issue/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
@@ -361,7 +360,7 @@ _Nothing here._
 | [B496](testing/big-feature/B496-the-printed-photobook-reads-as-a.md) | The printed photobook reads as a contact sheet, not a book | FEATURE | medium | high | — |
 | [B497](testing/big-feature/B497-the-photobook-draws-one-hardcoded-couple.md) | The photobook draws one hardcoded couple whoever travelled | FEATURE | medium | high | — |
 
-### small-feature (43)
+### small-feature (44)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -396,6 +395,7 @@ _Nothing here._
 | [B498](testing/small-feature/B498-every-traveller-is-drawn-in-trousers.md) | Every traveller is drawn in trousers | FEATURE | medium | low | — |
 | [B503](testing/small-feature/B503-the-photobook-is-printed-in-english.md) | The photobook is printed in English whatever language the journal is written in | FEATURE | medium | medium | — |
 | [B512](testing/small-feature/B512-the-front-cover-is-whatever-photograph.md) | The front cover is whatever photograph happened to be first | FEATURE | medium | medium | — |
+| [B513](testing/small-feature/B513-every-photograph-is-cropped-from-its.md) | Every photograph is cropped from its centre, whatever is in it | FEATURE | medium | medium | — |
 | [B514](testing/small-feature/B514-the-preview-shows-pages-but-a.md) | The preview shows pages, but a book is read in spreads | FEATURE | medium | medium | — |
 | [B515](testing/small-feature/B515-there-is-no-way-back-from.md) | There is no way back from an arrangement you regret | FEATURE | medium | low | — |
 | [B516](testing/small-feature/B516-a-layout-has-to-be-chosen.md) | A layout has to be chosen one day at a time | FEATURE | medium | low | — |
