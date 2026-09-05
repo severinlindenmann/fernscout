@@ -7,8 +7,7 @@ complexity: low
 area: backups
 found: "2026-09-05T13:26:25Z"
 started: "2026-09-05T13:26:41Z"
-session: 7c3dd4ae-2d91-4172-8ea8-52deb35f9f42
-claimed: "2026-09-05T13:26:41Z"
+merged: "2026-09-05T13:30:20Z"
 ---
 
 # B472 — The outcome mail opens with the same sentence twice
