@@ -17,7 +17,9 @@
 //
 // Photographs come from Lorem Picsum, which serves Unsplash images; every one
 // is requested by a fixed seed so a rebuild produces the same journal rather
-// than a different one. The video clip is assembled locally with ffmpeg from
+// than a different one. Each is fetched twice: once at web size into `media/`,
+// and once at 4000px into `originals/`, which is what the photobook prints
+// from. Same seed, so the two are the same photograph. The video clip is assembled locally with ffmpeg from
 // photographs already fetched — no second download, and nothing to license.
 import fs from "node:fs";
 import path from "node:path";
@@ -34,6 +36,30 @@ const SHAPES = [
   { w: 1067, h: 1600 },
   { w: 1400, h: 1400 },
 ];
+
+/**
+ * The long edge of the kept original, in pixels.
+ *
+ * `originals/` is what the photobook prints from — `printSourceFor` in
+ * `lib/photobook/source.ts` prefers it and falls back to the web copy with a
+ * warning. The demo journal had none, so every book built from it printed from
+ * a 1600px derivative and warned about all of it: 1067px across a 290mm page
+ * is about 93 DPI, which is newspaper. B501.
+ *
+ * 4000 because the widest page the book prints is the cover's 324mm, which
+ * needs 3826px at 300 DPI. Higher only costs download time; lower puts the
+ * warnings back.
+ *
+ * Picsum serves the *same photograph* for a seed at any size, so this changes
+ * the demo's resolution and not which pictures it shows.
+ */
+const ORIGINAL_LONG_EDGE = 4000;
+
+/** The same shape, scaled so its long edge is `ORIGINAL_LONG_EDGE`. */
+function originalShape(shape) {
+  const scale = ORIGINAL_LONG_EDGE / Math.max(shape.w, shape.h);
+  return { w: Math.round(shape.w * scale), h: Math.round(shape.h * scale) };
+}
 
 const TRIPS = [
   // ---- short, in the past -------------------------------------------------
@@ -1221,12 +1247,30 @@ async function media(trip) {
     const dir = path.join(USER, "trips", trip.id, "media", day.slug);
     fs.mkdirSync(dir, { recursive: true });
 
+    // The originals the photobook prints from. Ingest names an original after
+    // its derivative rather than after the camera, which is what
+    // `findOriginal` in lib/photobook/source.ts matches on, so the two files
+    // share a name and differ only in which directory they are in.
+    const originalsDir = path.join(USER, "trips", trip.id, "originals", day.slug);
+    fs.mkdirSync(originalsDir, { recursive: true });
+
     for (let i = 1; i <= day.photos; i++) {
-      const dest = path.join(dir, `${String(i).padStart(2, "0")}.jpg`);
-      if (fs.existsSync(dest)) continue;
+      const name = `${String(i).padStart(2, "0")}.jpg`;
+      const dest = path.join(dir, name);
+      const original = path.join(originalsDir, name);
       const shape = SHAPES[(i - 1) % SHAPES.length];
-      await fetchPhoto(`${trip.id}-${day.slug}-${i}`, shape, dest);
-      process.stdout.write(".");
+      const seed = `${trip.id}-${day.slug}-${i}`;
+      if (!fs.existsSync(dest)) {
+        await fetchPhoto(seed, shape, dest);
+        process.stdout.write(".");
+      }
+      // Fetched separately and checked separately: a journal built before B501
+      // has the derivative already, and skipping the original because of that
+      // would leave it exactly as soft as it was.
+      if (!fs.existsSync(original)) {
+        await fetchPhoto(seed, originalShape(shape), original);
+        process.stdout.write("+");
+      }
     }
 
     if (day.video) {
