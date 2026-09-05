@@ -1,6 +1,6 @@
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
-import { balanceOf, refund, spend } from "@/lib/credits";
+import { balanceOf, spend } from "@/lib/credits";
 import { parseOptions } from "@/lib/photobook/options";
 import { buildPhotobook, followerNames, planFor, priceOf } from "@/lib/photobook/build";
 import { ORDER_ID_RE, claimOrder, markFailed, markPrinted } from "@/lib/photobook/orders";
@@ -113,42 +113,54 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   // 1. Claim. A second press finds the key taken and is told so.
   if (!(await claimOrder(user, orderId, payload))) return back_("duplicate");
 
-  // 2. Spend, all of it, before a single page is drawn.
-  if (!(await spend(user, credits, "photobook", orderId))) {
-    // The order row stays `submitted` if this write races and loses — an
-    // operator chasing a stuck row later, not a customer's problem now.
+  /**
+   * 2. Build, **before any money moves** — B509.
+   *
+   * This used to spend first, on the reasoning that a book must not be printed
+   * for free. The reasoning was sound and the ordering was not: building takes
+   * tens of seconds and hundreds of megabytes of JPEG copying, and anything
+   * that ends the request in that window — a deploy restarting the service, a
+   * proxy timeout, an OOM — took the credits and left no book, no receipt and
+   * no refund, because the code that would have given the money back died with
+   * the request. It happened twice on the live instance in one afternoon and
+   * cost 357 credits.
+   *
+   * Reversed, the worst case is a book nobody was charged for: some seconds of
+   * CPU and a directory to clean up, against somebody's money. The balance is
+   * checked below before a single page is drawn, so a build is only wasted
+   * when a balance changes underneath one — which needs two of the owner's own
+   * sessions racing, and costs them nothing when it happens.
+   */
+  const balanceBefore = await balanceOf(user);
+  if (balanceBefore !== null && balanceBefore < credits) {
     await markFailed(user, orderId, payload, "no_credits");
     return back_("no_credits");
   }
 
-  // 3. Build. Anything that goes wrong here gives the credits back. The
-  // success path (marking the order printed, mailing the receipt, and the
-  // redirect itself) happens after this block, precisely so that a `catch`
-  // written to recover from a *build* failure can never fire on a success.
   let built: { files: string[]; pages: number; volumes: number; missing: string[] };
   try {
     built = buildPhotobook(user, orderId, trip, options, followers);
   } catch (error) {
     console.error(`[photobook] building ${orderId} failed:`, error);
-    // The one branch where a failure costs the owner money: the build has
-    // already failed, and now the database that would give the credits back
-    // is unreachable too. Nested rather than left to escape — an uncaught
-    // throw here would leave the row `submitted`, the balance down, and the
-    // owner looking at whatever Next's default error page says, which is
-    // nothing true about any of that. `refund_failed` says the one thing that
-    // is true: something needs a person's attention, and pressing Pay again
-    // is not it.
-    try {
-      await refund(user, credits, orderId);
-      await markFailed(user, orderId, payload, String(error));
-    } catch (refundError) {
-      console.error(
-        `[photobook] refund/markFailed for ${orderId} failed after a failed build:`,
-        refundError,
-      );
-      return back_("refund_failed");
-    }
+    // Nothing has been charged, so there is nothing to give back. The row is
+    // marked so an operator can see the attempt rather than a gap.
+    await markFailed(user, orderId, payload, String(error)).catch(() => {});
     return back_("failed");
+  }
+
+  /**
+   * 3. Spend, now that the book exists.
+   *
+   * `spend` is all-or-nothing and returns `false` rather than throwing when
+   * the balance will not cover it. That can only happen here if the balance
+   * moved between the check above and this line; the book is already built, so
+   * the honest answer is to keep the files, mark the order, and tell the owner
+   * their balance is short — pressing Pay again after topping up costs nothing
+   * extra, because the id is the same and the files are already there.
+   */
+  if (!(await spend(user, credits, "photobook", orderId))) {
+    await markFailed(user, orderId, payload, "no_credits");
+    return back_("no_credits");
   }
 
   // `markPrinted` returns `false` when the row had already left `submitted` —
