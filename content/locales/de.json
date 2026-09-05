@@ -796,5 +796,8 @@
   "welcome.subject": "Dein Reisetagebuch ist bereit — {title}",
   "welcome.title": "Dein Reisetagebuch ist bereit",
   "welcome.token": "Bitte deinen Agenten, bei {guide} anzufangen. Er lässt sich von diesem Server einen sechsstelligen Code an {email} schicken — an diese Adresse und an keine andere — und aus diesem Code wird ein Token, das sieben Tage lang schreiben darf.",
-  "welcome.tokenHeading": "Wenn du später hineinschreiben willst"
+  "welcome.tokenHeading": "Wenn du später hineinschreiben willst",
+
+  "fallback.writtenIn.en": "Auf Englisch geschrieben — dieser Tag hat keine deutsche Fassung.",
+  "fallback.writtenIn.hu": "Auf Ungarisch geschrieben — dieser Tag hat keine deutsche Fassung."
 }

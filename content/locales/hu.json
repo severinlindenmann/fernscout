@@ -796,5 +796,8 @@
   "welcome.subject": "A naplód készen áll — {title}",
   "welcome.title": "A naplód készen áll",
   "welcome.token": "Kérd meg az ügynököt, hogy itt kezdjen: {guide}. Kér a szervertől egy hatjegyű kódot a(z) {email} címre — erre és semmilyen másikra —, és ebből a kódból lesz a token, amely hét napig írhat.",
-  "welcome.tokenHeading": "Ha később bele akarsz írni"
+  "welcome.tokenHeading": "Ha később bele akarsz írni",
+
+  "fallback.writtenIn.de": "Németül íródott — ehhez a naphoz nincs magyar változat.",
+  "fallback.writtenIn.en": "Angolul íródott — ehhez a naphoz nincs magyar változat."
 }
