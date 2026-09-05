@@ -84,6 +84,9 @@ function entries(folder: string): string[] {
  * be a real directory, or the output folder the script creates inside it would
  * land back in the checkout and the test would pass while proving nothing.
  */
+/** Written by the generators themselves, and gitignored. See B495. */
+const GENERATED = new Set(["photobooks", "postcards", "mail"]);
+
 function contentRootOutsideCheckout(name: string): string {
   const root = dir(name);
   const real = path.join(ROOT, "content");
@@ -94,6 +97,13 @@ function contentRootOutsideCheckout(name: string): string {
   const journal = path.join(root, "example");
   fs.mkdirSync(journal);
   for (const entry of fs.readdirSync(path.join(real, "example"))) {
+    // Generated output is not linked in. `photobooks/`, `postcards/` and
+    // `mail/` are what the scripts under test are supposed to create here, and
+    // they are gitignored — so if a person has ever run `npm run photobook` in
+    // this checkout, linking them would show the tests the checkout's own files
+    // through the link and fail three assertions that name traversal and output
+    // paths rather than the actual cause. B495.
+    if (GENERATED.has(entry)) continue;
     fs.symlinkSync(path.join(real, "example", entry), path.join(journal, entry));
   }
   return root;

@@ -98,3 +98,57 @@ a test-fixture problem, not a layout one.
 - The same with `content/example/photobooks/` absent — 12 passed.
 - No symlink named `photobooks`, `postcards` or `mail` is created inside the
   temporary content root.
+
+## What changed
+
+`contentRootOutsideCheckout` in `test/generator-output.test.ts` skips the
+generated-output directories when it links `content/example/` into the
+temporary root:
+
+```ts
+/** Written by the generators themselves, and gitignored. See B495. */
+const GENERATED = new Set(["photobooks", "postcards", "mail"]);
+```
+
+Chosen over snapshotting `before` in the two `toEqual([])` assertions, as the
+Work section argued: `[]` is what those tests actually mean, and it is true
+again once the link is not made. Snapshotting would have kept the assertions
+honest while leaving the symlink in place for whoever writes the next one.
+
+The three directories are named rather than derived. Deriving them would mean
+reading `.gitignore` from a test, and the set is small, stable and already
+written down in the content model in AGENTS.md.
+
+**No other fixture has this shape.** `contentRootOutsideCheckout` is local to
+this file, and it is the only place in `test/` that symlinks the real content
+root into a temporary one.
+
+## Evidence
+
+The failure reproduces exactly, and the fix survives it. With eighteen files
+placed in `content/example/photobooks/` — standing in for a hand-run
+`npm run photobook`, or a test killed mid-write:
+
+```
+── OLD code, with a hand-run photobooks/ present:
+ FAIL  npm run photobook > writes under CONTENT_DIR and leaves nothing beside the code (B219)
+ FAIL  npm run photobook > --out still puts the book exactly where it was asked to
+ FAIL  npm run photobook > --trip is a directory name, and a traversal in it is refused (B242)
+      Tests  3 failed | 9 passed (12)
+
+── NEW code, same dirt present:
+      Tests  12 passed (12)
+```
+
+Those are the same three assertions, in the same order, that failed on `main`
+and started this ticket. With the directory absent, 12 passed both before and
+after.
+
+## How it was found
+
+`npm run verify` on `main` failed with these three after a run of B249's own
+flake had killed a photobook subprocess mid-write, leaving its output in the
+checkout. So the two tickets are one chain: the 5-second default timeout
+(B249) killed a generator, the generator's half-written output stayed behind
+because it is gitignored, and this fixture then presented it to three
+assertions as though the script under test had written it.
