@@ -117,3 +117,39 @@ describe("the preview's spread view", () => {
     expect(html).toContain('data-view="spreads"');
   });
 });
+
+describe("the map names its stops", () => {
+  // B519. The printed map has always labelled them; this one did not, so
+  // reading a spread to check the map could not answer "which stop is that?".
+  const withRoute = planBook(
+    {
+      ...SOURCE,
+      route: [
+        { location: "Las Vegas", country: "United States", lat: 36.17, lng: -115.14 },
+        { location: "Zion National Park", country: "United States", lat: 37.3, lng: -113.03 },
+        { location: "Denver", country: "United States", lat: 39.74, lng: -104.99 },
+      ],
+    },
+    defaultSpec(),
+  );
+
+  test("every stop that lands on a page is named on it", () => {
+    const html = renderPreview(withRoute, "/tmp/out", (file) => `/tmp/out/${file}`);
+    for (const stop of ["Las Vegas", "Zion National Park", "Denver"]) {
+      expect(html, stop).toContain(stop);
+    }
+  });
+
+  test("a name is never printed outside the page it belongs to", () => {
+    const html = renderPreview(withRoute, "/tmp/out", (file) => `/tmp/out/${file}`);
+    // Every label's x sits inside the sheet's own box. A negative x, or one
+    // past the trim, is the fault this rule exists to prevent — it is what
+    // printed "onal Park" against the fold on paper.
+    for (const match of html.matchAll(/class="stopname"[^>]*x="(-?[\d.]+)"/g)) {
+      expect(Number(match[1])).toBeGreaterThanOrEqual(0);
+    }
+    for (const match of html.matchAll(/<text x="(-?[\d.]+)"[^>]*class="stopname"/g)) {
+      expect(Number(match[1])).toBeGreaterThanOrEqual(0);
+    }
+  });
+});

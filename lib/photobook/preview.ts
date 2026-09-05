@@ -16,7 +16,8 @@
  */
 
 import path from "node:path";
-import { contentBoxMm, type BookSpec, type RectMm } from "./spec.ts";
+import { contentBoxMm, mm, type BookSpec, type RectMm } from "./spec.ts";
+import { measure } from "./text.ts";
 import {
   mapClipMm,
   mapProjector,
@@ -199,6 +200,50 @@ function routeSvg(
     })
     .join("");
 
+  /**
+   * The stops, named — by the same rule the renderer uses.
+   *
+   * The printed map has always labelled its stops and this one never did, so
+   * reading a spread to check the map, the first question was "which stop is
+   * that?" and the preview could not say. B519.
+   *
+   * The rule is copied deliberately rather than approximated: skip a dot that
+   * belongs to the facing page, skip one that would crowd the last label, and
+   * put the name to the right unless it will not fit there. `measure()` is the
+   * renderer's own width function and is pure, so both agree about *which*
+   * side a name goes — which is the part that has to match. The browser will
+   * not set Helvetica to the same pixel, and it does not need to: this page is
+   * evidence about placement, not a proof of kerning.
+   */
+  const type = typeScale(spec);
+  const box = contentBoxMm(spec, half);
+  const leftEdge = box.x + spec.bleedMm;
+  const rightEdge = box.x + box.width + spec.bleedMm;
+  const captionMm = type.caption / mm(1);
+  let lastLabel: { x: number; y: number } | null = null;
+  const labels = points
+    .map((p, i) => {
+      const [x, y] = to(p.x, p.y);
+      if (x < leftEdge || x > rightEdge) return "";
+      const far = !lastLabel || Math.hypot(x - lastLabel.x, y - lastLabel.y) > 9;
+      if (!far && i !== points.length - 1) return "";
+      lastLabel = { x, y };
+      const width = measure(p.location, type.caption, "bold") / mm(1);
+      const right = x + 2.2;
+      const left = x - 2.2 - width;
+      const at =
+        right + width <= rightEdge
+          ? right
+          : left >= leftEdge
+            ? left
+            : Math.min(Math.max(right, leftEdge), rightEdge - width);
+      return (
+        `<text x="${at.toFixed(2)}" y="${(y + captionMm * 0.35).toFixed(2)}" ` +
+        `class="stopname" style="font-size:${captionMm.toFixed(2)}px">${escape(p.location)}</text>`
+      );
+    })
+    .join("");
+
   const clip = mapClipMm(spec, half);
   return (
     `<svg class="map" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">` +
@@ -209,6 +254,7 @@ function routeSvg(
     `<path class="graticule" d="${graticule}"/>` +
     (points.length >= 2 ? `<path class="route" d="${route}"/>` : "") +
     dots +
+    labels +
     `</g></svg>`
   );
 }
@@ -579,6 +625,9 @@ export function renderPreview(
   .map .route { fill:none; stroke:var(--accent); stroke-width:1.6;
                 stroke-linecap:round; stroke-linejoin:round; }
   .map .stop { fill:var(--accent); stroke:#fff; stroke-width:.5; }
+  /* Paint-order so the halo sits behind the glyphs rather than over them. */
+  .map .stopname { fill:#1f2937; stroke:#fff; stroke-width:.6; paint-order:stroke;
+                   font-weight:600; }
   .mapcap { position:absolute; right:6%; bottom:5%; font-size:2.6cqh; font-style:italic;
             color:var(--muted); }
   .blank { position:absolute; inset:0; display:grid; place-items:center; color:#0000001a; }
