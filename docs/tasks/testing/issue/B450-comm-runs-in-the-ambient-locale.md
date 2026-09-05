@@ -7,8 +7,7 @@ complexity: low
 area: backups
 found: "2026-09-05T12:42:21Z"
 started: "2026-09-05T12:45:37Z"
-session: 7c3dd4ae-2d91-4172-8ea8-52deb35f9f42
-claimed: "2026-09-05T12:45:37Z"
+merged: "2026-09-05T12:50:27Z"
 ---
 
 # B450 — comm runs in the ambient locale against LC_ALL=C-sorted input, so the backup names readable files as missing
