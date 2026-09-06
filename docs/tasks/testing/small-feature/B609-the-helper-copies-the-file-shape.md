@@ -7,8 +7,7 @@ complexity: medium
 area: fernscout-helper, validate-content, content model
 found: "2026-09-06T15:11:52Z"
 started: "2026-09-06T16:04:25Z"
-session: ac8af30e-815d-4843-a94d-cf061a70269c
-claimed: "2026-09-06T16:04:25Z"
+merged: "2026-09-06T16:16:52Z"
 ---
 
 # B609 — The helper copies the file shape instead of reading it from the instance
