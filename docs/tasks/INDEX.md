@@ -219,14 +219,13 @@ Do not edit them by hand; run the script.
 | [B572](open/B572-publish-reports-done-after-silently-dropping.md) | publish reports Done after silently dropping most of an existing trip's trip.md | ISSUE | high | low |
 | [B573](open/B573-a-journal-written-by-the-helper.md) | A journal written by the helper tools can never carry weather | FEATURE | medium | low |
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B577](in-development/B577-selftest-mjs-exits-0-having-tested.md) | selftest.mjs exits 0 having tested nothing, because its fixtures are gitignored | ISSUE | high | low | `ac8af30e` |
-| [B574](in-development/B574-publish-dry-run-overstates-the-photographs.md) | publish --dry-run overstates the photographs it will upload | ISSUE | medium | low | `ac8af30e` |
 
-## testing (256)
+## testing (257)
 
 ### security (2)
 
@@ -235,7 +234,7 @@ Do not edit them by hand; run the script.
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 | [B473](testing/security/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | — |
 
-### issue (122)
+### issue (123)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -318,6 +317,7 @@ Do not edit them by hand; run the script.
 | [B550](testing/issue/B550-the-day-view-shows-a-page.md) | The day view shows a page belonging to the next day, and its photo controls are unlabelled glyphs | ISSUE | medium | low | — |
 | [B553](testing/issue/B553-some-fields-are-coerced-or-tolerated.md) | Some fields are coerced or tolerated where every sibling field is refused | ISSUE | medium | low | — |
 | [B563](testing/issue/B563-the-day-view-offers-a-cover.md) | The day view offers a cover, map and costs drill-in that has nothing in it | ISSUE | medium | low | — |
+| [B574](testing/issue/B574-publish-dry-run-overstates-the-photographs.md) | publish --dry-run overstates the photographs it will upload | ISSUE | medium | low | — |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
 | [B82](testing/issue/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
