@@ -483,6 +483,7 @@ guide for it.
 | `manage-tasks` | Capture something, and move it between lanes |
 | `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
 | `test-the-live-site` | Empty `testing/` against the deployed instance, one subagent per ticket |
+| `test-in-a-browser` | Drive a local checkout in a real browser: sign in as an owner, switch a capability on, check a page at 390px |
 
 ### Skills that are not this repository's
 
