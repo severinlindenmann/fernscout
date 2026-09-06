@@ -295,10 +295,13 @@ function Plane() {
           *inside* the fuselage (its top edge runs y≈19-21 across here), which
           is what attaches it: drawn clear of the body it was a red shape
           hovering over the aircraft with daylight between the two.
-          Its engine hangs under its underside and disappears behind the
-          fuselage, which is exactly how much of a far engine you would see. */}
-      <path d={`M86,22 L58,3 L50,5 L74,22 Z`} fill={BODY_DARK} />
+          Its engine is drawn *before* it, so the wing passes in front: on the
+          far side of the aircraft the wing is nearer the viewer than the pod
+          slung under it, and drawn the other way round the pod sat on top of
+          the wing. It disappears behind the fuselage below, which is exactly
+          how much of a far engine you would see. */}
       <Nacelle x={57} y={15.5} length={14} thickness={5} fill="#43506a" />
+      <path d={`M86,22 L58,3 L50,5 L74,22 Z`} fill={BODY_DARK} />
       {/* The fin. It used to be rooted at x=30..42 — a third of the way up
           the fuselage, so it read as a sail amidships. Rooted over the tail
           now, and swept: the leading edge (30,21)→(22,3) leans back, which
