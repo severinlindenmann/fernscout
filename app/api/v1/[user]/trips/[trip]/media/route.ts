@@ -1,5 +1,5 @@
 import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
-import { attachGallery, isPublished } from "@/lib/api/entries";
+import { attachGallery, detachGallery, isPublished } from "@/lib/api/entries";
 import { storeUploads, type KeptOriginal, type UploadCandidate } from "@/lib/api/media";
 import { getTrip, mediaWithOwner, tripRef } from "@/lib/trips";
 import { fetchImage } from "@/lib/api/fetchMedia";
@@ -349,4 +349,75 @@ export async function POST(
     attached.ok,
     attached.ok ? undefined : attached.error,
   );
+}
+
+/**
+ * `DELETE /api/v1/<user>/trips/<trip>/media` — take a photograph off a day.
+ *
+ * B605: this route could put photographs on, and never take one off, which
+ * for a duplicate or a wrong upload left a shell on the server as the only
+ * remedy — the thing this whole API exists to make unnecessary.
+ *
+ * `src` — one or more — is matched against the day's own gallery by
+ * `detachGallery` (lib/api/entries.ts), never trusted as a path built from
+ * this request: a name the day does not carry refuses the whole call rather
+ * than deleting the rest and leaving the caller to notice which one silently
+ * did not land.
+ */
+export async function DELETE(
+  request: Request,
+  { params }: RouteContext<"/api/v1/[user]/trips/[trip]/media">,
+) {
+  const auth = await authenticate(request);
+  if (!auth.ok) return errorResponse(auth);
+
+  const { user, trip } = await params;
+  if (!ownsUser(auth.session, user)) {
+    return outOfScope(auth.session, user);
+  }
+
+  const ref = tripRef(user, trip);
+  const found = getTrip(ref);
+  if (!found) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  const gate = await mayWriteTrip(auth.session, found);
+  if (!gate.ok) return refuseWrite(gate);
+
+  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const day = typeof body?.day === "string" ? body.day.trim() : "";
+  const wrongDay = dayProblem(day);
+  if (wrongDay) return wrongDay;
+
+  const src = Array.isArray(body?.src) ? body.src.filter((s): s is string => typeof s === "string") : [];
+  if (src.length === 0) {
+    return Response.json(
+      {
+        error: "expected_src",
+        hint:
+          'Send {"day": "...", "src": ["/you/media/trip/day/01.jpg"]} — one or more ' +
+          "photographs already on this day, exactly as GET .../days/<slug> hands them back.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const result = detachGallery(ref, day, src);
+  if (!result.ok) {
+    if (result.error === "unknown_day") {
+      return Response.json({ error: "unknown_day" }, { status: 404 });
+    }
+    return Response.json({ error: "invalid_media", problems: result.problems }, { status: 400 });
+  }
+
+  const published = isPublished(ref, day);
+  return Response.json({
+    ok: true,
+    day,
+    removed: result.removed.map((item) => item.src),
+    note:
+      `Removed from "${day}". The derivative and the kept original are gone from disk` +
+      (result.removed.some((item) => item.poster) ? ", the poster with them" : "") +
+      ". A photobook or postcard order that already named one of these files is untouched " +
+      "— it is a record of what was proposed or sent, not a live link to it." +
+      (published ? " Still published — anyone who already read it can now see this removal." : ""),
+  });
 }

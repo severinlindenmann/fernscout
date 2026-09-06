@@ -7,11 +7,13 @@ import { loadUserConfig } from "../config";
 import { CURRENCY_FOR_COUNTRY } from "../countryCurrency";
 import { normalizeCurrency } from "../currency";
 import {
+  AS_AUTHOR,
   clearMatterCache,
   entrySlugFromFile,
   forgetEntries,
   getAllEntries,
   getDays,
+  getEntryBySlug,
   isDraft,
 } from "../entries";
 import { countryCodeFor } from "../flags";
@@ -25,8 +27,10 @@ import { reverseGeocode } from "../ingest/geo";
 // with the one ingest used — the same title, two permanent URLs.
 import { slugify } from "../slug.ts";
 import { mediaKey, type PhotoVisibility } from "../photos";
+import { deleteMediaFiles } from "./media";
 import { getTrip, parseTripRef, tripDir, tripRef } from "../trips";
 import type { Entry, GalleryItem, Trip } from "../types";
+import type { Problem } from "../validate/media";
 import {
   UNKNOWN,
   TRACKS,
@@ -670,6 +674,131 @@ export function attachGallery(
   fs.writeFileSync(file, spliced);
   forgetEntries(ref);
   return { ok: true, attached: items.length };
+}
+
+/**
+ * Remove whole items from a `gallery:` block, keyed by `mediaKey` — the
+ * removal counterpart to `spliceGalleryField` below, which only ever
+ * rewrites one line inside an item that survives. This one drops the item
+ * outright: `src`, `width`, `caption` and all.
+ *
+ * Walked backwards for the same reason `spliceGalleryField` is: each splice
+ * moves every line after it, and starting from the end leaves the indices
+ * still ahead of the cursor valid. The `gallery:` key itself is dropped too
+ * once nothing is left under it — the same rule `spliceCosts` and
+ * `spliceTranslations` apply to an emptied block.
+ *
+ * `null` only for "no frontmatter block at all" or "no gallery: key at all"
+ * — `detachGallery` below has already matched `keys` against a gallery this
+ * same file's `getEntryBySlug` read back, so reaching either case here would
+ * be a bug in that match, not a caller mistake to explain to an agent.
+ */
+function removeGalleryItems(markdown: string, keys: Set<string>): string | null {
+  const lines = markdown.split("\n");
+  if (lines[0]?.trim() !== "---") return null;
+  let closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
+  if (closing < 0) return null;
+
+  const galleryAt = lines.findIndex((line, i) => i > 0 && i < closing && /^gallery:\s*$/.test(line));
+  if (galleryAt < 0) return null;
+
+  let end = galleryAt + 1;
+  while (end < closing && /^\s+\S/.test(lines[end])) end++;
+
+  const starts: number[] = [];
+  for (let i = galleryAt + 1; i < end; i++) if (/^\s*-\s/.test(lines[i])) starts.push(i);
+
+  for (let n = starts.length - 1; n >= 0; n--) {
+    const from = starts[n];
+    const to = n + 1 < starts.length ? starts[n + 1] : end;
+    const item = lines.slice(from, to);
+    const srcAt = item.findIndex((line) => /^\s*-?\s*src:/.test(line));
+    if (srcAt < 0) continue;
+    const src = item[srcAt].replace(/^\s*-?\s*src:\s*/, "").trim().replace(/^["']|["']$/g, "");
+    if (!keys.has(mediaKey(src))) continue;
+    lines.splice(from, to - from);
+    closing -= to - from;
+    end -= to - from;
+  }
+
+  // Nothing left under `gallery:` — drop the key line too.
+  if (end === galleryAt + 1) lines.splice(galleryAt, 1);
+
+  return lines.join("\n");
+}
+
+/**
+ * `DELETE .../trips/<trip>/media` — take a photograph off a day, for good.
+ *
+ * B605: photographs could be added and never taken away, so the only remedy
+ * for a duplicate or a wrong upload was a shell on the server — the thing
+ * this whole API exists to make unnecessary.
+ *
+ * `srcs` are matched against `entry.gallery` by `mediaKey`, the same rule
+ * `checkCaptions` already holds a caption to (B540) — never trusted as a
+ * path built from the request body. A `src` naming no photograph the day has
+ * refuses the whole call rather than deleting the rest and leaving the
+ * caller to notice which one silently did not land.
+ *
+ * The files are deleted before the frontmatter is rewritten, on purpose: a
+ * request that dies between the two steps leaves a `gallery:` line pointing
+ * at a file that is already gone — answering 404, which is safe — never the
+ * other order, which would leave the file reachable at its old, guessable
+ * URL after the day says it is not there. Same reasoning `app/[user]/media/
+ * [...path]/route.ts` gives the photoVisibility label.
+ *
+ * A photobook or postcard order already referencing one of these files is
+ * left untouched. Both resolve the photograph live, at send/print time
+ * (`lib/postcard/send.ts`'s `orderPhotoFile`, `lib/photobook/source.ts`'s
+ * `mediaFileFor`) rather than keeping a copy of the bytes, so deleting a
+ * photograph a *pending* order names will make that order fail to send —
+ * the same failure it would already have if an owner deleted the file by
+ * hand. A completed order is unaffected: printing already happened, and an
+ * order is a record of what was sent, not a live link to the file.
+ */
+export function detachGallery(
+  ref: string,
+  slug: string,
+  srcs: string[],
+):
+  | { ok: true; removed: GalleryItem[] }
+  | { ok: false; error: "unknown_day" }
+  | { ok: false; error: "unknown_media"; problems: Problem[] } {
+  const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
+  if (!entry) return { ok: false, error: "unknown_day" };
+
+  const wanted = new Map(srcs.map((src) => [mediaKey(src), src] as const));
+  const matched: GalleryItem[] = [];
+  const problems: Problem[] = [];
+  for (const [key, src] of wanted) {
+    const item = entry.gallery.find((g) => mediaKey(g.src) === key);
+    if (item) matched.push(item);
+    else {
+      problems.push({
+        field: "src",
+        got: JSON.stringify(src),
+        expected: "a src this day's gallery actually has — see the gallery in GET .../days/<slug>",
+      });
+    }
+  }
+  if (problems.length > 0) return { ok: false, error: "unknown_media", problems };
+
+  for (const item of matched) deleteMediaFiles(ref, item);
+
+  const dir = path.join(tripDir(ref), "entries");
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
+  const match = files.find((f) => entrySlugFromFile(f) === slug);
+  if (match) {
+    const file = path.join(dir, match);
+    const spliced = removeGalleryItems(
+      fs.readFileSync(file, "utf8"),
+      new Set(matched.map((item) => mediaKey(item.src))),
+    );
+    if (spliced !== null) fs.writeFileSync(file, spliced);
+  }
+
+  forgetEntries(ref);
+  return { ok: true, removed: matched };
 }
 
 /**

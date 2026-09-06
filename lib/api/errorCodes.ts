@@ -75,6 +75,8 @@ export const ERROR_CODES: Record<string, string> = {
   unsupported_field: "A field name this call does not take. The `message` lists the ones it does — send only those, and note that publishing is never a field.",
   mixed_change: "`features` cannot travel with a profile field. Send it in a call of its own, so switching a capability cannot also rename the journal.",
   expected_urls: "The JSON form of this upload needs `urls`. To send bytes instead, use multipart/form-data.",
+  expected_src: "DELETE .../media needs `src` — one or more photographs, exactly as GET .../days/<slug> hands them back.",
+  unknown_media: "One or more of `src` is not a photograph this day has. `problems` names each one; nothing was removed.",
   expected_multipart: "This content-type is not one this call takes: multipart/form-data for bytes, application/json for `urls`.",
   body_too_large: "The request is over this server's limit. /api/health says what it is; send the files in smaller batches.",
   could_not_fetch: "This server could not fetch one of the `urls`. https only, public hosts only, and it is refused after a redirect to a private address.",

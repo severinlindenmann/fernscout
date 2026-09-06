@@ -334,10 +334,13 @@ export const FRONTMATTER_TO_API: { key: string; api: string; note: string }[] = 
     key: "gallery",
     api: "— does not cross —",
     note:
-      "Photographs are their own call: `POST .../media` with the day's slug and the files. " +
-      "Sending `gallery` in the day body writes nothing. Captions travel with the files, or " +
-      "later as `captions` on a `PATCH` — and so does `visibility`, the one photograph held " +
-      "back from readers the trip otherwise lets in.",
+      "Photographs are their own call: `POST .../media` with the day's slug and the files, " +
+      "and `DELETE .../media` with the day's slug and one or more `src` to take a photograph " +
+      "off again — the derivative, the poster and the kept original are actually deleted, not " +
+      "merely detached, and a `src` the day does not have refuses the whole call rather than " +
+      "quietly skipping it. Sending `gallery` in the day body writes nothing. Captions travel " +
+      "with the files, or later as `captions` on a `PATCH` — and so does `visibility`, the " +
+      "one photograph held back from readers the trip otherwise lets in.",
   },
   {
     key: "gallery[].visibility",
