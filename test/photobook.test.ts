@@ -8,6 +8,7 @@ import {
   contentBoxMm,
   defaultSpec,
   fitsRule,
+  HERO_FLOOR_DPI,
   normalisePageCount,
   portableRule,
   SADDLE_STITCH,
@@ -18,6 +19,7 @@ import {
   chaptersOf,
   groupPhotos,
   outline,
+  photosIn,
   planBook,
   routeView,
   type BookDay,
@@ -416,6 +418,75 @@ describe("grouping photographs by shape", () => {
       { layout: "pair-stacked", photos: [wide, wide] },
       { layout: "feature", photos: [wide] },
     ]);
+  });
+
+  test("B641: three portraits in a row share a page rather than a pair plus a straggler", () => {
+    expect(groupPhotos([tall, tall, tall], SPEC)[0]).toEqual({
+      layout: "trio-portrait",
+      photos: [tall, tall, tall],
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// B641: a photograph must never be scaled anisotropically, and a
+// low-resolution one must never be blown up past what its pixels support.
+// ---------------------------------------------------------------------------
+
+describe("B641: photographs are never stretched, never blown up", () => {
+  test("every placement's drawn rectangle keeps the source's own aspect ratio", () => {
+    // A spread of shapes and sizes wide enough to exercise every layout the
+    // planner can reach for — panoramas, portraits, squares, tiny ones.
+    const dims: [number, number][] = [
+      [4000, 3000],
+      [3000, 4000],
+      [3200, 2400],
+      [1200, 1600],
+      [6000, 2000],
+      [2000, 6000],
+      [3000, 3000],
+      [1500, 1125],
+      [800, 1200],
+      [5000, 3333],
+      [2400, 1800],
+      [1800, 2400],
+    ];
+    const photos = dims.map(([width, height], i) => photo({ file: `d${i}.jpg`, width, height }));
+    const days: BookDay[] = [];
+    for (let i = 0; i < photos.length; i += 3) {
+      days.push(day(i, { photos: photos.slice(i, i + 3) }));
+    }
+    const book = planBook(source(days), SPEC);
+    let checked = 0;
+    for (const volume of book.volumes) {
+      for (const placement of photosIn(volume)) {
+        const sourceAspect = placement.photo.width / placement.photo.height;
+        const drawAspect = placement.draw.width / placement.draw.height;
+        expect(drawAspect).toBeCloseTo(sourceAspect, 6);
+        checked += 1;
+      }
+    }
+    expect(checked).toBe(photos.length);
+  });
+
+  test("a low-resolution photograph is placed smaller rather than blown up to fill its slot", () => {
+    // Nowhere near enough pixels to cover a quarter-page grid slot at the
+    // print's target DPI.
+    const lowRes = photo({ file: "lowres.jpg", width: 500, height: 375 });
+    const wide = photo({ width: 4000, height: 3000 });
+    const book = planBook(
+      source([day(0, { photos: [lowRes, wide, wide, wide] })]),
+      SPEC,
+    );
+    const placed = photosIn(book.volumes[0]).find((p) => p.photo.file === "lowres.jpg");
+    expect(placed).toBeDefined();
+    // Capped rather than cover-cropped: nothing left to crop, so the clip and
+    // the drawn rectangle are the same (smaller) box, with a margin in the
+    // slot around it — never the crop-to-fill shape a `cover` placement has.
+    expect(placed!.clip.width).toBeCloseTo(placed!.draw.width, 6);
+    expect(placed!.clip.height).toBeCloseTo(placed!.draw.height, 6);
+    // And it prints no softer than the floor the rest of the book holds to.
+    expect(placed!.dpi).toBeGreaterThanOrEqual(HERO_FLOOR_DPI - 1);
   });
 });
 

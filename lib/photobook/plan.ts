@@ -228,6 +228,7 @@ export type PhotoLayout =
   | "feature"
   | "pair-portrait"
   | "pair-stacked"
+  | "trio-portrait"
   | "quad";
 
 export type PhotoPlacement = {
@@ -563,10 +564,29 @@ const CENTRE: Focal = { x: 0.5, y: 0.5 };
  * `slot.height - height` is 0) the corresponding half of `focal` has no
  * effect at all — a focal point on an uncropped photograph changes nothing.
  */
-function cover(photo: BookPhoto, slot: RectMm, focal: Focal = CENTRE): RectMm {
-  const scale = Math.max(slot.width / photo.width, slot.height / photo.height);
-  const width = photo.width * scale;
-  const height = photo.height * scale;
+/**
+ * The one place a drawn rectangle's width and height are computed. Both come
+ * from a single `scale` factor applied to the source's own dimensions, which
+ * is what makes an anisotropic (non-uniform) scale structurally impossible
+ * here — B641. `cover` and `contain` are this same arithmetic with a
+ * different `Math.max`/`Math.min`, and the front cover in `render.ts` reuses
+ * this too rather than repeating the formula a third time.
+ */
+function scaledRect(
+  source: { width: number; height: number },
+  slot: RectMm,
+  fit: "cover" | "contain",
+  focal: Focal = CENTRE,
+): RectMm {
+  const scale =
+    fit === "cover"
+      ? Math.max(slot.width / source.width, slot.height / source.height)
+      : Math.min(slot.width / source.width, slot.height / source.height);
+  const width = source.width * scale;
+  const height = source.height * scale;
+  if (fit === "contain") {
+    return { x: slot.x + (slot.width - width) / 2, y: slot.y + (slot.height - height) / 2, width, height };
+  }
   return {
     x: slot.x + (slot.width - width) * focal.x,
     y: slot.y + (slot.height - height) * (1 - focal.y),
@@ -575,18 +595,74 @@ function cover(photo: BookPhoto, slot: RectMm, focal: Focal = CENTRE): RectMm {
   };
 }
 
+/**
+ * Fills the slot, cropping the overflow. Used wherever a grid has to line up.
+ *
+ * `photo.focal` says which part survives the crop: `x` is a fraction across
+ * the photograph and `y` a fraction down it, ordinary image-space, top-left
+ * origin. This file's rectangles are **y-upwards** (see `mapProjector`'s own
+ * note), so the two axes are not symmetric here — `x` scales the offset
+ * directly, `y` scales the offset from the far side, `(1 - focal.y)`, so that
+ * `y: 0` still means "keep the top" rather than "keep the bottom".
+ *
+ * At `CENTRE` this is exactly the old centring formula, and whenever a
+ * dimension is not actually cropped (`slot.width - width` or
+ * `slot.height - height` is 0) the corresponding half of `focal` has no
+ * effect at all — a focal point on an uncropped photograph changes nothing.
+ *
+ * Exported so `renderCover` in `render.ts` can place the front cover through
+ * the same arithmetic rather than a second copy of it.
+ */
+export function cover(photo: { width: number; height: number }, slot: RectMm, focal: Focal = CENTRE): RectMm {
+  return scaledRect(photo, slot, "cover", focal);
+}
+
 /** Fits inside the slot without cropping. Used where the photograph, not the
  * grid, is the thing being respected. */
 function contain(photo: BookPhoto, slot: RectMm): RectMm {
-  const scale = Math.min(slot.width / photo.width, slot.height / photo.height);
-  const width = photo.width * scale;
-  const height = photo.height * scale;
+  return scaledRect(photo, slot, "contain");
+}
+
+/**
+ * Fits inside the slot, and never larger than what the photograph's own
+ * pixels support at `dpi` — B641. A grid cell asks for `cover`, which fills
+ * every corner by cropping; a photograph without the resolution for that
+ * would print visibly soft, so below the floor this shows the whole picture
+ * instead, sized to what it can actually hold, with a margin rather than
+ * blown-up pixels.
+ */
+function containWithinResolution(photo: BookPhoto, slot: RectMm, dpi: number): RectMm {
+  const fitted = contain(photo, slot);
+  const capMm = (photo.width / dpi) * 25.4;
+  if (fitted.width <= capMm) return fitted;
+  const scale = capMm / fitted.width;
+  const width = fitted.width * scale;
+  const height = fitted.height * scale;
   return {
     x: slot.x + (slot.width - width) / 2,
     y: slot.y + (slot.height - height) / 2,
     width,
     height,
   };
+}
+
+/**
+ * `cover`, or a smaller `contain` when the photograph does not have the
+ * pixels to fill the slot without going soft — B641. `clip` is the slot
+ * itself for an ordinary cover-crop; when capped for resolution there is
+ * nothing to crop, so `clip` is the same (smaller) rectangle as `draw`.
+ */
+function coverOrShrink(
+  photo: BookPhoto,
+  slot: RectMm,
+  focal: Focal,
+  dpi: number,
+): { draw: RectMm; clip: RectMm } {
+  const covered = cover(photo, slot, focal);
+  const capMm = (photo.width / dpi) * 25.4;
+  if (covered.width <= capMm) return { draw: covered, clip: slot };
+  const shrunk = containWithinResolution(photo, slot, dpi);
+  return { draw: shrunk, clip: shrunk };
 }
 
 function placement(
@@ -600,8 +676,14 @@ function placement(
     captionHeight > 0
       ? { ...slot, y: slot.y + captionHeight, height: slot.height - captionHeight }
       : slot;
-  const draw = mode === "cover" ? cover(photo, inner, photo.focal) : contain(photo, inner);
-  const clip = mode === "cover" ? inner : draw;
+  let draw: RectMm;
+  let clip: RectMm;
+  if (mode === "cover") {
+    ({ draw, clip } = coverOrShrink(photo, inner, photo.focal ?? CENTRE, HERO_FLOOR_DPI));
+  } else {
+    draw = contain(photo, inner);
+    clip = draw;
+  }
   return {
     photo,
     clip,
@@ -662,6 +744,20 @@ function slotsFor(layout: PhotoLayout, spec: BookSpec, side: PageSide): RectMm[]
       return [
         { x: c.x, y: c.y, width: w, height: c.height },
         { x: c.x + w + GAP_MM, y: c.y, width: w, height: c.height },
+      ];
+    }
+    /**
+     * Three portraits, side by side at their own aspect — B641. A phone
+     * photograph is portrait far more often than a book planned around
+     * landscape frames expects, and three sharing a page beats one stranded
+     * on a spread with the other two each carrying a page of their own.
+     */
+    case "trio-portrait": {
+      const w = (c.width - GAP_MM * 2) / 3;
+      return [
+        { x: c.x, y: c.y, width: w, height: c.height },
+        { x: c.x + w + GAP_MM, y: c.y, width: w, height: c.height },
+        { x: c.x + (w + GAP_MM) * 2, y: c.y, width: w, height: c.height },
       ];
     }
     case "pair-stacked": {
@@ -781,6 +877,17 @@ export function groupPhotos(
     if (isPanorama(a)) {
       groups.push({ layout: "panorama", photos: [a] });
       i += 1;
+    } else if (
+      b &&
+      c &&
+      [a, b, c].every((p) => orientation(p) === "portrait")
+    ) {
+      // Three in a row beats a pair plus a straggler — B641. A day of phone
+      // photographs is often portrait for pages at a time, and two of them
+      // sharing a page while the third gets stranded alone is exactly the
+      // "stranded on a spread" the ticket names.
+      groups.push({ layout: "trio-portrait", photos: [a, b, c] });
+      i += 3;
     } else if (b && orientation(a) === "portrait" && orientation(b) === "portrait") {
       groups.push({ layout: "pair-portrait", photos: [a, b] });
       i += 2;
