@@ -12,18 +12,6 @@ found: "2026-09-06T13:47:14Z"
 
 ## Why
 
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
-
-## Why
-
 B503 gave the book its own language: the owner picks it in the composer, and
 `lib/photobook/strings.ts` carries the headings in English, German and
 Hungarian. Every heading obeys it. **No date does.**

@@ -32,6 +32,13 @@
 export type BookLocale = "en" | "de" | "hu";
 
 export type BookStrings = {
+  /** Which table this is — `lib/photobook/text.ts` uses it to pick date
+   * order and punctuation, since that varies by language too. */
+  locale: BookLocale;
+  /** The twelve month names, in this language's own case: capitalised for
+   * English and German, lower case for Hungarian. */
+  months: readonly string[];
+
   /** The heading over the trip's own introduction. */
   intro: string;
   chapter: string;
@@ -91,6 +98,12 @@ export type BookStrings = {
 };
 
 const EN: BookStrings = {
+  locale: "en",
+  months: [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ],
+
   intro: "The idea",
   chapter: "Chapter {index} of {of}",
   volume: "Volume {index} of {of}",
@@ -167,6 +180,12 @@ const EN: BookStrings = {
 };
 
 const DE: BookStrings = {
+  locale: "de",
+  months: [
+    "Januar", "Februar", "März", "April", "Mai", "Juni",
+    "Juli", "August", "September", "Oktober", "November", "Dezember",
+  ],
+
   intro: "Die Idee",
   chapter: "Kapitel {index} von {of}",
   volume: "Band {index} von {of}",
@@ -243,6 +262,13 @@ const DE: BookStrings = {
 };
 
 const HU: BookStrings = {
+  locale: "hu",
+  // Hungarian month names are lower case, unlike German's.
+  months: [
+    "január", "február", "március", "április", "május", "június",
+    "július", "augusztus", "szeptember", "október", "november", "december",
+  ],
+
   intro: "Az ötlet",
   chapter: "{index}. fejezet, összesen {of}",
   volume: "{index}. kötet, összesen {of}",

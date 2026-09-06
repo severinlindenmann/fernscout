@@ -11,6 +11,8 @@
  * are built from, which for Helvetica is exact rather than approximate.
  */
 
+import type { BookStrings } from "./strings.ts";
+
 /** ASCII 32–126, in order, for Helvetica. */
 const HELVETICA: readonly number[] = [
   278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278,
@@ -245,36 +247,74 @@ export function paragraphsOf(markdown: string): string[] {
     .filter(Boolean);
 }
 
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-/** "2026-08-14" → "14 August 2026". Parsed by hand rather than through Date so
- * the output cannot shift by a day depending on where the machine is. */
-export function formatDate(iso: string): string {
+/**
+ * "2026-08-14" → "14 August 2026" (English), "14. August 2026" (German),
+ * "2026. augusztus 14." (Hungarian). Parsed by hand rather than through Date
+ * so the output cannot shift by a day depending on where the machine is, and
+ * the month name is taken from `s` rather than `Intl.DateTimeFormat` so the
+ * planner's own text-measuring stays deterministic across machines.
+ *
+ * Word order and punctuation are per language, not just the month name:
+ * German points the day ("14."); Hungarian puts the year first, the month
+ * before the day, and closes with a point of its own.
+ */
+export function formatDate(iso: string, s: BookStrings): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!m) return iso;
-  return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
+  const [, year, monthStr, dayStr] = m;
+  const day = Number(dayStr);
+  const month = s.months[Number(monthStr) - 1];
+  switch (s.locale) {
+    case "de":
+      return `${day}. ${month} ${year}`;
+    case "hu":
+      return `${year}. ${month} ${day}.`;
+    default:
+      return `${day} ${month} ${year}`;
+  }
 }
 
-/** "14–28 August 2026", collapsing whatever the two dates share. */
-export function formatDateRange(startIso: string, endIso: string): string {
+/**
+ * "14–28 August 2026", collapsing whatever the two dates share. The
+ * collapsing rule is per language, not just the wording:
+ *
+ * - English keeps the day range in front: "14–28 August 2026",
+ *   "14 August – 2 September 2026".
+ * - German points every day that ends a half: "14.–28. August 2026",
+ *   "14. August – 2. September 2026".
+ * - Hungarian states the shared year (and month, if shared) once, up front,
+ *   and points every day: "2026. augusztus 14–28.", "2026. augusztus 14. –
+ *   szeptember 2.".
+ *
+ * Two dates in different years share nothing, in any of the three, so all
+ * three fall back to two full dates either side of the dash.
+ */
+export function formatDateRange(startIso: string, endIso: string, s: BookStrings): string {
   const a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(startIso);
   const b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(endIso);
   const dash = "–";
   if (!a || !b) return `${startIso} ${dash} ${endIso}`;
-  if (startIso === endIso) return formatDate(startIso);
+  if (startIso === endIso) return formatDate(startIso, s);
   const sameYear = a[1] === b[1];
   const sameMonth = sameYear && a[2] === b[2];
-  if (sameMonth) {
-    return `${Number(a[3])}${dash}${Number(b[3])} ${MONTHS[Number(a[2]) - 1]} ${a[1]}`;
+  const [, year, aMonthStr, aDayStr] = a;
+  const [, , bMonthStr, bDayStr] = b;
+  const aDay = Number(aDayStr);
+  const bDay = Number(bDayStr);
+  const aMonth = s.months[Number(aMonthStr) - 1];
+  const bMonth = s.months[Number(bMonthStr) - 1];
+
+  if (!sameYear) return `${formatDate(startIso, s)} ${dash} ${formatDate(endIso, s)}`;
+
+  switch (s.locale) {
+    case "de":
+      if (sameMonth) return `${aDay}.${dash}${bDay}. ${aMonth} ${year}`;
+      return `${aDay}. ${aMonth} ${dash} ${bDay}. ${bMonth} ${year}`;
+    case "hu":
+      if (sameMonth) return `${year}. ${aMonth} ${aDay}${dash}${bDay}.`;
+      return `${year}. ${aMonth} ${aDay}. ${dash} ${bMonth} ${bDay}.`;
+    default:
+      if (sameMonth) return `${aDay}${dash}${bDay} ${aMonth} ${year}`;
+      return `${aDay} ${aMonth} ${dash} ${bDay} ${bMonth} ${year}`;
   }
-  if (sameYear) {
-    return (
-      `${Number(a[3])} ${MONTHS[Number(a[2]) - 1]} ${dash} ` +
-      `${Number(b[3])} ${MONTHS[Number(b[2]) - 1]} ${a[1]}`
-    );
-  }
-  return `${formatDate(startIso)} ${dash} ${formatDate(endIso)}`;
 }
