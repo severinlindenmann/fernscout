@@ -29,6 +29,7 @@ import {
   type RectMm,
 } from "./spec.ts";
 import {
+  cover as coverRect,
   labelOf,
   mapClipMm,
   mapProjector,
@@ -784,13 +785,7 @@ export function renderCover(
   if (photo && cover.frontPhoto) {
     // Front panel, full bleed on three edges and up to the spine on the fourth.
     const slot = { x: frontX, y: -spec.bleedMm, width: trimW + spec.bleedMm, height: trimH + spec.bleedMm * 2 };
-    const scale = Math.max(slot.width / photo.width, slot.height / photo.height);
-    const draw = {
-      x: slot.x + (slot.width - photo.width * scale) / 2,
-      y: slot.y + (slot.height - photo.height * scale) / 2,
-      width: photo.width * scale,
-      height: photo.height * scale,
-    };
+    const draw = coverRect(photo, slot);
     PdfBuilder.drawImageClipped(page, photo, rect(frame, slot), rect(frame, draw));
     // A solid band for the title rather than type dropped straight onto a
     // photograph: transparency is the first thing a PDF/X preflight rejects,
