@@ -23,6 +23,7 @@
 // a test that runs both `lib/validate/*` and this document over the same
 // fixtures — see that file for what it actually found.
 import type { ContentModelDocument, FileName, PrimitiveType, Rule } from "./types";
+import { FEATURE_NAMES } from "../config";
 
 /** A regex source is capped well short of anything that could be expensive
  * to match — every pattern below is a handful of characters, and a future one
@@ -107,15 +108,28 @@ export function contentModel(): ContentModelDocument {
       // not mistake them for something this document has never heard of.
       visibility: {},
       startLocation: { type: "string" },
-      defaultLocale: { type: "string", required: true },
-      locales: { type: "array", required: true },
+      // B615: neither is `required`. `parseUser` in lib/config.ts defaults
+      // both when absent — `locales` to `["en"]`, then `defaultLocale` to
+      // `locales[0]` — so a config naming neither is a valid journal in
+      // English, not two errors.
+      defaultLocale: { type: "string" },
+      locales: { type: "array" },
       baseCurrency: { type: "string" },
       displayCurrencies: { type: "array" },
       units: {},
       manualRates: { type: "object" },
       features: { type: "object" },
       // No API call reads a journal's default travellers — see model.mjs.
-      travellers: { type: "array", fileOnly: true },
+      // fileOnly with no openapi.json description to borrow a tip from, so
+      // the prose is carried here — B620.
+      travellers: {
+        type: "array",
+        fileOnly: true,
+        because:
+          "how the walking figures are drawn when a trip does not say. There is no API call " +
+          "for the journal's default party — it is read from this file, and a trip's own " +
+          "travellers: block is set through …/trips/<trip>/travellers",
+      },
       // This journal's own upload allowance; may narrow the server's.
       media: { type: "object", fileOnly: true },
     }),
@@ -140,23 +154,38 @@ export function contentModel(): ContentModelDocument {
       tracks: { type: "object" },
       translations: { type: "object" },
       // A photograph for the index and the OG image; cannot be set at create
-      // time because the media does not exist yet.
-      cover: { type: "string", fileOnly: true },
+      // time because the media does not exist yet. fileOnly with no
+      // openapi.json description to borrow a tip from, so the prose is
+      // carried here — B620.
+      cover: {
+        type: "string",
+        fileOnly: true,
+        because:
+          "a photograph from the trip for the index and the OG image. It cannot be set at " +
+          "create time — the media does not exist yet",
+      },
       // status, accent, visibility, costsVisibility: known to the API
       // (openapi.json carries their real enum) — no rule here, faithfully.
       status: {},
       accent: {},
       visibility: {},
       costsVisibility: {},
-      // test: model.mjs never gained a `type` for this one, even though the
-      // day-level `test` field is enforced as a real boolean by
-      // `lib/validate/entry.ts` — see test/content-model.test.ts for what
-      // that silence turns out to hide, on the day side.
-      test: {},
+      // B616: model.mjs never gained a `type` for this one, even though
+      // `createTrip` in lib/tripWrite.ts refuses a non-boolean `test` the same
+      // way `checkTest` does for a day (see the entries block below). Fixed
+      // here. B620: `test` is also one of the two keys `model.mjs` marks
+      // `noTip: true` — see `files["trip.md"].noTip` below.
+      test: { type: "boolean" },
     }),
 
     ...rulesFor("entries/YYYY-MM-DD-slug.md", {
       title: { type: "string", required: true },
+      // The pattern only checks the YYYY-MM-DD shape, same as trip.md's
+      // start/end — `checkDate`/`isRealCalendarDate` in lib/validate/entry.ts
+      // also requires a real calendar date (no 2026-13-40), which is Date
+      // arithmetic no `pattern` here should re-derive (leap years). That gap
+      // is declared as the `entry-date-is-a-real-calendar-date` named check
+      // below rather than left silent — B616.
       date: {
         type: "string",
         required: true,
@@ -170,9 +199,14 @@ export function contentModel(): ContentModelDocument {
       },
       location: { type: "string" },
       country: { type: "string" },
+      // B615: model.mjs's pattern was capitals-only. The server's own check
+      // (COUNTRY_CODE_RE in lib/validate/entry.ts) is explicitly
+      // case-insensitive — it uppercases on the way in — so this document
+      // must not refuse what the instance accepts. Capitals stay the house
+      // style, in prose, not as the enforced shape.
       countryCode: {
         type: "string",
-        pattern: { pattern: "^[A-Z]{2}$", expected: "two capitals, like PT" },
+        pattern: { pattern: "^[A-Za-z]{2}$", expected: "two letters, ISO 3166-1 alpha-2 — capitals are the house style, like PT" },
         because: "draws the flag",
       },
       lat: { type: "number" },
@@ -212,10 +246,12 @@ export function contentModel(): ContentModelDocument {
       coordinates: { apiOnly: true, because: "only ever false — this day has no one place" },
       photos: { apiOnly: true, because: "only ever false — this day has no photographs" },
       idempotency_key: { apiOnly: true, because: "names one write, so a retry is safe" },
-      // test: model.mjs never gained a `type` for this one — the same gap as
-      // trip.md's `test` above, and see test/content-model.test.ts for what
-      // it hides here specifically.
-      test: {},
+      // B616: model.mjs never gained a `type` for this one, even though
+      // `checkTest` in lib/validate/entry.ts refuses anything but a real
+      // boolean. Fixed here. B620: also one of the two keys model.mjs marks
+      // `noTip: true` — see `files["entries/YYYY-MM-DD-slug.md"].noTip`
+      // below.
+      test: { type: "boolean" },
     }),
 
     ...rulesFor("costs.md", {
@@ -226,6 +262,29 @@ export function contentModel(): ContentModelDocument {
     ...rulesFor("plan.md", {
       route: { type: "array" },
     }),
+
+    // B616: `parseFeatures` in lib/config.ts refuses a `features` member that
+    // is not `{ enabled: boolean }` (`shape`, over the one wildcard this
+    // vocabulary has) and refuses a key naming no known capability
+    // (`known-key`). model.mjs stopped at `type: "object"` on the whole map —
+    // B598 added exactly these checks to the *validator*, not to model.mjs,
+    // so the document inherited the gap. Both fit the existing eight kinds,
+    // so this is fixed here rather than filed as a named check; `FEATURE_NAMES`
+    // is imported from lib/config.ts so the two lists cannot drift apart the
+    // way a hand-copied one would.
+    {
+      where: "config.json",
+      path: "features.*",
+      assert: "shape",
+      members: { enabled: "boolean" },
+      because: "each capability is on or off; anything else is refused",
+    },
+    {
+      where: "config.json",
+      path: "features",
+      assert: "known-key",
+      keys: [...FEATURE_NAMES],
+    },
   ];
 
   const named = [
@@ -267,6 +326,26 @@ export function contentModel(): ContentModelDocument {
         "caption/poster/from, for the same reason cost-line-known-keys is named rather than expressed",
       where: ["entries/YYYY-MM-DD-slug.md"] as const,
     },
+    {
+      kind: "named" as const,
+      id: "entry-date-is-a-real-calendar-date",
+      because:
+        "the pattern above only checks the YYYY-MM-DD shape; a real calendar check " +
+        "(no 2026-13-40) needs the same Date-arithmetic lib/validate/entry.ts's " +
+        "isRealCalendarDate does, which this vocabulary's pattern kind cannot express and " +
+        "should not re-derive (leap years) — B616. Not needed for trip.md's start/end: " +
+        "lib/tripWrite.ts's DATE_RE is exactly as shallow as this document's pattern, on purpose.",
+      where: ["entries/YYYY-MM-DD-slug.md"] as const,
+    },
+    {
+      kind: "named" as const,
+      id: "budget-total-and-days-are-positive",
+      because:
+        "validateCostsPut in lib/validate/costs.ts refuses a non-positive budget.total or " +
+        "budget.days; no assert kind in this vocabulary expresses a numeric range, only " +
+        "type/enum/pattern/shape — B616",
+      where: ["costs.md"] as const,
+    },
   ];
 
   return {
@@ -279,10 +358,15 @@ export function contentModel(): ContentModelDocument {
       "trip.md": {
         what: "the trip itself. Frontmatter, then the intro prose as the body",
         api: "POST /api/v1/{user}/trips",
+        // B620: content nobody lived, written to prove the pipeline works —
+        // never a choice to offer about a real holiday. See
+        // `ContentModelDocument.noTip` in types.ts.
+        noTip: ["test"],
       },
       "entries/YYYY-MM-DD-slug.md": {
         what: "one update. Several per day is normal",
         api: "POST /api/v1/{user}/trips/{trip}/days, then …/days/{slug}/publish",
+        noTip: ["test"],
       },
       "costs.md": {
         what: "the budget and what was spent before leaving. Optional",

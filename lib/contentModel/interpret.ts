@@ -94,15 +94,29 @@ export function interpretRule(rule: Rule, doc: Record<string, unknown>): Interpr
       return problems;
 
     case "shape": {
+      // "This object's named members have these types" — per
+      // lib/contentModel/types.ts. `path` is the map (e.g. `features.*`);
+      // `member` is each of ITS members (e.g. `postcards`); `rule.members`
+      // names the flat, one-level shape every one of THOSE member objects
+      // must have (e.g. `{ enabled: "boolean" }`, for `features.postcards`).
+      // A member that is not shaped like an object at all (`postcards: true`)
+      // fails every field `rule.members` names — there is nothing to read
+      // `enabled` off, so every declared field is as absent as if the object
+      // were empty.
       if (!path.endsWith(".*")) throw new Error(`shape rule at ${path} did not end in the wildcard`);
       const mapPath = path.slice(0, -2);
       const { value: map } = get(doc, mapPath);
       if (typeof map !== "object" || map === null || Array.isArray(map)) return problems;
       for (const [member, memberValue] of Object.entries(map as Record<string, unknown>)) {
-        const type = rule.members[member];
-        if (!type) continue; // an unknown member is `known-key`'s job, not `shape`'s
-        if (!matchesType(memberValue, type)) {
-          problems.push({ path: `${mapPath}.${member}`, message: `${mapPath}.${member} must be a ${type}` });
+        const isShapedObject = typeof memberValue === "object" && memberValue !== null && !Array.isArray(memberValue);
+        for (const [field, type] of Object.entries(rule.members)) {
+          const fieldValue = isShapedObject ? (memberValue as Record<string, unknown>)[field] : undefined;
+          if (!matchesType(fieldValue, type)) {
+            problems.push({
+              path: `${mapPath}.${member}.${field}`,
+              message: `${mapPath}.${member}.${field} must be a ${type}`,
+            });
+          }
         }
       }
       return problems;

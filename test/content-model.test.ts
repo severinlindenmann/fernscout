@@ -17,14 +17,22 @@ import { DATE_RE, ID_RE } from "@/lib/tripWrite";
  * runs both sides over the same fixtures and asserts they agree, rule by
  * rule, wherever an assertion is possible at all.
  *
- * **This test is expected to find real disagreements**, inherited unchanged
- * from `fernscout-helper`'s `model.mjs` (this document's source — see
- * `lib/contentModel/document.ts`). Each one is asserted *as* a disagreement,
- * by name, with the ticket to file recorded in a comment beside it — so a
- * disagreement silently going away (the document quietly starting to agree,
- * or the validator quietly starting to enforce the document instead) is
- * itself a change this test notices, per B608's report. None of them are
- * fixed here: not in `content-model.json`, and not in `lib/validate/*`.
+ * This test found several real disagreements, inherited unchanged from
+ * `fernscout-helper`'s `model.mjs` (this document's original source — see
+ * `lib/contentModel/document.ts`). Fixed so far, in `content-model.json`
+ * rather than in `lib/validate/*` (that stays the server's own gate, per
+ * W41):
+ *
+ * - B615: `countryCode`'s case-sensitivity, and `locales`/`defaultLocale`
+ *   being wrongly `required`.
+ * - B616: impossible calendar dates, `features` member shape, and
+ *   non-positive `budget.total`/`budget.days`. Two of the three fit the
+ *   vocabulary's existing eight kinds (`features`, via `shape` and
+ *   `known-key`); the calendar check and the budget range do not, and are
+ *   declared as named checks instead of left silent.
+ *
+ * Other findings remain, each still asserted *as* a disagreement, by name,
+ * with the ticket to file recorded in a comment beside it.
  */
 
 const EIGHT_KINDS = [
@@ -251,38 +259,63 @@ describe("entries/YYYY-MM-DD-slug.md: disagreements found, and reported rather t
     }
   });
 
-  // FINDING 2 (file for a ticket): `test` carries no rule at all here — a
-  // faithful copy of model.mjs, which never gained one. `validateEntry`
-  // refuses anything but a real boolean (`checkTest`). This document
-  // currently says nothing about a day sent with `test: "true"`.
-  test("test: \"true\" — refused by validateEntry, waved through by this document", () => {
+});
+
+describe("entries/YYYY-MM-DD-slug.md: B616 fixed — test's type, and the date gap declared rather than silent", () => {
+  // B616: `test` now has `type: "boolean"`, so validateEntry's `checkTest`
+  // and this document agree.
+  test("test: \"true\" — refused by both", () => {
     const day = validDay({ test: "true" as unknown as EntryInput["test"] });
     expect(realProblems(day)).toEqual(expect.arrayContaining(["test"]));
-    expect(docProblems(day)).not.toEqual(expect.arrayContaining(["test"]));
+    expect(docProblems(day)).toEqual(expect.arrayContaining(["test"]));
   });
 
-  // FINDING 3 (file for a ticket): `countryCode`'s pattern here is
-  // `^[A-Z]{2}$` — capitals only, exactly what model.mjs said. The server's
-  // own check (`COUNTRY_CODE_RE` in lib/validate/entry.ts) is explicitly
-  // case-insensitive, so a lowercase code the server accepts is refused by
-  // this document.
-  test("countryCode: lowercase — accepted by validateEntry, refused by this document's pattern", () => {
-    const day = validDay({ countryCode: "pt" });
-    expect(realProblems(day)).toEqual([]);
-    expect(docProblems(day)).toEqual(expect.arrayContaining(["countryCode"]));
+  test("test: true / false — accepted by both", () => {
+    for (const value of [true, false]) {
+      const day = validDay({ test: value });
+      expect(realProblems(day)).toEqual([]);
+      expect(docProblems(day)).toEqual([]);
+    }
   });
 
-  // FINDING 4 (file for a ticket): `date`'s pattern here only checks the
-  // YYYY-MM-DD shape — again a faithful copy of model.mjs's `ISO_DATE`. The
-  // server's `checkDate` also checks the date is a real one on the calendar
-  // (`isRealCalendarDate`), so a syntactically-shaped but impossible date is
-  // refused by the server and waved through by this document. (trip.md's
-  // `start`/`end` do NOT have this gap — `lib/tripWrite.ts`'s `DATE_RE` is
-  // exactly as shallow as this document's pattern; see the test above.)
-  test("date: 2026-13-40 — refused by validateEntry's calendar check, waved through by this document's pattern", () => {
+  // B616: an impossible calendar date is real Date arithmetic
+  // (isRealCalendarDate), which no `pattern` in this vocabulary can express
+  // without re-deriving leap years — the ticket's explicit instruction not
+  // to. So this is declared as a named check instead of silently missed;
+  // see the "named checks" describe below for the assertion that it exists.
+  // The server-side behaviour itself is unchanged and still asserted here.
+  test("date: 2026-13-40 — refused by validateEntry's calendar check (server behaviour, unaffected by this document)", () => {
     const day = validDay({ date: "2026-13-40" });
     expect(realProblems(day)).toEqual(expect.arrayContaining(["date"]));
-    expect(docProblems(day)).not.toEqual(expect.arrayContaining(["date"]));
+  });
+
+  test("trip.md's start/end shallow-pattern behaviour is unchanged by B616 — 2026-13-40 still matches the shape", () => {
+    // Same assertion as the "trip.md's id/start/end pattern" describe above,
+    // repeated here as a regression guard specific to B616: fixing the day's
+    // calendar gap must not touch trip.md's deliberately shallow pattern.
+    const startRule = doc.rules.find((r) => r.where === "trip.md" && r.path === "start" && r.assert === "pattern");
+    expect(startRule?.assert).toBe("pattern");
+    if (startRule?.assert !== "pattern") throw new Error("unreachable");
+    expect(new RegExp(startRule.pattern).test("2026-13-40")).toBe(DATE_RE.test("2026-13-40"));
+    expect(DATE_RE.test("2026-13-40")).toBe(true); // shallow on both sides, deliberately
+  });
+});
+
+describe("entries/YYYY-MM-DD-slug.md: B615 fixed — countryCode agrees with COUNTRY_CODE_RE", () => {
+  // B615: the pattern is now `^[A-Za-z]{2}$`, matching `COUNTRY_CODE_RE`
+  // exactly — a lowercase code is a live false error no longer.
+  test("countryCode: lowercase — accepted by both", () => {
+    const day = validDay({ countryCode: "pt" });
+    expect(realProblems(day)).toEqual([]);
+    expect(docProblems(day)).toEqual([]);
+  });
+
+  test("countryCode: three letters, or a digit — refused by both", () => {
+    for (const bad of ["PTX", "P1"]) {
+      const day = validDay({ countryCode: bad });
+      expect(realProblems(day)).toEqual(expect.arrayContaining(["countryCode"]));
+      expect(docProblems(day)).toEqual(expect.arrayContaining(["countryCode"]));
+    }
   });
 });
 
@@ -329,45 +362,50 @@ describe("config.json: agreement on what this document can check", () => {
   });
 });
 
-describe("config.json: disagreements found, and reported rather than fixed", () => {
-  // FINDING 5 (file for a ticket): this document says `features` is a
-  // `type: "object"` and nothing more — a faithful copy of model.mjs, which
-  // never checked further (B598). `lib/config.ts`'s `parseFeatures` — added
-  // since — refuses a member that is not itself an object shaped like
-  // `{enabled: boolean}`, and refuses a key that names no known capability.
-  // Both pass this document's rule, because the rule only checks that
-  // `features` itself is an object.
-  test("features: { postcards: true } — refused by parseUserConfig, waved through by this document", () => {
+describe("config.json: B616 fixed — features member shape agrees with parseFeatures", () => {
+  // `features.*` now has a `shape` rule ({enabled: boolean}) and `features` a
+  // `known-key` rule (against FEATURE_NAMES, imported from lib/config.ts so
+  // the two lists cannot drift apart) — reconciling with what B598 already
+  // put in `parseFeatures`, rather than writing a second copy of the
+  // capability list here.
+  test("features: { postcards: true } — refused by both", () => {
     const config = validConfig({ features: { postcards: true } });
     expect(realConfigProblems(config).some((p) => p.startsWith("features"))).toBe(true);
-    expect(docConfigProblems(config)).not.toEqual(expect.arrayContaining(["features"]));
+    expect(docConfigProblems(config).some((p) => p.startsWith("features"))).toBe(true);
   });
 
-  test("features: { notAFeature: {...} } — refused by parseUserConfig, waved through by this document", () => {
+  test("features: { notAFeature: {...} } — refused by both", () => {
     const config = validConfig({ features: { notAFeature: { enabled: true } } });
     expect(realConfigProblems(config).some((p) => p.startsWith("features"))).toBe(true);
-    expect(docConfigProblems(config)).not.toEqual(expect.arrayContaining(["features"]));
+    expect(docConfigProblems(config).some((p) => p.startsWith("features"))).toBe(true);
   });
 
-  // FINDING 6 (file for a ticket): `defaultLocale` and `locales` are both
-  // `required: true` here, a faithful copy of model.mjs. `lib/config.ts`'s
-  // `parseUser` in fact defaults both silently — `locales` falls back to
-  // `["en"]`, and `defaultLocale` to `locales[0]` — so a config omitting
-  // either is written cleanly by the server today and refused by this
-  // document's `required` rule.
-  test("a config with locales but no defaultLocale — accepted (defaulted) by parseUserConfig, refused by this document", () => {
+  test("features: { mail: { enabled: true } } — a well-formed, known member passes both", () => {
+    const config = validConfig({ features: { mail: { enabled: true } } });
+    expect(realConfigProblems(config).some((p) => p.startsWith("features"))).toBe(false);
+    expect(docConfigProblems(config).some((p) => p.startsWith("features"))).toBe(false);
+  });
+});
+
+describe("config.json: B615 fixed — locales/defaultLocale agree with parseUser's defaulting", () => {
+  // `defaultLocale` and `locales` are no longer `required` here.
+  // `lib/config.ts`'s `parseUser` in fact defaults both silently —
+  // `locales` falls back to `["en"]`, and `defaultLocale` to `locales[0]` —
+  // so a config omitting either is written cleanly by the server, and no
+  // longer a live false error here.
+  test("a config with locales but no defaultLocale — accepted (defaulted) by both", () => {
     const config = validConfig();
     delete config.defaultLocale;
     expect(realConfigProblems(config).some((p) => p.startsWith("defaultLocale"))).toBe(false);
-    expect(docConfigProblems(config)).toEqual(expect.arrayContaining(["defaultLocale"]));
+    expect(docConfigProblems(config)).not.toEqual(expect.arrayContaining(["defaultLocale"]));
   });
 
-  test("a config with no locales at all — accepted (defaulted) by parseUserConfig, refused by this document", () => {
+  test("a config with no locales at all — accepted (defaulted) by both", () => {
     const config = validConfig();
     delete config.locales;
     delete config.defaultLocale;
     expect(realConfigProblems(config).some((p) => p.startsWith("locales"))).toBe(false);
-    expect(docConfigProblems(config)).toEqual(expect.arrayContaining(["locales"]));
+    expect(docConfigProblems(config)).not.toEqual(expect.arrayContaining(["locales"]));
   });
 });
 
@@ -378,14 +416,70 @@ describe("costs.md: agreement, and one disagreement", () => {
     expect(interpretFile(doc.rules, "costs.md", costs)).toEqual([]);
   });
 
-  // FINDING 7 (file for a ticket): `budget` is `type: "object"` here, a
-  // faithful copy of model.mjs, which never described its members.
-  // `lib/validate/costs.ts`'s `validateCostsPut` refuses a non-positive
-  // `budget.total`/`budget.days` — this document has no rule that reaches
-  // inside `budget` at all, so it waves the same input through.
-  test("budget.total <= 0 — refused by validateCostsPut, waved through by this document", () => {
-    const costs = { budget: { total: 0, days: 10, currency: "CHF" } };
-    expect(validateCostsPut(costs).some((p) => p.field.startsWith("budget"))).toBe(true);
-    expect(interpretFile(doc.rules, "costs.md", costs)).toEqual([]);
+  // B616: `validateCostsPut` refuses a non-positive `budget.total`/
+  // `budget.days`, and no `assert` kind in this vocabulary expresses a
+  // numeric range (only `type`/`enum`/`pattern`/`shape`/`known-key`, none of
+  // which reach "greater than zero"). So rather than leaving the document
+  // silently claiming `budget: { type: "object" }` is the whole story, it
+  // *declares* the gap as a named check — asserted just below — which is
+  // the agreement this vocabulary can offer: honest about what it cannot
+  // check, instead of quietly wrong about it.
+  test("budget.total <= 0 / budget.days < 0 — refused by validateCostsPut (server behaviour, unaffected by this document)", () => {
+    expect(validateCostsPut({ budget: { total: 0, days: 10, currency: "CHF" } }).some((p) => p.field.startsWith("budget"))).toBe(true);
+    expect(validateCostsPut({ budget: { total: 1000, days: -1, currency: "CHF" } }).some((p) => p.field.startsWith("budget"))).toBe(true);
+  });
+
+  test("the gap is declared, not silent: a named check for budget positivity exists", () => {
+    const namedIds = doc.named.map((n) => n.id);
+    expect(namedIds).toContain("budget-total-and-days-are-positive");
+  });
+});
+
+describe("named checks this document declares for what B616 could not express in the eight kinds", () => {
+  test("entry-date-is-a-real-calendar-date and budget-total-and-days-are-positive are both declared, with prose", () => {
+    for (const id of ["entry-date-is-a-real-calendar-date", "budget-total-and-days-are-positive"]) {
+      const named = doc.named.find((n) => n.id === id);
+      expect(named, id).toBeDefined();
+      expect(named?.because.length ?? 0, id).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("B620: test is never offered as a tip, cover and travellers carry theirs", () => {
+  test("test is suppressed on both files that carry it", () => {
+    expect(doc.files["trip.md"].noTip).toContain("test");
+    expect(doc.files["entries/YYYY-MM-DD-slug.md"].noTip).toContain("test");
+  });
+
+  test("no other key is suppressed — model.mjs marks noTip in exactly these two places", () => {
+    const suppressed = (Object.entries(doc.files) as [FileName, (typeof doc.files)[FileName]][])
+      .flatMap(([where, f]) => (f.noTip ?? []).map((key) => `${where}:${key}`));
+    expect(suppressed.sort()).toEqual(["entries/YYYY-MM-DD-slug.md:test", "trip.md:test"].sort());
+  });
+
+  // cover (trip.md) and travellers (config.json) are the two `fileOnly` keys
+  // with real tip prose in model.mjs and no `openapi.json` field description
+  // to borrow one from at run time — confirmed by checking every fileOnly
+  // key's `because`, not assumed to be only these two.
+  test("cover (trip.md) and travellers (config.json) carry tip prose on their never-over-api rule", () => {
+    const coverRule = doc.rules.find((r) => r.where === "trip.md" && r.path === "cover" && r.assert === "never-over-api");
+    const travellersRule = doc.rules.find((r) => r.where === "config.json" && r.path === "travellers" && r.assert === "never-over-api");
+    expect(coverRule?.because?.length ?? 0).toBeGreaterThan(0);
+    expect(travellersRule?.because?.length ?? 0).toBeGreaterThan(0);
+  });
+
+  test("every other fileOnly (never-over-api) key is unchanged from before B620", () => {
+    // model.mjs's fileOnly keys with a `tip` (as opposed to only a `note`)
+    // are exactly config.json's travellers and trip.md's cover — every other
+    // fileOnly key had no *tip* to lose. entries' `status` already carried a
+    // `because` before this ticket (its always-shown "publishing is a
+    // separate call" prose, unaffected by B620); the rest carry none, same
+    // as model.mjs's own `note`-only or bare fileOnly keys.
+    const withProse = doc.rules
+      .filter((r) => r.assert === "never-over-api" && (r.because?.length ?? 0) > 0)
+      .map((r) => `${r.where}:${r.path}`);
+    expect(withProse.sort()).toEqual(
+      ["config.json:travellers", "trip.md:cover", "entries/YYYY-MM-DD-slug.md:status"].sort(),
+    );
   });
 });
