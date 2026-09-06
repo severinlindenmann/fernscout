@@ -121,6 +121,37 @@ export function appendGallery(markdown: string, items: IngestGalleryItem[]): str
   const lines = markdown.split("\n");
   if (lines[0].trim() !== "---") return null;
 
+  const opening = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
+  if (opening < 0) return null;
+
+  /**
+   * A day that said it had no photographs, and now has some, no longer says
+   * it — B540.
+   *
+   * `without: [photos]` is a statement about the day: *there are no pictures
+   * from this one*. Photographs arriving is that statement becoming false, and
+   * a file that carries both a gallery and the claim it has none is telling a
+   * reader two things at once. `editEntry` already retracts a decline the
+   * moment an edit answers it, including the `lat`/`lng` pair that answers a
+   * row without naming it; this is the same rule for the row that is answered
+   * by a different call altogether.
+   *
+   * Here rather than in `attachGallery` so that ingest gets it too: it appends
+   * galleries through this same function, to days it wrote itself.
+   */
+  const withoutAt = lines.findIndex((line, i) => i > 0 && i < opening && /^without:/.test(line));
+  if (withoutAt >= 0) {
+    const kept = (lines[withoutAt].match(/\[(.*)\]/)?.[1] ?? "")
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry && entry !== "photos");
+    if (kept.length > 0) lines[withoutAt] = `without: [${kept.join(", ")}]`;
+    else lines.splice(withoutAt, 1);
+  }
+
+  // Found again rather than adjusted: dropping the `without:` line above moves
+  // everything after it, and an index taken before the splice would put the
+  // gallery one line into somebody's prose.
   const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
   if (closing < 0) return null;
 

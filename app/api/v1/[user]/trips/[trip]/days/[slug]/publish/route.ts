@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { editEntry, factsOfEntry, publishNotice, publishDraft } from "@/lib/api/entries";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { isTestContent } from "@/lib/access";
@@ -70,7 +70,7 @@ export async function POST(
 
   const { user, trip, slug } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   const ref = tripRef(user, trip);

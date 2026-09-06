@@ -42,6 +42,25 @@ outcome AGENTS.md's own rule exists to prevent: *one invented memory presented
 to somebody's family as fact is not recoverable.* An invented **absence** is
 the same failure wearing a blank.
 
+## The wording was tried, and it did not work
+
+B540 changed `lib/tracks.ts` so that the 422, the `Draft` schema and
+`/agent.md` all say, in bold, *"I do not know" is not this* — a decline is a
+fact about the day, ask or leave it unwritten. Then the identical scenario was
+put to the same model again.
+
+It wrote `"costs": false` for both Sapa days again, and explained itself:
+
+> *"She declined to guess, so I recorded it as declined (costs: false), not as
+> an empty amount or a guess. … **No false record was created.**"*
+
+It read the warning, reasoned about it, and reached the opposite conclusion —
+because *she* declined to guess and the field is called a decline. The word
+does the damage on its own, and the model still had nothing else to send.
+
+That settles it: **this cannot be fixed with wording.** Either there is a third
+answer or the day waits for a person. Raised to high.
+
 ## Work
 
 The wording is already as strong as wording gets — B540 made the decline say

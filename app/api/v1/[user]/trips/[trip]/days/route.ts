@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
 import {
   createDraft,
   deleteEntry,
@@ -45,7 +45,7 @@ export async function GET(
 
   const { user, trip } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   const ref = tripRef(user, trip);
@@ -96,7 +96,7 @@ export async function POST(
 
   const { user, trip } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   const ref = tripRef(user, trip);
@@ -240,7 +240,7 @@ export async function DELETE(
 
   const { user, trip } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   const ref = tripRef(user, trip);

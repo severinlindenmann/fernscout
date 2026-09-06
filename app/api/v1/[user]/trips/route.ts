@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, ownsUser, writableTrips } from "@/lib/api/auth";
+import { authenticate, errorResponse, outOfScope, ownsUser, writableTrips } from "@/lib/api/auth";
 import { tripSummary } from "@/lib/api/entries";
 import { getMalformedTrips, getTrips } from "@/lib/trips";
 import { createTrip } from "@/lib/tripWrite";
@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
   if (!ownsUser(auth.session, user)) {
     // A token is scoped to one journal. Saying "forbidden" rather than
     // "not found" is safe here: the caller already proved who they are.
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   // Trips that are on disk but too broken to load — surfaced so an agent that
@@ -72,7 +72,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
 
   const { user } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
   if (auth.session.scope !== SESSION_SCOPE.agent) {
     return Response.json(

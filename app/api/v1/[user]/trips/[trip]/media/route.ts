@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { attachGallery, isPublished } from "@/lib/api/entries";
 import { storeUploads, type KeptOriginal, type UploadCandidate } from "@/lib/api/media";
 import { getTrip, mediaWithOwner, tripRef } from "@/lib/trips";
@@ -140,7 +140,7 @@ export async function POST(
 
   const { user, trip } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   const ref = tripRef(user, trip);

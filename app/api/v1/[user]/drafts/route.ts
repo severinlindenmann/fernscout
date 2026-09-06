@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
 import { draftQueue } from "@/lib/api/status";
 import { serverSite } from "@/lib/site";
 
@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
 
   const { user } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   return Response.json({

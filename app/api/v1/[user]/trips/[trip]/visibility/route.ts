@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
 import { patchTripVisibility, readTripVisibility } from "@/lib/api/tripVisibility";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -10,7 +10,7 @@ async function resolve(request: Request, user: string, trip: string) {
   if (!auth.ok) return { ok: false as const, response: errorResponse(auth) };
 
   if (!ownsUser(auth.session, user)) {
-    return { ok: false as const, response: Response.json({ error: "out_of_scope" }, { status: 403 }) };
+    return { ok: false as const, response: outOfScope(auth.session, user) };
   }
 
   const ref = tripRef(user, trip);

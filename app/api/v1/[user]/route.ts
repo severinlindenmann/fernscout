@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
 import { journalTombstone } from "@/lib/tombstones";
@@ -47,7 +47,7 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/v1
   if (!auth.ok) return errorResponse(auth);
 
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   // The owner, and nobody else. Somebody listed in a trip's `people:` holds a

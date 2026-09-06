@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, mayWriteTrip, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser } from "@/lib/api/auth";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
 import { tripTombstone } from "@/lib/tombstones";
@@ -32,7 +32,7 @@ export async function GET(
 
   const { user, trip } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   const ref = tripRef(user, trip);
@@ -96,7 +96,7 @@ export async function DELETE(
   if (!auth.ok) return errorResponse(auth);
 
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   /**
