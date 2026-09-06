@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: postcards, buddies
 found: "2026-09-06T17:51:44Z"
+started: "2026-09-06T17:55:54Z"
+session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
+claimed: "2026-09-06T17:55:54Z"
 ---
 
 # B629 — Buddies on a trip are not offered in the postcard signature
