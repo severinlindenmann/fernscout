@@ -333,6 +333,13 @@ export type BookWarning = {
     | "page-count";
   detail: string;
   /**
+   * How many things this one warning stands for, when it stands for more than
+   * itself — B549. `no-original` is raised once per *reason* and speaks for
+   * every photograph that fell back for it, so a UI counting warnings by code
+   * would say "one photograph" about fourteen. Absent means one.
+   */
+  count?: number;
+  /**
    * The day this warning is about, when it is about one — `text-truncated`
    * only, so far. A UI that needs to know which day overflowed has to read
    * this rather than parse `detail`: that string is prose for a person, and
@@ -1330,7 +1337,11 @@ function materialise(
           source.siteUrl ? fill(s.colophonPublished, { url: source.siteUrl }) : "",
           "",
           fill(s.colophonMade, { date: formatDate(source.madeOn) }),
-          `${spec.size.name}, ${spec.bleedMm} mm bleed, ${spec.dpi} DPI target.`,
+          // The trim size, which is what a colophon conventionally names. The
+          // bleed and the DPI target used to be here too — a print
+          // technician's readout, in English whatever the book's language,
+          // on a page somebody's family reads. B547.
+          `${spec.size.name}.`,
         ].filter((l, i, all) => !(l === "" && all[i - 1] === "")),
       };
 

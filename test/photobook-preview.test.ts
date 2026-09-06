@@ -153,3 +153,37 @@ describe("the map names its stops", () => {
     }
   });
 });
+
+/**
+ * The composer's own copy of the preview — B548/B549.
+ *
+ * Everything asserted here was on the screen of somebody who had just been
+ * asked for money: warning codes as headings, a constant from
+ * `lib/photobook/spec.ts`, the paths of files under `content/`, a bleed and a
+ * DPI target. The CLI's copy keeps all of it, and the second half of this
+ * test is what stops "clean it up" from quietly meaning "delete it".
+ */
+describe("the bare preview", () => {
+  const book = planBook(SOURCE, defaultSpec());
+  const bare = renderPreview(book, "", (f) => f, undefined, { bare: true });
+  const full = renderPreview(book, "");
+
+  test("shows no code, no repository symbol and no print jargon", () => {
+    for (const leak of ["<code>", "SADDLE_STITCH", "lib/", "DPI target", "mm bleed", "warning(s)", "volume(s)", "spine "]) {
+      expect(bare, leak).not.toContain(leak);
+    }
+  });
+
+  test("still renders every spread, and marks them drillable", () => {
+    expect(bare).toContain('class="bare"');
+    expect((bare.match(/class="spread/g) ?? []).length).toBe(
+      (full.match(/class="spread/g) ?? []).length,
+    );
+    expect(bare).toContain("fernscout-photobook-preview");
+  });
+
+  test("leaves the technician's page alone", () => {
+    expect(full).toContain("DPI target");
+    expect(full).toContain("<code>");
+  });
+});

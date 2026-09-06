@@ -1,53 +1,74 @@
 "use client";
 
+import { creditsInRappen, formatChf } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 import type { BookOptions } from "@/lib/photobook/options";
 import type { MediaTile } from "@/lib/types";
-import BookSettingsPanel from "./BookSettingsPanel";
+import BookSettingsPanel, { SIZE_LABEL } from "./BookSettingsPanel";
 
-type PreviewState = {
+export type PreviewState = {
   html: string;
   pages: number;
   volumes: number;
   credits: number;
-  warnings: { code: string; detail: string; date?: string }[];
+  /** The shape of one spread — two pages and their bleed, side by side. The
+   * frame is sized from this, so the book is never a letterbox with its own
+   * scrollbar. */
+  ratio: number;
+  warnings: { code: string; detail: string; count?: number; date?: string }[];
   buyable: boolean;
 } | null;
 
+type T = (key: TranslationKey, vars?: Record<string, string>) => string;
+type Tn = (key: TranslationKey, count: number, vars?: Record<string, string>) => string;
+
 /**
- * One row per kind of warning rather than one per photograph.
+ * One line per kind of warning, in the reader's own words — B549.
  *
- * A book whose photographs are all web copies raises a `low-resolution` line
- * for every one of them — forty-three on the demo journal — and rendering them
- * flat buried the price, the preview and the Pay button under a wall of
- * yellow. The count is the part somebody needs to see; the files are the part
- * they need when they go looking.
+ * The planner's `detail` is a developer's note: it names files under
+ * `content/`, and one of them named a constant in `lib/photobook/spec.ts` to
+ * somebody who had just been asked for money. `code` is still the right thing
+ * for a machine to key on and is still what arrives here — it is simply never
+ * rendered. What a reader gets is a count and a consequence, and where the
+ * software knows the remedy, a button that applies it.
+ *
+ * A code with no sentence of its own is dropped rather than printed raw: a
+ * warning nobody wrote words for is a warning nobody can act on, and the
+ * `detail` behind it is not safe to show.
  */
-function groupWarnings(
-  warnings: { code: string; detail: string }[],
-): { code: string; count: number; details: string[] }[] {
-  const groups = new Map<string, string[]>();
-  for (const w of warnings) {
-    const seen = groups.get(w.code) ?? [];
-    seen.push(w.detail);
-    groups.set(w.code, seen);
-  }
-  return [...groups.entries()].map(([code, details]) => ({
-    code,
-    count: details.length,
-    details,
-  }));
+const WARNING_TEXT: [code: string, key: TranslationKey][] = [
+  ["no-photos", "photobook.warn.noPhotos"],
+  ["page-count", "photobook.warn.pageCount"],
+  ["split-into-volumes", "photobook.warn.splitIntoVolumes"],
+  ["blank-padding", "photobook.warn.blankPadding"],
+  ["low-resolution", "photobook.warn.lowResolution"],
+  ["no-original", "photobook.warn.noOriginal"],
+  ["text-truncated", "photobook.warn.textTruncated"],
+];
+
+/** How many *things* each code is about, not how many warnings carry it: one
+ * `no-original` speaks for every photograph that fell back to a web copy, and
+ * says so in `count`. */
+function countByCode(warnings: { code: string; count?: number }[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const w of warnings) counts.set(w.code, (counts.get(w.code) ?? 0) + (w.count ?? 1));
+  return counts;
 }
 
 /**
- * Level 1 — the whole book: settings, the live spread preview, warnings,
- * price, Pay. B534's whole point is that this is short enough to reach Pay
- * without meeting a single per-day control, so nothing about one day lives
- * here — a spread is drilled into from the preview itself, which is what the
- * "tap a spread" hint below the iframe is for.
+ * Level 1 — the book, and then everything else.
+ *
+ * B534 put the whole book on one level and one day on another, and that
+ * hierarchy was right. What was wrong (B547/B548) was the order inside this
+ * level: nine form controls, then the book in a third-of-a-screen box, then a
+ * wall of planner diagnostics larger than the book itself. Reversed here. The
+ * spreads come first and fill the width; the settings are one entry below
+ * them; the warnings say what it means for the printed book and offer the fix
+ * the planner already knows; the order block says what is being bought, in
+ * money as well as credits, and what happens after the button.
  *
  * Rendered with `hidden` rather than unmounted while level 2 is open (see
- * `PhotobookPageContent`): the iframe's own scroll position is what makes
+ * `PhotobookPageContent`): the strip's own scroll position is what makes
  * "back returns to the spread you came from" true for free.
  */
 export default function BookLevelView({
@@ -66,6 +87,7 @@ export default function BookLevelView({
   tripRef,
   balance,
   t,
+  tn,
 }: {
   hidden: boolean;
   options: BookOptions;
@@ -81,107 +103,184 @@ export default function BookLevelView({
   entryUsername: string;
   tripRef: string;
   balance: number | null;
-  t: (key: TranslationKey, vars?: Record<string, string>) => string;
+  t: T;
+  tn: Tn;
 }) {
   const credits = preview?.credits ?? null;
   const tooPoor = balance !== null && credits !== null && balance < credits;
   const unbuyable = preview?.buyable === false;
 
-  return (
-    <div hidden={hidden} className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,20rem)_1fr]">
-      <BookSettingsPanel
-        options={options}
-        setOptions={setOptions}
-        media={media}
-        locales={locales}
-        resetBook={resetBook}
-        canReset={canReset}
-        t={t}
-      />
+  const sizeName = t(SIZE_LABEL[options.size] ?? "photobook.size.square");
+  const bindingName = t(
+    options.binding === "saddle" ? "photobook.binding.saddle" : "photobook.binding.perfect",
+  );
+  const summary = preview
+    ? t(preview.volumes > 1 ? "photobook.summaryVolumes" : "photobook.summary", {
+        pages: String(preview.pages),
+        volumes: String(preview.volumes),
+        size: sizeName,
+        binding: bindingName,
+      })
+    : null;
 
-      <div>
+  const counts = countByCode(preview?.warnings ?? []);
+  /**
+   * The remedy, not the description — B549's whole point.
+   *
+   * `blank-padding` is the one the planner spells out and then declines to
+   * act on: it knows a trip this short wants stapling, and used to print a
+   * paragraph telling the reader to go and find a radio button. Offered here
+   * as a button that sets it.
+   *
+   * The resolution pair get the honest half of the same move: a smaller page
+   * needs fewer pixels, so offering the smallest format is a real remedy —
+   * but whether it clears every photograph depends on the crop, so the button
+   * changes the format and lets the re-plan (400 ms later) answer. It says
+   * "print it smaller", never "this will fix it".
+   */
+  const fixes: { key: TranslationKey; apply: () => void }[] = [];
+  if (counts.has("blank-padding") && options.binding !== "saddle") {
+    fixes.push({
+      key: "photobook.fix.staple",
+      apply: () => setOptions((o) => ({ ...o, binding: "saddle" })),
+    });
+  }
+  if ((counts.has("low-resolution") || counts.has("no-original")) && options.size !== "square-210") {
+    fixes.push({
+      key: "photobook.fix.smaller",
+      apply: () => setOptions((o) => ({ ...o, size: "square-210" })),
+    });
+  }
+
+  const lines = WARNING_TEXT.filter(([code]) => counts.has(code));
+
+  return (
+    <div hidden={hidden} className="mt-4">
+      {/* The book, first and full width. `aspect-ratio` from the plan rather
+          than a viewport fraction: the frame is exactly one spread tall, so
+          there is nothing to scroll inside it and nothing letterboxed. While
+          the first preview is in flight the frame keeps a spread's shape so
+          the page below it does not jump. */}
+      <div className="-mx-4 sm:mx-0">
         <iframe
           srcDoc={preview?.html ?? ""}
-          className="h-[70vh] w-full rounded-xl border border-navy-200 bg-white"
+          style={{ aspectRatio: String(preview?.ratio ?? 2) }}
+          className="w-full border-0 bg-cream-100 sm:rounded-xl"
           title={t("photobook.title")}
         />
-        <p className="mt-2 text-xs text-navy-600">{t("photobook.composer.tapHint")}</p>
+      </div>
 
-        <div className="mt-4 space-y-2 text-sm">
-          {preview && (
-            <p className="text-navy-700">
-              {t("photobook.pages", { pages: String(preview.pages), volumes: String(preview.volumes) })}
-            </p>
-          )}
-          {credits !== null && (
-            <p className="font-semibold text-navy-900">{t("photobook.price", { credits: String(credits) })}</p>
-          )}
-          {balance !== null && (
-            <p className="text-navy-600">{t("photobook.balance", { balance: String(balance) })}</p>
-          )}
+      <p className="mt-3 text-sm font-semibold text-navy-900">{summary ?? " "}</p>
+      <p className="mt-1 text-xs text-navy-600">{t("photobook.composer.tapHint")}</p>
 
-          {/* Shown above the button, not folded into a details element —
-              these describe failures invisible on screen and obvious on
-              paper, and folding them away is how one gets missed. */}
-          {preview && preview.warnings.length > 0 && (
-            <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-yellow-900">
-              <ul className="space-y-2">
-                {groupWarnings(preview.warnings).map((group) => (
-                  <li key={group.code}>
-                    <p className="text-sm font-semibold">
-                      {group.count > 1
-                        ? t("photobook.warning.many", { count: String(group.count), code: group.code })
-                        : group.code}
-                    </p>
-                    {group.count === 1 ? (
-                      <p className="text-sm">{group.details[0]}</p>
-                    ) : (
-                      <details>
-                        <summary className="cursor-pointer text-sm">{t("photobook.warning.each")}</summary>
-                        <ul className="mt-1 space-y-1 text-sm">
-                          {group.details.map((detail, i) => (
-                            <li key={i}>{detail}</li>
-                          ))}
-                        </ul>
-                      </details>
-                    )}
-                  </li>
-                ))}
-              </ul>
+      {/* Nothing at all when there is nothing wrong — B549. */}
+      {lines.length > 0 && (
+        <div className="mt-5 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-yellow-900">
+          <p className="text-sm font-semibold">{t("photobook.warn.heading")}</p>
+          <ul className="mt-1 space-y-1 text-sm">
+            {lines.map(([code, key]) => (
+              <li key={code}>
+                {tn(key, counts.get(code) ?? 1, { count: String(counts.get(code) ?? 1) })}
+              </li>
+            ))}
+          </ul>
+          {fixes.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {fixes.map((fix) => (
+                <button
+                  key={fix.key}
+                  type="button"
+                  onClick={fix.apply}
+                  className="min-h-11 rounded-full border-2 border-yellow-700 px-4 text-sm font-semibold text-yellow-900"
+                >
+                  {t(fix.key)}
+                </button>
+              ))}
             </div>
           )}
-
-          <form
-            method="post"
-            action={`/${entryUsername}/photobook/order`}
-            onSubmit={() => setSubmitting(true)}
-          >
-            <input type="hidden" name="trip" value={tripRef} />
-            <input type="hidden" name="options" value={JSON.stringify(options)} />
-            <input type="hidden" name="orderId" value={orderId} />
-            <button
-              type="submit"
-              disabled={submitting || tooPoor || unbuyable || !preview}
-              className="min-h-11 rounded-full bg-navy-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {t("photobook.pay")}
-            </button>
-            {/* The build is synchronous and a long trip is tens of seconds of
-                PDF rendering — this is the only sign the page gives that the
-                press was heard, between the click and the redirect. */}
-            {submitting && (
-              <p className="mt-2 text-sm text-navy-700" role="status">
-                {t("photobook.building")}
-              </p>
-            )}
-            {unbuyable && <p className="mt-2 text-sm text-red-700">{t("photobook.noPhotos")}</p>}
-            {tooPoor && credits !== null && balance !== null && (
-              <p className="mt-2 text-sm text-red-700">
-                {t("photobook.tooPoor", { credits: String(credits), balance: String(balance) })}
-              </p>
-            )}
-          </form>
         </div>
+      )}
+
+      {/* The nine settings, behind one entry — B548. Still every one of them,
+          and one tap away rather than in front of the book. */}
+      <details className="mt-5 rounded-lg border border-navy-200 bg-white px-3 py-3">
+        <summary className="min-h-11 cursor-pointer content-center text-sm font-semibold text-navy-800">
+          {t("photobook.composer.bookSettings")}
+        </summary>
+        <p className="mt-1 text-xs text-navy-600">{t("photobook.composer.bookSettingsHint")}</p>
+        <div className="mt-3">
+          <BookSettingsPanel
+            options={options}
+            setOptions={setOptions}
+            media={media}
+            locales={locales}
+            resetBook={resetBook}
+            canReset={canReset}
+            t={t}
+          />
+        </div>
+      </details>
+
+      {/* What is being bought, what it costs in something a person
+          understands, and what happens after the button — B551. */}
+      <div className="mt-5 rounded-xl border-2 border-navy-900 bg-cream-100 p-4">
+        <h2 className="font-display text-lg font-semibold text-navy-900">
+          {t("photobook.orderHeading")}
+        </h2>
+        {summary && <p className="mt-1 text-sm text-navy-700">{summary}</p>}
+        {credits !== null && (
+          <p className="mt-2 text-base font-semibold text-navy-900">
+            {t("photobook.price", {
+              credits: String(credits),
+              money: formatChf(creditsInRappen(credits)),
+            })}
+          </p>
+        )}
+        {balance !== null && (
+          <p className="text-sm text-navy-600">{t("photobook.balance", { balance: String(balance) })}</p>
+        )}
+
+        <p className="mt-3 text-sm text-navy-700">{t("photobook.orderNext")}</p>
+        {/* Still a simulation, and it says so before the button rather than
+            in the receipt afterwards — B434's rule, applied to a page. */}
+        <p className="mt-2 text-sm text-navy-600">{t("photobook.orderNotPrinted")}</p>
+
+        <form
+          method="post"
+          action={`/${entryUsername}/photobook/order`}
+          onSubmit={() => setSubmitting(true)}
+          className="mt-4"
+        >
+          <input type="hidden" name="trip" value={tripRef} />
+          <input type="hidden" name="options" value={JSON.stringify(options)} />
+          <input type="hidden" name="orderId" value={orderId} />
+          <button
+            type="submit"
+            disabled={submitting || tooPoor || unbuyable || !preview}
+            className="min-h-11 w-full rounded-full bg-navy-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          >
+            {t("photobook.pay")}
+          </button>
+          {/* The build is synchronous and a long trip is tens of seconds of
+              PDF rendering — this is the only sign the page gives that the
+              press was heard, between the click and the redirect. */}
+          {submitting && (
+            <p className="mt-2 text-sm text-navy-700" role="status">
+              {t("photobook.building")}
+            </p>
+          )}
+          {unbuyable && <p className="mt-2 text-sm text-red-700">{t("photobook.noPhotos")}</p>}
+          {/* Not a dead disabled button: the one place credits are bought is
+              the owner's own page, and this is the link to it — B551. */}
+          {tooPoor && credits !== null && balance !== null && (
+            <p className="mt-2 text-sm text-red-700">
+              {t("photobook.tooPoor", { credits: String(credits), balance: String(balance) })}{" "}
+              <a className="font-semibold underline" href={`/${entryUsername}/me`}>
+                {t("photobook.getCredits")}
+              </a>
+            </p>
+          )}
+        </form>
       </div>
     </div>
   );

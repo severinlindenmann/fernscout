@@ -527,35 +527,74 @@ export function renderPreview(
    * second copy of it for the web would be the drift it was written to avoid.
    */
   srcFor?: SrcFor,
+  /**
+   * **Bare** — the composer's own copy of this document, B548.
+   *
+   * The same spreads, with everything around them removed: the header naming
+   * bleed and a DPI target, the `<code>`-tagged warning list, the per-volume
+   * "spine 1.8 mm" heading, the page-kind figcaptions, the single-page
+   * toggle. All of that is a print technician's readout, and it was being
+   * shown to whoever opened the composer on a phone — where it filled the
+   * screen and the book itself was a letterbox underneath.
+   *
+   * The spreads also lie in a horizontal snap strip rather than a column, so
+   * the frame is exactly one spread tall (`ratio`, from the preview route)
+   * and the book is swiped rather than scrolled inside a box.
+   *
+   * The CLI's own copy — `scripts/photobook.ts`, written next to the PDFs —
+   * is unchanged and keeps all of it: that reader *is* a technician.
+   */
+  opts: { bare?: boolean } = {},
 ): string {
+  const bare = opts.bare === true;
   const spec = book.spec;
   const ratio = (spec.size.trimWidthMm + spec.bleedMm * 2) / (spec.size.trimHeightMm + spec.bleedMm * 2);
-  const volumes = book.volumes
-    .map((volume: BookVolume) => {
-      const spreads = spreadsOf(volume.pages)
-        .map((group) => {
-          const cls = group.length === 1 ? "spread solo" : "spread";
-          return `<div class="${cls}">${group
-            .map((p) => pageHtml(spec, p, outDir, resolveFile, srcFor))
-            .join("")}</div>`;
-        })
+  const spreadsFor = (volume: BookVolume) =>
+    spreadsOf(volume.pages)
+      .map((group) => {
+        const cls = group.length === 1 ? "spread solo" : "spread";
+        return `<div class="${cls}">${group
+          .map((p) => pageHtml(spec, p, outDir, resolveFile, srcFor))
+          .join("")}</div>`;
+      })
+      .join("");
+
+  // Bare: one strip for the whole book. A second volume is a page-count
+  // accident, not something to swipe past a heading for — and two strips
+  // would make the frame twice as tall as the one spread it is sized for.
+  const volumes = bare
+    ? `<section><div class="spreads">${book.volumes.map(spreadsFor).join("")}</div></section>`
+    : book.volumes
+        .map(
+          (volume: BookVolume) =>
+            `<section><h2>${escape(volume.title)} — ${volume.interiorPages} pages, ` +
+            `spine ${volume.spineWidthMm.toFixed(1)} mm</h2>` +
+            `<div class="spreads">${spreadsFor(volume)}</div></section>`,
+        )
         .join("");
-      return (
-        `<section><h2>${escape(volume.title)} — ${volume.interiorPages} pages, ` +
-        `spine ${volume.spineWidthMm.toFixed(1)} mm</h2>` +
-        `<div class="spreads">${spreads}</div></section>`
-      );
-    })
-    .join("");
 
   // Folded away by default. They matter, but a list of forty is not what you
   // opened this page to look at.
-  const warnings = book.warnings.length
+  const warnings = bare
+    ? ""
+    : book.warnings.length
     ? `<details class="warnings"><summary>${book.warnings.length} warning(s)</summary>` +
       `<ul>${book.warnings
         .map((w) => `<li><code>${escape(w.code)}</code> ${escape(w.detail)}</li>`)
         .join("")}</ul></details>`
     : `<p class="muted nowarn">No warnings.</p>`;
+
+  const header = `<header>
+  <h1>${escape(book.title)}</h1>
+  <p class="muted">${book.volumes.length} volume(s) · ${book.photoCount} photographs ·
+     ${escape(spec.size.name)} · ${spec.bleedMm} mm bleed · ${spec.dpi} DPI target</p>
+  <p class="muted">Dashed line is the trim. Everything outside it is bleed and gets cut off.</p>
+  <p class="muted">Page one is a recto and sits alone; after that pages face each other across
+     the fold, which is how the book is actually read.</p>
+  <div class="viewToggle">
+    <button type="button" id="view-toggle">Single pages</button>
+  </div>
+</header>`;
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -644,25 +683,48 @@ export function renderPreview(
      its own) stays inert. */
   figure.drillable .sheet { cursor:pointer; }
   figure.drillable .sheet:hover { outline:2px solid var(--accent); outline-offset:2px; }
-</style></head><body data-view="spreads">
-<header>
-  <h1>${escape(book.title)}</h1>
-  <p class="muted">${book.volumes.length} volume(s) · ${book.photoCount} photographs ·
-     ${escape(spec.size.name)} · ${spec.bleedMm} mm bleed · ${spec.dpi} DPI target</p>
-  <p class="muted">Dashed line is the trim. Everything outside it is bleed and gets cut off.</p>
-  <p class="muted">Page one is a recto and sits alone; after that pages face each other across
-     the fold, which is how the book is actually read.</p>
-  <div class="viewToggle">
-    <button type="button" id="view-toggle">Single pages</button>
-  </div>
-</header>
-${warnings}
+
+  /* Bare — the composer's frame, B548. One spread wide, one spread tall, and
+     the next one peeping in at the edge so it reads as something to swipe.
+     The scrollbar is hidden rather than the overflow: the strip *is* the
+     navigation, and a visible bar under the book at 390px is the letterbox
+     look this ticket exists to remove. */
+  body.bare { padding:0; background:transparent; }
+  body.bare section { margin:0; max-width:none; }
+  body.bare[data-view="spreads"] .spreads {
+    flex-direction:row; align-items:center; gap:.75rem; padding:0 .75rem;
+    overflow-x:auto; overscroll-behavior-x:contain;
+    scroll-snap-type:x mandatory; scrollbar-width:none;
+  }
+  body.bare[data-view="spreads"] .spreads::-webkit-scrollbar { display:none; }
+  body.bare[data-view="spreads"] .spread { flex:0 0 92%; width:auto; scroll-snap-align:center; }
+  /* Page one still stands alone, but it takes a whole snap step: every stop
+     on the strip shows one thing, and half a cover beside a spread reads as a
+     layout accident rather than as the recto it is. */
+  body.bare[data-view="spreads"] .spread.solo { justify-content:center; }
+  body.bare[data-view="spreads"] .spread.solo figure { flex:0 0 50%; }
+  body.bare figcaption { display:none; }
+  /* The dashed trim rectangle is a pre-press guide, and the sentence that
+     explained it went with the header. Left on, it is a red dashed box
+     around every page of somebody's holiday. The CLI's copy keeps both. */
+  body.bare .trim { display:none; }
+  /* And the word "blank" watermarked on an empty page: English whatever the
+     book's language, and the warning above the frame already says in the
+     reader's own words that the book ends with empty pages. */
+  body.bare .blank { color:transparent; }
+  /* Except the one B550 marks: a facing page that belongs to another day is
+     dimmed, and this is the word that says why. */
+  body.bare figure[data-other] figcaption { display:block; text-align:center; }
+</style></head><body${bare ? ' class="bare"' : ""} data-view="spreads">
+${bare ? "" : header}${warnings}
 ${volumes}
 <script>
   // The only script in the file, and it does one thing: flip which of the two
   // CSS layouts above applies. No framework and no build step — this has to
-  // open from a file:// URL with nothing else running.
-  document.getElementById("view-toggle").addEventListener("click", function () {
+  // open from a file:// URL with nothing else running. Absent in bare mode,
+  // where there is no toggle to bind to.
+  var toggle = document.getElementById("view-toggle");
+  if (toggle) toggle.addEventListener("click", function () {
     var spreads = document.body.dataset.view === "spreads";
     document.body.dataset.view = spreads ? "pages" : "spreads";
     this.textContent = spreads ? "Spreads" : "Single pages";

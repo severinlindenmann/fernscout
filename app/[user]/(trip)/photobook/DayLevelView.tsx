@@ -50,6 +50,7 @@ export default function DayLevelView({
   resetBook,
   canReset,
   sliceHtml,
+  ratio,
   t,
 }: {
   drill: Drill;
@@ -79,6 +80,9 @@ export default function DayLevelView({
   resetBook: () => void;
   canReset: boolean;
   sliceHtml: string | null;
+  /** One spread's shape, from the plan — the frame is sized from it rather
+   * than from a fraction of the viewport, so nothing scrolls inside it. */
+  ratio: number;
   t: (key: TranslationKey, vars?: Record<string, string>) => string;
 }) {
   if (!drill) return null;
@@ -146,11 +150,14 @@ export default function DayLevelView({
       )}
 
       {sliceHtml && (
-        <iframe
-          srcDoc={sliceHtml}
-          className="h-[60vh] w-full rounded-xl border border-navy-200 bg-white"
-          title={t("photobook.title")}
-        />
+        <div className="-mx-4 sm:mx-0">
+          <iframe
+            srcDoc={sliceHtml}
+            style={{ aspectRatio: String(ratio) }}
+            className="w-full border-0 bg-cream-100 sm:rounded-xl"
+            title={t("photobook.title")}
+          />
+        </div>
       )}
     </div>
   );

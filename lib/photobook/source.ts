@@ -380,6 +380,7 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
   const photoCount = days.reduce((n, d) => n + d.photos.length, 0);
   const notes: BookWarning[] = [...fallbacks.entries()].map(([reason, files]) => ({
     code: "no-original",
+    count: files.length,
     detail:
       `${files.length} of ${photoCount} photographs printed from the web copy because ` +
       `${reason}: ${files.slice(0, 3).join(", ")}${files.length > 3 ? ", …" : ""}. ` +

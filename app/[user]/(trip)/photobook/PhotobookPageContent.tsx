@@ -12,20 +12,9 @@ import {
 } from "@/lib/photobook/options";
 import type { PhotobookOutcome } from "@/lib/photobook/orders";
 import type { MediaTile, PhotobookEntry } from "@/lib/types";
-import BookLevelView from "./BookLevelView";
+import BookLevelView, { type PreviewState } from "./BookLevelView";
 import DayLevelView, { type Drill } from "./DayLevelView";
 import { extractSpreads } from "./previewSlice";
-
-type PreviewState = {
-  html: string;
-  pages: number;
-  volumes: number;
-  credits: number;
-  warnings: { code: string; detail: string; date?: string }[];
-  /** `false` for a book with no photographs — legal to lay out (padding fills
-   * the page-count minimum) but not one anybody should pay for. */
-  buyable: boolean;
-} | null;
 
 /** Every outcome `order/route.ts` can redirect back with, as a key rather
  * than a sentence baked into this file — the same reasoning as the postcard
@@ -88,7 +77,7 @@ export default function PhotobookPageContent({
    * visit. */
   outcome: PhotobookOutcome | null;
 }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   /**
    * The arrangement, kept in the browser between visits.
    *
@@ -343,7 +332,7 @@ export default function PhotobookPageContent({
   const resetBook = () => {
     const count = Object.keys(options.days).length;
     if (count === 0 && Object.keys(options.focalPoints).length === 0) return;
-    if (!window.confirm(t("photobook.resetAllConfirm", { count: String(count) }))) return;
+    if (!window.confirm(tn("photobook.resetAllConfirm", count, { count: String(count) }))) return;
     setOptions((o) => ({ ...o, days: {}, focalPoints: {} }));
   };
 
@@ -369,7 +358,10 @@ export default function PhotobookPageContent({
     const overridden = days.filter(
       (d) => options.days[d.date]?.layout !== undefined && options.days[d.date]?.layout !== layout,
     ).length;
-    if (overridden > 0 && !window.confirm(t("photobook.day.applyToAllConfirm", { count: String(overridden) }))) {
+    if (
+      overridden > 0 &&
+      !window.confirm(tn("photobook.day.applyToAllConfirm", overridden, { count: String(overridden) }))
+    ) {
       return;
     }
     setOptions((o) => {
@@ -444,13 +436,17 @@ export default function PhotobookPageContent({
   return (
     <div className="min-h-screen">
       <PageHeader />
-      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
+        {/* Two short lines, because the book starts immediately below them
+            and at 390px every one of them costs a slice of it — B548. What
+            this page is goes in the eyebrow; the heading is the trip, which
+            is what the book is of. */}
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">
           {t("photobook.title")}
-        </h1>
-        <p className="mt-1 text-sm text-navy-600">
-          {tripTitle} — {t("photobook.intro")}
         </p>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-navy-900 sm:text-3xl">
+          {tripTitle}
+        </h1>
 
         {/* The outcome of the last press, above everything else: a page that
             looked identical whether Pay had just succeeded, failed, or never
@@ -506,6 +502,7 @@ export default function PhotobookPageContent({
               tripRef={tripRef}
               balance={balance}
               t={t}
+              tn={tn}
             />
 
             {drill && (
@@ -537,6 +534,7 @@ export default function PhotobookPageContent({
                 resetBook={resetBook}
                 canReset={canReset}
                 sliceHtml={sliceHtml}
+                ratio={preview?.ratio ?? 2}
                 t={t}
               />
             )}

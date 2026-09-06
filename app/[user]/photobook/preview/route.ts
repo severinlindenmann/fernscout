@@ -77,10 +77,20 @@ export async function POST(
     // kept originals it carries an `originals:` prefix the web server does
     // not serve at all.
     (photo) => photo.webSrc ?? "",
+    // The composer's frame, not the technician's page — B548.
+    { bare: true },
   );
 
+  const page = book.spec;
   return Response.json({
     html,
+    // The shape of one spread — two pages side by side, bleed included — so
+    // the composer's frame can be exactly one spread tall and the book needs
+    // no scrollbar of its own.
+    ratio:
+      ((page.size.trimWidthMm + page.bleedMm * 2) /
+        (page.size.trimHeightMm + page.bleedMm * 2)) *
+      2,
     pages: book.volumes.reduce((n, v) => n + v.interiorPages, 0),
     volumes: book.volumes.length,
     credits: priceOf(book, options),

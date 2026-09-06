@@ -55,7 +55,16 @@ export async function sendPhotobookReceipt(input: PhotobookReceiptInput): Promis
     preheader: t("photobook.receipt.preheader", numbers),
     title: t("photobook.receipt.title"),
     blocks: [
-      { kind: "paragraph" as const, text: t("photobook.receipt.body", numbers) },
+      {
+        kind: "paragraph" as const,
+        // Two sentences rather than one with "volume(s)" in it — B548's rule
+        // about that shape holds in the mail as much as on the page, and
+        // there is no plural helper on this side of the wall.
+        text: t(
+          input.volumes > 1 ? "photobook.receipt.bodyVolumes" : "photobook.receipt.body",
+          numbers,
+        ),
+      },
       {
         kind: "paragraph" as const,
         text:

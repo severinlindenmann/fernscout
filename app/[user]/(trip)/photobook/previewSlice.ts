@@ -35,12 +35,21 @@ export function extractSpreads(
     for (const fig of spread.querySelectorAll<HTMLElement>("figure[data-kind]")) {
       if (matches(fig.dataset)) continue;
       fig.setAttribute("style", "opacity:.35;filter:grayscale(1)");
+      fig.setAttribute("data-other", "1");
       const caption = fig.querySelector("figcaption");
-      if (caption) caption.textContent = `${caption.textContent} (other)`;
+      // Replaced rather than appended to. B548 renders the composer's copy
+      // bare and hides the figcaptions, which are a page number and a
+      // machine page-kind ("12 · photos · pair"); the marker survives that
+      // because the bare stylesheet keeps a caption on a `data-other`
+      // figure, and this is the only thing it should say.
+      if (caption) caption.textContent = "(other)";
     }
   }
 
   const body = [...spreads].map((el) => el.outerHTML).join("");
+  // `class="bare"` because the composer is the only caller: the document it
+  // sliced was rendered bare (B548) and the level-2 frame wants the same
+  // horizontal strip, with none of the technician's chrome around it.
   return `<!doctype html><html><head>${doc.head.innerHTML}</head>` +
-    `<body data-view="spreads"><div class="spreads">${body}</div></body></html>`;
+    `<body class="bare" data-view="spreads"><div class="spreads">${body}</div></body></html>`;
 }

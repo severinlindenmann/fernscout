@@ -8,6 +8,20 @@ import { BOOK_SIZES } from "@/lib/photobook/spec";
 import type { BookOptions } from "@/lib/photobook/options";
 import type { MediaTile } from "@/lib/types";
 
+/**
+ * The format, in words a person shops in — B548.
+ *
+ * `BOOK_SIZES` keeps the trim in millimetres because a printer needs it; the
+ * picker a customer uses does not, and "A4 landscape 297 × 210 mm" was the
+ * first thing the composer said to them. Exported because the summary line
+ * and the order block name the same format and must not drift from this.
+ */
+export const SIZE_LABEL: Record<string, TranslationKey> = {
+  "square-210": "photobook.size.square",
+  "landscape-a4": "photobook.size.landscape",
+  "portrait-a4": "photobook.size.portrait",
+};
+
 /** Each language named in itself, which is how a language picker should read
  * — a German owner looks for "Deutsch", not for "German". */
 const LANGUAGE_NAME: Record<string, string> = {
@@ -60,7 +74,7 @@ export default function BookSettingsPanel({
         >
           {Object.values(BOOK_SIZES).map((size) => (
             <option key={size.id} value={size.id}>
-              {size.name}
+              {SIZE_LABEL[size.id] ? t(SIZE_LABEL[size.id]) : size.name}
             </option>
           ))}
         </select>
