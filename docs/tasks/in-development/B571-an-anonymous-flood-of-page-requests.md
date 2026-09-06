@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: analytics, ops
 found: "2026-09-06T15:55:00Z"
+started: "2026-09-06T14:03:25Z"
+session: c2cdeefe-2d73-48d5-9f28-14caaaab1378
+claimed: "2026-09-06T14:03:25Z"
 ---
 
 # B571 — an anonymous flood of page requests writes unbounded analytics rows
