@@ -139,6 +139,7 @@ const EMPTY: CostSummary = {
   preparation: 0,
   perDay: 0,
   daysWithSpend: 0,
+  unrecordedDays: 0,
   byCategory: [],
   byCountry: [],
   byDay: [],

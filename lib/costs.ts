@@ -262,10 +262,25 @@ export function getCostSummary(
   const byDay = days.map((day) => {
     const amount = sumBase(day.entries.flatMap((e) => costsForEntry(tripId, e)));
     running += amount;
-    return { date: day.date, amount, cumulative: running };
+    return {
+      date: day.date,
+      amount,
+      cumulative: running,
+      /**
+       * This day's spending exists and nobody wrote it down — B560.
+       *
+       * It reads as a zero in every number on this page, and a zero here means
+       * *nothing was spent*, which is a different thing. The totals below are
+       * therefore a floor rather than a figure, and the page has to say so:
+       * somebody looking at "we spent 1,240 francs" should know whether that
+       * is the answer or the part of the answer anybody has.
+       */
+      unrecorded: day.entries.some((e) => e.unrecorded?.includes("costs")),
+    };
   });
 
   const daysWithSpend = byDay.filter((d) => d.amount > 0).length;
+  const unrecordedDays = byDay.filter((d) => d.unrecorded).length;
 
   // Has this trip started? Asked once, of the trip's own dates rather than of
   // `byDay.length`, and answered where the rest of the journal's tense lives.
@@ -330,6 +345,7 @@ export function getCostSummary(
     preparation,
     perDay: daysWithSpend > 0 ? onTheRoad / daysWithSpend : 0,
     daysWithSpend,
+    unrecordedDays,
     byCategory,
     byCountry,
     byDay,

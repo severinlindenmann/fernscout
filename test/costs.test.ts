@@ -116,6 +116,6 @@ describe("a trip that has not begun", () => {
     });
     const beta = getCostSummary("u/beta-2026");
     expect(beta.budget).toBeUndefined(); // declares none
-    expect(beta.byDay).toEqual([{ date: "2026-08-15", amount: 20, cumulative: 20 }]);
+    expect(beta.byDay).toEqual([{ date: "2026-08-15", amount: 20, cumulative: 20, unrecorded: false }]);
   });
 });

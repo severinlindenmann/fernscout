@@ -954,5 +954,6 @@
   "weatherPage.dayCount.one": "{count} Tag",
   "weatherPage.temperature": "Tag für Tag",
   "weatherPage.rainfall": "Regen und Schnee, Tag für Tag",
-  "weatherPage.credit": "Messungen erhoben von"
+  "weatherPage.credit": "Messungen erhoben von",
+  "cost.unrecordedDays": "An {count} dieser Tage wurden Ausgaben gemacht, die niemand notiert hat — die Zahlen unten sind also mindestens so hoch, nicht genau so hoch."
 }

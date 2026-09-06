@@ -89,6 +89,34 @@ is free and puts the cost on the import.
 Not doing: guessing an amount, ever, in any form. Not a range, not "about",
 not an average of the other days.
 
+## Built: the third answer
+
+`"unknown"`, on the same field as the value and the decline. On the same field
+deliberately: a caller stuck on `costs` reads the refusal for `costs`, and
+every answer it can give is in front of it. A separate `unrecorded: ["costs"]`
+request field would have been tidier to implement and easy to never find.
+
+- `costs: "unknown"`, `coordinates: "unknown"`, `photos: "unknown"` are
+  accepted and satisfy the trip's contract.
+- They are written as `unrecorded: [costs]`, beside and distinct from
+  `without: [costs]`. Each of the three answers retracts the other two, so a
+  day can never say both.
+- `GET .../days/{slug}` returns `unrecorded`, so an agent reading its own work
+  back can tell the two apart — the place it matters most.
+- The 422 offers all three, says what each one means, and says outright not to
+  use the second where the third is meant.
+- **The costs page counts an unrecorded day as a zero, which reads as "nothing
+  was spent", so it says so above the charts**: *"{count} of these days has
+  spending nobody wrote down, so the totals below are at least this much rather
+  than exactly this much."* In all three maintained languages. A total that is
+  quietly too low is the harm this whole ticket is about, one step further out.
+- A word that is neither is refused rather than read as absent.
+
+Not done, and deliberately: no rendering on the day page itself. An absence
+correctly renders as nothing — a day with no costs shows none — and the day
+page shows no `without` either, so a lone `unrecorded` marker there would be
+the odd one out. The costs page is where a wrong number would have been read.
+
 ## Acceptance
 
 - A day that says its costs are unrecorded is distinguishable, on disk and

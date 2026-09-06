@@ -134,7 +134,11 @@ export async function POST(request: Request) {
           "minute; if it keeps failing, this server's mail is broken and the person who runs " +
           "it has to fix it.",
       },
-      { status: 502 },
+      // 503, not 502 (B553): this is a send failure on this server's own
+      // mail, the same failure `/api/auth/request` and
+      // `/api/auth/signup/request` report, and both of them answer 503 —
+      // a 502 told a caller the *wrong service* was unreachable.
+      { status: 503, headers: { "Retry-After": "60" } },
     );
   }
 

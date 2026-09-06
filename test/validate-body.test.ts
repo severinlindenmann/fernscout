@@ -155,7 +155,13 @@ describe("the real Draft schema from lib/api/openapi.ts", () => {
     // "an array or a boolean", because a day may also decline: `costs: false`
     // says nothing was spent, and the refusal has to offer that too. B540.
     expect(problems).toEqual([
-      { field: "costs", got: '{"label":"Dinner"}', expected: "an array or a boolean" },
+      {
+        field: "costs",
+        got: '{"label":"Dinner"}',
+        // Three answers now, not two: a list, `false` for none, or "unknown"
+        // for money nobody has the figures for. B560.
+        expected: "an array or a boolean or a string",
+      },
     ]);
   });
 

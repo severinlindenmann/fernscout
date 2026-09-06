@@ -125,6 +125,16 @@ export type CostSummary = {
   preparation: number;
   perDay: number;
   daysWithSpend: number;
+  /**
+   * Days whose spending exists and nobody wrote down — B560.
+   *
+   * Every number on this page counts one of these as a zero, and a zero reads
+   * as *nothing was spent*. So a non-zero here means the totals are a floor
+   * rather than a figure, and the page says so: somebody reading "we spent
+   * 1,240 francs" is entitled to know whether that is the answer or the part
+   * of it anybody has.
+   */
+  unrecordedDays: number;
   byCategory: { category: CostCategory; amount: number; share: number }[];
   byCountry: {
     country: string;
@@ -133,7 +143,7 @@ export type CostSummary = {
     nights: number;
     perDay: number;
   }[];
-  byDay: { date: string; amount: number; cumulative: number }[];
+  byDay: { date: string; amount: number; cumulative: number; unrecorded: boolean }[];
   items: CostItem[];
   /** Spend excluded from every total above for want of a rate. Usually empty. */
   unconverted: Unconverted[];

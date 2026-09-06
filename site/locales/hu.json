@@ -954,5 +954,6 @@
   "weatherPage.dayCount.one": "{count} nap",
   "weatherPage.temperature": "Napról napra",
   "weatherPage.rainfall": "Eső és hó, napról napra",
-  "weatherPage.credit": "A méréseket rögzítette:"
+  "weatherPage.credit": "A méréseket rögzítette:",
+  "cost.unrecordedDays": "{count} olyan nap van, amelynek a költségeit senki nem jegyezte fel, így az alábbi összegek legalább ennyit tesznek ki, nem pontosan ennyit."
 }

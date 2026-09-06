@@ -227,3 +227,25 @@ describe("everything at once", () => {
     );
   });
 });
+
+/**
+ * The four that were declared and never checked — B553.
+ *
+ * They sat in `DraftInput` and not in `EntryInput`, so a number reached
+ * `quoteScalar`, which throws: the caller got a 500 where every other bad
+ * field is a 400 naming itself, and a 500 tells an agent to report a bug
+ * rather than fix its body.
+ */
+describe("the place words", () => {
+  for (const field of ["location", "country", "transportFrom", "transportTo"] as const) {
+    test(`${field} sent as a number is refused, by name`, () => {
+      const problem = only({ [field]: 12 });
+      expect(problem.field).toBe(field);
+      expect(problem.expected).toContain("a string");
+    });
+  }
+
+  test("and a string is still fine", () => {
+    expect(validateEntry({ ...ok, location: "Lissabon", country: "Portugal" })).toEqual([]);
+  });
+});

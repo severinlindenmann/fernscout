@@ -266,6 +266,22 @@ export async function POST(request: Request) {
     );
   }
 
+  // Optional — absent means metric — but not a field to coerce whatever
+  // arrives into that default. `"Metric"` (B553) used to become `metric`
+  // silently, the same typo `visibility` and `defaultLocale` on this same
+  // route already refuse rather than guess at.
+  const rawUnits = str("units");
+  if (rawUnits !== undefined && rawUnits !== "metric" && rawUnits !== "imperial") {
+    return refuse(
+      {
+        error: "invalid_request",
+        message: `units must be "metric" or "imperial", got ${JSON.stringify(rawUnits)}.`,
+      },
+      400,
+    );
+  }
+  const units = rawUnits === "imperial" ? "imperial" : "metric";
+
   const created = createJournal({
     visibility,
     username,
@@ -279,7 +295,7 @@ export async function POST(request: Request) {
     locales,
     baseCurrency: str("baseCurrency"),
     displayCurrencies: list("displayCurrencies"),
-    units: str("units") === "imperial" ? "imperial" : "metric",
+    units,
   });
 
   if (!created.ok) {
