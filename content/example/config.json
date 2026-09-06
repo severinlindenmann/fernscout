@@ -50,10 +50,37 @@
       "enabled": true
     },
     "push": {
-      "enabled": false
+      "enabled": true
+    },
+    "mail": {
+      "enabled": true
+    },
+    "whatsapp": {
+      "enabled": true
+    },
+    "auth": {
+      "enabled": true
+    },
+    "signup": {
+      "enabled": true
+    },
+    "contacts": {
+      "enabled": true
     },
     "postcards": {
-      "enabled": false
+      "enabled": true
+    },
+    "photobook": {
+      "enabled": true
+    },
+    "logging": {
+      "enabled": true
+    },
+    "credits": {
+      "enabled": true
+    },
+    "addressLookup": {
+      "enabled": true
     },
     "weather": {
       "enabled": true

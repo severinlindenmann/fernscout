@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { formatMoney, spendLine } from "@/lib/currency";
+import { formatMoney, spendLine, spendParts } from "@/lib/currency";
 import type { CurrencyOptions } from "@/lib/rates";
 
 const STORAGE_KEY = "fs.currency";
@@ -35,6 +35,14 @@ type Ctx = {
    * each decide when the `≈` belongs.
    */
   spend: (baseAmount: number, local?: { amount: number; currency: string }) => string;
+  /**
+   * The same two figures unjoined, for a caller that draws them at different
+   * weights rather than as one run of text. See `spendParts`.
+   */
+  spendParts: (
+    baseAmount: number,
+    local?: { amount: number; currency: string },
+  ) => { paid: string; converted?: string };
 };
 
 const CurrencyContext = createContext<Ctx | null>(null);
@@ -96,6 +104,8 @@ export default function CurrencyProvider({
       original: (amount, code) => formatMoney(amount, code, { approximate: false }),
       spend: (baseAmount, local) =>
         spendLine(baseAmount, local, { currency: active, base: options.base, factor }),
+      spendParts: (baseAmount, local) =>
+        spendParts(baseAmount, local, { currency: active, base: options.base, factor }),
     };
   }, [currency, options, setCurrency]);
 

@@ -28,7 +28,10 @@ export default function DayReactions({ daySlug }: { daySlug: string }) {
   const total = Object.values(counts).reduce((n, c) => n + (c ?? 0), 0);
 
   return (
-    <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-navy-200 pt-5">
+    // The rule and the space above it belong to the day card's footer band,
+    // which is the only thing that renders this — a second border here drew
+    // two lines a few pixels apart.
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       <span className="text-xs text-navy-600">{t("react.prompt")}</span>
       <div className="flex flex-wrap gap-2">
         {REACTIONS.map((emoji) => (
