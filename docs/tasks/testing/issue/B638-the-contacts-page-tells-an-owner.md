@@ -7,8 +7,7 @@ complexity: low
 area: contacts page, i18n
 found: "2026-09-06T17:51:55Z"
 started: "2026-09-06T17:55:54Z"
-session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
-claimed: "2026-09-06T17:55:54Z"
+merged: "2026-09-06T18:04:46Z"
 ---
 
 # B638 — The contacts page tells an owner no trip is open to guests when every trip is public
