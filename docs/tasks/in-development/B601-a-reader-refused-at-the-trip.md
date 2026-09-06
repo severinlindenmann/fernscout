@@ -7,6 +7,9 @@ complexity: medium
 area: contacts, ui, mail, i18n
 found: "2026-09-06T14:40:35Z"
 related: B37, B117, B300, B587
+started: "2026-09-06T14:46:09Z"
+session: 9b076da1-061a-4b99-824c-77509849761c
+claimed: "2026-09-06T14:46:09Z"
 ---
 
 # B601 — A reader refused at the trip gate has no way to ask the owner to let them in
