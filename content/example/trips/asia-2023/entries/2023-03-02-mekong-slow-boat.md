@@ -6,6 +6,7 @@ country: "Laos"
 countryCode: "LA"
 lat: 19.8867
 lng: 102.135
+weather: true
 transportMode: "boat"
 transportFrom: "Huay Xai"
 transportTo: "Luang Prabang"
@@ -47,6 +48,7 @@ translations:
       Két nap egy fahajón, aminek a hátuljába autómotort építettek. Nincs semmi tennivaló, ami az egésznek a lényege, és körülbelül négy órába telik megérteni.
       
       A második délutánon felvettünk tíz másodpercnyi partot. Ez az egyetlen videó az egész útról — és mégis ez az első, amit megmutatunk.
+weatherData: { tempMin: 16.6, tempMax: 32.6, code: 0, precipitation: 0, windMax: 4.9, source: "open-meteo", recordedAt: "2026-09-06T08:32:20.385Z" }
 ---
 
 Two days on a wooden boat with a car engine bolted into the back of it. There is nothing to do, which is the entire point and takes about four hours to understand.

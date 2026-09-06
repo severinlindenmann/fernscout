@@ -6,6 +6,7 @@ country: "United States"
 countryCode: "US"
 lat: 37.2982
 lng: -113.0263
+weather: true
 transportMode: "car"
 transportFrom: "Las Vegas"
 transportTo: "Springdale"
@@ -33,6 +34,7 @@ translations:
       Három óra gyaloglás felfelé egy folyóban, háromszáz méter magas falak között, térd- és derékmagasság közötti vízben — attól függően, mennyire jól olvasod a kavicsot.
       
       A kanyonban mindenki csendben volt. Nem áhítatból — csak a lábukra figyeltek.
+weatherData: { tempMin: 13.1, tempMax: 24.5, code: 1, precipitation: 0, windMax: 19.2, source: "open-meteo", recordedAt: "2026-09-06T08:32:18.968Z" }
 ---
 
 Three hours of walking up a river between walls three hundred metres high, with the water somewhere between knee and waist depending on how well you read the gravel.

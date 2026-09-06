@@ -7,6 +7,7 @@ country: "United States"
 countryCode: "US"
 lat: 45.8918
 lng: -123.9615
+weather: true
 transportMode: "car"
 transportFrom: "Bishop"
 transportTo: "Cannon Beach"
@@ -31,6 +32,7 @@ tags: ["oregon", "coast", "pacific"]
 costs:
   - { label: "Fuel", amount: 88, category: "transport", currency: "USD" }
   - { label: "Crab, from a shack", amount: 34, category: "food", currency: "USD" }
+weatherData: { tempMin: 11.6, tempMax: 25.3, code: 3, precipitation: 0, windMax: 16.5, source: "open-meteo", recordedAt: "2026-09-06T08:32:18.818Z" }
 ---
 
 Cold, grey, and the best week so far. The Pacific here does not look like a holiday; it looks like weather that has come a very long way to arrive.

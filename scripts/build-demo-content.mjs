@@ -144,6 +144,21 @@ const TRIPS = [
         transport: { mode: "car", from: "Susten Pass", to: "Grimsel Pass" },
         photos: 4,
         tags: ["alps", "passes", "rain"],
+        // The one demo day that records its own weather rather than asking for
+        // a lookup — B325, and it is here rather than anywhere else because
+        // this is the day where the two answers genuinely differ.
+        //
+        // The archive's reanalysis grid says snow at −4°C for this coordinate
+        // on this date; the people who were at the guesthouse wrote down rain.
+        // Both can be true — a grid cell covering a 2000-metre pass is not the
+        // porch of the building they were standing on — and deciding which to
+        // print is exactly what the hand-supplied path is for. It also shows
+        // the visible difference: an archive reading is credited with a link,
+        // a person's own is credited in their own words.
+        weather: false,
+        weatherData:
+          'weatherData: { tempMin: 2, tempMax: 6, code: 63, precipitation: 11, ' +
+          'source: "the guesthouse thermometer", recordedAt: "2024-09-13T18:30:00Z" }',
         costs: [
           { label: "Guesthouse", amount: 145, category: "accommodation" },
           { label: "Dinner", amount: 62, category: "food" },
@@ -1108,6 +1123,24 @@ function writeEntry(trip, day) {
       `transportTo: ${quote(day.transport.to)}`,
     );
   }
+  // B325. `weather: true` is a request, not a value — this script writes no
+  // measurement of its own, because it has none and inventing one is the
+  // thing the whole feature exists to avoid. `npm run weather:update` fills
+  // these in from the archive, and the values it writes are what gets
+  // committed here.
+  //
+  // On by default rather than per-day, because that is what a journal that
+  // wants weather actually looks like — somebody turns it on and leaves it
+  // on. `weather: false` opts a day out, and the days that use it are the
+  // ones whose invented prose already says what the sky was doing: this
+  // content was written before there was anything to check it against, and a
+  // day captioned "in the rain" beside a measurement saying snow teaches the
+  // reader that one of the two is lying.
+  if (day.weather !== false) lines.push("weather: true");
+  // The other half of the field: a reading a person took, which is the only
+  // kind a caller may supply and must always name its source. Exercised on
+  // exactly one demo day so the shape is in the content somewhere.
+  if (day.weatherData) lines.push(day.weatherData);
   if (day.photos || day.video) lines.push("gallery:", galleryBlock(trip, day));
   if (day.tags?.length) lines.push(`tags: [${day.tags.map(quote).join(", ")}]`);
   if (day.costs?.length) {

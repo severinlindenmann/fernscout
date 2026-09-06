@@ -6,6 +6,7 @@ country: "United States"
 countryCode: "US"
 lat: 38.7331
 lng: -109.5925
+weather: true
 transportMode: "car"
 transportFrom: "Green River"
 transportTo: "Moab"
@@ -27,6 +28,7 @@ costs:
   - { label: "Fuel", amount: 34, category: "transport", currency: "USD" }
   - { label: "Campground outside Moab", amount: 35, category: "accommodation", currency: "USD" }
   - { label: "Groceries", amount: 72, category: "food", currency: "USD" }
+weatherData: { tempMin: 20.3, tempMax: 31.2, code: 2, precipitation: 0, windMax: 29.3, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.222Z" }
 ---
 
 Went in at six in the evening, which is the trick: the car parks empty, the rock goes the colour it is in the photographs, and the heat drops to something survivable.

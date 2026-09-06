@@ -7,8 +7,10 @@ country: "Switzerland"
 countryCode: "CH"
 lat: 47.3769
 lng: 8.5417
+weather: true
 tags: ["switzerland", "flights"]
 test: true
+weatherData: { tempMin: 0.8, tempMax: 6.6, code: 53, precipitation: 3.8, windMax: 8.4, source: "open-meteo", recordedAt: "2026-09-06T08:32:20.122Z" }
 ---
 
 The trip's first leg, and the only one that leaves the ground. Written to show

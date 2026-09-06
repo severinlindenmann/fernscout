@@ -6,6 +6,7 @@ country: "United States"
 countryCode: "US"
 lat: 37.7916
 lng: -105.5943
+weather: true
 transportMode: "car"
 transportFrom: "Cortez"
 transportTo: "Great Sand Dunes"
@@ -22,6 +23,7 @@ tags: ["colorado", "national-parks", "dunes"]
 costs:
   - { label: "Fuel", amount: 52, category: "transport", currency: "USD" }
   - { label: "Campground", amount: 28, category: "accommodation", currency: "USD" }
+weatherData: { tempMin: 6, tempMax: 19.7, code: 2, precipitation: 0, windMax: 13, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.477Z" }
 ---
 
 Two hundred metres of sand piled against the Sangre de Cristos, with a shallow creek running along the foot of it and children treating the whole thing as a seaside.

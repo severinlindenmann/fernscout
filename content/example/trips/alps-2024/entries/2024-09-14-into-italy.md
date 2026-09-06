@@ -7,6 +7,7 @@ country: "Italy"
 countryCode: "IT"
 lat: 46.1161
 lng: 8.2939
+weather: true
 transportMode: "car"
 transportFrom: "Grimsel Pass"
 transportTo: "Domodossola"
@@ -27,6 +28,7 @@ tags: ["italy", "markets", "driving"]
 costs:
   - { label: "Coffee and pastries", amount: 11, category: "food", currency: "EUR" }
   - { label: "Groceries", amount: 34, category: "food", currency: "EUR" }
+weatherData: { tempMin: 10.6, tempMax: 18.3, code: 3, precipitation: 0, windMax: 12, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.980Z" }
 ---
 
 Not really a wrong turn — we just kept going down the wrong side of the mountain and found ourselves buying coffee in euros. Nobody minded.

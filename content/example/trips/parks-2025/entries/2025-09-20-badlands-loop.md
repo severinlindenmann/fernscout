@@ -6,6 +6,7 @@ country: "United States"
 countryCode: "US"
 lat: 43.8554
 lng: -102.3397
+weather: true
 transportMode: "car"
 transportFrom: "Laramie"
 transportTo: "Badlands"
@@ -26,6 +27,7 @@ tags: ["south-dakota", "national-parks", "wildlife"]
 costs:
   - { label: "Fuel", amount: 58, category: "transport", currency: "USD" }
   - { label: "Campground", amount: 22, category: "accommodation", currency: "USD" }
+weatherData: { tempMin: 9.5, tempMax: 22.4, code: 3, precipitation: 0, windMax: 15.3, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.725Z" }
 ---
 
 Grass, grass, grass, and then the ground simply falls away into striped rock for sixty kilometres.

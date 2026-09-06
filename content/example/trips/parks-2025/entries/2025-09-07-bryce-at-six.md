@@ -6,6 +6,7 @@ country: "United States"
 countryCode: "US"
 lat: 37.593
 lng: -112.1871
+weather: true
 transportMode: "car"
 transportFrom: "Springdale"
 transportTo: "Bryce Canyon"
@@ -32,6 +33,7 @@ translations:
       Wecker auf halb sechs — im Urlaub eine Entscheidung, die man vorher bereut und hinterher sofort verzeiht.
       
       Die Hoodoos werden von oben nach unten orange, wenn die Sonne kommt, Reihe für Reihe. Es dauert etwa neun Minuten, dann ist es wieder ganz normales Tageslicht.
+weatherData: { tempMin: 8.2, tempMax: 21.3, code: 51, precipitation: 0.3, windMax: 16.1, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.024Z" }
 ---
 
 Set an alarm for half past five, which on holiday is a decision you resent in advance and forgive immediately.

@@ -6,6 +6,7 @@ country: "Switzerland"
 countryCode: "CH"
 lat: 46.5614
 lng: 8.3372
+weatherData: { tempMin: 2, tempMax: 6, code: 63, precipitation: 11, source: "the guesthouse thermometer", recordedAt: "2024-09-13T18:30:00Z" }
 transportMode: "car"
 transportFrom: "Susten Pass"
 transportTo: "Grimsel Pass"
