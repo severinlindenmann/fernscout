@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (120)
+## backlog (126)
 
 ### security (7)
 
@@ -63,13 +63,16 @@ Do not edit them by hand; run the script.
 | [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (40)
+### issue (46)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B329](backlog/issue/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium |
 | [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
 | [B520](backlog/issue/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
+| [B645](backlog/issue/B645-nothing-runs-a-photograph-through-the.md) | Nothing runs a photograph through the helper's build.mjs, so nine were published sideways | ISSUE | high | medium |
+| [B647](backlog/issue/B647-publish-mjs-matches-a-day-by.md) | publish.mjs matches a day by date alone and overwrote one day with another day's content | ISSUE | high | low |
+| [B648](backlog/issue/B648-publish-dry-run-cannot-show-a.md) | publish --dry-run cannot show a plan for a trip the instance does not have yet, and --offline still hits the network | ISSUE | high | low |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
 | [B252](backlog/issue/B252-the-trip-gate-says-a-journal.md) | The trip gate says a journal has no sign-in while /api/auth still issues it sessions | ISSUE | medium | low |
@@ -84,6 +87,9 @@ Do not edit them by hand; run the script.
 | [B528](backlog/issue/B528-attachgallery-writes-its-splice-without-re.md) | attachGallery writes its splice without re-reading it, where editEntry refuses | ISSUE | medium | low |
 | [B545](backlog/issue/B545-a-day-s-markdown-twin-omits.md) | A day's markdown twin omits the weather that is on its page | ISSUE | medium | low |
 | [B556](backlog/issue/B556-re-running-the-demo-builder-deletes.md) | Re-running the demo builder deletes fields the committed demo journal carries | ISSUE | medium | low |
+| [B646](backlog/issue/B646-the-helper-s-review-page-previews.md) | The helper's review page previews the originals, not the pictures that get published | ISSUE | medium | medium |
+| [B649](backlog/issue/B649-a-day-s-time-is-the.md) | A day's time: is the first file's timestamp, screenshots included, so a day went out stamped 06:44 | ISSUE | medium | low |
+| [B650](backlog/issue/B650-a-day-s-location-and-its.md) | A day's location: and its lat/lng can name towns 200 km apart and nothing says so | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
