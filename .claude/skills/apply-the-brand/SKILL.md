@@ -7,7 +7,15 @@ description: Use when touching the logo, wordmark, favicon, app icon, OG image o
 
 The product is **Fernscout** — *fern* (far) + *scout*. The mark is a Swiss
 *Wanderweg* waymark: a bent cream trail, a yellow lozenge planted on it, and a
-green dot already further along. Full manual: `docs/branding/BRAND.md`.
+green dot already further along.
+
+**Look at it before you change it: `/docs/branding/identity`.** That bench is
+the identity's source of truth and it is derived, not written — every lockup
+rendered from `docs/branding/`, every hex parsed out of `app/globals.css`,
+every contrast ratio computed from those hexes. The prose manual is
+`docs/branding/BRAND.md`, which the bench also renders, so the two cannot
+disagree. Nothing in this skill repeats a number either (B575) — when you need
+one, open the bench.
 
 ## The one rule
 
@@ -27,13 +35,11 @@ three change. There is no fourth.
 
 ## Which file for which slot
 
-| Slot | File |
-|---|---|
-| Anywhere on cream | `docs/branding/fernscout-logo.svg` |
-| On navy or a photo | `fernscout-logo-inverse.svg` |
-| One ink — print, embossing | `fernscout-logo-mono.svg` (`currentColor`) |
-| Mark alone — icon, avatar | `fernscout-mark.svg` (96) · `icon-waymark.svg` (32) |
-| Mark already nearby | `fernscout-wordmark.svg` |
+`/docs/branding/identity` renders all of them, on the ground each is for, from
+the table in `BRAND.md` §3 — which is the list, and the only one. In short:
+the primary lockup on cream, an inverse for navy and photographs, a mono in
+`currentColor` for one ink, the wordmark where the mark is already nearby, and
+the mark alone for an icon or an avatar.
 
 `alt-farsight.svg` and `alt-cairn.svg` are rejected directions kept with their
 reasons. Never ship them.
@@ -48,19 +54,19 @@ The site name is config, not a literal — read it from `serverSite().name`
 
 ## Colour
 
-Use the tokens in `app/globals.css`, never raw hex. Yellow `#ffd23f` is the
-brand colour because it is the waymark; green marks something live or ahead.
+Use the tokens in `app/globals.css`, never a raw hex. Yellow is the brand
+colour because it is the waymark; green marks something live or ahead. The
+palette has six hues — a new component uses one of them, not a seventh.
 
-Two traps that have already caused bugs — both are **fill-only** colours whose
-names suggest otherwise:
+**Which token may carry words is a measurement, and the bench has it.** Do not
+guess from the name; two of them lie:
 
-- `yellow-600` on cream is **2.36:1**. It is not a text colour.
-- `green-500` on cream is **2.19:1**. It is a dot colour. For green text use
-  `green-700` (4.82:1).
+- `yellow-600` is a fill, not a text colour, on cream.
+- `green-500` is a dot, not a label. For green text use `green-700`.
 
-Text on `yellow-400` is `navy-900` (10.13:1) or `yellow-950` (8.24:1) — nothing
-else. Keyboard focus stays `blue-500`; it is the only palette colour clearing
-3:1 on every surface controls sit on, yellow included.
+Text on `yellow-400` is `navy-900` or `yellow-950`, and nothing else. Keyboard
+focus stays `blue-500` — the one palette colour clearing the non-text floor on
+every surface a control sits on, yellow included.
 
 ## Verify at 16px before you claim it works
 
@@ -84,7 +90,7 @@ Run this after any change to the mark's geometry, and after touching
 | Mistake | Fix |
 |---|---|
 | Redrawing the lozenge "close enough" | Copy the file |
-| `yellow-600` or `green-500` as text | `navy-900`, or `green-700` for green |
+| `yellow-600` or `green-500` as text | `navy-900`, or `green-700` for green — check the bench |
 | Hardcoding "Fernscout" in a component | `serverSite().name` |
 | New colour for a new component | The palette has six. Use one. |
 | Changing the mark, shipping without the 16px check | Run the 16px check above |

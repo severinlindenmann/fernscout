@@ -32,9 +32,9 @@ Three elements, and each one means something:
 
 | Element | Colour | Reads as |
 |---|---|---|
-| Bent trail | cream `#fffaf0` | the route — bent, never straight, because trips are not |
-| Lozenge | Wanderweg yellow `#ffd23f` | the waymark planted on it: **you are here** |
-| Leading dot | green `#22c55e` | the scout, already further along than you are |
+| Bent trail | `cream-50` | the route — bent, never straight, because trips are not |
+| Lozenge | Wanderweg `yellow-400` | the waymark planted on it: **you are here** |
+| Leading dot | `green-500` | the scout, already further along than you are |
 
 Two of these are inherited verbatim from the Reisepost envelope mark — the
 bent route line and the green dot. The rebrand is a change of metaphor, not a
@@ -105,37 +105,28 @@ The palette is unchanged from Reisepost — it was already good, and the rebrand
 is identity, not redesign. What changes is the **ranking**: yellow is now the
 brand colour rather than one accent among several, because it is the waymark.
 
-Tokens are defined once in `app/globals.css`. Use the token, never the hex.
+Tokens are defined once in `app/globals.css`. Use the token, never the hex —
+which is also why no hex is written below. What each colour is *for*:
 
-| Role | Token | Hex |
-|---|---|---|
-| Brand / waymark | `yellow-400` | `#ffd23f` |
-| Ink / ground | `navy-900` | `#1e293b` |
-| Paper | `cream-50` | `#fffaf0` |
-| The scout, live position | `green-500` | `#22c55e` |
-| Distance, water | `sky-400` | `#5ec8dc` |
-| Accent, used sparingly | `coral-400` | `#f06a8a` |
+| Role | Token |
+|---|---|
+| Brand / waymark | `yellow-400` |
+| Ink / ground | `navy-900` |
+| Paper | `cream-50` |
+| The scout, live position | `green-500` |
+| Distance, water | `sky-400` |
+| Accent, used sparingly | `coral-400` |
+| Keyboard focus | `blue-500` — the one palette colour clearing 3:1 on every surface a control sits on, yellow included |
 
-### Contrast — measured, not assumed
+**Which of these may carry words is measured, not remembered.**
+`/docs/branding/identity` renders every token against every ground text is set
+on, computed from the stylesheet at request time. Two names lie and the page is
+where you find that out: `yellow-600` is not a text yellow and `green-500` is a
+dot, not a label — for green text on cream use `green-700`.
 
-| Pair | Ratio | Verdict |
-|---|---|---|
-| navy-900 on cream-50 | 14.06 | body text |
-| navy-900 on yellow-400 | 10.13 | the only text colour for yellow buttons |
-| yellow-950 on yellow-400 | 8.24 | alternative ink on yellow |
-| cream-50 on navy-900 | 14.06 | inverse text |
-| green-700 on cream-50 | 4.82 | AA text |
-| navy-500 on cream-100 | 5.02 | secondary text |
-| coral-600 on cream-100 | 4.94 | AA text |
-| **yellow-600 on cream-50** | **2.36** | **fill only — never text, despite the name** |
-| **green-500 on cream-50** | **2.19** | **fill only — never text** |
-
-Two traps worth stating out loud: `yellow-600` looks like a text-safe yellow
-and is not, and `green-500` is a dot colour, not a label colour. For green
-text on cream use `green-700`.
-
-Keyboard focus stays `blue-500` `#2f6fed` — it is the one palette colour
-clearing 3:1 against every surface controls sit on, including yellow-400.
+It used to be written out here as well, and a third time in the
+`apply-the-brand` skill — three copies of a measured number, and three chances
+that the one somebody reads is the one nobody updated (B575).
 
 ## 5. Typography
 
