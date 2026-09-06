@@ -62,10 +62,11 @@ export default function Root() {
         different orders of the same sections and would have needed it twice.
       */}
       {site.banner && (
-        <div className="mx-auto max-w-2xl px-6 pt-8" role="note">
-          <p className="rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3 text-sm leading-6 text-navy-900">
-            {site.banner}
-          </p>
+        <div
+          role="note"
+          className="border-b-2 border-coral-600 bg-coral-300 px-6 py-3 text-center text-sm leading-6 text-navy-900"
+        >
+          {site.banner}
         </div>
       )}
       <Landing
