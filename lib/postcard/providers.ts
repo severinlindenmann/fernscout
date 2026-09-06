@@ -25,6 +25,17 @@ export type PostcardOrder = {
   back: Uint8Array;
   /** True until you actually want paper to move. */
   test: boolean;
+  /**
+   * The credit-ledger reference for this order — B07.
+   *
+   * `spend()` in `lib/credits.ts` writes a ledger row with `ref` set to the
+   * order id before any money is considered spent; that row *is* the
+   * recorded payment. `buildStannpRequest` refuses an empty string, which is
+   * what keeps a real provider (once wired, B435) unreachable for an order
+   * nobody paid for. `dry-run` never calls this function, so a fresh clone
+   * with no payment on file is unaffected.
+   */
+  paymentRef: string;
 };
 
 export type PreparedRequest = {
@@ -47,6 +58,9 @@ export type PreparedRequest = {
  * recipients, both for postage cost and for where the data sits.
  */
 export function buildStannpRequest(order: PostcardOrder, region: "eu" | "us" = "eu"): PreparedRequest {
+  if (!order.paymentRef) {
+    throw new Error("postcard provider: refusing to build a request with no recorded payment");
+  }
   return {
     provider: "stannp",
     method: "POST",

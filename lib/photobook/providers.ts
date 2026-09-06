@@ -54,6 +54,18 @@ export type BookOrder = {
   to: ShippingAddress;
   /** True until you actually want paper to move. */
   test: boolean;
+  /**
+   * The credit-ledger reference for this order — B07.
+   *
+   * `spend()` in `lib/credits.ts` writes a ledger row with `ref` set to the
+   * order id before any money is considered spent; that row *is* the
+   * recorded payment, so this is not a second record of the same fact, only
+   * proof that one was made. Every builder below refuses an empty string,
+   * which is what makes it impossible to reach a real provider — once one is
+   * wired up (B435) — for an order nobody paid for. `dry-run` never calls
+   * these functions, so a fresh clone with no payment on file is unaffected.
+   */
+  paymentRef: string;
 };
 
 export type PreparedRequest = {
@@ -70,6 +82,18 @@ export type PreparedRequest = {
   requires: string[];
 };
 
+/**
+ * The one gate every connectable builder shares — B07. Not folded into
+ * `buildRequest` alone: these functions are exported and tested directly, and
+ * a caller that reaches for one of them by name must hit the same refusal as
+ * one going through the switch.
+ */
+function requirePayment(order: BookOrder): void {
+  if (!order.paymentRef) {
+    throw new Error("photobook provider: refusing to build a request with no recorded payment");
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Peecho (acquired by Prodigi, 2024)
 // ---------------------------------------------------------------------------
@@ -85,6 +109,7 @@ export type PreparedRequest = {
  * and should be checked first.
  */
 export function buildPeechoRequest(order: BookOrder): PreparedRequest {
+  requirePayment(order);
   return {
     provider: "peecho",
     method: "POST",
@@ -137,6 +162,7 @@ export function buildPeechoRequest(order: BookOrder): PreparedRequest {
  * from memory.
  */
 export function buildGelatoRequest(order: BookOrder): PreparedRequest {
+  requirePayment(order);
   const uid =
     `photobook_pf_${order.trimWidthMm}x${order.trimHeightMm}-mm_` +
     `pt_${order.pageCount}-pages_cl_4-4_ct_matt-lamination_ver_softcover`;
@@ -199,6 +225,7 @@ export function buildGelatoRequest(order: BookOrder): PreparedRequest {
  * body**, not in a header, which changes how it must be kept out of logs.
  */
 export function buildCloudprinterRequest(order: BookOrder): PreparedRequest {
+  requirePayment(order);
   return {
     provider: "cloudprinter",
     method: "POST",
@@ -269,6 +296,7 @@ export function buildCloudprinterRequest(order: BookOrder): PreparedRequest {
  * four differ structurally.
  */
 export function buildLuluRequest(order: BookOrder): PreparedRequest {
+  requirePayment(order);
   return {
     provider: "lulu",
     method: "POST",

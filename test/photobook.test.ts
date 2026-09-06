@@ -809,6 +809,7 @@ const ORDER: BookOrder = {
     email: "maria@example.test",
   },
   test: true,
+  paymentRef: "test-payment-ref",
 };
 
 describe("provider requests", () => {
@@ -862,5 +863,20 @@ describe("provider requests", () => {
 
   test("the dry run has no request to build", () => {
     expect(() => buildRequest("dry-run", ORDER)).toThrow(/dry-run/);
+  });
+
+  test("refuses to build a request without a recorded payment — B07", () => {
+    const unpaid: BookOrder = { ...ORDER, paymentRef: "" };
+    for (const build of [
+      buildPeechoRequest,
+      buildGelatoRequest,
+      buildCloudprinterRequest,
+      buildLuluRequest,
+    ]) {
+      expect(() => build(unpaid)).toThrow(/no recorded payment/);
+    }
+    for (const provider of ["peecho", "gelato", "cloudprinter", "lulu"] as const) {
+      expect(() => buildRequest(provider, unpaid)).toThrow(/no recorded payment/);
+    }
   });
 });
