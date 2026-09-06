@@ -11,11 +11,14 @@ import { SEARCH_OPTIONS, type SearchDoc } from "@/lib/searchOptions";
 type LoadState = "loading" | "ready" | "error";
 
 /**
- * Loads `/<username>/search-index.json` — a static asset built once at
- * `next build` (see app/[user]/search-index.json/route.ts) — and searches it
- * entirely in the browser with MiniSearch. No request ever reaches the
- * server after the initial fetch: this is the "no runtime service" half of
- * M4 made visible.
+ * Loads `/<username>/search-index.json` — rendered per request (see
+ * app/[user]/search-index.json/route.ts), scoped to whoever is asking — and
+ * searches it entirely in the browser with MiniSearch. No further request
+ * reaches the server as the reader types: this is the "no runtime service"
+ * half of M4 made visible. A signed-in reader gets a different, private
+ * answer than a stranger does (B635); this component does not need to know
+ * which — the index it receives already carries exactly what this reader
+ * may see.
  */
 export default function SearchBox() {
   const { t, formatShortDate } = useI18n();
