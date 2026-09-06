@@ -77,11 +77,10 @@ export default function PostcardSheet({
   /** The trip id — the API takes the id, not the qualified ref. */
   trip: string;
   tile: MediaTile;
-  /** The signature on the card. The journal's own name for its author, read
-   * from `config.json` on the server — not a field here, because it is the
-   * same string every time and one more box between somebody and the thing
-   * they wanted to do. Correcting it is the preview page's job, or an
-   * agent's. */
+  /** The signature on the card. A default computed on the server — the
+   * owner, then whoever else was on the trip (B629) — not a field here,
+   * because it is one more box between somebody and the thing they wanted to
+   * do. Correcting it is the preview page's job, or an agent's. */
   from: string;
   onClose: () => void;
 }) {

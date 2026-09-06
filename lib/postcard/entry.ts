@@ -1,6 +1,7 @@
 import "server-only";
 import { isEnabled } from "../capabilities";
 import { isOwner } from "../contacts/session";
+import { namesOnTrip } from "../tripPeople";
 import { getUser } from "../users";
 import type { PostcardEntry, Trip } from "../types";
 
@@ -35,13 +36,14 @@ export async function postcardEntryFor(trip: Trip): Promise<PostcardEntry | unde
   }
   if (!(await isOwner(username))) return undefined;
 
+  // A default, not the field's whole story — the preview page's `from` box
+  // stays free text the owner can overwrite. Owner first, then whoever else
+  // was on the trip (`peopleOf`'s own membership, buddies included — B629),
+  // joined the same way `travellerFullNamesOf` joins a credit line. A trip
+  // with nobody else on it signs exactly as it always has.
   return {
     username,
     trip: trip.id,
-    // The one field of an order that is the same every time, so it is read
-    // here rather than asked for in a box in front of somebody who wanted this
-    // to be quick. Nickname first — it is what a journal calls its author in
-    // its own voice, which is what belongs at the bottom of a postcard.
-    from: user.owner.nickname || user.owner.name || user.title,
+    from: (await namesOnTrip(trip)).join(" & "),
   };
 }
