@@ -2,6 +2,7 @@ import { isEmail } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import {
   approveContact,
+  confirmContactFromSession,
   deleteContact,
   getContact,
   listContacts,
@@ -166,6 +167,73 @@ export async function POST(request: Request) {
     case "revoke-invite": {
       await revokeInvite(username, id);
       return Response.json({ ok: true });
+    }
+    /**
+     * The owner's own row — B619.
+     *
+     * `/{user}/me` has always had a *your details* form: name, telephone,
+     * postal address, the language to write in, the three consents. It is
+     * `ContactManage`, gated on the viewer having a contact row, and the
+     * owner never had one — so the one reader of that page who could not
+     * edit anything about themselves was the person whose journal it is. A
+     * postcard could not be addressed to them either: cards go to a
+     * `contactId`, and they had none.
+     *
+     * Three steps, all of them functions that already existed, and no invite
+     * mail — which is the whole difference from `create` above. That action
+     * mails a link because the owner typed somebody else's address and an
+     * address the owner typed is not the address proving it can be read.
+     * Here the address is the owner's own and they are signed in as it:
+     * `guard` has already checked the session against `owner.email`, so
+     * `confirmContactFromSession` is confirming something this request has
+     * proved rather than something it is asserting.
+     *
+     * Idempotent, and deliberately not a rewrite: a row that exists is
+     * returned as it stands. Pressing the button twice must not clear the
+     * address or the consents already on it — `requestContact`'s
+     * existing-row branch would, which is the trap `create` documents beside
+     * its own `contact_exists` refusal.
+     */
+    case "self": {
+      const user = getUser(username)!;
+      const email = user.owner.email;
+      if (!email) {
+        // A journal that declares no owner address cannot be written to by
+        // anybody (lib/config.ts), so there is no session that could have
+        // got here — but the type is optional and a 409 says why rather
+        // than throwing.
+        return Response.json({ error: "no_owner_email" }, { status: 409 });
+      }
+
+      const normalised = normaliseEmail(email);
+      const existing = (await listContacts(username)).find((c) => c.email === normalised);
+      if (existing) return Response.json({ ok: true, contact: ownerView(existing) });
+
+      const result = await requestContact(username, {
+        name: user.owner.nickname || user.owner.name,
+        email,
+        locale: pickLocale(null, user.defaultLocale),
+        // Not `null`: that is "not asked", and this row is being made empty
+        // on purpose for the owner to fill in on their own page.
+        address: EMPTY_ADDRESS,
+        // Every consent starts off. The row exists so there is somewhere to
+        // put an address and a number; what it is then used for is the
+        // owner's to tick, on the same form everybody else gets.
+        wantsEmailDigest: false,
+        wantsPostcard: false,
+        wantsWhatsapp: false,
+        createdVia: "owner-self",
+      });
+      if (result.outcome === "ignored" || !result.contactId) {
+        return Response.json({ error: "blocked_contact" }, { status: 409 });
+      }
+
+      const confirmed = await confirmContactFromSession(username, email);
+      if (!confirmed.ok) return Response.json({ error: "not_confirmed" }, { status: 409 });
+      const contact = await approveContact(username, confirmed.contact.id);
+      if (!contact) return Response.json({ error: "not_confirmed" }, { status: 409 });
+
+      return Response.json({ ok: true, contact: ownerView(contact) });
     }
     case "create": {
       const name = typeof body.name === "string" ? body.name.trim() : "";

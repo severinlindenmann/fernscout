@@ -93,6 +93,9 @@ export function contentModel(): ContentModelDocument {
       // the username is the folder name.
       ownerName: { apiOnly: true, because: "the file carries this as owner.name" },
       ownerNickname: { apiOnly: true, because: "the file carries this as owner.nickname" },
+      // B614. The only part of the owner block a token may write, and the
+      // file spells it one level down like the two above it.
+      ownerTel: { apiOnly: true, because: "the file carries this as owner.tel" },
       username: { apiOnly: true, because: "the folder name is the username" },
 
       title: { type: "string", required: true },

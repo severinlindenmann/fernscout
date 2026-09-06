@@ -88,6 +88,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappReci
   ]);
   const travellerSet = new Set(travellers.map((e) => e.toLowerCase()));
   const countryCode = whatsappCountryCode();
+  const ownerEmail = user.owner.email?.trim().toLowerCase() ?? null;
 
   const out: WhatsappRecipient[] = [];
   const seen = new Set<string>();
@@ -137,7 +138,15 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappReci
       to,
       name: contact.name,
       locale: pickLocale(contact.locale, user.defaultLocale),
-      free: false,
+      // B619. Since the owner has a contact row of their own — which is where
+      // their telephone number now most naturally lives, beside the postal
+      // address a postcard to themselves needs — the free copy has to be
+      // decided by *who this is* rather than by which field the number came
+      // out of. `owner.tel` above still works and is what a journal with
+      // contacts switched off has; this catches the same person arriving by
+      // the other door. `dayLetter.ts` has always behaved this way, by
+      // dropping the owner's address from its own loop.
+      free: email === ownerEmail,
     });
   }
 
