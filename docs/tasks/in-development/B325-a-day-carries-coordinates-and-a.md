@@ -6,6 +6,9 @@ priority: medium
 complexity: high
 area: entries, ingest, ui, capabilities
 found: "2026-09-04T17:41:12Z"
+started: "2026-09-06T07:52:18Z"
+session: e53768ed-a34e-4025-8795-03c523839103
+claimed: "2026-09-06T07:52:18Z"
 ---
 
 # B325 — A day carries coordinates and a date but no way to say what the weather actually was

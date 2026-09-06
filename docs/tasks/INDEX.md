@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (112)
+## backlog (111)
 
 ### security (6)
 
@@ -103,7 +103,7 @@ Do not edit them by hand; run the script.
 | [B500](backlog/issue/B500-minimap-hydrates-with-a-mismatch-on.md) | MiniMap hydrates with a mismatch on the last decimal place of every coordinate | ISSUE | low | low |
 | [B508](backlog/issue/B508-mail-sent-from-a-dev-server.md) | Mail sent from a dev server links to the production site | ISSUE | low | low |
 
-### big-feature (13)
+### big-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -113,7 +113,6 @@ Do not edit them by hand; run the script.
 | [B112](backlog/big-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts write straight to content, bypassing the token, draft status and rate limits every network write goes through | FEATURE | medium | high |
 | [B262](backlog/big-feature/B262-writing-to-a-journal-requires-bringing.md) | Writing to a journal requires bringing your own agent, so an owner without one cannot write at all | FEATURE | medium | high |
 | [B275](backlog/big-feature/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
-| [B325](backlog/big-feature/B325-a-day-carries-coordinates-and-a.md) | A day carries coordinates and a date but no way to say what the weather actually was | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | There is no way to manage a journal's content folder locally and sync it to a running instance | FEATURE | medium | high |
@@ -207,9 +206,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B325](in-development/B325-a-day-carries-coordinates-and-a.md) | A day carries coordinates and a date but no way to say what the weather actually was | FEATURE | medium | high | `e53768ed` |
 
 ## testing (225)
 
