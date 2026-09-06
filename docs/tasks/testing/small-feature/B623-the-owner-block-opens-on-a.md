@@ -7,8 +7,7 @@ complexity: low
 area: me page
 found: "2026-09-06T17:50:30Z"
 started: "2026-09-06T17:50:49Z"
-session: 46b8aec7-0279-4118-8632-da0af1a52ced
-claimed: "2026-09-06T17:50:49Z"
+merged: "2026-09-06T18:02:21Z"
 ---
 
 # B623 — The owner block opens on a form and two paragraphs of explanation nobody rereads
