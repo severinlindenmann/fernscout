@@ -7,8 +7,7 @@ complexity: high
 area: api, days, trips, validation
 found: "2026-09-06T09:55:00Z"
 started: "2026-09-06T07:53:28Z"
-session: 5813be44-d8aa-40f5-ab31-affc7af3746a
-claimed: "2026-09-06T07:53:28Z"
+merged: "2026-09-06T08:19:48Z"
 ---
 
 # B531 — A day can be written without everything the trip is keeping, and nothing says so

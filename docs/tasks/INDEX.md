@@ -206,17 +206,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (5)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B531](in-development/B531-a-day-can-be-written-without.md) | A day can be written without everything the trip is keeping, and nothing says so | FEATURE | high | high | `5813be44` |
 | [B535](in-development/B535-a-write-route-silently-drops-every.md) | A write route silently drops every field it does not recognise | FEATURE | high | high | `73b1a7f5` |
 | [B325](in-development/B325-a-day-carries-coordinates-and-a.md) | A day carries coordinates and a date but no way to say what the weather actually was | FEATURE | medium | high | `e53768ed` |
-| [B532](in-development/B532-a-trip-with-a-budget-and.md) | A trip with a budget and no day-level spending reads as complete | FEATURE | medium | low | `5813be44` |
-| [B533](in-development/B533-there-is-no-section-for-moving.md) | There is no section for moving a journal that already exists onto a hosted instance | DOCS | medium | low | `5813be44` |
 
-## testing (225)
+## testing (228)
 
 ### security (2)
 
@@ -346,7 +343,7 @@ _Nothing here._
 | [B519](testing/issue/B519-the-preview-s-map-has-no.md) | The preview's map has no place names but the printed one does | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
-### big-feature (15)
+### big-feature (16)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -358,6 +355,7 @@ _Nothing here._
 | [B434](testing/big-feature/B434-a-postcard-cannot-be-ordered-from.md) | A postcard cannot be ordered from the site — only rendered by hand on a shell | FEATURE | high | high | — |
 | [B476](testing/big-feature/B476-a-photobook-cannot-be-ordered-from.md) | A photobook cannot be ordered from the site, only from a shell | FEATURE | high | high | — |
 | [B504](testing/big-feature/B504-a-photobook-cannot-be-shaped-day.md) | A photobook cannot be shaped day by day | FEATURE | high | high | — |
+| [B531](testing/big-feature/B531-a-day-can-be-written-without.md) | A day can be written without everything the trip is keeping, and nothing says so | FEATURE | high | high | — |
 | [B283](testing/big-feature/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high | — |
 | [B294](testing/big-feature/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high | — |
 | [B39](testing/big-feature/B39-a-locked-trip-asks-for-a.md) | A locked trip asks for a shared password, which nobody can revoke and everybody forwards | FEATURE | medium | high | — |
@@ -366,7 +364,7 @@ _Nothing here._
 | [B496](testing/big-feature/B496-the-printed-photobook-reads-as-a.md) | The printed photobook reads as a contact sheet, not a book | FEATURE | medium | high | — |
 | [B497](testing/big-feature/B497-the-photobook-draws-one-hardcoded-couple.md) | The photobook draws one hardcoded couple whoever travelled | FEATURE | medium | high | — |
 
-### small-feature (45)
+### small-feature (46)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -408,6 +406,7 @@ _Nothing here._
 | [B517](testing/small-feature/B517-a-day-that-wrote-too-much.md) | A day that wrote too much is silently truncated | FEATURE | medium | medium | — |
 | [B522](testing/small-feature/B522-a-photo-carries-no-caption-so.md) | A photo carries no caption, so nothing can be said about a picture | FEATURE | medium | medium | — |
 | [B527](testing/small-feature/B527-after-a-partly-failed-media-batch.md) | After a partly-failed media batch an agent cannot tell which photographs landed | FEATURE | medium | medium | — |
+| [B532](testing/small-feature/B532-a-trip-with-a-budget-and.md) | A trip with a budget and no day-level spending reads as complete | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B11](testing/small-feature/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium | — |
@@ -448,7 +447,7 @@ _Nothing here._
 | [B506](testing/ops/B506-nobody-has-looked-at-the-photobook.md) | Nobody has looked at the photobook composer or the drawn travellers in a browser | OPS | high | medium | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
-### docs-and-skills (19)
+### docs-and-skills (20)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -468,6 +467,7 @@ _Nothing here._
 | [B477](testing/docs-and-skills/B477-the-ios-home-screen-steps-are.md) | The iOS Home Screen steps are the ones readers get lost in and the only ones with no picture | DOCS | medium | low | — |
 | [B499](testing/docs-and-skills/B499-nothing-shows-an-agent-how-to.md) | Nothing shows an agent how to build a character, and the demo journal has one party shape | DOCS | medium | low | — |
 | [B526](testing/docs-and-skills/B526-two-fields-lists-three-and-the.md) | \"Two fields\" lists three, and the journal script never asks for the required title | DOCS | medium | low | — |
+| [B533](testing/docs-and-skills/B533-there-is-no-section-for-moving.md) | There is no section for moving a journal that already exists onto a hosted instance | DOCS | medium | low | — |
 | [B186](testing/docs-and-skills/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | DOCS | low | low | — |
 | [B198](testing/docs-and-skills/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | DOCS | low | low | — |
 | [B221](testing/docs-and-skills/B221-a-comment-in-mapframe-points-at.md) | A comment in mapFrame points at a file and a helper that do not exist | DOCS | low | low | — |
