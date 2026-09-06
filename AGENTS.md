@@ -520,12 +520,45 @@ guide for it.
 | Skill | For |
 | --- | --- |
 | `apply-the-brand` | The mark, the palette, and what not to do to them |
+| `check-a-drawing` | Look at something this software draws, at `/docs/branding` — the animation, the figures, a day card, a print margin |
 | `deploy` | Ship it to the VPS, and know it is healthy |
 | `keep-the-contract` | Check that `/openapi.json` and `/agent.md` still tell the truth after a change to a route |
 | `manage-tasks` | Capture something, and move it between lanes |
 | `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
 | `test-the-live-site` | Empty `testing/` against the deployed instance, one subagent per ticket |
 | `test-in-a-browser` | Drive a local checkout in a real browser: sign in as an owner, switch a capability on, check a page at 390px |
+
+### The workbenches
+
+**A drawing is the one output no test can check.** Code for an aeroplane whose
+wings rake the wrong way typechecks, lints and passes every assertion, and is
+wrong; somebody has to look. `/docs/branding` is where you look — four benches
+that each take one drawn thing out of the product and hold it still:
+
+| | |
+| --- | --- |
+| `/docs/branding/animation` | the travel scene: vehicles, surfaces, skylines, and a slider that holds any moment of the leg |
+| `/docs/branding/travellers` | every value of every axis a person is described along, side by side |
+| `/docs/branding/day` | a day card in the states a reader cannot reach — draft, half-published, marked as test |
+| `/docs/branding/print` | bleed, trim, safe area and gutter, from the constants the renderers use |
+
+They render the **real** components with the real props, so a fault that shows
+there is a fault on the site and one that does not is not. Nothing on them
+needs a journal, a database, a session or a capability — they sit above all of
+it, which makes them the fastest pages here to open, live or local.
+
+The benches are also how a report becomes actionable: *which section shows it*
+is *which file it is in*. Say "the plane in `Vehicle.tsx` has its wings
+backwards", never "the travel scene looks wrong". `check-a-drawing` is the
+procedure, including the four traps — a stale dev server on a taken port,
+`originX` on SVG being a fraction of the bounding box, an `<svg>` with only a
+viewBox taking its intrinsic size, and `x: "120%"` being a percentage of the
+element rather than the frame — each of which cost a round of screenshots
+before it was written down.
+
+Not indexed, English only, and deliberately not among the `/docs` cards: the
+list is `BRANDING_BENCHES` in `lib/docs.ts`, and adding a bench is a component,
+a page and a row.
 
 ### Skills that are not this repository's
 
@@ -565,8 +598,8 @@ refactor its 89 callers cannot survive. Call again, or check the first answer
 against `grep`, before concluding anything from a small number.
 
 **None of this is in the repository.** Plugins are installed per user and
-`.claude/settings.json` is gitignored, so a fresh clone has the six skills
-above and nothing else. A seventh may be on disk and is deliberately not in
+`.claude/settings.json` is gitignored, so a fresh clone has the seven skills
+above and nothing else. An eighth may be on disk and is deliberately not in
 that table: `.claude/skills/vps/` is this instance's own deploy — it knows a
 host, a directory and a domain — and is gitignored for that reason. Where it
 exists it is the answer to "deploy", and `deploy` is the procedure for somebody
