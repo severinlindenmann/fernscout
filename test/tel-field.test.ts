@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { DIAL_CODES, filterCountries, flagOf, joinTel, splitTel } from "@/components/TelField";
+import {
+  DIAL_CODES,
+  filterCountries,
+  flagOf,
+  guessMisplacedNumber,
+  joinTel,
+  splitTel,
+} from "@/components/TelField";
 import { toE164 } from "@/lib/whatsapp/phone";
 
 /**
@@ -62,6 +69,33 @@ describe("splitTel / joinTel", () => {
 
   test("a country picked with the digits cleared stores no bare '+cc' — clearing the number does not half-save a country", () => {
     expect(joinTel("41", "  ")).toBe("");
+  });
+});
+
+describe("guessMisplacedNumber — B624, iOS autofill dropping the whole number in the code box", () => {
+  test("a whole number with a plus is split into the real code and the rest", () => {
+    expect(guessMisplacedNumber("+41765613150")).toEqual({ cc: "41", national: "765613150" });
+  });
+
+  test("a whole number with no plus, exactly as an autofill might write it", () => {
+    expect(guessMisplacedNumber("41765613150")).toEqual({ cc: "41", national: "765613150" });
+  });
+
+  test("spaces left in by the source are ignored", () => {
+    expect(guessMisplacedNumber("+41 76 561 31 50")).toEqual({
+      cc: "41",
+      national: "765613150",
+    });
+  });
+
+  test("an ordinary short search keystroke is left alone", () => {
+    expect(guessMisplacedNumber("41")).toBeNull();
+    expect(guessMisplacedNumber("swi")).toBeNull();
+  });
+
+  test("digits with no dialling code found at any length are left alone", () => {
+    // No ITU code starts this way at length 1, 2 or 3.
+    expect(guessMisplacedNumber("9999999999")).toBeNull();
   });
 });
 

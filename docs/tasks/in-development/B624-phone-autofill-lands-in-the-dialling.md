@@ -43,3 +43,48 @@ the two boxes and their gap overflow the form's column.
   and leaves a sensible dialling code.
 - At 390px the whole number is visible and typable in both the contact's own
   page and the owner's contacts admin.
+
+## Found
+
+The component is `TelField` (`components/TelField.tsx`), not `PhoneField` —
+the task's name for it was off; the file, the two `splitTel`/`joinTel`
+helpers and the note at `ContactManage.tsx:108` were exactly where described.
+It has four callers, not two: `ContactManage.tsx:216`, `ContactsAdmin.tsx:699`
+(the pair the ticket named), and also `ContactForm.tsx:297` and
+`InviteRedeem.tsx:366` — all four get the fix for free, being the same
+component.
+
+Fixed in `components/TelField.tsx`, both call sites untouched:
+
+- **Autocomplete tokens** (`TelField.tsx:244`, `:305`): the code box now
+  carries `autoComplete="tel-country-code"` (was `"off"`) and the digits box
+  `autoComplete="tel-national"` (was `"tel"`) — the WHATWG pair for a split
+  phone field.
+- **Defensive reroute** (`TelField.tsx:124-134` for `guessMisplacedNumber`,
+  wired into the code box's `onChange` at `:251-265`): no dialling code is
+  more than 3 digits, so a value landing in the code box with more digits
+  than that is the whole number, not a code. It is stripped to digits, tried
+  as a 3/2/1-digit prefix against `DIAL_CODES`, and on a match rerouted to
+  `onChange(cc, national)` instead of being kept as a "code". An ordinary
+  short search keystroke (`"41"`, `"swi"`) is unaffected — it only fires past
+  3 digits. Covered by `test/tel-field.test.ts` (five new cases).
+- **Overflow** (`TelField.tsx:233`): the code box was a fixed `w-64` (256px)
+  next to a `flex-1` digits box with no `min-w-0` — on a 390px phone (form
+  column ~342px after the page's `px-6`) the code box alone left ~78px, and
+  without `min-w-0` a flex child does not shrink below its content's
+  intrinsic width anyway, so the digits box pushed past the column. Now
+  `w-36 shrink-0 sm:w-64` on the code box and `min-w-0 flex-1` on the digits
+  box — narrower on a phone, unchanged at `sm:` and up, and the digits box
+  actually shrinks to fit instead of overflowing.
+
+**Could not verify**: a real iPhone. Nothing here runs Safari/iOS, so
+"autofilling puts the digits in the digits box" (acceptance line 1) is
+demonstrated only by the two mechanisms above (the standard autocomplete
+tokens, plus the defensive parse as a fallback if iOS ignores them, which is
+the reported behaviour today) and by the unit tests on
+`guessMisplacedNumber`, not by an actual autofill event. The 390px layout
+(acceptance line 2) was reasoned from the page's own column width
+(`PAGE_CLASS = "mx-auto w-full max-w-xl px-6 py-12 sm:py-16"` in
+`ContactManage.tsx:57`) and the new fixed widths, not from a live browser at
+that viewport — `npm run verify` passed (build, tsc, lint, vitest all green)
+but that suite does not render or measure layout.

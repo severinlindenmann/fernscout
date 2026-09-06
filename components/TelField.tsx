@@ -106,6 +106,33 @@ export function joinTel(cc: string, national: string): string {
   return `+${cc} ${digits}`;
 }
 
+/**
+ * B624 — iOS autofill is told which box is which via `autoComplete`
+ * (`tel-country-code` / `tel-national`, below), but that is a hint the
+ * browser is free to ignore, and reports from the field say it does: the
+ * whole number lands in the dialling-code box regardless. This is the
+ * fallback for when that happens — the same shape of guard as `splitTel`,
+ * fired from the code box's own `onChange` rather than at read time.
+ *
+ * A real dialling code is never more than 3 digits (`DIAL_CODES`), so a
+ * value with more digits than that pasted or autofilled into the code box is
+ * not a code — it is a whole number that landed in the wrong half. Tried
+ * with `+`, without it, and with the spaces a person or an autofill might
+ * leave in. `null` means "not that" — an ordinary search keystroke — and the
+ * caller keeps its normal filter-as-you-type behaviour.
+ */
+export function guessMisplacedNumber(raw: string): { cc: string; national: string } | null {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length <= 3) return null;
+  for (const len of [3, 2, 1]) {
+    const cc = digits.slice(0, len);
+    if (DIAL_CODES.some((d) => d.cc === cc)) {
+      return { cc, national: digits.slice(len) };
+    }
+  }
+  return null;
+}
+
 const CONTROL =
   "rounded-xl border border-navy-200 bg-white px-4 py-3 text-lg text-navy-900";
 
@@ -203,7 +230,7 @@ export default function TelField({
 
   return (
     <div className="mt-2 flex gap-2">
-      <div className="relative w-64 shrink-0" ref={rootRef}>
+      <div className="relative w-36 shrink-0 sm:w-64" ref={rootRef}>
         <input
           id={`${id}-cc`}
           role="combobox"
@@ -214,7 +241,7 @@ export default function TelField({
           aria-activedescendant={open && active ? `${listId}-${active.iso2}` : undefined}
           className={`${CONTROL} w-full`}
           placeholder={searchPlaceholder}
-          autoComplete="off"
+          autoComplete="tel-country-code"
           value={displayValue}
           onFocus={() => {
             setOpen(true);
@@ -222,6 +249,16 @@ export default function TelField({
             setHighlight(0);
           }}
           onChange={(e) => {
+            // B624: autofill (or a paste) that drops the whole number here
+            // instead of in the digits box, caught and rerouted rather than
+            // stored as a nonsense "code".
+            const misplaced = guessMisplacedNumber(e.target.value);
+            if (misplaced) {
+              onChange(misplaced.cc, misplaced.national);
+              setQuery("");
+              setOpen(false);
+              return;
+            }
             setQuery(e.target.value);
             setOpen(true);
             setHighlight(0);
@@ -264,9 +301,9 @@ export default function TelField({
       </div>
       <input
         id={id}
-        className={`${CONTROL} flex-1`}
+        className={`${CONTROL} min-w-0 flex-1`}
         type="tel"
-        autoComplete="tel"
+        autoComplete="tel-national"
         value={national}
         onChange={(e) => onChange(cc, e.target.value)}
       />
