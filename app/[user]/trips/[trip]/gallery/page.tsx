@@ -4,6 +4,7 @@ import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import GalleryPageContent from "@/app/[user]/(trip)/gallery/GalleryPageContent";
 import { photobookEntryFor } from "@/lib/photobook/entry";
+import { postcardEntryFor } from "@/lib/postcard/entry";
 import { getAllMedia, getPlaces } from "@/lib/entries";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUsernames } from "@/lib/users";
@@ -58,6 +59,9 @@ export default async function TripGalleryPage({
   // Not `isOwner` inline: see the note beside the equivalent call in the
   // current-trip gallery page.
   const photobook = await photobookEntryFor(trip);
+  // B582: a trip being over is not a reason not to post a card from it. The
+  // API never asked which trip was current; only this page did, by omission.
+  const postcard = await postcardEntryFor(trip);
 
   return (
     <TripProvider trip={trip} isCurrent={false} canPublish={drafts.canPublish}>
@@ -65,6 +69,7 @@ export default async function TripGalleryPage({
         media={getAllMedia(trip.ref, read)}
         places={getPlaces(trip.ref, read)}
         photobook={photobook}
+        postcard={postcard}
       />
     </TripProvider>
   );
