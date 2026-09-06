@@ -5,6 +5,7 @@ import { useTrip } from "@/components/TripProvider";
 
 import { useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import DayNotify from "./DayNotify";
 import DayReactions from "./DayReactions";
 import DayWeather from "./DayWeather";
 import DraftNotice from "./DraftNotice";
@@ -335,6 +336,14 @@ export function DayCard({
         {/* Keyed on the lead slug, which is also what #day-… links use. */}
         <div className="mt-10 border-t border-navy-200 pt-4">
           <DayReactions daySlug={lead.slug} />
+          {/* Owner only, and only once the day is actually on the site —
+              `canPublish` is exactly `isOwner`, see `lib/tripGate.ts`.
+              `DayNotify` asks the server the rest: a draft, a test day, or a
+              journal with nothing to send it on all answer with nothing to
+              show, so no draft-specific gating is duplicated here. */}
+          {trip?.canPublish && (
+            <DayNotify username={trip.trip.username} tripId={trip.trip.id} slug={lead.slug} />
+          )}
         </div>
       </div>
     </article>

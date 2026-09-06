@@ -17,6 +17,7 @@ import { templateFor, whatsappCountryCode } from "../whatsapp/settings";
 import type { WhatsappMessage } from "../whatsapp/types";
 import { headerPhoto } from "./dayPhoto";
 import { mayMailTrip } from "./dayLetter";
+import { recordNotified } from "./dayNotify";
 
 /**
  * The WhatsApp a published day announces — B365, and the second half of
@@ -351,6 +352,9 @@ export async function sendDayWhatsapp(
   // template for any language they could be written in — silence there would
   // look identical to having no readers.
   if (recipients.length > 0 && !anyTemplate) return { ok: false, reason: "no_template" };
+
+  // Recorded whatever the cost was — B633, matching `sendDayLetter`.
+  await recordNotified(owner, trip.id, slug, "whatsapp");
 
   return { ok: true, resend: options.resend === true, sent, failed };
 }
