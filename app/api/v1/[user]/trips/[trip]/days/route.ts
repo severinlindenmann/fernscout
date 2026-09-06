@@ -197,14 +197,22 @@ export async function POST(
   // Awaited rather than floated: see `fillDayWeatherQuietly`.
   await fillDayWeatherQuietly(ref, result.slug);
 
-  const written = { slug: result.slug, status: result.status };
+  const written = {
+    slug: result.slug,
+    status: result.status,
+    ...(result.costCurrency ? { costCurrency: result.costCurrency } : {}),
+  };
   remember(key, fingerprint, written);
 
   return Response.json(
     {
       ok: true,
       ...written,
-      note: "Created as a draft. Read it back to them, then POST .../days/<slug>/publish when they say so.",
+      note:
+        "Created as a draft. Read it back to them, then POST .../days/<slug>/publish when they say so." +
+        (result.costCurrency
+          ? ` A cost line named no currency, so it was written in ${result.costCurrency} — this day's own.`
+          : ""),
     },
     { status: 201 },
   );
