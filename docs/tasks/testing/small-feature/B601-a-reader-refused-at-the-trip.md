@@ -8,6 +8,7 @@ area: contacts, ui, mail, i18n
 found: "2026-09-06T14:40:35Z"
 started: "2026-09-06T14:44:16Z"
 related: B37, B117, B300, B587
+merged: "2026-09-06T15:02:19Z"
 ---
 
 # B601 — A reader refused at the trip gate has no way to ask the owner to let them in
