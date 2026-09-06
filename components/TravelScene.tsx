@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   animate,
+  cubicBezier,
   motion,
   useMotionValue,
   useTransform,
@@ -65,6 +66,12 @@ const FALLBACK_DURATION = 6;
 
 function clamp(n: number, lo: number, hi: number): number {
   return Math.min(Math.max(n, lo), hi);
+}
+
+/** 0 below `from`, 1 above `to`, linear between — `useTransform`'s range
+ * mapping, for the places that need to combine two of them. */
+function ramp(v: number, from: number, to: number): number {
+  return clamp((v - from) / (to - from), 0, 1);
 }
 
 /**
@@ -186,67 +193,120 @@ export default function TravelScene({
   const groundH = GROUND_HEIGHT[surface];
 
   /*
-   * Three layers moving at three speeds, which is the whole of the depth:
-   * the ground (in `Ground`, fastest) is underfoot, the skylines are the
-   * middle distance, and the clouds are the sky. Before this everything but
-   * the clouds was static and the vehicle slid over a photograph.
+   * One camera, and everything else hangs off it.
+   *
+   * The first version of this gave every layer its own linear ramp across the
+   * whole leg, which is what made it feel out of time with itself: the road
+   * was already rushing past under a party still standing beside it, the
+   * departure town began sliding away before anyone had left, and the world
+   * was still moving after the vehicle had arrived.
+   *
+   * It also mixed two incompatible ideas of where the viewer is standing. A
+   * scrolling world says the camera travels *with* the vehicle; a vehicle
+   * crossing the frame says the camera is nailed down. Both at once reads as
+   * two animations playing over each other, because that is what it is.
+   *
+   * So: the camera is still while they are still, pans with them once they
+   * leave, and comes to rest as they arrive. `travel` is that pan — one eased
+   * 0→1 — and the ground, the ridge, the clouds and both towns are each just
+   * this curve times their own distance. Nearer means further, which is the
+   * parallax; sharing the curve is what keeps them one world.
    */
-  const cloudsX = useTransform(p, [0, 1], ["2%", "-10%"]);
-  const hillsX = useTransform(p, [0, 1], ["0%", "-18%"]);
-  const farX = useTransform(p, [0, 1], ["0%", "-34%"]);
+  const travel = useTransform(p, [0.16, 0.9], [0, 1], {
+    // Eased at both ends rather than clamped-linear: a world that starts
+    // moving at full speed on one frame is the single most mechanical thing
+    // an animation like this can do.
+    ease: cubicBezier(0.45, 0, 0.3, 1),
+    clamp: true,
+  });
+
+  const cloudsX = useTransform(travel, [0, 1], ["2%", "-9%"]);
+  const hillsX = useTransform(travel, [0, 1], ["0%", "-22%"]);
 
   /*
-   * On foot the party *is* the vehicle: they cross the whole frame at
-   * walking pace and nothing else moves through the scene. Every other mode
-   * keeps the old departure — they set off to the right and the vehicle
-   * follows them across.
+   * Both ends of the leg, not just the arrival, and both carried by the same
+   * pan — the origin leaves at the speed the destination arrives, because
+   * they are the same distance apart in the same world.
+   *
+   * Before this the origin was an empty green field: the party set off from
+   * nowhere towards a city that rose out of the ground.
    */
-  const afloat = surface === "water";
-  const peopleX = useTransform(
-    p,
-    onFoot ? [0.05, 0.95] : [0.04, 0.4],
-    // Nobody walks off across a river. On a crossing by boat the party stays
-    // put and is gone before the far bank has slid away — otherwise they were
-    // left standing on open water for a third of the leg, which is what the
-    // first version of this actually drew.
-    afloat ? ["0%", "0%"] : ["0%", "125%"],
-  );
-  const peopleOpacity = useTransform(
-    p,
-    onFoot ? [0, 0.08, 0.9, 1] : afloat ? [0, 0.08, 0.2, 0.3] : [0.0, 0.12, 0.32, 0.44],
-    [0, 1, 1, 0],
-  );
+  const originX = useTransform(travel, [0, 1], ["0%", "-260%"]);
+  const originOpacity = useTransform(travel, [0, 0.35, 0.6], [1, 1, 0]);
+  const destX = useTransform(travel, [0, 1], ["190%", "0%"]);
+  const destOpacity = useTransform(travel, [0.4, 0.62], [0, 1]);
 
-  // Vehicle sweeps left → right across the middle of the leg.
-  const vehicleX = useTransform(p, [0.22, 0.86], ["-30%", "125%"]);
+  /*
+   * The vehicle is the one thing that moves *against* the camera rather than
+   * with it: it comes in from the left, settles near the middle for as long
+   * as the world is going past, and carries on out to the right as the
+   * destination arrives. Held near the centre rather than swept straight
+   * across because that is what a camera panning alongside actually shows.
+   *
+   * The percentages are of the *frame*, which is why the wrapper below is
+   * `inset-x-0` rather than sitting at `left-0`. They used to be percentages
+   * of the vehicle's own width, so a 115px car crossed 144px of a 710px frame
+   * and then vanished — it never reached the far side at all.
+   */
+  const vehicleX = useTransform(
+    p,
+    [0.16, 0.34, 0.76, 0.97],
+    ["-24%", "34%", "44%", "112%"],
+  );
   const vehicleY = useTransform(
     p,
-    [0.26, 0.45, 0.66, 0.82],
+    [0.2, 0.42, 0.7, 0.9],
     isFlight ? [10, -70, -70, 10] : [0, 0, 0, 0],
   );
   const vehicleRotate = useTransform(
     p,
-    [0.26, 0.42, 0.7, 0.82],
+    [0.2, 0.4, 0.72, 0.9],
     isFlight ? [-7, -13, 9, 2] : [0, 0, 0, 0],
   );
-  const vehicleOpacity = useTransform(p, [0.14, 0.3, 0.78, 0.92], [0, 1, 1, 0]);
+  const vehicleOpacity = useTransform(p, [0.12, 0.24, 0.86, 0.97], [0, 1, 1, 0]);
   // A hull has no wheels; the swell is what carries it. Small and slow — a
   // boat that bobs like a cork reads as a toy.
-  const hullY = useTransform(p, [0, 0.25, 0.5, 0.75, 1], mode === "boat" ? [0, -4, 1, -3, 0] : [0, 0, 0, 0, 0]);
+  const hullY = useTransform(
+    p,
+    [0, 0.25, 0.5, 0.75, 1],
+    mode === "boat" ? [0, -4, 1, -3, 0] : [0, 0, 0, 0, 0],
+  );
 
   /*
-   * Both ends of the leg, not just the arrival.
+   * The party keeps still until the camera does, then leaves.
    *
-   * The origin used to be an empty green field: the travellers set off from
-   * nowhere towards a city that rose out of the ground. Now where they left
-   * slides out to the left as where they are going slides in from the right,
-   * which is what makes it a journey between two places rather than an
-   * arrival at one.
+   * On foot there is no vehicle, so they are what the camera follows: they
+   * hold near the middle of the frame for the whole crossing while the path
+   * goes past under them, which is the same treatment every other mode gives
+   * its vehicle.
+   *
+   * Otherwise they are part of the world being left behind, so they leave on
+   * the pan — drifting left with the ground and the departure town, fading as
+   * they go. They used to walk *rightwards* out of frame while everything
+   * around them scrolled the other way, which is the departure gesture the
+   * scene was built with and is also two directions of travel at once. The
+   * rate they leave at is the same rate the town does, because they are
+   * standing in it.
    */
-  const originX = useTransform(p, [0, 0.55], ["0%", "-140%"]);
-  const originOpacity = useTransform(p, [0, 0.1, 0.42], [1, 1, 0]);
-  const destX = useTransform(p, [0.45, 0.95], ["120%", "0%"]);
-  const destOpacity = useTransform(p, [0.45, 0.62], [0, 1]);
+  const afloat = surface === "water";
+  const peopleX = useTransform(
+    onFoot ? p : travel,
+    onFoot ? [0.16, 0.34, 0.76, 0.97] : [0, 1],
+    onFoot ? ["6%", "34%", "44%", "104%"] : ["6%", "-34%"],
+  );
+  /*
+   * Two clocks, because the party's two moments answer to different things.
+   *
+   * They fade *in* on the leg's own clock — they are standing there from the
+   * first frame, before the camera has moved at all. They fade *out* on the
+   * pan, because leaving is what the pan is. Keyed to the pan alone they were
+   * invisible for the whole of the opening hold, since `travel` is still zero
+   * there; keyed to the leg alone they lingered after the town had gone.
+   */
+  const peopleOpacity = useTransform([p, travel], ([leg, pan]: number[]) => {
+    if (onFoot) return ramp(leg, 0, 0.08) * (1 - ramp(leg, 0.9, 1));
+    return ramp(leg, 0.01, 0.09) * (1 - ramp(pan, afloat ? 0.05 : 0.15, afloat ? 0.3 : 0.5));
+  });
 
   // The quick scene's icon crosses a plain lane, edge to edge.
   const quickX = useTransform(p, [0.06, 0.94], ["0%", "100%"]);
@@ -296,16 +356,10 @@ export default function TravelScene({
             </motion.div>
           )}
 
-          {/*
-            Middle distance: where they left, and where they are going.
-
-            The origin used to be an empty green field — the party set off from
-            nowhere towards a city that rose out of the ground. Both ends are in
-            the day index already, so drawing both costs nothing and waits on
-            nothing. `farX` is the parallax; the two `x`s inside it are the
-            leaving and the arriving.
-          */}
-          <motion.div style={{ x: farX }} className="pointer-events-none absolute inset-0">
+          {/* Middle distance: where they left, and where they are going. Both
+              ends are in the day index already, so drawing both costs nothing
+              and waits on nothing. */}
+          <div className="pointer-events-none absolute inset-0">
             {from && (
               <motion.div
                 style={{ x: originX, opacity: originOpacity, bottom: groundH - 6 }}
@@ -333,32 +387,39 @@ export default function TravelScene({
                 height={150}
               />
             </motion.div>
-          </motion.div>
+          </div>
 
-          {/* Nearest layer, fastest: rails, tarmac, water or a footpath. */}
-          <Ground surface={surface} scroll={p} />
+          {/* Nearest layer, and therefore the fastest. Driven by the same pan
+              as everything else, so the road is not already moving under a
+              party who have not left yet. */}
+          <Ground surface={surface} scroll={travel} />
 
+          {/* `inset-x-0` so the percentages above are of the frame. At
+              `left-8` they were percentages of the party's own width, which is
+              why nobody ever got very far. */}
           <motion.div
             style={{ x: peopleX, opacity: peopleOpacity, bottom: STAND_ON[surface] }}
-            className="absolute left-8"
+            className="absolute inset-x-0"
           >
-            <Travelers figures={party} size={58} available={200} />
+            <div className="w-fit">
+              <Travelers figures={party} size={58} available={200} />
+            </div>
           </motion.div>
 
           {/* Nothing crosses on a leg made on foot — the party above is the
               whole of it. */}
           {!onFoot && (
             <motion.div
-              style={{
-                x: vehicleX,
-                y: vehicleY,
-                rotate: vehicleRotate,
-                opacity: vehicleOpacity,
-                bottom: RIDE_ON[surface],
-              }}
-              className="absolute left-0"
+              style={{ x: vehicleX, y: vehicleY, bottom: RIDE_ON[surface] }}
+              className="absolute inset-x-0"
             >
-              <motion.div style={{ y: hullY }}>
+              {/* Rotation and the swell belong to the vehicle, not to the
+                  full-width track it slides along — rotating the track would
+                  swing it about the frame's centre. */}
+              <motion.div
+                style={{ rotate: vehicleRotate, y: hullY, opacity: vehicleOpacity }}
+                className="w-fit origin-bottom"
+              >
                 <Vehicle mode={mode} width={VEHICLE_WIDTH[mode]} />
               </motion.div>
             </motion.div>
