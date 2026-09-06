@@ -12,6 +12,7 @@ import {
   getPhotobookOrder,
   markFailed,
   markPrinted,
+  outcomeFrom,
   type PhotobookPayload,
 } from "@/lib/photobook/orders";
 
@@ -116,6 +117,19 @@ describe("photobook orders", () => {
     const order = await getPhotobookOrder(OWNER, "order-six-1234");
     expect(order?.status).toBe("failed");
     expect(order?.payload.failure).toBe("render threw");
+  });
+
+  /**
+   * B484. `outcomeFrom` reads `?state=` straight off the URL, so it is the
+   * one place a stray or stale value — a bookmark from before a state was
+   * renamed, or somebody's own typing — could reach `PhotobookPageContent`'s
+   * `OUTCOME_MESSAGE` as something it has no entry for. Refusing it here,
+   * once, is what makes that table's exhaustiveness at the type level also
+   * true at runtime.
+   */
+  test("a state order/route.ts would never send back is not an outcome at all", async () => {
+    expect(await outcomeFrom(OWNER, { state: "refund_failed" })).toBeNull();
+    expect(await outcomeFrom(OWNER, { state: "made-up-state" })).toBeNull();
   });
 
   test("nothing under app/api can reach the order builder", () => {

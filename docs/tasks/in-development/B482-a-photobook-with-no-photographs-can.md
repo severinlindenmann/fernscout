@@ -50,3 +50,42 @@ one enforces.
 - Excluding every photograph, or emptying the trip after previewing, and then
   posting the order form charges nothing and returns a message that says why.
 - The message is a real outcome banner, not a silent no-op.
+
+## Done
+
+Guard added in `app/[user]/photobook/order/route.ts`, right after `planFor`'s
+result is in hand and before `claimOrder` runs: `if (book.photoCount === 0)
+return back_("no_photos");`. Nothing is claimed, built or spent for that
+request — `claimOrder`/`buildPhotobook`/`spend` never run.
+
+`no_photos: "photobook.noPhotos"` added to `OUTCOME_MESSAGE` in
+`PhotobookPageContent.tsx`, reusing the existing disabled-Pay-hint string as
+the ticket suggested — it already says the right thing ("A book needs at
+least one photograph…").
+
+Both `back()`'s and `back_()`'s `state` parameter are now typed
+`PhotobookOutcomeState` (a new export from `lib/photobook/orders.ts`, shared
+with B484's fix) rather than `string`, so this and any future `back_(...)`
+call is checked against the same union the page's message table is checked
+against.
+
+Evidence:
+- `test/photobook-order-route.test.ts` — "a book with no photographs charges
+  nothing, even from a stale tab": `photoCount: 0`, asserts
+  `state=no_photos` in the redirect, and that `claimOrder`, `buildPhotobook`
+  and `spend` were never called. Fails on `main` (route posts through to
+  `claimOrder`/`buildPhotobook`/`spend` and redirects `state=done`), passes
+  after.
+- `npm run verify` — full run, green: build, tsc, eslint (0 errors, 12
+  pre-existing unrelated warnings), vitest (285 files / 3686 passed / 3
+  skipped for Postgres).
+
+**Decided, on the price-staleness question the Work section asked about:**
+the same window is real for price, not just for photo count — the book is
+re-planned at Pay from current disk state, and the owner only ever saw the
+price the last preview quoted. Fixing it (carrying the previewed price
+forward and re-confirming, or building from the exact plan the preview
+produced instead of asking `planFor` again) is a larger, separate design
+decision than this ticket's guard, so it is **not** built here — captured
+instead as B595 rather than absorbed into this diff, per this repo's own
+rule about a second problem found while building one.

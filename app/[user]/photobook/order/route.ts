@@ -3,7 +3,13 @@ import { isOwner } from "@/lib/contacts/session";
 import { balanceOf, spend } from "@/lib/credits";
 import { parseOptions } from "@/lib/photobook/options";
 import { buildPhotobook, followerNames, planFor, priceOf } from "@/lib/photobook/build";
-import { ORDER_ID_RE, claimOrder, markFailed, markPrinted } from "@/lib/photobook/orders";
+import {
+  ORDER_ID_RE,
+  claimOrder,
+  markFailed,
+  markPrinted,
+  type PhotobookOutcomeState,
+} from "@/lib/photobook/orders";
 import { sendPhotobookReceipt } from "@/lib/photobook/receipt";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
 import { getTrip, parseTripRef } from "@/lib/trips";
@@ -24,7 +30,12 @@ export const dynamic = "force-dynamic";
  * build failures could ever intercept. `303` so a reload of the result page
  * cannot repost the form and pay twice.
  */
-function back(user: string, tripId: string, state: string, extra?: Record<string, string>): Response {
+function back(
+  user: string,
+  tripId: string,
+  state: PhotobookOutcomeState,
+  extra?: Record<string, string>,
+): Response {
   const query = new URLSearchParams({ state, ...extra });
   const location = `/${encodeURIComponent(user)}/trips/${encodeURIComponent(tripId)}/photobook?${query}`;
   return new Response(null, { status: 303, headers: { Location: location } });
@@ -85,7 +96,8 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   if (!parsed || parsed.username !== user || !options || !ORDER_ID_RE.test(orderId)) {
     return Response.json({ error: "bad_request" }, { status: 400 });
   }
-  const back_ = (state: string, extra?: Record<string, string>) => back(user, parsed.tripId, state, extra);
+  const back_ = (state: PhotobookOutcomeState, extra?: Record<string, string>) =>
+    back(user, parsed.tripId, state, extra);
 
   // A stale page (the trip was deleted mid-session) or a malformed ref that
   // happened to parse throws here — the same case `preview/route.ts` guards
@@ -101,6 +113,17 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   } catch {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
+
+  // `preview/route.ts` already refuses to call a photograph-less book
+  // `buyable`, and the page disables Pay on that answer — but nothing here
+  // re-checked it, so a stale tab (a preview loaded before every photograph
+  // was excluded, or the trip emptied in another tab) could still post the
+  // form and pay real credits for a padded, text-only book. Checked again
+  // here, before an order is even claimed, so nothing is charged — B482.
+  if (book.photoCount === 0) {
+    return back_("no_photos");
+  }
+
   const credits = priceOf(book, options);
   const payload = {
     trip,

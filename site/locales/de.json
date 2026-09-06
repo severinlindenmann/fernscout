@@ -683,6 +683,7 @@
   "photobook.day.excludeHint": "Seine Seite, seine Fotos und sein Platz im Kapitel entfallen. Die Routenkarte bleibt unverändert.",
   "photobook.day.excludedPreview": "Dieser Tag ist aus dem Buch ausgeschlossen, dafür gibt es hier keine Seite zu zeigen.",
   "photobook.done": "Bestellt. Die Dateien sind bereit, eine Mail ist unterwegs.",
+  "photobook.done.filesInMail": "Die Download-Links stehen in der Mail, die unterwegs ist, nicht hier.",
   "photobook.failed": "Das Buch konnte nicht gebaut werden, deine Credits sind zurück.",
   "photobook.duplicate": "Dieses Buch wird bereits gebaut — ein zweiter Klick startet kein zweites.",
   "photobook.excluded.heading": "Ausgelassene Tage",

@@ -10,20 +10,28 @@ import {
   type DayLayout,
   type DayPlan,
 } from "@/lib/photobook/options";
-import type { PhotobookOutcome } from "@/lib/photobook/orders";
+import type { PhotobookOutcome, PhotobookOutcomeState } from "@/lib/photobook/orders";
 import type { MediaTile, PhotobookEntry } from "@/lib/types";
 import BookLevelView, { type PreviewState } from "./BookLevelView";
 import DayLevelView, { type Drill } from "./DayLevelView";
 import { extractSpreads } from "./previewSlice";
 
-/** Every outcome `order/route.ts` can redirect back with, as a key rather
+/**
+ * Every outcome `order/route.ts` can redirect back with, as a key rather
  * than a sentence baked into this file — the same reasoning as the postcard
- * page's own `RESULTS` table. */
-const OUTCOME_MESSAGE: Record<string, TranslationKey> = {
+ * page's own `RESULTS` table.
+ *
+ * An exact `Record` over `PhotobookOutcomeState` minus `"done"` (handled
+ * below as its own success panel, not a message from this table) rather than
+ * `Record<string, TranslationKey>` — B484. Add a state in `order/route.ts`
+ * without adding its entry here and `tsc` refuses the file, instead of the
+ * owner seeing a blank page for a redirect nobody wrote a message for.
+ */
+const OUTCOME_MESSAGE: Record<Exclude<PhotobookOutcomeState, "done">, TranslationKey> = {
   duplicate: "photobook.duplicate",
   no_credits: "photobook.noCredits",
+  no_photos: "photobook.noPhotos",
   failed: "photobook.failed",
-  refund_failed: "photobook.refundFailed",
 };
 
 /**
@@ -475,7 +483,7 @@ export default function PhotobookPageContent({
         {outcome?.state === "done" ? (
           <div className="mt-6 max-w-xl rounded-lg border-2 border-navy-900 bg-cream-100 px-4 py-4">
             <p className="font-semibold text-navy-900">{t("photobook.done")}</p>
-            {outcome.orderId && outcome.files.length > 0 && (
+            {outcome.orderId && outcome.files.length > 0 ? (
               <ul className="mt-3 space-y-1 text-sm">
                 {outcome.files.map((file) => (
                   <li key={file}>
@@ -488,6 +496,17 @@ export default function PhotobookPageContent({
                   </li>
                 ))}
               </ul>
+            ) : (
+              // `markPrinted`'s payload carries `files` only when the row was
+              // still `submitted` when the build finished — B484. That guard
+              // is correct (B509's review confirmed it keeps a refunded order
+              // from reading as printed) but it means this panel can render
+              // with nothing to link to for an order the owner *did* pay for
+              // and the receipt mail — sent unconditionally, off the real
+              // build result rather than this row — still carries the links.
+              // Saying so beats a success panel that looks like it forgot
+              // them.
+              <p className="mt-3 text-sm text-navy-700">{t("photobook.done.filesInMail")}</p>
             )}
             <a href="?" className="mt-4 inline-block text-sm underline">
               {t("photobook.anotherBook")}
@@ -495,7 +514,7 @@ export default function PhotobookPageContent({
           </div>
         ) : (
           <>
-            {outcome && OUTCOME_MESSAGE[outcome.state] && (
+            {outcome && (
               <p
                 className="mt-6 max-w-xl rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900"
                 role="status"

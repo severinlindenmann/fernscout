@@ -133,12 +133,39 @@ export async function getPhotobookOrder(owner: string, id: string): Promise<Phot
   };
 }
 
+/**
+ * Every state `order/route.ts`'s redirect can carry back to the page — B484.
+ *
+ * `PhotobookOutcome.state` used to be typed `string`, so `OUTCOME_MESSAGE` in
+ * `PhotobookPageContent.tsx` could be missing an entry for a state the route
+ * actually sends and nothing would say so: the page rendered nothing at all
+ * for a redirect it did not recognise, which is exactly how a *future* state
+ * would show the owner — who has often just paid — a blank page. Typed as a
+ * union instead, `OUTCOME_MESSAGE` is declared as an exact `Record` over it
+ * (minus `"done"`, which renders its own success panel rather than a message
+ * from that table), so adding a state here without a matching entry there
+ * fails the typecheck instead of failing silently in a browser.
+ *
+ * `"refund_failed"` is deliberately not a member: B509 reordered the route to
+ * build before spending, so a failed build is never charged and there is
+ * nothing left to refund. The locale string survives, unused, because a
+ * dictionary entry costs nothing to leave and `test/locales.test.ts` only
+ * asks that every *shipped* key exists in every locale, not that every key is
+ * reachable.
+ */
+export const PHOTOBOOK_OUTCOME_STATES = ["done", "duplicate", "no_credits", "no_photos", "failed"] as const;
+export type PhotobookOutcomeState = (typeof PHOTOBOOK_OUTCOME_STATES)[number];
+
+function isOutcomeState(value: string): value is PhotobookOutcomeState {
+  return (PHOTOBOOK_OUTCOME_STATES as readonly string[]).includes(value);
+}
+
 /** What the options page shows above the form, once the button has actually
  * been pressed. `orderId` is carried alongside `files` — rather than left for
  * the page to re-read off `window.location` — so the download links below
  * can be built without touching a browser API that does not exist during the
  * server render. */
-export type PhotobookOutcome = { state: string; orderId: string | null; files: string[] };
+export type PhotobookOutcome = { state: PhotobookOutcomeState; orderId: string | null; files: string[] };
 
 /**
  * Turn `order/route.ts`'s redirect query into what the page needs to render
@@ -157,7 +184,11 @@ export async function outcomeFrom(
 ): Promise<PhotobookOutcome | null> {
   const state = query.state;
   const order = query.order;
-  if (typeof state !== "string") return null;
+  // A stray or stale `?state=` — a bookmarked link from before a state was
+  // renamed, or somebody's own typing — is treated the same as no outcome at
+  // all, rather than reaching the page as a value `OUTCOME_MESSAGE` was never
+  // going to have an entry for.
+  if (typeof state !== "string" || !isOutcomeState(state)) return null;
   if (state !== "done" || typeof order !== "string" || !ORDER_ID_RE.test(order)) {
     return { state, orderId: null, files: [] };
   }

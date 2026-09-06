@@ -683,6 +683,7 @@
   "photobook.day.excludeHint": "Az oldala, a fotói és a helye a fejezetben mind kikerül. Az útvonaltérképet ez nem érinti.",
   "photobook.day.excludedPreview": "Ez a nap ki van hagyva a könyvből, így itt nincs megjeleníthető oldal.",
   "photobook.done": "Megrendelve. A fájlok készen állnak, a levél úton van.",
+  "photobook.done.filesInMail": "A letöltési linkek az úton lévő levélben vannak, nem itt.",
   "photobook.failed": "A könyvet nem sikerült elkészíteni, a kreditek visszakerültek.",
   "photobook.duplicate": "Ez a könyv már készül — egy második kattintás nem indít újat.",
   "photobook.excluded.heading": "Kihagyott napok",
