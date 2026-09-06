@@ -198,7 +198,7 @@ function DayCard({
   // reader to somebody else's site — or to nothing at all.
   const trip = useTrip();
   const { t, formatLongDate } = useI18n();
-  const { money, original } = useMoney();
+  const { spend } = useMoney();
   const lead = day.lead;
   const multi = day.entries.length > 1;
   const cost = summary.cost;
@@ -261,9 +261,7 @@ function DayCard({
             >
               {/* What was actually paid leads — a reader can check it against
                   a receipt, unlike the converted figure. B544. */}
-              {costLocal
-                ? `${original(costLocal.amount, costLocal.currency)} ≈ ${money(cost)}`
-                : money(cost)}
+              {spend(cost, costLocal)}
             </Link>
           </>
         )}

@@ -132,6 +132,33 @@ export function crossRate(from: string, to: string, eurRates: RateTable): number
  * browser and would produce hydration mismatches, the same reason
  * `lib/i18n.ts` carries its own month names.
  */
+/**
+ * The day badge: what a day cost, as paid and as converted — B544.
+ *
+ * One rule in one place because two components draw it and the failure modes
+ * are not obvious from either. `formatMoney` already writes the `≈` whenever
+ * the reader is not looking at the base currency, so a second literal one
+ * between the two figures renders `THB 1'275 ≈ ≈ CHF 33`; the converted
+ * figure here is therefore always asked for it, and never given it twice.
+ *
+ * When the reader has switched *to* the currency the day was paid in, there
+ * is one figure and no `≈` — the converted number would be the same money
+ * twice over, once exactly and once through two rates.
+ */
+export function spendLine(
+  baseAmount: number,
+  local: { amount: number; currency: string } | undefined,
+  display: { currency: string; base: string; factor: number },
+): string {
+  const converted = () =>
+    formatMoney(baseAmount * display.factor, display.currency, {
+      approximate: local !== undefined || display.currency !== display.base,
+    });
+  if (!local) return converted();
+  const paid = formatMoney(local.amount, local.currency);
+  return local.currency === display.currency ? paid : `${paid} ${converted()}`;
+}
+
 export function formatMoney(
   amount: number,
   currency: string,
