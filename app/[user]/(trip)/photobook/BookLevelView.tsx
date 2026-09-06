@@ -1,10 +1,13 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { creditsInRappen, formatChf } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 import type { BookOptions } from "@/lib/photobook/options";
 import type { MediaTile } from "@/lib/types";
 import BookSettingsPanel, { SIZE_LABEL } from "./BookSettingsPanel";
+import { readingHtml } from "./previewSlice";
+import ReadTheBookView, { useHasKeyboard, useSpreadKeys } from "./ReadTheBookView";
 
 export type PreviewState = {
   html: string;
@@ -106,6 +109,12 @@ export default function BookLevelView({
   t: T;
   tn: Tn;
 }) {
+  /** The deliberate step between arranging and ordering — B561. */
+  const [reading, setReading] = useState(false);
+  const strip = useRef<HTMLIFrameElement>(null);
+  const hasKeyboard = useHasKeyboard();
+  useSpreadKeys(strip, "x", !hidden && !reading);
+
   const credits = preview?.credits ?? null;
   const tooPoor = balance !== null && credits !== null && balance < credits;
   const unbuyable = preview?.buyable === false;
@@ -163,6 +172,7 @@ export default function BookLevelView({
           the page below it does not jump. */}
       <div className="-mx-4 sm:mx-0">
         <iframe
+          ref={strip}
           srcDoc={preview?.html ?? ""}
           style={{ aspectRatio: String(preview?.ratio ?? 2) }}
           className="w-full border-0 bg-cream-100 sm:rounded-xl"
@@ -172,6 +182,24 @@ export default function BookLevelView({
 
       <p className="mt-3 text-sm font-semibold text-navy-900">{summary ?? " "}</p>
       <p className="mt-1 text-xs text-navy-600">{t("photobook.composer.tapHint")}</p>
+      {/* Said only where a keyboard exists — a hint about arrow keys on a
+          phone is noise. B561. */}
+      {hasKeyboard && (
+        <p className="mt-1 text-xs text-navy-600">{t("photobook.composer.keyHint")}</p>
+      )}
+
+      {/* The way to read the book before paying for it — B561. Directly under
+          the book and above everything else, because it is the next thing to
+          do with what you have just arranged, not a setting. */}
+      <button
+        type="button"
+        onClick={() => setReading(true)}
+        disabled={!preview}
+        className="mt-4 min-h-11 w-full rounded-full border-2 border-navy-900 px-5 text-sm font-semibold text-navy-900 transition-colors hover:bg-navy-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+      >
+        {t("photobook.read.open")}
+      </button>
+      <p className="mt-1 text-xs text-navy-600">{t("photobook.read.openHint")}</p>
 
       {/* Nothing at all when there is nothing wrong — B549. */}
       {lines.length > 0 && (
@@ -223,7 +251,10 @@ export default function BookLevelView({
 
       {/* What is being bought, what it costs in something a person
           understands, and what happens after the button — B551. */}
-      <div className="mt-5 rounded-xl border-2 border-navy-900 bg-cream-100 p-4">
+      <div
+        id="photobook-order"
+        className="mt-5 scroll-mt-4 rounded-xl border-2 border-navy-900 bg-cream-100 p-4"
+      >
         <h2 className="font-display text-lg font-semibold text-navy-900">
           {t("photobook.orderHeading")}
         </h2>
@@ -282,6 +313,22 @@ export default function BookLevelView({
           )}
         </form>
       </div>
+
+      {/* Reading it, and then ordering it: the button below the book hands
+          back to the order block above rather than carrying a second copy of
+          the form — there is one Pay button on this page and it is that one. */}
+      {reading && preview && (
+        <ReadTheBookView
+          html={readingHtml(preview.html)}
+          summary={summary}
+          onBack={() => setReading(false)}
+          onOrder={() => {
+            setReading(false);
+            document.getElementById("photobook-order")?.scrollIntoView({ behavior: "smooth" });
+          }}
+          t={t}
+        />
+      )}
     </div>
   );
 }
