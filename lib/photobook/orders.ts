@@ -141,7 +141,6 @@ export async function getPhotobookOrder(owner: string, id: string): Promise<Phot
 }
 
 /**
-<<<<<<< HEAD
  * Every state `order/route.ts`'s redirect can carry back to the page — B484.
  *
  * `PhotobookOutcome.state` used to be typed `string`, so `OUTCOME_MESSAGE` in
@@ -166,7 +165,9 @@ export type PhotobookOutcomeState = (typeof PHOTOBOOK_OUTCOME_STATES)[number];
 
 function isOutcomeState(value: string): value is PhotobookOutcomeState {
   return (PHOTOBOOK_OUTCOME_STATES as readonly string[]).includes(value);
-=======
+}
+
+/**
  * Every printed order for one journal, newest first — B483's retention needs
  * to know which ones are oldest, and `printed` is deliberately the only
  * status considered: a `submitted` order is a build in progress and must
@@ -210,7 +211,6 @@ export async function clearPrunedFiles(
     .where("owner_id", "=", owner)
     .where("kind", "=", "photobook")
     .execute();
->>>>>>> b483-photobook-quota
 }
 
 /** What the options page shows above the form, once the button has actually
