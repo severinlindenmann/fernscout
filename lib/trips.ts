@@ -361,6 +361,38 @@ function parseListed(
   return raw;
 }
 
+/**
+ * `teaser:` — a closed trip saying that it exists. B587.
+ *
+ * Refused on a public trip rather than ignored, and for the same reason
+ * `parseListed` refuses the widening direction: a key that is quietly dropped
+ * is a key its author believes is working. On a public trip there is nothing
+ * to tease — `listed: true` already advertises the whole trip, and `listed:
+ * false` is a deliberate "reachable by link, never advertised", which a teaser
+ * card would contradict.
+ */
+function parseTeaser(raw: unknown, visibility: TripVisibility, folder: string): boolean {
+  if (raw === undefined || raw === null) return false;
+
+  if (typeof raw !== "boolean") {
+    console.warn(
+      `[trips] ${folder}/trip.md has teaser "${raw}", which is not true or false — ignoring it.`,
+    );
+    return false;
+  }
+
+  if (raw && visibility === "public") {
+    console.warn(
+      `[trips] ${folder}/trip.md says teaser: true, but the trip is public — there is ` +
+        `nothing to tease. teaser: advertises a guest or private trip as a locked card; ` +
+        `use listed: to decide whether a public trip is advertised.`,
+    );
+    return false;
+  }
+
+  return raw;
+}
+
 function parseVisibility(
   rawVisibility: unknown,
   rawListed: unknown,
@@ -405,6 +437,7 @@ export const KNOWN_TRIP_FIELDS = new Set([
   "test",
   "visibility",
   "listed",
+  "teaser",
   "costsVisibility",
   "tracks",
 ]);
@@ -592,6 +625,10 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
     );
   }
 
+  // Read before the object below because `teaser:` is only meaningful against
+  // the visibility this file ended up with — not against the word it wrote.
+  const visibility = parseVisibility(data.visibility, data.listed, folder);
+
   return {
     id,
     username,
@@ -620,7 +657,8 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
     // that quietly accepted "no" or "false" as truthy would put a banner on
     // somebody's actual holiday.
     test: data.test === true || undefined,
-    ...parseVisibility(data.visibility, data.listed, folder),
+    ...visibility,
+    teaser: parseTeaser(data.teaser, visibility.visibility, folder) || undefined,
     costsVisibility: parseCostsVisibility(data.costsVisibility, folder),
     // Absent is "all of them", so a trip written before B531 asks for
     // everything — which is the default an owner should not have to find, and

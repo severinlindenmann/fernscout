@@ -145,6 +145,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     // B178.
     costsVisibility: (body.costsVisibility ?? undefined) as never,
     listed: typeof body.listed === "boolean" ? body.listed : undefined,
+    teaser: typeof body.teaser === "boolean" ? body.teaser : undefined,
     test: body.test === true,
     intro: str("intro"),
     // The three block fields, raw for the same reason `costsVisibility` is:

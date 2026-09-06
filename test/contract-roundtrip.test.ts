@@ -46,6 +46,9 @@ const TRIP_SAMPLES: Record<string, unknown> = {
   accent: "green",
   visibility: "guest",
   listed: false,
+  // Only meaningful on a closed trip, which the `visibility` above makes this
+  // one — B587.
+  teaser: true,
   costsVisibility: "guests",
   test: true,
   intro: "Die Einleitung.",

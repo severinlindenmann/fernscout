@@ -66,7 +66,8 @@ export async function GET(
 }
 
 /**
- * Change visibility, listed, or both in one call — send only what changes.
+ * Change visibility, listed, teaser, or any of them in one call — send only
+ * what changes.
  * `{"visibility": "guest"}` is the whole of what the contacts page's banner
  * now asks for. `{"listed": false}` on its own is the old `unlisted`.
  *
@@ -105,6 +106,7 @@ export async function PATCH(
     trip: ref,
     visibility: result.visibility,
     listed: result.listed,
+    teaser: result.teaser,
     note: result.widened
       ? `This widens who may read "${trip}": everything already published on it — every day, ` +
         "its costs where they're public — is now open to a broader audience than it was a " +

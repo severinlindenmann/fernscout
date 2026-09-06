@@ -1179,6 +1179,10 @@ describe("the trip fields that had no writer", () => {
       // B531 — what the trip keeps track of, and therefore what every day
       // written into it is asked for.
       "tracks",
+      // B587 — a closed trip saying that it exists. Which is why the trip
+      // below is `guest` rather than public: the key is refused on a trip
+      // anybody may read.
+      "teaser",
     ];
     const decidedAgainst = {
       cover: "no media exists when a trip is created — B245",
@@ -1195,8 +1199,9 @@ describe("the trip fields that had no writer", () => {
       tagline: "one line",
       status: "upcoming",
       accent: "coral",
-      visibility: "public",
+      visibility: "guest",
       listed: false,
+      teaser: true,
       costsVisibility: "guests",
       test: true,
       people: [{ name: "Ana", email: "ana@example.test" }],
