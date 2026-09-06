@@ -230,7 +230,7 @@ Do not edit them by hand; run the script.
 | [B605](in-development/B605-a-photograph-on-a-day-cannot.md) | A photograph on a day cannot be removed over the API | FEATURE | medium | medium | `302202e0` |
 | [B614](in-development/B614-the-owner-s-own-copy-of.md) | The owner's own copy of a day is charged as if they were a guest, and they cannot be reached on WhatsApp at all | FEATURE | medium | high | `46b8aec7` |
 
-## testing (288)
+## testing (289)
 
 ### security (2)
 
@@ -522,7 +522,7 @@ Do not edit them by hand; run the script.
 | [B506](testing/ops/B506-nobody-has-looked-at-the-photobook.md) | Nobody has looked at the photobook composer or the drawn travellers in a browser | OPS | high | medium | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
-### docs-and-skills (22)
+### docs-and-skills (23)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -531,6 +531,7 @@ Do not edit them by hand; run the script.
 | [B445](testing/docs-and-skills/B445-there-is-nothing-a-guest-a.md) | There is nothing a guest, a buddy or a new owner can read that explains what they can do here | DOCS | high | medium | — |
 | [B525](testing/docs-and-skills/B525-the-trip-script-asks-about-what.md) | The trip script asks about what is repairable and stays quiet about what is permanent | DOCS | high | low | — |
 | [B530](testing/docs-and-skills/B530-the-guide-shows-a-trip-s.md) | The guide shows a trip's minimum and calls it an example, so nothing tells an agent what a trip can carry | DOCS | high | low | — |
+| [B612](testing/docs-and-skills/B612-the-agent-guide-teaches-photographs-without.md) | The agent guide teaches photographs without saying one can be held back | DOCS | high | low | — |
 | [B143](testing/docs-and-skills/B143-task-ids-collide-when-parallel-sessions.md) | Task ids collide when parallel sessions capture by hand, which is what B99 was meant to prevent | DOCS | medium | medium | — |
 | [B144](testing/docs-and-skills/B144-enterworktree-refuses-for-a-dispatched-subagent.md) | EnterWorktree refuses for a dispatched subagent, so work-on-a-task's second step cannot be followed | DOCS | medium | low | — |
 | [B215](testing/docs-and-skills/B215-the-manual-privacy-tests-still-walk.md) | The manual privacy tests still walk an operator through a trip password | DOCS | medium | low | — |
