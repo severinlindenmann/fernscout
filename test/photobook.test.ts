@@ -25,7 +25,8 @@ import {
   type BookSource,
   type BookVolume,
 } from "@/lib/photobook/plan";
-import { formatDateRange, measure, toWinAnsi, wrap } from "@/lib/photobook/text";
+import { formatDate, formatDateRange, measure, toWinAnsi, wrap } from "@/lib/photobook/text";
+import { bookStrings } from "@/lib/photobook/strings";
 import { renderCover, renderVolume } from "@/lib/photobook/render";
 import {
   buildCloudprinterRequest,
@@ -574,11 +575,39 @@ describe("text", () => {
   });
 
   test("collapses a date range to what the two ends do not share", () => {
-    expect(formatDateRange("2026-08-14", "2026-08-28")).toBe("14–28 August 2026");
-    expect(formatDateRange("2026-08-14", "2026-09-02")).toBe(
+    const en = bookStrings("en");
+    expect(formatDateRange("2026-08-14", "2026-08-28", en)).toBe("14–28 August 2026");
+    expect(formatDateRange("2026-08-14", "2026-09-02", en)).toBe(
       "14 August – 2 September 2026",
     );
-    expect(formatDateRange("2026-08-14", "2026-08-14")).toBe("14 August 2026");
+    expect(formatDateRange("2026-08-14", "2026-08-14", en)).toBe("14 August 2026");
+    expect(formatDateRange("2025-12-31", "2026-01-02", en)).toBe(
+      "31 December 2025 – 2 January 2026",
+    );
+  });
+
+  test("formats a German date with the ordinal point after the day", () => {
+    const de = bookStrings("de");
+    expect(formatDate("2025-09-05", de)).toBe("5. September 2025");
+    expect(formatDateRange("2026-08-14", "2026-08-28", de)).toBe("14.–28. August 2026");
+    expect(formatDateRange("2026-08-14", "2026-09-02", de)).toBe(
+      "14. August – 2. September 2026",
+    );
+    expect(formatDateRange("2025-12-31", "2026-01-02", de)).toBe(
+      "31. Dezember 2025 – 2. Januar 2026",
+    );
+  });
+
+  test("formats a Hungarian date year-first, month lower case, day pointed", () => {
+    const hu = bookStrings("hu");
+    expect(formatDate("2025-09-05", hu)).toBe("2025. szeptember 5.");
+    expect(formatDateRange("2026-08-14", "2026-08-28", hu)).toBe("2026. augusztus 14–28.");
+    expect(formatDateRange("2026-08-14", "2026-09-02", hu)).toBe(
+      "2026. augusztus 14. – szeptember 2.",
+    );
+    expect(formatDateRange("2025-12-31", "2026-01-02", hu)).toBe(
+      "2025. december 31. – 2026. január 2.",
+    );
   });
 });
 

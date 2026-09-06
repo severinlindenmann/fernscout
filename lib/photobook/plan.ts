@@ -1221,7 +1221,7 @@ function materialise(
         kind: "title",
         title: source.trip.title,
         tagline: source.trip.tagline,
-        dates: formatDateRange(source.trip.start, source.trip.end),
+        dates: formatDateRange(source.trip.start, source.trip.end, s),
         travellers: source.travellers.join(" & "),
         figures: source.figures,
         volume:
@@ -1259,7 +1259,7 @@ function materialise(
         half: draft.half,
         view,
         points,
-        caption: `${plottable.length} stops, ${formatDateRange(source.trip.start, source.trip.end)}`,
+        caption: `${plottable.length} stops, ${formatDateRange(source.trip.start, source.trip.end, s)}`,
       };
     }
 
@@ -1274,7 +1274,7 @@ function materialise(
         label: fill(s.chapter, { index: String(draft.index), of: String(draft.of) }),
         country: draft.chapter.country,
         countryCode: draft.chapter.countryCode,
-        dates: formatDateRange(days[0].date, days[days.length - 1].date),
+        dates: formatDateRange(days[0].date, days[days.length - 1].date, s),
         stats: `${days.length} ${days.length === 1 ? "day" : "days"} · ${photos} ${photos === 1 ? "photograph" : "photographs"}`,
         index: draft.index,
         of: draft.of,
@@ -1343,7 +1343,7 @@ function materialise(
         side,
         kind: "day",
         date: day.date,
-        dateLabel: skip > 0 ? "" : formatDate(day.date),
+        dateLabel: skip > 0 ? "" : formatDate(day.date, s),
         title,
         location: [day.location, day.country].filter(Boolean).join(", "),
         lines,
@@ -1452,8 +1452,8 @@ function materialise(
       // The trip's own first and last day, written as the book writes a date.
       // Formatting belongs here rather than in `charts.ts`, which draws.
       const spanOf = (dates: string[]) => ({
-        firstLabel: formatDate(dates[0] ?? source.trip.start),
-        lastLabel: formatDate(dates[dates.length - 1] ?? source.trip.end),
+        firstLabel: formatDate(dates[0] ?? source.trip.start, s),
+        lastLabel: formatDate(dates[dates.length - 1] ?? source.trip.end, s),
       });
       const shapes =
         draft.topic === "spend"
@@ -1507,14 +1507,14 @@ function materialise(
         heading: s.colophon,
         lines: [
           source.trip.title,
-          formatDateRange(source.trip.start, source.trip.end),
+          formatDateRange(source.trip.start, source.trip.end, s),
           "",
           source.travellers.length > 0
         ? fill(s.colophonBy, { names: source.travellers.join(" & ") })
         : s.colophonByNobody,
           source.siteUrl ? fill(s.colophonPublished, { url: source.siteUrl }) : "",
           "",
-          fill(s.colophonMade, { date: formatDate(source.madeOn) }),
+          fill(s.colophonMade, { date: formatDate(source.madeOn, s) }),
           // The trim size, which is what a colophon conventionally names. The
           // bleed and the DPI target used to be here too — a print
           // technician's readout, in English whatever the book's language,
@@ -1785,7 +1785,7 @@ function coverFor(
     frontPhoto,
     title: source.trip.title,
     subtitle: volume.of > 1 ? fill(s.volume, { index: String(volume.index), of: String(volume.of) }) : source.trip.tagline,
-    dates: formatDateRange(source.trip.start, source.trip.end),
+    dates: formatDateRange(source.trip.start, source.trip.end, s),
     spineText: `${source.trip.title} · ${source.trip.start.slice(0, 4)}`,
     backLines: wrap(
       source.trip.intro.split(/\n{2,}/)[0]?.replace(/\s*\n\s*/g, " ").trim() ?? "",
