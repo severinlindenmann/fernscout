@@ -300,10 +300,20 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
  *
  * `resolveCapabilities` needs no special case for any of this: it checks the
  * server first and returns early, so this table cannot widen anything.
+ *
+ * **`whatsapp` is the same kind of switch, and joins it in B611.** The
+ * journal-level key is reached from one place an owner can actually see — the
+ * channels panel on `/<user>/me`, B463 — and there it reads as *stop sending
+ * my days to WhatsApp*, exactly like mail. Read absence as "no" and every
+ * journal that has never named it is muted, which is the state every journal
+ * on this instance was in: the operator had paid for the number, the server
+ * said yes, and no contact was ever offered the channel. Absence is now no
+ * opinion; a written `false` is still a mute.
  */
 const USER_DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   ...DEFAULT_FEATURES,
   mail: { ...DEFAULT_FEATURES.mail, enabled: true },
+  whatsapp: { ...DEFAULT_FEATURES.whatsapp, enabled: true },
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {

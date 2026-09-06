@@ -1,7 +1,7 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import { hasSwitchedOff, isEnabled, resolveCapabilities } from "./capabilities";
+import { SERVER_ONLY, hasSwitchedOff, isEnabled, resolveCapabilities } from "./capabilities";
 import {
   clearConfigCache,
   FEATURE_NAMES,
@@ -620,6 +620,22 @@ export function setJournalFeatures(
       message:
         `Name at least one capability to switch on or off: ` +
         `{"features": {"contacts": true}}. Known: ${FEATURE_NAMES.join(", ")}.`,
+    };
+  }
+
+  // The two printing capabilities have no journal-level answer at all since
+  // B611 — writing the key would leave a flag in the file that nothing reads,
+  // and answering `ok` to "turn my photobook off" while the button stays is
+  // worse than refusing. The operator's `site/config.json` is the only place.
+  const refused = wanted.find(([name]) => SERVER_ONLY.includes(name));
+  if (refused) {
+    return {
+      ok: false,
+      error: "capability_not_yours",
+      message:
+        `"${refused[0]}" is decided by this server for every journal on it, so it cannot be ` +
+        `switched from a journal's own config — it costs the operator money at a printer. ` +
+        `Ask the operator to change features.${refused[0]} in site/config.json. Nothing was changed.`,
     };
   }
 

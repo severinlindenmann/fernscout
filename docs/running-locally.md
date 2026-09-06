@@ -120,14 +120,15 @@ one-time code is in the file.
 
 ```bash
 # 1. The capabilities the page needs, in site/config.json — the *server's*
-#    switches. `credits` is asked of the instance; `photobook` is asked of the
-#    journal too, so it needs to be on in content/<user>/config.json as well.
+#    switches, and since B611 the only place either of these is asked: a
+#    journal has no vote on `photobook` or `postcards`, so nothing needs
+#    adding to content/<user>/config.json.
 #    Leave `contacts` off unless you have set CONTACTS_ENCRYPTION_KEY: the boot
 #    refuses a capability it cannot honour, which is the point of it.
 #
 #      features.auth.enabled       true
 #      features.credits.enabled    true
-#      features.photobook.enabled  true            (server *and* journal)
+#      features.photobook.enabled  true
 #      features.mail               { enabled: true, transport: "file" }
 
 # 2. A database, and a secret to sign sessions with.

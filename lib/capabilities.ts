@@ -185,6 +185,34 @@ function hasDatabase(): boolean {
 }
 
 /**
+ * The two printing capabilities are the server's decision, for every journal.
+ *
+ * They cost the *operator* money and an account with a printer, and they are
+ * paid for in credits the operator issues. So "may this journal order a book"
+ * is the operator's answer, and a journal's own `config.json` is neither where
+ * it is granted nor where it is refused: the per-user check below is skipped
+ * for these two entirely.
+ *
+ * B611, and the shape it replaces is why. They were ordinary opt-ins, so a
+ * journal that had never written the word had no photobook button and no
+ * postcard proposal, and nothing on the page said why — "not enabled by
+ * <you>" is not a sentence an owner can act on when they never wrote it.
+ * Every journal on this instance was in that state; the demo was the only one
+ * that was not, because somebody had edited its file by hand.
+ *
+ * `logging` and `credits` are server-decided too and are deliberately not
+ * here: they are not per-journal *questions* at all, so nothing reads them
+ * with a username and there is no check to skip. `whatsapp` is not here
+ * either — it went the other way, to a user-level default of on, because it
+ * has a mute the owner can reach (`/<user>/me`, B463) and a dead switch is
+ * worse than an opt-in. See `USER_DEFAULT_FEATURES` in lib/config.ts.
+ *
+ * A key left in an existing `config.json` is ignored rather than an error —
+ * files people already wrote must keep parsing.
+ */
+export const SERVER_ONLY: readonly FeatureName[] = ["photobook", "postcards"];
+
+/**
  * Server capability is a ceiling; user config is an opt-in inside it.
  *
  * A capability is on for a user only when the server *can* provide it — it has
@@ -192,6 +220,9 @@ function hasDatabase(): boolean {
  * switch on something the server cannot do, which is what keeps "enabled but
  * unconfigured" a server-side boot error rather than something a user could
  * trigger from their own config file.
+ *
+ * `SERVER_ONLY` above is the exception, and only in the second half: the
+ * server's answer is still a ceiling, the journal simply has no vote under it.
  */
 function resolveOne(name: FeatureName, username?: string): CapabilityState {
   const feature = loadServerConfig().features[name];
@@ -210,7 +241,7 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
     // it lands here, and for `mail` only a journal that wrote `false` does —
     // absence there inherits the server's answer instead. `USER_DEFAULT_FEATURES`
     // in lib/config.ts carries the reasoning; B60 is what it cost to get wrong.
-    if (!user.features[name]?.enabled) {
+    if (!SERVER_ONLY.includes(name) && !user.features[name]?.enabled) {
       return { name, enabled: false, reason: `not enabled by ${username}` };
     }
   }

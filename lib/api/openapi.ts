@@ -2795,7 +2795,10 @@ export function openApiDocument() {
             "permanent (B220).\n\nCapabilities can only ask for what the server already " +
             "provides: the server's own config is a ceiling, and asking to exceed it is " +
             "refused with the reason rather than written and silently ignored. Switching a " +
-            "capability *off* always works.\n\n**Capabilities and the rest are two calls.** " +
+            "capability *off* always works, except for the two the server decides alone: " +
+            "`photobook` and `postcards` cost the operator money at a printer, are on for " +
+            "every journal the server has them on for, and either direction is refused with " +
+            "`capability_not_yours`.\n\n**Capabilities and the rest are two calls.** " +
             "A body naming `features` alongside another field is `400 mixed_change` and " +
             "writes nothing: each call rewrites config.json whole, reads it back, and " +
             "restores the previous bytes if it does not load, so a request doing that twice " +
@@ -2890,8 +2893,10 @@ export function openApiDocument() {
             "400": {
               description:
                 "An unknown capability, a non-boolean, an unwritable field (`owner`, " +
-                "`baseCurrency`, `media`), a capability this server does not provide, or " +
-                "`features` sent together with a profile field (`mixed_change`)",
+                "`baseCurrency`, `media`), a capability this server does not provide, one " +
+                "the server decides for every journal (`capability_not_yours`: `photobook`, " +
+                "`postcards`), or `features` sent together with a profile field " +
+                "(`mixed_change`)",
             },
             "401": { description: "Missing or invalid token" },
             "403": {

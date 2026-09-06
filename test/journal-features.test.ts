@@ -174,6 +174,28 @@ describe("switching a capability on", () => {
   });
 });
 
+describe("the two the server decides alone — B611", () => {
+  test.each([true, false])("a journal cannot switch photobook %s", (enabled) => {
+    // Both directions: on would be a grant it does not have, off would be a
+    // key written into the file that nothing reads.
+    const result = setJournalFeatures("ana", { photobook: enabled });
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("unreachable");
+    expect(result.error).toBe("capability_not_yours");
+    expect((rawConfig().features as Record<string, unknown>).photobook).toBeUndefined();
+  });
+
+  test("postcards is refused the same way, and refusing writes nothing at all", () => {
+    const result = setJournalFeatures("ana", { postcards: false, contacts: true });
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("unreachable");
+    expect(result.error).toBe("capability_not_yours");
+    // `contacts` was legitimate and is still unwritten: the refusal is the
+    // whole request's, not this one key's.
+    expect((rawConfig().features as Record<string, unknown>).contacts).toBeUndefined();
+  });
+});
+
 describe("the server is still the ceiling", () => {
   test("a journal cannot switch on what this server does not provide", () => {
     // Contacts off on the server: no key, no server-side opt-in.

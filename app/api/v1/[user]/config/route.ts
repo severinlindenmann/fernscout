@@ -1,6 +1,6 @@
 import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
 import { SESSION_SCOPE } from "@/lib/auth";
-import { resolveCapabilities } from "@/lib/capabilities";
+import { SERVER_ONLY, resolveCapabilities } from "@/lib/capabilities";
 import { FEATURE_NAMES, type FeatureName } from "@/lib/config";
 import {
   JOURNAL_FIELD_REFUSALS,
@@ -76,10 +76,15 @@ function view(username: string) {
   // server-resolved one, the same `/status` and `/api/health` report, is.
   // B408: a journal's config previously showed `false` for a server-enabled
   // `credits` because it read the unused per-journal flag instead.
+  //
+  // `SERVER_ONLY` — the two printing capabilities — is the same case and was
+  // the same bug, one layer along: since B611 nothing consults their
+  // per-journal flag, so reading it here would report `false` for a journal
+  // that can order a book today.
   const serverOnly = resolveCapabilities();
   for (const name of FEATURE_NAMES) {
     features[name] =
-      name === "logging" || name === "credits"
+      name === "logging" || name === "credits" || SERVER_ONLY.includes(name)
         ? serverOnly[name].enabled
         : user.features[name].enabled;
   }
