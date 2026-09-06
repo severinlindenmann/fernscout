@@ -18,14 +18,16 @@ import { mailWouldCost } from "@/lib/digest/dayLetter";
  * restated with no trip to ask `mayMailTrip` about — the journal-wide, most-
  * permissive figure. For a `public` trip `mayMailTrip` is unconditionally
  * `true` (`isOpenToLink`), so `mailWouldCost` for a public trip counts
- * exactly the contacts `optedInCounts` does, plus the owner's own copy that
- * `recipientsFor` always adds. That offset — not a second definition of
- * "opted in" — is the only difference this test allows.
+ * exactly the contacts `optedInCounts` does — with no offset at all since
+ * B614, because the owner's own copy is still sent and is no longer charged
+ * for. That is what makes these two numbers straightforwardly equal; before,
+ * they differed by the owner's own credit and every test here had to know it.
  *
- * WhatsApp is not asserted here: `dayWhatsapp.ts`'s own `recipientsFor` adds
- * a further filter this panel's simplified count deliberately does not
- * (`toE164` on the stored number), which is itself covered by the same "up
- * to N" wording — that gap is documented already, not tested twice.
+ * WhatsApp is not asserted here — `test/whatsapp.test.ts` owns that channel.
+ * The gap this comment used to describe is gone: the count applies `toE164`
+ * to a stored number exactly as `dayWhatsapp.ts`'s own `recipientsFor` does,
+ * so a consent over a number that cannot be dialled is no longer quoted as a
+ * credit. B614.
  */
 
 const OWNER = "alex";
@@ -147,18 +149,15 @@ describe("optedInCounts against the send it is meant to predict", () => {
     await addContact("said-no-thanks@example.test", { wantsEmailDigest: false });
     await addContact("never-approved@example.test", { wantsEmailDigest: true, approve: false });
 
-    const counts = optedInCounts(await listContacts(OWNER), OWNER_EMAIL);
+    const counts = optedInCounts(await listContacts(OWNER), { email: OWNER_EMAIL });
     const cost = await mailWouldCost(OWNER, "alex/open-road");
 
     // One contact is active and opted in; one declined; one was never
-    // approved. `recipientsFor` always adds the owner's own copy, so the
-    // journal-wide figure is two — and this is the assertion that keeps the
-    // page's price honest: given the owner's address, the number the panel
-    // prints is the number a public trip's send actually charges, with no
-    // "+ 1" left for a reader to know about. Called without the address it
-    // would be 1, which is what the panel used to show and what would have
-    // understated every mail send by a credit.
-    expect(counts.email).toBe(2);
+    // approved. The owner's own copy still goes out and is free — B614 — so
+    // the journal-wide figure is one, and this is the assertion that keeps
+    // the page's price honest: the number the panel prints is the number a
+    // public trip's send actually charges.
+    expect(counts.email).toBe(1);
     expect(cost).toBe(counts.email);
   });
 
@@ -167,14 +166,14 @@ describe("optedInCounts against the send it is meant to predict", () => {
     await addContact(OWNER_EMAIL, { wantsEmailDigest: true });
     await addContact("someone-else@example.test", { wantsEmailDigest: true });
 
-    const counts = optedInCounts(await listContacts(OWNER), OWNER_EMAIL);
+    const counts = optedInCounts(await listContacts(OWNER), { email: OWNER_EMAIL });
     const cost = await mailWouldCost(OWNER, "alex/open-road");
 
     // `recipientsFor` skips a contact at the owner's own address, having
-    // already added the owner's copy — so the count must too, or an owner
-    // subscribed to their own journal is quoted one credit more than they
-    // will be charged.
-    expect(counts.email).toBe(2);
+    // already added the owner's own free copy — so the count must skip them
+    // too, or an owner subscribed to their own journal is quoted a credit
+    // nobody is going to be charged. Only the other reader is billed.
+    expect(counts.email).toBe(1);
     expect(cost).toBe(counts.email);
   });
 
@@ -182,15 +181,16 @@ describe("optedInCounts against the send it is meant to predict", () => {
     writeTrip("secret", "private");
     await addContact("just-a-reader@example.test", { wantsEmailDigest: true });
 
-    const counts = optedInCounts(await listContacts(OWNER), OWNER_EMAIL);
+    const counts = optedInCounts(await listContacts(OWNER), { email: OWNER_EMAIL });
     const cost = await mailWouldCost(OWNER, "alex/secret");
 
     // The reader is opted in journal-wide but was never on this trip and
     // holds no read grant, so a private trip's own send does not reach them
-    // — only the owner's copy goes out. This is the gap "up to N" is
-    // written to cover, not a bug in either number.
-    expect(counts.email).toBe(2);
-    expect(cost).toBe(1);
+    // — only the owner's own copy goes out, and that one is free. So the
+    // trip costs nothing while the panel still says "up to 1": the gap that
+    // wording exists to cover, not a bug in either number.
+    expect(counts.email).toBe(1);
+    expect(cost).toBe(0);
     expect(cost).toBeLessThan(counts.email);
   });
 });
