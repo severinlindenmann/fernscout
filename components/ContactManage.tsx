@@ -268,6 +268,7 @@ export default function ContactManage({
               locale={locale}
               label={t("contact.addrLine1")}
               attribution={t("contact.addressLookupAttribution")}
+            unavailable={t("contact.addressLookupUnavailable")}
             />
           </div>
           {(

@@ -77,13 +77,15 @@ function providerConfig(): { url: string } {
 /**
  * Ask the configured provider for real addresses matching `query`.
  *
- * Never throws. A provider that times out, refuses, or answers nonsense is
- * indistinguishable here from one that simply has nothing to say — a
- * suggestion is a shortcut, never a lock, so a failure here must read to the
- * caller exactly like "no matches" rather than as an error the reader has to
- * do something about.
+ * Never throws. Returns `null` — not `[]` — when the provider timed out,
+ * refused, or answered nonsense: that is a failure the reader should be told
+ * about, and it must stay distinguishable from a `[]` the provider returned
+ * on purpose because nothing matched. B639: the two used to collapse into
+ * the same empty list, which is what let a rate-limited provider sit silent
+ * for a week before anyone noticed. The route and the field are what turn
+ * `null` into a message; this module's job is only to keep the two apart.
  */
-export async function lookupAddresses(query: string, locale: string): Promise<AddressSuggestion[]> {
+export async function lookupAddresses(query: string, locale: string): Promise<AddressSuggestion[] | null> {
   const { url } = providerConfig();
   const lang = SUPPORTED_LANGS.has(locale) ? locale : "en";
   const key = process.env.ADDRESS_LOOKUP_API_KEY;
@@ -92,7 +94,7 @@ export async function lookupAddresses(query: string, locale: string): Promise<Ad
   try {
     target = new URL(url);
   } catch {
-    return [];
+    return null;
   }
   target.searchParams.set("q", query);
   target.searchParams.set("limit", String(MAX_RESULTS));
@@ -102,10 +104,10 @@ export async function lookupAddresses(query: string, locale: string): Promise<Ad
   let body: { features?: PhotonFeature[] };
   try {
     const response = await fetch(target, { signal: AbortSignal.timeout(5000) });
-    if (!response.ok) return [];
+    if (!response.ok) return null;
     body = (await response.json()) as { features?: PhotonFeature[] };
   } catch {
-    return [];
+    return null;
   }
 
   const out: AddressSuggestion[] = [];

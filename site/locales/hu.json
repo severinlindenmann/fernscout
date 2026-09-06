@@ -30,6 +30,7 @@
   "contact.address": "Postai cím",
   "contact.addressHint": "csak ha szeretnél igazi képeslapot a postaládádba",
   "contact.addressLookupAttribution": "Címek az OpenStreetMap-től",
+  "contact.addressLookupUnavailable": "A címkeresés most nem válaszol — a címet továbbra is beírhatod magad.",
   "contact.adminAddGuest": "Vendég hozzáadása",
   "contact.adminAddressHint": "csak ha szeretne igazi képeslapot kapni",
   "contact.adminAddressHintNoPostcards": "megmarad, akkor is, ha soha nem nyomtatunk képeslapot",

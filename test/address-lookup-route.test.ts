@@ -112,6 +112,20 @@ describe("the capability", () => {
   });
 });
 
+describe("the provider failing", () => {
+  beforeEach(() => writeConfigs({ enabled: true, provider: "photon" }));
+
+  test("a refusal is 502, not a 200 with an empty list (B639)", async () => {
+    // Before B639 this came back `{ results: [] }` with a 200 — identical to
+    // a genuine no-match, which is what let a failing provider go unnoticed.
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 502 })));
+    const response = await request({ q: "Bahnhofstrasse" });
+    expect(response.status).toBe(502);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toBe("lookup_unavailable");
+  });
+});
+
 describe("query length", () => {
   beforeEach(() => writeConfigs({ enabled: true, provider: "photon" }));
 
