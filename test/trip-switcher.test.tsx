@@ -31,7 +31,7 @@ const site: SiteSummary = {
   signedIn: false,
   hasIdentity: false,
   canSignIn: false,
-  costsEnabled: true,
+  analyticsEnabled: true,
 };
 
 const trips: TripSummary[] = [

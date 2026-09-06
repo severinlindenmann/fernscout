@@ -2,17 +2,38 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Images, Map, Wallet, Compass, Search, UserRound } from "lucide-react";
+import { BookOpen, Images, Map, ChartNoAxesColumn, Compass, Search, UserRound } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import { useSite } from "./SiteProvider";
 import { useTrip } from "./TripProvider";
 import type { TranslationKey } from "@/lib/i18n";
 
-const LINKS = [
+const LINKS: {
+  href: string;
+  key: TranslationKey;
+  Icon: typeof BookOpen;
+  /** Other paths this tab owns, for the active state. */
+  also?: string[];
+}[] = [
   { href: "/", key: "nav.story" as TranslationKey, Icon: BookOpen },
   { href: "/gallery", key: "nav.gallery" as TranslationKey, Icon: Images },
   { href: "/map", key: "nav.map" as TranslationKey, Icon: Map },
-  { href: "/costs", key: "nav.costs" as TranslationKey, Icon: Wallet },
+  /**
+   * Analytics, and the leaves that hang off it — B557.
+   *
+   * `also` exists because the hub's own children keep their own URLs: the
+   * costs page is still `/<user>/costs` and nothing about a hub was worth
+   * breaking a bookmark or a printed photobook reference for. A prefix match
+   * on `/analytics` alone would therefore leave the whole row unhighlighted
+   * while the reader is standing on one of its pages, which reads as having
+   * navigated out of the site.
+   */
+  {
+    href: "/analytics",
+    key: "nav.analytics" as TranslationKey,
+    Icon: ChartNoAxesColumn,
+    also: ["/costs", "/weather"],
+  },
 ];
 
 /**
@@ -58,9 +79,9 @@ export default function SiteNav() {
   const userBase = site.base;
   const userHref = (p: string) => (p === "/" ? userBase : `${userBase}${p}`);
   // Pages like /trips, /search and /me have no trip in context. Falling back
-  // to the bare path there sent "Costs" to `/costs` — nobody's journal, and an
+  // to the bare path there sent "Analytics" to `/analytics` — nobody's journal, and an
   // error page. The journal's own base is the right answer: it resolves to the
-  // current trip, which is what a reader clicking "Costs" from the trip list
+  // current trip, which is what a reader clicking "Analytics" from the trip list
   // is asking for.
   const href = trip?.href ?? userHref;
   const base = trip?.base ?? userBase;
@@ -72,14 +93,17 @@ export default function SiteNav() {
   const strangerDoor = site.canSignIn && !site.signedIn;
 
   /**
-   * Costs is a capability, so the tab is one too. B165.
+   * Every analysis is a capability, so the tab is one too. B165, B557.
    *
-   * With `features.costs` off for this journal both costs pages answer 404,
-   * and a tab pointing at a 404 is the same failure the paragraph above
-   * describes for the sign-in door: an optional capability must be absent
-   * rather than broken. Nothing else in this row is optional today.
+   * With `features.costs` off both costs pages answer 404, and the same holds
+   * for weather; a tab pointing at a 404 is the failure the paragraph above
+   * describes for the sign-in door, and an optional capability must be absent
+   * rather than broken. `analyticsEnabled` is true when *any* analysis has
+   * something behind it, so a journal that does no spending but records the
+   * weather keeps the tab and gets a hub with one card on it. Nothing else in
+   * this row is optional today.
    */
-  const links = site.costsEnabled ? LINKS : LINKS.filter((l) => l.href !== "/costs");
+  const links = site.analyticsEnabled ? LINKS : LINKS.filter((l) => l.href !== "/analytics");
   const meLabel = strangerDoor ? t("nav.signIn") : t("me.title");
   const meHref = userHref("/me");
   const meActive = pathname === meHref;
@@ -95,15 +119,16 @@ export default function SiteNav() {
        scrolled sideways, so nothing looked wrong from the outside.
     */
     <nav className="flex flex-wrap items-center justify-end gap-1">
-      {links.map(({ href: path, key, Icon }) => {
+      {links.map(({ href: path, key, Icon, also }) => {
         const target = href(path);
         const label = t(key);
         // The story page is the base itself, so "active" is an exact match
-        // plus its day permalinks; every other page is a prefix match.
+        // plus its day permalinks; every other page is a prefix match, plus
+        // whatever else that tab owns (see `also` on Analytics).
         const active =
           path === "/"
             ? pathname === target || pathname === `${base}/` || pathname.startsWith(`${base}/day`)
-            : pathname.startsWith(target);
+            : pathname.startsWith(target) || (also ?? []).some((p) => pathname.startsWith(href(p)));
         return (
           <Link
             key={path}

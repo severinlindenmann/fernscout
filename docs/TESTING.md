@@ -68,7 +68,9 @@ The core. No configuration, no accounts.
 | **C4** | `/example/map` | World map with the route drawn, stops marked, coloured by transport |
 | **C5** | `/example/trips/parks-2025/map` | 18 stops, clustered into numbered circles when zoomed out. Every entry in the stop list below opens that day |
 | **C6** | `/example/gallery` | Every photo from the trip, filterable by place |
-| **C7** | `/example/costs` | Charts: spend by category, by country, against budget |
+| **C7** | `/example/analytics` | A card per analysis, each with a figure on it; the nav tab reads Analytics, not Costs |
+| **C7a** | `/example/costs` | Charts: spend by category, by country, against budget |
+| **C7b** | `/example/weather` (needs `features.weather`) | Says how many days carry a reading before any average, and credits Open-Meteo |
 | **C8** | On `/example/costs`, check the total | Should be a sensible number, not `NaN` or `0` |
 | **C9** | `/example/search`, search for `truck` | Finds "Denver, and a truck" and links to it |
 | **C10** | Search for `lantern` on the Asia trip | Finds the Hoi An day |

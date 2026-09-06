@@ -126,7 +126,7 @@ const site = {
   base: "/alex",
   signedIn: true,
   canSignIn: true,
-  costsEnabled: false,
+  analyticsEnabled: false,
 } as unknown as SiteSummary;
 
 async function render(): Promise<string> {

@@ -13,9 +13,12 @@ import { tripRef } from "@/lib/trips";
  * B267 — a journal with no `costs.md` anywhere had the capability on by
  * default (lib/journals.ts) and nothing to show for it: a "Costs" tab in the
  * nav, and a page rendering an empty shell underneath it. `costsAvailable`
- * (lib/costs.ts) is what the nav (`SiteNav`, through `SiteSummary.costsEnabled`
- * in lib/site.ts) and both costs pages now ask instead of the bare capability
- * check — capability on *and* at least one trip's `costs.md` written.
+ * (lib/costs.ts) is what the nav — since B557 through
+ * `SiteSummary.analyticsEnabled`, which is `analyticsAvailable` in
+ * lib/analytics.ts asking this and the weather's equivalent — and both costs
+ * pages ask instead of the bare capability check: capability on *and* at
+ * least one trip's `costs.md` written. These journals record no weather, so
+ * `analyticsEnabled` here is `costsAvailable` and nothing else.
  *
  * `test/costs.test.ts` covers the money arithmetic against the shared fixture
  * content, which mixes a trip with a budget (`alpha-2023`) and one without
@@ -162,12 +165,12 @@ describe("costsAvailable", () => {
 describe("what the nav is told", () => {
   test("a journal with a costs.md: the tab stays", () => {
     const user = getUser("budgeted")!;
-    expect(siteSummaryFor(user, false).costsEnabled).toBe(true);
+    expect(siteSummaryFor(user, false).analyticsEnabled).toBe(true);
   });
 
   test("a journal with no costs.md anywhere: the tab is gone", () => {
     const user = getUser("unbudgeted")!;
-    expect(siteSummaryFor(user, false).costsEnabled).toBe(false);
+    expect(siteSummaryFor(user, false).analyticsEnabled).toBe(false);
   });
 });
 
@@ -184,7 +187,7 @@ describe("hasCostsData, once it also asks the days", () => {
   test("its journal's nav gets the tab too, with nothing written by hand", () => {
     expect(costsAvailable("daycosts")).toBe(true);
     const user = getUser("daycosts")!;
-    expect(siteSummaryFor(user, false).costsEnabled).toBe(true);
+    expect(siteSummaryFor(user, false).analyticsEnabled).toBe(true);
   });
 
   test("false for a trip with nothing costed anywhere — neither a file nor a day", () => {

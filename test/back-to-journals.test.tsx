@@ -43,7 +43,7 @@ const base: SiteSummary = {
   signedIn: false,
   hasIdentity: false,
   canSignIn: false,
-  costsEnabled: true,
+  analyticsEnabled: true,
 };
 
 function markup(site: SiteSummary, locale = "en"): string {

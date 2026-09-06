@@ -226,7 +226,19 @@ describe("what the trip gate covers", () => {
     // private trip must hide it same as its gallery. The trip-scoped
     // equivalent, app/[user]/trips/[trip]/photobook, is a different route
     // outside this group and gates itself via mayReadTrip.
-    expect(gated).toEqual(["costs", "day", "gallery", "layout.tsx", "map", "page.tsx", "photobook"]);
+    expect(gated).toEqual([
+      // B557 — the hub and the weather analysis are the current trip's pages
+      // in exactly the way costs is, so they sit inside the same gate.
+      "analytics",
+      "costs",
+      "day",
+      "gallery",
+      "layout.tsx",
+      "map",
+      "page.tsx",
+      "photobook",
+      "weather",
+    ]);
 
     // These must stay outside it, or a private trip hides them too.
     const user = path.join(process.cwd(), "app", "[user]");

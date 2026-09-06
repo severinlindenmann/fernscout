@@ -77,10 +77,10 @@ describe("what the header is told about signing in", () => {
     enabled.mockImplementation(() => true);
     const summary = await summaryFor();
     expect(Object.keys(summary).sort()).toEqual([
+      "analyticsEnabled",
       "base",
       "baseCurrency",
       "canSignIn",
-      "costsEnabled",
       // B433. Viewer-derived, like `signedIn`, and deliberately not
       // trip-derived: it is whether this reader holds an instance-wide
       // identity, which is a fact about them and the instance and cannot vary
