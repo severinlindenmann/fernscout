@@ -84,6 +84,9 @@
     },
     "weather": {
       "enabled": true
+    },
+    "analytics": {
+      "enabled": true
     }
   }
 }
