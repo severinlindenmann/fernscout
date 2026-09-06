@@ -7,8 +7,7 @@ complexity: medium
 area: Trip pages, navigation
 found: "2026-09-06T09:31:27Z"
 started: "2026-09-06T09:32:01Z"
-session: e089c5a7-4880-4036-9fa5-7ea79a0f7592
-claimed: "2026-09-06T09:32:01Z"
+merged: "2026-09-06T09:53:20Z"
 ---
 
 # B557 — Costs is the only analysis a trip can show, and the nav calls it Kosten
