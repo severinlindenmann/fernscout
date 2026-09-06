@@ -40,14 +40,48 @@ including today. **Splitting on the age of the day is what removes the lag
 hole entirely** — a day written the evening it happened gets real numbers,
 which is the ordinary case for this software.
 
-**Licence — the one fact not verified before the work.** Open-Meteo publishes
-its data under CC BY 4.0 with attribution, free for non-commercial use, and
-its own API code under AGPL. `curl` could not retrieve
-<https://open-meteo.com/en/license> from this machine (an empty 100-byte
-response), so that sentence is from prior knowledge and **must be read off the
-page and confirmed before this merges**. The attribution itself is not in
-doubt and is built either way: every rendered reading credits "Open-Meteo",
-linked.
+**The alternatives, since "the ticket said so" is not a reason.** Three were
+considered against the one property that decides it — a travel journal's days
+are anywhere on Earth, and a source that cannot answer for a pass in Vietnam is
+no use whatever else it does.
+
+| Source | Coverage | Key | Why not |
+| --- | --- | --- | --- |
+| **Open-Meteo** | Global, ERA5 from 1940, ~1 km | none | chosen |
+| **Bright Sky** (DWD) | **Germany only** | none | Disqualified on the first column |
+| **Meteostat** | Global, but *station*-based | yes | Stations leave holes exactly where this is interesting — a mountain pass, a boat |
+| **ERA5 direct** (Copernicus CDS) | Global, authoritative | yes, plus an account | Requests are queued and collected later; it is a download pipeline, not a lookup |
+
+**Licence — read off the page, 2026-09-06.** The page is at
+<https://open-meteo.com/en/licence>, **British spelling**; `/en/license`
+returns an empty response, which is what made this look unfetchable at first.
+
+- **The data** is under **CC BY 4.0**. Its three conditions are credit, a link
+  to the licence, and indicating whether changes were made. Their suggested
+  form is `<a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a>`.
+- **Their API code** is **AGPLv3** — which is also this project's licence.
+- **The free tier is non-commercial**, under 10 000 calls a day, 5 000 an hour
+  and 600 a minute.
+
+All three CC BY conditions are met in `site/legal/*.md`: the credit, a link to
+the licence itself, and a note that readings are rounded for display and that
+the WMO code is drawn as a picture. Every reading on a page also links to
+open-meteo.com. **The licence link was missing from the first version of this
+work and was added when the page was finally read** — naming a licence is not
+the same as linking it, and CC BY asks for the link.
+
+**Two things for the operator rather than for the code.** The free tier is
+*non-commercial*, and an instance that charges for anything should decide
+whether it still qualifies rather than assume it. And the rate limits are per
+day: they are generous for one journal writing a day at a time, and B538 is the
+open ticket about the one path that can spend them faster than it needs to.
+
+**The escape hatch, which costs nothing to keep open.** Open-Meteo's server is
+AGPLv3 and self-hostable from a Docker image against AWS Open Data, with no
+rate limit at all. `OPEN_METEO_ARCHIVE_URL` and `OPEN_METEO_FORECAST_URL` are
+already environment overrides, so pointing this at a private instance is a
+config change and not a code change. That is the answer if the limits or the
+non-commercial clause ever bite.
 
 ## The shape on disk
 

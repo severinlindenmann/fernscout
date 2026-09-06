@@ -95,9 +95,27 @@ Wetterangaben aufzurufen sendet also an niemanden etwas. Open-Meteo sieht Ihre
 Adresse nie, und keine Anfrage enthält etwas, das eine Person identifiziert.
 Die Koordinaten sind die, die der Autor selbst auf seinen Tag geschrieben hat.
 
-Die Wetterdaten stammen von [Open-Meteo](https://open-meteo.com/) und werden
-unter der Lizenz Creative Commons Attribution 4.0 genutzt — deshalb nennt jede
-Angabe an einem Tag ihre Quelle.
+Wetterdaten von [Open-Meteo.com](https://open-meteo.com/), genutzt unter der
+[Lizenz Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/deed.de).
+Diese Lizenz verlangt drei Dinge, und das hier sind alle: Nennung der Quelle,
+ein Link auf die Lizenz und ein Hinweis auf Änderungen. **Die Änderungen sind,
+dass Werte gerundet werden** — Temperaturen auf ganze Grad, Niederschlag auf
+eine Nachkommastelle, so wie sie an einem Tag stehen — und dass der numerische
+Wettercode von Open-Meteo als eines von sieben Bildern gezeichnet statt
+ausgeschrieben wird. Die ungerundeten Werte bleiben in der Datei des Tages.
+
+Open-Meteo ist selbst nur die Vorderseite der nationalen Wetterdienste —
+MeteoSchweiz, DWD, ECMWF, NOAA, Météo-France, JMA und weitere, jeder unter
+seiner eigenen offenen Lizenz, alle aufgeführt auf
+[deren Lizenzseite](https://open-meteo.com/en/licence). Das Wetter eines Tages
+geht hier also auf ein öffentliches meteorologisches Amt zurück und nicht auf
+ein Unternehmen, das Prognosen verkauft.
+
+**Ein selbst notierter Messwert ist nichts davon.** An manchen Tagen steht eine
+Temperatur, die jemand dort aufgeschrieben hat, wo er stand, statt einer, die
+dieser Server abgefragt hat. Diese nennen, wer sie gemessen hat, und werden
+niemandem sonst zugeschrieben — an so einem Tag steht kein Open-Meteo-Link,
+weil an ihm keine Open-Meteo-Daten stehen.
 
 Die E-Mails dieser Seite laufen über **Proton Mail in der Schweiz** —
 verschlüsselt gespeichert und unter Schweizer Datenschutzrecht, statt über
