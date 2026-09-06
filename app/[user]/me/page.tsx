@@ -3,6 +3,7 @@ import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/loc
 import { notFound } from "next/navigation";
 import MePageContent, {
   type JournalPanel,
+  type TripEditPanel,
   type ManagePanel,
   type PaymentPanel,
 } from "./MePageContent";
@@ -16,6 +17,7 @@ import { formatChf, POSTCARD_CREDITS } from "@/lib/credits/pricing";
 import { listPayments } from "@/lib/payments";
 import { ownerShortName, serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
+import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import { whatsappCountryCode } from "@/lib/whatsapp/settings";
 
@@ -72,20 +74,10 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
   // who is already signed in and would otherwise be sent to a second page for
   // one field they can see right in front of them.
   let manage: ManagePanel | undefined;
-  /**
-   * Whether to offer the owner a row of their own — B619.
-   *
-   * Only when there is none: the button and the form are the same section,
-   * and once the row exists `manage` carries it. `contactsEnabled` gates it
-   * for the same reason it gates the form, and the address has to be there
-   * because a row is keyed by one.
-   */
-  let canAddOwnDetails = false;
   if (viewer.email && contactsEnabled) {
     const contact = (await listContacts(user)).find(
       (c) => c.email === normaliseEmail(viewer.email!),
     );
-    canAddOwnDetails = viewer.owner && !contact && Boolean(journal.owner.email);
     if (contact) {
       // The reader's own UI language, not the one on the contact record —
       // the record's `locale` is a separate question ("write to me in"),
@@ -132,6 +124,28 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
         tagline: journal.tagline,
         email: journal.owner.email ?? "",
       }
+    : undefined;
+
+  /**
+   * The trips this reader may edit — B621, owner only.
+   *
+   * Read from `viewer.trips` rather than the journal's own list, so the rows
+   * and the pencils cannot disagree about which trips exist; `getTrip` is a
+   * cached read per trip, which is what the page is already doing to build
+   * that list. Everybody else gets `undefined` and their rows stay links.
+   */
+  const editableTrips: TripEditPanel[] | undefined = viewer.owner
+    ? viewer.trips
+        .map((seen) => getTrip(tripRef(user, seen.id)))
+        .filter((trip) => trip !== null && trip !== undefined)
+        .map((trip) => ({
+          id: trip.id,
+          title: trip.title,
+          tagline: trip.tagline ?? "",
+          start: trip.start,
+          end: trip.end,
+          visibility: trip.visibility,
+        }))
     : undefined;
 
   let payment: PaymentPanel | undefined;
@@ -189,7 +203,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       siteUrl={serverSite().url}
       manage={manage}
       journal={journalPanel}
-      canAddOwnDetails={canAddOwnDetails}
+      editableTrips={editableTrips}
       payment={payment}
       // Resolved here rather than guessed in the component: a capability is a
       // server ceiling and a journal opt-in, and the page was offering a door

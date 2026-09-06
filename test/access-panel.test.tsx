@@ -348,7 +348,15 @@ describe("who a stranger is told to ask", () => {
  * in another (`/{user}/c/{token}`'s own, deliberate, record-language design)
  * read as broken here rather than intentional.
  */
+/**
+ * B621 moved the **owner's** copy of this to `/{user}/contacts`, the page
+ * already about addresses and consents, so every case here reads with a guest
+ * — which is who the panel was built for and who has no other page to edit
+ * their own name on. `test/owner-self-details.test.ts` owns the owner's side.
+ */
 describe("the details panel, inline", () => {
+  const reader: Viewer = { email: "peter@example.test", owner: false, guest: true, trips: [] };
+
   const manage: ManagePanel = {
     token: "fs_manage_test",
     locales: ["en", "de"],
@@ -372,20 +380,20 @@ describe("the details panel, inline", () => {
   };
 
   test("absent with no contact record — no dead link to a page that has nothing", () => {
-    const html = render({ viewer: owner, contactsEnabled: true });
+    const html = render({ viewer: reader, contactsEnabled: true });
     expect(html).not.toContain("<details");
     expect(html).not.toContain(dictionaryFor("en")["me.editDetails"]);
   });
 
   test("offers the toggle, and no more a link to /c/<token>", () => {
-    const html = render({ viewer: owner, contactsEnabled: true, manage });
+    const html = render({ viewer: reader, contactsEnabled: true, manage });
     expect(html).toContain("<details");
     expect(html).toContain(dictionaryFor("en")["me.editDetails"]);
     expect(html).not.toMatch(/href="\/alex\/c\//);
   });
 
   test("renders the form in its own dictionary, independent of the page's", () => {
-    const html = render({ viewer: owner, contactsEnabled: true, manage });
+    const html = render({ viewer: reader, contactsEnabled: true, manage });
     // The page around it stayed English (`me.details`, from `render()`'s
     // fixed `LocaleProvider`) while the form inside it is the German
     // `manage.dictionary` — both present at once, proving one does not leak
@@ -400,8 +408,16 @@ describe("the details panel, inline", () => {
   });
 
   test("hands the contact's own data to the form, not a blank one", () => {
-    const html = render({ viewer: owner, contactsEnabled: true, manage });
+    const html = render({ viewer: reader, contactsEnabled: true, manage });
     expect(html).toContain('value="Fam. Peter"');
+  });
+
+  test("and is not on the owner's copy of this page at all — B621", () => {
+    // Theirs is on `/{user}/contacts` now. Rendered with the same `manage`
+    // the guest gets, so what this pins is the branch and not a missing prop.
+    const html = render({ viewer: owner, contactsEnabled: true, manage });
+    expect(html).not.toContain('value="Fam. Peter"');
+    expect(html).not.toContain(dictionaryFor("en")["me.editDetails"]);
   });
 });
 

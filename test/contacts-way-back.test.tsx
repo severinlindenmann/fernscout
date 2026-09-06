@@ -60,7 +60,14 @@ vi.mock("@/lib/users", () => ({
   userExists: (u: string) => u === "alex",
 }));
 vi.mock("@/lib/capabilities", () => ({ isEnabled: () => true }));
-vi.mock("@/lib/contacts", () => ({ listContacts: async () => [] }));
+// `normaliseEmail` and `manageTokenFor` since B621 — the page looks for the
+// owner's own row among the contacts and derives its manage token. With none
+// here, `own` is undefined and that section simply does not render.
+vi.mock("@/lib/contacts", () => ({
+  listContacts: async () => [],
+  normaliseEmail: (email: string) => email.trim().toLowerCase(),
+  manageTokenFor: () => "fs_manage_test",
+}));
 // `listInvitesWithLinks` since B281 — the page recovers each link so the owner
 // can send it again, which this test does not exercise and only has to stub.
 vi.mock("@/lib/contacts/invites", () => ({ listInvitesWithLinks: async () => [] }));

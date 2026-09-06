@@ -5,6 +5,7 @@ import matter from "gray-matter";
 import { getTrip, tripDir, type TripRef } from "../trips";
 import type { TripVisibility } from "../types";
 import { VISIBILITIES } from "../tripWrite";
+import { spliceScalar } from "../frontmatterScalar";
 
 /**
  * Amending a trip's `visibility:` (and `listed:`, and `teaser:`) after it has
@@ -23,40 +24,6 @@ import { VISIBILITIES } from "../tripWrite";
  * trip but cannot decide who else may read the whole journey. That check
  * lives in the route, not here, the same split `tripRates.ts` uses.
  */
-
-const INDENTED_RE = /^\s+\S/;
-
-/** Where `key:` starts inside the frontmatter, or -1 if absent. Mirrors
- * `frontmatterLineOf` in tripRates.ts — same small copy, same reason: the two
- * touch different files and different shapes (a block there, a scalar here). */
-function frontmatterLineOf(lines: string[], closing: number, key: string): number {
-  const pattern = new RegExp(`^${key}:(\\s|$)`);
-  return lines.findIndex((line, i) => i > 0 && i < closing && pattern.test(line));
-}
-
-/**
- * Replace, insert or remove one top-level scalar line (`key: value`), never
- * an indented block — `visibility:` and `listed:` are each ever one line.
- * `newLine === null` removes the key rather than writing it, which is how a
- * stale `listed: false` from before this call is cleared once it no longer
- * says anything the new visibility does not already say on its own.
- */
-function spliceScalar(markdown: string, key: string, newLine: string | null): string | null {
-  const lines = markdown.split("\n");
-  if (lines[0]?.trim() !== "---") return null;
-  const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
-  if (closing < 0) return null;
-
-  const at = frontmatterLineOf(lines, closing, key);
-  if (at >= 0) {
-    let end = at + 1;
-    while (end < closing && INDENTED_RE.test(lines[end])) end++;
-    lines.splice(at, end - at, ...(newLine === null ? [] : [newLine]));
-  } else if (newLine !== null) {
-    lines.splice(closing, 0, newLine);
-  }
-  return lines.join("\n");
-}
 
 export type VisibilityWriteResult =
   | { ok: true; visibility: TripVisibility; listed: boolean; teaser: boolean; widened: boolean }

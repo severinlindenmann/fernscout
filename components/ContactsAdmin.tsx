@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { BellRing, Mail, MessageCircle, Stamp } from "lucide-react";
 import AddressLookupField from "./AddressLookupField";
+import ContactManage, { type ManageContact } from "./ContactManage";
 import CopyLine from "./CopyLine";
 import CountryField from "./CountryField";
 import TelField, { joinTel, splitTel } from "./TelField";
@@ -164,6 +166,11 @@ function viaLabel(
 ): string | null {
   if (!createdVia) return null;
   if (createdVia === "owner") return t("contact.adminViaOwner");
+  // B621 — the owner's own row, made by the button on this page. It is
+  // filtered out of the lists below, so this only shows on a row written
+  // before that filter or read some other way; a raw `owner-self` on screen
+  // would be a code where a sentence belongs.
+  if (createdVia === "owner-self") return t("contact.adminViaSelf");
   // B37 removed the open guestbook. Rows written before it still say this, and
   // will forever.
   if (createdVia === "open") return t("contact.adminViaOpen");
@@ -1059,6 +1066,75 @@ function InviteRow({
   );
 }
 
+/**
+ * The button that gives the owner a contact row of their own — B619.
+ *
+ * Everything on this page that lets a person edit their own name, telephone
+ * and postal address is `ContactManage`, and it needs a row. The owner never
+ * had one, so the only reader of this page who could not change anything
+ * about themselves was the person whose journal it is — and a postcard, which
+ * is addressed by contact id, could not be sent to them at all.
+ *
+ * One button rather than a form: the row is made empty and the form that
+ * appears in its place is the one everybody else already gets. Nothing is
+ * mailed and nothing has to be confirmed, because the session that pressed
+ * this is already signed in as the address the row is for.
+ *
+ * It lives on this page rather than `/{user}/me` since B621: their own row is
+ * one more entry in the address book, next to everybody else's.
+ */
+function AddOwnDetails({
+  username,
+  t,
+  onAdded,
+}: {
+  username: string;
+  t: (key: TranslationKey) => string;
+  /** The panel's own `refresh()`. `router.refresh()` alone re-renders the
+   * server component, and the contact and invite lists below are `useState`
+   * seeded once from its props — so without this the new row appears in the
+   * card and nowhere else until a reload. */
+  onAdded: () => Promise<void>;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function add() {
+    setBusy(true);
+    setFailed(false);
+    const response = await fetch("/api/contacts/admin", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user: username, action: "self" }),
+    }).catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      setFailed(true);
+      return;
+    }
+    // The row now exists, so the server renders the edit form in this
+    // section's place — and the lists below re-read themselves, because
+    // their copy of the contacts is client state.
+    await onAdded();
+    router.refresh();
+  }
+
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={add}
+        className="inline-flex min-h-11 w-fit items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 disabled:opacity-50"
+      >
+        {t("me.detailsAddSelf")}
+      </button>
+      {failed && <p className="mt-2 text-sm text-coral-600">{t("me.journalFailed")}</p>}
+    </div>
+  );
+}
+
 export default function ContactsAdmin({
   username,
   locale,
@@ -1074,6 +1150,8 @@ export default function ContactsAdmin({
   whatsappEnabled = true,
   defaultCountryCode,
   addressLookupEnabled = false,
+  own,
+  canAddOwn = false,
 }: {
   username: string;
   locale: Locale;
@@ -1116,6 +1194,16 @@ export default function ContactsAdmin({
   defaultCountryCode?: string;
   /** B399: `isEnabled("addressLookup", username)`, from the page. */
   addressLookupEnabled?: boolean;
+  /**
+   * The owner's own row, when they have one — B621, moved here from
+   * `/{user}/me`. Present and `canAddOwn` false is the ordinary state once
+   * they have pressed the button once.
+   */
+  own?: { token: string; contact: ManageContact };
+  /** Whether to offer to make one. True only for an owner who has none: a
+   * guest gets a row by being invited and approved, which is the whole of
+   * `lib/contacts`, and a button here would be a way around it. */
+  canAddOwn?: boolean;
 }) {
   const [contacts, setContacts] = useState(initialContacts);
   const [invites, setInvites] = useState(initialInvites);
@@ -1161,9 +1249,20 @@ export default function ContactsAdmin({
     return response;
   }
 
-  const pending = contacts.filter((c) => c.status === "pending");
-  const approved = contacts.filter((c) => c.status === "active");
-  const other = contacts.filter((c) => c.status === "blocked");
+  /**
+   * Everybody but the owner — B621.
+   *
+   * Their own row is the card at the top of this page, with the form that
+   * edits it. Listed again among "who reads along" it is both a duplicate and
+   * a lie in two places: `Revoke` would take a grant that is not what gives
+   * them access (`owner.email` in config.json is), and `Delete` offers to
+   * remove "their access" when it would only throw away their address. The
+   * same reasoning as the two buttons `ContactManage` hides from them.
+   */
+  const others = own ? contacts.filter((c) => c.email !== own.contact.email) : contacts;
+  const pending = others.filter((c) => c.status === "pending");
+  const approved = others.filter((c) => c.status === "active");
+  const other = others.filter((c) => c.status === "blocked");
 
   // Resolved here, where both lists are, and handed down — B321. The invites
   // are in this component's own state and are re-read by `refresh()`, so a row
@@ -1196,6 +1295,40 @@ export default function ContactsAdmin({
         {t("contact.adminTitle")}
       </h1>
       <p className="mt-3 text-lg text-navy-700">{t("contact.adminSubtitle")}</p>
+
+      {/*
+        The owner's own row — B621, moved off `/{user}/me`. First, because it
+        is the one entry in this book that is theirs: what a postcard to
+        themselves is addressed to, and where a day reaches them.
+      */}
+      {(own || canAddOwn) && (
+        <section className="mt-8 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+          <h2 className="font-display text-xl font-semibold text-navy-900">{t("me.details")}</h2>
+          <p className="mt-2 text-base leading-7 text-navy-600">{t("me.detailsBodyOwner")}</p>
+          {own ? (
+            <details className="mt-3">
+              <summary className="inline-flex min-h-11 w-fit cursor-pointer list-none items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 [&::-webkit-details-marker]:hidden">
+                {t("me.editDetails")}
+              </summary>
+              <div className="mt-4 border-t border-navy-200">
+                <ContactManage
+                  className="pt-4"
+                  locales={locales}
+                  dictionary={dictionary}
+                  username={username}
+                  token={own.token}
+                  contact={own.contact}
+                  defaultCountryCode={defaultCountryCode}
+                  addressLookupEnabled={addressLookupEnabled}
+                  isOwner
+                />
+              </div>
+            </details>
+          ) : (
+            <AddOwnDetails username={username} t={t} onAdded={refresh} />
+          )}
+        </section>
+      )}
 
       {/* B300. Said here, ahead of the pending list and its approve buttons
           below, and it stays visible after an approval too — nothing about
