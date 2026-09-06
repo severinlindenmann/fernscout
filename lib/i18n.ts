@@ -874,6 +874,8 @@ export type TranslationKey =
   | "push.unavailable"
   | "push.working"
   | "react.prompt"
+  | "react.total"
+  | "react.total.one"
   | "react.yours"
   | "search.error"
   | "search.noQuery"

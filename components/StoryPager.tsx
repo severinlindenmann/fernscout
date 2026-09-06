@@ -215,43 +215,50 @@ function DayCard({
 
   return (
     <article
-      className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${
+      className={`rounded-2xl border bg-white p-5 shadow-sm sm:p-7 ${
         allDraft || isTest ? "border-coral-600" : "border-navy-200"
       }`}
     >
+      {isTest && <TestNotice />}
+      {allDraft && <DraftNotice />}
+
       {/*
-        The day's own identity, on its own paper.
+        The day's own identity — the top of the page, not a header band.
 
-        It used to be one wrapping row of dot-separated fragments above the
-        first update's title, which put "Day 4", the date, the place, the
-        weather and the spend at the same weight as each other and at less
-        weight than anything below — so a day with two updates arrived as two
-        stacked articles the reader had to infer were one day.
+        It began as one wrapping row of dot-separated fragments above the first
+        update's title, which put "Day 4", the date, the place, the weather and
+        the spend at one weight and all of them quieter than the h2 beneath —
+        so a day with two updates arrived as two stacked articles the reader
+        had to infer were one day. The first fix gave it a filled cream band,
+        and that solved the hierarchy by introducing a different problem: a
+        coloured block with a hard rule under it reads as a table header
+        bolted to the top of the card, which is the opposite of a page in a
+        journal.
 
-        Now the day is the frame and the updates are its contents. Three
-        decisions carry that, and each of them is one thing rather than five:
+        So there is no band. The card is one sheet of paper, and the day is
+        established the way a diary establishes one — by what is at the top of
+        the page and how much room is left under it:
 
         - **The place is the only headline.** Where you were is what a person
-          reads a day for; everything else on this band is smaller than it.
+          reads a day for; everything else here is smaller than it.
         - **Everything measured shares one quiet line.** Date, weather, spend
-          and update count are unlike things, and giving each its own chip is
-          how a diary page turns into a dashboard. One line, one voice, no
-          separators to make it look tabulated.
-        - **The ordinal goes in the corner, under a painted yellow stroke.**
+          and update count are unlike things, and giving each a chip is how a
+          diary page turns into a dashboard. One line, one voice, no separators
+          to make it look tabulated.
+        - **The ordinal sits in the corner under a painted yellow stroke.**
           This product's mark is a Wanderweg waymark, and a waymark's whole job
-          is to say *you are at this point on the route* — which is exactly
-          what a day number is. So the accent appears once, on the one element
-          that is genuinely a trail marker, and the yellow pill that made it
-          look like a status chip is gone.
+          is to say *you are at this point on the route* — which is what a day
+          number is. The accent appears once, on the one element that really is
+          a trail marker.
       */}
-      <header className="relative border-b border-navy-200 bg-cream-100 px-5 py-5 sm:px-7 sm:py-6">
-        {/* The corner marker. Only the headline reserves room for it
-            (`pr-24`); the line below clears it on height and needs the full
-            width, because at 390px a reserved corner left it 250px and every
-            item — date, weather, spend — wrapped onto a row of its own. */}
-        <div className="absolute right-5 top-5 text-right sm:right-7 sm:top-6">
+      <header className="relative mb-8">
+        {/* Only the headline reserves room for the marker (`pr-24`); the line
+            below clears it on height and needs the full width, because at
+            390px a reserved corner left it 250px and every item — date,
+            weather, spend — wrapped onto a row of its own. */}
+        <div className="absolute right-0 top-0 text-right">
           <span className="ml-auto block h-1 w-8 rounded-full bg-yellow-400" aria-hidden />
-          <span className="mt-1.5 block font-display text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-600">
+          <span className="mt-1.5 block font-display text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">
             {t("day.label")} {dayIndex + 1}
           </span>
         </div>
@@ -262,34 +269,34 @@ function DayCard({
 
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-navy-600">
           <span>{formatLongDate(day.date)}</span>
-            {/* B325 — in the day's furniture, never in the prose. `DayWeather`
-                renders nothing when the day has no reading. */}
-            {lead.weather && (
-              <DayWeather
-                weather={lead.weather}
-                labels={weatherLabels(lead.weather, t, formatLongDate)}
-              />
-            )}
-            {cost > 0 && (
-              <Link
-                href={trip ? trip.href("/costs") : "/"}
-                title={t("cost.today")}
-                className="group inline-flex items-baseline gap-1.5"
-              >
-                {/* What was actually paid leads — a reader can check it against
-                    a receipt, unlike the converted figure (B544) — so it is the
-                    figure that carries the weight and the underline, and the
-                    conversion trails it, lighter and smaller. Run together at
-                    one weight, `USD 131 ≈ CHF 115` reads as a single strange
-                    price rather than as one price said twice. */}
-                <span className="font-medium text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-2 group-hover:decoration-coral-600">
-                  {paidAndConverted.paid}
-                </span>
-                {paidAndConverted.converted && (
-                  <span className="text-[11px] text-navy-500">{paidAndConverted.converted}</span>
-                )}
-              </Link>
-            )}
+          {/* B325 — in the day's furniture, never in the prose. `DayWeather`
+              renders nothing when the day has no reading. */}
+          {lead.weather && (
+            <DayWeather
+              weather={lead.weather}
+              labels={weatherLabels(lead.weather, t, formatLongDate)}
+            />
+          )}
+          {cost > 0 && (
+            <Link
+              href={trip ? trip.href("/costs") : "/"}
+              title={t("cost.today")}
+              className="group inline-flex items-baseline gap-1.5"
+            >
+              {/* What was actually paid leads — a reader can check it against a
+                  receipt, unlike the converted figure (B544) — so it carries
+                  the weight and the underline, and the conversion trails it,
+                  lighter and smaller. Run together at one weight,
+                  `USD 131 ≈ CHF 115` reads as a single strange price rather
+                  than as one price said twice. */}
+              <span className="font-medium text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-2 group-hover:decoration-coral-600">
+                {paidAndConverted.paid}
+              </span>
+              {paidAndConverted.converted && (
+                <span className="text-[11px] text-navy-500">{paidAndConverted.converted}</span>
+              )}
+            </Link>
+          )}
           {multi && (
             <span>
               {day.entries.length} {t("day.updates")}
@@ -298,33 +305,27 @@ function DayCard({
         </div>
       </header>
 
-      <div className="p-5 sm:p-7">
-        {isTest && <TestNotice />}
-        {allDraft && <DraftNotice />}
+      {/* Several updates in one day are stops on one rail. Each stop draws the
+          segment down to the *next* one rather than the list drawing one line
+          behind all of them, so the rail ends at the last dot: a line trailing
+          past the final update reads as a day with more coming.
 
-        {/* Several updates in one day are stops on one rail. Each stop draws
-            the segment down to the *next* one rather than the list drawing one
-            line behind all of them, so the rail ends at the last dot: a line
-            trailing past the final update reads as a day with more coming. */}
-        <div className={multi ? "pl-6 sm:pl-7" : undefined}>
-          {day.entries.map((entry, i) => (
-            <UpdateBlock
-              key={entry.slug}
-              entry={entry}
-              branched={multi}
-              first={i === 0}
-              last={i === day.entries.length - 1}
-            />
-          ))}
-        </div>
+          The reactions are inside this column rather than beside it, so they
+          line up with the prose on a day with two updates as well as on a day
+          with one. */}
+      <div className={multi ? "pl-6 sm:pl-7" : undefined}>
+        {day.entries.map((entry, i) => (
+          <UpdateBlock
+            key={entry.slug}
+            entry={entry}
+            branched={multi}
+            first={i === 0}
+            last={i === day.entries.length - 1}
+          />
+        ))}
 
-        {/* Keyed on the lead slug, which is also what #day-… links use.
-            Inside the body and on the prose's own left edge, after a hairline
-            that stops short of both margins: asking how the day was is the
-            last line of the day, not a separate strip bolted underneath it.
-            It had its own cream band for one iteration and read as somebody
-            else's widget sitting under the writing. */}
-        <div className="mt-10 border-t border-navy-200 pt-5">
+        {/* Keyed on the lead slug, which is also what #day-… links use. */}
+        <div className="mt-10 border-t border-navy-200 pt-4">
           <DayReactions daySlug={lead.slug} />
         </div>
       </div>

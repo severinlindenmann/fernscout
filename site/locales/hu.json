@@ -791,6 +791,8 @@
   "push.unavailable": "Ebben a böngészőben ki van kapcsolva a push-szolgáltatás, így itt nem lehet értesítéseket beállítani. Brave-ben: Beállítások → Adatvédelem és biztonság → „Google-szolgáltatások használata push-üzenetekhez”, majd indítsd újra a böngészőt.",
   "push.working": "Egy pillanat…",
   "react.prompt": "Milyen volt ez a nap?",
+  "react.total": "összesen {count} reakció",
+  "react.total.one": "összesen egy reakció",
   "react.yours": "a te választásod",
   "search.error": "A keresés nem töltődött be — töltsd újra az oldalt.",
   "search.noQuery": "Gépelj a kereséshez.",
