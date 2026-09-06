@@ -7,8 +7,7 @@ complexity: low
 area: mail, content root, backup
 found: "2026-09-06T17:51:47Z"
 started: "2026-09-06T19:00:28Z"
-session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
-claimed: "2026-09-06T19:00:28Z"
+merged: "2026-09-06T19:27:27Z"
 ---
 
 # B636 — Sent mail is kept in the content folder, which is what gets backed up
