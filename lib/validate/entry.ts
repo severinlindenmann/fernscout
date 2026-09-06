@@ -142,14 +142,32 @@ export type EntryInput = {
  */
 // Exported since B295: the costs door's own validator (lib/validate/costs.ts)
 // reads a value back the same way rather than carrying a second renderer.
+/**
+ * How much of a value comes back — B568.
+ *
+ * Enough to recognise what was sent, and not a byte more. A caller can put a
+ * megabyte under a misspelled key and used to get all of it back; that is safe
+ * (JSON in a JSON body, never HTML or a log line) and it is unreadable, which
+ * is the part that matters. **A refusal is something an agent reads**, and one
+ * carrying the caller's own novel is no use to the weak model these messages
+ * were rewritten for. The useful part of `got` is its beginning.
+ */
+const DESCRIBE_MAX = 200;
+
 export function describe(value: unknown): string {
   if (value === undefined) return "nothing";
   if (value === null) return "null";
+  let rendered: string;
   try {
-    return JSON.stringify(value);
+    rendered = JSON.stringify(value);
   } catch {
-    return String(value);
+    rendered = String(value);
   }
+  if (rendered.length <= DESCRIBE_MAX) return rendered;
+  // The length is named rather than left to be guessed: "…" alone says
+  // something was cut and not whether it was ten characters or ten megabytes,
+  // and the difference is usually the mistake.
+  return `${rendered.slice(0, DESCRIBE_MAX)}… (${rendered.length} characters in all)`;
 }
 
 /**
