@@ -124,6 +124,30 @@ describe("the language a request resolves to", () => {
   });
 
   /**
+   * B625 — a cold PWA install has no cookie yet, so before this the reader's
+   * own device language never counted at all: the journal's `defaultLocale`
+   * won regardless of what the phone asked for. `mila` writes German first
+   * but also offers English, so a German-only default reader landing on an
+   * English phone used to get German anyway.
+   */
+  test("no cookie: the device's own language wins if the journal offers it", () => {
+    instance();
+    expect(readerLocaleForPath("/mila/gallery", undefined, "en-US,en;q=0.9")).toBe("en");
+    // Quality values are honoured, not just the first tag.
+    expect(readerLocaleForPath("/mila/gallery", undefined, "hu;q=0.5,en;q=0.9")).toBe("en");
+  });
+
+  test("no cookie: a device language the journal does not offer falls through to the journal's own default", () => {
+    instance();
+    expect(readerLocaleForPath("/mila/gallery", undefined, "hu,fr;q=0.8")).toBe("de");
+  });
+
+  test("a chosen cookie still beats the device language", () => {
+    instance();
+    expect(readerLocaleForPath("/mila/gallery", "de", "en")).toBe("de");
+  });
+
+  /**
    * Outside a journal there is no `user.locales` to narrow against — the
    * landing page, `/welcome`, the notices, a 404 for an address that names
    * nobody — so the maintained set stands in and the reader's choice counts.

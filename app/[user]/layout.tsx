@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { LOCALE_COOKIE } from "@/lib/requestKeys";
 import { notFound } from "next/navigation";
 import SiteProvider from "@/components/SiteProvider";
@@ -96,8 +96,17 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
   // it narrowed to the languages the *project* maintains rather than the ones
   // this journal offers, so a German cookie carried in from another journal
   // gave a German `<title>` over this English page. B140, B185.
+  //
+  // Before any cookie exists — a reader's very first request, which for an
+  // installed PWA is also the request its offline cache gets built from — the
+  // device's own `Accept-Language` counts too, ahead of the journal's own
+  // `defaultLocale`. Without that a cold install always rendered the
+  // journal's default language regardless of the phone it was opened from,
+  // and a slow connection would go on serving that first, wrong-language
+  // response back from the service worker's cache forever after (B625).
   const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
-  const locale = readerLocale(chosen, user.locales, user.defaultLocale);
+  const acceptLanguage = (await headers()).get("accept-language");
+  const locale = readerLocale(chosen, user.locales, user.defaultLocale, acceptLanguage);
 
   // Trimmed to what the switcher needs: a trip's `intro` has no business in
   // the client bundle, and getTrips() touches node:fs.

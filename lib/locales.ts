@@ -311,23 +311,60 @@ export function instanceLocale(): string {
 }
 
 /**
+ * The best-ranked language an `Accept-Language` header lists that a given set
+ * actually offers, or null. Quality values are honoured, the same shape as
+ * `fromAcceptLanguage` in `lib/contacts/locale.ts` — kept separate rather than
+ * shared because that one ranks against the project's whole maintained set
+ * (a personal link has no journal yet to ask) and this one ranks against one
+ * journal's own `locales`, which importing it here would not let it do.
+ */
+function bestOffered(header: string | null | undefined, offered: string[]): string | null {
+  if (!header) return null;
+  const ranked = header
+    .split(",")
+    .map((part) => {
+      const [tag, ...params] = part.trim().split(";");
+      const q = params
+        .map((p) => p.trim())
+        .find((p) => p.startsWith("q="))
+        ?.slice(2);
+      const short = tag.trim().slice(0, 2).toLowerCase();
+      return { locale: offered.includes(short) ? short : null, q: q === undefined ? 1 : Number(q) };
+    })
+    .filter((entry): entry is { locale: string; q: number } => entry.locale !== null)
+    .filter((entry) => Number.isFinite(entry.q) && entry.q > 0)
+    .sort((a, b) => b.q - a.q);
+  return ranked[0]?.locale ?? null;
+}
+
+/**
  * The one rule for "which language does this reader get", stated once.
  *
- * A reader's own choice, honoured only if the set in front of them offers it,
- * and otherwise the fallback that set comes with. Both callers below go
- * through it — the page body in `app/[user]/layout.tsx` and the `<title>` in
- * every `generateMetadata` — because when they each had their own copy of the
+ * A reader's own choice, honoured only if the set in front of them offers it;
+ * otherwise the device's own language, if the set offers one of those; and
+ * only then the fallback the set comes with. Both callers below go through
+ * it — the page body in `app/[user]/layout.tsx` and the `<title>` in every
+ * `generateMetadata` — because when they each had their own copy of the
  * expression the two copies disagreed (B140, B185): the body narrowed the
  * cookie to `user.locales` and the metadata narrowed it to `installedLocales()`,
  * so a `fs.locale=de` cookie carried from one journal produced a German tab
  * title over an entirely English page on the next.
+ *
+ * The device's language matters most on the very first request a reader ever
+ * makes — before anything has set a cookie, which for a PWA is also the
+ * request the installed app's cache is built from (B625). Without this, a
+ * cold install always rendered the journal's own `defaultLocale`, whatever
+ * device it was opened from, and that first response is what a slow
+ * connection later serves back from the service worker's cache.
  */
 export function readerLocale(
   chosen: string | null | undefined,
   offered: string[],
   fallback: string,
+  acceptLanguage?: string | null,
 ): string {
-  return chosen && offered.includes(chosen) ? chosen : fallback;
+  if (chosen && offered.includes(chosen)) return chosen;
+  return bestOffered(acceptLanguage, offered) ?? fallback;
 }
 
 /**
@@ -345,12 +382,13 @@ export function readerLocale(
 export function readerLocaleForPath(
   pathname: string | null | undefined,
   chosen: string | null | undefined,
+  acceptLanguage?: string | null,
 ): string {
   const first = (pathname ?? "").split("/").filter(Boolean)[0];
   if (first && userExists(first)) {
-    return readerLocale(chosen, localesFor(first), defaultLocaleFor(first));
+    return readerLocale(chosen, localesFor(first), defaultLocaleFor(first), acceptLanguage);
   }
-  return readerLocale(chosen, installedLocales(), instanceLocale());
+  return readerLocale(chosen, installedLocales(), instanceLocale(), acceptLanguage);
 }
 
 /**
@@ -374,5 +412,6 @@ export async function requestLocale(): Promise<string> {
   const { cookies, headers } = await import("next/headers");
   const { LOCALE_COOKIE, PATH_HEADER } = await import("./requestKeys");
   const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
-  return readerLocaleForPath((await headers()).get(PATH_HEADER), chosen);
+  const h = await headers();
+  return readerLocaleForPath(h.get(PATH_HEADER), chosen, h.get("accept-language"));
 }
