@@ -484,8 +484,15 @@ function pageHtml(
     left: `${((spec.bleedMm / (spec.size.trimWidthMm + spec.bleedMm * 2)) * 100).toFixed(3)}%`,
     top: `${((spec.bleedMm / (spec.size.trimHeightMm + spec.bleedMm * 2)) * 100).toFixed(3)}%`,
   };
+  // The composer's drill-in (B534) reads this off the same HTML string the
+  // preview already returned, rather than asking the server a second way: a
+  // page's kind, and its date when it has one (a "day" page, or a "photos"
+  // page carrying the date `materialise` set from the draft — see
+  // `BookPage`'s "photos" variant). Harmless on the CLI's own copy of this
+  // file, which nothing listens to.
+  const date = page.kind === "day" || page.kind === "photos" ? page.date : undefined;
   return (
-    `<figure class="page ${page.side}">` +
+    `<figure class="page ${page.side}" data-kind="${escape(page.kind)}"${date ? ` data-date="${escape(date)}"` : ""}>` +
     `<div class="sheet">${parts.join("")}` +
     `<div class="trim" style="left:${trim.left};right:${trim.left};top:${trim.top};bottom:${trim.top}"></div>` +
     `</div>` +
@@ -631,6 +638,12 @@ export function renderPreview(
   .mapcap { position:absolute; right:6%; bottom:5%; font-size:2.6cqh; font-style:italic;
             color:var(--muted); }
   .blank { position:absolute; inset:0; display:grid; place-items:center; color:#0000001a; }
+  /* Drillable pages — B534. Only pages the composer can open a level-2 view
+     for get the affordance; a page nobody can drill into (a "blank", or the
+     "intro"/"followers"/"transport" front matter, which has no controls of
+     its own) stays inert. */
+  figure.drillable .sheet { cursor:pointer; }
+  figure.drillable .sheet:hover { outline:2px solid var(--accent); outline-offset:2px; }
 </style></head><body data-view="spreads">
 <header>
   <h1>${escape(book.title)}</h1>
@@ -653,6 +666,22 @@ ${volumes}
     var spreads = document.body.dataset.view === "spreads";
     document.body.dataset.view = spreads ? "pages" : "spreads";
     this.textContent = spreads ? "Spreads" : "Single pages";
+  });
+  // B534's drill-in: tell whoever is embedding this (the composer, in an
+  // iframe) which spread was tapped. Posted rather than navigated, because
+  // this document has no idea it is inside one — opened straight from a
+  // folder, as the CLI leaves it, nothing is listening and this is a no-op.
+  var DRILLABLE = ["day", "photos", "title", "route", "costs", "colophon"];
+  document.querySelectorAll("figure[data-kind]").forEach(function (fig) {
+    var kind = fig.dataset.kind;
+    if (DRILLABLE.indexOf(kind) === -1) return;
+    fig.classList.add("drillable");
+    fig.addEventListener("click", function () {
+      parent.postMessage(
+        { source: "fernscout-photobook-preview", kind: kind, date: fig.dataset.date || null },
+        "*",
+      );
+    });
   });
 </script>
 </body></html>

@@ -1,14 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
-import { mediaLoader } from "@/components/mediaLoader";
+import { useEffect, useMemo, useRef, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
-import { BOOK_SIZES } from "@/lib/photobook/spec";
 import {
-  DAY_LAYOUTS,
   DEFAULT_OPTIONS,
   type BookOptions,
   type DayLayout,
@@ -16,6 +12,9 @@ import {
 } from "@/lib/photobook/options";
 import type { PhotobookOutcome } from "@/lib/photobook/orders";
 import type { MediaTile, PhotobookEntry } from "@/lib/types";
+import BookLevelView from "./BookLevelView";
+import DayLevelView, { type Drill } from "./DayLevelView";
+import { extractSpreads } from "./previewSlice";
 
 type PreviewState = {
   html: string;
@@ -38,74 +37,32 @@ const OUTCOME_MESSAGE: Record<string, TranslationKey> = {
   refund_failed: "photobook.refundFailed",
 };
 
+/** The two front-matter page kinds `renderPreview` marks as drillable, other
+ * than "day"/"photos" — see `lib/photobook/preview.ts`'s own `DRILLABLE`. */
+const FRONT_MATTER_KINDS = ["title", "route", "costs", "colophon"];
+
 /**
- * The book's own preview page: options on the left, the printed page on the
- * right, and one Pay button that is the only thing here that spends credits.
+ * The book's own preview page: options on one level, a day's controls on
+ * another, and one Pay button that is the only thing here that spends
+ * credits.
  *
  * The preview is server-planned — `POST /<user>/photobook/preview` runs the
  * same `planFor` the paying route does — so this component's job is to hold
  * `BookOptions` in state, ask for a new preview whenever they change, and
  * render whatever comes back. It never lays out a page itself.
- */
-/** Each language named in itself, which is how a language picker should read
- * — a German owner looks for "Deutsch", not for "German". */
-/** What each arrangement is called on the page. `auto` first, because it is
- * what every day starts as and what most days should stay. */
-const LAYOUT_LABEL: Record<DayLayout, TranslationKey> = {
-  auto: "photobook.day.layout.auto",
-  hero: "photobook.day.layout.hero",
-  single: "photobook.day.layout.single",
-  pair: "photobook.day.layout.pair",
-  grid: "photobook.day.layout.grid",
-  text: "photobook.day.layout.text",
-};
-
-/**
- * One row per kind of warning rather than one per photograph.
  *
- * A book whose photographs are all web copies raises a `low-resolution` line
- * for every one of them — forty-three on the demo journal — and rendering them
- * flat buried the price, the preview and the Pay button under a wall of
- * yellow. The count is the part somebody needs to see; the files are the part
- * they need when they go looking.
+ * **Two levels, hierarchical, never a wizard — B534.** Level 1
+ * (`BookLevelView`) is the whole book: settings, preview, warnings, price,
+ * Pay, short enough to reach without meeting a single per-day control. Level
+ * 2 (`DayLevelView`) is reached by tapping a spread inside the preview
+ * iframe — the iframe's own script posts a message this component listens
+ * for — and shows that spread's controls with the spread itself directly
+ * beneath. There is no day accordion any more: drilling in from the preview
+ * is the only way to a day's controls, not a second one beside it. Days are
+ * addressed by *date*, never by page index, because pages renumber
+ * (`expandToMinimum`, a volume split, B517's run-on) and `options.days` —
+ * `Record<date, DayPlan>` — does not.
  */
-function groupWarnings(
-  warnings: { code: string; detail: string }[],
-): { code: string; count: number; details: string[] }[] {
-  const groups = new Map<string, string[]>();
-  for (const w of warnings) {
-    const seen = groups.get(w.code) ?? [];
-    seen.push(w.detail);
-    groups.set(w.code, seen);
-  }
-  return [...groups.entries()].map(([code, details]) => ({
-    code,
-    count: details.length,
-    details,
-  }));
-}
-
-/**
- * The day's photographs in the order the book will print them.
- *
- * The grid has to show the arrangement, not the gallery: somebody who moved a
- * photograph to the front and then saw it still third would reasonably think
- * the button did nothing.
- */
-function ordered(dayPhotos: MediaTile[], plan: DayPlan | undefined): MediaTile[] {
-  if (!plan?.photos) return dayPhotos;
-  const rank = new Map(plan.photos.map((src, i) => [src, i]));
-  return [...dayPhotos].sort(
-    (a, b) => (rank.get(a.src) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b.src) ?? Number.MAX_SAFE_INTEGER),
-  );
-}
-
-const LANGUAGE_NAME: Record<string, string> = {
-  en: "English",
-  de: "Deutsch",
-  hu: "Magyar",
-};
-
 export default function PhotobookPageContent({
   entry,
   tripRef,
@@ -120,8 +77,7 @@ export default function PhotobookPageContent({
   tripRef: string;
   tripTitle: string;
   media: MediaTile[];
-  /** The trip's days, in the order the book prints them, so the composer can
-   * be a list of days rather than a heap of photographs. */
+  /** The trip's days, in the order the book prints them. */
   days: { date: string; title: string; location: string }[];
   balance: number | null;
   /** The languages this journal offers, from its own config. The picker is
@@ -159,7 +115,9 @@ export default function PhotobookPageContent({
    *
    * A stored arrangement from an older version is ignored rather than merged:
    * `parseOptions` on the server would refuse it anyway, and starting from the
-   * default is a better failure than a form that cannot be submitted.
+   * default is a better failure than a form that cannot be submitted. B534
+   * changes nothing here — `options.days` is still keyed by date, so an
+   * arrangement saved before this ticket restores exactly as it did before.
    */
   const storageKey = `fernscout:photobook:${tripRef}`;
   const [options, setOptions] = useState<BookOptions>(() => ({
@@ -213,13 +171,32 @@ export default function PhotobookPageContent({
   // form a second id to race the first against.
   const [orderId] = useState(() => crypto.randomUUID());
 
-  const [expanded, setExpanded] = useState<string | null>(null);
-  /** The cover picker's own disclosure — a book-level control, so it does not
-   * share `expanded` with any one day. */
-  const [coverOpen, setCoverOpen] = useState(false);
+  /** Level 1 (`null`) or level 2, on a day or on the front matter — B534. */
+  const [drill, setDrill] = useState<Drill>(null);
   /** Which photograph's crop is being adjusted, by `src` — B513. A src is
    * unique across the whole book, so one flag (not one per day) is enough. */
   const [focalEditing, setFocalEditing] = useState<string | null>(null);
+
+  // Drill-in: `lib/photobook/preview.ts` stamps every drillable spread with a
+  // click handler that posts a message rather than navigating — the preview
+  // document has no idea it is sitting in an iframe here, and opened straight
+  // from a folder (the CLI's own copy) nothing is listening. Filtered by
+  // `source` so an unrelated message on the page is never mistaken for one.
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      const data = e.data as { source?: string; kind?: string; date?: string | null } | null;
+      if (!data || data.source !== "fernscout-photobook-preview") return;
+      if ((data.kind === "day" || data.kind === "photos") && data.date) {
+        setFocalEditing(null);
+        setDrill({ level: "day", date: data.date });
+      } else if (data.kind && FRONT_MATTER_KINDS.includes(data.kind)) {
+        setFocalEditing(null);
+        setDrill({ level: "front", pageKind: data.kind });
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   /**
    * Arranging one day.
@@ -405,7 +382,9 @@ export default function PhotobookPageContent({
   // Debounced: every keystroke and every tile click changes `options`, and
   // each one plans and lays out the whole book server-side. 400 ms is long
   // enough that a run of clicks collapses into one request and short enough
-  // that the preview still feels like it is following you.
+  // that the preview still feels like it is following you. Unchanged by
+  // B534 — level 2 reads its spread out of the same `preview.html` this
+  // fetches, rather than asking again.
   const requestId = useRef(0);
   useEffect(() => {
     const mine = ++requestId.current;
@@ -429,10 +408,6 @@ export default function PhotobookPageContent({
     return () => clearTimeout(timer);
   }, [entry.username, tripRef, options]);
 
-  const credits = preview?.credits ?? null;
-  const tooPoor = balance !== null && credits !== null && balance < credits;
-  const unbuyable = preview?.buyable === false;
-
   /**
    * Which days are actually being cut short — B517.
    *
@@ -446,6 +421,26 @@ export default function PhotobookPageContent({
       .map((w) => w.date as string),
   );
 
+  /**
+   * Level 2's own slice of the preview — a day's spread(s), or the front
+   * matter's — cut from `preview.html` on the client rather than fetched
+   * again. `extractSpreads` reads the `data-date`/`data-kind` attributes
+   * `lib/photobook/preview.ts` stamps on every drillable page.
+   */
+  const sliceHtml = useMemo(() => {
+    if (!drill || !preview) return null;
+    return drill.level === "day"
+      ? extractSpreads(preview.html, (ds) => ds.date === drill.date)
+      : extractSpreads(preview.html, (ds) => ds.kind === drill.pageKind);
+  }, [drill, preview]);
+
+  const drillDay = drill?.level === "day" ? days.find((d) => d.date === drill.date) : undefined;
+  const drillDayPhotos = drillDay ? media.filter((m) => m.date === drillDay.date) : [];
+  const drillPlan: DayPlan | undefined = drillDay ? options.days[drillDay.date] : undefined;
+  const drillLayout: DayLayout = drillPlan?.layout ?? "auto";
+
+  const canReset = Object.keys(options.days).length > 0 || Object.keys(options.focalPoints).length > 0;
+
   return (
     <div className="min-h-screen">
       <PageHeader />
@@ -457,13 +452,12 @@ export default function PhotobookPageContent({
           {tripTitle} — {t("photobook.intro")}
         </p>
 
-        {/* The outcome of the last press, above everything else — B(this
-            ticket): a page that looked identical whether Pay had just
-            succeeded, failed, or never been pressed is what made a second
-            press cost a second book. A successful order replaces the form
-            outright rather than sitting above an armed Pay button, since the
-            book it would build is the one already sitting in the links
-            below. */}
+        {/* The outcome of the last press, above everything else: a page that
+            looked identical whether Pay had just succeeded, failed, or never
+            been pressed is what made a second press cost a second book. A
+            successful order replaces the form outright rather than sitting
+            above an armed Pay button, since the book it would build is the
+            one already sitting in the links below. */}
         {outcome?.state === "done" ? (
           <div className="mt-6 max-w-xl rounded-lg border-2 border-navy-900 bg-cream-100 px-4 py-4">
             <p className="font-semibold text-navy-900">{t("photobook.done")}</p>
@@ -496,584 +490,56 @@ export default function PhotobookPageContent({
               </p>
             )}
 
-            <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,20rem)_1fr]">
-              <div className="space-y-6">
-                <label className="block">
-                  <span className="text-sm font-semibold text-navy-800">
-                    {t("photobook.option.size")}
-                  </span>
-                  <select
-                    value={options.size}
-                    onChange={(e) => setOptions((o) => ({ ...o, size: e.target.value }))}
-                    className="mt-1 block w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm"
-                  >
-                    {Object.values(BOOK_SIZES).map((size) => (
-                      <option key={size.id} value={size.id}>
-                        {size.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+            <BookLevelView
+              hidden={drill !== null}
+              options={options}
+              setOptions={setOptions}
+              media={media}
+              locales={locales}
+              resetBook={resetBook}
+              canReset={canReset}
+              preview={preview}
+              submitting={submitting}
+              setSubmitting={setSubmitting}
+              orderId={orderId}
+              entryUsername={entry.username}
+              tripRef={tripRef}
+              balance={balance}
+              t={t}
+            />
 
-                {/*
-                 * The front cover — B512.
-                 *
-                 * A book-level control, deliberately not a seventh button
-                 * under every thumbnail on every day: the page a stranger
-                 * actually sees is one choice for the whole book, not a
-                 * property of any single photograph's tile. Placed beside
-                 * format and language, the other decisions that apply to the
-                 * book as a whole rather than to one day of it.
-                 *
-                 * A radiogroup, not a select: there is no text label for a
-                 * photograph worth putting in a dropdown, and — as with the
-                 * day layout above — exactly one of these is ever chosen.
-                 */}
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setCoverOpen((v) => !v)}
-                    aria-expanded={coverOpen}
-                    className="flex w-full items-center justify-between gap-2 text-left"
-                  >
-                    <span className="text-sm font-semibold text-navy-800">
-                      {t("photobook.option.cover")}
-                    </span>
-                    <span aria-hidden className="text-navy-500">
-                      {coverOpen ? "−" : "+"}
-                    </span>
-                  </button>
-                  <p className="mt-1 text-xs text-navy-600">{t("photobook.option.coverHint")}</p>
-                  {coverOpen && (
-                    <div
-                      role="radiogroup"
-                      aria-label={t("photobook.option.coverLegend")}
-                      className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4"
-                    >
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={!options.cover}
-                        onClick={() => setOptions((o) => ({ ...o, cover: undefined }))}
-                        className={`flex aspect-square items-center justify-center rounded-md border p-1 text-center text-[10px] font-semibold ${
-                          !options.cover
-                            ? "border-yellow-600 bg-yellow-400 text-yellow-950"
-                            : "border-navy-200 text-navy-600"
-                        }`}
-                      >
-                        {t("photobook.option.coverDefault")}
-                      </button>
-                      {media.map((tile) => (
-                        <button
-                          key={tile.src}
-                          type="button"
-                          role="radio"
-                          aria-checked={options.cover === tile.src}
-                          aria-label={tile.caption || tile.src}
-                          onClick={() => setOptions((o) => ({ ...o, cover: tile.src }))}
-                          className={`relative block aspect-square w-full overflow-hidden rounded-md border ${
-                            options.cover === tile.src ? "border-yellow-500" : "border-navy-200"
-                          }`}
-                        >
-                          <Image
-                            src={tile.src}
-                            loader={mediaLoader}
-                            alt=""
-                            fill
-                            sizes="10vw"
-                            className="object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {locales.length > 1 && (
-                  <label className="block">
-                    <span className="text-sm font-semibold text-navy-800">
-                      {t("photobook.option.language")}
-                    </span>
-                    {/* The book's own words only — headings, the colophon, how
-                        the travelling is named. The days keep whatever language
-                        they were written in. Shown at all only where the journal
-                        offers more than one. */}
-                    <select
-                      value={options.locale}
-                      onChange={(e) => setOptions((o) => ({ ...o, locale: e.target.value }))}
-                      className="mt-1 block w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm"
-                    >
-                      {locales.map((code) => (
-                        <option key={code} value={code}>
-                          {LANGUAGE_NAME[code] ?? code}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="mt-1 block text-xs text-navy-600">
-                      {t("photobook.option.languageHint")}
-                    </span>
-                  </label>
-                )}
-
-                <fieldset>
-                  <legend className="text-sm font-semibold text-navy-800">
-                    {t("photobook.option.binding")}
-                  </legend>
-                  <div className="mt-1 space-y-1">
-                    {(["perfect", "saddle"] as const).map((binding) => (
-                      <label key={binding} className="flex items-center gap-2 text-sm text-navy-700">
-                        <input
-                          type="radio"
-                          name="binding"
-                          checked={options.binding === binding}
-                          onChange={() => setOptions((o) => ({ ...o, binding }))}
-                        />
-                        {t(
-                          binding === "perfect"
-                            ? "photobook.option.bindingPerfect"
-                            : "photobook.option.bindingSaddle",
-                        )}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-
-                <fieldset className="space-y-1">
-                  {(
-                    [
-                      ["includeText", "photobook.option.text"],
-                      ["includeMap", "photobook.option.map"],
-                      ["includeChapters", "photobook.option.chapters"],
-                      ["includeNames", "photobook.option.names"],
-                      ["includeCosts", "photobook.option.costs"],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-2 text-sm text-navy-700">
-                      <input
-                        type="checkbox"
-                        checked={options[key]}
-                        onChange={(e) => setOptions((o) => ({ ...o, [key]: e.target.checked }))}
-                      />
-                      {t(label)}
-                    </label>
-                  ))}
-                </fieldset>
-
-                <div>
-                  <div className="flex items-baseline justify-between gap-2">
-                    <p className="text-sm font-semibold text-navy-800">
-                      {t("photobook.day.heading")}
-                    </p>
-                    {/* Disabled rather than hidden when there is nothing to
-                        lose: a control that vanishes the moment it would do
-                        nothing is harder to find the one time it matters. */}
-                    <button
-                      type="button"
-                      onClick={resetBook}
-                      disabled={
-                        Object.keys(options.days).length === 0 &&
-                        Object.keys(options.focalPoints).length === 0
-                      }
-                      className="text-xs font-semibold text-navy-600 underline disabled:cursor-not-allowed disabled:text-navy-300 disabled:no-underline"
-                    >
-                      {t("photobook.resetAll")}
-                    </button>
-                  </div>
-                  <p className="mt-1 text-xs text-navy-600">{t("photobook.day.hint")}</p>
-                  <ul className="mt-2 space-y-1">
-                    {days.map((day) => {
-                      const dayPhotos = media.filter((m) => m.date === day.date);
-                      if (dayPhotos.length === 0 && !day.title) return null;
-                      const plan = options.days[day.date];
-                      // No entry means the book decides, which is the normal
-                      // case and has to stay the cheapest one to read.
-                      const chosen = plan?.photos ?? dayPhotos.map((m) => m.src);
-                      const included = new Set(chosen);
-                      const layout = plan?.layout ?? "auto";
-                      const open = expanded === day.date;
-                      return (
-                        <li key={day.date} className="rounded-lg border border-navy-200 bg-white">
-                          <button
-                            type="button"
-                            onClick={() => setExpanded(open ? null : day.date)}
-                            aria-expanded={open}
-                            className="flex w-full items-baseline justify-between gap-2 px-3 py-2 text-left"
-                          >
-                            <span className="min-w-0">
-                              <span className="block truncate text-sm font-semibold text-navy-800">
-                                {day.title || day.date}
-                              </span>
-                              <span className="block truncate text-xs text-navy-600">
-                                {t("photobook.day.photos", {
-                                  shown: String(included.size),
-                                  total: String(dayPhotos.length),
-                                })}
-                                {layout !== "auto" ? ` · ${t(LAYOUT_LABEL[layout])}` : ""}
-                              </span>
-                            </span>
-                            <span aria-hidden className="text-navy-500">
-                              {open ? "\u2212" : "+"}
-                            </span>
-                          </button>
-                          {open && (
-                            <div className="border-t border-navy-100 px-3 py-3">
-                              {/* A radio group, not six toggle buttons. They are
-                                  mutually exclusive — exactly one is true — and
-                                  `aria-pressed` on each said the opposite: a
-                                  screen reader announced six independent
-                                  toggles, any of which might be on. The Binding
-                                  control on this same page has always been a
-                                  fieldset of radios; this now matches it. */}
-                              <div
-                                role="radiogroup"
-                                aria-label={t("photobook.day.layoutLegend")}
-                                className="flex flex-wrap gap-1"
-                              >
-                                {DAY_LAYOUTS.map((option) => (
-                                  <button
-                                    key={option}
-                                    type="button"
-                                    role="radio"
-                                    aria-checked={layout === option}
-                                    onClick={() => setDayLayout(day.date, option)}
-                                    className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                                      layout === option
-                                        ? "border-yellow-600 bg-yellow-400 text-yellow-950"
-                                        : "border-navy-200 text-navy-700"
-                                    }`}
-                                  >
-                                    {t(LAYOUT_LABEL[option])}
-                                  </button>
-                                ))}
-                              </div>
-                              {/* Only worth showing where it would do
-                                  something: a day already fitting its column
-                                  has no overflow for a second page to
-                                  solve — B517. Once turned on, kept visible
-                                  even if a photograph change stops it
-                                  overflowing, so the box stays reachable to
-                                  turn back off. */}
-                              {(truncatedDates.has(day.date) || plan?.runOn) && (
-                                <label className="mt-2 flex items-start gap-2 text-xs text-navy-700">
-                                  <input
-                                    type="checkbox"
-                                    className="mt-0.5"
-                                    checked={plan?.runOn === true}
-                                    onChange={(e) => setDayRunOn(day.date, e.target.checked)}
-                                  />
-                                  <span>
-                                    <span className="block font-semibold text-navy-800">
-                                      {t("photobook.day.runOn")}
-                                    </span>
-                                    <span className="block text-navy-600">
-                                      {t("photobook.day.runOnHint")}
-                                    </span>
-                                  </span>
-                                </label>
-                              )}
-                              <div className="mt-2 flex flex-wrap items-center gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => applyLayoutToAll(layout)}
-                                  className="text-xs font-semibold text-navy-600 underline"
-                                >
-                                  {t("photobook.day.applyToAll")}
-                                </button>
-                                {/* Only for a day the owner has actually
-                                    touched — plan is undefined for every day
-                                    still left to the planner, and a button
-                                    that undoes nothing has no reason to be
-                                    there. */}
-                                {plan && (
-                                  <button
-                                    type="button"
-                                    onClick={() => resetDay(day.date, dayPhotos)}
-                                    className="text-xs font-semibold text-navy-600 underline"
-                                  >
-                                    {t("photobook.day.reset")}
-                                  </button>
-                                )}
-                              </div>
-                              {dayPhotos.length > 0 && (
-                                <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                                  {ordered(dayPhotos, plan).map((tile, i) => {
-                                    const inBook = included.has(tile.src);
-                                    // Starred only when the owner picked one. Starring whatever the
-                                    // planner would choose anyway would claim a decision nobody made.
-                                    const isHero = plan?.hero === tile.src;
-                                    // A "text" day prints none of its photographs — B513's rule
-                                    // that a crop control is only ever shown where cropping is
-                                    // something that actually happens.
-                                    const croppable = inBook && layout !== "text";
-                                    return (
-                                      <li key={tile.src} className="space-y-1">
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleDayPhoto(day.date, tile.src, dayPhotos)}
-                                          aria-pressed={inBook}
-                                          aria-label={
-                                            tile.caption ||
-                                            t("photobook.option.photoName", {
-                                              index: String(i + 1),
-                                              total: String(dayPhotos.length),
-                                            })
-                                          }
-                                          className={`relative block aspect-square w-full overflow-hidden rounded-md border ${
-                                            inBook ? "border-yellow-500" : "border-navy-200 opacity-30"
-                                          }`}
-                                        >
-                                          <Image
-                                            src={tile.src}
-                                            loader={mediaLoader}
-                                            alt=""
-                                            fill
-                                            sizes="10vw"
-                                            className="object-cover"
-                                          />
-                                          {isHero && (
-                                            <span
-                                              aria-hidden
-                                              className="absolute left-1 top-1 rounded-full bg-yellow-400 px-1.5 text-[10px] font-bold text-yellow-950"
-                                            >
-                                              ★
-                                            </span>
-                                          )}
-                                        </button>
-                                        {/* Only for photographs that are in the
-                                            book: nudging the order of one that
-                                            is not would be a control with no
-                                            visible effect. */}
-                                        {inBook && (
-                                          <div className="flex items-center justify-between gap-0.5">
-                                            <button
-                                              type="button"
-                                              onClick={() => movePhoto(day.date, tile.src, -1, dayPhotos)}
-                                              aria-label={t("photobook.day.moveEarlier")}
-                                              className="min-h-8 flex-1 rounded border border-navy-200 text-xs text-navy-600"
-                                            >
-                                              ‹
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() => setHero(day.date, tile.src)}
-                                              aria-pressed={isHero}
-                                              aria-label={t("photobook.day.makeBig")}
-                                              className={`min-h-8 flex-1 rounded border text-xs ${
-                                                isHero
-                                                  ? "border-yellow-600 bg-yellow-400 text-yellow-950"
-                                                  : "border-navy-200 text-navy-600"
-                                              }`}
-                                            >
-                                              ★
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() => movePhoto(day.date, tile.src, 1, dayPhotos)}
-                                              aria-label={t("photobook.day.moveLater")}
-                                              className="min-h-8 flex-1 rounded border border-navy-200 text-xs text-navy-600"
-                                            >
-                                              ›
-                                            </button>
-                                          </div>
-                                        )}
-                                        {/* The crop control itself — B513.
-                                            Hidden for a photograph that would
-                                            print whole: offering it there is a
-                                            control that does nothing. */}
-                                        {croppable && (
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              setFocalEditing((s) => (s === tile.src ? null : tile.src))
-                                            }
-                                            aria-pressed={focalEditing === tile.src}
-                                            aria-label={t("photobook.day.adjustCrop")}
-                                            className={`min-h-8 w-full rounded border text-xs ${
-                                              focalEditing === tile.src
-                                                ? "border-yellow-600 bg-yellow-400 text-yellow-950"
-                                                : "border-navy-200 text-navy-600"
-                                            }`}
-                                          >
-                                            {t("photobook.day.adjustCrop")}
-                                          </button>
-                                        )}
-                                      </li>
-                                    );
-                                  })}
-                                </ul>
-                              )}
-                              {/* The editor for whichever photograph on this
-                                  day is being adjusted, one at a time and
-                                  outside the grid so it can be shown larger
-                                  than a 3-column thumbnail — tapping it, or
-                                  pressing the arrow keys once it has focus,
-                                  moves the point `cover()` crops from. */}
-                              {focalEditing && dayPhotos.some((m) => m.src === focalEditing) && (
-                                <div className="mt-3 border-t border-navy-100 pt-3">
-                                  <p className="text-xs text-navy-600">{t("photobook.day.cropHint")}</p>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => setFocalFromTap(focalEditing, e)}
-                                    onKeyDown={(e) => nudgeFocalByKey(focalEditing, e)}
-                                    aria-label={t("photobook.day.cropAriaLabel")}
-                                    className="relative mt-2 block aspect-square w-40 max-w-full overflow-hidden rounded-md border border-navy-300"
-                                  >
-                                    <Image
-                                      src={focalEditing}
-                                      loader={mediaLoader}
-                                      alt=""
-                                      fill
-                                      sizes="10vw"
-                                      className="object-cover"
-                                      style={{
-                                        objectPosition: `${focalOf(focalEditing).x * 100}% ${focalOf(focalEditing).y * 100}%`,
-                                      }}
-                                    />
-                                    <span
-                                      aria-hidden
-                                      className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-yellow-400 bg-yellow-400/60"
-                                      style={{
-                                        left: `${focalOf(focalEditing).x * 100}%`,
-                                        top: `${focalOf(focalEditing).y * 100}%`,
-                                      }}
-                                    />
-                                  </button>
-                                  <div className="mt-1 flex gap-3">
-                                    <button
-                                      type="button"
-                                      onClick={() => resetFocal(focalEditing)}
-                                      className="text-xs font-semibold text-navy-600 underline"
-                                    >
-                                      {t("photobook.day.cropReset")}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setFocalEditing(null)}
-                                      className="text-xs font-semibold text-navy-600 underline"
-                                    >
-                                      {t("photobook.day.cropDone")}
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              </div>
-
-              <div>
-                <iframe
-                  srcDoc={preview?.html ?? ""}
-                  className="h-[70vh] w-full rounded-xl border border-navy-200 bg-white"
-                  title={t("photobook.title")}
-                />
-
-                <div className="mt-4 space-y-2 text-sm">
-                  {preview && (
-                    <p className="text-navy-700">
-                      {t("photobook.pages", {
-                        pages: String(preview.pages),
-                        volumes: String(preview.volumes),
-                      })}
-                    </p>
-                  )}
-                  {credits !== null && (
-                    <p className="font-semibold text-navy-900">
-                      {t("photobook.price", { credits: String(credits) })}
-                    </p>
-                  )}
-                  {balance !== null && (
-                    <p className="text-navy-600">
-                      {t("photobook.balance", { balance: String(balance) })}
-                    </p>
-                  )}
-
-                  {/* Shown above the button, not folded into a details element —
-                      these describe failures invisible on screen and obvious on
-                      paper, and folding them away is how one gets missed. */}
-                  {preview && preview.warnings.length > 0 && (
-                    <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-yellow-900">
-                      {/* Grouped by kind, with the detail behind a disclosure.
-                          These describe failures invisible on screen and obvious
-                          on paper, so they are not folded away — but forty-three
-                          of them, one paragraph each, pushed the Pay button
-                          nearly three thousand pixels down the page, which hides
-                          the warning and the button together. What is folded is
-                          the repetition, never the fact. */}
-                      <ul className="space-y-2">
-                        {groupWarnings(preview.warnings).map((group) => (
-                          <li key={group.code}>
-                            <p className="text-sm font-semibold">
-                              {group.count > 1
-                                ? t("photobook.warning.many", {
-                                    count: String(group.count),
-                                    code: group.code,
-                                  })
-                                : group.code}
-                            </p>
-                            {group.count === 1 ? (
-                              <p className="text-sm">{group.details[0]}</p>
-                            ) : (
-                              <details>
-                                <summary className="cursor-pointer text-sm">
-                                  {t("photobook.warning.each")}
-                                </summary>
-                                <ul className="mt-1 space-y-1 text-sm">
-                                  {group.details.map((detail, i) => (
-                                    <li key={i}>{detail}</li>
-                                  ))}
-                                </ul>
-                              </details>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  <form
-                    method="post"
-                    action={`/${entry.username}/photobook/order`}
-                    onSubmit={() => setSubmitting(true)}
-                  >
-                    <input type="hidden" name="trip" value={tripRef} />
-                    <input type="hidden" name="options" value={JSON.stringify(options)} />
-                    <input type="hidden" name="orderId" value={orderId} />
-                    <button
-                      type="submit"
-                      disabled={submitting || tooPoor || unbuyable || !preview}
-                      className="min-h-11 rounded-full bg-navy-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {t("photobook.pay")}
-                    </button>
-                    {/* The build is synchronous and a long trip is tens of
-                        seconds of PDF rendering — this is the only sign the
-                        page gives that the press was heard, between the
-                        click and the redirect. */}
-                    {submitting && (
-                      <p className="mt-2 text-sm text-navy-700" role="status">
-                        {t("photobook.building")}
-                      </p>
-                    )}
-                    {unbuyable && (
-                      <p className="mt-2 text-sm text-red-700">{t("photobook.noPhotos")}</p>
-                    )}
-                    {tooPoor && credits !== null && balance !== null && (
-                      <p className="mt-2 text-sm text-red-700">
-                        {t("photobook.tooPoor", {
-                          credits: String(credits),
-                          balance: String(balance),
-                        })}
-                      </p>
-                    )}
-                  </form>
-                </div>
-              </div>
-            </div>
+            {drill && (
+              <DayLevelView
+                drill={drill}
+                onBack={() => setDrill(null)}
+                day={drillDay}
+                dayPhotos={drillDayPhotos}
+                plan={drillPlan}
+                layout={drillLayout}
+                truncated={drillDay ? truncatedDates.has(drillDay.date) : false}
+                focalEditing={focalEditing}
+                focalOf={focalOf}
+                setDayLayout={setDayLayout}
+                setDayRunOn={setDayRunOn}
+                setHero={setHero}
+                movePhoto={movePhoto}
+                toggleDayPhoto={toggleDayPhoto}
+                resetDay={resetDay}
+                applyLayoutToAll={applyLayoutToAll}
+                setFocalEditing={setFocalEditing}
+                setFocalFromTap={setFocalFromTap}
+                nudgeFocalByKey={nudgeFocalByKey}
+                resetFocal={resetFocal}
+                options={options}
+                setOptions={setOptions}
+                media={media}
+                locales={locales}
+                resetBook={resetBook}
+                canReset={canReset}
+                sliceHtml={sliceHtml}
+                t={t}
+              />
+            )}
           </>
         )}
       </main>
