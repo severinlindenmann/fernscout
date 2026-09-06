@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { ChevronLeft, ChevronRight, Crop, Star } from "lucide-react";
 import { mediaLoader } from "@/components/mediaLoader";
 import type { TranslationKey } from "@/lib/i18n";
 import { DAY_LAYOUTS, type DayLayout, type DayPlan, type Focal } from "@/lib/photobook/options";
@@ -149,7 +150,13 @@ export default function DayControls({
       </div>
 
       {dayPhotos.length > 0 && (
-        <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+        // Which photograph prints big is one choice for the whole day —
+        // mutually exclusive across every tile below, same as the layout
+        // picker above, so it is a radiogroup rather than a scattered row of
+        // independent `aria-pressed` stars. The other controls in here
+        // (include/exclude, crop) are each independent per photograph and
+        // stay plain buttons.
+        <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4" role="radiogroup" aria-label={t("photobook.day.heroLegend")}>
           {ordered.map((tile, i) => {
             const inBook = included.has(tile.src);
             // Starred only when the owner picked one. Starring whatever the
@@ -177,9 +184,9 @@ export default function DayControls({
                   {isHero && (
                     <span
                       aria-hidden
-                      className="absolute left-1 top-1 rounded-full bg-yellow-400 px-1.5 text-[10px] font-bold text-yellow-950"
+                      className="absolute left-1 top-1 rounded-full bg-yellow-400 p-0.5 text-yellow-950"
                     >
-                      ★
+                      <Star className="h-3 w-3" fill="currentColor" />
                     </span>
                   )}
                 </button>
@@ -192,28 +199,29 @@ export default function DayControls({
                       type="button"
                       onClick={() => movePhoto(day.date, tile.src, -1, dayPhotos)}
                       aria-label={t("photobook.day.moveEarlier")}
-                      className="min-h-8 flex-1 rounded border border-navy-200 text-xs text-navy-600"
+                      className="flex min-h-8 flex-1 items-center justify-center rounded border border-navy-200 text-navy-600"
                     >
-                      ‹
+                      <ChevronLeft className="h-4 w-4" aria-hidden />
                     </button>
                     <button
                       type="button"
+                      role="radio"
                       onClick={() => setHero(day.date, tile.src)}
-                      aria-pressed={isHero}
+                      aria-checked={isHero}
                       aria-label={t("photobook.day.makeBig")}
-                      className={`min-h-8 flex-1 rounded border text-xs ${
+                      className={`flex min-h-8 flex-1 items-center justify-center rounded border ${
                         isHero ? "border-yellow-600 bg-yellow-400 text-yellow-950" : "border-navy-200 text-navy-600"
                       }`}
                     >
-                      ★
+                      <Star className="h-4 w-4" aria-hidden fill={isHero ? "currentColor" : "none"} />
                     </button>
                     <button
                       type="button"
                       onClick={() => movePhoto(day.date, tile.src, 1, dayPhotos)}
                       aria-label={t("photobook.day.moveLater")}
-                      className="min-h-8 flex-1 rounded border border-navy-200 text-xs text-navy-600"
+                      className="flex min-h-8 flex-1 items-center justify-center rounded border border-navy-200 text-navy-600"
                     >
-                      ›
+                      <ChevronRight className="h-4 w-4" aria-hidden />
                     </button>
                   </div>
                 )}
@@ -226,13 +234,14 @@ export default function DayControls({
                     onClick={() => setFocalEditing(focalEditing === tile.src ? null : tile.src)}
                     aria-pressed={focalEditing === tile.src}
                     aria-label={t("photobook.day.adjustCrop")}
-                    className={`min-h-8 w-full rounded border text-xs ${
+                    className={`flex min-h-8 w-full items-center justify-center gap-1 rounded border text-xs ${
                       focalEditing === tile.src
                         ? "border-yellow-600 bg-yellow-400 text-yellow-950"
                         : "border-navy-200 text-navy-600"
                     }`}
                   >
-                    {t("photobook.day.adjustCrop")}
+                    <Crop className="h-3.5 w-3.5" aria-hidden />
+                    {t("photobook.day.adjustCropShort")}
                   </button>
                 )}
               </li>
