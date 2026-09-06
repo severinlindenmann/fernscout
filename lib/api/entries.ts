@@ -675,6 +675,15 @@ export function attachGallery(
 /**
  * Every field `PATCH .../days/<slug>` may change. Deliberately not `status`
  * — see `editEntry` below, which is the whole point of B266.
+ *
+ * `coordinates` and `photos` joined this list in B599, `"unknown"` only —
+ * `false` stays create-only, refused by `checkDeclines` in
+ * lib/validate/entry.ts with a message that says why, rather than by simply
+ * never reaching a validator at all. Before this a day could be told *the
+ * money is gone* after the fact and not *the pictures are gone*, though
+ * `openapi.json` had documented the second as the whole point of the third
+ * answer — "they can be added later; the day does not have to wait" said
+ * nothing about a day already written not being allowed to say it.
  */
 export const EDITABLE_DAY_FIELDS = [
   "title",
@@ -688,6 +697,8 @@ export const EDITABLE_DAY_FIELDS = [
   "content",
   "tags",
   "costs",
+  "coordinates",
+  "photos",
   "transportMode",
   "transportFrom",
   "transportTo",

@@ -11,6 +11,7 @@ import { getEntryBySlug } from "@/lib/entries";
 import { getTrip } from "@/lib/trips";
 import { POST as writeDay } from "@/app/api/v1/[user]/trips/[trip]/days/route";
 import { POST as publishDay } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/publish/route";
+import { GET as readDay, PATCH as patchDay } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/route";
 import { PATCH as patchTracks } from "@/app/api/v1/[user]/trips/[trip]/tracks/route";
 
 /**
@@ -74,6 +75,28 @@ async function publish(slug: string, body: unknown = {}) {
       method: "POST",
       headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
       body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ user: "alex", trip: "reise", slug }) },
+  );
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+}
+
+async function patch(slug: string, body: unknown) {
+  const response = await patchDay(
+    new Request(`https://t.test/api/v1/alex/trips/reise/days/${slug}`, {
+      method: "PATCH",
+      headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ user: "alex", trip: "reise", slug }) },
+  );
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+}
+
+async function read(slug: string) {
+  const response = await readDay(
+    new Request(`https://t.test/api/v1/alex/trips/reise/days/${slug}`, {
+      headers: { authorization: `Bearer ${await token()}` },
     }),
     { params: Promise.resolve({ user: "alex", trip: "reise", slug }) },
   );
@@ -255,5 +278,94 @@ describe("what a trip keeps is the owner's to change", () => {
     // being refused for its costs with nothing to explain why.
     expect(String(((await response.json()) as Record<string, unknown>).message)).toMatch(/cost/);
     expect(getTrip(REF)!.tracks.costs).toBe(true);
+  });
+});
+
+/**
+ * B599 — a day can be told its photographs or its place are unrecorded after
+ * it exists, not only at the moment it is written.
+ *
+ * `costs` already answered all three ways on a `PATCH`; `coordinates` and
+ * `photos` answered only two, because neither was in `EDITABLE_DAY_FIELDS` at
+ * all — so `{"photos": "unknown"}` on an existing day was refused the same
+ * as `{"photos": false}`, with a message about `status` that had nothing to
+ * do with either.
+ */
+describe("B599 — photos and coordinates can be told \"unknown\" after the day exists", () => {
+  test("PATCH accepts \"unknown\" for photos, and the day reads it back", async () => {
+    // Both write-time rows are declined at creation, so only `photos` — the
+    // publish-time row — is left unanswered.
+    await post({ ...DAY, costs: false, coordinates: false });
+    const { status, body } = await patch("ein-tag", { photos: "unknown" });
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body.changed).toEqual(["photos"]);
+
+    const read1 = await read("ein-tag");
+    expect(read1.body.unrecorded).toEqual(["photos"]);
+    // What was already declined at creation is untouched by an edit that
+    // never named it.
+    expect(read1.body.without).toEqual(["costs", "coordinates"]);
+  });
+
+  test("PATCH accepts \"unknown\" for coordinates, and the day reads it back — retracting the decline it had", async () => {
+    await post({ ...DAY, costs: false, coordinates: false });
+    const { status, body } = await patch("ein-tag", { coordinates: "unknown" });
+    expect(status, JSON.stringify(body)).toBe(200);
+
+    const read1 = await read("ein-tag");
+    // The day said "no place" at creation; this call says "there was one and
+    // nobody wrote it down" — the two cannot both stand, so the first is
+    // retracted the same way a value would retract it (B560).
+    expect(read1.body.unrecorded).toEqual(["coordinates"]);
+    expect(read1.body.without).toEqual(["costs"]);
+  });
+
+  test("PATCH still refuses \"photos\": false, and says why", async () => {
+    await post({ ...DAY, costs: false, coordinates: false });
+    const { status, body } = await patch("ein-tag", { photos: false });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_entry");
+
+    const problems = body.problems as { field: string; expected: string }[];
+    const problem = problems.find((p) => p.field === "photos");
+    expect(problem).toBeDefined();
+    expect(problem!.expected).toMatch(/POST \.\.\.\/days/);
+    expect(problem!.expected).toMatch(/unknown/);
+
+    // Nothing changed — the day's existing declines stand, and it still has
+    // no answer for photos at all.
+    const read1 = await read("ein-tag");
+    expect(read1.body.without).toEqual(["costs", "coordinates"]);
+    expect(read1.body.unrecorded).toBeUndefined();
+  });
+
+  test("PATCH still refuses \"coordinates\": false, and says why", async () => {
+    await post({ ...DAY, costs: false, coordinates: false });
+    const { status, body } = await patch("ein-tag", { coordinates: false });
+    expect(status).toBe(400);
+    const problems = body.problems as { field: string; expected: string }[];
+    const problem = problems.find((p) => p.field === "coordinates");
+    expect(problem).toBeDefined();
+    expect(problem!.expected).toMatch(/POST \.\.\.\/days/);
+    expect(problem!.expected).toMatch(/unknown/);
+  });
+
+  test("a day switched to \"unknown\" on photos still publishes, on a trip that tracks photos", async () => {
+    await post({ ...DAY, costs: false, coordinates: false });
+
+    // Not yet: the trip tracks photos and this day has said nothing about them.
+    const blocked = await publish("ein-tag");
+    expect(blocked.status).toBe(422);
+    expect((blocked.body.missing as { field: string }[]).map((m) => m.field)).toEqual(["photos"]);
+
+    expect((await patch("ein-tag", { photos: "unknown" })).status).toBe(200);
+
+    const published = await publish("ein-tag");
+    expect(published.status, JSON.stringify(published.body)).toBe(200);
+    expect(published.body.status).toBe("published");
+
+    const entry = getEntryBySlug(REF, "ein-tag")!;
+    expect(entry.draft).toBeUndefined();
+    expect(entry.unrecorded).toContain("photos");
   });
 });

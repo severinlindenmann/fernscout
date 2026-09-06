@@ -331,6 +331,26 @@ export const FRONTMATTER_TO_API: { key: string; api: string; note: string }[] = 
       "A day that simply lacks costs is a day to **ask about**, not to decline on its behalf.",
   },
   {
+    key: "coordinates",
+    api: "coordinates",
+    note:
+      "Not a frontmatter field of its own — `lat`/`lng` above is the positive answer. This is " +
+      "the file's `without:`/`unrecorded:` block instead, when it names `coordinates`: " +
+      '`false` on the way in if the day never had one, `"unknown"` if it happened somewhere ' +
+      'and nobody can say where. **On an existing day only `"unknown"` crosses** — `false` is ' +
+      "given when a day is created and refused on a `PATCH`, B599.",
+  },
+  {
+    key: "photos",
+    api: "photos",
+    note:
+      "Not a frontmatter field either — photographs are their own call regardless (`gallery` " +
+      "below). What crosses is the file's `without:`/`unrecorded:` block when it names " +
+      '`photos`: `false` there if the day was created with none, `"unknown"` if there are ' +
+      "pictures somewhere and nobody has them to hand. Same B599 limit as `coordinates` " +
+      'above — an existing day can only be told `"unknown"`.',
+  },
+  {
     key: "gallery",
     api: "— does not cross —",
     note:
