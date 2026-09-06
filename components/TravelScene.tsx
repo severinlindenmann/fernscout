@@ -11,8 +11,9 @@ import {
 } from "motion/react";
 import { Plane, TrainFront, Bus, Bike, Car, Ship, Footprints, Cloud } from "lucide-react";
 import type { DaySummary, TransportMode, TravelSceneVariant } from "@/lib/types";
+import type { Figure } from "@/lib/travellers/vocabulary";
 import Travelers from "./Travelers";
-import { useSite } from "./SiteProvider";
+import { useOptionalSite } from "./SiteProvider";
 import { useTrip } from "./TripProvider";
 import { partyFor } from "@/lib/travellers/parse";
 import Cityscape from "./Cityscape";
@@ -58,6 +59,25 @@ const VEHICLE_WIDTH: Record<TransportMode, number> = {
   car: 115,
   motorbike: 95,
   walk: 0,
+};
+
+/**
+ * What the sky is doing.
+ *
+ * A closed list rather than a class name, because a caller handing this
+ * component arbitrary CSS is a caller that can put anything behind somebody's
+ * journey. Nothing selects one yet — every leg on the site is `day` — and it
+ * is here because the workbench needs to show the scene against more than one
+ * ground before anybody commits to deriving it from the date and the latitude,
+ * which is the only honest way it could ever be chosen automatically.
+ */
+export type SkyName = "day" | "overcast" | "dusk" | "night";
+
+export const SKIES: Record<SkyName, string> = {
+  day: "bg-gradient-to-b from-sky-300 to-sky-400",
+  overcast: "bg-gradient-to-b from-slate-300 to-slate-400",
+  dusk: "bg-gradient-to-b from-orange-200 via-rose-300 to-indigo-300",
+  night: "bg-gradient-to-b from-indigo-900 to-slate-800",
 };
 
 /** Duration when either end of the leg carries no coordinates — the middle
@@ -169,6 +189,9 @@ export default function TravelScene({
   leg,
   from,
   onDone,
+  at,
+  party: partyOverride,
+  sky = "day",
 }: {
   /** The day arrived at. A leg is entirely described by where it went and
    * how, both of which the story's day index already carries — so a travel
@@ -178,16 +201,48 @@ export default function TravelScene({
    * distance this leg covers. Absent plays the fallback duration. */
   from?: DaySummary;
   onDone?: () => void;
+  /**
+   * Hold the scene at one instant, 0→1, instead of playing it.
+   *
+   * Nothing on the site passes this. It is the seam `/docs/branding/animation`
+   * needs, and the reason it exists is that half the bugs in this component
+   * were only ever visible at a particular moment of a six-second animation —
+   * a wheel spinning off its axle, a party standing on open water, an aircraft
+   * whose wings raked forward. Each was found by slowing the whole thing to
+   * forty seconds by hand and screenshotting it, which is a thing a person
+   * should be able to do with a slider.
+   *
+   * `onDone` never fires while it is set: a held scene has not finished.
+   */
+  at?: number;
+  /** Draw these figures rather than the trip's. Workbench only. */
+  party?: Figure[];
+  /** Which sky. Nothing selects one yet — the story always gets `day` — and
+   * it is a closed list rather than a class name so that whatever does choose
+   * one later has a vocabulary to choose from. */
+  sky?: SkyName;
 }) {
   const p = useMotionValue(0);
-  const [progress, setProgress] = useState(0);
+  /** How far a *playing* scene has got. A held one is not playing, and its
+   * progress is the prop — keeping it in state as well would mean writing to
+   * state from inside an effect for a value already in hand. */
+  const [played, setPlayed] = useState(0);
+  const held = at !== undefined;
+  const progress = at ?? played;
 
-  // The same party the hero draws. `useTrip` is null outside a trip's story,
-  // which a travel scene never is — but the fallback costs one `?.` and keeps
-  // this component renderable on its own.
-  const site = useSite();
+  /*
+   * The same party the hero draws.
+   *
+   * `useTrip` is null outside a trip's story and `useOptionalSite` answers
+   * null above a journal — neither is true on the site, where this only ever
+   * renders inside both. The fallbacks cost two `?.` and are what let the
+   * component be rendered on its own by the workbench, which is a page under
+   * `/docs` and therefore has neither provider over it.
+   */
+  const site = useOptionalSite();
   const active = useTrip();
-  const party = partyFor(active?.trip.travellers ?? [], site.travellerFigures);
+  const party =
+    partyOverride ?? partyFor(active?.trip.travellers ?? [], site?.travellerFigures ?? []);
 
   const variant: TravelSceneVariant = leg.travelScene ?? "default";
   const km = legDistanceKm(from, leg);
@@ -195,6 +250,12 @@ export default function TravelScene({
   const mode: TransportMode = leg.transport?.mode ?? "walk";
 
   useEffect(() => {
+    // Held: show that instant and do not play. `onDone` stays silent, because
+    // a scene somebody is holding at 40% has not arrived anywhere.
+    if (at !== undefined) {
+      p.set(at);
+      return;
+    }
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // One effect, one `animate` call, for every variant — reduced motion and
     // a directly-rendered "skip" both collapse to the same near-zero
@@ -205,12 +266,12 @@ export default function TravelScene({
     const controls = animate(p, 1, {
       duration,
       ease: "linear",
-      onUpdate: setProgress,
+      onUpdate: setPlayed,
       onComplete: () => onDone?.(),
     });
     return () => controls.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leg.slug]);
+  }, [leg.slug, at]);
 
   const Icon = VEHICLE_ICON[mode] ?? Plane;
   const isFlight = mode === "flight";
@@ -351,9 +412,7 @@ export default function TravelScene({
   return (
     <div
       className={`relative w-full overflow-hidden rounded-2xl border border-navy-200 shadow-sm ${
-        quick
-          ? "h-[110px] bg-navy-50"
-          : "h-[280px] bg-gradient-to-b from-sky-300 to-sky-400 sm:h-[340px]"
+        quick ? "h-[110px] bg-navy-50" : `h-[280px] sm:h-[340px] ${SKIES[sky] ?? SKIES.day}`
       }`}
     >
       {quick ? (
@@ -478,7 +537,9 @@ export default function TravelScene({
       {/* How far through the leg we are. */}
       <div className="absolute inset-x-0 bottom-0 h-1 bg-white/25">
         <div
-          className="h-full bg-yellow-400 transition-[width] duration-100 ease-linear"
+          // The easing is for a scene that is playing. Held on a slider it
+          // would lag a hundred milliseconds behind the hand dragging it.
+          className={`h-full bg-yellow-400 ${held ? "" : "transition-[width] duration-100 ease-linear"}`}
           style={{ width: `${Math.round(progress * 100)}%` }}
         />
       </div>
