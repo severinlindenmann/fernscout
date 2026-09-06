@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper, validate-content, tips
 found: "2026-09-06T14:17:37Z"
 started: "2026-09-06T18:00:11Z"
-session: ac8af30e-815d-4843-a94d-cf061a70269c
-claimed: "2026-09-06T18:00:11Z"
+merged: "2026-09-06T18:12:34Z"
 ---
 
 # B586 — A day gets both an error and a tip for the same unanswered question
@@ -62,3 +61,28 @@ whether the same one is printed twice.
   produces the tip — the tip is not simply removed.
 - The equivalents for `costs` and `coordinates` behave the same way.
 - `selftest.mjs` still passes, with `halbfertig` at 0 errors and 0 warnings.
+
+---
+
+## Corrected while building, 2026-09-06
+
+Two things this ticket asserted turned out to be wrong, and the fix was
+narrower than it claimed.
+
+**`costs` and `coordinates` already deduped.** The ticket said all three tips
+pass no key. In fact those two are raised by the generic `checkKeys()` loop
+(`validate.mjs:147`), which passes the field's own key automatically because
+their `MODEL` entries carry a `tip:`. Verified against a fixture: a day silent
+about costs already got the error and no tip, before any change. Only the
+hand-written "has no photographs" tip lacked a key. One line, not three.
+
+**The second acceptance line described behaviour that does not exist.** It
+asked that "a day with an empty gallery on a trip that does not track
+photographs still produces the tip". The tip's own guard is
+`tracks.photos !== false`, so it has never fired for a trip that turned the
+track off — deliberately, and unchanged by this work. The line was written from
+the ticket author's assumption rather than from the code, and it was right to
+flag it rather than change working behaviour to satisfy it.
+
+Recorded because a task file is the working record: the next reader should not
+re-derive that the other two tips were fine all along.

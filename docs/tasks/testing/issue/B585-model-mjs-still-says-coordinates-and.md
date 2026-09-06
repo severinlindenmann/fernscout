@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper, model.mjs, drift
 found: "2026-09-06T14:17:36Z"
 started: "2026-09-06T18:00:10Z"
-session: ac8af30e-815d-4843-a94d-cf061a70269c
-claimed: "2026-09-06T18:00:10Z"
+merged: "2026-09-06T18:12:32Z"
 ---
 
 # B585 — model.mjs still says coordinates and photos are only ever false, and the site has a third answer
