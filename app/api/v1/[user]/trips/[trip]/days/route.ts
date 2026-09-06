@@ -8,6 +8,7 @@ import {
   type DraftInput,
 } from "@/lib/api/entries";
 import { confirmationMatches, confirmationRequired } from "@/lib/agentConfirm";
+import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { getAllEntries } from "@/lib/entries";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -189,6 +190,12 @@ export async function POST(
     const status = result.bug ? 500 : result.error.startsWith("an entry already exists") ? 409 : 400;
     return Response.json({ error: result.error }, { status });
   }
+
+  // B325. The day is on disk; this is the lookup, and it cannot fail the
+  // write — every refusal inside is swallowed, and a day that gets nothing
+  // here is picked up by `npm run weather:update` once the archive has it.
+  // Awaited rather than floated: see `fillDayWeatherQuietly`.
+  await fillDayWeatherQuietly(ref, result.slug);
 
   const written = { slug: result.slug, status: result.status };
   remember(key, fingerprint, written);

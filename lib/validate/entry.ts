@@ -10,6 +10,7 @@
 // mistake needs the whole list in one round trip; a single "something is
 // wrong" forces it to guess, fix, resubmit, and find the next one.
 import { COST_CATEGORIES, type CostCategory } from "../costFormat";
+import { RESERVED_SOURCES, hasMeasurement } from "../weather";
 import { captionProblem } from "./media";
 
 /** Mirrors `TransportMode` in lib/types.ts. TypeScript has no way to turn a
@@ -112,6 +113,11 @@ export type EntryInput = {
   translations?: unknown;
   /** A caption per photograph, keyed by `src`. Edit only — B522. */
   captions?: unknown;
+  /** Ask the server to look up what the weather was. B325. */
+  weather?: unknown;
+  /** A reading the caller took themselves. B325 — and see `checkWeatherData`
+   * for why this is the most restricted field on a day. */
+  weatherData?: unknown;
   /** The two declines that are not also a field — B531. `false` and nothing
    *  else; `costs` takes it in the field above. */
   coordinates?: unknown;
@@ -500,6 +506,147 @@ function checkTranslations(
   }
 }
 
+/** How long a hand-supplied `source` may be, and what may be in it. Bounded
+ * because it is written into a YAML flow mapping and shown to readers as the
+ * credit for a measurement — a newline or a quote in it would close the value
+ * from inside, and a paragraph in it is not a source. */
+const SOURCE_MAX_LENGTH = 60;
+const SOURCE_RE = /^[^\r\n"\\]+$/;
+
+/** Plausible ranges, so a typo is caught rather than drawn. The Earth's
+ * record extremes with room either side; precipitation and wind bounded at
+ * values no day has reached. */
+const WEATHER_RANGES: Record<string, [number, number]> = {
+  tempMin: [-95, 65],
+  tempMax: [-95, 65],
+  code: [0, 99],
+  precipitation: [0, 2000],
+  windMax: [0, 500],
+};
+
+const WEATHER_FIELDS = [...Object.keys(WEATHER_RANGES), "source", "recordedAt"];
+
+/**
+ * `weather: true` asks the server to look the day up. It is a request, not an
+ * answer, so the only thing to check is that it is a real boolean — the same
+ * reasoning as `checkTest`: a caller sending `"true"` means something, and
+ * silently reading it as absent would answer a question nobody asked.
+ */
+function checkWeather(input: EntryInput, problems: Problem[]): void {
+  if (input.weather !== undefined && typeof input.weather !== "boolean") {
+    problems.push({
+      field: "weather",
+      got: describe(input.weather),
+      expected: "true or false — the JSON booleans, not the strings",
+      hint:
+        "true asks this server to look up what the weather was at this day's coordinates, " +
+        "from Open-Meteo. It does not accept a reading from you; see weatherData if you " +
+        "have one you took yourself.",
+    });
+  }
+}
+
+/**
+ * `weatherData` is the one field on a day that a caller may not simply assert.
+ *
+ * This project's central rule is that an agent invents no weather — the
+ * temptation is real and the damage is not recoverable, because a plausible
+ * "it rained all afternoon" handed to somebody's family reads as a record of
+ * their life. A measurement is the exception, and **the only thing separating
+ * a measurement from an invention is that the measurement says where it came
+ * from**. So this field is accepted only with provenance, and the server's own
+ * source name is refused outright: an agent that could send
+ * `source: "open-meteo"` beside numbers it believed would erase the
+ * distinction with one string, and every rule above it would be decoration.
+ *
+ * Ask for `weather: true` instead if what you want is the archive's answer.
+ */
+function checkWeatherData(input: EntryInput, problems: Problem[]): void {
+  const raw = input.weatherData;
+  if (raw === undefined) return;
+
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    problems.push({
+      field: "weatherData",
+      got: describe(raw),
+      expected:
+        "an object with a source, a recordedAt and at least one measurement — " +
+        '{"tempMax": 24, "source": "the thermometer on the balcony", "recordedAt": "2026-08-26T17:00:00Z"}',
+    });
+    return;
+  }
+
+  const given = raw as Record<string, unknown>;
+
+  for (const [field, [lo, hi]] of Object.entries(WEATHER_RANGES)) {
+    const value = given[field];
+    if (value === undefined) continue;
+    if (typeof value !== "number" || !Number.isFinite(value) || value < lo || value > hi) {
+      problems.push({
+        field: `weatherData.${field}`,
+        got: describe(value),
+        expected: `a number between ${lo} and ${hi}`,
+      });
+    }
+  }
+
+  for (const key of Object.keys(given)) {
+    if (WEATHER_FIELDS.includes(key)) continue;
+    problems.push({
+      field: `weatherData.${key}`,
+      got: key,
+      expected: `one of ${WEATHER_FIELDS.join(", ")}`,
+    });
+  }
+
+  const source = typeof given.source === "string" ? given.source.trim() : undefined;
+  if (source === undefined || source === "") {
+    problems.push({
+      field: "weatherData.source",
+      got: describe(given.source),
+      expected: "where this reading came from, in a few words",
+      hint:
+        "Required, and it is the point of the field: a number with no source is " +
+        "indistinguishable from one you made up, and this journal's readers have no way to " +
+        "tell them apart. Name the thermometer, the app, the station — whatever it was. If " +
+        "you have no reading and want the archive's, send weather: true instead.",
+    });
+  } else if ((RESERVED_SOURCES as readonly string[]).includes(source.toLowerCase())) {
+    problems.push({
+      field: "weatherData.source",
+      got: describe(given.source),
+      expected: `not ${RESERVED_SOURCES.join(" or ")} — only this server may write those`,
+      hint:
+        "That name belongs to a lookup this server made itself, and a reader takes it to mean " +
+        "a measurement was retrieved from that archive. Send weather: true to have this server " +
+        "do the lookup, or name the source your reading actually came from.",
+    });
+  } else if (source.length > SOURCE_MAX_LENGTH || !SOURCE_RE.test(source)) {
+    problems.push({
+      field: "weatherData.source",
+      got: describe(given.source),
+      expected: `at most ${SOURCE_MAX_LENGTH} characters, on one line, with no quotes or backslashes`,
+    });
+  }
+
+  const recordedAt = given.recordedAt;
+  if (typeof recordedAt !== "string" || Number.isNaN(Date.parse(recordedAt))) {
+    problems.push({
+      field: "weatherData.recordedAt",
+      got: describe(recordedAt),
+      expected: 'when this reading was taken, as an ISO instant — "2026-08-26T17:00:00Z"',
+    });
+  }
+
+  if (!hasMeasurement(given as Parameters<typeof hasMeasurement>[0])) {
+    problems.push({
+      field: "weatherData",
+      got: "provenance and no measurement",
+      expected: "at least one of tempMin, tempMax, code, precipitation, windMax",
+    });
+  }
+}
+
 export function validateEntry(
   input: EntryInput,
   /** The journal's declared languages and the one its prose is written in.
@@ -521,6 +668,8 @@ export function validateEntry(
   checkDeclines(input, problems);
   checkTags(input, problems);
   checkTest(input, problems);
+  checkWeather(input, problems);
+  checkWeatherData(input, problems);
   checkBody(input, problems);
   return problems;
 }
@@ -564,6 +713,8 @@ export function validateEntryEdit(
   checkDeclines(input, problems);
   checkTags(input, problems);
   checkTest(input, problems);
+  checkWeather(input, problems);
+  checkWeatherData(input, problems);
   checkBody(input, problems, false);
   checkCaptions(input, problems);
   return problems;

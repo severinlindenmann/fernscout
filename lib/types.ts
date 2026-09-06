@@ -1,5 +1,6 @@
 import type { RateTable } from "./currency";
 import type { Figure } from "./travellers/vocabulary";
+import type { DayWeather } from "./weather";
 import type { Track, Tracks } from "./tracks";
 
 export type TransportMode =
@@ -192,6 +193,20 @@ export type Entry = {
    * in somebody's feed reader looking like a Tuesday.
    */
   test?: boolean;
+  /**
+   * What the weather actually was — B325, and the one field on a day that the
+   * author did not necessarily write.
+   *
+   * It carries its own `source` and `recordedAt` for that exact reason: the
+   * project's rule is that an agent invents no weather, and the only way a
+   * measurement can live beside somebody's prose without eroding that rule is
+   * for a reader to always be able to see where it came from. Rendered in the
+   * day's furniture beside the date, never inside the prose.
+   *
+   * Absent for a day that never asked for it, for a day with no coordinates,
+   * and for a journal with the capability off.
+   */
+  weather?: DayWeather;
   /**
    * What this day deliberately does not have — B531.
    *

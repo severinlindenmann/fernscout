@@ -203,6 +203,29 @@ export function openApiDocument() {
                 "Absent plays the default scene, timed to the distance covered. Any other " +
                 "string is written as sent and read back as the default rather than refused.",
             },
+            weather: {
+              type: "boolean",
+              description:
+                "`true` asks this server to look up what the weather actually was at this day's "
+                + "`lat`/`lng` on this `date`, from the Open-Meteo public archive, and write it into "
+                + "the day. It needs coordinates: a day without them gets nothing, never a guess "
+                + "from the trip's other days or the nearest city. The lookup cannot fail this "
+                + "call — a day the archive has no answer for yet is filled in later by "
+                + "`npm run weather:update`. Off unless this instance has the `weather` capability "
+                + "on; /api/health says.",
+            },
+            weatherData: {
+              type: "object",
+              description:
+                "A reading somebody actually took, for the case where you have one and the archive "
+                + "does not. **You may not write this from your own knowledge.** It is accepted "
+                + "only with `source` — where the reading came from, in a few words — and "
+                + "`recordedAt`, an ISO instant; and `open-meteo` is refused as a source, because "
+                + "that name means this server retrieved a measurement and a reader takes it that "
+                + "way. At least one of tempMin, tempMax, code (a WMO code), precipitation (mm) or "
+                + "windMax (km/h). If what you want is the archive's answer, send `weather: true` "
+                + "instead.",
+            },
             test: {
               type: "boolean",
               description:
@@ -250,6 +273,18 @@ export function openApiDocument() {
             travelScene: {
               type: "string",
               description: `Same meaning as on creation. One of ${TRAVEL_SCENE_VARIANTS.join(", ")}.`,
+            },
+            weather: {
+              type: "boolean",
+              description:
+                "Same meaning as on creation, and the way to have a day already written looked " +
+                "up. `false` withdraws the request; it does not remove a reading already recorded.",
+            },
+            weatherData: {
+              type: "object",
+              description:
+                "Same rules as on creation — a `source` and a `recordedAt` are required and " +
+                "`open-meteo` is refused. `null` removes a reading.",
             },
             test: {
               type: "boolean",

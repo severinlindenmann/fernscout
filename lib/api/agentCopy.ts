@@ -297,6 +297,24 @@ export const FRONTMATTER_TO_API: { key: string; api: string; note: string }[] = 
   },
   { key: "test", api: "test", note: "Only when the day is content nobody lived." },
   {
+    key: "weather",
+    api: "weather",
+    note:
+      "`true` if the file says so. It is a request for a lookup, not a value — the server " +
+      "fetches what the weather actually was from the day's own coordinates, so a day whose " +
+      "file carries it and whose call does not simply loses its weather.",
+  },
+  {
+    key: "weatherData",
+    api: "weatherData",
+    note:
+      "A reading already in the file, carried across whole — including its `source` and " +
+      "`recordedAt`, which are what make it a measurement rather than a claim. A reading " +
+      "sourced `open-meteo` is the server's own and is **refused** on the way in: send " +
+      "`weather: true` and let the new instance look it up again. Never write this field " +
+      "from anything but the file in front of you.",
+  },
+  {
     key: "without",
     api: '"costs": false — and the same for coordinates and photos',
     note:
@@ -872,7 +890,8 @@ export function dayQuestions(): FirstQuestion[] {
       ask: "**What happened, in their words** (`content`)",
       because:
         "Required — the day's prose, as they told it. Write what you were told: no invented " +
-        "weather, meals or feelings. An empty field beats a plausible fiction.",
+        "weather, meals or feelings. An empty field beats a plausible fiction. (If they want " +
+        "the weather, it is a field and a lookup, never prose — see `weather` below.)",
     },
     {
       ask: "**The same day in the journal's other languages** (`translations`)",
@@ -886,8 +905,37 @@ export function dayQuestions(): FirstQuestion[] {
       ask: "**What the day cost** (`costs`)",
       because: DAY_MONEY_QUESTION,
     },
+    {
+      ask: "**Whether to look the weather up** (`weather`)",
+      because: WEATHER_QUESTION,
+    },
   ];
 }
+
+/**
+ * The one place this project's own rule points the other way, and the sentence
+ * that keeps it from reading as a contradiction — B325.
+ *
+ * "No invented weather" is right and stays. What it forbids is *guessing*, and
+ * until now guessing was the only route available, so the rule read as "there
+ * is no weather here". There is: a measurement from a public archive, at a
+ * coordinate the person supplied, on a date they supplied, labelled as coming
+ * from that archive.
+ *
+ * The distinction an agent has to hold is the whole feature. Asking for the
+ * lookup is `weather: true` and is always safe. Supplying a reading is
+ * `weatherData` and requires naming where it came from — and an agent's own
+ * belief about a Tuesday in August is not a source, however confident it is.
+ */
+const WEATHER_QUESTION =
+  "Optional. `weather: true` asks this server to look up what the weather actually was, " +
+  "from Open-Meteo, using the day's own `lat`/`lng` and `date` — so it needs coordinates, " +
+  "and a day without them gets nothing rather than a guess. **Do not write weather values " +
+  "from your own knowledge.** If the person has a reading they took themselves, send it as " +
+  "`weatherData` with a `source` naming where it came from and a `recordedAt`; a reading " +
+  "with no source is refused, and no caller may claim `open-meteo` as its source. That " +
+  "field is the only reason a measurement can sit beside somebody's prose without " +
+  "eroding the rule above it.";
 
 /**
  * The note a day script owes and a question list cannot carry: photographs

@@ -136,6 +136,98 @@ body {
   }
 }
 
+/* What the weather actually was — B325, and the whole of its animation.
+
+   CSS rather than JavaScript on purpose: a trip page draws one of these per
+   day, forty at a time, and none of them has any state. It also makes
+   prefers-reduced-motion a media query at the bottom of this block rather
+   than a hook in every glyph. Slow on purpose — this sits beside a date in a
+   12px meta line, and anything quicker reads as a notification. */
+@keyframes fs-weather-drift {
+  0%,
+  100% {
+    transform: translateX(-0.6px);
+  }
+  50% {
+    transform: translateX(0.6px);
+  }
+}
+
+@keyframes fs-weather-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+@keyframes fs-weather-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fs-weather-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes fs-weather-flash {
+  0%,
+  62%,
+  100% {
+    opacity: 0.85;
+  }
+  66%,
+  72% {
+    opacity: 0.25;
+  }
+}
+
+.fs-weather-drift {
+  animation: fs-weather-drift 5s ease-in-out infinite;
+}
+.fs-weather-drift-slow {
+  animation: fs-weather-drift 8s ease-in-out infinite reverse;
+}
+.fs-weather-fall {
+  animation: fs-weather-fall 1.4s linear infinite;
+}
+.fs-weather-spin {
+  animation: fs-weather-spin 24s linear infinite;
+}
+.fs-weather-pulse {
+  animation: fs-weather-pulse 4s ease-in-out infinite;
+}
+.fs-weather-flash {
+  animation: fs-weather-flash 3.5s ease-in-out infinite;
+}
+
+/* Non-negotiable, and the reason every one of the rules above is a class
+   rather than an inline style: one query turns the whole feature still. The
+   glyph stays — it is information — and only the movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  .fs-weather-drift,
+  .fs-weather-drift-slow,
+  .fs-weather-fall,
+  .fs-weather-spin,
+  .fs-weather-pulse,
+  .fs-weather-flash {
+    animation: none;
+  }
+}
+
 /* Scrollable, but without the bar — used where the container is obviously
    scrollable from its content and a bar would just add visual noise. */
 .no-scrollbar {

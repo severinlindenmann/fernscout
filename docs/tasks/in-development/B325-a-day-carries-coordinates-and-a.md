@@ -122,3 +122,39 @@ generate prose.
   covered by a test, because this is the line the whole ticket rests on.
 - A `docs/plans/` document exists naming the provider chosen, its licence, and
   the attribution it requires.
+
+## What the work changed about the ticket
+
+Three things the Work section above got slightly wrong, corrected here rather
+than left to disagree with what shipped.
+
+**The archive lag is not a decision that had to be made.** The ticket asks
+whether an unfillable day is "a later backfill pass or simply an empty field".
+It is neither: Open-Meteo's *forecast* endpoint serves roughly the last 92
+days including today, in the same response shape as the archive, so
+`lib/weatherFetch.ts` routes on the age of the day and a day written the
+evening it happened gets real numbers immediately. The sweep still exists, for
+days written offline and for provider outages.
+
+**A hand-supplied reading is allowed, which the ticket leans against.** The
+ticket prefers "the field is not writable through the API at all". It is
+writable, under the ticket's own second option — with a `source` and a
+`recordedAt`, and with `open-meteo` refused as a source so no caller can
+borrow the archive's name. That was the author's call when the feature was
+specified, and the property the ticket actually cares about is intact and
+tested: nothing a caller asserts can be mistaken by a reader for a
+measurement, because the credit for an archive reading is a link and a
+person's own reading is shown as their own words.
+
+**One provenance field, not two.** `recordedAt`, not `fetchedAt` plus
+`observedAt`. They answer one question — when is this true of — and two fields
+would mean every reader had to know which to look at.
+
+**Left open, and captured rather than absorbed:** B538, a day the archive has
+no answer for re-fetching on every PATCH.
+
+**Not confirmed:** Open-Meteo's licence page could not be retrieved by `curl`
+from this machine, so the CC BY / non-commercial sentence in the plan document
+is from prior knowledge. The attribution is built either way — every reading
+credits Open-Meteo with a link — but somebody should read that page before
+this goes to a public instance.

@@ -878,5 +878,14 @@
   "welcome.token": "Ask your agent to start at {guide}. It will ask this server to mail a six-digit code to {email} — this address, and no other — and that code becomes a token that can write for seven days.",
   "welcome.tokenHeading": "If you want to write to it later",
   "fallback.writtenIn.de": "Written in German — no English version of this day.",
-  "fallback.writtenIn.hu": "Written in Hungarian — no English version of this day."
+  "fallback.writtenIn.hu": "Written in Hungarian — no English version of this day.",
+  "weather.clear": "Clear",
+  "weather.partly": "Partly cloudy",
+  "weather.cloudy": "Cloudy",
+  "weather.fog": "Fog",
+  "weather.rain": "Rain",
+  "weather.snow": "Snow",
+  "weather.thunder": "Thunderstorm",
+  "weather.unknown": "Weather",
+  "weather.via": "Weather recorded by {source}, {when}"
 }

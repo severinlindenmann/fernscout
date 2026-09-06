@@ -1,6 +1,7 @@
 import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { isTestContent } from "@/lib/access";
 import { EDITABLE_DAY_FIELDS, editEntry, type EditInput } from "@/lib/api/entries";
+import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntryEdit } from "@/lib/validate/entry";
@@ -191,6 +192,11 @@ export async function PATCH(
     const status = result.bug ? 500 : result.error === "unknown_day" ? 404 : 400;
     return Response.json({ error: result.error }, { status });
   }
+
+  // B325, the same call the create route makes and for the same reasons: a
+  // day that has just acquired `weather: true`, or a coordinate it did not
+  // have, is a day that can now be looked up. It cannot fail this edit.
+  await fillDayWeatherQuietly(ref, result.slug);
 
   // The half B263 and this ticket both turn on: what the agent reports back
   // has to be the day's actual state, not its own intention. So this says it

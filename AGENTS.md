@@ -53,6 +53,20 @@ memory presented to somebody's family as fact is not recoverable. So: write
 what you were told. No weather nobody mentioned, no meals nobody ate, no
 feelings nobody expressed. An empty field beats a plausible fiction.
 
+**Weather has one true route, and it is not your memory.** Since B325 a day
+may carry `weather: true`, and the *server* looks it up — from a public
+archive, at the coordinates that day already carries, credited to the archive
+on the page. That does not soften the sentence above; it is what makes it
+survivable, because until there was a measurement, guessing was the only way
+to answer at all. What stays forbidden is the whole of it: an agent writing a
+temperature, a condition or a wet afternoon from its own belief. A reading a
+person handed you goes in `weatherData` and must name its source, and
+`open-meteo` is refused there, because that name means this server measured
+it. **Ask for the lookup; never supply the answer.** `npm run weather:update`
+fills in every day that asked and has none yet, never overwrites one already
+there, and leaves a day the archive cannot answer for the next run rather than
+filling it with something plausible.
+
 **`test: true`** is the exception, and the only one. A day or a trip carrying it
 is content nobody lived, written to prove the pipeline works: the page says so
 in a banner, and it is kept out of the feed, the search index and the sitemap.

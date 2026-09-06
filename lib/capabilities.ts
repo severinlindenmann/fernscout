@@ -39,6 +39,12 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // B399. See configuredEnv() for the provider-specific half — `photon`
   // needs nothing, which is the whole point of defaulting to it.
   addressLookup: { env: [], db: false },
+  // B325. Open-Meteo needs no key and nothing is stored in a database — the
+  // reading goes into the day's own frontmatter, because weather that lives
+  // only in a cache is weather that disappears when the cache does. So the
+  // capability needs nothing, and off is a decision rather than a shortfall:
+  // it means no request is made to a third party on any path.
+  weather: { env: [], db: false },
 };
 
 /** Transport and provider choices carry their own credential requirements.
