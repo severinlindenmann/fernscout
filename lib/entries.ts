@@ -50,6 +50,45 @@ export function forgetEntries(ref: string): void {
   cache.delete(entriesDir(ref));
 }
 
+/**
+ * True exactly when `file`'s bytes are still `expected` — the guard every
+ * whole-file rewrite of an entry must run immediately before it writes.
+ *
+ * B643: a day was read, costs and a weather reading were written to it by
+ * one call, three photographs by another, and some hours later all of it was
+ * gone — because a *different* writer (a `weather:update` sweep, a second
+ * session, the old half of a rolling restart) had read the same file
+ * earlier, computed its own change from that older copy, and written the
+ * whole file back after the newer writes had already landed. Every call
+ * involved answered success, because each one *was* correct in isolation: it
+ * read the file, changed what it meant to change, and wrote the result. What
+ * none of them checked is whether the file was still what they read.
+ *
+ * Every splice in `lib/api/entries.ts` and `lib/api/weather.ts` is already
+ * internally synchronous — read, transform, write, with no `await` in
+ * between — so nothing *inside one Node process* can land between a
+ * splicer's own read and its own write. That stops being true the moment a
+ * second process is reading and writing the same file, which is exactly the
+ * shape a sweep script, a second agent session, or two overlapping deploys
+ * take. This is the check that turns that silent loss into a refusal
+ * instead: call it with the exact string a splicer read at the top of its
+ * own function, right before that splicer writes its result, and treat
+ * `false` as "do not write this — read the file again and redo the edit on
+ * top of what is there now."
+ *
+ * Compares the literal bytes rather than size and mtime: a filesystem's
+ * mtime resolution is not fine enough to promise two writes a millisecond
+ * apart are told apart, and an entry file is never large enough for the
+ * extra read here to be worth avoiding.
+ */
+export function fileUnchangedSince(file: string, expected: string): boolean {
+  try {
+    return fs.readFileSync(file, "utf8") === expected;
+  } catch {
+    return false;
+  }
+}
+
 /** Keyed by the resolved entries directory (which already contains the
  * content root), so a test pointing CONTENT_DIR elsewhere never gets the
  * previous directory's entries back. */
