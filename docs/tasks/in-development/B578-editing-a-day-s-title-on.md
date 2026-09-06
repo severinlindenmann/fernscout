@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: fernscout-helper, publish, days
 found: "2026-09-06T14:02:08Z"
+started: "2026-09-06T14:07:42Z"
+session: ac8af30e-815d-4843-a94d-cf061a70269c
+claimed: "2026-09-06T14:07:42Z"
 ---
 
 # B578 — Editing a day's title on disk makes publish unable to find that day again
