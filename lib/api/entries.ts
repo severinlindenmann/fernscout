@@ -10,6 +10,7 @@ import {
   AS_AUTHOR,
   clearMatterCache,
   entrySlugFromFile,
+  fileUnchangedSince,
   forgetEntries,
   getAllEntries,
   getDays,
@@ -659,7 +660,8 @@ export function attachGallery(
   if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
 
   const file = path.join(dir, match);
-  const spliced = appendGallery(fs.readFileSync(file, "utf8"), items);
+  const raw = fs.readFileSync(file, "utf8");
+  const spliced = appendGallery(raw, items);
   if (spliced === null) {
     // A file with no frontmatter block is one somebody wrote by hand in a shape
     // this cannot edit safely. Say so; do not guess.
@@ -668,6 +670,24 @@ export function attachGallery(
       error:
         `"${slug}" has no frontmatter block to write a gallery into. The photographs ` +
         `are on disk under this day; add them to the entry by hand.`,
+    };
+  }
+
+  // B643 — see `fileUnchangedSince`. The photographs themselves are already
+  // on disk by this point (`storeUploads` wrote them before this was ever
+  // called), so refusing here does not lose them: it only refuses to write a
+  // gallery block computed from a copy of the day that a second writer has
+  // since moved past, which would otherwise silently take that writer's
+  // change down with it.
+  if (!fileUnchangedSince(file, raw)) {
+    console.warn(`[entries] ${ref}/${slug}: refused a gallery write — the day changed under it.`);
+    return {
+      ok: false,
+      error:
+        `"${slug}" changed while these photographs were being attached — something else wrote ` +
+        `to this day at the same time, and writing the gallery now would have erased that other ` +
+        `change. Nothing was written; the photographs are already stored (see \`kept\`) — read ` +
+        `the day back and attach them again.`,
     };
   }
 
@@ -790,11 +810,23 @@ export function detachGallery(
   const match = files.find((f) => entrySlugFromFile(f) === slug);
   if (match) {
     const file = path.join(dir, match);
-    const spliced = removeGalleryItems(
-      fs.readFileSync(file, "utf8"),
-      new Set(matched.map((item) => mediaKey(item.src))),
-    );
-    if (spliced !== null) fs.writeFileSync(file, spliced);
+    const raw = fs.readFileSync(file, "utf8");
+    const spliced = removeGalleryItems(raw, new Set(matched.map((item) => mediaKey(item.src))));
+    // B643 — see `fileUnchangedSince`. The files themselves are already
+    // deleted by `deleteMediaFiles` above regardless (on purpose, see the
+    // comment on this function), so a refusal here only means the entry
+    // still names a file that is now 404 — safe, and the caller can retry
+    // the removal against whatever the day looks like now.
+    if (spliced !== null) {
+      if (fileUnchangedSince(file, raw)) {
+        fs.writeFileSync(file, spliced);
+      } else {
+        console.warn(
+          `[entries] ${ref}/${slug}: refused a gallery-removal write — the day changed under it. ` +
+            "The deleted files still stay deleted.",
+        );
+      }
+    }
   }
 
   forgetEntries(ref);
@@ -1264,6 +1296,21 @@ export function editEntry(
     };
   }
 
+  // B643 — see `fileUnchangedSince`. `raw` was read at the top of this
+  // function and every check above was made against it; if the file has
+  // moved since, writing `spliced` now would silently erase whatever wrote
+  // it, because `spliced` was built from a copy that predates that change.
+  if (!fileUnchangedSince(file, raw)) {
+    console.warn(`[entries] ${ref}/${slug}: refused an edit — the day changed under it.`);
+    return {
+      ok: false,
+      error:
+        `"${slug}" changed while this edit was being applied — something else wrote to this day ` +
+        "at the same time, and writing this edit now would have erased that other change. " +
+        "Nothing was written; read the day back and send this edit again.",
+    };
+  }
+
   fs.writeFileSync(file, spliced);
   forgetEntries(ref);
   return {
@@ -1374,6 +1421,20 @@ export function publishDraft(
   if (at < 0) return { ok: false, error: `"${slug}" has no "status: draft" line to remove` };
 
   lines.splice(at, 1);
+  // B643 — see `fileUnchangedSince`. Publishing is the one call in this file
+  // an owner waits for and means as final; writing it from a copy a second
+  // writer has since moved past would be the worst place of all for this to
+  // happen silently.
+  if (!fileUnchangedSince(file, raw)) {
+    console.warn(`[entries] ${ref}/${slug}: refused a publish — the day changed under it.`);
+    return {
+      ok: false,
+      error:
+        `"${slug}" changed while this was being published — something else wrote to this day at ` +
+        "the same time, and publishing now would have erased that other change. Nothing was " +
+        "written; read the day back and publish it again.",
+    };
+  }
   fs.writeFileSync(file, lines.join("\n"));
   forgetEntries(ref);
   return { ok: true, slug };

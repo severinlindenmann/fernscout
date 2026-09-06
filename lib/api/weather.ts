@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { isEnabled } from "../capabilities";
-import { clearMatterCache, entrySlugFromFile, forgetEntries } from "../entries";
+import { clearMatterCache, entrySlugFromFile, fileUnchangedSince, forgetEntries } from "../entries";
 import { parseTripRef, tripDir } from "../trips";
 import { parseWeather, type DayWeather } from "../weather";
 import { fetchDayWeather } from "../weatherFetch";
@@ -123,6 +123,20 @@ function writeWeather(file: string, ref: string, reading: DayWeather): boolean {
     // sweep would fetch it again every time it ran.
     if (!parseWeather(matter(spliced).data.weatherData)) {
       clearMatterCache();
+      return false;
+    }
+    // B643 — see `fileUnchangedSince` in lib/entries.ts. This function's own
+    // read is already the last thing before this write, which is safe against
+    // anything else in *this* process; it is not safe against a second
+    // writer in another one — this is the ticket's own example of a second
+    // writer landing on the same file mid-request. Refusing here means the
+    // day keeps whatever that other writer just wrote, and the sweep or the
+    // next request comes back for the weather instead of erasing it.
+    if (!fileUnchangedSince(file, raw)) {
+      console.warn(
+        `[weather] ${ref}: "${file}" changed while a weather reading was being written — ` +
+          "refusing to write it now rather than erase whatever wrote it. It will be retried.",
+      );
       return false;
     }
     fs.writeFileSync(file, spliced);
