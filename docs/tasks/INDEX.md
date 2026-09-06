@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (120)
+## backlog (123)
 
 ### security (7)
 
@@ -126,7 +126,7 @@ Do not edit them by hand; run the script.
 | [B591](backlog/big-feature/B591-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to relay a print job to a fulfilment instance | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
-### small-feature (13)
+### small-feature (15)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -138,6 +138,8 @@ Do not edit them by hand; run the script.
 | [B436](backlog/small-feature/B436-nothing-ever-suggests-sending-postcards-so.md) | Nothing ever suggests sending postcards, so nobody discovers the feature | FEATURE | medium | low |
 | [B589](backlog/small-feature/B589-there-is-no-capability-for-one.md) | There is no capability for one instance to fulfil another's print jobs | FEATURE | medium | medium |
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
+| [B600](backlog/small-feature/B600-a-teasered-trip-s-countries-are.md) | A teasered trip's countries are missing from the lifetime map | FEATURE | medium | low |
+| [B601](backlog/small-feature/B601-a-reader-refused-at-the-trip.md) | A reader refused at the trip gate has no way to ask the owner to let them in | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
 | [B176](backlog/small-feature/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
@@ -194,7 +196,7 @@ Do not edit them by hand; run the script.
 | [B422](backlog/docs-and-skills/B422-nothing-tells-an-agent-that-the.md) | Nothing tells an agent that the owner's pages are cookie-only, so a bearer token that works on every API call renders none of them | DOCS | low | low |
 | [B555](backlog/docs-and-skills/B555-the-unconverted-costs-notice-still-tells.md) | The unconverted-costs notice still tells a reader to ask an agent to add a rate that now arrives on its own | DOCS | low | low |
 
-### superseded (12)
+### superseded (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -205,6 +207,7 @@ Do not edit them by hand; run the script.
 | [B43](backlog/superseded/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
 | [B583](backlog/superseded/B583-postcards-can-only-be-started-from.md) | Duplicate capture of B582 | ISSUE | medium | low |
 | [B588](backlog/superseded/B588-a-print-capability-with-no-real.md) | A print capability with no real provider looks the same as one that can post | FEATURE | medium | medium |
+| [B602](backlog/superseded/B602-a-reader-refused-at-the-trip.md) | A reader refused at the trip gate has no way to ask the owner to let them in | FEATURE | medium | medium |
 | [B89](backlog/superseded/B89-nothing-that-costs-the-operator-money.md) | Nothing that costs the operator money can be paid for, so every paid feature is dry-run only | FEATURE | medium | high |
 | [B246](backlog/superseded/B246-openapi-json-does-not-document-costsvisibility.md) | openapi.json does not document costsVisibility on POST trips | ISSUE | low | low |
 | [B253](backlog/superseded/B253-the-demo-journal-s-tagline-says.md) | The demo journal's tagline says four journeys and the count beside it says five | ISSUE | low | low |
