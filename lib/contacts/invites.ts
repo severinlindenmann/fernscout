@@ -45,6 +45,25 @@ import { parseLocale } from "./locale";
  * somebody actually arrived, and rewriting them to say "invite" would be a
  * lie.
  *
+ * ## The one queue entry that is not an invite (B601)
+ *
+ * A link is no longer the only way onto the owner's queue, and saying so here
+ * is the point of this section: `POST /api/contacts/ask` writes a `pending`
+ * row with `created_via: "asked"`, from the button `TripGate` shows a reader
+ * who has signed in and is *still* shut out.
+ *
+ * It does not put B37's door back, and the difference is not one of degree.
+ * That form stood open to anybody who knew a username, asked a stranger for a
+ * name, an email and a postal address, and was advertised on the journal's own
+ * pages. This asks nothing but a name, takes the address off the reader's own
+ * session and never out of the request, and exists only on a page somebody has
+ * already been refused on. There is no route to it for anyone who has not met
+ * a locked trip.
+ *
+ * What is unchanged is the row above: it grants nothing, `approveContact` is
+ * still the only thing in the codebase that writes a grant, and the owner
+ * still decides by hand.
+ *
  * ## What B33 added, and what it did not
  *
  * Two more kinds, at two URLs that say in the path what they are for, because

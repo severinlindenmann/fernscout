@@ -237,11 +237,25 @@ export async function notifyOwnerOfRequest(
   // trip. Null for everyone else, and the sentence is unchanged for them.
   const trip = await buddyTripFor(username, contact);
   const bodyVars = { name: contact.name ?? contact.email, email: contact.email, trip: trip?.title ?? "" };
-  const bodyKey = trip ? "contact.mailRequestBuddyBody" : "contact.mailRequestBody";
+  // B601 — somebody who pressed "ask to be let in" in front of a closed trip
+  // did not "confirm their email address and would like to follow along":
+  // they were already signed in, met a locked trip, and asked. Saying so is
+  // what tells the owner whether this is a stranger who found the journal or
+  // somebody they had already sent a link to.
+  const asked = contact.createdVia === "asked";
+  const bodyKey = trip
+    ? "contact.mailRequestBuddyBody"
+    : asked
+    ? "contact.mailRequestAskedBody"
+    : "contact.mailRequestBody";
   // B362 — the subject calling this a follow request was the other half of
   // what B349 fixed in the body; a buddy link is asking to write, not to
   // follow.
-  const subjectKey = trip ? "contact.mailRequestBuddySubject" : "contact.mailRequestSubject";
+  const subjectKey = trip
+    ? "contact.mailRequestBuddySubject"
+    : asked
+    ? "contact.mailRequestAskedSubject"
+    : "contact.mailRequestSubject";
   try {
     const result = await sendMail(
       renderMail(

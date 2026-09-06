@@ -60,6 +60,7 @@ export default async function TripLayout({
       journalTitle={getUser(user)?.title ?? user}
       signedInAs={await signedInAs(user)}
       canSignIn={isEnabled("auth", user)}
+      canAsk={isEnabled("contacts", user)}
       codeMinutes={CODE_TTL_MINUTES}
       guestBlockedByPrivate={await guestBlockedByPrivateTrip(trip)}
     />
