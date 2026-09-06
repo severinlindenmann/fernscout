@@ -59,3 +59,38 @@ unnoticed if it were wrong.
 Both call sites carry a comment saying whether drafts belong there and why,
 and if a preview path was added, a test proves the delivered artefact still
 excludes drafts.
+
+## Decision (2026-09-06)
+
+**Drafts stay out of both.** A digest goes to readers and a photobook goes to
+a printer; neither may carry writing nobody has agreed to publish yet. No
+owner-preview path was built.
+
+`lib/photobook/source.ts:365` (`buildBookSource`'s `getDays(tripId)`, the call
+this task named) now carries a comment recording that decision. It is the only
+place in the photobook feature that reads days for the artefact actually
+mailed and printed — `grep -rn buildBookSource` shows its only callers are
+`lib/photobook/build.ts`, `lib/photobook/plan.ts` and `scripts/photobook.ts`,
+none of them owner-preview code — so drafts cannot reach a delivered book
+through it.
+
+**The preview half already exists, separately, and was not missing.**
+`app/[user]/trips/[trip]/photobook/page.tsx` and its `(trip)/` twin are the
+owner-only composer this task wondered whether to build: both call
+`getDays(trip.ref, { includeDrafts: true })` already, behind `mayReadTrip`, to
+choose which days and photographs go into the book *before* it is built. That
+route is untouched by this ticket — it was already right, by the same "an
+owner reading their own trip sees drafts" pattern `lib/plan.ts` uses, and B318
+was about gallery pages missing exactly this.
+
+**`lib/digest/content.ts` no longer calls `getDays` at all**, so the second
+half of this ticket's premise is stale. B387 deleted the weekly digest that
+`getDays` fed; what is left in `lib/digest/content.ts`
+(`formatDigestDate`, `dayUrl`) is pure date/URL formatting with no read of any
+kind. The single-day mail that replaced the weekly one
+(`lib/digest/dayLetter.ts`) reads one entry by slug
+(`getEntryBySlug`), which is a different question with its own gate
+(`mayMailTrip`) and out of scope here. No comment was added to
+`lib/digest/content.ts` because there is no `getDays(tripId)` call left in it
+to annotate — adding one to a file it does not touch would be inventing a call
+site to satisfy the ticket's shape rather than answering it.

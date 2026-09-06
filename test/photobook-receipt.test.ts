@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { dictionaryFor } from "@/lib/locales";
 import { sendPhotobookReceipt } from "@/lib/photobook/receipt";
 
 /**
@@ -31,7 +32,7 @@ function writeServerConfig() {
   clearConfigCache();
 }
 
-function writeUserConfig() {
+function writeUserConfig(defaultLocale = "en") {
   fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
@@ -40,8 +41,8 @@ function writeUserConfig() {
       tagline: "one slow loop",
       owner: { name: "Alex B", nickname: "Alex", email: OWNER_EMAIL },
       startLocation: "Zurich",
-      defaultLocale: "en",
-      locales: ["en"],
+      defaultLocale,
+      locales: [defaultLocale],
       baseCurrency: "CHF",
       displayCurrencies: ["CHF"],
       units: "metric",
@@ -123,7 +124,33 @@ describe("the photobook receipt", () => {
     expect(eml).toContain("194");
     // Links, never the file: a 300-DPI book does not fit in a mailbox.
     expect(eml).not.toContain("Content-Disposition: attachment");
-    // The words a reader must not find, because no provider was called.
-    expect(eml.toLowerCase()).not.toMatch(/\bposted\b|\bshipped\b/);
   });
+
+  // B479 — the claim worth protecting is "no provider was called", and the
+  // thing that carries it in every language is the `notPrinted` key, not the
+  // absence of the English word "posted". Banning the word failed the honest
+  // English sentence ("nothing has been posted", a negation) and would have
+  // waved through a German or Hungarian receipt that claimed the opposite,
+  // since the fixture below only ever exercised `en`. Asserting on the
+  // rendered `notPrinted` text, in each locale the mail can go out in, checks
+  // the actual claim and reads correctly through a negation.
+  test.each(["en", "de", "hu"] as const)(
+    "carries the 'nothing was printed or sent' statement in %s",
+    async (locale) => {
+      writeUserConfig(locale);
+      clearUserCache();
+      const eml = await sendAndRead({
+        owner: "alex",
+        orderId: "order-abc12345",
+        tripTitle: "Asia 2026",
+        pages: 52,
+        volumes: 1,
+        creditsSpent: 194,
+        balance: 306,
+        files: ["book-interior.pdf", "book-cover.pdf"],
+      });
+
+      expect(eml).toContain(dictionaryFor(locale)["photobook.receipt.notPrinted"]);
+    },
+  );
 });
