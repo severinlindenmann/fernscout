@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: fernscout-helper, publish, media
 found: "2026-09-06T13:45:45Z"
+started: "2026-09-06T13:50:06Z"
+session: ac8af30e-815d-4843-a94d-cf061a70269c
+claimed: "2026-09-06T13:50:06Z"
 ---
 
 # B574 — publish --dry-run overstates the photographs it will upload
