@@ -704,6 +704,17 @@ export function renderPreview(
   body.bare[data-view="spreads"] .spread.solo { justify-content:center; }
   body.bare[data-view="spreads"] .spread.solo figure { flex:0 0 50%; }
   body.bare figcaption { display:none; }
+  /* The dashed trim rectangle is a pre-press guide, and the sentence that
+     explained it went with the header. Left on, it is a red dashed box
+     around every page of somebody's holiday. The CLI's copy keeps both. */
+  body.bare .trim { display:none; }
+  /* And the word "blank" watermarked on an empty page: English whatever the
+     book's language, and the warning above the frame already says in the
+     reader's own words that the book ends with empty pages. */
+  body.bare .blank { color:transparent; }
+  /* Except the one B550 marks: a facing page that belongs to another day is
+     dimmed, and this is the word that says why. */
+  body.bare figure[data-other] figcaption { display:block; text-align:center; }
 </style></head><body${bare ? ' class="bare"' : ""} data-view="spreads">
 ${bare ? "" : header}${warnings}
 ${volumes}
