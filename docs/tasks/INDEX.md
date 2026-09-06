@@ -219,15 +219,14 @@ Do not edit them by hand; run the script.
 | [B572](open/B572-publish-reports-done-after-silently-dropping.md) | publish reports Done after silently dropping most of an existing trip's trip.md | ISSUE | high | low |
 | [B573](open/B573-a-journal-written-by-the-helper.md) | A journal written by the helper tools can never carry weather | FEATURE | medium | low |
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B577](in-development/B577-selftest-mjs-exits-0-having-tested.md) | selftest.mjs exits 0 having tested nothing, because its fixtures are gitignored | ISSUE | high | low | `ac8af30e` |
 | [B574](in-development/B574-publish-dry-run-overstates-the-photographs.md) | publish --dry-run overstates the photographs it will upload | ISSUE | medium | low | `ac8af30e` |
-| [B575](in-development/B575-brand-identity-has-no-bench-and.md) | Brand identity has no bench, and its numbers live in three files | DOCS | medium | medium | `ccfbf357` |
 
-## testing (255)
+## testing (256)
 
 ### security (2)
 
@@ -487,7 +486,7 @@ Do not edit them by hand; run the script.
 | [B506](testing/ops/B506-nobody-has-looked-at-the-photobook.md) | Nobody has looked at the photobook composer or the drawn travellers in a browser | OPS | high | medium | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
-### docs-and-skills (21)
+### docs-and-skills (22)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -509,6 +508,7 @@ Do not edit them by hand; run the script.
 | [B526](testing/docs-and-skills/B526-two-fields-lists-three-and-the.md) | \"Two fields\" lists three, and the journal script never asks for the required title | DOCS | medium | low | — |
 | [B533](testing/docs-and-skills/B533-there-is-no-section-for-moving.md) | There is no section for moving a journal that already exists onto a hosted instance | DOCS | medium | low | — |
 | [B567](testing/docs-and-skills/B567-an-agent-arriving-with-a-token.md) | An agent arriving with a token has no advertised first call | DOCS | medium | low | — |
+| [B575](testing/docs-and-skills/B575-brand-identity-has-no-bench-and.md) | Brand identity has no bench, and its numbers live in three files | DOCS | medium | medium | — |
 | [B186](testing/docs-and-skills/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | DOCS | low | low | — |
 | [B198](testing/docs-and-skills/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | DOCS | low | low | — |
 | [B221](testing/docs-and-skills/B221-a-comment-in-mapframe-points-at.md) | A comment in mapFrame points at a file and a helper that do not exist | DOCS | low | low | — |
