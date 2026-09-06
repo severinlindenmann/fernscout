@@ -7,8 +7,7 @@ complexity: medium
 area: media, api
 found: "2026-09-06T15:01:20Z"
 started: "2026-09-06T15:13:16Z"
-session: 302202e0-2cc6-4652-a548-b27b8ba57337
-claimed: "2026-09-06T15:13:16Z"
+merged: "2026-09-06T15:35:33Z"
 ---
 
 # B605 — A photograph on a day cannot be removed over the API
