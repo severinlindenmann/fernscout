@@ -412,3 +412,34 @@ describe("a locale file that changes under a running process", () => {
     }
   });
 });
+
+/**
+ * The generated union against the dictionary it is generated from — B529.
+ *
+ * `npm run i18n:keys` read `content/locales/en.json` for the whole of B510's
+ * life after that file moved to `site/`, so it crashed with ENOENT and three
+ * sessions in a row hand-edited `TranslationKey` instead. Nothing failed: the
+ * union was still correct, because each of them was careful, and the drift the
+ * generator exists to prevent was one careless session away.
+ *
+ * This is the check that was missing. It fails if the script cannot read its
+ * source, if somebody adds a string without regenerating, and if a hand edit
+ * ever disagrees with the dictionary — which is every way the generator can be
+ * quietly not working.
+ */
+describe("the TranslationKey union — B529", () => {
+  test("holds exactly the keys in the shipped English dictionary", () => {
+    const root = path.join(import.meta.dirname, "..");
+    const en = JSON.parse(
+      fs.readFileSync(path.join(root, "site", "locales", "en.json"), "utf8"),
+    ) as Record<string, string>;
+    const source = fs.readFileSync(path.join(root, "lib", "i18n.ts"), "utf8");
+
+    const start = source.indexOf("export type TranslationKey =");
+    expect(start).toBeGreaterThan(-1);
+    const union = source.slice(start, source.indexOf(";", start));
+    const declared = [...union.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+
+    expect([...declared].sort()).toEqual(Object.keys(en).sort());
+  });
+});

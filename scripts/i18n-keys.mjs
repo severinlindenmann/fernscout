@@ -10,8 +10,23 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = path.join(import.meta.dirname, "..");
+
+// `site/locales/`, and deliberately not the resolution `lib/locales.ts` uses.
+//
+// At runtime a dictionary is the shipped file merged with an instance's own
+// `$CONTENT_DIR/locales/`, so an operator can reword the UI. That is the right
+// rule for reading and the wrong one here: this generates a *compile-time*
+// union for `t()` call sites in the shipped code, so it must depend only on
+// what ships. Resolving `CONTENT_DIR` would make the generated type differ
+// between two checkouts of the same commit, and an instance cannot add a key
+// the code could reference anyway.
+//
+// It read `content/locales/` until B529 — where these lived before B510 moved
+// the instance's own files into `site/`. The script was not moved with them and
+// crashed with ENOENT, so three sessions in a row hand-edited the union
+// instead, which is exactly the drift it exists to prevent.
 const en = JSON.parse(
-  fs.readFileSync(path.join(ROOT, "content", "locales", "en.json"), "utf8"),
+  fs.readFileSync(path.join(ROOT, "site", "locales", "en.json"), "utf8"),
 );
 const keys = Object.keys(en).sort();
 
