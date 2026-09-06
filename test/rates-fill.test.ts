@@ -8,7 +8,7 @@ import { clearMatterCache, forgetEntries } from "@/lib/entries";
 import { fillTripRates } from "@/lib/api/tripRates";
 import { getCostSummary } from "@/lib/costs";
 import { getTrip } from "@/lib/trips";
-import { parseEcbHistory } from "@/lib/ecbHistory";
+import { clearEcbHistoryCache, parseEcbHistory } from "@/lib/ecbHistory";
 
 /**
  * B543 — a trip's local→base rates could only ever be typed by hand, and
@@ -115,6 +115,9 @@ function writeDay(slug: string, date: string, costCurrency: string, amount = 100
 }
 
 beforeEach(() => {
+  // Each test hands over its own document; the process-lifetime memo in
+  // lib/ecbHistory.ts would otherwise serve the previous test's.
+  clearEcbHistoryCache();
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-rates-fill-"));
   process.env.CONTENT_DIR = dir;
   writeInstance();
@@ -209,6 +212,22 @@ describe("filling a trip's rates", () => {
     expect(await fillTripRates(ref)).toEqual({ THB: "already_rated" });
     // One fetch for the first run; the second never needed the network at
     // all, because every currency it looked at was already rated.
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a currency the ECB will never publish does not re-download the document on every write", async () => {
+    // The repeated-failure path: `fillTripRates` runs on every day write, and
+    // an unpublishable currency reaches the same answer each time. Fetching
+    // the whole 90-day document to do it is the part worth not repeating.
+    writeDay("dinner", "2026-08-24", "KIP", 800);
+    reload();
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(historyAnswer({ "2026-08-21": { THB: 40.5, CHF: 0.935 } }));
+
+    expect(await fillTripRates(ref)).toEqual({ KIP: "not_published" });
+    reload();
+    expect(await fillTripRates(ref)).toEqual({ KIP: "not_published" });
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 

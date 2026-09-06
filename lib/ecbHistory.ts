@@ -33,7 +33,24 @@ const HISTORY_URL =
  * answer. Every caller treats that the same way `fetchDayWeather` treats a
  * missing reading: "not yet", never an error worth failing a write over.
  */
+/**
+ * The document changes once a day, and `fillTripRates` runs on every day
+ * write — including the writes it can never satisfy, a trip spending in a
+ * currency the ECB does not publish at all. Without this, each of those
+ * downloads the whole 90-day document again to reach the same answer.
+ * Process-lifetime and deliberately not persisted: a restart re-fetching once
+ * is cheaper than a cache file nobody remembers is there.
+ */
+let memo: { at: number; days: EcbDay[] } | undefined;
+const MEMO_MS = 6 * 60 * 60 * 1000;
+
+/** Test seam — drops the memoised document. */
+export function clearEcbHistoryCache(): void {
+  memo = undefined;
+}
+
 export async function fetchEcbHistory(options?: { signal?: AbortSignal }): Promise<EcbDay[] | undefined> {
+  if (memo && Date.now() - memo.at < MEMO_MS) return memo.days;
   let xml: string;
   try {
     const res = await fetch(HISTORY_URL, {
@@ -45,7 +62,11 @@ export async function fetchEcbHistory(options?: { signal?: AbortSignal }): Promi
   } catch {
     return undefined;
   }
-  return parseEcbHistory(xml);
+  const days = parseEcbHistory(xml);
+  // A failed or empty answer is not cached: "not yet" must stay retryable,
+  // the same standing an unrated currency has everywhere else here.
+  if (days) memo = { at: Date.now(), days };
+  return days;
 }
 
 /** Exported so its test can feed a fixed document rather than the network. */
