@@ -7,8 +7,7 @@ complexity: high
 area: credits, digest, config
 found: "2026-09-06T15:24:06Z"
 started: "2026-09-06T15:24:42Z"
-session: 46b8aec7-0279-4118-8632-da0af1a52ced
-claimed: "2026-09-06T15:24:42Z"
+merged: "2026-09-06T15:39:33Z"
 ---
 
 # B614 — The owner's own copy of a day is charged as if they were a guest, and they cannot be reached on WhatsApp at all
