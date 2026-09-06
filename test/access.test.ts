@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { accessSecret, isIndexable, isOpenToLink, isTestContent, maySeeCosts } from "@/lib/access";
+import {
+  accessSecret,
+  isIndexable,
+  isOpenToApprovedGuest,
+  isOpenToLink,
+  isTestContent,
+  maySeeCosts,
+} from "@/lib/access";
 import type { Trip } from "@/lib/types";
 import { ALL_TRACKED } from "@/lib/tracks";
 
@@ -40,6 +47,17 @@ describe("visibility predicates", () => {
     expect(isOpenToLink(trip({ visibility: "public", listed: false }))).toBe(true);
     expect(isOpenToLink(trip({ visibility: "guest" }))).toBe(false);
     expect(isOpenToLink(trip({ visibility: "private" }))).toBe(false);
+  });
+
+  // B638: a journal of `public` trips was told an approval opened nothing,
+  // because the check only recognised `guest`. `public` needs no approval to
+  // read at all, so it counts too; `listed` never does, because it only
+  // narrows advertising, not readability.
+  test("a public or guest trip is open to an approved guest, a private one is not", () => {
+    expect(isOpenToApprovedGuest(trip({ visibility: "public", listed: true }))).toBe(true);
+    expect(isOpenToApprovedGuest(trip({ visibility: "public", listed: false }))).toBe(true);
+    expect(isOpenToApprovedGuest(trip({ visibility: "guest" }))).toBe(true);
+    expect(isOpenToApprovedGuest(trip({ visibility: "private" }))).toBe(false);
   });
 
   test("guests-only costs need a guest", () => {

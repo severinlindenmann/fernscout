@@ -41,3 +41,40 @@ nothing to open. The message is only true when no trip is readable by a guest
 
 - `/example/contacts` does not show the message.
 - A journal whose every trip is `private` still shows it.
+
+## Found
+
+The Why's diagnosis was exactly right. The condition lived at
+`app/[user]/contacts/page.tsx:159` (now moved into `lib/access.ts`):
+
+```ts
+hasGuestTrip={trips.some((trip) => trip.visibility === "guest")}
+```
+
+— it tested for the literal string `"guest"` and had never heard of `public`.
+Fixed by adding `isOpenToApprovedGuest(trip)` next to the existing
+`isOpenToLink` in `lib/access.ts:71-82`, which is `isOpenToLink(trip) ||
+trip.visibility === "guest"` — true for `public` and `guest`, false only for
+`private` (an unrecognised value already parses as `private` elsewhere, so it
+falls out the same way here). `page.tsx` now calls
+`trips.some(isOpenToApprovedGuest)`.
+
+**`listed` does not enter the predicate, deliberately.** `listed: false` only
+narrows advertising — the sitemap, the feed, the trip switcher
+(`lib/tripGate.ts` visibility docs) — never readability. `mayReadTrip` /
+`isOpenToLink` never check it either: a `public, listed: false` trip still
+answers to anyone who has its URL, guest or not. So an unlisted-but-public
+trip counts as open to an approved guest, same as a listed one; excluding it
+would have made the message wrong in the other direction (claiming nothing is
+open when a link-holder can still read one trip).
+
+The English and Hungarian strings needed no change — the wording already says
+"none of your trips is open to guests", which is exactly true once the trigger
+is fixed; only the condition was wrong, as the task predicted.
+
+Test: `test/access.test.ts` — `"a public or guest trip is open to an approved
+guest, a private one is not"` — asserts `isOpenToApprovedGuest` is `true` for
+`public` (listed and unlisted) and `guest`, `false` for `private`.
+
+`npm run verify` passes in full (build → tsc → eslint → vitest, 299 files /
+3882 tests, 0 errors).
