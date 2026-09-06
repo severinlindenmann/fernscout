@@ -25,7 +25,7 @@ import {
   visitMarkKey,
   whatsNew,
 } from "@/lib/whatsNew";
-import type { Day, DaySummary } from "@/lib/types";
+import type { Day, DaySummary, PhotobookEntry } from "@/lib/types";
 import type { HeroStats } from "@/components/TripHero";
 
 /** How many days either side of the one on screen are kept loaded. Mirrors
@@ -45,6 +45,7 @@ export default function TripStory({
   openAtDate,
   stats,
   basemap = null,
+  photobook,
 }: {
   /** Every day of the trip, cheaply. */
   index: DaySummary[];
@@ -61,6 +62,12 @@ export default function TripStory({
   stats: HeroStats;
   /** Clipped to this trip's frame on the server — see lib/basemap.ts. */
   basemap?: Basemap | null;
+  /**
+   * Present only for the journal's owner, on a journal with photobook and
+   * credits switched on — B569. See `TripHero`, which is the only place this
+   * is rendered.
+   */
+  photobook?: PhotobookEntry;
 }) {
   const { t, formatLongDate, localizedTrip } = useI18n();
   // TripStory is always rendered inside TripProvider (both the current-trip
@@ -523,6 +530,7 @@ export default function TripStory({
                       ? () => jumpToDay(index[firstNewIndex].date)
                       : undefined
                   }
+                  photobook={photobook}
                 />
               )
             }

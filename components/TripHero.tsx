@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
-import { ArrowDown, PlayCircle, Sparkles } from "lucide-react";
+import { ArrowDown, BookOpen, PlayCircle, Sparkles } from "lucide-react";
 import LatestDayButton from "./LatestDayButton";
 import MiniMap from "./MiniMap";
 import type { Basemap } from "@/lib/basemap";
@@ -20,7 +20,7 @@ import { useSite } from "@/components/SiteProvider";
 import { useMoney } from "./CurrencyProvider";
 import { CATEGORY_STYLE, type CostCategory, type Unconverted } from "@/lib/costFormat";
 import type { TranslationKey } from "@/lib/i18n";
-import type { DaySummary } from "@/lib/types";
+import type { DaySummary, PhotobookEntry } from "@/lib/types";
 
 export type HeroStats = {
   tripDays: number;
@@ -58,6 +58,7 @@ export default function TripHero({
   newDayCount = 0,
   onShowNew,
   basemap = null,
+  photobook,
 }: {
   stats: HeroStats;
   /** Clipped to this trip's frame on the server — see lib/basemap.ts. */
@@ -81,6 +82,13 @@ export default function TripHero({
   /** Days published since this reader was last here. 0 for a first visit. */
   newDayCount?: number;
   onShowNew?: () => void;
+  /**
+   * Present only for the journal's owner, on a journal with photobook and
+   * credits switched on — B569. The server decides
+   * (`app/[user]/trips/[trip]/page.tsx`, via `lib/photobook/entry.ts`); this
+   * component only renders what it was handed.
+   */
+  photobook?: PhotobookEntry;
 }) {
   const { t, tn, formatShortDate, localizedTrip } = useI18n();
   const { money } = useMoney();
@@ -206,6 +214,17 @@ export default function TripHero({
                 <ArrowDown className="h-4 w-4" />
                 {t("hero.startReading")}
               </button>
+              {/* The journey is finished — this is where somebody looking at
+                  that fact is offered the book of it. B569. */}
+              {photobook && stats.totalMedia > 0 && (
+                <a
+                  href={`/${photobook.username}/trips/${photobook.trip}/photobook`}
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-navy-200 bg-white px-4 text-base font-semibold text-navy-700 transition-colors hover:border-navy-500"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  {t("photobook.start")}
+                </a>
+              )}
             </div>
 
             {/* Renders nothing unless this browser can actually do it. */}
