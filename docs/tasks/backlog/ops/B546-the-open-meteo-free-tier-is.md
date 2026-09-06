@@ -12,7 +12,7 @@ found: "2026-09-06T09:05:00Z"
 
 ## Why
 
-Raised with the owner when B325 was switched on for fernchscout.ch's demo
+Raised with the owner when B325 was switched on for fernscout.ch's demo
 journal on 2026-09-06, and deliberately deferred by them: *"fine for the
 moment, add a backlog ticket about it for future."* This is that ticket. **It
 is not blocking anything today** — it is a thing to settle before the answer
