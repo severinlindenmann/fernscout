@@ -7,8 +7,7 @@ complexity: low
 area: postcards, travellers
 found: "2026-09-06T17:51:43Z"
 started: "2026-09-06T19:00:27Z"
-session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
-claimed: "2026-09-06T19:00:27Z"
+merged: "2026-09-06T19:15:50Z"
 ---
 
 # B628 — The postcard signature area cannot carry the traveller figures
