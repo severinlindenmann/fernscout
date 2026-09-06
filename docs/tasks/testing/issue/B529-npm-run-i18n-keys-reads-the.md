@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: tooling, i18n
 found: "2026-09-05T22:09:39Z"
+merged: "2026-09-06T08:48:24Z"
 ---
 
 # B529 — npm run i18n:keys reads the locales path B510 moved away from
