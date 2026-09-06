@@ -70,16 +70,39 @@ whole answer since B33: `peopleOf()` in `lib/trips.ts` merges the file's people
 with the rows a buddy link created. So an owner who invited somebody by link
 finds them missing from the signature, and has no way to add them.
 
+## Rescoped, 2026-09-06
+
+The trace above is right and the original Why was wrong, but the thing that was
+asked for is still missing — it is a **feature**, not a regression. Nothing
+builds a signature from any people list, so a trip's buddies cannot appear in
+one because nobody appears in one: `postcardEntryFor` (`lib/postcard/entry.ts:45`)
+sets `from` to `user.owner.nickname || user.owner.name || user.title`, the
+journal owner and nobody else, and everything downstream is free text.
+
+So a trip two people took is signed by one of them, and the other has no way
+in short of the owner typing their name.
+
 ## Work
 
-Not done — see the premise check above. If a picker offering trip people
-(owner-first, buddies included, via `peopleOf()`) is wanted for the postcard
-signature, that is a new capture, not this ticket.
+- Default `from` to the people who were on the trip, read through `peopleOf()`
+  (`lib/tripPeople.ts:67`) so a buddy who joined by link counts like anybody in
+  `people:`. Owner first, then the others; the journal owner alone stays the
+  answer for a trip with nobody else on it.
+- Names only — never the email addresses `peopleOf()` carries beside them. A
+  postcard back is printed and posted.
+- `postcardEntryFor` is already async and already refuses a non-owner, so this
+  is a read at the one place the default is decided, not a change to the shape
+  of an order.
+- It is still only a default: the preview page's `from` box
+  (`app/[user]/postcards/[id]/page.tsx:290`) stays a plain text field the owner
+  can overwrite, and `PostcardSheet`'s comment about it not being a form field
+  needs correcting rather than defending.
+- Not doing: a picker of who signs. One sensible default the owner may edit is
+  the whole of it — a checkbox list for two names is the over-build.
 
 ## Acceptance
 
-- A person who joined a trip through a buddy link appears among the people
-  offerable in a postcard signature. — N/A: there is no such offering
-  mechanism today.
-- A trip with no buddies signs exactly as it does now. — true and unaffected;
-  no code was changed.
+- A trip with a second person in `people:` proposes a postcard signed by both.
+- A trip whose second person arrived through a buddy link proposes the same.
+- A trip with nobody but the owner signs exactly as it does now.
+- No email address reaches the card.
