@@ -5,15 +5,13 @@ import AnimationWorkbench from "@/components/branding/AnimationWorkbench";
 /**
  * `/docs/branding/animation` — the travel scene, taken apart.
  *
- * `/docs/branding/` is for the pieces of this software that are drawn rather
- * than written, and which therefore cannot be checked by reading them or by a
- * test. There is one of those today; the folder is where the next one goes.
+ * One of the workbenches under `/docs/branding` — see that page for what the
+ * section is, and `BRANDING_BENCHES` in `lib/docs.ts` for the list it renders.
  *
- * **Not indexed, and deliberately not linked from `/docs`.** It is a bench for
- * whoever is working on the drawing — a person who wants to see what is wrong,
- * or an agent that has been told something looks wrong and needs to find out
- * which part. A reader of the documentation is not looking for it, and a
- * search engine has no use for it at all.
+ * **Not indexed.** It is a bench for whoever is working on the drawing — a
+ * person who wants to see what is wrong, or an agent that has been told
+ * something looks wrong and needs to find out which part. A search engine has
+ * no use for it at all.
  *
  * It renders the real components with the real props rather than copies, which
  * is the only property that makes it worth having: a fault that shows here is
@@ -31,10 +29,10 @@ export default function AnimationBrandingPage() {
       <AnimationWorkbench />
       <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
         <Link
-          href="/docs"
+          href="/docs/branding"
           className="text-sm font-semibold text-navy-700 underline decoration-blue-500 decoration-2 underline-offset-2 hover:text-navy-900"
         >
-          Back to the documentation
+          Back to the workbenches
         </Link>
       </div>
     </main>

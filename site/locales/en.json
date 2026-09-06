@@ -300,6 +300,8 @@
   "docs.navLabel": "Documentation pages",
   "docs.technicalGroup": "Technical documentation",
   "docs.technicalGroupNote": "Running your own copy, changing the software, and the API — in English.",
+  "docs.benchesGroup": "Workbenches",
+  "docs.benchesGroupNote": "For whoever is working on the parts this software draws rather than writes. English only, and not indexed.",
   "docs.title": "Documentation",
   "draft.badge": "Draft",
   "draft.body": "Nobody else can read this day: it is absent from the story, the feed, the search index and its own link. Tell your agent to publish it when you are happy with it.",

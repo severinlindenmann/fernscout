@@ -185,7 +185,15 @@ function DayPlaceholder({ summary, failed }: { summary: DaySummary; failed: bool
   );
 }
 
-function DayCard({
+/**
+ * One day, as the story draws it.
+ *
+ * Exported for `/docs/branding/day`, which is the only caller outside this
+ * file. The states worth looking at — a draft, a day half-published, one
+ * marked as test, one with no photographs — are all reachable on a real site
+ * only by owning it and writing the day, so the bench renders them directly.
+ */
+export function DayCard({
   day,
   summary,
   dayIndex,
