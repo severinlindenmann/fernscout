@@ -109,9 +109,13 @@ describe("sceneDurationSeconds", () => {
   });
 
   test("duration is clamped, however far the leg goes", () => {
-    expect(sceneDurationSeconds("default", 1_000_000)).toBeLessThanOrEqual(9);
+    // The ceiling was 9s when distance was the only input. It is 11 now that
+    // a mode's own pace can stretch the figure — a crossing on foot or by
+    // water is meant to be the longest thing here. The default mode is `car`,
+    // whose pace is 1, so these are the same numbers the formula always gave.
+    expect(sceneDurationSeconds("default", 1_000_000)).toBeLessThanOrEqual(11);
     expect(sceneDurationSeconds("default", 0)).toBeGreaterThanOrEqual(3);
-    expect(sceneDurationSeconds("quick", 1_000_000)).toBeLessThanOrEqual(2.6);
+    expect(sceneDurationSeconds("quick", 1_000_000)).toBeLessThanOrEqual(3);
     expect(sceneDurationSeconds("quick", 0)).toBeGreaterThanOrEqual(1.2);
   });
 });
@@ -173,5 +177,49 @@ describe("floraFor", () => {
   test("a day with no coordinates gets the middle band rather than a crash", () => {
     expect(floraFor(undefined)).toBe("broadleaf");
     expect(floraFor(Number.NaN)).toBe("broadleaf");
+  });
+});
+
+describe("sceneDurationSeconds and the mode's own pace", () => {
+  test("a boat crossing is slower than a car crossing the same distance", () => {
+    // B: two days on a river and two hours of motorway are the same number on
+    // a map. Before the pace factor the boat played *faster*, because its leg
+    // was shorter.
+    expect(sceneDurationSeconds("default", 200, "boat")).toBeGreaterThan(
+      sceneDurationSeconds("default", 200, "car"),
+    );
+    expect(sceneDurationSeconds("default", 200, "walk")).toBeGreaterThan(
+      sceneDurationSeconds("default", 200, "car"),
+    );
+  });
+
+  test("a flight is the only mode that plays quicker than the distance says", () => {
+    expect(sceneDurationSeconds("default", 5000, "flight")).toBeLessThan(
+      sceneDurationSeconds("default", 5000, "car"),
+    );
+  });
+
+  test("every mode stays inside the bounds, at both extremes and with no distance", () => {
+    for (const mode of MODES) {
+      for (const km of [null, 0, 12, 900, 18_000]) {
+        const d = sceneDurationSeconds("default", km, mode);
+        expect(d).toBeGreaterThanOrEqual(3);
+        expect(d).toBeLessThanOrEqual(11);
+      }
+    }
+  });
+
+  test("quick stays quick whatever the mode — that is what it is for", () => {
+    for (const mode of MODES) {
+      for (const km of [null, 40, 12_000]) {
+        expect(sceneDurationSeconds("quick", km, mode)).toBeLessThanOrEqual(3);
+      }
+    }
+  });
+
+  test("the default mode keeps the old signature working", () => {
+    expect(sceneDurationSeconds("default", 400)).toBe(
+      sceneDurationSeconds("default", 400, "car"),
+    );
   });
 });

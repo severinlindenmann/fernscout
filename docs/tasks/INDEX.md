@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (123)
+## backlog (125)
 
 ### security (6)
 
@@ -106,7 +106,7 @@ Do not edit them by hand; run the script.
 | [B538](backlog/issue/B538-a-day-the-archive-has-no.md) | A day the archive has no answer for re-fetches on every PATCH | ISSUE | low | low |
 | [B554](backlog/issue/B554-the-desktop-winding-path-sidebar-shows.md) | The desktop winding-path sidebar shows a day's cost converted only, where the story feed now shows what was paid | ISSUE | low | low |
 
-### big-feature (13)
+### big-feature (14)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -122,15 +122,17 @@ Do not edit them by hand; run the script.
 | [B492](backlog/big-feature/B492-a-self-hosted-instance-cannot-use.md) | A self-hosted instance cannot use our printing service, so its owner has no way to order a photobook or postcards | FEATURE | medium | high |
 | [B507](backlog/big-feature/B507-the-photobook-composer-is-a-desktop.md) | The photobook composer is a desktop sidebar on a phone-shaped job | FEATURE | medium | high |
 | [B565](backlog/big-feature/B565-the-transport-and-costs-pages-are.md) | The transport and costs pages are tables, and nothing shows the weather or the shape of the trip | FEATURE | medium | high |
+| [B566](backlog/big-feature/B566-the-owner-cannot-tell-whether-anyone.md) | the owner cannot tell whether anyone is reading the journal | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
-### small-feature (16)
+### small-feature (17)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B435](backlog/small-feature/B435-no-print-provider-can-actually-post.md) | No print provider can actually post a card — print.one is unevaluated and unwired | FEATURE | high | medium |
 | [B561](backlog/small-feature/B561-there-is-no-way-to-read.md) | There is no way to read the finished book before paying, and the preview is small and misaligned | FEATURE | high | medium |
 | [B564](backlog/small-feature/B564-a-day-cannot-be-left-out.md) | A day cannot be left out of the book | FEATURE | high | medium |
+| [B569](backlog/small-feature/B569-a-book-can-only-be-made.md) | A book can only be made of the trip marked current, not of a finished one | FEATURE | high | medium |
 | [B10](backlog/small-feature/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
@@ -222,7 +224,7 @@ _Nothing here._
 
 _Nothing here._
 
-## testing (246)
+## testing (248)
 
 ### security (2)
 
@@ -231,7 +233,7 @@ _Nothing here._
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 | [B473](testing/security/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | — |
 
-### issue (120)
+### issue (121)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -355,6 +357,7 @@ _Nothing here._
 | [B489](testing/issue/B489-hu-json-me-paymentprices-says-tit.md) | hu.json me.paymentPrices says útitól, which is not a Hungarian word | ISSUE | low | low | — |
 | [B519](testing/issue/B519-the-preview-s-map-has-no.md) | The preview's map has no place names but the printed one does | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
+| [B568](testing/issue/B568-a-refusal-echoes-back-a-value.md) | A refusal echoes back a value of any size | ISSUE | low | low | — |
 
 ### big-feature (20)
 
@@ -474,7 +477,7 @@ _Nothing here._
 | [B506](testing/ops/B506-nobody-has-looked-at-the-photobook.md) | Nobody has looked at the photobook composer or the drawn travellers in a browser | OPS | high | medium | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
-### docs-and-skills (20)
+### docs-and-skills (21)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -495,6 +498,7 @@ _Nothing here._
 | [B499](testing/docs-and-skills/B499-nothing-shows-an-agent-how-to.md) | Nothing shows an agent how to build a character, and the demo journal has one party shape | DOCS | medium | low | — |
 | [B526](testing/docs-and-skills/B526-two-fields-lists-three-and-the.md) | \"Two fields\" lists three, and the journal script never asks for the required title | DOCS | medium | low | — |
 | [B533](testing/docs-and-skills/B533-there-is-no-section-for-moving.md) | There is no section for moving a journal that already exists onto a hosted instance | DOCS | medium | low | — |
+| [B567](testing/docs-and-skills/B567-an-agent-arriving-with-a-token.md) | An agent arriving with a token has no advertised first call | DOCS | medium | low | — |
 | [B186](testing/docs-and-skills/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | DOCS | low | low | — |
 | [B198](testing/docs-and-skills/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | DOCS | low | low | — |
 | [B221](testing/docs-and-skills/B221-a-comment-in-mapframe-points-at.md) | A comment in mapFrame points at a file and a helper that do not exist | DOCS | low | low | — |

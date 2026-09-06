@@ -249,3 +249,28 @@ describe("the place words", () => {
     expect(validateEntry({ ...ok, location: "Lissabon", country: "Portugal" })).toEqual([]);
   });
 });
+
+/**
+ * How much of a value comes back — B568.
+ *
+ * A refusal is something an agent reads. One carrying a megabyte of the
+ * caller's own text is unreadable by exactly the reader these messages were
+ * rewritten for, and a caller could get that for free by misspelling a key.
+ */
+describe("what a refusal quotes back", () => {
+  test("a long value is cut, and says how long it was", () => {
+    // `transportMode` rather than `title`: the title check has a ceiling of
+    // its own and reports the length instead of quoting the words back, which
+    // is the right answer there and not the one under test here.
+    const problem = only({ transportMode: "z".repeat(5000) });
+    expect(problem.got.length).toBeLessThan(300);
+    expect(problem.got).toContain("5002 characters in all");
+  });
+
+  test("a short one is unchanged, quotes and all", () => {
+    // The quotes are the point: "12" the string and 12 the number are the
+    // difference between a bug and a working call, and a reader has to see it.
+    expect(validateEntry({ ...ok, countryCode: 12 })[0].got).toBe("12");
+    expect(validateEntry({ ...ok, countryCode: "12" })[0].got).toBe('"12"');
+  });
+});
