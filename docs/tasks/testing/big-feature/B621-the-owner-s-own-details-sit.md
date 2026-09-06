@@ -7,8 +7,7 @@ complexity: high
 area: me page, contacts page, trips
 found: "2026-09-06T16:47:09Z"
 started: "2026-09-06T16:47:40Z"
-session: 46b8aec7-0279-4118-8632-da0af1a52ced
-claimed: "2026-09-06T16:47:40Z"
+merged: "2026-09-06T17:08:14Z"
 ---
 
 # B621 — The owner's own details sit on the wrong page, and a trip's title and dates cannot be changed by anybody
