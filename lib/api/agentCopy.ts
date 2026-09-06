@@ -239,6 +239,109 @@ import { COST_CATEGORIES } from "../costFormat";
  *   at the moment it is created. It is named in the list because an agent
  *   reading a complete-looking example will otherwise go looking for it.
  */
+/**
+ * Frontmatter key to API field, for a journal already on disk being moved to
+ * a hosted instance — B533.
+ *
+ * The guide had a section for a folder of photographs and none for this,
+ * which is the run that actually happened: days already written, frontmatter
+ * already filled in, and an agent that read them through a filter of its own
+ * making — title, date, place, coordinates — and posted what its own filter
+ * had shown it. `costs:` was on seven of those days and in none of its
+ * output.
+ *
+ * A table is what that agent said would have stopped it: *"it would have
+ * forced me to look at every frontmatter key rather than the ones I
+ * remembered."* So the table names the keys that do **not** cross too — an
+ * agent that reads `status: draft` and sends it gets a refusal, and one that
+ * reads `gallery:` and sends it gets nothing at all.
+ *
+ * `test/day-migration.test.ts` checks it against `EDITABLE_DAY_FIELDS`, so a
+ * day field added later cannot quietly go missing from here.
+ */
+export const FRONTMATTER_TO_API: { key: string; api: string; note: string }[] = [
+  { key: "title", api: "title", note: "Straight across. It becomes the slug." },
+  { key: "date", api: "date", note: "Straight across, as `2026-08-26`." },
+  { key: "time", api: "time", note: "`16:45`. Orders several days that share a date." },
+  { key: "location", api: "location", note: "The place's name, as written." },
+  { key: "country", api: "country", note: "As written; the flag is derived from it." },
+  { key: "lat / lng", api: "lat / lng", note: "Both or neither. **Read them off the file** — a day that has them on disk and not in your call loses its place on the map." },
+  {
+    key: "content",
+    api: "content",
+    note:
+      "Everything below the closing `---`, as it is. Their words: do not tidy the prose, and " +
+      "do not translate it — `translations` carries the other languages, and they are theirs " +
+      "too.",
+  },
+  { key: "tags", api: "tags", note: "The list as it stands." },
+  { key: "transportMode", api: "transportMode", note: "With `transportFrom` and `transportTo`, which travel with it." },
+  { key: "transportFrom", api: "transportFrom", note: "Where the leg started." },
+  { key: "transportTo", api: "transportTo", note: "Where it ended." },
+  { key: "travelScene", api: "travelScene", note: "How the arrival plays. Absent is the default." },
+  {
+    key: "costs",
+    api: "costs",
+    note:
+      "**The one most often dropped.** Each line as it stands, in the currency it was paid " +
+      "in — nothing is converted on the way in. A day whose file has costs and whose call " +
+      "does not is a day that arrives on the site with its money missing, and nothing about " +
+      "the 201 will tell you.",
+  },
+  {
+    key: "translations",
+    api: "translations",
+    note:
+      "Every language the journal declares. Missing one is refused, so this is the field " +
+      "that fails loudly rather than quietly — unlike `costs` directly above it.",
+  },
+  { key: "test", api: "test", note: "Only when the day is content nobody lived." },
+  {
+    key: "without",
+    api: '"costs": false — and the same for coordinates and photos',
+    note:
+      "A day that says on disk it deliberately has no money says the same thing in the call. " +
+      "A day that simply lacks costs is a day to **ask about**, not to decline on its behalf.",
+  },
+  {
+    key: "gallery",
+    api: "— does not cross —",
+    note:
+      "Photographs are their own call: `POST .../media` with the day's slug and the files. " +
+      "Sending `gallery` in the day body writes nothing. Captions travel with the files, or " +
+      "later as `captions` on a `PATCH`.",
+  },
+  {
+    key: "status: draft",
+    api: "— does not cross —",
+    note:
+      "Everything this API writes is a draft, and `status` is refused outright rather than " +
+      "ignored. Publishing is the second call, and it is the person's decision to ask for.",
+  },
+];
+
+/** The paragraph in front of that table. The one instruction that matters is
+ * "read the file, not your notes about the file". */
+export const MIGRATION_INTRO =
+  "Moving a journal that already exists — days on disk, frontmatter written, photographs " +
+  "beside them — onto an instance over the network. **Do it one day at a time, and read " +
+  "each day's whole frontmatter rather than the keys you remember.** The failure this " +
+  "warns about has happened: an agent listed fourteen entries through a filter of its own " +
+  "making, saw no `costs:` in its own output, concluded there were none, and posted " +
+  "fourteen days that every call accepted. Twenty-two cost lines stayed on the laptop, and " +
+  "the owner found out by opening their own website. Print the file, not a summary of it; " +
+  "if you filter, filter to *more* than you think you need.";
+
+/** And the paragraph after it: how to know it landed. */
+export const MIGRATION_RECONCILE =
+  "**Then reconcile, because a 201 means \"written\", not \"complete\".** Read each day back " +
+  "with `GET .../days/<slug>` and compare it against the file you sent, field by field — " +
+  "the day's own read carries everything, including `costs` and `translations`. For the " +
+  "photographs, compare `from` on each gallery item, which is the name your file had, " +
+  "rather than counting: counting duplicates some and silently drops others. And when the " +
+  "trip is done, `GET .../trips/<trip>/costs` says how many of its days record any " +
+  "spending, which is the number that would have caught this in one call.";
+
 export const PERFECT_TRIP_EXAMPLE = [
   "{",
   '  "id": "japan-2027",',

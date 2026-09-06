@@ -27,6 +27,9 @@ import {
   NOT_WRITABLE,
   PERFECT_DAY_EXAMPLE,
   PERFECT_DAY_INTRO,
+  FRONTMATTER_TO_API,
+  MIGRATION_INTRO,
+  MIGRATION_RECONCILE,
   PERFECT_TRIP_EXAMPLE,
   PERFECT_TRIP_INTRO,
   TRIP_FIELDS,
@@ -2013,6 +2016,20 @@ attachments you then have to describe.
 Over the network you have only the endpoint, which is fine: send the files and
 they are added to the day. Both routes keep the original and both mark what
 they create a draft.
+
+## A journal that already exists, moving here
+
+${wrap(MIGRATION_INTRO).join("\n")}
+
+| In the file | In the call | |
+| --- | --- | --- |
+${FRONTMATTER_TO_API.map((f) => `| \`${f.key}\` | ${f.api.startsWith("—") ? f.api : `\`${f.api}\``} | ${f.note} |`).join("\n")}
+
+The order is: the trip first, then one day end to end — write it, send its
+photographs, read it back — and only then the other thirteen. A mistake found
+on day one is a mistake you make once.
+
+${wrap(MIGRATION_RECONCILE).join("\n")}
 
 ## If you need help extracting pictures or data
 

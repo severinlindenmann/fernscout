@@ -22,6 +22,7 @@ import { slugify } from "../slug.ts";
 import { getTrip, tripDir, tripRef } from "../trips";
 import type { Entry, GalleryItem, Trip } from "../types";
 import { TRACKS, parseWithout, withoutLine, type DayFacts, type Track } from "../tracks";
+import { tripGaps } from "./tripGaps";
 import { quoteScalar } from "../validate/frontmatter";
 
 /**
@@ -1039,6 +1040,7 @@ export function listDrafts(
 export function tripSummary(username: string, tripId: string) {
   const trip = getTrip(tripRef(username, tripId));
   if (!trip) return null;
+  const gaps = tripGaps(trip.ref, false);
   return {
     id: trip.id,
     ref: trip.ref,
@@ -1069,6 +1071,14 @@ export function tripSummary(username: string, tripId: string) {
      * send. This is the list an agent reads before it writes anything.
      */
     tracks: trip.tracks,
+    /**
+     * The two numbers that would have said, in the call an agent already
+     * makes, that fourteen days had gone up without their money and that a
+     * date in the middle of the trip had no day at all — B532. Counts only
+     * here; `GET .../costs` names the dates.
+     */
+    daysWithCosts: gaps?.daysWithCosts ?? 0,
+    datesWithoutADayCount: gaps?.datesWithoutADayCount ?? 0,
   };
 }
 
