@@ -44,6 +44,16 @@ describe("reading a media block", () => {
     expect(parseMediaLimits({ perUserBytes: null }, { ...DEFAULT_MEDIA_LIMITS, perUserBytes: 5 })
       .perUserBytes).toBeNull();
   });
+
+  /** B483: photobook retention is on by default, unlike the byte quota above —
+   * a book nobody bounds is the bug this shipped to fix. */
+  test("photobook retention ships with a default, and null opts all the way out", () => {
+    expect(parseMediaLimits({}).photobookOrdersPerUser).toBe(
+      DEFAULT_MEDIA_LIMITS.photobookOrdersPerUser,
+    );
+    expect(parseMediaLimits({ photobookOrdersPerUser: 3 }).photobookOrdersPerUser).toBe(3);
+    expect(parseMediaLimits({ photobookOrdersPerUser: null }).photobookOrdersPerUser).toBeNull();
+  });
 });
 
 describe("a user's allowance against the server's", () => {
@@ -54,6 +64,7 @@ describe("a user's allowance against the server's", () => {
     videoSeconds: 60,
     itemsPerDay: 10,
     perUserBytes: 1_000_000,
+    photobookOrdersPerUser: 5,
   };
 
   test("a user may ask for less", () => {
