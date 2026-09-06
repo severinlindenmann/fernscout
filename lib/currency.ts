@@ -150,13 +150,33 @@ export function spendLine(
   local: { amount: number; currency: string } | undefined,
   display: { currency: string; base: string; factor: number },
 ): string {
-  const converted = () =>
-    formatMoney(baseAmount * display.factor, display.currency, {
-      approximate: local !== undefined || display.currency !== display.base,
-    });
-  if (!local) return converted();
+  const { paid, converted } = spendParts(baseAmount, local, display);
+  return converted ? `${paid} ${converted}` : paid;
+}
+
+/**
+ * The same rule, before it is joined into one string.
+ *
+ * The day header wants the two halves at different weights — what was paid is
+ * the fact, the conversion is a courtesy — and the only honest way to draw
+ * that is to be handed them separately. Joining them is `spendLine`'s job and
+ * still happens in exactly one place, so the `≈` cannot end up doubled or
+ * missing in one caller and not the other.
+ *
+ * `converted` is undefined when there is nothing to add: the reader is already
+ * looking at the currency the day was paid in.
+ */
+export function spendParts(
+  baseAmount: number,
+  local: { amount: number; currency: string } | undefined,
+  display: { currency: string; base: string; factor: number },
+): { paid: string; converted?: string } {
+  const converted = formatMoney(baseAmount * display.factor, display.currency, {
+    approximate: local !== undefined || display.currency !== display.base,
+  });
+  if (!local) return { paid: converted };
   const paid = formatMoney(local.amount, local.currency);
-  return local.currency === display.currency ? paid : `${paid} ${converted()}`;
+  return local.currency === display.currency ? { paid } : { paid, converted };
 }
 
 export function formatMoney(

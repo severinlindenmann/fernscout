@@ -12,10 +12,12 @@ transportFrom: "Las Vegas"
 transportTo: "Springdale"
 gallery:
   - src: "/media/parks-2025/zion-narrows/01.jpg"
+    caption: "The water going over, and the spray coming straight back up"
     type: "image"
     width: 1600
     height: 1067
   - src: "/media/parks-2025/zion-narrows/02.jpg"
+    caption: "Steps down into the fog, and nothing at the bottom of them"
     type: "image"
     width: 1600
     height: 1067

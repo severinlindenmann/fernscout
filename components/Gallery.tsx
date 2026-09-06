@@ -83,7 +83,10 @@ export default function Gallery({ items }: { items: GalleryItem[] }) {
             {item.caption && (
               <span
                 aria-hidden
-                className="mt-1.5 block truncate px-0.5 text-left font-display text-xs italic text-navy-700"
+                // Two lines rather than one truncated: a tile is a third of
+                // the column on a phone, so almost every caption longer than
+                // four words was ending in an ellipsis that said nothing.
+                className="mt-1.5 line-clamp-2 block px-0.5 text-left font-display text-xs italic leading-snug text-navy-700"
               >
                 {item.caption}
               </span>
