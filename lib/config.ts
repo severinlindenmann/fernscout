@@ -3,7 +3,12 @@ import path from "node:path";
 import { contentRoot } from "./contentRoot";
 import { siteRoot } from "./siteRoot";
 import { normalizeCurrency, type RateTable } from "./currency";
-import { DEFAULT_MEDIA_LIMITS, narrowest, parseMediaLimits, type MediaLimits } from "./mediaLimits";
+import {
+  DEFAULT_MEDIA_LIMITS,
+  narrowest,
+  parseMediaLimits,
+  type MediaLimits,
+} from "./mediaLimits";
 import { parseTravellers } from "./travellers/parse";
 import { toE164 } from "./whatsapp/phone";
 import type { Figure } from "./travellers/vocabulary";
@@ -149,7 +154,9 @@ export type JournalVisibility = "public" | "guest";
  * treats them differently (the parser defaults silence to `public`; a POST
  * body refuses it) has to be able to tell them apart.
  */
-export function normalizeJournalVisibility(raw: unknown): JournalVisibility | undefined {
+export function normalizeJournalVisibility(
+  raw: unknown,
+): JournalVisibility | undefined {
   if (raw === "public" || raw === "guest") return raw;
   if (raw === "private") return "guest";
   return undefined;
@@ -224,6 +231,17 @@ export type ServerConfig = {
     repository?: string;
     credit?: { name: string; url?: string; countryCode?: string };
     /**
+     * A notice across the top of the landing page, for when the instance is
+     * not yet what a visitor would assume it is — a beta, a migration, an
+     * afternoon of downtime. `enabled: false` keeps the wording on disk, so
+     * the next occasion is a one-word edit rather than a rewrite.
+     *
+     * The operator's own words, in the operator's own language: nothing here
+     * is translated, because an instance cannot add to a locale file without
+     * editing the checkout.
+     */
+    banner?: { enabled: boolean; text: string };
+    /**
      * The instance admin who approves credit purchases while there is no
      * payment provider (B425). The accept link for every purchase is mailed
      * here and nowhere else — never to the buying journal's owner, because an
@@ -244,8 +262,6 @@ export type FeatureConfig = {
   /** Feature-specific settings — `transport`, `provider`, and so on. */
   [key: string]: unknown;
 };
-
-
 
 /**
  * A config problem, carrying every error found rather than only the first.
@@ -308,7 +324,11 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // instance that wants MapTiler or a self-hosted Photon can point at it
   // without a code change; any key that provider needs comes from
   // `ADDRESS_LOOKUP_API_KEY` (see lib/capabilities.ts), never from this file.
-  addressLookup: { enabled: false, provider: "photon", url: "https://photon.komoot.io/api/" },
+  addressLookup: {
+    enabled: false,
+    provider: "photon",
+    url: "https://photon.komoot.io/api/",
+  },
   // B325. Off by default like every optional capability, and — as with
   // `addressLookup` above — the provider it uses needs no key and no signup,
   // which is what makes it something a self-hoster can actually turn on. Off
@@ -399,8 +419,13 @@ function readStringArray(
 ): string[] {
   const v = src[key];
   if (v === undefined) return fallback;
-  if (!Array.isArray(v) || v.some((x) => typeof x !== "string" || x.trim() === "")) {
-    problems.push(`${where ? `${where}.` : ""}${key} must be an array of non-empty strings`);
+  if (
+    !Array.isArray(v) ||
+    v.some((x) => typeof x !== "string" || x.trim() === "")
+  ) {
+    problems.push(
+      `${where ? `${where}.` : ""}${key} must be an array of non-empty strings`,
+    );
     return fallback;
   }
   if (v.length === 0) {
@@ -424,14 +449,16 @@ function readManualRates(
   const v = src.manualRates;
   if (v === undefined) return {};
   if (typeof v !== "object" || v === null || Array.isArray(v)) {
-    problems.push("manualRates must be an object like { \"VND\": 30500 }");
+    problems.push('manualRates must be an object like { "VND": 30500 }');
     return {};
   }
   const out: Record<string, number> = {};
   for (const [key, value] of Object.entries(v as Record<string, unknown>)) {
     const code = normalizeCurrency(key);
     if (!code) {
-      problems.push(`manualRates has key "${key}", expected a three-letter currency code`);
+      problems.push(
+        `manualRates has key "${key}", expected a three-letter currency code`,
+      );
       continue;
     }
     if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
@@ -451,9 +478,12 @@ function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
   // The shape before W37. Named explicitly rather than ignored: this file has
   // no configVersion gate, so an unrecognised key would otherwise be a journal
   // that silently loses its owner and becomes read-only.
-  if (src.owner === undefined && (src.travellers !== undefined || src.ownerEmail !== undefined)) {
+  if (
+    src.owner === undefined &&
+    (src.travellers !== undefined || src.ownerEmail !== undefined)
+  ) {
     problems.push(
-      'travellers and ownerEmail were replaced by a single owner: ' +
+      "travellers and ownerEmail were replaced by a single owner: " +
         '"owner": { "name": …, "nickname": …, "email": … }. ' +
         "Who was on a given trip now belongs in that trip's people: block. " +
         "See docs/config-upgrades.md.",
@@ -462,7 +492,11 @@ function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
   }
 
   const raw = src.owner;
-  if (!isRecord(raw) || typeof raw.name !== "string" || typeof raw.nickname !== "string") {
+  if (
+    !isRecord(raw) ||
+    typeof raw.name !== "string" ||
+    typeof raw.nickname !== "string"
+  ) {
     problems.push("owner must be { name, nickname, email? }");
     return { name: "", nickname: "" };
   }
@@ -490,12 +524,22 @@ function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
   return owner;
 }
 
-function parseUser(username: string, raw: unknown, problems: string[]): UserConfig {
+function parseUser(
+  username: string,
+  raw: unknown,
+  problems: string[],
+): UserConfig {
   const src = isRecord(raw) ? raw : {};
   if (!isRecord(raw)) problems.push("the file must contain a JSON object");
 
   const locales = readStringArray(src, "locales", "", problems, ["en"]);
-  const defaultLocale = readString(src, "defaultLocale", "", problems, locales[0]);
+  const defaultLocale = readString(
+    src,
+    "defaultLocale",
+    "",
+    problems,
+    locales[0],
+  );
   if (locales.length > 0 && !locales.includes(defaultLocale)) {
     problems.push(
       `defaultLocale "${defaultLocale}" is not in locales [${locales.join(", ")}]`,
@@ -508,9 +552,13 @@ function parseUser(username: string, raw: unknown, problems: string[]): UserConf
       `baseCurrency must be a three-letter currency code, got "${baseCurrency}"`,
     );
   }
-  const displayCurrencies = readStringArray(src, "displayCurrencies", "", problems, [
-    baseCurrency,
-  ]);
+  const displayCurrencies = readStringArray(
+    src,
+    "displayCurrencies",
+    "",
+    problems,
+    [baseCurrency],
+  );
   if (!displayCurrencies.includes(baseCurrency)) {
     problems.push(
       `displayCurrencies must include baseCurrency ("${baseCurrency}")`,
@@ -545,7 +593,9 @@ function parseUser(username: string, raw: unknown, problems: string[]): UserConf
     const normalized = normalizeJournalVisibility(rawVisibility);
     if (normalized !== undefined) visibility = normalized;
     else {
-      problems.push(`visibility must be "public" or "guest", got ${JSON.stringify(rawVisibility)}`);
+      problems.push(
+        `visibility must be "public" or "guest", got ${JSON.stringify(rawVisibility)}`,
+      );
       visibility = "guest";
     }
   }
@@ -580,7 +630,8 @@ function parseFeatures(
 ): Record<FeatureName, FeatureConfig> {
   const out = {} as Record<FeatureName, FeatureConfig>;
   const src = isRecord(raw) ? raw : {};
-  if (raw !== undefined && !isRecord(raw)) problems.push("features must be an object");
+  if (raw !== undefined && !isRecord(raw))
+    problems.push("features must be an object");
 
   for (const name of FEATURE_NAMES) {
     const entry = src[name];
@@ -589,7 +640,9 @@ function parseFeatures(
       continue;
     }
     if (!isRecord(entry)) {
-      problems.push(`features.${name} must be an object like { "enabled": false }`);
+      problems.push(
+        `features.${name} must be an object like { "enabled": false }`,
+      );
       out[name] = { ...defaults[name] };
       continue;
     }
@@ -598,7 +651,11 @@ function parseFeatures(
     }
     // Stated wins over the default in both directions: this is the only place
     // a journal's `mail: { "enabled": false }` becomes an actual no.
-    out[name] = { ...defaults[name], ...entry, enabled: entry.enabled === true };
+    out[name] = {
+      ...defaults[name],
+      ...entry,
+      enabled: entry.enabled === true,
+    };
   }
 
   for (const key of Object.keys(src)) {
@@ -616,7 +673,8 @@ export function parseUserConfig(username: string, raw: unknown): UserConfig {
   const problems: string[] = [];
   if (!isRecord(raw)) problems.push("the file must contain a JSON object");
   const config = parseUser(username, raw, problems);
-  if (problems.length > 0) throw new ConfigError(problems, userConfigPath(username));
+  if (problems.length > 0)
+    throw new ConfigError(problems, userConfigPath(username));
   return config;
 }
 
@@ -627,7 +685,8 @@ export function parseServerConfig(raw: unknown): ServerConfig {
   if (!isRecord(raw)) problems.push("the file must contain a JSON object");
 
   const site = isRecord(src.site) ? src.site : {};
-  if (!isRecord(src.site)) problems.push("site is missing (expected an object)");
+  if (!isRecord(src.site))
+    problems.push("site is missing (expected an object)");
 
   const users = isRecord(src.users) ? src.users : {};
   // May legitimately be empty: lib/users.ts carries its own always-reserved
@@ -661,8 +720,10 @@ export function parseServerConfig(raw: unknown): ServerConfig {
       defaultUser,
       repository: optionalUrl(site, "repository", "site.repository", problems),
       credit: parseCredit(site.credit, problems),
+      banner: parseBanner(site.banner, problems),
       operatorEmail:
-        typeof site.operatorEmail === "string" && site.operatorEmail.trim() !== ""
+        typeof site.operatorEmail === "string" &&
+        site.operatorEmail.trim() !== ""
           ? site.operatorEmail.trim()
           : undefined,
     },
@@ -691,6 +752,33 @@ export function serverConfigPath(): string {
   if (configured && configured.trim() !== "") return configured;
   const legacy = path.join(contentRoot(), "config.json");
   return fs.existsSync(legacy) ? legacy : path.join(siteRoot(), "config.json");
+}
+
+/**
+ * The landing-page notice, or nothing.
+ *
+ * Absent, switched off, and empty all mean the same thing to a reader, so all
+ * three collapse to `undefined` here and callers ask one question rather than
+ * three. A malformed block is a problem rather than a silent no: an operator
+ * who wrote a notice meant it to be seen.
+ */
+function parseBanner(
+  raw: unknown,
+  problems: string[],
+): { enabled: boolean; text: string } | undefined {
+  if (raw === undefined) return undefined;
+  if (
+    !isRecord(raw) ||
+    typeof raw.enabled !== "boolean" ||
+    typeof raw.text !== "string"
+  ) {
+    problems.push(
+      "site.banner must be { enabled: boolean, text: string }, or absent",
+    );
+    return undefined;
+  }
+  if (!raw.enabled || raw.text.trim() === "") return undefined;
+  return { enabled: true, text: raw.text.trim() };
 }
 
 /**
@@ -735,13 +823,20 @@ function parseCredit(
     return undefined;
   }
   const countryCode =
-    typeof src.countryCode === "string" && /^[A-Za-z]{2}$/.test(src.countryCode.trim())
+    typeof src.countryCode === "string" &&
+    /^[A-Za-z]{2}$/.test(src.countryCode.trim())
       ? src.countryCode.trim().toUpperCase()
       : undefined;
   if (src.countryCode !== undefined && !countryCode) {
-    problems.push("site.credit.countryCode must be a two-letter code, or absent");
+    problems.push(
+      "site.credit.countryCode must be a two-letter code, or absent",
+    );
   }
-  return { name, url: optionalUrl(src, "url", "site.credit.url", problems), countryCode };
+  return {
+    name,
+    url: optionalUrl(src, "url", "site.credit.url", problems),
+    countryCode,
+  };
 }
 
 export function userConfigPath(username: string): string {
@@ -783,7 +878,10 @@ function readJson(file: string, hint: string): unknown {
   try {
     return JSON.parse(text);
   } catch (err) {
-    throw new ConfigError([`is not valid JSON: ${(err as Error).message}`], file);
+    throw new ConfigError(
+      [`is not valid JSON: ${(err as Error).message}`],
+      file,
+    );
   }
 }
 
@@ -809,7 +907,10 @@ export function loadUserConfig(username: string): UserConfig {
   if (cached && cached.signature === signature) return cached.value;
   const parsed = parseUserConfig(
     username,
-    readJson(file, `Every user needs a config.json — see content/example/config.json.`),
+    readJson(
+      file,
+      `Every user needs a config.json — see content/example/config.json.`,
+    ),
   );
   // Narrowed here rather than at parse time: the ceiling belongs to the
   // server, and a user config parsed on its own has no way to see it. Asking

@@ -28,6 +28,8 @@ export function serverSite() {
     defaultUser: config.site.defaultUser,
     repository: config.site.repository,
     credit: config.site.credit,
+    /** The landing-page notice, already reduced to "show it, or nothing". */
+    banner: config.site.banner?.text,
   };
 }
 
@@ -252,5 +254,7 @@ export function siteSummary(
   hasIdentity = false,
 ): SiteSummary | null {
   const user = getUser(username);
-  return user ? siteSummaryFor(user, isDefaultUser, signedIn, hasIdentity) : null;
+  return user
+    ? siteSummaryFor(user, isDefaultUser, signedIn, hasIdentity)
+    : null;
 }

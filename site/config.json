@@ -5,6 +5,10 @@
     "url": "https://fernscout.ch",
     "defaultUser": "example",
     "repository": "https://github.com/severinlindenmann/fernscout",
+    "banner": {
+      "enabled": true,
+      "text": "Beta – Testphase: Einige Funktionen sind noch unvollständig, und Datenverlust ist nicht auszuschliessen."
+    },
     "credit": {
       "name": "Severin Lindenmann",
       "url": "https://severin.io",
