@@ -2806,8 +2806,11 @@ export function openApiDocument() {
                         "Omitted ones are left alone, and an unknown name is refused rather " +
                         "than ignored. A journal can only ever switch on what this server " +
                         "already offers: /api/health says which those are, and asking for one " +
-                        "it cannot do is refused. Not combinable with the fields below — send " +
-                        "it in a call of its own.",
+                        "it cannot do is refused. `logging` and `credits` are never a journal's " +
+                        "own opt-in — they are the operator's alone, for the whole server — so " +
+                        "the response echoes the server's own answer for those two regardless " +
+                        "of what is sent here. Not combinable with the fields below — send it " +
+                        "in a call of its own.",
                     },
                     title: { type: "string" },
                     tagline: {

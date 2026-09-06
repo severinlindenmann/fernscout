@@ -4,7 +4,7 @@ import { readBackupStatus } from "@/lib/backupStatus";
 import { basemapProblem } from "@/lib/basemap";
 import { resolveCapabilities } from "@/lib/capabilities";
 import { loadServerConfig } from "@/lib/config";
-import { FEATURE_NAMES } from "@/lib/config";
+import { FEATURE_NAMES, OPERATOR_ONLY_FEATURES } from "@/lib/config";
 import { DEFAULT_MEDIA_LIMITS } from "@/lib/mediaLimits";
 import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
 import { contentRootProblem, getUsernames } from "@/lib/users";
@@ -225,7 +225,7 @@ export async function GET(request: Request) {
         // to set — so without this skip both would show up as narrowed for
         // every journal, every time, contradicting the server-level answer
         // above (`credits` was B397: reported off per-journal while live).
-        if (name === "logging" || name === "credits") continue;
+        if ((OPERATOR_ONLY_FEATURES as readonly string[]).includes(name)) continue;
         const state = resolved[name];
         if (state.enabled === capabilities[name].enabled) continue;
         narrowed[name] = state.enabled

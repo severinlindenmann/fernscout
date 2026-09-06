@@ -6,6 +6,7 @@ import {
   clearConfigCache,
   FEATURE_NAMES,
   normalizeJournalVisibility,
+  OPERATOR_ONLY_FEATURES,
   type FeatureName,
   type JournalVisibility,
   type UserConfig,
@@ -582,6 +583,27 @@ export type SetFeaturesResult =
     }
   | { ok: false; error: string; message: string };
 
+/**
+ * A journal's `features` block exactly as any reader should show it: the
+ * per-journal flag for an opt-in, the server-resolved answer for the two
+ * capabilities in `OPERATOR_ONLY_FEATURES` that are never a journal's own to
+ * set. The one place this map is built, so the GET and the PATCH on
+ * `/api/v1/<user>/config` cannot answer differently about the same journal in
+ * the same second — B408 fixed `view()` alone and `setJournalFeatures` below
+ * kept reading the raw per-journal flag for both, which is exactly how B408
+ * came back on the PATCH response (B607).
+ */
+export function journalFeatures(user: UserConfig): Record<FeatureName, boolean> {
+  const serverOnly = resolveCapabilities();
+  const features = {} as Record<FeatureName, boolean>;
+  for (const name of FEATURE_NAMES) {
+    features[name] = (OPERATOR_ONLY_FEATURES as readonly string[]).includes(name)
+      ? serverOnly[name].enabled
+      : user.features[name].enabled;
+  }
+  return features;
+}
+
 export function setJournalFeatures(
   username: string,
   changes: Record<string, unknown>,
@@ -662,9 +684,7 @@ export function setJournalFeatures(
   if (!written.ok) return written;
 
   const now = getUser(username) ?? user;
-  const features = {} as Record<FeatureName, boolean>;
-  for (const name of FEATURE_NAMES) features[name] = now.features[name].enabled;
-  return { ok: true, username, features, changed };
+  return { ok: true, username, features: journalFeatures(now), changed };
 }
 
 /**
