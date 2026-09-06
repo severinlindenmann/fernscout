@@ -7,8 +7,7 @@ complexity: high
 area: self-hosting, photobook, postcards, billing
 found: "2026-09-05T15:47:44Z"
 started: "2026-09-06T14:20:16Z"
-session: 6b9bf0a6-5ea8-4f27-bfcd-df5022696053
-claimed: "2026-09-06T14:20:16Z"
+merged: "2026-09-06T14:35:13Z"
 ---
 
 # B492 — A self-hosted instance cannot use our printing service, so its owner has no way to order a photobook or postcards
