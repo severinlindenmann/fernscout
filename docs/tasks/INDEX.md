@@ -225,7 +225,7 @@ Do not edit them by hand; run the script.
 | [B633](open/B633-there-is-no-way-for-the.md) | There is no way for the owner to send a day's notification from the day itself | FEATURE | medium | medium |
 | [B636](open/B636-sent-mail-is-kept-in-the.md) | Sent mail is kept in the content folder, which is what gets backed up | CHORE | medium | low |
 
-## in-development (6)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -233,10 +233,9 @@ Do not edit them by hand; run the script.
 | [B610](in-development/B610-model-mjs-is-still-the-helper.md) | model.mjs is still the helper's source of truth for the file shape | CHORE | medium | medium | `ac8af30e` |
 | [B617](in-development/B617-the-conformance-test-compares-a-document.md) | The conformance test compares a document about files against a validator for requests | ISSUE | medium | low | `ac8af30e` |
 | [B627](in-development/B627-a-portrait-photograph-on-a-postcard.md) | A portrait photograph on a postcard is centre-cropped with no way to choose the crop | FEATURE | medium | medium | `e5f23c58` |
-| [B631](in-development/B631-the-gallery-does-not-show-which.md) | The gallery does not show which photographs are held back | FEATURE | medium | low | `e5f23c58` |
 | [B642](in-development/B642-the-photobook-order-page-explains-the.md) | The photobook order page explains the spine, the soft prints and the extras badly | DOCS | medium | low | `e5f23c58` |
 
-## testing (313)
+## testing (314)
 
 ### security (2)
 
@@ -434,7 +433,7 @@ Do not edit them by hand; run the script.
 | [B596](testing/big-feature/B596-a-photograph-cannot-be-held-back.md) | A photograph cannot be held back from readers the trip lets in | FEATURE | medium | high | — |
 | [B614](testing/big-feature/B614-the-owner-s-own-copy-of.md) | The owner's own copy of a day is charged as if they were a guest, and they cannot be reached on WhatsApp at all | FEATURE | medium | high | — |
 
-### small-feature (75)
+### small-feature (76)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -504,6 +503,7 @@ Do not edit them by hand; run the script.
 | [B623](testing/small-feature/B623-the-owner-block-opens-on-a.md) | The owner block opens on a form and two paragraphs of explanation nobody rereads | FEATURE | medium | low | — |
 | [B626](testing/small-feature/B626-the-contacts-page-does-not-say.md) | The contacts page does not say who has the app installed and notifications on | FEATURE | medium | low | — |
 | [B630](testing/small-feature/B630-the-contacts-list-does-not-say.md) | The contacts list does not say whether a person is owner, buddy or guest | FEATURE | medium | low | — |
+| [B631](testing/small-feature/B631-the-gallery-does-not-show-which.md) | The gallery does not show which photographs are held back | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B07](testing/small-feature/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium | — |
