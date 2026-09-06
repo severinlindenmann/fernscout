@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  BookMarked,
   Check,
   KeyRound,
   Wallet,
@@ -254,6 +255,167 @@ function BuyCreditsDialog({ username }: { username: string }) {
 /** What the "Your details" panel needs to render `ContactManage` inline —
  * everything `/c/<token>` builds server-side, handed down instead of a link
  * to that page. */
+/**
+ * The button that gives the owner a contact row of their own — B619.
+ *
+ * Everything on this page that lets a person edit their own name, telephone
+ * and postal address is `ContactManage`, and it needs a row. The owner never
+ * had one, so the only reader of this page who could not change anything
+ * about themselves was the person whose journal it is — and a postcard, which
+ * is addressed by contact id, could not be sent to them at all.
+ *
+ * One button rather than a form: the row is made empty and the form that
+ * appears in its place is the one everybody else already gets. Nothing is
+ * mailed and nothing has to be confirmed, because the session that pressed
+ * this is already signed in as the address the row is for.
+ */
+function AddOwnDetails({ username }: { username: string }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function add() {
+    setBusy(true);
+    setFailed(false);
+    const response = await fetch("/api/contacts/admin", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user: username, action: "self" }),
+    }).catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      setFailed(true);
+      return;
+    }
+    // The row now exists, so the server renders the edit form in this
+    // section's place — the same refresh `ChannelSwitch` does, and for the
+    // same reason: what changed is on the server, not in this component.
+    router.refresh();
+  }
+
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={add}
+        className="inline-flex min-h-11 w-fit items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 disabled:opacity-50"
+      >
+        {t("me.detailsAddSelf")}
+      </button>
+      {failed && <p className="mt-2 text-sm text-coral-600">{t("me.journalFailed")}</p>}
+    </div>
+  );
+}
+
+/**
+ * The journal's own name and subtitle, and the address that owns it — B619.
+ *
+ * `PATCH /api/journal` rather than `/api/v1/{user}/config`: that one takes a
+ * bearer token and this is a cookie session, which are deliberately not
+ * interchangeable. The route's own comment carries the reasoning.
+ *
+ * The email is rendered and has no input. It is the address that decides who
+ * can obtain a write token for this journal, so a stolen year-long cookie
+ * must not be able to move the journal to another mailbox — the one field
+ * here that is a credential rather than a label.
+ */
+function JournalSettings({
+  username,
+  journal,
+}: {
+  username: string;
+  journal: JournalPanel;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [title, setTitle] = useState(journal.title);
+  const [tagline, setTagline] = useState(journal.tagline);
+  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<"idle" | "saved" | "failed">("idle");
+
+  const dirty = title.trim() !== journal.title || tagline.trim() !== journal.tagline;
+
+  async function save() {
+    setBusy(true);
+    setState("idle");
+    const response = await fetch("/api/journal", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user: username, title, tagline }),
+    }).catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      setState("failed");
+      return;
+    }
+    setState("saved");
+    // The title is in the header of every page, so the whole tree has to read
+    // itself again — not only this card.
+    router.refresh();
+  }
+
+  return (
+    <div className="mt-4 space-y-4">
+      <label className="block">
+        <span className="text-sm font-semibold text-navy-900">{t("me.journalName")}</span>
+        <input
+          type="text"
+          value={title}
+          maxLength={120}
+          onChange={(event) => setTitle(event.target.value)}
+          className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+        />
+      </label>
+      <label className="block">
+        <span className="text-sm font-semibold text-navy-900">{t("me.journalTagline")}</span>
+        <input
+          type="text"
+          value={tagline}
+          maxLength={200}
+          onChange={(event) => setTagline(event.target.value)}
+          className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+        />
+      </label>
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          // A title cannot be cleared — `setJournalProfile` refuses it and
+          // says so — and refusing the press is friendlier than a red line
+          // saying what the person could see for themselves.
+          disabled={busy || !dirty || title.trim() === ""}
+          onClick={save}
+          className="inline-flex min-h-11 w-fit items-center rounded-full bg-navy-900 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-700 disabled:opacity-50"
+        >
+          {t("me.journalSave")}
+        </button>
+        {state === "saved" && !dirty && (
+          <span className="text-sm text-navy-600">{t("me.journalSaved")}</span>
+        )}
+        {state === "failed" && <span className="text-sm text-coral-600">{t("me.journalFailed")}</span>}
+      </div>
+
+      <div className="border-t border-navy-200 pt-4">
+        <p className="text-sm font-semibold text-navy-900">{t("me.journalEmail")}</p>
+        <p className="mt-0.5 break-words text-base text-navy-900">{journal.email}</p>
+        <p className="mt-1 text-sm leading-6 text-navy-600">{t("me.journalEmailNote")}</p>
+      </div>
+    </div>
+  );
+}
+
+/** The journal's own description, for the card that edits it — B619. Owner
+ * only, and resolved on the server like every other panel here. */
+export type JournalPanel = {
+  title: string;
+  /** `""` when the journal has none; clearing the box removes the key. */
+  tagline: string;
+  /** Shown, never edited. See `JournalSettings`. */
+  email: string;
+};
+
 export type ManagePanel = {
   token: string;
   locales: string[];
@@ -330,13 +492,17 @@ export type PaymentRow = {
  * It is deliberately not an account page. There is no trip creation form and
  * no entry editing, because writing happens through an agent (ROADMAP decision
  * 24) — the panel's job is to tell you what to hand one, and to let you change
- * the one thing that is genuinely yours: your own name and address.
+ * the things that are genuinely yours rather than the journal's: your own
+ * name, telephone and address, and — since B619, for the owner alone — what
+ * the journal calls itself. Not a day, not a photograph, not a trip.
  */
 export default function MePageContent({
   viewer,
   username,
   siteUrl,
   manage,
+  journal,
+  canAddOwnDetails = false,
   payment,
   canSignIn,
   codeMinutes,
@@ -354,6 +520,17 @@ export default function MePageContent({
   siteUrl: string;
   /** Present only when this reader has a contact record to edit. */
   manage?: ManagePanel;
+  /** The journal's own name, subtitle and owner address — owner only, B619. */
+  journal?: JournalPanel;
+  /**
+   * Whether to offer the owner a contact row of their own — B619.
+   *
+   * True for an owner who has no row yet, and false the moment they press the
+   * button, because `manage` then carries the row instead. Never true for
+   * anybody else: a guest gets a row by being invited and approved, which is
+   * the whole of `lib/contacts`, and a button here would be a way around it.
+   */
+  canAddOwnDetails?: boolean;
   /** Present only for the owner, and only when credits are switched on —
    * see `PaymentPanel`. */
   payment?: PaymentPanel;
@@ -599,7 +776,7 @@ export default function MePageContent({
           </section>
         )}
 
-        {manage && (
+        {(manage || canAddOwnDetails) && (
           <section className="mt-6">
             <h2 className="font-display text-xl font-semibold text-navy-900">{t("me.details")}</h2>
             {/*
@@ -616,12 +793,30 @@ export default function MePageContent({
               block that tells them how.
             */}
             <p className="mt-2 text-lg leading-8 text-navy-700">
-              {t(writableTrips.length > 0 ? "me.detailsBodyTraveller" : "me.detailsBody")}
+              {/* A third reader for a paragraph that had two — B619. To the
+                  owner both existing sentences are false: "the journal is
+                  written by an agent" is true and is not what this section is
+                  for, and the traveller's version points at a block they do
+                  not have. Theirs says what the details are actually good
+                  for, which is a card in their own letterbox and a message on
+                  their own telephone. */}
+              {t(
+                viewer.owner
+                  ? "me.detailsBodyOwner"
+                  : writableTrips.length > 0
+                    ? "me.detailsBodyTraveller"
+                    : "me.detailsBody",
+              )}
             </p>
+            {/* No row yet, which for an owner is the ordinary state: one
+                button makes one, and the form below appears in its place. */}
+            {!manage && canAddOwnDetails && <AddOwnDetails username={username} />}
+
             {/* A native `<details>` rather than a link to `/c/<token>`: the
                 same form, opened in place instead of on a second page — see
                 `ManagePanel` above for why the data now travels down instead
                 of a URL. */}
+            {manage && (
             <details className="mt-3">
               <summary className="inline-flex min-h-11 w-fit cursor-pointer list-none items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 [&::-webkit-details-marker]:hidden">
                 {t("me.editDetails")}
@@ -636,9 +831,14 @@ export default function MePageContent({
                   contact={manage.contact}
                   defaultCountryCode={manage.defaultCountryCode}
                   addressLookupEnabled={manage.addressLookupEnabled}
+                  // B619. Their own row: the unsubscribe and delete buttons
+                  // below the form promise things that are not true of the
+                  // person whose journal it is — see the prop's own note.
+                  isOwner={viewer.owner}
                 />
               </div>
             </details>
+            )}
           </section>
         )}
 
@@ -682,6 +882,28 @@ export default function MePageContent({
               The jobs are the agent, the money and the people; the cards say so.
             */}
             <div className="mt-5 space-y-4">
+              {/*
+                What the journal calls itself — B619. First of the cards
+                because it is the only one about the journal rather than about
+                a thing the owner hands somebody: a title typoed at signup used
+                to need an agent token to correct, which is a shell away from
+                needing the server.
+              */}
+              {journal && (
+                <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-navy-900">
+                      <BookMarked className="h-[18px] w-[18px]" aria-hidden="true" />
+                    </span>
+                    <h3 className="font-display text-lg font-semibold text-navy-900">
+                      {t("me.journalCardTitle")}
+                    </h3>
+                  </div>
+                  <p className="mt-3 text-base leading-7 text-navy-600">{t("me.journalCardBody")}</p>
+                  <JournalSettings username={username} journal={journal} />
+                </div>
+              )}
+
               {/* The agent — handing over a key, what it can do, and the live keys. */}
               <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
                 <div className="flex items-center gap-3">

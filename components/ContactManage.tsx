@@ -65,6 +65,7 @@ export default function ContactManage({
   className = PAGE_CLASS,
   defaultCountryCode,
   addressLookupEnabled = false,
+  isOwner = false,
 }: {
   username: string;
   /** The languages this journal offers, from its config. */
@@ -78,6 +79,22 @@ export default function ContactManage({
   defaultCountryCode?: string;
   /** B399: `isEnabled("addressLookup", username)`, from the page. */
   addressLookupEnabled?: boolean;
+  /**
+   * Whether the person filling this in owns the journal — B619.
+   *
+   * Only the two buttons at the foot care, and both say something that is
+   * false to this one reader. "Stop all emails" cannot: `recipientsFor` in
+   * `lib/digest/dayLetter.ts` sends the owner their own copy of a day
+   * whatever this row says, because it is their record that it went. And
+   * "delete me completely" offers to remove "your access", which for the
+   * owner lives in `config.json` and would still be there — it would quietly
+   * throw away their address and change nothing else.
+   *
+   * So they are absent rather than disabled: a button that cannot do what it
+   * says is worse than no button, and there is nothing behind them the owner
+   * needs that the form above does not already give them.
+   */
+  isOwner?: boolean;
   /**
    * The outer element's spacing and width. Defaults to a page's own centred
    * column — the standalone `/c/<token>` page every mail footer points at.
@@ -336,35 +353,39 @@ export default function ContactManage({
         </button>
       </form>
 
-      <hr className="my-10 border-navy-200" />
+      {!isOwner && (
+        <>
+        <hr className="my-10 border-navy-200" />
 
-      <button
-        type="button"
-        disabled={busy}
-        onClick={async () => {
-          const ok = await post({ action: "unsubscribe" }, "contact.unsubscribed");
-          if (ok) {
-            setWantsDigest(false);
-            setWantsPostcard(false);
-          }
-        }}
-        className="w-full rounded-xl border border-navy-200 px-4 py-3 text-lg text-navy-900"
-      >
-        {t("contact.unsubscribe")}
-      </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            const ok = await post({ action: "unsubscribe" }, "contact.unsubscribed");
+            if (ok) {
+              setWantsDigest(false);
+              setWantsPostcard(false);
+            }
+          }}
+          className="w-full rounded-xl border border-navy-200 px-4 py-3 text-lg text-navy-900"
+        >
+          {t("contact.unsubscribe")}
+        </button>
 
-      <p className="mt-8 text-base text-navy-600">{t("contact.deleteHint")}</p>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={async () => {
-          const ok = await post({ action: "delete" }, "contact.deleted");
-          if (ok) setDeleted(true);
-        }}
-        className="mt-3 w-full rounded-xl border border-coral-400 px-4 py-3 text-lg text-coral-600"
-      >
-        {t("contact.deleteMe")}
-      </button>
+        <p className="mt-8 text-base text-navy-600">{t("contact.deleteHint")}</p>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            const ok = await post({ action: "delete" }, "contact.deleted");
+            if (ok) setDeleted(true);
+          }}
+          className="mt-3 w-full rounded-xl border border-coral-400 px-4 py-3 text-lg text-coral-600"
+        >
+          {t("contact.deleteMe")}
+        </button>
+        </>
+      )}
     </div>
   );
 }

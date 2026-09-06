@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { notFound } from "next/navigation";
-import MePageContent, { type ManagePanel, type PaymentPanel } from "./MePageContent";
+import MePageContent, {
+  type JournalPanel,
+  type ManagePanel,
+  type PaymentPanel,
+} from "./MePageContent";
 import { manageTokenFor, listContacts, normaliseEmail, optedInCounts } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { pickLocale } from "@/lib/contacts/locale";
@@ -68,10 +72,20 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
   // who is already signed in and would otherwise be sent to a second page for
   // one field they can see right in front of them.
   let manage: ManagePanel | undefined;
+  /**
+   * Whether to offer the owner a row of their own — B619.
+   *
+   * Only when there is none: the button and the form are the same section,
+   * and once the row exists `manage` carries it. `contactsEnabled` gates it
+   * for the same reason it gates the form, and the address has to be there
+   * because a row is keyed by one.
+   */
+  let canAddOwnDetails = false;
   if (viewer.email && contactsEnabled) {
     const contact = (await listContacts(user)).find(
       (c) => c.email === normaliseEmail(viewer.email!),
     );
+    canAddOwnDetails = viewer.owner && !contact && Boolean(journal.owner.email);
     if (contact) {
       // The reader's own UI language, not the one on the contact record —
       // the record's `locale` is a separate question ("write to me in"),
@@ -108,6 +122,18 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
   // so `payment` stays `undefined` and the component never has to tell the
   // two apart. Nothing is fetched for anyone but the owner: a stranger or a
   // traveller has no business knowing what this journal has left to spend.
+  // B619. Owner only, like everything else resolved here: the address is on
+  // it, and `config.json` is not something a reader's page should be able to
+  // ask about. `tagline` defaults to `""` in lib/config.ts, which is also what
+  // clearing the box means, so the two ends already agree.
+  const journalPanel: JournalPanel | undefined = viewer.owner
+    ? {
+        title: journal.title,
+        tagline: journal.tagline,
+        email: journal.owner.email ?? "",
+      }
+    : undefined;
+
   let payment: PaymentPanel | undefined;
   if (viewer.owner) {
     const balance = await balanceOf(user);
@@ -162,6 +188,8 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       username={user}
       siteUrl={serverSite().url}
       manage={manage}
+      journal={journalPanel}
+      canAddOwnDetails={canAddOwnDetails}
       payment={payment}
       // Resolved here rather than guessed in the component: a capability is a
       // server ceiling and a journal opt-in, and the page was offering a door

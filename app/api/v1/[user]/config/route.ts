@@ -26,9 +26,20 @@ export const dynamic = "force-dynamic";
  * journals unable to be shared and unable to be repaired by the person who owns
  * them. B182.
  *
- * This is not a settings page, and there will not be one (decision 24). It is
- * the same shape as everything else here: a call an agent makes because a
- * person asked for it.
+ * It is the same shape as everything else here: a call an agent makes because
+ * a person asked for it.
+ *
+ * It said "this is not a settings page, and there will not be one (decision
+ * 24)" until B619, and that sentence had drifted from what the decision
+ * actually forbids. Decision 24 is about the journal's *content* — days,
+ * photographs, trips — and about never putting a write token in a browser.
+ * Neither changed. What B619 added is `PATCH /api/journal`: a cookie,
+ * owner-only route carrying `title` and `tagline` and nothing else, for the
+ * owner standing on their own page looking at a name they typoed at signup.
+ * That is administration, which the browser has done since the contacts page
+ * approved its first guest and since a postcard order was first sent from
+ * `/{user}/postcards/<id>`. This route remains the agent's door and the wide
+ * one; that one is deliberately two fields.
  *
  * ## What it touches
  *

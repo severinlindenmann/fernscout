@@ -724,6 +724,9 @@ export function optedInCounts(
     ).length,
     whatsapp: contacts.filter((c) => {
       if (!isActive(c) || !c.wantsWhatsapp) return false;
+      // The owner's own row — B619. Their message is free whichever door it
+      // arrives by, so counting it would quote a credit nothing will charge.
+      if (normaliseEmail(c.email) === ownerEmail) return false;
       const tel = c.postalAddress?.tel;
       // No number is no message, the same as in `recipientsFor` — and a
       // number that is the owner's own is their free copy.

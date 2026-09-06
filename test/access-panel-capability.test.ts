@@ -18,6 +18,11 @@ const enabled = vi.fn<(name: FeatureName, username?: string) => boolean>(() => t
 /** Overridden per-test by `test/access-panel-capability.test.ts`'s B359 block,
  * so `resolveViewer` can answer "signed in" without a second mock file. */
 const viewerEmail = vi.hoisted(() => vi.fn<() => string | null>(() => null));
+/** Whether the reader owns this journal. Almost every test here is the owner,
+ * which is what the panel is mostly about; B619 gave the address a reason to
+ * travel for that one reader and none at all for anybody else, so the
+ * distinction now has to be expressible. */
+const viewerOwner = vi.hoisted(() => vi.fn<() => boolean>(() => true));
 
 vi.mock("@/lib/capabilities", () => ({
   isEnabled: (name: FeatureName, username?: string) => enabled(name, username),
@@ -35,7 +40,12 @@ const JOURNAL = {
 };
 vi.mock("@/lib/users", () => ({ getUser: () => JOURNAL }));
 vi.mock("@/lib/viewer", () => ({
-  resolveViewer: async () => ({ email: viewerEmail(), owner: true, guest: false, trips: [] }),
+  resolveViewer: async () => ({
+    email: viewerEmail(),
+    owner: viewerOwner(),
+    guest: false,
+    trips: [],
+  }),
 }));
 /** Spied rather than reimplemented: what this file asserts is that the page
  * asks for the owner's short name and passes *that* down, not what the answer
@@ -77,6 +87,8 @@ async function propsOf(user = "alex", searchParams: Record<string, string> = {})
 
 beforeEach(() => {
   enabled.mockReset();
+  viewerOwner.mockReset();
+  viewerOwner.mockReturnValue(true);
   viewerEmail.mockReset();
   viewerEmail.mockReturnValue(null);
 });
@@ -142,6 +154,13 @@ describe("why the reader landed on /me rather than in the journal", () => {
  * component the config object and choosing inside it: `owner.email` sits in
  * the same object, and a later edit to a client component should not be able
  * to reach a field it was never meant to have.
+ *
+ * B619 narrowed that from "never" to "never for anybody but the owner". The
+ * owner's own card shows their address and says why it cannot be edited
+ * there, which is a person being shown their own email on a page they signed
+ * in to with it — not a fact about somebody else escaping. The rule for every
+ * other reader is unchanged, and is what the second test here now pins: the
+ * only thing that reaches a stranger is a short name.
  */
 describe("what the me page tells the panel about its owner", () => {
   test("hands down a short name, asked for by the page itself", async () => {
@@ -151,11 +170,27 @@ describe("what the me page tells the panel about its owner", () => {
     expect(shortName).toHaveBeenCalledWith(JOURNAL);
   });
 
-  test("and nothing else about them — the address never becomes a prop", async () => {
+  test("and nothing else about them — the address never travels to a reader", async () => {
     enabled.mockReturnValue(true);
+    viewerOwner.mockReturnValue(false);
     const props = await propsOf();
     expect(JSON.stringify(props)).not.toContain("owner@example.test");
     expect(props).not.toHaveProperty("owner");
     expect(props).not.toHaveProperty("ownerEmail");
+    // The card that carries it is owner-only, and absent rather than empty
+    // for everybody else — B74's rule, and here it is also B20's.
+    expect(props.journal).toBeUndefined();
+  });
+
+  test("the owner is shown their own, on the card that says who can change it", async () => {
+    enabled.mockReturnValue(true);
+    const props = await propsOf();
+    // B619. Their own address, on their own page, in a field with no input:
+    // it is the address that decides who can obtain a write token, so the
+    // card names it and points at whoever runs the server.
+    expect(props.journal).toMatchObject({
+      title: "Alex's journal",
+      email: "owner@example.test",
+    });
   });
 });

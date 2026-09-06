@@ -540,6 +540,26 @@ describe("the owner's own message — B614", () => {
     expect(await balanceOf(OWNER)).toBe(0);
   });
 
+  test("the owner's own contact row is free too, with no owner.tel at all", async () => {
+    // B619: the number most naturally lives on the owner's own contact row,
+    // beside the postal address a postcard to themselves needs. Freeness is
+    // therefore decided by who this is, not by which field the number came
+    // out of — otherwise an owner who filled the form in would start paying
+    // for their own message.
+    enableCredits();
+    await addReader(OWNER_EMAIL, { tel: "+41765550099" });
+    await addReader("guest@example.test", { tel: "+41765613150" });
+    writeTrip("utah");
+    const slug = writeEntry("utah");
+    await grant(OWNER, 1);
+
+    const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent).toHaveLength(2);
+    expect(await balanceOf(OWNER)).toBe(0);
+  });
+
   test("a national number in owner.tel is a config problem, not a guess", async () => {
     writeUserConfig({ tel: "076 555 00 99" });
     writeTrip("utah");
