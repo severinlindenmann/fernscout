@@ -213,8 +213,15 @@ describe("page captions", () => {
   });
 
   test("a page an include-switch put there names that switch", () => {
-    expect(captions).toContain("photobook.caption.text"); // the intro
     expect(captions).toContain("photobook.caption.chapters");
+  });
+
+  test("a page with a name of its own uses it, not the switch behind it", () => {
+    // The introduction is gated on `includeText` and says so in the data, but
+    // "the writing" means the days' writing to whoever read that switch.
+    const intro = pages.find((p) => p.kind === "intro")!;
+    expect(intro.from).toBe("includeText");
+    expect(caption(intro)).toBe("photobook.caption.intro");
   });
 
   test("no caption prints the planner's own vocabulary", () => {

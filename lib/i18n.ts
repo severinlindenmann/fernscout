@@ -715,6 +715,7 @@ export type TranslationKey =
   | "photobook.caption.costs"
   | "photobook.caption.day"
   | "photobook.caption.dayOnly"
+  | "photobook.caption.intro"
   | "photobook.caption.map"
   | "photobook.caption.names"
   | "photobook.caption.page"

@@ -28,8 +28,20 @@ const OPTION: Record<BookPageOption, TranslationKey> = {
   includeCosts: "photobook.caption.costs",
 };
 
+/**
+ * Pages with a name of their own.
+ *
+ * These win over the option attribution below, and the introduction is why.
+ * It is gated on `includeText` and `BookPage.from` says so truthfully — but
+ * "the writing" means *the days' writing* to whoever read that switch on the
+ * settings panel, and captioning the trip's introduction with it tells them
+ * something false about their own book. A page a reader can name on sight
+ * says what it is; naming the switch is for the pages that would otherwise be
+ * unexplained.
+ */
 const KIND: Partial<Record<BookPage["kind"], TranslationKey>> = {
   title: "photobook.caption.title",
+  intro: "photobook.caption.intro",
   photos: "photobook.caption.photographs",
   followers: "photobook.caption.names",
   transport: "photobook.caption.transport",
@@ -63,7 +75,10 @@ export function captionsFor(book: Photobook, t: Translate): (page: BookPage) => 
       const title = titles.get(date);
       return title ? t("photobook.caption.day", { n, title }) : t("photobook.caption.dayOnly", { n });
     }
+    // Its own name first, the switch that put it there second: see `KIND`.
+    const own = KIND[page.kind];
+    if (own) return t(own);
     if (page.from) return t(OPTION[page.from]);
-    return t(KIND[page.kind] ?? "photobook.caption.page");
+    return t("photobook.caption.page");
   };
 }
