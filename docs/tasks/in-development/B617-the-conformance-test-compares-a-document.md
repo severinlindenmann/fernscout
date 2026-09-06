@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: content model, validation, testing
 found: "2026-09-06T15:36:53Z"
+started: "2026-09-06T18:44:11Z"
+session: ac8af30e-815d-4843-a94d-cf061a70269c
+claimed: "2026-09-06T18:44:11Z"
 ---
 
 # B617 — The conformance test compares a document about files against a validator for requests
