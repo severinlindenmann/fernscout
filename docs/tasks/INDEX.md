@@ -208,7 +208,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (7)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -217,10 +217,8 @@ _Nothing here._
 | [B492](in-development/B492-a-self-hosted-instance-cannot-use.md) | A self-hosted instance cannot use our printing service, so its owner has no way to order a photobook or postcards | FEATURE | medium | high | `6b9bf0a6` |
 | [B502](in-development/B502-a-photograph-is-given-a-page.md) | A photograph is given a page it has not the pixels to fill | FEATURE | medium | medium | `6b9bf0a6` |
 | [B507](in-development/B507-the-photobook-composer-is-a-desktop.md) | The photobook composer is a desktop sidebar on a phone-shaped job | FEATURE | medium | high | `6b9bf0a6` |
-| [B573](in-development/B573-a-journal-written-by-the-helper.md) | A journal written by the helper tools can never carry weather | FEATURE | medium | low | `ac8af30e` |
-| [B578](in-development/B578-editing-a-day-s-title-on.md) | Editing a day's title on disk makes publish unable to find that day again | ISSUE | medium | low | `ac8af30e` |
 
-## testing (273)
+## testing (275)
 
 ### security (2)
 
@@ -229,7 +227,7 @@ _Nothing here._
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 | [B473](testing/security/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | — |
 
-### issue (134)
+### issue (135)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -319,6 +317,7 @@ _Nothing here._
 | [B571](testing/issue/B571-an-anonymous-flood-of-page-requests.md) | an anonymous flood of page requests writes unbounded analytics rows | ISSUE | medium | low | — |
 | [B574](testing/issue/B574-publish-dry-run-overstates-the-photographs.md) | publish --dry-run overstates the photographs it will upload | ISSUE | medium | low | — |
 | [B576](testing/issue/B576-a-german-book-prints-english-dates.md) | A German book prints English dates | ISSUE | medium | low | — |
+| [B578](testing/issue/B578-editing-a-day-s-title-on.md) | Editing a day's title on disk makes publish unable to find that day again | ISSUE | medium | low | — |
 | [B579](testing/issue/B579-a-stale-health-cache-silently-switches.md) | A stale health cache silently switches off the media checks | ISSUE | medium | low | — |
 | [B582](testing/issue/B582-postcards-can-only-be-started-from.md) | Postcards can only be started from the current trip's gallery | ISSUE | medium | low | — |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
@@ -395,7 +394,7 @@ _Nothing here._
 | [B565](testing/big-feature/B565-the-transport-and-costs-pages-are.md) | The transport and costs pages are tables, and nothing shows the weather or the shape of the trip | FEATURE | medium | high | — |
 | [B566](testing/big-feature/B566-the-owner-cannot-tell-whether-anyone.md) | the owner cannot tell whether anyone is reading the journal | FEATURE | medium | high | — |
 
-### small-feature (61)
+### small-feature (62)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -451,6 +450,7 @@ _Nothing here._
 | [B557](testing/small-feature/B557-costs-is-the-only-analysis-a.md) | Costs is the only analysis a trip can show, and the nav calls it Kosten | FEATURE | medium | medium | — |
 | [B558](testing/small-feature/B558-a-publish-that-told-nobody-does.md) | A publish that told nobody does not say so — the response should prompt the ask about mail and WhatsApp | FEATURE | medium | low | — |
 | [B562](testing/small-feature/B562-a-page-in-the-preview-says.md) | A page in the preview says 9 · photos · full-bleed instead of where it came from | FEATURE | medium | low | — |
+| [B573](testing/small-feature/B573-a-journal-written-by-the-helper.md) | A journal written by the helper tools can never carry weather | FEATURE | medium | low | — |
 | [B587](testing/small-feature/B587-a-closed-trip-cannot-be-advertised.md) | A closed trip cannot be advertised as a locked card on the trips overview | FEATURE | medium | medium | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
