@@ -81,3 +81,32 @@ same shape: an engagement whose output is other tasks.
   not the same as confirming them on a laptop.
 - One backlog task per new defect, referencing B108, and the capability left in
   a stated state.
+
+## 2026-09-06 — blocked, and on what
+
+Taken as part of the photobook sweep, and stopped before anything was driven.
+Two things stand in the way, and neither is a code problem:
+
+- **`/api/health` at fernscout.ch now reports `photobook: {"enabled": true}`
+  and `credits: {"enabled": true}`.** The switch and the meter are both on, so
+  the first half of the Work section is already true. What remains is the run.
+- **The session that took this had no shell on the host.** Every `ssh` to the
+  instance was refused by the harness, including a read of the deployed
+  config's `photobook.provider`. So the two questions this task exists to
+  answer — can the deployed instance reach the originals, and do B13 and B25
+  hold *there* — could not be asked at all.
+
+What a session needs before this can be finished, stated so nobody rediscovers
+it:
+
+1. Shell access to the host, or a person willing to run the reads and paste
+   them back.
+2. A confirmed answer that the deployed `photobook.provider` is `dry-run`. The
+   shipped default in `site/config.json` is `dry-run`, but the instance
+   overrides that file with `FERNSCOUT_CONFIG` and this session could not read
+   it. Ordering a book against a live provider key is the one thing the Work
+   section forbids, and it cannot be ruled out from outside.
+3. A journal created for this, with `test: true` days and enough photographs to
+   be a book — and credits granted to it, since ordering spends them.
+4. A person to look at the finished PDF. That is the first Acceptance line and
+   it is not an agent's to satisfy.
