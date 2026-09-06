@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { formatMoney } from "@/lib/currency";
+import { formatMoney, spendLine } from "@/lib/currency";
 import type { CurrencyOptions } from "@/lib/rates";
 
 const STORAGE_KEY = "fs.currency";
@@ -29,6 +29,12 @@ type Ctx = {
    * switcher says.
    */
   original: (amount: number, currency: string) => string;
+  /**
+   * A day's spend for the day badge: what was paid, and the converted figure
+   * beside it. See `spendLine` — the two components that draw it must not
+   * each decide when the `≈` belongs.
+   */
+  spend: (baseAmount: number, local?: { amount: number; currency: string }) => string;
 };
 
 const CurrencyContext = createContext<Ctx | null>(null);
@@ -88,6 +94,8 @@ export default function CurrencyProvider({
       money: (baseAmount, opts) =>
         formatMoney(baseAmount * factor, active, { ...opts, approximate }),
       original: (amount, code) => formatMoney(amount, code, { approximate: false }),
+      spend: (baseAmount, local) =>
+        spendLine(baseAmount, local, { currency: active, base: options.base, factor }),
     };
   }, [currency, options, setCurrency]);
 

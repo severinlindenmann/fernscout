@@ -256,6 +256,12 @@ export type DaySummary = {
   updates: number;
   /** Spend that day in the base currency; 0 when nothing was logged. */
   cost: number;
+  /**
+   * What the day cost as actually paid, when every cost that day shares one
+   * non-base currency — see `costLocalForDay`. Absent for a mixed-currency
+   * day, a base-currency day, and a day with no spend at all.
+   */
+  costLocal?: { amount: number; currency: string };
 };
 
 /** One stop on the intended route, from a trip's plan.md or from a

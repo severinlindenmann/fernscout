@@ -198,10 +198,11 @@ function DayCard({
   // reader to somebody else's site — or to nothing at all.
   const trip = useTrip();
   const { t, formatLongDate } = useI18n();
-  const { money } = useMoney();
+  const { spend } = useMoney();
   const lead = day.lead;
   const multi = day.entries.length > 1;
   const cost = summary.cost;
+  const costLocal = summary.costLocal;
 
   // A day is only ever wholly a draft in practice — an agent writes one entry
   // at a time. The per-update badge below covers the day that is half-published.
@@ -258,7 +259,9 @@ function DayCard({
               title={t("cost.today")}
               className="font-medium text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-coral-600"
             >
-              {money(cost)}
+              {/* What was actually paid leads — a reader can check it against
+                  a receipt, unlike the converted figure. B544. */}
+              {spend(cost, costLocal)}
             </Link>
           </>
         )}
