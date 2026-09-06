@@ -5,8 +5,10 @@ import { contentRoot } from "../contentRoot";
 import { isEnabled } from "../capabilities";
 import { balanceOf, refund, spend } from "../credits";
 import { resolveMediaFile } from "../media";
-import { parseTripRef } from "../trips";
+import { getTrip, parseTripRef } from "../trips";
+import type { Figure } from "../travellers/vocabulary";
 import { addressesFor } from "./contacts";
+import { travellerPartyFor } from "./entry";
 import { recipientBases } from "./filename";
 import {
   claimForSend,
@@ -103,6 +105,21 @@ export function orderPhotoFile(order: PostcardOrder): string | null {
   ]);
 }
 
+/**
+ * The party for this order, or none — B628.
+ *
+ * Resolved at send rather than stored on the order: the trip's `travellers:`
+ * block is the owner's own file and can change between the preview and the
+ * button, and a card should print whoever is described *now*, the same
+ * reasoning `orderPhotoFile` already applies to the photograph.
+ */
+function figuresFor(order: PostcardOrder): Figure[] {
+  if (!order.payload.figures) return [];
+  const trip = getTrip(order.payload.trip);
+  if (!trip) return [];
+  return travellerPartyFor(trip);
+}
+
 function readPhoto(order: PostcardOrder): Uint8Array | null {
   const file = orderPhotoFile(order);
   if (!file) return null;
@@ -185,12 +202,14 @@ export async function sendOrder(owner: string, id: string): Promise<SendOutcome>
   // identical on every card, and attaching five would put five households'
   // addresses in one inbox to prove one photograph.
   let firstCard: Uint8Array | undefined;
+  const figures = figuresFor(order);
 
   for (const [index, { contactId, to }] of recipients.entries()) {
     const common = {
       photo,
       message: order.payload.message,
       from: order.payload.from,
+      figures,
       to,
       crop: order.payload.crop,
     };

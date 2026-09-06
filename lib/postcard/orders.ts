@@ -102,6 +102,16 @@ export type OrderPayload = {
   message: string;
   /** The signature on the card — "Us", "Sev & Ana". */
   from: string;
+  /**
+   * Print the trip's traveller figures beside the signature — B628.
+   *
+   * Off by default and absent on every order made before this existed, which
+   * is what keeps the back "exactly as it is now" for anybody who does not
+   * ask. Only the preview page's own toggle (`updateOrderFigures`) ever sets
+   * this — an agent proposing an order has no way to see the result, the same
+   * reasoning `crop` was given.
+   */
+  figures?: boolean;
   /** Contact ids. Never addresses; see the module comment. */
   recipients: string[];
   /**
@@ -240,6 +250,36 @@ export async function updateOrderCrop(owner: string, id: string, crop: Crop): Pr
     .updateTable("print_orders")
     .set({
       payload: JSON.stringify({ ...order.payload, crop: clamped }),
+      updated_at: nowIso(),
+    })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("status", "=", "draft")
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows ?? 0) === 1;
+}
+
+/**
+ * Turn the figures on or off for a card that has not gone yet — B628.
+ *
+ * The same `where status = 'draft'` guard as `updateOrderCrop` and
+ * `updateOrderText`, for the same reason: a toggle arriving while a send is
+ * in flight must not change what is being printed.
+ */
+export async function updateOrderFigures(
+  owner: string,
+  id: string,
+  figures: boolean,
+): Promise<boolean> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return false;
+  const order = await getOrder(owner, id);
+  if (!order || !isPending(order)) return false;
+
+  const result = await handle.db
+    .updateTable("print_orders")
+    .set({
+      payload: JSON.stringify({ ...order.payload, figures }),
       updated_at: nowIso(),
     })
     .where("id", "=", id)

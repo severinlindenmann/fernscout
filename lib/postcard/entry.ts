@@ -2,6 +2,8 @@ import "server-only";
 import { isEnabled } from "../capabilities";
 import { isOwner } from "../contacts/session";
 import { namesOnTrip } from "../tripPeople";
+import { partyFor } from "../travellers/parse";
+import type { Figure } from "../travellers/vocabulary";
 import { getUser } from "../users";
 import type { PostcardEntry, Trip } from "../types";
 
@@ -46,4 +48,26 @@ export async function postcardEntryFor(trip: Trip): Promise<PostcardEntry | unde
     trip: trip.id,
     from: (await namesOnTrip(trip)).join(" & "),
   };
+}
+
+/**
+ * Who prints beside the signature when the figures switch is on — B628.
+ *
+ * The same party the photobook and the site's hero already draw: the trip's
+ * own `travellers:` block, falling back to the journal's default, and
+ * **never a placeholder**. `partyFor` alone would hand back one neutral
+ * figure for a trip nobody has described, and printing that on somebody's
+ * postcard would be the software asserting who was there — so, like
+ * `lib/photobook/source.ts`, the empty placeholder is filtered back out.
+ *
+ * There is no per-person likeness to draw instead. A traveller's appearance
+ * lives only in this one block, addressed to the trip as a whole; a buddy who
+ * joined by link has no figure of their own anywhere, `for:` is an unread tag
+ * rather than a lookup key, and nothing here invents one.
+ */
+export function travellerPartyFor(trip: Trip): Figure[] {
+  const journalFigures = getUser(trip.username)?.travellers ?? [];
+  return partyFor(trip.travellers, journalFigures).filter(
+    (figure) => Object.keys(figure).length > 0,
+  );
 }
