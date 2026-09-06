@@ -382,6 +382,8 @@ export type TranslationKey =
   | "docs.navLabel"
   | "docs.technicalGroup"
   | "docs.technicalGroupNote"
+  | "docs.benchesGroup"
+  | "docs.benchesGroupNote"
   | "docs.title"
   | "draft.badge"
   | "draft.body"

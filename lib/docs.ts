@@ -155,3 +155,59 @@ export function docsNavEntries(): {
     startsGroup: page.group === "technical" && DOCS_PAGES[i - 1]?.group !== "technical",
   }));
 }
+
+/**
+ * The workbenches under `/docs/branding` — the parts of this software that are
+ * *drawn* rather than written.
+ *
+ * A third kind of documentation page, and deliberately not in `DOCS_PAGES`.
+ * Those are read by somebody deciding whether to self-host, send a patch or
+ * call the API, they are translated where their reader needs it, and they are
+ * rendered as the nav on every one of each other. These are benches: English
+ * only, not indexed, and useful only to whoever is working on the drawing —
+ * a person who can see that something is wrong, or an agent that has been told
+ * so and needs to find out which part.
+ *
+ * Kept as a list for the same reason `DOCS_PAGES` is: the hub renders it and
+ * the section grows, and two hand-written copies of a menu is how `/docs` came
+ * to have two menus (B470).
+ */
+export type BrandingBench = {
+  href: string;
+  title: string;
+  /** What it isolates, and therefore what a fault in it points at. */
+  blurb: string;
+  /** The file to open when this bench shows something wrong. */
+  source: string;
+};
+
+export const BRANDING_BENCHES: readonly BrandingBench[] = [
+  {
+    href: "/docs/branding/animation",
+    title: "Travel scene",
+    blurb:
+      "The leg between two days: vehicles, surfaces, skylines and the camera that pans between them. Hold any moment still on a slider.",
+    source: "components/TravelScene.tsx",
+  },
+  {
+    href: "/docs/branding/travellers",
+    title: "Travellers",
+    blurb:
+      "Every axis a person can be described along — skin, hair, build, age, outfit, accessories — and the twelve starting points, drawn.",
+    source: "lib/travellers/render.ts",
+  },
+  {
+    href: "/docs/branding/day",
+    title: "Day card",
+    blurb:
+      "A day in the states that are hard to reach on a real site: draft, half-published, marked as test, no photographs, several updates.",
+    source: "components/StoryPager.tsx",
+  },
+  {
+    href: "/docs/branding/print",
+    title: "Print geometry",
+    blurb:
+      "Where the guillotine falls. The postcard back and a photobook spread, in the same millimetres the renderer draws from.",
+    source: "lib/postcard/spec.ts · lib/photobook/spec.ts",
+  },
+];

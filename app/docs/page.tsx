@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, Code2, GitPullRequest, PenLine, Server, Users, Wand2 } from "lucide-react";
+import { BookOpen, Code2, GitPullRequest, PenLine, Ruler, Server, Users, Wand2 } from "lucide-react";
 import { DOCS_PAGES, type DocsPageId } from "@/lib/docs";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
@@ -131,6 +131,34 @@ export default async function DocsPage() {
         removes — and a translated sentence wrapping two English filenames
         reads worse than the filenames alone.
       */}
+      {/*
+        The workbenches, above the two agent documents and below the cards.
+
+        Not a card among the guides: those answer "who are you", and this
+        answers "you are working on the drawing", which is a third audience of
+        roughly one person at a time. Not in `DOCS_PAGES` either — that list is
+        also the nav on every inner page, and a reader following the guides has
+        no use for a bench.
+      */}
+      <section className="mt-12 border-t border-navy-200 pt-6">
+        <h2 className="font-display text-lg font-semibold text-navy-900">
+          {translateIn(locale, "docs.benchesGroup")}
+        </h2>
+        <p className="mt-1 text-sm text-navy-600">
+          {translateIn(locale, "docs.benchesGroupNote")}
+        </p>
+        <Link
+          href="/docs/branding"
+          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-navy-200
+                     bg-white px-4 py-3 text-base font-semibold text-navy-900 transition-colors
+                     hover:border-navy-700
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        >
+          <Ruler className="h-4 w-4 shrink-0 text-navy-600" aria-hidden strokeWidth={2.2} />
+          /docs/branding
+        </Link>
+      </section>
+
       <p className="mt-12 border-t border-navy-200 pt-6 font-mono text-xs text-navy-600">
         <a href="/agent.md" className="underline decoration-navy-200 hover:decoration-navy-500">
           /agent.md

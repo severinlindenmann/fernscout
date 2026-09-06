@@ -300,6 +300,8 @@
   "docs.navLabel": "Dokumentációs oldalak",
   "docs.technicalGroup": "Technikai dokumentáció",
   "docs.technicalGroupNote": "Saját üzemeltetés, fejlesztés és az API — angolul.",
+  "docs.benchesGroup": "Munkapadok",
+  "docs.benchesGroupNote": "Azoknak, akik a szoftver rajzolt — nem írott — részein dolgoznak. Csak angolul, és nincs indexelve.",
   "docs.title": "Dokumentáció",
   "draft.badge": "Piszkozat",
   "draft.body": "Rajtad kívül senki nem olvashatja ezt a napot: nincs benne a történetben, a hírcsatornában, a keresőben, és a saját linkje sem működik. Szólj az ügynöködnek, hogy tegye közzé, ha elégedett vagy vele.",
