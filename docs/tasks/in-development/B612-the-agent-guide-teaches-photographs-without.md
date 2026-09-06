@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: agent guide, media
 found: "2026-09-06T15:20:00Z"
+started: "2026-09-06T15:19:28Z"
+session: 0959df30-510b-43ee-8ed3-a20d82a13c45
+claimed: "2026-09-06T15:19:28Z"
 ---
 
 # B612 — The agent guide teaches photographs without saying one can be held back
