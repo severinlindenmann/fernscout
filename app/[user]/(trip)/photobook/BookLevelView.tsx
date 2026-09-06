@@ -291,7 +291,12 @@ export default function BookLevelView({
           <input type="hidden" name="orderId" value={orderId} />
           <button
             type="submit"
-            disabled={submitting || tooPoor || unbuyable || !preview}
+            // Not `tooPoor`: a short balance leaves the button live, and the
+            // press comes back `no_credits` from `order/route.ts` before a
+            // page is drawn or a credit moves. A dead button is a book the
+            // owner cannot see the shape of; this way they meet the price
+            // rather than a grey rectangle — B606.
+            disabled={submitting || unbuyable || !preview}
             className="min-h-11 w-full rounded-full bg-navy-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {t("photobook.pay")}

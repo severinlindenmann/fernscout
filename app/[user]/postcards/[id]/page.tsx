@@ -427,7 +427,7 @@ export default async function PostcardOrderPage({
               })}
             </p>
           ) : (
-            confirming && sendable && !short ? (
+            confirming && sendable ? (
               <div className="mt-3 rounded-lg border-2 border-navy-900 bg-cream-100 px-4 py-3">
                 <p className="font-semibold">{t("postcard.confirm.heading")}</p>
                 <p className="mt-1 text-sm">
@@ -435,12 +435,17 @@ export default async function PostcardOrderPage({
                     ? t("postcard.confirm.bodyOne", { name: people.get(live[0])!.to.name })
                     : t("postcard.confirm.bodyMany", { count: String(live.length) })}
                 </p>
-                <p className="mt-1 text-sm">
-                  {t("postcard.confirm.cost", {
-                    total: String(cost),
-                    rest: String((balance ?? cost) - cost),
-                  })}
-                </p>
+                {/* Suppressed when the balance is short: "leaving you -3" is
+                    not a sentence, and the shortfall line above already says
+                    the number and where to buy — B606. */}
+                {!short && (
+                  <p className="mt-1 text-sm">
+                    {t("postcard.confirm.cost", {
+                      total: String(cost),
+                      rest: String((balance ?? cost) - cost),
+                    })}
+                  </p>
+                )}
                 <p className="mt-1 text-sm font-medium">{t("postcard.confirm.undone")}</p>
                 <form
                   method="post"
@@ -472,11 +477,11 @@ export default async function PostcardOrderPage({
                 {/* A link, not a submit: the first press only *asks*. */}
                 <a
                   href={
-                    sendable && !short ? `/${username}/postcards/${id}?confirm=1` : undefined
+                    sendable ? `/${username}/postcards/${id}?confirm=1` : undefined
                   }
-                  aria-disabled={!sendable || short}
+                  aria-disabled={!sendable}
                   className={`inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold transition-colors ${
-                    sendable && !short
+                    sendable
                       ? "bg-navy-900 text-white hover:bg-navy-700"
                       : "pointer-events-none bg-navy-900/40 text-white"
                   }`}
