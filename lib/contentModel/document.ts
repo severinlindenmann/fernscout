@@ -120,7 +120,16 @@ export function contentModel(): ContentModelDocument {
       manualRates: { type: "object" },
       features: { type: "object" },
       // No API call reads a journal's default travellers — see model.mjs.
-      travellers: { type: "array", fileOnly: true },
+      // fileOnly with no openapi.json description to borrow a tip from, so
+      // the prose is carried here — B620.
+      travellers: {
+        type: "array",
+        fileOnly: true,
+        because:
+          "how the walking figures are drawn when a trip does not say. There is no API call " +
+          "for the journal's default party — it is read from this file, and a trip's own " +
+          "travellers: block is set through …/trips/<trip>/travellers",
+      },
       // This journal's own upload allowance; may narrow the server's.
       media: { type: "object", fileOnly: true },
     }),
@@ -145,8 +154,16 @@ export function contentModel(): ContentModelDocument {
       tracks: { type: "object" },
       translations: { type: "object" },
       // A photograph for the index and the OG image; cannot be set at create
-      // time because the media does not exist yet.
-      cover: { type: "string", fileOnly: true },
+      // time because the media does not exist yet. fileOnly with no
+      // openapi.json description to borrow a tip from, so the prose is
+      // carried here — B620.
+      cover: {
+        type: "string",
+        fileOnly: true,
+        because:
+          "a photograph from the trip for the index and the OG image. It cannot be set at " +
+          "create time — the media does not exist yet",
+      },
       // status, accent, visibility, costsVisibility: known to the API
       // (openapi.json carries their real enum) — no rule here, faithfully.
       status: {},
@@ -156,7 +173,8 @@ export function contentModel(): ContentModelDocument {
       // B616: model.mjs never gained a `type` for this one, even though
       // `createTrip` in lib/tripWrite.ts refuses a non-boolean `test` the same
       // way `checkTest` does for a day (see the entries block below). Fixed
-      // here.
+      // here. B620: `test` is also one of the two keys `model.mjs` marks
+      // `noTip: true` — see `files["trip.md"].noTip` below.
       test: { type: "boolean" },
     }),
 
@@ -230,7 +248,9 @@ export function contentModel(): ContentModelDocument {
       idempotency_key: { apiOnly: true, because: "names one write, so a retry is safe" },
       // B616: model.mjs never gained a `type` for this one, even though
       // `checkTest` in lib/validate/entry.ts refuses anything but a real
-      // boolean. Fixed here.
+      // boolean. Fixed here. B620: also one of the two keys model.mjs marks
+      // `noTip: true` — see `files["entries/YYYY-MM-DD-slug.md"].noTip`
+      // below.
       test: { type: "boolean" },
     }),
 
@@ -338,10 +358,15 @@ export function contentModel(): ContentModelDocument {
       "trip.md": {
         what: "the trip itself. Frontmatter, then the intro prose as the body",
         api: "POST /api/v1/{user}/trips",
+        // B620: content nobody lived, written to prove the pipeline works —
+        // never a choice to offer about a real holiday. See
+        // `ContentModelDocument.noTip` in types.ts.
+        noTip: ["test"],
       },
       "entries/YYYY-MM-DD-slug.md": {
         what: "one update. Several per day is normal",
         api: "POST /api/v1/{user}/trips/{trip}/days, then …/days/{slug}/publish",
+        noTip: ["test"],
       },
       "costs.md": {
         what: "the budget and what was spent before leaving. Optional",

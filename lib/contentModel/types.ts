@@ -93,6 +93,22 @@ export type FileDescription = {
   what: string;
   api: string;
   optional?: boolean;
+  /**
+   * Keys in this file that a client must never offer as a tip, however
+   * absent or unset they are — B620. `test` is the one example today:
+   * `model.mjs` marked it `noTip: true` because a settable-looking key
+   * named `test` reads, to a person on a real holiday, as "you could mark
+   * this day as one that did not happen" — a choice nobody should be
+   * offered about a trip they took.
+   *
+   * This lives here, on the file's own entry, rather than as a ninth
+   * `assert` kind: it is not a check run against a value — it never fires,
+   * never refuses, never reports a problem — it is a fact about a *key*,
+   * the same shape as the `what`/`api` prose beside it. A suppression is
+   * not an assertion, and W41 closes the assertion vocabulary at eight;
+   * this does not reopen it.
+   */
+  noTip?: readonly string[];
 };
 
 export type ContentModelDocument = {
