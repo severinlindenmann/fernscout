@@ -57,7 +57,7 @@ describe("the shapes mean what they say", () => {
   });
 
   test("road modes are near enough straight", () => {
-    for (const mode of ["bus", "car", "motorbike", "walk"] as const) {
+    for (const mode of ["bus", "car", "taxi", "motorbike", "bicycle", "walk"] as const) {
       expect(TRANSPORT_STYLE[mode].bow).toBeLessThan(0.05);
     }
   });
@@ -65,6 +65,7 @@ describe("the shapes mean what they say", () => {
   test("dashes shorten as the vehicle gets smaller", () => {
     expect(TRANSPORT_STYLE.bus.dash![0]).toBeGreaterThan(TRANSPORT_STYLE.car.dash![0]);
     expect(TRANSPORT_STYLE.car.dash![0]).toBeGreaterThan(TRANSPORT_STYLE.motorbike.dash![0]);
+    expect(TRANSPORT_STYLE.motorbike.dash![0]).toBeGreaterThan(TRANSPORT_STYLE.bicycle.dash![0]);
   });
 });
 

@@ -95,7 +95,7 @@ location: "Hoi An"
 country: "Vietnam"
 lat: 15.8801
 lng: 108.338
-transportMode: "bus"          # flight | train | bus | motorbike | boat | car | walk
+transportMode: "bus"          # flight | train | bus | motorbike | bicycle | boat | car | taxi | walk
 transportFrom: "Da Lat"
 transportTo: "Hoi An"
 gallery:

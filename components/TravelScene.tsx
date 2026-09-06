@@ -9,7 +9,18 @@ import {
   useTransform,
   type MotionValue,
 } from "motion/react";
-import { Plane, TrainFront, Bus, Bike, Car, Ship, Footprints, Cloud } from "lucide-react";
+import {
+  Plane,
+  TrainFront,
+  Bus,
+  Bike,
+  Motorbike,
+  Car,
+  CarTaxiFront,
+  Ship,
+  Footprints,
+  Cloud,
+} from "lucide-react";
 import type { DaySummary, TransportMode, TravelSceneVariant } from "@/lib/types";
 import type { Figure } from "@/lib/travellers/vocabulary";
 import Travelers from "./Travelers";
@@ -32,8 +43,10 @@ const VEHICLE_ICON = {
   flight: Plane,
   train: TrainFront,
   bus: Bus,
-  motorbike: Bike,
+  motorbike: Motorbike,
+  bicycle: Bike,
   car: Car,
+  taxi: CarTaxiFront,
   boat: Ship,
   walk: Footprints,
 } as const;
@@ -57,7 +70,9 @@ const VEHICLE_WIDTH: Record<TransportMode, number> = {
   bus: 145,
   boat: 150,
   car: 115,
+  taxi: 115,
   motorbike: 95,
+  bicycle: 84,
   walk: 0,
 };
 
@@ -100,7 +115,9 @@ const PACE: Record<TransportMode, number> = {
   train: 1.15,
   bus: 1.15,
   car: 1,
+  taxi: 1,
   motorbike: 1,
+  bicycle: 1.5,
   flight: 0.85,
 };
 

@@ -32,7 +32,17 @@ import type { Figure } from "@/lib/travellers/vocabulary";
  * story page, one of them is wrong and it is worth knowing which.
  */
 
-const MODES: TransportMode[] = ["flight", "train", "bus", "car", "motorbike", "boat", "walk"];
+const MODES: TransportMode[] = [
+  "flight",
+  "train",
+  "bus",
+  "car",
+  "taxi",
+  "motorbike",
+  "bicycle",
+  "boat",
+  "walk",
+];
 const SURFACES: Surface[] = ["rail", "road", "water", "path", "sky"];
 const VARIANTS: TravelSceneVariant[] = ["default", "quick", "skip"];
 const SKY_NAMES = Object.keys(SKIES) as SkyName[];
