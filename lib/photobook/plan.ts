@@ -50,6 +50,13 @@ import { formatDate, formatDateRange, wrap } from "./text.ts";
 import { isPlottable } from "../mapFrame.ts";
 import { DEFAULT_OPTIONS, type BookOptions, type DayLayout, type Focal } from "./options.ts";
 import { bookStrings, fill, type BookStrings } from "./strings.ts";
+import {
+  costsShapes,
+  spendPageShapes,
+  transportShapes,
+  weatherPageShapes,
+  type ChartShape,
+} from "./charts.ts";
 
 // ---------------------------------------------------------------------------
 // What the planner is given
@@ -124,6 +131,37 @@ export type BookCosts = {
   byCategory: { category: string; amount: number }[];
   byCountry: { country: string; amount: number; nights: number }[];
   budget?: { total: number; days: number };
+  /**
+   * What each day of the trip cost, and the running total — B565.
+   *
+   * The same `byDay` the site's own cost page charts, carried through so the
+   * book can draw the shape of the spending rather than only its sum. Empty on
+   * a trip that has not begun, which is why the analytics page checks it
+   * rather than assuming a trip with a total has days.
+   */
+  byDay: { date: string; amount: number; cumulative: number }[];
+  /** Planned cumulative spend, one value per entry of `byDay`, when the trip
+   * declared a budget. Absent otherwise, and never manufactured. */
+  budgetCurve?: number[];
+};
+
+/**
+ * The trip's own weather, as `lib/weatherStats.ts` already added it up — B565.
+ *
+ * Structural rather than the summary type itself so `plan.ts` stays pure and
+ * free of the site's day reader; `source.ts` maps `summariseWeather`'s answer
+ * onto it and computes nothing of its own. **Every number here is a
+ * measurement out of a day's `weatherData`.** A day with no reading appears in
+ * `byDay` with nothing in it, which is what puts the gap in the chart.
+ */
+export type BookWeather = {
+  measured: number;
+  missing: number;
+  avgHigh?: number;
+  avgLow?: number;
+  byDay: { date: string; tempMin?: number; tempMax?: number; precipitation?: number }[];
+  /** Every distinct source, in the order first seen, for the credit line. */
+  sources: string[];
 };
 
 export type RoutePoint = {
@@ -146,6 +184,9 @@ export type BookSource = {
   days: BookDay[];
   route: RoutePoint[];
   costs?: BookCosts;
+  /** Absent when the journal has the capability off, or when no day of the
+   * trip carries a reading. Never synthesised. */
+  weather?: BookWeather;
   /** The date printed in the colophon. Passed in rather than read from the
    * clock so that a plan is reproducible and testable. */
   madeOn: string;
@@ -210,7 +251,12 @@ export type MappedPoint = { location: string; country: string; x: number; y: num
  * gating decision is made in `draftsForFront`/`draftsForBack`/
  * `draftsForChapter`, and a second copy of it elsewhere is a copy that drifts.
  */
-export type BookPageOption = "includeText" | "includeMap" | "includeChapters" | "includeCosts";
+export type BookPageOption =
+  | "includeText"
+  | "includeMap"
+  | "includeChapters"
+  | "includeCosts"
+  | "includeCharts";
 
 export type BookPage = { number: number; side: PageSide; from?: BookPageOption } & (
   | {
@@ -286,6 +332,16 @@ export type BookPage = { number: number; side: PageSide; from?: BookPageOption }
       modes: { mode: string; label: string; days: number }[];
       /** The longest single leg, when there is one worth naming. */
       note?: string;
+      /**
+       * The page, drawn — B565.
+       *
+       * Every mark and every label, in millimetres, computed once here by
+       * `lib/photobook/charts.ts` so the PDF and the browser preview cannot
+       * disagree about the page a customer is buying. The fields above are
+       * kept because they are what a test and the CLI summary read; the
+       * renderers read this.
+       */
+      shapes: ChartShape[];
     }
   | {
       kind: "costs";
@@ -306,6 +362,24 @@ export type BookPage = { number: number; side: PageSide; from?: BookPageOption }
         byCountry: string;
         nights: string;
       };
+      /** The page, drawn. See the `transport` variant. */
+      shapes: ChartShape[];
+    }
+  | {
+      /**
+       * A page of charts — B565, and the one page kind that is off unless
+       * asked for. Somebody printing a book of photographs may not want a
+       * page of charts in it.
+       *
+       * One kind rather than one per subject: the page is nothing but its
+       * shapes by the time it reaches a renderer, and a second variant would
+       * be a second switch statement in both of them saying the same thing.
+       */
+      kind: "analytics";
+      /** Which chart page this is, for tests and the CLI summary. */
+      topic: "spend" | "weather";
+      heading: string;
+      shapes: ChartShape[];
     }
   | { kind: "colophon"; heading: string; lines: string[]; figures: Figure[] }
   | { kind: "blank" }
@@ -394,6 +468,18 @@ const GAP_MM = 6;
 /** Only ever reached if a costs page is drafted for a source with no costs,
  * which the drafting code does not do. Present so the type holds without a
  * non-null assertion. */
+/**
+ * How money is written on a printed page.
+ *
+ * One copy, because the costs page and the chart pages must agree — the same
+ * reason the geometry has one copy. Grouped with the English separator
+ * whatever the book's language, which is what this file did before B565 and
+ * is a separate question from translating it.
+ */
+function moneyIn(currency: string): (n: number) => string {
+  return (n) => `${currency} ${Math.round(n).toLocaleString("en-GB")}`.trim();
+}
+
 const EMPTY_COSTS: BookCosts = {
   baseCurrency: "",
   total: 0,
@@ -402,6 +488,7 @@ const EMPTY_COSTS: BookCosts = {
   perDay: 0,
   byCategory: [],
   byCountry: [],
+  byDay: [],
 };
 
 // ---------------------------------------------------------------------------
@@ -767,6 +854,7 @@ type Draft =
   | { kind: "followers"; align: "recto" }
   | { kind: "transport"; align: "recto" }
   | { kind: "costs"; align: "recto" }
+  | { kind: "analytics"; topic: "spend" | "weather"; align?: "verso" | "recto" }
   | { kind: "colophon" }
   | { kind: "blank" };
 
@@ -996,6 +1084,24 @@ function draftsForBack(source: BookSource, options: BookOptions): Draft[] {
   }
   if (source.days.some((d) => d.transport)) drafts.push({ kind: "transport", align: "recto" });
   if (source.costs && options.includeCosts) drafts.push({ kind: "costs", align: "recto" });
+  // The chart spread, and only the halves the trip has something to show for.
+  // A trip with no costs and no readings gets no pages at all rather than a
+  // page apologising for being empty — off is a legitimate answer here and so
+  // is having nothing to say.
+  if (options.includeCharts) {
+    const spend = source.costs && source.costs.byDay.length > 0;
+    const weather = source.weather && source.weather.measured > 0;
+    // A pair faces each other across the fold when there are two of them; a
+    // single chart page is a recto like every other back-matter page.
+    if (spend && weather) {
+      drafts.push({ kind: "analytics", topic: "spend", align: "verso" });
+      drafts.push({ kind: "analytics", topic: "weather" });
+    } else if (spend) {
+      drafts.push({ kind: "analytics", topic: "spend", align: "recto" });
+    } else if (weather) {
+      drafts.push({ kind: "analytics", topic: "weather", align: "recto" });
+    }
+  }
   drafts.push({ kind: "colophon" });
   return drafts;
 }
@@ -1296,44 +1402,101 @@ function materialise(
         .sort((a, b) => b[1] - a[1])
         .map(([mode, days]) => ({ mode, label: modeCount(mode, days, s), days }));
       const named = source.days.filter((d) => d.transport?.from && d.transport?.to);
+      const note =
+        named.length > 0
+          ? fill(s.transportNote, {
+              count: String(named.length),
+              from: named[0].transport!.from,
+              to: named[named.length - 1].transport!.to,
+            })
+          : undefined;
       return {
         number,
         side,
         kind: "transport",
         heading: s.transport,
         modes,
-        note:
-          named.length > 0
-            ? fill(s.transportNote, {
-                count: String(named.length),
-                from: named[0].transport!.from,
-                to: named[named.length - 1].transport!.to,
-              })
-            : undefined,
+        note,
+        shapes: transportShapes(c, s.transport, modes, note, type),
       };
     }
 
-    case "costs":
+    case "costs": {
+      const costs = source.costs ?? EMPTY_COSTS;
+      const labels = {
+        total: s.costsTotal,
+        before: s.costsBefore,
+        onRoad: s.costsOnRoad,
+        perDay: s.costsPerDay,
+        budgeted: s.costsBudgeted,
+        spent: s.costsSpent,
+        where: s.costsWhere,
+        budgetVsActual: s.costsBudgetVsActual,
+        byCountry: s.costsByCountry,
+        nights: s.nights,
+      };
       return {
         number,
         side,
         from: "includeCosts",
         kind: "costs",
-        costs: source.costs ?? EMPTY_COSTS,
-        labels: {
-          total: s.costsTotal,
-          before: s.costsBefore,
-          onRoad: s.costsOnRoad,
-          perDay: s.costsPerDay,
-          budgeted: s.costsBudgeted,
-          spent: s.costsSpent,
-          where: s.costsWhere,
-          budgetVsActual: s.costsBudgetVsActual,
-          byCountry: s.costsByCountry,
-          nights: s.nights,
-        },
+        costs,
+        labels,
         heading: s.costs,
+        shapes: costsShapes(c, s.costs, costs, labels, moneyIn(costs.baseCurrency), type),
       };
+    }
+
+    case "analytics": {
+      const heading = draft.topic === "spend" ? s.chartsSpend : s.chartsWeather;
+      // The trip's own first and last day, written as the book writes a date.
+      // Formatting belongs here rather than in `charts.ts`, which draws.
+      const spanOf = (dates: string[]) => ({
+        firstLabel: formatDate(dates[0] ?? source.trip.start),
+        lastLabel: formatDate(dates[dates.length - 1] ?? source.trip.end),
+      });
+      const shapes =
+        draft.topic === "spend"
+          ? spendPageShapes(
+              c,
+              {
+                heading,
+                ...spanOf((source.costs?.byDay ?? []).map((d) => d.date)),
+                byDay: source.costs?.byDay ?? [],
+                budgetCurve: source.costs?.budgetCurve,
+                budgetLabel: s.chartsBudgetLine,
+                cumulativeLabel: s.chartsCumulative,
+                dailyLabel: s.chartsDaily,
+                averageLabel: s.chartsAverage,
+              },
+              moneyIn(source.costs?.baseCurrency ?? ""),
+              type,
+            )
+          : weatherPageShapes(
+              c,
+              {
+                heading,
+                ...spanOf((source.weather?.byDay ?? []).map((d) => d.date)),
+                byDay: source.weather?.byDay ?? [],
+                avgHigh: source.weather?.avgHigh,
+                avgLow: source.weather?.avgLow,
+                highLowLabel: s.chartsHighLow,
+                rainLabel: s.chartsRain,
+                avgHighLabel: s.chartsAvgHigh,
+                avgLowLabel: s.chartsAvgLow,
+                missingNote:
+                  source.weather && source.weather.missing > 0
+                    ? fill(s.chartsMissing, { count: String(source.weather.missing) })
+                    : undefined,
+                credit:
+                  source.weather && source.weather.sources.length > 0
+                    ? fill(s.chartsSource, { source: source.weather.sources.join(", ") })
+                    : undefined,
+              },
+              type,
+            );
+      return { number, side, from: "includeCharts", kind: "analytics", topic: draft.topic, heading, shapes };
+    }
 
     case "colophon":
       return {

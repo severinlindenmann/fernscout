@@ -26,6 +26,7 @@ const OPTION: Record<BookPageOption, TranslationKey> = {
   includeMap: "photobook.caption.map",
   includeChapters: "photobook.caption.chapters",
   includeCosts: "photobook.caption.costs",
+  includeCharts: "photobook.caption.charts",
 };
 
 /**

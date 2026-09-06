@@ -341,6 +341,7 @@ describe("what a request body may say", () => {
     includeChapters: true,
     includeNames: true,
     includeCosts: true,
+        includeCharts: false,
   };
 
   test("a valid arrangement survives the boundary", () => {

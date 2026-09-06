@@ -29,7 +29,6 @@ import {
   type RectMm,
 } from "./spec.ts";
 import {
-  MAP_SPACE,
   labelOf,
   mapClipMm,
   mapProjector,
@@ -43,6 +42,7 @@ import {
 import { measure, toWinAnsi, wrap } from "./text.ts";
 import { drawTravellers } from "./travellers.ts";
 import { graticuleStep } from "./graticule.ts";
+import { PALETTE, rgbOf, type ChartShape } from "./charts.ts";
 import { landPaths, toPdfPath } from "./worldland.ts";
 
 /**
@@ -55,34 +55,15 @@ import { landPaths, toPdfPath } from "./worldland.ts";
  * the "black" is a soft near-black rather than 0,0,0, which reproduces better
  * as rich black than as a flat key plate.
  */
-const INK = { r: 0.106, g: 0.129, b: 0.161 };
-const MUTED = { r: 0.42, g: 0.45, b: 0.49 };
-const RULE = { r: 0.82, g: 0.83, b: 0.85 };
-const PAPER = { r: 1, g: 1, b: 1 };
-const ACCENT = { r: 0.17, g: 0.36, b: 0.52 };
+const INK = PALETTE.ink;
+const MUTED = PALETTE.muted;
+const RULE = PALETTE.rule;
+const PAPER = PALETTE.paper;
+const ACCENT = PALETTE.accent;
 const LAND = { r: 0.925, g: 0.918, b: 0.902 };
 /** Faint enough to be structure rather than decoration; it must never compete
  * with the route. */
 const GRATICULE = { r: 0.87, g: 0.86, b: 0.84 };
-/** A wash behind a per-country row: present, never competing with the type. */
-const BAR_FAINT = { r: 0.87, g: 0.9, b: 0.93 };
-
-/**
- * Six tints of the one accent, darkest first.
- *
- * Not six hues. A budget is one quantity split up, so the segments belong to
- * each other; six colours would say they were six unrelated things, and a
- * book printed in CMYK on uncoated stock cannot be trusted to keep them
- * distinguishable anyway. Lightening one ink always survives the press.
- */
-function categoryTint(index: number): { r: number; g: number; b: number } {
-  const t = Math.min(index, 5) * 0.145;
-  return {
-    r: ACCENT.r + (1 - ACCENT.r) * t,
-    g: ACCENT.g + (1 - ACCENT.g) * t,
-    b: ACCENT.b + (1 - ACCENT.b) * t,
-  };
-}
 
 const LAND_EDGE = { r: 0.84, g: 0.83, b: 0.81 };
 const GUIDE = { r: 0.9, g: 0.2, b: 0.5 };
@@ -198,6 +179,102 @@ function rule(page: Page, frame: Frame, xMm: number, yMm: number, widthMm: numbe
  * paper than a shouty run of full capitals. */
 function eyebrow(value: string): string {
   return value.toUpperCase().split("").join(" ");
+}
+
+/**
+ * Draws a page's charts — B565.
+ *
+ * The whole of the arithmetic happened in `lib/photobook/charts.ts`, in
+ * millimetres, and `lib/photobook/preview.ts` walks the identical list to make
+ * the browser's copy. So this function chooses ink and pushes operators and
+ * nothing else; if a bar is the wrong length the bug is in charts.ts, and it
+ * is wrong in the preview too, which is how it gets noticed before a book is
+ * printed rather than after.
+ */
+function drawShapes(page: Page, frame: Frame, shapes: readonly ChartShape[]) {
+  // Path syntax wants plain numbers; `PdfBuilder.drawPath` takes the string.
+  const n = (v: number) => v.toFixed(3);
+  const point = (p: { x: number; y: number }) => `${n(frame.x(p.x))} ${n(frame.y(p.y))}`;
+  for (const shape of shapes) {
+    const colour = rgbOf(shape.tone);
+    switch (shape.kind) {
+      case "rect": {
+        const r = rect(frame, shape);
+        if (r.width <= 0 || r.height <= 0) break;
+        PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, colour);
+        break;
+      }
+      case "line":
+        drawDashable(page, frame, [{ x: shape.x1, y: shape.y1 }, { x: shape.x2, y: shape.y2 }], colour, shape.widthMm, shape.dashMm);
+        break;
+      case "polyline":
+        drawDashable(page, frame, shape.points, colour, shape.widthMm, shape.dashMm);
+        break;
+      case "area": {
+        if (shape.points.length < 2) break;
+        const path =
+          `${point(shape.points[0])} m ` +
+          shape.points.slice(1).map((p) => `${point(p)} l`).join(" ") +
+          ` ${n(frame.x(shape.points[shape.points.length - 1].x))} ${n(frame.y(shape.baselineY))} l` +
+          ` ${n(frame.x(shape.points[0].x))} ${n(frame.y(shape.baselineY))} l h`;
+        PdfBuilder.drawPath(page, path, { fill: colour });
+        break;
+      }
+      case "dot":
+        PdfBuilder.drawCircle(page, frame.x(shape.x), frame.y(shape.y), frame.len(shape.radiusMm), colour);
+        break;
+      case "text":
+        text(
+          page,
+          frame,
+          shape.text,
+          shape.x,
+          shape.y,
+          shape.sizePt,
+          colour,
+          shape.weight === "bold" ? "F2" : shape.weight === "italic" ? "F3" : "F1",
+        );
+        break;
+    }
+  }
+}
+
+/**
+ * A run of points, dashed by hand where a dash was asked for.
+ *
+ * The PDF writer draws solid segments and has no dash-pattern operator, and
+ * adding one would mean a second way of setting graphics state for the sake of
+ * two reference lines. Cutting the run into segments is a dozen lines and
+ * produces the same marks on paper.
+ */
+function drawDashable(
+  page: Page,
+  frame: Frame,
+  points: readonly { x: number; y: number }[],
+  colour: { r: number; g: number; b: number },
+  widthMm: number,
+  dashMm?: number,
+) {
+  const stroke = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    PdfBuilder.drawLine(page, frame.x(a.x), frame.y(a.y), frame.x(b.x), frame.y(b.y), frame.len(widthMm), colour);
+  for (let i = 1; i < points.length; i += 1) {
+    const a = points[i - 1];
+    const b = points[i];
+    if (!dashMm) {
+      stroke(a, b);
+      continue;
+    }
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    const steps = Math.max(Math.floor(length / (dashMm * 2)), 1);
+    for (let d = 0; d < steps; d += 1) {
+      const t0 = (d * 2 * dashMm) / length;
+      const t1 = Math.min(((d * 2 + 1) * dashMm) / length, 1);
+      stroke(
+        { x: a.x + (b.x - a.x) * t0, y: a.y + (b.y - a.y) * t0 },
+        { x: a.x + (b.x - a.x) * t1, y: a.y + (b.y - a.y) * t1 },
+      );
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -614,156 +691,15 @@ function drawPage(
       break;
     }
 
-    case "transport": {
-      // Set from a little above the middle rather than the top corner: the
-      // page carries three or four short lines, and hung from the head it
-      // reads as the top of a page somebody forgot to finish.
-      const block = plan.modes.length * ((type.display * 1.5) / mm(1)) + 24;
-      let ty = c.y + c.height * 0.62 + block / 2;
-      text(page, frame, eyebrow(plan.heading), c.x, ty, type.caption, MUTED);
-      ty -= 14;
-      for (const mode of plan.modes) {
-        text(page, frame, String(mode.days), c.x, ty, type.display, ACCENT, "F2");
-        text(
-          page,
-          frame,
-          mode.label,
-          c.x + measure(String(mode.days), type.display, "bold") / mm(1) + 3,
-          ty,
-          type.subheading,
-          INK,
-        );
-        ty -= (type.display * 1.5) / mm(1);
-      }
-      if (plan.note) {
-        rule(page, frame, c.x, ty + 6, Math.min(c.width, 30), RULE);
-        for (const line of wrap(plan.note, type.caption, mm(c.width))) {
-          text(page, frame, line, c.x, ty - 2, type.caption, MUTED, "F3");
-          ty -= (type.caption * 1.4) / mm(1);
-        }
-      }
+    // Three pages that are nothing but their charts — B565. Every mark was
+    // measured in `lib/photobook/charts.ts` and the browser preview walks the
+    // same list, so the composer cannot show a page the press will not print.
+    case "transport":
+    case "costs":
+    case "analytics":
+      drawShapes(page, frame, plan.shapes);
       folio(page, frame, spec, plan.number, plan.side);
       break;
-    }
-
-    case "costs": {
-      const costs = plan.costs;
-      const money = (n: number) => `${costs.baseCurrency} ${Math.round(n).toLocaleString("en-GB")}`;
-      let y = c.y + c.height - 6;
-      text(page, frame, eyebrow(plan.heading), c.x, y, type.caption, MUTED);
-      y -= 6;
-      rule(page, frame, c.x, y, Math.min(c.width, 40), ACCENT);
-      y -= 16;
-      text(page, frame, money(costs.total), c.x, y, type.display, INK, "F2");
-      y -= 8;
-      text(page, frame, plan.labels.total, c.x, y, type.caption, MUTED, "F3");
-      y -= 14;
-
-      const rows: [string, string][] = [
-        [plan.labels.before, money(costs.preparation)],
-        [plan.labels.onRoad, money(costs.onTheRoad)],
-        [plan.labels.perDay, money(costs.perDay)],
-      ];
-      if (costs.budget) rows.push([plan.labels.budgeted, money(costs.budget.total)]);
-      for (const [label, value] of rows) {
-        text(page, frame, label, c.x, y, type.body, INK);
-        textRight(page, frame, value, c.x + c.width, y, type.body, INK);
-        y -= 3;
-        rule(page, frame, c.x, y, c.width, RULE);
-        y -= 7;
-      }
-
-      if (costs.byCategory.length > 0) {
-        y -= 8;
-        text(page, frame, eyebrow(plan.labels.where), c.x, y, type.caption, MUTED);
-        y -= 10;
-
-        /**
-         * One bar, divided in proportion, rather than a column of numbers.
-         *
-         * A reader wants to know what the money mostly went on, and a stacked
-         * bar answers that before they have read a single figure — which a
-         * list of eight right-aligned amounts never does. It is drawn from
-         * rectangles because the PDF writer has rectangles; an arc would need
-         * beziers and a pie is harder to read than a bar anyway.
-         */
-        const shown = costs.byCategory.slice(0, 6);
-        const sum = shown.reduce((n, r) => n + r.amount, 0);
-        const barH = 7;
-        let bx = c.x;
-        shown.forEach((row, i) => {
-          const w = sum > 0 ? (row.amount / sum) * c.width : 0;
-          const r = rect(frame, { x: bx, y: y - barH, width: Math.max(w - 0.4, 0), height: barH });
-          PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, categoryTint(i));
-          bx += w;
-        });
-        y -= barH + 8;
-
-        // The key, two to a row, in the order of the bar.
-        const half = Math.ceil(shown.length / 2);
-        shown.forEach((row, i) => {
-          const col = i < half ? 0 : 1;
-          const rowY = y - (i % half) * 7;
-          const x = c.x + col * (c.width / 2);
-          const sw = rect(frame, { x, y: rowY - 0.4, width: 3, height: 3 });
-          PdfBuilder.drawRect(page, sw.x, sw.y, sw.width, sw.height, categoryTint(i));
-          text(page, frame, row.category, x + 5, rowY, type.caption, INK);
-          textRight(
-            page,
-            frame,
-            money(row.amount),
-            x + c.width / 2 - (col === 0 ? 6 : 0),
-            rowY,
-            type.caption,
-            MUTED,
-          );
-        });
-        y -= half * 7 + 6;
-      }
-
-      // Budgeted against spent, when the trip was budgeted: two bars on one
-      // scale, which is the only honest way to show one number against
-      // another. A percentage alone hides which way round they are.
-      if (costs.budget && costs.budget.total > 0 && y > c.y + 34) {
-        const most = Math.max(costs.budget.total, costs.total);
-        const barW = (n: number) => (n / most) * c.width;
-        y -= 2;
-        text(page, frame, eyebrow(plan.labels.budgetVsActual), c.x, y, type.caption, MUTED);
-        y -= 9;
-        for (const [label, value, color] of [
-          [plan.labels.budgeted, costs.budget.total, RULE],
-          [plan.labels.spent, costs.total, ACCENT],
-        ] as [string, number, typeof ACCENT][]) {
-          const r = rect(frame, { x: c.x, y: y - 4.5, width: barW(value), height: 4.5 });
-          PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, color);
-          text(page, frame, label, c.x, y + 1.5, type.caption, INK);
-          textRight(page, frame, money(value), c.x + c.width, y + 1.5, type.caption, MUTED);
-          y -= 12;
-        }
-      }
-
-      if (costs.byCountry.length > 0 && y > c.y + 22) {
-        y -= 2;
-        text(page, frame, eyebrow(plan.labels.byCountry), c.x, y, type.caption, MUTED);
-        y -= 8;
-        const most = Math.max(...costs.byCountry.map((x) => x.amount));
-        for (const row of costs.byCountry.slice(0, 5)) {
-          if (y < c.y + 6) break;
-          const r = rect(frame, {
-            x: c.x,
-            y: y - 1.2,
-            width: most > 0 ? (row.amount / most) * c.width : 0,
-            height: 3,
-          });
-          PdfBuilder.drawRect(page, r.x, r.y, r.width, r.height, BAR_FAINT);
-          text(page, frame, `${row.country} \u2014 ${row.nights} ${plan.labels.nights}`, c.x, y, type.caption, INK);
-          textRight(page, frame, money(row.amount), c.x + c.width, y, type.caption, MUTED);
-          y -= 8;
-        }
-      }
-      folio(page, frame, spec, plan.number, plan.side);
-      break;
-    }
 
     case "colophon": {
       drawTravellers(page, (xMm, yMm) => [frame.x(xMm), frame.y(yMm)], {

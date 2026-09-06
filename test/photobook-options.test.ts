@@ -39,6 +39,10 @@ const COSTS: BookCosts = {
   perDay: 240,
   byCategory: [{ category: "Food", amount: 400 }],
   byCountry: [{ country: "Thailand", amount: 1200, nights: 5 }],
+  byDay: [
+    { date: "2026-01-01", amount: 600, cumulative: 600 },
+    { date: "2026-01-02", amount: 600, cumulative: 1200 },
+  ],
 };
 
 function source(days: BookDay[]): BookSource {

@@ -52,6 +52,7 @@ function orderRequest(orderId: string) {
         includeChapters: true,
         includeNames: true,
         includeCosts: true,
+        includeCharts: false,
       }),
     }),
   });

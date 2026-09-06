@@ -31,6 +31,7 @@ import {
 } from "./plan.ts";
 import { landPaths } from "./worldland.ts";
 import { graticuleStep } from "./graticule.ts";
+import { cssTone, type ChartShape } from "./charts.ts";
 import { travellersSvg } from "./travellers.ts";
 
 function escape(text: string): string {
@@ -58,69 +59,6 @@ function imageSrc(
   return path.relative(outDir, resolveFile(photo.file)).split(path.sep).join("/");
 }
 
-/**
- * The cost page, in the same shape the renderer draws it.
- *
- * It used to be a two-column table here and a stacked bar with a budget
- * comparison on paper — so the preview said the page was fine and the printed
- * page was a different page. This file exists to stop exactly that, and the
- * cost page is the one it had quietly stopped doing it for.
- *
- * The tints match `categoryTint` in render.ts: the same accent, lightened in
- * the same steps.
- */
-function costsHtml(
-  heading: string,
-  costs: { baseCurrency: string; total: number; byCategory: { category: string; amount: number }[]; budget?: { total: number } },
-  money: (n: number) => string,
-  type: ReturnType<typeof typeScale>,
-  /** Passed in rather than rebuilt: it closes over the page's own scale, and a
-   * second copy of that formula is a second thing to get wrong. */
-  pt: (size: number) => string,
-): string {
-  const shown = costs.byCategory.slice(0, 6);
-  const sum = shown.reduce((n, r) => n + r.amount, 0);
-  const tint = (i: number) => {
-    const k = Math.min(i, 5) * 0.145;
-    const mix = (v: number) => Math.round((v + (1 - v) * k) * 255);
-    return `rgb(${mix(0.17)},${mix(0.36)},${mix(0.52)})`;
-  };
-  const bar = shown
-    .map(
-      (r, i) =>
-        `<span style="display:inline-block;height:100%;width:${sum > 0 ? (r.amount / sum) * 100 : 0}%;background:${tint(i)}"></span>`,
-    )
-    .join("");
-  const key = shown
-    .map(
-      (r, i) =>
-        `<tr><td><span style="display:inline-block;width:0.7em;height:0.7em;background:${tint(i)}"></span> ` +
-        `${escape(r.category)}</td><td>${money(r.amount)}</td></tr>`,
-    )
-    .join("");
-  const most = costs.budget ? Math.max(costs.budget.total, costs.total) : costs.total;
-  const budget = costs.budget
-    ? `<p class="muted eyebrow" style="${pt(type.caption)}">Budget and what happened</p>` +
-      [
-        ["Budgeted", costs.budget.total, "#d9d7d2"],
-        ["Spent", costs.total, "rgb(43,92,133)"],
-      ]
-        .map(
-          ([label, value, colour]) =>
-            `<p style="${pt(type.caption)};margin:0">${label} — ${money(value as number)}</p>` +
-            `<div style="height:0.5em;width:${((value as number) / most) * 100}%;background:${colour}"></div>`,
-        )
-        .join("")
-    : "";
-  return (
-    `<p class="muted eyebrow" style="${pt(type.caption)}">${escape(heading)}</p>` +
-    `<h1 style="${pt(type.display)}">${money(costs.total)}</h1>` +
-    `<div style="display:flex;height:1.2em;width:100%">${bar}</div>` +
-    `<table>${key}</table>` +
-    budget
-  );
-}
-
 /** trim-relative mm → percentages of the bleed box, with y flipped for CSS. */
 function style(spec: BookSpec, r: RectMm): string {
   const w = spec.size.trimWidthMm + spec.bleedMm * 2;
@@ -132,6 +70,89 @@ function style(spec: BookSpec, r: RectMm): string {
     `width:${pct(r.width / w)}`,
     `height:${pct(r.height / h)}`,
   ].join(";");
+}
+
+/**
+ * A page's charts, from the same geometry the PDF draws — B565.
+ *
+ * Not a second layout: `lib/photobook/charts.ts` produced this list of marks
+ * in millimetres and `render.ts` walks the identical one. The single
+ * conversion here is the one `routeSvg` also makes — trim-relative
+ * millimetres with y upwards become the media box with y downwards — so a bar
+ * in the wrong place on this page is in the wrong place on paper too. Which is
+ * the point: it is much cheaper to notice on screen.
+ *
+ * The browser will not set Helvetica to the same pixel and does not need to:
+ * every x this file is given was already resolved to a left edge by
+ * `charts.ts`, using the renderer's own width function, so both agree about
+ * *placement*, which is the part that has to match.
+ */
+function chartSvg(spec: BookSpec, shapes: readonly ChartShape[]): string {
+  const width = spec.size.trimWidthMm + spec.bleedMm * 2;
+  const height = spec.size.trimHeightMm + spec.bleedMm * 2;
+  const X = (v: number) => (v + spec.bleedMm).toFixed(2);
+  const Y = (v: number) => (spec.size.trimHeightMm + spec.bleedMm - v).toFixed(2);
+  const mmPerPt = 1 / mm(1);
+  const parts: string[] = [];
+
+  for (const shape of shapes) {
+    const colour = cssTone(shape.tone);
+    switch (shape.kind) {
+      case "rect":
+        if (shape.width <= 0 || shape.height <= 0) break;
+        parts.push(
+          `<rect x="${X(shape.x)}" y="${Y(shape.y + shape.height)}" ` +
+            `width="${shape.width.toFixed(2)}" height="${shape.height.toFixed(2)}" fill="${colour}"/>`,
+        );
+        break;
+      case "line":
+        parts.push(
+          `<line x1="${X(shape.x1)}" y1="${Y(shape.y1)}" x2="${X(shape.x2)}" y2="${Y(shape.y2)}" ` +
+            `stroke="${colour}" stroke-width="${shape.widthMm}"` +
+            (shape.dashMm ? ` stroke-dasharray="${shape.dashMm} ${shape.dashMm}"` : "") +
+            `/>`,
+        );
+        break;
+      case "polyline":
+        parts.push(
+          `<polyline points="${shape.points.map((p) => `${X(p.x)},${Y(p.y)}`).join(" ")}" ` +
+            `fill="none" stroke="${colour}" stroke-width="${shape.widthMm}" ` +
+            `stroke-linecap="round" stroke-linejoin="round"` +
+            (shape.dashMm ? ` stroke-dasharray="${shape.dashMm} ${shape.dashMm}"` : "") +
+            `/>`,
+        );
+        break;
+      case "area":
+        if (shape.points.length < 2) break;
+        parts.push(
+          `<polygon points="${[
+            `${X(shape.points[0].x)},${Y(shape.baselineY)}`,
+            ...shape.points.map((p) => `${X(p.x)},${Y(p.y)}`),
+            `${X(shape.points[shape.points.length - 1].x)},${Y(shape.baselineY)}`,
+          ].join(" ")}" fill="${colour}"/>`,
+        );
+        break;
+      case "dot":
+        parts.push(
+          `<circle cx="${X(shape.x)}" cy="${Y(shape.y)}" r="${shape.radiusMm}" fill="${colour}"/>`,
+        );
+        break;
+      case "text":
+        parts.push(
+          // `xml:space` because the book's small caps are letter-spaced by
+          // inserting real spaces (`eyebrowText`), and SVG collapses runs of
+          // whitespace by default — which turned "WHAT IT COST" into
+          // "WHATITCOST" in the preview and nowhere else.
+          `<text xml:space="preserve" x="${X(shape.x)}" y="${Y(shape.y)}" fill="${colour}" ` +
+            `font-size="${(shape.sizePt * mmPerPt).toFixed(2)}"` +
+            (shape.weight === "bold" ? ` font-weight="700"` : "") +
+            (shape.weight === "italic" ? ` font-style="italic"` : "") +
+            `>${escape(shape.text)}</text>`,
+        );
+        break;
+    }
+  }
+  return `<svg class="chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">${parts.join("")}</svg>`;
 }
 
 /**
@@ -455,37 +476,12 @@ function pageHtml(
       );
       break;
 
+    // Nothing but their charts, drawn from the geometry the PDF uses — B565.
     case "transport":
-      parts.push(
-        textBlock(
-          spec,
-          page,
-          `<p class="muted eyebrow" style="${pt(type.caption)}">${escape(page.heading)}</p>` +
-            page.modes
-              .map(
-                (m) =>
-                  `<p><span class="accent" style="${pt(type.display)}"><strong>${m.days}</strong></span> ` +
-                  `<span style="${pt(type.subheading)}">${escape(m.label)}</span></p>`,
-              )
-              .join("") +
-            (page.note
-              ? `<hr><p class="muted" style="${pt(type.caption)}">${escape(page.note)}</p>`
-              : ""),
-        ),
-      );
+    case "costs":
+    case "analytics":
+      parts.push(chartSvg(spec, page.shapes));
       break;
-
-    case "costs": {
-      const money = (n: number) => `${page.costs.baseCurrency} ${Math.round(n).toLocaleString("en-GB")}`;
-      parts.push(
-        textBlock(
-          spec,
-          page,
-          costsHtml(page.heading, page.costs, money, type, pt),
-        ),
-      );
-      break;
-    }
 
     case "blank":
       parts.push(`<div class="blank">blank</div>`);
@@ -680,6 +676,10 @@ export function renderPreview(
   .slot img { object-fit:fill; }
   .cap { position:absolute; color:var(--muted); font-style:italic; overflow:hidden;
          display:flex; align-items:flex-end; }
+  .chart { position:absolute; inset:0; width:100%; height:100%; }
+  /* The book's own face, so a chart page previews as the page it will be
+     rather than in the browser's UI font. */
+  .chart text { font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; }
   .map { position:absolute; inset:0; width:100%; height:100%; }
   .map .land { fill:#eceae7; stroke:#d6d3ce; stroke-width:.3; }
   .map .graticule { fill:none; stroke:#dedbd6; stroke-width:.25; }

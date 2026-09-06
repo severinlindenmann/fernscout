@@ -5,6 +5,7 @@
  *   npm run photobook -- --trip <id> --guides --size landscape-a4
  *   npm run photobook -- --trip <id> --icc "/path/to/FOGRA39.icc"
  *   npm run photobook -- --providers
+ *   npm run photobook -- --trip <id> --charts
  *   npm run photobook -- --trip <id> --outline
  *
  * Dry run by default: it writes into content/<user>/photobooks and calls nobody.
@@ -89,6 +90,7 @@ if (!tripId) {
       "       npm run photobook -- --trip <id> --binding saddle --size portrait-a4\n" +
       "       npm run photobook -- --trip <id> --icc <profile.icc>\n" +
       "       npm run photobook -- --trip <id> --locale de\n" +
+      "       npm run photobook -- --trip <id> --charts\n" +
       "       npm run photobook -- --trip <id> --outline\n" +
       "       npm run photobook -- --providers\n\n" +
       `Sizes:    ${Object.keys(BOOK_SIZES).join(", ")}\n` +
@@ -180,7 +182,14 @@ const locale = str("locale") ?? "en";
 if (!isBookLocale(locale)) {
   fail(`Unknown --locale "${locale}". One of: en, de, hu.`);
 }
-const book: Photobook = planBook(source, spec, { ...DEFAULT_OPTIONS, locale });
+// `--charts` is the composer's own include-switch, off by default here for
+// the same reason it is off there: a book of photographs need not carry a
+// page of charts. B565.
+const book: Photobook = planBook(source, spec, {
+  ...DEFAULT_OPTIONS,
+  locale,
+  includeCharts: args.charts === true,
+});
 
 if (args.outline) {
   for (const volume of book.volumes) {

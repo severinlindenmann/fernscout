@@ -31,8 +31,11 @@ import { mediaOriginalsRoot, tripMediaDir, tripOriginalsDir } from "../media";
 import { getTrip, tripDir } from "../trips";
 import { readJpeg } from "../postcard/pdf.ts";
 import { paragraphsOf } from "./text.ts";
+import { hasWeather, summariseWeather, weatherDays } from "../weatherStats";
+import { SOURCE_CREDIT } from "../weather";
 import type {
   BookCosts,
+  BookWeather,
   BookDay,
   BookPhoto,
   BookSource,
@@ -229,6 +232,46 @@ function costsFor(tripId: string): BookCosts | undefined {
       nights: c.nights,
     })),
     budget: summary.budget ? { total: summary.budget.total, days: summary.budget.days } : undefined,
+    byDay: summary.byDay.map((d) => ({
+      date: d.date,
+      amount: d.amount,
+      cumulative: d.cumulative,
+    })),
+    // The planned curve as the site already computes it. Absent rather than
+    // straight-lined when the trip declared no budget: a reference line
+    // nobody drew up is a claim about somebody's intentions.
+    budgetCurve: summary.budget?.pace?.curve,
+  };
+}
+
+/**
+ * The trip's weather, as `lib/weatherStats.ts` adds it up — B565.
+ *
+ * **Nothing here is computed twice.** `summariseWeather` is the same function
+ * the site's own weather page draws from, so a mean printed in the book and a
+ * mean shown on the web are the same mean by construction rather than by
+ * coincidence. This maps its answer onto the planner's structural type and
+ * does no arithmetic of its own.
+ *
+ * `undefined` when the capability is off or no day carries a reading, and the
+ * planner then prints no weather page at all. There is no fallback: a book
+ * must not show a temperature nobody measured.
+ */
+function weatherFor(tripId: string): BookWeather | undefined {
+  if (!isEnabled("weather", getTrip(tripId)?.username)) return undefined;
+  const days = weatherDays(getDays(tripId));
+  if (!hasWeather(days)) return undefined;
+  const summary = summariseWeather(days);
+  return {
+    measured: summary.measured,
+    missing: summary.missing,
+    avgHigh: summary.avgHigh,
+    avgLow: summary.avgLow,
+    byDay: summary.byDay,
+    // The archive is credited by the name it is shown under on the site, not
+    // by its machine name: attribution is a licence condition and
+    // "open-meteo" in the middle of a printed sentence is not it.
+    sources: summary.sources.map((source) => SOURCE_CREDIT[source]?.label ?? source),
   };
 }
 
@@ -403,6 +446,7 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
     followers: options.followers,
     route: routeFor(tripId),
     costs: costsFor(tripId),
+    weather: weatherFor(tripId),
     madeOn: options.madeOn ?? new Date().toISOString().slice(0, 10),
     // The colophon points at the journal this book came from.
     siteUrl: `${serverSite().url}/${trip.username}`,
