@@ -248,7 +248,24 @@ export type BookPage = { number: number; side: PageSide } & (
       /** "Drove · Zion National Park → Bryce Canyon", when the entry said so. */
       leg?: { mode: string; text: string };
     }
-  | { kind: "photos"; layout: PhotoLayout; placements: PhotoPlacement[] }
+  | {
+      kind: "photos";
+      layout: PhotoLayout;
+      placements: PhotoPlacement[];
+      /**
+       * The day this spread belongs to, when it belongs to one — B534.
+       *
+       * Set in `materialise` from the draft it came from, which is set in
+       * `draftsForChapter` from `chapterDay.date` and carried through
+       * `expandToMinimum`'s split. Absent for front matter (title, route,
+       * costs, colophon), which belongs to no day. Do not reconstruct this by
+       * scanning backwards to the nearest preceding "day" page — that
+       * silently attaches the wrong day the first time the page order
+       * changes, which is exactly the bug B517 already fixed once for
+       * `BookWarning.date`.
+       */
+      date?: string;
+    }
   | { kind: "followers"; heading: string; note: string; names: string[] }
   | {
       kind: "transport";
@@ -725,6 +742,8 @@ type Draft =
       /** Set when this page's arrangement was chosen by a person rather than
        * by `groupPhotos`. `expandToMinimum` leaves it alone — see there. */
       chosen?: true;
+      /** The day this page belongs to — see `BookPage`'s "photos" variant. */
+      date?: string;
     }
   | { kind: "followers"; align: "recto" }
   | { kind: "transport"; align: "recto" }
@@ -922,12 +941,15 @@ function draftsForChapter(
         drafts.push({ kind: "day", day: written, captions, photo: withText });
       }
     }
-    if (hero) drafts.push({ kind: "photos", layout: "full-bleed", photos: [hero] });
+    if (hero) {
+      drafts.push({ kind: "photos", layout: "full-bleed", photos: [hero], date: chapterDay.date });
+    }
     for (const group of groupsFor(layout, grouped)) {
       drafts.push({
         kind: "photos",
         layout: group.layout,
         photos: group.photos,
+        date: chapterDay.date,
         ...(layout === "auto" ? {} : { chosen: true as const }),
       });
     }
@@ -1013,6 +1035,7 @@ function expandToMinimum(drafts: Draft[], target: number): Draft[] {
         kind: "photos" as const,
         layout: layoutFor(photos),
         photos,
+        date: group.date,
       })),
     );
   }
@@ -1225,7 +1248,7 @@ function materialise(
     case "photos": {
       const placements = placeAll(draft.layout, draft.photos, spec, side);
       for (const p of placements) checkResolution(p, spec, warnings);
-      return { number, side, kind: "photos", layout: draft.layout, placements };
+      return { number, side, kind: "photos", layout: draft.layout, placements, date: draft.date };
     }
 
     case "followers": {
