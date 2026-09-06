@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper, validate-content, config
 found: "2026-09-06T14:35:01Z"
 started: "2026-09-06T14:37:44Z"
-session: ac8af30e-815d-4843-a94d-cf061a70269c
-claimed: "2026-09-06T14:37:44Z"
+merged: "2026-09-06T14:45:34Z"
 ---
 
 # B598 — A features value written as a bare boolean is silently ignored and nothing says so
