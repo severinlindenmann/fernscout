@@ -8,7 +8,7 @@ lat: 21.0278
 lng: 105.8342
 weather: true
 transportMode: "train"
-transportFrom: "Hoi An"
+transportFrom: "Da Nang"
 transportTo: "Hanoi"
 gallery:
   - src: "/media/asia-2023/last-week-hanoi/01.jpg"
