@@ -90,6 +90,18 @@ export async function GET(
     // telling somebody it is ready, could confirm the prose and the costs and
     // not the rest. A field the API takes is a field it has to show.
     ...(entry.transport ? { transport: entry.transport } : {}),
+    // Same principle, same bug shape as `transport` above: accepted on the way
+    // in and never shown, so an agent that set the arrival scene — or hit the
+    // "written as sent, read back as the default" case documented for an
+    // unrecognised value — had no way to tell either from silence. Omitted
+    // when absent because "default" *is* the absent state (see the comment on
+    // `Entry.travelScene`), so there is nothing to distinguish by adding it
+    // back explicitly. B540.
+    ...(entry.travelScene ? { travelScene: entry.travelScene } : {}),
+    // Same shape as `weatherData` on the way in — `DayWeather` always carries
+    // its own `source` and `recordedAt`, so there is no way to show a number
+    // without also showing where it came from. B540.
+    ...(entry.weather ? { weather: entry.weather } : {}),
     // The other half of B294: a journal with two or more locales refuses a day
     // without every translation, so an agent has to be able to read back what
     // it wrote to check it stuck. Same shape it is written in — `{title,
@@ -188,7 +200,18 @@ export async function PATCH(
     );
   }
 
-  const problems = validateEntryEdit(body, languagesOf(user));
+  // The one fact `checkCaptions` cannot know on its own, since the validator
+  // is pure and has no filesystem — this is the day's gallery as it stands
+  // right now, so a `src` that names no photograph on it is refused rather
+  // than silently matching nothing. B540. A day this call cannot even find
+  // is `editEntry`'s 404 to report, so this does not turn a missing day into
+  // a validation error of its own.
+  const current = getEntryBySlug(ref, slug, { includeDrafts: true });
+  const problems = validateEntryEdit(
+    body,
+    languagesOf(user),
+    current?.gallery.map((item) => item.src),
+  );
   if (problems.length > 0) {
     return Response.json({ error: "invalid_entry", problems }, { status: 400 });
   }

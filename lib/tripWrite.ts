@@ -827,6 +827,38 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
   }
 
   /**
+   * `listed` and `test` are booleans, and only the JSON booleans count — B540.
+   *
+   * Both used to be read with `=== true` / `=== false`, which is careful about
+   * what counts as *true* but says nothing about what counts as *neither*: a
+   * caller sending the string `"false"` is not `=== false`, so it fell through
+   * every branch below as if the field had never been mentioned, and an absent
+   * `listed` on a public trip reads back as `listed: true` — the opposite of
+   * what a string-typed serialiser plausibly meant to ask for. `checkTest` in
+   * lib/validate/entry.ts takes the same line for the day-level `test` field:
+   * a non-boolean is refused, not treated as absent, because a caller who sent
+   * *something* is entitled to hear that it did not land, rather than having
+   * the request quietly reinterpreted as one it did not make.
+   */
+  // The code is written out rather than built from the field name: the error
+  // vocabulary is published (lib/api/errorCodes.ts) and checked by searching
+  // for it, and a code that only exists as a template is one no search finds.
+  for (const [field, value, code] of [
+    ["listed", input.listed, "invalid_listed"],
+    ["test", input.test, "invalid_test"],
+  ] as const) {
+    if (value !== undefined && typeof value !== "boolean") {
+      return {
+        ok: false,
+        error: code,
+        message:
+          `${field} is ${JSON.stringify(value)}; expected true or false — the JSON booleans, ` +
+          `not the strings. A typo here must not be read as "not mentioned".`,
+      };
+    }
+  }
+
+  /**
    * `listed: true` on a trip nothing advertises is a request the reader will
    * refuse, so refuse it here where somebody is listening.
    *

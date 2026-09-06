@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import { openApiDocument } from "@/lib/api/openapi";
+import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { COST_CATEGORIES } from "@/lib/costFormat";
 import { FEATURE_NAMES } from "@/lib/config";
 import { TRACKS } from "@/lib/tracks";
@@ -357,5 +358,62 @@ describe("required fields are real", () => {
       }
     }
     expect(problems).toEqual([]);
+  });
+});
+
+/**
+ * The error vocabulary.
+ *
+ * An agent that gets `{"error": "unsupported_field"}` and can look the word up
+ * knows what to do; one that cannot is left to guess, and a weak model guesses
+ * badly. 139 of the 149 places this API returns a code returned one the
+ * document had never mentioned, which is what these two tests exist to stop
+ * happening again — in both directions, because a catalogue with entries
+ * nothing answers is a catalogue nobody trusts.
+ */
+describe("every error code a route answers with is published", () => {
+  // The routes, and the modules whose `error` string a route passes through
+  // verbatim — `createTrip` answers `invalid_travellers` and the route hands
+  // it on unchanged, so the word reaches a caller from there just as surely.
+  const SPEAKS_TO_CALLERS = [
+    "lib/tripWrite.ts",
+    "lib/api/costs.ts",
+    "lib/api/entries.ts",
+    "lib/api/tripParty.ts",
+    "lib/api/tripRates.ts",
+    "lib/api/tripVisibility.ts",
+    "lib/api/media.ts",
+  ];
+  const answered = new Set<string>();
+  /** Every quoted string in those files, for the "nothing here is dead" check
+   * below: a code can reach a caller through a variable, and asking whether
+   * the word appears at all is the honest question in that direction. */
+  const spoken = new Set<string>();
+  for (const file of [...routeFiles("app/api/v1"), ...routeFiles("app/api/auth"), ...SPEAKS_TO_CALLERS]) {
+    const source = readFileSync(file, "utf8");
+    for (const match of source.matchAll(/error:\s*"([a-z_]+)"/g)) answered.add(match[1]);
+    for (const match of source.matchAll(/"([a-z_]+)"/g)) spoken.add(match[1]);
+  }
+
+  test("the walk found codes at all", () => {
+    expect(answered.size).toBeGreaterThan(30);
+  });
+
+  test("is in ERROR_CODES, so an agent can look it up", () => {
+    const missing = [...answered].filter((code) => !(code in ERROR_CODES)).sort();
+    expect(
+      missing,
+      `add these to lib/api/errorCodes.ts, saying what to do about each: ${missing.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  test("and nothing in ERROR_CODES is answered by no route", () => {
+    const dead = Object.keys(ERROR_CODES).filter((code) => !spoken.has(code)).sort();
+    expect(dead, `documented and never returned: ${dead.join(", ")}`).toEqual([]);
+  });
+
+  test("reaches the document as the Error schema's enum", () => {
+    const schema = document.components?.schemas?.Error as { properties?: { error?: { enum?: string[] } } };
+    expect(sorted(schema?.properties?.error?.enum ?? [])).toEqual(sorted(Object.keys(ERROR_CODES)));
   });
 });

@@ -11,6 +11,7 @@ import {
   VISIBILITY_NOT_A_LOCK,
 } from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
+import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 // Every enum below is imported rather than typed out. A hand-written list
 // beside a validator's own list is two lists, and the day they disagree the
@@ -79,10 +80,48 @@ export function openApiDocument() {
   // B473.
   const example = getDefaultUsername() ?? listedUsernames()[0] ?? "username";
 
+  /**
+   * Every refusal answers with this, and `error` is a word from a published
+   * vocabulary rather than free text.
+   *
+   * 139 of the 149 places this API returns a code returned one the document
+   * had never mentioned. For a reader with the source that is fine; for the
+   * only reader this API has it is a word to guess at, and B540 watched one
+   * guess. The enum below is the whole vocabulary and each entry says what to
+   * do next, not only what happened.
+   */
   const errorSchema = {
     type: "object",
-    properties: { error: { type: "string" } },
     required: ["error"],
+    properties: {
+      error: {
+        type: "string",
+        enum: Object.keys(ERROR_CODES),
+        description: Object.entries(ERROR_CODES)
+          .map(([code, meaning]) => `- \`${code}\` — ${meaning}`)
+          .join("\n"),
+      },
+      message: {
+        type: "string",
+        description: "A sentence, where the code alone is not enough to act on.",
+      },
+      problems: {
+        type: "array",
+        description:
+          "Every problem at once, not the first — an agent fixing its own body needs the " +
+          "whole list in one round trip. Each names the field, what arrived and what was " +
+          "expected, and carries a `hint` where the triple is not enough.",
+        items: {
+          type: "object",
+          properties: {
+            field: { type: "string" },
+            got: { type: "string" },
+            expected: { type: "string" },
+            hint: { type: "string" },
+          },
+        },
+      },
+    },
   };
 
   const document = {
