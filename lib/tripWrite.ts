@@ -37,14 +37,17 @@ import { quoteScalar, singleLineProblem } from "./validate/frontmatter";
 /** Same shape a trip id has to have to be read back — `lib/trips.ts`. */
 const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 
-const ACCENTS = ["sky", "yellow", "green", "coral", "navy"] as const;
-const STATUSES = ["upcoming", "current", "past"] as const;
+/** Exported for the same reason `VISIBILITIES` below is: `lib/api/openapi.ts`
+ * publishes these as the enum an agent reads, and a second copy typed out
+ * there would be a list that disagrees with the one that refuses. B540. */
+export const ACCENTS = ["sky", "yellow", "green", "coral", "navy"] as const;
+export const STATUSES = ["upcoming", "current", "past"] as const;
 /** Exported so `lib/api/tripVisibility.ts` (B396) validates a later change
  * against the same list `createTrip` validates the first one against. */
 export const VISIBILITIES = ["private", "public", "guest"] as const;
 /** Mirrors `CostsVisibility` in lib/types.ts and `parseCostsVisibility` in
  * lib/trips.ts — the two spellings the reader understands. */
-const COSTS_VISIBILITIES = ["public", "guests"] as const;
+export const COSTS_VISIBILITIES = ["public", "guests"] as const;
 
 export type NewTrip = {
   id: string;
@@ -343,7 +346,11 @@ const FIGURE_COLOURS: ReadonlyArray<[string, Record<string, string>]> = [
   ["headscarf", CLOTH],
 ];
 
-const FIGURE_FIELDS: ReadonlySet<string> = new Set([
+/** Exported so `lib/api/openapi.ts` publishes the keys a figure may carry
+ * rather than describing it as "an object". A caller that cannot see the key
+ * list guesses, and `for` — an address out of `people:`, not a name — is the
+ * one everybody guesses wrong. B540. */
+export const FIGURE_FIELDS: ReadonlySet<string> = new Set([
   "for",
   "accessories",
   ...FIGURE_ENUMS.map(([f]) => f),
@@ -817,6 +824,38 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
         `narrows the numbers to the people who were on the trip and the readers you have ` +
         `approved into the journal. It does not decide who may open the trip; visibility does.`,
     };
+  }
+
+  /**
+   * `listed` and `test` are booleans, and only the JSON booleans count — B540.
+   *
+   * Both used to be read with `=== true` / `=== false`, which is careful about
+   * what counts as *true* but says nothing about what counts as *neither*: a
+   * caller sending the string `"false"` is not `=== false`, so it fell through
+   * every branch below as if the field had never been mentioned, and an absent
+   * `listed` on a public trip reads back as `listed: true` — the opposite of
+   * what a string-typed serialiser plausibly meant to ask for. `checkTest` in
+   * lib/validate/entry.ts takes the same line for the day-level `test` field:
+   * a non-boolean is refused, not treated as absent, because a caller who sent
+   * *something* is entitled to hear that it did not land, rather than having
+   * the request quietly reinterpreted as one it did not make.
+   */
+  // The code is written out rather than built from the field name: the error
+  // vocabulary is published (lib/api/errorCodes.ts) and checked by searching
+  // for it, and a code that only exists as a template is one no search finds.
+  for (const [field, value, code] of [
+    ["listed", input.listed, "invalid_listed"],
+    ["test", input.test, "invalid_test"],
+  ] as const) {
+    if (value !== undefined && typeof value !== "boolean") {
+      return {
+        ok: false,
+        error: code,
+        message:
+          `${field} is ${JSON.stringify(value)}; expected true or false — the JSON booleans, ` +
+          `not the strings. A typo here must not be read as "not mentioned".`,
+      };
+    }
   }
 
   /**

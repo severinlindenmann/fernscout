@@ -1,6 +1,6 @@
 import "server-only";
 import { isAdminEmail } from "../admin";
-import { resolveSession, type Session } from "../auth";
+import { SESSION_SCOPE, resolveSession, type Session } from "../auth";
 import { isEnabled } from "../capabilities";
 import { tripWriteVerdict } from "../tripPeople";
 import type { Trip } from "../types";
@@ -45,6 +45,42 @@ export async function authenticate(request: Request): Promise<ApiAuth> {
  * handover credential are agent sessions too, and neither is a journal-wide
  * grant. `isOwner` widens on exactly the same two conditions.
  */
+/**
+ * The refusal for a token that belongs somewhere else — B540.
+ *
+ * `{"error":"out_of_scope"}` on its own is thirty-one identical dead ends, and
+ * a weak model given one did something worse than stop: told to publish and
+ * refused with a word, it worked out that it had filesystem access and wrote
+ * the day files by hand. That is the lesson of this one — a refusal that does
+ * not say what to do next does not end the attempt, it redirects it.
+ *
+ * The commonest cause by far is a **signup token used past its one job**.
+ * `POST /api/v1/journals` answers with the journal's own agent token, and a
+ * caller that keeps using the token it signed up with gets this on every
+ * subsequent call with nothing pointing at the one in the reply it already
+ * has. So that case is named outright.
+ *
+ * It says nothing a caller could not work out from its own token: which
+ * journal the token is for is on the token.
+ */
+export function outOfScope(session: Session, username: string): Response {
+  const signup = session.scope === SESSION_SCOPE.signup;
+  return Response.json(
+    {
+      error: "out_of_scope",
+      message: signup
+        ? "This is the signup token, and it can do exactly one thing: create one journal. " +
+          "The token you want came back in the answer to POST /api/v1/journals — the " +
+          "`token` field — and it is the journal's own, good for seven days. Use that one."
+        : `This token is for ${session.owner ? `"${session.owner}"` : "a different journal"}, ` +
+          `and this call is about "${username}". A token belongs to one journal; ask for ` +
+          `one for this journal with POST /api/auth/request and /api/auth/verify, both ` +
+          `with "kind": "agent".`,
+    },
+    { status: 403 },
+  );
+}
+
 export function ownsUser(session: Session, username: string): boolean {
   if (session.owner === username) return true;
   return session.scope === "write:content" && isAdminEmail(session.email);

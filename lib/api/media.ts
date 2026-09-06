@@ -349,6 +349,10 @@ export async function storeUploads(
           { from: path.join(staging, poster), to: path.join(mediaOut, poster) },
         );
         items.push({
+          // Trip-relative, like every other item pushed here — see the doc
+          // comment on the image branch below for why, and where the
+          // username actually gets added on for the API response (B540, in
+          // the route that calls this).
           src: frontmatterSrc(tripId, path.join(slug, name)),
           type: "video",
           caption: upload.caption || undefined,
@@ -390,7 +394,10 @@ export async function storeUploads(
         items.push({
           // Trip-relative, never `/<user>/media/…`: the owner is prefixed at
           // read time, which is what let the move to multi-user rewrite no
-          // entry file.
+          // entry file. `attachGallery` (lib/api/entries.ts) writes this
+          // straight into the entry's frontmatter, so it has to stay
+          // trip-relative — the route that calls `storeUploads` is where the
+          // username is added back on for the API response only (B540).
           src: frontmatterSrc(tripId, path.join(slug, name)),
           type: "image",
           caption: upload.caption || undefined,

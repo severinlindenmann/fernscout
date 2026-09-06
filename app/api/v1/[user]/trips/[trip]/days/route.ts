@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
 import {
   createDraft,
   deleteEntry,
@@ -14,6 +14,7 @@ import { getAllEntries } from "@/lib/entries";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntry } from "@/lib/validate/entry";
+import { alsoWrong, checkAgainstContract } from "@/lib/api/contract";
 import { incompleteMessage, missingFrom } from "@/lib/tracks";
 
 import { getUser } from "@/lib/users";
@@ -45,7 +46,7 @@ export async function GET(
 
   const { user, trip } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   const ref = tripRef(user, trip);
@@ -96,7 +97,7 @@ export async function POST(
 
   const { user, trip } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   const ref = tripRef(user, trip);
@@ -113,6 +114,15 @@ export async function POST(
   // Every problem at once, named and with what was expected — not the first
   // one, and not a 500 from a malformed cost line further down the pipeline.
   const problems = validateEntry(body, languagesOf(user));
+
+  // …and then the fields nobody named at all. `validateEntry` checks what it
+  // knows about and has no reason to look at the rest, so `transport_mode`
+  // was accepted, answered 201 and dropped. B535's checker reads the same
+  // schema `/openapi.json` publishes and refuses a key that is not a field,
+  // with the field it was probably meant to be. B540 found it in the wild.
+  problems.push(
+    ...alsoWrong(problems, checkAgainstContract("/api/v1/{user}/trips/{trip}/days", "post", body)),
+  );
   if (problems.length > 0) {
     return Response.json({ error: "invalid_entry", problems }, { status: 400 });
   }
@@ -244,7 +254,7 @@ export async function DELETE(
 
   const { user, trip } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   const ref = tripRef(user, trip);

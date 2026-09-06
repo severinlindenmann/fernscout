@@ -56,6 +56,15 @@ export type DraftInput = {
   time?: string;
   location?: string;
   country?: string;
+  /**
+   * The flag `lib/flags.ts` draws — two letters, ISO 3166-1 alpha-2. Absent
+   * lets `countryCodeFor` in lib/entries.ts guess one from `country`'s name;
+   * given, it wins over the guess. Accepted since B540: the field has existed
+   * on `Entry` since it was added for the flag, but nothing on the write side
+   * ever read it out of a request body, so a caller that sent one got a 201
+   * and a day that came back without it.
+   */
+  countryCode?: string;
   lat?: number;
   lng?: number;
   content: string;
@@ -482,6 +491,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
     ...(input.time ? [`time: ${quote(input.time)}`] : []),
     ...(input.location ? [`location: ${quote(input.location)}`] : []),
     ...(input.country ? [`country: ${quote(input.country)}`] : []),
+    ...(input.countryCode ? [`countryCode: ${quote(input.countryCode.toUpperCase())}`] : []),
     ...(input.lat !== undefined ? [`lat: ${input.lat}`] : []),
     ...(input.lng !== undefined ? [`lng: ${input.lng}`] : []),
     ...(input.tags?.length ? [`tags: [${input.tags.map(quote).join(", ")}]`] : []),
@@ -630,6 +640,7 @@ export const EDITABLE_DAY_FIELDS = [
   "time",
   "location",
   "country",
+  "countryCode",
   "lat",
   "lng",
   "content",
@@ -837,6 +848,9 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
   if (input.time !== undefined) set("time", input.time ? `time: ${quote(input.time)}` : null);
   if (input.location !== undefined) set("location", input.location ? `location: ${quote(input.location)}` : null);
   if (input.country !== undefined) set("country", input.country ? `country: ${quote(input.country)}` : null);
+  if (input.countryCode !== undefined) {
+    set("countryCode", input.countryCode ? `countryCode: ${quote(input.countryCode.toUpperCase())}` : null);
+  }
   if (input.lat !== undefined) set("lat", `lat: ${input.lat}`);
   if (input.lng !== undefined) set("lng", `lng: ${input.lng}`);
   if (input.tags !== undefined) {
@@ -1248,6 +1262,7 @@ export function entrySummary(entry: Entry, trip: Trip | undefined) {
     time: entry.time,
     location: entry.location,
     country: entry.country,
+    ...(entry.countryCode ? { countryCode: entry.countryCode } : {}),
     lat: entry.lat,
     lng: entry.lng,
     photos: entry.gallery.length,

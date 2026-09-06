@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { deleteCosts, patchCosts, putCosts, type CostsEditInput, type CostsFileInput } from "@/lib/api/costs";
 import { conversionFor, hasCostsData, readCostsFile } from "@/lib/costs";
 import { parseBudget, parseCostItems } from "@/lib/costFormat";
@@ -15,7 +15,7 @@ async function resolve(request: Request, user: string, trip: string) {
   if (!auth.ok) return { ok: false as const, response: errorResponse(auth) };
 
   if (!ownsUser(auth.session, user)) {
-    return { ok: false as const, response: Response.json({ error: "out_of_scope" }, { status: 403 }) };
+    return { ok: false as const, response: outOfScope(auth.session, user) };
   }
 
   const ref = tripRef(user, trip);

@@ -1,7 +1,7 @@
-import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { attachGallery, isPublished } from "@/lib/api/entries";
 import { storeUploads, type KeptOriginal, type UploadCandidate } from "@/lib/api/media";
-import { getTrip, tripRef } from "@/lib/trips";
+import { getTrip, mediaWithOwner, tripRef } from "@/lib/trips";
 import { fetchImage } from "@/lib/api/fetchMedia";
 import { getUser } from "@/lib/users";
 import {
@@ -18,6 +18,25 @@ export const dynamic = "force-dynamic";
  *  like a size in a refusal there. */
 function megabytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * `storeUploads` hands back trip-relative `src`/`poster` values, on purpose —
+ * `attachGallery` below writes them straight into the entry's frontmatter,
+ * and that file has to stay portable across owners (see `frontmatterSrc` and
+ * `mediaWithOwner` in lib/trips.ts). But this response is not the frontmatter;
+ * it is what an agent reads to correct a caption **keyed by `src`**, and the
+ * day it reads back next has the username on the front. Handing back the
+ * trip-relative form here was a key nothing else in the API ever answers
+ * with — B540. So the frontmatter write below gets the items as they came
+ * back from `storeUploads`, and only the JSON response gets this applied.
+ */
+function withOwner(items: GalleryItem[], user: string): GalleryItem[] {
+  return items.map((item) => ({
+    ...item,
+    src: mediaWithOwner(item.src, user),
+    poster: item.poster ? mediaWithOwner(item.poster, user) : undefined,
+  }));
 }
 
 /**
@@ -121,7 +140,7 @@ export async function POST(
 
   const { user, trip } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   const ref = tripRef(user, trip);
@@ -174,7 +193,14 @@ export async function POST(
       return Response.json({ error: "invalid_media", problems: written.problems }, { status: 400 });
     }
     const attached = attachGallery(ref, day, written.items);
-    return stored(ref, day, written.items, written.kept, attached.ok, attached.ok ? undefined : attached.error);
+    return stored(
+      ref,
+      day,
+      withOwner(written.items, user),
+      written.kept,
+      attached.ok,
+      attached.ok ? undefined : attached.error,
+    );
   }
 
   /**
@@ -292,5 +318,12 @@ export async function POST(
   }
 
   const attached = attachGallery(ref, day, result.items);
-  return stored(ref, day, result.items, result.kept, attached.ok, attached.ok ? undefined : attached.error);
+  return stored(
+    ref,
+    day,
+    withOwner(result.items, user),
+    result.kept,
+    attached.ok,
+    attached.ok ? undefined : attached.error,
+  );
 }

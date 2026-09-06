@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { resolveCapabilities } from "@/lib/capabilities";
 import { FEATURE_NAMES, type FeatureName } from "@/lib/config";
@@ -92,7 +92,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
 
   const { user } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   /**
@@ -134,6 +134,22 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
      */
     journal: journalProfile(config),
     /**
+     * Who the journal belongs to, as far as anything is willing to say.
+     *
+     * `ownerName` and `ownerNickname` are **required** at journal creation —
+     * an agent is told to ask a person for both — and until B540 nothing
+     * echoed either of them anywhere. Two audits in a row reported them as the
+     * only fields on disk with no read path at all, which meant an agent could
+     * not check that the name it had carefully asked for was the name that
+     * landed.
+     *
+     * The address is deliberately not here. It is the one thing on this file
+     * that is a contact detail rather than a setting, it is not writable over
+     * the API either, and a token that can read a journal's config is not the
+     * same thing as permission to collect its owner's email.
+     */
+    owner: { name: config.owner.name, nickname: config.owner.nickname },
+    /**
      * What this journal *asks for*, which is not the same as what it gets. The
      * server is a ceiling above this, so a capability true here can still be
      * off for readers — `/api/health` is where that answer lives, with the
@@ -153,7 +169,7 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/v1/
 
   const { user } = await params;
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   if (auth.session.scope !== SESSION_SCOPE.agent) {

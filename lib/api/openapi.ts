@@ -11,9 +11,29 @@ import {
   VISIBILITY_NOT_A_LOCK,
 } from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
+import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
-import { TRAVEL_SCENE_VARIANTS } from "@/lib/validate/entry";
-import { CAPTION_MAX_CHARS, REQUEST_MAX_BYTES } from "@/lib/validate/media";
+// Every enum below is imported rather than typed out. A hand-written list
+// beside a validator's own list is two lists, and the day they disagree the
+// document is telling an agent to send something the server refuses — which
+// is worse than saying nothing, because it is confidently wrong. B540, and
+// `test/openapi-contract.test.ts` fails when one of these drifts.
+import { TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "@/lib/validate/entry";
+import { COST_CATEGORIES } from "@/lib/costFormat";
+import { FEATURE_NAMES } from "@/lib/config";
+import { TRACKS } from "@/lib/tracks";
+import { ACCENTS, COSTS_VISIBILITIES, FIGURE_FIELDS, STATUSES, VISIBILITIES } from "@/lib/tripWrite";
+import {
+  CAPTION_MAX_CHARS,
+  IMAGE_FORMATS,
+  IMAGE_MAX_BYTES,
+  IMAGE_MAX_EDGE,
+  MAX_ITEMS_PER_DAY,
+  REQUEST_MAX_BYTES,
+  VIDEO_FORMATS,
+  VIDEO_MAX_BYTES,
+  VIDEO_MAX_SECONDS,
+} from "@/lib/validate/media";
 
 /**
  * The machine contract for the same API `/agent.md` describes in prose.
@@ -22,14 +42,35 @@ import { CAPTION_MAX_CHARS, REQUEST_MAX_BYTES } from "@/lib/validate/media";
  * which is the worst failure a discovery document can have — an agent follows
  * it, gets nothing, and has no way to tell whether the API exists.
  *
- * Written out beside the routes rather than generated from a decorator library:
- * there are five endpoints, and a hand-written document that is checked by a
- * test is more honest than a generated one nobody reads.
+ * Written out beside the routes rather than generated from a decorator
+ * library: a hand-written document that is checked by a test is more honest
+ * than a generated one nobody reads. It used to say "there are five
+ * endpoints" — it describes over thirty, and had for a long time.
+ *
+ * **Every route an agent can reach with a bearer token belongs here.** That is
+ * `/api/v1/**` and `/api/auth/**`, and `test/openapi-contract.test.ts` fails
+ * when one of them is missing. The browser-only flows — contacts, push,
+ * reactions, address lookup — are deliberately out of scope and named in that
+ * test's allowlist, because documenting a cookie route in the machine contract
+ * invites an agent to call something it cannot authenticate.
  *
  * Shared between `/openapi.json` (the machine contract) and `/docs/api` (the
  * same document, rendered for a person) so the two cannot drift into
  * describing two different APIs.
  */
+/**
+ * The trip visibilities, most open first.
+ *
+ * B302: that is the order a person decides in, and it is deliberately not the
+ * order `VISIBILITIES` declares them in. The ordering is written here and the
+ * *membership* comes from the validator's own list, so a value added there and
+ * forgotten here fails `test/openapi-contract.test.ts` rather than quietly
+ * becoming a value the document does not offer.
+ */
+const VISIBILITY_ENUM = ["public", "guest", "private"].filter((value) =>
+  (VISIBILITIES as readonly string[]).includes(value),
+);
+
 export function openApiDocument() {
   const site = serverSite();
   // `listedUsernames()`, not `getUsernames()`: this document is public, and the
@@ -39,10 +80,48 @@ export function openApiDocument() {
   // B473.
   const example = getDefaultUsername() ?? listedUsernames()[0] ?? "username";
 
+  /**
+   * Every refusal answers with this, and `error` is a word from a published
+   * vocabulary rather than free text.
+   *
+   * 139 of the 149 places this API returns a code returned one the document
+   * had never mentioned. For a reader with the source that is fine; for the
+   * only reader this API has it is a word to guess at, and B540 watched one
+   * guess. The enum below is the whole vocabulary and each entry says what to
+   * do next, not only what happened.
+   */
   const errorSchema = {
     type: "object",
-    properties: { error: { type: "string" } },
     required: ["error"],
+    properties: {
+      error: {
+        type: "string",
+        enum: Object.keys(ERROR_CODES),
+        description: Object.entries(ERROR_CODES)
+          .map(([code, meaning]) => `- \`${code}\` — ${meaning}`)
+          .join("\n"),
+      },
+      message: {
+        type: "string",
+        description: "A sentence, where the code alone is not enough to act on.",
+      },
+      problems: {
+        type: "array",
+        description:
+          "Every problem at once, not the first — an agent fixing its own body needs the " +
+          "whole list in one round trip. Each names the field, what arrived and what was " +
+          "expected, and carries a `hint` where the triple is not enough.",
+        items: {
+          type: "object",
+          properties: {
+            field: { type: "string" },
+            got: { type: "string" },
+            expected: { type: "string" },
+            hint: { type: "string" },
+          },
+        },
+      },
+    },
   };
 
   const document = {
@@ -90,7 +169,7 @@ export function openApiDocument() {
                 "from `start` on every read, so this reports the calendar's answer " +
                 "rather than whatever the file says.",
             },
-            visibility: { type: "string", enum: ["public", "guest", "private"] },
+            visibility: { type: "string", enum: VISIBILITY_ENUM },
             listed: {
               type: "boolean",
               description:
@@ -128,9 +207,40 @@ export function openApiDocument() {
             },
             category: {
               type: "string",
-              description: 'Free text; "other" when omitted.',
+              enum: [...COST_CATEGORIES],
+              description:
+                'One of these seven, or omit it and the line is "other". It is a closed ' +
+                "list, not free text: an unlisted category is refused with 400, so a " +
+                '"shopping" line does not quietly become something else.',
             },
           },
+        },
+        Traveller: {
+          type: "object",
+          description:
+            "One walking figure. **`for` is an email address out of the trip's `people:` " +
+            "block, not a name** — that is what ties the drawing to a person, and it is the " +
+            "single commonest way this call is refused. Every other key is a look, and the " +
+            "values each one takes are published by GET /api/v1/{user}/travellers/presets " +
+            "along with twelve worked examples: ask it rather than guessing, because an " +
+            "unrecognised value is refused and an unrecognised key is refused too. " +
+            "GET …/travellers/preview draws a figure so a person can see themselves before " +
+            "it is written, which is the honest way to settle \"is this you?\".",
+          additionalProperties: false,
+          properties: Object.fromEntries(
+            [...FIGURE_FIELDS].sort().map((field) => [
+              field,
+              field === "for"
+                ? {
+                    type: "string",
+                    format: "email",
+                    description: "An address in this trip's people: block.",
+                  }
+                : field === "accessories"
+                  ? { type: "array", items: { type: "string" } }
+                  : { type: "string" },
+            ]),
+          ),
         },
         GalleryItem: {
           type: "object",
@@ -174,34 +284,67 @@ export function openApiDocument() {
             "and content is optional — and an omitted field is better than an invented one. " +
             "There is no `status`: what this writes is always a draft.",
           properties: {
-            title: { type: "string" },
-            date: { type: "string", format: "date", description: "2026-08-26" },
+            title: {
+              type: "string",
+              description:
+                "What the day is called. One line, and it becomes the slug — no two days " +
+                "in a trip may share one.",
+            },
+            date: { type: "string", format: "date", description: "2026-08-26. A real calendar date." },
             time: {
               type: "string",
               pattern: "^\\d{2}:\\d{2}$",
               description: "24-hour, local to where the day happened. Orders several days that share a date.",
             },
-            location: { type: "string" },
+            location: { type: "string", description: "Where this was, as a person would say it — a town, a place." },
             country: { type: "string", description: "The country's name, not its code." },
-            lat: { type: "number" },
-            lng: { type: "number" },
+            countryCode: {
+              type: "string",
+              pattern: "^[A-Za-z]{2}$",
+              description:
+                "ISO 3166-1 alpha-2 — PT, CH, VN. It draws the flag beside the day, and it is " +
+                "the code where `country` is the name; sending one without the other is fine.",
+            },
+            lat: {
+              type: "number",
+              description:
+                "Decimal degrees, -90 to 90, as a number and never a string. A pair or " +
+                "nothing: half a coordinate is not a place and is refused. This is what puts " +
+                "the day on the map.",
+            },
+            lng: { type: "number", description: "Decimal degrees, -180 to 180. Must arrive with lat." },
             content: { type: "string", description: "The prose, as markdown." },
             tags: {
               type: "array",
               items: { type: "string" },
               description: "Lowercase letters, digits and single hyphens.",
             },
-            costs: { type: "array", items: { $ref: "#/components/schemas/Cost" } },
+            costs: {
+              type: ["array", "boolean"],
+              items: { $ref: "#/components/schemas/Cost" },
+              description:
+                "What this day cost, each line in the currency it was paid in — or " +
+                "`false`, meaning *nothing was spent on this day*. A trip that tracks " +
+                "costs refuses a day that says neither (422 `incomplete_day`), and `false` " +
+                "is written into the day as something it deliberately does not have, so a " +
+                "reader can tell it from nobody having asked. **\"I do not know\" is not " +
+                "`false`.** A decline is a fact about the day, kept for years; if money was " +
+                "spent and nobody remembers how much, ask, or leave the day unwritten until " +
+                "they can say. Never invent a figure, and never decline to get past the " +
+                "refusal.",
+            },
             transportMode: {
               type: "string",
+              enum: [...TRANSPORT_MODES],
               description:
-                "How the day was travelled. One of the modes /agent.md lists; anything " +
-                "else is refused rather than dropped.",
+                "How the day was travelled — it draws the leg from the previous day. " +
+                "Anything not on this list is refused rather than dropped.",
             },
-            transportFrom: { type: "string" },
-            transportTo: { type: "string" },
+            transportFrom: { type: "string", description: "Where the leg started." },
+            transportTo: { type: "string", description: "Where it ended." },
             travelScene: {
               type: "string",
+              enum: [...TRAVEL_SCENE_VARIANTS],
               description:
                 `How the travel scene into this day plays. One of ${TRAVEL_SCENE_VARIANTS.join(", ")} ` +
                 "changes anything; \"skip\" leaves the leg out of the story pager entirely. " +
@@ -230,6 +373,39 @@ export function openApiDocument() {
                 + "way. At least one of tempMin, tempMax, code (a WMO code), precipitation (mm) or "
                 + "windMax (km/h). If what you want is the archive's answer, send `weather: true` "
                 + "instead.",
+            },
+            translations: {
+              type: "object",
+              description:
+                "This day's title and prose in the journal's other languages, keyed by " +
+                "locale: `{\"en\": {\"title\": \"…\", \"content\": \"…\"}}`. " +
+                "**Required when the journal declares more than one locale** — a day " +
+                "without them is refused (400), because half the readers would get a blank " +
+                "page. The locale the day is already written in is refused here, and so is " +
+                "one the journal does not declare. The words are the owner's: do not " +
+                "translate their prose yourself unless they ask, and say so in your reply " +
+                "if you do. If the journal is really written in one language, that is the " +
+                "journal's to fix — PATCH its config with a single-entry `locales`.",
+              additionalProperties: {
+                type: "object",
+                properties: { title: { type: "string" }, content: { type: "string" } },
+              },
+            },
+            coordinates: {
+              type: "boolean",
+              description:
+                "Only ever `false`, and only on create — *this day has no one place to put " +
+                "on a map*. The positive answer is `lat` and `lng`; there is no " +
+                "`coordinates: true`. A trip that tracks location refuses a day that says " +
+                "neither (422 `incomplete_day`).",
+            },
+            photos: {
+              type: "boolean",
+              description:
+                "Only ever `false`, and only on create — *this day has no photographs*. " +
+                "Pictures never arrive in this body; they are a separate call to " +
+                "…/media. A trip that tracks photos checks for them at publish rather than " +
+                "here, so this is what lets a day without any go up.",
             },
             test: {
               type: "boolean",
@@ -263,6 +439,11 @@ export function openApiDocument() {
             time: { type: "string", pattern: "^\\d{2}:\\d{2}$" },
             location: { type: "string" },
             country: { type: "string", description: "The country's name, not its code." },
+            countryCode: {
+              type: "string",
+              pattern: "^[A-Za-z]{2}$",
+              description: "ISO 3166-1 alpha-2 — the flag beside the day.",
+            },
             lat: { type: "number" },
             lng: { type: "number", description: "Must arrive with lat in the same call." },
             content: { type: "string", description: "Replaces the entry's whole body." },
@@ -272,12 +453,35 @@ export function openApiDocument() {
               items: { $ref: "#/components/schemas/Cost" },
               description: "Replaces the whole list. An empty array clears it.",
             },
-            transportMode: { type: "string" },
+            transportMode: { type: "string", enum: [...TRANSPORT_MODES] },
             transportFrom: { type: "string" },
             transportTo: { type: "string" },
             travelScene: {
               type: "string",
+              enum: [...TRAVEL_SCENE_VARIANTS],
               description: `Same meaning as on creation. One of ${TRAVEL_SCENE_VARIANTS.join(", ")}.`,
+            },
+            translations: {
+              type: "object",
+              description:
+                "Replaces the whole block, locale by locale — the same shape as on creation. " +
+                "A locale the journal does not declare is refused, and so is the one the day " +
+                "is written in.",
+              additionalProperties: {
+                type: "object",
+                properties: { title: { type: "string" }, content: { type: "string" } },
+              },
+            },
+            captions: {
+              type: "object",
+              description:
+                "A caption per photograph, keyed by the item's `src` exactly as the day " +
+                "reads it back. **Edit only** — there is no way to send one at creation, " +
+                "because the pictures do not exist yet; the media call takes captions of its " +
+                `own. At most ${CAPTION_MAX_CHARS} characters each. An empty string removes ` +
+                "one. A `src` the day does not have is refused rather than ignored, so a " +
+                "typo cannot silently caption nothing.",
+              additionalProperties: { type: "string" },
             },
             weather: {
               type: "boolean",
@@ -482,6 +686,32 @@ export function openApiDocument() {
         },
       },
       "/api/v1/{user}/trips/{trip}": {
+        get: {
+          summary: "One trip, whole — everything the create call accepts",
+          description:
+            "Added because five fields `POST .../trips` invites you to set — `accent`, " +
+            "`costsVisibility`, `intro`, `translations`, `test` — could be written and read " +
+            "back nowhere: the trips list is a summary and the dedicated doors cover only " +
+            "visibility, rates, people, travellers and tracks. **Read your own work back " +
+            "with this before telling somebody a trip is ready.** \"It was accepted\" is not " +
+            "the same claim as \"it is there\", and this API has been wrong about the " +
+            "difference. Gated as a write is rather than as a read, because it carries " +
+            "`people`, which is addresses.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "The trip, its party, its rates and what it tracks" },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+            "404": {
+              description:
+                "No such trip, or none this token may write to — the two answer alike, so " +
+                "this cannot be used to ask which trips a journal has.",
+            },
+          },
+        },
         delete: {
           summary: "Ask to delete a trip (deletes nothing; mails the owner)",
           description:
@@ -791,26 +1021,33 @@ export function openApiDocument() {
                   required: ["id", "title", "start", "end"],
                   properties: {
                     id: { type: "string", description: "URL segment: lowercase, digits, dashes." },
-                    title: { type: "string" },
+                    title: {
+                      type: "string",
+                      description: "What the trip is called. One line.",
+                    },
                     start: { type: "string", description: "2027-04-01. Required — a trip without dates is never read." },
                     end: { type: "string", description: "2027-05-15. Required." },
-                    tagline: { type: "string" },
+                    tagline: { type: "string", description: "One line under the trip's title." },
                     status: {
                       type: "string",
-                      enum: ["upcoming", "current", "past"],
+                      enum: [...STATUSES],
                       description:
                         "Optional, and usually omitted: `past`/`upcoming` are derived " +
                         "from `start` when the trip is read. Set `current` for the trip " +
                         "served at the bare /{user} URL.",
                     },
-                    accent: { type: "string", enum: ["sky", "yellow", "green", "coral", "navy"] },
+                    accent: {
+                      type: "string",
+                      enum: [...ACCENTS],
+                      description: "The trip's colour, through its pages and its map.",
+                    },
                     visibility: {
                       type: "string",
                       // Most open first, which is the order a person decides
                       // in — B302. No `default` here any more (B306): the
                       // actual default is not one fixed value, it is this
                       // journal's own visibility — see VISIBILITY_ENUM_NOTE.
-                      enum: ["public", "guest", "private"],
+                      enum: VISIBILITY_ENUM,
                       description: VISIBILITY_ENUM_NOTE,
                     },
                     listed: {
@@ -822,6 +1059,45 @@ export function openApiDocument() {
                         "advertises nothing is refused with `invalid_listed` rather " +
                         "than written, since the reader would refuse it too.",
                     },
+                    costsVisibility: {
+                      type: "string",
+                      enum: [...COSTS_VISIBILITIES],
+                      description:
+                        "Who may see what the trip cost, once they can read the trip at " +
+                        "all — a different question from `visibility`, which decides who " +
+                        "gets in. `public` is the default and means anybody who can read " +
+                        "the trip can read its money; `guests` narrows that to somebody " +
+                        "who was on the trip or whom the owner has approved into the " +
+                        "journal. There is no editing interface anywhere in this product, " +
+                        "so this call is the only way an owner can reach it (B178).",
+                    },
+                    tracks: {
+                      type: "object",
+                      description:
+                        "What this trip keeps track of, and therefore what every day " +
+                        "written into it is asked for. **Absent means all of them on**, " +
+                        "which is the default an owner should not have to find: a day " +
+                        "missing one is refused with 422 `incomplete_day` and told both " +
+                        "how to send it and how to decline it. Turn one off here for a " +
+                        "trip where the question does not apply — a city weekend nobody " +
+                        "is costing, say. Changed later at PATCH .../tracks.",
+                      properties: Object.fromEntries(
+                        TRACKS.map((track) => [track, { type: "boolean" }]),
+                      ),
+                    },
+                    travellers: {
+                      type: "array",
+                      maxItems: 10,
+                      description:
+                        "How the party is drawn — the walking figures on the trip's map " +
+                        "and story. Cosmetic, and therefore not owner-only the way " +
+                        "`people` is. Ask GET /api/v1/{user}/travellers/presets for the " +
+                        "vocabulary and twelve starting points, and " +
+                        "GET …/travellers/preview to show somebody the figure before it " +
+                        "is written. An unknown key inside a figure is refused with " +
+                        "`invalid_travellers` rather than dropped.",
+                      items: { $ref: "#/components/schemas/Traveller" },
+                    },
                     test: {
                       type: "boolean",
                       description:
@@ -829,7 +1105,12 @@ export function openApiDocument() {
                         "works. Every day of it gets a banner saying so, and none of it " +
                         "reaches the feed, the search index or the sitemap.",
                     },
-                    intro: { type: "string" },
+                    intro: {
+                      type: "string",
+                      description:
+                        "The prose under the trip's own heading — what this journey is, in " +
+                        "the person's words rather than a summary you write.",
+                    },
                     people: {
                       type: "array",
                       maxItems: 10,
@@ -838,7 +1119,13 @@ export function openApiDocument() {
                         "everyone named may write to the whole trip and may obtain a token " +
                         "scoped to it, using the address given. A malformed entry is refused " +
                         "by name (`invalid_people`) rather than dropped, which is what the " +
-                        "reader does with one. Nothing can change this afterwards.",
+                        "reader does with one. Correctable afterwards at " +
+                        "PATCH .../trips/{trip}/people, which replaces the whole list.\n\n" +
+                        "**Never infer an address.** An agent moving a journal onto a server " +
+                        "found a person with a name and no email and filled in the owner's, " +
+                        "which is a reasonable-looking guess that hands somebody write access " +
+                        "to a trip. If you do not have the address, ask for it; a person " +
+                        "listed with the wrong one is worse than a person not listed yet.",
                       items: {
                         type: "object",
                         required: ["name", "email"],
@@ -961,9 +1248,17 @@ export function openApiDocument() {
                   ],
                   properties: {
                     username: { type: "string", description: "The journal's address. Permanent." },
-                    title: { type: "string" },
-                    tagline: { type: "string" },
-                    ownerName: { type: "string" },
+                    title: {
+                      type: "string",
+                      description:
+                        "What the journal is called — the heading on its front page. Ask; do " +
+                        "not invent one from the username.",
+                    },
+                    tagline: {
+                      type: "string",
+                      description: "One line under the title. Theirs, not a description you write.",
+                    },
+                    ownerName: { type: "string", description: "Whose journal it is, as they would write it. It is the byline." },
                     ownerNickname: {
                       type: "string",
                       description:
@@ -992,7 +1287,7 @@ export function openApiDocument() {
                         `journal: ${VISIBILITY_MEANING} ` +
                         `${VISIBILITY_NOT_A_LOCK.replace(/`/g, "")} Ask which they want.`,
                     },
-                    startLocation: { type: "string" },
+                    startLocation: { type: "string", description: "Where the maps open before a trip has begun — the place they set off from." },
                     defaultLocale: {
                       type: "string",
                       enum: [...MAINTAINED_LOCALES],
@@ -1016,9 +1311,13 @@ export function openApiDocument() {
                         `the journal into, as distinct from defaultLocale, the owner's own. ` +
                         `Must include defaultLocale. Each entry must be one of ${LOCALE_LIST}.`,
                     },
-                    baseCurrency: { type: "string" },
-                    displayCurrencies: { type: "array", items: { type: "string" } },
-                    units: { type: "string", enum: ["metric", "imperial"] },
+                    baseCurrency: { type: "string", description: "ISO-4217. What totals are converted into for display; what was actually paid is never converted on the way in." },
+                    displayCurrencies: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "Shown beside the base currency, so a reader sees both.",
+                    },
+                    units: { type: "string", enum: ["metric", "imperial"], description: "metric or imperial — distances and temperatures." },
                   },
                 },
               },
@@ -1054,7 +1353,11 @@ export function openApiDocument() {
       },
       "/api/v1/{user}/trips/{trip}/days": {
         get: {
-          summary: "Published days in a trip",
+          summary: "Every day in a trip, drafts included",
+          description:
+            "Not only the published ones, whatever this summary said until B540: a draft " +
+            "comes back flagged `draft: true`, because an agent reading a trip back needs " +
+            "to see what it has written and not yet put on the site.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
@@ -1346,7 +1649,8 @@ export function openApiDocument() {
         get: {
           summary: "One day in full, drafts included",
           description:
-            "The whole entry — content, gallery, costs, tags, translations — and a `status` " +
+            "The whole entry — content, gallery, costs, tags, translations, and `without` " +
+            "for anything the day deliberately has none of — and a `status` " +
             "of `draft` or `published`. This is how you read back something you " +
             "have just written, before telling a person it is ready — translations included, " +
             "in the same shape they were written in. Scoped like " +
@@ -1662,7 +1966,7 @@ export function openApiDocument() {
                 schema: {
                   type: "object",
                   properties: {
-                    visibility: { type: "string", enum: ["private", "public", "guest"] },
+                    visibility: { type: "string", enum: VISIBILITY_ENUM },
                     listed: { type: "boolean" },
                   },
                 },
@@ -1701,7 +2005,11 @@ export function openApiDocument() {
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
           ],
-          responses: { "200": { description: "The rows, and what each one asks for" } },
+          responses: {
+            "200": { description: "The rows, and what each one asks for" },
+            "401": { description: "Missing or invalid token" },
+            "404": { description: "No such trip, or none this token may read" },
+          },
         },
         patch: {
           summary: "Turn a row off, or back on. Owner only",
@@ -1776,7 +2084,22 @@ export function openApiDocument() {
                       type: "string",
                       description: "A day that already exists in this trip. Write the day first.",
                     },
-                    files: { type: "array", items: { type: "string", format: "binary" } },
+                    files: {
+                      type: "array",
+                      items: { type: "string", format: "binary" },
+                      description:
+                        `Repeatable. Images: ${IMAGE_FORMATS.join(", ")} — no other format ` +
+                        `is taken, and note that .jpg and .jpeg are the same thing here. ` +
+                        `Video: ${VIDEO_FORMATS.join(", ")}. At most ` +
+                        `${IMAGE_MAX_BYTES / 1024 / 1024} MB and ${IMAGE_MAX_EDGE} px on the ` +
+                        `long edge for a picture, ${VIDEO_MAX_BYTES / 1024 / 1024} MB and ` +
+                        `${VIDEO_MAX_SECONDS} seconds for a clip, ${MAX_ITEMS_PER_DAY} items ` +
+                        `on one day, and ${REQUEST_MAX_BYTES / 1024 / 1024} MB in one ` +
+                        "request — which is the limit a batch of phone originals meets " +
+                        "first, so send them in batches rather than all at once. Send the " +
+                        "largest you have: the original is what a photobook is printed from " +
+                        "and there is no way to get the pixels back later.",
+                    },
                     captions: {
                       type: "array",
                       items: { type: "string" },
@@ -1872,6 +2195,396 @@ export function openApiDocument() {
           },
         },
       },
+      /**
+       * The rest of the bearer-token surface — added in B540, because every
+       * one of these was reachable, documented nowhere, and therefore
+       * invisible to the only reader this document has. Two of them,
+       * `travellers/presets` and `travellers/preview`, are named in AGENTS.md
+       * as doors an agent should use and were still absent here.
+       */
+      "/api/health": {
+        get: {
+          summary: "Is this server well, what can it do, and what will it accept",
+          security: [],
+          description:
+            "Public and unauthenticated. Read it **before** you do anything expensive: " +
+            "`capabilities` says which optional features are on and, when one is off, why " +
+            "— so an agent can tell \"this server cannot send mail\" from \"this call was " +
+            "wrong\". `media` says what an upload may be, which is the one limit worth " +
+            "knowing before rather than after sending 60 MB of photographs. `status` is " +
+            "`error` and the code 503 when the config or the content root is unreadable.",
+          responses: {
+            "200": {
+              description: "Healthy",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      status: { type: "string", enum: ["ok", "error"] },
+                      version: { type: "string" },
+                      capabilities: {
+                        type: "object",
+                        description:
+                          "One entry per capability. `{ enabled: false, reason }` says why " +
+                          "an absent feature is absent.",
+                        properties: Object.fromEntries(
+                          FEATURE_NAMES.map((name) => [
+                            name,
+                            {
+                              type: "object",
+                              properties: {
+                                enabled: { type: "boolean" },
+                                reason: { type: "string" },
+                              },
+                            },
+                          ]),
+                        ),
+                      },
+                      media: {
+                        type: "object",
+                        description:
+                          "What POST …/media will take. Read this rather than assuming: " +
+                          "the formats are a closed list and `jpg` is not one of them.",
+                        properties: {
+                          imageFormats: {
+                            type: "array",
+                            items: { type: "string", enum: [...IMAGE_FORMATS] },
+                          },
+                          videoFormats: {
+                            type: "array",
+                            items: { type: "string", enum: [...VIDEO_FORMATS] },
+                          },
+                          imageMaxBytes: { type: "integer" },
+                          imageMaxEdge: { type: "integer" },
+                          videoMaxBytes: { type: "integer" },
+                          videoMaxSeconds: { type: "integer" },
+                          itemsPerDay: { type: "integer" },
+                          requestMaxBytes: { type: "integer" },
+                          captionMaxChars: { type: "integer" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "503": { description: "The config or the content root cannot be read" },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}/people": {
+        get: {
+          summary: "Who is on this trip",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }, { name: "trip", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": { description: "The people block" },
+            "403": { description: "Owner only" },
+            "404": { description: "No such trip" },
+          },
+        },
+        patch: {
+          summary: "Replace who is on this trip (owner only)",
+          description:
+            "The whole list at once, not a merge: send everyone who is on the trip, " +
+            "including the ones already there. It is the byline **and** it is write " +
+            "access — everyone named may write to the trip and may hold a token scoped to " +
+            "it — so this is owner-only and a trip-scoped token cannot widen its own reach.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }, { name: "trip", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["people"],
+                  properties: {
+                    people: {
+                      type: "array",
+                      maxItems: 10,
+                      items: {
+                        type: "object",
+                        required: ["name", "email"],
+                        properties: { name: { type: "string" }, email: { type: "string" } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "The list as it now stands" },
+            "400": { description: "An entry is not usable" },
+            "403": { description: "Owner only" },
+            "404": { description: "No such trip" },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}/travellers": {
+        get: {
+          summary: "How this trip's party is drawn",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }, { name: "trip", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": { description: "The travellers block" },
+            "404": { description: "No such trip" },
+          },
+        },
+        patch: {
+          summary: "Replace how this trip's party is drawn",
+          description:
+            "The whole list at once. Cosmetic — it changes the walking figures and nothing " +
+            "about who may read or write anything, which is why it is not owner-only the " +
+            "way `people` is. Ask …/travellers/presets for the vocabulary first; an " +
+            "unknown key inside a figure is refused rather than dropped.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }, { name: "trip", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["travellers"],
+                  properties: {
+                    travellers: {
+                      type: "array",
+                      maxItems: 10,
+                      items: { $ref: "#/components/schemas/Traveller" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "The list as it now stands" },
+            "400": { description: "A figure is not usable" },
+            "404": { description: "No such trip" },
+          },
+        },
+      },
+      "/api/v1/{user}/travellers/presets": {
+        get: {
+          summary: "The vocabulary the walking figures are described in",
+          security: [],
+          description:
+            "Open, because it describes nothing about anybody: it is the list of hair, " +
+            "skin, clothing and pack values a figure may use, and twelve worked starting " +
+            "points. Read it before writing a `travellers` block rather than guessing at " +
+            "value names.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": { description: "The vocabulary and the presets" },
+            "404": { description: "No such journal" },
+          },
+        },
+      },
+      "/api/v1/{user}/travellers/preview": {
+        get: {
+          summary: "A figure, drawn, so a person can see themselves before it is written",
+          security: [],
+          description:
+            "Answers **SVG**, not JSON. Give it `figure` (one figure as JSON) or `party` " +
+            "(a list), and optionally `size` in pixels. Nothing is stored. This is the " +
+            "call that makes \"is this you?\" a question somebody can answer.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            {
+              name: "figure",
+              in: "query",
+              schema: { type: "string" },
+              description: "One figure, as JSON.",
+            },
+            {
+              name: "party",
+              in: "query",
+              schema: { type: "string" },
+              description: "A list of figures, as JSON. Wins over `figure`.",
+            },
+            { name: "size", in: "query", schema: { type: "integer", minimum: 24, maximum: 240 } },
+          ],
+          responses: {
+            "200": { description: "image/svg+xml", content: { "image/svg+xml": {} } },
+            "400": { description: "Nothing to draw, or the JSON did not parse" },
+            "404": { description: "No such journal" },
+          },
+        },
+      },
+      "/api/v1/{user}/keys": {
+        get: {
+          summary: "The tokens and sessions live on this journal (owner only)",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": { description: "One row per live credential, with its kind and expiry" },
+            "403": { description: "Owner only" },
+            "404": { description: "Authentication is off on this server" },
+          },
+        },
+        post: {
+          summary: "Revoke one of them (owner only)",
+          description:
+            "`{\"revoke\": \"<key id>\"}`, with an id from the GET above. It ends that " +
+            "credential immediately — the way to answer \"an agent has a token I want back\".",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["revoke"],
+                  properties: { revoke: { type: "string" } },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Revoked" },
+            "400": { description: "No key id sent" },
+            "403": { description: "Owner only" },
+            "404": { description: "No such key" },
+          },
+        },
+      },
+      "/api/v1/{user}/channels": {
+        post: {
+          summary: "Turn this journal's mail or WhatsApp on or off (owner only)",
+          description:
+            "The narrow door for the two channels a published day can go out on. The wider " +
+            "one is PATCH …/config with `features`; this exists so a person can say \"stop " +
+            "mailing me\" without a call that could change anything else.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["channel", "enabled"],
+                  properties: {
+                    channel: { type: "string", enum: ["mail", "whatsapp"] },
+                    enabled: { type: "boolean" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "The channel as it now stands" },
+            "400": { description: "Unknown channel, or `enabled` is not a boolean" },
+            "403": { description: "Owner only" },
+            "404": { description: "No such journal" },
+            "429": { description: "Too many changes too quickly; `retryAfter` says when" },
+          },
+        },
+      },
+      "/api/v1/{user}/postcards/texts": {
+        get: {
+          summary: "What each day of a trip would say on the back of a card",
+          description:
+            "Per day, in the journal's languages, so a person can choose rather than have " +
+            "an agent write one. `trip` is required.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "query", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "The trip's days and their texts" },
+            "403": { description: "Owner only" },
+            "404": { description: "No such trip, or postcards are off on this server" },
+          },
+        },
+      },
+      "/api/v1/{user}/credits/purchase": {
+        post: {
+          summary: "Ask to buy credits (buys nothing)",
+          description:
+            "**Nothing is bought and nothing is granted.** It records a pending payment and " +
+            "mails the owner; the money and the credits happen elsewhere, deliberately, so " +
+            "that no token can spend anything. Report it as a request, never as a purchase.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["tier"],
+                  properties: { tier: { type: ["string", "integer"] } },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "A pending payment, and where to look at it" },
+            "400": { description: "Unknown tier" },
+            "403": { description: "Owner only" },
+            "404": { description: "Credits are off on this server" },
+          },
+        },
+      },
+      "/api/v1/{user}/payments/{id}/pay": {
+        post: {
+          summary: "Say how a pending payment will be paid (grants nothing)",
+          security: [],
+          description:
+            "Authenticated by the single-use `token` in the body, not by a session — it is " +
+            "reached from a link in the owner's own mail. It mails the operator and adds " +
+            "**no** credits; `creditsAdded` is zero and always will be.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["method"],
+                  properties: { method: { type: "string", enum: ["twint", "card"] } },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Recorded" },
+            "400": { description: "Unknown method" },
+            "404": { description: "No such payment" },
+          },
+        },
+      },
+      "/api/v1/{user}/payments/{id}/approve": {
+        post: {
+          summary: "Approve a payment — the one call that grants credits",
+          security: [],
+          description:
+            "Authenticated by the single-use `token` in the body. This is the only path in " +
+            "the codebase that adds credits to a journal, and it is reached from a link in " +
+            "the operator's mail rather than by anything an agent holds.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["token"],
+                  properties: { token: { type: "string" } },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Approved, and the credits added" },
+            "401": { description: "The token does not verify" },
+            "404": { description: "No such payment" },
+          },
+        },
+      },
       "/api/v1/{user}/status": {
         get: {
           summary: "Where you stand, in one call",
@@ -1881,6 +2594,13 @@ export function openApiDocument() {
             "drafts waiting for a person to approve them — each with the call that " +
             "publishes it — the trips this token may write to, which capabilities are on " +
             "for this journal and why any is off, and a `next` saying what to do. " +
+            "\n\n**`features` here is deliberately only the four an agent can act on** — " +
+            "mail, push, postcards, photobook — plus `credits` where this server bills. " +
+            "It is *not* the journal's whole capability list, and a name missing from it " +
+            "is not a name that is off: `GET .../config` carries all of them and " +
+            "`/api/health` says what this server can offer at all. The two fields share a " +
+            "name and answer different questions, which has misled a reader of this " +
+            "document before.\n\n" +
             "`scope` says whether you are holding the whole journal or one trip's slice; " +
             "do not report a slice as the journal's total.\n\n" +
             "**`credits`** is here when this server charges for sends (B366): `balance`, " +
@@ -1910,7 +2630,15 @@ export function openApiDocument() {
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],
-          responses: { "200": { description: "Drafts" } },
+          responses: {
+            "200": {
+              description:
+                "Every draft in the journal, each with the trip it belongs to and the " +
+                "`publish` call that would put it on the site.",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+          },
         },
       },
       "/api/v1/{user}/config": {
@@ -1965,10 +2693,21 @@ export function openApiDocument() {
                   properties: {
                     features: {
                       type: "object",
-                      additionalProperties: { type: "boolean" },
+                      // Named one by one rather than left as free-form booleans:
+                      // "which capabilities are there" is exactly the question an
+                      // agent cannot answer from prose, and a misspelled name was
+                      // being refused with no list to correct it against. B540.
+                      properties: Object.fromEntries(
+                        FEATURE_NAMES.map((name) => [name, { type: "boolean" }]),
+                      ),
+                      additionalProperties: false,
                       description:
-                        "Capability name to true or false. Omitted ones are left alone. Not " +
-                        "combinable with the fields below — send it in a call of its own.",
+                        `Capability name to true or false — one of ${FEATURE_NAMES.join(", ")}. ` +
+                        "Omitted ones are left alone, and an unknown name is refused rather " +
+                        "than ignored. A journal can only ever switch on what this server " +
+                        "already offers: /api/health says which those are, and asking for one " +
+                        "it cannot do is refused. Not combinable with the fields below — send " +
+                        "it in a call of its own.",
                     },
                     title: { type: "string" },
                     tagline: {

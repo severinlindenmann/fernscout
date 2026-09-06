@@ -1,10 +1,62 @@
-import { authenticate, errorResponse, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser } from "@/lib/api/auth";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
 import { tripTombstone } from "@/lib/tombstones";
 import { getTrip, tripRef } from "@/lib/trips";
+import { tripSummary } from "@/lib/api/entries";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * One trip, whole.
+ *
+ * Added in B540, and the reason is a rule this codebase already states one
+ * level down: *a field the API takes is a field it has to show*
+ * (`…/days/[slug]/route.ts`). At trip level it was not true. `POST .../trips`
+ * invites a caller to set eleven optional fields, and five of them — `accent`,
+ * `costsVisibility`, `intro`, `translations`, `test` — could be written and
+ * then read back nowhere: `GET .../trips` is a summary, and the dedicated
+ * doors cover only `visibility`, `rates`, `people`, `travellers` and `tracks`.
+ * An agent told to check its own work could not, and "it was accepted" is not
+ * the same claim as "it is there" — which is the whole lesson of the two
+ * fields this same ticket found being accepted and dropped.
+ *
+ * Gated as a write is, not as a read: it carries `people`, which is addresses.
+ */
+export async function GET(
+  request: Request,
+  { params }: RouteContext<"/api/v1/[user]/trips/[trip]">,
+) {
+  const auth = await authenticate(request);
+  if (!auth.ok) return errorResponse(auth);
+
+  const { user, trip } = await params;
+  if (!ownsUser(auth.session, user)) {
+    return outOfScope(auth.session, user);
+  }
+
+  const ref = tripRef(user, trip);
+  const found = getTrip(ref);
+  // A trip that does not exist and one this token may not touch answer alike,
+  // so this cannot be used to ask which trips a journal has.
+  const gate = found ? await mayWriteTrip(auth.session, found) : null;
+  if (!found || !gate?.ok) return Response.json({ error: "unknown_trip" }, { status: 404 });
+
+  return Response.json({
+    ...tripSummary(user, trip),
+    // The five that had no read path anywhere, plus the blocks that do have
+    // their own doors — a caller reading one trip wants the trip, not five
+    // more calls.
+    ...(found.accent ? { accent: found.accent } : {}),
+    ...(found.cover ? { cover: found.cover } : {}),
+    costsVisibility: found.costsVisibility,
+    intro: found.intro,
+    ...(found.translations ? { translations: found.translations } : {}),
+    people: found.people,
+    travellers: found.travellers,
+    rates: found.rates,
+  });
+}
 
 /**
  * Delete a trip — or rather, ask to.
@@ -44,7 +96,7 @@ export async function DELETE(
   if (!auth.ok) return errorResponse(auth);
 
   if (!ownsUser(auth.session, user)) {
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   /**

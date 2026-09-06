@@ -122,6 +122,8 @@ export type EntryInput = {
    *  else; `costs` takes it in the field above. */
   coordinates?: unknown;
   photos?: unknown;
+  /** The flag `lib/flags.ts` draws — see `checkCountryCode`. B540. */
+  countryCode?: unknown;
 };
 
 /**
@@ -200,6 +202,22 @@ function checkCoordinates(input: EntryInput, problems: Problem[]): void {
   }
   if (hasLng && (typeof input.lng !== "number" || !Number.isFinite(input.lng) || input.lng < -180 || input.lng > 180)) {
     problems.push({ field: "lng", got: describe(input.lng), expected: "-180 to 180" });
+  }
+}
+
+/** ISO 3166-1 alpha-2, the shape `lib/flags.ts` turns into an emoji.
+ * Case-insensitive on the way in — `countryCodeFor` uppercases it — so a
+ * caller need not remember which case the flag table wants. */
+const COUNTRY_CODE_RE = /^[A-Za-z]{2}$/;
+
+function checkCountryCode(input: EntryInput, problems: Problem[]): void {
+  if (input.countryCode === undefined) return;
+  if (typeof input.countryCode !== "string" || !COUNTRY_CODE_RE.test(input.countryCode)) {
+    problems.push({
+      field: "countryCode",
+      got: describe(input.countryCode),
+      expected: "an ISO 3166-1 alpha-2 code, e.g. CH — two letters",
+    });
   }
 }
 
@@ -661,6 +679,7 @@ export function validateEntry(
   checkTitle(input, problems);
   checkDate(input, problems);
   checkTime(input, problems);
+  checkCountryCode(input, problems);
   checkCoordinates(input, problems);
   checkTransportMode(input, problems);
   checkTravelScene(input, problems);
@@ -692,6 +711,17 @@ export function validateEntry(
 export function validateEntryEdit(
   input: EntryInput,
   languages?: { locales: readonly string[]; writtenLocale: string },
+  /**
+   * The `src` of every photograph the day currently has, exactly as
+   * `GET .../days/<slug>` reads them back — B540. This validator is pure and
+   * has no way to look the day up itself, so the caller (the route handler,
+   * which already has the entry in hand to answer the request) hands over
+   * the one fact `checkCaptions` needs from disk. Undefined skips the check
+   * entirely rather than treating "nothing given" as "the day has no
+   * photographs" — callers that have not been taught about a day's gallery
+   * yet must not start refusing every caption in it.
+   */
+  knownGallerySrcs?: readonly string[],
 ): Problem[] {
   const problems: Problem[] = [];
   // An edit that rewrites the prose in one language and leaves the others
@@ -706,6 +736,7 @@ export function validateEntryEdit(
   checkTitle(input, problems);
   checkDate(input, problems, false);
   checkTime(input, problems);
+  checkCountryCode(input, problems);
   checkCoordinates(input, problems);
   checkTransportMode(input, problems);
   checkTravelScene(input, problems);
@@ -716,8 +747,20 @@ export function validateEntryEdit(
   checkWeather(input, problems);
   checkWeatherData(input, problems);
   checkBody(input, problems, false);
-  checkCaptions(input, problems);
+  checkCaptions(input, problems, knownGallerySrcs);
   return problems;
+}
+
+/**
+ * The owner prefix a `src` may or may not be carrying, stripped so a request
+ * echoing back exactly what `GET .../days/<slug>` handed it still matches
+ * what the day's gallery items answer to on disk. Same rule, same regex,
+ * `spliceCaptions` in lib/api/entries.ts applies for the same reason — kept
+ * as two copies rather than one shared export because this module is pure
+ * (no fs, nothing route-only) and that one is not.
+ */
+function mediaKey(src: string): string {
+  return src.replace(/^.*\/media\//, "");
 }
 
 /**
@@ -725,9 +768,21 @@ export function validateEntryEdit(
  *
  * Refused rather than ignored, like every other malformed field here: a
  * caption that silently did not land would be reported as written, and what
- * an agent tells somebody it wrote has to be what is on disk.
+ * an agent tells somebody it wrote has to be what is on disk. That includes a
+ * `src` naming no photograph the day has — B540. Before this, `spliceCaptions`
+ * simply found nothing to rewrite for a name it did not recognise, answered
+ * `200` with `changed: ["captions"]`, and wrote nothing: a typo in the one
+ * argument this field takes looked exactly like success. `knownGallerySrcs`
+ * is what lets this function tell "the day has no such photograph" from "the
+ * text is fine" — skipped when the caller has not supplied it, which is only
+ * ever a caller that has not been taught about the day's gallery yet, never a
+ * day that has none.
  */
-function checkCaptions(input: EntryInput, problems: Problem[]): void {
+function checkCaptions(
+  input: EntryInput,
+  problems: Problem[],
+  knownGallerySrcs?: readonly string[],
+): void {
   if (input.captions === undefined) return;
   const value = input.captions;
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -738,8 +793,17 @@ function checkCaptions(input: EntryInput, problems: Problem[]): void {
     });
     return;
   }
+  const known = knownGallerySrcs ? new Set(knownGallerySrcs.map(mediaKey)) : undefined;
   for (const [src, text] of Object.entries(value as Record<string, unknown>)) {
     const field = `captions[${JSON.stringify(src)}]`;
+    if (known && !known.has(mediaKey(src))) {
+      problems.push({
+        field,
+        got: describe(src),
+        expected: "a src this day's gallery actually has — see the gallery in GET .../days/<slug>",
+      });
+      continue;
+    }
     if (typeof text !== "string") {
       problems.push({
         field,

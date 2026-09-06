@@ -264,7 +264,16 @@ export const FRONTMATTER_TO_API: { key: string; api: string; note: string }[] = 
   { key: "date", api: "date", note: "Straight across, as `2026-08-26`." },
   { key: "time", api: "time", note: "`16:45`. Orders several days that share a date." },
   { key: "location", api: "location", note: "The place's name, as written." },
-  { key: "country", api: "country", note: "As written; the flag is derived from it." },
+  { key: "country", api: "country", note: "As written." },
+  {
+    key: "countryCode",
+    api: "countryCode",
+    note:
+      "Two letters — `PT`, `CH`. It draws the flag. Send it when the file has it rather " +
+      "than leaving the name to be guessed from: the guess is right for `Portugal` and " +
+      "silent for anything it does not know. Accepted since B540; before that it was taken " +
+      "and dropped.",
+  },
   { key: "lat / lng", api: "lat / lng", note: "Both or neither. **Read them off the file** — a day that has them on disk and not in your call loses its place on the map." },
   {
     key: "content",

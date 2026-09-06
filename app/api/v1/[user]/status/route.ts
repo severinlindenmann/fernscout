@@ -1,4 +1,4 @@
-import { authenticate, errorResponse, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
 import { journalStatus } from "@/lib/api/status";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
   if (!ownsUser(auth.session, user)) {
     // As the trips and drafts routes put it: the caller already proved who
     // they are, so naming the reason is safe.
-    return Response.json({ error: "out_of_scope" }, { status: 403 });
+    return outOfScope(auth.session, user);
   }
 
   return Response.json(await journalStatus(user, auth.session));

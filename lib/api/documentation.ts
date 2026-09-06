@@ -19,6 +19,7 @@ import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
 import { isIndexable } from "../access";
 import { CODE_TTL_MINUTES } from "../auth";
+import { openApiDocument } from "./openapi";
 // The sentences these documents share with /openapi.json, kept in one place so
 // they cannot come to disagree. See the note at the top of that file.
 import {
@@ -432,10 +433,21 @@ export function userDocumentation(username: string): string | null {
     "## Reading this journal",
     "",
     "Every page has a markdown twin: append `.md` to a day's own URL and you get",
-    "the source that produced it, rather than the rendering. The content *is*",
-    "markdown, so nothing is lost in the conversion — there is no conversion.",
-    "That includes `translations:`, in full, on a day written in more than one",
-    "language — the twin is the file on disk, not the default-locale reading of it.",
+    "the day as markdown rather than as a rendering. The prose *is* markdown, so",
+    "nothing happens to it on the way out — there is no conversion — and that",
+    "includes `translations:` in full, on a day written in more than one language.",
+    "",
+    "**It is a reader's view, not the file.** The frontmatter it carries is the",
+    "part a reader needs — title, date, time, place, coordinates, how many",
+    "photographs — and it leaves out `countryCode`, `tags`, the transport block,",
+    "`travelScene`, `costs` and the `gallery` list, while adding a `photos:` count",
+    "and, on test content, the banner saying so. It is also public: a trip that is",
+    "not `public` has no twin at all, and a valid token does not open one, because",
+    "this route is the thing an anonymous browser can read.",
+    "",
+    "So use it to read prose back, and use `GET /api/v1/<user>/trips/<trip>/days/",
+    "<slug>` — which takes your token — when you want to check that a field you",
+    "sent actually landed. That call answers with every field the day carries.",
     "",
     // A worked URL, from a trip that actually exists here. The pattern alone
     // sent an agent to `/<user>/day/<slug>.md` for a day in a past trip and it
@@ -510,6 +522,36 @@ export function userDocumentation(username: string): string | null {
  * an endpoint and forgetting the documentation is a visible omission in the
  * same file rather than a silent drift across the repository.
  */
+/**
+ * The day's fields, one line each, from the schema the API publishes.
+ *
+ * B540: a weak model given this guide sent `prose` and `slug`, because the
+ * field names live in brackets after an English label — `**What happened, in
+ * their words** (\`content\`)` — a third of the way down a long page. It found
+ * the right names by being refused, twice. The sentences are worth keeping;
+ * what was missing was somewhere to *look the names up*, which is a table, and
+ * generating it from `components.schemas.Draft` means it cannot drift from the
+ * thing that refuses.
+ */
+function dayFieldRows(): string {
+  const doc = openApiDocument() as unknown as {
+    components: {
+      schemas: {
+        Draft: { required?: string[]; properties?: Record<string, { description?: string; enum?: string[]; type?: string | string[] }> };
+      };
+    };
+  };
+  const draft = doc.components.schemas.Draft;
+  const required = new Set(draft.required ?? []);
+  return Object.entries(draft.properties ?? {})
+    .map(([name, field]) => {
+      const first = (field.description ?? "").split(/(?<=\.)\s/)[0].replace(/\n/g, " ").trim();
+      const said = field.enum ? `One of ${field.enum.join(", ")}. ${first}`.trim() : first;
+      return `| \`${name}\` | ${required.has(name) ? "**required**" : ""} | ${said || "—"} |`;
+    })
+    .join("\n");
+}
+
 export function agentGuide(): string {
   const site = serverSite();
   // The same list `/documentation.txt` renders as a numbered list, rendered
@@ -909,9 +951,30 @@ other trips when the current one has no such day — but if you have the trip id
 use it. A miss answers plain-text \`404\`, never an HTML error page.
 
 A day written in more than one language carries a \`translations:\` block in
-the twin too, the same shape it was written in — the twin is always the file
-on disk, in its own default language, never re-led with whichever locale you
-asked for.
+the twin too, the same shape it was written in, in its own default language and
+never re-led with whichever locale you asked for.
+
+**The twin is a reader's view, not the file**, and it is public: it leaves out
+\`countryCode\`, \`tags\`, the transport block, \`travelScene\`, \`costs\` and the
+\`gallery\` list, and a trip that is not \`public\` has no twin at all — a valid
+token does not open one, because this is the route an anonymous browser reads.
+
+### Reading your own work back
+
+These take your token and answer with everything, which is what you want when
+checking that a field you sent actually landed:
+
+| | |
+| --- | --- |
+| \`GET /api/v1/${example}/status\` | where you stand: drafts waiting, trips you may write to |
+| \`GET /api/v1/${example}/config\` | the journal's own settings, and every capability it asks for |
+| \`GET /api/v1/${example}/trips\` | every trip, in summary |
+| \`GET /api/v1/${example}/trips/<trip-id>\` | **one trip, whole** — including \`accent\`, \`costsVisibility\`, \`intro\`, \`translations\`, \`people\`, \`travellers\`, \`rates\` and \`tracks\`, which the summary above does not carry |
+| \`GET /api/v1/${example}/trips/<trip-id>/days/<slug>\` | one day, every field it has |
+| \`GET /api/v1/${example}/trips/<trip-id>/costs\` | the budget and what was spent before leaving |
+
+**Read a thing back before you tell somebody it is done.** A \`201\` says the
+call was accepted; it is the read that says what is there.
 
 ## Letting other people in
 
@@ -1178,6 +1241,28 @@ Authorization: Bearer fs_agent_…
 A trip that already exists takes the same block written into its \`trip.md\`;
 the journal's \`config.json\` takes it too, as the party for any trip that does
 not say for itself.
+
+**Every field a day takes, on one line each.** The sentences below say what to
+ask and why; this is the list to check your body against before you send it,
+and it is generated from the same schema \`/openapi.json\` publishes, so it
+cannot fall behind. A name that is not on this list is refused rather than
+dropped — the refusal will name the field you probably meant.
+
+| Field | | What it is |
+| --- | --- | --- |
+${dayFieldRows()}
+
+**Nothing is required beyond \`title\`, \`date\` and \`content\`** — but a trip keeps
+track of some things, and a day that says nothing about one of them is refused
+with \`422 incomplete_day\`. There are always two honest answers: send the value,
+or **decline it** — \`"costs": false\`, \`"coordinates": false\`, \`"photos": false\`,
+each meaning *there was none of this on this day*. Ask the person which.
+
+**A decline is a fact, not a way past the refusal.** It is written into the
+journal and read years later, so \`"costs": false\` on a day somebody paid cash
+for and cannot remember is a false statement this software will keep for them.
+If they do not know, there is no third value to send: ask, or leave the day
+unwritten until they can say. That is slower and it is the only honest move.
 
 ${scriptIntro(dayQuestions().length)}
 

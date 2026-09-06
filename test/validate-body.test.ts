@@ -152,7 +152,15 @@ describe("the real Draft schema from lib/api/openapi.ts", () => {
 
   test("costs sent as an object rather than a list is refused", () => {
     const { problems } = checkBody({ ...day, costs: { label: "Dinner" } }, draft, schemas);
-    expect(problems).toEqual([{ field: "costs", got: '{"label":"Dinner"}', expected: "an array" }]);
+    // "an array or a boolean", because a day may also decline: `costs: false`
+    // says nothing was spent, and the refusal has to offer that too. B540.
+    expect(problems).toEqual([
+      { field: "costs", got: '{"label":"Dinner"}', expected: "an array or a boolean" },
+    ]);
+  });
+
+  test("costs: false is accepted — the decline is a documented answer", () => {
+    expect(checkBody({ ...day, costs: false }, draft, schemas).problems).toEqual([]);
   });
 
   test("a day with no content is told which field is missing", () => {

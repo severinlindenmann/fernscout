@@ -70,6 +70,17 @@ async function patchDay(token: string, slug: string, body: unknown) {
   return { status: response.status, body: parsed };
 }
 
+async function getDay(token: string, slug: string) {
+  const response = await getDayRoute(
+    new Request(`https://t.test/api/v1/alex/trips/reise/days/${slug}`, {
+      headers: { authorization: `Bearer ${token}` },
+    }),
+    { params: Promise.resolve({ user: "alex", trip: "reise", slug }) },
+  );
+  const parsed = (await response.json()) as Record<string, unknown>;
+  return { status: response.status, body: parsed };
+}
+
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-edit-day-"));
   process.env.CONTENT_DIR = dir;
@@ -424,5 +435,154 @@ describe("day costs: the same refusal as the trip budget door (B304)", () => {
     // before this ticket — this is about the render not throwing, not about
     // resurrecting a cost the write path would now refuse.
     expect(body.costs).toEqual([]);
+  });
+});
+
+/**
+ * B540 — three bugs an agent following only `/agent.md` and `/openapi.json`
+ * reproduced against a running instance, none of them found by reading the
+ * source.
+ */
+describe("GET .../days/<slug>: travelScene and weather read back (B540 bug 1)", () => {
+  test("a travelScene set on the day is in the response", async () => {
+    createDraft(REF, DRAFT);
+    editEntry(REF, "erster-tag", { travelScene: "skip" });
+    const token = await agentToken();
+    const { body } = await getDay(token, "erster-tag");
+    // Before the fix this key was missing entirely, which read exactly like
+    // "no scene was ever set" — indistinguishable from the day never having
+    // asked for one, even though `editEntry` had written it moments earlier.
+    expect(body.travelScene).toBe("skip");
+  });
+
+  test("a weather reading on the day is in the response, with its provenance", async () => {
+    createDraft(REF, { ...DRAFT, lat: 46.19, lng: 9.02 });
+    editEntry(REF, "erster-tag", {
+      weatherData: { tempMax: 21, source: "a postcard from the trip", recordedAt: "2026-09-01T12:00:00Z" },
+    });
+    const token = await agentToken();
+    const { body } = await getDay(token, "erster-tag");
+    expect(body.weather).toEqual({
+      tempMax: 21,
+      source: "a postcard from the trip",
+      recordedAt: "2026-09-01T12:00:00Z",
+    });
+  });
+
+  test("a day with neither carries neither key", async () => {
+    createDraft(REF, DRAFT);
+    const token = await agentToken();
+    const { body } = await getDay(token, "erster-tag");
+    expect(body.travelScene).toBeUndefined();
+    expect(body.weather).toBeUndefined();
+  });
+});
+
+describe("an unrecognised travelScene reads back as the default (B540 bug 2)", () => {
+  test("parseTravelSceneVariant already treats it as absent, which is the default", () => {
+    // EditInput's travelScene is typed to TRAVEL_SCENE_VARIANTS, so writing a
+    // value outside it — exactly what the openapi document says is "written
+    // as sent" rather than refused — needs the same type escape edit-day's
+    // other "smuggled past the type system" test uses above.
+    createDraft(REF, DRAFT);
+    const sneaky = { travelScene: "sunrise-over-the-lake" } as EditInput;
+    editEntry(REF, "erster-tag", sneaky);
+
+    // Written as sent: the file carries the value nobody recognises.
+    const onDisk = fs.readFileSync(
+      path.join(dir, "alex", "trips", "reise", "entries", "2026-09-01-erster-tag.md"),
+      "utf8",
+    );
+    expect(onDisk).toContain('travelScene: "sunrise-over-the-lake"');
+
+    // Read back as the default — undefined, which is exactly what a day that
+    // never set travelScene at all also reads as (see `Entry.travelScene`'s
+    // own comment: "Absent means the default").
+    expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })?.travelScene).toBeUndefined();
+  });
+
+  test("the day route agrees: the key is simply absent, same as a day that never asked", async () => {
+    createDraft(REF, DRAFT);
+    editEntry(REF, "erster-tag", { travelScene: "sunrise-over-the-lake" } as EditInput);
+    const token = await agentToken();
+    const { body } = await getDay(token, "erster-tag");
+    expect(body.travelScene).toBeUndefined();
+  });
+});
+
+describe("PATCH .../days/<slug>: a caption naming a src the day does not have is refused (B540 bug 3)", () => {
+  function addGalleryItem(slug: string) {
+    const file = path.join(dir, "alex", "trips", "reise", "entries", `2026-09-01-${slug}.md`);
+    const before = fs.readFileSync(file, "utf8");
+    // Hand-written the way `galleryLines` (lib/ingest/entry.ts) renders one —
+    // no need to drive the real upload pipeline just to give the day one
+    // photograph to caption.
+    const after = before.replace(
+      "status: draft\n",
+      `status: draft\ngallery:\n  - src: "/media/reise/${slug}/01.jpg"\n    type: "image"\n    width: 800\n    height: 600\n`,
+    );
+    fs.writeFileSync(file, after);
+  }
+
+  test("a src the day does not have is 400, not a silent 200", async () => {
+    createDraft(REF, DRAFT);
+    addGalleryItem("erster-tag");
+    const token = await agentToken();
+
+    const { status, body } = await patchDay(token, "erster-tag", {
+      captions: { "/alex/media/reise/erster-tag/02.jpg": "Wrong photograph entirely" },
+    });
+
+    // The bug: this used to answer 200 with changed: ["captions"] and write
+    // nothing at all, so a typo'd src looked exactly like success.
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_entry");
+    const problems = body.problems as { field: string; got: string; expected: string }[];
+    expect(problems.some((p) => p.field.includes("02.jpg"))).toBe(true);
+
+    const onDisk = fs.readFileSync(
+      path.join(dir, "alex", "trips", "reise", "entries", "2026-09-01-erster-tag.md"),
+      "utf8",
+    );
+    expect(onDisk).not.toContain("Wrong photograph entirely");
+  });
+
+  test("captioning the src the day actually has still works", async () => {
+    createDraft(REF, DRAFT);
+    addGalleryItem("erster-tag");
+    const token = await agentToken();
+
+    const { status } = await patchDay(token, "erster-tag", {
+      captions: { "/alex/media/reise/erster-tag/01.jpg": "The right photograph" },
+    });
+    expect(status).toBe(200);
+    const entry = getEntryBySlug(REF, "erster-tag", { includeDrafts: true });
+    expect(entry?.gallery[0]?.caption).toBe("The right photograph");
+  });
+
+  test("an empty string still removes an existing caption", async () => {
+    createDraft(REF, DRAFT);
+    addGalleryItem("erster-tag");
+    const token = await agentToken();
+    await patchDay(token, "erster-tag", {
+      captions: { "/alex/media/reise/erster-tag/01.jpg": "First" },
+    });
+
+    const { status } = await patchDay(token, "erster-tag", {
+      captions: { "/alex/media/reise/erster-tag/01.jpg": "" },
+    });
+    expect(status).toBe(200);
+    const entry = getEntryBySlug(REF, "erster-tag", { includeDrafts: true });
+    expect(entry?.gallery[0]?.caption).toBeUndefined();
+  });
+
+  test("a day with no gallery at all still refuses any src named", async () => {
+    createDraft(REF, DRAFT);
+    const token = await agentToken();
+    const { status, body } = await patchDay(token, "erster-tag", {
+      captions: { "/alex/media/reise/erster-tag/01.jpg": "hello" },
+    });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_entry");
   });
 });
