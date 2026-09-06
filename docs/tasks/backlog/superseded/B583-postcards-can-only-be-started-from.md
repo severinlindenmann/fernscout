@@ -1,10 +1,11 @@
 ---
 id: B583
-title: Postcards can only be started from the current trip's gallery
+title: Duplicate capture of B582
 type: ISSUE
 priority: medium
 complexity: low
 area: postcards
+superseded: "duplicate capture of B582"
 found: "2026-09-06T14:04:46Z"
 ---
 
