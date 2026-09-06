@@ -111,6 +111,51 @@ describe("resolveCapabilities", () => {
     expect(state.enabled === false && state.reason).toMatch(/STANNP_API_KEY/);
   });
 
+  // B492: a self-hoster (or anybody) turning on postcards/photobook with no
+  // real printer account is left on `dry-run`, which reports `enabled: true`
+  // — correctly, since orders can still be composed — but must not look like
+  // a working printer button. See dryRunNote() in lib/capabilities.ts.
+  test("postcards on dry-run is enabled, and says nothing will actually print", () => {
+    process.env.DATABASE_URL = "sqlite:./x.db";
+    writeConfig({ postcards: { enabled: true, provider: "dry-run" } });
+    const state = resolveCapabilities().postcards;
+    expect(state.enabled).toBe(true);
+    expect(state.enabled === true && state.note).toMatch(/dry-run/);
+    expect(state.enabled === true && state.note).toMatch(/nothing is actually printed or posted/);
+  });
+
+  test("postcards with no provider named defaults to dry-run's note", () => {
+    process.env.DATABASE_URL = "sqlite:./x.db";
+    writeConfig({ postcards: { enabled: true } });
+    const state = resolveCapabilities().postcards;
+    expect(state.enabled === true && state.note).toMatch(/dry-run/);
+  });
+
+  test("photobook gets the same note as postcards", () => {
+    process.env.DATABASE_URL = "sqlite:./x.db";
+    writeConfig({ photobook: { enabled: true, provider: "dry-run" } });
+    const state = resolveCapabilities().photobook;
+    expect(state.enabled === true && state.note).toMatch(/dry-run/);
+  });
+
+  test("a real, fully-configured print provider carries no note", () => {
+    process.env.DATABASE_URL = "sqlite:./x.db";
+    process.env.STANNP_API_KEY = "k";
+    writeConfig({ postcards: { enabled: true, provider: "stannp" } });
+    const state = resolveCapabilities().postcards;
+    expect(state.enabled).toBe(true);
+    expect(state.enabled === true && state.note).toBeUndefined();
+  });
+
+  test("a capability with no dry-run concept never carries a note", () => {
+    process.env.SESSION_SECRET = "s";
+    process.env.DATABASE_URL = "sqlite:./x.db";
+    writeConfig({ auth: { enabled: true } });
+    const state = resolveCapabilities().auth;
+    expect(state.enabled).toBe(true);
+    expect(state.enabled === true && state.note).toBeUndefined();
+  });
+
   test("logging is off by default, like every other unmentioned capability", () => {
     writeConfig({});
     const state = resolveCapabilities().logging;

@@ -101,8 +101,30 @@ const ADDRESS_LOOKUP_PROVIDER_ENV: Record<string, readonly string[]> = {
 };
 
 export type CapabilityState =
-  | { name: FeatureName; enabled: true }
+  | { name: FeatureName; enabled: true; note?: string }
   | { name: FeatureName; enabled: false; reason: string };
+
+/**
+ * The one thing `enabled: true` does not otherwise say: a print capability
+ * whose provider is `dry-run` is on, and will happily create orders and
+ * "send" them, without a single card or book ever reaching a printer — B492.
+ * That is correct behaviour for local development (AGENTS.md: no feature
+ * needs a paid account to develop or test), and it is also exactly what a
+ * self-hoster with no printer account sees when they turn the flag on,
+ * without anything telling them the button is a rehearsal. `resolveOne`
+ * attaches this note rather than flipping `enabled` to false, because the
+ * capability genuinely is on — an agent can still propose an order and a
+ * person can still press the button — it just does not fulfil anything yet.
+ */
+function dryRunNote(name: FeatureName, feature: Record<string, unknown>): string | undefined {
+  if (name !== "postcards" && name !== "photobook") return undefined;
+  const provider = optionOf(feature, "provider") ?? "dry-run";
+  if (provider !== "dry-run") return undefined;
+  return (
+    `features.${name}.provider is "dry-run" — orders can be created and previewed, ` +
+    `but nothing is actually printed or posted (see B492)`
+  );
+}
 
 function optionOf(feature: Record<string, unknown>, key: string): string | undefined {
   const v = feature[key];
@@ -213,7 +235,8 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
       reason: `features.${name} is enabled but ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} not set`,
     };
   }
-  return { name, enabled: true };
+  const note = dryRunNote(name, feature);
+  return note ? { name, enabled: true, note } : { name, enabled: true };
 }
 
 /** The state of every capability. Cheap enough to call freely — config is

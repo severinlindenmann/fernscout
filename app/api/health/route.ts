@@ -91,7 +91,10 @@ export const dynamic = "force-dynamic";
  * machine-readable `code`, and the whole `capabilities` block including each
  * reason. Reasons are named env vars and config keys — never a value, never a
  * path, never a person — and AGENTS.md requires that a capability which is off
- * explains itself. That promise is kept in full.
+ * explains itself. That promise is kept in full. `postcards` and `photobook`
+ * also carry a `note` when they are on but the configured provider is
+ * `dry-run`: `enabled: true` there means an order can be composed and a
+ * button can be pressed, not that anything will reach a printer (B492).
  *
  * **Behind `HEALTH_TOKEN`:** the free-text `error` on `config`, `content` and
  * `basemap`, which carries the absolute content-root path and errno text; and
@@ -158,7 +161,10 @@ export async function GET(request: Request) {
   const detailed = mayReadDetail(request);
   const startedAt = Date.now();
 
-  let capabilities: Record<string, { enabled: boolean; reason?: string; keepingCopies?: true }>;
+  let capabilities: Record<
+    string,
+    { enabled: boolean; reason?: string; note?: string; keepingCopies?: true }
+  >;
   let configOk = true;
   let configError: string | undefined;
 
@@ -168,7 +174,7 @@ export async function GET(request: Request) {
     for (const name of FEATURE_NAMES) {
       const state = resolved[name];
       capabilities[name] = state.enabled
-        ? { enabled: true }
+        ? { enabled: true, ...(state.note ? { note: state.note } : {}) }
         : { enabled: false, reason: state.reason };
     }
 
