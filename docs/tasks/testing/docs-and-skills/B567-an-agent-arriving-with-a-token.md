@@ -7,8 +7,7 @@ complexity: low
 area: agent.md, documentation
 found: "2026-09-06T21:10:00Z"
 started: "2026-09-06T11:10:50Z"
-session: 73b1a7f5-30ec-425d-9dbf-4d423e411c0d
-claimed: "2026-09-06T11:10:50Z"
+merged: "2026-09-06T11:16:51Z"
 ---
 
 # B567 — An agent arriving with a token has no advertised first call
