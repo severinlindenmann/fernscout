@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (123)
+## backlog (118)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (40)
+### issue (39)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -83,7 +83,6 @@ Do not edit them by hand; run the script.
 | [B521](backlog/issue/B521-every-photo-upload-logs-that-the.md) | every photo upload logs that the body was truncated at 10MB | ISSUE | medium | low |
 | [B528](backlog/issue/B528-attachgallery-writes-its-splice-without-re.md) | attachGallery writes its splice without re-reading it, where editEntry refuses | ISSUE | medium | low |
 | [B545](backlog/issue/B545-a-day-s-markdown-twin-omits.md) | A day's markdown twin omits the weather that is on its page | ISSUE | medium | low |
-| [B550](backlog/issue/B550-the-day-view-shows-a-page.md) | The day view shows a page belonging to the next day, and its photo controls are unlabelled glyphs | ISSUE | medium | low |
 | [B556](backlog/issue/B556-re-running-the-demo-builder-deletes.md) | Re-running the demo builder deletes fields the committed demo journal carries | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
@@ -107,13 +106,12 @@ Do not edit them by hand; run the script.
 | [B538](backlog/issue/B538-a-day-the-archive-has-no.md) | A day the archive has no answer for re-fetches on every PATCH | ISSUE | low | low |
 | [B554](backlog/issue/B554-the-desktop-winding-path-sidebar-shows.md) | The desktop winding-path sidebar shows a day's cost converted only, where the story feed now shows what was paid | ISSUE | low | low |
 
-### big-feature (13)
+### big-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B537](backlog/big-feature/B537-a-journal-on-disk-cannot-be.md) | A journal on disk cannot be checked against the instance that will receive it | FEATURE | high | high |
-| [B547](backlog/big-feature/B547-the-photobook-flow-shows-the-machine.md) | The photobook flow shows the machine's reasoning instead of the book | FEATURE | high | high |
 | [B06](backlog/big-feature/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B112](backlog/big-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts write straight to content, bypassing the token, draft status and rate limits every network write goes through | FEATURE | medium | high |
 | [B262](backlog/big-feature/B262-writing-to-a-journal-requires-bringing.md) | Writing to a journal requires bringing your own agent, so an owner without one cannot write at all | FEATURE | medium | high |
@@ -125,14 +123,11 @@ Do not edit them by hand; run the script.
 | [B507](backlog/big-feature/B507-the-photobook-composer-is-a-desktop.md) | The photobook composer is a desktop sidebar on a phone-shaped job | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
-### small-feature (16)
+### small-feature (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B435](backlog/small-feature/B435-no-print-provider-can-actually-post.md) | No print provider can actually post a card — print.one is unevaluated and unwired | FEATURE | high | medium |
-| [B548](backlog/small-feature/B548-the-composer-s-first-screen-is.md) | The composer's first screen is a form; it should be the book | FEATURE | high | medium |
-| [B549](backlog/small-feature/B549-warnings-name-codes-and-source-symbols.md) | Warnings name codes and source symbols instead of saying what it means | FEATURE | high | medium |
-| [B551](backlog/small-feature/B551-ordering-states-a-price-in-credits.md) | Ordering states a price in credits and leaves the rest to be inferred | FEATURE | high | medium |
 | [B10](backlog/small-feature/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
@@ -226,7 +221,7 @@ _Nothing here._
 | [B540](in-development/B540-options-that-exist-are-missing-from.md) | Options that exist are missing from the schema the instance publishes | ISSUE | medium | low | `73b1a7f5` |
 | [B557](in-development/B557-costs-is-the-only-analysis-a.md) | Costs is the only analysis a trip can show, and the nav calls it Kosten | FEATURE | medium | medium | `e089c5a7` |
 
-## testing (234)
+## testing (239)
 
 ### security (2)
 
@@ -235,7 +230,7 @@ _Nothing here._
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 | [B473](testing/security/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | — |
 
-### issue (117)
+### issue (118)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -314,6 +309,7 @@ _Nothing here._
 | [B495](testing/issue/B495-the-generator-tests-symlink-generated-output.md) | The generator tests symlink generated-output folders into their temp root, so a hand-run script fails the suite | ISSUE | medium | low | — |
 | [B518](testing/issue/B518-the-route-map-puts-the-middle.md) | The route map puts the middle of the journey in the fold | ISSUE | medium | medium | — |
 | [B529](testing/issue/B529-npm-run-i18n-keys-reads-the.md) | npm run i18n:keys reads the locales path B510 moved away from | ISSUE | medium | low | — |
+| [B550](testing/issue/B550-the-day-view-shows-a-page.md) | The day view shows a page belonging to the next day, and its photo controls are unlabelled glyphs | ISSUE | medium | low | — |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
 | [B82](testing/issue/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
@@ -357,7 +353,7 @@ _Nothing here._
 | [B519](testing/issue/B519-the-preview-s-map-has-no.md) | The preview's map has no place names but the printed one does | ISSUE | low | low | — |
 | [B53](testing/issue/B53-one-page-render-resolves-a-signed.md) | One page render resolves a signed-in reader's session five times | ISSUE | low | medium | — |
 
-### big-feature (18)
+### big-feature (19)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -371,6 +367,7 @@ _Nothing here._
 | [B504](testing/big-feature/B504-a-photobook-cannot-be-shaped-day.md) | A photobook cannot be shaped day by day | FEATURE | high | high | — |
 | [B531](testing/big-feature/B531-a-day-can-be-written-without.md) | A day can be written without everything the trip is keeping, and nothing says so | FEATURE | high | high | — |
 | [B534](testing/big-feature/B534-the-composer-asks-for-everything-at.md) | The composer asks for everything at once, so the default path is as long as the expert one | FEATURE | high | high | — |
+| [B547](testing/big-feature/B547-the-photobook-flow-shows-the-machine.md) | The photobook flow shows the machine's reasoning instead of the book | FEATURE | high | high | — |
 | [B283](testing/big-feature/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high | — |
 | [B294](testing/big-feature/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high | — |
 | [B325](testing/big-feature/B325-a-day-carries-coordinates-and-a.md) | A day carries coordinates and a date but no way to say what the weather actually was | FEATURE | medium | high | — |
@@ -380,7 +377,7 @@ _Nothing here._
 | [B496](testing/big-feature/B496-the-printed-photobook-reads-as-a.md) | The printed photobook reads as a contact sheet, not a book | FEATURE | medium | high | — |
 | [B497](testing/big-feature/B497-the-photobook-draws-one-hardcoded-couple.md) | The photobook draws one hardcoded couple whoever travelled | FEATURE | medium | high | — |
 
-### small-feature (49)
+### small-feature (52)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -394,6 +391,9 @@ _Nothing here._
 | [B480](testing/small-feature/B480-one-instance-wide-address-opens-every.md) | One instance-wide address opens every journal | FEATURE | high | low | — |
 | [B511](testing/small-feature/B511-the-composer-has-one-default-and.md) | The composer has one default and no way to nudge it | FEATURE | high | medium | — |
 | [B524](testing/small-feature/B524-travellers-and-people-can-be-set.md) | travellers and people can be set when a trip is created and never again | FEATURE | high | medium | — |
+| [B548](testing/small-feature/B548-the-composer-s-first-screen-is.md) | The composer's first screen is a form; it should be the book | FEATURE | high | medium | — |
+| [B549](testing/small-feature/B549-warnings-name-codes-and-source-symbols.md) | Warnings name codes and source symbols instead of saying what it means | FEATURE | high | medium | — |
+| [B551](testing/small-feature/B551-ordering-states-a-price-in-credits.md) | Ordering states a price in credits and leaves the rest to be inferred | FEATURE | high | medium | — |
 | [B273](testing/small-feature/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium | — |
 | [B324](testing/small-feature/B324-an-owner-in-the-browser-cannot.md) | An owner in the browser cannot send an invitation by mail, only an agent can | FEATURE | medium | low | — |
 | [B364](testing/small-feature/B364-the-lifetime-map-draws-a-bare.md) | The lifetime map draws a bare coastline, dropping the borders, lakes and rivers its own basemap already carries | FEATURE | medium | low | — |

@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook, composer, ux
 found: "2026-09-06T09:04:23Z"
+merged: "2026-09-06T09:38:43Z"
 ---
 
 # B548 — The composer's first screen is a form; it should be the book

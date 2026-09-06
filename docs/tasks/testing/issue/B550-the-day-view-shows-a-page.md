@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: photobook, composer
 found: "2026-09-06T09:04:24Z"
+merged: "2026-09-06T09:38:44Z"
 ---
 
 # B550 — The day view shows a page belonging to the next day, and its photo controls are unlabelled glyphs

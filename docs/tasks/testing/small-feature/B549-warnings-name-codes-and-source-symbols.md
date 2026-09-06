@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook, composer, ux
 found: "2026-09-06T09:04:24Z"
+merged: "2026-09-06T09:38:43Z"
 ---
 
 # B549 — Warnings name codes and source symbols instead of saying what it means

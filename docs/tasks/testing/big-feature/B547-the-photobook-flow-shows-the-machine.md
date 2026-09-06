@@ -6,6 +6,7 @@ priority: high
 complexity: high
 area: photobook, composer, ux
 found: "2026-09-06T09:03:48Z"
+merged: "2026-09-06T09:38:42Z"
 ---
 
 # B547 — The photobook flow shows the machine's reasoning instead of the book

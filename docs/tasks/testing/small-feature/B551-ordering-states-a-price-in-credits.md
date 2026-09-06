@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook, order, ux
 found: "2026-09-06T09:04:24Z"
+merged: "2026-09-06T09:38:44Z"
 ---
 
 # B551 — Ordering states a price in credits and leaves the rest to be inferred
