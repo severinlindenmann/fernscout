@@ -7,6 +7,7 @@ country: "Thailand"
 countryCode: "TH"
 lat: 13.7563
 lng: 100.5018
+weather: true
 transportMode: "flight"
 transportFrom: "Zurich"
 transportTo: "Bangkok"
@@ -42,6 +43,7 @@ translations:
       Hatkor landoltunk, nyolckor aludtunk, hajnali háromkor pedig teljesen éberen, abban a hitben, hogy dél van. Mire tényleg dél lett, négy órát gyalogoltunk és kétszer ettünk.
       
       Nem a hőség az, amire figyelmeztetnek. Hanem a zaj — és hogy milyen gyorsan nem hallod meg többé.
+weatherData: { tempMin: 23.2, tempMax: 31.9, code: 3, precipitation: 0, windMax: 20.6, source: "open-meteo", recordedAt: "2026-09-06T08:32:20.184Z" }
 ---
 
 Landed at six, asleep by eight, awake at three in the morning entirely convinced it was lunchtime. By the time it actually was lunchtime we had been walking for four hours and eaten twice.

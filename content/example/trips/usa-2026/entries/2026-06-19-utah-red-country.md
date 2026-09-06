@@ -6,6 +6,7 @@ country: "United States"
 countryCode: "US"
 lat: 38.5733
 lng: -109.5498
+weather: true
 transportMode: "car"
 transportFrom: "Denver"
 transportTo: "Moab"
@@ -42,6 +43,7 @@ translations:
       A pickup megcsinálta, hangosan. Négy éjszaka egy dombon a városon kívül, rajtunk kívül senki, húsz dollár egy éjszaka — lopásnak éreztük.
       
       Nehéz lefényképezni, és mi mégis megpróbáltuk, több százszor.
+weatherData: { tempMin: 21.5, tempMax: 38, code: 3, precipitation: 0, windMax: 19.6, source: "open-meteo", recordedAt: "2026-09-06T08:32:18.715Z" }
 ---
 
 The truck made it, loudly. Four nights on a bluff outside town with nobody else on it, which cost twenty dollars a night and felt like theft.

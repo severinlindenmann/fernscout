@@ -6,6 +6,7 @@ country: "Japan"
 countryCode: "JP"
 lat: 41.7688
 lng: 140.7288
+weather: true
 transportMode: "train"
 transportFrom: "Sendai"
 transportTo: "Hakodate"

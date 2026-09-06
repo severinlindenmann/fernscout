@@ -7,6 +7,7 @@ country: "Italy"
 countryCode: "IT"
 lat: 46.1161
 lng: 8.2939
+weather: true
 tags: ["italy", "food", "unplanned"]
 costs:
   - { label: "Room above the restaurant", amount: 85, category: "accommodation", currency: "EUR" }
@@ -18,6 +19,7 @@ translations:
       Auf dem Parkplatz entschieden, heute nicht mehr über den Pass zurückzufahren. Über dem Restaurant gab es ein Zimmer, und auf der Karte standen vier Gerichte.
       
       Wir haben zu zweit alle vier gegessen und sind in Italien ins Bett gegangen, was so nicht geplant war.
+weatherData: { tempMin: 10.6, tempMax: 18.3, code: 3, precipitation: 0, windMax: 12, source: "open-meteo", recordedAt: "2026-09-06T08:32:20.031Z" }
 ---
 
 Decided in the car park not to drive back over the pass tonight. There was a room above the restaurant and the restaurant had a menu with four things on it.

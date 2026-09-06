@@ -6,6 +6,7 @@ country: "Vietnam"
 countryCode: "VN"
 lat: 21.0278
 lng: 105.8342
+weather: true
 transportMode: "train"
 transportFrom: "Hoi An"
 transportTo: "Hanoi"
@@ -26,6 +27,7 @@ tags: ["vietnam", "trains", "cities"]
 costs:
   - { label: "Train, soft sleeper", amount: 1290000, category: "transport", currency: "VND" }
   - { label: "Coffee, egg, several", amount: 180000, category: "food", currency: "VND" }
+weatherData: { tempMin: 26.2, tempMax: 34.5, code: 1, precipitation: 0, windMax: 14.8, source: "open-meteo", recordedAt: "2026-09-06T08:32:20.509Z" }
 ---
 
 Five months in and we have become the kind of people who have opinions about which side of a train to sit on.

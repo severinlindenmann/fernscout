@@ -6,6 +6,7 @@ country: "United States"
 countryCode: "US"
 lat: 36.1699
 lng: -115.1398
+weather: true
 transportMode: "flight"
 transportFrom: "Zurich"
 transportTo: "Las Vegas"
@@ -28,6 +29,7 @@ translations:
       Um vier gelandet, eine weiße Limousine abgeholt, die aussah wie jede andere weiße Limousine auf dem Platz, und dann eine Stunde in einem Supermarkt von der Größe eines Flughafens verbracht, um eine Kühlbox zu kaufen.
       
       Wir waren nicht in der Nähe des Strip. Das fühlte sich nach dem richtigen Anfang an.
+weatherData: { tempMin: 23.4, tempMax: 34.6, code: 51, precipitation: 0.2, windMax: 10.5, source: "open-meteo", recordedAt: "2026-09-06T08:32:18.914Z" }
 ---
 
 Landed at four, collected a white sedan that looked like every other white sedan in the lot, and spent an hour in a supermarket the size of an airport buying a cooler.

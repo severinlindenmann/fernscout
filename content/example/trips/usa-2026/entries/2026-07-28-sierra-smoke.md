@@ -6,6 +6,7 @@ country: "United States"
 countryCode: "US"
 lat: 37.3614
 lng: -118.3951
+weather: true
 transportMode: "car"
 transportFrom: "Moab"
 transportTo: "Bishop"
@@ -26,6 +27,7 @@ tags: ["california", "mountains", "wildfire"]
 costs:
   - { label: "Fuel", amount: 121, category: "transport", currency: "USD" }
   - { label: "New tyre", amount: 218, category: "transport", currency: "USD" }
+weatherData: { tempMin: 23.4, tempMax: 37.4, code: 0, precipitation: 0, windMax: 10.9, source: "open-meteo", recordedAt: "2026-09-06T08:32:18.769Z" }
 ---
 
 Fires two valleys over turned the light orange for a week. Beautiful in a way that makes you feel bad about finding it beautiful.

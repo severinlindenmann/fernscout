@@ -83,8 +83,21 @@ für Werbung oder zur Profilbildung.
 | **Stannp Ltd** (Grossbritannien) | Jemand bestellt eine gedruckte Postkarte | Das Foto, den Text und die Postadresse der Empfängerin |
 | **Gelato ASA** (Norwegen) | Jemand bestellt ein gedrucktes Fotobuch | Das PDF des Buchs und die Lieferadresse |
 | **Proton AG** (Schweiz) | Anmeldecodes, Einladungen, Benachrichtigungen | Die Empfängeradresse und die Nachricht |
+| **Open-Meteo** (Deutschland) | Ein Journal hat gefragt, wie das Wetter an einem festgehaltenen Tag war | Die Koordinaten und das Datum dieses Tages — nichts über Sie |
 
 Das ist die vollständige Liste. Mehr ist da nicht.
+
+Die Wetterzeile unterscheidet sich von den vier darüber, und der Unterschied
+gehört ausgesprochen: **diese Anfrage stellt dieser Server, nicht Ihr
+Browser.** Sie wird einmal gesendet, wenn ein Tag geschrieben wird, und was
+zurückkommt, steht danach in der Datei dieses Tages — eine Seite mit
+Wetterangaben aufzurufen sendet also an niemanden etwas. Open-Meteo sieht Ihre
+Adresse nie, und keine Anfrage enthält etwas, das eine Person identifiziert.
+Die Koordinaten sind die, die der Autor selbst auf seinen Tag geschrieben hat.
+
+Die Wetterdaten stammen von [Open-Meteo](https://open-meteo.com/) und werden
+unter der Lizenz Creative Commons Attribution 4.0 genutzt — deshalb nennt jede
+Angabe an einem Tag ihre Quelle.
 
 Die E-Mails dieser Seite laufen über **Proton Mail in der Schweiz** —
 verschlüsselt gespeichert und unter Schweizer Datenschutzrecht, statt über

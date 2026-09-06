@@ -6,6 +6,7 @@ country: "United States"
 countryCode: "US"
 lat: 38.2919
 lng: -111.2615
+weather: true
 transportMode: "car"
 transportFrom: "Escalante"
 transportTo: "Torrey"
@@ -27,6 +28,7 @@ costs:
   - { label: "Fuel", amount: 36, category: "transport", currency: "USD" }
   - { label: "Campground", amount: 25, category: "accommodation", currency: "USD" }
   - { label: "Pie, from the orchard", amount: 18, category: "food", currency: "USD" }
+weatherData: { tempMin: 13.3, tempMax: 29.8, code: 3, precipitation: 0, windMax: 27.3, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.120Z" }
 ---
 
 There is a Mormon orchard in the middle of the park where you can pick fruit off the trees and pay for it by weight in an honesty box.

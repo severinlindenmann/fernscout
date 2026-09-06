@@ -7,6 +7,7 @@ country: "United States"
 countryCode: "US"
 lat: 36.998
 lng: -110.0985
+weather: true
 transportMode: "car"
 transportFrom: "Needles District"
 transportTo: "Monument Valley"
@@ -24,6 +25,7 @@ costs:
   - { label: "Fuel", amount: 47, category: "transport", currency: "USD" }
   - { label: "Tribal park entry", amount: 20, category: "activities", currency: "USD" }
   - { label: "Room on the rim", amount: 195, category: "accommodation", currency: "USD" }
+weatherData: { tempMin: 11.8, tempMax: 23.1, code: 51, precipitation: 0.1, windMax: 21.1, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.330Z" }
 ---
 
 Arrived at midday, when the buttes are flat and grey and look like a postcard left in a window. Waited six hours and got the other version.

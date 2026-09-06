@@ -79,8 +79,21 @@ advertising or profiling.
 | **Stannp Ltd** (United Kingdom) | Somebody ordered a printed postcard | The photograph, the message and the recipient's postal address |
 | **Gelato ASA** (Norway) | Somebody ordered a printed photobook | The book's PDF and the delivery address |
 | **Proton AG** (Switzerland) | Sign-in codes, invitations, notifications | The recipient's address and the message |
+| **Open-Meteo** (Germany) | A journal asked what the weather was on a day it recorded | The coordinates and the date of that day — nothing about you |
 
 That is the whole list. There is nobody else.
+
+The weather row is different from the four above it and the difference is
+worth stating plainly: **that request is made by this server, not by your
+browser.** It is sent once, when a day is written, and what comes back is
+stored in that day's own file — so reading a page that shows the weather
+sends nothing to anybody. Open-Meteo never sees your address, and no request
+carries anything that identifies a person. The coordinates are the ones the
+journal's author put on their own day.
+
+Weather data comes from [Open-Meteo](https://open-meteo.com/) and is used
+under the Creative Commons Attribution 4.0 licence, which is why every reading
+on a day names it.
 
 The mail this site sends goes through **Proton Mail in Switzerland** —
 encrypted at rest and under Swiss privacy law, rather than through a provider

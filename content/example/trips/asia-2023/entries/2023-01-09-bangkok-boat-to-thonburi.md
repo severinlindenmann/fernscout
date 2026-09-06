@@ -7,6 +7,7 @@ country: "Thailand"
 countryCode: "TH"
 lat: 13.7563
 lng: 100.5018
+weather: true
 gallery:
   - src: "/media/asia-2023/bangkok-boat-to-thonburi/01.jpg"
     type: "image"
@@ -30,6 +31,7 @@ translations:
       Wir wollten zwei Stationen mit der orangen Fähre fahren und sind in die blaue gestiegen, die für Touristen ist und viermal so viel kostet. Gemerkt haben wir es, als die Ansage anfing.
       
       Sind trotzdem in Thonburi ausgestiegen und über die Brücke zurückgelaufen. Jedes Foto zeigt die falsche Flussseite und ist dadurch besser.
+weatherData: { tempMin: 23.2, tempMax: 31.9, code: 3, precipitation: 0, windMax: 20.6, source: "open-meteo", recordedAt: "2026-09-06T08:32:20.251Z" }
 ---
 
 Meant to take the orange-flag ferry two stops and took the blue-flag one instead, which is for tourists and costs four times as much. We worked it out when the commentary started.

@@ -6,6 +6,7 @@ country: "Japan"
 countryCode: "JP"
 lat: 36.238
 lng: 137.972
+weather: true
 transportMode: "train"
 transportFrom: "Kanazawa"
 transportTo: "Matsumoto"

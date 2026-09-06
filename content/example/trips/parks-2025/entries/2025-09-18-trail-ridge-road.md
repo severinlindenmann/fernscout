@@ -6,6 +6,7 @@ country: "United States"
 countryCode: "US"
 lat: 40.3428
 lng: -105.6836
+weather: true
 transportMode: "car"
 transportFrom: "Aspen"
 transportTo: "Estes Park"
@@ -26,6 +27,7 @@ tags: ["colorado", "national-parks", "wildlife"]
 costs:
   - { label: "Fuel", amount: 49, category: "transport", currency: "USD" }
   - { label: "Cabin in Estes Park", amount: 142, category: "accommodation", currency: "USD" }
+weatherData: { tempMin: -1.2, tempMax: 14, code: 2, precipitation: 0, windMax: 11, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.620Z" }
 ---
 
 Eighteen kilometres of road above the tree line, in September, with elk on the verge behaving as though the car were weather.

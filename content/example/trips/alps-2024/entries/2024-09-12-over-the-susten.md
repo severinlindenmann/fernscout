@@ -6,6 +6,7 @@ country: "Switzerland"
 countryCode: "CH"
 lat: 46.7297
 lng: 8.4444
+weather: true
 gallery:
   - src: "/media/alps-2024/over-the-susten/01.jpg"
     type: "image"
@@ -37,6 +38,7 @@ translations:
       Későn indultunk Zürichből, és pontosan addig bántuk, amíg magunk mögött nem hagytuk Lucernt. A Susten az a fajta út, amitől egy kölcsönkért kombi sokkal jobb autónak tűnik, mint amilyen.
       
       Fent volt egy kunyhó levessel és pontosan egyféle süteménnyel. Mindkettőből kértünk, kétszer.
+weatherData: { tempMin: -4.7, tempMax: -1.3, code: 75, precipitation: 6.9, windMax: 9.2, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.875Z" }
 ---
 
 We left Zurich late and regretted it for exactly as long as it took to get past Lucerne. The Susten is the kind of road that makes a borrowed estate car feel like a much better car than it is.
