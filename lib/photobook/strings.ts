@@ -60,6 +60,21 @@ export type BookStrings = {
   costsByCountry: string;
   nights: string;
 
+  /** The optional chart pages — B565. Off unless somebody asks for them. */
+  chartsSpend: string;
+  chartsCumulative: string;
+  chartsDaily: string;
+  chartsAverage: string;
+  chartsBudgetLine: string;
+  chartsWeather: string;
+  chartsHighLow: string;
+  chartsRain: string;
+  chartsAvgHigh: string;
+  chartsAvgLow: string;
+  /** "{count} days had no reading." Never a guess at what they were. */
+  chartsMissing: string;
+  chartsSource: string;
+
   colophon: string;
   colophonBy: string;
   colophonByNobody: string;
@@ -100,6 +115,19 @@ const EN: BookStrings = {
   costsBudgetVsActual: "Budget and what happened",
   costsByCountry: "By country",
   nights: "nights",
+
+  chartsSpend: "Where the money went",
+  chartsCumulative: "Spent, day by day",
+  chartsDaily: "What each day cost",
+  chartsAverage: "average",
+  chartsBudgetLine: "the budget",
+  chartsWeather: "The weather we had",
+  chartsHighLow: "Daily high and low",
+  chartsRain: "Rain",
+  chartsAvgHigh: "average high",
+  chartsAvgLow: "average low",
+  chartsMissing: "{count} days have no reading, and are left blank.",
+  chartsSource: "Measured by {source}.",
 
   colophon: "Colophon",
   colophonBy: "Written and photographed by {names}.",
@@ -164,6 +192,19 @@ const DE: BookStrings = {
   costsByCountry: "Nach Land",
   nights: "Nächte",
 
+  chartsSpend: "Wofür das Geld draufging",
+  chartsCumulative: "Ausgegeben, Tag für Tag",
+  chartsDaily: "Was jeder Tag gekostet hat",
+  chartsAverage: "Durchschnitt",
+  chartsBudgetLine: "das Budget",
+  chartsWeather: "Das Wetter, das wir hatten",
+  chartsHighLow: "Höchst- und Tiefstwerte",
+  chartsRain: "Niederschlag",
+  chartsAvgHigh: "im Mittel höchstens",
+  chartsAvgLow: "im Mittel mindestens",
+  chartsMissing: "Für {count} Tage gibt es keine Messung; sie bleiben leer.",
+  chartsSource: "Gemessen von {source}.",
+
   colophon: "Impressum",
   colophonBy: "Geschrieben und fotografiert von {names}.",
   colophonByNobody: "Geschrieben und fotografiert von den Reisenden.",
@@ -226,6 +267,19 @@ const HU: BookStrings = {
   costsBudgetVsActual: "A terv és ami lett belőle",
   costsByCountry: "Országonként",
   nights: "éjszaka",
+
+  chartsSpend: "Mire ment el a pénz",
+  chartsCumulative: "Elköltve, napról napra",
+  chartsDaily: "Mennyibe került egy-egy nap",
+  chartsAverage: "átlag",
+  chartsBudgetLine: "a keret",
+  chartsWeather: "Milyen időnk volt",
+  chartsHighLow: "Napi maximum és minimum",
+  chartsRain: "Csapadék",
+  chartsAvgHigh: "átlagos maximum",
+  chartsAvgLow: "átlagos minimum",
+  chartsMissing: "{count} napról nincs mérés, ezek üresen maradnak.",
+  chartsSource: "Mérte: {source}.",
 
   colophon: "Kolofon",
   colophonBy: "Írta és fényképezte: {names}.",

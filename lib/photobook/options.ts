@@ -55,6 +55,19 @@ export type BookOptions = {
   /** The cost summary page. */
   includeCosts: boolean;
   /**
+   * The chart pages — spend against the budget, and the trip's weather. B565.
+   *
+   * **Off by default, and that is a real answer rather than a shy one.**
+   * Somebody printing a book of photographs may not want a page of charts in
+   * it, and every other include-switch here defends a page the book has
+   * always had. This one adds pages, so it asks first.
+   *
+   * On, it prints what the trip actually recorded and nothing else: no costs
+   * means no spend page, no `weatherData` means no weather page, and neither
+   * means the switch quietly adds nothing.
+   */
+  includeCharts: boolean;
+  /**
    * The photograph on the front cover, as a `MediaTile.src`.
    *
    * Absent means the planner picks, which is what every book did before this
@@ -180,6 +193,7 @@ export const DEFAULT_OPTIONS: BookOptions = {
   includeChapters: true,
   includeNames: true,
   includeCosts: true,
+  includeCharts: false,
   focalPoints: {},
 };
 
@@ -347,6 +361,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     includeChapters: bool("includeChapters"),
     includeNames: bool("includeNames"),
     includeCosts: bool("includeCosts"),
+    includeCharts: bool("includeCharts"),
   };
   if (
     !size ||
@@ -374,6 +389,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     includeChapters: flags.includeChapters as boolean,
     includeNames: flags.includeNames as boolean,
     includeCosts: flags.includeCosts as boolean,
+    includeCharts: flags.includeCharts as boolean,
     ...(cover !== undefined ? { cover } : {}),
   };
 }
