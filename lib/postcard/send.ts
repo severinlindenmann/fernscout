@@ -187,7 +187,13 @@ export async function sendOrder(owner: string, id: string): Promise<SendOutcome>
   let firstCard: Uint8Array | undefined;
 
   for (const [index, { contactId, to }] of recipients.entries()) {
-    const common = { photo, message: order.payload.message, from: order.payload.from, to };
+    const common = {
+      photo,
+      message: order.payload.message,
+      from: order.payload.from,
+      to,
+      crop: order.payload.crop,
+    };
     const both = renderPostcard(common);
     // One card's warnings stand for the order: the photograph and the message
     // are the same on every one of them, so repeating them per recipient would

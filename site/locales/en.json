@@ -792,6 +792,8 @@
   "postcard.page.balance": "You have {balance}.",
   "postcard.page.buy": "Buy credits",
   "postcard.page.cost": "{each} credits each × {count} = {total} credits",
+  "postcard.page.cropHint": "Drag the photograph to choose what stays on the card.",
+  "postcard.page.cropSaving": "Saving…",
   "postcard.page.dayWithTitle": "“{title}”, {date}",
   "postcard.page.expiredOn": "This order expired on {date}. Ask for a new one.",
   "postcard.page.fixed": "The photograph and the people are fixed — changing those means a new order.",

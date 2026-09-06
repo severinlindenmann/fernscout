@@ -899,6 +899,8 @@ export type TranslationKey =
   | "postcard.page.balance"
   | "postcard.page.buy"
   | "postcard.page.cost"
+  | "postcard.page.cropHint"
+  | "postcard.page.cropSaving"
   | "postcard.page.dayWithTitle"
   | "postcard.page.expiredOn"
   | "postcard.page.fixed"

@@ -792,6 +792,8 @@
   "postcard.page.balance": "Du hast {balance}.",
   "postcard.page.buy": "Credits kaufen",
   "postcard.page.cost": "{each} Credits pro Karte × {count} = {total} Credits",
+  "postcard.page.cropHint": "Zieh das Foto, um zu wählen, was auf der Karte bleibt.",
+  "postcard.page.cropSaving": "Wird gespeichert…",
   "postcard.page.dayWithTitle": "„{title}“, {date}",
   "postcard.page.expiredOn": "Diese Bestellung ist am {date} abgelaufen. Lass eine neue erstellen.",
   "postcard.page.fixed": "Das Foto und die Personen stehen fest — dafür braucht es eine neue Bestellung.",
