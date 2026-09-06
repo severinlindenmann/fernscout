@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: photobook, postcards
 found: "2026-09-06T15:08:43Z"
+merged: "2026-09-06T15:12:52Z"
 ---
 
 # B606 — A short balance kills the order button instead of explaining itself
