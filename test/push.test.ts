@@ -14,6 +14,7 @@ import {
 } from "@/lib/push";
 import type { StoredSubscription } from "@/lib/repos/types";
 import type { Trip } from "@/lib/types";
+import { ALL_TRACKED } from "@/lib/tracks";
 import { clearUserCache } from "@/lib/users";
 
 /**
@@ -31,6 +32,7 @@ function fakeTrip(overrides: Partial<Trip> = {}): Trip {
     id: "asia-2023",
     username: "ana",
     ref: "ana/asia-2023",
+    tracks: ALL_TRACKED,
     rates: {},
     title: "Asia 2026",
     start: "2026-01-01",

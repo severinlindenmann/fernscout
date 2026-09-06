@@ -1,6 +1,7 @@
 import type { RateTable } from "./currency";
 import type { Figure } from "./travellers/vocabulary";
 import type { DayWeather } from "./weather";
+import type { Track, Tracks } from "./tracks";
 
 export type TransportMode =
   | "flight"
@@ -206,6 +207,17 @@ export type Entry = {
    * and for a journal with the capability off.
    */
   weather?: DayWeather;
+  /**
+   * What this day deliberately does not have — B531.
+   *
+   * `without: [costs]` is what `"costs": false` on the write call becomes, and
+   * it is a statement about the day rather than a flag on the request: *there
+   * was no money on this day*. It is in the file so that a reader a year later
+   * can tell that from nobody having asked, which is the distinction the
+   * software had no way to make and the reason fourteen days once went up with
+   * their spending left on somebody's laptop.
+   */
+  without?: Track[];
 };
 
 /** One calendar day, which may hold several updates ("branches"). */
@@ -425,6 +437,13 @@ export type Trip = {
    */
   test?: boolean;
   costsVisibility: CostsVisibility;
+  /**
+   * What this trip keeps track of, and therefore what a day written into it
+   * is asked for — B531. Every row on unless the file says otherwise, which
+   * is why this is not optional here: `parseTracks` answers for a trip whose
+   * file says nothing, and the answer is "all of it".
+   */
+  tracks: Tracks;
   /**
    * Frontmatter keys the parser did not consume. Absent when there are none,
    * which is the ordinary case.

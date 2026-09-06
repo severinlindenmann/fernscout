@@ -118,6 +118,10 @@ export type EntryInput = {
   /** A reading the caller took themselves. B325 — and see `checkWeatherData`
    * for why this is the most restricted field on a day. */
   weatherData?: unknown;
+  /** The two declines that are not also a field — B531. `false` and nothing
+   *  else; `costs` takes it in the field above. */
+  coordinates?: unknown;
+  photos?: unknown;
 };
 
 /**
@@ -251,8 +255,36 @@ function checkTravelScene(input: EntryInput, problems: Problem[]): void {
  * stored nothing. Same failure `lib/validate/costs.ts` refuses on a trip's
  * own budget door (B295); this is the day-costs half of it.
  */
+/**
+ * `coordinates` and `photos` take one value and it is `false` — B531.
+ *
+ * Strict for the same reason `test:` is: these two words exist only to say a
+ * day deliberately lacks something, and `"photos": true` would read as a
+ * promise the writer cannot keep — photographs arrive on their own call. A
+ * caller that sent one meant *something*, and being told which value is
+ * accepted is cheaper than a day quietly written as though nothing was said.
+ */
+function checkDeclines(input: EntryInput, problems: Problem[]): void {
+  for (const field of ["coordinates", "photos"] as const) {
+    const value = input[field];
+    if (value === undefined || value === false) continue;
+    problems.push({
+      field,
+      got: describe(value),
+      expected:
+        field === "coordinates"
+          ? 'false — the only thing this word says. To place the day, send lat and lng instead'
+          : 'false — the only thing this word says. To add photographs, POST them to .../media',
+    });
+  }
+}
+
 export function checkCosts(input: EntryInput, problems: Problem[]): void {
   if (input.costs === undefined) return;
+  // `false` is the decline — B531. It says there was no money on this day,
+  // which is a statement about the day rather than a malformed list, so it
+  // passes here and is written as `without: [costs]` instead.
+  if (input.costs === false) return;
   if (!Array.isArray(input.costs)) {
     problems.push({ field: "costs", got: describe(input.costs), expected: "a list of cost items" });
     return;
@@ -633,6 +665,7 @@ export function validateEntry(
   checkTransportMode(input, problems);
   checkTravelScene(input, problems);
   checkCosts(input, problems);
+  checkDeclines(input, problems);
   checkTags(input, problems);
   checkTest(input, problems);
   checkWeather(input, problems);
@@ -677,6 +710,7 @@ export function validateEntryEdit(
   checkTransportMode(input, problems);
   checkTravelScene(input, problems);
   checkCosts(input, problems);
+  checkDeclines(input, problems);
   checkTags(input, problems);
   checkTest(input, problems);
   checkWeather(input, problems);

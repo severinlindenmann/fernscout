@@ -1,10 +1,11 @@
 import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
-import { publishNotice, publishDraft } from "@/lib/api/entries";
+import { editEntry, factsOfEntry, publishNotice, publishDraft } from "@/lib/api/entries";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { isTestContent } from "@/lib/access";
 import { balanceOf } from "@/lib/credits";
 import { getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
+import { incompleteMessage, missingFrom } from "@/lib/tracks";
 import { serverSite } from "@/lib/site";
 import { mailWouldCost, sendDayLetter } from "@/lib/digest/dayLetter";
 import { mailSummary } from "@/lib/api/dayMail";
@@ -112,7 +113,50 @@ export async function POST(
     sendMail: sendMailRequested,
     sendWhatsapp: sendWhatsappRequested,
     ignored: flagsIgnored,
+    declined,
   } = await readPublishFlags(request);
+
+  /**
+   * The second gate — B531, and the only one that can ask about photographs.
+   *
+   * A day cannot carry a picture when it is written: media is a second call.
+   * So publish is where `photos` is checked, and since it is checking
+   * anything it re-runs the whole contract — which catches a day written
+   * before its trip started tracking something, and a day whose photographs
+   * were meant to follow and never did.
+   *
+   * The declines are written into the day *before* it goes up, so the file
+   * that reaches the site is the one that says what it deliberately does not
+   * have. Written even when nothing is missing: `"photos": false` on a day
+   * that has none is a fact worth keeping whether or not the gate would have
+   * stopped it.
+   */
+  if (declined.length > 0) {
+    const said = editEntry(ref, slug, Object.fromEntries(declined.map((k) => [k, false])));
+    if (!said.ok) {
+      return Response.json(
+        { error: "could_not_record_decline", message: said.error },
+        { status: said.bug ? 500 : 400 },
+      );
+    }
+  }
+
+  const day = getEntryBySlug(ref, slug, { includeDrafts: true })!;
+  const missing = missingFrom(factsOfEntry(day), found.tracks, "publish");
+  if (missing.length > 0) {
+    return Response.json(
+      {
+        error: "incomplete_day",
+        message: incompleteMessage(missing, true),
+        missing,
+        note:
+          "The day is still a draft and nothing was sent. Add what is missing — for " +
+          "photographs that is POST .../media with this day's slug — or say in this call " +
+          "that it does not have it, and publish again.",
+      },
+      { status: 422 },
+    );
+  }
 
   /*
    * The credits pre-flight — B366. Before anything is published, ask what

@@ -1,11 +1,19 @@
 import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
-import { createDraft, deleteEntry, entrySummary, isPublished, type DraftInput } from "@/lib/api/entries";
+import {
+  createDraft,
+  deleteEntry,
+  entrySummary,
+  factsOfInput,
+  isPublished,
+  type DraftInput,
+} from "@/lib/api/entries";
 import { confirmationMatches, confirmationRequired } from "@/lib/agentConfirm";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { getAllEntries } from "@/lib/entries";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntry } from "@/lib/validate/entry";
+import { incompleteMessage, missingFrom } from "@/lib/tracks";
 
 import { getUser } from "@/lib/users";
 
@@ -106,6 +114,28 @@ export async function POST(
   const problems = validateEntry(body, languagesOf(user));
   if (problems.length > 0) {
     return Response.json({ error: "invalid_entry", problems }, { status: 400 });
+  }
+
+  /**
+   * What this trip keeps, and what this day says about it — B531.
+   *
+   * Separate from `validateEntry` above and deliberately so: that answers
+   * "is this a day", in the voice of a shape check, and this answers "did
+   * anybody ask". The status is different for the same reason — 422 rather
+   * than 400, because nothing here is malformed.
+   *
+   * The one thing this response must not do is read as "supply a value or
+   * fail". Every entry carries its `decline` beside its `send`, and the
+   * message says out loud that asking the person is the answer, because an
+   * agent that reads a refusal as a demand invents something to satisfy it,
+   * and that is worse than the omission this exists to catch.
+   */
+  const missing = missingFrom(factsOfInput(body), found.tracks, "write");
+  if (missing.length > 0) {
+    return Response.json(
+      { error: "incomplete_day", message: incompleteMessage(missing, false), missing },
+      { status: 422 },
+    );
   }
 
   /**

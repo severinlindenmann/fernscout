@@ -141,7 +141,16 @@ async function writeDay(token: string, trip: string, title: string) {
     new Request(`https://example.test/api/v1/${OWNER}/trips/${trip}/days`, {
       method: "POST",
       headers: headers({ authorization: `Bearer ${token}` }),
-      body: JSON.stringify({ date: "2026-08-25", title, content: "Something happened." }),
+      body: JSON.stringify({
+        date: "2026-08-25",
+        title,
+        content: "Something happened.",
+        // Not this file's subject: the two declines satisfy B531's
+        // completeness contract, which every day written into a tracking trip
+        // meets.
+        costs: false,
+        coordinates: false,
+      }),
     }),
     { params: Promise.resolve({ user: OWNER, trip }) },
   );

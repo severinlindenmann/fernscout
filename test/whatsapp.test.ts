@@ -366,11 +366,13 @@ describe("both publish flags survive sharing one request body", () => {
       sendMail: true,
       sendWhatsapp: false,
       ignored: [],
+      declined: [],
     });
     expect(await readPublishFlags(bodied({ send_whatsapp: true }))).toEqual({
       sendMail: false,
       sendWhatsapp: true,
       ignored: [],
+      declined: [],
     });
   });
 
@@ -382,6 +384,7 @@ describe("both publish flags survive sharing one request body", () => {
       sendMail: true,
       sendWhatsapp: true,
       ignored: [],
+      declined: [],
     });
   });
 
@@ -390,17 +393,20 @@ describe("both publish flags survive sharing one request body", () => {
       sendMail: false,
       sendWhatsapp: false,
       ignored: [],
+      declined: [],
     });
     expect(await readPublishFlags(bodied({ send_mail: false, send_whatsapp: false }))).toEqual({
       sendMail: false,
       sendWhatsapp: false,
       ignored: [],
+      declined: [],
     });
     const broken = new Request("https://t.test/x", { method: "POST", body: "{not json" });
     expect(await readPublishFlags(broken)).toEqual({
       sendMail: false,
       sendWhatsapp: false,
       ignored: [],
+      declined: [],
     });
   });
 
@@ -412,21 +418,25 @@ describe("both publish flags survive sharing one request body", () => {
       sendMail: false,
       sendWhatsapp: false,
       ignored: ["send_whatsapp"],
+      declined: [],
     });
     expect(await readPublishFlags(bodied({ send_mail: "true" }))).toEqual({
       sendMail: false,
       sendWhatsapp: false,
       ignored: ["send_mail"],
+      declined: [],
     });
     expect(await readPublishFlags(bodied({ send_mail: 1 }))).toEqual({
       sendMail: false,
       sendWhatsapp: false,
       ignored: ["send_mail"],
+      declined: [],
     });
     expect(await readPublishFlags(bodied({ send_mail: "true", send_whatsapp: 0 }))).toEqual({
       sendMail: false,
       sendWhatsapp: false,
       ignored: ["send_mail", "send_whatsapp"],
+      declined: [],
     });
   });
 });

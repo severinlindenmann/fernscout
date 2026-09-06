@@ -3,6 +3,7 @@ import { deleteCosts, patchCosts, putCosts, type CostsEditInput, type CostsFileI
 import { conversionFor, hasCostsData, readCostsFile } from "@/lib/costs";
 import { parseBudget, parseCostItems } from "@/lib/costFormat";
 import { getTrip, tripRef } from "@/lib/trips";
+import { tripGaps } from "@/lib/api/tripGaps";
 import { validateCostsPatch, validateCostsPut } from "@/lib/validate/costs";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +68,15 @@ export async function GET(
     budget: budget ?? null,
     costs,
     body: parsed ? parsed.content.trim() : "",
+    /**
+     * What the trip is visibly missing — B532.
+     *
+     * A budget over ten days beside zero days recording any spending is a
+     * contradiction this endpoint could always see and never mentioned, and
+     * an agent that read it back after writing fourteen days would have been
+     * told, in the same call it was already making.
+     */
+    ...(tripGaps(ref, budget !== undefined) ?? {}),
   });
 }
 

@@ -1,12 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { accessSecret, isIndexable, isOpenToLink, isTestContent, maySeeCosts } from "@/lib/access";
 import type { Trip } from "@/lib/types";
+import { ALL_TRACKED } from "@/lib/tracks";
 
 function trip(over: Partial<Trip> = {}): Trip {
   return {
     id: "t",
     username: "u",
     ref: "u/t",
+    tracks: ALL_TRACKED,
     title: "T",
     start: "2026-01-01",
     end: "2026-01-05",

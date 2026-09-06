@@ -216,7 +216,12 @@ async function scopedToken(email: string, trip: string): Promise<string> {
   return session.token;
 }
 
-async function publish(token: string, tripId: string, slug: string, body: unknown = {}) {
+async function publish(
+  token: string,
+  tripId: string,
+  slug: string,
+  body: Record<string, unknown> = {},
+) {
   const { POST } = await import(
     "@/app/api/v1/[user]/trips/[trip]/days/[slug]/publish/route"
   );
@@ -224,7 +229,12 @@ async function publish(token: string, tripId: string, slug: string, body: unknow
     new Request(`https://t.test/api/v1/${OWNER}/trips/${tripId}/days/${slug}/publish`, {
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify(body),
+      // The three declines by default: these fixture days carry no money, no
+      // photographs and sometimes no coordinates, and a trip tracks all three
+      // unless it says otherwise (B531). Publish re-runs the whole contract,
+      // so a file about the *letter* satisfies it here once rather than in
+      // every test.
+      body: JSON.stringify({ costs: false, coordinates: false, photos: false, ...body }),
     }),
     { params: Promise.resolve({ user: OWNER, trip: tripId, slug }) },
   );

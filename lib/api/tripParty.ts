@@ -6,6 +6,7 @@ import { getTrip, tripDir, tripRef, type TripRef } from "../trips";
 import type { TripPerson } from "../types";
 import type { Figure } from "../travellers/vocabulary";
 import { peopleBlock, travellersBlock, type BlockResult } from "../tripWrite";
+import { spliceBlock } from "./tripFile";
 import { authenticate, errorResponse, ownsUser } from "./auth";
 import { SESSION_SCOPE } from "../auth";
 
@@ -34,42 +35,6 @@ import { SESSION_SCOPE } from "../auth";
  * rest implied would have to guess whether the others were being kept or
  * dropped. Send the whole list; send `[]` to clear it.
  */
-
-const INDENTED_RE = /^\s+\S/;
-
-/** Where `key:` starts inside the frontmatter, or -1 if absent. The same
- * six lines `tripRates.ts` and `tripVisibility.ts` each carry, and kept here
- * for the same reason they gave: three modules touching three different
- * shapes, coupled by nothing but a regexp. */
-function frontmatterLineOf(lines: string[], closing: number, key: string): number {
-  const pattern = new RegExp(`^${key}:(\\s|$)`);
-  return lines.findIndex((line, i) => i > 0 && i < closing && pattern.test(line));
-}
-
-/**
- * Replace one top-level frontmatter key and everything indented under it,
- * insert it if it is absent, or remove it when `newLines` is empty.
- *
- * Removing matters here in a way it did not for rates: `people: []` is how an
- * owner says nobody but them was on this trip, and leaving a bare `people:`
- * behind would be a key whose value is null rather than an absent one.
- */
-function spliceBlock(markdown: string, key: string, newLines: string[]): string | null {
-  const lines = markdown.split("\n");
-  if (lines[0]?.trim() !== "---") return null;
-  const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
-  if (closing < 0) return null;
-
-  const at = frontmatterLineOf(lines, closing, key);
-  if (at >= 0) {
-    let end = at + 1;
-    while (end < closing && INDENTED_RE.test(lines[end])) end++;
-    lines.splice(at, end - at, ...newLines);
-  } else if (newLines.length > 0) {
-    lines.splice(closing, 0, ...newLines);
-  }
-  return lines.join("\n");
-}
 
 export type PartyWriteResult =
   | { ok: true; people: TripPerson[]; travellers: Figure[] }
