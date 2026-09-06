@@ -450,7 +450,7 @@ function Car({ spin, taxi = false }: { spin: boolean; taxi?: boolean }) {
           ))}
         </>
       ) : (
-        <Titles x={13} y={27} size={6} fill="#f6c9c4" />
+        <Titles x={39} y={27} size={6} fill="#f6c9c4" />
       )}
       <Wheel cx={26} cy={base} r={8} spin={spin} />
       <Wheel cx={80} cy={base} r={8} spin={spin} />
