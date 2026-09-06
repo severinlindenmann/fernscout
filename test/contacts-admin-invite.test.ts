@@ -126,13 +126,14 @@ async function grantExists(contactId: string): Promise<boolean> {
 /** Every mail this journal has "sent" (dry-run: a file on disk), addressed to
  * the given local part. */
 function mailedTo(marker: string): boolean {
-  const files = fs.readdirSync(path.join(dir, OWNER, "mail"));
+  const files = fs.readdirSync(path.join(dir, "mail", OWNER));
   return files.some((f) => f.includes(marker));
 }
 
 beforeAll(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-admin-invite-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "db.sqlite")}`;
   process.env.CONTACTS_ENCRYPTION_KEY = "cc".repeat(32);
   process.env.SESSION_SECRET = "dd".repeat(32);
@@ -184,7 +185,7 @@ afterEach(() => {
 afterAll(async () => {
   const { closeDatabase } = await import("@/lib/db");
   await closeDatabase();
-  for (const key of ["CONTENT_DIR", "DATABASE_URL", "CONTACTS_ENCRYPTION_KEY", "SESSION_SECRET"]) {
+  for (const key of ["CONTENT_DIR", "DATA_DIR", "DATABASE_URL", "CONTACTS_ENCRYPTION_KEY", "SESSION_SECRET"]) {
     delete process.env[key];
   }
   fs.rmSync(dir, { recursive: true, force: true });
@@ -269,7 +270,7 @@ describe("resending the mailed invitation", () => {
     expect(resent.body.sent).toBe(true);
 
     // Two mails to the same address now: the original and the resend.
-    const files = fs.readdirSync(path.join(dir, OWNER, "mail"));
+    const files = fs.readdirSync(path.join(dir, "mail", OWNER));
     expect(files.filter((f) => f.includes("lost-it-example-test")).length).toBeGreaterThanOrEqual(2);
   });
 

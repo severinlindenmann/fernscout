@@ -46,6 +46,7 @@ const OWNER = "owner@example.test";
 const SITE = "https://example.test";
 
 let dir: string;
+let data: string;
 
 function serverConfig(extra: Record<string, unknown> = {}) {
   fs.writeFileSync(
@@ -143,14 +144,16 @@ function publishADay(username: string): void {
 }
 
 function mailFor(username: string): string[] {
-  const folder = path.join(dir, username, "mail");
+  const folder = path.join(data, "mail", username);
   if (!fs.existsSync(folder)) return [];
   return fs.readdirSync(folder).filter((f) => f.endsWith(".eml"));
 }
 
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-mailswitch-"));
+  data = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-mailswitch-data-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = data;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
   process.env.SESSION_SECRET = "test-secret-for-the-mail-switch";
   process.env.CONTACTS_ENCRYPTION_KEY = "0".repeat(64);
@@ -166,6 +169,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await closeDatabase();
   delete process.env.CONTENT_DIR;
+  delete process.env.DATA_DIR;
   delete process.env.DATABASE_URL;
   delete process.env.SESSION_SECRET;
   delete process.env.CONTACTS_ENCRYPTION_KEY;
@@ -173,6 +177,7 @@ afterEach(async () => {
   clearUserCache();
   vi.restoreAllMocks();
   fs.rmSync(dir, { recursive: true, force: true });
+  fs.rmSync(data, { recursive: true, force: true });
 });
 
 describe("letters the journal writes to its readers — governed by its own switch", () => {
@@ -257,7 +262,7 @@ describe("letters about access to the journal — not governed by its switch", (
     expect(response.status).toBe(202);
     const files = mailFor(QUIET);
     expect(files, "the code has to reach somebody").toHaveLength(1);
-    expect(fs.readFileSync(path.join(dir, QUIET, "mail", files[0]), "utf8")).toContain(OWNER);
+    expect(fs.readFileSync(path.join(data, "mail", QUIET, files[0]), "utf8")).toContain(OWNER);
   });
 
   /**
@@ -272,7 +277,7 @@ describe("letters about access to the journal — not governed by its switch", (
 
     const files = mailFor(QUIET);
     expect(files).toHaveLength(1);
-    expect(fs.readFileSync(path.join(dir, QUIET, "mail", files[0]), "utf8")).toContain(OWNER);
+    expect(fs.readFileSync(path.join(data, "mail", QUIET, files[0]), "utf8")).toContain(OWNER);
   });
 
   test("the exemption is a written reason, not a missing argument", async () => {
@@ -404,7 +409,7 @@ describe("mail that belongs to no journal", () => {
   test("a signup code answers to the server switch alone", async () => {
     const sent = await sendMail(renderMail("newcomer@example.test", "Your code", SAMPLE));
     expect(sent).not.toBeNull();
-    expect(fs.readdirSync(path.join(dir, ".mail"))).toHaveLength(1);
+    expect(fs.readdirSync(path.join(data, "mail", ".mail"))).toHaveLength(1);
 
     serverConfig({ enabled: false });
     await expect(

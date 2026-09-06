@@ -6,16 +6,17 @@ and a mailbox.
 ## Development
 
 `features.mail.transport` defaults to `file`. Every message is written as a real
-`.eml` under `content/<user>/mail/` — gitignored — and a one-line summary is
+`.eml` under `<dataDir>/mail/<user>/` — gitignored — and a one-line summary is
 printed to the console. Open the file in any mail client to see exactly what a
 reader would get, including the plain-text alternative.
 
 One kind of message has no user to be filed under. A **signup code** is
 addressed to somebody who does not own a journal yet, so it goes to
-`content/.mail/` instead — same format, same rules, also gitignored. That is
-the only directory involved besides the per-user ones, and everything
-`lib/mail` writes is under the content root: nothing is ever written next to
-the code (B111).
+`<dataDir>/mail/.mail/` instead — same format, same rules, also gitignored.
+That is the only directory involved besides the per-user ones, and everything
+`lib/mail` writes is under `dataDir()`: nothing is ever written next to the
+code (B111), and — since B636 — nothing is ever written under `contentRoot()`
+either, so a journal's own backup and export never carry it.
 
 That covers the whole flow: digests, one-time codes, approval notices. Nothing
 in this project requires a paid mailbox to build or test.
@@ -100,9 +101,9 @@ same lie told the other way round.
 ## Keeping copies on a server that really sends
 
 `features.mail.keepCopy: true` writes the same `.eml` under
-`content/<user>/mail/` — or `content/.mail/`, for a signup code — *in addition
-to* sending the message for real. It works over any transport and is **off
-unless you set it**.
+`<dataDir>/mail/<user>/` — or `<dataDir>/mail/.mail/`, for a signup code — *in
+addition to* sending the message for real. It works over any transport and is
+**off unless you set it**.
 
 It exists because on an instance sending real mail, the flows that matter most
 cannot be checked: a sign-in code and a journal-deletion link both arrive only
@@ -110,12 +111,14 @@ in somebody's inbox, so whoever is testing the site can get as far as "the
 endpoint refuses me" and no further.
 
 **Turning it on writes sign-in codes, signup codes, guest invitations and
-deletion links to disk in plaintext.** Anyone who can read the filesystem — a
-backup, a snapshot, another process on the box — can then sign in as any reader
-of that journal, start a journal at somebody else's address, or finish a
-deletion. That is the same exposure the `file` transport already has in
-development; the difference is that a server has real readers. Turn it on to
-debug something, and turn it off again.
+deletion links to disk in plaintext.** Anyone who can read the filesystem —
+another process on the box — can then sign in as any reader of that journal,
+start a journal at somebody else's address, or finish a deletion. Since B636
+this is no longer also "a backup, a snapshot" — `scripts/backup.sh` excludes
+`<dataDir>/mail/` from what it archives — but the exposure on the box itself
+is the same one the `file` transport already has in development; the
+difference is that a server has real readers. Turn it on to debug something,
+and turn it off again.
 
 ### How long they last
 
@@ -141,11 +144,27 @@ Two limits worth knowing, because "two days" is easy to over-read:
 Clearing it out is two directories, not one:
 
 ```bash
-rm -f "$CONTENT_DIR"/*/mail/*.eml "$CONTENT_DIR"/.mail/*.eml
+rm -f "$DATA_DIR"/mail/*/*.eml "$DATA_DIR"/mail/.mail/*.eml
 ```
 
 `/api/health` reports it as `capabilities.mail.keepingCopies`, so you can tell
 from outside whether a server is doing this without reading its config.
+
+### Upgrading from before B636
+
+Before B636 this all lived under `content/<user>/mail/` and `content/.mail/`
+instead — inside the folder `scripts/backup.sh` archives. On a deployment
+that has not restarted since, a `.eml` sitting there from before the move gets
+finished off automatically: the next message sent for that journal sweeps the
+old directory on the same two-day rule, so it does not sit in a backup
+forever without anybody having said so. A journal that sends no further mail
+keeps whatever it had there — the same accepted limit as the sweep always
+had — so an operator who wants those gone immediately can still clear them by
+hand:
+
+```bash
+rm -f "$CONTENT_DIR"/*/mail/*.eml "$CONTENT_DIR"/.mail/*.eml
+```
 
 ## Production
 

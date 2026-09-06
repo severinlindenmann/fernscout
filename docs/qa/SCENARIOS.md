@@ -34,8 +34,8 @@ npm run db:migrate && npm run build && PORT=3400 npm start
 
 **No SMTP and no Postgres, on purpose.** That is the configuration a
 self-hoster gets by default, and the one that has to work: mail is written as
-`.eml` files under `content/<user>/mail/` for a person or an agent to pick up
-and forward, and the database is a SQLite file. If a scenario below only
+`.eml` files under `<DATA_DIR>/mail/<user>/` for a person or an agent to pick
+up and forward, and the database is a SQLite file. If a scenario below only
 passes with a mail server or a Postgres URL, that is the finding.
 
 Out of scope for this pass, by instruction: **photobook and postcard
@@ -152,7 +152,7 @@ The section where a mistake is unrecoverable.
 
 | # | Scenario | Pass |
 | --- | --- | --- |
-| H1 | `POST /api/auth/request` for the owner address | 202, and an `.eml` appears in `content/<user>/mail/` |
+| H1 | `POST /api/auth/request` for the owner address | 202, and an `.eml` appears in `<DATA_DIR>/mail/<user>/` |
 | H2 | Same for a **non-owner** address | 202 (no enumeration) but **no** agent mail written |
 | H3 | `POST /api/auth/verify` with the code | Token prefixed `fs_agent_` |
 | H4 | Wrong code | Refused |
@@ -182,7 +182,7 @@ The open-source promise: everything works, the mail lands in a folder.
 
 | # | Scenario | Pass |
 | --- | --- | --- |
-| K1 | Every mail the app sends, with `transport: file` | `.eml` under `content/<user>/mail/` — or `content/.mail/` for a signup code, which belongs to no journal yet — one file per message, and nothing outside the content root |
+| K1 | Every mail the app sends, with `transport: file` | `.eml` under `<DATA_DIR>/mail/<user>/` — or `<DATA_DIR>/mail/.mail/` for a signup code, which belongs to no journal yet — one file per message, and nothing under the content root |
 | K2 | Open one in a mail client | Valid MIME, readable, links absolute |
 | K3 | An invite link the owner issued, `/<user>/i/<token>` | A form: name, email, optional postal address. `/<user>/join` redirects to `/<user>/me` and offers nothing (B37) |
 | K4 | Submitting it | Confirmation code by `.eml`; entering it confirms |

@@ -112,10 +112,6 @@ content/
                               reserved and makes its old URLs answer 410.
                               Gitignored; an operator frees the name by
                               deleting the file. See lib/tombstones.ts.
-  .mail/                      mail that belongs to no journal yet — a signup
-                              code is addressed to somebody who does not own a
-                              name. Gitignored, and plaintext while it sits
-                              there, so clear it with the per-user folders.
   <username>/
     config.json               who this person is: title, tagline, owner,
                               locales, baseCurrency, per-user features
@@ -129,8 +125,15 @@ content/
                               for an upcoming trip (optional)
         media/                derivatives served to the browser
         .ingest.json          what ingest has already imported (do not edit)
-    postcards/ photobooks/ mail/    generated output (gitignored)
+    postcards/ photobooks/    generated output (gitignored)
 ```
+
+Sent mail is not in this tree. Since B636 it lives under the data dir
+instead — `<dataDir>/mail/<username>/` (and `<dataDir>/mail/.mail/` for a
+signup code, which belongs to no journal yet) — because it is transient,
+plaintext, and swept after two days (`lib/mail/index.ts`), not something the
+owner's own backup or export should ever carry. `scripts/backup.sh` stages
+`DATA_DIR` and then drops that one subdirectory before it pushes.
 
 A trip is addressed as a **ref**: `<username>/<trip-id>`. Trip ids are unique
 within a user, not across the instance, so nothing addresses a trip by id alone.
@@ -231,11 +234,12 @@ touched since before the rename — but nothing writes it back out; ask for
 - **Local dev is SQLite, production is Postgres**, and nothing outside
   `lib/db/` knows which.
 - **No feature needs a paid account to develop or test.** Mail writes `.eml`
-  files under `content/<user>/mail/` — or `content/.mail/` when it belongs to
-  no journal yet, which is signup codes — OTP codes are printed, and every
-  print provider has a `dry-run` backend that writes files. Every path
-  `lib/mail` can write to is under `contentRoot()`; nothing lands next to the
-  code (B111).
+  files under `<dataDir>/mail/<user>/` — or `<dataDir>/mail/.mail/` when it
+  belongs to no journal yet, which is signup codes — OTP codes are printed,
+  and every print provider has a `dry-run` backend that writes files. Every
+  path `lib/mail` can write to is under `dataDir()`; nothing lands next to the
+  code (B111), and nothing lands under `contentRoot()` either, so it is never
+  in a backup or an export (B636).
 - **Every optional capability is off by default** and must be *absent* rather
   than broken when disabled. `lib/capabilities.ts` decides, and `/api/health`
   explains why something is off.

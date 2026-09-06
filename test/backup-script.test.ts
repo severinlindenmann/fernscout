@@ -365,6 +365,14 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     );
     fs.writeFileSync(path.join(dataDir, "fernscout.db"), crypto.randomBytes(4096));
 
+    // Sent mail (B636) lives under DATA_DIR/mail — plaintext, sign-in codes
+    // and deletion links among it — and must never reach a snapshot.
+    fs.mkdirSync(path.join(dataDir, "mail", "alex"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dataDir, "mail", "alex", "2026-06-01T00-00-00-000Z-code.eml"),
+      "To: alex@example.test\r\nSubject: Your code\r\n\r\n123456\r\n",
+    );
+
     // content/: an uncommitted edit, and an original that is in neither git nor
     // the export — the two things "just re-clone the repo" would silently lose.
     const trip = path.join(contentDir, "alex", "trips", "kyrgyzstan-2026");
@@ -395,7 +403,14 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
 
       const staged = restoreLatest("roundtrip");
 
-      expect(digestTree(path.join(staged, "data"), isStamp)).toEqual(digestTree(dataDir, isStamp));
+      // B636: DATA_DIR/mail is staged (so the sweep still owns it) and then
+      // dropped before the push, so the source and the restored tree
+      // legitimately differ by exactly that subtree.
+      const isStampOrMail = (rel: string) => isStamp(rel) || rel === "mail" || rel.startsWith(`mail${path.sep}`);
+      expect(digestTree(path.join(staged, "data"), isStampOrMail)).toEqual(
+        digestTree(dataDir, isStampOrMail),
+      );
+      expect(fs.existsSync(path.join(staged, "data", "mail"))).toBe(false);
       expect(digestTree(path.join(staged, "content"))).toEqual(digestTree(contentDir));
 
       // Named explicitly, because these are the acceptance criteria in B21 and

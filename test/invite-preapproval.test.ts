@@ -179,6 +179,7 @@ function failMailOnceTo(email: string) {
 beforeAll(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-preapproval-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "db.sqlite")}`;
   process.env.CONTACTS_ENCRYPTION_KEY = "aa".repeat(32);
   process.env.SESSION_SECRET = "bb".repeat(32);
@@ -235,7 +236,7 @@ afterEach(() => {
 afterAll(async () => {
   const { closeDatabase } = await import("@/lib/db");
   await closeDatabase();
-  for (const key of ["CONTENT_DIR", "DATABASE_URL", "CONTACTS_ENCRYPTION_KEY", "SESSION_SECRET"]) {
+  for (const key of ["CONTENT_DIR", "DATA_DIR", "DATABASE_URL", "CONTACTS_ENCRYPTION_KEY", "SESSION_SECRET"]) {
     delete process.env[key];
   }
   fs.rmSync(dir, { recursive: true, force: true });
@@ -254,7 +255,7 @@ describe("mailing a guest invite to a named address", () => {
 
     // One .eml on disk, addressed to the family — the fifth letter this task
     // adds, and not merely the code that follows redemption.
-    const files = fs.readdirSync(path.join(dir, OWNER, "mail"));
+    const files = fs.readdirSync(path.join(dir, "mail", OWNER));
     expect(files.some((f) => f.includes("family-example-test"))).toBe(true);
   });
 

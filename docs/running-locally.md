@@ -147,7 +147,7 @@ curl -s -X POST http://localhost:3000/api/auth/request \
 #    rather than grepping the file for six digits.
 python3 - <<'PY'
 import email, glob, os, pathlib, re
-f = max(glob.glob("content/*/mail/*.eml"), key=os.path.getmtime)
+f = max(glob.glob(".data/mail/*/*.eml"), key=os.path.getmtime)
 msg = email.message_from_string(pathlib.Path(f).read_text())
 for part in msg.walk():
     if part.get_content_maintype() == "text":
@@ -212,6 +212,7 @@ And start it with the secrets those capabilities need:
 
 ```bash
 CONTENT_DIR=/tmp/fs-content \
+DATA_DIR=/tmp/fs-data \
 SESSION_SECRET=$(openssl rand -hex 32) \
 CONTACTS_ENCRYPTION_KEY=$(openssl rand -hex 32) \
 DATABASE_URL="file:/tmp/fs-content/dev.db" \
@@ -231,7 +232,7 @@ is the failure this project cannot afford.
 ### Getting an agent token
 
 No SMTP is involved. `transport: "file"` writes each message as an `.eml` under
-`content/<user>/mail/`, and the six-digit code is inside it.
+`<DATA_DIR>/mail/<user>/`, and the six-digit code is inside it.
 
 Two things catch people out: the request must say `"kind":"agent"` (without it
 you get a *guest* code, which the agent endpoints will not accept), and the
@@ -244,13 +245,13 @@ curl -X POST localhost:3700/api/auth/request -H 'content-type: application/json'
   -d '{"user":"example","email":"agent@fernscout.ch","kind":"agent"}'
 ```
 
-Read the code out of the newest file in `/tmp/fs-content/example/mail/` — it is
+Read the code out of the newest file in `/tmp/fs-data/mail/example/` — it is
 a MIME message, so the body is base64 and `grep` will not find it:
 
 ```bash
 python3 - <<'PY'
 import email, glob, os, re
-f = max(glob.glob("/tmp/fs-content/example/mail/*.eml"), key=os.path.getmtime)
+f = max(glob.glob("/tmp/fs-data/mail/example/*.eml"), key=os.path.getmtime)
 for part in email.message_from_file(open(f)).walk():
     if part.get_content_maintype() == "multipart": continue
     body = part.get_payload(decode=True).decode("utf-8", "replace")
@@ -358,8 +359,8 @@ is for when CI has failed and you need to see why.
 | --- | --- |
 | `content/` | everything a person owns: the markdown and the photographs |
 | `.data/` | reader data — reaction counts, push subscriptions, the SQLite file. `DATA_DIR` moves it, and on a server it **must** point outside the repo so a `git pull` cannot delete it |
-| `content/<user>/mail/` | messages, when `transport: "file"`. Delete freely |
-| `content/.mail/` | the same, for mail that belongs to no journal yet — signup codes. Delete freely |
+| `.data/mail/<user>/` | messages, when `transport: "file"`. Delete freely |
+| `.data/mail/.mail/` | the same, for mail that belongs to no journal yet — signup codes. Delete freely |
 | `content/.cache/media/` | resized photographs, rebuilt on demand. Delete freely |
 | `.next/` | the build. Delete freely; `npm run build` remakes it |
 | `exports/` | `npm run export` output. Gitignored — it holds private trips |

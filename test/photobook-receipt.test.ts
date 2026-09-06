@@ -52,7 +52,7 @@ function writeUserConfig(defaultLocale = "en") {
 }
 
 function mailFiles(): string[] {
-  const box = path.join(dir, OWNER, "mail");
+  const box = path.join(dir, "mail", OWNER);
   return fs.existsSync(box) ? fs.readdirSync(box).sort() : [];
 }
 
@@ -71,7 +71,7 @@ function decodeMailParts(raw: string): string {
 function readOnlyEml(): string {
   const files = mailFiles();
   if (files.length !== 1) throw new Error(`expected exactly one .eml, found: ${files.join(", ")}`);
-  const raw = fs.readFileSync(path.join(dir, OWNER, "mail", files[0]), "utf8");
+  const raw = fs.readFileSync(path.join(dir, "mail", OWNER, files[0]), "utf8");
   // Raw headers (for the attachment-disposition check) plus the decoded
   // body (for everything else) — one string a caller can match against.
   return raw + "\n" + decodeMailParts(raw);
@@ -80,12 +80,14 @@ function readOnlyEml(): string {
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-photobook-mail-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   writeServerConfig();
   writeUserConfig();
 });
 
 afterEach(() => {
   delete process.env.CONTENT_DIR;
+  delete process.env.DATA_DIR;
   clearConfigCache();
   clearUserCache();
   fs.rmSync(dir, { recursive: true, force: true });

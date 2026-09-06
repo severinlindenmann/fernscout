@@ -104,6 +104,7 @@ async function clearCaches() {
 beforeAll(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-owner-self-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "db.sqlite")}`;
   process.env.CONTACTS_ENCRYPTION_KEY = "ee".repeat(32);
   process.env.SESSION_SECRET = "ff".repeat(32);
@@ -134,7 +135,7 @@ beforeAll(async () => {
 afterAll(async () => {
   const { closeDatabase } = await import("@/lib/db");
   await closeDatabase();
-  for (const key of ["CONTENT_DIR", "DATABASE_URL", "CONTACTS_ENCRYPTION_KEY", "SESSION_SECRET"]) {
+  for (const key of ["CONTENT_DIR", "DATA_DIR", "DATABASE_URL", "CONTACTS_ENCRYPTION_KEY", "SESSION_SECRET"]) {
     delete process.env[key];
   }
   fs.rmSync(dir, { recursive: true, force: true });
@@ -152,7 +153,7 @@ describe("the owner's own contact row", () => {
     expect(created.body.contact?.status).toBe("active");
     expect(created.body.contact?.confirmedAt).not.toBeNull();
     expect(created.body.contact?.name).toBe("Ana");
-    expect(fs.existsSync(path.join(dir, OWNER, "mail"))).toBe(false);
+    expect(fs.existsSync(path.join(dir, "mail", OWNER))).toBe(false);
   });
 
   test("pressing it again returns the row rather than emptying it", async () => {

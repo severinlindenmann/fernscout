@@ -24,11 +24,11 @@ function ip(): Record<string, string> {
 }
 
 function mailFiles(user = OWNER): string[] {
-  const d = path.join(dir, user, "mail");
+  const d = path.join(dir, "mail", user);
   return fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith(".eml")) : [];
 }
 function readMail(user: string, file: string): string {
-  return fs.readFileSync(path.join(dir, user, "mail", file), "utf8");
+  return fs.readFileSync(path.join(dir, "mail", user, file), "utf8");
 }
 
 async function payRoute(user: string, id: string, body: Record<string, unknown>) {
@@ -119,6 +119,7 @@ async function newPending(owner = OWNER) {
 beforeAll(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-payments-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "db.sqlite")}`;
   process.env.SESSION_SECRET = "88".repeat(32);
   writeServerConfig(OPERATOR_EMAIL);
@@ -135,7 +136,7 @@ beforeAll(async () => {
 afterAll(async () => {
   const { closeDatabase } = await import("@/lib/db");
   await closeDatabase();
-  for (const k of ["CONTENT_DIR", "DATABASE_URL", "SESSION_SECRET"]) delete process.env[k];
+  for (const k of ["CONTENT_DIR", "DATA_DIR", "DATABASE_URL", "SESSION_SECRET"]) delete process.env[k];
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

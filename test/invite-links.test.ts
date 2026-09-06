@@ -181,6 +181,7 @@ async function tripsByRef() {
 beforeAll(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-invites-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "db.sqlite")}`;
   process.env.CONTACTS_ENCRYPTION_KEY = "66".repeat(32);
   process.env.SESSION_SECRET = "77".repeat(32);
@@ -229,6 +230,7 @@ afterAll(async () => {
   await closeDatabase();
   for (const key of [
     "CONTENT_DIR",
+    "DATA_DIR",
     "DATABASE_URL",
     "CONTACTS_ENCRYPTION_KEY",
     "SESSION_SECRET",
@@ -735,7 +737,7 @@ describe("redeeming a guest link, with a postal address", () => {
     });
     await confirm(email);
 
-    const mailDir = path.join(dir, OWNER, "mail");
+    const mailDir = path.join(dir, "mail", OWNER);
     const files = fs.existsSync(mailDir) ? fs.readdirSync(mailDir) : [];
     expect(files.length).toBeGreaterThan(0);
     for (const file of files) {

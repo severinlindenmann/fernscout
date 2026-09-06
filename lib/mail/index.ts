@@ -4,6 +4,7 @@ import path from "node:path";
 import { hasSwitchedOff, isEnabled } from "../capabilities";
 import { loadServerConfig } from "../config";
 import { contentRoot } from "../contentRoot";
+import { dataDir } from "../dataDir";
 import { buildMessage } from "./rfc822";
 import { sendSmtp } from "./smtp";
 import type { Mail, MailTransport, SendResult } from "./types";
@@ -63,48 +64,66 @@ function slug(text: string): string {
 }
 
 /**
- * Where mail that belongs to no journal goes: `content/.mail/`.
+ * Where mail that belongs to no journal goes: `<dataDir>/mail/.mail/`.
  *
  * A signup code is the mail you get *before* you own a name, so it has no
- * `username` to be filed under. It is still this instance's data, and it still
- * carries a live one-time code, so it belongs under the content root with
- * everything else — not in whatever directory the process happened to be
- * started from. That is what this used to be, and B111 is what it cost: on the
- * deployed server the working directory is the code checkout, so every signup
- * code ever issued was sitting in plaintext in `/srv/fernscout/mail/` — outside
- * `DATA_DIR`, therefore outside the backup, in the directory `git pull` runs
- * in, and in a place no documentation mentioned and so nobody thought to clear.
- *
- * The leading dot follows `content/.deleted/` (`lib/tombstones.ts`): an
- * instance directory rather than a person's, skipped by the journal scan in
- * `lib/users.ts`, and impossible to collide with a journal because
- * `USERNAME_RE` admits no dot.
+ * `username` to be filed under. The leading dot follows `content/.deleted/`
+ * (`lib/tombstones.ts`): an instance directory rather than a person's, and
+ * impossible to collide with a journal because `USERNAME_RE` admits no dot —
+ * not that collision is even possible any more, since B636 moved this out
+ * from under `contentRoot()` entirely (see `mailRoot` below).
  */
 const NO_JOURNAL_DIR = ".mail";
 
 /**
- * The directory one message's `.eml` goes in — always inside `contentRoot()`.
+ * Where every `.eml` lives: `<dataDir>/mail/`, not `contentRoot()`.
+ *
+ * Before B636 this was `content/<user>/mail/` (and `content/.mail/`) —
+ * inside the folder the owner owns and the folder `scripts/backup.sh`
+ * archives wholesale. Sent mail is not the journal: it is transient,
+ * plaintext (`keepsCopy`'s own note below), and two days old at most
+ * (`KEPT_MAIL_TTL_MS`). `dataDir()` is where the rest of this instance's own
+ * runtime state already lives — the SQLite file, reaction counts — and,
+ * critically, `scripts/backup.sh` excludes this one subdirectory from the
+ * `DATA_DIR` tree it otherwise backs up wholesale, so nothing here reaches a
+ * snapshot either.
+ */
+function mailRoot(): string {
+  return path.join(dataDir(), "mail");
+}
+
+/**
+ * The content-root location mail used to live at, before B636 — kept around
+ * only so `writeEml` can sweep whatever a not-yet-restarted or not-yet-purged
+ * deployment left behind there. Never written to.
+ */
+function legacyMailDir(username?: string): string {
+  const root = contentRoot();
+  return username ? path.join(root, username, "mail") : path.join(root, NO_JOURNAL_DIR);
+}
+
+/**
+ * The directory one message's `.eml` goes in — always inside `mailRoot()`.
  *
  * Files land under the user the mail belongs to (decision 23) — a digest names
  * every recipient, so it is not something to leave in a directory shared by
- * everyone on the instance. Both `content/<user>/mail/` and `content/.mail/`
- * are gitignored.
+ * everyone on the instance. Both `<dataDir>/mail/<user>/` and
+ * `<dataDir>/mail/.mail/` are outside `contentRoot()` and are never backed up
+ * (B636).
  */
 function mailDir(username?: string): string {
-  const root = contentRoot();
-  const dir = username
-    ? path.join(root, username, "mail")
-    : path.join(root, NO_JOURNAL_DIR);
+  const root = mailRoot();
+  const dir = username ? path.join(root, username) : path.join(root, NO_JOURNAL_DIR);
 
   // A username reaches the filesystem as a directory name, which makes it a
   // security boundary (AGENTS.md). Every caller passes one that has already
   // been through `isValidUsername`; this is what keeps "every path this module
-  // can produce is under the content root" a property rather than a habit, and
+  // can produce is under the mail root" a property rather than a habit, and
   // it is cheap enough to run on every message.
   const resolved = path.resolve(dir);
   const base = path.resolve(root);
   if (resolved !== base && !resolved.startsWith(base + path.sep)) {
-    throw new Error(`Refusing to write mail outside the content root: ${dir}`);
+    throw new Error(`Refusing to write mail outside the mail root: ${dir}`);
   }
   return dir;
 }
@@ -121,10 +140,12 @@ const MAX_SAME_NAME = 100;
  * B57 said these files "stay there until somebody removes them", on the
  * reasoning that an operator turns `keepCopy` on to debug something and turns
  * it off again. Two things made that weaker than it read: `keepCopy` has been
- * on at fernscout.ch for days (B102), and since B111 these files live inside
- * `CONTENT_DIR`, which `scripts/backup.sh` archives wholesale — so a plaintext
- * credential now propagates into restic snapshots and lives for the retention
- * period of the backup rather than the life of the directory.
+ * on at fernscout.ch for days (B102), and since B111 these files lived inside
+ * `CONTENT_DIR`, which `scripts/backup.sh` archived wholesale — so a plaintext
+ * credential propagated into restic snapshots and lived for the retention
+ * period of the backup rather than the life of the directory. B636 moved the
+ * files themselves out from under the backup entirely; this TTL is what still
+ * bounds their life on disk in the meantime.
  *
  * The window comes from what the files are *for*: somebody reading the message
  * they just triggered. Two days covers a flow debugged on a Friday and looked
@@ -218,6 +239,14 @@ function writeEml(mail: Mail): string {
   // reasons, and a lifetime that applied to only one of them would be a
   // difference nobody could justify later (B135).
   sweepExpiredMail(dir);
+
+  // B636: a deployment that has not been restarted, or has not cleared its
+  // old directory by hand, may still have `.eml` files sitting under
+  // `contentRoot()` from before this moved. The same two-day rule finishes
+  // them off — only if the directory still exists, so a fresh install never
+  // even asks the filesystem about a path it never created.
+  const legacy = legacyMailDir(mail.username);
+  if (fs.existsSync(legacy)) sweepExpiredMail(legacy);
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const base = `${stamp}-${slug(mail.to)}-${slug(mail.subject)}`;
@@ -511,10 +540,12 @@ async function deliver(mail: Mail): Promise<SendResult> {
  *
  * **Absent means off, and that default is load-bearing.** Turning this on
  * writes sign-in codes, guest invitations and journal-deletion links to
- * `content/<user>/mail/` — and signup codes, which belong to no journal yet,
- * to `content/.mail/` — in plaintext. Anyone who can read the filesystem — a
- * backup, a snapshot, another process on the box — can then sign in as any
- * reader of that journal, or finish a deletion.
+ * `<dataDir>/mail/<user>/` — and signup codes, which belong to no journal yet,
+ * to `<dataDir>/mail/.mail/` — in plaintext. Anyone who can read the
+ * filesystem — another process on the box — can then sign in as any reader of
+ * that journal, or finish a deletion. Since B636 that directory is outside
+ * `contentRoot()` and outside what `scripts/backup.sh` archives, so this no
+ * longer also means "in every backup and export".
  *
  * They no longer stay forever: `KEPT_MAIL_TTL_MS` gives them two days, swept
  * whenever the next message is written to the same directory (B135). That

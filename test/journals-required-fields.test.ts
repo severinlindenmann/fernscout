@@ -57,6 +57,7 @@ const BASE = { title: "A journal", ownerName: "Robin Traveller", ownerNickname: 
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-required-fields-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "auth.db")}`;
   process.env.SESSION_SECRET = "b263-test-secret-b263-test-secret";
   fs.writeFileSync(
@@ -84,6 +85,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await closeDatabase();
   delete process.env.CONTENT_DIR;
+  delete process.env.DATA_DIR;
   delete process.env.DATABASE_URL;
   delete process.env.SESSION_SECRET;
   clearConfigCache();
@@ -224,7 +226,7 @@ describe("what happens once both are answered", () => {
     });
     expect(response.status).toBe(201);
 
-    const mailDir = path.join(dir, "reisender-g", "mail");
+    const mailDir = path.join(dir, "mail", "reisender-g");
     const files = fs.readdirSync(mailDir).filter((f) => f.endsWith(".eml"));
     expect(files.length).toBeGreaterThan(0);
     const raw = fs.readFileSync(path.join(mailDir, files[0]), "utf8");
