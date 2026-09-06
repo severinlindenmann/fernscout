@@ -201,8 +201,10 @@ function resolveCostCurrency(
 ): string {
   const byCountry = CURRENCY_FOR_COUNTRY[countryCodeFor(place.country ?? "") ?? ""];
   if (byCountry) return byCountry;
-  if (typeof place.lat === "number" && typeof place.lng === "number") {
-    const nearest = reverseGeocode(place.lat, place.lng);
+  // `Number.isFinite`, not `typeof`: an edit reads `lat` off a file that may
+  // not carry one, and `Number(undefined)` is a NaN that is typed `number`.
+  if (Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
+    const nearest = reverseGeocode(place.lat as number, place.lng as number);
     const byGeo = nearest && CURRENCY_FOR_COUNTRY[nearest.countryCode];
     if (byGeo) return byGeo;
   }

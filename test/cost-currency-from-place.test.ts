@@ -114,6 +114,15 @@ describe("a currency-less cost, resolved from where the day was", () => {
     expect(firstCost()).toMatchObject({ currency: "USD" });
   });
 
+  test("a PATCH on a day with no place at all falls back rather than reading a NaN", () => {
+    // `Number(undefined)` is a NaN that is typed `number`, so the coordinate
+    // branch has to test for finiteness rather than for the type.
+    createDraft(REF, { title: "Placeless", date: "2026-01-10", content: "Nowhere in particular." });
+    const result = editEntry(REF, "placeless", { costs: [{ label: "Coffee", amount: 5 }] });
+    expect(result.ok && result.costCurrency).toBe("CHF");
+    expect(firstCost()).toMatchObject({ label: "Coffee", currency: "CHF" });
+  });
+
   test("a PATCH adding costs uses the day's own country already on disk", () => {
     createDraft(REF, { title: "Chiang Mai day", date: "2026-01-09", country: "Thailand", content: "Arrived." });
     const result = editEntry(REF, "chiang-mai-day", { costs: [{ label: "Tuk-tuk", amount: 60 }] });
