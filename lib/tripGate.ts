@@ -274,6 +274,23 @@ export async function listableTrips(trips: Trip[]): Promise<Trip[]> {
   // including for strangers.
   const owner = email && username ? username : undefined;
   const guest = owner !== undefined && (await isJournalGuest(owner));
+  /**
+   * B584. `mayReadTrip` opens every trip in a journal to the journal's owner
+   * *and*, since B480, to the instance's admin address; this list knew only
+   * about the first, and only by accident — `peopleNamedIn` puts the owner's
+   * own address at the head of every trip's `people:`, and nothing put the
+   * admin's anywhere. So the admin signed into a journal saw an empty trips
+   * page, and `app/[user]/trips/page.tsx` then explained it as `listed:
+   * false`, which was not what had happened.
+   *
+   * Asked only when there is a closed trip on the list to decide about: a
+   * journal of public trips pays nothing for it, and `listed: false` above
+   * still hides a public trip from everybody, owner included.
+   */
+  const journalOwner =
+    username !== undefined && trips.some((t) => t.visibility !== "public")
+      ? await isOwner(username)
+      : false;
   // The trips this reader holds a redeemed place on, in one query rather than
   // one per trip — the switcher renders on every page.
   const redeemed = owner === undefined ? new Set<string>() : await redeemedTripsFor(owner, email);
@@ -282,6 +299,8 @@ export async function listableTrips(trips: Trip[]): Promise<Trip[]> {
     // `listed: false` is the old `unlisted` — reachable by link, never
     // advertised, not even to somebody who could open it.
     if (trip.visibility === "public") return trip.listed;
+    // Whoever may open every trip in this journal must be able to find them.
+    if (journalOwner) return true;
     // A trip you were on is listed for you: it is yours to find again.
     if (owner === trip.username && isPersonOnWith(trip, email, redeemed)) return true;
     // `private` is nobody else's — not even a guest of the journal's, which
