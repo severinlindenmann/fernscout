@@ -7,8 +7,7 @@ complexity: medium
 area: api, days, media, data loss
 found: "2026-09-06T17:59:11Z"
 started: "2026-09-06T17:59:52Z"
-session: ac8af30e-815d-4843-a94d-cf061a70269c
-claimed: "2026-09-06T17:59:52Z"
+merged: "2026-09-06T18:25:05Z"
 ---
 
 # B643 — Photographs, costs and weather disappeared from a published day and nothing recorded why

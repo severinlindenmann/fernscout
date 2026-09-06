@@ -7,8 +7,7 @@ complexity: low
 area: content model, api
 found: "2026-09-06T16:16:42Z"
 started: "2026-09-06T18:00:09Z"
-session: ac8af30e-815d-4843-a94d-cf061a70269c
-claimed: "2026-09-06T18:00:09Z"
+merged: "2026-09-06T18:25:04Z"
 ---
 
 # B620 — The published file shape offers a day the option of being fake, and drops two real ones
