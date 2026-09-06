@@ -200,7 +200,19 @@ export type RouteView = { x: number; y: number; width: number; height: number };
 
 export type MappedPoint = { location: string; country: string; x: number; y: number };
 
-export type BookPage = { number: number; side: PageSide } & (
+/**
+ * The include-switch that put a page in the book, when one did — B562.
+ *
+ * A key of `BookOptions`, so the composer can caption the page with the words
+ * that switch uses on the settings panel ("the route map", "the cost
+ * summary") rather than with the planner's own name for the page kind. Named
+ * here rather than derived from `kind` in the renderer for B517's reason: the
+ * gating decision is made in `draftsForFront`/`draftsForBack`/
+ * `draftsForChapter`, and a second copy of it elsewhere is a copy that drifts.
+ */
+export type BookPageOption = "includeText" | "includeMap" | "includeChapters" | "includeCosts";
+
+export type BookPage = { number: number; side: PageSide; from?: BookPageOption } & (
   | {
       kind: "title";
       title: string;
@@ -1117,7 +1129,7 @@ function materialise(
       const lines = source.trip.intro
         .split(/\n{2,}/)
         .flatMap((p) => [...wrap(p.replace(/\s*\n\s*/g, " ").trim(), type.body, width), ""]);
-      return { number, side, kind: "intro", heading: s.intro, lines };
+      return { number, side, from: "includeText", kind: "intro", heading: s.intro, lines };
     }
 
     case "route": {
@@ -1136,6 +1148,7 @@ function materialise(
       return {
         number,
         side,
+        from: "includeMap",
         kind: "route",
         half: draft.half,
         view,
@@ -1150,6 +1163,7 @@ function materialise(
       return {
         number,
         side,
+        from: "includeChapters",
         kind: "chapter",
         label: fill(s.chapter, { index: String(draft.index), of: String(draft.of) }),
         country: draft.chapter.country,
@@ -1303,6 +1317,7 @@ function materialise(
       return {
         number,
         side,
+        from: "includeCosts",
         kind: "costs",
         costs: source.costs ?? EMPTY_COSTS,
         labels: {

@@ -1,7 +1,10 @@
 import { isOwner } from "@/lib/contacts/session";
 import { isEnabled } from "@/lib/capabilities";
+import type { TranslationKey } from "@/lib/i18n";
+import { requestLocale, translateIn } from "@/lib/locales";
 import { parseOptions } from "@/lib/photobook/options";
 import { followerNames, planFor, priceOf } from "@/lib/photobook/build";
+import { captionsFor } from "@/lib/photobook/captions";
 import { renderPreview } from "@/lib/photobook/preview";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
 import { parseTripRef } from "@/lib/trips";
@@ -64,6 +67,11 @@ export async function POST(
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
+  // The line under each page, in the reader's own language — B562.
+  const locale = await requestLocale();
+  const t = (key: TranslationKey, vars?: Record<string, string>) =>
+    translateIn(locale, key, vars);
+
   const html = renderPreview(
     book,
     "",
@@ -77,8 +85,9 @@ export async function POST(
     // kept originals it carries an `originals:` prefix the web server does
     // not serve at all.
     (photo) => photo.webSrc ?? "",
-    // The composer's frame, not the technician's page — B548.
-    { bare: true },
+    // The composer's frame, not the technician's page — B548 — and page
+    // captions that say where each page came from — B562.
+    { bare: true, captionFor: captionsFor(book, t) },
   );
 
   const page = book.spec;
