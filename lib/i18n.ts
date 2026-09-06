@@ -111,6 +111,7 @@ export type TranslationKey =
   | "contact.address"
   | "contact.addressHint"
   | "contact.addressLookupAttribution"
+  | "contact.addressLookupUnavailable"
   | "contact.adminAddGuest"
   | "contact.adminAddressHint"
   | "contact.adminAddressHintNoPostcards"

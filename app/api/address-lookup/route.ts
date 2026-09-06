@@ -56,5 +56,12 @@ export async function GET(request: Request) {
   }
 
   const results = await lookupAddresses(trimmed, locale);
+  if (results === null) {
+    // The provider failed — not "nothing matched". B639: this used to come
+    // back as `{ results: [] }`, identical to a genuine no-match, which is
+    // how a rate-limited provider went unnoticed for a week. 502 is what
+    // tells the field to say so instead of quietly showing nothing.
+    return NextResponse.json({ error: "lookup_unavailable" }, { status: 502 });
+  }
   return NextResponse.json({ results }, { headers: { "cache-control": "no-store" } });
 }

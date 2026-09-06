@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { MIN_QUERY_LEN, type AddressSuggestion } from "@/lib/addressLookupTypes";
+import { MAX_QUERY_LEN, MIN_QUERY_LEN, type AddressSuggestion } from "@/lib/addressLookupTypes";
 
 /** Waits for a pause in typing before asking the server — a keystroke is not
  * a search, and the four characters of "Bahn" should not cost four
@@ -33,6 +33,7 @@ export default function AddressLookupField({
   locale,
   label,
   attribution,
+  unavailable,
   className,
   autoComplete,
 }: {
@@ -56,11 +57,16 @@ export default function AddressLookupField({
    * actually produced results, which is the same moment the attribution
    * obligation for showing them attaches. */
   attribution: string;
+  /** Shown instead of the (empty) list when the provider failed rather than
+   * having nothing to say — B639. Distinct from silence: a query below the
+   * floor, or one genuinely without matches, still shows nothing. */
+  unavailable: string;
   className: string;
   autoComplete?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [failed, setFailed] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -75,19 +81,37 @@ export default function AddressLookupField({
     // `setSuggestions([])` to fire here (`react-hooks/set-state-in-effect`
     // is right that one would be a synchronous setState-in-effect for no
     // reason: the next real query overwrites it before it would ever show).
-    if (!enabled || value.trim().length < MIN_QUERY_LEN) return;
+    const trimmed = value.trim();
+    // Same reasoning above the ceiling as below the floor: nothing sensible
+    // to ask, so nothing is sent — not a failure, just no query.
+    if (!enabled || trimmed.length < MIN_QUERY_LEN || trimmed.length > MAX_QUERY_LEN) return;
     const id = ++requestId.current;
     const timer = setTimeout(() => {
       const params = new URLSearchParams({ user: username, q: value, locale });
       fetch(`/api/address-lookup?${params}`)
-        .then((response) => (response.ok ? response.json() : { results: [] }))
-        .then((body: { results?: AddressSuggestion[] }) => {
+        .then((response) => {
           if (requestId.current !== id) return;
-          setSuggestions(body.results ?? []);
-          setHighlight(0);
+          if (!response.ok) {
+            // B639: a non-200 here is the provider failing (or refusing) —
+            // never "no matches", which is what a 200 with an empty list
+            // already means. Told apart so the field can say so instead of
+            // sitting silent.
+            setFailed(true);
+            setSuggestions([]);
+            return;
+          }
+          setFailed(false);
+          response.json().then((body: { results?: AddressSuggestion[] }) => {
+            if (requestId.current !== id) return;
+            setSuggestions(body.results ?? []);
+            setHighlight(0);
+          });
         })
         .catch(() => {
-          if (requestId.current === id) setSuggestions([]);
+          if (requestId.current === id) {
+            setFailed(true);
+            setSuggestions([]);
+          }
         });
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
@@ -104,8 +128,9 @@ export default function AddressLookupField({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
-  const showList =
-    enabled && open && value.trim().length >= MIN_QUERY_LEN && suggestions.length > 0;
+  const queryLive = enabled && open && value.trim().length >= MIN_QUERY_LEN;
+  const showList = queryLive && suggestions.length > 0;
+  const showFailure = queryLive && failed && suggestions.length === 0;
 
   function choose(suggestion: AddressSuggestion) {
     onPick(suggestion);
@@ -148,6 +173,17 @@ export default function AddressLookupField({
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
       />
+      {showFailure && (
+        // Same slot the suggestion list would occupy — B639: previously
+        // there was nothing here at all, which is indistinguishable from a
+        // genuine "no matches" and is what let this sit broken for a week.
+        <div
+          role="status"
+          className="absolute z-10 mt-1 w-full rounded-xl border border-navy-200 bg-white px-4 py-2 text-base text-navy-600 shadow-lg"
+        >
+          {unavailable}
+        </div>
+      )}
       {showList && (
         <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-navy-200 bg-white shadow-lg">
           <ul id={listId} role="listbox" aria-label={label} className="max-h-64 overflow-y-auto">

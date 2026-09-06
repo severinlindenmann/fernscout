@@ -88,7 +88,7 @@ describe("lookupAddresses", () => {
       ),
     );
     const results = await lookupAddresses("112 rue de Maubeuge Paris", "fr");
-    expect(results[0].line1).toBe("112 rue de Maubeuge");
+    expect(results?.[0].line1).toBe("112 rue de Maubeuge");
   });
 
   test("a street or city hit is dropped — only type:house is precise enough to post to", async () => {
@@ -136,18 +136,23 @@ describe("lookupAddresses", () => {
     expect(target.searchParams.get("key")).toBe("secret-key");
   });
 
-  test("a provider that refuses is the same as a provider with nothing to say", async () => {
+  test("a provider that refuses answers null — a failure, not zero matches (B639)", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 502 })));
-    expect(await lookupAddresses("Bahnhofstrasse", "en")).toEqual([]);
+    expect(await lookupAddresses("Bahnhofstrasse", "en")).toBeNull();
   });
 
-  test("a provider that times out or throws never surfaces past this module", async () => {
+  test("a provider that times out or throws never surfaces past this module, but still answers null", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {
         throw new Error("boom");
       }),
     );
-    await expect(lookupAddresses("Bahnhofstrasse", "en")).resolves.toEqual([]);
+    await expect(lookupAddresses("Bahnhofstrasse", "en")).resolves.toBeNull();
+  });
+
+  test("a provider that answers but has nothing to say is a genuine []", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ features: [] }))));
+    expect(await lookupAddresses("Bahnhofstrasse", "en")).toEqual([]);
   });
 });

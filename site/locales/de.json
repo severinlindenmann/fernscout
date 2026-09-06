@@ -30,6 +30,7 @@
   "contact.address": "Postadresse",
   "contact.addressHint": "nur wenn du eine echte Postkarte im Briefkasten möchtest",
   "contact.addressLookupAttribution": "Adressen von OpenStreetMap",
+  "contact.addressLookupUnavailable": "Die Adresssuche antwortet gerade nicht — du kannst die Adresse trotzdem selbst eingeben.",
   "contact.adminAddGuest": "Gast hinzufügen",
   "contact.adminAddressHint": "nur falls eine echte Postkarte ankommen soll",
   "contact.adminAddressHintNoPostcards": "wird gespeichert, auch ohne dass je eine Postkarte gedruckt wird",
