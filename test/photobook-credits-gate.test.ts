@@ -105,11 +105,27 @@ describe("the photobook gate and credits", () => {
     await expect(photobookEntryFor(TRIP)).resolves.toBeUndefined();
   });
 
-  test("a journal may still switch its own photobook off", async () => {
+  test("a journal's own photobook flag decides nothing either way — B611", async () => {
+    // Both directions, because the flag is not a narrowing any more: it is a
+    // key nothing reads, and a file that still carries one from before must
+    // neither close the button nor be needed to open it.
     writeJournal({ photobook: { enabled: false } });
     clearConfigCache();
     clearUserCache();
-    await expect(photobookEntryFor(TRIP)).resolves.toBeUndefined();
+    await expect(photobookEntryFor(TRIP)).resolves.toEqual({
+      username: "alex",
+      trip: "asia-2026",
+    });
+
+    // `undefined` rather than `{}`: the fixture's default *names* photobook,
+    // and absence is the state every real journal is in.
+    writeJournal({ photobook: undefined });
+    clearConfigCache();
+    clearUserCache();
+    await expect(photobookEntryFor(TRIP)).resolves.toEqual({
+      username: "alex",
+      trip: "asia-2026",
+    });
   });
 
   test("nobody but the owner, whatever the config says", async () => {

@@ -29,16 +29,31 @@ export const FEATURE_NAMES = [
 export type FeatureName = (typeof FEATURE_NAMES)[number];
 
 /**
- * The two capabilities that are never a journal's own opt-in — `logging`
- * (B257) and `credits` (B366) — decided once, by the operator, for the whole
- * instance. Every reader of a journal's `features` has to skip the raw
- * per-journal flag for exactly these and ask `resolveCapabilities()` instead;
- * exported so that skip is written once rather than as a repeated
- * `name === "logging" || name === "credits"`. See `journalFeatures()` in
- * lib/journals.ts, which is the one place that builds the map itself — B408,
- * B607.
+ * The capabilities that are never a journal's own opt-in — decided once, by
+ * the operator, for the whole instance. Every reader of a journal's `features`
+ * has to skip the raw per-journal flag for exactly these and ask
+ * `resolveCapabilities()` instead; exported so that skip is written once
+ * rather than as a repeated `name === "logging" || name === "credits"`. See
+ * `journalFeatures()` in lib/journals.ts, which is the one place that builds
+ * the map itself — B408, B607.
+ *
+ * `logging` (B257) and `credits` (B366) were the first two, and are not
+ * per-journal *questions* at all. **`photobook` and `postcards` join them in
+ * B611**, which is a stronger claim: they are questions, they were asked of
+ * the journal, and asking was wrong. They spend the operator's money at a
+ * printer, so a journal has nothing to consent to — and the cost of asking was
+ * that a journal which had never written the word had no photobook button and
+ * no postcard proposal, with nothing on the page to say why. That was every
+ * journal on this instance; the demo was the only one that worked, because
+ * somebody had edited its file by hand. `resolveOne` skips the per-user check
+ * for these, and `setJournalFeatures` refuses to write any of the four.
  */
-export const OPERATOR_ONLY_FEATURES = ["logging", "credits"] as const satisfies readonly FeatureName[];
+export const OPERATOR_ONLY_FEATURES = [
+  "logging",
+  "credits",
+  "photobook",
+  "postcards",
+] as const satisfies readonly FeatureName[];
 
 /**
  * Whose journal this is.
@@ -312,10 +327,20 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
  *
  * `resolveCapabilities` needs no special case for any of this: it checks the
  * server first and returns early, so this table cannot widen anything.
+ *
+ * **`whatsapp` is the same kind of switch, and joins it in B611.** The
+ * journal-level key is reached from one place an owner can actually see — the
+ * channels panel on `/<user>/me`, B463 — and there it reads as *stop sending
+ * my days to WhatsApp*, exactly like mail. Read absence as "no" and every
+ * journal that has never named it is muted, which is the state every journal
+ * on this instance was in: the operator had paid for the number, the server
+ * said yes, and no contact was ever offered the channel. Absence is now no
+ * opinion; a written `false` is still a mute.
  */
 const USER_DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   ...DEFAULT_FEATURES,
   mail: { ...DEFAULT_FEATURES.mail, enabled: true },
+  whatsapp: { ...DEFAULT_FEATURES.whatsapp, enabled: true },
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {

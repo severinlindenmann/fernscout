@@ -645,6 +645,27 @@ export function setJournalFeatures(
     };
   }
 
+  // `OPERATOR_ONLY_FEATURES` have no journal-level answer at all — writing the
+  // key would leave a flag in the file that nothing reads, and answering `ok`
+  // to "turn my photobook off" while the button stays is worse than refusing.
+  // The operator's `site/config.json` is the only place. B611; the two
+  // printers joined `logging` and `credits` there, and this refusal is what
+  // stops the response promising a change that did not happen.
+  const refused = wanted.find(([name]) =>
+    (OPERATOR_ONLY_FEATURES as readonly string[]).includes(name),
+  );
+  if (refused) {
+    return {
+      ok: false,
+      error: "capability_not_yours",
+      message:
+        `"${refused[0]}" is decided by this server for every journal on it, so it cannot be ` +
+        `switched from a journal's own config. Ask the operator to change ` +
+        `features.${refused[0]} in site/config.json; /api/health reports what it answers. ` +
+        `Nothing was changed.`,
+    };
+  }
+
   // The ceiling, asked of the server and not re-derived here. Only asked when
   // switching something *on*: narrowing needs no permission.
   const server = resolveCapabilities();

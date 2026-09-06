@@ -1,4 +1,4 @@
-import { FEATURE_NAMES, loadServerConfig, type FeatureName } from "./config";
+import { FEATURE_NAMES, OPERATOR_ONLY_FEATURES, loadServerConfig, type FeatureName } from "./config";
 import { getUser } from "./users";
 
 /**
@@ -192,6 +192,11 @@ function hasDatabase(): boolean {
  * switch on something the server cannot do, which is what keeps "enabled but
  * unconfigured" a server-side boot error rather than something a user could
  * trigger from their own config file.
+ *
+ * `OPERATOR_ONLY_FEATURES` (lib/config.ts) is the exception, and only in the
+ * second half: the server's answer is still a ceiling, the journal simply has
+ * no vote under it. B611 put the two printing capabilities there, because they
+ * spend the operator's money and not the journal's.
  */
 function resolveOne(name: FeatureName, username?: string): CapabilityState {
   const feature = loadServerConfig().features[name];
@@ -210,7 +215,10 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
     // it lands here, and for `mail` only a journal that wrote `false` does —
     // absence there inherits the server's answer instead. `USER_DEFAULT_FEATURES`
     // in lib/config.ts carries the reasoning; B60 is what it cost to get wrong.
-    if (!user.features[name]?.enabled) {
+    if (
+      !(OPERATOR_ONLY_FEATURES as readonly string[]).includes(name) &&
+      !user.features[name]?.enabled
+    ) {
       return { name, enabled: false, reason: `not enabled by ${username}` };
     }
   }
