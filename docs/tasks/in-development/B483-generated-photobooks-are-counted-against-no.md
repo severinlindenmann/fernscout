@@ -54,3 +54,53 @@ the rule is.
 - A stated, documented policy, and `docs/providers/photobook.md` says what it is.
 - An instance that reaches the limit refuses or prunes deliberately rather than
   filling its disk.
+
+## Resolution
+
+**Policy chosen: keep the newest N *printed* orders per journal, prune the
+rest's PDFs.** Reuses the existing `media` block's ceiling/narrow pattern
+(`lib/mediaLimits.ts`, the same shape `perUserBytes` already has) rather than
+building a second quota mechanism — a new field,
+`media.photobookOrdersPerUser`, server-ceiling-then-user-narrowed like every
+other field there, shipped with a default of **20** (unlike `perUserBytes`,
+which defaults to unbounded: an unbounded photobook directory is the bug this
+closes, and 20 is generous for how often anyone actually orders a book).
+`null` opts a journal out entirely.
+
+Rejected: byte-quota-against-upload-quota (needs a pre-build size estimate,
+more moving parts for the same outcome) and a fixed time window (changes what
+the receipt mail can promise, which count-based retention does not).
+
+**Enforcement:** `lib/photobook/retention.ts`'s `pruneOldPhotobooks(owner)`
+runs once, right after an order is marked `printed`
+(`app/[user]/photobook/order/route.ts`) — never before or during a build. It
+only ever considers `print_orders` rows already `status = 'printed'`
+(`listPrintedOrderIds`, `lib/photobook/orders.ts`), so a build still
+`submitted` is structurally never a candidate and can never race a prune.
+Past the kept count it deletes only the order's directory under
+`content/<user>/photobooks/<orderId>/` — never the row, never the trip's own
+photographs — and records `payload.pruned: true` / `payload.files: []`
+(`clearPrunedFiles`) so a page rendering an old order stops offering a
+download that would 404. The existing download route
+(`app/[user]/photobooks/[id]/[file]/route.ts`) already answered 404 for a
+missing file, so it needed no change.
+
+**Where the number is documented before a caller hits it:** `/api/health`'s
+new `photobook.keepOrdersPerUser` field (`app/api/health/route.ts`,
+`lib/api/openapi.ts`), and `docs/providers/photobook.md`'s new "Retention"
+section. `AGENTS.md`'s description of the `media` block was extended by one
+clause rather than left silently out of date.
+
+**Test:** `test/photobook-retention.test.ts` — fails before this change (the
+functions it imports do not exist) and passes after. Covers: pruning down to
+the narrowed count, an in-flight (`submitted`) order never touched however old
+its `created_at`, and `null` opting a journal out entirely.
+`test/media-limits.test.ts` gained coverage of the new field's default and its
+explicit-null opt-out, alongside the existing `perUserBytes` coverage it
+already had.
+
+**Not done, on purpose (unchanged from the ticket):** no owner mail when an
+old order's files are pruned — the rule is documented publicly rather than
+announced per deletion. `docs/providers/photobook.md` says so and names
+`pruneOldPhotobooks()` as where to add it if that judgment is wrong.
+`npm run verify` (full) is green.

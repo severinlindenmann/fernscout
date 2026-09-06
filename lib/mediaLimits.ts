@@ -43,7 +43,23 @@ export type MediaLimits = {
    * that fills up visibly. Set it on a shared instance.
    */
   perUserBytes: number | null;
+  /**
+   * How many *printed* photobook orders one journal keeps on disk — B483.
+   *
+   * A book is tens to hundreds of megabytes at 300 DPI and nothing pruned
+   * them, so a long history of orders is a full disk with nobody having been
+   * warned. Unlike an upload, a photobook's original photographs are untouched
+   * by this: only the generated PDFs under `content/<user>/photobooks/`
+   * disappear, oldest first, right after the newest order finishes — never
+   * mid-build. `null` means unbounded, the same "explicit opt-out" shape as
+   * `perUserBytes`, for an instance that would rather keep every book.
+   */
+  photobookOrdersPerUser: number | null;
 };
+
+/** Enough for most journals to never notice, and a real ceiling for the ones
+ * that would otherwise never stop growing. See `photobookOrdersPerUser`. */
+const DEFAULT_PHOTOBOOK_ORDERS_PER_USER = 20;
 
 export const DEFAULT_MEDIA_LIMITS: MediaLimits = {
   imageBytes: IMAGE_MAX_BYTES,
@@ -52,6 +68,7 @@ export const DEFAULT_MEDIA_LIMITS: MediaLimits = {
   videoSeconds: VIDEO_MAX_SECONDS,
   itemsPerDay: MAX_ITEMS_PER_DAY,
   perUserBytes: null,
+  photobookOrdersPerUser: DEFAULT_PHOTOBOOK_ORDERS_PER_USER,
 };
 
 /** A positive number, or the fallback. Zero and nonsense are not limits. */
@@ -75,6 +92,12 @@ export function parseMediaLimits(raw: unknown, base = DEFAULT_MEDIA_LIMITS): Med
         : typeof src.perUserBytes === "number" && src.perUserBytes > 0
           ? src.perUserBytes
           : base.perUserBytes,
+    photobookOrdersPerUser:
+      src.photobookOrdersPerUser === null
+        ? null
+        : typeof src.photobookOrdersPerUser === "number" && src.photobookOrdersPerUser > 0
+          ? src.photobookOrdersPerUser
+          : base.photobookOrdersPerUser,
   };
 }
 
@@ -98,5 +121,6 @@ export function narrowest(ceiling: MediaLimits, asked: MediaLimits): MediaLimits
     videoSeconds: Math.min(ceiling.videoSeconds, asked.videoSeconds),
     itemsPerDay: Math.min(ceiling.itemsPerDay, asked.itemsPerDay),
     perUserBytes: bothOrTighter(ceiling.perUserBytes, asked.perUserBytes),
+    photobookOrdersPerUser: bothOrTighter(ceiling.photobookOrdersPerUser, asked.photobookOrdersPerUser),
   };
 }

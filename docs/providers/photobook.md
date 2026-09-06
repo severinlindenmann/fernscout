@@ -127,6 +127,49 @@ the owner, is also the beginning of the reachable-URL requirement
 describes: Gelato fetches a PDF from a URL rather than accepting an upload, and
 this route is where that URL will eventually point.
 
+### Retention (B483)
+
+At 300 DPI one volume's interior and cover PDFs are tens to hundreds of
+megabytes, and every order used to be kept forever — right so its mailed links
+kept working, but "forever" was unqualified: nothing bounded the directory and
+nothing pruned it, so the first symptom was a full disk.
+
+**The policy: keep the newest orders, drop the rest's PDFs.** A journal's
+`config.json` may carry `media.photobookOrdersPerUser` — how many *printed*
+orders it keeps the interior/cover PDFs for, oldest dropped first. The
+server's `site/config.json` (or a deployed instance's `FERNSCOUT_CONFIG`) may
+set its own `media.photobookOrdersPerUser` as the ceiling every journal's own
+value is narrowed against, the same composition every other `media` field
+uses (`lib/mediaLimits.ts`). Shipped default: **20** — generous for how often
+anybody actually orders a book, and enough to turn an unbounded directory into
+a bounded one out of the box. `null` opts a journal out entirely and keeps
+every book, same shape as the existing `perUserBytes` upload quota.
+`/api/health`'s `photobook.keepOrdersPerUser` says what the instance is
+currently configured to keep, so a caller can read the number before hitting
+it rather than after.
+
+**What actually happens, and when.** `pruneOldPhotobooks()`
+(`lib/photobook/retention.ts`) runs once, right after an order finishes
+printing (`app/[user]/photobook/order/route.ts`) — never before or during a
+build, which is what keeps it from ever racing one: it only ever considers
+orders already in `print_orders.status = 'printed'`, so an order still
+`submitted` (a build in progress) is never a candidate, and the order that
+just finished is always the newest `printed` row for that owner and therefore
+always kept. Past the kept count, only the PDFs under
+`content/<user>/photobooks/<orderId>/` are deleted — the `print_orders` row
+survives untouched but for its `payload.files` (emptied) and a new
+`payload.pruned: true`, so the price, the date and the page count stay real
+history, and a page rendering that order stops offering a download that would
+404. Nothing about an original photograph is touched: those live under the
+trip's own `media/` and `originals/`, not under `photobooks/`.
+
+**Not done, on purpose:** an owner is not mailed when an old order's files are
+pruned. The rule is documented here and in `/api/health`, which is what
+"the owner being told what the rule is" (B483's own words) asks for — a
+per-deletion notice for a background-maintenance pass on paid-for-but-old PDFs
+was judged not worth a second mail template. If that judgment turns out
+wrong, `pruneOldPhotobooks()` is the one place to add it.
+
 ### Warnings the planner raises
 
 All of them describe failures that are invisible on screen and obvious on paper:

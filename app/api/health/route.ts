@@ -5,6 +5,7 @@ import { basemapProblem } from "@/lib/basemap";
 import { resolveCapabilities } from "@/lib/capabilities";
 import { loadServerConfig } from "@/lib/config";
 import { FEATURE_NAMES } from "@/lib/config";
+import { DEFAULT_MEDIA_LIMITS } from "@/lib/mediaLimits";
 import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
 import { contentRootProblem, getUsernames } from "@/lib/users";
 import pkg from "@/package.json";
@@ -294,6 +295,18 @@ export async function GET(request: Request) {
       itemsPerDay: MAX_ITEMS_PER_DAY,
       requestMaxBytes: REQUEST_MAX_BYTES,
       captionMaxChars: CAPTION_MAX_CHARS,
+    },
+    /**
+     * How many printed photobook orders a journal keeps on disk before older
+     * ones lose their PDFs — B483. Read before ordering a book nobody has
+     * downloaded yet: a caller past this count on the same journal will find
+     * the oldest order's files gone the next time one prints. `null` means
+     * this instance keeps every book.
+     */
+    photobook: {
+      keepOrdersPerUser: configOk
+        ? loadServerConfig().media.photobookOrdersPerUser
+        : DEFAULT_MEDIA_LIMITS.photobookOrdersPerUser,
     },
     ...(detailed ? { journals } : {}),
     backup: readBackupStatus(),

@@ -2303,6 +2303,16 @@ export function openApiDocument() {
                           captionMaxChars: { type: "integer" },
                         },
                       },
+                      photobook: {
+                        type: "object",
+                        description:
+                          "How many printed photobook orders a journal keeps on disk before " +
+                          "older ones lose their PDFs (B483). `null` means this instance keeps " +
+                          "every book.",
+                        properties: {
+                          keepOrdersPerUser: { type: ["integer", "null"] },
+                        },
+                      },
                     },
                   },
                 },

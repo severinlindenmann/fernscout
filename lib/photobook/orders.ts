@@ -41,6 +41,13 @@ export type PhotobookPayload = {
   files?: string[];
   /** Why nothing was made. Set with `markFailed`, and the credits are back. */
   failure?: string;
+  /**
+   * Set by `pruneOldPhotobooks` (B483, `lib/photobook/retention.ts`) once the
+   * PDFs have been deleted to make room for newer orders. `files` is emptied
+   * at the same time, so a page rendering this order stops offering downloads
+   * that would 404 rather than discovering that the hard way.
+   */
+  pruned?: true;
 };
 
 export type PhotobookOrder = {
@@ -134,6 +141,7 @@ export async function getPhotobookOrder(owner: string, id: string): Promise<Phot
 }
 
 /**
+<<<<<<< HEAD
  * Every state `order/route.ts`'s redirect can carry back to the page — B484.
  *
  * `PhotobookOutcome.state` used to be typed `string`, so `OUTCOME_MESSAGE` in
@@ -158,6 +166,51 @@ export type PhotobookOutcomeState = (typeof PHOTOBOOK_OUTCOME_STATES)[number];
 
 function isOutcomeState(value: string): value is PhotobookOutcomeState {
   return (PHOTOBOOK_OUTCOME_STATES as readonly string[]).includes(value);
+=======
+ * Every printed order for one journal, newest first — B483's retention needs
+ * to know which ones are oldest, and `printed` is deliberately the only
+ * status considered: a `submitted` order is a build in progress and must
+ * never be touched, and a `failed` one left no files behind to prune.
+ */
+export async function listPrintedOrderIds(owner: string): Promise<string[]> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const rows = await handle.db
+    .selectFrom("print_orders")
+    .select(["id"])
+    .where("owner_id", "=", owner)
+    .where("kind", "=", "photobook")
+    .where("status", "=", "printed")
+    .orderBy("created_at", "desc")
+    .orderBy("id", "desc")
+    .execute();
+  return rows.map((r) => r.id);
+}
+
+/**
+ * Records that an order's PDFs were removed to make room for newer ones.
+ *
+ * Deliberately not `setStatus`: the order is not failing or being reprinted,
+ * it stays `printed` — the book was made and paid for — only its files are
+ * gone. Not gated on the current status the way `setStatus` is, either,
+ * because pruning only ever runs against orders `listPrintedOrderIds` already
+ * found `printed`, moments earlier in the same call.
+ */
+export async function clearPrunedFiles(
+  owner: string,
+  id: string,
+  payload: PhotobookPayload,
+): Promise<void> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return;
+  await handle.db
+    .updateTable("print_orders")
+    .set({ payload: JSON.stringify({ ...payload, files: [], pruned: true }), updated_at: nowIso() })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("kind", "=", "photobook")
+    .execute();
+>>>>>>> b483-photobook-quota
 }
 
 /** What the options page shows above the form, once the button has actually

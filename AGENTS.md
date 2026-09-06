@@ -86,7 +86,9 @@ site/
   config.json                 server config — site name, URL, default user,
                               reserved usernames, capability switches, and the
                               `media` block: how large uploads may be, how many
-                              per day, and an optional per-journal byte quota.
+                              per day, an optional per-journal byte quota, and
+                              how many printed photobook orders stay on disk
+                              (docs/providers/photobook.md, B483).
                               A user's own config.json may narrow these, never
                               widen them. A deployed instance overrides this
                               file with FERNSCOUT_CONFIG, because its config is

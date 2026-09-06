@@ -10,6 +10,7 @@ import {
   markPrinted,
   type PhotobookOutcomeState,
 } from "@/lib/photobook/orders";
+import { pruneOldPhotobooks } from "@/lib/photobook/retention";
 import { sendPhotobookReceipt } from "@/lib/photobook/receipt";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
 import { getTrip, parseTripRef } from "@/lib/trips";
@@ -196,6 +197,14 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   if (!(await markPrinted(user, orderId, { ...payload, files: built.files }))) {
     console.warn(`[photobook] ${orderId} built but was not in 'submitted' when marked printed`);
   }
+
+  // B483: this order is the newest `printed` one for this owner, so it is
+  // never among the ones this deletes — only older orders past the kept
+  // count lose their PDFs. Best-effort: a failure here is a disk that grows
+  // a little more, not a book this owner did not get.
+  await pruneOldPhotobooks(user).catch((error) => {
+    console.error(`[photobook] pruning old orders for ${user} failed:`, error);
+  });
 
   // `missing` lists photographs the build could not read — pages that will
   // print as gaps in a book the owner has already paid for. That is not a
