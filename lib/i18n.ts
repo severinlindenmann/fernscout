@@ -831,6 +831,7 @@ export type TranslationKey =
   | "photobook.warn.heading"
   | "photobook.warn.lowResolution"
   | "photobook.warn.lowResolution.one"
+  | "photobook.warn.noLargePhoto"
   | "photobook.warn.noOriginal"
   | "photobook.warn.noOriginal.one"
   | "photobook.warn.noPhotos"

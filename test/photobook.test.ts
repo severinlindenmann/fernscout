@@ -333,6 +333,46 @@ describe("a photograph that is too small", () => {
   });
 });
 
+describe("B502: the automatic hero skips a photograph too small to fill the page", () => {
+  const small1 = photo({ file: "small-1.jpg", width: 1200, height: 900 });
+  const small2 = photo({ file: "small-2.jpg", width: 1200, height: 900 });
+  const big = photo({ file: "big-3.jpg", width: 4000, height: 3000 });
+  const book = planBook(source([day(0, { photos: [small1, small2, big] })]), SPEC);
+  const heroPage = book.volumes[0].pages.find(
+    (p) => p.kind === "photos" && p.layout === "full-bleed",
+  );
+
+  test("finds a later photograph that has the pixels, rather than defaulting to the first", () => {
+    expect(heroPage?.kind === "photos" ? heroPage.placements[0]?.photo.file : undefined).toBe(
+      "big-3.jpg",
+    );
+  });
+});
+
+describe("B502: a trip where nothing is big enough to run large", () => {
+  const tiny1 = photo({ file: "tiny-1.jpg", width: 900, height: 675 });
+  const tiny2 = photo({ file: "tiny-2.jpg", width: 900, height: 675 });
+  const book = planBook(source([day(0, { photos: [tiny1, tiny2] })]), SPEC);
+
+  test("still plans and binds", () => {
+    expect(book.volumes.length).toBeGreaterThan(0);
+    expect(fitsRule(book.volumes[0].interiorPages, SPEC.pageCount)).toBe(true);
+  });
+
+  test("says so in a warning", () => {
+    const warning = book.warnings.find((w) => w.code === "no-large-photo");
+    expect(warning).toBeDefined();
+    expect(warning!.detail).toContain("grid slot instead");
+  });
+
+  test("never runs a full-bleed or feature page", () => {
+    const big = book.volumes[0].pages.find(
+      (p) => p.kind === "photos" && (p.layout === "full-bleed" || p.layout === "feature"),
+    );
+    expect(big).toBeUndefined();
+  });
+});
+
 // ---------------------------------------------------------------------------
 // The pieces the planner is built from
 // ---------------------------------------------------------------------------
@@ -343,21 +383,39 @@ describe("grouping photographs by shape", () => {
   const pano = photo({ width: 8000, height: 3000 });
 
   test("a panorama gets a page to itself", () => {
-    expect(groupPhotos([pano, wide])[0]).toEqual({ layout: "panorama", photos: [pano] });
+    expect(groupPhotos([pano, wide], SPEC)[0]).toEqual({ layout: "panorama", photos: [pano] });
   });
 
   test("two portraits go side by side", () => {
-    expect(groupPhotos([tall, tall])[0].layout).toBe("pair-portrait");
+    expect(groupPhotos([tall, tall], SPEC)[0].layout).toBe("pair-portrait");
   });
 
   test("four landscapes make a grid", () => {
-    expect(groupPhotos([wide, wide, wide, wide])[0].layout).toBe("quad");
+    expect(groupPhotos([wide, wide, wide, wide], SPEC)[0].layout).toBe("quad");
   });
 
   test("every photograph ends up on exactly one page", () => {
     const all = [wide, tall, pano, wide, tall, tall, wide, wide, wide];
-    const placed = groupPhotos(all).flatMap((g) => g.photos);
+    const placed = groupPhotos(all, SPEC).flatMap((g) => g.photos);
     expect(placed).toHaveLength(all.length);
+  });
+
+  test("B502: a lone photograph without the pixels for a full page gets a grid slot instead", () => {
+    // wide, wide pairs off first (pair-stacked), leaving `small` on its own —
+    // the case that used to run "feature" (full-bleed to the outer edge)
+    // regardless of whether it had the pixels for that width.
+    const small = photo({ file: "small.jpg", width: 1500, height: 1125 });
+    expect(groupPhotos([wide, wide, small], SPEC)).toEqual([
+      { layout: "pair-stacked", photos: [wide, wide] },
+      { layout: "single", photos: [small] },
+    ]);
+  });
+
+  test("B502: a lone photograph big enough still runs feature", () => {
+    expect(groupPhotos([wide, wide, wide], SPEC)).toEqual([
+      { layout: "pair-stacked", photos: [wide, wide] },
+      { layout: "feature", photos: [wide] },
+    ]);
   });
 });
 

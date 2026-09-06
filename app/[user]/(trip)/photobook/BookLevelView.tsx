@@ -46,6 +46,7 @@ const WARNING_TEXT: [code: string, key: TranslationKey][] = [
   ["blank-padding", "photobook.warn.blankPadding"],
   ["low-resolution", "photobook.warn.lowResolution"],
   ["no-original", "photobook.warn.noOriginal"],
+  ["no-large-photo", "photobook.warn.noLargePhoto"],
   ["text-truncated", "photobook.warn.textTruncated"],
 ];
 
@@ -154,7 +155,10 @@ export default function BookLevelView({
       apply: () => setOptions((o) => ({ ...o, binding: "saddle" })),
     });
   }
-  if ((counts.has("low-resolution") || counts.has("no-original")) && options.size !== "square-210") {
+  if (
+    (counts.has("low-resolution") || counts.has("no-original") || counts.has("no-large-photo")) &&
+    options.size !== "square-210"
+  ) {
     fixes.push({
       key: "photobook.fix.smaller",
       apply: () => setOptions((o) => ({ ...o, size: "square-210" })),
