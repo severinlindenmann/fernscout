@@ -10,6 +10,12 @@ import { buildMessage } from "@/lib/mail/rfc822";
 import { startFakeSmtp, TEST_CERT, type FakeSmtp } from "./fixtures/smtp-server";
 
 let dir: string;
+let data: string;
+
+/** Where mail actually lands since B636 — `<DATA_DIR>/mail/`, not `dir`. */
+function mailRoot(): string {
+  return path.join(data, "mail");
+}
 
 function writeConfig(mail: Record<string, unknown>) {
   fs.writeFileSync(
@@ -49,18 +55,22 @@ function writeJournal(username: string, mail: boolean) {
 
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-mail-"));
+  data = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-mail-data-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = data;
   writeJournal("ana", true);
   vi.spyOn(console, "log").mockImplementation(() => {});
 });
 
 afterEach(() => {
   delete process.env.CONTENT_DIR;
+  delete process.env.DATA_DIR;
   delete process.env.MAIL_FROM;
   clearConfigCache();
   clearUserCache();
   vi.restoreAllMocks();
   fs.rmSync(dir, { recursive: true, force: true });
+  fs.rmSync(data, { recursive: true, force: true });
 });
 
 const SAMPLE = {
@@ -142,7 +152,7 @@ describe("kept mail expires", () => {
     const first = await sendOne("ana's");
     age(first.reference, 30 * DAY);
 
-    const otherDir = path.join(dir, "bo", "mail");
+    const otherDir = path.join(mailRoot(), "bo");
     fs.mkdirSync(otherDir, { recursive: true });
     const other = path.join(otherDir, "old.eml");
     fs.writeFileSync(other, "bo's");
@@ -154,6 +164,25 @@ describe("kept mail expires", () => {
     // Swept on write, so another journal's folder waits for its own next
     // message. That is the accepted limit of the approach, not an oversight.
     expect(fs.existsSync(other)).toBe(true);
+  });
+
+  /**
+   * B636: the destination moved, but a deployment that has not cleared
+   * `content/<user>/mail/` by hand — or has not restarted since — may still
+   * have stale `.eml` there from before. The same two-day rule finishes it
+   * off, on the next send for that journal, so it does not sit in a backup
+   * forever without anybody having said so.
+   */
+  test("a stale .eml left at the pre-B636 location is swept too", async () => {
+    const legacy = path.join(dir, "ana", "mail");
+    fs.mkdirSync(legacy, { recursive: true });
+    const old = path.join(legacy, "old.eml");
+    fs.writeFileSync(old, "from before B636");
+    age(old, 30 * DAY);
+
+    await sendOne("after the move");
+
+    expect(fs.existsSync(old)).toBe(false);
   });
 
   test("a sweep that cannot read the directory still sends the message", async () => {
@@ -198,7 +227,7 @@ describe("kept mail expires", () => {
     writeConfig({ enabled: true, transport: "console", keepCopy: true });
     await sendMail(renderMail("ana@example.test", "first", SAMPLE, "ana"));
 
-    const mailDir = path.join(dir, "ana", "mail");
+    const mailDir = path.join(mailRoot(), "ana");
     const [stale] = fs.readdirSync(mailDir).map((f) => path.join(mailDir, f));
     age(stale, 5 * DAY);
 
@@ -277,12 +306,12 @@ describe("the smtp transport, from sendMail down to the socket", () => {
     const result = await sendMail(renderMail("reader@example.test", "Hello", SAMPLE, "ana"));
     expect(result?.transport).toBe("smtp");
 
-    const kept = fs.readdirSync(path.join(dir, "ana", "mail")).filter((f) => f.endsWith(".eml"));
+    const kept = fs.readdirSync(path.join(mailRoot(), "ana")).filter((f) => f.endsWith(".eml"));
     expect(kept).toHaveLength(1);
     // Byte-identical to what went down the socket, because both come from
     // `writeEml` over the same `Mail`. A debugging aid that differs from the
     // real thing in some detail nobody wrote down is worse than none.
-    const copy = fs.readFileSync(path.join(dir, "ana", "mail", kept[0]), "utf8");
+    const copy = fs.readFileSync(path.join(mailRoot(), "ana", kept[0]), "utf8");
     expect(server.sessions[0].data).toContain("Subject: Hello");
     expect(copy).toContain("To: reader@example.test");
   });
@@ -292,7 +321,7 @@ describe("the smtp transport, from sendMail down to the socket", () => {
 
     await sendMail(renderMail("reader@example.test", "Hello", SAMPLE, "ana"));
 
-    expect(fs.existsSync(path.join(dir, "ana", "mail"))).toBe(false);
+    expect(fs.existsSync(path.join(mailRoot(), "ana"))).toBe(false);
   });
 
   /**
@@ -472,36 +501,42 @@ describe("transports", () => {
   test("a user's mail is written under that user, not a shared folder", async () => {
     writeConfig({ enabled: true, transport: "file" });
     const result = await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));
-    expect(result!.reference).toContain(path.join("ana", "mail"));
+    expect(result!.reference).toContain(path.join("mail", "ana"));
   });
 
   /**
    * B111 — the fallback used to be `process.cwd()`.
    *
    * A signup code is the mail you get *before* you own a name, so it carries no
-   * username. On the deployed server the working directory is the code
+   * username. On the deployed server the working directory used to be the code
    * checkout, so every one of them was written in plaintext to
    * `/srv/fernscout/mail/`: outside `DATA_DIR`, outside the backup, and in a
    * place no documentation named, so nobody knew there was anything to clear.
-   * Nothing about this is visible to a reader of the code, which is why it is
-   * asserted rather than left to be noticed.
+   * Since B636 the destination is `<DATA_DIR>/mail/.mail/`, which is inside
+   * `DATA_DIR` on purpose — but still not under `contentRoot()`, and still not
+   * `process.cwd()`.
    */
-  test("mail with no journal lands in content/.mail/, not the working directory", async () => {
+  test("mail with no journal lands in <DATA_DIR>/mail/.mail/, not the working directory", async () => {
     writeConfig({ enabled: true, transport: "file" });
     const result = await sendMail(renderMail("newcomer@example.test", "Your code", SAMPLE));
 
-    expect(path.dirname(result!.reference)).toBe(path.join(dir, ".mail"));
-    expect(fs.readdirSync(path.join(dir, ".mail"))).toHaveLength(1);
+    const bucket = path.join(mailRoot(), ".mail");
+    expect(path.dirname(result!.reference)).toBe(bucket);
+    expect(fs.readdirSync(bucket)).toHaveLength(1);
     expect(result!.reference.startsWith(path.join(process.cwd(), "mail"))).toBe(false);
   });
 
-  test("every path the file transport can produce is under the content root", async () => {
+  test("every path the file transport can produce is under the mail root", async () => {
     writeConfig({ enabled: true, transport: "file" });
 
     const withUser = await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));
     const without = await sendMail(renderMail("r@example.test", "S", SAMPLE));
     for (const result of [withUser, without]) {
-      expect(path.resolve(result!.reference).startsWith(path.resolve(dir) + path.sep)).toBe(true);
+      expect(path.resolve(result!.reference).startsWith(path.resolve(mailRoot()) + path.sep)).toBe(
+        true,
+      );
+      // And never under the content root, which is the whole point of B636.
+      expect(path.resolve(result!.reference).startsWith(path.resolve(dir) + path.sep)).toBe(false);
     }
   });
 
@@ -511,7 +546,7 @@ describe("transports", () => {
    * this cannot happen today — the point is that it stays impossible when a
    * caller is added, rather than quietly writing somewhere else.
    */
-  test("a username that would escape the content root is refused, not written", async () => {
+  test("a username that would escape the mail root is refused, not written", async () => {
     writeConfig({ enabled: true, transport: "file" });
     // Back through `sendMail`, which is the call that matters. An earlier
     // draft of B60 declined anything whose journal would not resolve, which
@@ -520,7 +555,7 @@ describe("transports", () => {
     // `mailDir` — where being unable to escape is the actual boundary.
     await expect(
       sendMail(renderMail("r@example.test", "S", SAMPLE, "../../elsewhere")),
-    ).rejects.toThrow(/outside the content root/);
+    ).rejects.toThrow(/outside the mail root/);
   });
 
   test("MAIL_FROM sets the sender when it is configured", async () => {
@@ -603,7 +638,7 @@ describe("transports", () => {
       const second = await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));
 
       expect(second!.reference).not.toBe(first!.reference);
-      expect(fs.readdirSync(path.join(dir, "ana", "mail"))).toHaveLength(2);
+      expect(fs.readdirSync(path.join(mailRoot(), "ana"))).toHaveLength(2);
       // Both are readable, and neither is a truncated remnant of the other.
       for (const sent of [first, second]) {
         expect(fs.readFileSync(sent!.reference, "utf8")).toContain("Subject: S");
@@ -631,7 +666,7 @@ describe("transports", () => {
       // Sorting the names must put them in the order they were sent. A
       // counter in front of the timestamp would sort the second message of
       // 18:00:00 after the only message of 18:00:01.
-      const names = fs.readdirSync(path.join(dir, "ana", "mail")).sort();
+      const names = fs.readdirSync(path.join(mailRoot(), "ana")).sort();
       expect(names).toHaveLength(3);
       expect(names.at(-1)).toBe(path.basename(last!.reference));
       expect(names.every((n) => n.startsWith("2026-09-03T18-00-0"))).toBe(true);
@@ -680,7 +715,7 @@ describe("transports", () => {
  */
 describe("keeping a copy of mail that was really sent", () => {
   function mailDir() {
-    return path.join(dir, "ana", "mail");
+    return path.join(mailRoot(), "ana");
   }
 
   function copies(): string[] {
@@ -753,7 +788,7 @@ describe("keeping a copy of mail that was really sent", () => {
     vi.useRealTimers();
   });
 
-  test("a copy of mail that belongs to no journal is kept under the content root", async () => {
+  test("a copy of mail that belongs to no journal is kept under the mail root", async () => {
     writeConfig({ enabled: true, transport: "console", keepCopy: true });
 
     // Compared rather than asserted absent: a checkout that ran the old code
@@ -764,7 +799,7 @@ describe("keeping a copy of mail that was really sent", () => {
 
     await sendMail(renderMail("newcomer@example.test", "Your code", SAMPLE));
 
-    expect(fs.readdirSync(path.join(dir, ".mail"))).toHaveLength(1);
+    expect(fs.readdirSync(path.join(mailRoot(), ".mail"))).toHaveLength(1);
     expect(fs.existsSync(cwdMail) ? fs.readdirSync(cwdMail) : []).toEqual(before);
   });
 
@@ -772,6 +807,7 @@ describe("keeping a copy of mail that was really sent", () => {
     writeConfig({ enabled: true, transport: "console", keepCopy: true });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     // A file where the directory has to go: mkdir fails, the send must not.
+    fs.mkdirSync(mailRoot(), { recursive: true });
     fs.writeFileSync(mailDir(), "not a directory");
 
     const result = await sendMail(renderMail("r@example.test", "S", SAMPLE, "ana"));

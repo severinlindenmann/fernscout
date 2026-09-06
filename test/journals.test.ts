@@ -26,6 +26,7 @@ let dir: string;
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-journals-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
@@ -40,6 +41,7 @@ beforeEach(() => {
 
 afterEach(() => {
   delete process.env.CONTENT_DIR;
+  delete process.env.DATA_DIR;
   clearConfigCache();
   clearUserCache();
   fs.rmSync(dir, { recursive: true, force: true });
@@ -56,7 +58,7 @@ const OWNER = "owner@example.test";
  * for a test helper to be wrong.
  */
 function mailBodyOf(username: string): string {
-  const mailDir = path.join(dir, username, "mail");
+  const mailDir = path.join(dir, "mail", username);
   const files = fs.readdirSync(mailDir).filter((f) => f.endsWith(".eml"));
   const raw = fs.readFileSync(path.join(mailDir, files[0]), "utf8");
   const boundary = raw.match(/boundary="([^"]+)"/)?.[1];
@@ -439,9 +441,9 @@ describe("the welcome mail", () => {
     });
     expect(sent).toBe(true);
 
-    const files = fs.readdirSync(path.join(dir, "wanderer", "mail"));
+    const files = fs.readdirSync(path.join(dir, "mail", "wanderer"));
     expect(files).toHaveLength(1);
-    const raw = fs.readFileSync(path.join(dir, "wanderer", "mail", files[0]), "utf8");
+    const raw = fs.readFileSync(path.join(dir, "mail", "wanderer", files[0]), "utf8");
     const body = mailBodyOf("wanderer");
 
     expect(raw).toContain(OWNER);

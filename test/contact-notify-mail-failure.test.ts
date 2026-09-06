@@ -125,6 +125,7 @@ function failOwnerMailOnce() {
 beforeAll(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-notify-fail-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "db.sqlite")}`;
   process.env.CONTACTS_ENCRYPTION_KEY = "88".repeat(32);
   process.env.SESSION_SECRET = "99".repeat(32);
@@ -162,7 +163,7 @@ afterEach(() => {
 afterAll(async () => {
   const { closeDatabase } = await import("@/lib/db");
   await closeDatabase();
-  for (const key of ["CONTENT_DIR", "DATABASE_URL", "CONTACTS_ENCRYPTION_KEY", "SESSION_SECRET"]) {
+  for (const key of ["CONTENT_DIR", "DATA_DIR", "DATABASE_URL", "CONTACTS_ENCRYPTION_KEY", "SESSION_SECRET"]) {
     delete process.env[key];
   }
   fs.rmSync(dir, { recursive: true, force: true });
@@ -211,7 +212,7 @@ describe("a correct code whose owner notification fails", () => {
     // never wrote one (it threw), the second wrote exactly one. A guard that
     // resent on every re-confirmation once notified_at was set would leave
     // more than one here.
-    const mailDir = path.join(dir, OWNER, "mail");
+    const mailDir = path.join(dir, "mail", OWNER);
     const toOwner = fs.readdirSync(mailDir).filter((f) => f.includes("ana-example-test"));
     expect(toOwner).toHaveLength(1);
 

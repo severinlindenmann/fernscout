@@ -74,13 +74,16 @@ next-env.d.ts
 # What scripts/deploy.sh last brought up healthy, written on the server (B258).
 .deploy-state
 
-# Generated per-user output. Postcards carry postal addresses and mail carries
-# an email list, so none of it belongs in git — with content/example the
-# deliberate exception, since it holds nothing real.
+# Generated per-user output. Postcards carry postal addresses, so none of it
+# belongs in git — with content/example the deliberate exception, since it
+# holds nothing real.
 content/*/postcards/
 content/*/photobooks/
+# Sent mail lived here before B636 moved it to `<dataDir>/mail/`, which
+# `.data/` above already covers. Still ignored so a checkout that has not
+# restarted since, or has not cleared the old directory by hand, cannot
+# accidentally commit a plaintext sign-in code.
 content/*/mail/
-# Mail that belongs to no journal yet — signup codes. See lib/mail/index.ts.
 content/.mail/
 # The files exactly as the camera wrote them. Kept so the photobook has
 # something better than a 2000px derivative to print from, gitignored because

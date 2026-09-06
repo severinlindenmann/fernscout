@@ -84,7 +84,7 @@ async function purchase(
 }
 
 function mailFiles(): string[] {
-  const mailDir = path.join(dir, OWNER, "mail");
+  const mailDir = path.join(dir, "mail", OWNER);
   if (!fs.existsSync(mailDir)) return [];
   return fs.readdirSync(mailDir).filter((f) => f.endsWith(".eml"));
 }
@@ -92,6 +92,7 @@ function mailFiles(): string[] {
 beforeAll(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-credits-purchase-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "db.sqlite")}`;
   process.env.SESSION_SECRET = "88".repeat(32);
   delete process.env.AUTH_DEV_CODE;
@@ -138,7 +139,7 @@ beforeAll(async () => {
 afterAll(async () => {
   const { closeDatabase } = await import("@/lib/db");
   await closeDatabase();
-  for (const key of ["CONTENT_DIR", "DATABASE_URL", "SESSION_SECRET", "AUTH_DEV_CODE"]) {
+  for (const key of ["CONTENT_DIR", "DATA_DIR", "DATABASE_URL", "SESSION_SECRET", "AUTH_DEV_CODE"]) {
     delete process.env[key];
   }
   fs.rmSync(dir, { recursive: true, force: true });
@@ -224,7 +225,7 @@ describe("what a 200 actually does", () => {
 
     const written = mailFiles().filter((f) => !before.includes(f));
     expect(written).toHaveLength(1);
-    const contents = fs.readFileSync(path.join(dir, OWNER, "mail", written[0]), "utf8");
+    const contents = fs.readFileSync(path.join(dir, "mail", OWNER, written[0]), "utf8");
     expect(contents).toContain(`To: ${OWNER_EMAIL}`);
     expect(contents).not.toContain("somebody-else@example.test");
   });

@@ -21,6 +21,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
  */
 
 let dir: string;
+let data: string;
 let caller = 0;
 
 function request(email: string) {
@@ -39,7 +40,9 @@ function request(email: string) {
 
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-signup-mail-"));
+  data = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-signup-mail-data-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = data;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "auth.db")}`;
   process.env.SESSION_SECRET = "b111-test-secret-b111-test-secret";
   fs.writeFileSync(
@@ -64,16 +67,18 @@ beforeEach(async () => {
 afterEach(async () => {
   await closeDatabase();
   delete process.env.CONTENT_DIR;
+  delete process.env.DATA_DIR;
   delete process.env.DATABASE_URL;
   delete process.env.SESSION_SECRET;
   clearConfigCache();
   clearUserCache();
   vi.restoreAllMocks();
   fs.rmSync(dir, { recursive: true, force: true });
+  fs.rmSync(data, { recursive: true, force: true });
 });
 
 describe("POST /api/auth/signup/request", () => {
-  test("writes the code under the content root, not the working directory", async () => {
+  test("writes the code under <DATA_DIR>/mail/, not the working directory", async () => {
     // A stale `mail/` from a checkout that ran the old code must not decide
     // this test either way: what is asserted is what this request writes.
     const cwdMail = path.join(process.cwd(), "mail");
@@ -82,7 +87,7 @@ describe("POST /api/auth/signup/request", () => {
     const response = await request("newcomer@example.test");
     expect(response.status).toBe(202);
 
-    const bucket = path.join(dir, ".mail");
+    const bucket = path.join(data, "mail", ".mail");
     const written = fs.readdirSync(bucket);
     expect(written).toHaveLength(1);
 
@@ -98,14 +103,19 @@ describe("POST /api/auth/signup/request", () => {
     expect(decoded).toMatch(/Your code is \d{6}\./);
   });
 
-  test("no journal directory is invented for it", async () => {
+  test("no journal directory is invented for it, under the content root or otherwise", async () => {
     await request("someone@example.test");
 
-    // `.mail` is an instance directory, like `content/.deleted/`. It must not
-    // read as a journal: `lib/users.ts` skips a leading dot, and `USERNAME_RE`
-    // could never produce this name in the first place.
+    // Since B636 this mail lands under DATA_DIR, not the content root at all —
+    // so a signup code must invent no directory under `dir` whatsoever.
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name).sort();
-    expect(dirs).toEqual([".mail"]);
+    expect(dirs).toEqual([]);
+
+    // `.mail` is an instance bucket, like `content/.deleted/` used to be for
+    // this: not a name `USERNAME_RE` could ever produce, so it never reads as
+    // a journal even though it now lives under `<DATA_DIR>/mail/` instead.
+    const mailEntries = fs.readdirSync(path.join(data, "mail"), { withFileTypes: true });
+    expect(mailEntries.filter((e) => e.isDirectory()).map((e) => e.name)).toEqual([".mail"]);
   });
 });

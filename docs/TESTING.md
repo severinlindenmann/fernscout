@@ -138,7 +138,7 @@ is B252.)
 | **F1** | In `content/example/trips/alps-2024/trip.md` set `visibility: private`. Reload `/example/trips/alps-2024` | The **gate**, not the trip |
 | **F2** | Read the gate | It carries the **journal's** name — "Fernscout Demo" — and says nothing about the Alps: not in the heading, not in the tagline, nowhere. B117 |
 | **F3** | `curl -s localhost:3000/example/trips/alps-2024 \| grep -i '<title>'` | The journal's name again, and a `noindex`. Trip ids are guessable by hand, so a closed trip must not name itself in the tab either |
-| **F4** | 🔑 Sign in at the gate with an address that is **not** in that trip's `people:` (the code is in the `.eml` under `content/example/mail/`) | Signed in, and **still refused** — a different sentence, and a link to `/example/me`. Being able to prove an address is not access |
+| **F4** | 🔑 Sign in at the gate with an address that is **not** in that trip's `people:` (the code is in the `.eml` under `<DATA_DIR>/mail/example/`) | Signed in, and **still refused** — a different sentence, and a link to `/example/me`. Being able to prove an address is not access |
 | **F5** | Add that address to the trip's `people:` block (`- name:` / `email:`), reload | The trip opens, and stays open across its other pages |
 | **F6** | Set `visibility: guest` and take your address back out of `people:`. Reload | Refused again, in the same words as F4: a `guest` trip opens for guests of the **journal**, and signing in is not being approved into one. The other half — an approved guest opening it — needs a contact to approve, which is **H2–H5**; come back to this URL after those and it opens, along with every other `guest` trip in the journal, because a guest is never a guest of one trip |
 | **F7** | In a **private window**, open one of that trip's photos directly, e.g. `/example/media/alps-2024/over-the-susten/01.jpg` | **404.** A private trip's photos must not be fetchable by URL |
@@ -170,7 +170,7 @@ and in `site/config.json` set `features.auth.enabled` and
 | **G2** | Open `/agent.md` | The full guide: authenticate, read, write, with examples |
 | **G3** | Open `/openapi.json` | A machine-readable API description, not a 404 |
 | **G4** | Open `/example/day/denver-and-a-truck.md` | The **markdown source** of that day, not the rendered page |
-| **G5** | `curl -X POST localhost:3000/api/auth/request -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","kind":"agent"}'` | `202`, and an `.eml` file appears in `content/example/mail/` |
+| **G5** | `curl -X POST localhost:3000/api/auth/request -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","kind":"agent"}'` | `202`, and an `.eml` file appears in `<DATA_DIR>/mail/example/` |
 | **G6** | `curl -X POST localhost:3000/api/auth/verify -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","code":"123456","kind":"agent"}'` | A token starting `fs_agent_` |
 | **G7** | Same request with a **different** email | `202` but **no** mail written — only the owner can get a write token |
 | **G8** | `curl localhost:3000/api/v1/example/trips -H "authorization: Bearer <token>"` | All four trips as JSON |
@@ -188,7 +188,7 @@ and in `site/config.json` set `features.auth.enabled` and
 
 ## H — Email
 
-Same environment as G. Mail is written to `content/example/mail/` as `.eml`
+Same environment as G. Mail is written to `<DATA_DIR>/mail/example/` as `.eml`
 files you can open — no mail account needed.
 
 | # | Do this | ✅ Expect |
@@ -196,7 +196,7 @@ files you can open — no mail account needed.
 | **H1** | Set `features.contacts.enabled: true` and 🔑 `CONTACTS_ENCRYPTION_KEY=$(openssl rand -hex 32)`. Rebuild | — |
 | **H2** | Open `/example/contacts` as owner, issue an invite, open its link | A short form: name, email, optional postal address. `/example/join` redirects to `/example/me`, which offers no form (B37) |
 | **H3** | Fill it in and submit | A code arrives as an `.eml`; entering it confirms you |
-| **H4** | Check `content/example/mail/` | A "someone wants to follow" mail addressed to the owner |
+| **H4** | Check `<DATA_DIR>/mail/example/` | A "someone wants to follow" mail addressed to the owner |
 | **H5** | Open `/example/contacts` (as owner) | The pending request, with an approve button |
 | **H6** | `npm run digest -- --user example --dry-run` | Lists who would get what, sends nothing |
 | **H7** | `npm run digest -- --user example` | A digest `.eml` per approved contact |

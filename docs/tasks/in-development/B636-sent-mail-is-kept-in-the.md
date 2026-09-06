@@ -43,3 +43,52 @@ never to keep them; the location is what is wrong.
   still removes it.
 - A journal export and a backup contain no `.eml`.
 - `npm run verify` passes, and `AGENTS.md` no longer points at the old paths.
+
+## Done
+
+New location: `<dataDir()>/mail/<username>/` (and `<dataDir()>/mail/.mail/`
+for a signup code, which belongs to no journal yet) — `dataDir()` from
+`lib/dataDir.ts`, not `contentRoot()`. `mailDir()` in `lib/mail/index.ts`
+still refuses to write outside its root, now checked against the new one.
+
+**Already-sent mail sitting at the old location:** chose "sweep both
+locations for a while" over "an operator deletes it by hand" — the smaller
+diff, since `sweepExpiredMail()` already existed and is generic over any
+directory. `writeEml()` now also sweeps `contentRoot()/<user>/mail/` (or
+`contentRoot()/.mail/`) on the same two-day TTL, guarded by an `existsSync`
+so a fresh install never even asks the filesystem about a path it never
+created. A deployment that keeps sending mail for a journal cleans up that
+journal's leftovers within two days of the next send; a journal that never
+sends again keeps whatever was already there — the same accepted limit the
+sweep has always had for an inactive folder (see the `keepsCopy` doc comment
+in `lib/mail/index.ts`), documented for an operator who wants it gone sooner
+in `docs/deploy-mail.md`'s new "Upgrading from before B636" section.
+
+**Backup:** mail moving under `DATA_DIR` would otherwise still land in every
+snapshot, since `scripts/backup.sh` stages `DATA_DIR` wholesale. Added one
+line — `rm -rf "$STAGING_DIR/data/mail"` — right after that stage, so the
+directory is still staged (the sweep still owns it) and then dropped before
+the push. `lib/exportZip.ts` never walked a mail directory in the first place
+(it walks `trips/<id>` and `config.json` only), so the export acceptance was
+already true and needed no change — verified with a fixture in
+`test/backup-script.test.ts` that seeds `DATA_DIR/mail/alex/*.eml` and
+asserts it is absent from the restored snapshot.
+
+**Every reader updated**, beyond the writer: the ~20 test files across the
+suite that located a journal's sent mail on disk (`deletions`, `day-mail`,
+`credits-purchase`, `invite-links`, `journals`, `journals-required-fields`,
+`buddy-mail-scope`, `contact-notify-mail-failure`, `contacts-admin-invite`,
+`invite-preapproval`, `owner-self-details`, `photobook-receipt`, `payments`,
+`alert-script`, `postcard-orders`, `mail`, `mail-journal-switch`,
+`signup-mail`), plus `docs/deploy-mail.md`, `docs/running-locally.md`,
+`docs/qa/BLACKBOX.md`, `docs/qa/SCENARIOS.md`, `docs/TESTING.md`, and
+`AGENTS.md`'s content-model tree and B111 bullet. `.gitignore`'s
+`content/*/mail/` and `content/.mail/` entries stay, now documented as
+legacy-only (`.data/` already covers the new location).
+
+**B111's rule** ("every path `lib/mail` can write to is under `contentRoot()`")
+is exactly what this task changes; the enforcing test
+(`test/mail.test.ts`: "every path the file transport can produce is under
+the mail root") was rewritten to assert the new root instead of deleted, and
+a new assertion in the same test proves it is *never* under `contentRoot()`
+any more. `npm run verify` passes (build, tsc, lint, full vitest run).

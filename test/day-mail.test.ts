@@ -256,7 +256,7 @@ async function resend(token: string, tripId: string, slug: string) {
 }
 
 function mailFiles(): string[] {
-  const box = path.join(dir, OWNER, "mail");
+  const box = path.join(dir, "mail", OWNER);
   return fs.existsSync(box) ? fs.readdirSync(box).sort() : [];
 }
 
@@ -274,7 +274,7 @@ function emlFor(emailFragment: string): string {
   const pattern = addressPattern(emailFragment);
   const file = mailFiles().find((f) => pattern.test(f));
   if (!file) throw new Error(`no .eml addressed to "${emailFragment}" among: ${mailFiles().join(", ")}`);
-  return fs.readFileSync(path.join(dir, OWNER, "mail", file), "utf8");
+  return fs.readFileSync(path.join(dir, "mail", OWNER, file), "utf8");
 }
 
 function hasMailTo(emailFragment: string): boolean {
@@ -296,6 +296,7 @@ function textPartOf(raw: string): string {
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-day-mail-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
   process.env.CONTACTS_ENCRYPTION_KEY = "33".repeat(32);
   process.env.SESSION_SECRET = "day-mail-test-secret-day-mail-test";
@@ -313,6 +314,7 @@ afterEach(async () => {
   await closeDatabase();
   for (const key of [
     "CONTENT_DIR",
+    "DATA_DIR",
     "DATABASE_URL",
     "CONTACTS_ENCRYPTION_KEY",
     "SESSION_SECRET",

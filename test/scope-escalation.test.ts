@@ -200,8 +200,8 @@ beforeAll(async () => {
     JSON.stringify({
       site: { name: "R", url: "https://example.test", defaultUser: OWNER },
       users: { reserved: [] },
-      // `file` transport: the mail lands as an .eml under the content root and
-      // needs no account anywhere.
+      // `file` transport: the mail lands as an .eml under the data dir's mail
+      // root and needs no account anywhere.
       features: { auth: { enabled: true }, mail: { enabled: true, transport: "file" } },
     }),
   );

@@ -60,6 +60,7 @@ let dir: string;
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-postcard-orders-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "orders.db")}`;
   process.env.CONTACTS_ENCRYPTION_KEY = KEY;
   delete process.env.AUTH_DEV_CODE;
@@ -73,8 +74,8 @@ beforeEach(async () => {
         credits: { enabled: true },
         postcards: { enabled: true, provider: "dry-run" },
         contacts: { enabled: true },
-        // B467's receipt. `file` writes .eml under content/<user>/mail, which
-        // is what the address assertions below read.
+        // B467's receipt. `file` writes .eml under <DATA_DIR>/mail/<user>,
+        // which is what the address assertions below read.
         mail: { enabled: true, transport: "file" },
       },
     }),
@@ -110,6 +111,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await closeDatabase();
   delete process.env.CONTENT_DIR;
+  delete process.env.DATA_DIR;
   delete process.env.DATABASE_URL;
   delete process.env.CONTACTS_ENCRYPTION_KEY;
   clearConfigCache();
@@ -455,7 +457,7 @@ describe("coming back from a form", () => {
  */
 describe("the receipt for a send", () => {
   function mailFiles(): string[] {
-    const dir = path.join(dir_(), OWNER, "mail");
+    const dir = path.join(dir_(), "mail", OWNER);
     try {
       return fs.readdirSync(dir).filter((f) => f.endsWith(".eml"));
     } catch {
@@ -463,7 +465,7 @@ describe("the receipt for a send", () => {
     }
   }
   function dir_(): string {
-    return process.env.CONTENT_DIR!;
+    return process.env.DATA_DIR!;
   }
 
   test("names the person, attaches the card, and carries no address", async () => {
@@ -474,7 +476,7 @@ describe("the receipt for a send", () => {
 
     const files = mailFiles();
     expect(files.length).toBeGreaterThan(0);
-    const raw = files.map((f) => fs.readFileSync(path.join(dir_(), OWNER, "mail", f), "utf8")).join("\n");
+    const raw = files.map((f) => fs.readFileSync(path.join(dir_(), "mail", OWNER, f), "utf8")).join("\n");
 
     // **The address is the thing the message must not become** — and the
     // scope of that claim matters. The attached PDF is the card as printed,

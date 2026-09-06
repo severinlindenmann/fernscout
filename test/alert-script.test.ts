@@ -21,9 +21,14 @@ const NODE_BIN = process.execPath;
 
 let scratch: string;
 let contentDir: string;
+let dataDir: string;
 
 function writeContent(mailEnabled: boolean, ownerEmail: string | null) {
   fs.rmSync(contentDir, { recursive: true, force: true });
+  // Mail no longer lives under contentDir (B636), so clearing that alone
+  // leaves the previous test's `.eml` sitting in dataDir/mail for this one's
+  // `mailFiles()` to trip over.
+  fs.rmSync(dataDir, { recursive: true, force: true });
   fs.mkdirSync(path.join(contentDir, "keeper", "trips"), { recursive: true });
   fs.writeFileSync(
     path.join(contentDir, "config.json"),
@@ -69,7 +74,7 @@ function runAlert(extra: string[] = [], env: Record<string, string> = {}, detail
     {
       encoding: "utf8",
       input: detail,
-      env: { ...process.env, CONTENT_DIR: contentDir, BACKUP_ALERT_EMAIL: "", ...env },
+      env: { ...process.env, CONTENT_DIR: contentDir, DATA_DIR: dataDir, BACKUP_ALERT_EMAIL: "", ...env },
     },
   );
   return { status: result.status ?? 1, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
@@ -104,13 +109,14 @@ function readMail(file: string): string {
 }
 
 function mailFiles(user = "keeper"): string[] {
-  const dir = path.join(contentDir, user, "mail");
+  const dir = path.join(dataDir, "mail", user);
   return fs.existsSync(dir) ? fs.readdirSync(dir) : [];
 }
 
 beforeAll(() => {
   scratch = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-alert-"));
   contentDir = path.join(scratch, "content");
+  dataDir = path.join(scratch, "data");
 });
 
 afterAll(() => {
@@ -135,7 +141,7 @@ describe("npm run alert", () => {
 
       const files = mailFiles();
       expect(files, "the alert must produce an actual message").toHaveLength(1);
-      const eml = readMail(path.join(contentDir, "keeper", "mail", files[0]));
+      const eml = readMail(path.join(dataDir, "mail", "keeper", files[0]));
       expect(eml).toContain("ops@example.test");
       expect(eml).toContain("fernscout-backup.service failed");
       // The detail the caller piped in, and the two commands that answer the
@@ -154,7 +160,7 @@ describe("npm run alert", () => {
       const run = runAlert([], { BACKUP_ALERT_EMAIL: "oncall@example.test" });
       expect(run.status, run.stdout + run.stderr).toBe(0);
       const files = mailFiles();
-      const eml = readMail(path.join(contentDir, "keeper", "mail", files.at(-1)!));
+      const eml = readMail(path.join(dataDir, "mail", "keeper", files.at(-1)!));
       expect(eml).toContain("oncall@example.test");
     },
     120_000,
@@ -216,7 +222,7 @@ describe("npm run alert", () => {
       expect(run.status, run.stdout + run.stderr).toBe(0);
 
       const files = mailFiles();
-      const eml = readMail(path.join(contentDir, "keeper", "mail", files.at(-1)!));
+      const eml = readMail(path.join(dataDir, "mail", "keeper", files.at(-1)!));
       expect(eml).toContain("fernscout-backup.service succeeded");
       expect(eml).toContain("The backup finished cleanly");
       expect(eml).toContain("OnSuccess=");
@@ -247,7 +253,7 @@ describe("npm run alert", () => {
       for (const argv of [[], ["--outcome", ""], ["--outcome", "Success"], ["--outcome", "ok"]]) {
         const run = runAlert(argv);
         expect(run.status, run.stdout + run.stderr).toBe(0);
-        const eml = readMail(path.join(contentDir, "keeper", "mail", mailFiles().at(-1)!));
+        const eml = readMail(path.join(dataDir, "mail", "keeper", mailFiles().at(-1)!));
         expect(eml, `${JSON.stringify(argv)} must not read as a success`).toContain(
           "fernscout-backup.service failed",
         );
@@ -270,7 +276,7 @@ describe("npm run alert", () => {
       const run = runAlert(["--outcome", "success"], { BACKUP_ALERT_EMAIL: "" });
       expect(run.status, run.stdout + run.stderr).toBe(0);
 
-      const eml = readMail(path.join(contentDir, "keeper", "mail", mailFiles().at(-1)!));
+      const eml = readMail(path.join(dataDir, "mail", "keeper", mailFiles().at(-1)!));
       // Not merely absent from the message — since B475 it is not collected at
       // all, so no journal is walked to build a report that would be dropped.
       expect(eml, "the roster must not be in the message at all").not.toContain("journals listed");
@@ -290,7 +296,7 @@ describe("npm run alert", () => {
 
       const withOperator = runAlert(["--outcome", "success"], { BACKUP_ALERT_EMAIL: "oncall@example.test" });
       expect(withOperator.status, withOperator.stdout + withOperator.stderr).toBe(0);
-      let eml = readMail(path.join(contentDir, "keeper", "mail", mailFiles().at(-1)!));
+      let eml = readMail(path.join(dataDir, "mail", "keeper", mailFiles().at(-1)!));
       expect(eml).toContain("oncall@example.test");
       // The roster, collected in this process from CONTENT_DIR (B475).
       expect(eml).toContain("keeper");
@@ -302,7 +308,7 @@ describe("npm run alert", () => {
       // to reach somebody (B64), and its journal tail is what it always was.
       const failure = runAlert([], { BACKUP_ALERT_EMAIL: "" });
       expect(failure.status, failure.stdout + failure.stderr).toBe(0);
-      eml = readMail(path.join(contentDir, "keeper", "mail", mailFiles().at(-1)!));
+      eml = readMail(path.join(dataDir, "mail", "keeper", mailFiles().at(-1)!));
       expect(eml).toContain("ops@example.test");
       expect(eml).toContain("control process exited with error code");
       expect(eml).not.toContain("The status report is not included");

@@ -227,6 +227,11 @@ fi
 if [[ -d "$DATA_DIR" ]]; then
   log "staging DATA_DIR ($DATA_DIR)"
   stage_tree "DATA_DIR" "$DATA_DIR" "$STAGING_DIR/data"
+  # Sent mail (B636) lives under DATA_DIR/mail so the sweep in lib/mail keeps
+  # owning it, but it is transient, plaintext, sign-in-code-carrying content
+  # that must never leave the box — so it is staged and then dropped, rather
+  # than pushed off-site and kept for BACKUP_KEEP_DAILY generations.
+  rm -rf "$STAGING_DIR/data/mail"
 else
   log "WARNING: DATA_DIR ($DATA_DIR) does not exist — nothing to back up there yet"
 fi

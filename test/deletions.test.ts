@@ -83,6 +83,7 @@ function serverConfigWithCredits(enabled: boolean): void {
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-deletions-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
   process.env.SESSION_SECRET = "test-secret-for-deletions";
   serverConfig();
@@ -94,6 +95,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await closeDatabase();
   delete process.env.CONTENT_DIR;
+  delete process.env.DATA_DIR;
   delete process.env.DATABASE_URL;
   delete process.env.SESSION_SECRET;
   clearConfigCache();
@@ -158,7 +160,7 @@ function request(url: string, token?: string): Request {
 
 /** The `.eml` files written under a journal, newest last. */
 function mails(username: string): string[] {
-  const mailDir = path.join(dir, username, "mail");
+  const mailDir = path.join(dir, "mail", username);
   if (!fs.existsSync(mailDir)) return [];
   return fs.readdirSync(mailDir).filter((f) => f.endsWith(".eml")).sort();
 }
@@ -167,7 +169,7 @@ function mails(username: string): string[] {
  * test/journals.test.ts, for the same reason: a base64 body has blank lines. */
 function mailBody(username: string, index = 0): string {
   const files = mails(username);
-  const raw = fs.readFileSync(path.join(dir, username, "mail", files[index]), "utf8");
+  const raw = fs.readFileSync(path.join(dir, "mail", username, files[index]), "utf8");
   const boundary = raw.match(/boundary="([^"]+)"/)?.[1];
   if (!boundary) throw new Error("no MIME boundary in the message");
   for (const part of raw.split(`--${boundary}`)) {
@@ -196,7 +198,7 @@ function takeToken(username: string): string {
   const body = mailBody(username, 0);
   const match = body.match(new RegExp(`/${username}/delete/([A-Za-z0-9_-]+)`));
   if (!match) throw new Error(`no deletion link in the mail:\n${body}`);
-  fs.unlinkSync(path.join(dir, username, "mail", files[0]));
+  fs.unlinkSync(path.join(dir, "mail", username, files[0]));
   return match[1];
 }
 

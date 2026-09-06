@@ -52,7 +52,7 @@ function mailFilesFor(email: string): string[] {
 /** The raw `.eml` files, unfolded and undecoded — for reading a header
  * (`Subject:`) rather than the body `plainTextOf` decodes. */
 function rawMailFilesFor(email: string): string[] {
-  const mailDir = path.join(dir, OWNER, "mail");
+  const mailDir = path.join(dir, "mail", OWNER);
   if (!fs.existsSync(mailDir)) return [];
   const slug = email.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   return fs
@@ -147,6 +147,7 @@ async function onboard(kind: "guest" | "buddy", inviteToken: string, email: stri
 beforeAll(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-buddy-mail-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "db.sqlite")}`;
   process.env.CONTACTS_ENCRYPTION_KEY = "44".repeat(32);
   process.env.SESSION_SECRET = "55".repeat(32);
@@ -208,6 +209,7 @@ afterAll(async () => {
   await closeDatabase();
   for (const key of [
     "CONTENT_DIR",
+    "DATA_DIR",
     "DATABASE_URL",
     "CONTACTS_ENCRYPTION_KEY",
     "SESSION_SECRET",
