@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   A6_LANDSCAPE,
+  DIVIDER_X_MM,
+  FIGURES_AREA,
   MESSAGE_PT,
   fontFraction,
   mediaBox,
@@ -399,5 +401,56 @@ describe("the preview is drawn to the printer's measurements", () => {
     expect(Number(layout.font.address.replace("cqw", ""))).toBeGreaterThan(
       Number(layout.font.message.replace("cqw", "")),
     );
+  });
+});
+
+/**
+ * B628 — the traveller figures beside the signature, off by default.
+ *
+ * `renderPostcard`'s content streams are plain text (no `FlateDecode`), so a
+ * figure painted with `PdfBuilder.drawPath`'s "f"/"B" fill operators is
+ * findable as a substring — the cheapest possible proof that something new
+ * was actually drawn, without reaching into `Page.operations` and coupling
+ * the test to render.ts's internals.
+ */
+describe("traveller figures on the back", () => {
+  const party = [{ skin: "medium" as const, hair: "black" as const }];
+
+  test("absent by default: the back is byte-for-byte what it was before", () => {
+    const withoutField = render();
+    const explicitlyEmpty = render({ figures: [] });
+    expect(withoutField.pdf).toEqual(explicitlyEmpty.pdf);
+  });
+
+  test("switched on, the party is drawn — the PDF gains fill paths", () => {
+    const off = render();
+    const on = render({ figures: party });
+    expect(on.pdf.length).toBeGreaterThan(off.pdf.length);
+    // A figure fills more than a dozen shapes (limbs, head, pack, shadow);
+    // that shows up as many more "f Q" / "B Q" fill-and-restore pairs than
+    // the handful the rest of the back already draws (rules, stamp box).
+    const fills = (bytes: Uint8Array) =>
+      (Buffer.from(bytes).toString("latin1").match(/ (f|B) Q/g) ?? []).length;
+    expect(fills(on.pdf)).toBeGreaterThan(fills(off.pdf) + 5);
+  });
+
+  test("an empty party draws nothing, same as the switch being off", () => {
+    const off = render();
+    const empty = render({ figures: [] });
+    expect(empty.pdf).toEqual(off.pdf);
+  });
+
+  test("the figures box sits fully inside the safe area", () => {
+    const spec = A6_LANDSCAPE;
+    const left = DIVIDER_X_MM - FIGURES_AREA.gapFromDividerMm - FIGURES_AREA.widthMm;
+    const right = left + FIGURES_AREA.widthMm;
+    const bottom = spec.safeMm + 1;
+    const top = bottom + FIGURES_AREA.heightMm;
+
+    expect(left).toBeGreaterThanOrEqual(spec.safeMm);
+    expect(right).toBeLessThanOrEqual(DIVIDER_X_MM); // never crosses the divider
+    expect(right).toBeLessThanOrEqual(spec.trimWidthMm - spec.safeMm);
+    expect(bottom).toBeGreaterThanOrEqual(spec.safeMm);
+    expect(top).toBeLessThanOrEqual(spec.trimHeightMm - spec.safeMm);
   });
 });

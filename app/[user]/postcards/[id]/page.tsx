@@ -13,12 +13,15 @@ import { recipientsOf } from "@/lib/postcard/contacts";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
+import { travellerPartyFor } from "@/lib/postcard/entry";
+import { travellersSvg } from "@/lib/photobook/travellers";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { LOCALE_LABEL } from "@/lib/i18n";
 import { defaultLocaleFor, localesFor, requestLocale } from "@/lib/locales";
 import { pickLocale } from "@/lib/contacts/locale";
 import { formatDigestDate } from "@/lib/digest/content";
 import { orderPhotoFile } from "@/lib/postcard/send";
+import { getTrip } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import PostcardCropper from "@/components/PostcardCropper";
 
@@ -158,6 +161,15 @@ export default async function PostcardOrderPage({
   const mismatched = mismatches.length;
   const firstMismatch = mismatches[0];
 
+  // B628. The trip's own party — see `travellerPartyFor` for why a buddy has
+  // no likeness of their own to fall back to. `showFigures` is what the
+  // toggle actually controls; `hasParty` is whether there is anything for it
+  // to switch on in the first place.
+  const trip = getTrip(order.payload.trip);
+  const party = trip ? travellerPartyFor(trip) : [];
+  const hasParty = party.length > 0;
+  const showFigures = Boolean(order.payload.figures) && hasParty;
+
   return (
     <div className="min-h-screen">
       <PageHeader />
@@ -235,6 +247,16 @@ export default async function PostcardOrderPage({
               >
                 {order.payload.from}
               </p>
+              {showFigures ? (
+                <div
+                  className="absolute"
+                  style={back.figures}
+                  // The same SVG the photobook and the travellers bench draw
+                  // — `travellersSvg` is `lib/photobook/travellers.ts`'s own
+                  // browser spelling of `drawTravellers`, not a second set.
+                  dangerouslySetInnerHTML={{ __html: travellersSvg(100, party) }}
+                />
+              ) : null}
               <span
                 className="absolute w-px bg-black/20"
                 style={{ left: back.dividerLeft, top: "8%", height: "84%" }}
@@ -320,6 +342,34 @@ export default async function PostcardOrderPage({
             <p className="mt-2 text-xs opacity-70">{t("postcard.page.sameCard")}</p>
             <p className="mt-1 text-xs opacity-70">{t("postcard.page.fixed")}</p>
           </form>
+        ) : null}
+
+        {/* B628. Off by default and separate from the words above: this is a
+            drawing, not text, and the switch changes nothing else on the
+            back. Shown only when there is a party to draw — a trip nobody
+            has described has nothing here to turn on. */}
+        {isPending(order) && !expired && hasParty ? (
+          <form
+            method="post"
+            action={`/${username}/postcards/${id}/figures`}
+            className="mt-4 rounded border px-4 py-3"
+          >
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                name="figures"
+                defaultChecked={showFigures}
+                className="h-4 w-4"
+              />
+              {t("postcard.page.figuresLabel")}
+            </label>
+            <button type="submit" className="mt-3 rounded border px-3 py-1.5 text-sm font-medium">
+              {t("postcard.page.save")}
+            </button>
+            <p className="mt-2 text-xs opacity-70">{t("postcard.page.figuresHint")}</p>
+          </form>
+        ) : isPending(order) && !expired ? (
+          <p className="mt-4 text-xs opacity-70">{t("postcard.page.figuresNone")}</p>
         ) : null}
 
         {mismatched > 0 && isPending(order) ? (

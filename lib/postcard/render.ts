@@ -4,6 +4,7 @@ import {
   ADDRESS_LEADING_PT,
   ADDRESS_PT,
   DIVIDER_X_MM,
+  FIGURES_AREA,
   LEADING,
   MESSAGE_PT,
   SIGNATURE_PT,
@@ -15,6 +16,11 @@ import {
 } from "./spec.ts";
 import { PdfBuilder, readJpeg, type JpegImage, type Page } from "./pdf.ts";
 import type { Crop } from "./orders.ts";
+// The same PDF figures the photobook draws — B628. Not a second set: this
+// module already writes through `lib/postcard/pdf.ts`'s own `PdfBuilder`,
+// which is exactly what `drawTravellers` was written against.
+import { drawTravellers } from "../photobook/travellers.ts";
+import type { Figure } from "../travellers/vocabulary.ts";
 
 /**
  * Composes a postcard: photograph on the front, message and address on the
@@ -51,6 +57,14 @@ export type PostcardInput = {
   crop?: Crop;
   /** Draws trim and safe-area guides. For proofing only — never for printing. */
   guides?: boolean;
+  /**
+   * The party to draw beside the signature — B628. Absent or empty draws
+   * nothing: the back is exactly as it was before this existed, which is the
+   * off-by-default the option promises. The caller resolves who this is —
+   * ordinarily a trip's own `travellers:` block, the same one the photobook
+   * and the site's hero already draw — this module only paints it.
+   */
+  figures?: Figure[];
   /**
    * Which sides to emit. Providers differ: some take one two-page PDF, and
    * Stannp takes the front and the back as separate files. Rendering one side
@@ -258,6 +272,31 @@ export function renderPostcard(input: PostcardInput): RenderedPostcard {
     SIGNATURE_PT,
     { r: 0.45, g: 0.5, b: 0.55 },
   );
+
+  // The traveller figures, beside the signature — B628. Anchored to the
+  // divider, at the same baseline the signature sits on, and sized so the
+  // whole box stays inside the safe area on every edge. `drawTravellers`
+  // fits whatever it is given into the box without exceeding it, so once the
+  // box itself is inside the safe rectangle the figures are too.
+  if (input.figures && input.figures.length > 0) {
+    const figuresWidth = mm(FIGURES_AREA.widthMm);
+    const figuresRight = bleed + mm(DIVIDER_X_MM - FIGURES_AREA.gapFromDividerMm);
+    const figuresLeft = figuresRight - figuresWidth;
+    const safeLeft = bleed + mm(spec.safeMm);
+    if (figuresLeft >= safeLeft) {
+      drawTravellers(
+        back,
+        (x, y) => [x, y],
+        {
+          x: figuresLeft,
+          y: bleed + mm(spec.safeMm + 1),
+          width: figuresWidth,
+          height: mm(FIGURES_AREA.heightMm),
+        },
+        input.figures,
+      );
+    }
+  }
 
   const addressLeft = bleed + mm(ADDRESS_BLOCK.leftMm);
   const addressTop = bleed + mm(ADDRESS_BLOCK.bottomMm + ADDRESS_BLOCK.heightMm);

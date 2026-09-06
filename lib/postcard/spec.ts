@@ -81,6 +81,23 @@ export const STAMP_AREA = {
 export const DIVIDER_X_MM = 72;
 
 /**
+ * Where the traveller figures sit, beside the signature — B628.
+ *
+ * Anchored to the divider rather than to the signature text, so "Us" and
+ * "Sev & Ana & Tom" don't need different geometry: the box's right edge is a
+ * fixed distance from the divider, and its left edge follows from the width.
+ * That keeps it clear of the signature without measuring the words, at the
+ * cost of assuming the signature itself is short enough not to reach this far
+ * — true for every card so far, and the same assumption the layout already
+ * makes by never wrapping `from`.
+ */
+export const FIGURES_AREA = {
+  gapFromDividerMm: 3,
+  widthMm: 22,
+  heightMm: 14,
+} as const;
+
+/**
  * The type on the back, in points — print sizes, not screen ones.
  *
  * Here rather than as locals in `render.ts` because `preview.ts` sizes the

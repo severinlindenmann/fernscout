@@ -4,6 +4,7 @@ import {
   ADDRESS_PT,
   A6_LANDSCAPE,
   DIVIDER_X_MM,
+  FIGURES_AREA,
   LEADING,
   MESSAGE_PT,
   SIGNATURE_PT,
@@ -82,6 +83,14 @@ export function backLayout(spec: PostcardSpec = A6_LANDSCAPE) {
       spec.trimHeightMm - STAMP_AREA.topMm - STAMP_AREA.heightMm,
       STAMP_AREA.widthMm,
       STAMP_AREA.heightMm,
+    ),
+    /** Where the traveller figures print, beside the signature — B628. The
+     * same box `render.ts` draws into, from the same constants. */
+    figures: at(
+      DIVIDER_X_MM - FIGURES_AREA.gapFromDividerMm - FIGURES_AREA.widthMm,
+      spec.safeMm + 1,
+      FIGURES_AREA.widthMm,
+      FIGURES_AREA.heightMm,
     ),
     /**
      * Type sizes as `cqw` — percentages of the *card's* width.
