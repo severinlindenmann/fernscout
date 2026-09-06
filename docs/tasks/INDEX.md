@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (127)
+## backlog (121)
 
 ### security (7)
 
@@ -63,15 +63,13 @@ Do not edit them by hand; run the script.
 | [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (46)
+### issue (41)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B329](backlog/issue/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium |
 | [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
 | [B520](backlog/issue/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
-| [B615](backlog/issue/B615-the-helper-refuses-two-things-the.md) | The helper refuses two things the instance accepts | ISSUE | high | low |
-| [B620](backlog/issue/B620-the-published-file-shape-offers-a.md) | The published file shape offers a day the option of being fake, and drops two real ones | ISSUE | high | low |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
 | [B252](backlog/issue/B252-the-trip-gate-says-a-journal.md) | The trip gate says a journal has no sign-in while /api/auth still issues it sessions | ISSUE | medium | low |
@@ -86,8 +84,6 @@ Do not edit them by hand; run the script.
 | [B528](backlog/issue/B528-attachgallery-writes-its-splice-without-re.md) | attachGallery writes its splice without re-reading it, where editEntry refuses | ISSUE | medium | low |
 | [B545](backlog/issue/B545-a-day-s-markdown-twin-omits.md) | A day's markdown twin omits the weather that is on its page | ISSUE | medium | low |
 | [B556](backlog/issue/B556-re-running-the-demo-builder-deletes.md) | Re-running the demo builder deletes fields the committed demo journal carries | ISSUE | medium | low |
-| [B585](backlog/issue/B585-model-mjs-still-says-coordinates-and.md) | model.mjs still says coordinates and photos are only ever false, and the site has a third answer | ISSUE | medium | low |
-| [B616](backlog/issue/B616-the-helper-is-silent-about-three.md) | The helper is silent about three things the instance refuses | ISSUE | medium | low |
 | [B617](backlog/issue/B617-the-conformance-test-compares-a-document.md) | The conformance test compares a document about files against a validator for requests | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
@@ -109,7 +105,6 @@ Do not edit them by hand; run the script.
 | [B538](backlog/issue/B538-a-day-the-archive-has-no.md) | A day the archive has no answer for re-fetches on every PATCH | ISSUE | low | low |
 | [B554](backlog/issue/B554-the-desktop-winding-path-sidebar-shows.md) | The desktop winding-path sidebar shows a day's cost converted only, where the story feed now shows what was paid | ISSUE | low | low |
 | [B570](backlog/issue/B570-minimap-s-svg-hydrates-with-a.md) | MiniMap's SVG hydrates with a mismatch from floating-point rounding | ISSUE | low | low |
-| [B586](backlog/issue/B586-a-day-gets-both-an-error.md) | A day gets both an error and a tip for the same unanswered question | ISSUE | low | low |
 | [B595](backlog/issue/B595-a-photobook-can-be-charged-a.md) | A photobook can be charged a price the owner never saw | ISSUE | low | low |
 | [B603](backlog/issue/B603-npm-run-dev-s-strict-mode.md) | A dev-mode-only effect race can pass or fail local browser testing for the wrong reason | ISSUE | low | low |
 | [B613](backlog/issue/B613-the-guide-says-an-unknown-caption.md) | The guide says an unknown caption src is ignored; it is refused | ISSUE | low | low |
@@ -149,7 +144,7 @@ Do not edit them by hand; run the script.
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 
-### chore (11)
+### chore (10)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -163,7 +158,6 @@ Do not edit them by hand; run the script.
 | [B343](backlog/chore/B343-clearmattercache-is-defined-twice-with-its.md) | clearMatterCache is defined twice, with its reasoning written out twice | CHORE | low | low |
 | [B462](backlog/chore/B462-systemd-logs-multiple-trigger-source-candidates.md) | systemd logs 'multiple trigger source candidates' every backup run now that one handler serves both OnFailure and OnSuccess | CHORE | low | low |
 | [B594](backlog/chore/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
-| [B618](backlog/chore/B618-model-mjs-carries-an-onlywhen-function.md) | model.mjs carries an onlyWhen function nothing reads | CHORE | low | low |
 
 ### ops (17)
 
@@ -241,17 +235,23 @@ Do not edit them by hand; run the script.
 | [B634](open/B634-the-travel-scene-has-no-airport.md) | The travel scene has no airport | FEATURE | low | low |
 | [B637](open/B637-the-fernscout-mark-on-the-car.md) | The Fernscout mark on the car sits too far off centre | ISSUE | low | low |
 
-## in-development (7)
+## in-development (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B615](in-development/B615-the-helper-refuses-two-things-the.md) | The helper refuses two things the instance accepts | ISSUE | high | low | `ac8af30e` |
+| [B620](in-development/B620-the-published-file-shape-offers-a.md) | The published file shape offers a day the option of being fake, and drops two real ones | ISSUE | high | low | `ac8af30e` |
 | [B643](in-development/B643-photographs-costs-and-weather-disappeared-from.md) | Photographs, costs and weather disappeared from a published day and nothing recorded why | ISSUE | high | medium | `ac8af30e` |
 | [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
+| [B585](in-development/B585-model-mjs-still-says-coordinates-and.md) | model.mjs still says coordinates and photos are only ever false, and the site has a third answer | ISSUE | medium | low | `ac8af30e` |
+| [B616](in-development/B616-the-helper-is-silent-about-three.md) | The helper is silent about three things the instance refuses | ISSUE | medium | low | `ac8af30e` |
 | [B622](in-development/B622-an-agent-cannot-rename-a-trip.md) | An agent cannot rename a trip or move its dates, though the owner's own page now can | FEATURE | medium | low | `46b8aec7` |
 | [B623](in-development/B623-the-owner-block-opens-on-a.md) | The owner block opens on a form and two paragraphs of explanation nobody rereads | FEATURE | medium | low | `46b8aec7` |
 | [B624](in-development/B624-phone-autofill-lands-in-the-dialling.md) | Phone autofill lands in the dialling-code box, and the number field is cut off on a phone | ISSUE | medium | low | `e5f23c58` |
 | [B629](in-development/B629-buddies-on-a-trip-are-not.md) | Buddies on a trip are not offered in the postcard signature | ISSUE | medium | low | `e5f23c58` |
 | [B638](in-development/B638-the-contacts-page-tells-an-owner.md) | The contacts page tells an owner no trip is open to guests when every trip is public | ISSUE | medium | low | `e5f23c58` |
+| [B586](in-development/B586-a-day-gets-both-an-error.md) | A day gets both an error and a tip for the same unanswered question | ISSUE | low | low | `ac8af30e` |
+| [B618](in-development/B618-model-mjs-carries-an-onlywhen-function.md) | model.mjs carries an onlyWhen function nothing reads | CHORE | low | low | `ac8af30e` |
 
 ## testing (295)
 

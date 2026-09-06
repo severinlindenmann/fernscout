@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: fernscout-helper, model.mjs
 found: "2026-09-06T15:41:06Z"
+started: "2026-09-06T18:00:12Z"
+session: ac8af30e-815d-4843-a94d-cf061a70269c
+claimed: "2026-09-06T18:00:12Z"
 ---
 
 # B618 — model.mjs carries an onlyWhen function nothing reads

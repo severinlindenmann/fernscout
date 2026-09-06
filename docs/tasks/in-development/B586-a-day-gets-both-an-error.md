@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: fernscout-helper, validate-content, tips
 found: "2026-09-06T14:17:37Z"
+started: "2026-09-06T18:00:11Z"
+session: ac8af30e-815d-4843-a94d-cf061a70269c
+claimed: "2026-09-06T18:00:11Z"
 ---
 
 # B586 — A day gets both an error and a tip for the same unanswered question
