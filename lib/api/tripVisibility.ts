@@ -7,7 +7,8 @@ import type { TripVisibility } from "../types";
 import { VISIBILITIES } from "../tripWrite";
 
 /**
- * Amending a trip's `visibility:` (and `listed:`) after it has been created — B396.
+ * Amending a trip's `visibility:` (and `listed:`, and `teaser:`) after it has
+ * been created — B396, B587.
  *
  * `createTrip` (lib/tripWrite.ts) could only ever write `visibility:` once, at
  * the moment the folder is made, because nothing edited `trip.md` afterwards
@@ -58,15 +59,17 @@ function spliceScalar(markdown: string, key: string, newLine: string | null): st
 }
 
 export type VisibilityWriteResult =
-  | { ok: true; visibility: TripVisibility; listed: boolean; widened: boolean }
+  | { ok: true; visibility: TripVisibility; listed: boolean; teaser: boolean; widened: boolean }
   | { ok: false; error: string; message?: string; bug?: true };
 
 /** Read `visibility:`/`listed:` currently on disk, as `getTrip` already
  * derives them — nothing this module does not already trust. */
-export function readTripVisibility(ref: TripRef): { visibility: TripVisibility; listed: boolean } | null {
+export function readTripVisibility(
+  ref: TripRef,
+): { visibility: TripVisibility; listed: boolean; teaser: boolean } | null {
   const trip = getTrip(ref);
   if (!trip) return null;
-  return { visibility: trip.visibility, listed: trip.listed };
+  return { visibility: trip.visibility, listed: trip.listed, teaser: trip.teaser === true };
 }
 
 /** How widely a visibility reads, for deciding whether a change is a widening
@@ -87,16 +90,16 @@ export function patchTripVisibility(
       ok: false,
       error: "invalid_request",
       message:
-        'Send {"visibility": "guest"}, {"listed": false}, or both — nothing else on this ' +
-        "trip's own fields is writable here.",
+        'Send {"visibility": "guest"}, {"listed": false}, {"teaser": true}, or any ' +
+        "combination — nothing else on this trip's own fields is writable here.",
     };
   }
-  const body = raw as { visibility?: unknown; listed?: unknown };
-  if (body.visibility === undefined && body.listed === undefined) {
+  const body = raw as { visibility?: unknown; listed?: unknown; teaser?: unknown };
+  if (body.visibility === undefined && body.listed === undefined && body.teaser === undefined) {
     return {
       ok: false,
       error: "invalid_request",
-      message: "Name at least one of visibility or listed to change.",
+      message: "Name at least one of visibility, listed or teaser to change.",
     };
   }
 
@@ -140,6 +143,31 @@ export function patchTripVisibility(
     listed = visibility === "public" ? trip.listed : false;
   }
 
+  /**
+   * `teaser:` — whether a closed trip says that it exists. B587.
+   *
+   * The mirror of `listed` above, and cleared rather than carried the moment
+   * the trip goes public: a public trip is advertised by `listed`, and a
+   * `teaser: true` left behind on one would be a line the reader drops.
+   */
+  let teaser: boolean | undefined = body.teaser as boolean | undefined;
+  if (teaser !== undefined && typeof teaser !== "boolean") {
+    return { ok: false, error: "invalid_teaser", message: "teaser must be true or false." };
+  }
+  if (teaser === true && visibility === "public") {
+    return {
+      ok: false,
+      error: "invalid_teaser",
+      message:
+        `teaser: true asks for a closed trip to be named on the trips page without being ` +
+        `readable, but visibility "${visibility}" already opens the whole trip to anybody. ` +
+        `Drop teaser, or set visibility to "guest" or "private".`,
+    };
+  }
+  if (teaser === undefined) {
+    teaser = visibility === "public" ? false : trip.teaser === true;
+  }
+
   const widened = REACH[visibility] > REACH[trip.visibility];
 
   const file = path.join(tripDir(ref), "trip.md");
@@ -155,6 +183,11 @@ export function patchTripVisibility(
   // Written only when it narrows a public trip, exactly as `createTrip`
   // writes it — a `listed:` line is otherwise a key that never says anything.
   spliced = spliceScalar(spliced, "listed", visibility === "public" && !listed ? "listed: false" : null);
+  // And `teaser:`, written only when it is true and therefore only on a
+  // closed trip — the same "a line that never says anything" rule.
+  if (spliced !== null) {
+    spliced = spliceScalar(spliced, "teaser", teaser ? "teaser: true" : null);
+  }
   if (spliced === null) {
     return {
       ok: false,
@@ -177,12 +210,23 @@ export function patchTripVisibility(
   fs.writeFileSync(file, spliced);
 
   const after = readTripVisibility(ref);
-  if (!after || after.visibility !== visibility || after.listed !== listed) {
+  if (
+    !after ||
+    after.visibility !== visibility ||
+    after.listed !== listed ||
+    after.teaser !== teaser
+  ) {
     return {
       ok: false,
       bug: true,
       error: "trip.md was written but does not read back what was asked. This is a bug; please report it.",
     };
   }
-  return { ok: true, visibility: after.visibility, listed: after.listed, widened };
+  return {
+    ok: true,
+    visibility: after.visibility,
+    listed: after.listed,
+    teaser: after.teaser,
+    widened,
+  };
 }

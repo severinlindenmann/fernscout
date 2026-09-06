@@ -125,7 +125,7 @@ describe("GET .../visibility", () => {
     const token = await ownerToken();
     const { status, body } = await call(getRoute, "GET", token);
     expect(status).toBe(200);
-    expect(body).toEqual({ trip: REF, visibility: "private", listed: false });
+    expect(body).toEqual({ trip: REF, visibility: "private", listed: false, teaser: false });
   });
 
   test("a trip-scoped token cannot even read it", async () => {
@@ -200,6 +200,38 @@ describe("PATCH .../visibility", () => {
     // as inert — it should have moved off `true` entirely.
     const text = fs.readFileSync(tripFile("trip.md"), "utf8");
     expect(text).not.toMatch(/^listed: true$/m);
+  });
+
+  /** B587 — the third key on this door. */
+  test("teaser: true is written on a closed trip and read back", async () => {
+    const token = await ownerToken();
+    const { status, body } = await call(patchRoute, "PATCH", token, { teaser: true });
+    expect(status).toBe(200);
+    expect(body.teaser).toBe(true);
+    expect(getTrip(REF)!.teaser).toBe(true);
+    // And it advertises nothing: `listed` is where that lives.
+    expect(getTrip(REF)!.listed).toBe(false);
+    expect(fs.readFileSync(tripFile("trip.md"), "utf8")).toMatch(/^teaser: true$/m);
+  });
+
+  test("teaser: true is refused on a public trip, where there is nothing to tease", async () => {
+    const token = await ownerToken();
+    const { status, body } = await call(patchRoute, "PATCH", token, {
+      visibility: "public",
+      teaser: true,
+    });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_teaser");
+    expect(getTrip(REF)!.visibility).toBe("private");
+  });
+
+  test("going public drops a stale teaser rather than leaving it for the reader to ignore", async () => {
+    writeTrip(["visibility: private", "teaser: true"]);
+    const token = await ownerToken();
+    const { status } = await call(patchRoute, "PATCH", token, { visibility: "public" });
+    expect(status).toBe(200);
+    expect(getTrip(REF)!.teaser).toBeUndefined();
+    expect(fs.readFileSync(tripFile("trip.md"), "utf8")).not.toMatch(/^teaser:/m);
   });
 
   test("an empty body is refused rather than a no-op success", async () => {

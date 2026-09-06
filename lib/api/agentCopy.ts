@@ -461,6 +461,15 @@ export const TRIP_FIELDS: {
       "trip no visibility advertises is refused rather than written.",
   },
   {
+    key: "teaser",
+    required: false,
+    what:
+      "The mirror of `listed`, for a trip nobody may read: `true` on a `guest` or `private` " +
+      "trip puts a locked card on `/<user>/trips` carrying the title, the dates and nothing " +
+      "else, so a reader knows the journey exists and can ask to be let in. Refused on a " +
+      "public trip. It grants nothing — `visibility` still decides who may open it.",
+  },
+  {
     key: "accent",
     required: false,
     what: "`sky`, `yellow`, `green`, `coral` or `navy` — the trip's colour. Cosmetic; ask, or leave it.",

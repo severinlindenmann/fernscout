@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { FileWarning } from "lucide-react";
+import { FileWarning, Lock } from "lucide-react";
 import { mediaLoader } from "@/components/mediaLoader";
 import AgentHandover from "@/components/AgentHandover";
 import GuestSignIn from "@/components/GuestSignIn";
@@ -81,6 +81,22 @@ export type EmptyJournal =
   | { owner: false; signedIn: boolean; ownerName: string }
   | { owner: true; siteUrl: string; filtered?: boolean };
 
+/**
+ * A closed trip this reader may not open, named because its owner asked for it
+ * to be — B587, `Trip.teaser`.
+ *
+ * The type is the guarantee: there is no cover, no tagline and no counts to
+ * render, because the server never put any in the payload. A card built from
+ * this says a trip exists and when it was, and links to its own sign-in gate.
+ */
+export type LockedTripData = {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  translations?: TripTranslations;
+};
+
 export type RouteData = {
   id: string;
   title: string;
@@ -124,6 +140,7 @@ const GROUPS: { status: TripStatus; key: TranslationKey }[] = [
 
 export default function TripsIndexContent({
   trips,
+  locked = [],
   routes,
   visits = [],
   userPath = "",
@@ -134,6 +151,8 @@ export default function TripsIndexContent({
   codeMinutes,
 }: {
   trips: TripCardData[];
+  /** Closed trips advertised as locked cards — see `LockedTripData`. */
+  locked?: LockedTripData[];
   routes: RouteData[];
   /** Countries visited and by which trips — see LifetimeMap. Empty for a
    * journal whose days carry no `country:`, which falls back to pins. */
@@ -183,16 +202,16 @@ export default function TripsIndexContent({
           So the totals go, and the page says what is true instead (B76).
         */}
         {/*
-          A journal whose only trip is malformed has no cards, no map and
-          nothing to total, so it must not render the subtitle and the four
-          zeroes either — that is the exact promise-over-0·0·0·0 B76 removed
+          A journal whose only trip is malformed — or whose only trip is a
+          locked card (B587) — has no cards, no map and nothing to total, so it
+          must not render the subtitle and the four zeroes either — that is the exact promise-over-0·0·0·0 B76 removed
           from the empty journal, and the notice above has already said what is
           actually wrong. `empty` is null here on purpose: the journal is not
           empty, so the empty state would be a second untruth.
         */}
         {empty ? (
           <EmptyState empty={empty} codeMinutes={codeMinutes} />
-        ) : trips.length === 0 && malformed.length > 0 ? null : (
+        ) : trips.length === 0 && (malformed.length > 0 || locked.length > 0) ? null : (
           <>
             <p className="mt-1 max-w-2xl text-sm text-navy-600">{t("trips.subtitle")}</p>
 
@@ -234,6 +253,7 @@ export default function TripsIndexContent({
             })}
           </>
         )}
+        {locked.length > 0 && <LockedTrips trips={locked} />}
       </main>
     </div>
   );
@@ -360,6 +380,51 @@ function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: 
         <GuestSignIn username={username} codeMinutes={codeMinutes} />
       )}
     </>
+  );
+}
+
+/**
+ * The closed trips, as cards that say only that they exist — B587.
+ *
+ * Its own section rather than a variant mixed into the groups above: these are
+ * not sorted by whether they are over, they carry no stats, and running them
+ * through `TripCard` would mean a card whose fields are all conditional and a
+ * payload one careless prop away from carrying a cover for a trip nobody may
+ * open.
+ *
+ * The link goes to the trip's own page, which is the sign-in gate for anybody
+ * this list is for. B117 still holds there — the gate does not name the trip.
+ * Naming it *here* is the owner's own decision, which is what `teaser:` is.
+ */
+function LockedTrips({ trips }: { trips: LockedTripData[] }) {
+  const { t, formatLongDate, localizedTrip } = useI18n();
+  const { base } = useSite();
+
+  return (
+    <section className="mt-10">
+      <h2 className="font-display text-xl font-semibold text-navy-900">{t("trips.lockedTitle")}</h2>
+      <p className="mt-1 max-w-2xl text-sm text-navy-600">{t("trips.lockedSubtitle")}</p>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        {trips.map((trip) => (
+          <Link
+            key={trip.id}
+            href={`${base}/trips/${trip.id}`}
+            className="flex flex-col gap-2 rounded-2xl border border-dashed border-navy-300 bg-cream-100 p-5 transition-shadow hover:shadow-md"
+          >
+            <div className="flex items-center gap-2">
+              <Lock aria-hidden className="h-4 w-4 shrink-0 text-navy-500" />
+              <h3 className="font-display text-lg font-semibold text-navy-900">
+                {localizedTrip(trip).title}
+              </h3>
+            </div>
+            <p className="text-xs text-navy-600">
+              {formatLongDate(trip.start)} — {formatLongDate(trip.end)}
+            </p>
+            <p className="text-sm text-navy-600">{t("trips.lockedCard")}</p>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 

@@ -80,6 +80,20 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
   // which is nearly all of them, nearly all the time — this page needs no
   // session lookup, and the list is already in hand from the same parse
   // `getTrips` just ran.
+  /**
+   * The closed trips this reader may not open and whose owner has asked for
+   * them to be named anyway — B587.
+   *
+   * `teaser` is only true on a `guest` or `private` trip (the parser refuses
+   * it elsewhere), and this subtracts what `listableTrips` already returned,
+   * so a reader who *may* see the trip gets the real card rather than two.
+   * Nothing beyond the title, the dates and the accent goes into the payload:
+   * no cover, no tagline, no stats, no accent colour and no route on the
+   * lifetime map — the lists below are all built from `trips`, never from this.
+   */
+  const listedRefs = new Set(trips.map((t) => t.ref));
+  const locked = all.filter((t) => t.teaser && !listedRefs.has(t.ref));
+
   const broken = getMalformedTrips(user);
   const owner = trips.length === 0 || broken.length > 0 ? await isOwner(user) : false;
 
@@ -95,7 +109,10 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
   const malformed = owner ? broken.map(({ folder, reason }) => ({ folder, reason })) : [];
 
   let empty: EmptyJournal | null = null;
-  if (malformed.length === 0) {
+  // A locked card is something to see, so the page is not empty — and the
+  // "ask for an invite" sentence would be redundant beside a card that is
+  // itself a door to the sign-in gate.
+  if (malformed.length === 0 && locked.length === 0) {
     if (owner) {
       // Genuine emptiness — unchanged by B264. There is no button here, and a
       // trip is made by handing an agent the prompt below.
@@ -285,6 +302,14 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
     };
   });
 
+  const lockedCards = locked.map((trip) => ({
+    id: trip.id,
+    title: trip.title,
+    start: trip.start,
+    end: trip.end,
+    translations: trip.translations,
+  }));
+
   const countries = new Set(
     travelled.flatMap((t) => placesByTrip.get(t.ref)!.map((p) => p.country).filter(Boolean)),
   );
@@ -295,6 +320,7 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
   return (
     <TripsIndexContent
       trips={cards}
+      locked={lockedCards}
       routes={routes}
       visits={visits}
       userPath={`/${user}`}

@@ -152,7 +152,11 @@ the *journal*, and the people on the trip). An unrecognised value reads as
 `listed:` is the separate question of whether it is advertised at all, and it
 only ever narrows: `listed: false` keeps a public trip out of the sitemap, the
 feed and the switcher, while `listed: true` on a trip no visibility advertises
-is refused and logged rather than obeyed (B51).
+is refused and logged rather than obeyed (B51). A closed trip has a third key
+of its own, `teaser: true`, which advertises the *existence* of a trip nobody
+may read — a locked card on `/<user>/trips` with its title and dates and
+nothing else. It grants nothing, and it is refused on a public trip, where
+`listed` is the key that decides (B587).
 
 The line between the two closed values is what a person gets wrong at the
 moment they create a trip: **`guest` means the people I let into this journal;

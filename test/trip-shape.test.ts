@@ -94,6 +94,10 @@ describe("the published trip example", () => {
       // `test` is left out because an example is a thing people copy, and
       // `"test": true` copied by accident puts a banner on a real journey.
       if (key === "test") continue;
+      // `teaser` is left out because this example is a *public* trip, where
+      // the key is refused: there is nothing to tease about a trip anybody may
+      // read. A field list can carry both; one example cannot. B587.
+      if (key === "teaser") continue;
       expect(shown, `${key} is a field of NewTrip and is not in the example`).toContain(key);
     }
   });

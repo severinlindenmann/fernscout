@@ -69,6 +69,15 @@ export type NewTrip = {
    */
   listed?: boolean;
   /**
+   * Whether a closed trip may say that it exists — B587.
+   *
+   * The mirror of `listed`: only meaningful on a `guest` or `private` trip,
+   * where it puts a locked card on `/<user>/trips` carrying the title, the
+   * dates and nothing else. Refused on a public trip, where there is nothing
+   * to tease and `listed` is the key that decides.
+   */
+  teaser?: boolean;
+  /**
    * Who among the readers who may open the trip may see what it cost.
    *
    * `public` — the default, and what an absent key reads as — means anybody
@@ -866,6 +875,7 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
   // for it, and a code that only exists as a template is one no search finds.
   for (const [field, value, code] of [
     ["listed", input.listed, "invalid_listed"],
+    ["teaser", input.teaser, "invalid_teaser"],
     ["test", input.test, "invalid_test"],
   ] as const) {
     if (value !== undefined && typeof value !== "boolean") {
@@ -895,6 +905,22 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
         `listed: true asks for the trip to be advertised — in the sitemap, the feed and the ` +
         `trip switcher — but visibility "${visibility}" does not put it in front of anybody. ` +
         `Only a public trip is advertised. Drop listed, or set visibility to "public".`,
+    };
+  }
+
+  /**
+   * And its mirror: `teaser: true` on a public trip is a request nothing can
+   * carry out, so it is refused rather than written for `lib/trips.ts` to drop
+   * on the way back in. B587.
+   */
+  if (input.teaser === true && visibility === "public") {
+    return {
+      ok: false,
+      error: "invalid_teaser",
+      message:
+        `teaser: true asks for a closed trip to be named on the trips page without being ` +
+        `readable, but visibility "${visibility}" already opens the whole trip to anybody. ` +
+        `Drop teaser, or set visibility to "guest" or "private".`,
     };
   }
 
@@ -932,6 +958,10 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     // the reader ignored — so the line most often present was also the line
     // least often true.
     ...(input.listed === false ? ["listed: false"] : []),
+    // Written only when true, on the same reasoning: a closed trip that says
+    // nothing about itself is the default, and the file should not carry a
+    // line for the default.
+    ...(input.teaser === true ? ["teaser: true"] : []),
     // Written only when it narrows, on the same reasoning as `listed:` above:
     // an absent key reads as `public`, so `costsVisibility: public` in every
     // file would be a line that never says anything, in a file a person is

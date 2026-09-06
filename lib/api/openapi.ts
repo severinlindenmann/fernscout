@@ -178,6 +178,16 @@ export function openApiDocument() {
                 "Read from the trip's `listed:` key where that narrows what visibility " +
                 "already implied, so a `guest` or `private` trip is always false here.",
             },
+            teaser: {
+              type: "boolean",
+              description:
+                "Whether a *closed* trip says that it exists: a `guest` or `private` trip carrying " +
+                "this gets a locked card on `/<user>/trips` with its title, its dates and " +
+                "nothing else — no cover, no counts, no route — linking to its own sign-in " +
+                "gate. Refused with `invalid_teaser` on a public trip, where `listed` is the " +
+                "key that decides. Never a reading right: who may open the trip is " +
+                "`visibility` alone.",
+            },
             days: { type: "integer" },
             entries: { type: "integer" },
             drafts: { type: "integer" },
@@ -1064,6 +1074,15 @@ export function openApiDocument() {
                         "advertises nothing is refused with `invalid_listed` rather " +
                         "than written, since the reader would refuse it too.",
                     },
+                    teaser: {
+                      type: "boolean",
+                      description:
+                        "Names a closed trip on `/<user>/trips` without opening it — a locked " +
+                        "card carrying the title and the dates, linking to the trip's own " +
+                        "sign-in gate. Only on a `guest` or `private` trip; `true` alongside " +
+                        "`visibility: public` is refused with `invalid_teaser`, since a public " +
+                        "trip is already advertised by `listed`.",
+                    },
                     costsVisibility: {
                       type: "string",
                       enum: [...COSTS_VISIBILITIES],
@@ -1928,13 +1947,15 @@ export function openApiDocument() {
             "`visibility:` and `listed:` on this trip's `trip.md` — `private` (the people who " +
             "were there, and the owner), `public` (everyone) or `guest` (everyone the owner " +
             "has approved into the journal, and the people who were there), and whether the " +
-            "trip is advertised in the sitemap, the feed and the trip switcher.",
+            "trip is advertised in the sitemap, the feed and the trip switcher — plus " +
+            "`teaser:`, whether a closed trip is named on the trips page without being " +
+            "opened.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
           ],
           responses: {
-            "200": { description: "The trip's visibility and listed flag" },
+            "200": { description: "The trip's visibility, listed and teaser flags" },
             "401": { description: "Missing or invalid token" },
             "403": { description: "The token belongs to a different journal, or is scoped to a trip" },
             "404": { description: "No such trip" },
@@ -1947,11 +1968,13 @@ export function openApiDocument() {
             "made (B207); this is the door to change it afterwards, for a hosted instance " +
             "where nobody has a shell to edit `trip.md` by hand — the contacts page's own " +
             "advice, \"set a trip's visibility to guest\", had nowhere else to send an owner.\n\n" +
-            "**Send only what changes** — `visibility`, `listed`, or both. An unrecognised " +
+            "**Send only what changes** — `visibility`, `listed`, `teaser`, or any of " +
+            "them. An unrecognised " +
             "`visibility` is refused rather than written and read back as `private` later, " +
             "the same rule the file's own reader already follows. `listed: true` is refused " +
             "on a trip whose visibility does not already advertise it (B51) — only `public` " +
-            "does.\n\n" +
+            "does, and `teaser: true` is refused on a public trip for the mirror reason: it " +
+            "names a trip nobody may read, and a public trip is readable.\n\n" +
             "**Widening is said out loud.** Moving towards `public`, or from `private` to " +
             "`guest`, exposes every day already published on this trip to a wider audience " +
             "the instant this call returns; the response's `note` says so. Narrowing needs no " +
@@ -1973,6 +1996,16 @@ export function openApiDocument() {
                   properties: {
                     visibility: { type: "string", enum: VISIBILITY_ENUM },
                     listed: { type: "boolean" },
+                    teaser: {
+                      type: "boolean",
+                      description:
+                        "Whether a *closed* trip says that it exists: a `guest` or `private` trip carrying " +
+                "this gets a locked card on `/<user>/trips` with its title, its dates and " +
+                "nothing else — no cover, no counts, no route — linking to its own sign-in " +
+                "gate. Refused with `invalid_teaser` on a public trip, where `listed` is the " +
+                "key that decides. Never a reading right: who may open the trip is " +
+                "`visibility` alone.",
+                    },
                   },
                 },
               },
@@ -1985,8 +2018,9 @@ export function openApiDocument() {
             },
             "400": {
               description:
-                "Invalid JSON, neither field named, an unrecognised visibility, or a listed: " +
-                "true this trip's visibility does not advertise.",
+                "Invalid JSON, no field named, an unrecognised visibility, a listed: true " +
+                "this trip's visibility does not advertise, or a teaser: true on a public " +
+                "trip.",
             },
             "401": { description: "Missing or invalid token" },
             "403": {

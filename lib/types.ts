@@ -470,6 +470,23 @@ export type Trip = {
    */
   listed: boolean;
   /**
+   * Whether a *closed* trip may say that it exists — B587.
+   *
+   * The third question, and the reason it is not a second reading of `listed`
+   * above: a `guest` or `private` trip is refused to most readers by design,
+   * and its owner may still want the fact of it known — a title, a fortnight
+   * in June, and a way to ask. `listed` cannot carry that, because it is
+   * defined as narrowing-only and three consumers read it paired with
+   * `visibility === "public"`.
+   *
+   * True only where it means something: `parseTeaser` refuses it on a public
+   * trip, advertised or not. One consumer, `app/[user]/trips/page.tsx`, which
+   * renders a card with a title, dates and a closed mark and nothing else —
+   * no stats, no cover, no tagline, no route. Not the sitemap, not the feed,
+   * not the switcher, and never a reading right.
+   */
+  teaser?: boolean;
+  /**
    * A trip that exists to prove the software works. See `Entry.test`.
    *
    * On a trip it is inherited: every day of a test trip is a test day, so

@@ -1264,6 +1264,10 @@ export function tripSummary(username: string, tripId: string) {
     // An agent that asked for `listed: false` needs to be able to see that it
     // took — which, until B51, it had not.
     listed: trip.listed,
+    // Echoed only when true, like `test` below: a closed trip that says
+    // nothing about itself is every trip's default, and an agent that asked
+    // for a teaser card needs to see that it took. B587.
+    ...(trip.teaser ? { teaser: true } : {}),
     // Echoed only when true, like every other flag here. Absent until B47,
     // which meant an agent that set it was never told it had been accepted and
     // could not see it afterwards — on the one field whose whole job is to say
