@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook, composer
 found: "2026-09-06T11:19:27Z"
+merged: "2026-09-06T13:30:08Z"
 ---
 
 # B569 — A book can only be made of the trip marked current, not of a finished one
