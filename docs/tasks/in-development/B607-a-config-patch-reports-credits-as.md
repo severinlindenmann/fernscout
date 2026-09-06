@@ -63,3 +63,43 @@ journal nothing has changed in between, with `credits` and `logging` reading
 the server's answer on both. A test that enables `credits` at the server level,
 PATCHes an unrelated capability, and asserts the response says `credits: true`
 — it fails now.
+
+## Built
+
+The Why was accurate as written; confirmed both call sites and the exact line
+numbers before changing anything.
+
+- `lib/config.ts` now exports `OPERATOR_ONLY_FEATURES = ["logging", "credits"]
+  as const satisfies readonly FeatureName[]`, beside `FEATURE_NAMES`.
+- `lib/journals.ts` gets one new exported function, `journalFeatures(user:
+  UserConfig)`, that builds the map with the `OPERATOR_ONLY_FEATURES` skip. It
+  is the single builder the ticket asked for. `setJournalFeatures`'s PATCH
+  response now calls it instead of looping over `now.features[name].enabled`
+  directly (the exact bug).
+- `app/api/v1/[user]/config/route.ts`'s `view()` (the GET) now calls the same
+  `journalFeatures()` instead of duplicating the loop — so GET and PATCH share
+  one implementation rather than two copies that can drift again.
+- `app/api/health/route.ts`'s own skip (`name === "logging" || name ===
+  "credits"`) is now `(OPERATOR_ONLY_FEATURES as readonly
+  string[]).includes(name)` — the fourth copy the ticket named, now reading
+  the exported list.
+- `lib/api/status.ts` was already correct (B397 fixed `credits` there
+  specifically) and uses a different feature subset (`AGENT_FEATURES`) with a
+  richer per-feature shape (`{enabled, reason}`), so it was left alone rather
+  than folded into `journalFeatures()` — that would have been a second,
+  unrelated reshape.
+- `lib/api/openapi.ts`: added one clause to the PATCH request schema's
+  `features` description noting that `logging` and `credits` echo the
+  server's own answer regardless of what is sent, since that is now
+  observably true of the response and wasn't documented either way before.
+
+Test: `test/journal-features.test.ts`, new case "B607: PATCHing an unrelated
+capability still reports credits from the server" in the existing `describe("B408
+— config agrees with status and health about server-only capabilities")`
+block. Confirmed it fails before the fix (reverted `setJournalFeatures`'s
+return to the old raw loop, ran `npx vitest run test/journal-features.test.ts`
+— 1 failed: `expected false to be true`) and passes after (restored the fix,
+34→35 passed).
+
+`npm run verify` passed in full: build, `tsc --noEmit`, eslint (only
+pre-existing unrelated warnings), and all 292 test files / 3782 tests.

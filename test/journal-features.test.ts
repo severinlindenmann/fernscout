@@ -148,6 +148,17 @@ describe("B408 — config agrees with status and health about server-only capabi
     const { body } = await get();
     expect((body.features as Record<string, boolean>).credits).toBe(false);
   });
+
+  // B607: `view()` (GET) got the B408 fix; `setJournalFeatures` (PATCH's
+  // response) did not, so the two disagreed about the same journal in the
+  // same second — observed live as PATCH saying `credits: false` right after
+  // GET said `true`.
+  test("B607: PATCHing an unrelated capability still reports credits from the server", async () => {
+    writeServerConfig({ contacts: { enabled: true }, credits: { enabled: true } });
+    const { status, body } = await patch({ features: { contacts: true } });
+    expect(status).toBe(200);
+    expect((body.features as Record<string, boolean>).credits).toBe(true);
+  });
 });
 
 describe("switching a capability on", () => {

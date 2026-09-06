@@ -29,6 +29,18 @@ export const FEATURE_NAMES = [
 export type FeatureName = (typeof FEATURE_NAMES)[number];
 
 /**
+ * The two capabilities that are never a journal's own opt-in — `logging`
+ * (B257) and `credits` (B366) — decided once, by the operator, for the whole
+ * instance. Every reader of a journal's `features` has to skip the raw
+ * per-journal flag for exactly these and ask `resolveCapabilities()` instead;
+ * exported so that skip is written once rather than as a repeated
+ * `name === "logging" || name === "credits"`. See `journalFeatures()` in
+ * lib/journals.ts, which is the one place that builds the map itself — B408,
+ * B607.
+ */
+export const OPERATOR_ONLY_FEATURES = ["logging", "credits"] as const satisfies readonly FeatureName[];
+
+/**
  * Whose journal this is.
  *
  * One person, not a list. The list this replaces was journal-wide and

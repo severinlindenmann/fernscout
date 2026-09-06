@@ -1,10 +1,10 @@
 import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
 import { SESSION_SCOPE } from "@/lib/auth";
-import { resolveCapabilities } from "@/lib/capabilities";
-import { FEATURE_NAMES, type FeatureName } from "@/lib/config";
+import { FEATURE_NAMES } from "@/lib/config";
 import {
   JOURNAL_FIELD_REFUSALS,
   JOURNAL_PROFILE_FIELDS,
+  journalFeatures,
   journalProfile,
   setJournalFeatures,
   setJournalProfile,
@@ -69,21 +69,15 @@ export const dynamic = "force-dynamic";
 function view(username: string) {
   const user = getUser(username);
   if (!user) return null;
-  const features = {} as Record<FeatureName, boolean>;
-  // `logging` and `credits` are never a journal's own opt-in — see the same
-  // skip in app/api/health/route.ts and lib/config.ts's DEFAULT_FEATURES —
-  // so the raw per-journal flag below is not the answer for them; the
-  // server-resolved one, the same `/status` and `/api/health` report, is.
-  // B408: a journal's config previously showed `false` for a server-enabled
-  // `credits` because it read the unused per-journal flag instead.
-  const serverOnly = resolveCapabilities();
-  for (const name of FEATURE_NAMES) {
-    features[name] =
-      name === "logging" || name === "credits"
-        ? serverOnly[name].enabled
-        : user.features[name].enabled;
-  }
-  return features;
+  // `journalFeatures` is the one place `logging` and `credits` are read from
+  // the server rather than the per-journal flag — see the same skip in
+  // app/api/health/route.ts and lib/config.ts's DEFAULT_FEATURES — and it is
+  // also what the PATCH below answers with, so the two cannot disagree about
+  // one journal in the same second. B408: a journal's config previously
+  // showed `false` for a server-enabled `credits` because it read the unused
+  // per-journal flag instead; B607: `setJournalFeatures` still did until this
+  // reused the same builder for its own response.
+  return journalFeatures(user);
 }
 
 export async function GET(request: Request, { params }: RouteContext<"/api/v1/[user]/config">) {
