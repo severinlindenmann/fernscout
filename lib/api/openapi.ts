@@ -1114,7 +1114,13 @@ export function openApiDocument() {
                         "everyone named may write to the whole trip and may obtain a token " +
                         "scoped to it, using the address given. A malformed entry is refused " +
                         "by name (`invalid_people`) rather than dropped, which is what the " +
-                        "reader does with one. Nothing can change this afterwards.",
+                        "reader does with one. Correctable afterwards at " +
+                        "PATCH .../trips/{trip}/people, which replaces the whole list.\n\n" +
+                        "**Never infer an address.** An agent moving a journal onto a server " +
+                        "found a person with a name and no email and filled in the owner's, " +
+                        "which is a reasonable-looking guess that hands somebody write access " +
+                        "to a trip. If you do not have the address, ask for it; a person " +
+                        "listed with the wrong one is worse than a person not listed yet.",
                       items: {
                         type: "object",
                         required: ["name", "email"],
