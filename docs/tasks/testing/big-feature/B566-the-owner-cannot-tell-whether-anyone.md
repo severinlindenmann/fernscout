@@ -7,8 +7,7 @@ complexity: high
 area: analytics, privacy
 found: "2026-09-06T11:04:40Z"
 started: "2026-09-06T13:29:28Z"
-session: c2cdeefe-2d73-48d5-9f28-14caaaab1378
-claimed: "2026-09-06T13:29:28Z"
+merged: "2026-09-06T13:55:20Z"
 ---
 
 # B566 — the owner cannot tell whether anyone is reading the journal
