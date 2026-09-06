@@ -1367,6 +1367,25 @@ Content-Type: application/json
 
 **Give them the URL.** It is the thing they actually wanted.
 
+**And then ask about telling people.** Publishing puts the day on the site and
+announces it to nobody, so where this journal can send, the reply carries a
+\`notify\` block — the channels it can use, the URL for each, and the question
+to put:
+
+\`\`\`json
+{"ok": true, "slug": "lanterns-of-hoi-an", "status": "published",
+ "url": "${site.url}/${example}/day/lanterns-of-hoi-an",
+ "notify": {
+   "channels": [{"channel": "mail", "url": "${site.url}/api/v1/${example}/trips/<trip-id>/days/<slug>/send-mail"},
+                {"channel": "whatsapp", "url": "${site.url}/api/v1/${example}/trips/<trip-id>/days/<slug>/send-whatsapp"}],
+   "ask": "Nobody has been told this day is up. …"}}
+\`\`\`
+
+It is a prompt to ask, never a licence to send: put the question to them in
+words and POST only the channel they name. It is absent when you already asked
+for a channel in the publish call, when this journal sends on neither, and for
+a \`test: true\` day, which sends nothing whatever anybody asks for.
+
 Three things worth knowing:
 
 - **Only the journal's owner can publish.** A token scoped to one trip writes

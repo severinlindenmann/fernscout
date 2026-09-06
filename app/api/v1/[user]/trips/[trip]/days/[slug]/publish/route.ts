@@ -2,6 +2,7 @@ import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from
 import { editEntry, factsOfEntry, publishNotice, publishDraft } from "@/lib/api/entries";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { isTestContent } from "@/lib/access";
+import { isEnabled } from "@/lib/capabilities";
 import { balanceOf } from "@/lib/credits";
 import { getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -254,6 +255,44 @@ export async function POST(
     }
   }
 
+  /*
+   * The ask nobody was making — B558.
+   *
+   * Publishing tells no reader anything: they hear about the day at the next
+   * scheduled digest, if this journal has one. Both channels are a flag away
+   * (above) or a second call away (`/send-mail`, `/send-whatsapp`), and the
+   * guide has said so since B345 — but the thing an agent reads after a
+   * publish is this response, and it said nothing, so the offer was usually
+   * never made.
+   *
+   * It is a prompt to *ask*, and deliberately not a nudge to send. The
+   * default stays no letter and no message, for the reason it always was:
+   * publishing fifteen days must not mail fifteen letters. What is carried
+   * back is the question and the two URLs, so the agent puts it to the person
+   * whose journal it is.
+   *
+   * Absent when it would be a lie: when a channel was already asked for in
+   * this call, when this server or this journal has both switched off, and
+   * for a `test: true` day, which sends nothing whatever anybody asks for.
+   */
+  const channels = (["mail", "whatsapp"] as const)
+    .filter((channel) => isEnabled(channel, user))
+    .map((channel) => ({
+      channel,
+      url: `${serverSite().url}/api/v1/${user}/trips/${trip}/days/${slug}/send-${channel}`,
+    }));
+  const notify =
+    sendMailRequested || sendWhatsappRequested || isTestContent(found, entry) || channels.length === 0
+      ? undefined
+      : {
+          channels,
+          ask:
+            "Nobody has been told this day is up. Ask them, in words, whether to announce it — " +
+            `by ${channels.map((c) => (c.channel === "mail" ? "email" : "WhatsApp")).join(" or ")}, ` +
+            "or not at all — and POST the URL for whichever they choose. Do not decide for them, " +
+            "and do not send on a channel they did not name.",
+        };
+
   return Response.json({
     ok: true,
     slug: result.slug,
@@ -271,6 +310,7 @@ export async function POST(
     }),
     ...(mail ? { mail } : {}),
     ...(whatsapp ? { whatsapp } : {}),
+    ...(notify ? { notify } : {}),
     // B400: a flag that was present but not a boolean reads as `false`, same
     // as absence — `readPublishFlags`'s `=== true` is load-bearing and stays.
     // This is the one place that difference becomes audible: an agent that

@@ -498,6 +498,36 @@ describe("the two triggers, and what only the owner may pull", () => {
     expect(mailFiles()).toHaveLength(0);
   });
 
+  /*
+   * B558 — the prompt to ask, in the one place an agent reads after a
+   * publish. Not a nudge to send: the default is still nothing.
+   */
+  test("a publish that told nobody carries the question and the URLs", async () => {
+    writeTrip("prompted", { visibility: "public" });
+    writeEntry("prompted", { date: "2026-09-08", slug: "prompted-day", draft: true });
+
+    const token = await agentToken();
+    const result = await publish(token, "prompted", "prompted-day", {});
+    const notify = result.body.notify as { channels: { channel: string; url: string }[]; ask: string };
+    expect(notify.channels.map((c) => c.channel)).toContain("mail");
+    expect(notify.channels.find((c) => c.channel === "mail")?.url).toContain(
+      "/days/prompted-day/send-mail",
+    );
+    expect(notify.ask).toContain("Ask them");
+    expect(mailFiles()).toHaveLength(0);
+  });
+
+  test("no prompt when a channel was already asked for, and none for a test day", async () => {
+    writeTrip("asked", { visibility: "public" });
+    writeEntry("asked", { date: "2026-09-08", slug: "asked-day", draft: true });
+    writeTrip("pretend", { visibility: "public" });
+    writeEntry("pretend", { date: "2026-09-08", slug: "pretend-day", draft: true, test: true });
+
+    const token = await agentToken();
+    expect((await publish(token, "asked", "asked-day", { send_mail: true })).body.notify).toBeUndefined();
+    expect((await publish(token, "pretend", "pretend-day", {})).body.notify).toBeUndefined();
+  });
+
   test("publishing with send_mail: true sends one letter per entitled reader and reports the count", async () => {
     writeTrip("loud", { visibility: "public" });
     writeEntry("loud", { date: "2026-09-08", slug: "announced-day", draft: true });
