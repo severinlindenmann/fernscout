@@ -2583,6 +2583,13 @@ export function openApiDocument() {
             "drafts waiting for a person to approve them — each with the call that " +
             "publishes it — the trips this token may write to, which capabilities are on " +
             "for this journal and why any is off, and a `next` saying what to do. " +
+            "\n\n**`features` here is deliberately only the four an agent can act on** — " +
+            "mail, push, postcards, photobook — plus `credits` where this server bills. " +
+            "It is *not* the journal's whole capability list, and a name missing from it " +
+            "is not a name that is off: `GET .../config` carries all of them and " +
+            "`/api/health` says what this server can offer at all. The two fields share a " +
+            "name and answer different questions, which has misled a reader of this " +
+            "document before.\n\n" +
             "`scope` says whether you are holding the whole journal or one trip's slice; " +
             "do not report a slice as the journal's total.\n\n" +
             "**`credits`** is here when this server charges for sends (B366): `balance`, " +
