@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: api, days, tracks
 found: "2026-09-06T19:40:00Z"
+started: "2026-09-06T10:32:23Z"
+session: 73b1a7f5-30ec-425d-9dbf-4d423e411c0d
+claimed: "2026-09-06T10:32:23Z"
 ---
 
 # B560 — A day whose costs nobody remembers has no honest answer

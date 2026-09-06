@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: api, validation
 found: "2026-09-06T16:20:00Z"
+started: "2026-09-06T10:32:24Z"
+session: 73b1a7f5-30ec-425d-9dbf-4d423e411c0d
+claimed: "2026-09-06T10:32:24Z"
 ---
 
 # B553 — Some fields are coerced or tolerated where every sibling field is refused
