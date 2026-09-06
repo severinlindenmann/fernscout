@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: api, docs
 found: "2026-09-04T09:05:06Z"
+superseded: "B540 — costsVisibility is documented, and a test now fails on any accepted field that is not"
 ---
 
 # B246 — openapi.json does not document costsVisibility on POST trips
@@ -42,3 +43,19 @@ and absorbing it would have hidden it.
   includes `costsVisibility`.
 - A test fails if a field either door accepts is missing from the document, or
   the reason there is no such test is written down here.
+
+## Overtaken by B540
+
+`costsVisibility` is in the `POST .../trips` schema, with the sentence B178
+wrote about who may see a trip's money and why this call is the only way an
+owner reaches it. Two of the fields listed above turned out to be worse than
+undocumented — `tracks` was accepted and silently dropped, and so was
+`countryCode` on a day — which is what B540 went looking for once this class of
+bug was taken seriously.
+
+The general form is fixed too, which is why this is superseded rather than
+merely done: `test/openapi-contract.test.ts` fails on an enum that has drifted
+from the constant that validates it, and `test/contract-roundtrip.test.ts`
+fails on a documented field that cannot be written and read back. A field
+accepted by the code and missing from the document is now a broken build
+rather than something to notice while doing something else.
