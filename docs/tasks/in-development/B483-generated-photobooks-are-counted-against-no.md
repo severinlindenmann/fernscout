@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: photobook, storage, ops
 found: "2026-09-05T15:17:20Z"
+started: "2026-09-06T14:20:14Z"
+session: 6b9bf0a6-5ea8-4f27-bfcd-df5022696053
+claimed: "2026-09-06T14:20:14Z"
 ---
 
 # B483 — Generated photobooks are counted against no quota and never pruned

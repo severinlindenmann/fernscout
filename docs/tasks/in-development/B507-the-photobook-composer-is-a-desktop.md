@@ -6,6 +6,9 @@ priority: medium
 complexity: high
 area: photobook, ui, mobile
 found: "2026-09-05T17:50:06Z"
+started: "2026-09-06T14:20:16Z"
+session: 6b9bf0a6-5ea8-4f27-bfcd-df5022696053
+claimed: "2026-09-06T14:20:16Z"
 ---
 
 # B507 — The photobook composer is a desktop sidebar on a phone-shaped job

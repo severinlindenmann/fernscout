@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (123)
+## backlog (112)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (41)
+### issue (39)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -79,7 +79,6 @@ Do not edit them by hand; run the script.
 | [B340](backlog/issue/B340-a-disabled-capability-answers-404-across.md) | A disabled capability answers 404 across every gated route, hiding a real refusal as no-such-route | ISSUE | medium | low |
 | [B342](backlog/issue/B342-readcostsfile-has-no-guard-around-matter.md) | readCostsFile has no guard around matter() and throws on a malformed costs.md | ISSUE | medium | low |
 | [B378](backlog/issue/B378-the-whatsapp-checkbox-is-offered-on.md) | The WhatsApp checkbox is offered on a journal with WhatsApp switched off, one line under a hint saying nothing sends there | ISSUE | medium | low |
-| [B482](backlog/issue/B482-a-photobook-with-no-photographs-can.md) | A photobook with no photographs can still be paid for from a stale tab | ISSUE | medium | low |
 | [B521](backlog/issue/B521-every-photo-upload-logs-that-the.md) | every photo upload logs that the body was truncated at 10MB | ISSUE | medium | low |
 | [B528](backlog/issue/B528-attachgallery-writes-its-splice-without-re.md) | attachGallery writes its splice without re-reading it, where editEntry refuses | ISSUE | medium | low |
 | [B545](backlog/issue/B545-a-day-s-markdown-twin-omits.md) | A day's markdown twin omits the weather that is on its page | ISSUE | medium | low |
@@ -100,7 +99,6 @@ Do not edit them by hand; run the script.
 | [B419](backlog/issue/B419-the-three-comboboxes-never-tell-assistive.md) | The three comboboxes never tell assistive tech which suggestion the arrow keys are on | ISSUE | low | low |
 | [B428](backlog/issue/B428-the-patch-config-response-echoes-a.md) | The PATCH config response echoes a stale features block that a GET moments later contradicts | ISSUE | low | low |
 | [B429](backlog/issue/B429-the-invite-form-shows-a-canned.md) | The invite form shows a canned mail-off line instead of the server's, losing which switch is off | ISSUE | low | low |
-| [B484](backlog/issue/B484-the-photobook-result-panel-can-render.md) | The photobook result panel can render with no download links | ISSUE | low | low |
 | [B500](backlog/issue/B500-minimap-hydrates-with-a-mismatch-on.md) | MiniMap hydrates with a mismatch on the last decimal place of every coordinate | ISSUE | low | low |
 | [B508](backlog/issue/B508-mail-sent-from-a-dev-server.md) | Mail sent from a dev server links to the production site | ISSUE | low | low |
 | [B538](backlog/issue/B538-a-day-the-archive-has-no.md) | A day the archive has no answer for re-fetches on every PATCH | ISSUE | low | low |
@@ -108,7 +106,7 @@ Do not edit them by hand; run the script.
 | [B570](backlog/issue/B570-minimap-s-svg-hydrates-with-a.md) | MiniMap's SVG hydrates with a mismatch from floating-point rounding | ISSUE | low | low |
 | [B586](backlog/issue/B586-a-day-gets-both-an-error.md) | A day gets both an error and a tip for the same unanswered question | ISSUE | low | low |
 
-### big-feature (12)
+### big-feature (10)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -121,11 +119,9 @@ Do not edit them by hand; run the script.
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | There is no way to manage a journal's content folder locally and sync it to a running instance | FEATURE | medium | high |
-| [B492](backlog/big-feature/B492-a-self-hosted-instance-cannot-use.md) | A self-hosted instance cannot use our printing service, so its owner has no way to order a photobook or postcards | FEATURE | medium | high |
-| [B507](backlog/big-feature/B507-the-photobook-composer-is-a-desktop.md) | The photobook composer is a desktop sidebar on a phone-shaped job | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
-### small-feature (14)
+### small-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -135,34 +131,28 @@ Do not edit them by hand; run the script.
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
 | [B42](backlog/small-feature/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B436](backlog/small-feature/B436-nothing-ever-suggests-sending-postcards-so.md) | Nothing ever suggests sending postcards, so nobody discovers the feature | FEATURE | medium | low |
-| [B502](backlog/small-feature/B502-a-photograph-is-given-a-page.md) | A photograph is given a page it has not the pixels to fill | FEATURE | medium | medium |
 | [B587](backlog/small-feature/B587-a-closed-trip-cannot-be-advertised.md) | A closed trip cannot be advertised as a locked card on the trips overview | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
-| [B07](backlog/small-feature/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium |
 | [B176](backlog/small-feature/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 
-### chore (13)
+### chore (9)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B363](backlog/chore/B363-the-letter-s-permission-gate-is.md) | The letter's permission gate is a second copy of the site's, and nothing holds them together | CHORE | medium | medium |
-| [B483](backlog/chore/B483-generated-photobooks-are-counted-against-no.md) | Generated photobooks are counted against no quota and never pruned | CHORE | medium | medium |
 | [B541](backlog/chore/B541-build-demo-content-mjs-no-longer.md) | build-demo-content.mjs no longer reproduces the demo it is supposed to generate | CHORE | medium | medium |
 | [B216](backlog/chore/B216-nothing-helps-an-author-find-the.md) | Nothing helps an author find the rate to freeze into a trip | CHORE | low | low |
 | [B226](backlog/chore/B226-two-new-deploy-time-checks-run.md) | Two new deploy-time checks run only where a binary happens to exist, and CI may have neither | CHORE | low | low |
 | [B235](backlog/chore/B235-seventy-one-exports-and-fifty-nine.md) | Seventy-one exports and fifty-nine exported types are used only inside their own file | CHORE | low | medium |
 | [B291](backlog/chore/B291-the-day-markdown-twins-are-the.md) | The day markdown twins are the one agent-facing route the request log does not cover | CHORE | low | low |
 | [B314](backlog/chore/B314-a-comment-beside-the-trip-route.md) | A comment beside the trip route still says a new trip defaults to private | CHORE | low | low |
-| [B322](backlog/chore/B322-the-photobook-and-the-digest-read.md) | The photobook and the digest read only published days, and nobody has said whether that is a decision | CHORE | low | low |
 | [B343](backlog/chore/B343-clearmattercache-is-defined-twice-with-its.md) | clearMatterCache is defined twice, with its reasoning written out twice | CHORE | low | low |
 | [B462](backlog/chore/B462-systemd-logs-multiple-trigger-source-candidates.md) | systemd logs 'multiple trigger source candidates' every backup run now that one handler serves both OnFailure and OnSuccess | CHORE | low | low |
-| [B479](backlog/chore/B479-the-photobook-receipt-test-bans-an.md) | The photobook receipt test bans an English word rather than checking a claim | CHORE | low | low |
-| [B552](backlog/chore/B552-the-web-preview-and-the-pdf.md) | The web preview and the PDF renderer are two implementations of one layout | CHORE | low | high |
 
-### ops (18)
+### ops (17)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -178,7 +168,6 @@ Do not edit them by hand; run the script.
 | [B105](backlog/ops/B105-contacts-is-on-at-the-server.md) | Contacts is on at the server and off in every journal, so no invitation has ever been carried through on the live site | OPS | medium | medium |
 | [B106](backlog/ops/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
 | [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
-| [B108](backlog/ops/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium |
 | [B437](backlog/ops/B437-no-postcard-has-ever-been-posted.md) | No postcard has ever been posted through a real provider account | OPS | medium | medium |
 | [B457](backlog/ops/B457-root-owned-config-json-bak-files.md) | Root-owned config.json.bak files keep appearing in the content root, and each one fails a nightly backup | OPS | medium | low |
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
@@ -218,12 +207,23 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
+| [B482](in-development/B482-a-photobook-with-no-photographs-can.md) | A photobook with no photographs can still be paid for from a stale tab | ISSUE | medium | low | `6b9bf0a6` |
+| [B483](in-development/B483-generated-photobooks-are-counted-against-no.md) | Generated photobooks are counted against no quota and never pruned | CHORE | medium | medium | `6b9bf0a6` |
+| [B492](in-development/B492-a-self-hosted-instance-cannot-use.md) | A self-hosted instance cannot use our printing service, so its owner has no way to order a photobook or postcards | FEATURE | medium | high | `6b9bf0a6` |
+| [B502](in-development/B502-a-photograph-is-given-a-page.md) | A photograph is given a page it has not the pixels to fill | FEATURE | medium | medium | `6b9bf0a6` |
+| [B507](in-development/B507-the-photobook-composer-is-a-desktop.md) | The photobook composer is a desktop sidebar on a phone-shaped job | FEATURE | medium | high | `6b9bf0a6` |
 | [B573](in-development/B573-a-journal-written-by-the-helper.md) | A journal written by the helper tools can never carry weather | FEATURE | medium | low | `ac8af30e` |
 | [B578](in-development/B578-editing-a-day-s-title-on.md) | Editing a day's title on disk makes publish unable to find that day again | ISSUE | medium | low | `ac8af30e` |
+| [B07](in-development/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium | `6b9bf0a6` |
+| [B322](in-development/B322-the-photobook-and-the-digest-read.md) | The photobook and the digest read only published days, and nobody has said whether that is a decision | CHORE | low | low | `6b9bf0a6` |
+| [B479](in-development/B479-the-photobook-receipt-test-bans-an.md) | The photobook receipt test bans an English word rather than checking a claim | CHORE | low | low | `6b9bf0a6` |
+| [B484](in-development/B484-the-photobook-result-panel-can-render.md) | The photobook result panel can render with no download links | ISSUE | low | low | `6b9bf0a6` |
+| [B552](in-development/B552-the-web-preview-and-the-pdf.md) | The web preview and the PDF renderer are two implementations of one layout | CHORE | low | high | `6b9bf0a6` |
 
 ## testing (266)
 

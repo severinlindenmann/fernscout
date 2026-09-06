@@ -6,6 +6,9 @@ priority: low
 complexity: high
 area: photobook, print
 found: "2026-09-06T09:04:25Z"
+started: "2026-09-06T14:20:15Z"
+session: 6b9bf0a6-5ea8-4f27-bfcd-df5022696053
+claimed: "2026-09-06T14:20:15Z"
 ---
 
 # B552 — The web preview and the PDF renderer are two implementations of one layout

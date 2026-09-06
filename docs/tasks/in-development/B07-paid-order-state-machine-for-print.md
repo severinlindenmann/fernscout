@@ -6,6 +6,9 @@ priority: low
 complexity: medium
 area: payments, safety-gates
 found: "2026-09-01"
+started: "2026-09-06T14:20:16Z"
+session: 6b9bf0a6-5ea8-4f27-bfcd-df5022696053
+claimed: "2026-09-06T14:20:16Z"
 ---
 
 # B07 — The paid-order state machine
