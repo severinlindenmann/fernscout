@@ -61,3 +61,41 @@ self-hosted instance offers only the local PDF and `/api/health` says why.
 - Who is the customer of record with the printer — us, or the self-hoster?
 - Does the PDF upload to us, or do we fetch it from their instance (which
   means their instance must be publicly reachable)?
+
+## Decisions
+
+Answered in full, with reasoning, in
+`docs/plans/2026-09-06-fulfilment-relay.md`:
+
+- **A payment link per order**, not an instance-level balance — a balance is
+  `lib/credits.ts` reached over HTTP, with a second operator's provisioning,
+  top-ups and reconciliation attached; a link needs none of it and matches
+  the postcard-proposal shape (`POST /api/v1/<user>/postcards`) already in
+  the codebase.
+- **The fulfilment instance's operator is the customer of record** with the
+  printer — the entire point is that the self-hoster never opens an account.
+- **The origin instance uploads the PDF to the fulfilment instance**, never
+  the reverse — a self-hosted instance is frequently not publicly reachable,
+  often on purpose, and requiring that would defeat the feature for the
+  people who most want it.
+
+The spec also settles the protocol shape this implies (job, price computed
+by the receiving side, status flowing back honestly, bounded storage) and
+names what it deliberately leaves open (admission/abuse control for
+`accept`, a real print provider, a real payment gateway).
+
+**Not fully demonstrable in a checkout**, and the spec says why: there is no
+second instance to relay to; no print provider is wired on either side
+(B435 and its photobook counterpart are prior art, both still open); and
+`lib/payments.ts` is a mock ledger everywhere it exists. The Acceptance
+line's "it prints and posts" cannot be shown until those land.
+
+## What shipped from this ticket
+
+The capability-honesty slice: `lib/capabilities.ts`'s `dryRunNote()` — a
+`postcards`/`photobook` capability that is `enabled: true` on the `dry-run`
+provider now carries a `note` saying nothing will actually print, surfaced by
+`/api/health`. See `test/capabilities.test.ts`. Everything else is captured:
+B588 (superseded by this slice), B589, B590, B591, B592, B593 — see
+`docs/plans/2026-09-06-fulfilment-relay.md`'s "Captures" section for what
+each does and depends on.
