@@ -24,6 +24,22 @@ export function extractSpreads(
     if (spread) spreads.add(spread);
   }
   if (spreads.size === 0) return null;
+
+  // The slice is still cut by spread — a spread is the print unit, and a
+  // page never appears without the sheet it shares. But a spread is pulled
+  // in the moment *either* of its two pages matches, and its facing page is
+  // not necessarily this day's (or this front-matter kind's): B550. Render
+  // that half as context instead — dimmed, its caption marked — rather than
+  // as though it belonged here.
+  for (const spread of spreads) {
+    for (const fig of spread.querySelectorAll<HTMLElement>("figure[data-kind]")) {
+      if (matches(fig.dataset)) continue;
+      fig.setAttribute("style", "opacity:.35;filter:grayscale(1)");
+      const caption = fig.querySelector("figcaption");
+      if (caption) caption.textContent = `${caption.textContent} (other)`;
+    }
+  }
+
   const body = [...spreads].map((el) => el.outerHTML).join("");
   return `<!doctype html><html><head>${doc.head.innerHTML}</head>` +
     `<body data-view="spreads"><div class="spreads">${body}</div></body></html>`;
