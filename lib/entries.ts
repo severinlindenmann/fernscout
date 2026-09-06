@@ -11,6 +11,7 @@ import type { Day, Entry, EntryTranslations, GalleryItem, MediaTile, TravelScene
 import { TRAVEL_SCENE_VARIANTS } from "./validate/entry";
 import { parseWeather } from "./weather";
 import { parseUnrecorded, parseWithout } from "./tracks";
+import { maySeePhoto, parsePhotoVisibility, type ReaderLevel } from "./photos";
 
 /**
  * Forgets gray-matter's own parse cache — not this module's, gray-matter's.
@@ -130,11 +131,58 @@ function parseTravelSceneVariant(raw: unknown): TravelSceneVariant | undefined {
  * because a module-level flag on a server that handles concurrent requests is
  * how one reader ends up seeing another's answer.
  */
-export type ReadOptions = { includeDrafts?: boolean };
+export type ReadOptions = {
+  includeDrafts?: boolean;
+  /**
+   * How far this reader has got — B596, and it defaults to `public`.
+   *
+   * The default is the load-bearing part. A photograph may be labelled `guest`
+   * or `private`, and there are some forty-five places that read
+   * `entry.gallery`: the day page, the gallery, `story.json`, the structured
+   * data, the Open Graph image, the narrated cut, the markdown twin, the world
+   * map. Filtering in each of them is how nine get changed and the tenth
+   * leaks, which is exactly what B327 did with drafts. So the filter is here,
+   * once, and a path that says nothing about its reader gets the closed
+   * answer rather than the open one.
+   *
+   * Resolved from the session by `readFor` in lib/tripGate.ts, which is the
+   * only thing that should be computing it.
+   */
+  reader?: ReaderLevel;
+};
 
-/** Drops drafts unless the caller has asked for them. */
+/**
+ * What a door that has already checked its caller reads with.
+ *
+ * Every write route under `/api/v1/` passes `mayWriteTrip` first, which
+ * establishes the caller is the owner or somebody on the trip — the same
+ * people `readerLevelFor` calls `person`. So these paths are entitled to the
+ * unfiltered day, and saying so by name is what keeps the closed default from
+ * quietly hiding an agent's own photograph from it.
+ *
+ * Named rather than written out at each of a dozen call sites, so the places
+ * asserting "I have already checked who this is" can be found at once.
+ */
+export const AS_AUTHOR: ReadOptions = { includeDrafts: true, reader: "person" };
+
+/**
+ * Drops drafts unless the caller has asked for them, and photographs this
+ * reader may not see.
+ *
+ * **Fresh objects, never a mutation.** `readAllEntries` caches the parse for
+ * the life of the process and hands the same `Entry` objects to every request;
+ * stripping an item in place would hide that photograph from the owner too,
+ * for as long as the server runs.
+ */
 function visible(entries: Entry[], options?: ReadOptions): Entry[] {
-  return options?.includeDrafts ? entries : entries.filter((e) => !e.draft);
+  const kept = options?.includeDrafts ? entries : entries.filter((e) => !e.draft);
+  const level = options?.reader ?? "public";
+  if (level === "person") return kept;
+  return kept.map((entry) =>
+    entry.gallery.every((item) => maySeePhoto(item.visibility, level))
+      ? entry
+      : { ...entry, gallery: entry.gallery.filter((item) => maySeePhoto(item.visibility, level)) },
+  );
 }
 
 export function getAllEntries(ref: string, options?: ReadOptions): Entry[] {
@@ -246,6 +294,9 @@ function readAllEntries(ref: string): Entry[] {
             // way — the one media path in the file that never got the owner
             // prefixed onto it, so every ingested clip's still was a 404.
             poster: item.poster ? mediaWithOwner(item.poster, owner) : undefined,
+            // Fail-closed, like `visibility:` on a trip: a word this code does
+            // not know reads as `private` rather than as no label at all. B596.
+            visibility: parsePhotoVisibility(item.visibility),
           }))
         : [],
       tags: Array.isArray(data.tags) ? data.tags : [],

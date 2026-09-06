@@ -3,7 +3,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
 import { POSTCARD_CREDITS } from "@/lib/credits/pricing";
 import { isOwner } from "@/lib/contacts/session";
-import { getEntryBySlug } from "@/lib/entries";
+import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { resolveMediaFile } from "@/lib/media";
 import { postcardCandidates } from "@/lib/postcard/contacts";
 import { createOrder } from "@/lib/postcard/orders";
@@ -141,7 +141,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   const trip = getTrip(ref);
   if (!trip) return Response.json({ error: "unknown_trip" }, { status: 404 });
 
-  const entry = getEntryBySlug(ref, day, { includeDrafts: true });
+  const entry = getEntryBySlug(ref, day, AS_AUTHOR);
   if (!entry) return Response.json({ error: "unknown_day" }, { status: 404 });
   if (isTestContent(trip, entry)) {
     return bad(`"${day}" is marked test: true — content nobody lived — so it orders no cards.`);

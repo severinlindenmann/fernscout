@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { buildStoryProps } from "@/lib/tripView";
-import { draftsVisibleTo, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { readFor, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { photobookEntryFor } from "@/lib/photobook/entry";
 import { DayStructuredData } from "@/components/StructuredData";
 import { getUser, getUsernames } from "@/lib/users";
@@ -92,14 +92,14 @@ export default async function TripDayPage({
   // The owner, or somebody on the trip, may open the permalink of a day
   // nobody has published yet; for everybody else a draft slug is simply not a
   // page. B327 — before it, a buddy could not reach a day they had written.
-  const drafts = await draftsVisibleTo(trip);
-  const entry = getEntryBySlug(trip.ref, slug, { includeDrafts: drafts.visible });
+  const { read, canPublish } = await readFor(trip);
+  const entry = getEntryBySlug(trip.ref, slug, read);
   if (!entry) notFound();
 
   const { index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(trip.ref, {
     openAt: entry.date,
     showCosts: await mayViewCosts(trip),
-    includeDrafts: drafts.visible,
+    ...read,
   });
 
   const userConfig = getUser(user);
@@ -110,7 +110,7 @@ export default async function TripDayPage({
   const photobook = await photobookEntryFor(trip);
 
   return (
-    <TripProvider trip={trip} isCurrent={false} canPublish={drafts.canPublish}>
+    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish}>
       <DayStructuredData
         entry={entry}
         site={site}

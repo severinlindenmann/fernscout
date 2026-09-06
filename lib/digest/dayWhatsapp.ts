@@ -232,6 +232,15 @@ export async function sendDayWhatsapp(
   // Read once, not per recipient: the day's photograph is the same for
   // everybody, and re-encoding it fifty times would be fifty times the work
   // for one identical buffer.
+  //
+  // Which is also why a photograph the owner held back is never the header —
+  // B596. The mail path picks per copy and can therefore send a traveller the
+  // private picture and a guest the next one along; a template has one image
+  // for the whole list, so the only safe pick is one anybody may see. The
+  // entry above was read at the default `public` level, so a labelled
+  // photograph is already gone from `entry.gallery` and this needs no filter
+  // of its own — deliberately, because a filter here would be a second answer
+  // to the same question.
   const photo = await headerPhoto(trip, entry);
 
   const sent: { to: string }[] = [];

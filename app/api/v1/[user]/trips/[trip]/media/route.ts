@@ -9,6 +9,7 @@ import {
   MAX_ITEMS_PER_DAY,
   REQUEST_MAX_BYTES,
   captionsFor,
+  visibilitiesFor,
 } from "@/lib/validate/media";
 import type { GalleryItem } from "@/lib/types";
 
@@ -173,12 +174,26 @@ export async function POST(
       return Response.json({ error: "invalid_media", problems: [captions.problem] }, { status: 400 });
     }
 
+    // B596. Positional, like the captions above and for the same reason: a
+    // caller sending both is sending them in one call and should not have to
+    // learn two conventions for "the n-th file".
+    const held = visibilitiesFor(body?.visibility, urls.length);
+    if (!held.ok) {
+      return Response.json({ error: "invalid_media", problems: [held.problem] }, { status: 400 });
+    }
+
     const limits = getUser(user)!.media;
     const fetched: UploadCandidate[] = [];
     const failures: { url: string; reason: string }[] = [];
     for (const [at, url] of urls.slice(0, limits.itemsPerDay).entries()) {
       const got = await fetchImage(url, limits.imageBytes);
-      if (got.ok) fetched.push({ ...got.media, caption: captions.captions[at] });
+      if (got.ok) {
+        fetched.push({
+          ...got.media,
+          caption: captions.captions[at],
+          visibility: held.visibilities[at],
+        });
+      }
       else failures.push(got.problem);
     }
     // All or nothing: a half-imported day is the state that is annoying to
@@ -303,12 +318,20 @@ export async function POST(
     return Response.json({ error: "invalid_media", problems: [captions.problem] }, { status: 400 });
   }
 
+  // B596, and see the JSON door above. `getAll` hands back strings, and an
+  // empty field is how a form says "nothing" for one slot in a list.
+  const held = visibilitiesFor(form.getAll("visibility"), files.length);
+  if (!held.ok) {
+    return Response.json({ error: "invalid_media", problems: [held.problem] }, { status: 400 });
+  }
+
   const uploads: UploadCandidate[] = [];
   for (const [at, file] of files.entries()) {
     uploads.push({
       filename: file.name,
       bytes: Buffer.from(await file.arrayBuffer()),
       caption: captions.captions[at],
+      visibility: held.visibilities[at],
     });
   }
 

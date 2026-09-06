@@ -1,6 +1,6 @@
 import { storyWindow } from "@/lib/tripView";
 import { currentTripRef, getTrip, parseTripRef, tripRef } from "@/lib/trips";
-import { draftsVisibleTo, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { mayReadTrip, mayViewCosts, readFor } from "@/lib/tripGate";
 import { userExists } from "@/lib/users";
 
 /**
@@ -56,13 +56,18 @@ export async function GET(request: Request, { params }: RouteContext<"/[user]/st
   // Costs travel with the day, so the same rule the pages apply has to
   // apply here: this is the route a reader's own browser calls for the
   // days it has not been sent yet.
+  //
+  // B327: the owner, or somebody on the trip — the same audience the API's
+  // own days listing has had since B296. This is the route a reader's own
+  // browser calls for days it has not been sent yet, so a buddy paging back
+  // through the story would otherwise hit a hole where their draft is.
+  // B596 put the photographs on the same footing, and through the same call:
+  // a day arriving here carries only the pictures this reader may see, and a
+  // route that forgot to ask would send none rather than all.
+  const { read } = await readFor(trip, request);
   const days = storyWindow(ref, start, Math.min(to, start + MAX_DAYS), {
     showCosts: await mayViewCosts(trip),
-    // B327: the owner, or somebody on the trip — the same audience the API's
-    // own days listing has had since B296. This is the route a reader's own
-    // browser calls for days it has not been sent yet, so a buddy paging back
-    // through the story would otherwise hit a hole where their draft is.
-    includeDrafts: (await draftsVisibleTo(trip, request)).visible,
+    ...read,
   });
 
   return new Response(JSON.stringify({ from: start, days }), {

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { recordTripView } from "@/lib/analytics/record";
 import { getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { currentTripRef, getTrip } from "@/lib/trips";
-import { draftsVisibleTo, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { readFor, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getUser, getUsernames } from "@/lib/users";
 import { buildStoryProps } from "@/lib/tripView";
 import { DayStructuredData } from "@/components/StructuredData";
@@ -87,8 +87,8 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
   // The owner, or somebody on the trip, may open the permalink of a day
   // nobody has published yet; for everybody else a draft slug is simply not a
   // page. B327 — before it, a buddy could not reach a day they had written.
-  const drafts = await draftsVisibleTo(current);
-  const entry = getEntryBySlug(tripId, slug, { includeDrafts: drafts.visible });
+  const { read, canPublish } = await readFor(current);
+  const entry = getEntryBySlug(tripId, slug, read);
   if (!entry) notFound();
 
   // B566, and after the lookup rather than after the gate: a slug that is not
@@ -99,14 +99,14 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
   const { trip, index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(tripId, {
     openAt: entry.date,
     showCosts: await mayViewCosts(current),
-    includeDrafts: drafts.visible,
+    ...read,
   });
 
   const userConfig = getUser(user);
   if (!userConfig) notFound();
 
   return (
-    <TripProvider trip={trip} isCurrent canPublish={drafts.canPublish}>
+    <TripProvider trip={trip} isCurrent canPublish={canPublish}>
       <DayStructuredData
         entry={entry}
         site={site}

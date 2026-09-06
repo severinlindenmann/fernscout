@@ -1,6 +1,7 @@
 import "server-only";
 import fs from "node:fs";
 import { isEnabled, hasSwitchedOff } from "../capabilities";
+import { maySeePhoto, type ReaderLevel } from "../photos";
 import { isOpenToLink, isTestContent } from "../access";
 import { balanceOf, refund, spend } from "../credits";
 import {
@@ -13,7 +14,7 @@ import { pickLocale } from "../contacts/locale";
 import type { UserConfig } from "../config";
 import { conversionFor, costForDay } from "../costs";
 import { formatMoney } from "../currency";
-import { getEntryBySlug } from "../entries";
+import { AS_AUTHOR, getEntryBySlug } from "../entries";
 import { contactsWithReadGrant } from "../grants";
 import { translateIn } from "../locales";
 import { sendMail } from "../mail";
@@ -109,6 +110,16 @@ type DayLetterRecipient = {
   name: string | null;
   locale: Locale;
   showCosts: boolean;
+  /**
+   * How far this recipient has got, for a photograph's own label — B596.
+   *
+   * `person` for the owner and for anybody who was on the trip, `guest` for a
+   * contact the owner let into the journal. Resolved here rather than in
+   * `photoAttachment` because this is the only place that already knows which
+   * of the two an address is, and `mayMailTrip` above has just used the same
+   * two facts to decide the address gets a letter at all.
+   */
+  reader: ReaderLevel;
   /** Null for the owner's own copy — there is nothing to unsubscribe from
    * one's own journal. */
   manageToken: string | null;
@@ -134,6 +145,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
       name: user.owner.nickname || user.owner.name,
       locale: pickLocale(user.defaultLocale),
       showCosts: true,
+      reader: "person",
       manageToken: null,
     });
   }
@@ -157,6 +169,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
       name: contact.name,
       locale: pickLocale(contact.locale, user.defaultLocale),
       showCosts: mayMailCosts(trip, isTraveller, isGrantHolder),
+      reader: isTraveller ? "person" : "guest",
       manageToken: manageTokenFor(owner, contact.id),
     });
   }
@@ -215,13 +228,24 @@ const PHOTO_WIDTH = 640;
  * Best-effort: a missing or unreadable file means no photograph, not a
  * failed letter. A video is skipped — `<img src="cid:…">` cannot show one —
  * in favour of the first *image* in the gallery, if there is one.
+ *
+ * **`level` is this recipient's, not the trip's** — B596, and the reason the
+ * entry reaches this function unfiltered. Every other reading path resolves a
+ * photograph's label once, against whoever is holding the browser; a letter
+ * has a different reader per copy, and the list mixes people who were on the
+ * trip with contacts the owner let into the journal. Filtering the entry once
+ * would either mail a private photograph to the whole list or withhold it
+ * from the travellers it belongs to. So the pick happens here, per copy.
  */
 async function photoAttachment(
   trip: Trip,
   entry: Entry,
   fallbackAlt: string,
+  level: ReaderLevel,
 ): Promise<{ block: Extract<MailBlock, { kind: "image" }>; attachment: MailAttachment } | null> {
-  const image = entry.gallery.find((item) => item.type === "image");
+  const image = entry.gallery.find(
+    (item) => item.type === "image" && maySeePhoto(item.visibility, level),
+  );
   if (!image) return null;
 
   // `entry.gallery[*].src` is already owner-prefixed by `lib/entries.ts` —
@@ -297,7 +321,7 @@ async function renderDayLetter(
     });
   }
 
-  const photo = await photoAttachment(trip, entry, title);
+  const photo = await photoAttachment(trip, entry, title, recipient.reader);
   if (photo) blocks.push(photo.block);
 
   blocks.push({ kind: "meta", text: metaParts.join(" · ") });
@@ -428,7 +452,9 @@ export async function sendDayLetter(
   const trip = getTrip(ref);
   if (!user || !trip) return { ok: false, reason: "unknown_trip" };
 
-  const entry = getEntryBySlug(ref, slug, { includeDrafts: true });
+  // Read unfiltered, and this is the one path that has to be: the letter's
+  // reader differs per copy, so `photoAttachment` picks per recipient. B596.
+  const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
   if (!entry) return { ok: false, reason: "unknown_day" };
   if (entry.draft) return { ok: false, reason: "not_published" };
 

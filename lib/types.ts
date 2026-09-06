@@ -2,6 +2,7 @@ import type { RateTable } from "./currency";
 import type { Figure } from "./travellers/vocabulary";
 import type { DayWeather } from "./weather";
 import type { Track, Tracks } from "./tracks";
+import type { PhotoVisibility } from "./photos";
 
 export type TransportMode =
   | "flight"
@@ -49,6 +50,19 @@ export type GalleryItem = {
    * edit by hand.
    */
   from?: string;
+  /**
+   * Held back from readers the trip otherwise lets in — B596.
+   *
+   * Absent for almost every photograph, and that is the point: the trip's own
+   * `visibility` is the answer for the whole day, and this exists for the one
+   * picture in it that should be seen by fewer people. It narrows and never
+   * widens; `lib/photos.ts` is the whole rule.
+   *
+   * Stripped from every reading path by `visible()` in lib/entries.ts, and the
+   * file itself is refused by the media route — a label that only hid the tile
+   * would leave the photograph a guessable URL away.
+   */
+  visibility?: PhotoVisibility;
 };
 
 /**

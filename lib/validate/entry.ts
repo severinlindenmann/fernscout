@@ -13,6 +13,7 @@ import { COST_CATEGORIES, type CostCategory } from "../costFormat";
 import { UNKNOWN } from "../tracks";
 import { RESERVED_SOURCES, hasMeasurement } from "../weather";
 import { captionProblem } from "./media";
+import { PHOTO_VISIBILITIES, mediaKey } from "../photos";
 
 /** Mirrors `TransportMode` in lib/types.ts. TypeScript has no way to turn a
  * type union back into a runtime array, so this list is kept in sync by hand
@@ -114,6 +115,8 @@ export type EntryInput = {
   translations?: unknown;
   /** A caption per photograph, keyed by `src`. Edit only — B522. */
   captions?: unknown;
+  /** A photograph held back, keyed by `src`. Edit only — B596. */
+  photoVisibility?: unknown;
   /** Declared here since B553 so `checkPlaceWords` can see them: they were in
    *  `DraftInput` and not here, which is exactly how they went unchecked. */
   location?: unknown;
@@ -816,20 +819,16 @@ export function validateEntryEdit(
   checkWeatherData(input, problems);
   checkBody(input, problems, false);
   checkCaptions(input, problems, knownGallerySrcs);
+  checkPhotoVisibility(input, problems, knownGallerySrcs);
   return problems;
 }
 
-/**
- * The owner prefix a `src` may or may not be carrying, stripped so a request
- * echoing back exactly what `GET .../days/<slug>` handed it still matches
- * what the day's gallery items answer to on disk. Same rule, same regex,
- * `spliceCaptions` in lib/api/entries.ts applies for the same reason — kept
- * as two copies rather than one shared export because this module is pure
- * (no fs, nothing route-only) and that one is not.
- */
-function mediaKey(src: string): string {
-  return src.replace(/^.*\/media\//, "");
-}
+// `mediaKey` — the owner prefix a `src` may or may not be carrying, stripped
+// so a request echoing back exactly what `GET .../days/<slug>` handed it still
+// matches what the day's gallery items answer to on disk — used to be written
+// out here, as a deliberate second copy: this module is pure (no fs, nothing
+// route-only) and lib/api/entries.ts is not, so there was nowhere to share it
+// from. lib/photos.ts is that somewhere, and is pure for this reason. B596.
 
 /**
  * `captions` is `{ "<src>": "<text>" }` and nothing else.
@@ -884,6 +883,62 @@ function checkCaptions(
     // same function: a caption corrected later is still a caption.
     const problem = captionProblem(text.trim(), field);
     if (problem) problems.push(problem);
+  }
+}
+
+/**
+ * `photoVisibility` is `{ "<src>": "guest" | "private" | null }` — B596.
+ *
+ * Refused rather than ignored, for the reason `checkCaptions` above is: what
+ * an agent tells somebody it did has to be what is on disk, and here that
+ * matters more than for a caption. "I have marked that photograph private"
+ * followed by nothing landing is the worst sentence this feature could
+ * produce, so an unknown `src` and an unknown word are both a `400`.
+ *
+ * `"public"` in particular is refused with the reason spelled out rather than
+ * quietly treated as `null`. A caller reaching for it is asking to widen, the
+ * one thing a label cannot do, and a silent success would have them believe a
+ * `private` trip's photograph had just been shown to the world.
+ */
+function checkPhotoVisibility(
+  input: EntryInput,
+  problems: Problem[],
+  knownGallerySrcs?: readonly string[],
+): void {
+  if (input.photoVisibility === undefined) return;
+  const value = input.photoVisibility;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    problems.push({
+      field: "photoVisibility",
+      got: describe(value),
+      expected:
+        'an object keyed by the photograph\'s src — {"/you/media/trip/day/01.jpg": "private"}',
+    });
+    return;
+  }
+  const known = knownGallerySrcs ? new Set(knownGallerySrcs.map(mediaKey)) : undefined;
+  for (const [src, level] of Object.entries(value as Record<string, unknown>)) {
+    const field = `photoVisibility[${JSON.stringify(src)}]`;
+    if (known && !known.has(mediaKey(src))) {
+      problems.push({
+        field,
+        got: describe(src),
+        expected: "a src this day's gallery actually has — see the gallery in GET .../days/<slug>",
+      });
+      continue;
+    }
+    if (level === null) continue;
+    if (!(PHOTO_VISIBILITIES as readonly unknown[]).includes(level)) {
+      problems.push({
+        field,
+        got: describe(level),
+        expected:
+          `one of ${PHOTO_VISIBILITIES.join(", ")}, or null to hold nothing back. ` +
+          "There is no \"public\": a label narrows what the trip's own visibility " +
+          "already allows and can never widen it, so null is how a photograph goes " +
+          "back to being seen by everyone the trip lets in.",
+      });
+    }
   }
 }
 

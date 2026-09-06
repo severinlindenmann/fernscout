@@ -1,4 +1,23 @@
 import { singleLineProblem } from "./frontmatter";
+import { PHOTO_VISIBILITIES, type PhotoVisibility } from "../photos";
+
+/**
+ * What arrived, rendered for somebody reading a refusal.
+ *
+ * `describe` in lib/validate/entry.ts is the same three lines, and is
+ * deliberately not imported: that module already imports `captionProblem`
+ * from this one, and a cycle between two validators is a worse trade than one
+ * short function twice.
+ */
+function describe(value: unknown): string {
+  if (value === undefined) return "nothing";
+  if (value === null) return "null";
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
 
 // Limits on the photographs and clips a day may include.
 //
@@ -244,6 +263,70 @@ export function captionsFor(
     if (problem) return { ok: false, problem };
   }
   return { ok: true, captions };
+}
+
+/**
+ * `visibility` beside `captions`: one label per file, in the same order — B596.
+ *
+ * The same list-shaped argument as captions and validated the same way,
+ * because a caller sending one is sending both in the same call and should not
+ * have to learn two conventions. `null` and `""` both mean "hold nothing
+ * back", so a caller filling a slot it has no answer for does not have to
+ * invent one.
+ *
+ * There is no `"public"`, and a caller reaching for it gets that sentence
+ * rather than a silent pass: a label narrows what the trip already allows and
+ * cannot widen it.
+ */
+export function visibilitiesFor(
+  raw: unknown,
+  count: number,
+): { ok: true; visibilities: (PhotoVisibility | undefined)[] } | { ok: false; problem: Problem } {
+  if (raw === undefined || raw === null) return { ok: true, visibilities: [] };
+  const list = Array.isArray(raw) ? raw : null;
+  if (!list) {
+    return {
+      ok: false,
+      problem: {
+        field: "visibility",
+        got: describe(raw),
+        expected: `one label per file, in the same order as the files — ${PHOTO_VISIBILITIES.join(
+          " or ",
+        )}, or null for a picture nobody is holding back`,
+      },
+    };
+  }
+  if (list.length > count) {
+    return {
+      ok: false,
+      problem: {
+        field: "visibility",
+        got: `${list.length} labels for ${count} ${count === 1 ? "file" : "files"}`,
+        expected: "at most one label per file, in the same order. Fewer is fine",
+      },
+    };
+  }
+  const visibilities: (PhotoVisibility | undefined)[] = [];
+  for (const [at, value] of list.entries()) {
+    if (value === null || value === undefined || value === "") {
+      visibilities.push(undefined);
+      continue;
+    }
+    if (!(PHOTO_VISIBILITIES as readonly unknown[]).includes(value)) {
+      return {
+        ok: false,
+        problem: {
+          field: `visibility[${at}]`,
+          got: describe(value),
+          expected:
+            `one of ${PHOTO_VISIBILITIES.join(", ")}, or null. There is no "public" — a ` +
+            "label narrows what the trip's own visibility already allows and can never widen it",
+        },
+      };
+    }
+    visibilities.push(value as PhotoVisibility);
+  }
+  return { ok: true, visibilities };
 }
 
 /**

@@ -3,7 +3,7 @@ import { isTestContent } from "@/lib/access";
 import { EDITABLE_DAY_FIELDS, editEntry, type EditInput } from "@/lib/api/entries";
 import { fillTripRatesQuietly } from "@/lib/api/tripRates";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
-import { getEntryBySlug } from "@/lib/entries";
+import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntryEdit } from "@/lib/validate/entry";
 
@@ -64,7 +64,7 @@ export async function GET(
   const gate = await mayWriteTrip(auth.session, found);
   if (!gate.ok) return refuseWrite(gate);
 
-  const entry = getEntryBySlug(ref, slug, { includeDrafts: true });
+  const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
   if (!entry) return Response.json({ error: "unknown_day" }, { status: 404 });
 
   return Response.json({
@@ -211,7 +211,7 @@ export async function PATCH(
   // than silently matching nothing. B540. A day this call cannot even find
   // is `editEntry`'s 404 to report, so this does not turn a missing day into
   // a validation error of its own.
-  const current = getEntryBySlug(ref, slug, { includeDrafts: true });
+  const current = getEntryBySlug(ref, slug, AS_AUTHOR);
   const problems = validateEntryEdit(
     body,
     languagesOf(user),

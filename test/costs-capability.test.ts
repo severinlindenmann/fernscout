@@ -96,6 +96,9 @@ vi.mock("@/lib/tripGate", () => ({
   mayReadTrip: async () => true,
   mayViewCosts: async () => true,
   draftsVisibleTo: async () => ({ visible: true }),
+  // The one call the pages make for both questions since B596 — which days,
+  // and which photographs. `person` because this file's viewer is the owner.
+  readFor: async () => ({ read: { includeDrafts: true, reader: "person" }, canPublish: true }),
 }));
 
 beforeEach(() => {

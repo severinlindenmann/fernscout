@@ -13,7 +13,7 @@ import { recipientsOf } from "@/lib/postcard/contacts";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
-import { getEntryBySlug } from "@/lib/entries";
+import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { LOCALE_LABEL } from "@/lib/i18n";
 import { defaultLocaleFor, localesFor, requestLocale } from "@/lib/locales";
 import { pickLocale } from "@/lib/contacts/locale";
@@ -130,7 +130,7 @@ export default async function PostcardOrderPage({
   // was printing it at a reader ("Vom sierra-smoke"). The day has a title, and
   // a postcard is about a date, so both go in. Drafts included: an order can
   // be made from a day that is not on the site yet.
-  const entry = getEntryBySlug(order.payload.trip, order.payload.day, { includeDrafts: true });
+  const entry = getEntryBySlug(order.payload.trip, order.payload.day, AS_AUTHOR);
   const dayName = entry
     ? t("postcard.page.dayWithTitle", {
         title: entry.title,

@@ -3,7 +3,7 @@ import { requestLocale, translateIn } from "@/lib/locales";
 import { mayReadTrip } from "@/lib/tripGate";
 import { notFound } from "next/navigation";
 import TripProvider from "@/components/TripProvider";
-import { getAllMedia, getDays } from "@/lib/entries";
+import { AS_AUTHOR, getAllMedia, getDays } from "@/lib/entries";
 import { balanceOf } from "@/lib/credits";
 import { bookLocalesFor, photobookEntryFor } from "@/lib/photobook/entry";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -41,10 +41,10 @@ export default async function TripPhotobookPage({
         // the composer's grid the other way round meant the first photograph
         // of a day appeared last, and moving one "earlier" moved it later on
         // paper — a control that lies about its own direction.
-        [...getAllMedia(trip.ref, { includeDrafts: true })]
+        [...getAllMedia(trip.ref, AS_AUTHOR)]
           .reverse()
           .filter((m) => m.type === "image")}
-        days={getDays(trip.ref, { includeDrafts: true }).map((d) => ({
+        days={getDays(trip.ref, AS_AUTHOR).map((d) => ({
           date: d.date,
           title: d.lead.title,
           location: [d.lead.location, d.lead.country].filter(Boolean).join(", "),

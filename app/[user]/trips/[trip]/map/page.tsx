@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
+import { readFor, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import MapPageContent from "@/app/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
@@ -35,8 +35,8 @@ export async function generateMetadata({
   // And, since B336, the same audience the page asks it for — see the sibling
   // route's `generateMetadata` for why a bare `getPlaces` call here drifted
   // from what the page itself renders.
-  const drafts = await draftsVisibleTo(trip);
-  const visited = getPlaces(trip.ref, { includeDrafts: drafts.visible }).length > 0;
+  const { read, canPublish } = await readFor(trip);
+  const visited = getPlaces(trip.ref, read).length > 0;
   return {
     // The section name follows the reader; the trip's own title is the
     // author's and is never translated. See the note in the gallery page.
@@ -63,9 +63,8 @@ export default async function TripMapPage({ params }: PageProps<"/[user]/trips/[
   // B327 — see the sibling route for why this widened past the owner. B336:
   // the solid markers and the stats block below now ask the same question,
   // rather than the bare, always-published-only calls they used to be.
-  const drafts = await draftsVisibleTo(trip);
-  const plan = getPlan(trip.ref, { includeDrafts: drafts.visible });
-  const read = { includeDrafts: drafts.visible };
+  const { read, canPublish } = await readFor(trip);
+  const plan = getPlan(trip.ref, read);
   const stats = getTripStats(trip.ref, read);
   const places = getPlaces(trip.ref, read);
   // The frame is worked out here as well as in the component, so that only the
@@ -73,7 +72,7 @@ export default async function TripMapPage({ params }: PageProps<"/[user]/trips/[
   // megabytes of the baked bundle. `frameRoute` is pure, so the two agree.
   const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
   return (
-    <TripProvider trip={trip} isCurrent={false} canPublish={drafts.canPublish}>
+    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish}>
       <MapPageContent
         places={places}
         plan={plan.stops}

@@ -24,6 +24,7 @@ import { reverseGeocode } from "../ingest/geo";
 // own, which stripped a German umlaut down to its bare vowel and disagreed
 // with the one ingest used — the same title, two permanent URLs.
 import { slugify } from "../slug.ts";
+import { mediaKey, type PhotoVisibility } from "../photos";
 import { getTrip, parseTripRef, tripDir, tripRef } from "../trips";
 import type { Entry, GalleryItem, Trip } from "../types";
 import {
@@ -694,6 +695,7 @@ export const EDITABLE_DAY_FIELDS = [
   "test",
   "translations",
   "captions",
+  "photoVisibility",
   "weather",
   "weatherData",
 ] as const;
@@ -719,6 +721,20 @@ export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
    * sending back what you were given has to work.
    */
   captions?: Record<string, string>;
+  /**
+   * A photograph held back from readers the trip otherwise lets in — B596,
+   * keyed by `src` exactly as `captions` is, and `null` to clear a label.
+   *
+   * The same narrow rule applies: this edits one line inside items that
+   * already exist. A `src` the day does not carry is ignored rather than
+   * added, because a label on a photograph nobody has is not a photograph.
+   *
+   * There is deliberately no way to say `public` here. A label narrows what
+   * the trip's own `visibility` already decided and can never widen it, so
+   * "everybody" is the absence of a label rather than a value of it — which
+   * is what `null` writes. See lib/photos.ts.
+   */
+  photoVisibility?: Record<string, PhotoVisibility | null>;
   /** Ask for a lookup on a day already written — B325. `false` removes the
    * request; it does not remove a reading already recorded. */
   weather?: boolean;
@@ -806,24 +822,41 @@ function spliceTranslations(
 }
 
 /**
- * Rewrite `caption:` inside the `gallery:` block, leaving every other byte of
- * it alone — B522.
+ * Rewrite one line inside the `gallery:` block, leaving every other byte of it
+ * alone — B522 for `caption:`, B596 for `visibility:`.
  *
  * Wholesale replacement (what `spliceCosts` does) is the wrong shape here: an
  * edit carrying the whole gallery would let a partial payload delete
  * photographs, and the `src`, `width` and `height` the server measured off
  * the file are not the caller's to restate. So this walks the block item by
  * item and touches only the one line each item may own.
+ *
+ * `field` is the name of that line, and there are exactly two: the caption a
+ * person wrote, and whether the picture is held back. Parameterised rather
+ * than copied, because the walk is the difficult half — finding each item's
+ * bounds, matching its `src` past the owner prefix, splicing backwards so the
+ * indices ahead of the cursor stay valid. A second copy of that with one word
+ * changed is a second copy of every bug in it.
+ *
+ * An empty string removes the line, which is how a caller clears a label as
+ * well as how they clear a caption.
  */
-function spliceCaptions(lines: string[], closing: number, captions: Record<string, string>): number {
+function spliceGalleryField(
+  lines: string[],
+  closing: number,
+  field: "caption" | "visibility",
+  values: Record<string, string>,
+): number {
   const at = frontmatterLineOf(lines, closing, "gallery");
   if (at < 0) return closing;
 
   // `/alex/media/trip/day/01.jpg` on the way in, `/media/trip/day/01.jpg` on
   // disk — the owner is prefixed at read time (`mediaWithOwner`), so compare
-  // what follows `/media/` and nothing before it.
-  const key = (src: string) => src.replace(/^.*\/media\//, "");
-  const wanted = new Map(Object.entries(captions).map(([src, text]) => [key(src), text.trim()]));
+  // what follows `/media/` and nothing before it. `mediaKey` is that rule,
+  // and it is shared now rather than written out here (lib/photos.ts).
+  const wanted = new Map(
+    Object.entries(values).map(([src, text]) => [mediaKey(src), text.trim()]),
+  );
 
   let end = at + 1;
   while (end < closing && /^\s+\S/.test(lines[end])) end++;
@@ -840,20 +873,20 @@ function spliceCaptions(lines: string[], closing: number, captions: Record<strin
     const srcAt = item.findIndex((line) => /^\s*-?\s*src:/.test(line));
     if (srcAt < 0) continue;
     const src = item[srcAt].replace(/^\s*-?\s*src:\s*/, "").trim().replace(/^["']|["']$/g, "");
-    const text = wanted.get(key(src));
+    const text = wanted.get(mediaKey(src));
     if (text === undefined) continue;
 
-    const captionAt = item.findIndex((line) => /^\s+caption:/.test(line));
+    const fieldAt = item.findIndex((line) => new RegExp(`^\\s+${field}:`).test(line));
     if (text === "") {
-      if (captionAt >= 0) {
-        lines.splice(from + captionAt, 1);
+      if (fieldAt >= 0) {
+        lines.splice(from + fieldAt, 1);
         closing -= 1;
       }
       continue;
     }
-    const rendered = `    caption: ${quote(text)}`;
-    if (captionAt >= 0) {
-      lines[from + captionAt] = rendered;
+    const rendered = `    ${field}: ${quote(text)}`;
+    if (fieldAt >= 0) {
+      lines[from + fieldAt] = rendered;
     } else {
       lines.splice(to, 0, rendered);
       closing += 1;
@@ -959,7 +992,23 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
   if (input.translations !== undefined) {
     closing = spliceTranslations(lines, closing, input.translations);
   }
-  if (input.captions !== undefined) closing = spliceCaptions(lines, closing, input.captions);
+  if (input.captions !== undefined) {
+    closing = spliceGalleryField(lines, closing, "caption", input.captions);
+  }
+  if (input.photoVisibility !== undefined) {
+    closing = spliceGalleryField(
+      lines,
+      closing,
+      "visibility",
+      // `null` clears the label, and the splice reads an empty string as
+      // "remove the line" — so the two spellings a caller might reach for,
+      // `null` and `""`, mean the same thing here rather than one of them
+      // writing `visibility: ""` into somebody's file.
+      Object.fromEntries(
+        Object.entries(input.photoVisibility).map(([src, level]) => [src, level ?? ""]),
+      ),
+    );
+  }
 
   if (input.content !== undefined) {
     lines.splice(closing + 1, lines.length - (closing + 1), "", input.content.trim(), "");

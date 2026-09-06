@@ -19,6 +19,7 @@ import { MAINTAINED_LOCALES } from "@/lib/i18n";
 // is worse than saying nothing, because it is confidently wrong. B540, and
 // `test/openapi-contract.test.ts` fails when one of these drifts.
 import { TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "@/lib/validate/entry";
+import { PHOTO_VISIBILITIES } from "@/lib/photos";
 import { COST_CATEGORIES } from "@/lib/costFormat";
 import { FEATURE_NAMES } from "@/lib/config";
 import { TRACKS } from "@/lib/tracks";
@@ -258,8 +259,8 @@ export function openApiDocument() {
           description:
             "A photograph or clip on a day. **You do not compose these** — POST to the media " +
             "endpoint and it puts them in the day for you. The one part that is yours is " +
-            "`caption`: send `captions` alongside the files, or PATCH the day later. " +
-            "Everything else is measured off the file.",
+            "`caption` and `visibility`: send `captions` and `visibility` alongside the " +
+            "files, or PATCH the day later. Everything else is measured off the file.",
           properties: {
             src: { type: "string", description: "/{user}/media/{trip}/{day}/01.jpg" },
             type: { type: "string", enum: ["image", "video"] },
@@ -272,6 +273,21 @@ export function openApiDocument() {
                 "looks like to you. No invented weather, no invented names. An empty caption " +
                 `beats a plausible one. One line, at most ${CAPTION_MAX_CHARS} characters; a ` +
                 "line break is refused rather than folded.",
+            },
+            visibility: {
+              type: "string",
+              enum: [...PHOTO_VISIBILITIES],
+              description:
+                "This one photograph, held back from readers the trip otherwise lets in. " +
+                "Absent for almost every picture, which is what \"everyone the trip lets " +
+                "in\" looks like. `guest` is everybody the owner has let into the journal, " +
+                "plus the people who were on the trip; `private` is the people who were " +
+                "there, and the owner. **It narrows and never widens** — there is no " +
+                "`public` value, and a `guest` label on a `private` trip stays private, " +
+                "because a label cannot let anybody past the gate the trip is holding. " +
+                "A labelled photograph is absent from the gallery, from the day, and from " +
+                "every payload for a reader below its level, and the file itself answers " +
+                "404 rather than being one guessable URL away.",
             },
             poster: { type: "string", description: "A still, for a clip." },
             from: {
@@ -497,6 +513,21 @@ export function openApiDocument() {
                 "one. A `src` the day does not have is refused rather than ignored, so a " +
                 "typo cannot silently caption nothing.",
               additionalProperties: { type: "string" },
+            },
+            photoVisibility: {
+              type: "object",
+              description:
+                "One photograph held back, keyed by the item's `src` exactly as the day " +
+                "reads it back — the same keys `captions` takes. **Edit only**, for the " +
+                "same reason: the pictures do not exist at creation, and the media call " +
+                "takes labels of its own. `null` clears a label. There is no `public` — a " +
+                "label narrows what the trip's own `visibility` already allows and can " +
+                "never widen it, so `null` is how a photograph goes back to being seen by " +
+                "everyone the trip lets in, and sending `\"public\"` is refused with that " +
+                "sentence rather than quietly accepted. A `src` the day does not have is " +
+                "refused rather than ignored: \"I have marked that photograph private\" " +
+                "followed by nothing landing is the worst answer this field could give.",
+              additionalProperties: { type: "string", enum: [...PHOTO_VISIBILITIES] },
             },
             weather: {
               type: "boolean",
@@ -2149,6 +2180,19 @@ export function openApiDocument() {
                         "worse than none. Write what you were told about the picture, never " +
                         "what it looks like to you.",
                     },
+                    visibility: {
+                      type: "array",
+                      items: { type: "string", enum: [...PHOTO_VISIBILITIES] },
+                      description:
+                        "Optional, one per file and in the same order — same alignment rule " +
+                        "as `captions`, and an empty value for a picture nobody is holding " +
+                        "back. `guest` shows it to everybody the owner has let into the " +
+                        "journal and to the people who were on the trip; `private` to the " +
+                        "people who were there, and the owner. It narrows what the trip's " +
+                        "own visibility already allows and can never widen it, so there is " +
+                        "no `public`. Only ever what the owner asked for — a picture nobody " +
+                        "said anything about is not held back on a hunch.",
+                    },
                   },
                 },
               },
@@ -2168,6 +2212,13 @@ export function openApiDocument() {
                     captions: {
                       type: "array",
                       items: { type: "string" },
+                      description:
+                        "Optional, one per URL and in the same order. Same rules as the " +
+                        "multipart door.",
+                    },
+                    visibility: {
+                      type: "array",
+                      items: { type: "string", enum: [...PHOTO_VISIBILITIES] },
                       description:
                         "Optional, one per URL and in the same order. Same rules as the " +
                         "multipart door.",

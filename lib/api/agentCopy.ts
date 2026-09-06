@@ -336,7 +336,21 @@ export const FRONTMATTER_TO_API: { key: string; api: string; note: string }[] = 
     note:
       "Photographs are their own call: `POST .../media` with the day's slug and the files. " +
       "Sending `gallery` in the day body writes nothing. Captions travel with the files, or " +
-      "later as `captions` on a `PATCH`.",
+      "later as `captions` on a `PATCH` — and so does `visibility`, the one photograph held " +
+      "back from readers the trip otherwise lets in.",
+  },
+  {
+    key: "gallery[].visibility",
+    api: '"visibility": ["", "private"] on the media call, or "photoVisibility" on a PATCH',
+    note:
+      "One picture, seen by fewer people than the rest of the day. `guest` is everybody the " +
+      "owner has let into the journal plus the people who were on the trip; `private` is the " +
+      "people who were there, and the owner. **It narrows and never widens** — there is no " +
+      "`public`, and a `guest` label on a `private` trip stays private, because a label " +
+      "cannot let anybody past the gate the trip is already holding. Absent is the normal " +
+      "case and means everyone the trip lets in. Only ever what the owner asked for: a " +
+      "picture nobody said anything about is not held back on a hunch, and the whole day is " +
+      "the trip's `visibility` to decide, not thirty labels.",
   },
   {
     key: "status: draft",

@@ -1,7 +1,7 @@
 import { isTestContent } from "@/lib/access";
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
-import { getAllEntries } from "@/lib/entries";
+import { AS_AUTHOR, getAllEntries } from "@/lib/entries";
 import { defaultLocaleFor, localesFor } from "@/lib/locales";
 import { openingOf } from "@/lib/postcard/opening";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -66,7 +66,7 @@ export async function GET(
   // Test content is a day nobody lived, and `POST …/postcards` refuses to
   // order from one — so offering its words would be offering a text that
   // cannot be used.
-  const days = getAllEntries(ref, { includeDrafts: true })
+  const days = getAllEntries(ref, AS_AUTHOR)
     .filter((entry) => !isTestContent(trip, entry))
     .map((entry) => {
       const texts: Record<string, string> = {};

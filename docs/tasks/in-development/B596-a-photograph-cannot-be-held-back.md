@@ -42,7 +42,9 @@ Three ordered levels: `public` < `guest` < `person` (on the trip, or the
 owner — which since B480 includes the instance's admin).
 
 **One read chokepoint, not forty-five.** `ReadOptions` (`lib/entries.ts:133`)
-gains `viewer?: ViewerLevel`, **defaulting to `public`**. `visible()` — the
+gains `reader?: ReaderLevel` — named `reader` rather than `viewer`, which was
+already taken three times over in this codebase (`ViewerOptions`,
+`resolveViewer`, `lib/viewer.ts`) — **defaulting to `public`**. `visible()` — the
 function that already strips drafts — strips gallery items above the viewer's
 level, returning fresh entry objects so the parse cache is never mutated.
 Every consumer of `entry.gallery` and `getAllMedia` inherits it untouched
@@ -50,9 +52,16 @@ Every consumer of `entry.gallery` and `getAllMedia` inherits it untouched
 `narratedCut`, the markdown twin, `WorldMap`), and the default is closed, so a
 path nobody updated fails safe rather than leaking.
 
-`lib/tripGate.ts` gains `readFor(trip)` returning `{ includeDrafts, viewer }`
-from one gate call; the ~30 `draftsVisibleTo` + `{ includeDrafts }` pairs
-convert to it. B327 is why: nine reading paths were changed and the tenth was
+`lib/tripGate.ts` gains `readFor(trip)` returning
+`{ read: ReadOptions, canPublish }` from one gate call, and `readerLevelFor`
+beside it; the `draftsVisibleTo` + `{ includeDrafts }` pairs on thirteen pages
+convert to it, plus `story.json` and the trips index.
+
+`readerLevelFor` mirrors `isGuestOf` branch for branch and in the same order,
+because that order is what makes it safe — traveller, then owner, then
+`private` refusing outright, then the journal's grant, so a signed-in stranger
+reaches the last line and is answered `public`. It reports what a reader has
+*proved*, never what they may read; `mayReadTrip` stays the gate. B327 is why: nine reading paths were changed and the tenth was
 missed, and the tenth was the media route. One function decides the level and
 nothing else asks.
 
@@ -70,6 +79,12 @@ are covered.
 vary by reader; the *status* does, and a shared cache holding the 200 would
 hand it to the next person who asks. Same reasoning as the draft case
 immediately above it.
+
+A second constant carries the other half: `AS_AUTHOR` in `lib/entries.ts` is
+`{ includeDrafts: true, reader: "person" }`, and every door that has already
+run `mayWriteTrip` reads with it. Named rather than written out at a dozen call
+sites so the places asserting "I have already checked who this is" can be found
+at once.
 
 **Write doors.** The agent is the editor, so a field it cannot set does not
 exist:
@@ -109,6 +124,49 @@ instruction and notes in step 6 that a label narrows and never widens.
 (it announces to anyone who opens the URL that restricted material exists on
 that day); per-photo *widening*; a label on the trip's cover image, which is
 its own field.
+
+## What changed while building it
+
+**A bypass the plan did not have, found in the security pass and fixed.** The
+file gate matched the request's path against the gallery's `src` byte for byte.
+On a case-insensitive volume — APFS, so every Mac this is developed on, and
+some deployments — `03.JPG` opens `03.jpg`, so a byte comparison called them
+different photographs and **served the held-back file**. Unicode normalisation
+(NFC against NFD) is the same class. The gate now case-folds and NFC-normalises
+both sides, which can only ever find *more* labels: a match that should not
+have happened refuses a file, a match that is missed serves one. `.`, `..` and
+empty segments never get that far — `resolveMediaFile` already refuses them.
+`test/photo-visibility.test.ts` pins it.
+
+**The photobook needed a third read level, not the plan's two.**
+`lib/photobook/source.ts` read with no options at all, so once the default went
+closed the composer's grid (owner, `AS_AUTHOR`) offered a photograph the
+renderer then silently dropped. It reads `{ reader: "person" }` now — the book
+is printed and mailed to the owner's own address, which is a different question
+from the draft exclusion immediately above it in that file.
+
+**The WhatsApp announcement needed no code at all.** It reads the day once for
+the whole list, because a template has one image for everybody — so the closed
+default already keeps a labelled photograph out of it, and a filter there would
+have been a second answer to the same question. A comment says so; the mail
+path, which renders per copy, does the per-recipient pick as planned.
+
+**`mediaKey` was three copies and is now one.** `spliceCaptions`,
+`checkCaptions` and the new gate all needed the rule that strips the owner
+prefix off a `src`. The two existing copies said so in their comments and gave
+"this module is pure and that one is not" as the reason there was nowhere to
+share it from. `lib/photos.ts` is pure for exactly this reason and is that
+somewhere.
+
+**Two tests mocked `@/lib/contacts/session` and `@/lib/tripGate` by naming
+only the export they cared about**, so they broke the moment `readFor` asked a
+second question. `test/gallery-page-drafts.test.tsx` now spreads
+`importOriginal` the way `test/costs-drafts.test.ts` already did.
+
+**`AGENTS.md` said something that had become false**: "A trip that must be held
+back from people who are otherwise let in is `private`, and that is the only
+mechanism; there is deliberately no narrower one." Corrected, with the
+narrows-only rule and both halves of the enforcement.
 
 ## Acceptance
 

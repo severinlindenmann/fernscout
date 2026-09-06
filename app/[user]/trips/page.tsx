@@ -8,7 +8,7 @@ import { getPlaces, getTripStats } from "@/lib/entries";
 import { frameRoute } from "@/lib/mapFrame";
 import { assignFlagColours, FLAG_FALLBACK } from "@/lib/flagColours";
 import { accentsFor, getMalformedTrips, getTrips } from "@/lib/trips";
-import { draftsVisibleTo, listableTrips, signedInAs } from "@/lib/tripGate";
+import { listableTrips, readFor, signedInAs } from "@/lib/tripGate";
 import { isOwner } from "@/lib/contacts/session";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
@@ -170,9 +170,12 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
   // journal home page had long since widened for the owner and for
   // travellers — so the same viewer got a different marker count here than on
   // either of those pages, for the same days.
-  const draftsByTrip = new Map(
+  //
+  // B596 rides along: the same call answers which photographs this reader may
+  // see, and the lifetime map's media counts come off these reads.
+  const readByTrip = new Map(
     await Promise.all(
-      travelled.map(async (t) => [t.ref, (await draftsVisibleTo(t)).visible] as const),
+      travelled.map(async (t) => [t.ref, (await readFor(t)).read] as const),
     ),
   );
 
@@ -184,14 +187,12 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
   // which showed here as every trip having 0 days, 0 countries and no route.
   const placesByTrip = new Map(
     travelled.map((t) => {
-      const read = { includeDrafts: draftsByTrip.get(t.ref) ?? false };
-      return [t.ref, getPlaces(t.ref, read)] as const;
+      return [t.ref, getPlaces(t.ref, readByTrip.get(t.ref))] as const;
     }),
   );
   const statsByTrip = new Map(
     travelled.map((t) => {
-      const read = { includeDrafts: draftsByTrip.get(t.ref) ?? false };
-      return [t.ref, getTripStats(t.ref, read)] as const;
+      return [t.ref, getTripStats(t.ref, readByTrip.get(t.ref))] as const;
     }),
   );
 

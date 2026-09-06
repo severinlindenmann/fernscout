@@ -1,6 +1,6 @@
 import "server-only";
 import { basemapFor, basemapForRoute } from "./basemap";
-import { getAllEntries, getDays, getDefaultDay, getTripStats } from "./entries";
+import { getAllEntries, getDays, getDefaultDay, getTripStats, type ReadOptions } from "./entries";
 import { costForDay, costLocalForDay, getCostSummary } from "./costs";
 import { geodataAvailable, reverseGeocode } from "./ingest/geo";
 import { getTrip } from "./trips";
@@ -123,10 +123,10 @@ export function storyWindow(
   ref: string,
   from: number,
   to: number,
-  viewer: Pick<ViewerOptions, "showCosts" | "includeDrafts"> = {},
+  viewer: Pick<ViewerOptions, "showCosts" | "includeDrafts" | "reader"> = {},
 ): Day[] {
-  const { showCosts = true, includeDrafts = false } = viewer;
-  const days = getDays(ref, { includeDrafts });
+  const { showCosts = true, includeDrafts = false, reader } = viewer;
+  const days = getDays(ref, { includeDrafts, reader });
   const window = days.slice(Math.max(0, from), Math.min(days.length, to));
   return showCosts ? window : window.map(withoutCosts);
 }
@@ -160,8 +160,15 @@ function withoutCosts(day: Day): Day {
  * list, the map route — is drawn from `index`, which stays cheap however long
  * the trip runs.
  */
-/** What this particular viewer is allowed to be shown. */
-export type ViewerOptions = {
+/**
+ * What this particular viewer is allowed to be shown.
+ *
+ * `ReadOptions` is spread in rather than restated, so a page can hand over
+ * whatever `readFor` gave it in one piece — which days, and which
+ * photographs — and a third question added there arrives here without four
+ * call sites having to learn about it.
+ */
+export type ViewerOptions = ReadOptions & {
   /** The day the reader arrived on, from a `/day/<slug>` route. */
   openAt?: string;
   /**
@@ -170,13 +177,11 @@ export type ViewerOptions = {
    * that can read a cookie.
    */
   showCosts?: boolean;
-  /** True only for the journal's owner, reading their own site. */
-  includeDrafts?: boolean;
 };
 
 export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): StoryProps {
-  const { openAt, showCosts = true, includeDrafts = false } = viewer;
-  const read = { includeDrafts };
+  const { openAt, showCosts = true, includeDrafts = false, reader } = viewer;
+  const read = { includeDrafts, reader };
   const trip = getTrip(tripId);
   if (!trip) throw new Error(`Unknown trip: ${tripId}`);
 
