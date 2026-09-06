@@ -7,8 +7,7 @@ complexity: medium
 area: api, validation
 found: "2026-09-06T12:10:00Z"
 started: "2026-09-06T10:32:24Z"
-session: 73b1a7f5-30ec-425d-9dbf-4d423e411c0d
-claimed: "2026-09-06T10:32:24Z"
+merged: "2026-09-06T10:48:04Z"
 ---
 
 # B536 — Only two write routes check their body against the published contract
