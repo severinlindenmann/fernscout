@@ -27,7 +27,8 @@ serves any trip at the explicit one. Both render the same components.
 | | |
 | --- | --- |
 | `/<user>`, `/<user>/day/<slug>` | the story — overview, then one day per screen |
-| `/<user>/costs` · `/gallery` · `/map` | the other views of one trip |
+| `/<user>/gallery` · `/map` | the other views of one trip |
+| `/<user>/analytics` · `/costs` · `/weather` | what the trip adds up to — a hub and one page per analysis (B557) |
 | `/<user>/trips` | every trip, with the lifetime map |
 | `/<user>/search` | across the whole journal, not one trip |
 | `/<user>/me` · `/contacts` | the reader's own access, and the owner's list of readers |

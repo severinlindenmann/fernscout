@@ -14,7 +14,7 @@ import type { Trip } from "@/lib/types";
  *
  * `/trips`, `/search` and `/me` belong to the journal rather than to one
  * trip, so `useTrip()` is null there — and the fallback was the bare path.
- * Clicking "Costs" from the trip list went to `/costs`: nobody's journal, and
+ * Clicking "Analytics" from the trip list went to `/analytics`: nobody's journal, and
  * an error page. The journal's base is the right fallback, because that is
  * where the current trip lives.
  */
@@ -46,7 +46,7 @@ const site: SiteSummary = {
   signedIn: false,
   hasIdentity: false,
   canSignIn: false,
-  costsEnabled: true,
+  analyticsEnabled: true,
 };
 
 const trip = {
@@ -94,7 +94,7 @@ function door(html: string): string {
 describe("SiteNav", () => {
   test("with no trip in context, every link still names the journal", () => {
     const hrefs = render(false);
-    expect(hrefs).toContain("/alex/costs");
+    expect(hrefs).toContain("/alex/analytics");
     expect(hrefs).toContain("/alex/gallery");
     expect(hrefs).toContain("/alex/map");
     expect(hrefs).toContain("/alex/trips");
@@ -105,43 +105,45 @@ describe("SiteNav", () => {
   });
 
   /**
-   * B165 — costs is an optional capability, so the tab is one too.
+   * B165, B557 — every analysis is an optional capability, so the tab is one
+   * too.
    *
-   * With `features.costs` off for this journal both costs pages answer 404,
-   * and a tab leading to one is the same failure B44 fixed for the sign-in
-   * door: a control that promises something that is not there. Absent rather
-   * than broken.
+   * With the capabilities off the pages behind the hub answer 404, and a tab
+   * leading to one is the same failure B44 fixed for the sign-in door: a
+   * control that promises something that is not there. Absent rather than
+   * broken. The tab is Analytics since B557, and `analyticsEnabled` is true
+   * when any one analysis has something behind it.
    */
-  describe("the costs tab follows the capability", () => {
-    test("is gone when the journal does not do spending", () => {
-      site.costsEnabled = false;
+  describe("the analytics tab follows the capability", () => {
+    test("is gone when the journal has nothing to add up", () => {
+      site.analyticsEnabled = false;
       try {
         const hrefs = render(false);
-        expect(hrefs).not.toContain("/alex/costs");
+        expect(hrefs).not.toContain("/alex/analytics");
         // And nothing else in the row went with it.
         expect(hrefs).toContain("/alex/gallery");
         expect(hrefs).toContain("/alex/map");
         expect(hrefs).toContain("/alex/trips");
       } finally {
-        site.costsEnabled = true;
+        site.analyticsEnabled = true;
       }
     });
 
     test("and is there when it does, in a trip's own context too", () => {
-      expect(render(false)).toContain("/alex/costs");
-      expect(render(true, true)).toContain("/alex/costs");
+      expect(render(false)).toContain("/alex/analytics");
+      expect(render(true, true)).toContain("/alex/analytics");
     });
   });
 
   test("on the current trip, the bare URLs", () => {
     const hrefs = render(true, true);
-    expect(hrefs).toContain("/alex/costs");
+    expect(hrefs).toContain("/alex/analytics");
     expect(hrefs).toContain("/alex");
   });
 
   test("on any other trip, the trip's own URLs", () => {
     const hrefs = render(true, false);
-    expect(hrefs).toContain("/alex/trips/asia-2023/costs");
+    expect(hrefs).toContain("/alex/trips/asia-2023/analytics");
     expect(hrefs).toContain("/alex/trips/asia-2023");
     // /trips and /search stay at the journal level even inside a trip.
     expect(hrefs).toContain("/alex/trips");

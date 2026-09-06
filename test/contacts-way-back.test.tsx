@@ -84,7 +84,7 @@ const site = {
   base: "/alex",
   signedIn: true,
   canSignIn: true,
-  costsEnabled: false,
+  analyticsEnabled: false,
 } as unknown as SiteSummary;
 
 /** The page as the layout hands it over: the four providers, and no trip in

@@ -2,8 +2,7 @@ import type { MetadataRoute } from "next";
 import { getAllEntries, getDays } from "@/lib/entries";
 import { getCurrentTrip, getTrips } from "@/lib/trips";
 import { isIndexable } from "@/lib/access";
-import { hasCostsData } from "@/lib/costs";
-import { isEnabled } from "@/lib/capabilities";
+import { analyticsCardsFor } from "@/lib/analytics";
 import { serverSite } from "@/lib/site";
 import { listedUsernames } from "@/lib/users";
 import { defaultLocaleFor, localesFor } from "@/lib/locales";
@@ -78,14 +77,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
       // cannot hide a trip that is under way.
       if (trip.status === "upcoming") continue;
 
-      // A journal with spending switched off has no costs page, so nothing
-      // offers a crawler one. B165 — absent, not a 404 in the sitemap. Nor
-      // does a trip that never got its own `costs.md` (B267): the capability
-      // being on says nothing about this one trip.
-      const pages =
-        isEnabled("costs", username) && hasCostsData(trip.ref)
-          ? ["/gallery", "/map", "/costs"]
-          : ["/gallery", "/map"];
+      /**
+       * A journal with spending switched off has no costs page, so nothing
+       * offers a crawler one. B165 — absent, not a 404 in the sitemap. Nor
+       * does a trip that never got its own `costs.md` (B267): the capability
+       * being on says nothing about this one trip. B557 added the weather
+       * page and the hub above them, each on the same terms — the pages the
+       * crawler is offered are exactly the pages that answer 200.
+       *
+       * Drafts are not asked for anywhere here: a sitemap is served to
+       * everyone, and a day only the owner can see must not put a URL in it.
+       */
+      const cards = analyticsCardsFor(username, trip.ref);
+      const pages = ["/gallery", "/map"];
+      if (cards.costs || cards.weather) pages.push("/analytics");
+      if (cards.costs) pages.push("/costs");
+      if (cards.weather) pages.push("/weather");
       for (const page of pages) {
         out.push({
           url: `${tripBase}${page}`,

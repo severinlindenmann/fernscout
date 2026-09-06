@@ -95,7 +95,7 @@ export function hasCostsData(tripId: string, options?: ReadOptions): boolean {
 /**
  * Whether any trip in this journal has costs at all — journal-wide, for the
  * nav (`costsAvailable` below), which is not asked about any one trip.
- * `SiteSummary.costsEnabled` (lib/site.ts) is deliberately the same for every
+ * `SiteSummary.analyticsEnabled` (lib/site.ts) is deliberately the same for every
  * page of a journal and every reader of it (test/access-door.test.ts pins
  * that), so this never passes `includeDrafts`: a draft-only trip's costs
  * must not put a tab in the nav that a stranger, or even the owner's own

@@ -1,6 +1,6 @@
 import "server-only";
 import { isEnabled } from "./capabilities";
-import { costsAvailable } from "./costs";
+import { analyticsAvailable } from "./analytics";
 import { loadServerConfig, type UserConfig } from "./config";
 import { getUser } from "./users";
 import type { Figure } from "./travellers/vocabulary";
@@ -172,24 +172,31 @@ export type SiteSummary = {
    */
   hasIdentity: boolean;
   /**
-   * Whether this journal's costs page has anything to show — `features.costs`
-   * on (`isEnabled`), *and* at least one trip actually has a `costs.md`
-   * (`costsAvailable` in lib/costs.ts).
+   * Whether this journal's Analytics tab has anything behind it — any one
+   * analysis whose capability is on *and* which has data somewhere in the
+   * journal (`analyticsAvailable` in lib/analytics.ts).
    *
-   * The nav needs it (B165, B267): with the capability off both costs pages
-   * answer 404, and a tab that links at one is the same bug the sign-in door
-   * above records — a control promising something that is not there. Absent
-   * rather than broken. The capability check alone was not enough: it is on
-   * by default at trip creation (lib/journals.ts), so a journal that never
-   * wrote a budget still got the tab, leading to a page with nothing on it —
-   * the same failure with an extra step. B267 added the second half.
+   * It was `costsEnabled` until B557, when costs stopped being the only thing
+   * a trip could be added up into. The name moved with the tab deliberately:
+   * a field called `costsEnabled` deciding whether a tab called Analytics is
+   * drawn is a fact kept in two words that disagree, and the next analysis
+   * added would have been gated on whether the journal does spending.
+   *
+   * The nav needs it (B165, B267): with a capability off its pages answer
+   * 404, and a tab that links at one is the same bug the sign-in door above
+   * records — a control promising something that is not there. Absent rather
+   * than broken. The capability check alone was not enough: `costs` is on by
+   * default at trip creation (lib/journals.ts), so a journal that never wrote
+   * a budget still got the tab, leading to a page with nothing on it — the
+   * same failure with an extra step. B267 added the second half, and B557
+   * kept it for weather.
    *
    * Journal-wide and viewer-independent, exactly like `canSignIn`, and for the
    * same reason: it comes from config and from nothing the reader is or is not
    * allowed to see. It is not `costsVisibility`, which is per trip and per
    * reader and is decided by `mayViewCosts` on the server.
    */
-  costsEnabled: boolean;
+  analyticsEnabled: boolean;
 };
 
 /**
@@ -233,7 +240,7 @@ export function siteSummaryFor(
     // it is a property of the journal, so every caller would compute the same
     // answer, and one of them would eventually forget to.
     canSignIn: isEnabled("auth", user.username),
-    costsEnabled: costsAvailable(user.username),
+    analyticsEnabled: analyticsAvailable(user.username),
   };
 }
 
