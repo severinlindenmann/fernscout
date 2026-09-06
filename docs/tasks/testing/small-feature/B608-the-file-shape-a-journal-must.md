@@ -7,8 +7,7 @@ complexity: medium
 area: api, content model, validation
 found: "2026-09-06T15:11:52Z"
 started: "2026-09-06T15:12:43Z"
-session: ac8af30e-815d-4843-a94d-cf061a70269c
-claimed: "2026-09-06T15:12:43Z"
+merged: "2026-09-06T15:37:43Z"
 ---
 
 # B608 — The file shape a journal must have is not published anywhere
