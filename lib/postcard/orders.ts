@@ -75,6 +75,13 @@ export type RecipientResult = {
   error?: string;
 };
 
+/**
+ * A crop's anchor, both axes 0–1 — the same shape B513 gave the photobook's
+ * own `focalPoints`, reused rather than reinvented: `x` is a fraction across
+ * the photograph, `y` a fraction down it. Absent means centre.
+ */
+export type Crop = { x: number; y: number };
+
 export type OrderPayload = {
   /** The qualified trip ref, `<username>/<trip-id>`. */
   trip: string;
@@ -82,6 +89,16 @@ export type OrderPayload = {
   day: string;
   /** A path relative to the trip's media directory. */
   photo: string;
+  /**
+   * Where the photograph on the front is cropped from — B627.
+   *
+   * Belongs to the order, not to the photograph: the same picture on another
+   * card, or in the gallery, is untouched. Absent means centre, which is what
+   * every order made before this existed still gets — an agent proposing a
+   * card has no way to see it, so it never sets this. Only the preview
+   * page's drag control, owner-only, ever writes it (`updateOrderCrop`).
+   */
+  crop?: Crop;
   message: string;
   /** The signature on the card — "Us", "Sev & Ana". */
   from: string;
@@ -192,6 +209,37 @@ export async function updateOrderText(
         from: text.from,
         locale: text.locale,
       }),
+      updated_at: nowIso(),
+    })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("status", "=", "draft")
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows ?? 0) === 1;
+}
+
+/**
+ * Reposition the crop on a card that has not gone yet — B627.
+ *
+ * The same `where status = 'draft'` guard as `updateOrderText`, for the same
+ * reason: a re-crop arriving while a send is in flight must not change what
+ * is being printed. Clamped to 0–1 on both axes, since this is driven by a
+ * drag handler rather than a validated form field.
+ */
+export async function updateOrderCrop(owner: string, id: string, crop: Crop): Promise<boolean> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return false;
+  const order = await getOrder(owner, id);
+  if (!order || !isPending(order)) return false;
+
+  const clamped: Crop = {
+    x: Math.min(1, Math.max(0, crop.x)),
+    y: Math.min(1, Math.max(0, crop.y)),
+  };
+  const result = await handle.db
+    .updateTable("print_orders")
+    .set({
+      payload: JSON.stringify({ ...order.payload, crop: clamped }),
       updated_at: nowIso(),
     })
     .where("id", "=", id)

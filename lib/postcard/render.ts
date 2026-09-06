@@ -14,6 +14,7 @@ import {
   type PostcardSpec,
 } from "./spec.ts";
 import { PdfBuilder, readJpeg, type JpegImage, type Page } from "./pdf.ts";
+import type { Crop } from "./orders.ts";
 
 /**
  * Composes a postcard: photograph on the front, message and address on the
@@ -41,6 +42,13 @@ export type PostcardInput = {
   from: string;
   to: PostalAddress;
   spec?: PostcardSpec;
+  /**
+   * Where the front photograph is cropped from — B627. Absent means centre,
+   * which is what every postcard printed before this existed. Never scales
+   * the photograph anisotropically: this only moves the same cover-crop
+   * rectangle `coverRect` always drew.
+   */
+  crop?: Crop;
   /** Draws trim and safe-area guides. For proofing only — never for printing. */
   guides?: boolean;
   /**
@@ -100,18 +108,37 @@ function wrap(text: string, size: number, maxWidth: number): string[] {
   return lines;
 }
 
+/** The centre — every postcard's crop before B627, and still the default for
+ * one nobody has dragged. */
+const CENTRE: Crop = { x: 0.5, y: 0.5 };
+
 /**
  * Scales a photograph to cover the card, cropping the overflow.
  *
  * Cover rather than fit: a postcard with white bars down the side is not a
  * postcard. The caller is told the effective DPI so a photo too small to print
  * well is a warning rather than a surprise.
+ *
+ * `crop` says which part of the overflow survives, in the same terms the
+ * preview page's drag control writes: `x` a fraction across the photograph,
+ * `y` a fraction down it, ordinary image-space with a top-left origin. PDF
+ * space is **y-upwards**, so the two axes are not symmetric here — `x` scales
+ * the offset directly, `y` scales it from the far side, `(1 - crop.y)`, so
+ * that `y: 0` still means "keep the top" rather than "keep the bottom". This
+ * is exactly `lib/photobook/plan.ts`'s `cover()`, B513's answer to the same
+ * problem, reused rather than reinvented. At `CENTRE` this is the old
+ * centring formula.
  */
-function coverRect(image: JpegImage, boxWidth: number, boxHeight: number) {
+function coverRect(image: JpegImage, boxWidth: number, boxHeight: number, crop: Crop = CENTRE) {
   const scale = Math.max(boxWidth / image.width, boxHeight / image.height);
   const width = image.width * scale;
   const height = image.height * scale;
-  return { x: (boxWidth - width) / 2, y: (boxHeight - height) / 2, width, height };
+  return {
+    x: (boxWidth - width) * crop.x,
+    y: (boxHeight - height) * (1 - crop.y),
+    width,
+    height,
+  };
 }
 
 export function renderPostcard(input: PostcardInput): RenderedPostcard {
@@ -153,7 +180,7 @@ export function renderPostcard(input: PostcardInput): RenderedPostcard {
   if (sides !== "back") {
     const front = builder.addPage(box.width, box.height, trim);
     pages.push(front);
-    const cover = coverRect(image, box.width, box.height);
+    const cover = coverRect(image, box.width, box.height, input.crop);
     PdfBuilder.drawImage(front, image, cover.x, cover.y, cover.width, cover.height);
   }
 

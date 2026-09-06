@@ -20,6 +20,7 @@ import { pickLocale } from "@/lib/contacts/locale";
 import { formatDigestDate } from "@/lib/digest/content";
 import { orderPhotoFile } from "@/lib/postcard/send";
 import { getUser } from "@/lib/users";
+import PostcardCropper from "@/components/PostcardCropper";
 
 export const dynamic = "force-dynamic";
 
@@ -189,17 +190,16 @@ export default async function PostcardOrderPage({
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2">
           <figure>
-            <div className="relative overflow-hidden rounded" style={{ aspectRatio: back.aspect }}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- the print
-                  geometry is in millimetres and the point of this preview is
-                  that the frame is exactly the card; next/image would impose
-                  its own box on it. */}
-              <img
-                src={mediaUrl(order.payload.trip, order.payload.photo)}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            </div>
+            <PostcardCropper
+              username={username}
+              id={id}
+              src={mediaUrl(order.payload.trip, order.payload.photo)}
+              aspect={back.aspect}
+              initial={order.payload.crop ?? { x: 0.5, y: 0.5 }}
+              editable={isPending(order) && !expired}
+              hint={t("postcard.page.cropHint")}
+              savingLabel={t("postcard.page.cropSaving")}
+            />
             <figcaption className="mt-1 text-xs opacity-70">
               {t("postcard.page.front")}
             </figcaption>

@@ -14,6 +14,7 @@ import { backLayout } from "@/lib/postcard/preview";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { renderPostcard, type PostalAddress } from "@/lib/postcard/render";
 import { recipientBase, recipientBases, slug } from "@/lib/postcard/filename";
+import { makeJpeg } from "./support/exif-jpeg";
 
 const PHOTO = path.join(
   process.cwd(),
@@ -164,6 +165,88 @@ describe("rendering", () => {
     const withGuides = Buffer.from(render({ guides: true }).pdf).toString("latin1");
     const without = Buffer.from(render().pdf).toString("latin1");
     expect(withGuides.length).toBeGreaterThan(without.length);
+  });
+});
+
+/**
+ * B627 — a portrait photograph on a landscape card, and where the owner's
+ * drag lands.
+ *
+ * The one thing worth a runnable check here is that the fraction pair a
+ * drag produces maps to the same rectangle the preview's CSS `objectPosition`
+ * would compute — `(box - image) * x` on the horizontal axis, `(box - image)
+ * * (1 - y)` on the vertical, because PDF space counts up from the bottom and
+ * CSS counts down from the top (see `lib/photobook/plan.ts`'s `cover()`,
+ * B513's answer to the same problem). An absent crop is centre, which is
+ * every card printed before this existed.
+ */
+describe("the front photograph's crop — B627", () => {
+  /** The operand a `cm` matrix draws with `drawImage`, straight off the
+   * operations list rather than parsed pixel-for-pixel — the geometry is what
+   * this checks, not the byte layout of the page content stream. */
+  function frontCm(pdf: Uint8Array): { w: number; h: number; x: number; y: number } {
+    const text = Buffer.from(pdf).toString("latin1");
+    const match = text.match(/q ([\d.]+) 0 0 ([\d.]+) (-?[\d.]+) (-?[\d.]+) cm \/Im1 Do Q/);
+    if (!match) throw new Error("no drawImage operator found");
+    const [, w, h, x, y] = match.map(Number);
+    return { w, h, x, y };
+  }
+
+  test("absent crops from the centre, same as before B627", () => {
+    const centred = frontCm(render().pdf);
+    const explicit = frontCm(render({ crop: { x: 0.5, y: 0.5 } }).pdf);
+    expect(centred).toEqual(explicit);
+  });
+
+  // `01.jpg` (1600×1067) is wider, relative to its height, than the A6
+  // landscape box — so scaling it to cover leaves no vertical overflow to
+  // crop at all, and only `x` moves anything. A generated portrait photo is
+  // what exercises the axis that photo cannot.
+  test("never scales anisotropically: only the horizontal position moves, not the size", () => {
+    const centre = frontCm(render().pdf);
+    const corner = frontCm(render({ crop: { x: 0, y: 0 } }).pdf);
+    expect(corner.w).toBeCloseTo(centre.w, 6);
+    expect(corner.h).toBeCloseTo(centre.h, 6);
+    expect(corner.x).not.toBeCloseTo(centre.x, 3);
+  });
+
+  test("x is not flipped: x: 0 keeps the left, x: 1 keeps the right", () => {
+    const left = frontCm(render({ crop: { x: 0, y: 0.5 } }).pdf).x;
+    const right = frontCm(render({ crop: { x: 1, y: 0.5 } }).pdf).x;
+    // Keeping the left pushes the excess width to the right, i.e. the drawn
+    // rectangle's left edge is nearer 0 (less negative) than keeping the
+    // right, which pushes the whole rectangle further negative.
+    expect(left).toBeGreaterThan(right);
+  });
+
+  // A portrait photograph on a landscape card is the ticket's own case: to
+  // cover the box its width matches exactly and only the height overflows,
+  // so this is what actually exercises the vertical axis — `01.jpg` above,
+  // being wider than the box, never does.
+  test("a portrait photograph on the landscape card: only the vertical crop moves", async () => {
+    const portrait = await makeJpeg(1, 600, 1200);
+    const withCrop = (crop: { x: number; y: number }) =>
+      frontCm(render({ photo: portrait, crop }).pdf);
+
+    // Never anisotropic: the same scale whatever the crop.
+    const a = withCrop({ x: 0.5, y: 0.5 });
+    const b = withCrop({ x: 0.1, y: 0.9 });
+    expect(b.w).toBeCloseTo(a.w, 6);
+    expect(b.h).toBeCloseTo(a.h, 6);
+
+    // `y: 0` (drag says "keep the top") means the drawn rectangle's top edge
+    // sits at the box's own top, pushing the whole excess height below the
+    // box — page space counts up from the bottom, so that is the *smallest*
+    // (most negative) value drawImage's own y can take. `y: 1` ("keep the
+    // bottom") aligns the rectangle's bottom edge with the box's, i.e. `0`
+    // on that axis — the largest value.
+    const top = withCrop({ x: 0.5, y: 0 });
+    const bottom = withCrop({ x: 0.5, y: 1 });
+    expect(bottom.y).toBeGreaterThan(top.y);
+
+    // No horizontal overflow to crop at all, so a portrait photo's own width
+    // covers the box exactly whatever `x` says.
+    expect(top.x).toBeCloseTo(0, 6);
   });
 });
 

@@ -10,7 +10,13 @@ import { issueCode } from "@/lib/auth";
 import { balanceOf, grant, ledgerFor } from "@/lib/credits";
 import { POSTCARD_CREDITS } from "@/lib/credits/pricing";
 import { postcardCandidates } from "@/lib/postcard/contacts";
-import { createOrder, getOrder, updateOrderText, ORDER_TTL_MS } from "@/lib/postcard/orders";
+import {
+  createOrder,
+  getOrder,
+  updateOrderCrop,
+  updateOrderText,
+  ORDER_TTL_MS,
+} from "@/lib/postcard/orders";
 import { sendOrder } from "@/lib/postcard/send";
 import { makeJpeg } from "./support/exif-jpeg";
 import { backToPreview } from "@/lib/postcard/redirectBack";
@@ -312,6 +318,49 @@ describe("correcting the words before it goes", () => {
       }),
     ).toBe(false);
     expect((await getOrder(OWNER, made.id))?.payload.message).toBe(made.payload.message);
+  });
+});
+
+describe("repositioning the crop before it goes — B627", () => {
+  test("absent until dragged, and then a fraction pair", async () => {
+    const contact = await reader("crop@example.test");
+    await grant(OWNER, 100);
+    const made = await order([contact]);
+    expect(made.payload.crop).toBeUndefined();
+
+    expect(await updateOrderCrop(OWNER, made.id, { x: 0.9, y: 0.1 })).toBe(true);
+    const again = await getOrder(OWNER, made.id);
+    expect(again?.payload.crop).toEqual({ x: 0.9, y: 0.1 });
+    // Only the crop moved — not the words, not the people, not the price.
+    expect(again?.payload.message).toBe(made.payload.message);
+    expect(again?.payload.recipients).toEqual(made.payload.recipients);
+  });
+
+  test("clamped to the photograph, since a drag can overshoot the frame", async () => {
+    const contact = await reader("overshoot@example.test");
+    await grant(OWNER, 100);
+    const made = await order([contact]);
+
+    await updateOrderCrop(OWNER, made.id, { x: 1.4, y: -0.3 });
+    expect((await getOrder(OWNER, made.id))?.payload.crop).toEqual({ x: 1, y: 0 });
+  });
+
+  test("a card that has gone cannot be recropped", async () => {
+    const contact = await reader("croplate@example.test");
+    await grant(OWNER, 100);
+    const made = await order([contact]);
+    await sendOrder(OWNER, made.id);
+
+    expect(await updateOrderCrop(OWNER, made.id, { x: 0, y: 0 })).toBe(false);
+    expect((await getOrder(OWNER, made.id))?.payload.crop).toBeUndefined();
+  });
+
+  test("one journal cannot recrop another's order", async () => {
+    const contact = await reader("cropmine@example.test");
+    await grant(OWNER, 100);
+    const made = await order([contact]);
+    expect(await updateOrderCrop("someone-else", made.id, { x: 0, y: 0 })).toBe(false);
+    expect((await getOrder(OWNER, made.id))?.payload.crop).toBeUndefined();
   });
 });
 

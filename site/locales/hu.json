@@ -795,6 +795,8 @@
   "postcard.page.balance": "Neked {balance} van.",
   "postcard.page.buy": "Kredit vásárlása",
   "postcard.page.cost": "{each} kredit darabonként × {count} = {total} kredit",
+  "postcard.page.cropHint": "Húzd a fényképet, hogy kiválaszd, mi maradjon a képeslapon.",
+  "postcard.page.cropSaving": "Mentés…",
   "postcard.page.dayWithTitle": "„{title}”, {date}",
   "postcard.page.expiredOn": "Ez a rendelés {date} napon lejárt. Kérj egy újat.",
   "postcard.page.fixed": "A fénykép és a címzettek rögzítettek — azokhoz új rendelés kell.",
