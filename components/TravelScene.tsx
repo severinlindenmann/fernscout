@@ -64,6 +64,26 @@ const VEHICLE_WIDTH: Record<TransportMode, number> = {
  * of the range below, and what every leg played before duration varied. */
 const FALLBACK_DURATION = 6;
 
+/**
+ * How a mode's own pace stretches the distance-derived duration.
+ *
+ * Distance alone is not how long a journey feels. Two days on the Mekong and
+ * two hundred kilometres of motorway are the same number on a map and nothing
+ * like each other to sit through, and the scene was playing the boat *faster*
+ * than the car because the river is shorter. A crossing on foot or by water is
+ * the slowest thing in the list; a flight covers the most ground in the least
+ * time and is the only one under 1.
+ */
+const PACE: Record<TransportMode, number> = {
+  walk: 1.7,
+  boat: 1.6,
+  train: 1.15,
+  bus: 1.15,
+  car: 1,
+  motorbike: 1,
+  flight: 0.85,
+};
+
 function clamp(n: number, lo: number, hi: number): number {
   return Math.min(Math.max(n, lo), hi);
 }
@@ -116,11 +136,16 @@ export function legDistanceKm(from: DaySummary | undefined, leg: DaySummary): nu
 export function sceneDurationSeconds(
   variant: TravelSceneVariant,
   km: number | null,
+  mode: TransportMode = "car",
 ): number {
+  const pace = PACE[mode] ?? 1;
   if (variant === "quick") {
-    return km === null ? 1.8 : clamp(1.2 + Math.sqrt(km) / 40, 1.2, 2.6);
+    // `quick` exists to be short, so the pace barely touches it — a reader who
+    // asked for the compressed scene did not ask for a slower compressed one.
+    return clamp((km === null ? 1.8 : 1.2 + Math.sqrt(km) / 40) * (1 + (pace - 1) / 3), 1.2, 3);
   }
-  return km === null ? FALLBACK_DURATION : clamp(3 + Math.sqrt(km) / 10, 3, 9);
+  const base = km === null ? FALLBACK_DURATION : 3 + Math.sqrt(km) / 10;
+  return clamp(base * pace, 3, 11);
 }
 
 /**
@@ -166,6 +191,8 @@ export default function TravelScene({
 
   const variant: TravelSceneVariant = leg.travelScene ?? "default";
   const km = legDistanceKm(from, leg);
+  // Declared before the effect below, which needs it to time the leg.
+  const mode: TransportMode = leg.transport?.mode ?? "walk";
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -173,7 +200,8 @@ export default function TravelScene({
     // a directly-rendered "skip" both collapse to the same near-zero
     // duration, so there is exactly one place `onDone` can fire from and no
     // per-variant branch to keep in sync.
-    const duration = reduce || variant === "skip" ? 0.01 : sceneDurationSeconds(variant, km);
+    const duration =
+      reduce || variant === "skip" ? 0.01 : sceneDurationSeconds(variant, km, mode);
     const controls = animate(p, 1, {
       duration,
       ease: "linear",
@@ -184,7 +212,6 @@ export default function TravelScene({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leg.slug]);
 
-  const mode: TransportMode = leg.transport?.mode ?? "walk";
   const Icon = VEHICLE_ICON[mode] ?? Plane;
   const isFlight = mode === "flight";
   const onFoot = mode === "walk";
@@ -308,9 +335,18 @@ export default function TravelScene({
     return ramp(leg, 0.01, 0.09) * (1 - ramp(pan, afloat ? 0.05 : 0.15, afloat ? 0.3 : 0.5));
   });
 
-  // The quick scene's icon crosses a plain lane, edge to edge.
-  const quickX = useTransform(p, [0.06, 0.94], ["0%", "100%"]);
-  const quickOpacity = useTransform(p, [0, 0.08, 0.9, 1], [0, 1, 1, 0]);
+  /*
+   * The quick scene's marker crosses a plain lane, edge to edge.
+   *
+   * Two things were wrong with it and both made the scene look broken rather
+   * than brief. The percentage was of the marker's own width, so a 40px chip
+   * travelled 40px of the lane and stopped; and it faded to nothing at the
+   * end, so a leg that had finished was an empty line with a caption over it —
+   * which is what "the train does not render" looks like. It arrives now, and
+   * stays arrived.
+   */
+  const quickX = useTransform(p, [0.06, 0.94], ["-2%", "92%"]);
+  const quickOpacity = useTransform(p, [0, 0.08], [0, 1]);
 
   return (
     <div
@@ -322,11 +358,21 @@ export default function TravelScene({
     >
       {quick ? (
         <div className="absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-navy-200">
+          {/* The lane behind the marker, filled in as far as it has got. */}
+          <motion.div
+            style={{ scaleX: p }}
+            className="absolute inset-0 origin-left rounded-full bg-yellow-400"
+          />
+          {/* `inset-x-0` so the offset above is a share of the lane, not of
+              the marker. Motion writes `transform`, so the centring cannot be
+              a `-translate-x-1/2` utility — it would be overwritten. */}
           <motion.div
             style={{ x: quickX, opacity: quickOpacity }}
-            className="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white p-2 shadow-md shadow-navy-900/15"
+            className="absolute inset-x-0 -top-5"
           >
-            <Icon className="h-5 w-5 text-navy-900" strokeWidth={1.75} />
+            <div className="w-fit rounded-full bg-white p-2 shadow-md shadow-navy-900/15">
+              <Icon className="h-5 w-5 text-navy-900" strokeWidth={1.75} />
+            </div>
           </motion.div>
         </div>
       ) : (

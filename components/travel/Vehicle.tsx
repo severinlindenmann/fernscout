@@ -147,17 +147,25 @@ export default function Vehicle({
   );
 }
 
-/** Locomotive and two carriages, coupled, wheels on the baseline. */
+/**
+ * Two carriages and a locomotive, coupled, wheels on the baseline.
+ *
+ * **The locomotive is at the right-hand end**, because every leg crosses left
+ * to right and the engine goes in front. It was drawn at the left for one
+ * version, which is a train being pushed backwards down the line — and unlike
+ * most of the details here, that one is legible at a glance to anybody who has
+ * ever seen a train.
+ */
 function Train({ spin }: { spin: boolean }) {
   const base = 46;
   return (
     <g>
       {/* couplings, behind everything */}
-      <rect x={62} y={base - 14} width={12} height={4} fill={METAL} />
-      <rect x={122} y={base - 14} width={12} height={4} fill={METAL} />
+      <rect x={56} y={base - 14} width={12} height={4} fill={METAL} />
+      <rect x={118} y={base - 14} width={12} height={4} fill={METAL} />
 
-      {/* two carriages, drawn first so the loco overlaps them */}
-      {[74, 134].map((x) => (
+      {/* the two carriages, trailing */}
+      {[4, 64].map((x) => (
         <g key={x}>
           <rect x={x} y={14} width={56} height={26} rx={4} fill="#6ea8dc" />
           <rect x={x} y={12} width={56} height={5} rx={2.5} fill="#4a80ad" />
@@ -167,15 +175,18 @@ function Train({ spin }: { spin: boolean }) {
         </g>
       ))}
 
-      {/* the locomotive: a nose, a cab, a chimney */}
-      <path d={`M6,40 L6,22 Q6,14 16,14 L52,14 L52,40 Z`} fill={BODY} />
-      <rect x={6} y={38} width={62} height={5} rx={2} fill={BODY_DARK} />
-      <rect x={18} y={19} width={26} height={13} rx={2.5} fill={GLASS} />
-      <rect x={44} y={4} width={9} height={11} rx={2} fill={BODY_DARK} />
-      <rect x={52} y={18} width={16} height={22} rx={3} fill={BODY_DARK} />
-      <Wheel cx={20} cy={base} r={9} spin={spin} />
-      <Wheel cx={44} cy={base} r={9} spin={spin} />
-      <Wheel cx={62} cy={base} r={6} spin={spin} />
+      {/* the locomotive, at the front: cab behind, boiler and chimney ahead */}
+      <g transform="translate(122 0)">
+        <path d={`M0,40 L0,22 Q0,14 10,14 L46,14 L46,40 Z`} fill={BODY} />
+        <rect x={0} y={38} width={62} height={5} rx={2} fill={BODY_DARK} />
+        <rect x={8} y={19} width={26} height={13} rx={2.5} fill={GLASS} />
+        <rect x={46} y={18} width={16} height={22} rx={3} fill={BODY_DARK} />
+        {/* the chimney sits over the boiler, which is the front half */}
+        <rect x={48} y={4} width={9} height={11} rx={2} fill={BODY_DARK} />
+        <Wheel cx={14} cy={base} r={9} spin={spin} />
+        <Wheel cx={38} cy={base} r={9} spin={spin} />
+        <Wheel cx={56} cy={base} r={6} spin={spin} />
+      </g>
     </g>
   );
 }
@@ -184,31 +195,33 @@ function Train({ spin }: { spin: boolean }) {
  * Side-on: far wing behind the fuselage, near wing in front of it, which is
  * the whole trick that stops a flat plane reading as a paper dart.
  *
- * **Both wings sweep backwards.** The nose is at the right because every leg
- * crosses left to right, so a wing tip belongs *behind* its root — nearer the
- * tail, which is to the left. The first version of this had them raked the
- * other way and the aircraft read as flying backwards; a swept wing is one of
- * the few shapes almost everybody can tell is wrong without being able to say
- * why. The tail fin follows the same rule.
+ * **Everything sweeps backwards.** The nose is at the right because every leg
+ * crosses left to right, so a wing tip belongs behind its root, nearer the
+ * tail. An early version had them raked the other way and the aircraft read as
+ * flying backwards; the version after that had them right but rooted too far
+ * forward and cut too deep, so the wings were bigger than the fuselage and the
+ * engine hung in mid-air under nothing. They are short-chord now, rooted at
+ * the middle of the body where a wing actually joins, and the engine is under
+ * the near one.
  */
 function Plane() {
   return (
     <g>
-      {/* far wing — up and back, drawn first so the fuselage covers its root */}
-      <path d={`M86,24 L52,5 L38,5 L64,26 Z`} fill={BODY_DARK} />
-      {/* tail fin, and the stabiliser at the very back */}
-      <path d={`M34,19 L18,2 L28,2 L48,18 Z`} fill={BODY} />
-      <path d={`M22,24 L4,17 L2,21 L18,27 Z`} fill={BODY_DARK} />
+      {/* far wing — up and back, behind the body */}
+      <path d={`M88,22 L60,7 L50,9 L74,24 Z`} fill={BODY_DARK} />
+      {/* fin and stabiliser, both raked back over the tail */}
+      <path d={`M30,20 L18,3 L26,3 L42,19 Z`} fill={BODY} />
+      <path d={`M20,25 L6,20 L4,24 L18,28 Z`} fill={BODY_DARK} />
+      {/* the body: blunt tail at the left, tapered nose at the right */}
       <path
-        d={`M8,30 Q4,24 14,21 L104,18 Q126,18 140,27 Q126,36 104,36 L14,33 Q4,30 8,30 Z`}
+        d={`M10,29 Q6,23 16,21 L106,19 Q128,19 140,27 Q128,35 106,35 L16,33 Q6,31 10,29 Z`}
         fill={CREAM}
       />
-      {/* near wing — down and back, over the fuselage, with an engine slung
-          under it where an airliner carries one */}
-      <path d={`M92,27 L56,45 L42,45 L68,28 Z`} fill={BODY} />
-      <rect x={58} y={38} width={20} height={9} rx={4.5} fill={METAL} />
       <Windows from={44} y={23} count={6} w={7} h={6} gap={7} />
-      <circle cx={131} cy={27} r={4} fill={GLASS} />
+      <circle cx={130} cy={27} r={3.5} fill={GLASS} />
+      {/* near wing — down and back, over the body, engine slung beneath it */}
+      <path d={`M92,31 L64,45 L54,44 L78,30 Z`} fill={BODY} />
+      <rect x={64} y={37} width={17} height={7} rx={3.5} fill={METAL} />
     </g>
   );
 }
@@ -264,7 +277,10 @@ function Boat() {
   return (
     <g>
       <rect x={44} y={4} width={3} height={22} rx={1.5} fill={METAL} />
-      <path d={`M47,6 L74,17 L47,22 Z`} fill={CREAM} />
+      {/* The pennant streams *back* from the mast — away from the way the hull
+          is going, which is right. Pointed forward it read as a boat sailing
+          into its own flag. */}
+      <path d={`M44,5 L20,13 L44,20 Z`} fill={CREAM} />
       <rect x={54} y={20} width={44} height={16} rx={3} fill={CREAM} />
       <Windows from={60} y={24} count={3} w={9} h={8} gap={5} />
       <path d={`M14,26 L122,26 L108,44 Q104,47 98,47 L30,47 Q24,47 20,42 Z`} fill={BODY} />
