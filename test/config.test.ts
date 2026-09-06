@@ -219,6 +219,33 @@ describe("owner", () => {
   });
 });
 
+describe("site.banner", () => {
+  const site = (banner: unknown) => ({ name: "N", url: "https://x.test", banner });
+
+  test("absent, switched off and empty all mean no banner", () => {
+    expect(parseServerConfig({ site: site(undefined) }).site.banner).toBeUndefined();
+    expect(
+      parseServerConfig({ site: site({ enabled: false, text: "Beta" }) }).site.banner,
+    ).toBeUndefined();
+    expect(
+      parseServerConfig({ site: site({ enabled: true, text: "   " }) }).site.banner,
+    ).toBeUndefined();
+  });
+
+  test("switched on, it is the operator's words", () => {
+    expect(parseServerConfig({ site: site({ enabled: true, text: " Beta " }) }).site.banner).toEqual(
+      { enabled: true, text: "Beta" },
+    );
+  });
+
+  /** An operator who wrote a notice meant it to be seen. */
+  test("a malformed block is a problem rather than a silent no", () => {
+    expect(() => parseServerConfig({ site: site({ enabled: "yes", text: "Beta" }) })).toThrow(
+      /site\.banner/,
+    );
+  });
+});
+
 describe("site.repository and site.credit", () => {
   test("are absent by default, and absent stays absent", () => {
     const config = parseServerConfig({ site: { name: "N", url: "https://x.test" } });

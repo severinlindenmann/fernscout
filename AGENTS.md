@@ -84,7 +84,10 @@ checkout, where a `git pull` is the whole update:
 ```
 site/
   config.json                 server config — site name, URL, default user,
-                              reserved usernames, capability switches, and the
+                              reserved usernames, an optional `banner` across
+                              the landing page (`enabled` + `text`, the
+                              operator's own words, untranslated),
+                              capability switches, and the
                               `media` block: how large uploads may be, how many
                               per day, an optional per-journal byte quota, and
                               how many printed photobook orders stay on disk

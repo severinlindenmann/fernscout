@@ -39,7 +39,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await requestLocale();
   return {
     title: {
-      absolute: translateIn(locale, "landing.metaTitle", { name: serverSite().name }),
+      absolute: translateIn(locale, "landing.metaTitle", {
+        name: serverSite().name,
+      }),
     },
     description: translateIn(locale, "landing.metaDescription"),
     alternates: { canonical: "/" },
@@ -50,29 +52,46 @@ export default function Root() {
   const site = serverSite();
 
   return (
-    <Landing
-      siteName={site.name}
-      docUrl={`${site.url}/documentation.txt`}
-      agentUrl={`${site.url}/agent.md`}
-      // The advertised list, and nothing personal: this page is the same
-      // document for everybody, so it stays cacheable. What one signed-in
-      // reader may open arrives separately from `/api/v1/me/home` — see
-      // `Landing`, and B412 for the cache that keeps the two apart.
-      journals={publicJournals()}
-      // No journal owns this page, so the choice is every language this build
-      // ships chrome for rather than one person's `locales:` list.
-      locales={installedLocales()}
-      // Both absent unless this instance sets them — see site.repository and
-      // site.credit in site/config.json. A fork gets to name itself.
-      repository={site.repository}
-      credit={site.credit}
-      // Absent unless this instance wrote one — see lib/legal.ts. A fork that
-      // has not written its own imprint gets no link to mine.
-      legal={hasLegal()}
-      // The number comes from CODE_TTL_MS rather than from a sentence, so the
-      // three locale files cannot outlive a change to it — see B426 and the
-      // note on CODE_TTL_MINUTES.
-      codeMinutes={CODE_TTL_MINUTES}
-    />
+    <>
+      {/*
+        The operator's own notice, when there is one — site.banner in the
+        server config. Coral and not yellow, like every other notice here:
+        yellow is the brand's colour and reads as decoration.
+
+        Rendered beside the page rather than inside `Landing`, which has two
+        different orders of the same sections and would have needed it twice.
+      */}
+      {site.banner && (
+        <div className="mx-auto max-w-2xl px-6 pt-8" role="note">
+          <p className="rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3 text-sm leading-6 text-navy-900">
+            {site.banner}
+          </p>
+        </div>
+      )}
+      <Landing
+        siteName={site.name}
+        docUrl={`${site.url}/documentation.txt`}
+        agentUrl={`${site.url}/agent.md`}
+        // The advertised list, and nothing personal: this page is the same
+        // document for everybody, so it stays cacheable. What one signed-in
+        // reader may open arrives separately from `/api/v1/me/home` — see
+        // `Landing`, and B412 for the cache that keeps the two apart.
+        journals={publicJournals()}
+        // No journal owns this page, so the choice is every language this build
+        // ships chrome for rather than one person's `locales:` list.
+        locales={installedLocales()}
+        // Both absent unless this instance sets them — see site.repository and
+        // site.credit in site/config.json. A fork gets to name itself.
+        repository={site.repository}
+        credit={site.credit}
+        // Absent unless this instance wrote one — see lib/legal.ts. A fork that
+        // has not written its own imprint gets no link to mine.
+        legal={hasLegal()}
+        // The number comes from CODE_TTL_MS rather than from a sentence, so the
+        // three locale files cannot outlive a change to it — see B426 and the
+        // note on CODE_TTL_MINUTES.
+        codeMinutes={CODE_TTL_MINUTES}
+      />
+    </>
   );
 }
