@@ -180,19 +180,33 @@ function Train({ spin }: { spin: boolean }) {
   );
 }
 
-/** Side-on with the far wing behind the fuselage and the near one in front,
- * which is the whole trick that stops a flat plane reading as a paper dart. */
+/**
+ * Side-on: far wing behind the fuselage, near wing in front of it, which is
+ * the whole trick that stops a flat plane reading as a paper dart.
+ *
+ * **Both wings sweep backwards.** The nose is at the right because every leg
+ * crosses left to right, so a wing tip belongs *behind* its root — nearer the
+ * tail, which is to the left. The first version of this had them raked the
+ * other way and the aircraft read as flying backwards; a swept wing is one of
+ * the few shapes almost everybody can tell is wrong without being able to say
+ * why. The tail fin follows the same rule.
+ */
 function Plane() {
   return (
     <g>
-      <path d={`M18,30 L54,12 L70,12 L56,30 Z`} fill={BODY_DARK} />
+      {/* far wing — up and back, drawn first so the fuselage covers its root */}
+      <path d={`M86,24 L52,5 L38,5 L64,26 Z`} fill={BODY_DARK} />
+      {/* tail fin, and the stabiliser at the very back */}
+      <path d={`M34,19 L18,2 L28,2 L48,18 Z`} fill={BODY} />
+      <path d={`M22,24 L4,17 L2,21 L18,27 Z`} fill={BODY_DARK} />
       <path
         d={`M8,30 Q4,24 14,21 L104,18 Q126,18 140,27 Q126,36 104,36 L14,33 Q4,30 8,30 Z`}
         fill={CREAM}
       />
-      <path d={`M18,20 L10,4 L20,4 L34,19 Z`} fill={BODY} />
-      <path d={`M8,26 L2,26 L2,30 L8,31 Z`} fill={BODY} />
-      <path d={`M30,26 L74,42 L88,42 L64,26 Z`} fill={BODY} />
+      {/* near wing — down and back, over the fuselage, with an engine slung
+          under it where an airliner carries one */}
+      <path d={`M92,27 L56,45 L42,45 L68,28 Z`} fill={BODY} />
+      <rect x={58} y={38} width={20} height={9} rx={4.5} fill={METAL} />
       <Windows from={44} y={23} count={6} w={7} h={6} gap={7} />
       <circle cx={131} cy={27} r={4} fill={GLASS} />
     </g>
