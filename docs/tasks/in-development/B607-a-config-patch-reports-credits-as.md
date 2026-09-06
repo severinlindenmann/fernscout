@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: api, config
 found: "2026-09-06T15:13:00Z"
+started: "2026-09-06T15:13:16Z"
+session: 302202e0-2cc6-4652-a548-b27b8ba57337
+claimed: "2026-09-06T15:13:16Z"
 ---
 
 # B607 — A config PATCH reports credits as off on a server that has it on
