@@ -2,6 +2,7 @@ import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser } from 
 import { SESSION_SCOPE } from "@/lib/auth";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
 import { tripTombstone } from "@/lib/tombstones";
+import { patchTripDetails } from "@/lib/api/tripDetails";
 import { getTrip, tripRef } from "@/lib/trips";
 import { tripSummary } from "@/lib/api/entries";
 
@@ -159,42 +160,98 @@ export async function DELETE(
 }
 
 /**
- * A wrong verb, answered in words — B293.
+ * A trip's title, subtitle and dates — B622.
  *
- * `PATCH` here was a real guess by a real agent, twice: once trying to turn a
- * trip's costs page off, once trying to change a trip's own fields. Next
- * answers an unimplemented method with a bare `405` and no body, which leaves
- * a caller unable to tell "wrong verb" from "wrong path" from "not built" —
- * and the agent that could not tell went on to invent a web interface for its
- * owner to use instead (there isn't one). So this route says what it has, and
- * where the two likely intentions actually live.
+ * The last four fields of a trip nothing could write, and until B621 this
+ * handler said so: it was a `405` that named every door that did exist and
+ * ended *"A trip's title, dates and cover are still trip.md alone and no call
+ * writes them."* B621 then built the writer and put a browser-only door in
+ * front of it, for the owner standing on their own page — which left an agent
+ * being told to ask a person to open a form, in a codebase whose first rule is
+ * that the agent is the editor.
  *
- * Not a framework: two handlers on the two routes agents were observed
- * guessing at. When a third turns up, it gets the same treatment.
+ * `patchTripDetails` (lib/api/tripDetails.ts) is the same function that door
+ * calls, so the rules cannot differ between them: a title that cannot be
+ * cleared, a subtitle whose emptying removes the key, dates that must parse
+ * and must not run backwards, and a splice that leaves the prose and every
+ * other key byte for byte.
+ *
+ * **Owner only**, like `.../visibility` and unlike `.../days`. A trip-scoped
+ * token belongs to somebody who was on the bus; adding a day to a journey is
+ * not the same authority as saying what the journey is called. The scope
+ * check is the identical one three routes on this shelf already make.
+ *
+ * The cover is still `trip.md` alone. It is a photograph, and choosing one
+ * belongs where photographs are.
  */
-export async function PATCH(_request: Request, { params }: RouteContext<"/api/v1/[user]/trips/[trip]">) {
+export async function PATCH(
+  request: Request,
+  { params }: RouteContext<"/api/v1/[user]/trips/[trip]">,
+) {
+  const auth = await authenticate(request);
+  if (!auth.ok) return errorResponse(auth);
+
   const { user, trip } = await params;
-  return Response.json(
-    {
-      error: "method_not_allowed",
-      message:
-        `This route takes DELETE and nothing else. What is writable lives one level ` +
-        `down, one field to a door: who may read the trip at ` +
-        `/api/v1/${user}/trips/${trip}/visibility (PATCH, owner only — it writes ` +
-        `visibility and listed), its exchange rates at ` +
-        `/api/v1/${user}/trips/${trip}/rates (PATCH, owner only), who was on it at ` +
-        `/api/v1/${user}/trips/${trip}/people and how they are drawn at ` +
-        `/api/v1/${user}/trips/${trip}/travellers (both PATCH, owner only, both replacing ` +
-        `the whole list), what it keeps track of — and therefore what every day written into ` +
-        `it is asked for — at /api/v1/${user}/trips/${trip}/tracks (PATCH, owner only), ` +
-        `the budget at ` +
-        `/api/v1/${user}/trips/${trip}/costs, a day at ` +
-        `/api/v1/${user}/trips/${trip}/days/<slug>, and photographs at ` +
-        `/api/v1/${user}/trips/${trip}/media. A trip's title, subtitle and dates are not ` +
-        `writable over this API — since B621 the owner changes them on their own page, ` +
-        `/${user}/me, with the pencil beside the trip, so ask them rather than editing ` +
-        `trip.md. The cover is still trip.md alone.`,
-    },
-    { status: 405, headers: { Allow: "DELETE" } },
-  );
+  if (!ownsUser(auth.session, user)) {
+    return outOfScope(auth.session, user);
+  }
+
+  const ref = tripRef(user, trip);
+  const found = getTrip(ref);
+  // Same shape as `GET` above: a trip that does not exist and one this token
+  // may not touch answer alike, so this cannot be used to ask which trips a
+  // journal has.
+  const gate = found ? await mayWriteTrip(auth.session, found) : null;
+  if (!found || !gate?.ok) return Response.json({ error: "unknown_trip" }, { status: 404 });
+
+  if (auth.session.scope !== SESSION_SCOPE.agent) {
+    return Response.json(
+      {
+        error: "out_of_scope",
+        message:
+          "This token is scoped to one trip, so it can write days into that trip, but it " +
+          "cannot change what the trip is called or when it ran. A trip's title and dates are " +
+          "metadata about the journey, the same shelf visibility, rates and people: sit on — " +
+          "only the journal's owner can write them.",
+      },
+      { status: 403 },
+    );
+  }
+
+  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return Response.json({ error: "invalid_json" }, { status: 400 });
+  }
+
+  const FIELDS = ["title", "tagline", "start", "end"] as const;
+  if (!FIELDS.some((field) => body[field] !== undefined)) {
+    return Response.json(
+      {
+        error: "nothing_to_change",
+        message:
+          `Name at least one of ${FIELDS.join(", ")}. Everything else about a trip has a door ` +
+          `of its own: visibility, rates, people, travellers and tracks are each one level ` +
+          `down from here, and the cover is trip.md alone.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  const result = patchTripDetails(ref, body);
+  if (!result.ok) {
+    const status = result.bug ? 500 : result.error === "unknown_trip" ? 404 : 400;
+    return Response.json(
+      { error: result.error, ...(result.message ? { message: result.message } : {}) },
+      { status },
+    );
+  }
+
+  return Response.json({
+    ok: true,
+    trip: ref,
+    title: result.title,
+    tagline: result.tagline,
+    start: result.start,
+    end: result.end,
+  });
 }

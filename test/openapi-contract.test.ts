@@ -94,13 +94,16 @@ const OUT_OF_SCOPE_PREFIXES = [
 /**
  * Routes that exist only to answer a wrong guess in words.
  *
- * `PATCH /api/v1/{user}` and `PATCH /api/v1/{user}/trips/{trip}` are the
- * natural guesses for "change something about this", and both answer 405 with
- * a sentence naming the real door (B293). They are deliberately absent from
- * the document: an operation here would advertise them as something to call,
- * which is the opposite of what they are for.
+ * `PATCH /api/v1/{user}` is the natural guess for "change something about
+ * this journal", and answers 405 with a sentence naming the real door (B293).
+ * It is deliberately absent from the document: an operation here would
+ * advertise it as something to call, which is the opposite of what it is for.
+ *
+ * `PATCH /api/v1/{user}/trips/{trip}` was the other one and is no longer a
+ * signpost — B622 gave it the four fields it had been apologising for not
+ * having, so it is now an operation like any other and is documented.
  */
-const SIGNPOSTS = ["/api/v1/{user} patch", "/api/v1/{user}/trips/{trip} patch"];
+const SIGNPOSTS = ["/api/v1/{user} patch"];
 
 function inScope(path: string): boolean {
   return !OUT_OF_SCOPE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
@@ -380,6 +383,7 @@ describe("every error code a route answers with is published", () => {
     "lib/api/costs.ts",
     "lib/api/entries.ts",
     "lib/api/tripParty.ts",
+    "lib/api/tripDetails.ts",
     "lib/api/tripRates.ts",
     "lib/api/tripVisibility.ts",
     "lib/api/media.ts",

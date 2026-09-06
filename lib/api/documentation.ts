@@ -1889,6 +1889,37 @@ shelf \`visibility\` and \`people\` sit on, and not content a traveller logs.
 That is different from the trip's budget, above, which anyone on the trip may
 write.
 
+### What the trip is called, and when it ran
+
+Four fields nothing could write until B622, on a route that until then existed
+only to say so: \`title\`, \`tagline\`, \`start\` and \`end\`.
+
+\`\`\`http
+PATCH ${site.url}/api/v1/${example}/trips/<trip-id>
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"title": "Algarve 2026", "end": "2026-04-19"}
+\`\`\`
+
+Send only what changes. A \`title\` cannot be cleared — a \`trip.md\` without
+one does not load at all — while an emptied \`tagline\` removes the key rather
+than storing an empty string. Dates are \`YYYY-MM-DD\`, and \`end\` may not
+come before \`start\`; that is checked against the *result*, so either date may
+arrive on its own.
+
+**Only the lines you name are rewritten.** The prose under the frontmatter, the
+order of the keys, and every key this call has never heard of come back byte for
+byte — so this is safe on a \`trip.md\` somebody wrote by hand, and a fixed typo
+in a title does not turn up as a diff touching three other fields.
+
+**Owner only**, like \`visibility\` and \`rates\`: a trip-scoped token is
+refused with \`out_of_scope\`. Being on the bus is not the same as saying what
+the journey is called.
+
+The **cover** is not here and is still \`trip.md\` alone. It is a photograph,
+and choosing one belongs where photographs are.
+
 ### Who may read the trip
 
 \`createTrip\` could also only ever write \`visibility:\` once — B396 opened
