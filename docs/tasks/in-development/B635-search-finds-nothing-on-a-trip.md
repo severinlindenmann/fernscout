@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: search, visibility
 found: "2026-09-06T17:51:46Z"
+started: "2026-09-06T20:04:31Z"
+session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
+claimed: "2026-09-06T20:04:31Z"
 ---
 
 # B635 — Search finds nothing on a trip the reader is allowed to read
