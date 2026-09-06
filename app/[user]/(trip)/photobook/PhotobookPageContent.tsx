@@ -6,6 +6,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import {
   DEFAULT_OPTIONS,
+  initialBookOptions,
   type BookOptions,
   type DayLayout,
   type DayPlan,
@@ -61,8 +62,11 @@ export default function PhotobookPageContent({
   entry,
   tripRef,
   tripTitle,
+  spineText,
   media,
   days,
+  hasCosts,
+  hasWeather,
   balance,
   locales,
   outcome,
@@ -70,9 +74,17 @@ export default function PhotobookPageContent({
   entry: PhotobookEntry;
   tripRef: string;
   tripTitle: string;
+  /** The trip's title and year, exactly as the cover prints it down the
+   * spine — B642, so the order page can say what the book carries there. */
+  spineText: string;
   media: MediaTile[];
   /** The trip's days, in the order the book prints them. */
   days: { date: string; title: string; location: string }[];
+  /** Whether this trip has a budget or measured weather to show — B642. Only
+   * used once, to decide whether a first visit to this page starts with the
+   * chart and cost pages already on; a saved arrangement is unaffected. */
+  hasCosts: boolean;
+  hasWeather: boolean;
   balance: number | null;
   /** The languages this journal offers, from its own config. The picker is
    * hidden entirely where there is only one. */
@@ -122,7 +134,7 @@ export default function PhotobookPageContent({
   const storageKey = `fernscout:photobook:${tripRef}`;
   const [options, setOptions] = usePersistedState<BookOptions>(
     storageKey,
-    { ...DEFAULT_OPTIONS, locale: locales[0] ?? DEFAULT_OPTIONS.locale },
+    initialBookOptions(locales[0] ?? DEFAULT_OPTIONS.locale, hasCosts, hasWeather),
     (saved, current) => {
       const parsed = JSON.parse(saved) as Partial<BookOptions>;
       return {
@@ -505,6 +517,7 @@ export default function PhotobookPageContent({
               hidden={drill !== null}
               options={options}
               setOptions={setOptions}
+              spineText={spineText}
               media={media}
               locales={locales}
               resetBook={resetBook}

@@ -18,7 +18,7 @@ export type PreviewState = {
    * frame is sized from this, so the book is never a letterbox with its own
    * scrollbar. */
   ratio: number;
-  warnings: { code: string; detail: string; count?: number; date?: string }[];
+  warnings: { code: string; detail: string; count?: number; date?: string; photos?: string[] }[];
   buyable: boolean;
 } | null;
 
@@ -60,6 +60,29 @@ function countByCode(warnings: { code: string; count?: number }[]): Map<string, 
 }
 
 /**
+ * Which photographs each code's warnings name, gathered across every
+ * warning that carries the list — B642. `low-resolution` names one
+ * photograph per warning; this collects them all so the reader sees which
+ * ones, not only how many.
+ */
+function photosByCode(warnings: { code: string; photos?: string[] }[]): Map<string, string[]> {
+  const photos = new Map<string, string[]>();
+  for (const w of warnings) {
+    if (!w.photos) continue;
+    photos.set(w.code, [...(photos.get(w.code) ?? []), ...w.photos]);
+  }
+  return photos;
+}
+
+/** The photographs a warning names, as one string for `{photos}` — the first
+ * three, named, and however many more there are. Matches the truncation the
+ * planner's own `detail` already uses for the same list (`source.ts`). */
+function namePhotos(labels: string[]): string {
+  const shown = labels.slice(0, 3).join(", ");
+  return labels.length > 3 ? `${shown}, …` : shown;
+}
+
+/**
  * Level 1 — the book, and then everything else.
  *
  * B534 put the whole book on one level and one day on another, and that
@@ -79,6 +102,7 @@ export default function BookLevelView({
   hidden,
   options,
   setOptions,
+  spineText,
   media,
   locales,
   resetBook,
@@ -96,6 +120,9 @@ export default function BookLevelView({
   hidden: boolean;
   options: BookOptions;
   setOptions: (update: (o: BookOptions) => BookOptions) => void;
+  /** The trip's title and year, exactly as the cover prints it down the
+   * spine — B642. */
+  spineText: string;
   media: MediaTile[];
   locales: string[];
   resetBook: () => void;
@@ -134,6 +161,7 @@ export default function BookLevelView({
     : null;
 
   const counts = countByCode(preview?.warnings ?? []);
+  const photosOf = photosByCode(preview?.warnings ?? []);
   /**
    * The remedy, not the description — B549's whole point.
    *
@@ -210,11 +238,18 @@ export default function BookLevelView({
         <div className="mt-5 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-yellow-900">
           <p className="text-sm font-semibold">{t("photobook.warn.heading")}</p>
           <ul className="mt-1 space-y-1 text-sm">
-            {lines.map(([code, key]) => (
-              <li key={code}>
-                {tn(key, counts.get(code) ?? 1, { count: String(counts.get(code) ?? 1) })}
-              </li>
-            ))}
+            {lines.map(([code, key]) => {
+              const count = counts.get(code) ?? 1;
+              const photos = photosOf.get(code);
+              return (
+                <li key={code}>
+                  {tn(key, count, {
+                    count: String(count),
+                    ...(photos ? { photos: namePhotos(photos) } : {}),
+                  })}
+                </li>
+              );
+            })}
           </ul>
           {fixes.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
@@ -263,6 +298,9 @@ export default function BookLevelView({
           {t("photobook.orderHeading")}
         </h2>
         {summary && <p className="mt-1 text-sm text-navy-700">{summary}</p>}
+        {/* The one thing about the printed object nobody sees until it
+            arrives — B642. */}
+        <p className="mt-1 text-sm text-navy-600">{t("photobook.spine", { spine: spineText })}</p>
         {credits !== null && (
           <p className="mt-2 text-base font-semibold text-navy-900">
             {t("photobook.price", {

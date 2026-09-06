@@ -102,6 +102,13 @@ export function labelOf(photo: BookPhoto): string {
   return photo.label ?? photo.file;
 }
 
+/** The trip's title and year, exactly as `coverFor` prints them down the
+ * spine — B642. Exported so the order page can show the same string it is
+ * about to pay to have printed, rather than a second copy of the format. */
+export function spineTextFor(title: string, start: string): string {
+  return `${title} · ${start.slice(0, 4)}`;
+}
+
 export type BookDay = {
   date: string;
   title: string;
@@ -435,6 +442,14 @@ export type BookWarning = {
    * break something that was reading it as data.
    */
   date?: string;
+  /**
+   * Which photographs this warning is about, when it names any — B642.
+   * `low-resolution` carries the one photograph each warning is about (its
+   * caption or filename), so a reader can be told *which* prints soft rather
+   * than only how many do. A UI wanting the affected photographs reads this
+   * rather than `detail`, which stays developer prose.
+   */
+  photos?: string[];
 };
 
 export type Photobook = {
@@ -1238,6 +1253,7 @@ function checkResolution(p: PhotoPlacement, spec: BookSpec, warnings: BookWarnin
   if (p.photo.width >= need) return;
   warnings.push({
     code: "low-resolution",
+    photos: [labelOf(p.photo)],
     detail:
       `${labelOf(p.photo)} is ${p.photo.width}px wide but is printed ` +
       `${p.draw.width.toFixed(0)}mm wide, which needs ${need}px — it will print ` +
@@ -1898,7 +1914,7 @@ function coverFor(
     title: source.trip.title,
     subtitle: volume.of > 1 ? fill(s.volume, { index: String(volume.index), of: String(volume.of) }) : source.trip.tagline,
     dates: formatDateRange(source.trip.start, source.trip.end, s),
-    spineText: `${source.trip.title} · ${source.trip.start.slice(0, 4)}`,
+    spineText: spineTextFor(source.trip.title, source.trip.start),
     backLines: wrap(
       source.trip.intro.split(/\n{2,}/)[0]?.replace(/\s*\n\s*/g, " ").trim() ?? "",
       typeScale(spec).body,

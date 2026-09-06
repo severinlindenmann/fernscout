@@ -7,7 +7,7 @@ import {
   type BookSource,
 } from "@/lib/photobook/plan";
 import { BOOK_SIZES, defaultSpec, SADDLE_STITCH, fitsRule } from "@/lib/photobook/spec";
-import { DEFAULT_OPTIONS, type BookOptions } from "@/lib/photobook/options";
+import { DEFAULT_OPTIONS, initialBookOptions, type BookOptions } from "@/lib/photobook/options";
 
 const SPEC = defaultSpec(BOOK_SIZES["square-210"]);
 
@@ -159,5 +159,38 @@ describe("BookOptions", () => {
     for (const volume of book.volumes) {
       expect(fitsRule(volume.interiorPages, SADDLE_STITCH)).toBe(true);
     }
+  });
+});
+
+// B642 — the order page's first visit turns includeCosts/includeCharts on
+// or off from what the trip actually recorded, rather than always starting
+// from DEFAULT_OPTIONS's constant answer.
+describe("initialBookOptions", () => {
+  test("starts both off for a trip with neither a budget nor weather", () => {
+    const options = initialBookOptions("en", false, false);
+    expect(options.includeCosts).toBe(false);
+    expect(options.includeCharts).toBe(false);
+  });
+
+  test("turns on costs alone for a trip with a budget but no weather", () => {
+    const options = initialBookOptions("en", true, false);
+    expect(options.includeCosts).toBe(true);
+    expect(options.includeCharts).toBe(false);
+  });
+
+  test("turns on both for a trip with a budget and measured weather", () => {
+    const options = initialBookOptions("en", true, true);
+    expect(options.includeCosts).toBe(true);
+    expect(options.includeCharts).toBe(true);
+  });
+
+  test("weather alone never turns charts on — there is nothing to chart without a budget too", () => {
+    const options = initialBookOptions("en", false, true);
+    expect(options.includeCharts).toBe(false);
+  });
+
+  test("carries every other DEFAULT_OPTIONS value and the requested locale unchanged", () => {
+    const options = initialBookOptions("de", true, true);
+    expect(options).toEqual({ ...DEFAULT_OPTIONS, locale: "de", includeCosts: true, includeCharts: true });
   });
 });

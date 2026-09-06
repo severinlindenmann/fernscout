@@ -5,7 +5,10 @@ import { notFound } from "next/navigation";
 import TripProvider from "@/components/TripProvider";
 import { AS_AUTHOR, getAllMedia, getDays } from "@/lib/entries";
 import { balanceOf } from "@/lib/credits";
+import { hasCostsData } from "@/lib/costs";
+import { hasWeather, weatherDays } from "@/lib/weatherStats";
 import { bookLocalesFor, photobookEntryFor } from "@/lib/photobook/entry";
+import { spineTextFor } from "@/lib/photobook/plan";
 import { getTrip, tripRef } from "@/lib/trips";
 import { outcomeFrom } from "@/lib/photobook/orders";
 import PhotobookPageContent from "../../../(trip)/photobook/PhotobookPageContent";
@@ -29,12 +32,15 @@ export default async function TripPhotobookPage({
   const entry = await photobookEntryFor(trip);
   if (!entry) notFound();
 
+  const days = getDays(trip.ref, AS_AUTHOR);
+
   return (
     <TripProvider trip={trip} isCurrent={false} canPublish={false}>
       <PhotobookPageContent
         entry={entry}
         tripRef={trip.ref}
         tripTitle={trip.title}
+        spineText={spineTextFor(trip.title, trip.start)}
         media={// Un-reversed. `getAllMedia` returns newest first, which is what a
         // gallery wants and the opposite of what a book prints: the planner
         // walks each entry's `gallery` in the order it was written. Showing
@@ -44,11 +50,13 @@ export default async function TripPhotobookPage({
         [...getAllMedia(trip.ref, AS_AUTHOR)]
           .reverse()
           .filter((m) => m.type === "image")}
-        days={getDays(trip.ref, AS_AUTHOR).map((d) => ({
+        days={days.map((d) => ({
           date: d.date,
           title: d.lead.title,
           location: [d.lead.location, d.lead.country].filter(Boolean).join(", "),
         }))}
+        hasCosts={hasCostsData(trip.ref, AS_AUTHOR)}
+        hasWeather={hasWeather(weatherDays(days))}
         balance={await balanceOf(user)}
         locales={bookLocalesFor(user)}
         // `order/route.ts` always redirects here — this is the URL its

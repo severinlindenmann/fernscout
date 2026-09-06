@@ -6,7 +6,10 @@ import { notFound } from "next/navigation";
 import TripProvider from "@/components/TripProvider";
 import { AS_AUTHOR, getAllMedia, getDays } from "@/lib/entries";
 import { balanceOf } from "@/lib/credits";
+import { hasCostsData } from "@/lib/costs";
+import { hasWeather, weatherDays } from "@/lib/weatherStats";
 import { bookLocalesFor, photobookEntryFor } from "@/lib/photobook/entry";
+import { spineTextFor } from "@/lib/photobook/plan";
 import { outcomeFrom } from "@/lib/photobook/orders";
 import PhotobookPageContent from "./PhotobookPageContent";
 
@@ -30,12 +33,15 @@ export default async function PhotobookPage({
   const entry = await photobookEntryFor(trip);
   if (!entry) notFound();
 
+  const days = getDays(trip.ref, AS_AUTHOR);
+
   return (
     <TripProvider trip={trip} isCurrent canPublish={false}>
       <PhotobookPageContent
         entry={entry}
         tripRef={trip.ref}
         tripTitle={trip.title}
+        spineText={spineTextFor(trip.title, trip.start)}
         // Every photograph is in the book until the owner says otherwise, so
         // the grid starts fully selected. Drafts are the owner's own and are
         // included: this page is only ever the owner's.
@@ -48,11 +54,16 @@ export default async function PhotobookPage({
         [...getAllMedia(trip.ref, AS_AUTHOR)]
           .reverse()
           .filter((m) => m.type === "image")}
-        days={getDays(trip.ref, AS_AUTHOR).map((d) => ({
+        days={days.map((d) => ({
           date: d.date,
           title: d.lead.title,
           location: [d.lead.location, d.lead.country].filter(Boolean).join(", "),
         }))}
+        // Whether the order page's first visit should start with the chart
+        // and cost pages already on — B642. Both read the owner's own data
+        // (`AS_AUTHOR`), same as everything else on this page.
+        hasCosts={hasCostsData(trip.ref, AS_AUTHOR)}
+        hasWeather={hasWeather(weatherDays(days))}
         balance={await balanceOf(user)}
         locales={bookLocalesFor(user)}
         outcome={await outcomeFrom(user, await searchParams)}
