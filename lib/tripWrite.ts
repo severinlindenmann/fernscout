@@ -34,8 +34,11 @@ import { quoteScalar, singleLineProblem } from "./validate/frontmatter";
  * writes the smallest thing that reads back as a trip.
  */
 
-/** Same shape a trip id has to have to be read back — `lib/trips.ts`. */
-const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
+/** Same shape a trip id has to have to be read back — `lib/trips.ts`.
+ * Exported so `test/content-model.test.ts` can check `content-model.json`'s
+ * `trip.md` `id` pattern against the regex that actually refuses one, rather
+ * than a second copy typed out in the test. */
+export const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 /** Exported for the same reason `VISIBILITIES` below is: `lib/api/openapi.ts`
  * publishes these as the enum an agent reads, and a second copy typed out
@@ -703,7 +706,9 @@ export type CreateTripResult =
   | { ok: true; id: string; ref: string }
   | { ok: false; error: string; message: string };
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** Exported for the same reason `ID_RE` above is — `test/content-model.test.ts`
+ * checks `content-model.json`'s `start`/`end` pattern against this. */
+export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function createTrip(username: string, input: NewTrip): CreateTripResult {
   const user = getUser(username);
