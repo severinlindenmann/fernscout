@@ -491,6 +491,7 @@ export default function TravelScene({
                   name={from.location}
                   population={from.population}
                   lat={from.lat}
+                  airport={isFlight}
                   width={230}
                   height={130}
                 />
@@ -505,6 +506,7 @@ export default function TravelScene({
                 name={leg.location}
                 population={leg.population}
                 lat={leg.lat}
+                airport={isFlight}
                 width={250}
                 height={150}
               />

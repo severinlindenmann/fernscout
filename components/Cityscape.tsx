@@ -45,7 +45,7 @@ type Building = {
   h: number;
   wall: string;
   roof: string;
-  kind: "flat" | "pitched" | "spire" | "dome";
+  kind: "flat" | "pitched" | "spire" | "dome" | "airport";
 };
 
 /**
@@ -82,6 +82,7 @@ export default function Cityscape({
   name,
   population,
   lat,
+  airport = false,
   width = 260,
   height = 140,
   className,
@@ -91,6 +92,11 @@ export default function Cityscape({
   population?: number;
   /** Decides what is planted alongside — see `floraFor`. */
   lat?: number;
+  /** Whether this leg flies — see `isFlight` in `TravelScene.tsx`. Adds one
+   * more building to the skyline: a terminal with a control tower, drawn
+   * last so it sits nearest the viewer, the way an airport sits at a city's
+   * edge rather than among its towers. */
+  airport?: boolean;
   width?: number;
   height?: number;
   className?: string;
@@ -106,8 +112,17 @@ export default function Cityscape({
   const tallest = 30 + scale * (height - 56);
   const narrow = 20 + scale * 10;
 
+  // A flight leg adds a terminal, low and wide beside the skyline it flies
+  // out of — a bigger place gets a longer one, the same way it gets taller
+  // towers. Its width is reserved before the loop below runs, rather than
+  // added after, so it does not depend on the random buildings happening to
+  // leave room: for most sizes they fill the whole frame, so "after" meant
+  // "almost never".
+  const airportW = airport ? 40 + Math.floor(scale * 30) + Math.floor(rand() * 10) : 0;
+  const loopWidth = airport ? width - airportW - 8 : width;
+
   let x = 4;
-  for (let i = 0; i < count && x < width - 16; i++) {
+  for (let i = 0; i < count && x < loopWidth - 16; i++) {
     const w = narrow + Math.floor(rand() * 16);
     const h = 26 + Math.floor(rand() * Math.max(12, tallest - 26));
     const ci = Math.floor(rand() * WALLS.length);
@@ -124,6 +139,14 @@ export default function Cityscape({
             : "flat";
     buildings.push({ x, w, h, wall: WALLS[ci], roof: ROOFS[ci], kind });
     x += w + 4 + Math.floor(rand() * 7);
+  }
+
+  // Last in the list rather than mixed into the loop, so it draws in front,
+  // at the city's edge, instead of among the towers it belongs beside.
+  if (airport) {
+    const h = 18 + Math.floor(scale * 8);
+    const ci = Math.floor(rand() * WALLS.length);
+    buildings.push({ x, w: airportW, h, wall: WALLS[ci], roof: ROOFS[ci], kind: "airport" });
   }
 
   const baseY = height - 10;
@@ -167,6 +190,24 @@ export default function Cityscape({
             )}
             {b.kind === "flat" && (
               <rect x={b.x - 2} y={top - 4} width={b.w + 4} height={5} rx={2} fill={b.roof} />
+            )}
+            {b.kind === "airport" && (
+              <>
+                {/* terminal: a low flat roof, wider than it is tall */}
+                <rect x={b.x - 2} y={top - 3} width={b.w + 4} height={4} rx={1.5} fill={b.roof} />
+                {/* control tower: a thin mast rising off one end, with a cab
+                    at the top that overhangs it on both sides — flared, the
+                    one shape here that is not a plain box */}
+                <rect x={b.x + b.w - 8} y={top - 24} width={3} height={21} fill={b.wall} />
+                <rect
+                  x={b.x + b.w - 13}
+                  y={top - 31}
+                  width={13}
+                  height={7}
+                  rx={1.5}
+                  fill={b.roof}
+                />
+              </>
             )}
             {/* windows */}
             {Array.from({ length: rows }).map((_, r) =>
