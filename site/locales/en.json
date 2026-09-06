@@ -814,6 +814,8 @@
   "push.unavailable": "This browser has its push service switched off, so notifications can’t be set up here. In Brave: Settings → Privacy and security → “Use Google services for push messaging”, then restart the browser.",
   "push.working": "Just a sec…",
   "react.prompt": "How was this day?",
+  "react.total": "{count} reactions in all",
+  "react.total.one": "one reaction in all",
   "react.yours": "your pick",
   "search.error": "Search couldn't load — try reloading the page.",
   "search.noQuery": "Type to search.",

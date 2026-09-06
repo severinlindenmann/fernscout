@@ -814,6 +814,8 @@
   "push.unavailable": "In diesem Browser ist der Push-Dienst ausgeschaltet, deshalb lassen sich hier keine Benachrichtigungen einrichten. In Brave: Einstellungen → Datenschutz und Sicherheit → «Google-Dienste für Push-Nachrichten verwenden», danach den Browser neu starten.",
   "push.working": "Einen Moment…",
   "react.prompt": "Wie war dieser Tag?",
+  "react.total": "{count} Reaktionen insgesamt",
+  "react.total.one": "eine Reaktion insgesamt",
   "react.yours": "deine Wahl",
   "search.error": "Suche konnte nicht geladen werden — Seite neu laden.",
   "search.noQuery": "Zum Suchen tippen.",
