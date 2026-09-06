@@ -22,6 +22,7 @@ import { slugify } from "../slug.ts";
 import { getTrip, tripDir, tripRef } from "../trips";
 import type { Entry, GalleryItem, Trip } from "../types";
 import { quoteScalar } from "../validate/frontmatter";
+import { type DayWeather, weatherLine } from "../weather";
 
 /**
  * Writing content through the API.
@@ -86,6 +87,24 @@ export type DraftInput = {
    * prose.
    */
   test?: boolean;
+  /**
+   * Ask this server to look up what the weather was — B325.
+   *
+   * A request, not an answer. It needs `lat`/`lng` and the `weather`
+   * capability; with either missing the day is written and nothing is looked
+   * up. The lookup itself happens in the route, after the file is on disk, and
+   * can never fail the write.
+   */
+  weather?: boolean;
+  /**
+   * A reading the caller took themselves.
+   *
+   * Only ever with a `source` and a `recordedAt`, and never with the server's
+   * own source name — `lib/validate/entry.ts` refuses the rest. See
+   * `checkWeatherData` there for why this is the most restricted field a day
+   * has.
+   */
+  weatherData?: DayWeather;
   /**
    * Names this one write, so a retry after a dropped connection gets the first
    * answer back instead of a conflict. Never written to the file — see the
@@ -335,6 +354,12 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
         ]
       : []),
     ...(input.travelScene ? [`travelScene: ${quote(input.travelScene)}`] : []),
+    // The request, written only when it is one — a `weather: false` line on
+    // every day would be noise in a file people read and edit by hand.
+    ...(input.weather === true ? ["weather: true"] : []),
+    // A hand-supplied reading. The lookup writes this line too, from the
+    // route, once the fetch comes back.
+    ...(input.weatherData ? [weatherLine(input.weatherData)] : []),
     ...translationLines(input.translations),
     ...costLines(input.costs),
     // Written only when true — see the note on NewTrip.test.
@@ -475,6 +500,8 @@ export const EDITABLE_DAY_FIELDS = [
   "test",
   "translations",
   "captions",
+  "weather",
+  "weatherData",
 ] as const;
 
 /** A partial `DraftInput` — every field optional, since a PATCH names only
@@ -498,6 +525,11 @@ export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
    * sending back what you were given has to work.
    */
   captions?: Record<string, string>;
+  /** Ask for a lookup on a day already written — B325. `false` removes the
+   * request; it does not remove a reading already recorded. */
+  weather?: boolean;
+  /** A reading the caller took themselves, or `null` to remove one. */
+  weatherData?: DayWeather | null;
 };
 
 /**
@@ -684,6 +716,13 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
   // NewTrip.test. `test: false` unsets it rather than writing a line nobody
   // wants to read.
   if (input.test !== undefined) set("test", input.test === true ? "test: true" : null);
+  // Same "written only when true" rule as `test` above, and for the same
+  // reason. `weatherData: null` clears a reading; `weather: false` only
+  // withdraws the request.
+  if (input.weather !== undefined) set("weather", input.weather === true ? "weather: true" : null);
+  if (input.weatherData !== undefined) {
+    set("weatherData", input.weatherData ? weatherLine(input.weatherData) : null);
+  }
   if (input.costs !== undefined) closing = spliceCosts(lines, closing, input.costs);
   if (input.translations !== undefined) {
     closing = spliceTranslations(lines, closing, input.translations);

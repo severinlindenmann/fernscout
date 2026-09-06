@@ -959,7 +959,16 @@ export type TranslationKey =
   | "welcome.subject"
   | "welcome.title"
   | "welcome.token"
-  | "welcome.tokenHeading";
+  | "welcome.tokenHeading"
+  | "weather.clear"
+  | "weather.partly"
+  | "weather.cloudy"
+  | "weather.fog"
+  | "weather.rain"
+  | "weather.snow"
+  | "weather.thunder"
+  | "weather.unknown"
+  | "weather.via";
 
 
 /**

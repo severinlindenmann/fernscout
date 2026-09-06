@@ -6,6 +6,7 @@ import { useTrip } from "@/components/TripProvider";
 import { useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import DayReactions from "./DayReactions";
+import DayWeather from "./DayWeather";
 import DraftNotice from "./DraftNotice";
 import TestNotice from "./TestNotice";
 import EntryContent from "./EntryContent";
@@ -15,6 +16,7 @@ import { useI18n } from "./LocaleProvider";
 import { flagFor } from "@/lib/flags";
 import { useMoney } from "./CurrencyProvider";
 import type { Day, DaySummary, Entry } from "@/lib/types";
+import { SOURCE_CREDIT, weatherGroup, type DayWeather as WeatherReading } from "@/lib/weather";
 
 /**
  * The trip, one screen at a time.
@@ -228,6 +230,18 @@ function DayCard({
         <span className="font-medium text-navy-700">
           {flagFor(lead.country, lead.countryCode)} {lead.location}
         </span>
+        {/* B325 — beside the date, in the day's furniture, never in the prose.
+            `DayWeather` renders nothing at all when the day has no reading, so
+            there is no Dot to hide either. */}
+        {lead.weather && (
+          <>
+            <Dot />
+            <DayWeather
+              weather={lead.weather}
+              labels={weatherLabels(lead.weather, t, formatLongDate)}
+            />
+          </>
+        )}
         {multi && (
           <>
             <Dot />
@@ -269,6 +283,33 @@ function Dot() {
       ·
     </span>
   );
+}
+
+/**
+ * The two strings `DayWeather` shows — B325.
+ *
+ * Built here rather than inside the component because the dictionary already
+ * lives in this tree, and because the credit is not decoration: `via` is what
+ * tells a reader that a number beside somebody's day came from Open-Meteo, or
+ * from a thermometer they named, and when. There is no code path that renders
+ * the reading without it.
+ */
+function weatherLabels(
+  weather: WeatherReading,
+  t: ReturnType<typeof useI18n>["t"],
+  formatLongDate: ReturnType<typeof useI18n>["formatLongDate"],
+): { description: string; via: string } {
+  const group = weatherGroup(weather.code);
+  return {
+    description: group ? t(`weather.${group}`) : t("weather.unknown"),
+    via: t("weather.via", {
+      // The stored value is a machine name; `SOURCE_CREDIT` is how it is said
+      // to a person. A hand-supplied source has no entry and is shown exactly
+      // as whoever recorded it wrote it.
+      source: SOURCE_CREDIT[weather.source]?.label ?? weather.source,
+      when: formatLongDate(weather.recordedAt.slice(0, 10)),
+    }),
+  };
 }
 
 function UpdateBlock({

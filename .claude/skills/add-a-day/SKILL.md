@@ -17,7 +17,12 @@ person deletes that line. Do not delete it yourself, do not offer to, and do
 not ask for permission to — it is not yours to remove.
 
 **Write only what you were told.** No weather nobody mentioned, no meals nobody
-ate, no feelings nobody expressed. If you do not know where a photograph was
+ate, no feelings nobody expressed.
+
+Weather has one legitimate route and it is not you: write `weather: true` in
+the frontmatter and the server looks up what it actually was, from a public
+archive, using the day's own `lat`/`lng` and `date`. **Never write a
+temperature or a condition from what you believe** — see step 4. If you do not know where a photograph was
 taken, leave `location` empty and say so. A blank field is a question the author
 can answer in four seconds; an invented one is a lie they may never notice.
 
@@ -69,6 +74,7 @@ transportMode: "bus"          # optional: flight|train|bus|motorbike|boat|car|wa
 transportFrom: "Da Lat"
 transportTo: "Hoi An"
 tags: ["vietnam"]
+weather: true                 # optional; asks the server to look the day up
 costs:
   - { label: "Dinner", amount: 180000, category: "food", currency: "VND" }
 status: draft
@@ -95,6 +101,24 @@ The prose, in plain markdown.
   An empty caption beats a plausible one — these are read by the family of the
   person who was there, and an invented line is a misremembering handed to them
   as a record. Keep it to a line; the prose is where the rest belongs.
+- `weather: true` is a **request, not an answer** — B325. It needs `lat`/`lng`
+  on the day; without them nothing is looked up and nothing is shown, and
+  guessing from the trip's other days is not a fallback. The lookup happens
+  through the API; writing the file here means running
+
+  ```bash
+  npm run weather:update -- --user <username>
+  ```
+
+  which fills in every day that asked and has none yet. It is idempotent and
+  never overwrites a reading already there. A day the archive has no answer
+  for is left for the next run, not filled in with something plausible.
+
+  If the author has a reading they took themselves, it goes in `weatherData`
+  with the source named — `weatherData: { tempMax: 24, source: "the balcony
+  thermometer", recordedAt: "2026-08-26T17:00:00Z" }`. **The source is never
+  you**, and `open-meteo` there is refused: that name means the server
+  retrieved a measurement, and a reader reads it that way.
 - A cost with no `currency` is read as the site's `baseCurrency`. A currency
   that this trip has no entry for in `trip.md`'s `rates:` block shows as
   unconverted rather than being counted wrong.

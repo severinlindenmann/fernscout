@@ -9,6 +9,7 @@ import { mediaWithOwner, parseTripRef, tripDir } from "./trips";
 import { hasHappened } from "./tripTime";
 import type { Day, Entry, EntryTranslations, GalleryItem, MediaTile, TravelSceneVariant } from "./types";
 import { TRAVEL_SCENE_VARIANTS } from "./validate/entry";
+import { parseWeather } from "./weather";
 
 /**
  * Forgets gray-matter's own parse cache — not this module's, gray-matter's.
@@ -257,6 +258,11 @@ function readAllEntries(ref: string): Entry[] {
       // records something that happened must not be able to acquire a banner
       // saying it did not because somebody wrote `test: no`.
       test: data.test === true || undefined,
+      // B325. `parseWeather` drops anything missing a source or a timestamp,
+      // which is the same rule the API applies on the way in — a file edited
+      // by hand into a shape the door would have refused must not render as
+      // though the door had accepted it.
+      weather: parseWeather(data.weatherData),
     } satisfies Entry];
   });
 

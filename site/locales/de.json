@@ -878,5 +878,14 @@
   "welcome.token": "Bitte deinen Agenten, bei {guide} anzufangen. Er lässt sich von diesem Server einen sechsstelligen Code an {email} schicken — an diese Adresse und an keine andere — und aus diesem Code wird ein Token, das sieben Tage lang schreiben darf.",
   "welcome.tokenHeading": "Wenn du später hineinschreiben willst",
   "fallback.writtenIn.en": "Auf Englisch geschrieben — dieser Tag hat keine deutsche Fassung.",
-  "fallback.writtenIn.hu": "Auf Ungarisch geschrieben — dieser Tag hat keine deutsche Fassung."
+  "fallback.writtenIn.hu": "Auf Ungarisch geschrieben — dieser Tag hat keine deutsche Fassung.",
+  "weather.clear": "Klar",
+  "weather.partly": "Teils bewölkt",
+  "weather.cloudy": "Bewölkt",
+  "weather.fog": "Nebel",
+  "weather.rain": "Regen",
+  "weather.snow": "Schnee",
+  "weather.thunder": "Gewitter",
+  "weather.unknown": "Wetter",
+  "weather.via": "Wetter erfasst von {source}, {when}"
 }

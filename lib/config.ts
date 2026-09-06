@@ -22,6 +22,7 @@ export const FEATURE_NAMES = [
   "logging",
   "credits",
   "addressLookup",
+  "weather",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -256,6 +257,12 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // without a code change; any key that provider needs comes from
   // `ADDRESS_LOOKUP_API_KEY` (see lib/capabilities.ts), never from this file.
   addressLookup: { enabled: false, provider: "photon", url: "https://photon.komoot.io/api/" },
+  // B325. Off by default like every optional capability, and — as with
+  // `addressLookup` above — the provider it uses needs no key and no signup,
+  // which is what makes it something a self-hoster can actually turn on. Off
+  // means no request is made to open-meteo.com on any path, and no day shows
+  // weather; not an empty box on every day.
+  weather: { enabled: false },
 };
 
 /**

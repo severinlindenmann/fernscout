@@ -53,6 +53,17 @@ memory presented to somebody's family as fact is not recoverable. So: write
 what you were told. No weather nobody mentioned, no meals nobody ate, no
 feelings nobody expressed. An empty field beats a plausible fiction.
 
+**Weather is the one exception, and it is an exception to the route, not to
+the rule.** Since B325 a day may carry `weather: true`, and the *server* looks
+up what the weather actually was — from a public archive, at the coordinates
+that day already carries, labelled with where it came from. That is a
+measurement, and it is the thing the rule exists because we could not
+otherwise have. What stays forbidden is unchanged and is the whole of it: an
+agent writing a temperature, a condition or a wet afternoon from its own
+belief. A reading you were handed by a person goes in `weatherData` and must
+name its source; `open-meteo` is refused there, because that name means this
+server measured it. Ask for the lookup, never supply the answer.
+
 **`test: true`** is the exception, and the only one. A day or a trip carrying it
 is content nobody lived, written to prove the pipeline works: the page says so
 in a banner, and it is kept out of the feed, the search index and the sitemap.
