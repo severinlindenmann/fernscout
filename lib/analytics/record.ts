@@ -5,7 +5,7 @@ import { afterResponse } from "../afterResponse";
 import { isEnabled } from "../capabilities";
 import { isOwner } from "../contacts/session";
 import { getDatabaseOrNull, newId, nowIso } from "../db";
-import { clientIp } from "../rateLimit";
+import { clientIp, rateLimitFor } from "../rateLimit";
 import type { Trip } from "../types";
 import { looksLikeBot, visitorHash } from "./visitor";
 
@@ -67,6 +67,24 @@ export type ViewKind = (typeof VIEW_KINDS)[number];
  */
 export const RETENTION_DAYS = 90;
 
+/**
+ * How many views one address may have counted, and over how long — B571.
+ *
+ * Set from what a *household* can honestly read rather than from what one
+ * person can: everybody behind one home connection or one hostel wifi shares
+ * an address, and they are exactly the group most likely to read the same
+ * journal on the same evening. Three hundred pages in an hour is far more than
+ * four people can get through and far less than a script manages in a second,
+ * which is the gap this number lives in.
+ *
+ * Exported so the test can assert the ceiling rather than restate it, and so
+ * the number has one home. Being generous is deliberate: the cost of setting
+ * it too low is a family's real reading going uncounted and the owner drawing
+ * the wrong conclusion from it, which is worse than the disk cost of an
+ * over-generous bound.
+ */
+export const VIEW_BUDGET = { max: 300, windowMs: 60 * 60 * 1000 };
+
 export type ViewTarget = {
   kind: ViewKind;
   /** Unqualified — `owner_id` carries the journal. Omitted for `journal`. */
@@ -100,10 +118,50 @@ export async function recordView(username: string, target: ViewTarget): Promise<
   // asked pays nothing here.
   if (await isOwner(username)) return;
 
+  const ip = clientIp(h);
+
+  /**
+   * The write budget — B571.
+   *
+   * **Last of the five checks, and that is the whole design.** It counts rows
+   * that were about to be *written*, not requests that arrived: a bot, a
+   * prefetch and the owner's own reading all return above without spending
+   * anything, so a busy owner cannot exhaust the budget their family's visits
+   * are then counted against.
+   *
+   * Page renders are not rate-limited anywhere in this codebase —
+   * `lib/rateLimit.ts` is called from `app/api/` only — because until B566 a
+   * page request cost CPU and no storage. It costs a row now, so an
+   * unauthenticated loop against `/<user>` cost unbounded rows, on the one
+   * disk Postgres is on, for every journal on the instance. Ninety-day
+   * retention caps the age of that, not the rate.
+   *
+   * **Dropping is the correct answer, not refusing.** The reader still gets
+   * their page; only the counting stops. A counter that misses part of a flood
+   * is right — a flood is not readership — and a 429 on a travel journal
+   * because somebody else is hammering it would be the counter deciding who
+   * may read, which is exactly backwards.
+   *
+   * Keyed on the address, which is trustworthy *here*: `deploy/fernscout.caddy`
+   * sets `header_up X-Forwarded-For {remote_host}`, overwriting whatever the
+   * client sent, so the value `clientIp` reads cannot be chosen by the caller.
+   * Behind a proxy that appends instead, this bound is forgeable and so is
+   * every other limit in the application — see the long note in
+   * `lib/rateLimit.ts`.
+   *
+   * ponytail: one in-memory bucket per process, which is what `rateLimitFor`
+   * already is. It bounds a flood from one source, which is the realistic one
+   * for a journal a family reads. It does **not** bound a distributed flood,
+   * and it does not bound the table by construction — a per-journal-per-day
+   * row ceiling would, at the price of a query per view. Do that instead if a
+   * real journal is ever filled from many addresses at once.
+   */
+  if (!rateLimitFor("analytics-view", ip, VIEW_BUDGET).ok) return;
+
   // The hash is computed here rather than inside the deferred task on
   // purpose: `headers()` is request-scoped, and the salt must be today's at
   // the moment of the visit rather than whenever the write happens to run.
-  const hash = visitorHash(username, clientIp(h), userAgent);
+  const hash = visitorHash(username, ip, userAgent);
 
   afterResponse("analytics", async () => {
     const handle = await getDatabaseOrNull();
