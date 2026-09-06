@@ -218,16 +218,15 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B573](open/B573-a-journal-written-by-the-helper.md) | A journal written by the helper tools can never carry weather | FEATURE | medium | low |
 
-## in-development (4)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B571](in-development/B571-an-anonymous-flood-of-page-requests.md) | an anonymous flood of page requests writes unbounded analytics rows | ISSUE | medium | low | `c2cdeefe` |
 | [B578](in-development/B578-editing-a-day-s-title-on.md) | Editing a day's title on disk makes publish unable to find that day again | ISSUE | medium | low | `ac8af30e` |
 | [B580](in-development/B580-plan-md-is-checked-for-existence.md) | plan.md is checked for existence and never for what is inside it | ISSUE | low | low | `ac8af30e` |
 | [B581](in-development/B581-a-day-that-declined-photographs-is.md) | A day that declined photographs is still tipped to add some | ISSUE | low | low | `ac8af30e` |
 
-## testing (262)
+## testing (263)
 
 ### security (2)
 
@@ -236,7 +235,7 @@ Do not edit them by hand; run the script.
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 | [B473](testing/security/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | — |
 
-### issue (128)
+### issue (129)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -321,6 +320,7 @@ Do not edit them by hand; run the script.
 | [B550](testing/issue/B550-the-day-view-shows-a-page.md) | The day view shows a page belonging to the next day, and its photo controls are unlabelled glyphs | ISSUE | medium | low | — |
 | [B553](testing/issue/B553-some-fields-are-coerced-or-tolerated.md) | Some fields are coerced or tolerated where every sibling field is refused | ISSUE | medium | low | — |
 | [B563](testing/issue/B563-the-day-view-offers-a-cover.md) | The day view offers a cover, map and costs drill-in that has nothing in it | ISSUE | medium | low | — |
+| [B571](testing/issue/B571-an-anonymous-flood-of-page-requests.md) | an anonymous flood of page requests writes unbounded analytics rows | ISSUE | medium | low | — |
 | [B574](testing/issue/B574-publish-dry-run-overstates-the-photographs.md) | publish --dry-run overstates the photographs it will upload | ISSUE | medium | low | — |
 | [B576](testing/issue/B576-a-german-book-prints-english-dates.md) | A German book prints English dates | ISSUE | medium | low | — |
 | [B579](testing/issue/B579-a-stale-health-cache-silently-switches.md) | A stale health cache silently switches off the media checks | ISSUE | medium | low | — |
