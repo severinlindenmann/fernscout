@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: content model, day visibility
 found: "2026-09-06T17:51:45Z"
+started: "2026-09-06T19:29:15Z"
+session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
+claimed: "2026-09-06T19:29:15Z"
 ---
 
 # B632 — A day cannot be held back to guests or to the people who were there

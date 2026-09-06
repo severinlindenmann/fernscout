@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: day page, digest, credits
 found: "2026-09-06T17:51:45Z"
+started: "2026-09-06T19:29:16Z"
+session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
+claimed: "2026-09-06T19:29:16Z"
 ---
 
 # B633 — There is no way for the owner to send a day's notification from the day itself
