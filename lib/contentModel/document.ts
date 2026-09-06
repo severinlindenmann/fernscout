@@ -89,10 +89,11 @@ export function contentModel(): ContentModelDocument {
   const rules: Rule[] = [
     ...rulesFor("config.json", {
       // apiOnly: crosses `POST /api/v1/journals` or `PATCH …/config`, never
-      // the file — the file writes `owner.name`/`owner.nickname` instead, and
-      // the username is the folder name.
+      // the file — the file writes `owner.name`/`owner.nickname`/`owner.tel`
+      // instead, and the username is the folder name.
       ownerName: { apiOnly: true, because: "the file carries this as owner.name" },
       ownerNickname: { apiOnly: true, because: "the file carries this as owner.nickname" },
+      ownerTel: { apiOnly: true, because: "the file carries this as owner.tel" },
       username: { apiOnly: true, because: "the folder name is the username" },
 
       title: { type: "string", required: true },
