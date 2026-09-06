@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   BookMarked,
   Check,
+  Pencil,
   KeyRound,
   Wallet,
   UserRound,
@@ -256,60 +257,6 @@ function BuyCreditsDialog({ username }: { username: string }) {
  * everything `/c/<token>` builds server-side, handed down instead of a link
  * to that page. */
 /**
- * The button that gives the owner a contact row of their own — B619.
- *
- * Everything on this page that lets a person edit their own name, telephone
- * and postal address is `ContactManage`, and it needs a row. The owner never
- * had one, so the only reader of this page who could not change anything
- * about themselves was the person whose journal it is — and a postcard, which
- * is addressed by contact id, could not be sent to them at all.
- *
- * One button rather than a form: the row is made empty and the form that
- * appears in its place is the one everybody else already gets. Nothing is
- * mailed and nothing has to be confirmed, because the session that pressed
- * this is already signed in as the address the row is for.
- */
-function AddOwnDetails({ username }: { username: string }) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  async function add() {
-    setBusy(true);
-    setFailed(false);
-    const response = await fetch("/api/contacts/admin", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ user: username, action: "self" }),
-    }).catch(() => null);
-    setBusy(false);
-    if (!response?.ok) {
-      setFailed(true);
-      return;
-    }
-    // The row now exists, so the server renders the edit form in this
-    // section's place — the same refresh `ChannelSwitch` does, and for the
-    // same reason: what changed is on the server, not in this component.
-    router.refresh();
-  }
-
-  return (
-    <div className="mt-3">
-      <button
-        type="button"
-        disabled={busy}
-        onClick={add}
-        className="inline-flex min-h-11 w-fit items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 disabled:opacity-50"
-      >
-        {t("me.detailsAddSelf")}
-      </button>
-      {failed && <p className="mt-2 text-sm text-coral-600">{t("me.journalFailed")}</p>}
-    </div>
-  );
-}
-
-/**
  * The journal's own name and subtitle, and the address that owns it — B619.
  *
  * `PATCH /api/journal` rather than `/api/v1/{user}/config`: that one takes a
@@ -405,6 +352,241 @@ function JournalSettings({
     </div>
   );
 }
+
+/**
+ * One trip in "what you can read", with the pencil that edits it — B621.
+ *
+ * Owner only: `edit` is undefined for everybody else and the row is exactly
+ * the link it always was. A person on a trip may write days into it, and what
+ * the journey is called and who may read it stays the owner's.
+ *
+ * The form is two halves that save separately, and that is not tidiness — the
+ * route refuses a body naming both, because each call rewrites `trip.md`
+ * whole. It also happens to be the right shape for the page: who may read a
+ * journey is not a field you change alongside a typo in its title, so it has
+ * its own control and its own second press.
+ */
+function TripRow({
+  trip,
+  edit,
+  username,
+  reasonKey,
+}: {
+  trip: Viewer["trips"][number];
+  edit?: TripEditPanel;
+  username: string;
+  reasonKey: TranslationKey;
+}) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <li>
+      <div className="flex items-center">
+        <Link
+          href={trip.href}
+          className="flex min-h-14 flex-1 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-3 transition-colors hover:bg-cream-50"
+        >
+          <span className="font-display text-lg font-semibold text-navy-900">{trip.title}</span>
+          <span className="text-sm text-navy-600">{t(reasonKey)}</span>
+        </Link>
+        {edit && (
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-label={t("me.tripEdit", { trip: trip.title })}
+            onClick={() => setOpen((was) => !was)}
+            // Outside the `<Link>`, not inside it: a button nested in an
+            // anchor is invalid, and a click on it would navigate.
+            className="mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-600 transition-colors hover:bg-cream-100 hover:text-navy-900"
+          >
+            <Pencil className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
+      </div>
+      {edit && open && (
+        <TripEditor username={username} trip={edit} onClose={() => setOpen(false)} />
+      )}
+    </li>
+  );
+}
+
+function TripEditor({
+  username,
+  trip,
+  onClose,
+}: {
+  username: string;
+  trip: TripEditPanel;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [title, setTitle] = useState(trip.title);
+  const [tagline, setTagline] = useState(trip.tagline);
+  const [start, setStart] = useState(trip.start);
+  const [end, setEnd] = useState(trip.end);
+  const [visibility, setVisibility] = useState(trip.visibility);
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const dirty =
+    title.trim() !== trip.title ||
+    tagline.trim() !== trip.tagline ||
+    start !== trip.start ||
+    end !== trip.end;
+
+  /** One call, one kind of change — see the route. `problem` carries the
+   * server's own sentence rather than a code: every refusal here already
+   * explains itself in words, and rewriting them in the client would be a
+   * second copy to disagree with the first. */
+  async function save(body: Record<string, unknown>): Promise<boolean> {
+    setBusy(true);
+    setProblem(null);
+    const response = await fetch("/api/trip", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user: username, trip: trip.id, ...body }),
+    }).catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      const said = (await response?.json().catch(() => null)) as { message?: string } | null;
+      setProblem(said?.message ?? t("me.journalFailed"));
+      return false;
+    }
+    router.refresh();
+    return true;
+  }
+
+  return (
+    <div className="border-t border-navy-200 bg-cream-50 px-4 py-4">
+      <div className="space-y-3">
+        <label className="block">
+          <span className="text-sm font-semibold text-navy-900">{t("me.tripTitle")}</span>
+          <input
+            type="text"
+            value={title}
+            maxLength={200}
+            onChange={(event) => setTitle(event.target.value)}
+            className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm font-semibold text-navy-900">{t("me.tripTagline")}</span>
+          <input
+            type="text"
+            value={tagline}
+            maxLength={300}
+            onChange={(event) => setTagline(event.target.value)}
+            className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+          />
+        </label>
+        <div className="flex flex-wrap gap-3">
+          <label className="block flex-1">
+            <span className="text-sm font-semibold text-navy-900">{t("me.tripStart")}</span>
+            {/* `type="date"` rather than a picker: the platform has one, it is
+                localised, and it is the right control on a phone. */}
+            <input
+              type="date"
+              value={start}
+              onChange={(event) => setStart(event.target.value)}
+              className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+            />
+          </label>
+          <label className="block flex-1">
+            <span className="text-sm font-semibold text-navy-900">{t("me.tripEnd")}</span>
+            <input
+              type="date"
+              value={end}
+              onChange={(event) => setEnd(event.target.value)}
+              className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+            />
+          </label>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled={busy || !dirty || title.trim() === ""}
+            onClick={async () => {
+              if (await save({ title, tagline, start, end })) onClose();
+            }}
+            className="inline-flex min-h-11 w-fit items-center rounded-full bg-navy-900 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-700 disabled:opacity-50"
+          >
+            {t("me.journalSave")}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex min-h-11 w-fit items-center rounded-full px-4 text-base text-navy-700 hover:underline"
+          >
+            {t("me.tripCancel")}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-5 border-t border-navy-200 pt-4">
+        <label className="block">
+          <span className="text-sm font-semibold text-navy-900">{t("me.tripWho")}</span>
+          <select
+            value={visibility}
+            onChange={(event) => {
+              setVisibility(event.target.value as TripEditPanel["visibility"]);
+              setConfirming(false);
+            }}
+            className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+          >
+            <option value="private">{t("me.tripWhoPrivate")}</option>
+            <option value="guest">{t("me.tripWhoGuest")}</option>
+            <option value="public">{t("me.tripWhoPublic")}</option>
+          </select>
+        </label>
+        {visibility !== trip.visibility && (
+          <>
+            {/* Two presses, always — not only when it widens. Everything
+                already published on this journey answers to the new value the
+                moment it is written, and a `<select>` is one careless click. */}
+            <p className="mt-2 text-sm leading-6 text-navy-700">{t("me.tripWhoWarning")}</p>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                if (!confirming) {
+                  setConfirming(true);
+                  return;
+                }
+                if (await save({ visibility })) onClose();
+              }}
+              className="mt-2 inline-flex min-h-11 w-fit items-center rounded-full border border-coral-400 px-5 text-base font-semibold text-coral-600 transition-colors hover:bg-coral-50 disabled:opacity-50"
+            >
+              {t(confirming ? "me.tripWhoConfirm" : "me.tripWhoChange")}
+            </button>
+          </>
+        )}
+      </div>
+
+      {problem && <p className="mt-3 text-sm leading-6 text-coral-600">{problem}</p>}
+    </div>
+  );
+}
+
+/**
+ * One trip as its owner may edit it — B621.
+ *
+ * Beside `ViewerTrip`, not inside it: that type is every reader's answer to
+ * "what can I open", and three quarters of the people who get one have no
+ * business being handed a trip's dates and its visibility. This is resolved
+ * for the owner alone, on the server, like every other panel here.
+ */
+export type TripEditPanel = {
+  id: string;
+  title: string;
+  /** `""` when the trip has none; clearing the box removes the key. */
+  tagline: string;
+  start: string;
+  end: string;
+  visibility: "public" | "guest" | "private";
+};
 
 /** The journal's own description, for the card that edits it — B619. Owner
  * only, and resolved on the server like every other panel here. */
@@ -502,7 +684,7 @@ export default function MePageContent({
   siteUrl,
   manage,
   journal,
-  canAddOwnDetails = false,
+  editableTrips,
   payment,
   canSignIn,
   codeMinutes,
@@ -522,15 +704,9 @@ export default function MePageContent({
   manage?: ManagePanel;
   /** The journal's own name, subtitle and owner address — owner only, B619. */
   journal?: JournalPanel;
-  /**
-   * Whether to offer the owner a contact row of their own — B619.
-   *
-   * True for an owner who has no row yet, and false the moment they press the
-   * button, because `manage` then carries the row instead. Never true for
-   * anybody else: a guest gets a row by being invited and approved, which is
-   * the whole of `lib/contacts`, and a button here would be a way around it.
-   */
-  canAddOwnDetails?: boolean;
+  /** The trips this reader may edit — B621. Owner only, and absent for
+   * everybody else, which is what leaves their rows exactly as they were. */
+  editableTrips?: TripEditPanel[];
   /** Present only for the owner, and only when credits are switched on —
    * see `PaymentPanel`. */
   payment?: PaymentPanel;
@@ -759,24 +935,27 @@ export default function MePageContent({
             ) : (
               <ul className="mt-3 divide-y divide-navy-200 overflow-hidden rounded-2xl border border-navy-200 bg-white">
                 {viewer.trips.map((trip) => (
-                  <li key={trip.id}>
-                    <Link
-                      href={trip.href}
-                      className="flex min-h-14 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-3 transition-colors hover:bg-cream-50"
-                    >
-                      <span className="font-display text-lg font-semibold text-navy-900">
-                        {trip.title}
-                      </span>
-                      <span className="text-sm text-navy-600">{t(reason[trip.through])}</span>
-                    </Link>
-                  </li>
+                  <TripRow
+                    key={trip.id}
+                    trip={trip}
+                    edit={editableTrips?.find((candidate) => candidate.id === trip.id)}
+                    username={username}
+                    reasonKey={reason[trip.through]}
+                  />
                 ))}
               </ul>
             )}
           </section>
         )}
 
-        {(manage || canAddOwnDetails) && (
+        {/*
+          Not the owner's — B621 moved theirs to `/{user}/contacts`, the page
+          that is already about addresses, consents and who gets a postcard,
+          where their own row is one more entry in the book rather than an
+          aside on the access page. A guest has no such page and keeps it
+          here, which is what it was built for.
+        */}
+        {manage && !viewer.owner && (
           <section className="mt-6">
             <h2 className="font-display text-xl font-semibold text-navy-900">{t("me.details")}</h2>
             {/*
@@ -800,23 +979,12 @@ export default function MePageContent({
                   not have. Theirs says what the details are actually good
                   for, which is a card in their own letterbox and a message on
                   their own telephone. */}
-              {t(
-                viewer.owner
-                  ? "me.detailsBodyOwner"
-                  : writableTrips.length > 0
-                    ? "me.detailsBodyTraveller"
-                    : "me.detailsBody",
-              )}
+              {t(writableTrips.length > 0 ? "me.detailsBodyTraveller" : "me.detailsBody")}
             </p>
-            {/* No row yet, which for an owner is the ordinary state: one
-                button makes one, and the form below appears in its place. */}
-            {!manage && canAddOwnDetails && <AddOwnDetails username={username} />}
-
             {/* A native `<details>` rather than a link to `/c/<token>`: the
                 same form, opened in place instead of on a second page — see
                 `ManagePanel` above for why the data now travels down instead
                 of a URL. */}
-            {manage && (
             <details className="mt-3">
               <summary className="inline-flex min-h-11 w-fit cursor-pointer list-none items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 [&::-webkit-details-marker]:hidden">
                 {t("me.editDetails")}
@@ -838,7 +1006,6 @@ export default function MePageContent({
                 />
               </div>
             </details>
-            )}
           </section>
         )}
 

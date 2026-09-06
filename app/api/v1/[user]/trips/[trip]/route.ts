@@ -190,8 +190,10 @@ export async function PATCH(_request: Request, { params }: RouteContext<"/api/v1
         `the budget at ` +
         `/api/v1/${user}/trips/${trip}/costs, a day at ` +
         `/api/v1/${user}/trips/${trip}/days/<slug>, and photographs at ` +
-        `/api/v1/${user}/trips/${trip}/media. A trip's title, dates and cover are ` +
-        `still trip.md alone and no call writes them.`,
+        `/api/v1/${user}/trips/${trip}/media. A trip's title, subtitle and dates are not ` +
+        `writable over this API — since B621 the owner changes them on their own page, ` +
+        `/${user}/me, with the pencil beside the trip, so ask them rather than editing ` +
+        `trip.md. The cover is still trip.md alone.`,
     },
     { status: 405, headers: { Allow: "DELETE" } },
   );

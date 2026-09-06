@@ -50,6 +50,11 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/lib/capabilities", () => ({ isEnabled: () => true }));
 vi.mock("@/lib/contacts", () => ({
+  // B621: the page also looks for the owner's own row and derives a manage
+  // token for it. Neither matters to the question here — which language the
+  // chrome is in — but the module has to answer.
+  normaliseEmail: (email: string) => email.trim().toLowerCase(),
+  manageTokenFor: () => "fs_manage_test",
   listContacts: async () => [
     {
       id: "c1",

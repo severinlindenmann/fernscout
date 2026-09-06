@@ -4,7 +4,7 @@ import ContactsAdmin, { type AdminContact } from "@/components/ContactsAdmin";
 import NoticeShell from "@/components/NoticeShell";
 import PageHeader from "@/components/PageHeader";
 import { isEnabled } from "@/lib/capabilities";
-import { listContacts } from "@/lib/contacts";
+import { listContacts, manageTokenFor, normaliseEmail } from "@/lib/contacts";
 import { deviceCountByContact } from "@/lib/push";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { listInvitesWithLinks } from "@/lib/contacts/invites";
@@ -79,7 +79,12 @@ export default async function ContactsAdminPage({
   const pushOn = isEnabled("push", username);
   const devices = pushOn ? await deviceCountByContact(username) : {};
 
-  const contacts: AdminContact[] = (await listContacts(username)).map((contact) => ({
+  // Read once and used twice: the rows the panel draws, and the owner's own
+  // row below — `listContacts` decrypts a postal address per contact, so a
+  // second call would be the same scrypt work for the same answer.
+  const all = await listContacts(username);
+
+  const contacts: AdminContact[] = all.map((contact) => ({
     id: contact.id,
     name: contact.name,
     email: contact.email,
@@ -104,6 +109,17 @@ export default async function ContactsAdminPage({
   // B281's writing-link selector; a second call would be the same answer,
   // fetched twice.
   const trips = getTrips(username);
+
+  /**
+   * The owner's own row — B621, moved here from `/{user}/me`.
+   *
+   * `contacts` above is already the whole book, decrypted, so this is a find
+   * rather than a second read. The manage token is derived (`manageTokenFor`)
+   * and not stored, the same way every mail footer's is, so nothing had to be
+   * looked up to hand the form one.
+   */
+  const ownEmail = user.owner.email ? normaliseEmail(user.owner.email) : null;
+  const ownRow = ownEmail ? all.find((row) => row.email === ownEmail) : undefined;
 
   return (
     // The header is the way back, and this page needs one more than most: it is
@@ -157,6 +173,27 @@ export default async function ContactsAdminPage({
         // B399: same server-ceiling-and-journal-opt-in check as everywhere
         // else this capability is read.
         addressLookupEnabled={isEnabled("addressLookup", username)}
+        // B621. Their own details, first on the page — and the offer to make
+        // the row when there is none, which is the state every journal
+        // written before that ticket is in.
+        own={
+          ownRow
+            ? {
+                token: manageTokenFor(username, ownRow.id),
+                contact: {
+                  name: ownRow.name ?? "",
+                  email: ownRow.email,
+                  locale: pickLocale(ownRow.locale, user.defaultLocale),
+                  status: ownRow.status,
+                  wantsEmailDigest: ownRow.wantsEmailDigest,
+                  wantsPostcard: ownRow.wantsPostcard,
+                  wantsWhatsapp: ownRow.wantsWhatsapp,
+                  address: ownRow.postalAddress ?? EMPTY_ADDRESS,
+                },
+              }
+            : undefined
+        }
+        canAddOwn={!ownRow && Boolean(user.owner.email)}
       />
     </div>
   );
