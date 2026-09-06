@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: contacts page, push
 found: "2026-09-06T17:51:42Z"
+started: "2026-09-06T18:18:42Z"
+session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
+claimed: "2026-09-06T18:18:42Z"
 ---
 
 # B626 — The contacts page does not say who has the app installed and notifications on

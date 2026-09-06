@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: travel scene, buildings
 found: "2026-09-06T17:51:46Z"
+started: "2026-09-06T18:18:41Z"
+session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
+claimed: "2026-09-06T18:18:41Z"
 ---
 
 # B634 — The travel scene has no airport
