@@ -106,3 +106,52 @@ in short of the owner typing their name.
 - A trip whose second person arrived through a buddy link proposes the same.
 - A trip with nobody but the owner signs exactly as it does now.
 - No email address reaches the card.
+
+## Built, 2026-09-06
+
+`lib/tripPeople.ts` gained `namesOnTrip(trip)`: owner first (its existing
+`nickname || name || title` chain, unchanged), then `trip.people` (`nickname ||
+name`), then redeemed buddy rows — a new `redeemedContactsOf` helper
+(`lib/tripPeople.ts`) that is `redeemedPeopleOf`'s own query with
+`contacts.name` added to the select, so "live" is still asked in one place.
+Deduplicated by lower-cased email throughout, same as `peopleOf`. A redeemed
+row with no stored name (should not happen — `requestContact` requires one) is
+skipped rather than falling back to any part of the address.
+
+**Joining rule: `" & "`, plain `Array.join`.** Not locale-aware, not an Oxford
+list for three or more — the codebase already had this exact convention in two
+places (`lib/site.ts`'s `travellerFullNamesOf`, and the doc comment on
+`OrderPayload.from` in `lib/postcard/orders.ts`, which gives "Sev & Ana" as the
+worked example), so matching it was the smaller diff and the more consistent
+one, not a new decision. `peopleOf()` itself caps a trip at ten hand-written
+people plus however many buddies redeemed a link, so "three names look
+cramped without an Oxford comma" is a real but small cost, left as it is.
+
+**Names, not nicknames' full form and not the file's byline.** Each person
+contributes `nickname || name` — the same precedence the owner already used,
+and the one `travellerNamesOf` uses for "how a journal refers to the people on
+a trip" (a postcard signature is exactly that, not a formal credit line, which
+is why `travellerFullNamesOf`'s full-name behaviour was not reused). Not
+`travellersOf`/`peopleOf`'s underlying membership function itself, though — a
+new function was needed because `travellersOf` is file-only by design (B33,
+the byline) and `peopleOf` returns addresses, not names, and neither one had a
+name for a redeemed buddy to draw on; `redeemedContactsOf` reads
+`contacts.name`, which `requestContact` already requires when somebody
+redeems a link.
+
+`lib/postcard/entry.ts:44-48` now reads `(await namesOnTrip(trip)).join(" &
+")` in place of the single-owner expression; the owner-alone case is identical
+by construction, since `namesOnTrip` always emits the owner's name first,
+unconditionally, even when it would be empty. `components/PostcardSheet.tsx`'s
+doc comment on `from`, which claimed the value was "the same string every
+time", is corrected to describe the new default rather than defending the old
+one.
+
+**Test:** `test/postcard-signature.test.ts`, four cases against `namesOnTrip`
+directly (not through the postcards API, which would need an owner session on
+top of the same fixture) — a solo trip unchanged, a second `people:` entry
+included, a buddy who redeemed a link and was approved included, and no `@`
+in the joined signature across all three trips.
+
+`npm run verify`: build, tsc, eslint (pre-existing warnings only, none new),
+300 test files / 3894 tests passing.

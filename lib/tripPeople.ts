@@ -94,13 +94,29 @@ export async function isPersonOn(trip: Trip, email: string | undefined | null): 
  * still works, and nobody is let in by an absence.
  */
 export async function redeemedPeopleOf(username: string, tripId: string): Promise<string[]> {
+  return (await redeemedContactsOf(username, tripId)).map((row) => row.email);
+}
+
+/**
+ * The same live places as `redeemedPeopleOf`, with each address' stored
+ * contact name alongside it — for `namesOnTrip`, which needs one and not the
+ * other. Kept as one query rather than two so "live" stays defined once.
+ */
+async function redeemedContactsOf(
+  username: string,
+  tripId: string,
+): Promise<{ email: string; name: string | null }[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
   const now = new Date();
   const rows = await handle.db
     .selectFrom("trip_people")
     .innerJoin("contacts", "contacts.id", "trip_people.contact_id")
-    .select(["contacts.email_key as email", "trip_people.expires_at as expires_at"])
+    .select([
+      "contacts.email_key as email",
+      "contacts.name as name",
+      "trip_people.expires_at as expires_at",
+    ])
     .where("trip_people.owner_id", "=", username)
     .where("trip_people.trip_id", "=", tripId)
     .where("trip_people.granted_at", "is not", null)
@@ -113,7 +129,50 @@ export async function redeemedPeopleOf(username: string, tripId: string): Promis
 
   return rows
     .filter((row) => grantIsLive(row.expires_at, now))
-    .map((row) => row.email.trim().toLowerCase());
+    .map((row) => ({ email: row.email.trim().toLowerCase(), name: row.name }));
+}
+
+/**
+ * Every name on this trip, owner first, then whoever else may write to it —
+ * B629. `peopleOf`'s own membership (file plus redeemed buddy rows) with a
+ * name attached to each address, for a postcard's default signature.
+ *
+ * **Not `travellersOf`.** That one is the byline in `lib/site.ts`: the file
+ * alone, deliberately, because credit is the owner's editorial statement
+ * (B33). This is a plainer question — who may currently write to the trip —
+ * so a buddy who joined by link is counted here and is not in the byline.
+ *
+ * Never an email. A redeemed row with no stored name (should not happen —
+ * `requestContact` requires one) is left out rather than falling back to any
+ * part of the address.
+ */
+export async function namesOnTrip(trip: Trip): Promise<string[]> {
+  const user = getUser(trip.username);
+  const ownerEmail = user?.owner.email?.trim().toLowerCase();
+  const ownerName = user?.owner.nickname || user?.owner.name || user?.title;
+
+  // Pushed unconditionally, even if empty: `postcardEntryFor` answered this
+  // same expression before this function existed, so an owner with neither a
+  // nickname nor a name keeps that exact (odd) answer rather than silently
+  // becoming a trip signed by nobody.
+  const names: string[] = [ownerName ?? ""];
+  const seen = new Set<string>();
+  if (ownerEmail) seen.add(ownerEmail);
+
+  for (const person of trip.people) {
+    const email = person.email.trim().toLowerCase();
+    if (seen.has(email)) continue;
+    seen.add(email);
+    names.push(person.nickname || person.name);
+  }
+
+  for (const { email, name } of await redeemedContactsOf(trip.username, trip.id)) {
+    if (!name || seen.has(email)) continue;
+    seen.add(email);
+    names.push(name);
+  }
+
+  return names;
 }
 
 /**
