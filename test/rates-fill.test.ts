@@ -191,7 +191,8 @@ describe("filling a trip's rates", () => {
     const trip = getTrip(ref)!;
     // Trip convention: units of CHF for one THB, cross-divided through EUR —
     // (CHF per EUR) / (THB per EUR), at the day actually used.
-    expect(trip.rates.THB).toBeCloseTo(0.935 / 40.5, 9);
+    // Six significant figures, not the full cross-division — see `readable`.
+    expect(trip.rates.THB).toBeCloseTo(0.935 / 40.5, 7);
     expect(trip.ratesFrom.THB).toContain("2026-08-21");
     expect(trip.ratesFrom.THB).toContain("European Central Bank");
 
@@ -229,6 +230,19 @@ describe("filling a trip's rates", () => {
     reload();
     expect(await fillTripRates(ref)).toEqual({ KIP: "not_published" });
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a filled rate is written at a precision a person can read", async () => {
+    writeDay("dinner", "2026-08-24", "THB", 800);
+    reload();
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      historyAnswer({ "2026-08-21": { THB: 38.1234, CHF: 0.936421 } }),
+    );
+
+    expect(await fillTripRates(ref)).toEqual({ THB: "filled" });
+    // The cross-division itself is 0.02456287…; trip.md is a file somebody
+    // opens, and six figures is already more than the rate is knowable to.
+    expect(getTrip(ref)!.rates.THB).toBe(0.0245629);
   });
 
   test("a hand-typed rate is never overwritten", async () => {

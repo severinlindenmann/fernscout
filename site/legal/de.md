@@ -84,6 +84,7 @@ für Werbung oder zur Profilbildung.
 | **Gelato ASA** (Norwegen) | Jemand bestellt ein gedrucktes Fotobuch | Das PDF des Buchs und die Lieferadresse |
 | **Proton AG** (Schweiz) | Anmeldecodes, Einladungen, Benachrichtigungen | Die Empfängeradresse und die Nachricht |
 | **Open-Meteo** (Deutschland) | Ein Journal hat gefragt, wie das Wetter an einem festgehaltenen Tag war | Die Koordinaten und das Datum dieses Tages — nichts über Sie |
+| **Europäische Zentralbank** (Deutschland) | Eine Reise brauchte den Wechselkurs für eine Währung, in der sie ausgegeben hat | Gar nichts — abgerufen wird ein veröffentlichtes Dokument, und es transportiert keine Frage |
 
 Das ist die vollständige Liste. Mehr ist da nicht.
 
@@ -116,6 +117,34 @@ Temperatur, die jemand dort aufgeschrieben hat, wo er stand, statt einer, die
 dieser Server abgefragt hat. Diese nennen, wer sie gemessen hat, und werden
 niemandem sonst zugeschrieben — an so einem Tag steht kein Open-Meteo-Link,
 weil an ihm keine Open-Meteo-Daten stehen.
+
+**Beim Geld ist es dasselbe wie beim Wetter, und die letzte Zeile erhält noch
+weniger.** Eine Reise hält fest, was in welcher Währung ausgegeben wurde; um
+das in einer anderen Währung zu zeigen, braucht es einen Kurs. Diese Kurse
+kommen von den veröffentlichten Euro-Referenzkursen der Europäischen
+Zentralbank: die Tagestabelle für die Umrechnung in die Währung, die Sie oben
+auf einer Kostenseite wählen, und — für den Kurs, mit dem eine Reise dauerhaft
+gerechnet wird — die 90-Tage-Historie der EZB, einmal gelesen für den Tag, an
+dem eine Währung auf dieser Reise zum ersten Mal vorkommt, und dann in der
+Datei der Reise festgeschrieben. **Beide Anfragen stellt dieser Server, und
+beide holen ein vollständiges öffentliches Dokument.** Die EZB erfährt weder,
+um welche Reise, noch um welche Währung, noch um welches Datum es geht, und
+Ihr Browser spricht überhaupt nie mit ihr.
+
+Wechselkurse von der [Europäischen Zentralbank](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html),
+deren Referenzkurse mit Quellenangabe wiedergegeben werden dürfen — dieser
+Absatz und die Angabe auf der Kostenseite sind genau das. **Verändert wurde
+Folgendes: die EZB notiert jede Währung gegen den Euro, ein Journal nicht** —
+ein Kurs hier ist also auf die Basiswährung des Journals umgerechnet und auf
+sechs Stellen gerundet. Eine Kostenseite, die einen nachgeschlagenen Kurs
+verwendet, nennt unter den Summen die EZB und das verwendete Datum.
+
+**Ein selbst eingetragener Kurs ist nichts davon** und trägt keine
+Quellenangabe, weil es nichts zu nennen gibt außer der Person, die ihn
+geschrieben hat — etwa den Kurs, den die Karte tatsächlich abgerechnet hat und
+den kein Referenzkurs kennt. Wo es für eine Währung gar keinen Kurs gibt,
+steht die Ausgabe so da, wie sie bezahlt wurde, und bleibt aus den Summen
+heraus, statt zu einer Zahl umgerechnet zu werden, für die niemand geradesteht.
 
 Die E-Mails dieser Seite laufen über **Proton Mail in der Schweiz** —
 verschlüsselt gespeichert und unter Schweizer Datenschutzrecht, statt über

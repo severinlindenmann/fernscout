@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (122)
+## backlog (123)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (39)
+### issue (40)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -84,6 +84,7 @@ Do not edit them by hand; run the script.
 | [B528](backlog/issue/B528-attachgallery-writes-its-splice-without-re.md) | attachGallery writes its splice without re-reading it, where editEntry refuses | ISSUE | medium | low |
 | [B545](backlog/issue/B545-a-day-s-markdown-twin-omits.md) | A day's markdown twin omits the weather that is on its page | ISSUE | medium | low |
 | [B550](backlog/issue/B550-the-day-view-shows-a-page.md) | The day view shows a page belonging to the next day, and its photo controls are unlabelled glyphs | ISSUE | medium | low |
+| [B556](backlog/issue/B556-re-running-the-demo-builder-deletes.md) | Re-running the demo builder deletes fields the committed demo journal carries | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |

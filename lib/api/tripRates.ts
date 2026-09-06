@@ -163,6 +163,20 @@ function writeRatesFrom(ref: TripRef, citations: Record<string, string>): void {
 }
 
 /**
+ * Six significant figures, which is four more than any of this matters to and
+ * still a number a person can read. A cross-division lands on the full float —
+ * `0.024556709684188438` — and `trip.md` is a file somebody opens.
+ *
+ * The original is kept whenever the shorter form would be written in exponent
+ * notation, because `ratesBlock` refuses that: a rate is either legible or it
+ * is exact, and never a `4.2e-7` nothing downstream will parse.
+ */
+function readable(rate: number): number {
+  const short = Number(rate.toPrecision(6));
+  return String(short).includes("e") ? rate : short;
+}
+
+/**
  * Filling in a trip's missing local→base rates from the ECB's own 90-day
  * history — B543, in the shape of `fillDayWeather` (lib/api/weather.ts):
  * one function, two callers, so a rate that arrived one way is the same rate
@@ -261,7 +275,7 @@ export async function fillTripRates(
       outcomes[code] = "not_published";
       continue;
     }
-    toWrite[code] = rate;
+    toWrite[code] = readable(rate);
     citations[code] = `${onDay.date} European Central Bank`;
     outcomes[code] = "filled";
   }
