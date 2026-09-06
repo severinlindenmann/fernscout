@@ -236,8 +236,8 @@ describe("what a day can actually carry", () => {
     const entry = getAllEntries("ana/ana-trip", { includeDrafts: true })[0];
     expect(entry.costs).toHaveLength(2);
     expect(entry.costs[0]).toMatchObject({ label: "Coffee", amount: 4.5, currency: "EUR" });
-    // No currency means the journal's base currency, not a guess.
-    expect(entry.costs[1]).toMatchObject({ label: "Bus", amount: 12, currency: "CHF" });
+    // No currency means the day's own country (B542) — DRAFT's is Vietnam.
+    expect(entry.costs[1]).toMatchObject({ label: "Bus", amount: 12, currency: "VND" });
     // And an unstated category is written rather than left for a reader to
     // wonder about.
     expect(entry.costs[1].category).toBe("other");

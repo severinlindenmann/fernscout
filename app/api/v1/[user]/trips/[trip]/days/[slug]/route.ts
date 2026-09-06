@@ -206,11 +206,15 @@ export async function PATCH(
     slug: result.slug,
     status: result.status,
     changed: keys,
+    ...(result.costCurrency ? { costCurrency: result.costCurrency } : {}),
     note:
-      result.status === "draft"
+      (result.status === "draft"
         ? `Still a draft — not on the site. This call cannot publish it; ` +
           `POST .../days/${result.slug}/publish when they say so.`
         : "Still published — anyone who already read it can now see this change. " +
-          "This call cannot take it off the site or move it back to draft.",
+          "This call cannot take it off the site or move it back to draft.") +
+      (result.costCurrency
+        ? ` A cost line named no currency, so it was written in ${result.costCurrency} — this day's own.`
+        : ""),
   });
 }
