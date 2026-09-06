@@ -530,6 +530,7 @@
   "me.inviteGuestBody": "Kann bedenkenlos an die Familie gehen. Damit kann jemand darum bitten, dieses Tagebuch zu lesen, mehr nicht — zu sehen bekommt er nichts, bis du zustimmst.",
   "me.inviteGuestTitle": "Ein Link zum Mitlesen",
   "me.journalCardBody": "Wie das Journal heißt — oben auf jeder Seite, im Tab und auf der Karte, die beim Teilen erscheint.",
+  "me.journalCardEdit": "bearbeiten",
   "me.journalCardTitle": "Dieses Journal",
   "me.journalEmail": "E-Mail",
   "me.journalEmailNote": "Diese Adresse entscheidet, wer für dieses Journal einen Schlüssel bekommt — deshalb lässt sie sich hier nicht ändern. Sag es der Person, die den Server betreibt.",
