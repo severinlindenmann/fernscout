@@ -74,6 +74,7 @@ export async function GET(
     ...(entry.time ? { time: entry.time } : {}),
     location: entry.location,
     country: entry.country,
+    ...(entry.countryCode ? { countryCode: entry.countryCode } : {}),
     ...(Number.isFinite(entry.lat) ? { lat: entry.lat } : {}),
     ...(Number.isFinite(entry.lng) ? { lng: entry.lng } : {}),
     gallery: entry.gallery,

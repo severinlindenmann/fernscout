@@ -122,6 +122,8 @@ export type EntryInput = {
    *  else; `costs` takes it in the field above. */
   coordinates?: unknown;
   photos?: unknown;
+  /** The flag `lib/flags.ts` draws — see `checkCountryCode`. B540. */
+  countryCode?: unknown;
 };
 
 /**
@@ -200,6 +202,22 @@ function checkCoordinates(input: EntryInput, problems: Problem[]): void {
   }
   if (hasLng && (typeof input.lng !== "number" || !Number.isFinite(input.lng) || input.lng < -180 || input.lng > 180)) {
     problems.push({ field: "lng", got: describe(input.lng), expected: "-180 to 180" });
+  }
+}
+
+/** ISO 3166-1 alpha-2, the shape `lib/flags.ts` turns into an emoji.
+ * Case-insensitive on the way in — `countryCodeFor` uppercases it — so a
+ * caller need not remember which case the flag table wants. */
+const COUNTRY_CODE_RE = /^[A-Za-z]{2}$/;
+
+function checkCountryCode(input: EntryInput, problems: Problem[]): void {
+  if (input.countryCode === undefined) return;
+  if (typeof input.countryCode !== "string" || !COUNTRY_CODE_RE.test(input.countryCode)) {
+    problems.push({
+      field: "countryCode",
+      got: describe(input.countryCode),
+      expected: "an ISO 3166-1 alpha-2 code, e.g. CH — two letters",
+    });
   }
 }
 
@@ -661,6 +679,7 @@ export function validateEntry(
   checkTitle(input, problems);
   checkDate(input, problems);
   checkTime(input, problems);
+  checkCountryCode(input, problems);
   checkCoordinates(input, problems);
   checkTransportMode(input, problems);
   checkTravelScene(input, problems);
@@ -706,6 +725,7 @@ export function validateEntryEdit(
   checkTitle(input, problems);
   checkDate(input, problems, false);
   checkTime(input, problems);
+  checkCountryCode(input, problems);
   checkCoordinates(input, problems);
   checkTransportMode(input, problems);
   checkTravelScene(input, problems);

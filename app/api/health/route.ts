@@ -8,6 +8,17 @@ import { FEATURE_NAMES } from "@/lib/config";
 import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
 import { contentRootProblem, getUsernames } from "@/lib/users";
 import pkg from "@/package.json";
+import {
+  CAPTION_MAX_CHARS,
+  IMAGE_FORMATS,
+  IMAGE_MAX_BYTES,
+  IMAGE_MAX_EDGE,
+  MAX_ITEMS_PER_DAY,
+  REQUEST_MAX_BYTES,
+  VIDEO_FORMATS,
+  VIDEO_MAX_BYTES,
+  VIDEO_MAX_SECONDS,
+} from "@/lib/validate/media";
 
 // Never cache or prerender: this reflects the live state of the process
 // (env vars, config) at request time, not a build-time snapshot.
@@ -253,6 +264,31 @@ export async function GET(request: Request) {
     // not move `status`.
     basemap: basemapFault ? fault("unreadable", basemapFault, detailed) : { ok: true },
     capabilities,
+    /**
+     * What this server will take in an upload, and how much of it.
+     *
+     * Here rather than only in the media endpoint's prose because an agent
+     * needs it *before* it uploads, and because it is the one part of the
+     * contract a client was otherwise forced to hard-code: the helper tools
+     * carried their own copy of these extensions, drifted (they listed `jpg`
+     * and `avif`, neither of which this server takes), and only found out when
+     * a batch was refused half-way. B540.
+     *
+     * Public, like `capabilities`: it is a limit, not a secret, and a caller
+     * that cannot read it before uploading is a caller that finds out by
+     * failing.
+     */
+    media: {
+      imageFormats: [...IMAGE_FORMATS],
+      videoFormats: [...VIDEO_FORMATS],
+      imageMaxBytes: IMAGE_MAX_BYTES,
+      imageMaxEdge: IMAGE_MAX_EDGE,
+      videoMaxBytes: VIDEO_MAX_BYTES,
+      videoMaxSeconds: VIDEO_MAX_SECONDS,
+      itemsPerDay: MAX_ITEMS_PER_DAY,
+      requestMaxBytes: REQUEST_MAX_BYTES,
+      captionMaxChars: CAPTION_MAX_CHARS,
+    },
     ...(detailed ? { journals } : {}),
     backup: readBackupStatus(),
     responseTimeMs: Date.now() - startedAt,

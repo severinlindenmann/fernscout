@@ -37,14 +37,17 @@ import { quoteScalar, singleLineProblem } from "./validate/frontmatter";
 /** Same shape a trip id has to have to be read back — `lib/trips.ts`. */
 const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 
-const ACCENTS = ["sky", "yellow", "green", "coral", "navy"] as const;
-const STATUSES = ["upcoming", "current", "past"] as const;
+/** Exported for the same reason `VISIBILITIES` below is: `lib/api/openapi.ts`
+ * publishes these as the enum an agent reads, and a second copy typed out
+ * there would be a list that disagrees with the one that refuses. B540. */
+export const ACCENTS = ["sky", "yellow", "green", "coral", "navy"] as const;
+export const STATUSES = ["upcoming", "current", "past"] as const;
 /** Exported so `lib/api/tripVisibility.ts` (B396) validates a later change
  * against the same list `createTrip` validates the first one against. */
 export const VISIBILITIES = ["private", "public", "guest"] as const;
 /** Mirrors `CostsVisibility` in lib/types.ts and `parseCostsVisibility` in
  * lib/trips.ts — the two spellings the reader understands. */
-const COSTS_VISIBILITIES = ["public", "guests"] as const;
+export const COSTS_VISIBILITIES = ["public", "guests"] as const;
 
 export type NewTrip = {
   id: string;

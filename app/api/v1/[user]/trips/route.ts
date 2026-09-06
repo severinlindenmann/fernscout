@@ -134,6 +134,11 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     travellers: body.travellers,
     rates: body.rates,
     translations: body.translations,
+    // Also raw, and for the same reason: `createTrip` names the bad key
+    // rather than us guessing at a shape here. Dropped silently until B540 —
+    // a caller could set every track to false and still be asked for costs,
+    // coordinates and photos on the first day.
+    tracks: body.tracks,
   });
 
   if (!created.ok) {

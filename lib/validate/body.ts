@@ -49,7 +49,7 @@ import { describe, type Problem } from "./entry";
 /** The slice of JSON Schema `lib/api/openapi.ts` is written in. */
 export type Schema = {
   $ref?: string;
-  type?: string;
+  type?: string | string[];
   properties?: Record<string, Schema>;
   required?: string[];
   enum?: unknown[];
@@ -84,11 +84,26 @@ function resolve(schema: Schema, schemas: Record<string, Schema> | undefined): S
   return current;
 }
 
-/** True when `value` matches a JSON Schema `type` keyword. */
 /** "a string", "an array" — the refusals are read by people as often as by
- * programs, and "a array" reads as a bug in the validator. */
-function article(type: string): string {
+ * programs, and "a array" reads as a bug in the validator. A union reads as
+ * "an array or a boolean". */
+function article(type: string | string[]): string {
+  if (Array.isArray(type)) return type.map(article).join(" or ");
   return /^[aeiou]/.test(type) ? `an ${type}` : `a ${type}`;
+}
+
+/**
+ * True when `value` matches a JSON Schema `type` keyword — or any one of a
+ * list of them.
+ *
+ * OpenAPI 3.1 allows `type: ["array", "boolean"]`, and this document uses it
+ * for a field a day may either answer or decline: `costs` is a list of lines
+ * *or* `false`, meaning nothing was spent. Reading only the first entry would
+ * refuse the decline, which is the one answer the contract most wants an agent
+ * to feel free to give. B540.
+ */
+function matchesAnyType(value: unknown, type: string | string[]): boolean {
+  return (Array.isArray(type) ? type : [type]).some((one) => matchesType(value, one));
 }
 
 function matchesType(value: unknown, type: string): boolean {
@@ -257,7 +272,7 @@ export function checkBody(
   for (const [key, property] of Object.entries(properties)) {
     const value = sent[key];
     if (value === undefined) continue;
-    if (property.type && !matchesType(value, property.type)) {
+    if (property.type && !matchesAnyType(value, property.type)) {
       problems.push({
         field: key,
         got: describe(value),

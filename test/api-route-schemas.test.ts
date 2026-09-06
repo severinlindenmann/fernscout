@@ -21,22 +21,16 @@ import { openApiDocument } from "@/lib/api/openapi";
  */
 
 /**
- * The routes `checkBody` cannot check yet. Seven of them, and all seven are
- * absent from the document altogether rather than merely lacking a body —
- * `openapi.ts` still opens by saying "there are five endpoints". Two are
- * doors `AGENTS.md` sends agents to by name: `.../people` and
- * `.../travellers` are described in prose and appear nowhere in the machine
- * contract. B536.
+ * The routes `checkBody` cannot check yet — and there are none.
+ *
+ * There were seven when B535 landed, all absent from the document altogether
+ * rather than merely lacking a body, two of them (`.../people` and
+ * `.../travellers`) doors `AGENTS.md` sends agents to by name. B540 documented
+ * every one of them while making the contract executable, so this list is
+ * empty and must stay empty: a new route that reads a body without publishing
+ * a schema fails here.
  */
-const WITHOUT_A_SCHEMA = [
-  "/api/v1/{user}/channels",
-  "/api/v1/{user}/credits/purchase",
-  "/api/v1/{user}/keys",
-  "/api/v1/{user}/payments/{id}/approve",
-  "/api/v1/{user}/payments/{id}/pay",
-  "/api/v1/{user}/trips/{trip}/people",
-  "/api/v1/{user}/trips/{trip}/travellers",
-];
+const WITHOUT_A_SCHEMA: string[] = [];
 function routeFiles(dir: string, found: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const path = join(dir, entry);
