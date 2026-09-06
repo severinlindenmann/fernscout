@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { recordTripView } from "@/lib/analytics/record";
 import { getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { currentTripRef, getTrip } from "@/lib/trips";
 import { draftsVisibleTo, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
@@ -89,6 +90,11 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
   const drafts = await draftsVisibleTo(current);
   const entry = getEntryBySlug(tripId, slug, { includeDrafts: drafts.visible });
   if (!entry) notFound();
+
+  // B566, and after the lookup rather than after the gate: a slug that is not
+  // a day must not put a row in the table, or the "most-read days" list would
+  // be partly a list of typos and probes.
+  await recordTripView(current, "day", entry);
 
   const { trip, index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(tripId, {
     openAt: entry.date,

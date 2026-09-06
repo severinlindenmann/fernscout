@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
 import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
+import { recordTripView } from "@/lib/analytics/record";
 import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
 import { getPlaces, getTripStats } from "@/lib/entries";
@@ -81,6 +82,8 @@ export default async function MapPage({ params }: PageProps<"/[user]/map">) {
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(trip))) return null;
+  // B566.
+  await recordTripView(trip, "map");
   // Planned stops derived from drafts are the trip's own next moves — shown
   // to whoever may see the drafts themselves, which since B327 is the owner
   // *or* somebody on the trip. Widened deliberately: `getPlan`'s contract used

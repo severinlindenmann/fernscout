@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, KeyRound, Wallet, UserRound, Mail, MessageCircle, TriangleAlert } from "lucide-react";
+import {
+  Check,
+  KeyRound,
+  Wallet,
+  UserRound,
+  Mail,
+  MessageCircle,
+  TriangleAlert,
+  ChartNoAxesColumn,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
@@ -332,6 +341,7 @@ export default function MePageContent({
   canSignIn,
   codeMinutes,
   contactsEnabled,
+  analyticsEnabled = false,
   ownerName,
   signinNotice,
 }: {
@@ -354,6 +364,12 @@ export default function MePageContent({
   /** Whether this journal keeps a guest list at all. Resolved on the server;
    * `isEnabled` reads server config and this file is a client component. */
   contactsEnabled: boolean;
+  /** Whether this journal counts its readers at all — B566. Absent rather
+   * than disabled when off, per B74: a card leading to a 404 is worse than
+   * no card. Only ever true for the owner, because only the owner may open
+   * the page it leads to. Optional, defaulting to off, so that omitting it
+   * fails towards no card rather than towards one that 404s. */
+  analyticsEnabled?: boolean;
   /**
    * What to call the person whose journal this is — one word, and never their
    * address (B20).
@@ -922,6 +938,25 @@ export default function MePageContent({
                     className="mt-4 inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
                   >
                     {t("me.contacts")}
+                  </Link>
+                </div>
+              )}
+              {analyticsEnabled && (
+                <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-navy-900">
+                      <ChartNoAxesColumn className="h-[18px] w-[18px]" aria-hidden="true" />
+                    </span>
+                    <h3 className="font-display text-lg font-semibold text-navy-900">
+                      {t("me.visitorsTitle")}
+                    </h3>
+                  </div>
+                  <p className="mt-3 text-base leading-7 text-navy-700">{t("me.visitorsBody")}</p>
+                  <Link
+                    href={`${site.base}/me/analytics`}
+                    className="mt-4 inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+                  >
+                    {t("me.visitors")}
                   </Link>
                 </div>
               )}

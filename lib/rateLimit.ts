@@ -189,8 +189,15 @@ export function rateLimit(ip: string): { ok: boolean; retryAfter: number } {
  * The docstring here used to say "as seen through nginx", from before Caddy,
  * which is most of why nobody re-checked it.
  */
-export function clientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
+/**
+ * `Headers` as well as `Request` since B566: a server component has
+ * `await headers()` and no Request at all, and the alternative was a second
+ * copy of the two lines below — which is a second place for the trust
+ * decision documented above to be got wrong.
+ */
+export function clientIp(req: Request | Headers): string {
+  const headers = req instanceof Headers ? req : req.headers;
+  const fwd = headers.get("x-forwarded-for");
   if (fwd) return fwd.split(",")[0].trim();
-  return req.headers.get("x-real-ip") ?? "unknown";
+  return headers.get("x-real-ip") ?? "unknown";
 }

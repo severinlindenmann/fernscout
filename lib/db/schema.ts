@@ -437,6 +437,43 @@ export type PaymentsTable = {
   requested_at: string | null;
 };
 
+/**
+ * One page opened, by one anonymous visitor — B566.
+ *
+ * The narrowest row this schema has, and deliberately: there is no referrer,
+ * no country, no device, no browser and no IP, because every one of those is
+ * either derived from the two values `lib/analytics/visitor.ts` exists in
+ * order not to keep, or — in the referrer's case — a record of where a private
+ * link was pasted.
+ *
+ * `owner_id` is the **username**, per the first convention in
+ * `lib/db/owner.ts`: these rows belong to a person's journal, and the tenant
+ * boundary is the directory name.
+ *
+ * Rows are deleted after `RETENTION_DAYS` (lib/analytics/record.ts), which is
+ * a number `site/legal/*.md` states to readers. If you change it there, change
+ * it here, and the other way round.
+ */
+export type AnalyticsEventsTable = {
+  id: string;
+  owner_id: string;
+  /** `journal` | `trip` | `day` | `gallery` | `map` | `photobook`. Text
+   * rather than an enum for the reason every other status column here is —
+   * Postgres enums need `create type` and SQLite has none. The closed list
+   * lives in `VIEW_KINDS` in lib/analytics/record.ts. */
+  kind: string;
+  /** The trip id, unqualified — `owner_id` already carries the journal. Null
+   * for a `journal` view, which is the only kind that belongs to no trip. */
+  trip_id: string | null;
+  /** The day's slug. Null for every kind but `day`. */
+  slug: string | null;
+  /** Sixteen hex characters from `visitorHash()`, and the only thing about a
+   * reader that is ever stored. Unreadable back to a person the day after it
+   * is written, because the salt that made it is gone. */
+  visitor_hash: string;
+  occurred_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -454,6 +491,7 @@ export type Database = {
   credits: CreditsTable;
   credit_ledger: CreditLedgerTable;
   payments: PaymentsTable;
+  analytics_events: AnalyticsEventsTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -475,4 +513,5 @@ export const TABLE_NAMES = [
   "credits",
   "credit_ledger",
   "payments",
+  "analytics_events",
 ] as const satisfies readonly (keyof Database)[];

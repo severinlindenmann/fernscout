@@ -19,6 +19,7 @@ import * as dropDigestSends from "./017-drop-digest-sends";
 import * as payments from "./018-payments";
 import * as paymentApproval from "./020-payment-approval";
 import * as identity from "./019-identity";
+import * as analytics from "./021-analytics";
 
 /**
  * Every migration, listed by hand.
@@ -53,6 +54,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "018-payments": payments,
   "019-identity": identity,
   "020-payment-approval": paymentApproval,
+  "021-analytics": analytics,
 };
 
 export const migrationProvider: MigrationProvider = {

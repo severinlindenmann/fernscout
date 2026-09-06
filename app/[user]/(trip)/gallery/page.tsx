@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { recordTripView } from "@/lib/analytics/record";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
 import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
@@ -42,6 +43,13 @@ export default async function GalleryPage({ params }: PageProps<"/[user]/gallery
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(trip))) return null;
+
+  // B566. The gallery is its own route, which is the whole reason this
+  // feature needs no client JavaScript to answer "was the gallery looked at".
+  // What it cannot see is a photograph opened in the lightbox — that is an
+  // in-page interaction, and measuring it would need the beacon this design
+  // rejected. The page says "gallery opened", not "photographs viewed".
+  await recordTripView(trip, "gallery");
 
   // B318: this page called getAllMedia/getPlaces with no options at all, so
   // it filtered drafts out for every viewer, owner included — the one

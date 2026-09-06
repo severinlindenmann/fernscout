@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { recordTripView } from "@/lib/analytics/record";
 import { draftsVisibleTo, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getAllEntries } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
@@ -21,6 +22,13 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(current))) return null;
+
+  // B566. After the gate, deliberately: a view that was refused is not a
+  // view. `journal` rather than `trip` because this URL *is* the journal —
+  // `/<user>` renders whichever trip is current — so it is the number the
+  // owner means by "was it opened at all". The trip id rides along so the
+  // per-trip table still counts it.
+  await recordTripView(current, "journal");
 
   // B327: the owner, or somebody on the trip. `canPublish` travels with it
   // because the draft banner has to say which of the two is reading.
