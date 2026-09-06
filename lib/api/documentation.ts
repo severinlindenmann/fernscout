@@ -122,6 +122,34 @@ export function instanceDocumentation(): string {
     "> author owns. Reading happens in a browser. Writing happens through an agent",
     "> holding a token — there is no editing interface, and there will not be one.",
     "",
+    "## Already holding a token?",
+    "",
+    ...wrap(
+      `Then call \`GET /api/v1/<user>/status\` first, before anything else on this ` +
+        "page. It answers in one call where the journal stands: every trip you may " +
+        "write to, every **draft waiting for a person to see it** — each with the " +
+        "call that would publish it — which capabilities are on, and a `next` " +
+        "saying what to do. It is also the cheapest credential check there is: " +
+        "`401` means go and get a code, `200` means you are in.",
+      78,
+    ),
+    "",
+    ...wrap(
+      "The rest of this document is written for the other case — starting a " +
+        "journal that does not exist yet — and an agent handed an existing one " +
+        "and asked to *finish what is half done* can read a long way down before " +
+        "finding the call that would have answered it immediately. B567.",
+      78,
+    ),
+    "",
+    ...wrap(
+      "**No call returns the owner's email address**, and none will: it is a " +
+        "contact detail rather than a setting. If your token has expired, ask the " +
+        "person which address owns the journal rather than looking for an endpoint " +
+        "that tells you.",
+      78,
+    ),
+    "",
     "## Can you write here?",
     "",
     ...wrap(
@@ -958,6 +986,20 @@ never re-led with whichever locale you asked for.
 \`countryCode\`, \`tags\`, the transport block, \`travelScene\`, \`costs\` and the
 \`gallery\` list, and a trip that is not \`public\` has no twin at all — a valid
 token does not open one, because this is the route an anonymous browser reads.
+
+### Picking up somebody else's journal
+
+If you were handed a token and a journal and asked to *see where it is up to*,
+**\`GET /api/v1/${example}/status\` is the whole first step.** It names every
+trip you may write to, every draft waiting — with the call that would publish
+each one — and what to do next. You should not have to go hunting across the
+routes below to find out what exists.
+
+Two things it will not tell you, and nothing else will either. **The owner's
+email address is returned by no call**; if your token has expired, ask the
+person. And there is **no history**: nothing records why a day was left as a
+draft, or what the last agent meant to do. If the answer matters, it is a
+question for the person rather than a call.
 
 ### Reading your own work back
 

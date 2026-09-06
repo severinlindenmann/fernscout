@@ -620,6 +620,14 @@ export const PERFECT_DAY_INTRO =
  * reported unconverted rather than counted wrong.
  */
 export const DAY_MONEY_QUESTION =
+  "**A trip that keeps track of costs refuses a day that says nothing about them**, so " +
+  "this is not optional the way the rows around it are — and there are three honest " +
+  "answers. The figures. Or `\"costs\": false`, meaning there was none. Or " +
+  '`"costs": "unknown"`, meaning there was some and nobody has it — which is the truth ' +
+  "about most of a trip that finished a while ago, and is the answer for cash somebody " +
+  "paid and cannot remember. Ask which; do not choose for them, and never send `false` " +
+  "where you mean `\"unknown\"`. B567 — being refused is a worse way to learn this than " +
+  "being told. " +
   "Ask what the day cost, and record each thing separately rather than as one total: " +
   "`costs: [{label, amount, currency, category}]`. `label` and `amount` are required, and " +
   "the amount is a positive number — zero or less is refused. **The currency is the one " +
