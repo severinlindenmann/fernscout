@@ -15,6 +15,7 @@ import type { MediaTile, PhotobookEntry } from "@/lib/types";
 import BookLevelView, { type PreviewState } from "./BookLevelView";
 import DayLevelView, { type Drill } from "./DayLevelView";
 import { extractSpreads } from "./previewSlice";
+import { usePersistedState } from "./usePersistedState";
 
 /** Every outcome `order/route.ts` can redirect back with, as a key rather
  * than a sentence baked into this file — the same reasoning as the postcard
@@ -103,49 +104,26 @@ export default function PhotobookPageContent({
    * default is a better failure than a form that cannot be submitted. B534
    * changes nothing here — `options.days` is still keyed by date, so an
    * arrangement saved before this ticket restores exactly as it did before.
+   *
+   * The mounting-after / never-in-the-initialiser rule, and the restore/persist
+   * pair of effects themselves, live in `usePersistedState` — B507 moved them
+   * there after a race between the two (real only in dev, under Strict Mode's
+   * double-effect invocation) made a saved arrangement vanish on reload; see
+   * that file's own comment and `test/photobook-persistence.test.tsx`.
    */
   const storageKey = `fernscout:photobook:${tripRef}`;
-  const [options, setOptions] = useState<BookOptions>(() => ({
-    ...DEFAULT_OPTIONS,
-    locale: locales[0] ?? DEFAULT_OPTIONS.locale,
-  }));
-
-  /** Whether the stored arrangement has been read yet. Until it has, nothing
-   * may be written back — the first effect would otherwise overwrite a real
-   * arrangement with the defaults this component started from. */
-  const restored = useRef(false);
-
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Partial<BookOptions>;
-        // The same shape, and the same disable, as `CurrencyProvider` and
-        // `LocaleProvider`: the default renders on the server and on the first
-        // client paint, then the stored preference is adopted. Reading it any
-        // earlier is the hydration mismatch this effect exists to avoid.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setOptions((o) => ({
-          ...o,
-          ...parsed,
-          days: typeof parsed.days === "object" && parsed.days !== null ? parsed.days : {},
-        }));
-      }
-    } catch {
-      // A stored arrangement that will not parse is one nobody can use.
-    }
-    restored.current = true;
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (!restored.current) return;
-    try {
-      window.localStorage.setItem(storageKey, JSON.stringify(options));
-    } catch {
-      // A full or disabled store is not a reason to stop working; the
-      // arrangement simply does not outlive the tab.
-    }
-  }, [storageKey, options]);
+  const [options, setOptions] = usePersistedState<BookOptions>(
+    storageKey,
+    { ...DEFAULT_OPTIONS, locale: locales[0] ?? DEFAULT_OPTIONS.locale },
+    (saved, current) => {
+      const parsed = JSON.parse(saved) as Partial<BookOptions>;
+      return {
+        ...current,
+        ...parsed,
+        days: typeof parsed.days === "object" && parsed.days !== null ? parsed.days : {},
+      };
+    },
+  );
   const [preview, setPreview] = useState<PreviewState>(null);
   const [submitting, setSubmitting] = useState(false);
 
