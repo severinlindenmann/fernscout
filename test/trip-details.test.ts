@@ -222,14 +222,17 @@ describe("what is refused", () => {
   test("an end before the start, checked against the result so one date may arrive alone", async () => {
     const refused = await patch({ end: "2024-09-01" }, await tokenFor(OWNER_EMAIL));
     expect(refused.status).toBe(400);
-    expect(refused.body.error).toBe("invalid_range");
+    // `invalid_date` rather than a code of its own: lib/api/errorCodes.ts
+    // already says "a date is not a real calendar date, or `end` is before
+    // `start`", which is both of this route's date refusals.
+    expect(refused.body.error).toBe("invalid_date");
     expect(fs.readFileSync(tripFile(), "utf8")).toContain('end: "2024-09-14"');
   });
 
   test("a date that is not one", async () => {
     const refused = await patch({ start: "11.09.2024" }, await tokenFor(OWNER_EMAIL));
     expect(refused.status).toBe(400);
-    expect(refused.body.error).toBe("invalid_start");
+    expect(refused.body.error).toBe("invalid_date");
   });
 
   test("visibility sent alongside a detail, because each call rewrites trip.md whole", async () => {
@@ -283,5 +286,70 @@ describe("who may read it, through the same door", () => {
     const refused = await patch({ visibility: "everyone" }, await tokenFor(OWNER_EMAIL));
     expect(refused.status).toBe(400);
     expect(fs.readFileSync(tripFile(), "utf8")).toContain('visibility: "private"');
+  });
+});
+
+/**
+ * B622 — the same four fields, through the door an agent uses.
+ *
+ * `PATCH /api/v1/{user}/trips/{trip}` was a `405` that named every other door
+ * and apologised for this one. It now calls the same `patchTripDetails` the
+ * browser's `/api/trip` does, so the rules cannot differ between them — what
+ * this file's cases above pin for one is true of both.
+ */
+describe("the agent's door onto the same four fields", () => {
+  async function v1(
+    body: Record<string, unknown>,
+    token?: string,
+    trip = TRIP,
+  ): Promise<{ status: number; body: Body }> {
+    const { PATCH } = await import("@/app/api/v1/[user]/trips/[trip]/route");
+    const response = await PATCH(
+      new Request(`https://example.test/api/v1/${OWNER}/trips/${trip}`, {
+        method: "PATCH",
+        headers: headers(token ? { authorization: `Bearer ${token}` } : {}),
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ user: OWNER, trip }) },
+    );
+    return { status: response.status, body: (await response.json()) as Body };
+  }
+
+  test("the owner renames a trip and reads it back", async () => {
+    const saved = await v1({ title: "Algarve 2026" }, await tokenFor(OWNER_EMAIL));
+    expect(saved.status).toBe(200);
+    expect(saved.body.title).toBe("Algarve 2026");
+    await clearCaches();
+    const { getTrip } = await import("@/lib/trips");
+    expect(getTrip(`${OWNER}/${TRIP}`)?.title).toBe("Algarve 2026");
+  });
+
+  test("a body naming none of the four is refused, not silently accepted", async () => {
+    const refused = await v1({ cover: "/media/x.jpg" }, await tokenFor(OWNER_EMAIL));
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toBe("nothing_to_change");
+  });
+
+  test("a trip-scoped token writes days into the trip and cannot rename it", async () => {
+    const { issueCode, verifyCode, tripWriteScope } = await import("@/lib/auth");
+    // The fixture's `people:` carries this address, which is what entitles it
+    // to a trip-scoped token at all — and, this test's point, to nothing
+    // beyond writing days into the journey.
+    const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent", { trip: TRIP });
+    const result = await verifyCode(OWNER, OWNER_EMAIL, code, "agent", tripWriteScope(TRIP));
+    if (!result.ok) throw new Error(`no trip token: ${result.reason}`);
+
+    const refused = await v1({ title: "Not yours" }, result.token);
+    expect(refused.status).toBe(403);
+    expect(refused.body.error).toBe("out_of_scope");
+    await clearCaches();
+    const { getTrip } = await import("@/lib/trips");
+    expect(getTrip(`${OWNER}/${TRIP}`)?.title).not.toBe("Not yours");
+  });
+
+  test("a trip that does not exist answers the same as one this token may not touch", async () => {
+    const missing = await v1({ title: "x" }, await tokenFor(OWNER_EMAIL), "no-such-trip");
+    expect(missing.status).toBe(404);
+    expect(missing.body.error).toBe("unknown_trip");
   });
 });

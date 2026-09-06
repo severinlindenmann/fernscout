@@ -795,18 +795,16 @@ describe("a verb these routes do not have", () => {
     expect(body.message).toMatch(/features/i);
   });
 
-  test("PATCH on a trip points at the budget, the day and the media doors", async () => {
+  test("PATCH on a trip is a door now, not a signpost — B622", async () => {
+    // It used to be a 405 naming every route that did exist and apologising
+    // for the four it did not. B622 built those four, so what a caller with
+    // no token gets is the ordinary refusal of a real operation.
+    // `test/trip-details.test.ts` owns what it does with one.
     const response = await patchTripRoute(new Request("https://x.test/api/v1/alex/trips/alps"), {
       params: Promise.resolve({ user: "alex", trip: "alps" }),
     } as never);
-    expect(response.status).toBe(405);
-    expect(response.headers.get("Allow")).toBe("DELETE");
-    const body = (await response.json()) as { error: string; message: string };
-    expect(body.message).toContain("/api/v1/alex/trips/alps/costs");
-    expect(body.message).toContain("/api/v1/alex/trips/alps/days/<slug>");
-    expect(body.message).toContain("/api/v1/alex/trips/alps/media");
-    // B352 and B396 opened these two, so the message names them as well.
-    expect(body.message).toContain("/api/v1/alex/trips/alps/visibility");
-    expect(body.message).toContain("/api/v1/alex/trips/alps/rates");
+    expect(response.status).toBe(401);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).not.toBe("method_not_allowed");
   });
 });

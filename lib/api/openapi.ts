@@ -783,6 +783,66 @@ export function openApiDocument() {
             },
           },
         },
+        patch: {
+          summary: "Rename a trip, or move its dates",
+          description:
+            "The four fields of a trip nothing could write until B622: `title`, `tagline`, " +
+            "`start` and `end`. Send only what is changing. A title cannot be cleared — a " +
+            "trip.md without one does not load — while an emptied `tagline` removes the key " +
+            "rather than storing `\"\"`. Dates are `YYYY-MM-DD`, and `end` may not precede " +
+            "`start`: the check is against the *result*, so either date may arrive on its " +
+            "own.\n\nOnly the frontmatter lines you name are rewritten. The prose under it, " +
+            "the key order, and every other key are left byte for byte, so this is safe on a " +
+            "trip.md somebody wrote by hand.\n\n**Owner only.** A trip-scoped token belongs " +
+            "to somebody who was on the journey, and adding a day to it is not the same " +
+            "authority as saying what it is called. The cover is still trip.md alone — it is " +
+            "a photograph, and choosing one belongs where photographs are.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string", description: "One line. Cannot be cleared." },
+                    tagline: {
+                      type: "string",
+                      description: "One line. Empty string removes it rather than writing one.",
+                    },
+                    start: { type: "string", description: "YYYY-MM-DD." },
+                    end: {
+                      type: "string",
+                      description: "YYYY-MM-DD, and not before `start`.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "The four fields as they now stand on disk" },
+            "400": {
+              description:
+                "A body naming none of the four (`nothing_to_change`), a cleared or " +
+                "multi-line title (`invalid_title`), or a date that is not one — an `end` " +
+                "before the `start` is the same `invalid_date` — and nothing is written in " +
+                "any of those cases",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "A trip-scoped token: it writes days into the trip and cannot rename it",
+            },
+            "404": {
+              description:
+                "No such trip, or none this token may write to — the two answer alike",
+            },
+          },
+        },
         delete: {
           summary: "Ask to delete a trip (deletes nothing; mails the owner)",
           description:

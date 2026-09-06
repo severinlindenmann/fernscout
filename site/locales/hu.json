@@ -530,6 +530,7 @@
   "me.inviteGuestBody": "Nyugodtan elküldheted a családnak. Ezzel valaki kérheti, hogy olvashassa ezt a naplót, semmi többet — addig nem lát semmit, amíg rá nem bólintasz.",
   "me.inviteGuestTitle": "Link az olvasáshoz",
   "me.journalCardBody": "Ahogy a napló neve szerepel — minden oldal tetején, a fülön, és a megosztáskor megjelenő kártyán.",
+  "me.journalCardEdit": "szerkesztés",
   "me.journalCardTitle": "Ez a napló",
   "me.journalEmail": "E-mail",
   "me.journalEmailNote": "Ez a cím dönti el, ki kaphat kulcsot ehhez a naplóhoz, ezért itt nem módosítható. Szólj annak, aki a kiszolgálót üzemelteti.",

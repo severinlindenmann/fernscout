@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   BookMarked,
   Check,
+  ChevronRight,
   Pencil,
   KeyRound,
   Wallet,
@@ -1066,8 +1067,38 @@ export default function MePageContent({
                       {t("me.journalCardTitle")}
                     </h3>
                   </div>
-                  <p className="mt-3 text-base leading-7 text-navy-600">{t("me.journalCardBody")}</p>
-                  <JournalSettings username={username} journal={journal} />
+                  {/*
+                    Collapsed to the thing it is about — B623. Renaming a
+                    journal is done once and then not again for a year, and
+                    two text boxes, a Save and the email block were taking
+                    that room every visit. The pencil is the shape B621's trip
+                    rows already use.
+                  */}
+                  <details className="mt-3">
+                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                      <span className="min-w-0">
+                        <span className="block truncate font-display text-lg font-semibold text-navy-900">
+                          {journal.title}
+                        </span>
+                        {journal.tagline && (
+                          <span className="block truncate text-sm text-navy-600">
+                            {journal.tagline}
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-600">
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
+                        {/* The disclosure's own name is the journal's title,
+                            which says what it is about and not what opening it
+                            does. One hidden word says the second half. */}
+                        <span className="sr-only">{t("me.journalCardEdit")}</span>
+                      </span>
+                    </summary>
+                    <p className="mt-3 text-base leading-7 text-navy-600">
+                      {t("me.journalCardBody")}
+                    </p>
+                    <JournalSettings username={username} journal={journal} />
+                  </details>
                 </div>
               )}
 
@@ -1097,11 +1128,23 @@ export default function MePageContent({
                   to judge before reading a code aloud: what the other end can
                   do, and for how long. The warning is decision 24 in a
                   sentence, and it earns the callout rather than a stray line.
+
+                  Folded away since B623. The words are right and they are read
+                  once: the first time somebody hands a key over. Left open
+                  they sat between the button that mints one and the list of
+                  live keys underneath, which is what an owner comes back for.
+                  A `<details>` rather than state, like the details form — and
+                  the summary keeps the heading, so what is behind it is named
+                  rather than hidden.
                 */}
-                <div className="mt-5 border-t border-navy-200 pt-5">
-                  <h4 className="font-display text-base font-semibold text-navy-900">
+                <details className="mt-5 border-t border-navy-200 pt-5">
+                  <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-display text-base font-semibold text-navy-900 [&::-webkit-details-marker]:hidden">
+                    <ChevronRight
+                      className="h-4 w-4 shrink-0 text-navy-600 transition-transform [details[open]>summary>&]:rotate-90"
+                      aria-hidden="true"
+                    />
                     {t("me.tokenTitle")}
-                  </h4>
+                  </summary>
                   <p className="mt-1.5 text-base leading-7 text-navy-700">{t("me.tokenBody")}</p>
                   <div className="mt-3 flex gap-3 rounded-xl border border-coral-300 bg-coral-300/15 p-3.5">
                     <TriangleAlert
@@ -1110,7 +1153,7 @@ export default function MePageContent({
                     />
                     <p className="text-base leading-7 text-navy-900">{t("me.tokenWarning")}</p>
                   </div>
-                </div>
+                </details>
 
                 {/* The way to take a key back — B283. Renders nothing until
                     there is a live key. */}

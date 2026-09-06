@@ -614,6 +614,7 @@ export type TranslationKey =
   | "me.inviteGuestBody"
   | "me.inviteGuestTitle"
   | "me.journalCardBody"
+  | "me.journalCardEdit"
   | "me.journalCardTitle"
   | "me.journalEmail"
   | "me.journalEmailNote"

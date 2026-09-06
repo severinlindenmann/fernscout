@@ -70,7 +70,9 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
   const trip = getTrip(ref);
   if (!trip) return { ok: false, error: "unknown_trip" };
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return { ok: false, error: "invalid_body", message: "Send a JSON object." };
+    // `invalid_json`, the code lib/api/errorCodes.ts already carries for
+    // exactly this — a body the route could not read as an object.
+    return { ok: false, error: "invalid_json", message: "Send a JSON object." };
   }
   const body = raw as { title?: unknown; tagline?: unknown; start?: unknown; end?: unknown };
 
@@ -102,9 +104,14 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
     if (body[field] === undefined) continue;
     const value = body[field];
     if (typeof value !== "string" || !DATE_RE.test(value)) {
+      // `invalid_date` rather than a code per field: lib/api/errorCodes.ts
+      // already carries it, and its text is written for exactly these two
+      // cases — "a date is not a real calendar date, or `end` is before
+      // `start`". A second vocabulary for the same two mistakes is a second
+      // list to keep in step.
       return {
         ok: false,
-        error: `invalid_${field}`,
+        error: "invalid_date",
         message: `${field} must be a date as YYYY-MM-DD, e.g. "2026-04-11".`,
       };
     }
@@ -119,7 +126,7 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
   if (next.end < next.start) {
     return {
       ok: false,
-      error: "invalid_range",
+      error: "invalid_date",
       message:
         `end ${next.end} is before start ${next.start}. A trip whose dates run backwards is ` +
         `skipped everywhere it would otherwise be read, so this is refused rather than written.`,
