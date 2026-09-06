@@ -398,6 +398,7 @@ export const KNOWN_TRIP_FIELDS = new Set([
   "cover",
   "accent",
   "rates",
+  "ratesFrom",
   "translations",
   "people",
   "travellers",
@@ -444,6 +445,27 @@ function parseRates(raw: unknown, folder: string): RateTable {
   return parseRateTable(raw, (message) =>
     console.warn(`[trips] ${folder}/trip.md rates: ${message}`),
   );
+}
+
+/**
+ * `ratesFrom:` — where each looked-up `rates:` entry came from, written by
+ * `fillTripRates` (lib/api/tripRates.ts, B543) beside the rate itself. A
+ * hand-typed rate carries no entry here, which is exactly right: this is
+ * provenance for a measurement, not a place to explain a judgement call.
+ *
+ * Fails open per entry, like `rates:` above — one bad line here must not cost
+ * the page every citation it does have.
+ */
+function parseRatesFrom(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const code = key.trim().toUpperCase();
+    if (/^[A-Z]{3}$/.test(code) && typeof value === "string" && value.trim()) {
+      out[code] = value.trim();
+    }
+  }
+  return out;
 }
 
 function parseTranslations(raw: unknown): TripTranslations | undefined {
@@ -586,6 +608,7 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
     cover: data.cover ? mediaWithOwner(String(data.cover), username) : undefined,
     accent: parseAccent(data.accent),
     rates: parseRates(data.rates, folder),
+    ratesFrom: parseRatesFrom(data.ratesFrom),
     intro: content.trim(),
     translations: parseTranslations(data.translations),
     people: parsePeople(data.people, folder),

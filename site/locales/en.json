@@ -206,6 +206,7 @@
   "cost.prep": "Before leaving",
   "cost.private": "The numbers on this trip are shared with guests only.",
   "cost.projected": "Projected total",
+  "cost.ratesFrom": "Rates: {list}.",
   "cost.remaining": "Left to spend",
   "cost.showTable": "Show table",
   "cost.spentIn": "paid",

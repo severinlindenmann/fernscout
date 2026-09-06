@@ -253,6 +253,17 @@ export default function CostsPageContent({
               : t("currency.approxNoteUndated", { currency, base })}
           </p>
         )}
+        {/* A rate the archive supplied, not a person, names where it came
+            from — B543. A hand-typed rate has no entry here at all. */}
+        {Object.keys(summary.ratesFrom).length > 0 && (
+          <p className="mt-1.5 text-xs text-navy-600">
+            {t("cost.ratesFrom", {
+              list: Object.entries(summary.ratesFrom)
+                .map(([code, note]) => `${code} — ${note}`)
+                .join(", "),
+            })}
+          </p>
+        )}
       </main>
     </div>
   );

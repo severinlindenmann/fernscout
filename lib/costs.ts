@@ -335,6 +335,7 @@ export function getCostSummary(
     byDay,
     items,
     unconverted,
+    ratesFrom: trip?.ratesFrom ?? {},
   };
 }
 
