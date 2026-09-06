@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (111)
+## backlog (112)
 
 ### security (6)
 
@@ -137,7 +137,7 @@ Do not edit them by hand; run the script.
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 
-### chore (9)
+### chore (10)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -150,6 +150,7 @@ Do not edit them by hand; run the script.
 | [B314](backlog/chore/B314-a-comment-beside-the-trip-route.md) | A comment beside the trip route still says a new trip defaults to private | CHORE | low | low |
 | [B343](backlog/chore/B343-clearmattercache-is-defined-twice-with-its.md) | clearMatterCache is defined twice, with its reasoning written out twice | CHORE | low | low |
 | [B462](backlog/chore/B462-systemd-logs-multiple-trigger-source-candidates.md) | systemd logs 'multiple trigger source candidates' every backup run now that one handler serves both OnFailure and OnSuccess | CHORE | low | low |
+| [B594](backlog/chore/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
 ### ops (17)
 
@@ -206,7 +207,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (10)
+## in-development (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -218,10 +219,9 @@ _Nothing here._
 | [B507](in-development/B507-the-photobook-composer-is-a-desktop.md) | The photobook composer is a desktop sidebar on a phone-shaped job | FEATURE | medium | high | `6b9bf0a6` |
 | [B573](in-development/B573-a-journal-written-by-the-helper.md) | A journal written by the helper tools can never carry weather | FEATURE | medium | low | `ac8af30e` |
 | [B578](in-development/B578-editing-a-day-s-title-on.md) | Editing a day's title on disk makes publish unable to find that day again | ISSUE | medium | low | `ac8af30e` |
-| [B07](in-development/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium | `6b9bf0a6` |
 | [B484](in-development/B484-the-photobook-result-panel-can-render.md) | The photobook result panel can render with no download links | ISSUE | low | low | `6b9bf0a6` |
 
-## testing (270)
+## testing (271)
 
 ### security (2)
 
@@ -394,7 +394,7 @@ _Nothing here._
 | [B565](testing/big-feature/B565-the-transport-and-costs-pages-are.md) | The transport and costs pages are tables, and nothing shows the weather or the shape of the trip | FEATURE | medium | high | — |
 | [B566](testing/big-feature/B566-the-owner-cannot-tell-whether-anyone.md) | the owner cannot tell whether anyone is reading the journal | FEATURE | medium | high | — |
 
-### small-feature (60)
+### small-feature (61)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -453,6 +453,7 @@ _Nothing here._
 | [B587](testing/small-feature/B587-a-closed-trip-cannot-be-advertised.md) | A closed trip cannot be advertised as a locked card on the trips overview | FEATURE | medium | medium | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
+| [B07](testing/small-feature/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium | — |
 | [B11](testing/small-feature/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium | — |
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
 | [B305](testing/small-feature/B305-a-reader-shown-a-day-in.md) | A reader shown a day in a language they did not ask for is told nothing about it | FEATURE | low | low | — |
