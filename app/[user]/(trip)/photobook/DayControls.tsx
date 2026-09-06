@@ -36,6 +36,7 @@ export default function DayControls({
   focalOf,
   setDayLayout,
   setDayRunOn,
+  setDayExcluded,
   setHero,
   movePhoto,
   toggleDayPhoto,
@@ -56,6 +57,8 @@ export default function DayControls({
   focalOf: (src: string) => Focal;
   setDayLayout: (date: string, layout: DayLayout) => void;
   setDayRunOn: (date: string, runOn: boolean) => void;
+  /** Leave the whole day out of the book, or put it back — B564. */
+  setDayExcluded: (date: string, excluded: boolean) => void;
   setHero: (date: string, src: string) => void;
   movePhoto: (date: string, src: string, by: -1 | 1, dayPhotos: MediaTile[]) => void;
   toggleDayPhoto: (date: string, src: string, dayPhotos: MediaTile[]) => void;
@@ -67,6 +70,7 @@ export default function DayControls({
   resetFocal: (src: string) => void;
   t: (key: TranslationKey, vars?: Record<string, string>) => string;
 }) {
+  const excluded = plan?.excluded === true;
   const chosen = plan?.photos ?? dayPhotos.map((m) => m.src);
   const included = new Set(chosen);
   const ordered = plan?.photos
@@ -81,6 +85,27 @@ export default function DayControls({
       <p className="text-sm font-semibold text-navy-800">{t("photobook.day.heading")}</p>
       <p className="mt-1 text-xs text-navy-600">{t("photobook.day.hint")}</p>
 
+      {/* The one editorial act that was missing — B564. Beside the day's own
+          controls rather than buried in a menu, because leaving a day out is
+          not a smaller decision than any of the others here. Everything below
+          this is a decision about a day that is actually going to print, so
+          it stays hidden while this is on — there is nothing there to arrange
+          until the day is back in. */}
+      <label className="mt-3 flex items-start gap-2 rounded-lg border border-navy-200 bg-cream-50 px-2.5 py-2 text-xs text-navy-700">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          checked={excluded}
+          onChange={(e) => setDayExcluded(day.date, e.target.checked)}
+        />
+        <span>
+          <span className="block font-semibold text-navy-800">{t("photobook.day.exclude")}</span>
+          <span className="block text-navy-600">{t("photobook.day.excludeHint")}</span>
+        </span>
+      </label>
+
+      {excluded ? null : (
+        <>
       {/* A radio group, not six toggle buttons. They are mutually exclusive —
           exactly one is true — and `aria-pressed` on each said the opposite:
           a screen reader announced six independent toggles, any of which
@@ -249,12 +274,14 @@ export default function DayControls({
           })}
         </ul>
       )}
+        </>
+      )}
 
       {/* The editor for whichever photograph on this day is being adjusted,
           one at a time and outside the grid so it can be shown larger than a
           3-column thumbnail — tapping it, or pressing the arrow keys once it
           has focus, moves the point `cover()` crops from. */}
-      {focalEditing && dayPhotos.some((m) => m.src === focalEditing) && (
+      {!excluded && focalEditing && dayPhotos.some((m) => m.src === focalEditing) && (
         <div className="mt-3 border-t border-navy-100 pt-3">
           <p className="text-xs text-navy-600">{t("photobook.day.cropHint")}</p>
           <button
