@@ -1,10 +1,20 @@
 "use client";
 
 /**
- * A small illustrated skyline. Buildings get windows, roofs, spires and a few
- * palms/trees so the destination reads as a place rather than a bar chart.
- * The shape is derived from the location name, so each city looks consistent
- * every time it's drawn but different from its neighbours.
+ * A small illustrated skyline, sized to the place it names.
+ *
+ * The *shape* is derived from the location name, so somewhere looks consistent
+ * every time it is drawn and unlike its neighbours. Two things are not from
+ * the name, because a hash is not evidence about anywhere real:
+ *
+ * - **How big it is** comes from `population`, which `lib/tripView.ts` reads
+ *   out of the GeoNames index already committed for reverse-geocoding photos.
+ *   Before this every place got five to seven towers, so a hamlet in the Alps
+ *   and Tokyo were drawn identically. Absent — no index built, mid-ocean, or a
+ *   place the dump has no figure for — draws a modest town, which is the
+ *   honest thing to render when nothing is known.
+ * - **What grows there** comes from `lat`. There were two palm trees hard-
+ *   coded into every skyline, so Reykjavík and Ulaanbaatar had them too.
  */
 
 function hashString(s: string) {
@@ -38,34 +48,86 @@ type Building = {
   kind: "flat" | "pitched" | "spire" | "dome";
 };
 
+/**
+ * A place's size on a 0–1 scale, from its population.
+ *
+ * Logarithmic, because population is: a village of 800 and a town of 8,000 is
+ * the same visible step as a city of 800,000 and one of 8 million, and a
+ * linear scale would draw every place under a million as the same hamlet.
+ * 1,000 → 0 (the smallest entry GeoNames' `cities1000` carries) and 10 million
+ * → 1.
+ *
+ * `undefined` lands at 0.35 — a small town. Not 0: an unknown place is not
+ * evidence of a tiny one, and the fallback should be the shrug, not a claim.
+ */
+export function cityScale(population?: number): number {
+  if (population === undefined || population < 1) return 0.35;
+  return Math.min(1, Math.max(0, (Math.log10(population) - 3) / 4));
+}
+
+/** What grows at a latitude. Coarse on purpose — four bands, drawn from the
+ * one number every day already carries. */
+export type Flora = "palm" | "broadleaf" | "conifer" | "bare";
+
+export function floraFor(lat?: number): Flora {
+  if (lat === undefined || !Number.isFinite(lat)) return "broadleaf";
+  const a = Math.abs(lat);
+  if (a <= 23.5) return "palm";
+  if (a <= 48) return "broadleaf";
+  if (a <= 66.5) return "conifer";
+  return "bare";
+}
+
 export default function Cityscape({
   name,
+  population,
+  lat,
   width = 260,
   height = 140,
   className,
 }: {
   name: string;
+  /** From the GeoNames index — see `cityScale`. */
+  population?: number;
+  /** Decides what is planted alongside — see `floraFor`. */
+  lat?: number;
   width?: number;
   height?: number;
   className?: string;
 }) {
   const rand = mulberry32(hashString(name));
+  const scale = cityScale(population);
   const buildings: Building[] = [];
 
+  // Three buildings for a village, twelve for a capital — and the tall ones
+  // only appear where there are enough of them for a tall one to belong.
+  const count = 3 + Math.round(scale * 9);
+  // A hamlet's tallest building is a third of the frame; a metropolis fills it.
+  const tallest = 30 + scale * (height - 56);
+  const narrow = 20 + scale * 10;
+
   let x = 4;
-  const count = 5 + Math.floor(rand() * 3);
-  for (let i = 0; i < count && x < width - 20; i++) {
-    const w = 26 + Math.floor(rand() * 20);
-    const h = 38 + Math.floor(rand() * (height - 62));
+  for (let i = 0; i < count && x < width - 16; i++) {
+    const w = narrow + Math.floor(rand() * 16);
+    const h = 26 + Math.floor(rand() * Math.max(12, tallest - 26));
     const ci = Math.floor(rand() * WALLS.length);
     const kindRoll = rand();
+    // Spires and domes are civic buildings; a place too small to have one is
+    // drawn without one rather than given a cathedral by the dice.
     const kind: Building["kind"] =
-      kindRoll > 0.86 ? "spire" : kindRoll > 0.72 ? "dome" : kindRoll > 0.45 ? "pitched" : "flat";
+      kindRoll > 0.86 && scale > 0.45
+        ? "spire"
+        : kindRoll > 0.72 && scale > 0.3
+          ? "dome"
+          : kindRoll > 0.45
+            ? "pitched"
+            : "flat";
     buildings.push({ x, w, h, wall: WALLS[ci], roof: ROOFS[ci], kind });
-    x += w + 5 + Math.floor(rand() * 8);
+    x += w + 4 + Math.floor(rand() * 7);
   }
 
   const baseY = height - 10;
+  const flora = floraFor(lat);
 
   return (
     <svg
@@ -131,9 +193,11 @@ export default function Cityscape({
         );
       })}
 
-      {/* a couple of palms for warmth */}
-      <Palm x={width - 26} baseY={baseY} scale={1} />
-      <Palm x={width - 6} baseY={baseY} scale={0.78} />
+      {/* What grows here, from the latitude rather than from a preference for
+          palm trees. `bare` plants nothing: above the treeline there is
+          nothing to draw, and an empty verge says that. */}
+      <Tree flora={flora} x={width - 26} baseY={baseY} scale={1} />
+      <Tree flora={flora} x={width - 6} baseY={baseY} scale={0.78} />
 
       {/* ground line */}
       <rect x={-10} y={baseY} width={width + 20} height={12} fill="#cdeecb" />
@@ -141,7 +205,42 @@ export default function Cityscape({
   );
 }
 
-function Palm({ x, baseY, scale }: { x: number; baseY: number; scale: number }) {
+function Tree({
+  flora,
+  x,
+  baseY,
+  scale,
+}: {
+  flora: Flora;
+  x: number;
+  baseY: number;
+  scale: number;
+}) {
+  if (flora === "bare") return null;
+  if (flora === "broadleaf") {
+    const h = 30 * scale;
+    return (
+      <g transform={`translate(${x}, ${baseY})`}>
+        <rect x={-1.6 * scale} y={-h} width={3.2 * scale} height={h} rx={1.5} fill="#8a6a44" />
+        <circle cx={0} cy={-h - 5 * scale} r={11 * scale} fill="#4a9c78" />
+        <circle cx={-7 * scale} cy={-h + 1 * scale} r={7.5 * scale} fill="#3f8a68" />
+        <circle cx={7 * scale} cy={-h + 1 * scale} r={7.5 * scale} fill="#3f8a68" />
+      </g>
+    );
+  }
+  if (flora === "conifer") {
+    const h = 36 * scale;
+    return (
+      <g transform={`translate(${x}, ${baseY})`}>
+        <rect x={-1.6 * scale} y={-8 * scale} width={3.2 * scale} height={8 * scale} fill="#8a6a44" />
+        <path d={`M0,${-h} L${9 * scale},${-8 * scale} L${-9 * scale},${-8 * scale} Z`} fill="#3f8a68" />
+        <path
+          d={`M0,${-h + 8 * scale} L${11 * scale},${-2 * scale} L${-11 * scale},${-2 * scale} Z`}
+          fill="#4a9c78"
+        />
+      </g>
+    );
+  }
   const h = 34 * scale;
   return (
     <g transform={`translate(${x}, ${baseY})`}>

@@ -262,6 +262,17 @@ export type DaySummary = {
    * day, a base-currency day, and a day with no spend at all.
    */
   costLocal?: { amount: number; currency: string };
+  /**
+   * Roughly how many people live here, from the GeoNames index already on
+   * disk — `Cityscape` sizes a skyline with it so that a capital and a hamlet
+   * are not drawn as the same seven towers.
+   *
+   * Decoration, and deliberately never shown as a number: it is a figure from
+   * a public dataset about the nearest populated place, not something the
+   * author of this day said. Absent for a checkout with no index, for
+   * mid-ocean coordinates, and for a place the dump carries no figure for.
+   */
+  population?: number;
 };
 
 /** One stop on the intended route, from a trip's plan.md or from a

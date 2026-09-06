@@ -2,6 +2,7 @@ import "server-only";
 import { basemapFor, basemapForRoute } from "./basemap";
 import { getAllEntries, getDays, getDefaultDay, getTripStats } from "./entries";
 import { costForDay, costLocalForDay, getCostSummary } from "./costs";
+import { geodataAvailable, reverseGeocode } from "./ingest/geo";
 import { getTrip } from "./trips";
 import type { Day, DaySummary, Trip } from "./types";
 import type { HeroStats } from "@/components/TripHero";
@@ -79,7 +80,28 @@ function summarise(
     updates: day.entries.length,
     cost,
     costLocal,
+    population: populationAt(lead.lat, lead.lng),
   };
+}
+
+/**
+ * Roughly how many people live where this day was — for the travel scene's
+ * skyline, and for nothing that is stated as fact.
+ *
+ * The place index is already on disk and already loaded (it is what ingest
+ * reverse-geocodes photographs against), so this is a binary search against a
+ * cached buffer rather than a new data path. It is the only honest answer the
+ * codebase has to "how big is this place": no field an author writes says so,
+ * and a skyline sized from a hash of the name is a claim about somewhere real.
+ *
+ * `undefined` for a checkout with no index built, for coordinates in the
+ * middle of an ocean, and for a place GeoNames carries no figure for — each of
+ * which the scene draws as a modest town rather than as nothing.
+ */
+function populationAt(lat: number, lng: number): number | undefined {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !geodataAvailable()) return undefined;
+  const place = reverseGeocode(lat, lng);
+  return place && place.population > 0 ? place.population : undefined;
 }
 
 /** Clamps a window of `STORY_WINDOW` either side of `centre` to the trip. */

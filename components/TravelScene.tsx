@@ -15,7 +15,17 @@ import { useSite } from "./SiteProvider";
 import { useTrip } from "./TripProvider";
 import { partyFor } from "@/lib/travellers/parse";
 import Cityscape from "./Cityscape";
+import Vehicle from "./travel/Vehicle";
+import Ground, { GROUND_HEIGHT, surfaceFor } from "./travel/Ground";
 
+/**
+ * The glyphs, kept for the `quick` variant only.
+ *
+ * `quick` is a line and a marker crossing it — deliberately a diagram rather
+ * than a scene, for a reader on their fortieth identical hop — and a diagram
+ * is exactly where an icon belongs. The full scene draws real vehicles; see
+ * `components/travel/Vehicle.tsx`.
+ */
 const VEHICLE_ICON = {
   flight: Plane,
   train: TrainFront,
@@ -25,6 +35,29 @@ const VEHICLE_ICON = {
   boat: Ship,
   walk: Footprints,
 } as const;
+
+/**
+ * Where things stand on each surface, in px from the bottom of the frame.
+ *
+ * Two numbers rather than one because a hull and a pair of boots do not sit at
+ * the same height in the same water: the party stands *on* a road and *beside*
+ * the sea, and a boat rides *in* it. Getting this wrong is the difference
+ * between a ferry and a ferry buried to its windows.
+ */
+const STAND_ON = { rail: 30, road: 30, water: 58, sky: 26, path: 26 } as const;
+const RIDE_ON = { rail: 8, road: 10, water: 14, sky: 60, path: 0 } as const;
+
+/** How wide each vehicle is drawn in the full scene. A train is a train
+ * because it is long; a motorbike is small because it is. */
+const VEHICLE_WIDTH: Record<TransportMode, number> = {
+  train: 210,
+  flight: 165,
+  bus: 145,
+  boat: 150,
+  car: 115,
+  motorbike: 95,
+  walk: 0,
+};
 
 /** Duration when either end of the leg carries no coordinates — the middle
  * of the range below, and what every leg played before duration varied. */
@@ -147,30 +180,73 @@ export default function TravelScene({
   const mode: TransportMode = leg.transport?.mode ?? "walk";
   const Icon = VEHICLE_ICON[mode] ?? Plane;
   const isFlight = mode === "flight";
+  const onFoot = mode === "walk";
   const quick = variant === "quick";
+  const surface = surfaceFor(mode);
+  const groundH = GROUND_HEIGHT[surface];
 
-  // Travellers wait at the start, then walk out of frame to the right.
-  const peopleX = useTransform(p, [0.04, 0.4], ["0%", "125%"]);
-  const peopleOpacity = useTransform(p, [0.0, 0.12, 0.32, 0.44], [0, 1, 1, 0]);
+  /*
+   * Three layers moving at three speeds, which is the whole of the depth:
+   * the ground (in `Ground`, fastest) is underfoot, the skylines are the
+   * middle distance, and the clouds are the sky. Before this everything but
+   * the clouds was static and the vehicle slid over a photograph.
+   */
+  const cloudsX = useTransform(p, [0, 1], ["2%", "-10%"]);
+  const hillsX = useTransform(p, [0, 1], ["0%", "-18%"]);
+  const farX = useTransform(p, [0, 1], ["0%", "-34%"]);
+
+  /*
+   * On foot the party *is* the vehicle: they cross the whole frame at
+   * walking pace and nothing else moves through the scene. Every other mode
+   * keeps the old departure — they set off to the right and the vehicle
+   * follows them across.
+   */
+  const afloat = surface === "water";
+  const peopleX = useTransform(
+    p,
+    onFoot ? [0.05, 0.95] : [0.04, 0.4],
+    // Nobody walks off across a river. On a crossing by boat the party stays
+    // put and is gone before the far bank has slid away — otherwise they were
+    // left standing on open water for a third of the leg, which is what the
+    // first version of this actually drew.
+    afloat ? ["0%", "0%"] : ["0%", "125%"],
+  );
+  const peopleOpacity = useTransform(
+    p,
+    onFoot ? [0, 0.08, 0.9, 1] : afloat ? [0, 0.08, 0.2, 0.3] : [0.0, 0.12, 0.32, 0.44],
+    [0, 1, 1, 0],
+  );
 
   // Vehicle sweeps left → right across the middle of the leg.
-  const vehicleX = useTransform(p, [0.22, 0.86], ["-22%", "120%"]);
+  const vehicleX = useTransform(p, [0.22, 0.86], ["-30%", "125%"]);
   const vehicleY = useTransform(
     p,
     [0.26, 0.45, 0.66, 0.82],
-    isFlight ? [8, -54, -54, 8] : [0, 0, 0, 0],
+    isFlight ? [10, -70, -70, 10] : [0, 0, 0, 0],
   );
   const vehicleRotate = useTransform(
     p,
     [0.26, 0.42, 0.7, 0.82],
-    isFlight ? [-6, -14, 10, 2] : [0, 0, 0, 0],
+    isFlight ? [-7, -13, 9, 2] : [0, 0, 0, 0],
   );
   const vehicleOpacity = useTransform(p, [0.14, 0.3, 0.78, 0.92], [0, 1, 1, 0]);
+  // A hull has no wheels; the swell is what carries it. Small and slow — a
+  // boat that bobs like a cork reads as a toy.
+  const hullY = useTransform(p, [0, 0.25, 0.5, 0.75, 1], mode === "boat" ? [0, -4, 1, -3, 0] : [0, 0, 0, 0, 0]);
 
-  // Destination skyline rises in near the end.
-  const cityY = useTransform(p, [0.5, 0.92], [70, 0]);
-  const cityOpacity = useTransform(p, [0.5, 0.8], [0, 1]);
-  const cloudsX = useTransform(p, [0, 1], ["4%", "-14%"]);
+  /*
+   * Both ends of the leg, not just the arrival.
+   *
+   * The origin used to be an empty green field: the travellers set off from
+   * nowhere towards a city that rose out of the ground. Now where they left
+   * slides out to the left as where they are going slides in from the right,
+   * which is what makes it a journey between two places rather than an
+   * arrival at one.
+   */
+  const originX = useTransform(p, [0, 0.55], ["0%", "-140%"]);
+  const originOpacity = useTransform(p, [0, 0.1, 0.42], [1, 1, 0]);
+  const destX = useTransform(p, [0.45, 0.95], ["120%", "0%"]);
+  const destOpacity = useTransform(p, [0.45, 0.62], [0, 1]);
 
   // The quick scene's icon crosses a plain lane, edge to edge.
   const quickX = useTransform(p, [0.06, 0.94], ["0%", "100%"]);
@@ -195,37 +271,98 @@ export default function TravelScene({
         </div>
       ) : (
         <>
+          {/* Sky, slowest. A flight gets more of it, because for the length of
+              a flight the sky is the whole world. */}
           <motion.div style={{ x: cloudsX }} className="pointer-events-none absolute inset-0">
             <Cloud className="absolute left-[12%] top-6 h-10 w-10 fill-white text-white opacity-90" />
             <Cloud className="absolute left-[56%] top-10 h-7 w-7 fill-white text-white opacity-75" />
             <Cloud className="absolute left-[84%] top-5 h-8 w-8 fill-white text-white opacity-80" />
+            {isFlight && (
+              <>
+                <Cloud className="absolute left-[30%] top-24 h-12 w-12 fill-white text-white opacity-70" />
+                <Cloud className="absolute left-[70%] top-32 h-9 w-9 fill-white text-white opacity-60" />
+              </>
+            )}
           </motion.div>
 
-          <motion.div
-            style={{ y: cityY, opacity: cityOpacity }}
-            className="absolute bottom-9 right-2 origin-bottom-right"
-          >
-            <Cityscape name={leg.location} width={250} height={150} />
+          {/* Distant hills — the layer between the clouds and the skylines,
+              and the thing that stopped the frame being two thirds empty sky
+              on a leg between two small places. Drawn from the arrival's name
+              so a leg looks the same every time it plays. A crossing by sea
+              has no hills in the middle of it. */}
+          {surface !== "water" && (
+            <motion.div style={{ x: hillsX }} className="pointer-events-none absolute inset-0">
+              <Hills seed={leg.location} bottom={groundH - 4} />
+            </motion.div>
+          )}
+
+          {/*
+            Middle distance: where they left, and where they are going.
+
+            The origin used to be an empty green field — the party set off from
+            nowhere towards a city that rose out of the ground. Both ends are in
+            the day index already, so drawing both costs nothing and waits on
+            nothing. `farX` is the parallax; the two `x`s inside it are the
+            leaving and the arriving.
+          */}
+          <motion.div style={{ x: farX }} className="pointer-events-none absolute inset-0">
+            {from && (
+              <motion.div
+                style={{ x: originX, opacity: originOpacity, bottom: groundH - 6 }}
+                className="absolute left-2"
+              >
+                <Cityscape
+                  name={from.location}
+                  population={from.population}
+                  lat={from.lat}
+                  width={230}
+                  height={130}
+                />
+              </motion.div>
+            )}
+
+            <motion.div
+              style={{ x: destX, opacity: destOpacity, bottom: groundH - 6 }}
+              className="absolute right-2"
+            >
+              <Cityscape
+                name={leg.location}
+                population={leg.population}
+                lat={leg.lat}
+                width={250}
+                height={150}
+              />
+            </motion.div>
           </motion.div>
 
-          <div className="absolute inset-x-0 bottom-0 h-9 bg-green-100" />
-          <div className="absolute inset-x-0 bottom-9 h-1 bg-green-500/25" />
+          {/* Nearest layer, fastest: rails, tarmac, water or a footpath. */}
+          <Ground surface={surface} scroll={p} />
 
           <motion.div
-            style={{ x: peopleX, opacity: peopleOpacity }}
-            className="absolute bottom-7 left-8"
+            style={{ x: peopleX, opacity: peopleOpacity, bottom: STAND_ON[surface] }}
+            className="absolute left-8"
           >
             <Travelers figures={party} size={58} available={200} />
           </motion.div>
 
-          <motion.div
-            style={{ x: vehicleX, y: vehicleY, rotate: vehicleRotate, opacity: vehicleOpacity }}
-            className="absolute bottom-11 left-0"
-          >
-            <div className="rounded-2xl bg-white/95 p-3 shadow-lg shadow-navy-900/20">
-              <Icon className="h-9 w-9 text-navy-900" strokeWidth={1.75} />
-            </div>
-          </motion.div>
+          {/* Nothing crosses on a leg made on foot — the party above is the
+              whole of it. */}
+          {!onFoot && (
+            <motion.div
+              style={{
+                x: vehicleX,
+                y: vehicleY,
+                rotate: vehicleRotate,
+                opacity: vehicleOpacity,
+                bottom: RIDE_ON[surface],
+              }}
+              className="absolute left-0"
+            >
+              <motion.div style={{ y: hullY }}>
+                <Vehicle mode={mode} width={VEHICLE_WIDTH[mode]} />
+              </motion.div>
+            </motion.div>
+          )}
         </>
       )}
 
@@ -239,6 +376,61 @@ export default function TravelScene({
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * A ridge line across the back of the scene.
+ *
+ * Two overlapping bands rather than one, because a single silhouette reads as
+ * a paper cut-out; the paler one behind is what gives the distance. Derived
+ * from the arrival's name so the same leg draws the same hills every time,
+ * the way `Cityscape` does — and deliberately *not* from anything real, since
+ * nothing in a day's frontmatter says what the horizon looked like. They are
+ * scenery, at the size and opacity of scenery.
+ */
+function Hills({ seed, bottom }: { seed: string; bottom: number }) {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const pick = (i: number, lo: number, hi: number) =>
+    lo + (((Math.abs(h) >> (i * 3)) % 100) / 100) * (hi - lo);
+
+  const ridge = (peaks: number[]) => {
+    const step = 100 / (peaks.length - 1);
+    // Anchored past both edges so the ridge still fills the frame once the
+    // parallax has slid it, and closed along the bottom rather than at the
+    // peaks — a ridge that ends mid-air reads as a torn piece of paper.
+    return `M-20,120 ${peaks.map((y, i) => `L${i * step},${y}`).join(" ")} L120,120 Z`;
+  };
+
+  return (
+    <svg
+      // `width` matters: an <svg> with only a viewBox takes its intrinsic size
+      // from it, so `inset-x-0` left this 100px wide at the far left of the
+      // frame and the hills appeared to be part of the departure town.
+      // The extra 30% and the offset are the room the parallax slides into.
+      className="absolute"
+      style={{ bottom, height: 120, left: "-15%", width: "130%" }}
+      viewBox="0 0 100 120"
+      preserveAspectRatio="none"
+      aria-hidden
+    >
+      {/* Hazy blue for the far ridge and a green-grey for the near one. They
+          were white at a fifth opacity for one iteration, which on a sky this
+          pale is invisible — distance in a flat illustration is a shift in hue
+          towards the sky, not a fade to nothing. */}
+      <path
+        d={ridge([100, pick(0, 46, 74), pick(1, 62, 86), pick(2, 40, 70), pick(3, 66, 90), 104])}
+        fill="#9ed3e4"
+      />
+      <path
+        d={ridge([108, pick(4, 72, 96), pick(5, 58, 84), pick(6, 80, 102), pick(7, 66, 92), 96])}
+        fill="#8cc4ae"
+      />
+    </svg>
   );
 }
 
