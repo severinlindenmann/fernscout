@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (114)
+## backlog (113)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (38)
+### issue (37)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -83,7 +83,6 @@ Do not edit them by hand; run the script.
 | [B521](backlog/issue/B521-every-photo-upload-logs-that-the.md) | every photo upload logs that the body was truncated at 10MB | ISSUE | medium | low |
 | [B528](backlog/issue/B528-attachgallery-writes-its-splice-without-re.md) | attachGallery writes its splice without re-reading it, where editEntry refuses | ISSUE | medium | low |
 | [B529](backlog/issue/B529-npm-run-i18n-keys-reads-the.md) | npm run i18n:keys reads the locales path B510 moved away from | ISSUE | medium | low |
-| [B540](backlog/issue/B540-options-that-exist-are-missing-from.md) | Options that exist are missing from the schema the instance publishes | ISSUE | medium | low |
 | [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
@@ -209,11 +208,12 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B535](in-development/B535-a-write-route-silently-drops-every.md) | A write route silently drops every field it does not recognise | FEATURE | high | high | `73b1a7f5` |
+| [B540](in-development/B540-options-that-exist-are-missing-from.md) | Options that exist are missing from the schema the instance publishes | ISSUE | medium | low | `73b1a7f5` |
 
 ## testing (229)
 
