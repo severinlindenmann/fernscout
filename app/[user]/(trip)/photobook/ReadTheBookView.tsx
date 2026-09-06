@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { TranslationKey } from "@/lib/i18n";
 
 /**
@@ -41,11 +41,18 @@ export function useSpreadKeys(
   frame: React.RefObject<HTMLIFrameElement | null>,
   axis: "x" | "y",
   enabled: boolean,
+  /** Escape, where there is something to escape from. */
+  onEscape?: () => void,
 ) {
   useEffect(() => {
     if (!enabled) return;
     function onKey(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "Escape" && onEscape) {
+        e.preventDefault();
+        onEscape();
+        return;
+      }
       const forward = e.key === "ArrowRight" || e.key === "ArrowDown";
       const back = e.key === "ArrowLeft" || e.key === "ArrowUp";
       if (!forward && !back) return;
@@ -58,9 +65,24 @@ export function useSpreadKeys(
       const step = (forward ? 1 : -1) * ((axis === "x" ? box.width : box.height) + 24);
       strip.scrollBy({ [axis === "x" ? "left" : "top"]: step, behavior: "smooth" });
     }
+
+    // Listened for in *both* documents. A keydown inside an iframe does not
+    // reach the parent window, so a reader who has tabbed or clicked into the
+    // book — which is exactly what somebody reading it does — would otherwise
+    // find the arrow keys dead and Escape with nothing listening. The frame
+    // is `srcDoc` and therefore same-origin, and it gets a new document every
+    // time the preview is re-fetched, hence the `load` handler as well.
+    const el = frame.current;
+    const attach = () => el?.contentDocument?.addEventListener("keydown", onKey);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [frame, axis, enabled]);
+    el?.addEventListener("load", attach);
+    attach();
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      el?.removeEventListener("load", attach);
+      el?.contentDocument?.removeEventListener("keydown", onKey);
+    };
+  }, [frame, axis, enabled, onEscape]);
 }
 
 /**
@@ -98,29 +120,43 @@ export default function ReadTheBookView({
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const hasKeyboard = useHasKeyboard();
-  useSpreadKeys(frame, "y", true);
 
-  // Escape closes it, because this covers the page and there is no other way
-  // out but the button.
+  /**
+   * A real modal, because this one covers a Pay button.
+   *
+   * `showModal()` is the platform's own answer to everything a hand-rolled
+   * overlay has to reimplement: the rest of the page goes inert, so a
+   * keyboard reader cannot tab out of the book into controls they cannot see
+   * — and one of those controls spends money. Escape closes it, and focus
+   * goes back to whatever opened it, both for free.
+   *
+   * Every way out goes through `close()` rather than straight to the
+   * callback, so the focus restore happens before this unmounts. The reason
+   * rides on `returnValue`, which is what a `<dialog>` has instead of an
+   * argument.
+   */
+  const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onBack();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onBack]);
+    dialog.current?.showModal();
+  }, []);
+
+  // Escape is handled here rather than left to the dialog's own `cancel`, for
+  // the reason above: with focus inside the book, the browser's Escape never
+  // reaches this document.
+  const dismiss = useCallback(() => dialog.current?.close("back"), []);
+  useSpreadKeys(frame, "y", true, dismiss);
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      ref={dialog}
       aria-label={t("photobook.read.heading")}
-      className="fixed inset-0 z-50 flex flex-col bg-cream-50"
+      onClose={() => (dialog.current?.returnValue === "order" ? onOrder() : onBack())}
+      className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none flex-col border-0 bg-cream-50 p-0 backdrop:bg-navy-900/40"
     >
       <div className="flex items-center gap-3 border-b border-navy-200 px-4 py-2">
         <button
           type="button"
-          onClick={onBack}
+          onClick={dismiss}
           className="min-h-11 shrink-0 text-sm font-semibold text-navy-800 underline"
         >
           ← {t("photobook.read.back")}
@@ -145,12 +181,12 @@ export default function ReadTheBookView({
         {summary && <p className="text-sm text-navy-700">{summary}</p>}
         <button
           type="button"
-          onClick={onOrder}
+          onClick={() => dialog.current?.close("order")}
           className="min-h-11 flex-1 rounded-full bg-navy-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 sm:flex-none"
         >
           {t("photobook.read.order")}
         </button>
       </div>
-    </div>
+    </dialog>
   );
 }
