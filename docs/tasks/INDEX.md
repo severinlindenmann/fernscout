@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (118)
+## backlog (119)
 
 ### security (6)
 
@@ -123,7 +123,7 @@ Do not edit them by hand; run the script.
 | [B507](backlog/big-feature/B507-the-photobook-composer-is-a-desktop.md) | The photobook composer is a desktop sidebar on a phone-shaped job | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
-### small-feature (13)
+### small-feature (14)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -134,6 +134,7 @@ Do not edit them by hand; run the script.
 | [B42](backlog/small-feature/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B436](backlog/small-feature/B436-nothing-ever-suggests-sending-postcards-so.md) | Nothing ever suggests sending postcards, so nobody discovers the feature | FEATURE | medium | low |
 | [B502](backlog/small-feature/B502-a-photograph-is-given-a-page.md) | A photograph is given a page it has not the pixels to fill | FEATURE | medium | medium |
+| [B558](backlog/small-feature/B558-a-publish-that-told-nobody-does.md) | A publish that told nobody does not say so — the response should prompt the ask about mail and WhatsApp | FEATURE | medium | low |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
 | [B07](backlog/small-feature/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium |
