@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper, content model, validate-content
 found: "2026-09-06T18:25:15Z"
 started: "2026-09-06T18:25:42Z"
-session: ac8af30e-815d-4843-a94d-cf061a70269c
-claimed: "2026-09-06T18:25:42Z"
+merged: "2026-09-06T18:42:57Z"
 ---
 
 # B644 — The helper ignores three things the published document now says
