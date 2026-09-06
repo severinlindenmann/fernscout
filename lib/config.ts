@@ -23,6 +23,7 @@ export const FEATURE_NAMES = [
   "credits",
   "addressLookup",
   "weather",
+  "analytics",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -263,6 +264,15 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // means no request is made to open-meteo.com on any path, and no day shows
   // weather; not an empty box on every day.
   weather: { enabled: false },
+  // B566. Off by default like every optional capability, and off means the
+  // instance the imprint used to describe: no row is written, the page is not
+  // there, and nothing about a reader is hashed, because the hash is only
+  // computed on the recording path. A journal opts in for itself — unlike
+  // `logging` and `credits`, which are the operator's alone, this is the
+  // owner's question about their own readers, and the answer is theirs to
+  // decline. Needs a database: these are rows, and a journal with no
+  // DATABASE_URL gets no page rather than an empty one.
+  analytics: { enabled: false },
 };
 
 /**

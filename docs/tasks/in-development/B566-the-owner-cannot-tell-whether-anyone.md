@@ -213,6 +213,44 @@ endpoint is wanted later it is a separate capture.
 - **A client beacon.** Ruled out above; SPA navigations and lightbox opens are
   not measured and the page should not imply they are.
 
+## What changed while building it
+
+Three things the plan got wrong or did not know, corrected here rather than
+left as a Work section describing something nobody built:
+
+- **`app/[user]/page.tsx` does not exist.** The journal's home page *is*
+  `app/[user]/(trip)/page.tsx` — `/<user>` renders whichever trip is current.
+  So `journal` and `trip` are not two URLs, and the split landed differently:
+  `/<user>` records `journal` (with its trip id alongside, so per-trip totals
+  still include it) and `/<user>/trips/<id>` records `trip`, which makes that
+  kind mean "somebody chose a past trip out of the switcher" — the more
+  interesting of the two numbers.
+- **Static rendering was a real risk and turned out not to be one.**
+  `app/[user]/layout.tsx` already reads `cookies()`, so the whole `/[user]`
+  subtree renders per request and recording from a page's render is per-visit
+  rather than per-build. Worth knowing before touching this again: if that
+  layout ever stops reading a cookie, every count here silently becomes a
+  build-time constant.
+- **`clientIp` needed widening, not copying.** It took a `Request`, and a
+  server component has `await headers()` and no Request. One guard inside the
+  shared function (`req instanceof Headers`) rather than a second header
+  parser beside it, so the `X-Forwarded-For` trust decision documented there
+  stays in one place.
+
+`TranslationKey` is generated — `npm run i18n:keys` after adding strings, or
+`tsc` rejects every new `t("…")` call. That is the failure to expect, not a
+broken component.
+
+## Found while building
+
+**B571 — an anonymous flood of page requests writes unbounded analytics rows.**
+Page renders are not rate-limited (`lib/rateLimit.ts` is called from
+`app/api/` only), so every open now costs a row and an unauthenticated loop
+costs unbounded rows. Availability rather than disclosure: nothing about a
+reader is stored either way. Captured rather than absorbed; it also carries
+the two "the numbers can be inflated" notes (a forged `X-Forwarded-For`, and
+a second server process holding its own salt).
+
 ## Acceptance
 
 - `npm run verify` green.

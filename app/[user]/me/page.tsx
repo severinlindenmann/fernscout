@@ -171,6 +171,11 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       canSignIn={isEnabled("auth", user)}
       codeMinutes={CODE_TTL_MINUTES}
       contactsEnabled={contactsEnabled}
+      // B566. Only ever true for the owner: the page it links to is
+      // owner-only, and a card leading to a 404 is the broken kind of
+      // absent (B74). Resolved here because `isEnabled` reads server
+      // config and the component is a client one.
+      analyticsEnabled={viewer.owner && isEnabled("analytics", user)}
       // B20. The stranger's half of this page told somebody to ask for a link
       // and never said whom to ask, on a site they may have reached without
       // knowing whose it is.

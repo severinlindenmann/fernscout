@@ -34,20 +34,44 @@ in a **German data centre**. Nothing is replicated to another country, and
 there is no cloud storage account, no CDN and no third-party database behind
 it. Backups stay on European infrastructure.
 
-## No tracking
+## Tracking, and what little there is of it
 
-There is **no analytics of any kind** on this site. No Google Analytics, no
-Plausible, no Matomo, no pixels, no advertising network, no fingerprinting, no
-third-party fonts or scripts. Nothing on these pages reports your visit to
-anybody.
+There is **no third-party analytics** on this site. No Google Analytics, no
+Plausible, no Matomo, no pixels, no advertising network, no third-party fonts
+or scripts. Nothing on these pages is loaded from anybody else's server, and
+nothing on these pages reports your visit to anybody but this one.
+
+A journal's author may switch on a **visitor count** for their own journal. It
+is off unless they have. When it is on, this server records that a page was
+opened — which journal, which trip, which day, and the time — so that somebody
+writing a travel diary can tell whether the people they sent it to have read
+it.
+
+**You are not identified, and you cannot be followed.** There is no cookie for
+this, no script in your browser, and no device fingerprint. To tell two readers
+apart on the same day, the server makes a short code out of your internet
+address and your browser's name, mixed with a secret that is generated at
+random, kept only in memory, and thrown away every day. Your IP address itself
+is never written down. Once the day's secret is gone the codes cannot be traced
+back to anybody, and they cannot be matched against the next day's — so the
+same person visiting tomorrow is counted as somebody new, and there is
+deliberately no way to build a picture of one reader over time.
+
+What is **not** recorded: your IP address, your browser, your operating system,
+your country or city, and the page you came from. Some of those are ordinary in
+web analytics; the last one is left out on purpose, because it would record
+where a private link had been passed around.
+
+These rows are deleted after about ninety days.
 
 Cookies are only ever set for signing in — a session, or an identity that
-proves your email address to the site. There is no cookie banner because there
-is nothing to consent to.
+proves your email address to the site. There is still no cookie banner: nothing
+described above is stored on your device or read from it, so there is nothing to
+consent to.
 
-The web server keeps ordinary access logs (IP address, time, page requested)
-for a short period, which is what a server needs in order to be operated and
-defended at all.
+The web server also keeps ordinary access logs (IP address, time, page
+requested) for a short period, which is what a server needs in order to be
+operated and defended at all.
 
 ## What is stored, and why
 
@@ -62,6 +86,9 @@ defended at all.
   order to receive a WhatsApp message or a printed postcard. Postal addresses
   are stored encrypted and are never shown to an agent.
 - **Copies of the mail this site sends**, kept with the journal that sent it.
+- **Page-open counts**, for journals whose author switched the visitor count
+  on: which page, when, and the day-code described above. Nothing that names
+  a reader, and deleted after about ninety days.
 
 You can ask the owner of a journal to remove you from it, and an owner can
 delete a whole journal — that deletion is real, and it takes the content and

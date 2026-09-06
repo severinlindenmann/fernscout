@@ -45,6 +45,11 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // capability needs nothing, and off is a decision rather than a shortfall:
   // it means no request is made to a third party on any path.
   weather: { env: [], db: false },
+  // B566. Rows in `analytics_events`, so a journal with no database gets no
+  // page rather than one reporting zero — /api/health says which. No env: the
+  // visitor salt is generated in memory and never configured, which is what
+  // makes it un-persistable by construction rather than by policy.
+  analytics: { env: [], db: true },
 };
 
 /** Transport and provider choices carry their own credential requirements.

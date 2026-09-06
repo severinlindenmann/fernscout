@@ -35,20 +35,48 @@ repliziert; es gibt keinen Cloud-Speicher, kein CDN und keine
 Drittanbieter-Datenbank dahinter. Auch die Backups bleiben auf europäischer
 Infrastruktur.
 
-## Kein Tracking
+## Tracking, und das wenige davon
 
-Auf dieser Seite gibt es **keinerlei Analytics**. Kein Google Analytics, kein
-Plausible, kein Matomo, keine Zählpixel, kein Werbenetzwerk, kein
-Fingerprinting, keine Schriften oder Skripte von fremden Servern. Nichts auf
-diesen Seiten meldet deinen Besuch irgendwohin.
+Es gibt auf dieser Seite **kein Analytics von Dritten**. Kein Google Analytics,
+kein Plausible, kein Matomo, keine Zählpixel, kein Werbenetzwerk, keine
+Schriften oder Skripte von fremden Servern. Nichts auf diesen Seiten wird von
+einem fremden Server geladen, und nichts meldet deinen Besuch irgendwohin
+ausser an diesen einen.
+
+Wer ein Journal führt, kann für das eigene Journal eine **Besuchszählung**
+einschalten. Sie ist aus, solange das nicht geschehen ist. Ist sie an, hält
+dieser Server fest, dass eine Seite geöffnet wurde — welches Journal, welche
+Reise, welcher Tag, und wann —, damit jemand, der ein Reisetagebuch schreibt,
+sehen kann, ob die Menschen, denen er es geschickt hat, es auch lesen.
+
+**Du wirst dabei nicht identifiziert, und du kannst nicht verfolgt werden.** Es
+gibt dafür kein Cookie, kein Skript in deinem Browser und keinen
+Geräte-Fingerabdruck. Um zwei Lesende am selben Tag auseinanderzuhalten, bildet
+der Server einen kurzen Code aus deiner Internetadresse und dem Namen deines
+Browsers, vermischt mit einem Geheimnis, das zufällig erzeugt wird, nur im
+Arbeitsspeicher liegt und jeden Tag verworfen wird. Deine IP-Adresse selbst
+wird nie gespeichert. Ist das Geheimnis des Tages weg, lassen sich die Codes
+niemandem mehr zuordnen, und sie lassen sich auch nicht mit denen des nächsten
+Tages abgleichen — dieselbe Person gilt morgen also als jemand Neues, und es
+gibt bewusst keine Möglichkeit, ein Bild einzelner Lesender über die Zeit
+aufzubauen.
+
+Nicht festgehalten werden: deine IP-Adresse, dein Browser, dein Betriebssystem,
+dein Land oder deine Stadt, und die Seite, von der du gekommen bist. Einiges
+davon ist in der Webanalyse üblich; das Letzte fehlt mit Absicht, denn es würde
+festhalten, wo ein privater Link herumgereicht wurde.
+
+Diese Einträge werden nach etwa neunzig Tagen gelöscht.
 
 Cookies werden ausschliesslich für die Anmeldung gesetzt — eine Sitzung oder
-eine Identität, die deine E-Mail-Adresse gegenüber der Seite bestätigt. Es
-gibt kein Cookie-Banner, weil es nichts einzuwilligen gibt.
+eine Identität, die deine E-Mail-Adresse gegenüber der Seite bestätigt. Ein
+Cookie-Banner gibt es weiterhin nicht: nichts vom oben Beschriebenen wird auf
+deinem Gerät gespeichert oder von dort gelesen, es gibt also nichts
+einzuwilligen.
 
-Der Webserver führt gewöhnliche Zugriffslogs (IP-Adresse, Zeit, aufgerufene
-Seite) für kurze Zeit — das braucht ein Server, um überhaupt betrieben und
-verteidigt werden zu können.
+Der Webserver führt ausserdem gewöhnliche Zugriffslogs (IP-Adresse, Zeit,
+aufgerufene Seite) für kurze Zeit — das braucht ein Server, um überhaupt
+betrieben und verteidigt werden zu können.
 
 ## Was gespeichert wird, und wofür
 
@@ -66,6 +94,9 @@ verteidigt werden zu können.
   bekommen. Postadressen werden verschlüsselt gespeichert und sind für einen
   Agenten nie sichtbar.
 - **Kopien der von dieser Seite versendeten E-Mails**, beim jeweiligen Journal.
+- **Aufrufzahlen**, bei Journalen, deren Autorin die Besuchszählung
+  eingeschaltet hat: welche Seite, wann, und der oben beschriebene Tagescode.
+  Nichts, was eine Leserin benennt, und nach etwa neunzig Tagen gelöscht.
 
 Du kannst die Besitzerin eines Journals bitten, dich daraus zu entfernen, und
 eine Besitzerin kann ein ganzes Journal löschen — diese Löschung ist echt und

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { draftsVisibleTo, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { recordTripView } from "@/lib/analytics/record";
 import { notFound, redirect } from "next/navigation";
 import { basemapForRoute } from "@/lib/basemap";
 import { getAllEntries } from "@/lib/entries";
@@ -68,6 +69,12 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
   if (!(await mayReadTrip(trip))) return null;
+
+  // B566. `trip`, not `journal`: the current trip is at `/<user>` and records
+  // itself there, so everything reaching this route is somebody choosing a
+  // past trip out of the switcher — which is the more interesting number of
+  // the two, and would be lost if both URLs recorded the same kind.
+  await recordTripView(trip, "trip");
 
   // B327: who may see this trip's unpublished days, and whether putting one
   // on the site is theirs. Owner, or somebody on the trip.
