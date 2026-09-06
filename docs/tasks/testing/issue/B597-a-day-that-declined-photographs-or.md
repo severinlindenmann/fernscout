@@ -7,8 +7,7 @@ complexity: low
 area: api, days, fernscout-helper, publish
 found: "2026-09-06T14:35:01Z"
 started: "2026-09-06T14:37:44Z"
-session: ac8af30e-815d-4843-a94d-cf061a70269c
-claimed: "2026-09-06T14:37:44Z"
+merged: "2026-09-06T14:52:04Z"
 ---
 
 # B597 — A day that declined photographs or coordinates cannot be published a second time
