@@ -211,8 +211,17 @@ async function main() {
       console.log(`      ! ${warning.detail}`);
     }
 
-    // Built but not sent: this is what would go to the provider.
-    const prepared = buildStannpRequest({ to, front: new Uint8Array(), back: new Uint8Array(), test: true });
+    // Built but not sent: this is what would go to the provider. The gate in
+    // lib/postcard/providers.ts (B07) needs a payment reference to build at
+    // all; a placeholder is honest here since this preview never reaches a
+    // provider.
+    const prepared = buildStannpRequest({
+      to,
+      front: new Uint8Array(),
+      back: new Uint8Array(),
+      test: true,
+      paymentRef: "PREVIEW_NO_PAYMENT_RECORDED",
+    });
     write(`${base}-stannp-request.json`, JSON.stringify(prepared, null, 2) + "\n");
   }
 

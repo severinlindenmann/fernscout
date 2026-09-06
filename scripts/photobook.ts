@@ -297,6 +297,11 @@ for (const volume of built) {
       email: "RECIPIENT_EMAIL",
     },
     test: true,
+    // A preview build, written to disk and never sent — see the section
+    // heading. The real gate (B07) is in lib/photobook/providers.ts, and a
+    // placeholder is honest here because nothing downstream of this script
+    // treats these files as a request that went anywhere.
+    paymentRef: "PREVIEW_NO_PAYMENT_RECORDED",
   };
   for (const provider of CONNECTABLE) {
     write(
