@@ -182,6 +182,20 @@ export default function TripsIndexContent({
     points: r.points,
   }));
 
+  /**
+   * The map, in a variable because two branches below can need it.
+   *
+   * Drawn for a country fill as well as for a route — a journal whose only
+   * trip is teasered has no routes at all and still has a filled country to
+   * show (B600), and that page renders none of the rest of the block.
+   */
+  const map =
+    mapRoutes.length > 0 || visits.length > 0 ? (
+      <div className="mt-7">
+        <LifetimeMap routes={mapRoutes} visits={visits} userPath={userPath} basemap={basemap} />
+      </div>
+    ) : null;
+
   return (
     <div className="min-h-screen">
       <PageHeader />
@@ -211,7 +225,11 @@ export default function TripsIndexContent({
         */}
         {empty ? (
           <EmptyState empty={empty} codeMinutes={codeMinutes} />
-        ) : trips.length === 0 && (malformed.length > 0 || locked.length > 0) ? null : (
+        ) : trips.length === 0 && (malformed.length > 0 || locked.length > 0) ? (
+          // Nothing to total and no cards to group, but a teasered trip's
+          // countries are still worth drawing — see `map`.
+          map
+        ) : (
           <>
             <p className="mt-1 max-w-2xl text-sm text-navy-600">{t("trips.subtitle")}</p>
 
@@ -226,16 +244,7 @@ export default function TripsIndexContent({
               <Stat label={tn("trips.lifetimeTrips", lifetime.trips)} value={lifetime.trips} />
             </dl>
 
-            {mapRoutes.length > 0 && (
-              <div className="mt-7">
-                <LifetimeMap
-                  routes={mapRoutes}
-                  visits={visits}
-                  userPath={userPath}
-                  basemap={basemap}
-                />
-              </div>
-            )}
+            {map}
 
             {GROUPS.map(({ status, key }) => {
               const group = trips.filter((tr) => tr.status === status);
