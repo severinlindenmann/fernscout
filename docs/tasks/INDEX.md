@@ -218,12 +218,31 @@ Do not edit them by hand; run the script.
 | [B297](backlog/superseded/B297-a-nul-byte-in-the-idempotency.md) | A NUL byte in the idempotency key separator makes git treat the whole file as binary | CHORE | low | low |
 | [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
-## open (2)
+## open (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B625](open/B625-the-installed-pwa-opens-in-english.md) | The installed PWA opens in English for a phone set to German | ISSUE | high | low |
+| [B632](open/B632-a-day-cannot-be-held-back.md) | A day cannot be held back to guests or to the people who were there | FEATURE | high | high |
+| [B635](open/B635-search-finds-nothing-on-a-trip.md) | Search finds nothing on a trip the reader is allowed to read | ISSUE | high | medium |
+| [B639](open/B639-address-autofill-and-the-place-picker.md) | Address autofill and the place picker no longer respond on the contacts page | ISSUE | high | low |
+| [B641](open/B641-the-photobook-stretches-photographs-and-wastes.md) | The photobook stretches photographs and wastes a page on a portrait phone picture | FEATURE | high | high |
 | [B604](open/B604-uploading-the-same-photograph-twice-lands.md) | Uploading the same photograph twice lands it twice, and nothing can tell | ISSUE | medium | medium |
 | [B610](open/B610-model-mjs-is-still-the-helper.md) | model.mjs is still the helper's source of truth for the file shape | CHORE | medium | medium |
+| [B624](open/B624-phone-autofill-lands-in-the-dialling.md) | Phone autofill lands in the dialling-code box, and the number field is cut off on a phone | ISSUE | medium | low |
+| [B626](open/B626-the-contacts-page-does-not-say.md) | The contacts page does not say who has the app installed and notifications on | FEATURE | medium | low |
+| [B627](open/B627-a-portrait-photograph-on-a-postcard.md) | A portrait photograph on a postcard is centre-cropped with no way to choose the crop | FEATURE | medium | medium |
+| [B628](open/B628-the-postcard-signature-area-cannot-carry.md) | The postcard signature area cannot carry the traveller figures | FEATURE | medium | low |
+| [B629](open/B629-buddies-on-a-trip-are-not.md) | Buddies on a trip are not offered in the postcard signature | ISSUE | medium | low |
+| [B630](open/B630-the-contacts-list-does-not-say.md) | The contacts list does not say whether a person is owner, buddy or guest | FEATURE | medium | low |
+| [B631](open/B631-the-gallery-does-not-show-which.md) | The gallery does not show which photographs are held back | FEATURE | medium | low |
+| [B633](open/B633-there-is-no-way-for-the.md) | There is no way for the owner to send a day's notification from the day itself | FEATURE | medium | medium |
+| [B636](open/B636-sent-mail-is-kept-in-the.md) | Sent mail is kept in the content folder, which is what gets backed up | CHORE | medium | low |
+| [B638](open/B638-the-contacts-page-tells-an-owner.md) | The contacts page tells an owner no trip is open to guests when every trip is public | ISSUE | medium | low |
+| [B640](open/B640-the-vehicle-icons-on-the-map.md) | The vehicle icons on the map slideshow are upside down when travelling westward | ISSUE | medium | low |
+| [B642](open/B642-the-photobook-order-page-explains-the.md) | The photobook order page explains the spine, the soft prints and the extras badly | DOCS | medium | low |
+| [B634](open/B634-the-travel-scene-has-no-airport.md) | The travel scene has no airport | FEATURE | low | low |
+| [B637](open/B637-the-fernscout-mark-on-the-car.md) | The Fernscout mark on the car sits too far off centre | ISSUE | low | low |
 
 ## in-development (3)
 
