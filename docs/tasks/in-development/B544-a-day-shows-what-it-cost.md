@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: costs, currency, ui
 found: "2026-09-06T08:48:45Z"
+started: "2026-09-06T08:50:59Z"
+session: a9c2d133-21cd-4cd8-b9dc-cdd9e6096ed9
+claimed: "2026-09-06T08:50:59Z"
 ---
 
 # B544 — A day shows what it cost in the reader's currency and never in the one it was paid in

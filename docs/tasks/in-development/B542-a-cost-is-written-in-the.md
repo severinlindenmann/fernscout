@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: costs, currency
 found: "2026-09-06T08:48:39Z"
+started: "2026-09-06T08:50:58Z"
+session: a9c2d133-21cd-4cd8-b9dc-cdd9e6096ed9
+claimed: "2026-09-06T08:50:58Z"
 ---
 
 # B542 — A cost is written in the journal's base currency wherever the day does not say otherwise, whatever country it was spent in

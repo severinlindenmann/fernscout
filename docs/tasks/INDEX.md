@@ -203,20 +203,19 @@ Do not edit them by hand; run the script.
 | [B297](backlog/superseded/B297-a-nul-byte-in-the-idempotency.md) | A NUL byte in the idempotency key separator makes git treat the whole file as binary | CHORE | low | low |
 | [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
-## open (3)
+## open (0)
 
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B542](open/B542-a-cost-is-written-in-the.md) | A cost is written in the journal's base currency wherever the day does not say otherwise, whatever country it was spent in | FEATURE | medium | medium |
-| [B543](open/B543-a-trip-s-local-to-base.md) | A trip's local-to-base rates are typed by hand or the spend is not counted at all | FEATURE | medium | medium |
-| [B544](open/B544-a-day-shows-what-it-cost.md) | A day shows what it cost in the reader's currency and never in the one it was paid in | FEATURE | medium | low |
+_Nothing here._
 
-## in-development (2)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B535](in-development/B535-a-write-route-silently-drops-every.md) | A write route silently drops every field it does not recognise | FEATURE | high | high | `73b1a7f5` |
 | [B540](in-development/B540-options-that-exist-are-missing-from.md) | Options that exist are missing from the schema the instance publishes | ISSUE | medium | low | `73b1a7f5` |
+| [B542](in-development/B542-a-cost-is-written-in-the.md) | A cost is written in the journal's base currency wherever the day does not say otherwise, whatever country it was spent in | FEATURE | medium | medium | `a9c2d133` |
+| [B543](in-development/B543-a-trip-s-local-to-base.md) | A trip's local-to-base rates are typed by hand or the spend is not counted at all | FEATURE | medium | medium | `a9c2d133` |
+| [B544](in-development/B544-a-day-shows-what-it-cost.md) | A day shows what it cost in the reader's currency and never in the one it was paid in | FEATURE | medium | low | `a9c2d133` |
 
 ## testing (231)
 
