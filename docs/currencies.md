@@ -76,13 +76,22 @@ is the only place in the code that does.
 
 ### Where a trip's number comes from
 
-Nothing produces it. `npm run rates:update` refreshes the ECB cache — that is
-layer 3, the reader's own currency — and there is deliberately no command that
-writes into `trip.md`: a frozen per-trip rate is a judgement about what a trip
-actually cost, not a lookup, and picking today's rate for a trip taken two
-years ago would be a worse number than none.
+Since B543, one route produces it without anybody inventing anything: for
+each currency the trip's costs use that `rates:` does not cover, `POST
+.../days` and `PATCH .../days/<slug>` quietly ask `fillTripRates`
+(`lib/api/tripRates.ts`) for a *measurement* — the ECB's own 90-day history,
+cross-divided into the trip convention, frozen at the date the currency first
+appears on (the nearest earlier publication day when the ECB did not publish
+on that exact date). `npm run rates:fill` is the same lookup run as a sweep,
+for a currency the archive's window has since moved past. Neither ever
+touches a rate already in `trip.md`, hand-typed or filled — a currency stays
+unrated rather than being guessed once one of those refuses: the capability
+is off, the date is outside the 90-day window, or the ECB does not publish
+that currency at all. What was used is written back as `ratesFrom:`, beside
+`rates:`, and shown as a footnote on the costs page.
 
-So the author types it, and what they want is **a rate from around the middle
+A currency older than 90 days, or one the ECB never publishes, still has to be
+typed by hand — and what the author wants is **a rate from around the middle
 of the trip, from the source they actually paid at**. In order of how
 defensible it is a year later:
 

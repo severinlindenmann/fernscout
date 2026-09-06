@@ -8,6 +8,7 @@ import {
   type DraftInput,
 } from "@/lib/api/entries";
 import { confirmationMatches, confirmationRequired } from "@/lib/agentConfirm";
+import { fillTripRatesQuietly } from "@/lib/api/tripRates";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { getAllEntries } from "@/lib/entries";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
@@ -196,6 +197,11 @@ export async function POST(
   // here is picked up by `npm run weather:update` once the archive has it.
   // Awaited rather than floated: see `fillDayWeatherQuietly`.
   await fillDayWeatherQuietly(ref, result.slug);
+  // B543, the same argument: a day's own costs may introduce a currency the
+  // trip's `rates:` table does not cover yet, and this is the request for
+  // one — `npm run rates:fill` picks up whatever the archive cannot answer
+  // for right now.
+  await fillTripRatesQuietly(ref);
 
   const written = {
     slug: result.slug,

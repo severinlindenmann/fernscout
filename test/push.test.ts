@@ -34,6 +34,7 @@ function fakeTrip(overrides: Partial<Trip> = {}): Trip {
     ref: "ana/asia-2023",
     tracks: ALL_TRACKED,
     rates: {},
+    ratesFrom: {},
     title: "Asia 2026",
     start: "2026-01-01",
     end: "2026-01-31",

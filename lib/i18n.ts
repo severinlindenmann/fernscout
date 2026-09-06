@@ -287,6 +287,7 @@ export type TranslationKey =
   | "cost.prep"
   | "cost.private"
   | "cost.projected"
+  | "cost.ratesFrom"
   | "cost.remaining"
   | "cost.showTable"
   | "cost.spentIn"

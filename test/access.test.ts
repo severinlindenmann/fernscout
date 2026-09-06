@@ -18,6 +18,7 @@ function trip(over: Partial<Trip> = {}): Trip {
     listed: true,
     accent: "sky",
     rates: {},
+    ratesFrom: {},
     intro: "",
     visibility: "public",
     costsVisibility: "public",
