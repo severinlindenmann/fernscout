@@ -356,6 +356,12 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
   const fallbacks = new Map<string, string[]>();
   const excluded = new Set(options.excludePhotos ?? []);
 
+  // B322 — no ReadOptions here, so this reads published days only, and that
+  // stays a decision rather than an omission: a photobook is a public
+  // artefact printed and mailed to the owner's own address, and a draft
+  // reaching a printed page is not something a later publish can undo. An
+  // owner wanting to preview drafts before ordering is a real request, but a
+  // different one, and not one this call site should grow into answering.
   const days: BookDay[] = getDays(tripId).map((day) => {
     const photos: BookPhoto[] = [];
     for (const entry of day.entries) {

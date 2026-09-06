@@ -57,3 +57,36 @@ carries the claim in every language.
   printed, nothing was sent" statement.
 - The test does not fail a sentence that states the truth using the word
   "posted" inside a negation.
+
+## Resolution (2026-09-06)
+
+Took the third, cheapest option named in Work: dropped the regex and assert
+on the rendered `notPrinted` key instead, which is the string that actually
+carries the claim in every language `lib/photobook/receipt.ts` can render in.
+
+`test/photobook-receipt.test.ts`:
+- The old assertion (`expect(eml.toLowerCase()).not.toMatch(/\bposted\b|\bshipped\b/)`)
+  is gone.
+- `writeUserConfig` now takes a `defaultLocale` (still `"en"` by default), so
+  a locale can be swapped in without touching the rest of the fixture.
+- A new `test.each(["en", "de", "hu"])` case rewrites the user's
+  `defaultLocale`, clears the config cache, sends the receipt, and asserts the
+  mail contains `dictionaryFor(locale)["photobook.receipt.notPrinted"]`
+  verbatim — the exact sentence a reader would see, in their own language,
+  read straight from the same locale file the receipt itself translates from.
+
+Evidence against the two Acceptance lines:
+- Deleting/blanking any locale's `photobook.receipt.notPrinted` value in
+  `site/locales/{en,de,hu}.json` makes its `test.each` case fail, because the
+  mail would no longer contain the (now-empty or missing) string — checked by
+  reasoning about the assertion; the parametrised case reads the same value it
+  asserts against, so the two cannot drift silently.
+- The German (`"Es wurde nichts gedruckt und nichts verschickt."`) and
+  Hungarian (`"Semmi nem került nyomtatásra és postázásra."`) strings — both
+  negations, both correct, and the ones a reviewer previously misread as false
+  claims — are asserted present as-is; nothing was reworded, per the ticket's
+  "Not doing".
+
+`npx vitest run test/photobook-receipt.test.ts` — 4 passed (the original
+"links to both files" case, now without the word-ban line, plus the three new
+per-locale cases).
