@@ -17,14 +17,14 @@ import { DATE_RE, ID_RE } from "@/lib/tripWrite";
  * runs both sides over the same fixtures and asserts they agree, rule by
  * rule, wherever an assertion is possible at all.
  *
- * **This test is expected to find real disagreements**, inherited unchanged
- * from `fernscout-helper`'s `model.mjs` (this document's source — see
- * `lib/contentModel/document.ts`). Each one is asserted *as* a disagreement,
- * by name, with the ticket to file recorded in a comment beside it — so a
- * disagreement silently going away (the document quietly starting to agree,
- * or the validator quietly starting to enforce the document instead) is
- * itself a change this test notices, per B608's report. None of them are
- * fixed here: not in `content-model.json`, and not in `lib/validate/*`.
+ * This test found several real disagreements, inherited unchanged from
+ * `fernscout-helper`'s `model.mjs` (this document's original source — see
+ * `lib/contentModel/document.ts`). B615 fixes the two below, in
+ * `content-model.json` rather than in `lib/validate/*` (that stays the
+ * server's own gate, per W41): `countryCode`'s case-sensitivity, and
+ * `locales`/`defaultLocale` being wrongly `required`. Other findings remain,
+ * each still asserted *as* a disagreement, by name, with the ticket to file
+ * recorded in a comment beside it.
  */
 
 const EIGHT_KINDS = [
@@ -261,17 +261,6 @@ describe("entries/YYYY-MM-DD-slug.md: disagreements found, and reported rather t
     expect(docProblems(day)).not.toEqual(expect.arrayContaining(["test"]));
   });
 
-  // FINDING 3 (file for a ticket): `countryCode`'s pattern here is
-  // `^[A-Z]{2}$` — capitals only, exactly what model.mjs said. The server's
-  // own check (`COUNTRY_CODE_RE` in lib/validate/entry.ts) is explicitly
-  // case-insensitive, so a lowercase code the server accepts is refused by
-  // this document.
-  test("countryCode: lowercase — accepted by validateEntry, refused by this document's pattern", () => {
-    const day = validDay({ countryCode: "pt" });
-    expect(realProblems(day)).toEqual([]);
-    expect(docProblems(day)).toEqual(expect.arrayContaining(["countryCode"]));
-  });
-
   // FINDING 4 (file for a ticket): `date`'s pattern here only checks the
   // YYYY-MM-DD shape — again a faithful copy of model.mjs's `ISO_DATE`. The
   // server's `checkDate` also checks the date is a real one on the calendar
@@ -283,6 +272,24 @@ describe("entries/YYYY-MM-DD-slug.md: disagreements found, and reported rather t
     const day = validDay({ date: "2026-13-40" });
     expect(realProblems(day)).toEqual(expect.arrayContaining(["date"]));
     expect(docProblems(day)).not.toEqual(expect.arrayContaining(["date"]));
+  });
+});
+
+describe("entries/YYYY-MM-DD-slug.md: B615 fixed — countryCode agrees with COUNTRY_CODE_RE", () => {
+  // B615: the pattern is now `^[A-Za-z]{2}$`, matching `COUNTRY_CODE_RE`
+  // exactly — a lowercase code is a live false error no longer.
+  test("countryCode: lowercase — accepted by both", () => {
+    const day = validDay({ countryCode: "pt" });
+    expect(realProblems(day)).toEqual([]);
+    expect(docProblems(day)).toEqual([]);
+  });
+
+  test("countryCode: three letters, or a digit — refused by both", () => {
+    for (const bad of ["PTX", "P1"]) {
+      const day = validDay({ countryCode: bad });
+      expect(realProblems(day)).toEqual(expect.arrayContaining(["countryCode"]));
+      expect(docProblems(day)).toEqual(expect.arrayContaining(["countryCode"]));
+    }
   });
 });
 
@@ -349,25 +356,27 @@ describe("config.json: disagreements found, and reported rather than fixed", () 
     expect(docConfigProblems(config)).not.toEqual(expect.arrayContaining(["features"]));
   });
 
-  // FINDING 6 (file for a ticket): `defaultLocale` and `locales` are both
-  // `required: true` here, a faithful copy of model.mjs. `lib/config.ts`'s
-  // `parseUser` in fact defaults both silently — `locales` falls back to
-  // `["en"]`, and `defaultLocale` to `locales[0]` — so a config omitting
-  // either is written cleanly by the server today and refused by this
-  // document's `required` rule.
-  test("a config with locales but no defaultLocale — accepted (defaulted) by parseUserConfig, refused by this document", () => {
+});
+
+describe("config.json: B615 fixed — locales/defaultLocale agree with parseUser's defaulting", () => {
+  // `defaultLocale` and `locales` are no longer `required` here.
+  // `lib/config.ts`'s `parseUser` in fact defaults both silently —
+  // `locales` falls back to `["en"]`, and `defaultLocale` to `locales[0]` —
+  // so a config omitting either is written cleanly by the server, and no
+  // longer a live false error here.
+  test("a config with locales but no defaultLocale — accepted (defaulted) by both", () => {
     const config = validConfig();
     delete config.defaultLocale;
     expect(realConfigProblems(config).some((p) => p.startsWith("defaultLocale"))).toBe(false);
-    expect(docConfigProblems(config)).toEqual(expect.arrayContaining(["defaultLocale"]));
+    expect(docConfigProblems(config)).not.toEqual(expect.arrayContaining(["defaultLocale"]));
   });
 
-  test("a config with no locales at all — accepted (defaulted) by parseUserConfig, refused by this document", () => {
+  test("a config with no locales at all — accepted (defaulted) by both", () => {
     const config = validConfig();
     delete config.locales;
     delete config.defaultLocale;
     expect(realConfigProblems(config).some((p) => p.startsWith("locales"))).toBe(false);
-    expect(docConfigProblems(config)).toEqual(expect.arrayContaining(["locales"]));
+    expect(docConfigProblems(config)).not.toEqual(expect.arrayContaining(["locales"]));
   });
 });
 

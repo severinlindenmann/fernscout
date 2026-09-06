@@ -107,8 +107,12 @@ export function contentModel(): ContentModelDocument {
       // not mistake them for something this document has never heard of.
       visibility: {},
       startLocation: { type: "string" },
-      defaultLocale: { type: "string", required: true },
-      locales: { type: "array", required: true },
+      // B615: neither is `required`. `parseUser` in lib/config.ts defaults
+      // both when absent — `locales` to `["en"]`, then `defaultLocale` to
+      // `locales[0]` — so a config naming neither is a valid journal in
+      // English, not two errors.
+      defaultLocale: { type: "string" },
+      locales: { type: "array" },
       baseCurrency: { type: "string" },
       displayCurrencies: { type: "array" },
       units: {},
@@ -170,9 +174,14 @@ export function contentModel(): ContentModelDocument {
       },
       location: { type: "string" },
       country: { type: "string" },
+      // B615: model.mjs's pattern was capitals-only. The server's own check
+      // (COUNTRY_CODE_RE in lib/validate/entry.ts) is explicitly
+      // case-insensitive — it uppercases on the way in — so this document
+      // must not refuse what the instance accepts. Capitals stay the house
+      // style, in prose, not as the enforced shape.
       countryCode: {
         type: "string",
-        pattern: { pattern: "^[A-Z]{2}$", expected: "two capitals, like PT" },
+        pattern: { pattern: "^[A-Za-z]{2}$", expected: "two letters, ISO 3166-1 alpha-2 — capitals are the house style, like PT" },
         because: "draws the flag",
       },
       lat: { type: "number" },
