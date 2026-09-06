@@ -175,6 +175,12 @@ export function contentModel(): ContentModelDocument {
       // way `checkTest` does for a day (see the entries block below). Fixed
       // here. B620: `test` is also one of the two keys `model.mjs` marks
       // `noTip: true` — see `files["trip.md"].noTip` below.
+      //
+      // B617 asked, of every key here, whether the file/wire difference is
+      // real: `test` is not one — a trip's frontmatter carries `test: true`
+      // literally (`lib/tripWrite.ts`'s own writer emits that line), and the
+      // API takes the same key under the same name. Neither `apiOnly` nor
+      // `fileOnly` applies; this is deliberately a plain, shared key.
       test: { type: "boolean" },
     }),
 
@@ -218,9 +224,14 @@ export function contentModel(): ContentModelDocument {
       transportFrom: { type: "string" },
       transportTo: { type: "string" },
       tags: { type: "array" },
-      // A list of cost items, or `false` (nothing was spent), or `"unknown"`
-      // (money was spent and nobody has the figures) — model.mjs states only
-      // `type: "array"`, the same silence this document is carrying forward.
+      // `type: "array"` is correct here and only here: a *file* never carries
+      // `costs: false` or `costs: "unknown"` — see `without`/`unrecorded`
+      // below, which is where those two answers actually live on disk. The
+      // wire accepts `costs: false`/`"unknown"` too (`checkCosts` in
+      // lib/validate/entry.ts), but that is the file/wire boundary a
+      // publishing client crosses on the way out, not a gap in this rule —
+      // B617, and the mapping test/content-model.test.ts applies before
+      // comparing the two.
       costs: { type: "array" },
       translations: { type: "object" },
       // What this day deliberately has none of, and what it had and nobody
@@ -251,6 +262,11 @@ export function contentModel(): ContentModelDocument {
       // boolean. Fixed here. B620: also one of the two keys model.mjs marks
       // `noTip: true` — see `files["entries/YYYY-MM-DD-slug.md"].noTip`
       // below.
+      //
+      // B617: same question as trip.md's `test` above, and the same answer —
+      // `lib/entries.ts` reads `test` straight off a day's own frontmatter
+      // (`data.test === true`), so this is a plain, deliberately shared key,
+      // not a file/wire split.
       test: { type: "boolean" },
     }),
 

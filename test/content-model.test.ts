@@ -31,8 +31,20 @@ import { DATE_RE, ID_RE } from "@/lib/tripWrite";
  *   `known-key`); the calendar check and the budget range do not, and are
  *   declared as named checks instead of left silent.
  *
- * Other findings remain, each still asserted *as* a disagreement, by name,
- * with the ticket to file recorded in a comment beside it.
+ * B617 went the other way: two of the seven original findings — `costs` and
+ * `test` — were never drift at all. `test` already carries `type: "boolean"`
+ * on both files that hold it (fixed in passing by B616) and is a key a file
+ * may deliberately carry, same as the wire. `costs` is genuinely one thing on
+ * disk (`type: "array"`, or `without`/`unrecorded` beside it) and another on
+ * the wire (that array, or `false`/`"unknown"` in the same field) *by
+ * design* — the file/wire boundary the whole test was comparing across
+ * without saying so. `toWire`, below, is the mapping a publishing client
+ * applies to cross it; every assertion about `costs` in this file runs
+ * through it before comparing, and once it does, both sides agree.
+ *
+ * With those two accounted for, no disagreement asserted as unresolved
+ * remains in this file — every describe block below is either an agreement,
+ * a documented named-check gap, or a regression guard for a fixed ticket.
  */
 
 const EIGHT_KINDS = [
@@ -221,6 +233,33 @@ function docProblems(day: Record<string, unknown>): string[] {
   return interpretFile(doc.rules, "entries/YYYY-MM-DD-slug.md", day).map((p) => p.path);
 }
 
+/**
+ * The one translation a publishing client is allowed to make between a file
+ * and the wire — see W41's "The only thing publish takes from the manifest".
+ * `without: [x]` becomes `x: false` ("nothing was spent"); `unrecorded: [x]`
+ * becomes `x: "unknown"` ("something was, and nobody has the figures"). This
+ * server's own day-write path applies the identical mapping in the other
+ * direction (`declinedIn`/`unrecordedIn` and `withoutLine`/`unrecordedLine`
+ * in `lib/api/entries.ts`), which is what makes it the contract rather than
+ * a guess.
+ *
+ * `content-model.json` describes the *file*, so a rule like `costs: {type:
+ * "array"}` is only ever comparable to `validateEntry` — which describes the
+ * *wire* — after this runs. Before it, `costs: false` is not a value either
+ * side disagrees about; it is a value only one side's vocabulary can even
+ * hold — B617.
+ */
+function toWire(fileDay: Record<string, unknown>): Record<string, unknown> {
+  const wire = { ...fileDay };
+  const without = Array.isArray(wire.without) ? (wire.without as string[]) : [];
+  const unrecorded = Array.isArray(wire.unrecorded) ? (wire.unrecorded as string[]) : [];
+  delete wire.without;
+  delete wire.unrecorded;
+  for (const key of without) wire[key] = false;
+  for (const key of unrecorded) wire[key] = "unknown";
+  return wire;
+}
+
 describe("entries/YYYY-MM-DD-slug.md: agreement on what this document can check", () => {
   test("a day with everything filled in validly passes both sides", () => {
     const day = validDay();
@@ -243,22 +282,32 @@ describe("entries/YYYY-MM-DD-slug.md: agreement on what this document can check"
   });
 });
 
-describe("entries/YYYY-MM-DD-slug.md: disagreements found, and reported rather than fixed", () => {
-  // FINDING 1 (file for a ticket): `costs` is documented here as `type:
-  // "array"`, a faithful copy of model.mjs. The real field also accepts
-  // `false` ("nothing was spent") and `"unknown"` ("something was, and
-  // nobody has the figures") — B531 and B560. A day sending either is
-  // written cleanly by the server and refused by this document's own rule.
-  test("costs: false / \"unknown\" — accepted by validateEntry, refused by this document's type rule", () => {
-    for (const value of [false, "unknown"]) {
-      const day = validDay({ costs: value as unknown as EntryInput["costs"] });
-      expect(realProblems(day), `validateEntry on costs: ${JSON.stringify(value)}`).toEqual([]);
-      expect(docProblems(day), `content-model.json on costs: ${JSON.stringify(value)}`).toEqual(
-        expect.arrayContaining(["costs"]),
-      );
+describe("entries/YYYY-MM-DD-slug.md: costs — B617 fixed, mapped across the file/wire boundary before comparing", () => {
+  // Not a disagreement: `costs` is documented here as `type: "array"`,
+  // correct for a *file* — a file never carries `costs: false`, it says
+  // `without: [costs]` (`unrecorded: [costs]` for `"unknown"`) — B531 and
+  // B560. Comparing the document's rule straight against `validateEntry`,
+  // which only ever sees the wire shape, was comparing two different
+  // questions. Run `toWire` first, as a publishing client does, and the two
+  // sides agree.
+  test("without: [costs] / unrecorded: [costs] on the file — a day with everything else valid passes this document as-is", () => {
+    for (const key of ["without", "unrecorded"] as const) {
+      const fileDay = validDay({ [key]: ["costs"] });
+      expect(docProblems(fileDay), `content-model.json on ${key}: [costs]`).toEqual([]);
     }
   });
 
+  test("…and once mapped to the wire shape it becomes, validateEntry accepts it too", () => {
+    for (const [key, expectedWire] of [
+      ["without", false],
+      ["unrecorded", "unknown"],
+    ] as const) {
+      const fileDay = validDay({ [key]: ["costs"] });
+      const wireDay = toWire(fileDay);
+      expect(wireDay.costs, `toWire's costs for ${key}: [costs]`).toBe(expectedWire);
+      expect(realProblems(wireDay), `validateEntry on costs: ${JSON.stringify(expectedWire)}`).toEqual([]);
+    }
+  });
 });
 
 describe("entries/YYYY-MM-DD-slug.md: B616 fixed — test's type, and the date gap declared rather than silent", () => {
