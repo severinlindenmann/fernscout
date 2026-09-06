@@ -7,8 +7,7 @@ complexity: low
 area: PWA, i18n, language detection
 found: "2026-09-06T17:51:42Z"
 started: "2026-09-06T20:04:31Z"
-session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
-claimed: "2026-09-06T20:04:31Z"
+merged: "2026-09-06T20:13:54Z"
 ---
 
 # B625 — The installed PWA opens in English for a phone set to German
