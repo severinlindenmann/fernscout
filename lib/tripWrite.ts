@@ -120,8 +120,8 @@ export type NewTrip = {
    * broken image rather than nothing — a 201 for a trip that looks worse than
    * one created without the field.
    *
-   * So it stays file-only for now, and `.claude/skills/add-a-trip/SKILL.md`
-   * is where a person is told to write it by hand. The place it actually
+   * So it stays file-only for now: `cover:` is written into `trip.md` by
+   * hand, after the photographs land. The place it actually
    * belongs is a call made *after* the photographs land, which is B245.
    */
 };

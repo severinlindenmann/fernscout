@@ -121,9 +121,10 @@ boundary.
 
 ### The shape of an entry and a trip
 
-Not repeated here. The two skills that write them carry the field lists in the
-place you will actually be reading them — `add-a-day` for an entry,
-`add-a-trip` for `trip.md`, `costs.md` and `plan.md`. A reference kept in two
+Not repeated here. Writing content is the network door's job, so the field
+lists live where the writer is actually reading them: `/agent.md` for an entry,
+`trip.md`, `costs.md` and `plan.md`, and the request schemas in
+`lib/api/openapi.ts` for what each route will accept. A reference kept in two
 files is a reference that disagrees with itself within a month, and this one
 already had: the visibility vocabulary changed in W27 and only one copy
 followed.
@@ -178,7 +179,7 @@ people who were there — and reusing it one level up, for "not advertised",
 is how an owner answers a journal-visibility question with the trip's word
 and an agent has to explain why that was wrong. `guest` reads correctly for
 what the value actually does now, too: it is this journal's own answer for a
-new trip's default (see `add-a-trip` and `lib/tripWrite.ts`), so a `guest`
+new trip's default (see `lib/tripWrite.ts`), so a `guest`
 journal's trips start out `guest` unless a create call says otherwise, and a
 `public` journal's start out `public`. `"private"` still parses wherever this
 is read from a file or a request — nothing rewrites a journal nobody has
@@ -455,17 +456,14 @@ that carry all of this in full.
 
 ## Skills
 
-`.claude/skills/` holds the tasks the author actually performs. Each is a
-`SKILL.md` you can follow start to finish:
+`.claude/skills/` holds the tasks of *building* this software. Each is a
+`SKILL.md` you can follow start to finish. Writing content — a day, a trip,
+photographs, a photobook, postcards, a traveller's likeness — is not here and
+is not a checkout's job: it happens over the network, and `/agent.md` is the
+guide for it.
 
 | Skill | For |
 | --- | --- |
-| `add-a-day` | Write one day's entry, as a draft |
-| `add-a-trip` | Scaffold a new trip folder |
-| `describe-a-traveller` | Ask somebody how they would like to be drawn, and write it down |
-| `ingest-photos` | A folder of camera files → dated, geotagged entries |
-| `generate-photobook` | A trip → a print-ready PDF |
-| `send-postcards` | A photo + a message → print-ready postcards |
 | `apply-the-brand` | The mark, the palette, and what not to do to them |
 | `deploy` | Ship it to the VPS, and know it is healthy |
 | `manage-tasks` | Capture something, and move it between lanes |
@@ -510,8 +508,8 @@ refactor its 89 callers cannot survive. Call again, or check the first answer
 against `grep`, before concluding anything from a small number.
 
 **None of this is in the repository.** Plugins are installed per user and
-`.claude/settings.json` is gitignored, so a fresh clone has the ten skills
-above and nothing else. An eleventh may be on disk and is deliberately not in
+`.claude/settings.json` is gitignored, so a fresh clone has the five skills
+above and nothing else. A sixth may be on disk and is deliberately not in
 that table: `.claude/skills/vps/` is this instance's own deploy — it knows a
 host, a directory and a domain — and is gitignored for that reason. Where it
 exists it is the answer to "deploy", and `deploy` is the procedure for somebody
