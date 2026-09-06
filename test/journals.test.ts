@@ -1138,8 +1138,8 @@ describe("the trip fields that had no writer", () => {
    * `media/`, and `POST /api/v1/<user>/trips/<trip>/media` refuses a batch
    * that does not name a day, so no photograph can arrive until a day has.
    * Anything a caller could send would name a file that is not there. It stays
-   * file-only, `.claude/skills/add-a-trip/SKILL.md` says how to write it by
-   * hand, and B245 is the call it actually belongs on.
+   * file-only — written into `trip.md` by hand once the photographs are
+   * there — and B245 is the call it actually belongs on.
    */
   test("cover is not accepted, and a body carrying one writes no cover", () => {
     const result = createTrip("wanderer", {
