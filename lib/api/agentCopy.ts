@@ -218,6 +218,209 @@ import { COST_CATEGORIES } from "../costFormat";
  * (`checkTranslations`, lib/validate/entry.ts), and an example that omitted
  * it taught the shape that gets refused.
  */
+/**
+ * One trip with every field a create call may carry — B530, and the same
+ * finding B335 made about a day, one call earlier.
+ *
+ * Both documents showed `{id, title, start, end}` — the four fields
+ * `createTrip` *refuses* a trip for lacking — as the example to copy, so the
+ * other ten were invisible at the moment somebody was writing the call. A
+ * trip made from that minimum has no tagline, no intro, no party, no rate
+ * table and no answer about its money, and each of those is either a second
+ * call later or, for `translations`, a field with no door at all.
+ *
+ * Two fields of `NewTrip` are deliberately not in these lines, and both are in
+ * `TRIP_FIELDS` below instead:
+ *
+ * - **`test`**, because an example is a thing people copy and `"test": true`
+ *   copied by accident puts a banner on somebody's real journey. It is the
+ *   answer to "invent me a trip so I can see it work", and nothing else.
+ * - **`cover`**, which is not a field here at all: a trip has no photographs
+ *   at the moment it is created. It is named in the list because an agent
+ *   reading a complete-looking example will otherwise go looking for it.
+ */
+export const PERFECT_TRIP_EXAMPLE = [
+  "{",
+  '  "id": "japan-2027",',
+  '  "title": "Japan",',
+  '  "tagline": "six weeks by train",',
+  '  "start": "2027-04-01",',
+  '  "end": "2027-05-15",',
+  '  "status": "current",',
+  '  "visibility": "public",',
+  '  "listed": false,',
+  '  "accent": "sky",',
+  '  "costsVisibility": "guests",',
+  '  "intro": "Six weeks from Kyushu to Hokkaido, mostly by rail.",',
+  '  "people": [',
+  '    {"name": "Ana Meyer", "email": "ana@example.test", "nickname": "Ana"}',
+  "  ],",
+  '  "travellers": [',
+  '    {"for": "ana@example.test", "skin": "medium", "hair": "black", "hairStyle": "coils"}',
+  "  ],",
+  '  "rates": {"JPY": 0.0058},',
+  '  "translations": {',
+  '    "de": {"title": "Japan", "tagline": "sechs Wochen mit dem Zug"}',
+  "  }",
+  "}",
+];
+
+/**
+ * Every field the create call takes, and whether it is required — the
+ * reference the example is the *shape* of.
+ *
+ * Rendered as a table by the guide and as a list by the index, from one
+ * definition, for the reason this whole module exists. `test/trip-shape.test.ts`
+ * checks it against `NewTrip` in lib/tripWrite.ts, so a field added there and
+ * not here fails the build rather than quietly going undocumented — which is
+ * exactly how `travellers` came to be missing from a sentence that counted
+ * two of it (B526).
+ */
+export const TRIP_FIELDS: {
+  key: string;
+  required: boolean;
+  /** Named here because an agent will look for it, and documented as the one
+   *  row that is not a field at all. */
+  absent?: true;
+  what: string;
+}[] = [
+  {
+    key: "id",
+    required: true,
+    what:
+      "Lowercase letters, digits and dashes. It is in every URL of the trip and **cannot be " +
+      "changed afterwards** — `japan-2027` ages better than `the-big-one`.",
+  },
+  { key: "title", required: true, what: "What the trip is called. One line." },
+  {
+    key: "start",
+    required: true,
+    what:
+      "`2027-04-01`. Not optional in any sense: the site skips a trip without dates, so one " +
+      "written without them exists on disk and nowhere a reader can find it.",
+  },
+  { key: "end", required: true, what: "`2027-05-15`, the same shape." },
+  {
+    key: "tagline",
+    required: false,
+    what: "One line under the title. Ask for it; it is the trip's own subtitle, not a summary you write.",
+  },
+  {
+    key: "status",
+    required: false,
+    what:
+      "`upcoming`, `current` or `past` — and normally **leave it out**, because the dates " +
+      "decide it. Send `current` only to make this the trip the bare `/<user>` URLs serve, " +
+      "which moves those URLs off whichever trip has them now.",
+  },
+  {
+    key: "visibility",
+    required: false,
+    what:
+      "`private`, `public` or `guest` — who may open the trip. The answer to a question you " +
+      "asked, never a value copied from an example. Left out, it inherits the journal's own " +
+      "answer and is never wider than that.",
+  },
+  {
+    key: "listed",
+    required: false,
+    what:
+      "Whether the trip is advertised — sitemap, feed, trip switcher. Only ever narrows: " +
+      "`false` on a public trip is a trip you reach by being sent the link, and `true` on a " +
+      "trip no visibility advertises is refused rather than written.",
+  },
+  {
+    key: "accent",
+    required: false,
+    what: "`sky`, `yellow`, `green`, `coral` or `navy` — the trip's colour. Cosmetic; ask, or leave it.",
+  },
+  {
+    key: "costsVisibility",
+    required: false,
+    what:
+      "`public` or `guests`, and only about the money: among the readers already allowed to " +
+      "open the trip, `guests` keeps what it cost to the people who were on it and the " +
+      "readers the owner has approved. Absent shows the numbers to everyone who can read the trip.",
+  },
+  {
+    key: "intro",
+    required: false,
+    what:
+      "The prose under the trip's own heading — what this journey is, in the person's words. " +
+      "The one field here long enough to be worth a sentence of theirs rather than a phrase.",
+  },
+  {
+    key: "people",
+    required: false,
+    what:
+      "Who took the trip: `[{name, email, nickname}]`, at most ten. The byline **and write " +
+      "access** — everyone named may write to the whole trip. Correctable later at " +
+      "`PATCH .../trips/<id>/people`.",
+  },
+  {
+    key: "travellers",
+    required: false,
+    what:
+      "How the party is drawn — see \"Drawing the travellers\". `for` ties a figure to an " +
+      "address in `people`. Ask how somebody wants to be drawn and show them the preview; " +
+      "never infer it. Correctable at `PATCH .../trips/<id>/travellers`.",
+  },
+  {
+    key: "rates",
+    required: false,
+    what:
+      "`{\"JPY\": 0.0058}` — units of the journal's base currency for one unit of the keyed " +
+      "currency, so a currency worth less than the base one has a small number. A currency " +
+      "left out is reported unconverted rather than guessed at. Correctable at " +
+      "`PATCH .../trips/<id>/rates`.",
+  },
+  {
+    key: "translations",
+    required: false,
+    what:
+      "Title and tagline in the journal's other languages — `{\"de\": {\"title\", \"tagline\"}}`. " +
+      "**Set here or nowhere**: no call writes it afterwards. A language the journal does not " +
+      "declare is refused.",
+  },
+  {
+    key: "test",
+    required: false,
+    what:
+      "`true` only when the trip is being made to prove the software works rather than to " +
+      "record a journey — every day of it then carries a banner and none of it reaches the " +
+      "feed, the search index or the sitemap. Deliberately not in the example above, because " +
+      "an example is a thing people copy.",
+  },
+  {
+    key: "cover",
+    required: false,
+    absent: true,
+    what:
+      "**Not a field on this call.** A trip has no photographs when it is created, so anything " +
+      "sent here would name a file that is not there. It is a line added to `trip.md` once the " +
+      "pictures are in.",
+  },
+];
+
+/**
+ * The sentence that turns the example from a template into a set of questions
+ * — B530, and the trip's version of `PERFECT_DAY_INTRO`.
+ *
+ * The line it has to hold is the one this whole product turns on: **ask, and
+ * fill in what you are told.** "An empty field beats an invented one" is the
+ * rule everywhere else in these documents, and read alone it can be taken as
+ * permission to send four fields and stop. Asking is the third option that
+ * makes both true, and it is the one an agent skips.
+ */
+export const PERFECT_TRIP_INTRO =
+  "This is what a finished trip looks like — **the shape to aim at, not the minimum**. Only " +
+  "`id`, `title`, `start` and `end` are required; every other line is a question worth " +
+  "putting to the person, because each one left out is something the trip cannot show and, " +
+  "for `translations`, something no later call can add. **Ask for them, in the one round of " +
+  "questions above, and fill in what you are told.** What you must not do is copy a value " +
+  "from here: these are somebody else's answers. An empty field still beats an invented one " +
+  "— asking is how you get neither.";
+
 export const PERFECT_DAY_EXAMPLE = [
   "{",
   '  "title": "Lanterns of Hoi An",',

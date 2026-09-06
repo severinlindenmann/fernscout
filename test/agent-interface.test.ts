@@ -519,6 +519,28 @@ describe("what the guide has to tell an agent before it starts", () => {
     expect(agentGuide()).toMatch(/resumed by reading the day, not by counting/i);
   });
 
+  /**
+   * B530 — both documents showed the four fields a trip is refused for
+   * lacking and called it the example, so an agent copying it created a trip
+   * that could carry none of the other ten. The shape has to be in the
+   * document the agent is reading, not only in openapi.json.
+   */
+  test("shows a trip's whole shape, and says the optional fields are questions", () => {
+    for (const document of [agentGuide(), instanceDocumentation()]) {
+      // Both documents wrap their prose, so the sentences are matched with
+      // the line breaks flattened out.
+      const flat = document.replace(/\s+/g, " ");
+      expect(document).toContain('"costsVisibility"');
+      expect(document).toContain('"translations"');
+      expect(flat).toMatch(/the shape to aim at, not the minimum/i);
+      // The sentence the whole thing turns on: fill it in by asking, not by
+      // copying somebody else's answers.
+      expect(flat).toMatch(/fill in what you are told/i);
+    }
+    // And the guide carries the field-by-field reference beside it.
+    expect(agentGuide()).toMatch(/Every field, and whether it is required/);
+  });
+
   test("says that asking for a second code kills the first", () => {
     // The failure this prevents: the person reads out the code from the email
     // they have, and it has already been superseded by an identical one.
