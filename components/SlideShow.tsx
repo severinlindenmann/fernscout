@@ -629,6 +629,22 @@ const VEHICLE_ICON = {
 } as const;
 
 /**
+ * A transform that points a vehicle glyph along `headingDeg` (the same
+ * convention as `Math.atan2` in degrees) without ever turning it upside
+ * down. Rotating a whole 180° for a westward heading is what B640 reported:
+ * the car and the plane arrive nose-first but roof-down. Past vertical
+ * (`|headingDeg| > 90`, i.e. the heading points leftward) this mirrors the
+ * glyph horizontally instead and rotates only the remaining, always-small,
+ * angle — a car facing left is a mirrored car, not an inverted one.
+ */
+export function vehicleHeadingTransform(headingDeg: number): string {
+  if (headingDeg > 90 || headingDeg < -90) {
+    return `rotate(${headingDeg + 180}) scale(-1, 1)`;
+  }
+  return `rotate(${headingDeg})`;
+}
+
+/**
  * Where the camera looks when a place has no coordinates: it holds the last
  * located stop rather than jumping to `(NaN, NaN)`, and falls further back to
  * the next located one, or the world's centre, only if there is none behind
@@ -785,7 +801,7 @@ export function SlideMap({
               animate={{ x: to[0], y: to[1] }}
               transition={{ duration: FULL_TRAVEL_MS / 1000, ease: [0.45, 0, 0.35, 1] }}
             >
-              <g transform={`rotate(${angle})`}>
+              <g transform={vehicleHeadingTransform(angle)}>
                 <circle r={5.5} fill="#ffd23f" stroke="#0f2b3d" strokeWidth={1} />
                 <g transform="translate(-3.2, -3.2)">
                   <Icon width={6.4} height={6.4} color="#0f2b3d" strokeWidth={2.6} />

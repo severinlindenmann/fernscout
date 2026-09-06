@@ -37,3 +37,25 @@ left is a mirrored car, not an inverted one.
 
 - A leg travelling west shows the vehicle facing west and upright.
 - An eastward leg is unchanged.
+
+## Found
+
+Only one call site does this rotation: `SlideMap` in `components/SlideShow.tsx`
+(the "leg being flown right now" vehicle glyph, ~line 780). The comment at
+line 716 that reads "exactly as the trip map draws it" is about the bowed
+*path* the leg is drawn along, not the vehicle icon — the actual trip map
+(`app/[user]/(trip)/map/MapPageContent.tsx`, the static per-trip map) draws no
+vehicle icon and does no heading rotation at all, and `SlideMap` itself has
+only one caller (the slideshow). So there was one fault, not two, and one
+guard (`vehicleHeadingTransform`) covers it.
+
+Fix: `vehicleHeadingTransform(headingDeg)` in `components/SlideShow.tsx` —
+`rotate(angle)` for `|angle| <= 90`, `rotate(angle + 180) scale(-1, 1)`
+beyond that (mirror horizontally, then rotate only the residual angle rather
+than continuing to rotate the glyph past vertical). Covered by
+`test/vehicle-heading-transform.test.ts` (forward direction always matches
+the heading; the icon's local "up" vector never points screen-downward for
+any heading in [-180, 180]). Looked at it directly: rendered `SlideMap`'s
+vehicle glyph (car and plane) to static SVG for east/south/west/north
+headings and screenshotted with chrome-devtools MCP — west now shows an
+upright, mirrored car/plane rather than one flipped roof-down.
