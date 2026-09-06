@@ -8,8 +8,10 @@ export type TransportMode =
   | "train"
   | "bus"
   | "motorbike"
+  | "bicycle"
   | "boat"
   | "car"
+  | "taxi"
   | "walk";
 
 export type Locale = "en" | "de" | "hu";

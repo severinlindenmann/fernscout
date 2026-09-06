@@ -19,7 +19,7 @@ import type { TransportMode } from "./types";
  * - a **boat** curves gently and is dotted, the way a sea route wanders;
  * - a **train** is nearly straight and solid, because a railway is fixed;
  * - **road** modes are straight, their dashes shortening as the vehicle gets
- *   smaller — bus, then car, then motorbike;
+ *   smaller — bus, then taxi, then car, then motorbike, then bicycle;
  * - a **walk** is straight and finely dotted.
  */
 export const TRANSPORT_STYLE: Record<
@@ -50,7 +50,9 @@ export const TRANSPORT_STYLE: Record<
   train: { label: "Train", color: "#8b5cf6", bow: 0.05 },
   bus: { label: "Bus", color: "#f59e0b", dash: [11, 6], bow: 0.03 },
   car: { label: "Car", color: "#14b8a6", dash: [7, 5], bow: 0.03 },
+  taxi: { label: "Taxi", color: "#f97316", dash: [9, 4], bow: 0.03 },
   motorbike: { label: "Motorbike", color: "#ef4444", dash: [4, 4], bow: 0.03 },
+  bicycle: { label: "Bicycle", color: "#84cc16", dash: [3, 3], bow: 0.02 },
   walk: { label: "Walk", color: "#22c55e", dash: [1.5, 5], bow: 0 },
 };
 

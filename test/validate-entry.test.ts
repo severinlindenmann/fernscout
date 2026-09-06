@@ -97,7 +97,7 @@ describe("transport", () => {
   });
 
   test("every documented mode is accepted", () => {
-    for (const mode of ["flight", "train", "bus", "motorbike", "boat", "car", "walk"]) {
+    for (const mode of ["flight", "train", "bus", "motorbike", "bicycle", "boat", "car", "taxi", "walk"]) {
       expect(validateEntry({ ...ok, transportMode: mode }), mode).toEqual([]);
     }
   });

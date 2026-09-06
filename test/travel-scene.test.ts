@@ -5,7 +5,17 @@ import { GROUND_HEIGHT, surfaceFor } from "@/components/travel/Ground";
 import { cityScale, floraFor } from "@/components/Cityscape";
 import type { DaySummary, TransportMode } from "@/lib/types";
 
-const MODES: TransportMode[] = ["flight", "train", "bus", "motorbike", "boat", "car", "walk"];
+const MODES: TransportMode[] = [
+  "flight",
+  "train",
+  "bus",
+  "motorbike",
+  "bicycle",
+  "boat",
+  "car",
+  "taxi",
+  "walk",
+];
 
 /**
  * B15 — more than one travel scene, with a reason to pick each.

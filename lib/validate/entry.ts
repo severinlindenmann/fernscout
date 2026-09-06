@@ -16,9 +16,9 @@ import { captionProblem } from "./media";
 
 /** Mirrors `TransportMode` in lib/types.ts. TypeScript has no way to turn a
  * type union back into a runtime array, so this list is kept in sync by hand
- * — there are only seven, and a missing one shows up immediately as a
+ * — there are only nine, and a missing one shows up immediately as a
  * rejected, correct value. */
-export const TRANSPORT_MODES = ["flight", "train", "bus", "motorbike", "boat", "car", "walk"] as const;
+export const TRANSPORT_MODES = ["flight", "train", "bus", "motorbike", "bicycle", "boat", "car", "taxi", "walk"] as const;
 
 /** Mirrors `TravelSceneVariant` in lib/types.ts, the same split as
  * `TRANSPORT_MODES` above. Kept as the list an agent can discover — it is

@@ -29,8 +29,10 @@ export function surfaceFor(mode: TransportMode): Surface {
     case "train":
       return "rail";
     case "car":
+    case "taxi":
     case "bus":
     case "motorbike":
+    case "bicycle":
       return "road";
     case "boat":
       return "water";
@@ -64,6 +66,14 @@ const TILE_SHIFT: Record<Surface, number> = {
   sky: 0,
 };
 
+/**
+ * How far past each edge of the frame the surface is drawn, in px.
+ *
+ * Has to exceed every `TILE_SHIFT` above, or the tile run ends inside the
+ * frame before the leg does.
+ */
+const OVERHANG = 320;
+
 export default function Ground({
   surface,
   scroll,
@@ -85,9 +95,17 @@ export default function Ground({
       style={{ height }}
     >
       <div className="absolute inset-0" style={{ background: BACKDROP[surface] }} />
+      {/* The slack the tiles slide into, and it is in pixels because the
+          slide is: `-left-[10%] w-[130%]` gave 20% of the *frame* on the
+          right, which is 140px on the story's own width and 72px on a phone,
+          against a road that moves 260px over the leg. So the last second of
+          every crossing ran off the end of its own surface and arrived on
+          bare backdrop — the rails simply stopped, short of the destination,
+          and the narrower the screen the sooner. `OVERHANG` beats the largest
+          `TILE_SHIFT` at every width. */}
       <motion.div
-        className="absolute inset-y-0 -left-[10%] w-[130%]"
-        style={{ x }}
+        className="absolute inset-y-0"
+        style={{ x, left: -OVERHANG, width: `calc(100% + ${2 * OVERHANG}px)` }}
       >
         <svg width="100%" height={height} preserveAspectRatio="none" aria-hidden>
           <defs>

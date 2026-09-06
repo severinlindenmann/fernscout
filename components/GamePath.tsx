@@ -2,7 +2,18 @@
 
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plane, TrainFront, Bus, Bike, Car, Ship, Footprints, Backpack } from "lucide-react";
+import {
+  Plane,
+  TrainFront,
+  Bus,
+  Bike,
+  Motorbike,
+  Car,
+  CarTaxiFront,
+  Ship,
+  Footprints,
+  Backpack,
+} from "lucide-react";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "./LocaleProvider";
 import { useMoney } from "./CurrencyProvider";
@@ -12,8 +23,10 @@ const ICON = {
   flight: Plane,
   train: TrainFront,
   bus: Bus,
-  motorbike: Bike,
+  motorbike: Motorbike,
+  bicycle: Bike,
   car: Car,
+  taxi: CarTaxiFront,
   boat: Ship,
   walk: Footprints,
 } as const;
