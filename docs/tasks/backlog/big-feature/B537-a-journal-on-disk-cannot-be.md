@@ -50,9 +50,24 @@ ones it remembers. It must name the keys that do **not** cross: `status:
 draft` is the publish call, `gallery:` is the media call, `id:` is the URL.
 Public and journal-independent, like `/openapi.json`.
 
-**3. The skill: `.claude/skills/validate-content/`.** For an agent standing in
-*any* folder of Fernscout content, in any repository. It does not know the
-rules; it fetches them.
+**3. The procedure, in `/agent.md`.** Asked for as a skill in this checkout,
+and written here as a section of the guide instead, for two reasons that point
+the same way:
+
+- The agent that needs it is standing in **another repository** —
+  `fernscout-helper/content/severin` is the live example. A `SKILL.md` in this
+  checkout cannot reach it. `/agent.md` is fetched over the network, which is
+  exactly where that agent already is.
+- `AGENTS.md` moved the content-writing skills out of the checkout on
+  2026-09-06 for this reason: writing content is the network door's job. A
+  `validate-content` skill here would be the one exception, re-stating field
+  lists that had just been consolidated.
+
+If a checkout-local skill is still wanted, it is a ten-line wrapper that says
+"fetch `/agent.md`, follow the *Checking a folder* section" — worth having,
+worth being that thin, and its own capture.
+
+The procedure itself. It does not know the rules; it fetches them.
 
     for each trips/<id>/trip.md and entries/*.md
       read EVERY key of the frontmatter — the mapping from (2) is the list,
@@ -86,10 +101,12 @@ validating `content/.mail` or generated output.
   does; for an unwritable trip it answers 404 like the write.
 - `GET /api/v1/schema/content` lists every frontmatter key with its API field,
   and names `status`, `gallery` and `id` as not crossing.
-- Run against `fernscout-helper/content/severin`, the skill reports the seven
-  days carrying `costs:` and whatever else is genuinely wrong, and changes
-  nothing on disk.
+- Run against `fernscout-helper/content/severin` — one trip, 14 entries, a
+  `costs.md`, eight media folders — the procedure reports the seven days
+  carrying `costs:` and whatever else is genuinely wrong, and changes nothing
+  on disk.
 - Run with no token, the report says the contract was not checked.
+- The `add-a-day`/`add-a-trip` field lists are not restated anywhere in it.
 - `npm run verify` green.
 
 ## Sequencing
