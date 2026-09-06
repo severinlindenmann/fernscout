@@ -405,7 +405,12 @@ export async function DELETE(
     if (result.error === "unknown_day") {
       return Response.json({ error: "unknown_day" }, { status: 404 });
     }
-    return Response.json({ error: "invalid_media", problems: result.problems }, { status: 400 });
+    // `unknown_media`, not the POST's `invalid_media`: nothing here was
+    // malformed, it simply names a photograph this day does not have, and
+    // `ERROR_CODES` describes the two differently. A code the table documents
+    // and no route emits is the contract lying in the direction AGENTS.md
+    // warns about — the caller is told about a refusal they can never get.
+    return Response.json({ error: result.error, problems: result.problems }, { status: 400 });
   }
 
   const published = isPublished(ref, day);

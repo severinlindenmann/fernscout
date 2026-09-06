@@ -208,7 +208,7 @@ describe("DELETE /api/v1/<user>/trips/<trip>/media", () => {
     });
 
     expect(status).toBe(400);
-    expect(body.error).toBe("invalid_media");
+    expect(body.error).toBe("unknown_media");
     const problems = body.problems as { field: string; got: string }[];
     expect(problems.some((p) => p.got.includes("99.jpg"))).toBe(true);
 
@@ -353,5 +353,22 @@ describe("detachGallery: the library function directly", () => {
     expect(
       fs.existsSync(path.join(dir, OWNER, "trips", "someone-elses-trip", "media", "day", "01.jpg")),
     ).toBe(true);
+  });
+
+  test("deleteMediaFiles cannot climb out of the trip's originals directory", () => {
+    // The derivative goes through `resolveMediaFile`, which refuses this; the
+    // originals scan used to join `dirs` onto the originals root itself, so a
+    // hand-edited `src:` with `..` in it named a directory outside the trip
+    // and every stem-matching file in it was unlinked.
+    const outside = path.join(dir, OWNER, "trips", "01.jpg");
+    fs.writeFileSync(outside, "not touched");
+    fs.mkdirSync(path.join(dir, OWNER, "trips", TRIP, "originals"), { recursive: true });
+
+    deleteMediaFiles(REF, {
+      src: `/media/${TRIP}/../../01.jpg`,
+      type: "image",
+    } as never);
+
+    expect(fs.existsSync(outside)).toBe(true);
   });
 });

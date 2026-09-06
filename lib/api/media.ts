@@ -498,7 +498,17 @@ export function deleteMediaFiles(ref: string, item: GalleryItem): void {
   const dirs = rest.slice(0, -1);
   const stem = path.basename(filename, path.extname(filename));
 
-  const originalsDir = path.join(tripOriginalsDir(ref), ...dirs);
+  // The same containment `resolveMediaFile` applies to the derivative, which
+  // this half was doing without: `dirs` comes from a `src` read off disk, and
+  // frontmatter is not something the API writes — a hand-edited `src:` of
+  // `/u/media/<trip>/../../..` passes the `tripId` check above and would have
+  // this scanning, and unlinking stem-matched files from, a directory outside
+  // the trip. Only reachable by somebody who can already edit the file, so it
+  // is asymmetry rather than a hole; a delete path is the wrong place to
+  // leave one.
+  const originalsRoot = path.resolve(tripOriginalsDir(ref));
+  const originalsDir = path.resolve(originalsRoot, ...dirs);
+  if (originalsDir !== originalsRoot && !originalsDir.startsWith(originalsRoot + path.sep)) return;
   let siblings: string[] = [];
   try {
     siblings = fs.readdirSync(originalsDir);
