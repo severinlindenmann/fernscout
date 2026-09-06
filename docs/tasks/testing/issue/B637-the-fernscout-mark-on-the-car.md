@@ -7,8 +7,7 @@ complexity: low
 area: branding, travel scene
 found: "2026-09-06T17:51:55Z"
 started: "2026-09-06T18:18:40Z"
-session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
-claimed: "2026-09-06T18:18:40Z"
+merged: "2026-09-06T18:27:22Z"
 ---
 
 # B637 — The Fernscout mark on the car sits too far off centre
