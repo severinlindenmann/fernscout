@@ -7,8 +7,7 @@ complexity: low
 area: api, openapi, docs
 found: "2026-09-06T14:05:00Z"
 started: "2026-09-06T08:32:32Z"
-session: 73b1a7f5-30ec-425d-9dbf-4d423e411c0d
-claimed: "2026-09-06T08:32:32Z"
+merged: "2026-09-06T10:17:16Z"
 ---
 
 # B540 — Options that exist are missing from the schema the instance publishes
