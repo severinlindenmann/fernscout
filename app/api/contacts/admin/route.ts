@@ -27,12 +27,15 @@ import {
   revokeInvite,
   type Invite,
 } from "@/lib/contacts/invites";
+import { contactsWithReadGrant } from "@/lib/grants";
 import { pickLocale } from "@/lib/contacts/locale";
 import { sendApprovedMail, sendInviteMail } from "@/lib/contacts/mail";
+import { relationshipsFor, type ContactRelationship } from "@/lib/contacts/relationships";
 import { isOwner } from "@/lib/contacts/session";
 import { deviceCountByContact } from "@/lib/push";
 import { serverSite } from "@/lib/site";
-import { getTrip, tripRef } from "@/lib/trips";
+import { peopleOf } from "@/lib/tripPeople";
+import { getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +51,15 @@ export const dynamic = "force-dynamic";
 
 /** What the owner sees. The address is included — they are the one person
  * besides its owner entitled to it, and they need it to post anything. */
-function ownerView(contact: ContactRecord, devices: Record<string, number> | null = null) {
+function ownerView(
+  contact: ContactRecord,
+  devices: Record<string, number> | null = null,
+  // B630 — read by the client only off the *list* (`GET`, below). Every POST
+  // here always ends with a `refresh()` that re-fetches that list, so the
+  // per-action responses pass nothing and a row's tag never comes from a
+  // second, narrower answer.
+  relationship: ContactRelationship | null = null,
+) {
   return {
     id: contact.id,
     name: contact.name,
@@ -70,6 +81,7 @@ function ownerView(contact: ContactRecord, devices: Record<string, number> | nul
     confirmedAt: contact.confirmedAt,
     approvedAt: contact.approvedAt,
     lastSeenAt: contact.lastSeenAt,
+    relationship,
   };
 }
 
@@ -121,8 +133,32 @@ export async function GET(request: Request) {
   if (denied) return denied;
 
   const devices = isEnabled("push", username) ? await deviceCountByContact(username) : null;
+
+  // B630, mirroring the page's own version of this: the same three facts the
+  // gates ask, read once for the whole list rather than per row, so `refresh()`
+  // after an approve or a revoke shows a tag that still matches what the
+  // action just changed.
+  const user = getUser(username)!;
+  const ownEmail = user.owner.email ? normaliseEmail(user.owner.email) : null;
+  const trips = getTrips(username);
+  const tripMemberships = await Promise.all(
+    trips.map(async (trip) => ({ id: trip.id, title: trip.title, people: await peopleOf(trip) })),
+  );
+  const liveGrants = await contactsWithReadGrant(username, new Date());
+
   return Response.json({
-    contacts: (await listContacts(username)).map((contact) => ownerView(contact, devices)),
+    contacts: (await listContacts(username)).map((contact) =>
+      ownerView(
+        contact,
+        devices,
+        relationshipsFor(
+          contact.email,
+          ownEmail,
+          tripMemberships,
+          contact.status === "active" && liveGrants.has(contact.id),
+        ),
+      ),
+    ),
     invites: (await listInvitesWithLinks(username, serverSite().url)).map(inviteView),
   });
 }

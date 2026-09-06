@@ -9,6 +9,7 @@ import CopyLine from "./CopyLine";
 import CountryField from "./CountryField";
 import TelField, { joinTel, splitTel } from "./TelField";
 import { countryName, resolveCountry } from "@/lib/countries";
+import type { ContactRelationship } from "@/lib/contacts/relationships";
 import { LOCALE_LABEL, plural, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
@@ -68,6 +69,9 @@ export type AdminContact = {
   createdAt: string;
   confirmedAt: string | null;
   lastSeenAt: string | null;
+  /** Owner, buddy (per trip) and guest — derived server-side from the same
+   * checks the gates ask, never stored. See `relationshipsFor` — B630. */
+  relationship: ContactRelationship;
 };
 
 /**
@@ -313,6 +317,20 @@ function ContactRow({
 
   const postal = contact.postalAddress;
 
+  // B630 — what this person actually is to the journal, said in words rather
+  // than left for the owner to work out from a status and a "via" line. More
+  // than one can be true at once, and each is said rather than one winning.
+  const tags: string[] = [];
+  if (contact.relationship.owner) tags.push(t("contact.relationOwner"));
+  if (contact.relationship.buddyOf.length === 1) {
+    tags.push(t("contact.relationBuddyOne", { trip: contact.relationship.buddyOf[0].title }));
+  } else if (contact.relationship.buddyOf.length > 1) {
+    tags.push(
+      t("contact.relationBuddyCount", { count: String(contact.relationship.buddyOf.length) }),
+    );
+  }
+  if (contact.relationship.guest) tags.push(t("contact.relationGuest"));
+
   return (
     <li
       id={`contact-${contact.id}`}
@@ -322,6 +340,18 @@ function ContactRow({
     >
       <p className="font-display text-xl text-navy-900">{contact.name ?? contact.email}</p>
       <p className="text-base text-navy-700">{contact.email}</p>
+      {tags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {tags.map((label) => (
+            <span
+              key={label}
+              className="inline-flex items-center rounded-full border border-navy-200 bg-cream-100 px-2.5 py-1 text-sm text-navy-900"
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+      )}
       {/* What this person hears from, before anything about them. It is the
           question the owner opens this page with — B453. */}
       {channels.length > 0 && (

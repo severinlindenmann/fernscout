@@ -35,6 +35,7 @@ function contact(country: string): AdminContact {
     createdAt: new Date().toISOString(),
     confirmedAt: new Date().toISOString(),
     lastSeenAt: null,
+    relationship: { owner: false, guest: false, buddyOf: [] },
   };
 }
 
