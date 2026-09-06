@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { planBook, type BookDay, type BookPhoto, type BookSource } from "@/lib/photobook/plan";
 import { defaultSpec } from "@/lib/photobook/spec";
+import { captionsFor } from "@/lib/photobook/captions";
 import { renderPreview, spreadsOf } from "@/lib/photobook/preview";
 
 function photo(file: string): BookPhoto {
@@ -185,5 +187,61 @@ describe("the bare preview", () => {
   test("leaves the technician's page alone", () => {
     expect(full).toContain("DPI target");
     expect(full).toContain("<code>");
+  });
+});
+
+/**
+ * B562 — the caption says where the page came from.
+ *
+ * A stub translator rather than the real dictionary: what is being checked is
+ * that each page reaches the right key with the right facts, and asserting on
+ * English sentences here would make a reworded string a failing test.
+ */
+describe("page captions", () => {
+  const t = (key: string, vars?: Record<string, string>) =>
+    vars ? `${key}(${Object.entries(vars).map(([k, v]) => `${k}=${v}`).join(",")})` : key;
+  const caption = captionsFor(BOOK, t as never);
+  const pages = BOOK.volumes.flatMap((v) => v.pages);
+  const captions = pages.map(caption);
+
+  test("a page from a day names the day, numbered from the book's own order", () => {
+    const second = pages.find((p) => p.kind === "day" && p.date === SOURCE.days[1].date)!;
+    expect(caption(second)).toBe("photobook.caption.day(n=2,title=Day 2)");
+    // The photographs of that day belong to it too, and say the same thing.
+    const photos = pages.find((p) => p.kind === "photos" && p.date === SOURCE.days[1].date);
+    if (photos) expect(caption(photos)).toBe("photobook.caption.day(n=2,title=Day 2)");
+  });
+
+  test("a page an include-switch put there names that switch", () => {
+    expect(captions).toContain("photobook.caption.chapters");
+  });
+
+  test("a page with a name of its own uses it, not the switch behind it", () => {
+    // The introduction is gated on `includeText` and says so in the data, but
+    // "the writing" means the days' writing to whoever read that switch.
+    const intro = pages.find((p) => p.kind === "intro")!;
+    expect(intro.from).toBe("includeText");
+    expect(caption(intro)).toBe("photobook.caption.intro");
+  });
+
+  test("no caption prints the planner's own vocabulary", () => {
+    // Against the shipped English, because that is what somebody reads: the
+    // ticket's complaint was the words on the page, not the keys behind them.
+    const en = JSON.parse(readFileSync("site/locales/en.json", "utf8")) as Record<string, string>;
+    const english = captionsFor(BOOK, (key, vars) =>
+      Object.entries(vars ?? {}).reduce((s, [k, v]) => s.replaceAll(`{${k}}`, v), en[key]),
+    );
+    for (const page of pages) {
+      expect(english(page)).toBeTruthy();
+      expect(english(page)).not.toMatch(/full-bleed|colophon|photos\b|pair-|quad/i);
+    }
+  });
+
+  test("renderPreview prints the caption it is given, with the page number", () => {
+    const html = renderPreview(BOOK, "/tmp/out", (f) => f, undefined, {
+      captionFor: () => "where it came from",
+    });
+    expect(html).toContain("<figcaption>1 · where it came from</figcaption>");
+    expect(html).not.toContain("· colophon<");
   });
 });

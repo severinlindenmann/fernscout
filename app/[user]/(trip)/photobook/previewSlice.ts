@@ -53,3 +53,17 @@ export function extractSpreads(
   return `<!doctype html><html><head>${doc.head.innerHTML}</head>` +
     `<body class="bare" data-view="spreads"><div class="spreads">${body}</div></body></html>`;
 }
+
+/**
+ * The same document, read as a column instead of swiped as a strip — B561.
+ *
+ * `lib/photobook/preview.ts` carries both layouts and picks between them on
+ * one class, so this is genuinely all there is to it. A string replace rather
+ * than a `DOMParser` round trip: the attribute is written literally, once, by
+ * the renderer that produced this string, and parsing and re-serialising a
+ * whole document — every photograph's `src`, every inline style — to add one
+ * class would be the more expensive way to be no more correct.
+ */
+export function readingHtml(fullHtml: string): string {
+  return fullHtml.replace('<body class="bare"', '<body class="bare read"');
+}

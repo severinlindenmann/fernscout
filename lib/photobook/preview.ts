@@ -290,6 +290,17 @@ function textBlock(spec: BookSpec, page: BookPage, html: string, klass = "copy")
 export type SrcFor = (photo: BookPhoto) => string;
 
 /**
+ * What the line under a page says — B562.
+ *
+ * A callback for the same reason `SrcFor` is one: this file is the single
+ * layout, and the words belong to whoever is showing it. The composer hands
+ * in the reader's own language ("Day 1 · Denver, and a truck", "The route
+ * map"); the CLI hands in nothing and keeps the page kind, because that
+ * reader is a technician looking at a folder of print files.
+ */
+export type CaptionFor = (page: BookPage) => string;
+
+/**
  * Groups a volume's pages into spreads: page one alone (it is a recto, and
  * there is no page zero to face it), then the rest in facing pairs — 2-3,
  * 4-5, and so on, exactly as `sideOf()` already has them.
@@ -314,6 +325,7 @@ function pageHtml(
   outDir: string,
   resolveFile: (file: string) => string,
   srcFor: SrcFor | undefined,
+  captionFor: CaptionFor | undefined,
 ): string {
   const type = typeScale(spec);
   const scale = 100 / (spec.size.trimHeightMm + spec.bleedMm * 2);
@@ -496,7 +508,9 @@ function pageHtml(
     `<div class="sheet">${parts.join("")}` +
     `<div class="trim" style="left:${trim.left};right:${trim.left};top:${trim.top};bottom:${trim.top}"></div>` +
     `</div>` +
-    `<figcaption>${page.number} · ${page.kind}${page.kind === "photos" ? ` · ${page.layout}` : ""}</figcaption>` +
+    `<figcaption>${page.number} · ${escape(
+      captionFor ? captionFor(page) : page.kind + (page.kind === "photos" ? ` · ${page.layout}` : ""),
+    )}</figcaption>` +
     `</figure>`
   );
 }
@@ -544,9 +558,10 @@ export function renderPreview(
    * The CLI's own copy — `scripts/photobook.ts`, written next to the PDFs —
    * is unchanged and keeps all of it: that reader *is* a technician.
    */
-  opts: { bare?: boolean } = {},
+  opts: { bare?: boolean; captionFor?: CaptionFor } = {},
 ): string {
   const bare = opts.bare === true;
+  const captionFor = opts.captionFor;
   const spec = book.spec;
   const ratio = (spec.size.trimWidthMm + spec.bleedMm * 2) / (spec.size.trimHeightMm + spec.bleedMm * 2);
   const spreadsFor = (volume: BookVolume) =>
@@ -554,7 +569,7 @@ export function renderPreview(
       .map((group) => {
         const cls = group.length === 1 ? "spread solo" : "spread";
         return `<div class="${cls}">${group
-          .map((p) => pageHtml(spec, p, outDir, resolveFile, srcFor))
+          .map((p) => pageHtml(spec, p, outDir, resolveFile, srcFor, captionFor))
           .join("")}</div>`;
       })
       .join("");
@@ -692,13 +707,20 @@ export function renderPreview(
      look this ticket exists to remove. */
   body.bare { padding:0; background:transparent; }
   body.bare section { margin:0; max-width:none; }
+  /* A height to centre in is the symmetric-spacing fix — B561. The frame is one spread
+     tall at *full* width, but a spread is 96% of it and the strip is padded,
+     so the pages are a little shorter than the frame. Without a height to
+     centre in, the flex line sat at the top and every one of those spare
+     pixels fell below the book: no gap above it, a visible one under it, and
+     a composition that reads as broken. */
   body.bare[data-view="spreads"] .spreads {
-    flex-direction:row; align-items:center; gap:.75rem; padding:0 .75rem;
+    flex-direction:row; align-items:center; gap:.5rem; padding:0 .375rem;
+    min-height:100svh;
     overflow-x:auto; overscroll-behavior-x:contain;
     scroll-snap-type:x mandatory; scrollbar-width:none;
   }
   body.bare[data-view="spreads"] .spreads::-webkit-scrollbar { display:none; }
-  body.bare[data-view="spreads"] .spread { flex:0 0 92%; width:auto; scroll-snap-align:center; }
+  body.bare[data-view="spreads"] .spread { flex:0 0 96%; width:auto; scroll-snap-align:center; }
   /* Page one still stands alone, but it takes a whole snap step: every stop
      on the strip shows one thing, and half a cover beside a spread reads as a
      layout accident rather than as the recto it is. */
@@ -716,6 +738,36 @@ export function renderPreview(
   /* Except the one B550 marks: a facing page that belongs to another day is
      dimmed, and this is the word that says why. */
   body.bare figure[data-other] figcaption { display:block; text-align:center; }
+
+  /* Reading the book — B561. The same document as the strip, one class
+     different: the spreads unwrap into a column and are scrolled rather than
+     swiped, at the full width of whatever is showing them. This is the last
+     look somebody takes before spending money, so it is also the one place a
+     caption is worth the room — where each page came from, in the reader's
+     own words (B562).
+
+     Not a second preview: the composer already holds this HTML, and asking
+     the server again for the same book laid out differently would be a
+     second request shape to keep in step with the first. */
+  body.bare.read[data-view="spreads"] .spreads {
+    flex-direction:column; align-items:center; gap:1.5rem;
+    min-height:0; height:100svh; padding:1rem .75rem 3rem;
+    overflow-x:hidden; overflow-y:auto; overscroll-behavior-y:contain;
+    scroll-snap-type:y proximity;
+  }
+  /* Never taller than the screen showing it — a spread you cannot see the
+     whole of is not a spread. The cap is written from the book's own shape,
+     which is the same number the composer sizes its frame from. */
+  body.bare.read[data-view="spreads"] .spread {
+    flex:0 0 auto; width:100%; max-width:calc(76svh * ${(ratio * 2).toFixed(4)});
+    scroll-snap-align:center;
+  }
+  body.bare.read[data-view="spreads"] .spread.solo { width:min(50%, calc(38svh * ${(ratio * 2).toFixed(4)})); }
+  body.bare.read[data-view="spreads"] .spread.solo figure { flex:1 1 auto; }
+  body.bare.read figcaption { display:block; text-align:center; }
+  /* Reading, not arranging: a tap here must not swap the level underneath
+     the reader. The drill-in belongs to the strip. */
+  body.bare.read figure { pointer-events:none; }
 </style></head><body${bare ? ' class="bare"' : ""} data-view="spreads">
 ${bare ? "" : header}${warnings}
 ${volumes}
