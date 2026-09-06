@@ -80,24 +80,50 @@ type Row = {
   decline: string;
 };
 
+/**
+ * What a decline does **not** mean — B540.
+ *
+ * A weak model was given a story in which somebody said, of two days trekking,
+ * *"I don't have any record of what we spent up there, we just paid the
+ * homestay lady cash at the end."* It sent `"costs": false` for both, and her
+ * journal now says in writing that no money was spent on days she paid cash
+ * for a homestay. Nothing refused it, because from the outside a decline and
+ * an honest blank look identical.
+ *
+ * It is not the model's fault so much as the shape of the question: a day
+ * cannot be written without answering, and only two answers exist. Faced with
+ * a refusal, a value it does not have, and one remaining door, it took the
+ * door. So the refusal has to say the third thing out loud — that *not
+ * knowing* is not a decline, and what to do instead.
+ *
+ * Whether there should be a third answer on the wire is a real question and a
+ * person's to decide; B554 carries it.
+ */
+const NOT_KNOWN =
+  "**\"I do not know\" is not this.** A decline is a fact about the day — that " +
+  "there was none of this — and it is written into the journal as one, for a " +
+  "reader years from now. If the person spent money and cannot remember how " +
+  "much, do not send `false`: ask them, or leave the day unwritten until they " +
+  "can tell you. Nothing here is more urgent than that.";
+
 export const TRACK_ROWS: Record<Track, Row> = {
   costs: {
     when: "write",
     keeps: "what it costs",
     send: 'costs: [{"label": "Dinner", "amount": 42, "currency": "EUR"}] — each thing separately, in the currency it was paid in',
-    decline: '"costs": false — nothing was spent on this day, or nothing worth recording',
+    decline: `"costs": false — nothing was spent on this day, or nothing worth recording. ${NOT_KNOWN}`,
   },
   coordinates: {
     when: "write",
     keeps: "where its days happened",
     send: "lat and lng, as numbers — they are what put the day on the map",
-    decline: '"coordinates": false — this day has no one place to put on a map',
+    decline: `"coordinates": false — this day has no one place to put on a map. ${NOT_KNOWN}`,
   },
   photos: {
     when: "publish",
     keeps: "photographs",
     send: `POST .../trips/<trip>/media with day=<slug> and the files — it adds them to the day`,
-    decline: '"photos": false — there are no pictures from this day',
+    decline: `"photos": false — there are no pictures from this day. ${NOT_KNOWN}`,
   },
 };
 

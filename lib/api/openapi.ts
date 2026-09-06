@@ -322,8 +322,11 @@ export function openApiDocument() {
                 "`false`, meaning *nothing was spent on this day*. A trip that tracks " +
                 "costs refuses a day that says neither (422 `incomplete_day`), and `false` " +
                 "is written into the day as something it deliberately does not have, so a " +
-                "reader can tell it from nobody having asked. Never invent a figure to get " +
-                "past that refusal — ask the person.",
+                "reader can tell it from nobody having asked. **\"I do not know\" is not " +
+                "`false`.** A decline is a fact about the day, kept for years; if money was " +
+                "spent and nobody remembers how much, ask, or leave the day unwritten until " +
+                "they can say. Never invent a figure, and never decline to get past the " +
+                "refusal.",
             },
             transportMode: {
               type: "string",

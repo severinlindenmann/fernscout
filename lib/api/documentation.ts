@@ -1224,8 +1224,13 @@ ${dayFieldRows()}
 track of some things, and a day that says nothing about one of them is refused
 with \`422 incomplete_day\`. There are always two honest answers: send the value,
 or **decline it** — \`"costs": false\`, \`"coordinates": false\`, \`"photos": false\`,
-each meaning *there was none of this on this day*. Ask the person which. Never
-send a decline to make a refusal go away, and never invent a value.
+each meaning *there was none of this on this day*. Ask the person which.
+
+**A decline is a fact, not a way past the refusal.** It is written into the
+journal and read years later, so \`"costs": false\` on a day somebody paid cash
+for and cannot remember is a false statement this software will keep for them.
+If they do not know, there is no third value to send: ask, or leave the day
+unwritten until they can say. That is slower and it is the only honest move.
 
 ${scriptIntro(dayQuestions().length)}
 
