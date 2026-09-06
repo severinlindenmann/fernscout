@@ -69,3 +69,36 @@ two keys with no API presence at all lost theirs.
 - `cover` and `travellers` are offered by both.
 - `npm run verify` green, and the conformance test fails if a suppressed key
   becomes tippable.
+
+---
+
+## Measured, 2026-09-06, after a parity sweep
+
+A document-to-document comparison counts **44 differences**, of which 42 are
+tip/note prose. That number overstates what a person would see, and the
+distinction is worth recording so nobody fixes the wrong thing.
+
+Comparing the two documents is not the same as comparing the two **outputs**.
+Validating a real fourteen-day journal from each source differs by exactly
+**four tips**:
+
+    gained:  test is not set   (trip.md, and again on entries)
+    lost:    cover is not set
+             travellers is not set
+
+The other ~40 "losses" do not appear, because the prose for a key that also
+exists over the API is taken from `openapi.json`'s field descriptions at run
+time — and reads *better* from there than from `model.mjs`. Only keys with no
+API presence at all have nowhere to borrow from, and `cover` and `travellers`
+are exactly those two.
+
+So the work is narrower than 44: express `noTip`, and carry prose for the
+`fileOnly` keys. Confirm the list of those keys rather than assuming it is two.
+
+One gain worth noting from the same sweep: the document describes
+`config.json`'s `ownerTel`, which `model.mjs` never knew about — the drift
+running the other way, and an argument for the whole direction of W41.
+
+**Not affected by this ticket:** B615's two findings are in `model.mjs` *and*
+in the document, identically — the document copied them faithfully. Deleting
+`model.mjs` will not fix them, and B615 has to be fixed on its own.
