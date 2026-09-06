@@ -306,6 +306,14 @@ export const FRONTMATTER_TO_API: { key: string; api: string; note: string }[] = 
   },
   { key: "test", api: "test", note: "Only when the day is content nobody lived." },
   {
+    key: "visibility",
+    api: "visibility",
+    note:
+      "Straight across, when the file carries it — B632. A day held back from readers a " +
+      "trip otherwise lets in whose call omits this arrives readable by everyone the trip " +
+      "lets in, which is the one direction this must never move on a migration.",
+  },
+  {
     key: "weather",
     api: "weather",
     note:

@@ -5,8 +5,9 @@ import { balanceOf, refund, spend } from "../credits";
 import { listContacts } from "../contacts";
 import { pickLocale } from "../contacts/locale";
 import type { UserConfig } from "../config";
-import { getEntryBySlug } from "../entries";
+import { AS_AUTHOR, getEntryBySlug } from "../entries";
 import { contactsWithReadGrant } from "../grants";
+import { maySeePhoto, type ReaderLevel } from "../photos";
 import { peopleOf } from "../tripPeople";
 import { getTrip } from "../trips";
 import type { Locale, Trip } from "../types";
@@ -61,6 +62,11 @@ type WhatsappRecipient = {
    * field's twin in `dayLetter.ts` for why a credit is what it costs to reach
    * somebody else. */
   free: boolean;
+  /** How far this recipient has got, on `lib/photos.ts`'s scale — B632, the
+   * same field `dayLetter.ts`'s own recipient type carries, for the same
+   * reason: a day held back further than the trip's own gate has to be
+   * checked per recipient, not once for the whole list. */
+  reader: ReaderLevel;
 };
 
 /** What a send actually costs: one credit per recipient who is not the
@@ -115,6 +121,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappReci
       name: user.owner.nickname || user.owner.name,
       locale: pickLocale(user.defaultLocale),
       free: true,
+      reader: "person",
     });
   }
 
@@ -148,6 +155,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappReci
       // the other door. `dayLetter.ts` has always behaved this way, by
       // dropping the owner's address from its own loop.
       free: email === ownerEmail,
+      reader: isTraveller ? "person" : "guest",
     });
   }
 
@@ -222,23 +230,30 @@ export async function whatsappWouldCost(owner: string, ref: string, slug?: strin
   const user = getUser(owner);
   const trip = getTrip(ref);
   if (!user || !trip) return 0;
-  if (slug !== undefined) {
-    const entry = getEntryBySlug(ref, slug, { includeDrafts: true });
-    // A day that does not exist has no send and therefore no cost; the route
-    // has already answered 404 for it long before this.
-    if (!entry) return 0;
-    if (isTestContent(trip, entry)) return 0;
-  } else if (trip.test === true) {
-    return 0;
-  }
+  const recipients = await recipientsFor(trip, user);
   // Only recipients there is actually a template for. `sendDayWhatsapp`
   // charges the whole list and then refunds the ones it had to skip for want
   // of an approved template in their language, so the *net* cost is this
   // number — and quoting the gross one would refuse a publish the journal can
   // afford. `templateFor` is a synchronous read of the server config, so
   // asking it per recipient here costs nothing.
-  const recipients = await recipientsFor(trip, user);
-  return chargeable(recipients.filter((r) => templateFor(r.locale, user.defaultLocale) !== null));
+  const templated = recipients.filter((r) => templateFor(r.locale, user.defaultLocale) !== null);
+  if (slug !== undefined) {
+    // `AS_AUTHOR` — the owner asking what their own send would cost, for a
+    // day they may have held back from part of the list. Reading it at the
+    // closed default would make a held-back day answer "no such day" here,
+    // same as `mailWouldCost`.
+    const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
+    // A day that does not exist has no send and therefore no cost; the route
+    // has already answered 404 for it long before this.
+    if (!entry) return 0;
+    if (isTestContent(trip, entry)) return 0;
+    // B632, the same narrowing `mailWouldCost` applies.
+    return chargeable(templated.filter((r) => maySeePhoto(entry.visibility, r.reader)));
+  } else if (trip.test === true) {
+    return 0;
+  }
+  return chargeable(templated);
 }
 
 export async function sendDayWhatsapp(
@@ -251,7 +266,11 @@ export async function sendDayWhatsapp(
   const trip = getTrip(ref);
   if (!user || !trip) return { ok: false, reason: "unknown_trip" };
 
-  const entry = getEntryBySlug(ref, slug, { includeDrafts: true });
+  // `AS_AUTHOR` — B632. A day may hold *itself* back further than the trip's
+  // own gate, and the owner sending their own announcement is entitled to
+  // find it regardless. Reading it at the closed default would make a
+  // held-back day answer `unknown_day` here.
+  const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
   if (!entry) return { ok: false, reason: "unknown_day" };
   if (entry.draft) return { ok: false, reason: "not_published" };
 
@@ -264,7 +283,12 @@ export async function sendDayWhatsapp(
   }
   if (!isEnabled("contacts", owner)) return { ok: false, reason: "contacts_off" };
 
-  const recipients = await recipientsFor(trip, user);
+  // B632. `recipientsFor` answers who may be told about *this trip*; a day
+  // inside it may hold itself back further, the same narrowing
+  // `sendDayLetter` applies to its own list.
+  const recipients = (await recipientsFor(trip, user)).filter((r) =>
+    maySeePhoto(entry.visibility, r.reader),
+  );
 
   // One credit per paid recipient, charged for the whole list before the first
   // message leaves — B366, matching `sendDayLetter`. All or nothing: an
@@ -283,12 +307,11 @@ export async function sendDayWhatsapp(
   // Which is also why a photograph the owner held back is never the header —
   // B596. The mail path picks per copy and can therefore send a traveller the
   // private picture and a guest the next one along; a template has one image
-  // for the whole list, so the only safe pick is one anybody may see. The
-  // entry above was read at the default `public` level, so a labelled
-  // photograph is already gone from `entry.gallery` and this needs no filter
-  // of its own — deliberately, because a filter here would be a second answer
-  // to the same question.
-  const photo = await headerPhoto(trip, entry);
+  // for the whole list, so the only safe pick is one anybody may see —
+  // `"public"`, explicitly, since the entry above is now read unfiltered
+  // (`AS_AUTHOR`) so a held-back *day* can be found at all. See the note on
+  // `headerPhoto` itself (B632).
+  const photo = await headerPhoto(trip, entry, "public");
 
   const sent: { to: string }[] = [];
   const failed: { to: string; error: string }[] = [];

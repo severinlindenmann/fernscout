@@ -93,6 +93,16 @@ export type DraftInput = {
    */
   translations?: Record<string, { title: string; content: string }>;
   /**
+   * This whole update, held back from readers the trip otherwise lets in —
+   * B632. The same two words `photoVisibility` takes, meaning the same two
+   * populations, and it **narrows and never widens**: a `guest` day inside a
+   * `private` trip stays private, and there is no `public` to ask for. Unlike
+   * `photoVisibility`, this is writable at creation as well as by edit — it
+   * is one scalar on the entry itself, not a label matched against a `src`
+   * that does not exist yet. See lib/photos.ts.
+   */
+  visibility?: PhotoVisibility;
+  /**
    * Spend logged against this day, each in the currency it was actually spent
    * in. Never converted at write time — see lib/costs.ts.
    *
@@ -549,6 +559,8 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
         ]
       : []),
     ...(input.travelScene ? [`travelScene: ${quote(input.travelScene)}`] : []),
+    // B632, the entry's own label — see the field's doc comment on DraftInput.
+    ...(input.visibility ? [`visibility: ${quote(input.visibility)}`] : []),
     // The request, written only when it is one — a `weather: false` line on
     // every day would be noise in a file people read and edit by hand.
     ...(input.weather === true ? ["weather: true"] : []),
@@ -868,6 +880,7 @@ export const EDITABLE_DAY_FIELDS = [
   "translations",
   "captions",
   "photoVisibility",
+  "visibility",
   "weather",
   "weatherData",
 ] as const;
@@ -908,6 +921,13 @@ export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
    * is what `null` writes. See lib/photos.ts.
    */
   photoVisibility?: Record<string, PhotoVisibility | null>;
+  /**
+   * This whole update, held back — B632, and `null` to clear it, the same
+   * override `weatherData` gets below for the same reason: `DraftInput`'s own
+   * `visibility` has no falsy value to send for "go back to being seen by
+   * everyone the trip lets in", so an edit needs the wider type to say so.
+   */
+  visibility?: PhotoVisibility | null;
   /** Ask for a lookup on a day already written — B325. `false` removes the
    * request; it does not remove a reading already recorded. */
   weather?: boolean;
@@ -1114,6 +1134,10 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
   }
   if (input.travelScene !== undefined) {
     set("travelScene", input.travelScene ? `travelScene: ${quote(input.travelScene)}` : null);
+  }
+  // B632. `null` clears the label, same as `photoVisibility`'s.
+  if (input.visibility !== undefined) {
+    set("visibility", input.visibility ? `visibility: ${quote(input.visibility)}` : null);
   }
   // Written only when true, like every other flag here — see the note on
   // NewTrip.test. `test: false` unsets it rather than writing a line nobody
@@ -1576,6 +1600,7 @@ export function entrySummary(entry: Entry, trip: Trip | undefined) {
     photos: entry.gallery.length,
     ...(entry.draft ? { draft: true } : {}),
     ...(isTestContent(trip, entry) ? { test: true } : {}),
+    ...(entry.visibility ? { visibility: entry.visibility } : {}),
   };
 }
 

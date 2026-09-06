@@ -2166,6 +2166,45 @@ points at a 2000px web export, that export *is* the original, and a printed
 photobook will be made from it. When the person has the real files, send the
 bytes instead.
 
+### Holding a whole update back
+
+\`visibility\` on the day itself is the sibling of \`visibility\` on one
+photograph, above — same two words, same populations, same rule. It is for
+the day that should be seen by fewer people than the rest of the trip: one
+entry written for the family and a second, on the same day, for whoever the
+owner has let into the journal.
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/trips/<trip-id>/days
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"title": "The part just for us", "date": "2026-08-25",
+ "content": "…", "visibility": "guest"}
+\`\`\`
+
+**It narrows and never widens.** There is no \`public\`, and asking for one is
+refused rather than quietly accepted, for the same reason as the photograph's
+own label: this holds an update back from readers the trip already lets in,
+and can never show one to somebody the trip keeps out. A \`guest\` update
+inside a \`private\` trip is still only for the people who were there.
+
+**Unlike \`photoVisibility\`, this is writable at creation** — send it in the
+same call that writes the day, because it is one field on the entry rather
+than a label matched against a photograph's \`src\`. It is just as writable
+later: \`PATCH .../days/<slug>\` with \`{"visibility": "guest"}\`, or
+\`{"visibility": null}\` to go back to being seen by everyone the trip lets in.
+
+A labelled update is absent from the page, the feed, the sitemap and the
+search index for a reader below its level — the day simply is not there,
+the way an unpublished draft is not there for a stranger — and its markdown
+twin (\`/${example}/day/<slug>.md\`) answers as though no such day existed
+rather than saying anything about it.
+
+**Only ever what the owner asked for.** Whether one entry on a day, or the
+whole day, should be held back is theirs to say; a day nobody said anything
+about is not held back on a hunch.
+
 ### What is accepted
 
 | | |

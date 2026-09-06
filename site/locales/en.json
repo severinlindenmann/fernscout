@@ -608,6 +608,7 @@
   "me.tripCancel": "Cancel",
   "me.tripEdit": "Edit {trip}",
   "me.tripEnd": "End",
+  "me.tripPartial": "Shows part of this trip — some days are held back further than the rest",
   "me.tripStart": "Start",
   "me.tripTagline": "Subtitle",
   "me.tripTitle": "Title",

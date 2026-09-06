@@ -458,16 +458,27 @@ export async function mailWouldCost(owner: string, ref: string, slug?: string): 
   const user = getUser(owner);
   const trip = getTrip(ref);
   if (!user || !trip) return 0;
+  const recipients = await recipientsFor(trip, user);
   if (slug !== undefined) {
-    const entry = getEntryBySlug(ref, slug, { includeDrafts: true });
+    // `AS_AUTHOR`, not the closed default — this is the owner asking what
+    // *their own* send would cost, and a day they have held back from some
+    // of the list is exactly the case being quoted. Reading it at `public`
+    // would make a held-back day answer "no such day" and quote zero, which
+    // is the wrong direction to be wrong in for a price.
+    const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
     // A day that does not exist has no send and therefore no cost; the route
     // has already answered 404 for it long before this.
     if (!entry) return 0;
     if (isTestContent(trip, entry)) return 0;
+    // B632 — the same narrowing a page applies, applied to who gets billed:
+    // a recipient the day's own label refuses is a recipient who is not
+    // getting a letter, so quoting them in would overcharge for a send that
+    // reaches fewer inboxes than the trip alone would suggest.
+    return chargeable(recipients.filter((r) => maySeePhoto(entry.visibility, r.reader)));
   } else if (trip.test === true) {
     return 0;
   }
-  return chargeable(await recipientsFor(trip, user));
+  return chargeable(recipients);
 }
 
 export async function sendDayLetter(
@@ -495,7 +506,15 @@ export async function sendDayLetter(
   }
   if (!isEnabled("contacts", owner)) return { ok: false, reason: "contacts_off" };
 
-  const recipients = await recipientsFor(trip, user);
+  // B632. `recipientsFor` answers who may be mailed about *this trip*; a day
+  // inside it may hold itself back further, the same way one photograph
+  // already could — so the list this actually sends to is narrower still.
+  // Filtered here, once, rather than inside `recipientsFor` (which has no
+  // entry to ask about) or left to `photoAttachment` (which only ever
+  // answers for one picture, never for whether a copy goes out at all).
+  const recipients = (await recipientsFor(trip, user)).filter((r) =>
+    maySeePhoto(entry.visibility, r.reader),
+  );
 
   // One credit per paid recipient, charged for the whole list before the first
   // letter leaves — B366. All or nothing: an insufficient balance sends

@@ -138,7 +138,12 @@ function readPlanFile(file: string, tripId: string): PlannedStop[] {
 function mergeDraftStops(tripId: string, written: PlannedStop[]): PlannedStop[] {
   const visited = getPlaces(tripId).map((p) => ({ lat: p.lat, lng: p.lng }));
 
-  const draftStops: PlannedStop[] = getAllEntries(tripId, { includeDrafts: true })
+  // `reader: "person"` — B632. This is only ever reached for an audience
+  // `draftsVisibleTo` has already said yes to (see the doc comment above),
+  // so a draft that also carries its own `visibility` label must not vanish
+  // from an owner's or a traveller's own plan the way it would for anybody
+  // reading at the closed default.
+  const draftStops: PlannedStop[] = getAllEntries(tripId, { includeDrafts: true, reader: "person" })
     .filter(
       (e) => e.draft && Number.isFinite(e.lat) && Number.isFinite(e.lng) && !hasHappened(e.date),
     )

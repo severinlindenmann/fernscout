@@ -11,6 +11,7 @@ import DayWeather from "./DayWeather";
 import DraftNotice from "./DraftNotice";
 import TestNotice from "./TestNotice";
 import EntryContent from "./EntryContent";
+import EntryVisibilityBadge from "./EntryVisibilityBadge";
 import Gallery from "./Gallery";
 import TravelScene from "./TravelScene";
 import { useI18n } from "./LocaleProvider";
@@ -391,6 +392,9 @@ function UpdateBlock({
 }) {
   const { t, localized } = useI18n();
   const { title, content, fallbackNotice } = localized(entry);
+  // Null outside a `TripProvider` (there is no such caller today) — see the
+  // note on `EntryVisibilityBadge`.
+  const reader = useTrip()?.reader;
 
   return (
     <div className={`relative ${first ? "" : "mt-10"}`}>
@@ -423,11 +427,16 @@ function UpdateBlock({
         </div>
       )}
 
-      {entry.draft && !first && (
-        <span className="mt-1 inline-block rounded-full border border-coral-600 bg-coral-300 px-2.5 py-0.5 font-display text-xs font-semibold text-navy-900">
-          {t("draft.badge")}
-        </span>
-      )}
+      {(entry.draft && !first) || entry.visibility ? (
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          {entry.draft && !first && (
+            <span className="inline-block rounded-full border border-coral-600 bg-coral-300 px-2.5 py-0.5 font-display text-xs font-semibold text-navy-900">
+              {t("draft.badge")}
+            </span>
+          )}
+          <EntryVisibilityBadge visibility={entry.visibility} reader={reader} />
+        </div>
+      ) : null}
 
       <h2 className="mb-4 mt-1 font-display text-2xl font-semibold tracking-tight text-navy-900 sm:text-3xl">
         {title}

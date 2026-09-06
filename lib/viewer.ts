@@ -1,5 +1,7 @@
 import "server-only";
 import { isOwner, journalReader } from "./contacts/session";
+import { getAllEntries } from "./entries";
+import type { ReaderLevel } from "./photos";
 import { isPersonOnWith, redeemedTripsFor } from "./tripPeople";
 import { getTrips } from "./trips";
 import { getUser } from "./users";
@@ -33,6 +35,19 @@ export type ViewerTrip = {
    * whenever the first was true.
    */
   through: "public" | "owner" | "traveller" | "guest";
+  /**
+   * True when this reader's own level (B596/B632) leaves some of this trip's
+   * days out — an update marked `guest` or `private` beyond what they have
+   * proved. Absent rather than `false`, so a trip nobody has held anything
+   * back on prints nothing extra.
+   *
+   * The point of this list is to tell a reader what they can read; a row that
+   * says "you can read this trip" while quietly omitting days it has held
+   * back is the same half-true shape B41 found in this file once already —
+   * a panel answering a different, easier question than the one it looks
+   * like it is answering.
+   */
+  partial?: true;
 };
 
 export type Viewer = {
@@ -48,12 +63,28 @@ export type Viewer = {
   trips: ViewerTrip[];
 };
 
-function describe(trip: Trip, through: ViewerTrip["through"], current: string | undefined): ViewerTrip {
+function describe(
+  trip: Trip,
+  through: ViewerTrip["through"],
+  current: string | undefined,
+  level: ReaderLevel,
+): ViewerTrip {
+  // `level` is the finer-grained answer `readerLevelFor` (lib/tripGate.ts)
+  // would give for this exact trip and viewer — recomputed the cheap way
+  // here from facts `tripsVisibleTo` already has, rather than asked of a
+  // session a second time. Comparing counts at that level against the
+  // unfiltered count is the same question `visible()` in lib/entries.ts
+  // answers per day, just asked once for the row rather than once per day.
+  const partial =
+    level !== "person" &&
+    getAllEntries(trip.ref, { reader: level }).length <
+      getAllEntries(trip.ref, { reader: "person" }).length;
   return {
     id: trip.id,
     title: trip.title,
     href: trip.id === current ? `/${trip.username}` : `/${trip.username}/trips/${trip.id}`,
     through,
+    ...(partial ? { partial: true as const } : {}),
   };
 }
 
@@ -112,18 +143,23 @@ export async function tripsVisibleTo(
     // buddy link (B33) reads the same as somebody typed into `people:` — the
     // redeemed rows come from the one query above, not one per trip.
     if (owner) {
-      visible.push(describe(trip, "owner", current));
+      visible.push(describe(trip, "owner", current, "person"));
     } else if (isPersonOnWith(trip, email, redeemed)) {
-      visible.push(describe(trip, "traveller", current));
+      visible.push(describe(trip, "traveller", current, "person"));
     } else if (trip.visibility === "public" && trip.listed) {
-      visible.push(describe(trip, "public", current));
+      // A `public` trip is open whether or not this reader has proved
+      // anything — but an approved guest of the journal reads its own
+      // `guest`-labelled updates too (the same branch `readerLevelFor` takes
+      // for a trip that is not `private`), so their actual level here is
+      // `"guest"`, not `"public"`, whatever `through` says for the row.
+      visible.push(describe(trip, "public", current, guest ? "guest" : "public"));
     } else if (trip.visibility === "guest" && guest) {
       // A guest of the *journal*, and nothing narrower: this arm used to also
       // ask `grants?.has(trip.id)`, a per-trip grant nothing ever issued,
       // removed with the column in `007-journal-wide-grants`. A trip held back
       // from the people who are otherwise let in is `private`, and `private`
       // never reaches here.
-      visible.push(describe(trip, "guest", current));
+      visible.push(describe(trip, "guest", current, "guest"));
     }
   }
   return visible;

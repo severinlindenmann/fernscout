@@ -1,5 +1,6 @@
 import "server-only";
 import { resolveMediaFile } from "../media";
+import { maySeePhoto, type ReaderLevel } from "../photos";
 import type { Entry, Trip } from "../types";
 import type { WhatsappPhoto } from "../whatsapp/types";
 
@@ -28,10 +29,28 @@ const HEADER_QUALITY = 80;
 /** WhatsApp's own ceiling for an image. A file over it is refused on upload. */
 const MAX_BYTES = 5 * 1024 * 1024;
 
-export async function headerPhoto(trip: Trip, entry: Entry): Promise<WhatsappPhoto | null> {
+/**
+ * `level` — B632. The caller used to be able to hand this an `entry` already
+ * read at the level it wanted, because a public-level read stripped a
+ * labelled photograph out of `entry.gallery` for it. That stopped being safe
+ * to rely on the moment the *entry itself* could carry a label narrower than
+ * the trip: the caller now has to fetch the entry unfiltered (to find a
+ * held-back day at all, and to decide who gets sent it), so the filter for
+ * *which photograph is safe to put in front of the whole recipient list* has
+ * to happen here instead, explicit rather than borrowed from how the entry
+ * happened to be read. Defaults to `"public"`, matching what every caller
+ * before this parameter existed effectively got.
+ */
+export async function headerPhoto(
+  trip: Trip,
+  entry: Entry,
+  level: ReaderLevel = "public",
+): Promise<WhatsappPhoto | null> {
   // The first *image*: a video cannot be a template header, and a gallery
   // that opens with a clip should still send its first photograph.
-  const image = entry.gallery.find((item) => item.type === "image");
+  const image = entry.gallery.find(
+    (item) => item.type === "image" && maySeePhoto(item.visibility, level),
+  );
   if (!image) return null;
 
   // `entry.gallery[*].src` is owner-prefixed by `lib/entries.ts` —

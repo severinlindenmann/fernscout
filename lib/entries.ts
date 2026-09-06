@@ -217,11 +217,17 @@ function visible(entries: Entry[], options?: ReadOptions): Entry[] {
   const kept = options?.includeDrafts ? entries : entries.filter((e) => !e.draft);
   const level = options?.reader ?? "public";
   if (level === "person") return kept;
-  return kept.map((entry) =>
-    entry.gallery.every((item) => maySeePhoto(item.visibility, level))
-      ? entry
-      : { ...entry, gallery: entry.gallery.filter((item) => maySeePhoto(item.visibility, level)) },
-  );
+  return kept
+    // B632: a whole update held back the same way one photograph on it
+    // already could be — dropped outright rather than merely stripped of
+    // its gallery, since a reader below its level must not see the entry
+    // exists at all.
+    .filter((entry) => maySeePhoto(entry.visibility, level))
+    .map((entry) =>
+      entry.gallery.every((item) => maySeePhoto(item.visibility, level))
+        ? entry
+        : { ...entry, gallery: entry.gallery.filter((item) => maySeePhoto(item.visibility, level)) },
+    );
 }
 
 export function getAllEntries(ref: string, options?: ReadOptions): Entry[] {
@@ -341,6 +347,11 @@ function readAllEntries(ref: string): Entry[] {
       tags: Array.isArray(data.tags) ? data.tags : [],
       costs: parseCostItems(data.costs, defaultCurrency),
       content: content.trim(),
+      // Fail-closed, the same rule `item.visibility` gets a few lines up —
+      // B632. A word this code does not know is not "no label"; it is a
+      // typo, and a typo must not publish something somebody meant held
+      // back.
+      visibility: parsePhotoVisibility(data.visibility),
       translations: parseTranslations(data.translations),
       // Kept rather than dropped: `getAllEntries` filters on the way out, so
       // one cache serves both the public site and the owner's own view.

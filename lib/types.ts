@@ -188,6 +188,16 @@ export type Entry = {
   content: string;
   translations?: EntryTranslations;
   /**
+   * This whole update, held back from readers the trip otherwise lets in —
+   * B632, the same vocabulary and the same narrowing rule as
+   * `GalleryItem.visibility` (B596), and deliberately the same type: a day is
+   * held back exactly the way one photograph on it already could be. Absent
+   * is the normal case — everyone the trip lets in reads it. See
+   * `maySeePhoto` in lib/photos.ts, which this reuses rather than a second
+   * comparison.
+   */
+  visibility?: PhotoVisibility;
+  /**
    * Written by an agent, not yet published by a person.
    *
    * Absent from every public reading path. Present, and flagged, when the

@@ -66,8 +66,10 @@ export function tripGaps(ref: string, hasBudget: boolean): TripGaps | null {
 
   // Drafts included, deliberately: a day that is written and waiting for a
   // person is not a gap, and an agent reconciling what it wrote would be
-  // told to write it twice.
-  const entries = getAllEntries(ref, { includeDrafts: true });
+  // told to write it twice. `reader: "person"` too — B632 — since this is
+  // reached only from the owner's/agent's own write API (see the two
+  // callers), and a held-back day is still a day that fills a gap for them.
+  const entries = getAllEntries(ref, { includeDrafts: true, reader: "person" });
   const dates = new Set(entries.map((e) => e.date));
   const withCosts = new Set(entries.filter((e) => e.costs.length > 0).map((e) => e.date));
   const empty = datesBetween(trip.start, trip.end).filter((date) => !dates.has(date));
