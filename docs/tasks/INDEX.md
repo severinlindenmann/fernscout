@@ -212,7 +212,7 @@ Do not edit them by hand; run the script.
 | [B297](backlog/superseded/B297-a-nul-byte-in-the-idempotency.md) | A NUL byte in the idempotency key separator makes git treat the whole file as binary | CHORE | low | low |
 | [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
-## open (18)
+## open (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -226,16 +226,14 @@ Do not edit them by hand; run the script.
 | [B626](open/B626-the-contacts-page-does-not-say.md) | The contacts page does not say who has the app installed and notifications on | FEATURE | medium | low |
 | [B627](open/B627-a-portrait-photograph-on-a-postcard.md) | A portrait photograph on a postcard is centre-cropped with no way to choose the crop | FEATURE | medium | medium |
 | [B628](open/B628-the-postcard-signature-area-cannot-carry.md) | The postcard signature area cannot carry the traveller figures | FEATURE | medium | low |
-| [B630](open/B630-the-contacts-list-does-not-say.md) | The contacts list does not say whether a person is owner, buddy or guest | FEATURE | medium | low |
 | [B631](open/B631-the-gallery-does-not-show-which.md) | The gallery does not show which photographs are held back | FEATURE | medium | low |
 | [B633](open/B633-there-is-no-way-for-the.md) | There is no way for the owner to send a day's notification from the day itself | FEATURE | medium | medium |
 | [B636](open/B636-sent-mail-is-kept-in-the.md) | Sent mail is kept in the content folder, which is what gets backed up | CHORE | medium | low |
-| [B640](open/B640-the-vehicle-icons-on-the-map.md) | The vehicle icons on the map slideshow are upside down when travelling westward | ISSUE | medium | low |
 | [B642](open/B642-the-photobook-order-page-explains-the.md) | The photobook order page explains the spine, the soft prints and the extras badly | DOCS | medium | low |
 | [B634](open/B634-the-travel-scene-has-no-airport.md) | The travel scene has no airport | FEATURE | low | low |
 | [B637](open/B637-the-fernscout-mark-on-the-car.md) | The Fernscout mark on the car sits too far off centre | ISSUE | low | low |
 
-## in-development (9)
+## in-development (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -246,6 +244,8 @@ Do not edit them by hand; run the script.
 | [B585](in-development/B585-model-mjs-still-says-coordinates-and.md) | model.mjs still says coordinates and photos are only ever false, and the site has a third answer | ISSUE | medium | low | `ac8af30e` |
 | [B616](in-development/B616-the-helper-is-silent-about-three.md) | The helper is silent about three things the instance refuses | ISSUE | medium | low | `ac8af30e` |
 | [B629](in-development/B629-buddies-on-a-trip-are-not.md) | Buddies on a trip are not offered in the postcard signature | ISSUE | medium | low | `e5f23c58` |
+| [B630](in-development/B630-the-contacts-list-does-not-say.md) | The contacts list does not say whether a person is owner, buddy or guest | FEATURE | medium | low | `e5f23c58` |
+| [B640](in-development/B640-the-vehicle-icons-on-the-map.md) | The vehicle icons on the map slideshow are upside down when travelling westward | ISSUE | medium | low | `e5f23c58` |
 | [B586](in-development/B586-a-day-gets-both-an-error.md) | A day gets both an error and a tip for the same unanswered question | ISSUE | low | low | `ac8af30e` |
 | [B618](in-development/B618-model-mjs-carries-an-onlywhen-function.md) | model.mjs carries an onlyWhen function nothing reads | CHORE | low | low | `ac8af30e` |
 

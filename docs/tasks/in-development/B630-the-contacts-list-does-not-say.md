@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: contacts page
 found: "2026-09-06T17:51:44Z"
+started: "2026-09-06T18:04:54Z"
+session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
+claimed: "2026-09-06T18:04:54Z"
 ---
 
 # B630 — The contacts list does not say whether a person is owner, buddy or guest
