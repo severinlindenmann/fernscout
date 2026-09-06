@@ -79,6 +79,30 @@ Deliberately **not** a JSON Schema library. The subset in use here is
 dependency, a bundle and a class of error messages nobody here would have
 written. A `ponytail:` comment naming the subset and ajv as the upgrade path.
 
+**Built, first commit** — `lib/validate/body.ts` and its 21 tests, plus
+`test/api-route-schemas.test.ts`. Three decisions the code made that the plan
+above did not:
+
+- **Top level only.** Unknown keys, `required`, and the type and `enum` of
+  each top-level value. It does not descend into `costs[]` or
+  `translations{}`: `validateEntry` already checks those in far better words,
+  and two validators reporting one mistake twice reads as a bug in the API. A
+  route with both runs both and drops any shape problem naming a field the
+  specialised one already named — the one line is in the module's header.
+- **An unresolvable `$ref` checks nothing** rather than refusing every field
+  against an empty schema. One typo in `openapi.ts` would otherwise make a
+  route that accepts no body at all.
+- **`additionalProperties: true`** puts unknown keys in `warnings` instead of
+  `problems`, for a route that genuinely takes free-form keys. Absent means
+  `false` here, which is the opposite of JSON Schema's default and the whole
+  point.
+
+What the coverage test found: **11 of the 18** `/api/v1` routes that read a
+body already publish a request schema. The other 7 are not merely missing a
+body — they are absent from the document altogether, `.../people` and
+`.../travellers` among them, both of which `AGENTS.md` sends agents to by
+name. That list is in the test, and it is B536's.
+
 **Two routes only, in this task** — `POST .../trips` and `POST .../days` —
 because they are where the reported pain is and because proving the mechanism
 on a route that already has a `problems[]` list (days) and one that has none
