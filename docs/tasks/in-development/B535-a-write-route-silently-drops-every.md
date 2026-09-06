@@ -159,3 +159,17 @@ to collide with none of them:
 So build it in two commits in one branch: `lib/validate/body.ts` plus its unit
 tests first (touches nothing anybody else has open, mergeable immediately),
 and the two route wirings second, rebased after B531 and B325 are on `main`.
+
+## Where it stands
+
+Commit 1 is merged: the checker, its tests, and the coverage test. Held by
+this session, still in `in-development/`, because the second half has not been
+built and the task is not finished.
+
+**Outstanding: the route wiring.** It touches
+`app/api/v1/[user]/trips/route.ts` and
+`app/api/v1/[user]/trips/[trip]/days/route.ts`, both of which
+b531-day-contract has open, and it must not turn on before b325-day-weather's
+new day field reaches `openapi.ts` — a field the checker does not know is a
+field the checker refuses, which is the mechanism working and looks exactly
+like a bug. Cut a fresh branch off `main` once both are merged.

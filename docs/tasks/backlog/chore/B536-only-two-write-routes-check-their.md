@@ -31,8 +31,8 @@ is only safe once the mechanism has been through `testing/` on two routes.
 
 ## Work
 
-- Give each route a `requestBody` schema in `lib/api/openapi.ts` where it has
-  none, matching what the handler actually accepts. Reading each handler to
+- Add the seven missing routes to `lib/api/openapi.ts`, and give every route a
+  `requestBody` schema matching what the handler actually accepts. Reading each handler to
   write its schema is most of this task, and is the point: it is the first
   time the accepted fields have been written down.
 - Wire `checkBody` into each, after auth and after the resource-exists check.
@@ -49,6 +49,6 @@ same failure shows up there.
 
 - Every `/api/v1` route that reads a body has a `requestBody` schema and calls
   `checkBody`.
-- The B535 enumeration test passes with an empty uncovered list.
+- `WITHOUT_A_SCHEMA` in `test/api-route-schemas.test.ts` is empty.
 - A misspelled key on `PATCH .../visibility` answers 400 and changes nothing.
 - `npm run verify` green.
