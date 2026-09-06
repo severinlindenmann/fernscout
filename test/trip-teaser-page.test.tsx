@@ -128,4 +128,16 @@ describe("a reader who may not open a teasered trip", () => {
     // And the map is drawn all the same — the country fill needs a basemap.
     expect((props as { basemap: unknown }).basemap).not.toBeNull();
   });
+
+  test("frames the map on the country rather than on the whole world", async () => {
+    const props = (await pageProps()) as { framePoints: { lat: number; lng: number }[] };
+    const { frameRoute } = await import("@/lib/mapFrame");
+    // Portugal's own outline, so the frame is a country wide — not the 1000×500
+    // whole world an empty point list would give, and not the few kilometres
+    // between Faro and Lagos.
+    expect(props.framePoints.length).toBeGreaterThan(0);
+    const frame = frameRoute(props.framePoints);
+    expect(frame.w).toBeLessThan(200);
+    expect(frame.w).toBeGreaterThan(5);
+  });
 });

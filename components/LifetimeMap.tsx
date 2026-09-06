@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { frameRoute, isPlottable, place as placeIn } from "@/lib/mapFrame";
+import { frameRoute, isPlottable, place as placeIn, type Point } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import { useI18n } from "./LocaleProvider";
 import { flagFromCode } from "@/lib/flags";
@@ -79,6 +79,7 @@ const PIN_RING_WIDTH = 0.55;
 export default function LifetimeMap({
   routes,
   visits = [],
+  framePoints = [],
   userPath = "",
   basemap = null,
 }: {
@@ -94,6 +95,17 @@ export default function LifetimeMap({
    * B361.
    */
   visits?: CountryVisit[];
+  /**
+   * Extra points the frame must contain, drawn from nothing — B600.
+   *
+   * A teasered trip contributes countries to `visits` and no route, so
+   * framing on `routes` alone put its fill on a whole-world map. The page
+   * sends the corners of the *country's own outline* rather than the trip's
+   * stops, so what widens the frame is country-level; see the note beside
+   * `countryCorners` in `app/[user]/trips/page.tsx`. Nothing here is
+   * rendered — the frame is the only thing they touch.
+   */
+  framePoints?: Point[];
   /** `/<user>`, for linking a country to the trip that reached it. */
   userPath?: string;
   /** Clipped to every trip's combined frame on the server — lib/basemap.ts. */
@@ -112,8 +124,8 @@ export default function LifetimeMap({
   // means and all three get the latitude correction that stops a north-south
   // route being drawn stretched sideways.
   const view = useMemo(
-    () => frameRoute(routes.flatMap((r) => r.points)),
-    [routes],
+    () => frameRoute([...routes.flatMap((r) => r.points), ...framePoints]),
+    [routes, framePoints],
   );
 
   // Route strokes and dots keep their size on screen rather than being viewBox
