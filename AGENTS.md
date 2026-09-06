@@ -264,6 +264,47 @@ Run it when you delete a module or drop a dependency. `knip.jsonc` carries the
 entry points, which are the whole configuration — nearly nothing here is
 imported by name. B24.
 
+### Changing a route means changing the contract
+
+**`/openapi.json` and `/agent.md` are the product, for everybody who is not
+standing in this checkout.** There is no editing interface (decision 24), so an
+agent over the network has the document and nothing else — no source to read,
+no colleague to ask. A field the code accepts and the document does not
+describe is a field nobody outside will ever use; a field the document promises
+and the code drops is worse, because the caller is told it worked.
+
+So, whenever you touch anything under `app/api/`:
+
+- **A new route, or a new verb on one, goes into `lib/api/openapi.ts`.** Every
+  `/api/v1/**` and `/api/auth/**` operation must be there, with at least one
+  refusal documented beside the success.
+- **A new field on a request body goes into its schema**, with the type and,
+  if it has one, the `enum`.
+- **An enum is imported, never typed out.** `TRANSPORT_MODES`,
+  `COST_CATEGORIES`, `FEATURE_NAMES`, `TRACKS`, `VISIBILITIES`, `ACCENTS`,
+  `STATUSES`, `FIGURE_FIELDS`, the media formats — the document imports the
+  constant the validator uses. Export the constant if it is private; a second
+  list beside the first is a list that will disagree with it.
+- **A field the API takes is a field it has to show.** If a write accepts it,
+  some documented `GET` has to read it back, or an agent cannot check its own
+  work — and "it was accepted" is not the same claim as "it is there".
+- **A limit belongs where a caller can read it before they hit it.**
+  `/api/health` carries the upload formats and sizes for that reason.
+
+`npm run verify` enforces the mechanical half. `test/openapi-contract.test.ts`
+fails on an undocumented route+verb, an enum that has drifted from its source,
+an operation with no refusal, and a `required` naming a field that is not in
+`properties`. `test/api-route-schemas.test.ts` fails on a route that reads a
+body without publishing a schema.
+
+**What the tests cannot check is whether the words are true**, and that is the
+half that has been wrong most often: `Cost.category` said "free text" and is a
+closed list; "published days in a trip" returns drafts too; the module comment
+said "there are five endpoints" while describing thirty. The
+`keep-the-contract` skill is the procedure for the parts a test cannot reach —
+including driving a real journal onto a running instance, which is how B540
+found two fields that were accepted, answered `201`, and thrown away.
+
 ## Where the work happens
 
 **The main checkout stays on `main`, and stays clean.** Do not branch it, do
@@ -480,6 +521,7 @@ guide for it.
 | --- | --- |
 | `apply-the-brand` | The mark, the palette, and what not to do to them |
 | `deploy` | Ship it to the VPS, and know it is healthy |
+| `keep-the-contract` | Check that `/openapi.json` and `/agent.md` still tell the truth after a change to a route |
 | `manage-tasks` | Capture something, and move it between lanes |
 | `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
 | `test-the-live-site` | Empty `testing/` against the deployed instance, one subagent per ticket |
@@ -522,8 +564,8 @@ refactor its 89 callers cannot survive. Call again, or check the first answer
 against `grep`, before concluding anything from a small number.
 
 **None of this is in the repository.** Plugins are installed per user and
-`.claude/settings.json` is gitignored, so a fresh clone has the five skills
-above and nothing else. A sixth may be on disk and is deliberately not in
+`.claude/settings.json` is gitignored, so a fresh clone has the six skills
+above and nothing else. A seventh may be on disk and is deliberately not in
 that table: `.claude/skills/vps/` is this instance's own deploy — it knows a
 host, a directory and a domain — and is gitignored for that reason. Where it
 exists it is the answer to "deploy", and `deploy` is the procedure for somebody

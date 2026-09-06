@@ -2,6 +2,7 @@ import { authenticate, errorResponse, ownsUser, writableTrips } from "@/lib/api/
 import { tripSummary } from "@/lib/api/entries";
 import { getMalformedTrips, getTrips } from "@/lib/trips";
 import { createTrip } from "@/lib/tripWrite";
+import { checkAgainstContract } from "@/lib/api/contract";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { serverSite } from "@/lib/site";
 import { TRACKS, TRACK_ROWS } from "@/lib/tracks";
@@ -86,6 +87,29 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+
+  /**
+   * The fields that are not fields, before anything is written.
+   *
+   * This route reads the keys it knows and ignores the rest, and B540 found
+   * what that costs: an agent sent `visibilty` — one transposed letter —
+   * intending `private`, and got a 201 and a **public** trip, advertised in
+   * the sitemap and the feed. The value side of that same field is careful
+   * (an unrecognised value reads as private, never as public, so a typo
+   * cannot publish somebody's trip); the key side failed the other way and
+   * said nothing.
+   *
+   * Checked here — after the token and after the journal, before the body is
+   * used for anything — against the schema `/openapi.json` publishes.
+   */
+  const shape = checkAgainstContract("/api/v1/{user}/trips", "post", body);
+  if (shape.problems.length > 0) {
+    return Response.json(
+      { error: "invalid_trip", problems: shape.problems },
+      { status: 400 },
+    );
+  }
+
   const str = (key: string): string | undefined =>
     typeof body[key] === "string" ? (body[key] as string) : undefined;
 

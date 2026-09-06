@@ -628,6 +628,32 @@ export function openApiDocument() {
         },
       },
       "/api/v1/{user}/trips/{trip}": {
+        get: {
+          summary: "One trip, whole — everything the create call accepts",
+          description:
+            "Added because five fields `POST .../trips` invites you to set — `accent`, " +
+            "`costsVisibility`, `intro`, `translations`, `test` — could be written and read " +
+            "back nowhere: the trips list is a summary and the dedicated doors cover only " +
+            "visibility, rates, people, travellers and tracks. **Read your own work back " +
+            "with this before telling somebody a trip is ready.** \"It was accepted\" is not " +
+            "the same claim as \"it is there\", and this API has been wrong about the " +
+            "difference. Gated as a write is rather than as a read, because it carries " +
+            "`people`, which is addresses.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "The trip, its party, its rates and what it tracks" },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+            "404": {
+              description:
+                "No such trip, or none this token may write to — the two answer alike, so " +
+                "this cannot be used to ask which trips a journal has.",
+            },
+          },
+        },
         delete: {
           summary: "Ask to delete a trip (deletes nothing; mails the owner)",
           description:
