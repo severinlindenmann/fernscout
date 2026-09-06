@@ -719,6 +719,7 @@
   "photobook.warn.lowResolution.one": "Ein Foto wird in dieser Grösse weich gedruckt — es hat weniger Pixel, als die Seite braucht.",
   "photobook.warn.noOriginal": "{count} Fotos liegen hier nur als Web-Kopie, sie drucken weicher als die Originale.",
   "photobook.warn.noOriginal.one": "Ein Foto liegt hier nur als Web-Kopie, es druckt weicher als das Original.",
+  "photobook.warn.noLargePhoto": "Kein Foto dieser Reise hat genug Pixel für eine ganze Seite, also bekommt keins eine — alle stehen stattdessen auf einer kleineren Seite.",
   "photobook.warn.blankPadding": "Es ist zu wenig für ein geklebtes Buch, deshalb endet es mit leeren Seiten.",
   "photobook.warn.pageCount": "Das Buch ist länger, als diese Bindung tragen kann.",
   "photobook.warn.splitIntoVolumes": "Die Reise ist zu lang für ein Buch, deshalb kommt sie als mehrere — jedes vollständig, mit eigenem Umschlag.",

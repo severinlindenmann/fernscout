@@ -37,6 +37,7 @@ import {
   bleedBoxMm,
   contentBoxMm,
   effectiveDpi,
+  HERO_FLOOR_DPI,
   mm,
   normalisePageCount,
   requiredPixels,
@@ -413,6 +414,7 @@ export type BookWarning = {
     | "low-resolution"
     | "no-original"
     | "no-photos"
+    | "no-large-photo"
     | "split-into-volumes"
     | "text-truncated"
     | "blank-padding"
@@ -510,6 +512,21 @@ function orientation(photo: BookPhoto): Orientation {
 
 function isPanorama(photo: BookPhoto): boolean {
   return aspect(photo) >= 1.9;
+}
+
+/**
+ * Whether this photograph has the pixels to be handed a full page — B502.
+ *
+ * Checked against the trim width rather than the exact slot (a "feature"
+ * page stops at the gutter, a "full-bleed" one runs a few millimetres wider):
+ * the precise width a photo will actually print at is still measured later,
+ * by `checkResolution` against `spec.dpi`, once a placement exists. This is
+ * only the gate for which *family* of slot a photo may be offered at all, so
+ * using the widest plausible width — the trim itself — errs toward the grid
+ * slot rather than toward a page that turns out soft.
+ */
+function fillsAFullPage(photo: BookPhoto, spec: BookSpec): boolean {
+  return photo.width >= requiredPixels(spec.size.trimWidthMm, HERO_FLOOR_DPI);
 }
 
 /** The centre — every photograph's crop before B513, and still the default
@@ -694,8 +711,9 @@ function placeAll(
 function groupsFor(
   layout: DayLayout,
   photos: BookPhoto[],
+  spec: BookSpec,
 ): { layout: PhotoLayout; photos: BookPhoto[] }[] {
-  if (layout === "auto" || layout === "hero" || photos.length === 0) return groupPhotos(photos);
+  if (layout === "auto" || layout === "hero" || photos.length === 0) return groupPhotos(photos, spec);
   if (layout === "text") return [];
   if (layout === "single") return photos.map((photo) => ({ layout: "feature" as const, photos: [photo] }));
 
@@ -728,8 +746,19 @@ function groupsFor(
   return groups;
 }
 
-/** How photographs are grouped onto pages. See the module note for why. */
-export function groupPhotos(photos: BookPhoto[]): { layout: PhotoLayout; photos: BookPhoto[] }[] {
+/**
+ * How photographs are grouped onto pages. See the module note for why.
+ *
+ * `spec` is only consulted for the lone-photograph case below — B502. Every
+ * other slot here (`pair-portrait`, `pair-stacked`, `quad`, `panorama`) is
+ * already a grid or a shared page, never the whole trim, so a photograph
+ * that made it in has already asked far less of its own pixels than a full
+ * page would.
+ */
+export function groupPhotos(
+  photos: BookPhoto[],
+  spec: BookSpec,
+): { layout: PhotoLayout; photos: BookPhoto[] }[] {
   const groups: { layout: PhotoLayout; photos: BookPhoto[] }[] = [];
   let i = 0;
   while (i < photos.length) {
@@ -759,7 +788,12 @@ export function groupPhotos(photos: BookPhoto[]): { layout: PhotoLayout; photos:
       groups.push({ layout: "pair-stacked", photos: [a, b] });
       i += 2;
     } else {
-      groups.push({ layout: "feature", photos: [a] });
+      // A lone photograph with nothing to pair with. It would otherwise run
+      // full-bleed to the outer edge (`feature`) — asked to do that only when
+      // it has the pixels for it (B502); below the floor it fits inside the
+      // content box instead (`single`), which is a smaller printed width and
+      // therefore a lower bar.
+      groups.push({ layout: fillsAFullPage(a, spec) ? "feature" : "single", photos: [a] });
       i += 1;
     }
   }
@@ -996,11 +1030,26 @@ function draftsForChapter(
      * at four pictures knows which is the one — the planner only knows which
      * is first — so this is a hint worth honouring and never a decision worth
      * demanding.
+     *
+     * That hint still has to have the pixels for the page it is about to take
+     * — B502. `layout === "hero"` is the owner overruling the *rhythm*, not
+     * the resolution question, and is honoured regardless: they named this
+     * day, and `checkResolution` still tells them if it prints soft. The
+     * automatic rhythm (`auto`) gets no such say-so; if its usual pick is too
+     * small it looks for another photograph of the day that qualifies before
+     * giving up the hero page entirely.
      */
     const picked = chosen?.hero
       ? day.photos.find((p) => p.webSrc === chosen.hero)
       : undefined;
-    const hero = wantsHero && day.photos.length > 1 ? (picked ?? day.photos[0]) : undefined;
+    let hero: BookPhoto | undefined;
+    if (wantsHero && day.photos.length > 1) {
+      const first = picked ?? day.photos[0];
+      hero =
+        layout === "hero" || fillsAFullPage(first, spec)
+          ? first
+          : day.photos.find((p) => fillsAFullPage(p, spec));
+    }
     const rest = layout === "text" ? [] : hero ? day.photos.filter((p) => p !== hero) : day.photos;
 
     /**
@@ -1051,7 +1100,7 @@ function draftsForChapter(
     if (hero) {
       drafts.push({ kind: "photos", layout: "full-bleed", photos: [hero], date: chapterDay.date });
     }
-    for (const group of groupsFor(layout, grouped)) {
+    for (const group of groupsFor(layout, grouped, spec)) {
       drafts.push({
         kind: "photos",
         layout: group.layout,
@@ -1128,7 +1177,7 @@ function emit(drafts: Draft[]): Draft[] {
  * right one is to let the photographs breathe: multi-photo pages are broken up
  * into single-photo pages, largest groups first, until the count is met.
  */
-function expandToMinimum(drafts: Draft[], target: number): Draft[] {
+function expandToMinimum(drafts: Draft[], target: number, spec: BookSpec): Draft[] {
   const out = [...drafts];
   let guard = 0;
   while (out.length < target && guard++ < 500) {
@@ -1158,7 +1207,7 @@ function expandToMinimum(drafts: Draft[], target: number): Draft[] {
       1,
       ...halves.map((photos) => ({
         kind: "photos" as const,
-        layout: layoutFor(photos),
+        layout: layoutFor(photos, spec),
         photos,
         date: group.date,
       })),
@@ -1167,9 +1216,12 @@ function expandToMinimum(drafts: Draft[], target: number): Draft[] {
   return out;
 }
 
-function layoutFor(photos: BookPhoto[]): PhotoLayout {
-  if (photos.length === 1) return isPanorama(photos[0]) ? "panorama" : "feature";
-  return groupPhotos(photos)[0].layout;
+function layoutFor(photos: BookPhoto[], spec: BookSpec): PhotoLayout {
+  if (photos.length === 1) {
+    if (isPanorama(photos[0])) return "panorama";
+    return fillsAFullPage(photos[0], spec) ? "feature" : "single";
+  }
+  return groupPhotos(photos, spec)[0].layout;
 }
 
 /**
@@ -1879,6 +1931,22 @@ export function planBook(
   const back = draftsForBack(source, options);
   const blocks = chapters.map((ch, i) => draftsForChapter(ch, i + 1, chapters.length, options, spec));
 
+  // Every photograph in the trip was too small for a full page — B502. The
+  // floor already steered every one of them onto a grid slot instead, which
+  // is the quiet, correct outcome; this is the one place that says so out
+  // loud, once for the whole book rather than once per photograph.
+  const hasFullPage = blocks.some((chapterDrafts) =>
+    chapterDrafts.some((d) => d.kind === "photos" && (d.layout === "full-bleed" || d.layout === "feature")),
+  );
+  if (photoCount > 0 && !hasFullPage) {
+    warnings.push({
+      code: "no-large-photo",
+      detail:
+        "No photograph in this trip has the pixels to run a full page, so " +
+        "none do — every photograph in this book is on a grid slot instead.",
+    });
+  }
+
   const grouped = splitIntoVolumes(blocks, front.length, back.length, spec.pageCount.max);
   if (grouped.length > 1) {
     warnings.push({
@@ -1916,7 +1984,7 @@ export function planBook(
     // Grow before padding: see expandToMinimum.
     const emitted = emit(drafts);
     if (emitted.length < spec.pageCount.min) {
-      drafts = expandToMinimum(drafts, spec.pageCount.min);
+      drafts = expandToMinimum(drafts, spec.pageCount.min, spec);
     }
 
     let pages = emit(drafts);

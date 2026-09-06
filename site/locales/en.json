@@ -719,6 +719,7 @@
   "photobook.warn.lowResolution.one": "One photograph will print softly at this size — it has fewer pixels than the page wants.",
   "photobook.warn.noOriginal": "{count} photographs are kept here only as web copies, so they print softer than the originals would.",
   "photobook.warn.noOriginal.one": "One photograph is kept here only as a web copy, so it prints softer than the original would.",
+  "photobook.warn.noLargePhoto": "No photograph in this trip has enough pixels to fill a full page, so none do — every one is on a smaller page instead.",
   "photobook.warn.blankPadding": "There is not enough here to fill a glued book, so it ends with blank pages.",
   "photobook.warn.pageCount": "The book is longer than this binding can hold.",
   "photobook.warn.splitIntoVolumes": "The trip is too long for one book, so it comes as several — each complete, with its own cover.",

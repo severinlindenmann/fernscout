@@ -719,6 +719,7 @@
   "photobook.warn.lowResolution.one": "Egy fotó lágyan fog nyomtatódni ebben a méretben — kevesebb pixele van, mint amennyit az oldal kér.",
   "photobook.warn.noOriginal": "{count} fotó csak webes másolatként van meg itt, ezért lágyabban nyomtatódik, mint az eredeti.",
   "photobook.warn.noOriginal.one": "Egy fotó csak webes másolatként van meg itt, ezért lágyabban nyomtatódik, mint az eredeti.",
+  "photobook.warn.noLargePhoto": "Ennek az utazásnak egyetlen fotója sem elég nagy felbontású egy teljes oldalhoz, ezért egyik sem kapja meg — mindegyik kisebb oldalra kerül.",
   "photobook.warn.blankPadding": "Ennyi nem tölt meg egy ragasztott könyvet, ezért üres oldalakkal ér véget.",
   "photobook.warn.pageCount": "A könyv hosszabb, mint amennyit ez a kötés elbír.",
   "photobook.warn.splitIntoVolumes": "Az utazás túl hosszú egy könyvhöz, ezért több lesz belőle — mindegyik teljes, saját borítóval.",

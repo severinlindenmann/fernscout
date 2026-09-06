@@ -237,6 +237,22 @@ export function spineWidthMm(interiorPages: number, spec: BookSpec): number {
   return (interiorPages / 2) * spec.paperCaliperMm + spec.coverBoardMm;
 }
 
+/**
+ * Below this, a photograph may not be handed a full page — full-bleed,
+ * panorama or feature — however well its shape would otherwise fit one:
+ * B502.
+ *
+ * `dpi` above (300) is the print target; this is the floor a photo must
+ * clear before the planner will *choose* to run it that large at all. 200 is
+ * a defensible number for a full page — soft enough that a printer's own
+ * guidance calls it acceptable, nothing like the target. Below it a
+ * photograph goes to a grid slot instead, where the same pixels reach
+ * further. `checkResolution` in `plan.ts` still warns whenever a photo is
+ * soft in the slot it actually got — this constant only decides which slots
+ * it is offered. Tunable independently of the print target above.
+ */
+export const HERO_FLOOR_DPI = 200;
+
 /** How many pixels wide a photo must be to hit the target DPI at a given
  * printed width. */
 export function requiredPixels(widthMm: number, dpi: number): number {
