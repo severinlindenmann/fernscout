@@ -1689,7 +1689,14 @@ export function planBook(
     });
   }
 
-  const chapters = chaptersOf(source.days);
+  // A day the owner left out — B564 — never reaches `chaptersOf`, so its page,
+  // its photographs and its place in the chapter are all gone; a chapter left
+  // with no remaining days simply never appears, since `chaptersOf` only ever
+  // groups the days it is given. Everything else (`source.route`, the front
+  // and back matter) still reads the untouched `source.days` below: an
+  // excluded day is a place the trip did not print, not a place it did not go.
+  const printedDays = source.days.filter((d) => !options.days[d.date]?.excluded);
+  const chapters = chaptersOf(printedDays);
   const front = draftsForFront(source, options);
   const back = draftsForBack(source, options);
   const blocks = chapters.map((ch, i) => draftsForChapter(ch, i + 1, chapters.length, options, spec));

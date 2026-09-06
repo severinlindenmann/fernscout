@@ -366,6 +366,17 @@ describe("what a request body may say", () => {
     ).toBeNull();
   });
 
+  test("excluded survives the boundary", () => {
+    const parsed = parseOptions({ ...base, days: { "2026-01-01": { excluded: true } } }, SIZES);
+    expect(parsed?.days["2026-01-01"]).toEqual({ excluded: true });
+  });
+
+  test("excluded that is not a boolean is refused rather than coerced", () => {
+    expect(
+      parseOptions({ ...base, days: { "2026-01-01": { excluded: "true" } } }, SIZES),
+    ).toBeNull();
+  });
+
   test("a key that is not a date is refused outright", () => {
     // It never reaches a filesystem, but a loose record from a request body is
     // the shape that later grows into one.
