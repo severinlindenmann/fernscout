@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: docs/branding
 found: "2026-09-06T13:45:35Z"
+started: "2026-09-06T13:46:05Z"
+session: ccfbf357-ec9d-4044-a6b3-f8614796e175
+claimed: "2026-09-06T13:46:05Z"
 ---
 
 # B575 — Brand identity has no bench, and its numbers live in three files
