@@ -225,7 +225,7 @@ Do not edit them by hand; run the script.
 | [B633](open/B633-there-is-no-way-for-the.md) | There is no way for the owner to send a day's notification from the day itself | FEATURE | medium | medium |
 | [B636](open/B636-sent-mail-is-kept-in-the.md) | Sent mail is kept in the content folder, which is what gets backed up | CHORE | medium | low |
 
-## in-development (5)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -233,9 +233,8 @@ Do not edit them by hand; run the script.
 | [B610](in-development/B610-model-mjs-is-still-the-helper.md) | model.mjs is still the helper's source of truth for the file shape | CHORE | medium | medium | `ac8af30e` |
 | [B617](in-development/B617-the-conformance-test-compares-a-document.md) | The conformance test compares a document about files against a validator for requests | ISSUE | medium | low | `ac8af30e` |
 | [B627](in-development/B627-a-portrait-photograph-on-a-postcard.md) | A portrait photograph on a postcard is centre-cropped with no way to choose the crop | FEATURE | medium | medium | `e5f23c58` |
-| [B642](in-development/B642-the-photobook-order-page-explains-the.md) | The photobook order page explains the spine, the soft prints and the extras badly | DOCS | medium | low | `e5f23c58` |
 
-## testing (314)
+## testing (315)
 
 ### security (2)
 
@@ -552,7 +551,7 @@ Do not edit them by hand; run the script.
 | [B506](testing/ops/B506-nobody-has-looked-at-the-photobook.md) | Nobody has looked at the photobook composer or the drawn travellers in a browser | OPS | high | medium | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
-### docs-and-skills (23)
+### docs-and-skills (24)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -576,6 +575,7 @@ Do not edit them by hand; run the script.
 | [B533](testing/docs-and-skills/B533-there-is-no-section-for-moving.md) | There is no section for moving a journal that already exists onto a hosted instance | DOCS | medium | low | — |
 | [B567](testing/docs-and-skills/B567-an-agent-arriving-with-a-token.md) | An agent arriving with a token has no advertised first call | DOCS | medium | low | — |
 | [B575](testing/docs-and-skills/B575-brand-identity-has-no-bench-and.md) | Brand identity has no bench, and its numbers live in three files | DOCS | medium | medium | — |
+| [B642](testing/docs-and-skills/B642-the-photobook-order-page-explains-the.md) | The photobook order page explains the spine, the soft prints and the extras badly | DOCS | medium | low | — |
 | [B186](testing/docs-and-skills/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | DOCS | low | low | — |
 | [B198](testing/docs-and-skills/B198-every-docs-link-in-the-readme.md) | Every docs link in the README points one directory above where the file is | DOCS | low | low | — |
 | [B221](testing/docs-and-skills/B221-a-comment-in-mapframe-points-at.md) | A comment in mapFrame points at a file and a helper that do not exist | DOCS | low | low | — |
