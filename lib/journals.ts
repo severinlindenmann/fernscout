@@ -281,9 +281,11 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       // off, an agent that had just built somebody their journal got
       // `404 contacts_disabled` on the very next call, and there was no
       // endpoint, tool or page anywhere that could change it — the only way in
-      // was to hand-edit this file over SSH. B39 removed trip passwords, so an
-      // invite link is now the *only* way to let anybody into a journal, and a
-      // journal that cannot be shared is not a finished journal.
+      // was to hand-edit this file over SSH. B39 removed trip passwords, so
+      // approving a contact — from an invite the owner sent, or since B601
+      // from a reader who asked at a locked trip — is now the only way anybody
+      // is let into a journal, and a journal that cannot be shared is not a
+      // finished journal.
       //
       // This is not the gate. The server's own `features.contacts` is, and it
       // stays off until an operator sets CONTACTS_ENCRYPTION_KEY and a

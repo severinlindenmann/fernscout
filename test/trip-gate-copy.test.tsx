@@ -30,6 +30,7 @@ function render(
   over: {
     signedInAs?: string | null;
     canSignIn?: boolean;
+    canAsk?: boolean;
     locale?: string;
     guestBlockedByPrivate?: boolean;
   } = {},
@@ -42,6 +43,7 @@ function render(
         journalTitle="Alex's journal"
         signedInAs={over.signedInAs ?? null}
         canSignIn={over.canSignIn ?? true}
+        canAsk={over.canAsk ?? true}
         codeMinutes={CODE_TTL_MINUTES}
         guestBlockedByPrivate={over.guestBlockedByPrivate ?? false}
       />
@@ -109,6 +111,18 @@ describe("a reader who is signed in and still refused", () => {
     expect(html).toContain("/alex/me");
     expect(html).toContain("/alex");
   });
+
+  /** B601. The sentence told them to go and find the owner; this is the
+   * something to press. */
+  test("can ask to be let in from the page they are standing on", () => {
+    expect(html).toContain("ask-name");
+  });
+
+  /** A capability that is off is absent rather than broken: without contacts
+   * there is no queue for the request to land in, so there is no button. */
+  test("is not offered the button when this journal keeps no contacts", () => {
+    expect(render({ signedInAs: "oma@example.test", canAsk: false })).not.toContain("ask-name");
+  });
 });
 
 /**
@@ -133,6 +147,15 @@ describe("an approved journal guest refused a private trip", () => {
     expect(html).toMatch(/travell/i);
     expect(html).not.toMatch(/ask whoever writes this journal to let you in/i);
     expect(html).not.toMatch(/ask.*let you in/i);
+  });
+
+  /** B601, and the reason the button is in the sibling state and not this
+   * one: `gate.privateBody` says in words that there is nothing to ask for,
+   * and a button beside that sentence would be the page contradicting
+   * itself. They asked once and were let in — into the journal, which is not
+   * this trip and never becomes it. */
+  test("is offered no way to ask again", () => {
+    expect(html).not.toContain("ask-name");
   });
 
   /** Told apart from the ordinary refusal, which names the address instead. */

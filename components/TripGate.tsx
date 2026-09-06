@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import AskToBeLetIn from "@/components/AskToBeLetIn";
 import GuestSignIn from "@/components/GuestSignIn";
 import BackToJournal from "@/components/BackToJournal";
 import { useI18n } from "@/components/LocaleProvider";
@@ -44,7 +45,12 @@ import { useI18n } from "@/components/LocaleProvider";
  * - **signed in, still refused, for any other reason** — anybody who signed in
  *   with the wrong address, or a stranger who is signed in but not a guest of
  *   this journal at all. Showing them the form again would have them sign in
- *   twice and conclude the site is broken.
+ *   twice and conclude the site is broken. Since B601 this is also the one
+ *   state that can *ask*: the sentence told them to go and find the owner, and
+ *   there was nothing on the page to press. The state above deliberately still
+ *   has nothing — a guest of the journal meeting a `private` trip has already
+ *   asked and already been let in, and no further request changes a trip that
+ *   is closed to everyone but its travellers.
  * - **sign-in switched off for this journal** — no form to show, so it says
  *   what to do instead rather than offering a door that leads nowhere.
  */
@@ -53,6 +59,7 @@ export default function TripGate({
   journalTitle,
   signedInAs,
   canSignIn,
+  canAsk,
   codeMinutes,
   guestBlockedByPrivate,
 }: {
@@ -62,6 +69,13 @@ export default function TripGate({
   signedInAs: string | null;
   /** Whether codes can be issued at all — `features.auth` for this journal. */
   canSignIn: boolean;
+  /**
+   * Whether asking is possible at all — `features.contacts` for this journal,
+   * because the request lands in the contacts queue and there is no queue
+   * without it. A capability that is off must be *absent* rather than broken,
+   * so the button is not rendered rather than rendered and refused.
+   */
+  canAsk: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
   codeMinutes: string;
   /**
@@ -128,6 +142,10 @@ export default function TripGate({
           >
             {t("gate.refusedSeeAccess")}
           </Link>
+          {/* Not for the reader above: `gate.privateBody` says in words that
+              there is nothing to ask for, and a button beside it would be the
+              page contradicting itself. B601. */}
+          {canAsk && !refusedForPrivacy ? <AskToBeLetIn username={username} /> : null}
         </>
       ) : canSignIn ? (
         <>

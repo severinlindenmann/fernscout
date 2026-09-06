@@ -167,6 +167,10 @@ function viaLabel(
   // B37 removed the open guestbook. Rows written before it still say this, and
   // will forever.
   if (createdVia === "open") return t("contact.adminViaOpen");
+  // B601 — they were already signed in, met a trip they may not read, and
+  // pressed the button on the gate. Not an invite this owner ever issued,
+  // which is exactly what the row has to say.
+  if (createdVia === "asked") return t("contact.adminViaAsked");
   if (!createdVia.startsWith("invite:")) return createdVia;
 
   const invite = invites.find((candidate) => candidate.id === createdVia.slice("invite:".length));

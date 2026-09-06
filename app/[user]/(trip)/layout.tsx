@@ -32,6 +32,7 @@ export default async function TripPagesLayout({
         journalTitle={getUser(username)?.title ?? username}
         signedInAs={await signedInAs(username)}
         canSignIn={isEnabled("auth", username)}
+        canAsk={isEnabled("contacts", username)}
         codeMinutes={CODE_TTL_MINUTES}
         guestBlockedByPrivate={await guestBlockedByPrivateTrip(current)}
       />
