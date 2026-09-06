@@ -141,6 +141,7 @@ const GROUPS: { status: TripStatus; key: TranslationKey }[] = [
 export default function TripsIndexContent({
   trips,
   locked = [],
+  framePoints = [],
   routes,
   visits = [],
   userPath = "",
@@ -153,6 +154,9 @@ export default function TripsIndexContent({
   trips: TripCardData[];
   /** Closed trips advertised as locked cards — see `LockedTripData`. */
   locked?: LockedTripData[];
+  /** Points the lifetime map's frame must contain but nothing draws — the
+   * outlines of a teasered trip's countries. See `LifetimeMap`. B600. */
+  framePoints?: { lat: number; lng: number }[];
   routes: RouteData[];
   /** Countries visited and by which trips — see LifetimeMap. Empty for a
    * journal whose days carry no `country:`, which falls back to pins. */
@@ -192,7 +196,13 @@ export default function TripsIndexContent({
   const map =
     mapRoutes.length > 0 || visits.length > 0 ? (
       <div className="mt-7">
-        <LifetimeMap routes={mapRoutes} visits={visits} userPath={userPath} basemap={basemap} />
+        <LifetimeMap
+          routes={mapRoutes}
+          visits={visits}
+          framePoints={framePoints}
+          userPath={userPath}
+          basemap={basemap}
+        />
       </div>
     ) : null;
 

@@ -379,6 +379,9 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
     <TripsIndexContent
       trips={cards}
       locked={lockedCards}
+      // Frame only — a teasered trip's countries have to be inside the map or
+      // the fill is drawn off it. Country outlines, never the trip's stops.
+      framePoints={lockedFramePoints}
       routes={routes}
       visits={visits}
       userPath={`/${user}`}
