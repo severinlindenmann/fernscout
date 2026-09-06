@@ -1,6 +1,6 @@
 ---
 id: B569
-title: A book can only be made of the trip marked current, not of a finished one
+title: A trip's photobook is only reachable from its gallery
 type: FEATURE
 priority: high
 complexity: medium
@@ -65,3 +65,51 @@ page is a more natural door than a composer that guesses.
 - A book can be made of a finished trip.
 - A trip the reader may not read cannot be opened in the composer, by any route.
 - Switching trips and returning to the composer builds the trip that was chosen.
+
+
+## Correction, 2026-09-06 — the premise above is wrong
+
+**This ticket was filed on a false reading and the limitation it describes does
+not exist.** Recorded rather than deleted, because the mistake is instructive.
+
+`app/[user]/trips/[trip]/photobook/page.tsx` exists and takes any trip by id,
+gated by `mayReadTrip`. Checked against a running instance, signed in as the
+owner:
+
+```
+parks-2025   photobook=200      alps-2024  photobook=200
+asia-2023    photobook=200      usa-2026   photobook=200
+japan-2027   photobook=200
+```
+
+Every past trip already makes a book. What was read was
+`app/[user]/(trip)/photobook/page.tsx` — the *current-trip* convenience route
+in the `(trip)` group — and the absence of a trip parameter there was reported
+as an absence everywhere. One file was mistaken for the whole surface. The
+lesson is the ordinary one: a route group is not the only route, and `find
+app -name page.tsx` costs nothing.
+
+## What is actually true, and is worth a smaller ticket
+
+The composer is reachable but not advertised. The only door is the **gallery**:
+`app/[user]/trips/[trip]/gallery/page.tsx` resolves `photobookEntryFor(trip)`
+and hands it to `GalleryPageContent`, which renders the button for an owner. So
+the path is trips → a trip → its gallery → *Generate photobook*.
+
+A trip's own page says nothing about it, and neither does the trips index. For
+a feature whose entire premise is "your journey is finished, now make the
+book", the finished-trip page is the obvious place to offer it and is the one
+place that does not.
+
+## Work
+
+Offer it where somebody is already looking at a finished trip: the trip's own
+page, and possibly the trips index. Same gate — `photobookEntryFor` decides, so
+it appears only for an owner on a journal with the capability on.
+
+**Not doing:** a new route. One exists and works.
+
+## Acceptance
+
+- A finished trip's own page offers to make a book of it, for an owner.
+- Nobody who cannot read the trip is offered it.
