@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import ContactsAdmin, { type AdminContact } from "@/components/ContactsAdmin";
 import NoticeShell from "@/components/NoticeShell";
 import PageHeader from "@/components/PageHeader";
+import { isOpenToApprovedGuest } from "@/lib/access";
 import { isEnabled } from "@/lib/capabilities";
 import { listContacts, manageTokenFor, normaliseEmail } from "@/lib/contacts";
 import { deviceCountByContact } from "@/lib/push";
@@ -152,11 +153,15 @@ export default async function ContactsAdminPage({
         // panel needs the list to render its own form, and a second answer
         // arriving later is a select that changes under the owner's cursor.
         trips={trips.map((trip) => ({ id: trip.id, title: trip.title }))}
-        // B300. Approving somebody opens every `guest` trip in the journal —
-        // and nothing else. If none exists, that approval opens nothing at
-        // all, and the owner needs to be told before they act on it rather
-        // than discover it from a family member's dead-end.
-        hasGuestTrip={trips.some((trip) => trip.visibility === "guest")}
+        // B300, corrected by B638. Approving somebody opens every `guest`
+        // trip in the journal — but a `public` trip needs no approval at all
+        // and is already readable by anyone, guest or not. The question this
+        // answers is "would an approved guest find anything to read", which
+        // both kinds satisfy and only `private` fails; `listed` is excluded
+        // on purpose, since it only narrows advertising (the sitemap, the
+        // feed, the switcher) and never readability — an unlisted public
+        // trip is still open to a guest who has its URL.
+        hasGuestTrip={trips.some(isOpenToApprovedGuest)}
         // B319: the notification mail's own request, so the page can put it
         // in front of the owner rather than leave them to find it in a list.
         highlightId={typeof highlight === "string" ? highlight : undefined}

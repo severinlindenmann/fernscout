@@ -1159,11 +1159,12 @@ export default function ContactsAdmin({
    * no trip yet can issue a reading link and nothing else. */
   trips?: { id: string; title: string }[];
   /**
-   * Whether any trip in the journal is `visibility: guest` — the only kind an
-   * approval actually opens (B300). A journal whose only trips are `private`
-   * or `public` can still approve somebody; the approval just admits them to
-   * nothing, which is worth saying before the owner acts on it rather than
-   * after.
+   * Whether an approved guest could read any trip in the journal at all —
+   * `visibility: guest` (what an approval itself opens, B300) or
+   * `visibility: public` (already open to everyone, approval or not). Only a
+   * journal whose every trip is `private` leaves an approval opening nothing,
+   * which is worth saying before the owner acts on it rather than after
+   * (B638: a fully public journal was wrongly told it had nothing to open).
    */
   hasGuestTrip: boolean;
   /** The languages this journal offers, from its config. */

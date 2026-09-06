@@ -73,6 +73,19 @@ export function isOpenToLink(trip: Trip): boolean {
   return trip.visibility === "public";
 }
 
+/**
+ * Whether an approved guest of the journal would find this trip readable —
+ * `guest`, which an approval opens directly, or `public`, already open to
+ * everyone whether or not anybody is approved. Only `private` is closed to
+ * them. `listed` is deliberately not part of this: it only narrows
+ * advertising (the sitemap, the feed, the switcher), never readability — a
+ * `public, listed: false` trip is still open to a guest who has its URL
+ * (B638).
+ */
+export function isOpenToApprovedGuest(trip: Trip): boolean {
+  return isOpenToLink(trip) || trip.visibility === "guest";
+}
+
 /** Whether costs may be rendered for this viewer. */
 export function maySeeCosts(trip: Trip, isGuest: boolean): boolean {
   return trip.costsVisibility === "public" || isGuest;
