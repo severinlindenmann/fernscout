@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (126)
+## backlog (124)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (40)
+### issue (39)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -105,7 +105,6 @@ Do not edit them by hand; run the script.
 | [B508](backlog/issue/B508-mail-sent-from-a-dev-server.md) | Mail sent from a dev server links to the production site | ISSUE | low | low |
 | [B538](backlog/issue/B538-a-day-the-archive-has-no.md) | A day the archive has no answer for re-fetches on every PATCH | ISSUE | low | low |
 | [B554](backlog/issue/B554-the-desktop-winding-path-sidebar-shows.md) | The desktop winding-path sidebar shows a day's cost converted only, where the story feed now shows what was paid | ISSUE | low | low |
-| [B568](backlog/issue/B568-a-refusal-echoes-back-a-value.md) | A refusal echoes back a value of any size | ISSUE | low | low |
 
 ### big-feature (14)
 
@@ -188,13 +187,12 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (9)
+### docs-and-skills (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B155](backlog/docs-and-skills/B155-nothing-in-the-repo-tells-a.md) | The README offers hosting on fernscout.ch and never says what it does not promise | DOCS | medium | low |
 | [B372](backlog/docs-and-skills/B372-a-private-trip-s-photograph-is.md) | A private trip's photograph is handed to Meta, and nothing a reader or owner sees says so | DOCS | medium | low |
-| [B567](backlog/docs-and-skills/B567-an-agent-arriving-with-a-token.md) | An agent arriving with a token has no advertised first call | DOCS | medium | low |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 | [B289](backlog/docs-and-skills/B289-nothing-records-that-a-hungarian-string.md) | Nothing records that a Hungarian string cannot take a case suffix on an interpolated name | DOCS | low | low |
 | [B404](backlog/docs-and-skills/B404-a-journal-s-own-documentation-txt.md) | A journal's own documentation.txt does not say a private trip stays shut to approved guests | DOCS | low | low |
@@ -221,9 +219,12 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (0)
+## in-development (2)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B567](in-development/B567-an-agent-arriving-with-a-token.md) | An agent arriving with a token has no advertised first call | DOCS | medium | low | `73b1a7f5` |
+| [B568](in-development/B568-a-refusal-echoes-back-a-value.md) | A refusal echoes back a value of any size | ISSUE | low | low | `73b1a7f5` |
 
 ## testing (246)
 
