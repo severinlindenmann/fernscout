@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: photobook, composer, ux
 found: "2026-09-06T10:56:06Z"
+merged: "2026-09-06T11:40:39Z"
 ---
 
 # B562 — A page in the preview says 9 · photos · full-bleed instead of where it came from

@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (123)
+## backlog (121)
 
 ### security (6)
 
@@ -124,12 +124,11 @@ Do not edit them by hand; run the script.
 | [B566](backlog/big-feature/B566-the-owner-cannot-tell-whether-anyone.md) | the owner cannot tell whether anyone is reading the journal | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
-### small-feature (16)
+### small-feature (14)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B435](backlog/small-feature/B435-no-print-provider-can-actually-post.md) | No print provider can actually post a card — print.one is unevaluated and unwired | FEATURE | high | medium |
-| [B561](backlog/small-feature/B561-there-is-no-way-to-read.md) | There is no way to read the finished book before paying, and the preview is small and misaligned | FEATURE | high | medium |
 | [B569](backlog/small-feature/B569-a-book-can-only-be-made.md) | A book can only be made of the trip marked current, not of a finished one | FEATURE | high | medium |
 | [B10](backlog/small-feature/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
@@ -137,7 +136,6 @@ Do not edit them by hand; run the script.
 | [B42](backlog/small-feature/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B436](backlog/small-feature/B436-nothing-ever-suggests-sending-postcards-so.md) | Nothing ever suggests sending postcards, so nobody discovers the feature | FEATURE | medium | low |
 | [B502](backlog/small-feature/B502-a-photograph-is-given-a-page.md) | A photograph is given a page it has not the pixels to fill | FEATURE | medium | medium |
-| [B562](backlog/small-feature/B562-a-page-in-the-preview-says.md) | A page in the preview says 9 · photos · full-bleed instead of where it came from | FEATURE | medium | low |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
 | [B07](backlog/small-feature/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium |
@@ -222,7 +220,7 @@ _Nothing here._
 
 _Nothing here._
 
-## testing (250)
+## testing (252)
 
 ### security (2)
 
@@ -383,7 +381,7 @@ _Nothing here._
 | [B496](testing/big-feature/B496-the-printed-photobook-reads-as-a.md) | The printed photobook reads as a contact sheet, not a book | FEATURE | medium | high | — |
 | [B497](testing/big-feature/B497-the-photobook-draws-one-hardcoded-couple.md) | The photobook draws one hardcoded couple whoever travelled | FEATURE | medium | high | — |
 
-### small-feature (56)
+### small-feature (58)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -401,6 +399,7 @@ _Nothing here._
 | [B549](testing/small-feature/B549-warnings-name-codes-and-source-symbols.md) | Warnings name codes and source symbols instead of saying what it means | FEATURE | high | medium | — |
 | [B551](testing/small-feature/B551-ordering-states-a-price-in-credits.md) | Ordering states a price in credits and leaves the rest to be inferred | FEATURE | high | medium | — |
 | [B560](testing/small-feature/B560-a-day-whose-costs-nobody-remembers.md) | A day whose costs nobody remembers has no honest answer | FEATURE | high | medium | — |
+| [B561](testing/small-feature/B561-there-is-no-way-to-read.md) | There is no way to read the finished book before paying, and the preview is small and misaligned | FEATURE | high | medium | — |
 | [B564](testing/small-feature/B564-a-day-cannot-be-left-out.md) | A day cannot be left out of the book | FEATURE | high | medium | — |
 | [B273](testing/small-feature/B273-a-reader-cannot-leave-a-postal.md) | A reader cannot leave a postal address or phone number, so a postcard has nowhere to go | FEATURE | medium | medium | — |
 | [B324](testing/small-feature/B324-an-owner-in-the-browser-cannot.md) | An owner in the browser cannot send an invitation by mail, only an agent can | FEATURE | medium | low | — |
@@ -436,6 +435,7 @@ _Nothing here._
 | [B544](testing/small-feature/B544-a-day-shows-what-it-cost.md) | A day shows what it cost in the reader's currency and never in the one it was paid in | FEATURE | medium | low | — |
 | [B557](testing/small-feature/B557-costs-is-the-only-analysis-a.md) | Costs is the only analysis a trip can show, and the nav calls it Kosten | FEATURE | medium | medium | — |
 | [B558](testing/small-feature/B558-a-publish-that-told-nobody-does.md) | A publish that told nobody does not say so — the response should prompt the ask about mail and WhatsApp | FEATURE | medium | low | — |
+| [B562](testing/small-feature/B562-a-page-in-the-preview-says.md) | A page in the preview says 9 · photos · full-bleed instead of where it came from | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B11](testing/small-feature/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium | — |

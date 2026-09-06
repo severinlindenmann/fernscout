@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook, composer, ux
 found: "2026-09-06T10:56:06Z"
+merged: "2026-09-06T11:40:38Z"
 ---
 
 # B561 — There is no way to read the finished book before paying, and the preview is small and misaligned
