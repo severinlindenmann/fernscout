@@ -417,3 +417,44 @@ describe("every error code a route answers with is published", () => {
     expect(sorted(schema?.properties?.error?.enum ?? [])).toEqual(sorted(Object.keys(ERROR_CODES)));
   });
 });
+
+/**
+ * Every field of the three calls that build a journal says what it is.
+ *
+ * The guide renders these descriptions as the field table an agent checks its
+ * body against, and a field with none renders as an em dash — which is worse
+ * than absent, because it looks like an answer. B540: a weak model sent
+ * `prose` and `slug` and found the real names by being refused twice, so the
+ * table has to be worth reading the first time.
+ */
+describe("the fields of the calls that build a journal", () => {
+  const schemasOf = (): [string, Record<string, { description?: string }>][] => {
+    const doc = document as unknown as {
+      paths: Record<string, Record<string, { requestBody?: { content?: Record<string, { schema?: { $ref?: string; properties?: Record<string, { description?: string }> } }> } }>>;
+      components: { schemas: Record<string, { properties?: Record<string, { description?: string }> }> };
+    };
+    const body = (path: string, verb: string) => {
+      const schema = doc.paths[path]?.[verb]?.requestBody?.content?.["application/json"]?.schema;
+      const resolved = schema?.$ref ? doc.components.schemas[schema.$ref.split("/").pop() as string] : schema;
+      return (resolved?.properties ?? {}) as Record<string, { description?: string }>;
+    };
+    return [
+      ["POST /api/v1/journals", body("/api/v1/journals", "post")],
+      ["POST .../trips", body("/api/v1/{user}/trips", "post")],
+      ["POST .../days", body("/api/v1/{user}/trips/{trip}/days", "post")],
+    ];
+  };
+
+  test("each says what it is, so the guide's table is worth reading", () => {
+    const silent: string[] = [];
+    for (const [where, properties] of schemasOf()) {
+      for (const [name, field] of Object.entries(properties)) {
+        if (!field.description?.trim()) silent.push(`${where} ${name}`);
+      }
+    }
+    expect(
+      silent,
+      `these render as an em dash in /agent.md's field table — give each a sentence: ${silent.join(", ")}`,
+    ).toEqual([]);
+  });
+});

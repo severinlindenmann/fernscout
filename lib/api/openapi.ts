@@ -279,14 +279,19 @@ export function openApiDocument() {
             "and content is optional — and an omitted field is better than an invented one. " +
             "There is no `status`: what this writes is always a draft.",
           properties: {
-            title: { type: "string" },
-            date: { type: "string", format: "date", description: "2026-08-26" },
+            title: {
+              type: "string",
+              description:
+                "What the day is called. One line, and it becomes the slug — no two days " +
+                "in a trip may share one.",
+            },
+            date: { type: "string", format: "date", description: "2026-08-26. A real calendar date." },
             time: {
               type: "string",
               pattern: "^\\d{2}:\\d{2}$",
               description: "24-hour, local to where the day happened. Orders several days that share a date.",
             },
-            location: { type: "string" },
+            location: { type: "string", description: "Where this was, as a person would say it — a town, a place." },
             country: { type: "string", description: "The country's name, not its code." },
             countryCode: {
               type: "string",
@@ -295,8 +300,14 @@ export function openApiDocument() {
                 "ISO 3166-1 alpha-2 — PT, CH, VN. It draws the flag beside the day, and it is " +
                 "the code where `country` is the name; sending one without the other is fine.",
             },
-            lat: { type: "number" },
-            lng: { type: "number" },
+            lat: {
+              type: "number",
+              description:
+                "Decimal degrees, -90 to 90, as a number and never a string. A pair or " +
+                "nothing: half a coordinate is not a place and is refused. This is what puts " +
+                "the day on the map.",
+            },
+            lng: { type: "number", description: "Decimal degrees, -180 to 180. Must arrive with lat." },
             content: { type: "string", description: "The prose, as markdown." },
             tags: {
               type: "array",
@@ -321,8 +332,8 @@ export function openApiDocument() {
                 "How the day was travelled — it draws the leg from the previous day. " +
                 "Anything not on this list is refused rather than dropped.",
             },
-            transportFrom: { type: "string" },
-            transportTo: { type: "string" },
+            transportFrom: { type: "string", description: "Where the leg started." },
+            transportTo: { type: "string", description: "Where it ended." },
             travelScene: {
               type: "string",
               enum: [...TRAVEL_SCENE_VARIANTS],
@@ -1002,10 +1013,13 @@ export function openApiDocument() {
                   required: ["id", "title", "start", "end"],
                   properties: {
                     id: { type: "string", description: "URL segment: lowercase, digits, dashes." },
-                    title: { type: "string" },
+                    title: {
+                      type: "string",
+                      description: "What the trip is called. One line.",
+                    },
                     start: { type: "string", description: "2027-04-01. Required — a trip without dates is never read." },
                     end: { type: "string", description: "2027-05-15. Required." },
-                    tagline: { type: "string" },
+                    tagline: { type: "string", description: "One line under the trip's title." },
                     status: {
                       type: "string",
                       enum: [...STATUSES],
@@ -1014,7 +1028,11 @@ export function openApiDocument() {
                         "from `start` when the trip is read. Set `current` for the trip " +
                         "served at the bare /{user} URL.",
                     },
-                    accent: { type: "string", enum: [...ACCENTS] },
+                    accent: {
+                      type: "string",
+                      enum: [...ACCENTS],
+                      description: "The trip's colour, through its pages and its map.",
+                    },
                     visibility: {
                       type: "string",
                       // Most open first, which is the order a person decides
@@ -1079,7 +1097,12 @@ export function openApiDocument() {
                         "works. Every day of it gets a banner saying so, and none of it " +
                         "reaches the feed, the search index or the sitemap.",
                     },
-                    intro: { type: "string" },
+                    intro: {
+                      type: "string",
+                      description:
+                        "The prose under the trip's own heading — what this journey is, in " +
+                        "the person's words rather than a summary you write.",
+                    },
                     people: {
                       type: "array",
                       maxItems: 10,
@@ -1211,9 +1234,17 @@ export function openApiDocument() {
                   ],
                   properties: {
                     username: { type: "string", description: "The journal's address. Permanent." },
-                    title: { type: "string" },
-                    tagline: { type: "string" },
-                    ownerName: { type: "string" },
+                    title: {
+                      type: "string",
+                      description:
+                        "What the journal is called — the heading on its front page. Ask; do " +
+                        "not invent one from the username.",
+                    },
+                    tagline: {
+                      type: "string",
+                      description: "One line under the title. Theirs, not a description you write.",
+                    },
+                    ownerName: { type: "string", description: "Whose journal it is, as they would write it. It is the byline." },
                     ownerNickname: {
                       type: "string",
                       description:
@@ -1242,7 +1273,7 @@ export function openApiDocument() {
                         `journal: ${VISIBILITY_MEANING} ` +
                         `${VISIBILITY_NOT_A_LOCK.replace(/`/g, "")} Ask which they want.`,
                     },
-                    startLocation: { type: "string" },
+                    startLocation: { type: "string", description: "Where the maps open before a trip has begun — the place they set off from." },
                     defaultLocale: {
                       type: "string",
                       enum: [...MAINTAINED_LOCALES],
@@ -1266,9 +1297,13 @@ export function openApiDocument() {
                         `the journal into, as distinct from defaultLocale, the owner's own. ` +
                         `Must include defaultLocale. Each entry must be one of ${LOCALE_LIST}.`,
                     },
-                    baseCurrency: { type: "string" },
-                    displayCurrencies: { type: "array", items: { type: "string" } },
-                    units: { type: "string", enum: ["metric", "imperial"] },
+                    baseCurrency: { type: "string", description: "ISO-4217. What totals are converted into for display; what was actually paid is never converted on the way in." },
+                    displayCurrencies: {
+                      type: "array",
+                      items: { type: "string" },
+                      description: "Shown beside the base currency, so a reader sees both.",
+                    },
+                    units: { type: "string", enum: ["metric", "imperial"], description: "metric or imperial — distances and temperatures." },
                   },
                 },
               },
