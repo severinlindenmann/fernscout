@@ -64,7 +64,7 @@ export default async function GalleryPage({ params }: PageProps<"/[user]/gallery
   const photobook = await photobookEntryFor(trip);
 
   return (
-    <TripProvider trip={trip} isCurrent canPublish={canPublish}>
+    <TripProvider trip={trip} isCurrent canPublish={canPublish} reader={read.reader}>
       <GalleryPageContent
         media={getAllMedia(tripId, read)}
         places={getPlaces(tripId, read)}

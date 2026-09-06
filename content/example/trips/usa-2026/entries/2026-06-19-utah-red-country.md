@@ -23,6 +23,7 @@ gallery:
     type: "image"
     width: 1067
     height: 1600
+    visibility: guest
   - src: "/media/usa-2026/utah-red-country/04.jpg"
     type: "image"
     width: 1400

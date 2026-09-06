@@ -515,6 +515,7 @@ export function getAllMedia(ref: string, options?: ReadOptions): MediaTile[] {
         country: entry.country,
         countryCode: entry.countryCode,
         date: entry.date,
+        visibility: item.visibility,
       })),
     )
     .reverse();

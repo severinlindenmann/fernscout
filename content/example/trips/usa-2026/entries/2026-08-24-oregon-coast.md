@@ -30,6 +30,7 @@ gallery:
     type: "image"
     width: 1400
     height: 1400
+    visibility: private
 tags: ["oregon", "coast", "pacific"]
 costs:
   - { label: "Fuel", amount: 88, category: "transport", currency: "USD" }
