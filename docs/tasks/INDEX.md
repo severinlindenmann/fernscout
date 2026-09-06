@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (120)
+## backlog (119)
 
 ### security (6)
 
@@ -123,7 +123,7 @@ Do not edit them by hand; run the script.
 | [B507](backlog/big-feature/B507-the-photobook-composer-is-a-desktop.md) | The photobook composer is a desktop sidebar on a phone-shaped job | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
-### small-feature (14)
+### small-feature (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -134,7 +134,6 @@ Do not edit them by hand; run the script.
 | [B42](backlog/small-feature/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium |
 | [B436](backlog/small-feature/B436-nothing-ever-suggests-sending-postcards-so.md) | Nothing ever suggests sending postcards, so nobody discovers the feature | FEATURE | medium | low |
 | [B502](backlog/small-feature/B502-a-photograph-is-given-a-page.md) | A photograph is given a page it has not the pixels to fill | FEATURE | medium | medium |
-| [B558](backlog/small-feature/B558-a-publish-that-told-nobody-does.md) | A publish that told nobody does not say so — the response should prompt the ask about mail and WhatsApp | FEATURE | medium | low |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
 | [B07](backlog/small-feature/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium |
@@ -223,7 +222,7 @@ _Nothing here._
 | [B540](in-development/B540-options-that-exist-are-missing-from.md) | Options that exist are missing from the schema the instance publishes | ISSUE | medium | low | `73b1a7f5` |
 | [B557](in-development/B557-costs-is-the-only-analysis-a.md) | Costs is the only analysis a trip can show, and the nav calls it Kosten | FEATURE | medium | medium | `e089c5a7` |
 
-## testing (239)
+## testing (240)
 
 ### security (2)
 
@@ -379,7 +378,7 @@ _Nothing here._
 | [B496](testing/big-feature/B496-the-printed-photobook-reads-as-a.md) | The printed photobook reads as a contact sheet, not a book | FEATURE | medium | high | — |
 | [B497](testing/big-feature/B497-the-photobook-draws-one-hardcoded-couple.md) | The photobook draws one hardcoded couple whoever travelled | FEATURE | medium | high | — |
 
-### small-feature (52)
+### small-feature (53)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -428,6 +427,7 @@ _Nothing here._
 | [B542](testing/small-feature/B542-a-cost-is-written-in-the.md) | A cost is written in the journal's base currency wherever the day does not say otherwise, whatever country it was spent in | FEATURE | medium | medium | — |
 | [B543](testing/small-feature/B543-a-trip-s-local-to-base.md) | A trip's local-to-base rates are typed by hand or the spend is not counted at all | FEATURE | medium | medium | — |
 | [B544](testing/small-feature/B544-a-day-shows-what-it-cost.md) | A day shows what it cost in the reader's currency and never in the one it was paid in | FEATURE | medium | low | — |
+| [B558](testing/small-feature/B558-a-publish-that-told-nobody-does.md) | A publish that told nobody does not say so — the response should prompt the ask about mail and WhatsApp | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B11](testing/small-feature/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium | — |

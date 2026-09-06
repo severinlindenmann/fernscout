@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: api, agent guide
 found: "2026-09-06T09:38:57Z"
+merged: "2026-09-06T09:43:09Z"
 ---
 
 # B558 — A publish that told nobody does not say so — the response should prompt the ask about mail and WhatsApp
