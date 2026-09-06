@@ -119,7 +119,12 @@ export function openApiDocument() {
             currency: {
               type: "string",
               description:
-                "ISO-4217, e.g. EUR. Omit it and the journal's own base currency is used.",
+                "ISO-4217, e.g. EUR. Omit it and the currency of the country this day was " +
+                "in is written in instead — the day's `country`, or what its `lat`/`lng` " +
+                "resolve to, falling back to the journal's own base currency when the day " +
+                "says neither. The resolved code is stamped onto the line as it is written " +
+                "and reported back as `costCurrency`, so what is on disk always says what " +
+                "was spent (B542).",
             },
             category: {
               type: "string",

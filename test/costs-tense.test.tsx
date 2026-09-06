@@ -144,6 +144,7 @@ const EMPTY: CostSummary = {
   byDay: [],
   items: [],
   unconverted: [],
+  ratesFrom: {},
 };
 
 /**

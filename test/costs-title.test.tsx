@@ -136,6 +136,7 @@ const summary: CostSummary = {
   byDay: [],
   items: [],
   unconverted: [],
+  ratesFrom: {},
 };
 
 const site = {

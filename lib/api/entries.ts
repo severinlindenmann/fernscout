@@ -3,6 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { isTestContent } from "../access";
+import { loadUserConfig } from "../config";
+import { CURRENCY_FOR_COUNTRY } from "../countryCurrency";
+import { normalizeCurrency } from "../currency";
 import {
   clearMatterCache,
   entrySlugFromFile,
@@ -11,15 +14,17 @@ import {
   getDays,
   isDraft,
 } from "../entries";
+import { countryCodeFor } from "../flags";
 // The same splicer ingest uses. One way of writing a gallery into an entry
 // that already exists, so the two doors cannot drift apart in how they format
 // it or in what they preserve of a file somebody has since edited.
 import { appendGallery } from "../ingest/entry";
+import { reverseGeocode } from "../ingest/geo";
 // One slugify for the whole codebase (B77). This module used to carry its
 // own, which stripped a German umlaut down to its bare vowel and disagreed
 // with the one ingest used — the same title, two permanent URLs.
 import { slugify } from "../slug.ts";
-import { getTrip, tripDir, tripRef } from "../trips";
+import { getTrip, parseTripRef, tripDir, tripRef } from "../trips";
 import type { Entry, GalleryItem, Trip } from "../types";
 import { TRACKS, parseWithout, withoutLine, type DayFacts, type Track } from "../tracks";
 import { tripGaps } from "./tripGaps";
@@ -135,7 +140,15 @@ export type DraftInput = {
 };
 
 export type WriteResult =
-  | { ok: true; slug: string; file: string; status: "draft" }
+  | {
+      ok: true;
+      slug: string;
+      file: string;
+      status: "draft";
+      /** The currency stamped onto any cost line that named none — B542.
+       * Absent when every line named its own, or there were none. */
+      costCurrency?: string;
+    }
   /**
    * `bug` marks the refusals that are this software's fault rather than the
    * caller's, so a door that speaks in status codes can say 500 instead of
@@ -162,6 +175,66 @@ const TIME_RE = /^\d{2}:\d{2}$/;
  * quoter both writers call.
  */
 const quote = quoteScalar;
+
+/** `loadUserConfig`'s `baseCurrency`, normalised — the same fallback
+ * `lib/entries.ts`'s read-time default uses, so the two never disagree about
+ * what "unknown" means. */
+function journalBaseCurrency(ref: string): string {
+  const owner = parseTripRef(ref)?.username;
+  const configured = owner ? loadUserConfig(owner).baseCurrency : "CHF";
+  return normalizeCurrency(configured, configured.toUpperCase());
+}
+
+/**
+ * The currency a cost line gets when it names none — B542.
+ *
+ * In order: the day's own `country`; failing that, the country the day's
+ * `lat`/`lng` reverse-geocodes to; failing both, `baseCurrency` — today's
+ * behaviour, unchanged. One currency per country, from `lib/countryCurrency.ts`
+ * — the eurozone collapses correctly, and a country running two in parallel
+ * gets one, which is tolerable only because this is a default a writer
+ * overrides per line and never a conversion.
+ */
+function resolveCostCurrency(
+  place: { country?: string; lat?: number; lng?: number },
+  baseCurrency: string,
+): string {
+  const byCountry = CURRENCY_FOR_COUNTRY[countryCodeFor(place.country ?? "") ?? ""];
+  if (byCountry) return byCountry;
+  // `Number.isFinite`, not `typeof`: an edit reads `lat` off a file that may
+  // not carry one, and `Number(undefined)` is a NaN that is typed `number`.
+  if (Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
+    const nearest = reverseGeocode(place.lat as number, place.lng as number);
+    const byGeo = nearest && CURRENCY_FOR_COUNTRY[nearest.countryCode];
+    if (byGeo) return byGeo;
+  }
+  return baseCurrency;
+}
+
+/**
+ * Stamps `resolveCostCurrency` onto every cost line that arrived without a
+ * `currency` of its own — write time only; a line that named one is
+ * untouched, and `lib/costFormat.ts`'s read-time default is unaffected, so a
+ * day written before this landed keeps meaning exactly what it meant.
+ *
+ * Every line without one resolves to the same currency (a day has one place),
+ * so `applied` is a single code — undefined when nothing needed filling in,
+ * which is what tells a caller there is nothing to report.
+ */
+function stampCostCurrencies(
+  costs: CostInput[] | undefined,
+  place: { country?: string; lat?: number; lng?: number },
+  baseCurrency: string,
+): { costs: CostInput[] | undefined; applied?: string } {
+  if (!costs?.length) return { costs };
+  let applied: string | undefined;
+  const stamped = costs.map((cost) => {
+    if (cost.currency?.trim()) return cost;
+    applied ??= resolveCostCurrency(place, baseCurrency);
+    return { ...cost, currency: applied };
+  });
+  return { costs: stamped, applied };
+}
 
 /**
  * The `costs:` block, in the flow style the hand-written entries use.
@@ -396,6 +469,12 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
     };
   }
 
+  const { costs: stampedCosts, applied: costCurrency } = stampCostCurrencies(
+    input.costs === false ? undefined : input.costs,
+    input,
+    journalBaseCurrency(ref),
+  );
+
   const lines = [
     "---",
     `title: ${quote(input.title)}`,
@@ -421,7 +500,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
     // route, once the fetch comes back.
     ...(input.weatherData ? [weatherLine(input.weatherData)] : []),
     ...translationLines(input.translations),
-    ...costLines(input.costs === false ? undefined : input.costs),
+    ...costLines(stampedCosts),
     // What this day says it deliberately does not have. B531 — the line that
     // makes "nothing was spent" different from "nobody asked".
     ...withoutLine(declinedIn(input)),
@@ -478,7 +557,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
     };
   }
 
-  return { ok: true, slug, file, status: "draft" };
+  return { ok: true, slug, file, status: "draft", ...(costCurrency ? { costCurrency } : {}) };
 }
 
 /**
@@ -861,7 +940,7 @@ export function editEntry(
   ref: string,
   slug: string,
   input: EditInput,
-): { ok: true; slug: string; status: "draft" | "published" } | { ok: false; error: string; bug?: true } {
+): { ok: true; slug: string; status: "draft" | "published"; costCurrency?: string } | { ok: false; error: string; bug?: true } {
   const problem = validateEditPresence(input);
   if (problem) return { ok: false, error: problem };
 
@@ -878,6 +957,25 @@ export function editEntry(
   const file = path.join(dir, match);
   const raw = fs.readFileSync(file, "utf8");
   const wasDraft = isDraft(matter(raw).data);
+
+  /**
+   * The same stamp `createDraft` applies, on a day that already exists — a
+   * `PATCH` naming `costs` needs the day's place, and this edit may not be
+   * the one that named it: `country`/`lat`/`lng` fall back to what the file
+   * already carries when the edit itself is silent about them.
+   */
+  let costCurrency: string | undefined;
+  if (Array.isArray(input.costs) && input.costs.length > 0) {
+    const existing = matter(raw).data;
+    const place = {
+      country: input.country !== undefined ? input.country : String(existing.country ?? ""),
+      lat: input.lat !== undefined ? input.lat : Number(existing.lat),
+      lng: input.lng !== undefined ? input.lng : Number(existing.lng),
+    };
+    const stamped = stampCostCurrencies(input.costs, place, journalBaseCurrency(ref));
+    input = { ...input, costs: stamped.costs };
+    costCurrency = stamped.applied;
+  }
 
   const spliced = spliceEntryFields(raw, input);
   if (spliced === null) {
@@ -911,7 +1009,12 @@ export function editEntry(
 
   fs.writeFileSync(file, spliced);
   forgetEntries(ref);
-  return { ok: true, slug, status: wasDraft ? "draft" : "published" };
+  return {
+    ok: true,
+    slug,
+    status: wasDraft ? "draft" : "published",
+    ...(costCurrency ? { costCurrency } : {}),
+  };
 }
 
 /**

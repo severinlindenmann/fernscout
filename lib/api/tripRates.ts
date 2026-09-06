@@ -2,8 +2,12 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import type { RateTable } from "../currency";
-import { getTrip, tripDir, type TripRef } from "../trips";
+import { isEnabled } from "../capabilities";
+import { conversionFor, getAllCosts } from "../costs";
+import { crossRate, type RateTable } from "../currency";
+import { ecbRatesOnOrBefore, fetchEcbHistory } from "../ecbHistory";
+import { getTrip, parseTripRef, tripDir, type TripRef } from "../trips";
+import { quoteScalar } from "../validate/frontmatter";
 import { ratesBlock } from "../tripWrite";
 
 /**
@@ -38,14 +42,17 @@ function frontmatterLineOf(lines: string[], closing: number, key: string): numbe
  * rather than shared, the same call that module's own comment makes: the two
  * touch different files, so importing across would only couple them for a
  * dozen lines.
+ *
+ * Takes `key` rather than being `rates:`'s alone since B543: `ratesFrom:` is
+ * spliced the same way, right beside it.
  */
-function spliceRates(markdown: string, newLines: string[]): string | null {
+function spliceKeyBlock(markdown: string, key: string, newLines: string[]): string | null {
   const lines = markdown.split("\n");
   if (lines[0]?.trim() !== "---") return null;
   const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
   if (closing < 0) return null;
 
-  const at = frontmatterLineOf(lines, closing, "rates");
+  const at = frontmatterLineOf(lines, closing, key);
   let end = at;
   if (at >= 0) {
     end = at + 1;
@@ -98,7 +105,7 @@ export function patchTripRates(ref: TripRef, raw: unknown): RatesWriteResult {
 
   const file = path.join(tripDir(ref), "trip.md");
   const text = fs.readFileSync(file, "utf8");
-  const spliced = spliceRates(text, block.lines);
+  const spliced = spliceKeyBlock(text, "rates", block.lines);
   if (spliced === null) {
     return {
       ok: false,
@@ -131,4 +138,168 @@ export function patchTripRates(ref: TripRef, raw: unknown): RatesWriteResult {
     };
   }
   return { ok: true, rates };
+}
+
+/**
+ * Merge citations into the trip's `ratesFrom:` block, right beside `rates:`.
+ *
+ * Not validated the way `patchTripRates` validates a caller's numbers — this
+ * is only ever called by `fillTripRates` below with a string it just built
+ * itself, never with anything a request handed in, so there is nothing here
+ * for a person to get wrong.
+ */
+function writeRatesFrom(ref: TripRef, citations: Record<string, string>): void {
+  if (Object.keys(citations).length === 0) return;
+  const merged = { ...(getTrip(ref)?.ratesFrom ?? {}), ...citations };
+  const lines = ["ratesFrom:", ...Object.entries(merged).map(([code, note]) => `  ${code}: ${quoteScalar(note)}`)];
+
+  const file = path.join(tripDir(ref), "trip.md");
+  const spliced = spliceKeyBlock(fs.readFileSync(file, "utf8"), "ratesFrom", lines);
+  // Same refusal `patchTripRates` makes for a hand-shaped file with no
+  // frontmatter block — but `rates:` itself will already have failed to
+  // write in that case, so this is only ever reached on a file that parses.
+  if (spliced === null) return;
+  fs.writeFileSync(file, spliced);
+}
+
+/**
+ * Six significant figures, which is four more than any of this matters to and
+ * still a number a person can read. A cross-division lands on the full float —
+ * `0.024556709684188438` — and `trip.md` is a file somebody opens.
+ *
+ * The original is kept whenever the shorter form would be written in exponent
+ * notation, because `ratesBlock` refuses that: a rate is either legible or it
+ * is exact, and never a `4.2e-7` nothing downstream will parse.
+ */
+function readable(rate: number): number {
+  const short = Number(rate.toPrecision(6));
+  return String(short).includes("e") ? rate : short;
+}
+
+/**
+ * Filling in a trip's missing local→base rates from the ECB's own 90-day
+ * history — B543, in the shape of `fillDayWeather` (lib/api/weather.ts):
+ * one function, two callers, so a rate that arrived one way is the same rate
+ * that would have arrived the other.
+ *
+ * **Nothing here throws.** A day is saved, and a trip's costs page renders,
+ * whether or not the archive answered for a given currency — a currency it
+ * did not answer for is "not yet", the same standing `getCostSummary`
+ * (lib/costs.ts) already gives an unrated currency, and the sweep comes back
+ * for it.
+ */
+export type RateFillOutcome =
+  | "filled"
+  | "would_fetch"
+  | "already_rated"
+  | "outside_window"
+  | "not_published"
+  | "no_answer";
+
+/**
+ * One outcome per currency the trip's costs actually use and `rates:` does
+ * not already cover. A currency the costs never mention is not in the
+ * result at all — there is nothing to say about it.
+ *
+ * The four refusals before any request, in order, mirror the weather
+ * ticket's own edges:
+ *
+ * - **the costs capability is off** — no request to any third party, on any
+ *   path; the trip's currencies are not even enumerated.
+ * - **the currency already has a rate** — hand-typed or filled, never
+ *   overwritten. `already_rated`.
+ * - **the date is outside the 90-day window** — older than the archive
+ *   reaches back. `outside_window`.
+ * - **the ECB does not publish that currency** — even on the day itself.
+ *   `not_published`.
+ */
+export async function fillTripRates(
+  ref: string,
+  options?: { signal?: AbortSignal; dryRun?: boolean },
+): Promise<Record<string, RateFillOutcome>> {
+  const username = parseTripRef(ref)?.username;
+  if (!username || !isEnabled("costs", username)) return {};
+
+  const trip = getTrip(ref);
+  if (!trip) return {};
+
+  const { base } = conversionFor(ref);
+
+  // The earliest date each currency the costs actually use appears on. A
+  // preparation cost carries no date of its own — it was paid before day one
+  // of anything — so it freezes at the trip's own start, the earliest date
+  // there is a fact about.
+  const firstSeen = new Map<string, string>();
+  for (const item of getAllCosts(ref, { includeDrafts: true })) {
+    const date = item.date ?? trip.start;
+    const current = firstSeen.get(item.currency);
+    if (!current || date < current) firstSeen.set(item.currency, date);
+  }
+
+  const outcomes: Record<string, RateFillOutcome> = {};
+  const needed = [...firstSeen.keys()].filter((code) => code !== base).sort();
+  for (const code of needed) {
+    if (trip.rates[code] !== undefined) {
+      outcomes[code] = "already_rated";
+      continue;
+    }
+    // The dry run stops exactly here — after every rule, before the only
+    // line that touches the network. See `fillDayWeather` for why that is
+    // what makes `--dry-run` an honest rehearsal rather than a second copy
+    // of these rules in the script.
+    outcomes[code] = "would_fetch";
+  }
+
+  if (options?.dryRun) return outcomes;
+  const stillNeeded = needed.filter((code) => outcomes[code] === "would_fetch");
+  if (stillNeeded.length === 0) return outcomes;
+
+  const history = await fetchEcbHistory({ signal: options?.signal });
+  if (!history) {
+    for (const code of stillNeeded) outcomes[code] = "no_answer";
+    return outcomes;
+  }
+  const oldest = history.reduce((min, d) => (d.date < min ? d.date : min), history[0].date);
+
+  const toWrite: Record<string, number> = {};
+  const citations: Record<string, string> = {};
+  for (const code of stillNeeded) {
+    const target = firstSeen.get(code)!;
+    if (target < oldest) {
+      outcomes[code] = "outside_window";
+      continue;
+    }
+    const onDay = ecbRatesOnOrBefore(history, target);
+    const rate = onDay ? crossRate(code, base, onDay.rates) : undefined;
+    if (!onDay || rate === undefined) {
+      outcomes[code] = "not_published";
+      continue;
+    }
+    toWrite[code] = readable(rate);
+    citations[code] = `${onDay.date} European Central Bank`;
+    outcomes[code] = "filled";
+  }
+
+  if (Object.keys(toWrite).length > 0) {
+    const result = patchTripRates(ref, toWrite);
+    if (result.ok) {
+      writeRatesFrom(ref, citations);
+    } else {
+      // ponytail: every number in `toWrite` already passed the same checks
+      // `ratesBlock` runs, so this is an unreached defensive branch rather
+      // than a real outcome the vocabulary needs its own name for.
+      for (const code of Object.keys(toWrite)) outcomes[code] = "not_published";
+    }
+  }
+
+  return outcomes;
+}
+
+/**
+ * What the two write routes call: the same fill, with the outcome dropped
+ * and every failure swallowed — see `fillDayWeatherQuietly` for why this is
+ * awaited rather than left floating.
+ */
+export function fillTripRatesQuietly(ref: string): Promise<unknown> {
+  return fillTripRates(ref).catch(() => undefined);
 }

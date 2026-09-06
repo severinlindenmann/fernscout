@@ -1,7 +1,7 @@
 import "server-only";
 import { basemapFor, basemapForRoute } from "./basemap";
 import { getAllEntries, getDays, getDefaultDay, getTripStats } from "./entries";
-import { costForDay, getCostSummary } from "./costs";
+import { costForDay, costLocalForDay, getCostSummary } from "./costs";
 import { getTrip } from "./trips";
 import type { Day, DaySummary, Trip } from "./types";
 import type { HeroStats } from "@/components/TripHero";
@@ -60,7 +60,11 @@ export function showsCountdown(trip: Pick<Trip, "ref" | "status">): boolean {
 }
 
 /** The navigation's view of one day. */
-function summarise(day: Day, cost: number): DaySummary {
+function summarise(
+  day: Day,
+  cost: number,
+  costLocal?: DaySummary["costLocal"],
+): DaySummary {
   const lead = day.lead;
   return {
     date: day.date,
@@ -74,6 +78,7 @@ function summarise(day: Day, cost: number): DaySummary {
     travelScene: lead.travelScene,
     updates: day.entries.length,
     cost,
+    costLocal,
   };
 }
 
@@ -156,7 +161,11 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
   const days = getDays(tripId, read);
   const costs = getCostSummary(tripId);
   const index = days.map((d) =>
-    summarise(d, showCosts ? costForDay(tripId, d.entries) : 0),
+    summarise(
+      d,
+      showCosts ? costForDay(tripId, d.entries) : 0,
+      showCosts ? costLocalForDay(tripId, d.entries) : undefined,
+    ),
   );
 
   const initialDate = getDefaultDay(tripId, read)?.date;

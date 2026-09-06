@@ -256,6 +256,12 @@ export type DaySummary = {
   updates: number;
   /** Spend that day in the base currency; 0 when nothing was logged. */
   cost: number;
+  /**
+   * What the day cost as actually paid, when every cost that day shares one
+   * non-base currency — see `costLocalForDay`. Absent for a mixed-currency
+   * day, a base-currency day, and a day with no spend at all.
+   */
+  costLocal?: { amount: number; currency: string };
 };
 
 /** One stop on the intended route, from a trip's plan.md or from a
@@ -371,6 +377,14 @@ export type Trip = {
    * is correct for a trip spent entirely in the base currency.
    */
   rates: RateTable;
+  /**
+   * Where a looked-up entry in `rates:` came from — `{ THB: "2026-08-24
+   * European Central Bank" }`, written by `fillTripRates` (B543) beside the
+   * rate itself. A currency never has an entry here without one in `rates:`
+   * too, and a hand-typed rate has none: this is a citation for a
+   * measurement, not a place to record a judgement call.
+   */
+  ratesFrom: Record<string, string>;
   title: string;
   tagline?: string;
   start: string; // ISO yyyy-mm-dd

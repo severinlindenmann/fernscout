@@ -6,6 +6,7 @@ import {
   normalizeCurrency,
   parseRateTable,
   rateToBase,
+  spendLine,
   toBase,
 } from "@/lib/currency";
 import { sumBase, unconvertedIn, convertCosts, parseCostItems } from "@/lib/costFormat";
@@ -337,5 +338,36 @@ describe("the summing helpers", () => {
 
   test("unconvertedIn groups the remainder by currency", () => {
     expect(unconvertedIn(items)).toEqual([{ currency: "THB", amount: 550, count: 2 }]);
+  });
+});
+
+describe("spendLine — the day badge", () => {
+  const local = { amount: 1275, currency: "THB" };
+
+  test("a reader in the base currency sees what was paid and the conversion", () => {
+    expect(spendLine(33, local, { currency: "CHF", base: "CHF", factor: 1 })).toBe(
+      "THB 1’275 ≈ CHF 33",
+    );
+  });
+
+  test("a reader who has switched currency gets one ≈, not two", () => {
+    // `formatMoney` writes its own for a converted figure; a second literal
+    // one between the two rendered `THB 1’275 ≈ ≈ EUR 35`.
+    expect(spendLine(33, local, { currency: "EUR", base: "CHF", factor: 1.07 })).toBe(
+      "THB 1’275 ≈ EUR 35",
+    );
+  });
+
+  test("a reader already in the currency it was paid in sees one figure", () => {
+    // The converted number would be the same money twice — once exactly, once
+    // through two rates, disagreeing in the last digit.
+    expect(spendLine(33, local, { currency: "THB", base: "CHF", factor: 38.5 })).toBe("THB 1’275");
+  });
+
+  test("a day with no single paid currency keeps the converted total alone", () => {
+    expect(spendLine(33, undefined, { currency: "CHF", base: "CHF", factor: 1 })).toBe("CHF 33");
+    expect(spendLine(33, undefined, { currency: "EUR", base: "CHF", factor: 1.07 })).toBe(
+      "≈ EUR 35",
+    );
   });
 });

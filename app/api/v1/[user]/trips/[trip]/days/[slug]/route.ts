@@ -1,6 +1,7 @@
 import { authenticate, errorResponse, mayWriteTrip, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { isTestContent } from "@/lib/access";
 import { EDITABLE_DAY_FIELDS, editEntry, type EditInput } from "@/lib/api/entries";
+import { fillTripRatesQuietly } from "@/lib/api/tripRates";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -197,6 +198,9 @@ export async function PATCH(
   // day that has just acquired `weather: true`, or a coordinate it did not
   // have, is a day that can now be looked up. It cannot fail this edit.
   await fillDayWeatherQuietly(ref, result.slug);
+  // B543, the same call: an edit may add a cost, or change one's currency,
+  // that the trip's `rates:` table does not cover yet.
+  await fillTripRatesQuietly(ref);
 
   // The half B263 and this ticket both turn on: what the agent reports back
   // has to be the day's actual state, not its own intention. So this says it
@@ -206,11 +210,15 @@ export async function PATCH(
     slug: result.slug,
     status: result.status,
     changed: keys,
+    ...(result.costCurrency ? { costCurrency: result.costCurrency } : {}),
     note:
-      result.status === "draft"
+      (result.status === "draft"
         ? `Still a draft — not on the site. This call cannot publish it; ` +
           `POST .../days/${result.slug}/publish when they say so.`
         : "Still published — anyone who already read it can now see this change. " +
-          "This call cannot take it off the site or move it back to draft.",
+          "This call cannot take it off the site or move it back to draft.") +
+      (result.costCurrency
+        ? ` A cost line named no currency, so it was written in ${result.costCurrency} — this day's own.`
+        : ""),
   });
 }

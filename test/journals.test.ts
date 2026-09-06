@@ -1180,7 +1180,13 @@ describe("the trip fields that had no writer", () => {
       // written into it is asked for.
       "tracks",
     ];
-    const decidedAgainst = { cover: "no media exists when a trip is created — B245" };
+    const decidedAgainst = {
+      cover: "no media exists when a trip is created — B245",
+      // `ratesFrom:` cites a lookup, and a trip has none of those yet at the
+      // moment it is created — only `fillTripRates` (B543) ever writes it,
+      // beside a `rates:` entry it filled itself.
+      ratesFrom: "no rate has been looked up yet — B543",
+    };
 
     const trip = createTrip("wanderer", {
       ...DATES,

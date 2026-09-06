@@ -80,6 +80,7 @@ advertising or profiling.
 | **Gelato ASA** (Norway) | Somebody ordered a printed photobook | The book's PDF and the delivery address |
 | **Proton AG** (Switzerland) | Sign-in codes, invitations, notifications | The recipient's address and the message |
 | **Open-Meteo** (Germany) | A journal asked what the weather was on a day it recorded | The coordinates and the date of that day — nothing about you |
+| **European Central Bank** (Germany) | A trip needed the exchange rate for a currency it spent in | Nothing at all — the request is for a published document and carries no question |
 
 That is the whole list. There is nobody else.
 
@@ -112,6 +113,33 @@ carry a temperature somebody wrote down where they were standing, rather than
 one this server looked up. Those name whoever took them and are credited to
 nobody else — there is no Open-Meteo link on such a day, because there is no
 Open-Meteo data on it.
+
+**Money is the same shape as the weather, and the last row receives even
+less.** A trip records what was spent in the currency it was spent in, and to
+show that in anybody else's currency it needs a rate. Those come from the
+European Central Bank's published euro reference rates: the daily table that
+converts a total into the currency you picked at the top of a costs page, and
+— for the rate a trip is permanently costed at — the ECB's 90-day history,
+read once for the day a currency first appears on that trip and then frozen
+into the trip's own file. **Both requests are made by this server, and both
+ask for a whole public document.** The ECB is not told which trip, which
+currency or which date is of interest, and your browser never talks to it at
+all.
+
+Exchange rates from the [European Central Bank](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html),
+whose reference rates may be reproduced with the source acknowledged, which is
+what this paragraph and the citation on the costs page are. **The change made
+is that the ECB quotes every currency against the euro and a journal does
+not** — so a rate here has been cross-divided into the journal's own base
+currency, and rounded to six figures. A costs page that used a looked-up rate
+names the ECB and the date it used, beneath the totals.
+
+**A rate somebody typed in themselves is none of the above** and carries no
+citation, because there is nothing to cite but the person who wrote it — the
+rate a card statement actually charged, say, which no reference rate knows.
+Where a currency has no rate at all, the spend is shown as it was paid and
+left out of the totals rather than converted at a number nobody can stand
+behind.
 
 The mail this site sends goes through **Proton Mail in Switzerland** —
 encrypted at rest and under Swiss privacy law, rather than through a provider

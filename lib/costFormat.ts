@@ -137,6 +137,14 @@ export type CostSummary = {
   items: CostItem[];
   /** Spend excluded from every total above for want of a rate. Usually empty. */
   unconverted: Unconverted[];
+  /**
+   * Where a looked-up `rates:` entry came from — `{ THB: "2026-08-24
+   * European Central Bank" }`. Empty on a trip with no rate filled this way,
+   * which is most of them: a rate typed by hand carries no citation, because
+   * there is nothing to cite but the person who wrote it. See
+   * `fillTripRates` (lib/api/tripRates.ts, B543).
+   */
+  ratesFrom: Record<string, string>;
   /** Absent when the trip declares no budget, or its currency has no rate. */
   budget?: BudgetStatus;
 };

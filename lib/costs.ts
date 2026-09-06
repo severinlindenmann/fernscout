@@ -335,10 +335,34 @@ export function getCostSummary(
     byDay,
     items,
     unconverted,
+    ratesFrom: trip?.ratesFrom ?? {},
   };
 }
 
 /** Total spend for one day — used for the badge in the story feed. */
 export function costForDay(tripId: string, entries: Entry[]): number {
   return sumBase(entries.flatMap((e) => costsForEntry(tripId, e)));
+}
+
+/**
+ * What a day cost in the currency it was actually paid in — B544.
+ *
+ * Only when every cost logged that day shares one currency, and it is not
+ * the trip's base: summing two currencies into one "local" figure would be
+ * exactly the fabricated total this whole feature exists to avoid, and a
+ * base-currency day already has nothing to add beside `costForDay`'s own
+ * number. `entry.costs` arrives already normalised to a real code — absent
+ * frontmatter currency becomes the base at parse time (`parseCostItems`) —
+ * so no further normalising happens here.
+ */
+export function costLocalForDay(
+  tripId: string,
+  entries: Entry[],
+): { amount: number; currency: string } | undefined {
+  const raw = entries.flatMap((e) => e.costs);
+  if (raw.length === 0) return undefined;
+  const { base } = conversionFor(tripId);
+  const currency = raw[0].currency;
+  if (currency === base || raw.some((c) => c.currency !== currency)) return undefined;
+  return { amount: raw.reduce((sum, c) => sum + c.amount, 0), currency };
 }
