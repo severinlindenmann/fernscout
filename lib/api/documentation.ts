@@ -19,6 +19,7 @@ import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
 import { isIndexable } from "../access";
 import { CODE_TTL_MINUTES } from "../auth";
+import { openApiDocument } from "./openapi";
 // The sentences these documents share with /openapi.json, kept in one place so
 // they cannot come to disagree. See the note at the top of that file.
 import {
@@ -510,6 +511,36 @@ export function userDocumentation(username: string): string | null {
  * an endpoint and forgetting the documentation is a visible omission in the
  * same file rather than a silent drift across the repository.
  */
+/**
+ * The day's fields, one line each, from the schema the API publishes.
+ *
+ * B540: a weak model given this guide sent `prose` and `slug`, because the
+ * field names live in brackets after an English label — `**What happened, in
+ * their words** (\`content\`)` — a third of the way down a long page. It found
+ * the right names by being refused, twice. The sentences are worth keeping;
+ * what was missing was somewhere to *look the names up*, which is a table, and
+ * generating it from `components.schemas.Draft` means it cannot drift from the
+ * thing that refuses.
+ */
+function dayFieldRows(): string {
+  const doc = openApiDocument() as unknown as {
+    components: {
+      schemas: {
+        Draft: { required?: string[]; properties?: Record<string, { description?: string; enum?: string[]; type?: string | string[] }> };
+      };
+    };
+  };
+  const draft = doc.components.schemas.Draft;
+  const required = new Set(draft.required ?? []);
+  return Object.entries(draft.properties ?? {})
+    .map(([name, field]) => {
+      const first = (field.description ?? "").split(/(?<=\.)\s/)[0].replace(/\n/g, " ").trim();
+      const said = field.enum ? `One of ${field.enum.join(", ")}. ${first}`.trim() : first;
+      return `| \`${name}\` | ${required.has(name) ? "**required**" : ""} | ${said || "—"} |`;
+    })
+    .join("\n");
+}
+
 export function agentGuide(): string {
   const site = serverSite();
   // The same list `/documentation.txt` renders as a numbered list, rendered
@@ -1178,6 +1209,23 @@ Authorization: Bearer fs_agent_…
 A trip that already exists takes the same block written into its \`trip.md\`;
 the journal's \`config.json\` takes it too, as the party for any trip that does
 not say for itself.
+
+**Every field a day takes, on one line each.** The sentences below say what to
+ask and why; this is the list to check your body against before you send it,
+and it is generated from the same schema \`/openapi.json\` publishes, so it
+cannot fall behind. A name that is not on this list is refused rather than
+dropped — the refusal will name the field you probably meant.
+
+| Field | | What it is |
+| --- | --- | --- |
+${dayFieldRows()}
+
+**Nothing is required beyond \`title\`, \`date\` and \`content\`** — but a trip keeps
+track of some things, and a day that says nothing about one of them is refused
+with \`422 incomplete_day\`. There are always two honest answers: send the value,
+or **decline it** — \`"costs": false\`, \`"coordinates": false\`, \`"photos": false\`,
+each meaning *there was none of this on this day*. Ask the person which. Never
+send a decline to make a refusal go away, and never invent a value.
 
 ${scriptIntro(dayQuestions().length)}
 
