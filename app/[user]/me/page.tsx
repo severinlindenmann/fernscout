@@ -116,11 +116,12 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       // read here without a trip to ask `mayMailTrip` about — see its doc
       // comment for why that makes this the journal-wide "up to N" rather
       // than one trip's exact count.
-      // The owner's address goes in: `recipientsFor` always sends them their
-      // own copy, so a count without them understates every mail send by one
-      // credit. `optedInCounts` handles the case where the owner is also a
-      // contact of their own journal.
-      const counts = optedInCounts(await listContacts(user), journal.owner.email);
+      // The owner's own address and number go in as *exclusions* — B614.
+      // `recipientsFor` always sends them their own copy and never charges
+      // for it, and a contact at the owner's own address (an owner who is
+      // also in their own guestbook) is that same free copy rather than a
+      // second, paid one.
+      const counts = optedInCounts(await listContacts(user), journal.owner);
       const transactions = (await listPayments(user)).map((tx) => ({
         id: tx.id,
         credits: tx.credits,

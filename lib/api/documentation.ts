@@ -1119,8 +1119,8 @@ Content-Type: application/json
 \`\`\`
 
 \`title\`, \`tagline\`, \`visibility\`, \`startLocation\`, \`units\`, \`locales\`,
-\`defaultLocale\`, \`displayCurrencies\` and \`manualRates\`. Send only what you are
-changing; \`""\` clears a tagline or a start location. Capabilities and these are
+\`defaultLocale\`, \`displayCurrencies\`, \`manualRates\` and \`ownerTel\`. Send only
+what you are changing; \`""\` clears a tagline, a start location or the number. Capabilities and these are
 **two calls** — a body naming both is refused rather than half-applied, because
 each call rewrites \`config.json\` whole and puts it back if it does not load.
 \`GET\` returns all of it under \`journal\`.
@@ -1132,6 +1132,15 @@ decides who can get a token for this journal, so a token cannot move it.
 reconvert the money, it would change what every amount already recorded means.
 **\`media\`** is the operator's — the server's own limits are already a ceiling
 over it. All three are an edit at the file, by whoever runs the server.
+
+One part of the \`owner\` block *is* yours to write, as the flat field
+\`ownerTel\`: the owner's own telephone number. It is where their own WhatsApp
+copy of a published day goes, and that copy costs no credits — as their own
+copy of the day's letter does not either. Without a number the owner is the
+one person this channel cannot reach, including for checking it works before a
+guest ever sees it. Include the country code — \`+41 76 561 31 50\` — because a
+national number means a different telephone in every country and is refused
+rather than guessed at. Do not invent one: ask for it, or leave it absent.
 
 A journal's \`visibility\` is only whether this instance *advertises* it — the
 landing page, \`/documentation.txt\`, the sitemap. A \`guest\` journal (\`private\`
@@ -1628,8 +1637,10 @@ count and a reason, not only in a server log a person never opens (B272).
 
 **Sending may cost credits, and an empty balance stops the publish.** Where
 this server charges for sends — B366 — one credit goes per email and one per
-WhatsApp message. Both requested channels are priced together, against one
-balance, **before** anything is published: a journal that cannot cover the
+WhatsApp message, counting everybody but the owner: their own copy of a day
+goes out on both channels and is free, so a journal with no guests yet can
+publish on an empty balance. Both requested channels are priced together,
+against one balance, **before** anything is published: a journal that cannot cover the
 whole send gets **402** with \`needed\` and \`balance\`, the day stays a draft,
 and nothing is sent. It is all-or-nothing, so half a mailing list is never the
 outcome.

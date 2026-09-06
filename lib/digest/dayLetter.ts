@@ -123,7 +123,29 @@ type DayLetterRecipient = {
   /** Null for the owner's own copy — there is nothing to unsubscribe from
    * one's own journal. */
   manageToken: string | null;
+  /**
+   * The owner's own copy, which is sent and not billed — B614.
+   *
+   * A credit is what it costs to reach *somebody else*. The letter to the
+   * author of the journal is the journal reporting what it just published,
+   * and metering that charged a person to read their own writing — on a
+   * journal with no guests it was the whole bill, which is what made it
+   * visible on `/{user}/me`.
+   *
+   * A flag on the recipient rather than a subtraction at the till, because
+   * this list is walked four times — quoted by `mailWouldCost`, charged,
+   * sent, refunded — and every one of those has to agree about which copies
+   * are free. `chargeable()` below is the single answer.
+   */
+  free: boolean;
 };
+
+/** What a send actually costs: one credit per recipient who is not the
+ * owner's own free copy. Used by the quote, the charge and the refund, so the
+ * three cannot drift. */
+function chargeable(recipients: { free: boolean }[]): number {
+  return recipients.filter((r) => !r.free).length;
+}
 
 async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRecipient[]> {
   const owner = trip.username;
@@ -137,7 +159,9 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
   const out: DayLetterRecipient[] = [];
   const seen = new Set<string>();
 
-  // The owner, always — it is their journal and their record that it went.
+  // The owner, always — it is their journal and their record that it went,
+  // and free since B614 for the same reason: a credit is what it costs to
+  // reach somebody else.
   if (user.owner.email) {
     seen.add(user.owner.email.trim().toLowerCase());
     out.push({
@@ -147,6 +171,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
       showCosts: true,
       reader: "person",
       manageToken: null,
+      free: true,
     });
   }
 
@@ -171,6 +196,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
       showCosts: mayMailCosts(trip, isTraveller, isGrantHolder),
       reader: isTraveller ? "person" : "guest",
       manageToken: manageTokenFor(owner, contact.id),
+      free: false,
     });
   }
 
@@ -411,8 +437,9 @@ export type DayLetterOutcome =
  * who opted in" beside it is precisely the duplication `mayMailTrip`'s doc
  * comment above is an essay about.
  *
- * One credit per recipient, so the count *is* the cost; if that ever stops
- * being true this is the one place to change.
+ * One credit per *paid* recipient — `chargeable`, not `length`, since B614
+ * made the owner's own copy free. If that ever stops being true, that
+ * function is the one place to change.
  *
  * Zero for a trip or journal that does not exist, and zero for content nobody
  * lived — which is a `test: true` trip **or** a `test: true` day inside an
@@ -439,7 +466,7 @@ export async function mailWouldCost(owner: string, ref: string, slug?: string): 
   } else if (trip.test === true) {
     return 0;
   }
-  return (await recipientsFor(trip, user)).length;
+  return chargeable(await recipientsFor(trip, user));
 }
 
 export async function sendDayLetter(
@@ -469,10 +496,10 @@ export async function sendDayLetter(
 
   const recipients = await recipientsFor(trip, user);
 
-  // One credit per recipient, charged for the whole list before the first
+  // One credit per paid recipient, charged for the whole list before the first
   // letter leaves — B366. All or nothing: an insufficient balance sends
   // nothing rather than reaching some of the list and not the rest.
-  const needed = recipients.length;
+  const needed = chargeable(recipients);
   const ledgerRef = `${ref}/${slug}`;
   if (!(await spend(owner, needed, "day_mail", ledgerRef))) {
     return { ok: false, reason: "no_credits", needed, balance: (await balanceOf(owner)) ?? 0 };
@@ -482,6 +509,9 @@ export async function sendDayLetter(
 
   const sent: { email: string }[] = [];
   const failed: { email: string; error: string }[] = [];
+  /** Failures among the copies that were *paid* for. The owner's own copy was
+   * free, so refunding it would not give a credit back — it would mint one. */
+  let owed = 0;
 
   for (const recipient of recipients) {
     try {
@@ -493,12 +523,13 @@ export async function sendDayLetter(
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       failed.push({ email: recipient.email, error: message });
+      if (!recipient.free) owed++;
     }
   }
 
   // Give back only for sends that did not happen — never a blanket reversal.
   // A letter that was delivered is spent whatever happens afterwards.
-  if (failed.length > 0) await refund(owner, failed.length, ledgerRef);
+  if (owed > 0) await refund(owner, owed, ledgerRef);
 
   return { ok: true, resend: options.resend === true, sent, failed };
 }

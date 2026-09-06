@@ -13,6 +13,7 @@ import {
 } from "./config";
 import { contentRoot } from "./contentRoot";
 import { normalizeCurrency, type RateTable } from "./currency";
+import { toE164 } from "./whatsapp/phone";
 import { issueStandingLink, signInUrl } from "./auth";
 import type { TranslationKey } from "./i18n";
 import { LOCALE_TAG_RE, translateIn } from "./locales";
@@ -764,6 +765,7 @@ export const JOURNAL_PROFILE_FIELDS = [
   "defaultLocale",
   "displayCurrencies",
   "manualRates",
+  "ownerTel",
 ] as const;
 
 export type JournalProfileField = (typeof JOURNAL_PROFILE_FIELDS)[number];
@@ -772,8 +774,11 @@ export type JournalProfileField = (typeof JOURNAL_PROFILE_FIELDS)[number];
  * top-level key a caller would send. */
 export const JOURNAL_FIELD_REFUSALS: Record<string, string> = {
   owner:
-    "owner.email is never writable here — it is the address that decides who can get a token " +
-    "for this journal, so a token cannot move it. Ask the person who runs the server.",
+    "The owner block is not writable as a whole. owner.email in particular is never writable " +
+    "here — it is the address that decides who can get a token for this journal, so a token " +
+    'cannot move it. The one part you can set is the telephone number, as "ownerTel": ' +
+    '"+41 76 561 31 50" — it is what the owner\'s own WhatsApp copy of a day is sent to, and ' +
+    "it costs no credits. Ask the person who runs the server for anything else in there.",
   baseCurrency:
     "baseCurrency is not writable after a journal exists. A cost written without a currency " +
     "IS a cost in the base currency, so changing it would not reconvert the money — it would " +
@@ -798,6 +803,20 @@ export type JournalProfile = {
   defaultLocale: string;
   displayCurrencies: string[];
   manualRates: RateTable;
+  /**
+   * `owner.tel`, flattened — B614.
+   *
+   * The empty string means there is none, the same way a cleared `tagline`
+   * reads: the key is simply absent from the file, and `""` is what both a
+   * read-back and a "clear this" write say about it.
+   *
+   * Flattened rather than a nested `owner: { tel }`, because the rest of that
+   * block is not writable at all (see `JOURNAL_FIELD_REFUSALS`) and a nested
+   * object here would advertise a door that is not there. It is also the one
+   * writable field that is not a top-level key of `config.json`, which the
+   * write step below handles by hand.
+   */
+  ownerTel: string;
   /** Read-only here, and included because `displayCurrencies` must contain
    * it — a caller that cannot see it can only guess. */
   baseCurrency: string;
@@ -826,6 +845,7 @@ export function journalProfile(user: UserConfig): JournalProfile {
     defaultLocale: user.defaultLocale,
     displayCurrencies: user.displayCurrencies,
     manualRates: user.manualRates,
+    ownerTel: user.owner.tel ?? "",
     baseCurrency: user.baseCurrency,
   };
 }
@@ -913,6 +933,38 @@ export function setJournalProfile(
         } else {
           patch[key] = read.text;
         }
+        break;
+      }
+
+      case "ownerTel": {
+        const read = oneLine(key, value);
+        if ("problem" in read) return refuse("invalid_ownerTel", read.problem);
+        if (!read.text) {
+          // Cleared, which is also how the owner turns their own WhatsApp
+          // copy off again: no number, no message, and nothing else about it
+          // to switch.
+          remove.push(key);
+          break;
+        }
+        // Normalised here rather than on the way out of the file, so what is
+        // stored is what the send path uses and a number that cannot work is
+        // refused while somebody is still looking at the answer.
+        //
+        // No default country code, deliberately — the same rule
+        // `parseOwner` applies, and for the same reason: the operator's
+        // `defaultCountryCode` is an env var, and a number that depends on it
+        // would stop working when the operator changed it.
+        const tel = toE164(read.text);
+        if (!tel) {
+          return refuse(
+            "invalid_ownerTel",
+            `"${read.text}" is not a telephone number this can use. Include the country code — ` +
+              `+41 76 561 31 50, 0041 76 561 31 50 or 41765613150. A national number like ` +
+              `076 561 31 50 is refused: it means a different telephone in every country, and ` +
+              `this server is not standing in any of them.`,
+          );
+        }
+        patch[key] = tel;
         break;
       }
 
@@ -1091,6 +1143,18 @@ export function setJournalProfile(
     if (changed.length === 0) return null;
     const next = { ...raw, ...patch };
     for (const key of remove) delete next[key];
+    // `ownerTel` is the one writable field that is not a key of its own: it
+    // lives at `owner.tel`, one level down. Rewritten from `raw.owner` rather
+    // than from the parsed `user.owner`, so a key this code does not know
+    // about survives the edit.
+    if ("ownerTel" in next || remove.includes("ownerTel")) {
+      const owner = { ...(raw.owner as Record<string, unknown>) };
+      const tel = next.ownerTel;
+      delete next.ownerTel;
+      if (typeof tel === "string" && tel) owner.tel = tel;
+      else delete owner.tel;
+      next.owner = owner;
+    }
     return next;
   });
   if (!written.ok) return written;

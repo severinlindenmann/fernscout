@@ -5,6 +5,7 @@ import { siteRoot } from "./siteRoot";
 import { normalizeCurrency, type RateTable } from "./currency";
 import { DEFAULT_MEDIA_LIMITS, narrowest, parseMediaLimits, type MediaLimits } from "./mediaLimits";
 import { parseTravellers } from "./travellers/parse";
+import { toE164 } from "./whatsapp/phone";
 import type { Figure } from "./travellers/vocabulary";
 
 /** Every optional capability. Adding one here is the only place it gets named. */
@@ -68,7 +69,30 @@ export const OPERATOR_ONLY_FEATURES = [
  * declares no owner cannot be written to by anyone. That is the safe state,
  * and the state a freshly cloned repository is in.
  */
-export type Owner = { name: string; nickname: string; email?: string };
+export type Owner = {
+  name: string;
+  nickname: string;
+  email?: string;
+  /**
+   * The owner's own telephone number, for their own free WhatsApp copy of a
+   * published day — B614.
+   *
+   * Stored as E.164 digits, never as it was typed: `toE164` runs here at
+   * parse time and the file's own form is not kept. Two reasons, and the
+   * second is the one that matters — the send path
+   * (`lib/digest/dayWhatsapp.ts`) needs digits and should not be re-parsing a
+   * config string per message, and a number that will not normalise has to be
+   * a *config* problem, reported once with the others, rather than a message
+   * that silently never arrives.
+   *
+   * Normalised with **no** default country code, unlike a contact's number.
+   * `whatsappCountryCode()` is the operator's env, and a journal that parsed
+   * yesterday must not stop parsing because the operator edited it — so the
+   * owner's own number carries its own country (`+41…`, `0041…` or a bare
+   * `41…`), and a national `079…` is refused with a sentence saying why.
+   */
+  tel?: string;
+};
 
 /**
  * One person's settings, from `content/<username>/config.json`.
@@ -444,6 +468,18 @@ function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
   }
 
   const owner: Owner = { name: raw.name, nickname: raw.nickname };
+  if (raw.tel !== undefined) {
+    const tel = typeof raw.tel === "string" ? toE164(raw.tel) : null;
+    if (!tel) {
+      problems.push(
+        "owner.tel must be a telephone number with its country code — +41 76 561 31 50, " +
+          "0041 76 561 31 50 or 41765613150 — or absent. A national number like 076 561 31 50 " +
+          "is refused here: this file is read on a server, which is not standing in any country.",
+      );
+    } else {
+      owner.tel = tel;
+    }
+  }
   if (raw.email !== undefined) {
     if (typeof raw.email !== "string" || !EMAIL_RE.test(raw.email.trim())) {
       problems.push("owner.email must be an email address, or absent");

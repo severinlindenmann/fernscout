@@ -61,14 +61,16 @@ function enableCredits() {
   writeServerConfig({}, { credits: true });
 }
 
-function writeUserConfig() {
+/** `tel` is `owner.tel` — absent unless a test is about it, which is every
+ * journal written before B614. */
+function writeUserConfig(owner: { tel?: string } = {}) {
   fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
       title: "Two Backpacks",
       tagline: "one slow loop",
-      owner: { name: "Alex B", nickname: "Alex", email: OWNER_EMAIL },
+      owner: { name: "Alex B", nickname: "Alex", email: OWNER_EMAIL, ...owner },
       startLocation: "Zurich",
       defaultLocale: "en",
       locales: ["en", "de"],
@@ -438,6 +440,119 @@ describe("both publish flags survive sharing one request body", () => {
       ignored: ["send_mail", "send_whatsapp"],
       declined: [],
     });
+  });
+});
+
+/**
+ * B614 — the owner is reachable on this channel at all, and free.
+ *
+ * `recipientsFor` here used to add nobody: there was no `owner.tel`, and
+ * inventing one would have been this codebase deciding somebody's phone
+ * number belongs to it. So the one person who could not get the WhatsApp
+ * notification was the person publishing the day — who is also the one person
+ * who would use it to check the channel works before a guest ever sees it.
+ * The number now exists as a field the owner writes themselves, and its
+ * presence is the consent.
+ */
+describe("the owner's own message — B614", () => {
+  const OWNER_TEL = "+41 76 555 00 99";
+
+  test("no owner.tel means no owner message, which is every journal before this", async () => {
+    writeTrip("utah");
+    const slug = writeEntry("utah");
+    const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
+    expect(outcome.ok).toBe(true);
+    expect(payloads()).toHaveLength(0);
+  });
+
+  test("owner.tel is messaged, and it costs nothing", async () => {
+    enableCredits();
+    writeUserConfig({ tel: OWNER_TEL });
+    writeTrip("utah");
+    const slug = writeEntry("utah");
+    // No `grant`: there is not even a credits row, which is the state a new
+    // journal is in. A free send has to work from there.
+
+    const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent).toHaveLength(1);
+    expect(payloads()[0].to).toBe("41765550099");
+    expect(await balanceOf(OWNER)).toBe(0);
+  });
+
+  test("a guest is charged and the owner is not", async () => {
+    enableCredits();
+    writeUserConfig({ tel: OWNER_TEL });
+    await addReader("guest@example.test", { tel: "+41765613150" });
+    writeTrip("utah");
+    const slug = writeEntry("utah");
+    await grant(OWNER, 1);
+
+    const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent).toHaveLength(2);
+    expect(await balanceOf(OWNER)).toBe(0);
+  });
+
+  test("a contact on the owner's own number is one free message, not two", async () => {
+    enableCredits();
+    writeUserConfig({ tel: OWNER_TEL });
+    // The owner in their own guestbook, or a household phone.
+    await addReader("also-me@example.test", { tel: "0041 76 555 00 99" });
+    writeTrip("utah");
+    const slug = writeEntry("utah");
+
+    const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent).toHaveLength(1);
+    expect(payloads()).toHaveLength(1);
+    // Charged nothing, on an empty balance: the contact folded into the
+    // owner's free copy rather than becoming a second, paid recipient.
+    expect(await balanceOf(OWNER)).toBe(0);
+  });
+
+  test("the owner's own message failing refunds nothing", async () => {
+    enableCredits();
+    writeUserConfig({ tel: OWNER_TEL });
+    await addReader("guest@example.test", { tel: "+41765613150" });
+    writeTrip("utah");
+    const slug = writeEntry("utah");
+    await grant(OWNER, 1);
+
+    const real = fs.writeFileSync.bind(fs);
+    vi.spyOn(fs, "writeFileSync").mockImplementation((file, data, options) => {
+      if (typeof file === "string" && file.includes("0099")) {
+        throw new Error("simulated delivery failure");
+      }
+      return real(file, data, options);
+    });
+
+    const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.failed).toHaveLength(1);
+    expect(outcome.sent).toHaveLength(1);
+    // The credit paid for the guest, whose message went out. Refunding the
+    // owner's failure would mint one rather than return it.
+    expect(await balanceOf(OWNER)).toBe(0);
+  });
+
+  test("a national number in owner.tel is a config problem, not a guess", async () => {
+    writeUserConfig({ tel: "076 555 00 99" });
+    writeTrip("utah");
+    const slug = writeEntry("utah");
+    const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
+    // Loud, like every other bad value in this file: `parseOwner` refuses the
+    // number and the journal does not load, so there is nothing to send a day
+    // about — rather than a message quietly going to a number in whichever
+    // country the server happens to be standing in. The refusal's own wording
+    // is pinned in test/owner-tel.test.ts, and `PATCH .../config` never lets
+    // a number like this reach the file in the first place.
+    expect(outcome).toEqual({ ok: false, reason: "unknown_trip" });
+    expect(payloads()).toHaveLength(0);
   });
 });
 

@@ -17,7 +17,7 @@ import {
 import { countInviteUse, preapprovedEmailFor } from "./invites";
 import { approveTripPlaces, revokeTripPlaces } from "../tripPeople";
 import { parseLocale } from "./locale";
-import { isMessageable } from "../whatsapp/phone";
+import { isMessageable, toE164 } from "../whatsapp/phone";
 import { whatsappCountryCode } from "../whatsapp/settings";
 
 /**
@@ -692,33 +692,45 @@ export async function listContacts(owner: string): Promise<ContactRecord[]> {
 export function optedInCounts(
   contacts: ContactRecord[],
   /**
-   * The journal owner's own address, when they have one.
+   * The journal owner's own address and number, when they have them.
    *
-   * Passed in because the two channels differ, and the difference is a credit
-   * per send: `recipientsFor` in `dayLetter.ts` **always** adds the owner's
-   * own copy of the letter ("it is their journal and their record that it
-   * went"), skipping them if they also appear among the contacts. Its
-   * WhatsApp counterpart adds nobody — there is no `owner.tel` and inventing
-   * one would be this codebase deciding somebody's phone number belongs to
-   * it.
+   * Both are **exclusions**, not additions — B614. `recipientsFor` on either
+   * channel adds the owner's own copy of a day and it is free, so what this
+   * counts is everybody else: a contact sitting at the owner's own address,
+   * or on the owner's own phone, is folded into that free copy by the same
+   * `seen` set the send path uses, and counting them here would quote a
+   * credit the charge is never going to ask for.
    *
-   * So the email count is contacts-minus-the-owner **plus one**, and leaving
-   * the owner out entirely understates the price of every mail send by
-   * exactly one credit. Understating is the wrong direction to be wrong in on
-   * a page somebody reads before deciding whether they can afford to publish.
+   * It used to be the other way round for email — contacts-minus-the-owner
+   * **plus one** — because the owner's letter was billed like anybody else's.
+   * That was arithmetic about the right list and the wrong price: a credit is
+   * what it costs to reach somebody else, and on a journal with no guests at
+   * all the whole quoted bill was the author being charged to read their own
+   * writing.
+   *
+   * `tel` must arrive already normalised to E.164 (it is, on `Owner.tel`), so
+   * it can be compared with `toE164` of a contact's number without this
+   * function needing to know the operator's default country code.
    */
-  ownerEmail?: string | null,
+  owner?: { email?: string | null; tel?: string | null },
 ): { email: number; whatsapp: number } {
   const isActive = (c: ContactRecord) => c.status === "active";
-  const owner = ownerEmail ? normaliseEmail(ownerEmail) : null;
-  const optedInEmail = contacts.filter((c) => isActive(c) && c.wantsEmailDigest);
+  const ownerEmail = owner?.email ? normaliseEmail(owner.email) : null;
+  const ownerTel = owner?.tel ?? null;
+  const countryCode = whatsappCountryCode();
   return {
-    // Never twice: a contact at the owner's own address is the same recipient
-    // as the owner's copy, and `recipientsFor`'s `seen` set already treats it
-    // that way.
-    email:
-      optedInEmail.filter((c) => normaliseEmail(c.email) !== owner).length + (owner ? 1 : 0),
-    whatsapp: contacts.filter((c) => isActive(c) && c.wantsWhatsapp).length,
+    email: contacts.filter(
+      (c) => isActive(c) && c.wantsEmailDigest && normaliseEmail(c.email) !== ownerEmail,
+    ).length,
+    whatsapp: contacts.filter((c) => {
+      if (!isActive(c) || !c.wantsWhatsapp) return false;
+      const tel = c.postalAddress?.tel;
+      // No number is no message, the same as in `recipientsFor` — and a
+      // number that is the owner's own is their free copy.
+      if (!tel) return false;
+      const to = toE164(tel, countryCode);
+      return to !== null && to !== ownerTel;
+    }).length,
   };
 }
 

@@ -56,7 +56,17 @@ type WhatsappRecipient = {
   to: string;
   name: string | null;
   locale: Locale;
+  /** The owner's own message, which is sent and not billed — B614. See the
+   * field's twin in `dayLetter.ts` for why a credit is what it costs to reach
+   * somebody else. */
+  free: boolean;
 };
+
+/** What a send actually costs: one credit per recipient who is not the
+ * owner's own free copy. Shared by the quote, the charge and the refund. */
+function chargeable(recipients: { free: boolean }[]): number {
+  return recipients.filter((r) => !r.free).length;
+}
 
 /**
  * Who gets the message: approved contacts who opted in *to this channel* and
@@ -82,6 +92,30 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappReci
   const out: WhatsappRecipient[] = [];
   const seen = new Set<string>();
 
+  // The owner, when they have left a number — B614, and the mirror of
+  // `recipientsFor` in `dayLetter.ts`, which has always added their own copy.
+  //
+  // It used to add nobody, because there was no `owner.tel` and inventing one
+  // would have been this codebase deciding somebody's phone number belongs to
+  // it. That reasoning was right and the field is the answer to it: a number
+  // the owner wrote into their own `config.json`, normalised at parse time.
+  // Its presence *is* the consent — this is their journal, their number and
+  // their day, and deleting the line is how they stop — so there is no second
+  // switch to tick, unlike a contact's `wantsWhatsapp`.
+  //
+  // Into `seen` as well as into the list, so a contact who shares the number
+  // (an owner also in their own guestbook, a household phone) gets the free
+  // copy rather than a second message and a charge.
+  if (user.owner.tel) {
+    seen.add(user.owner.tel);
+    out.push({
+      to: user.owner.tel,
+      name: user.owner.nickname || user.owner.name,
+      locale: pickLocale(user.defaultLocale),
+      free: true,
+    });
+  }
+
   for (const contact of contacts) {
     if (contact.status !== "active") continue;
     if (!contact.wantsWhatsapp) continue;
@@ -90,7 +124,8 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappReci
     if (!tel) continue;
     const to = toE164(tel, countryCode);
     if (!to) continue;
-    // Two contacts may share a household number. One message, not two.
+    // Two contacts may share a household number — or one of them is the
+    // owner, above. One message, not two.
     if (seen.has(to)) continue;
 
     const email = contact.email.trim().toLowerCase();
@@ -102,6 +137,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappReci
       to,
       name: contact.name,
       locale: pickLocale(contact.locale, user.defaultLocale),
+      free: false,
     });
   }
 
@@ -156,8 +192,9 @@ export type DayWhatsappOutcome =
  * who opted in" beside it is precisely the duplication `mayMailTrip`'s doc
  * comment above is an essay about.
  *
- * One credit per recipient, so the count *is* the cost; if that ever stops
- * being true this is the one place to change.
+ * One credit per *paid* recipient — `chargeable`, not `length`, since B614
+ * made the owner's own copy free. If that ever stops being true, that
+ * function is the one place to change.
  *
  * Zero for a trip or journal that does not exist, and zero for content nobody
  * lived — which is a `test: true` trip **or** a `test: true` day inside an
@@ -191,7 +228,7 @@ export async function whatsappWouldCost(owner: string, ref: string, slug?: strin
   // afford. `templateFor` is a synchronous read of the server config, so
   // asking it per recipient here costs nothing.
   const recipients = await recipientsFor(trip, user);
-  return recipients.filter((r) => templateFor(r.locale, user.defaultLocale) !== null).length;
+  return chargeable(recipients.filter((r) => templateFor(r.locale, user.defaultLocale) !== null));
 }
 
 export async function sendDayWhatsapp(
@@ -219,11 +256,11 @@ export async function sendDayWhatsapp(
 
   const recipients = await recipientsFor(trip, user);
 
-  // One credit per recipient, charged for the whole list before the first
+  // One credit per paid recipient, charged for the whole list before the first
   // message leaves — B366, matching `sendDayLetter`. All or nothing: an
   // insufficient balance sends nothing rather than reaching some of the
   // list and not the rest.
-  const needed = recipients.length;
+  const needed = chargeable(recipients);
   const ledgerRef = `${ref}/${slug}`;
   if (!(await spend(owner, needed, "day_whatsapp", ledgerRef))) {
     return { ok: false, reason: "no_credits", needed, balance: (await balanceOf(owner)) ?? 0 };
@@ -246,16 +283,24 @@ export async function sendDayWhatsapp(
   const sent: { to: string }[] = [];
   const failed: { to: string; error: string }[] = [];
   let anyTemplate = false;
-  // A recipient with no template for their language was charged above along
-  // with everybody else, and no message reaches them — that credit is owed
-  // back exactly like a `failed` one, even though it never enters that array
-  // (it is a config gap, not a send that threw).
-  let skippedNoTemplate = 0;
+  /**
+   * Credits to give back: every *paid* recipient no message reached.
+   *
+   * Two ways to end up here, and both are owed. A send that threw, and a
+   * recipient with no approved template for their language — charged above
+   * along with everybody else and reached by nothing, which is a config gap
+   * rather than a failure, so it never enters `failed`.
+   *
+   * Counted per recipient rather than as `failed.length + skipped`, because
+   * since B614 not every recipient was charged: the owner's own message is
+   * free, and refunding it would mint a credit rather than return one.
+   */
+  let owed = 0;
 
   for (const recipient of recipients) {
     const template = templateFor(recipient.locale, user.defaultLocale);
     if (!template) {
-      skippedNoTemplate++;
+      if (!recipient.free) owed++;
       continue;
     }
     anyTemplate = true;
@@ -283,14 +328,14 @@ export async function sendDayWhatsapp(
       if (result !== null) sent.push({ to: recipient.to });
     } catch (err) {
       failed.push({ to: recipient.to, error: err instanceof Error ? err.message : String(err) });
+      if (!recipient.free) owed++;
     }
   }
 
   // Give back only for messages that did not go out — never a blanket
   // reversal. A message that was delivered is spent whatever happens
   // afterwards.
-  const notSent = failed.length + skippedNoTemplate;
-  if (notSent > 0) await refund(owner, notSent, ledgerRef);
+  if (owed > 0) await refund(owner, owed, ledgerRef);
 
   // Told apart from "nobody opted in", which is not a misconfiguration. This
   // one means somebody ticked the box and the operator never registered a
