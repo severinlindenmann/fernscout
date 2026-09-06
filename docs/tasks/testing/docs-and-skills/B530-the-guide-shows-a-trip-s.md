@@ -7,8 +7,7 @@ complexity: low
 area: agent.md
 found: "2026-09-06T00:00:00Z"
 started: "2026-09-06T07:43:06Z"
-session: 5813be44-d8aa-40f5-ab31-affc7af3746a
-claimed: "2026-09-06T07:43:06Z"
+merged: "2026-09-06T07:50:48Z"
 ---
 
 # B530 — The guide shows a trip's minimum and calls it an example, so nothing tells an agent what a trip can carry
