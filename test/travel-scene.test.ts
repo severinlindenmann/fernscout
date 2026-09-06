@@ -1,7 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { buildSteps } from "@/components/StoryPager";
 import { legDistanceKm, sceneDurationSeconds } from "@/components/TravelScene";
-import type { DaySummary } from "@/lib/types";
+import { GROUND_HEIGHT, surfaceFor } from "@/components/travel/Ground";
+import { cityScale, floraFor } from "@/components/Cityscape";
+import type { DaySummary, TransportMode } from "@/lib/types";
+
+const MODES: TransportMode[] = ["flight", "train", "bus", "motorbike", "boat", "car", "walk"];
 
 /**
  * B15 — more than one travel scene, with a reason to pick each.
@@ -109,5 +113,65 @@ describe("sceneDurationSeconds", () => {
     expect(sceneDurationSeconds("default", 0)).toBeGreaterThanOrEqual(3);
     expect(sceneDurationSeconds("quick", 1_000_000)).toBeLessThanOrEqual(2.6);
     expect(sceneDurationSeconds("quick", 0)).toBeGreaterThanOrEqual(1.2);
+  });
+});
+
+describe("surfaceFor", () => {
+  test("every mode has a surface, and the three road modes share one", () => {
+    expect(surfaceFor("train")).toBe("rail");
+    expect(surfaceFor("boat")).toBe("water");
+    expect(surfaceFor("flight")).toBe("sky");
+    expect(surfaceFor("walk")).toBe("path");
+    for (const mode of ["car", "bus", "motorbike"] as const) {
+      expect(surfaceFor(mode)).toBe("road");
+    }
+  });
+
+  test("every surface has a height and a tile", () => {
+    for (const mode of MODES) {
+      expect(GROUND_HEIGHT[surfaceFor(mode)]).toBeGreaterThanOrEqual(0);
+    }
+  });
+});
+
+describe("cityScale", () => {
+  test("an unknown population is a small town, not a hamlet", () => {
+    // The fallback must not read as evidence of a tiny place — see the note
+    // on the function.
+    expect(cityScale(undefined)).toBeGreaterThan(0.2);
+    expect(cityScale(undefined)).toBeLessThan(0.5);
+  });
+
+  test("a village, a city and a metropolis are visibly different", () => {
+    const village = cityScale(1_200);
+    const city = cityScale(250_000);
+    const metropolis = cityScale(9_000_000);
+    expect(village).toBeLessThan(city);
+    expect(city).toBeLessThan(metropolis);
+  });
+
+  test("stays inside 0…1 at both extremes", () => {
+    expect(cityScale(1)).toBeGreaterThanOrEqual(0);
+    expect(cityScale(40_000_000)).toBeLessThanOrEqual(1);
+    expect(cityScale(0)).toBe(cityScale(undefined));
+  });
+});
+
+describe("floraFor", () => {
+  test("palms only in the tropics — the bug this replaced put them everywhere", () => {
+    expect(floraFor(1.3)).toBe("palm"); // Singapore
+    expect(floraFor(-22)).toBe("palm");
+    expect(floraFor(64.1)).not.toBe("palm"); // Reykjavík
+    expect(floraFor(47.4)).not.toBe("palm"); // Zurich
+  });
+
+  test("north of the treeline nothing is planted", () => {
+    expect(floraFor(78)).toBe("bare");
+    expect(floraFor(-80)).toBe("bare");
+  });
+
+  test("a day with no coordinates gets the middle band rather than a crash", () => {
+    expect(floraFor(undefined)).toBe("broadleaf");
+    expect(floraFor(Number.NaN)).toBe("broadleaf");
   });
 });

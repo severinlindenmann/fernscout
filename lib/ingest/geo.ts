@@ -40,6 +40,17 @@ export type Place = {
   lng: number;
   /** Great-circle distance from the queried point. */
   distanceKm: number;
+  /**
+   * GeoNames population, recovered from the packed scale — 0 where the dump
+   * carries no figure, which is common for the smaller entries.
+   *
+   * It has always been in the record (byte 10) because `prominenceKm` needs it
+   * to decide which of two nearby places a photograph belongs to. Reading it
+   * out here costs nothing and is the only honest answer this codebase has to
+   * "how big is this place": nothing an author writes says so, and a skyline
+   * guessed from a name is a claim about somewhere real.
+   */
+  population: number;
 };
 
 type Index = {
@@ -142,9 +153,15 @@ function lowerBound(lats: Float64Array, lat: number): number {
  * outskirts", which is the judgement a person makes writing the caption.
  */
 function prominenceKm(popScale: number): number {
-  const population = 2 ** (popScale / 8) - 1;
+  const population = decodePopulation(popScale);
   if (population < 1) return 0;
   return Math.min(20, 3 * Math.log10(population));
+}
+
+/** The inverse of the log packing `scripts/build-geodata.ts` writes into byte
+ * 10 of each record. Three call sites now, so it is a function. */
+function decodePopulation(popScale: number): number {
+  return Math.round(2 ** (popScale / 8) - 1);
 }
 
 function readPlace(index: Index, i: number, lat: number, lng: number): Place {
@@ -155,6 +172,7 @@ function readPlace(index: Index, i: number, lat: number, lng: number): Place {
   const nameLen = index.records.readUInt8(at + 11);
   const nameOffset = index.records.readUInt32BE(at + 12);
   return {
+    population: decodePopulation(index.records.readUInt8(at + 10)),
     name: index.names.subarray(nameOffset, nameOffset + nameLen).toString("utf8"),
     countryCode: index.countryCodes[country] ?? "",
     country: index.countryNames[country] ?? "",
@@ -267,7 +285,7 @@ export function placesInBox(
       name: index.names.subarray(nameOffset, nameOffset + nameLen).toString("utf8"),
       lat: index.records.readInt32BE(at) / 1e5,
       lng: index.records.readInt32BE(at + 4) / 1e5,
-      population: Math.round(2 ** (popScale / 8) - 1),
+      population: decodePopulation(popScale),
     };
   });
 }
