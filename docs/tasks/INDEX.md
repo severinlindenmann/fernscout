@@ -204,9 +204,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B530](in-development/B530-the-guide-shows-a-trip-s.md) | The guide shows a trip's minimum and calls it an example, so nothing tells an agent what a trip can carry | DOCS | high | low | `5813be44` |
 
 ## testing (224)
 
