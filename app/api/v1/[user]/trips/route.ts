@@ -4,6 +4,7 @@ import { getMalformedTrips, getTrips } from "@/lib/trips";
 import { createTrip } from "@/lib/tripWrite";
 import { SESSION_SCOPE } from "@/lib/auth";
 import { serverSite } from "@/lib/site";
+import { TRACKS, TRACK_ROWS } from "@/lib/tracks";
 
 export const dynamic = "force-dynamic";
 
@@ -150,7 +151,25 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
         summary && summary.visibility === "private"
           ? "Created private: nobody but you can read it. Set visibility to \"public\" when it is ready."
           : undefined,
-      next: `POST /api/v1/${user}/trips/${created.id}/days to write the first day.`,
+      /**
+       * What this trip will ask each day for — B531, said here rather than
+       * only in the first refusal. An agent that learns the contract from a
+       * 422 has already decided what to send and already had one call
+       * refused; an agent that reads it here asks the person before it
+       * writes, which is the whole point of the thing.
+       */
+      asks: summary
+        ? TRACKS.filter((key) => summary.tracks[key]).map((key) => TRACK_ROWS[key].keeps)
+        : [],
+      next:
+        `POST /api/v1/${user}/trips/${created.id}/days to write the first day. It will be ` +
+        `asked for ${
+          summary
+            ? TRACKS.filter((key) => summary.tracks[key])
+                .map((key) => key)
+                .join(", ") || "nothing beyond a title, a date and its prose"
+            : "the usual"
+        } — send them, or say in the call that the day has none.`,
     },
     { status: 201 },
   );

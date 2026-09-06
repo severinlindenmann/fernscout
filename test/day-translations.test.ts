@@ -109,6 +109,11 @@ const GERMAN = {
   title: "Ankunft in Bangkok",
   date: "2026-09-01",
   content: "Um halb sechs aufgewacht und nicht mehr eingeschlafen.",
+  // This file is about languages. The two declines are B531's completeness
+  // contract being satisfied rather than argued with — a trip tracks money
+  // and coordinates unless it says otherwise, and these days have neither.
+  costs: false as const,
+  coordinates: false as const,
 };
 
 const OTHERS = {
