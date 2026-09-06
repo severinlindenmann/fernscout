@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: capabilities
 found: "2026-09-06T15:32:00Z"
+merged: "2026-09-06T15:31:51Z"
 ---
 
 # B611 — Printing and WhatsApp are opt-in per journal when they are the server's decision

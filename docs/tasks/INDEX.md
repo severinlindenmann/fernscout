@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (123)
+## backlog (122)
 
 ### security (7)
 
@@ -127,7 +127,7 @@ Do not edit them by hand; run the script.
 | [B591](backlog/big-feature/B591-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to relay a print job to a fulfilment instance | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
-### small-feature (14)
+### small-feature (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -139,7 +139,6 @@ Do not edit them by hand; run the script.
 | [B436](backlog/small-feature/B436-nothing-ever-suggests-sending-postcards-so.md) | Nothing ever suggests sending postcards, so nobody discovers the feature | FEATURE | medium | low |
 | [B589](backlog/small-feature/B589-there-is-no-capability-for-one.md) | There is no capability for one instance to fulfil another's print jobs | FEATURE | medium | medium |
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
-| [B611](backlog/small-feature/B611-printing-and-whatsapp-are-opt-in.md) | Printing and WhatsApp are opt-in per journal when they are the server's decision | FEATURE | medium | low |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
 | [B176](backlog/small-feature/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
@@ -414,7 +413,7 @@ Do not edit them by hand; run the script.
 | [B566](testing/big-feature/B566-the-owner-cannot-tell-whether-anyone.md) | the owner cannot tell whether anyone is reading the journal | FEATURE | medium | high | — |
 | [B596](testing/big-feature/B596-a-photograph-cannot-be-held-back.md) | A photograph cannot be held back from readers the trip lets in | FEATURE | medium | high | — |
 
-### small-feature (66)
+### small-feature (67)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -476,6 +475,7 @@ Do not edit them by hand; run the script.
 | [B600](testing/small-feature/B600-a-teasered-trip-s-countries-are.md) | A teasered trip's countries are missing from the lifetime map | FEATURE | medium | low | — |
 | [B601](testing/small-feature/B601-a-reader-refused-at-the-trip.md) | A reader refused at the trip gate has no way to ask the owner to let them in | FEATURE | medium | medium | — |
 | [B606](testing/small-feature/B606-a-short-balance-kills-the-order.md) | A short balance kills the order button instead of explaining itself | FEATURE | medium | low | — |
+| [B611](testing/small-feature/B611-printing-and-whatsapp-are-opt-in.md) | Printing and WhatsApp are opt-in per journal when they are the server's decision | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B07](testing/small-feature/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium | — |
@@ -522,7 +522,7 @@ Do not edit them by hand; run the script.
 | [B506](testing/ops/B506-nobody-has-looked-at-the-photobook.md) | Nobody has looked at the photobook composer or the drawn travellers in a browser | OPS | high | medium | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
 
-### docs-and-skills (23)
+### docs-and-skills (22)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -531,7 +531,6 @@ Do not edit them by hand; run the script.
 | [B445](testing/docs-and-skills/B445-there-is-nothing-a-guest-a.md) | There is nothing a guest, a buddy or a new owner can read that explains what they can do here | DOCS | high | medium | — |
 | [B525](testing/docs-and-skills/B525-the-trip-script-asks-about-what.md) | The trip script asks about what is repairable and stays quiet about what is permanent | DOCS | high | low | — |
 | [B530](testing/docs-and-skills/B530-the-guide-shows-a-trip-s.md) | The guide shows a trip's minimum and calls it an example, so nothing tells an agent what a trip can carry | DOCS | high | low | — |
-| [B612](testing/docs-and-skills/B612-the-agent-guide-teaches-photographs-without.md) | The agent guide teaches photographs without saying one can be held back | DOCS | high | low | — |
 | [B143](testing/docs-and-skills/B143-task-ids-collide-when-parallel-sessions.md) | Task ids collide when parallel sessions capture by hand, which is what B99 was meant to prevent | DOCS | medium | medium | — |
 | [B144](testing/docs-and-skills/B144-enterworktree-refuses-for-a-dispatched-subagent.md) | EnterWorktree refuses for a dispatched subagent, so work-on-a-task's second step cannot be followed | DOCS | medium | low | — |
 | [B215](testing/docs-and-skills/B215-the-manual-privacy-tests-still-walk.md) | The manual privacy tests still walk an operator through a trip password | DOCS | medium | low | — |
