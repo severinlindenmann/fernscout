@@ -7,8 +7,7 @@ complexity: high
 area: media, visibility, api, helper-repo
 found: "2026-09-06T14:34:30Z"
 started: "2026-09-06T14:35:12Z"
-session: 0959df30-510b-43ee-8ed3-a20d82a13c45
-claimed: "2026-09-06T14:35:12Z"
+merged: "2026-09-06T15:07:12Z"
 ---
 
 # B596 — A photograph cannot be held back from readers the trip lets in
