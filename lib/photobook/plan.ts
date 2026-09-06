@@ -1765,6 +1765,66 @@ export function mapClipMm(spec: BookSpec, half: "left" | "right"): RectMm {
   };
 }
 
+/** A stop already projected onto the page, in whatever unit the caller draws
+ * in — see `routeLabelPlacements`. */
+export type ProjectedStop = { location: string; x: number; y: number };
+
+/** One stop's name, placed — see `routeLabelPlacements`. */
+export type RouteLabelPlacement = { location: string; x: number; y: number; anchorX: number };
+
+/**
+ * Which stops on a route spread get a name, and which side of the dot it goes
+ * on. B519.
+ *
+ * Every dot is drawn; only some are labelled, because on a long trip the
+ * names simply overlap. A stop is skipped when its dot falls outside this
+ * page's own content box — both halves draw every stop, but only the page a
+ * dot actually lands on names it, or a label prints half on each side of the
+ * fold — and when it is closer than `minGap` to the last labelled stop,
+ * unless it is the route's final stop.
+ *
+ * A name goes to the right of its dot, to the left if it will not fit there,
+ * and is pushed back inside the margin if it fits on neither: bounded by
+ * `leftEdge`/`rightEdge`, which already carry the gutter on the correct side
+ * for this page.
+ *
+ * Unit-agnostic on purpose: pass `leftEdge`, `rightEdge`, `gap`, `minGap` and
+ * `widthOf`'s return value all in the same unit the caller already draws
+ * in — PDF points for the renderer, millimetres for the preview — and the
+ * same decisions come out both times. `render.ts`'s `drawRoutePage` and
+ * `preview.ts`'s `routeSvg` each called this rule out by hand until B552;
+ * `mapProjector` and `graticuleStep` were already shared and this one was not,
+ * which is exactly the shape B519 and B518 both found drifting.
+ */
+export function routeLabelPlacements(
+  points: readonly ProjectedStop[],
+  leftEdge: number,
+  rightEdge: number,
+  gap: number,
+  minGap: number,
+  widthOf: (location: string) => number,
+): RouteLabelPlacement[] {
+  const out: RouteLabelPlacement[] = [];
+  let lastLabel: { x: number; y: number } | null = null;
+  points.forEach((p, i) => {
+    if (p.x < leftEdge || p.x > rightEdge) return;
+    const far = !lastLabel || Math.hypot(p.x - lastLabel.x, p.y - lastLabel.y) > minGap;
+    if (!far && i !== points.length - 1) return;
+    const width = widthOf(p.location);
+    const right = p.x + gap;
+    const left = p.x - gap - width;
+    const anchorX =
+      right + width <= rightEdge
+        ? right
+        : left >= leftEdge
+          ? left
+          : Math.min(Math.max(right, leftEdge), rightEdge - width);
+    out.push({ location: p.location, x: p.x, y: p.y, anchorX });
+    lastLabel = { x: p.x, y: p.y };
+  });
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // The plan
 // ---------------------------------------------------------------------------

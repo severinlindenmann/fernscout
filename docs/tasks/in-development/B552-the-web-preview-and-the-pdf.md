@@ -15,51 +15,102 @@ claimed: "2026-09-06T14:20:15Z"
 
 ## Why
 
-TODO — the problem, not the fix.
+`lib/photobook/preview.ts` (`routeSvg`) and `lib/photobook/render.ts`
+(`drawRoutePage`) draw the route spread — the hardest page kind, with the
+gutter, the graticule and the culling — from the same `RouteView`/`MappedPoint`
+plan, through two separate bodies of drawing code. Most of the geometry is
+already shared (`mapProjector`, `mapClipMm`, `graticuleStep`, `landPaths`,
+`typeScale`, `contentBoxMm`, `measure`) — B519 and B518 were both cases of a
+fix needed in both places, and each extraction closed one gap.
+
+One gap was still open: the label-placement rule (`render.ts:455-500` before
+this change, `preview.ts:224-266` before this change) — which stop gets a
+name, which side of the dot it goes on, when a name is pushed back off the
+edge — was implemented twice, in two different unit systems (PDF points in
+the renderer, millimetres in the preview), with a comment in `preview.ts`
+that said outright: *"The rule is copied deliberately rather than
+approximated."* That is the shape B519 found drifting, admitted in the code
+rather than hidden.
 
 ## Work
 
-TODO
+Spiked the route spread both ways at print quality — the PDF renderer against
+a synthetic multi-stop route (six-figure trip, several countries, a fold in
+the middle of a country) and the HTML preview against the same plan — to see
+whether the duplication is superficial (units and drawing calls) or
+structural (different decisions).
+
+It is superficial. Every remaining difference between the two bodies of code
+is a unit conversion (mm vs. points) or a target-specific drawing call
+(`PdfBuilder.drawText` vs. an SVG `<text>` element); the actual **decisions** —
+which land paths are visible, where the graticule lines fall, which stops get
+a label and which side the label goes on — were already identical arithmetic
+copied into two files.
+
+Pulled the one decision that was still copied by hand — label placement —
+into a shared pure function, `routeLabelPlacements()` in `lib/photobook/plan.ts`
+(next to `mapProjector`/`mapClipMm`, which already own this page's geometry).
+It takes stops already projected into the caller's own unit and a `widthOf`
+callback, and returns which stops get a label and the anchor x for each; it is
+unit-agnostic so the renderer can call it in points and the preview in
+millimetres and get the same decisions from the same code. `render.ts` and
+`preview.ts` each now call it once instead of each carrying the rule by hand.
+Land culling and the graticule loop were left alone: they were already only a
+few lines each and, worth noting, not the ones the comment flagged as a known
+risk.
+
+**Not doing:** anything under B547 (the UI) or replacing the renderer.
+Considered and rejected: rendering the book as HTML/CSS once and producing the
+PDF from that markup via Paged.js or Vivliostyle (found while researching
+B547). See Acceptance for the weighing.
 
 ## Acceptance
 
-TODO
+**Decision: close this as not worth rewriting; the small extraction above is
+the whole change.**
 
-## Why
+What the spike showed, weighed honestly:
 
-Came out of the library search for B547 and is deliberately not part of it.
+- **What a library approach buys:** one body of layout code instead of two,
+  so a fix like B519 or B518 cannot land in only one place, ever, by
+  construction rather than by someone noticing the duplication and
+  extracting it.
+- **What it costs:** `lib/postcard/pdf.ts`'s `PdfBuilder` (which
+  `render.ts` already uses) writes exact PDF bytes today — DCTDecode JPEG
+  streams embedded byte-for-byte, no re-encoding, no image library, and it is
+  tested and already emits what the print providers in
+  `lib/photobook/providers.ts` want. Paged.js/Vivliostyle would mean:
+  a new dependency; a headless browser (Chromium, via Playwright or
+  Puppeteer) in the PDF-generation path, which today runs as a plain Node
+  script with no browser anywhere in it; re-verifying every printer-facing
+  guarantee this renderer currently gives by hand — bleed, trim, CMYK/RGB
+  handling in `pdfx.ts`, the exact JPEG embedding — against whatever the new
+  pipeline actually produces; and the route spread specifically, which needs
+  precise clipping, a graticule and label collision-avoidance that CSS
+  Paged Media has no primitive for, so it would still be hand-rolled SVG
+  glued into the page, not simpler markup.
+- **What the actual duplication turned out to be:** after B519's
+  `graticuleStep()` extraction, the remaining duplication on the hardest page
+  kind was one function's worth of arithmetic (the label rule above), not a
+  whole layout engine's worth. The premise that motivated looking at a
+  library — "two separate bodies of drawing code that keep silently
+  drifting" — is real, but the fix that actually closes each drift, as B519
+  and B518 both showed, is extracting the one shared decision into a pure
+  function next to the geometry it belongs with. That is a much smaller
+  and much safer change than replacing the renderer, and this ticket found
+  and made the one remaining case of it.
 
-`lib/photobook/preview.ts` draws the book for the browser and the PDF renderer
-draws it for the printer, from the same plan but through two separate bodies of
-drawing code. B519 and B518 were both cases of the two needing the same fix, and
-`graticuleStep()` was extracted precisely so one of them could not drift from the
-other. That extraction is the pattern working; the duplication is still there.
+**What would change this answer:** a *second* hard page kind (e.g. `photos`
+with its layout math, or `costs`/`analytics`'s chart shapes — though those
+already share `charts.ts`, B565) turning up more than a function or two of
+copied decision logic, repeatedly, as new page kinds are added — i.e., if
+extraction stops keeping pace with duplication. Nothing in this spike showed
+that; `charts.ts` and `graticuleStep()` are the pattern working project-wide,
+not local to the route spread.
 
-A preview that is a second implementation can lie about the artefact, and the
-whole premise of the composer is that it does not.
-
-The alternative found while researching B547: render the book as HTML and CSS
-once, and produce the PDF from that same markup with
-[Paged.js](https://pagedjs.org/) or [Vivliostyle](https://vivliostyle.org/),
-both of which implement the CSS Paged Media modules and target print
-(Vivliostyle's CLI emits PDF/X-1a). The preview then *is* the book rather than a
-drawing of it.
-
-## Work
-
-A spike first, not a rewrite. Take one page kind that is already hard — the
-route spread, which has the gutter, the graticule and the culling — and see
-whether it survives the round trip at print quality. The answer decides whether
-this is worth the size of the change.
-
-Weigh honestly: the current renderer works, is tested, and emits exactly the
-bytes a printer wants. Replacing it buys one source of truth and costs a
-dependency plus a headless browser in the PDF path.
-
-**Not doing:** anything under B547. That ticket is the UI, and no library fixes
-it.
-
-## Acceptance
-
-- A written recommendation with the route spread rendered both ways, and a
-  decision to proceed or to close this.
+Verified: `npm run verify` (build → tsc → eslint → vitest) is green with
+`routeLabelPlacements()` in place; `test/photobook.test.ts`'s existing route
+spread cases (in both `render.ts` and `preview.ts` paths) pass unchanged,
+which is the "rendered both ways" check for this ticket — the same plan
+produces the same label decisions through both bodies of code, because
+they're now the same fifteen lines instead of two copies of them.
