@@ -85,6 +85,19 @@ export function photobookCredits(pages: number, sizeId: string): number {
   return Math.ceil((PHOTOBOOK_BASE_CREDITS + PHOTOBOOK_PAGE_CREDITS * pages) * factor);
 }
 
+/**
+ * What a number of credits is worth in money — B551.
+ *
+ * A price stated only in credits is a price nobody can judge, and "154
+ * credits" was on the order step three times with no way to tell whether that
+ * was a coffee or a car. Valued at the *base* tier — the most anybody ever
+ * pays per credit — so the figure is the ceiling and buying in bulk can only
+ * make it cheaper. Say "about": the two larger tiers really do pay less.
+ */
+export function creditsInRappen(credits: number): number {
+  return Math.round((credits * TIERS[0].priceRappen) / TIERS[0].credits);
+}
+
 /** `1800` -> `"CHF 18.00"`. The tiers are priced in CHF regardless of a
  * journal's own currency, so this is a fixed format rather than a currency
  * conversion. */

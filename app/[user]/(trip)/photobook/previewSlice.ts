@@ -25,6 +25,9 @@ export function extractSpreads(
   }
   if (spreads.size === 0) return null;
   const body = [...spreads].map((el) => el.outerHTML).join("");
+  // `class="bare"` because the composer is the only caller: the document it
+  // sliced was rendered bare (B548) and the level-2 frame wants the same
+  // horizontal strip, with none of the technician's chrome around it.
   return `<!doctype html><html><head>${doc.head.innerHTML}</head>` +
-    `<body data-view="spreads"><div class="spreads">${body}</div></body></html>`;
+    `<body class="bare" data-view="spreads"><div class="spreads">${body}</div></body></html>`;
 }
