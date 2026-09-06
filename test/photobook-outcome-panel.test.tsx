@@ -71,8 +71,11 @@ function markup(outcome: PhotobookOutcome | null): string {
               entry={{ username: "alex", trip: "asia-2026" }}
               tripRef="alex/asia-2026"
               tripTitle="Asia 2026"
+              spineText="Asia 2026 · 2026"
               media={[]}
               days={[]}
+              hasCosts={false}
+              hasWeather={false}
               balance={100}
               locales={["en"]}
               outcome={outcome}

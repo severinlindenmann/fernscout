@@ -56,3 +56,43 @@ trouble for a reason, and the switch stays off unnoticed.
   do.
 - A trip with a budget and weather opens the order page with the chart and cost
   pages already on; a trip with neither opens with them off.
+
+## Findings (built)
+
+**The spine is real.** `coverFor` in `lib/photobook/plan.ts` prints
+`` `${trip.title} · ${trip.start.slice(0, 4)}` `` down the spine
+(`render.ts:837`), but only when the spine is at least 6 mm wide
+(`render.ts:834`) — a very thin book gets no spine text at all, which this
+change does not special-case; the order page always says what *would* print
+there. Pulled the format into an exported `spineTextFor()` so the order page
+shows the exact string rather than a second copy, and both photobook pages
+(`(trip)/photobook/page.tsx` and `trips/[trip]/photobook/page.tsx`) now pass
+it down to `BookLevelView`, which prints it in the order block.
+
+**The low-resolution warning now names names.** `BookWarning` gained an
+optional `photos?: string[]` field (`plan.ts`); `checkResolution` fills it
+with the one photograph each warning is about. `BookLevelView` aggregates
+that across every `low-resolution` warning into a `{photos}` variable (first
+three, named, then "…"), and the German/English/Hungarian strings were
+rewritten to say what happens (still shows, just softer), how much it
+matters (mild), and what to do (smaller format / bigger photograph / accept
+it). `noOriginal` was left alone — out of scope, and its `detail` already
+lists filenames for a developer, not a reader.
+
+**Where the includeCharts/includeCosts default now lives, and why not in
+`DEFAULT_OPTIONS`.** `DEFAULT_OPTIONS` is a plain constant used in three
+places that have no trip to look at: `planBook`'s own default parameter and
+the tests that call it directly. It cannot become trip-aware without lying
+to those callers. The actual "first thing an owner sees" is
+`usePersistedState`'s `initial` argument in `PhotobookPageContent.tsx`, and
+that hook only ever *reads* `initial` when nothing is in `localStorage` yet
+— a saved arrangement always wins via its own `restore()` merge. So the new
+`initialBookOptions(locale, hasCosts, hasWeather)` (`lib/photobook/options.ts`)
+is called only there, computing `includeCosts: hasCosts` and
+`includeCharts: hasCosts && hasWeather` from two booleans the server now
+passes down (`hasCostsData()` and `hasWeather(weatherDays(days))`, both read
+with `AS_AUTHOR` like everything else on the page). `DEFAULT_OPTIONS` itself
+is unchanged. Test: `test/photobook-options.test.ts`, `describe("initialBookOptions")`.
+
+`npm run verify`: all four stages passed (build, tsc, eslint — pre-existing
+warnings only, vitest 3921 passed/3 skipped).

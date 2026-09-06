@@ -858,6 +858,7 @@ export type TranslationKey =
   | "photobook.size.landscape"
   | "photobook.size.portrait"
   | "photobook.size.square"
+  | "photobook.spine"
   | "photobook.start"
   | "photobook.summary"
   | "photobook.summaryVolumes"

@@ -52,15 +52,23 @@ export type BookOptions = {
   includeChapters: boolean;
   /** Who travelled, on the title page and in the colophon. */
   includeNames: boolean;
-  /** The cost summary page. */
+  /** The cost summary page. `initialBookOptions` turns this on for a first
+   * visit to the order page exactly when the trip has a budget to show — B642. */
   includeCosts: boolean;
   /**
    * The chart pages — spend against the budget, and the trip's weather. B565.
    *
-   * **Off by default, and that is a real answer rather than a shy one.**
-   * Somebody printing a book of photographs may not want a page of charts in
-   * it, and every other include-switch here defends a page the book has
-   * always had. This one adds pages, so it asks first.
+   * **Off in `DEFAULT_OPTIONS` below, and on in `initialBookOptions`
+   * whenever there is something to chart — B642.** Somebody printing a book
+   * of photographs may not want a page of charts in it, so this is the one
+   * include-switch that adds pages rather than defending ones the book has
+   * always had, and a trip with neither a budget nor `weatherData` still
+   * starts off, exactly as it always has. But a trip that recorded *both* was
+   * usually costed and measured on purpose, and the owner has gone to the
+   * trouble already — so the order page's first visit turns this on for
+   * them rather than leaving a page they earned unnoticed. Still a switch: a
+   * saved arrangement, or a caller that skips the composer, is untouched by
+   * this and gets the constant below.
    *
    * On, it prints what the trip actually recorded and nothing else: no costs
    * means no spend page, no `weatherData` means no weather page, and neither
@@ -196,6 +204,35 @@ export const DEFAULT_OPTIONS: BookOptions = {
   includeCharts: false,
   focalPoints: {},
 };
+
+/**
+ * The book a fresh visit to the order page starts from — B642.
+ *
+ * `DEFAULT_OPTIONS` above is the constant fallback for a caller that skips
+ * the composer entirely (`planBook`'s own default parameter, and the tests
+ * that build a book without one); this is what a person actually sees the
+ * first time they open the order page for a trip. The composer passes it as
+ * `usePersistedState`'s `initial` value, which only speaks when nothing has
+ * been saved yet — a saved arrangement, `includeCosts` and `includeCharts`
+ * included, is never touched by this.
+ *
+ * `includeCharts` turns on only when there is both a budget and weather to
+ * chart; `includeCosts` turns on whenever there is a budget, whether or not
+ * the trip was measured. A trip with neither starts both off, exactly as
+ * `DEFAULT_OPTIONS` always has.
+ */
+export function initialBookOptions(
+  locale: string,
+  hasCosts: boolean,
+  hasWeather: boolean,
+): BookOptions {
+  return {
+    ...DEFAULT_OPTIONS,
+    locale,
+    includeCosts: hasCosts,
+    includeCharts: hasCosts && hasWeather,
+  };
+}
 
 /**
  * A ceiling on `excludePhotos`, past the trust boundary a request body
