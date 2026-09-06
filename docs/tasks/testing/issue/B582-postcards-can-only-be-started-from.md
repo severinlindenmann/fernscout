@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: postcards
 found: "2026-09-06T14:04:42Z"
+merged: "2026-09-06T14:07:56Z"
 ---
 
 # B582 — Postcards can only be started from the current trip's gallery
