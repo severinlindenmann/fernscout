@@ -76,6 +76,7 @@ const DAY_SAMPLES: Record<string, unknown> = {
   transportTo: "Lissabon",
   travelScene: "quick",
   test: true,
+  visibility: "guest",
   translations: { en: { title: "A day", content: "The day's prose." } },
 };
 

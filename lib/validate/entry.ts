@@ -117,6 +117,8 @@ export type EntryInput = {
   captions?: unknown;
   /** A photograph held back, keyed by `src`. Edit only — B596. */
   photoVisibility?: unknown;
+  /** This whole update, held back. Create or edit — B632. */
+  visibility?: unknown;
   /** Declared here since B553 so `checkPlaceWords` can see them: they were in
    *  `DraftInput` and not here, which is exactly how they went unchecked. */
   location?: unknown;
@@ -787,6 +789,7 @@ export function validateEntry(
   checkDeclines(input, problems);
   checkTags(input, problems);
   checkTest(input, problems);
+  checkVisibility(input, problems);
   checkWeather(input, problems);
   checkWeatherData(input, problems);
   checkBody(input, problems);
@@ -845,6 +848,7 @@ export function validateEntryEdit(
   checkDeclines(input, problems, true);
   checkTags(input, problems);
   checkTest(input, problems);
+  checkVisibility(input, problems);
   checkWeather(input, problems);
   checkWeatherData(input, problems);
   checkBody(input, problems, false);
@@ -969,6 +973,31 @@ function checkPhotoVisibility(
           "back to being seen by everyone the trip lets in.",
       });
     }
+  }
+}
+
+/**
+ * `visibility` — this whole update, held back — B632.
+ *
+ * The same shape `checkPhotoVisibility` above checks, minus the `src` map: one
+ * scalar rather than one per photograph, since a day has exactly one of
+ * itself. `null` clears a label the same way it does there, and `"public"` is
+ * refused with the same sentence for the same reason — there is no such value
+ * to widen with, and a caller reaching for it is asking for the one thing a
+ * label cannot do.
+ */
+function checkVisibility(input: EntryInput, problems: Problem[]): void {
+  if (input.visibility === undefined || input.visibility === null) return;
+  if (!(PHOTO_VISIBILITIES as readonly unknown[]).includes(input.visibility)) {
+    problems.push({
+      field: "visibility",
+      got: describe(input.visibility),
+      expected:
+        `one of ${PHOTO_VISIBILITIES.join(", ")}, or null to hold nothing back. ` +
+        "There is no \"public\": a label narrows what the trip's own visibility " +
+        "already allows and can never widen it, so null (or leaving the field out) " +
+        "is how a day goes back to being seen by everyone the trip lets in.",
+    });
   }
 }
 

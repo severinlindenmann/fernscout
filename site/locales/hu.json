@@ -608,6 +608,7 @@
   "me.tripCancel": "Mégse",
   "me.tripEdit": "{trip} szerkesztése",
   "me.tripEnd": "Vége",
+  "me.tripPartial": "Csak részben mutatja ezt az utat — néhány nap ennél is jobban vissza van tartva",
   "me.tripStart": "Kezdés",
   "me.tripTagline": "Alcím",
   "me.tripTitle": "Cím",

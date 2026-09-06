@@ -446,6 +446,19 @@ export function openApiDocument() {
                 "search index and the sitemap. Set it whenever you were asked to invent " +
                 "content; a string here is refused rather than ignored.",
             },
+            visibility: {
+              type: "string",
+              enum: [...PHOTO_VISIBILITIES],
+              description:
+                "This whole update, held back from readers the trip otherwise lets in — " +
+                "the same two words `GalleryItem.visibility` takes, meaning the same two " +
+                "populations, and it **narrows and never widens**: there is no `public` " +
+                "value, and a `guest` day inside a `private` trip stays private. Absent for " +
+                "almost every day, which is what \"everyone the trip lets in\" looks like. " +
+                "A labelled day is absent from the page, the feed, the sitemap and the " +
+                "search index for a reader below its level, and its markdown twin answers " +
+                "as though the day did not exist.",
+            },
             idempotency_key: {
               type: "string",
               description:
@@ -491,6 +504,15 @@ export function openApiDocument() {
               type: "string",
               enum: [...TRAVEL_SCENE_VARIANTS],
               description: `Same meaning as on creation. One of ${TRAVEL_SCENE_VARIANTS.join(", ")}.`,
+            },
+            visibility: {
+              type: "string",
+              enum: [...PHOTO_VISIBILITIES],
+              description:
+                "Same meaning as on creation, and — unlike `photoVisibility` — writable here " +
+                "too, since this is one scalar on the day itself rather than a label matched " +
+                "against a photograph's `src`. `null` clears it, the same as `photoVisibility` " +
+                "does; there is no `public` to ask for, for the same reason.",
             },
             translations: {
               type: "object",

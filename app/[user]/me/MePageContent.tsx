@@ -388,7 +388,17 @@ function TripRow({
           href={trip.href}
           className="flex min-h-14 flex-1 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-3 transition-colors hover:bg-cream-50"
         >
-          <span className="font-display text-lg font-semibold text-navy-900">{trip.title}</span>
+          <span className="flex-1">
+            <span className="block font-display text-lg font-semibold text-navy-900">
+              {trip.title}
+            </span>
+            {/* B632 — a trip may hold some of its own days back further than
+                the rest of it; a row that only says "you can read this trip"
+                would leave a reader thinking they are seeing all of it. */}
+            {trip.partial && (
+              <span className="block text-xs text-navy-500">{t("me.tripPartial")}</span>
+            )}
+          </span>
           <span className="text-sm text-navy-600">{t(reasonKey)}</span>
         </Link>
         {edit && (

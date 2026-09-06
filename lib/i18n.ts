@@ -692,6 +692,7 @@ export type TranslationKey =
   | "me.tripCancel"
   | "me.tripEdit"
   | "me.tripEnd"
+  | "me.tripPartial"
   | "me.tripStart"
   | "me.tripTagline"
   | "me.tripTitle"

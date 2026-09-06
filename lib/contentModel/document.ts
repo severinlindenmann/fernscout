@@ -268,6 +268,11 @@ export function contentModel(): ContentModelDocument {
       // (`data.test === true`), so this is a plain, deliberately shared key,
       // not a file/wire split.
       test: { type: "boolean" },
+      // B632: known to the API (openapi.json carries the real enum, the same
+      // two words a photograph's own label takes) — a plain, deliberately
+      // shared key, same as `test` above: `lib/entries.ts` reads it straight
+      // off the day's own frontmatter.
+      visibility: {},
     }),
 
     ...rulesFor("costs.md", {

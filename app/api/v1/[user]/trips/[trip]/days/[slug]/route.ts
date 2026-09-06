@@ -123,6 +123,10 @@ export async function GET(
      * the renderer uses; this is the same question.
      */
     ...(isTestContent(found, entry) ? { test: true } : {}),
+    // B632 — a field this endpoint takes on the way in has to be readable
+    // back, or an agent checking its own work cannot tell whether the label
+    // stuck.
+    ...(entry.visibility ? { visibility: entry.visibility } : {}),
     content: entry.content,
     // Stated rather than implied. An agent reporting back to a person needs to
     // say whether this is on the site, and `status` absent from a response is

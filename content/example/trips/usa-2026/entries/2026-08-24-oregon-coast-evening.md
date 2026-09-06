@@ -8,6 +8,7 @@ countryCode: "US"
 lat: 45.8918
 lng: -123.9615
 weather: true
+visibility: guest
 tags: ["oregon", "coast"]
 costs:
   - { label: "Laundrette", amount: 9, category: "other", currency: "USD" }

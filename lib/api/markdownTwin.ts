@@ -2,7 +2,7 @@ import "server-only";
 import { getEntryBySlug } from "../entries";
 import { isTestContent } from "../access";
 import { journalTombstone, tripTombstone, type Tombstone } from "../tombstones";
-import { mayReadTrip } from "../tripGate";
+import { mayReadTrip, readerLevelFor } from "../tripGate";
 import { currentTripRef, getTrip, getTrips, tripRef } from "../trips";
 import type { Entry, Trip } from "../types";
 import { translationLines } from "./entries";
@@ -84,7 +84,12 @@ async function inNamedTrip(user: string, tripId: string, slug: string): Promise<
   const ref = tripRef(user, tripId);
   const trip = await readable(ref);
   if (!trip) return null;
-  const entry = getEntryBySlug(ref, slug);
+  // B632: without this, an update held back with `visibility:` read as
+  // `reader: "public"` by default (the closed default `ReadOptions.reader`
+  // is built for) — which would refuse it to an approved guest too, not only
+  // to a stranger. `mayReadTrip` above already answered the trip's own gate;
+  // this is the finer-grained question the entry's own label asks.
+  const entry = getEntryBySlug(ref, slug, { reader: await readerLevelFor(trip) });
   return entry ? { entry, trip } : null;
 }
 
@@ -100,7 +105,7 @@ async function inCurrentTripOrAnyOther(user: string, slug: string): Promise<Foun
   if (current) {
     const trip = await readable(current);
     if (trip) {
-      const entry = getEntryBySlug(current, slug);
+      const entry = getEntryBySlug(current, slug, { reader: await readerLevelFor(trip) });
       if (entry) return { entry, trip };
     }
   }
@@ -108,7 +113,7 @@ async function inCurrentTripOrAnyOther(user: string, slug: string): Promise<Foun
   for (const trip of getTrips(user)) {
     if (trip.ref === current) continue;
     if (!(await mayReadTrip(trip))) continue;
-    const entry = getEntryBySlug(trip.ref, slug);
+    const entry = getEntryBySlug(trip.ref, slug, { reader: await readerLevelFor(trip) });
     if (entry) return { entry, trip };
   }
   return null;

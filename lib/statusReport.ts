@@ -156,9 +156,13 @@ export async function collectStatus(): Promise<StatusReport> {
             // Two reads rather than one: `getDays` filters drafts unless asked,
             // and the difference between the two is the number of days waiting
             // for somebody to look at them — which is the one an owner acts on.
-            const published = getDays(trip.ref).length;
+            // `reader: "person"` on both — B632 — since this is an operator's
+            // own report and a held-back day is still published or still a
+            // draft; reading at the closed default would double-count a
+            // published, labelled day as a draft.
+            const published = getDays(trip.ref, { reader: "person" }).length;
             days += published;
-            drafts += getDays(trip.ref, { includeDrafts: true }).length - published;
+            drafts += getDays(trip.ref, { includeDrafts: true, reader: "person" }).length - published;
           }
           const contacts = hasDatabase
             ? await section(`${username} contacts`, () => listContacts(username), [])

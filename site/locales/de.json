@@ -608,6 +608,7 @@
   "me.tripCancel": "Abbrechen",
   "me.tripEdit": "{trip} bearbeiten",
   "me.tripEnd": "Ende",
+  "me.tripPartial": "Zeigt einen Teil dieser Reise — einige Tage sind weiter zurückgehalten als der Rest",
   "me.tripStart": "Beginn",
   "me.tripTagline": "Untertitel",
   "me.tripTitle": "Titel",
