@@ -207,7 +207,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (13)
+## in-development (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -220,12 +220,10 @@ _Nothing here._
 | [B573](in-development/B573-a-journal-written-by-the-helper.md) | A journal written by the helper tools can never carry weather | FEATURE | medium | low | `ac8af30e` |
 | [B578](in-development/B578-editing-a-day-s-title-on.md) | Editing a day's title on disk makes publish unable to find that day again | ISSUE | medium | low | `ac8af30e` |
 | [B07](in-development/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium | `6b9bf0a6` |
-| [B322](in-development/B322-the-photobook-and-the-digest-read.md) | The photobook and the digest read only published days, and nobody has said whether that is a decision | CHORE | low | low | `6b9bf0a6` |
-| [B479](in-development/B479-the-photobook-receipt-test-bans-an.md) | The photobook receipt test bans an English word rather than checking a claim | CHORE | low | low | `6b9bf0a6` |
 | [B484](in-development/B484-the-photobook-result-panel-can-render.md) | The photobook result panel can render with no download links | ISSUE | low | low | `6b9bf0a6` |
 | [B552](in-development/B552-the-web-preview-and-the-pdf.md) | The web preview and the PDF renderer are two implementations of one layout | CHORE | low | high | `6b9bf0a6` |
 
-## testing (266)
+## testing (268)
 
 ### security (2)
 
@@ -462,7 +460,7 @@ _Nothing here._
 | [B368](testing/small-feature/B368-there-is-no-way-to-ask.md) | There is no way to ask for more credits, and the payment provider does not exist yet | FEATURE | low | medium | — |
 | [B475](testing/small-feature/B475-the-nightly-status-mail-is-a.md) | The nightly status mail is a wall of monospace while every other letter this instance sends is designed | FEATURE | low | medium | — |
 
-### chore (19)
+### chore (21)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -483,6 +481,8 @@ _Nothing here._
 | [B200](testing/chore/B200-the-restore-drill-dumps-a-database.md) | The restore drill dumps a database no migration has touched, so the archive it proves restorable is empty | CHORE | low | low | — |
 | [B202](testing/chore/B202-a-postcard-recipient-s-ss-becomes.md) | A postcard recipient's ß becomes a hyphen, so a German surname loses a letter | CHORE | low | low | — |
 | [B24](testing/chore/B24-nothing-notices-when-a-file-stops.md) | Nothing notices when a file stops being used | CHORE | low | low | — |
+| [B322](testing/chore/B322-the-photobook-and-the-digest-read.md) | The photobook and the digest read only published days, and nobody has said whether that is a decision | CHORE | low | low | — |
+| [B479](testing/chore/B479-the-photobook-receipt-test-bans-an.md) | The photobook receipt test bans an English word rather than checking a claim | CHORE | low | low | — |
 | [B71](testing/chore/B71-the-per-day-media-ceiling-test.md) | The per-day media ceiling test asserts on problems[0], and failed once in a full run | CHORE | low | low | — |
 | [B81](testing/chore/B81-the-notify-script-still-calls-a.md) | The notify script still calls a closed trip password-protected | CHORE | low | low | — |
 

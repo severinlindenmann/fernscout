@@ -7,8 +7,7 @@ complexity: low
 area: photobook, digest
 found: "2026-09-04T17:05:32Z"
 started: "2026-09-06T14:20:17Z"
-session: 6b9bf0a6-5ea8-4f27-bfcd-df5022696053
-claimed: "2026-09-06T14:20:17Z"
+merged: "2026-09-06T14:28:08Z"
 ---
 
 # B322 — The photobook and the digest read only published days, and nobody has said whether that is a decision
