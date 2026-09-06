@@ -87,9 +87,17 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
    * `teaser` is only true on a `guest` or `private` trip (the parser refuses
    * it elsewhere), and this subtracts what `listableTrips` already returned,
    * so a reader who *may* see the trip gets the real card rather than two.
-   * Nothing beyond the title, the dates and the accent goes into the payload:
-   * no cover, no tagline, no stats, no accent colour and no route on the
-   * lifetime map — the lists below are all built from `trips`, never from this.
+   * Nothing beyond the title and the dates goes into the card's payload: no
+   * cover, no tagline, no stats, no accent colour — the card lists below are
+   * built from `trips`, never from this.
+   *
+   * The lifetime map is the one exception, and it is country-level only
+   * (B600): a teasered trip fills the countries it reached and appears in the
+   * map's legend, and contributes **no stops, no route line and no
+   * coordinates** — not even to the frame, which is why `countryCorners`
+   * below reads a country's own outline rather than the trip's places. It
+   * stays out of the four lifetime figures too: those count what this reader
+   * may actually read.
    */
   const listedRefs = new Set(trips.map((t) => t.ref));
   const locked = all.filter((t) => t.teaser && !listedRefs.has(t.ref));
@@ -235,6 +243,20 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
     }
   }
   /**
+   * Which countries a teasered trip reached, and nothing else about it — B600.
+   *
+   * Published days only: a draft on a closed trip is doubly not this reader's,
+   * and `getPlaces` would happily hand over both. The `country`/`countryCode`
+   * of those days is all that is read, and only the code and the name ever
+   * leave this function.
+   */
+  const lockedCountries = locked.flatMap((trip) =>
+    getPlaces(trip.ref, { includeDrafts: false })
+      .filter((p) => p.countryCode && p.country)
+      .map((p) => ({ trip, code: p.countryCode!, name: p.country! })),
+  );
+
+  /**
    * The outline comes from here, on the server, rather than being fetched and
    * matched in the browser: the fill *is* this map's meaning, so resolving it
    * client-side left the server render with no countries in it — an empty
@@ -242,6 +264,18 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
    * the countries actually visited is also a fraction of the 143 KB of all
    * 177. B361.
    */
+  /**
+   * The teasered trips' countries, merged into the same map — B600. A country
+   * both a readable and a locked trip reached is one country with two trips
+   * against it, which is what the fill depth already means.
+   */
+  for (const { trip, code, name } of lockedCountries) {
+    if (!countryNames.has(code)) countryNames.set(code, name);
+    const list = visitsByCode.get(code) ?? [];
+    if (!list.some((t) => t.id === trip.id)) list.push({ id: trip.id, title: trip.title });
+    visitsByCode.set(code, list);
+  }
+
   /**
    * Flag colours, assigned over a stable order — B370. Sorted by code rather
    * than taken from the Map's insertion order, which follows whatever order
@@ -314,8 +348,32 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
     travelled.flatMap((t) => placesByTrip.get(t.ref)!.map((p) => p.country).filter(Boolean)),
   );
 
+  /**
+   * Where a teasered trip's countries sit, at country resolution — B600.
+   *
+   * The frame has to include a filled country or the fill is drawn off-screen,
+   * and the honest way to widen it is the country's *own* outline: a bounding
+   * box round the trip's actual stops would put the region somebody stayed in
+   * into a public page, which is exactly what this feature promised not to do.
+   * `project` is `(lng + 180) / 360 * 1000` and `(90 - lat) / 180 * 500`, so
+   * the inverse is two lines and needs no library.
+   */
+  const countryCorners = (path: string) => {
+    const nums = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+    const xs = nums.filter((_, i) => i % 2 === 0);
+    const ys = nums.filter((_, i) => i % 2 === 1);
+    if (xs.length === 0 || ys.length === 0) return [];
+    const lngs = [Math.min(...xs), Math.max(...xs)].map((x) => (x / 1000) * 360 - 180);
+    const lats = [Math.min(...ys), Math.max(...ys)].map((y) => 90 - (y / 500) * 180);
+    return lats.flatMap((lat) => lngs.map((lng) => ({ lat, lng })));
+  };
+  const lockedFramePoints = [
+    ...new Set(lockedCountries.map((c) => c.code)),
+  ].flatMap((code) => countryCorners(worldCountries.find((c) => c.code === code)?.path ?? ""));
+
   // The frame the basemap is clipped to: everything the map will draw.
-  const mapFrame = routes.length > 0 ? frameRoute(routes.flatMap((r) => r.points)) : null;
+  const framePoints = [...routes.flatMap((r) => r.points), ...lockedFramePoints];
+  const mapFrame = framePoints.length > 0 ? frameRoute(framePoints) : null;
 
   return (
     <TripsIndexContent
@@ -327,11 +385,13 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
       // Every trip's points at once: the lifetime map frames all of them, so
       // the clip has to cover all of them too.
       //
-      // Guarded on `routes`, not on the points, because that is the condition
-      // the map itself is drawn on (TripsIndexContent) — a journal of trips
-      // that were never geotagged still gets a world map, and a basemap for
-      // it. A journal with nothing but upcoming trips draws no map, and was
-      // paying 160 KB of clipped-to-nothing world for it (B85).
+      // Guarded on the points the map will actually draw — the routes this
+      // reader may see, plus the outlines of any teasered trip's countries
+      // (B600), which is the same condition the map itself is drawn on
+      // (TripsIndexContent). A journal of trips that were never geotagged
+      // still gets a world map, and a basemap for it. A journal with nothing
+      // but upcoming trips draws no map, and was paying 160 KB of
+      // clipped-to-nothing world for it (B85).
       basemap={mapFrame ? basemapFor(mapFrame) : null}
       empty={empty}
       malformed={malformed}

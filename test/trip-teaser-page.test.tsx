@@ -36,6 +36,20 @@ beforeEach(() => {
     path.join(dir, "alex", "config.json"),
     JSON.stringify({ title: "Alex", owner: { name: "A B", nickname: "A", email: "a@t.test" } }),
   );
+  // Two days: one published, one draft, both in Portugal. The draft must not
+  // reach the map either — see the assertions below.
+  fs.writeFileSync(
+    path.join(dir, "alex", "trips", "closed-2026", "entries", "2026-01-02-faro.md"),
+    ["---", 'title: "Faro"', 'date: "2026-01-02"', 'location: "Faro"', 'country: "Portugal"',
+      'countryCode: "PT"', "lat: 37.0194", "lng: -7.9304", 'status: "published"', "---", "",
+      "Ankunft.", ""].join("\n"),
+  );
+  fs.writeFileSync(
+    path.join(dir, "alex", "trips", "closed-2026", "entries", "2026-01-03-lagos.md"),
+    ["---", 'title: "Lagos"', 'date: "2026-01-03"', 'location: "Lagos"', 'country: "Spain"',
+      'countryCode: "ES"', "lat: 37.1028", "lng: -8.6742", 'status: "draft"', "---", "",
+      "Ein Entwurf.", ""].join("\n"),
+  );
   fs.writeFileSync(
     path.join(dir, "alex", "trips", "closed-2026", "trip.md"),
     ["---", 'id: "closed-2026"', 'title: "Quiet"', 'tagline: "A fortnight"', 'cover: "cover.jpg"',
@@ -83,7 +97,35 @@ describe("a reader who may not open a teasered trip", () => {
   test("and is not told the journal is empty, because it is not", async () => {
     const props = (await pageProps()) as { empty: unknown; routes: unknown[] };
     expect(props.empty).toBeNull();
-    // Nothing about the trip reaches the lifetime map either.
+    // No route, no stops, no coordinates — B600 draws countries and nothing
+    // else, and the route list is where a stop would have travelled.
     expect(props.routes).toEqual([]);
+  });
+
+  test("fills the countries its published days reached, and only those", async () => {
+    const props = (await pageProps()) as {
+      visits: { code: string; name: string; trips: { id: string; title: string }[] }[];
+      lifetime: { countries: number; days: number; photos: number; trips: number };
+    };
+    // Portugal from the published day. Not Spain: that day is a draft, and a
+    // draft on a closed trip is doubly not this reader's.
+    expect(props.visits.map((v) => v.code)).toEqual(["PT"]);
+    expect(props.visits[0].trips).toEqual([{ id: "closed-2026", title: "Quiet" }]);
+    // And it counts towards none of the four figures, which are about what
+    // this reader may actually read.
+    expect(props.lifetime).toEqual({ countries: 0, days: 0, photos: 0, trips: 0 });
+  });
+
+  test("puts no stop, coordinate or place name of the trip in the payload", async () => {
+    const props = await pageProps();
+    // The whole props object, not one field: the promise is about what leaves
+    // the server, and a stop that reached the map through the frame, the
+    // basemap or a legend would show up here.
+    const sent = JSON.stringify(props);
+    for (const secret of ["37.0194", "-7.9304", "Faro", "Lagos", "Spain"]) {
+      expect(sent, `${secret} reached a reader who may not open the trip`).not.toContain(secret);
+    }
+    // And the map is drawn all the same — the country fill needs a basemap.
+    expect((props as { basemap: unknown }).basemap).not.toBeNull();
   });
 });
