@@ -4,6 +4,7 @@ import { getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { buildStoryProps } from "@/lib/tripView";
 import { draftsVisibleTo, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { photobookEntryFor } from "@/lib/photobook/entry";
 import { DayStructuredData } from "@/components/StructuredData";
 import { getUser, getUsernames } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
@@ -104,6 +105,10 @@ export default async function TripDayPage({
   const userConfig = getUser(user);
   if (!userConfig) notFound();
 
+  // Not `isOwner` inline: see the note beside the equivalent call in the
+  // gallery page.
+  const photobook = await photobookEntryFor(trip);
+
   return (
     <TripProvider trip={trip} isCurrent={false} canPublish={drafts.canPublish}>
       <DayStructuredData
@@ -119,6 +124,7 @@ export default async function TripDayPage({
         openAtDate={entry.date}
         stats={stats}
         basemap={basemap}
+        photobook={photobook}
       />
     </TripProvider>
   );

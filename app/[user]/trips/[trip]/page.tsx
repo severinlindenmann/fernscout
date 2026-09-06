@@ -7,6 +7,7 @@ import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { buildStoryProps, showsCountdown } from "@/lib/tripView";
 import { getPlan } from "@/lib/plan";
 import { getBudgetInBase } from "@/lib/costs";
+import { photobookEntryFor } from "@/lib/photobook/entry";
 import { BlogStructuredData } from "@/components/StructuredData";
 import { getUser, getUsernames } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
@@ -98,6 +99,9 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
   });
   const userConfig = getUser(user);
   if (!userConfig) notFound();
+  // Not `isOwner` inline: see the note beside the equivalent call in the
+  // gallery page.
+  const photobook = await photobookEntryFor(trip);
   return (
     <TripProvider trip={trip} isCurrent={false}>
       <BlogStructuredData
@@ -112,6 +116,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
         initialDate={initialDate}
         stats={stats}
         basemap={basemap}
+        photobook={photobook}
       />
     </TripProvider>
   );
