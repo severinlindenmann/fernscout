@@ -72,6 +72,10 @@ vi.mock("@/lib/contacts", () => ({
 // can send it again, which this test does not exercise and only has to stub.
 vi.mock("@/lib/contacts/invites", () => ({ listInvitesWithLinks: async () => [] }));
 vi.mock("@/lib/contacts/session", () => ({ isOwner: async () => true }));
+// B630: the page derives owner/buddy/guest per row, which needs a live
+// database this test has none of — irrelevant to the header being the
+// subject here.
+vi.mock("@/lib/grants", () => ({ contactsWithReadGrant: async () => new Set() }));
 // The trips a writing link could name. None: the subject here is the header.
 vi.mock("@/lib/trips", () => ({ getTrips: () => [] }));
 vi.mock("@/lib/site", () => ({ serverSite: () => ({ url: "https://example.test" }) }));

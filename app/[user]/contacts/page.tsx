@@ -6,14 +6,17 @@ import PageHeader from "@/components/PageHeader";
 import { isOpenToApprovedGuest } from "@/lib/access";
 import { isEnabled } from "@/lib/capabilities";
 import { listContacts, manageTokenFor, normaliseEmail } from "@/lib/contacts";
+import { contactsWithReadGrant } from "@/lib/grants";
 import { deviceCountByContact } from "@/lib/push";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { listInvitesWithLinks } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
+import { relationshipsFor } from "@/lib/contacts/relationships";
 import { isOwner } from "@/lib/contacts/session";
 
 import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
+import { peopleOf } from "@/lib/tripPeople";
 import { getTrips } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import { whatsappCountryCode } from "@/lib/whatsapp/settings";
@@ -85,25 +88,6 @@ export default async function ContactsAdminPage({
   // second call would be the same scrypt work for the same answer.
   const all = await listContacts(username);
 
-  const contacts: AdminContact[] = all.map((contact) => ({
-    id: contact.id,
-    name: contact.name,
-    email: contact.email,
-    locale: contact.locale,
-    status: contact.status,
-    wantsEmailDigest: contact.wantsEmailDigest,
-    wantsPostcard: contact.wantsPostcard,
-    wantsWhatsapp: contact.wantsWhatsapp,
-    // Decrypted here and nowhere else on the public side: the owner is the one
-    // person besides its owner who is entitled to read it.
-    postalAddress: contact.hasPostalAddress ? (contact.postalAddress ?? EMPTY_ADDRESS) : null,
-    pushDevices: pushOn ? (devices[contact.id] ?? 0) : null,
-    createdVia: contact.createdVia,
-    createdAt: contact.createdAt,
-    confirmedAt: contact.confirmedAt,
-    lastSeenAt: contact.lastSeenAt,
-  }));
-
   // One read, two questions: the trips a buddy link can name, and whether
   // approving somebody opens anything at all (B300) — a `guest` trip is the
   // only kind an approval reaches. `getTrips` was already loaded here for
@@ -121,6 +105,42 @@ export default async function ContactsAdminPage({
    */
   const ownEmail = user.owner.email ? normaliseEmail(user.owner.email) : null;
   const ownRow = ownEmail ? all.find((row) => row.email === ownEmail) : undefined;
+
+  // B630 — the same three facts the gates themselves ask, read once each for
+  // the whole page rather than per row. `peopleOf()` already merges a trip's
+  // `people:` with its redeemed buddy-link rows; `contactsWithReadGrant` is
+  // the one query `journalReader` asks per request, done here for every
+  // contact at once so a row's tag can never disagree with what actually lets
+  // that person in.
+  const tripMemberships = await Promise.all(
+    trips.map(async (trip) => ({ id: trip.id, title: trip.title, people: await peopleOf(trip) })),
+  );
+  const liveGrants = await contactsWithReadGrant(username, new Date());
+
+  const contacts: AdminContact[] = all.map((contact) => ({
+    id: contact.id,
+    name: contact.name,
+    email: contact.email,
+    locale: contact.locale,
+    status: contact.status,
+    wantsEmailDigest: contact.wantsEmailDigest,
+    wantsPostcard: contact.wantsPostcard,
+    wantsWhatsapp: contact.wantsWhatsapp,
+    // Decrypted here and nowhere else on the public side: the owner is the one
+    // person besides its owner who is entitled to read it.
+    postalAddress: contact.hasPostalAddress ? (contact.postalAddress ?? EMPTY_ADDRESS) : null,
+    pushDevices: pushOn ? (devices[contact.id] ?? 0) : null,
+    createdVia: contact.createdVia,
+    createdAt: contact.createdAt,
+    confirmedAt: contact.confirmedAt,
+    lastSeenAt: contact.lastSeenAt,
+    relationship: relationshipsFor(
+      contact.email,
+      ownEmail,
+      tripMemberships,
+      contact.status === "active" && liveGrants.has(contact.id),
+    ),
+  }));
 
   return (
     // The header is the way back, and this page needs one more than most: it is
