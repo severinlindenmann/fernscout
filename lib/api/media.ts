@@ -5,12 +5,12 @@ import sharp from "sharp";
 import { decodeSource, extensionFor, makeDerivative } from "../ingest/image.ts";
 import { getEntryBySlug } from "../entries";
 import { frontmatterSrc } from "../ingest/paths.ts";
-import { tripMediaDir, tripOriginalsDir } from "../media";
+import { resolveMediaFile, tripMediaDir, tripOriginalsDir } from "../media";
 import { getTrips, parseTripRef, tripDir } from "../trips";
 import { IMAGE_FORMATS, validateMediaBatch, type MediaCandidate, type Problem } from "../validate/media";
 import { VIDEO_EXTENSIONS, probeVideo, transcodeVideo, videoToolsAvailable } from "../ingest/video";
 import { loadUserConfig } from "../config";
-import type { PhotoVisibility } from "../photos";
+import { mediaKey, type PhotoVisibility } from "../photos";
 import type { GalleryItem } from "../types";
 
 /**
@@ -443,4 +443,84 @@ export async function storeUploads(
   }
 
   return { ok: true, items, kept: originals };
+}
+
+/**
+ * A trusted `src` or `poster`, resolved and removed — best-effort, never an
+ * error for a file already gone.
+ *
+ * Through `resolveMediaFile`, the same guarded resolve the read route uses:
+ * it refuses anything that would resolve outside `tripMediaDir`, so a `src`
+ * this function is ever handed has to have been matched against the day's
+ * own gallery first (see `detachGallery` in lib/api/entries.ts, the only
+ * caller). `segments[0]` is checked against `tripId` for the same reason a
+ * hand-edited frontmatter file is not fully trusted content — a gallery item
+ * naming a different trip's media is left alone rather than resolved into
+ * that trip's directory.
+ */
+function removeIfOwnedByTrip(username: string, tripId: string, src: string | undefined): void {
+  if (!src) return;
+  const segments = mediaKey(src).split("/");
+  if (segments[0] !== tripId) return;
+  const file = resolveMediaFile(username, segments);
+  if (!file) return;
+  try {
+    fs.unlinkSync(file);
+  } catch {
+    // Already gone.
+  }
+}
+
+/**
+ * Delete one photograph's files — the derivative, the poster if it is a
+ * clip, and the kept original — for B605.
+ *
+ * The original is found by the derivative's own stem rather than by a name
+ * nothing here is told: `storeUploads` numbers both from the same `index`
+ * but the two may carry different extensions (a HEIC original behind a JPEG
+ * derivative), so `01.jpg` in `media/` and `01.heic` in `originals/` are the
+ * same photograph and neither name predicts the other's. The scan below is
+ * over a directory this function already knows is the trip's own, never over
+ * a path built from the request.
+ */
+export function deleteMediaFiles(ref: string, item: GalleryItem): void {
+  const parsed = parseTripRef(ref);
+  if (!parsed) return;
+  const { username, tripId } = parsed;
+
+  removeIfOwnedByTrip(username, tripId, item.src);
+  removeIfOwnedByTrip(username, tripId, item.poster);
+
+  const segments = mediaKey(item.src).split("/");
+  if (segments[0] !== tripId || segments.length < 2) return;
+  const rest = segments.slice(1);
+  const filename = rest[rest.length - 1];
+  const dirs = rest.slice(0, -1);
+  const stem = path.basename(filename, path.extname(filename));
+
+  // The same containment `resolveMediaFile` applies to the derivative, which
+  // this half was doing without: `dirs` comes from a `src` read off disk, and
+  // frontmatter is not something the API writes — a hand-edited `src:` of
+  // `/u/media/<trip>/../../..` passes the `tripId` check above and would have
+  // this scanning, and unlinking stem-matched files from, a directory outside
+  // the trip. Only reachable by somebody who can already edit the file, so it
+  // is asymmetry rather than a hole; a delete path is the wrong place to
+  // leave one.
+  const originalsRoot = path.resolve(tripOriginalsDir(ref));
+  const originalsDir = path.resolve(originalsRoot, ...dirs);
+  if (originalsDir !== originalsRoot && !originalsDir.startsWith(originalsRoot + path.sep)) return;
+  let siblings: string[] = [];
+  try {
+    siblings = fs.readdirSync(originalsDir);
+  } catch {
+    // No original was kept, or it is already gone.
+  }
+  for (const sibling of siblings) {
+    if (path.basename(sibling, path.extname(sibling)) !== stem) continue;
+    try {
+      fs.unlinkSync(path.join(originalsDir, sibling));
+    } catch {
+      // Already gone.
+    }
+  }
 }

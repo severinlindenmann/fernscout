@@ -2273,6 +2273,65 @@ export function openApiDocument() {
             },
           },
         },
+        delete: {
+          summary: "Take a photograph off a day, for good",
+          description:
+            "This route could put photographs on and never take one off, so the only " +
+            "remedy for a duplicate or a wrong upload was a shell on the server — B605. " +
+            "`src` — one or more — has to be exactly what `GET .../days/<slug>` handed back " +
+            "for this day; a name the day does not carry refuses the whole call rather than " +
+            "removing the rest and leaving you to notice which one silently did not land.\n\n" +
+            "**The files are actually deleted**: the derivative, the poster if it was a clip, " +
+            "and the kept original — not merely detached from the day. A photobook or " +
+            "postcard order that already named one of these files is untouched; both resolve " +
+            "the photograph live, at send or print time, so deleting one a *pending* order " +
+            "names will make that order fail the same way it would if you had deleted the " +
+            "file by hand. A completed order already has its copy at the printer and is not " +
+            "affected either way.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["day", "src"],
+                  properties: {
+                    day: {
+                      type: "string",
+                      description: "The day these photographs are on.",
+                    },
+                    src: {
+                      type: "array",
+                      items: { type: "string" },
+                      description:
+                        "One or more, exactly as GET .../days/<slug> hands them back in " +
+                        "`gallery`. Every one has to already be on this day, or nothing is " +
+                        "removed.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Removed. `removed` lists the `src` of every photograph actually deleted, " +
+                "and `note` says plainly when the day is already published, so anyone reading " +
+                "it can now see the removal.",
+            },
+            "400": {
+              description:
+                "No `src` at all, or one naming a photograph this day does not have — the " +
+                "response says which",
+            },
+            "404": { description: "No such day in this trip" },
+          },
+        },
       },
       "/api/auth/handover": {
         post: {
