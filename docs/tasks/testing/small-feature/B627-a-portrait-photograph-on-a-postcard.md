@@ -7,8 +7,7 @@ complexity: medium
 area: postcards, photo crop
 found: "2026-09-06T17:51:43Z"
 started: "2026-09-06T18:39:47Z"
-session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
-claimed: "2026-09-06T18:39:47Z"
+merged: "2026-09-06T19:00:20Z"
 ---
 
 # B627 — A portrait photograph on a postcard is centre-cropped with no way to choose the crop
