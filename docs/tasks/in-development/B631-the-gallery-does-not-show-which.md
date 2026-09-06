@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: gallery, photo visibility
 found: "2026-09-06T17:51:44Z"
+started: "2026-09-06T18:39:47Z"
+session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
+claimed: "2026-09-06T18:39:47Z"
 ---
 
 # B631 — The gallery does not show which photographs are held back

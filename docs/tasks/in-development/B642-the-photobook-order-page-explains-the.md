@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: photobook, order page
 found: "2026-09-06T17:51:57Z"
+started: "2026-09-06T18:39:46Z"
+session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
+claimed: "2026-09-06T18:39:46Z"
 ---
 
 # B642 — The photobook order page explains the spine, the soft prints and the extras badly
