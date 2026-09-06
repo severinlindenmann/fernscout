@@ -212,12 +212,11 @@ Do not edit them by hand; run the script.
 | [B297](backlog/superseded/B297-a-nul-byte-in-the-idempotency.md) | A NUL byte in the idempotency key separator makes git treat the whole file as binary | CHORE | low | low |
 | [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
-## open (3)
+## open (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B573](open/B573-a-journal-written-by-the-helper.md) | A journal written by the helper tools can never carry weather | FEATURE | medium | low |
-| [B580](open/B580-plan-md-is-checked-for-existence.md) | plan.md is checked for existence and never for what is inside it | ISSUE | low | low |
 | [B581](open/B581-a-day-that-declined-photographs-is.md) | A day that declined photographs is still tipped to add some | ISSUE | low | low |
 
 ## in-development (3)
@@ -226,9 +225,9 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B571](in-development/B571-an-anonymous-flood-of-page-requests.md) | an anonymous flood of page requests writes unbounded analytics rows | ISSUE | medium | low | `c2cdeefe` |
 | [B578](in-development/B578-editing-a-day-s-title-on.md) | Editing a day's title on disk makes publish unable to find that day again | ISSUE | medium | low | `ac8af30e` |
-| [B579](in-development/B579-a-stale-health-cache-silently-switches.md) | A stale health cache silently switches off the media checks | ISSUE | medium | low | `ac8af30e` |
+| [B580](in-development/B580-plan-md-is-checked-for-existence.md) | plan.md is checked for existence and never for what is inside it | ISSUE | low | low | `ac8af30e` |
 
-## testing (261)
+## testing (262)
 
 ### security (2)
 
@@ -237,7 +236,7 @@ Do not edit them by hand; run the script.
 | [B468](testing/security/B468-the-status-mail-names-every-journal.md) | The status mail names every journal, including unlisted ones, to an address a journal's own config chooses | SECURITY | high | low | — |
 | [B473](testing/security/B473-journal-names-and-their-capability-posture.md) | Journal names and their capability posture are handed out unauthenticated by /api/health and /openapi.json | SECURITY | high | low | — |
 
-### issue (127)
+### issue (128)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -324,6 +323,7 @@ Do not edit them by hand; run the script.
 | [B563](testing/issue/B563-the-day-view-offers-a-cover.md) | The day view offers a cover, map and costs drill-in that has nothing in it | ISSUE | medium | low | — |
 | [B574](testing/issue/B574-publish-dry-run-overstates-the-photographs.md) | publish --dry-run overstates the photographs it will upload | ISSUE | medium | low | — |
 | [B576](testing/issue/B576-a-german-book-prints-english-dates.md) | A German book prints English dates | ISSUE | medium | low | — |
+| [B579](testing/issue/B579-a-stale-health-cache-silently-switches.md) | A stale health cache silently switches off the media checks | ISSUE | medium | low | — |
 | [B582](testing/issue/B582-postcards-can-only-be-started-from.md) | Postcards can only be started from the current trip's gallery | ISSUE | medium | low | — |
 | [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |

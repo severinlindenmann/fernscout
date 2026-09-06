@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper, api cache, validate-content
 found: "2026-09-06T14:03:33Z"
 started: "2026-09-06T14:06:05Z"
-session: ac8af30e-815d-4843-a94d-cf061a70269c
-claimed: "2026-09-06T14:06:05Z"
+merged: "2026-09-06T14:12:22Z"
 ---
 
 # B579 — A stale health cache silently switches off the media checks
