@@ -211,7 +211,19 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     );
   }
 
-  const days = typeof body.days === "number" && Number.isFinite(body.days) ? body.days : undefined;
+  // Whole days only. `Number.isFinite` alone let `2.5` through (B553) to
+  // `inviteExpiry`, which would have set an expiry nobody asked for rather
+  // than refusing a value that does not answer "how many days".
+  if (body.days !== undefined && (typeof body.days !== "number" || !Number.isInteger(body.days))) {
+    return Response.json(
+      {
+        error: "invalid_request",
+        message: `days must be a whole number, got ${JSON.stringify(body.days)}.`,
+      },
+      { status: 400 },
+    );
+  }
+  const days = typeof body.days === "number" ? body.days : undefined;
   const locale = typeof body.locale === "string" ? body.locale : undefined;
   const created = await createInvite(user, {
     kind,

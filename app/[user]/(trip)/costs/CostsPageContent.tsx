@@ -118,6 +118,16 @@ export default function CostsPageContent({
             heading promising a breakdown. */}
         {!planned && (
           <>
+            {/* Said before the charts rather than after them, because it
+                changes how every number under it should be read: a day whose
+                spending nobody recorded counts as a zero everywhere here, and
+                a zero means "nothing was spent". B560. */}
+            {summary.unrecordedDays > 0 && (
+              <p className="text-sm text-ink/70">
+                {t("cost.unrecordedDays").replace("{count}", String(summary.unrecordedDays))}
+              </p>
+            )}
+
             <Section title={t("cost.perDayChart")}>
               <DailyColumns
                 data={summary.byDay}

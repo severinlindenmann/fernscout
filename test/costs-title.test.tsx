@@ -131,6 +131,7 @@ const summary: CostSummary = {
   preparation: 40,
   perDay: 20,
   daysWithSpend: 3,
+  unrecordedDays: 0,
   byCategory: [],
   byCountry: [],
   byDay: [],

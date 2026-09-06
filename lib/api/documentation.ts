@@ -1256,13 +1256,18 @@ ${dayFieldRows()}
 track of some things, and a day that says nothing about one of them is refused
 with \`422 incomplete_day\`. There are always two honest answers: send the value,
 or **decline it** — \`"costs": false\`, \`"coordinates": false\`, \`"photos": false\`,
-each meaning *there was none of this on this day*. Ask the person which.
+each meaning *there was none of this on this day* — **or \`"unknown"\`**, meaning
+*there was some and nobody has it*. Ask the person which.
 
-**A decline is a fact, not a way past the refusal.** It is written into the
-journal and read years later, so \`"costs": false\` on a day somebody paid cash
-for and cannot remember is a false statement this software will keep for them.
-If they do not know, there is no third value to send: ask, or leave the day
-unwritten until they can say. That is slower and it is the only honest move.
+**The second and the third are different things to say about somebody's day,
+and this journal keeps whichever you write.** \`false\` becomes
+\`without: [costs]\` and \`"unknown"\` becomes \`unrecorded: [costs]\`, so a
+reader years from now can tell *there was none* from *nobody wrote it down*
+from *nobody asked*. Cash somebody paid and cannot remember is the third
+answer. A day marked unrecorded still goes up, and the costs page counts it as
+a zero and says so, rather than quietly reporting a total that is too low.
+
+Never invent a figure, and never reach for a decline to get past a refusal.
 
 ${scriptIntro(dayQuestions().length)}
 

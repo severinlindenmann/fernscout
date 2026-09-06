@@ -307,6 +307,7 @@ export type TranslationKey =
   | "cost.tripDescriptionPlanned"
   | "cost.unconverted"
   | "cost.underBudget"
+  | "cost.unrecordedDays"
   | "cost.what"
   | "cost.when"
   | "creditsPay.back"

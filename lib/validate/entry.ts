@@ -10,6 +10,7 @@
 // mistake needs the whole list in one round trip; a single "something is
 // wrong" forces it to guess, fix, resubmit, and find the next one.
 import { COST_CATEGORIES, type CostCategory } from "../costFormat";
+import { UNKNOWN } from "../tracks";
 import { RESERVED_SOURCES, hasMeasurement } from "../weather";
 import { captionProblem } from "./media";
 
@@ -113,6 +114,12 @@ export type EntryInput = {
   translations?: unknown;
   /** A caption per photograph, keyed by `src`. Edit only — B522. */
   captions?: unknown;
+  /** Declared here since B553 so `checkPlaceWords` can see them: they were in
+   *  `DraftInput` and not here, which is exactly how they went unchecked. */
+  location?: unknown;
+  country?: unknown;
+  transportFrom?: unknown;
+  transportTo?: unknown;
   /** Ask the server to look up what the weather was. B325. */
   weather?: unknown;
   /** A reading the caller took themselves. B325 — and see `checkWeatherData`
@@ -221,6 +228,27 @@ function checkCountryCode(input: EntryInput, problems: Problem[]): void {
   }
 }
 
+/**
+ * The four fields that were declared and never checked — B553.
+ *
+ * `location`, `country`, `transportFrom` and `transportTo` are in `DraftInput`
+ * and were not in `EntryInput`, so nothing here ever looked at them. A number
+ * reached `quoteScalar`, which throws, and the caller got a 500 where every
+ * other bad field is a 400 naming itself — the one shape of answer that tells
+ * an agent to report a bug rather than fix its body.
+ */
+function checkPlaceWords(input: EntryInput, problems: Problem[]): void {
+  for (const field of ["location", "country", "transportFrom", "transportTo"] as const) {
+    const value = input[field];
+    if (value === undefined || typeof value === "string") continue;
+    problems.push({
+      field,
+      got: describe(value),
+      expected: "a string — the name of the place, as a person would write it",
+    });
+  }
+}
+
 function checkTransportMode(input: EntryInput, problems: Problem[]): void {
   if (input.transportMode === undefined) return;
   if (
@@ -282,17 +310,27 @@ function checkTravelScene(input: EntryInput, problems: Problem[]): void {
  * caller that sent one meant *something*, and being told which value is
  * accepted is cheaper than a day quietly written as though nothing was said.
  */
+/**
+ * The two words that are answers rather than values.
+ *
+ * `false` says *there was none of this*; `"unknown"` says *there was some and
+ * nobody has it* — B560. Anything else on these fields is refused, because a
+ * caller that sent something meant something, and reading an unrecognised
+ * value as "not mentioned" is how a day ends up saying what nobody said.
+ */
 function checkDeclines(input: EntryInput, problems: Problem[]): void {
   for (const field of ["coordinates", "photos"] as const) {
     const value = input[field];
-    if (value === undefined || value === false) continue;
+    if (value === undefined || value === false || value === UNKNOWN) continue;
     problems.push({
       field,
       got: describe(value),
       expected:
         field === "coordinates"
-          ? 'false — the only thing this word says. To place the day, send lat and lng instead'
-          : 'false — the only thing this word says. To add photographs, POST them to .../media',
+          ? 'false (this day has no one place) or "unknown" (it happened somewhere and ' +
+            "nobody can say where). To place the day, send lat and lng instead"
+          : 'false (there are no pictures from this day) or "unknown" (there are some and ' +
+            "nobody has them to hand). To add photographs, POST them to .../media",
     });
   }
 }
@@ -303,8 +341,18 @@ export function checkCosts(input: EntryInput, problems: Problem[]): void {
   // which is a statement about the day rather than a malformed list, so it
   // passes here and is written as `without: [costs]` instead.
   if (input.costs === false) return;
+  // `"unknown"` is the third answer — B560. Money was spent and the figures
+  // are gone, which is neither a list nor an absence, and is written as
+  // `unrecorded: [costs]`.
+  if (input.costs === UNKNOWN) return;
   if (!Array.isArray(input.costs)) {
-    problems.push({ field: "costs", got: describe(input.costs), expected: "a list of cost items" });
+    problems.push({
+      field: "costs",
+      got: describe(input.costs),
+      expected:
+        'a list of cost items, or false (nothing was spent), or "unknown" (money was ' +
+        "spent and nobody has the figures)",
+    });
     return;
   }
 
@@ -680,6 +728,7 @@ export function validateEntry(
   checkDate(input, problems);
   checkTime(input, problems);
   checkCountryCode(input, problems);
+  checkPlaceWords(input, problems);
   checkCoordinates(input, problems);
   checkTransportMode(input, problems);
   checkTravelScene(input, problems);
@@ -737,6 +786,7 @@ export function validateEntryEdit(
   checkDate(input, problems, false);
   checkTime(input, problems);
   checkCountryCode(input, problems);
+  checkPlaceWords(input, problems);
   checkCoordinates(input, problems);
   checkTransportMode(input, problems);
   checkTravelScene(input, problems);

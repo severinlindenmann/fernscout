@@ -48,6 +48,18 @@ Not doing: `/api/auth/*`, `/api/contacts/*`, `/api/push/*`, `/api/reactions`.
 Browser flows, different callers, different threat model. Own capture if the
 same failure shows up there.
 
+## Done as part of B540
+
+Nothing was left to do by the time this was taken. B540 documented every route
+while making the contract executable, so `WITHOUT_A_SCHEMA` in
+`test/api-route-schemas.test.ts` is empty and asserted empty, and
+`test/openapi-contract.test.ts` fails on any `/api/v1` or `/api/auth` route+verb
+that is not in the document. The sixteen routes this ticket listed all have a
+`requestBody` schema and all call `checkBody` through the published document.
+
+Kept rather than superseded: the acceptance below is exactly what those two
+tests assert, so this is a thing to verify rather than a thing to abandon.
+
 ## Acceptance
 
 - Every `/api/v1` route that reads a body has a `requestBody` schema and calls

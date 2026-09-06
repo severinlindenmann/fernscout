@@ -954,5 +954,6 @@
   "weatherPage.dayCount.one": "{count} day",
   "weatherPage.temperature": "Day by day",
   "weatherPage.rainfall": "Rain and snow, day by day",
-  "weatherPage.credit": "Readings recorded by"
+  "weatherPage.credit": "Readings recorded by",
+  "cost.unrecordedDays": "{count} of these days has spending nobody wrote down, so the totals below are at least this much rather than exactly this much."
 }

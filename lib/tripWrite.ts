@@ -233,6 +233,11 @@ export function tracksBlock(raw: unknown): BlockResult {
   return { ok: true, lines: tracksLines(parseTracks(given)) };
 }
 
+/** The only keys a `people[]` entry writes. Named so the refusal below can
+ * list them, the same reason `FIGURE_FIELDS` is named rather than checked
+ * inline. */
+const PEOPLE_FIELDS: ReadonlySet<string> = new Set(["name", "email", "nickname"]);
+
 export function peopleBlock(raw: unknown): BlockResult {
   if (raw === undefined || raw === null) return NO_LINES;
   if (!Array.isArray(raw)) {
@@ -269,6 +274,22 @@ export function peopleBlock(raw: unknown): BlockResult {
       };
     }
     const entry = item as Record<string, unknown>;
+
+    // Refused rather than dropped, the same way `travellersBlock` refuses an
+    // unknown figure field (B553): a 201 that silently threw away a key the
+    // caller sent is "it was accepted" meaning something other than "it was
+    // understood".
+    const unknown = Object.keys(entry).filter((k) => !PEOPLE_FIELDS.has(k));
+    if (unknown.length > 0) {
+      return {
+        ok: false,
+        error: "invalid_people",
+        message:
+          `${at} has ${unknown.map((k) => JSON.stringify(k)).join(", ")}, which is not a ` +
+          `person field. Expected: ${[...PEOPLE_FIELDS].join(", ")}.`,
+      };
+    }
+
     const name = typeof entry.name === "string" ? entry.name.trim() : "";
     const email = typeof entry.email === "string" ? entry.email.trim().toLowerCase() : "";
     if (!name) {

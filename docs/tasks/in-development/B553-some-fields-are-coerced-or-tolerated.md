@@ -52,6 +52,24 @@ refuse unknown *fields* on these routes soon anyway.
 Not doing: `travelScene`, which is deliberately read back as the default
 rather than refused and says so in the document.
 
+## Built
+
+All five, each with a test that failed first:
+
+- `units` on `POST /api/v1/journals` refuses anything that is not `metric` or
+  `imperial`, instead of silently making a typo `metric`.
+- `days` on an invite must be a whole number.
+- `people[]` refuses an unknown key by name, the way `travellers[]` beside it
+  always has. `PEOPLE_FIELDS` is `name`, `email`, `nickname`; `peopleBlock` was
+  confirmed to be the only writer.
+- `location`, `country`, `transportFrom` and `transportTo` are type-checked.
+  They were in `DraftInput` and not in `EntryInput`, so a number reached
+  `quoteScalar`, which throws — a 500 where every other bad field is a 400
+  naming itself, and a 500 tells an agent to report a bug rather than fix its
+  body.
+- `/api/auth/identity/request` answers `503` for a mail failure, like its two
+  siblings, rather than `502`.
+
 ## Acceptance
 
 - `units: "Metric"` is refused, not silently made metric.

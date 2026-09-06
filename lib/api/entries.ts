@@ -26,7 +26,16 @@ import { reverseGeocode } from "../ingest/geo";
 import { slugify } from "../slug.ts";
 import { getTrip, parseTripRef, tripDir, tripRef } from "../trips";
 import type { Entry, GalleryItem, Trip } from "../types";
-import { TRACKS, parseWithout, withoutLine, type DayFacts, type Track } from "../tracks";
+import {
+  UNKNOWN,
+  TRACKS,
+  parseUnrecorded,
+  parseWithout,
+  unrecordedLine,
+  withoutLine,
+  type DayFacts,
+  type Track,
+} from "../tracks";
 import { tripGaps } from "./tripGaps";
 import { quoteScalar } from "../validate/frontmatter";
 import { type DayWeather, weatherLine } from "../weather";
@@ -87,22 +96,28 @@ export type DraftInput = {
    * then dropped on the floor, because this writer never emitted it. A field
    * the API validates is a field the API has promised to keep.
    */
-  costs?: CostInput[] | false;
+  costs?: CostInput[] | false | typeof UNKNOWN;
   /**
    * The two other declines — B531, and see `lib/tracks.ts`.
    *
-   * `false` is the only value either takes, and it is a statement about the
-   * day rather than a switch on the request: *this day has no one place to put
-   * on a map*, *there are no pictures from this day*. `costs: false` above is
-   * the same word in the same sense, which is why it shares that field rather
-   * than getting one of its own — an agent that has costs sends costs, and one
-   * that asked and was told there were none says so in the same key.
+   * `false` is a statement about the day rather than a switch on the request:
+   * *this day has no one place to put on a map*, *there are no pictures from
+   * this day*. `costs: false` above is the same word in the same sense, which
+   * is why it shares that field rather than getting one of its own — an agent
+   * that has costs sends costs, and one that asked and was told there were
+   * none says so in the same key.
    *
-   * All three are written to the entry as `without: [...]`, never as the
-   * field itself.
+   * **`"unknown"` is the third answer** — B560 — and it is on these same
+   * fields for the same reason: a caller stuck on `costs` should find every
+   * answer it can give by reading about `costs`. It means *there was some of
+   * this and nobody has it*, which is not `false` and is the commonest truth
+   * about a trip that finished a while ago.
+   *
+   * `false` is written to the entry as `without: [...]`, `"unknown"` as
+   * `unrecorded: [...]`, and never as the field itself.
    */
-  coordinates?: false;
-  photos?: false;
+  coordinates?: false | typeof UNKNOWN;
+  photos?: false | typeof UNKNOWN;
   /** How the day was travelled. Same story as `costs` — validated since W29,
    * written since W38. */
   transportMode?: string;
@@ -397,10 +412,33 @@ function draftDoesNotReadBack(file: string, input: DraftInput): string | null {
  * `costs: false` living in the same field as a list of costs is the sort of
  * thing that is read wrong once per reader otherwise.
  */
+/** The cost lines, when `costs` carries lines at all — `false` and
+ * `"unknown"` are answers *about* the list rather than members of it. */
+function costLinesOf(input: Partial<DraftInput>): CostInput[] | undefined {
+  return Array.isArray(input.costs) ? input.costs : undefined;
+}
+
 export function declinedIn(input: Partial<DraftInput>): Track[] {
-  return TRACKS.filter((key) =>
-    key === "costs" ? input.costs === false : input[key as "coordinates" | "photos"] === false,
-  );
+  return TRACKS.filter((key) => answerFor(input, key) === false);
+}
+
+/**
+ * The rows this write says nobody knows the answer to — B560.
+ *
+ * The third answer, and the one the contract was missing: `"costs": "unknown"`
+ * says money was spent and the figures are gone, which is neither a value nor
+ * *there was none*. Without it a caller holding a refusal and no number had
+ * one door left, and took it — a journal ended up saying no money was spent on
+ * two days somebody paid a homestay in cash.
+ */
+export function unrecordedIn(input: Partial<DraftInput>): Track[] {
+  return TRACKS.filter((key) => answerFor(input, key) === UNKNOWN);
+}
+
+/** The three rows are answered on three differently-typed fields; this is the
+ * one place that knows which. */
+function answerFor(input: Partial<DraftInput>, key: Track): unknown {
+  return key === "costs" ? input.costs : input[key as "coordinates" | "photos"];
 }
 
 /**
@@ -416,6 +454,7 @@ export function factsOfInput(input: Partial<DraftInput>, declined: Track[] = dec
     coordinates: typeof input.lat === "number" && typeof input.lng === "number",
     photos: false,
     without: declined,
+    unrecorded: unrecordedIn(input),
   };
 }
 
@@ -426,6 +465,7 @@ export function factsOfEntry(entry: Entry): DayFacts {
     coordinates: entry.lat !== undefined && entry.lng !== undefined,
     photos: entry.gallery.length > 0,
     without: entry.without ?? [],
+    unrecorded: entry.unrecorded ?? [],
   };
 }
 
@@ -479,7 +519,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
   }
 
   const { costs: stampedCosts, applied: costCurrency } = stampCostCurrencies(
-    input.costs === false ? undefined : input.costs,
+    costLinesOf(input),
     input,
     journalBaseCurrency(ref),
   );
@@ -514,6 +554,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
     // What this day says it deliberately does not have. B531 — the line that
     // makes "nothing was spent" different from "nobody asked".
     ...withoutLine(declinedIn(input)),
+    ...unrecordedLine(unrecordedIn(input)),
     // Written only when true — see the note on NewTrip.test.
     ...(input.test === true ? ["test: true"] : []),
     // The line that keeps a person in the loop. Removing it publishes.
@@ -880,7 +921,7 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
     set("weatherData", input.weatherData ? weatherLine(input.weatherData) : null);
   }
   if (input.costs !== undefined) {
-    closing = spliceCosts(lines, closing, input.costs === false ? undefined : input.costs);
+    closing = spliceCosts(lines, closing, costLinesOf(input));
   }
   /**
    * The declines, on an edit — B531.
@@ -892,16 +933,28 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
    * answered.
    */
   {
-    const declined = new Set<Track>(parseWithout(matter(markdown).data.without));
+    const front = matter(markdown).data;
+    const declined = new Set<Track>(parseWithout(front.without));
+    const unknown = new Set<Track>(parseUnrecorded(front.unrecorded));
     for (const key of TRACKS) {
       const said = key === "costs" ? input.costs : input[key as "coordinates" | "photos"];
+      if (said === undefined) continue;
+      // Three answers, and each one retracts the other two: a day cannot
+      // sensibly say both that it had none of something and that nobody knows
+      // how much of it there was. B560.
+      declined.delete(key);
+      unknown.delete(key);
       if (said === false) declined.add(key);
-      else if (said !== undefined) declined.delete(key);
+      else if (said === UNKNOWN) unknown.add(key);
     }
     // Coordinates arrive as two fields rather than one, so they are the one
     // row an edit can answer without naming the row.
-    if (input.lat !== undefined && input.lng !== undefined) declined.delete("coordinates");
+    if (input.lat !== undefined && input.lng !== undefined) {
+      declined.delete("coordinates");
+      unknown.delete("coordinates");
+    }
     closing = spliceScalar(lines, closing, "without", withoutLine([...declined])[0] ?? null);
+    closing = spliceScalar(lines, closing, "unrecorded", unrecordedLine([...unknown])[0] ?? null);
   }
   if (input.translations !== undefined) {
     closing = spliceTranslations(lines, closing, input.translations);

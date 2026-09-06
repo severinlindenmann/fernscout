@@ -81,6 +81,10 @@ export async function GET(
     // could not tell "there was no money on this day" from "nobody asked". It
     // then asks again, and asking again is how an amount gets invented. B540.
     ...(entry.without?.length ? { without: entry.without } : {}),
+    // And what nobody knows — B560. The two have to be distinguishable here of
+    // all places: an agent reading a day back to check its own work must not
+    // read "nobody recorded the money" as "there was none".
+    ...(entry.unrecorded?.length ? { unrecorded: entry.unrecorded } : {}),
     ...(Number.isFinite(entry.lat) ? { lat: entry.lat } : {}),
     ...(Number.isFinite(entry.lng) ? { lng: entry.lng } : {}),
     gallery: entry.gallery,

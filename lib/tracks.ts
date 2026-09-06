@@ -39,6 +39,17 @@
 export const TRACKS = ["costs", "coordinates", "photos"] as const;
 export type Track = (typeof TRACKS)[number];
 
+/**
+ * The third answer, as it travels on the wire — B560.
+ *
+ * A string rather than another boolean, and on the *same field* rather than a
+ * new one, because that is what makes it findable: a caller stuck on `costs`
+ * reads the refusal for `costs` and every answer it can give is there. A
+ * separate `unrecorded: ["costs"]` field would have been tidier to implement
+ * and easy to never notice.
+ */
+export const UNKNOWN = "unknown";
+
 /** Every row's answer for one trip. */
 export type Tracks = Record<Track, boolean>;
 
@@ -60,6 +71,11 @@ export type DayFacts = {
   /** What this day says it deliberately does not have — `without:` in its
    *  frontmatter, which is what `"costs": false` writes. */
   without: readonly Track[];
+  /** What this day says **nobody knows** — `unrecorded:` in its frontmatter,
+   *  which is what `"costs": "unknown"` writes. B560, and it is a different
+   *  statement from `without` in the way that matters most: *there was none*
+   *  against *there was some and it was not written down*. */
+  unrecorded: readonly Track[];
 };
 
 type Row = {
@@ -78,6 +94,9 @@ type Row = {
   /** What declining it *means*. Never "skip the check": every one of these is
    *  a statement about the day, which is why it is written to the file. */
   decline: string;
+  /** The third answer — B560. See `NOT_KNOWN` above for why two were not
+   *  enough. */
+  unknown: string;
 };
 
 /**
@@ -100,30 +119,37 @@ type Row = {
  * person's to decide; B554 carries it.
  */
 const NOT_KNOWN =
-  "**\"I do not know\" is not this.** A decline is a fact about the day — that " +
-  "there was none of this — and it is written into the journal as one, for a " +
-  "reader years from now. If the person spent money and cannot remember how " +
-  "much, do not send `false`: ask them, or leave the day unwritten until they " +
-  "can tell you. Nothing here is more urgent than that.";
+  "**\"I do not know\" is not this** — send `\"unknown\"` for that, which is a " +
+  "different statement and is written into the day as a different line.";
 
 export const TRACK_ROWS: Record<Track, Row> = {
   costs: {
     when: "write",
     keeps: "what it costs",
     send: 'costs: [{"label": "Dinner", "amount": 42, "currency": "EUR"}] — each thing separately, in the currency it was paid in',
-    decline: `"costs": false — nothing was spent on this day, or nothing worth recording. ${NOT_KNOWN}`,
+    decline: `"costs": false — nothing was spent on this day. ${NOT_KNOWN}`,
+    unknown:
+      '"costs": "unknown" — money was spent and nobody has the figures. The day goes ' +
+      "up saying so, which is true, and the person can fill it in later. This is the " +
+      "answer for cash nobody wrote down.",
   },
   coordinates: {
     when: "write",
     keeps: "where its days happened",
     send: "lat and lng, as numbers — they are what put the day on the map",
     decline: `"coordinates": false — this day has no one place to put on a map. ${NOT_KNOWN}`,
+    unknown:
+      '"coordinates": "unknown" — it happened somewhere and nobody can say where. ' +
+      "Better than a plausible pin: an invented place is a lie the map tells confidently.",
   },
   photos: {
     when: "publish",
     keeps: "photographs",
     send: `POST .../trips/<trip>/media with day=<slug> and the files — it adds them to the day`,
     decline: `"photos": false — there are no pictures from this day. ${NOT_KNOWN}`,
+    unknown:
+      '"photos": "unknown" — there are pictures somewhere and nobody has them to hand. ' +
+      "They can be added afterwards; the day does not have to wait.",
   },
 };
 
@@ -165,6 +191,17 @@ export function withoutLine(without: readonly Track[]): string[] {
   return named.length === 0 ? [] : [`without: [${named.join(", ")}]`];
 }
 
+/** `unrecorded: [costs]` for an entry, or none — B560. */
+export function unrecordedLine(unrecorded: readonly Track[]): string[] {
+  const named = TRACKS.filter((key) => unrecorded.includes(key));
+  return named.length === 0 ? [] : [`unrecorded: [${named.join(", ")}]`];
+}
+
+/** Read `unrecorded:` off an entry's frontmatter. Same rules as `without`. */
+export function parseUnrecorded(raw: unknown): Track[] {
+  return parseWithout(raw);
+}
+
 /** Read `without:` off an entry's frontmatter, ignoring anything that is not
  * a row — an unknown word there says nothing this code can act on. */
 export function parseWithout(raw: unknown): Track[] {
@@ -177,6 +214,7 @@ export type Missing = {
   why: string;
   send: string;
   decline: string;
+  unknown: string;
 };
 
 /**
@@ -193,12 +231,16 @@ export function missingFrom(
 ): Missing[] {
   return TRACKS.filter((key) => tracks[key])
     .filter((key) => (when === "publish" ? true : TRACK_ROWS[key].when === "write"))
-    .filter((key) => !facts[key] && !facts.without.includes(key))
+    .filter(
+      (key) =>
+        !facts[key] && !facts.without.includes(key) && !facts.unrecorded.includes(key),
+    )
     .map((key) => ({
       field: key,
       why: `This trip keeps track of ${TRACK_ROWS[key].keeps}, and this day says nothing about it.`,
       send: TRACK_ROWS[key].send,
       decline: TRACK_ROWS[key].decline,
+      unknown: TRACK_ROWS[key].unknown,
     }));
 }
 
@@ -213,14 +255,20 @@ export function missingFrom(
  */
 export function incompleteMessage(missing: Missing[], published: boolean): string {
   const fields = missing.map((m) => `\`${m.field}\``).join(" and ");
+  const say = (pick: (m: Missing) => string) => missing.map((m) => pick(m).split(" — ")[0]).join(", ");
   return (
     `Nothing was ${published ? "published" : "written"}. This trip keeps track of ` +
     `${missing.map((m) => TRACK_ROWS[m.field].keeps).join(" and ")}, and this day says ` +
     `nothing about ${missing.length > 1 ? "either" : "it"}. **Ask the person** — that is ` +
-    `the answer here, not a value you supply from what seems likely. If you have asked and ` +
-    `there is nothing to record, say so in the call: ${missing
-      .map((m) => m.decline.split(" — ")[0])
-      .join(", ")}. That is written into the day as ${fields} it deliberately does not ` +
-    `have, so a reader a year from now can tell it from nobody having asked.`
+    `the answer here, not a value you supply from what seems likely.\n\n` +
+    `There are three answers and all of them are honest. Send the value. Or, if you have ` +
+    `asked and there was none: ${say((m) => m.decline)} — written into the day as ${fields} ` +
+    `it deliberately does not have, so a reader a year from now can tell it from nobody ` +
+    `having asked. Or, if there was some and nobody has it: ${say((m) => m.unknown)} — ` +
+    `written as ${fields} nobody recorded, which is the truth about most of a trip that ` +
+    `finished a while ago.\n\n` +
+    `**Do not use the second where you mean the third.** "There was none" and "nobody ` +
+    `remembers" are different things to say about somebody's day, and this journal keeps ` +
+    `whichever you write.`
   );
 }

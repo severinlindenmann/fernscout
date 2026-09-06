@@ -320,18 +320,21 @@ export function openApiDocument() {
               description: "Lowercase letters, digits and single hyphens.",
             },
             costs: {
-              type: ["array", "boolean"],
+              type: ["array", "boolean", "string"],
               items: { $ref: "#/components/schemas/Cost" },
               description:
                 "What this day cost, each line in the currency it was paid in — or " +
-                "`false`, meaning *nothing was spent on this day*. A trip that tracks " +
-                "costs refuses a day that says neither (422 `incomplete_day`), and `false` " +
-                "is written into the day as something it deliberately does not have, so a " +
-                "reader can tell it from nobody having asked. **\"I do not know\" is not " +
-                "`false`.** A decline is a fact about the day, kept for years; if money was " +
-                "spent and nobody remembers how much, ask, or leave the day unwritten until " +
-                "they can say. Never invent a figure, and never decline to get past the " +
-                "refusal.",
+                "`false`, meaning *nothing was spent on this day*, or `\"unknown\"`, " +
+                "meaning *money was spent and nobody has the figures*.\n\n" +
+                "A trip that tracks costs refuses a day that says none of the three (422 " +
+                "`incomplete_day`). All three are honest and the difference is kept: " +
+                "`false` writes `without: [costs]`, `\"unknown\"` writes " +
+                "`unrecorded: [costs]`, and a reader years from now can tell *there was " +
+                "none* from *nobody wrote it down* from *nobody asked*.\n\n" +
+                "**Do not send `false` where you mean `\"unknown\"`.** Cash somebody paid " +
+                "and cannot remember is the third answer, not the second — and the costs " +
+                "page counts an unrecorded day as a zero and says so, rather than quietly " +
+                "reporting a total that is too low. Never invent a figure.",
             },
             transportMode: {
               type: "string",
@@ -392,17 +395,19 @@ export function openApiDocument() {
               },
             },
             coordinates: {
-              type: "boolean",
+              type: ["boolean", "string"],
               description:
-                "Only ever `false`, and only on create — *this day has no one place to put " +
+                "`\"unknown\"` is the third answer: it happened somewhere and nobody can say where. Better than a plausible pin — an invented place is a lie the map tells confidently." +
+                "\n\n`false`, and only on create — *this day has no one place to put " +
                 "on a map*. The positive answer is `lat` and `lng`; there is no " +
                 "`coordinates: true`. A trip that tracks location refuses a day that says " +
                 "neither (422 `incomplete_day`).",
             },
             photos: {
-              type: "boolean",
+              type: ["boolean", "string"],
               description:
-                "Only ever `false`, and only on create — *this day has no photographs*. " +
+                "`\"unknown\"` is the third answer: there are pictures somewhere and nobody has them to hand. They can be added later; the day does not have to wait." +
+                "\n\n`false`, and only on create — *this day has no photographs*. " +
                 "Pictures never arrive in this body; they are a separate call to " +
                 "…/media. A trip that tracks photos checks for them at publish rather than " +
                 "here, so this is what lets a day without any go up.",

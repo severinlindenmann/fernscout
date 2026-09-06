@@ -218,6 +218,20 @@ export type Entry = {
    * their spending left on somebody's laptop.
    */
   without?: Track[];
+  /**
+   * What this day says nobody knows — B560.
+   *
+   * `unrecorded: [costs]` is what `"costs": "unknown"` becomes, and it is a
+   * different claim from `without`. *There was no money on this day* and
+   * *money was spent and the figures are gone* are both honest, and only one
+   * of them was sayable: a model handed a refusal, no number and one remaining
+   * door wrote the first about a day somebody had paid cash for.
+   *
+   * Absence renders as nothing, which reads correctly — a day with no costs
+   * simply shows none. This does not: it has to be said out loud, or it looks
+   * like the absence it is not.
+   */
+  unrecorded?: Track[];
 };
 
 /** One calendar day, which may hold several updates ("branches"). */

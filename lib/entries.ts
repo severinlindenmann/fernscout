@@ -10,7 +10,7 @@ import { hasHappened } from "./tripTime";
 import type { Day, Entry, EntryTranslations, GalleryItem, MediaTile, TravelSceneVariant } from "./types";
 import { TRAVEL_SCENE_VARIANTS } from "./validate/entry";
 import { parseWeather } from "./weather";
-import { parseWithout } from "./tracks";
+import { parseUnrecorded, parseWithout } from "./tracks";
 
 /**
  * Forgets gray-matter's own parse cache — not this module's, gray-matter's.
@@ -269,6 +269,7 @@ function readAllEntries(ref: string): Entry[] {
       // nothing it can act on, and dropping it is not a reason to refuse a
       // day that reads fine otherwise.
       without: parseWithout(data.without),
+      unrecorded: parseUnrecorded(data.unrecorded),
     } satisfies Entry];
   });
 
