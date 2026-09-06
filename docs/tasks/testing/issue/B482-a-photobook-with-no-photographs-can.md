@@ -7,8 +7,7 @@ complexity: low
 area: photobook, credits
 found: "2026-09-05T15:17:19Z"
 started: "2026-09-06T14:20:13Z"
-session: 6b9bf0a6-5ea8-4f27-bfcd-df5022696053
-claimed: "2026-09-06T14:20:13Z"
+merged: "2026-09-06T14:34:11Z"
 ---
 
 # B482 — A photobook with no photographs can still be paid for from a stale tab
