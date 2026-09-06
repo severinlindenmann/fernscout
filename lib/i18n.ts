@@ -764,6 +764,7 @@ export type TranslationKey =
   | "photobook.day.runOn"
   | "photobook.day.runOnHint"
   | "photobook.done"
+  | "photobook.done.filesInMail"
   | "photobook.downloadFile"
   | "photobook.duplicate"
   | "photobook.excluded.heading"

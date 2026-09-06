@@ -142,6 +142,27 @@ describe("the order route", () => {
       );
     });
 
+    /**
+     * B482. `preview/route.ts` already refuses to call a photograph-less book
+     * `buyable`, but that is a courtesy the browser can be talked out of — a
+     * stale tab that previewed while the trip still had photographs, then had
+     * them all excluded or removed, could still post this form. Nothing here
+     * cost anything (`spend`/`buildPhotobook`/`claimOrder` never run) and the
+     * redirect says why, rather than silently paying ~90 credits for a padded
+     * text-only book.
+     */
+    test("a book with no photographs charges nothing, even from a stale tab", async () => {
+      vi.mocked(planFor).mockReturnValue({ ...BOOK, photoCount: 0 } as never);
+
+      const response = await POST(orderRequest("order-no-photos"), { params });
+
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toContain("state=no_photos");
+      expect(claimOrder).not.toHaveBeenCalled();
+      expect(buildPhotobook).not.toHaveBeenCalled();
+      expect(spend).not.toHaveBeenCalled();
+    });
+
     test("a balance that moves under a finished book keeps the files and says so", async () => {
       // The narrow race the check above cannot close: two of the owner's own
       // sessions. The book exists, so it is kept — pressing Pay again after

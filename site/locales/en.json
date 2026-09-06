@@ -683,6 +683,7 @@
   "photobook.day.excludeHint": "Its page, its photographs and its place in the chapter are all removed. The route map is unaffected.",
   "photobook.day.excludedPreview": "This day is left out of the book, so there is no page here to show.",
   "photobook.done": "Ordered. The files are ready and a mail is on its way.",
+  "photobook.done.filesInMail": "The download links are in the mail that is on its way, rather than here.",
   "photobook.failed": "The book could not be built, and your credits are back.",
   "photobook.duplicate": "This book is already being made — a second press does not start another one.",
   "photobook.excluded.heading": "Days left out",
