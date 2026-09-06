@@ -110,7 +110,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
   // gallery page.
   const photobook = await photobookEntryFor(trip);
   return (
-    <TripProvider trip={trip} isCurrent={false}>
+    <TripProvider trip={trip} isCurrent={false} reader={read.reader}>
       <BlogStructuredData
         entries={getAllEntries(trip.ref)}
         site={site}

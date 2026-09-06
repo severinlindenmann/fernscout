@@ -110,7 +110,7 @@ export default async function TripDayPage({
   const photobook = await photobookEntryFor(trip);
 
   return (
-    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish}>
+    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader}>
       <DayStructuredData
         entry={entry}
         site={site}

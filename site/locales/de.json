@@ -658,6 +658,8 @@
   "pay.transaction": "Transaktion",
   "pay.twint": "TWINT",
   "pay.working": "Wird erfasst…",
+  "photo.visibilityGuest": "Gast",
+  "photo.visibilityPrivate": "Privat",
   "photobook.start": "Fotobuch erstellen",
   "photobook.title": "Fotobuch",
   "photobook.option.size": "Format",

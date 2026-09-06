@@ -745,6 +745,8 @@ export type TranslationKey =
   | "pay.transaction"
   | "pay.twint"
   | "pay.working"
+  | "photo.visibilityGuest"
+  | "photo.visibilityPrivate"
   | "photobook.anotherBook"
   | "photobook.balance"
   | "photobook.binding.perfect"

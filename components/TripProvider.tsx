@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useMemo } from "react";
 import type { Trip } from "@/lib/types";
+import type { ReaderLevel } from "@/lib/photos";
 
 type Ctx = {
   trip: Trip;
@@ -32,6 +33,18 @@ type Ctx = {
    * narrower copy rather than telling a buddy the day is theirs to publish.
    */
   canPublish: boolean;
+  /**
+   * How far this reader has got, on `lib/photos.ts`' scale — B631.
+   *
+   * Same reasoning as `canPublish` beside it: one more piece of viewer state
+   * that a photograph's own marker needs, and the alternative was threading a
+   * second boolean through the same four components that `canPublish` was
+   * added here to avoid threading through.
+   *
+   * Defaults to `"public"`, so a page that forgets to pass it shows no marker
+   * at all rather than one to a reader who has not earned it.
+   */
+  reader: ReaderLevel;
 };
 
 const TripContext = createContext<Ctx | null>(null);
@@ -40,12 +53,15 @@ export default function TripProvider({
   trip,
   isCurrent,
   canPublish = false,
+  reader = "public",
   children,
 }: {
   trip: Trip;
   isCurrent: boolean;
   /** See `Ctx.canPublish`. Omitted where the page shows no drafts. */
   canPublish?: boolean;
+  /** See `Ctx.reader`. Omitted on a page that shows no gallery. */
+  reader?: ReaderLevel;
   children: React.ReactNode;
 }) {
   const value = useMemo<Ctx>(() => {
@@ -58,6 +74,7 @@ export default function TripProvider({
       trip,
       isCurrent,
       canPublish,
+      reader,
       base,
       userBase,
       // "/" is the story page, whose URL is the base itself — so it must not
@@ -66,7 +83,7 @@ export default function TripProvider({
       /** For pages that belong to the user rather than to one trip. */
       userHref: (path: string) => (path === "/" ? userBase : `${userBase}${path}`),
     };
-  }, [trip, isCurrent, canPublish]);
+  }, [trip, isCurrent, canPublish, reader]);
 
   return <TripContext.Provider value={value}>{children}</TripContext.Provider>;
 }

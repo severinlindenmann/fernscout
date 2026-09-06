@@ -63,7 +63,7 @@ export default async function TripGalleryPage({
   const postcard = await postcardEntryFor(trip);
 
   return (
-    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish}>
+    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader}>
       <GalleryPageContent
         media={getAllMedia(trip.ref, read)}
         places={getPlaces(trip.ref, read)}

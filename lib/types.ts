@@ -96,6 +96,9 @@ export type MediaTile = {
   country: string;
   countryCode?: string;
   date: string;
+  /** See `GalleryItem.visibility` — carried through so a `person`-level
+   * reader can be shown which tile is held back (B631). */
+  visibility?: PhotoVisibility;
 };
 
 /**
