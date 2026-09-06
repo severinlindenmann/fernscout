@@ -1970,6 +1970,8 @@ files=@DSC_4471.HEIC
 files=@DSC_4472.HEIC
 captions=The lanterns going up on the bridge
 captions=
+visibility=
+visibility=private
 \`\`\`
 
 **The photographs are put into the day for you.** There is nothing to paste,
@@ -2011,9 +2013,48 @@ prose is where the longer version belongs.
 \`captions\` as an object keyed by the photograph's \`src\`, exactly as you read
 it back — \`{"captions": {"/${example}/media/<trip>/lanterns-of-hoi-an/01.jpg":
 "The lanterns going up"}}\`. An empty string removes a caption; a \`src\` the
-day does not carry is ignored. Nothing else in the day changes, prose and
+day does not carry is **refused**, so a typo in the one argument this field
+takes cannot look like success. Nothing else in the day changes, prose and
 title included, and the photographs themselves are never rewritten by that
 call.
+
+### Holding one photograph back
+
+\`visibility\` runs alongside \`files\` the way \`captions\` does — one per
+picture, in the same order, empty for the ones nobody is holding back. It is
+the second and last part of a photograph you write, and it is here for the one
+frame in a day that should be seen by fewer people than the rest of it: a
+stranger's child, somebody's front door, a hospital room.
+
+Two values, and they mean what the same two words mean on a trip. \`guest\` —
+everybody the owner has approved into this journal, plus the people named on
+the trip. \`private\` — the people named on the trip, and the owner.
+
+**It narrows and never widens.** There is no \`public\`, and asking for one is
+refused rather than quietly accepted: a label holds a photograph back from
+readers the trip already lets in, and can never show one to somebody the trip
+keeps out. So a \`guest\` photograph inside a \`private\` trip is still only for
+the people who were there, and a picture carrying no label is already
+everybody's who can open the trip. **The whole day is the trip's own
+\`visibility\` to decide** — if most of a journey should be held back, that is
+one answer on the trip, not thirty labels on its photographs.
+
+A labelled photograph is absent from the day, from the gallery, and from every
+payload sent to a reader below its level, and its file answers \`404\`. It is
+held back rather than hidden, so there is no URL left to forward.
+
+**Only ever what the owner asked for**, and this is less yours to judge than a
+caption is: you cannot see who is in a photograph, or whether they would mind.
+A picture nobody said anything about is not held back on a hunch. Ask, and
+label the ones they name.
+
+**Changing your mind needs no re-upload:** \`PATCH .../days/<slug>\` with
+\`photoVisibility\`, keyed by \`src\` exactly as \`captions\` is —
+\`{"photoVisibility": {"/${example}/media/<trip>/lanterns-of-hoi-an/02.jpg":
+"private"}}\`. \`null\` clears a label, which is how a photograph goes back to
+being seen by everyone the trip lets in. A \`src\` the day does not carry is
+refused here too, because "I have marked that photograph private" followed by
+nothing landing is the worst answer this field could give.
 
 \`kept.filename\` is **advisory** — it is what the source called the file, not
 what is on disk. Sending bytes, that is your own filename and correlates. From

@@ -724,7 +724,8 @@ export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
    * measured off the file, and rewriting them from a request body is how a
    * day comes to point at photographs that are not there. So this edits the
    * `caption:` line inside items that already exist and touches nothing else
-   * — a `src` the day does not carry is ignored rather than added, and an
+   * — a `src` the day does not carry is refused rather than added (B540: it
+   * used to be ignored, which made a typo look exactly like success), and an
    * empty string removes the caption it names.
    *
    * The key is forgiving about the owner prefix: a day read back over the API
@@ -737,7 +738,7 @@ export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
    * keyed by `src` exactly as `captions` is, and `null` to clear a label.
    *
    * The same narrow rule applies: this edits one line inside items that
-   * already exist. A `src` the day does not carry is ignored rather than
+   * already exist. A `src` the day does not carry is refused rather than
    * added, because a label on a photograph nobody has is not a photograph.
    *
    * There is deliberately no way to say `public` here. A label narrows what
