@@ -27,6 +27,9 @@ import {
   NOT_WRITABLE,
   PERFECT_DAY_EXAMPLE,
   PERFECT_DAY_INTRO,
+  PERFECT_TRIP_EXAMPLE,
+  PERFECT_TRIP_INTRO,
+  TRIP_FIELDS,
   TITLE_COLLISION_EXAMPLE,
   PHOTOS_SECOND_CALL,
   PRIVATE_SHUTS_OUT_GUESTS,
@@ -245,12 +248,14 @@ export function instanceDocumentation(): string {
     "",
     ...wrap(NOT_WRITABLE, 78),
     "",
+    ...wrap(PERFECT_TRIP_INTRO.replace(/`/g, ""), 78),
+    "",
     "```http",
     `POST ${base()}/api/v1/their-name/trips`,
     "Authorization: Bearer fs_agent_…",
     "Content-Type: application/json",
     "",
-    '{"id": "japan-2027", "title": "Japan", "start": "2027-04-01", "end": "2027-05-15"}',
+    ...PERFECT_TRIP_EXAMPLE,
     "```",
     "",
     ...wrap(scriptIntro(dayQuestions().length), 78),
@@ -1044,55 +1049,27 @@ ${wrap(PRIVATE_SHUTS_OUT_GUESTS).join("\n")}
 
 ${wrap(NOT_WRITABLE).join("\n")}
 
+${wrap(PERFECT_TRIP_INTRO).join("\n")}
+
 \`\`\`http
 POST ${site.url}/api/v1/${example}/trips
 Authorization: Bearer fs_agent_…
 Content-Type: application/json
 
-{"id": "japan-2027", "title": "Japan", "start": "2027-04-01", "end": "2027-05-15",
- "visibility": "private"}
+${PERFECT_TRIP_EXAMPLE.join("\n")}
 \`\`\`
 
-If you wrote a \`trip.md\` yourself rather than posting here, read the list
-back — a folder the site refused comes back under \`malformed\`, saying what is
-wrong with it, instead of quietly not being there. \`start\` also decides the
-trip's status — passed shows its days, still ahead shows a countdown — so
-there is no \`"status"\` to send unless this is the trip the bare
-\`/${example}\` URLs should serve, which is \`"status": "current"\`.
+Every field, and whether it is required:
 
-\`"costsVisibility": "guests"\` is the separate question of the money, and only
-of the money: among the readers already allowed to open the trip, it keeps what
-it cost to the people who were on it and the readers the owner has approved
-into the journal. Left out, the numbers are shown to everyone who can read the
-trip. A title or a tagline must be one line — both are written as a single line
-of the trip's frontmatter, and a request carrying a line break in either is
-refused rather than written.
+| | | |
+| --- | --- | --- |
+${TRIP_FIELDS.map((f) => `| \`${f.key}\` | ${f.absent ? "not a field" : f.required ? "**required**" : "optional"} | ${f.what} |`).join("\n")}
 
-Add \`"test": true\` if this trip is being made to check that the software works
-rather than to record a journey. Every day of it then carries the banner, and
-none of it reaches the feed, the search index or the sitemap.
-
-**Three more fields are accepted here, and one of them is set here or
-nowhere.** Ask before sending any of them, and leave out what you were not
-told. \`rates\` used to be on this list and is not any more — see "The trip's
-exchange rates" below for the door that opened, and the two rows marked
-*correctable* for the ones that opened with it.
-
-| | |
-| --- | --- |
-| \`people\` | Who took the trip — \`[{"name": …, "email": …, "nickname": …}]\`, at most ten. It is the byline **and it is write access**: everyone named may write to the whole trip and may ask for a token scoped to it, using the address given. A malformed entry is refused by name rather than dropped. *Correctable* at \`PATCH .../trips/<trip>/people\`, owner only, which replaces the whole list. |
-| \`travellers\` | How the party is **drawn** — see "Drawing the travellers" below. Purely cosmetic: unlike \`people\`, nothing in it decides who may write. *Correctable* at \`PATCH .../trips/<trip>/travellers\`, owner only, which replaces the whole party. |
-| \`translations\` | The title and tagline in the journal's other languages — \`{"de": {"title": …, "tagline": …}}\`. A language the journal does not declare is refused, since it would be written and never rendered. **This one is still set here or not at all**, so it is the row to be sure about before you post. |
-
-\`rates\` can still be sent here too, at creation, and reads the same way it
-always did: \`{"THB": 0.0245}\` means "1 THB = 0.0245" of the journal's base
-currency, so a currency worth less than the base one has a **small** number.
-\`site/rates/ecb.json\` points the other way round. Leaving a currency out
-is supported: its costs are reported as unconverted rather than guessed at.
-
-There is no \`cover\`. A trip has no photographs when it is created — media is
-attached to a day, and there are no days yet — so a cover is a line somebody
-adds to \`trip.md\` once the pictures are in.
+A title or a tagline must be one line — both are written as a single line of
+the trip's frontmatter, and a request carrying a line break in either is
+refused rather than written. If you wrote a \`trip.md\` yourself rather than
+posting here, read the list back: a folder the site refused comes back under
+\`malformed\`, saying what is wrong with it, instead of quietly not being there.
 
 ## Drawing the travellers
 
