@@ -91,9 +91,27 @@ sends nothing to anybody. Open-Meteo never sees your address, and no request
 carries anything that identifies a person. The coordinates are the ones the
 journal's author put on their own day.
 
-Weather data comes from [Open-Meteo](https://open-meteo.com/) and is used
-under the Creative Commons Attribution 4.0 licence, which is why every reading
-on a day names it.
+Weather data by [Open-Meteo.com](https://open-meteo.com/), used under the
+[Creative Commons Attribution 4.0 licence](https://creativecommons.org/licenses/by/4.0/).
+That licence asks for three things and this is all of them: credit, a link to
+the licence, and a note of any changes made. **The changes are that readings
+are rounded** — temperatures to whole degrees and rainfall to one decimal
+place, as shown on a day — and that Open-Meteo's numeric weather code is drawn
+as one of seven pictures rather than printed. The unrounded values stay in the
+day's own file.
+
+Open-Meteo is itself a front end onto the national weather services —
+MeteoSwiss, the DWD, ECMWF, NOAA, Météo-France, the JMA and others, each under
+its own open licence, all listed on
+[their licence page](https://open-meteo.com/en/licence). So a day's weather
+here traces back to a public meteorological office, not to a company that
+sells forecasts.
+
+**A reading a traveller recorded themselves is none of the above.** Some days
+carry a temperature somebody wrote down where they were standing, rather than
+one this server looked up. Those name whoever took them and are credited to
+nobody else — there is no Open-Meteo link on such a day, because there is no
+Open-Meteo data on it.
 
 The mail this site sends goes through **Proton Mail in Switzerland** —
 encrypted at rest and under Swiss privacy law, rather than through a provider
