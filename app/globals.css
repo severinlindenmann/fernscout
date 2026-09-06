@@ -18,15 +18,17 @@
     held to AAA (7:1) rather than AA (4.5:1): at 11px in daylight the AA floor
     is a number that passes and a line that doesn't get read.
 
-    Measured against the three grounds text is ever set on (WCAG 2.x relative
-    luminance):
+    Which token does which job, then:
 
-      token      white   cream-50  cream-100   job
-      navy-900   14.63     14.06      13.31    headings, values
-      navy-700    8.98      8.63       8.17    body copy
-      navy-600    7.69      7.39       7.00    secondary text at any size
-      navy-500    5.51      5.30       5.02    NOT TEXT — borders, rules,
-                                               decorative icons, placeholders
+      navy-900   headings, values
+      navy-700   body copy
+      navy-600   secondary text at any size
+      navy-500   NOT TEXT — borders, rules, decorative icons, placeholders
+
+    The ratios behind that split are not written here, because they are
+    computed from these hexes and rendered at `/docs/branding/identity` —
+    a number typed into a comment is a number that stops being true the
+    first time somebody nudges a hex (B575).
 
     navy-500 still clears AA, so nothing that was legal became illegal; it is
     simply no longer the token that carries the smallest words on the page.
@@ -53,7 +55,7 @@
 
   --color-coral-300: #f6a7bb;
   --color-coral-400: #f06a8a;
-  /* Text-safe coral: 4.94:1 even on cream-100. coral-400 is fill-only. */
+  /* The text-safe coral. coral-400 is fill-only. */
   --color-coral-600: #c2334a;
 
   --color-blue-500: #2f6fed;

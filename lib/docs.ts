@@ -183,6 +183,13 @@ export type BrandingBench = {
 
 export const BRANDING_BENCHES: readonly BrandingBench[] = [
   {
+    href: "/docs/branding/identity",
+    title: "Identity",
+    blurb:
+      "The mark and the palette, read off the files that define them: every lockup rendered from disk, every hex parsed from the stylesheet, every contrast ratio computed rather than claimed.",
+    source: "lib/brand.ts \u00b7 app/globals.css \u00b7 docs/branding/",
+  },
+  {
     href: "/docs/branding/animation",
     title: "Travel scene",
     blurb:
