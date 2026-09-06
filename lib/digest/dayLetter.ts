@@ -14,6 +14,7 @@ import { pickLocale } from "../contacts/locale";
 import type { UserConfig } from "../config";
 import { conversionFor, costForDay } from "../costs";
 import { formatMoney } from "../currency";
+import { recordNotified } from "./dayNotify";
 import { AS_AUTHOR, getEntryBySlug } from "../entries";
 import { contactsWithReadGrant } from "../grants";
 import { translateIn } from "../locales";
@@ -530,6 +531,12 @@ export async function sendDayLetter(
   // Give back only for sends that did not happen — never a blanket reversal.
   // A letter that was delivered is spent whatever happens afterwards.
   if (owed > 0) await refund(owner, owed, ledgerRef);
+
+  // Recorded whatever the cost was — B633. `chargeable` can be zero (a
+  // journal with only its free owner copy) and the ledger writes nothing for
+  // a zero spend, so this is the one place "has this day been announced"
+  // can be answered from.
+  await recordNotified(owner, trip.id, slug, "mail");
 
   return { ok: true, resend: options.resend === true, sent, failed };
 }

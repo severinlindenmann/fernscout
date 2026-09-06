@@ -418,6 +418,21 @@ export type CreditLedgerTable = {
   created_at: string;
 };
 
+/**
+ * One row: this channel has already told readers about this day — B633.
+ * See `022-day-notifications` for why this exists beside `credit_ledger`
+ * rather than being read off it.
+ */
+export type DayNotificationsTable = {
+  id: string;
+  owner_id: string;
+  trip_id: string;
+  slug: string;
+  /** "mail" | "whatsapp". */
+  channel: string;
+  sent_at: string;
+};
+
 export type PaymentsTable = {
   id: string;
   owner_id: string;
@@ -492,6 +507,7 @@ export type Database = {
   credit_ledger: CreditLedgerTable;
   payments: PaymentsTable;
   analytics_events: AnalyticsEventsTable;
+  day_notifications: DayNotificationsTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -514,4 +530,5 @@ export const TABLE_NAMES = [
   "credit_ledger",
   "payments",
   "analytics_events",
+  "day_notifications",
 ] as const satisfies readonly (keyof Database)[];

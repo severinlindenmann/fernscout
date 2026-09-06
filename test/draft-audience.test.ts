@@ -397,8 +397,20 @@ describe("nothing under app/[user] decides drafts for itself", () => {
    * and stats this reader may see, per trip — goes through `draftsVisibleTo`,
    * same as everywhere else. The file merely contains both words; it decides
    * drafts from neither `isOwner` nor a copy of it.
+   *
+   * `app/[user]/trips/[trip]/day/[slug]/notify/route.ts` (B633) reads
+   * `entry.draft` to refuse *sending mail about* an unpublished day — "there
+   * is nothing to announce yet" — never to decide whether this reader may see
+   * one. `isOwner` beside it answers a different question again: whether this
+   * caller may press the button at all. Neither reads the entry back to the
+   * caller, so there is no draft-visibility decision here for `draftsVisibleTo`
+   * to have made instead.
    */
-  const OWNER_ONLY = new Set(["app/[user]/export.zip/route.ts", "app/[user]/trips/page.tsx"]);
+  const OWNER_ONLY = new Set([
+    "app/[user]/export.zip/route.ts",
+    "app/[user]/trips/page.tsx",
+    "app/[user]/trips/[trip]/day/[slug]/notify/route.ts",
+  ]);
 
   /** Comments say `isOwner` when explaining why it is *not* used any more —
    * this file's own history is written into the media route — so the rule is
