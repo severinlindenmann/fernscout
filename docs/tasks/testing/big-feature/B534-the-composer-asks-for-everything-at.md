@@ -6,6 +6,7 @@ priority: high
 complexity: high
 area: photobook, composer, ux
 found: "2026-09-06T07:53:48Z"
+merged: "2026-09-06T08:40:29Z"
 ---
 
 # B534 — The composer asks for everything at once, so the default path is as long as the expert one
