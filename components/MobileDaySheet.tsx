@@ -47,7 +47,7 @@ export default function MobileDaySheet({
   nav: PagerNavState;
 }) {
   const { t, formatShortDate } = useI18n();
-  const { money } = useMoney();
+  const { money, original } = useMoney();
   const [open, setOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const activeRef = useRef<HTMLButtonElement | null>(null);
@@ -156,7 +156,14 @@ export default function MobileDaySheet({
                           <span className="block text-[11px] text-navy-600">
                             {formatShortDate(day.date)}
                             {day.updates > 1 && ` · ${day.updates} ${t("day.updates")}`}
-                            {cost > 0 && ` · ${money(cost)}`}
+                            {/* What was actually paid leads, converted beside
+                                it — same figures as the story feed. B544. */}
+                            {cost > 0 &&
+                              ` · ${
+                                day.costLocal
+                                  ? `${original(day.costLocal.amount, day.costLocal.currency)} ≈ ${money(cost)}`
+                                  : money(cost)
+                              }`}
                           </span>
                         </span>
 
