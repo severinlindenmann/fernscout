@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook, composer
 found: "2026-09-06T10:56:07Z"
+merged: "2026-09-06T11:23:34Z"
 ---
 
 # B564 — A day cannot be left out of the book

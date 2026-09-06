@@ -114,6 +114,41 @@ describe("BookOptions", () => {
     }
   });
 
+  test("excluded: true drops a day's page and photographs, but not the route", () => {
+    // Enough days that the book sits well above the binder's page-count
+    // minimum — with only a handful, dropping one still gets padded back up
+    // to the minimum and the page count would not visibly follow.
+    const BIG = Array.from({ length: 40 }, (_, i) => day(i, { country: "Laos", countryCode: "LA" }));
+    const withDay = planBook(source(BIG), SPEC, DEFAULT_OPTIONS);
+    const withoutDay = planBook(source(BIG), SPEC, {
+      ...DEFAULT_OPTIONS,
+      days: { [BIG[1].date]: { excluded: true } },
+    });
+    const datesOf = (book: typeof withDay) =>
+      book.volumes.flatMap((v) => v.pages).flatMap((p) => (p.kind === "day" ? [p.date] : []));
+    expect(datesOf(withDay)).toContain(BIG[1].date);
+    expect(datesOf(withoutDay)).not.toContain(BIG[1].date);
+    expect(withoutDay.volumes[0].interiorPages).toBeLessThan(withDay.volumes[0].interiorPages);
+    // The route is the whole trip, not the printed book — an excluded day
+    // did not stop happening.
+    const kindsOf = (book: typeof withDay) =>
+      book.volumes.flatMap((v) => v.pages.map((p) => p.kind));
+    expect(kindsOf(withoutDay)).toContain("route");
+  });
+
+  test("excluding every day of a country prints no chapter divider for it", () => {
+    const excludeThailand = Object.fromEntries(
+      DAYS.filter((d) => d.country === "Thailand").map((d) => [d.date, { excluded: true }]),
+    );
+    const book = planBook(source(DAYS), SPEC, { ...DEFAULT_OPTIONS, days: excludeThailand });
+    const dividers = book.volumes
+      .flatMap((v) => v.pages)
+      .filter((p) => p.kind === "chapter")
+      .map((p) => (p.kind === "chapter" ? p.country : null));
+    expect(dividers).not.toContain("Thailand");
+    expect(dividers).toContain("Laos");
+  });
+
   test("saddle stitch plans a legal short book", () => {
     const spec = { ...defaultSpec(BOOK_SIZES["square-210"]), pageCount: SADDLE_STITCH };
     const book = planBook(source([day(0)]), spec, DEFAULT_OPTIONS);

@@ -26,10 +26,6 @@ const OUTCOME_MESSAGE: Record<string, TranslationKey> = {
   refund_failed: "photobook.refundFailed",
 };
 
-/** The two front-matter page kinds `renderPreview` marks as drillable, other
- * than "day"/"photos" — see `lib/photobook/preview.ts`'s own `DRILLABLE`. */
-const FRONT_MATTER_KINDS = ["title", "route", "costs", "colophon"];
-
 /**
  * The book's own preview page: options on one level, a day's controls on
  * another, and one Pay button that is the only thing here that spends
@@ -160,7 +156,8 @@ export default function PhotobookPageContent({
   // form a second id to race the first against.
   const [orderId] = useState(() => crypto.randomUUID());
 
-  /** Level 1 (`null`) or level 2, on a day or on the front matter — B534. */
+  /** Level 1 (`null`) or level 2, on a day — B534. Front matter has no
+   * controls of its own (B563) so it does not drill. */
   const [drill, setDrill] = useState<Drill>(null);
   /** Which photograph's crop is being adjusted, by `src` — B513. A src is
    * unique across the whole book, so one flag (not one per day) is enough. */
@@ -177,10 +174,7 @@ export default function PhotobookPageContent({
       if (!data || data.source !== "fernscout-photobook-preview") return;
       if ((data.kind === "day" || data.kind === "photos") && data.date) {
         setFocalEditing(null);
-        setDrill({ level: "day", date: data.date });
-      } else if (data.kind && FRONT_MATTER_KINDS.includes(data.kind)) {
-        setFocalEditing(null);
-        setDrill({ level: "front", pageKind: data.kind });
+        setDrill({ date: data.date });
       }
     }
     window.addEventListener("message", onMessage);
@@ -204,6 +198,22 @@ export default function PhotobookPageContent({
       ...o,
       days: { ...o.days, [date]: { ...o.days[date], layout } },
     }));
+
+  /**
+   * Leave a day out of the book entirely, or put it back — B564.
+   *
+   * The same shape as `setDayRunOn`: `true` writes the flag, `false` deletes
+   * it, so a day nobody has excluded stays indistinguishable from one this
+   * was explicitly set back off. Everything downstream — the planner, the
+   * page count, the price — reads `options.days[date].excluded` from here on.
+   */
+  const setDayExcluded = (date: string, excludedFlag: boolean) =>
+    setOptions((o) => {
+      const next = { ...o.days[date] };
+      if (excludedFlag) next.excluded = true;
+      else delete next.excluded;
+      return { ...o, days: { ...o.days, [date]: next } };
+    });
 
   /** Let a day's words carry on to a second page instead of being cut short
    * — B517. Off is the default `days` entry never says otherwise, so
@@ -421,17 +431,25 @@ export default function PhotobookPageContent({
    */
   const sliceHtml = useMemo(() => {
     if (!drill || !preview) return null;
-    return drill.level === "day"
-      ? extractSpreads(preview.html, (ds) => ds.date === drill.date)
-      : extractSpreads(preview.html, (ds) => ds.kind === drill.pageKind);
+    return extractSpreads(preview.html, (ds) => ds.date === drill.date);
   }, [drill, preview]);
 
-  const drillDay = drill?.level === "day" ? days.find((d) => d.date === drill.date) : undefined;
+  const drillDay = drill ? days.find((d) => d.date === drill.date) : undefined;
   const drillDayPhotos = drillDay ? media.filter((m) => m.date === drillDay.date) : [];
   const drillPlan: DayPlan | undefined = drillDay ? options.days[drillDay.date] : undefined;
   const drillLayout: DayLayout = drillPlan?.layout ?? "auto";
 
   const canReset = Object.keys(options.days).length > 0 || Object.keys(options.focalPoints).length > 0;
+
+  /**
+   * Every day left out, and the way back — B564.
+   *
+   * Kept in this component rather than in `BookLevelView` (another session's
+   * turf right now): rendered as its own block, beside it, only when there is
+   * something to say. Nothing at all when no day has been excluded, the same
+   * "quiet unless it matters" rule the warnings block already follows.
+   */
+  const excludedDays = days.filter((d) => options.days[d.date]?.excluded);
 
   return (
     <div className="min-h-screen">
@@ -505,6 +523,38 @@ export default function PhotobookPageContent({
               tn={tn}
             />
 
+            {/* Visible and reversible from level 1 — the ticket's own rule,
+                so a day excluded from inside its own drill-in is never a
+                trap: even without ever going back in, the owner can see how
+                many days are still in the book and undo any of this here. */}
+            {!drill && excludedDays.length > 0 && (
+              <div className="mt-4 rounded-lg border border-navy-200 bg-white px-3 py-3">
+                <p className="text-sm font-semibold text-navy-800">
+                  {t("photobook.excluded.heading")}
+                </p>
+                <p className="mt-1 text-xs text-navy-600">
+                  {t("photobook.excluded.summary", {
+                    included: String(days.length - excludedDays.length),
+                    total: String(days.length),
+                  })}
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {excludedDays.map((d) => (
+                    <li key={d.date} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-navy-700">{d.title}</span>
+                      <button
+                        type="button"
+                        onClick={() => setDayExcluded(d.date, false)}
+                        className="min-h-8 shrink-0 rounded-full border border-navy-200 px-3 text-xs font-semibold text-navy-700"
+                      >
+                        {t("photobook.excluded.putBack")}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {drill && (
               <DayLevelView
                 drill={drill}
@@ -518,6 +568,7 @@ export default function PhotobookPageContent({
                 focalOf={focalOf}
                 setDayLayout={setDayLayout}
                 setDayRunOn={setDayRunOn}
+                setDayExcluded={setDayExcluded}
                 setHero={setHero}
                 movePhoto={movePhoto}
                 toggleDayPhoto={toggleDayPhoto}

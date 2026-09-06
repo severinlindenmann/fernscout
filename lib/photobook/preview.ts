@@ -693,9 +693,10 @@ export function renderPreview(
             color:var(--muted); }
   .blank { position:absolute; inset:0; display:grid; place-items:center; color:#0000001a; }
   /* Drillable pages — B534. Only pages the composer can open a level-2 view
-     for get the affordance; a page nobody can drill into (a "blank", or the
-     "intro"/"followers"/"transport" front matter, which has no controls of
-     its own) stays inert. */
+     for get the affordance; a page nobody can drill into (a "blank", or any
+     front matter — title, route, costs, colophon — which has no controls of
+     its own; those live in the whole-book settings, one tap from level 1;
+     B563) stays inert. */
   figure.drillable .sheet { cursor:pointer; }
   figure.drillable .sheet:hover { outline:2px solid var(--accent); outline-offset:2px; }
 
@@ -785,7 +786,7 @@ ${volumes}
   // iframe) which spread was tapped. Posted rather than navigated, because
   // this document has no idea it is inside one — opened straight from a
   // folder, as the CLI leaves it, nothing is listening and this is a no-op.
-  var DRILLABLE = ["day", "photos", "title", "route", "costs", "colophon"];
+  var DRILLABLE = ["day", "photos"];
   document.querySelectorAll("figure[data-kind]").forEach(function (fig) {
     var kind = fig.dataset.kind;
     if (DRILLABLE.indexOf(kind) === -1) return;

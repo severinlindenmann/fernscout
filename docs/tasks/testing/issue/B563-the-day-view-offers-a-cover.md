@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: photobook, composer
 found: "2026-09-06T10:56:06Z"
+merged: "2026-09-06T11:23:33Z"
 ---
 
 # B563 — The day view offers a cover, map and costs drill-in that has nothing in it

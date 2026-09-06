@@ -139,6 +139,18 @@ export type DayPlan = {
    * scale.
    */
   runOn?: boolean;
+  /**
+   * Leave this day out of the book entirely — B564. Its day page, its
+   * photographs and its place in the chapter all go; a chapter left with no
+   * remaining days prints no divider (`chaptersOf` never groups an empty
+   * list). Absent or `false` is every day's behaviour before this existed.
+   *
+   * Deliberately not read by `routeView` or anything under "front matter": a
+   * day the book leaves out is still a place the trip went, not a place it
+   * did not, so the route map and the rest of the trip's own numbers are
+   * unaffected.
+   */
+  excluded?: boolean;
 };
 
 export type DayLayout =
@@ -255,6 +267,10 @@ function parseDays(input: unknown): Record<string, DayPlan> | null {
       if (typeof day.runOn !== "boolean") return null;
       plan.runOn = day.runOn;
     }
+    if (day.excluded !== undefined) {
+      if (typeof day.excluded !== "boolean") return null;
+      plan.excluded = day.excluded;
+    }
     // A day carrying none of these is the planner's again, and saying so by
     // leaving it out keeps the posted body honest about what was actually
     // chosen.
@@ -262,7 +278,8 @@ function parseDays(input: unknown): Record<string, DayPlan> | null {
       plan.layout !== undefined ||
       plan.photos !== undefined ||
       plan.hero !== undefined ||
-      plan.runOn !== undefined
+      plan.runOn !== undefined ||
+      plan.excluded !== undefined
     ) {
       out[date] = plan;
     }
