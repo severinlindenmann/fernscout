@@ -53,6 +53,42 @@ Related but separate: **B536** is seven routes absent from the document
 entirely. This is fields missing from routes that *are* documented, which is
 worse in one way — the route looks covered.
 
+## What it turned out to be
+
+The capture said "six fields missing from the document". Two of the six were
+not documentation at all, and the rest was larger. Corrected as built:
+
+**`PATCH …/config` does not accept `travellers`.** The capture was wrong.
+`JOURNAL_PROFILE_FIELDS` (lib/journals.ts) has no such case and the route
+answers `400 unsupported_field`. The journal's default party is read from
+`config.json` on disk and nothing writes it over the API. Documenting it would
+have been documenting a capability that does not exist. A trip's own
+`travellers:` is writable, at `POST …/trips` and `PATCH …/trips/<id>/travellers`.
+
+**Two of them were code, not prose.** Found by driving a real journal onto a
+running instance rather than by reading:
+
+- `POST …/trips` forwarded every raw block field except `tracks`. `createTrip`
+  had supported it since B531; the route never read `body.tracks`. A trip
+  created with every track turned off came back tracking everything and
+  refused its own first day.
+- `POST …/days` accepted `countryCode`, answered 201 and threw it away. It
+  looked like it worked wherever `country` was a name `lib/flags.ts` knows —
+  the guess supplied the code — and failed silently everywhere else.
+
+Both are the shape this repository keeps finding: not a refusal, a success
+that quietly did less than it said.
+
+**Two more, found the same way, after the first fixes:**
+
+- `travellers` was documented as "an object". Its keys are `FIGURE_FIELDS`,
+  and `for` is an **address out of `people:`**, not a name — which is the
+  refusal that stopped the first complete publish run.
+- `without` — B531's record of what a day deliberately has none of — was
+  written into the file and never returned when reading a day back. An agent
+  could not tell "there was no money on this day" from "nobody asked", and
+  asking again is how an amount gets invented.
+
 ## Work
 
 - Add the six fields, with the descriptions the codebase already carries in
@@ -65,6 +101,30 @@ worse in one way — the route looks covered.
   `NewTrip`'s keys. Hand-written schemas drift; the point of B535 is that this
   document is now load-bearing, so it needs the same ratchet
   `test/api-route-schemas.test.ts` gives the route list.
+
+## Built
+
+- Every enum in the document now comes from the constant the server validates
+  against: `TRANSPORT_MODES`, `TRAVEL_SCENE_VARIANTS`, `COST_CATEGORIES`,
+  `TRACKS`, `FEATURE_NAMES`, `ACCENTS`, `STATUSES`, `VISIBILITIES`,
+  `COSTS_VISIBILITIES`, `FIGURE_FIELDS`. `ACCENTS`, `STATUSES`,
+  `COSTS_VISIBILITIES` and `FIGURE_FIELDS` are exported for it.
+- `Cost.category` said "free text" and is a closed list that refuses anything
+  else.
+- Fourteen route+verb pairs that existed and appeared nowhere are documented,
+  including `travellers/presets` and `travellers/preview`, which `AGENTS.md`
+  sends agents to by name.
+- `/api/health` publishes the upload formats and the size limits, because a
+  client needs them **before** it uploads and was otherwise forced to keep its
+  own copy. The copy in `fernscout-helper` offered `jpg` and `avif`; this
+  server takes neither.
+- `test/openapi-contract.test.ts` is the ratchet: every bearer-token
+  route+verb documented, every enum equal to its source, no operation without
+  a refusal, no `required` naming a field that is not in `properties`. The
+  browser-only flows and the two B293 signposts are a named allowlist rather
+  than an omission.
+- B536's list of routes with a body and no schema is now empty, and its test
+  asserts it stays empty.
 
 ## Acceptance
 
