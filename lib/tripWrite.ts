@@ -346,7 +346,11 @@ const FIGURE_COLOURS: ReadonlyArray<[string, Record<string, string>]> = [
   ["headscarf", CLOTH],
 ];
 
-const FIGURE_FIELDS: ReadonlySet<string> = new Set([
+/** Exported so `lib/api/openapi.ts` publishes the keys a figure may carry
+ * rather than describing it as "an object". A caller that cannot see the key
+ * list guesses, and `for` — an address out of `people:`, not a name — is the
+ * one everybody guesses wrong. B540. */
+export const FIGURE_FIELDS: ReadonlySet<string> = new Set([
   "for",
   "accessories",
   ...FIGURE_ENUMS.map(([f]) => f),

@@ -21,7 +21,7 @@ import { TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "@/lib/validate/entry";
 import { COST_CATEGORIES } from "@/lib/costFormat";
 import { FEATURE_NAMES } from "@/lib/config";
 import { TRACKS } from "@/lib/tracks";
-import { ACCENTS, COSTS_VISIBILITIES, STATUSES, VISIBILITIES } from "@/lib/tripWrite";
+import { ACCENTS, COSTS_VISIBILITIES, FIGURE_FIELDS, STATUSES, VISIBILITIES } from "@/lib/tripWrite";
 import {
   CAPTION_MAX_CHARS,
   IMAGE_FORMATS,
@@ -170,6 +170,33 @@ export function openApiDocument() {
                 '"shopping" line does not quietly become something else.',
             },
           },
+        },
+        Traveller: {
+          type: "object",
+          description:
+            "One walking figure. **`for` is an email address out of the trip's `people:` " +
+            "block, not a name** — that is what ties the drawing to a person, and it is the " +
+            "single commonest way this call is refused. Every other key is a look, and the " +
+            "values each one takes are published by GET /api/v1/{user}/travellers/presets " +
+            "along with twelve worked examples: ask it rather than guessing, because an " +
+            "unrecognised value is refused and an unrecognised key is refused too. " +
+            "GET …/travellers/preview draws a figure so a person can see themselves before " +
+            "it is written, which is the honest way to settle \"is this you?\".",
+          additionalProperties: false,
+          properties: Object.fromEntries(
+            [...FIGURE_FIELDS].sort().map((field) => [
+              field,
+              field === "for"
+                ? {
+                    type: "string",
+                    format: "email",
+                    description: "An address in this trip's people: block.",
+                  }
+                : field === "accessories"
+                  ? { type: "array", items: { type: "string" } }
+                  : { type: "string" },
+            ]),
+          ),
         },
         GalleryItem: {
           type: "object",
@@ -978,7 +1005,7 @@ export function openApiDocument() {
                         "GET …/travellers/preview to show somebody the figure before it " +
                         "is written. An unknown key inside a figure is refused with " +
                         "`invalid_travellers` rather than dropped.",
-                      items: { type: "object" },
+                      items: { $ref: "#/components/schemas/Traveller" },
                     },
                     test: {
                       type: "boolean",
@@ -1508,7 +1535,8 @@ export function openApiDocument() {
         get: {
           summary: "One day in full, drafts included",
           description:
-            "The whole entry — content, gallery, costs, tags, translations — and a `status` " +
+            "The whole entry — content, gallery, costs, tags, translations, and `without` " +
+            "for anything the day deliberately has none of — and a `status` " +
             "of `draft` or `published`. This is how you read back something you " +
             "have just written, before telling a person it is ready — translations included, " +
             "in the same shape they were written in. Scoped like " +
@@ -2204,7 +2232,11 @@ export function openApiDocument() {
                   type: "object",
                   required: ["travellers"],
                   properties: {
-                    travellers: { type: "array", maxItems: 10, items: { type: "object" } },
+                    travellers: {
+                      type: "array",
+                      maxItems: 10,
+                      items: { $ref: "#/components/schemas/Traveller" },
+                    },
                   },
                 },
               },

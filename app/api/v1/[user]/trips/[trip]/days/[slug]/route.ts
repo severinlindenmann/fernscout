@@ -75,6 +75,11 @@ export async function GET(
     location: entry.location,
     country: entry.country,
     ...(entry.countryCode ? { countryCode: entry.countryCode } : {}),
+    // What the day deliberately has none of — B531 writes it into the file and
+    // nothing read it back out, so an agent reading a day it did not write
+    // could not tell "there was no money on this day" from "nobody asked". It
+    // then asks again, and asking again is how an amount gets invented. B540.
+    ...(entry.without?.length ? { without: entry.without } : {}),
     ...(Number.isFinite(entry.lat) ? { lat: entry.lat } : {}),
     ...(Number.isFinite(entry.lng) ? { lng: entry.lng } : {}),
     gallery: entry.gallery,
