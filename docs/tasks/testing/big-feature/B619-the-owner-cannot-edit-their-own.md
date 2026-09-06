@@ -7,8 +7,7 @@ complexity: high
 area: me page, contacts, config
 found: "2026-09-06T16:06:25Z"
 started: "2026-09-06T16:07:02Z"
-session: 46b8aec7-0279-4118-8632-da0af1a52ced
-claimed: "2026-09-06T16:07:02Z"
+merged: "2026-09-06T16:31:06Z"
 ---
 
 # B619 — The owner cannot edit their own details or their journal's name anywhere, and cannot post themselves a card
