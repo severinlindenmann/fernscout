@@ -258,6 +258,7 @@ export const PERFECT_TRIP_EXAMPLE = [
   '  "travellers": [',
   '    {"for": "ana@example.test", "skin": "medium", "hair": "black", "hairStyle": "coils"}',
   "  ],",
+  '  "tracks": {"costs": true, "coordinates": true, "photos": true},',
   '  "rates": {"JPY": 0.0058},',
   '  "translations": {',
   '    "de": {"title": "Japan", "tagline": "sechs Wochen mit dem Zug"}',
@@ -348,6 +349,17 @@ export const TRIP_FIELDS: {
     what:
       "The prose under the trip's own heading — what this journey is, in the person's words. " +
       "The one field here long enough to be worth a sentence of theirs rather than a phrase.",
+  },
+  {
+    key: "tracks",
+    required: false,
+    what:
+      "What this trip keeps, and therefore what every day written into it is **asked** for — " +
+      "`costs`, `coordinates`, `photos`. **All three are on unless you turn one off**, and " +
+      "a day that is missing one is refused rather than written short, with the two ways " +
+      "past it: send the thing, or say in the call that the day does not have it " +
+      "(`\"costs\": false`). Turn a row off here only when the person says this journey is " +
+      "not keeping that — not to make your own call quieter.",
   },
   {
     key: "people",

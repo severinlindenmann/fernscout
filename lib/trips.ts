@@ -6,6 +6,7 @@ import { calendarStatus, earliestTodayISO, effectiveStatus } from "./tripTime";
 import { getUsernames } from "./users";
 import { parseRateTable, type RateTable } from "./currency";
 import { parseTravellers } from "./travellers/parse";
+import { parseTracks } from "./tracks";
 import type { CostsVisibility, Trip, TripAccent, TripPerson, TripStatus, TripTranslations, TripVisibility } from "./types";
 
 const ACCENTS: readonly TripAccent[] = ["sky", "yellow", "green", "coral", "navy"];
@@ -404,6 +405,7 @@ export const KNOWN_TRIP_FIELDS = new Set([
   "visibility",
   "listed",
   "costsVisibility",
+  "tracks",
 ]);
 
 function unknownFields(data: Record<string, unknown>): string[] | undefined {
@@ -597,6 +599,10 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
     test: data.test === true || undefined,
     ...parseVisibility(data.visibility, data.listed, folder),
     costsVisibility: parseCostsVisibility(data.costsVisibility, folder),
+    // Absent is "all of them", so a trip written before B531 asks for
+    // everything — which is the default an owner should not have to find, and
+    // the only default that would have caught the run this came from.
+    tracks: parseTracks(data.tracks),
     unknownFields: unknownFields(data),
   };
 }

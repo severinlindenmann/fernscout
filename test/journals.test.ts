@@ -1176,6 +1176,9 @@ describe("the trip fields that had no writer", () => {
       "rates",
       "translations",
       "travellers",
+      // B531 — what the trip keeps track of, and therefore what every day
+      // written into it is asked for.
+      "tracks",
     ];
     const decidedAgainst = { cover: "no media exists when a trip is created — B245" };
 
@@ -1194,6 +1197,9 @@ describe("the trip fields that had no writer", () => {
       rates: { THB: 0.0245 },
       translations: { en: { title: "Everything" } },
       travellers: [{ skin: "deep", hairStyle: "coils" }],
+      // Only a row turned *off* is written — a file full of `costs: true` says
+      // nothing the default has not already said.
+      tracks: { costs: false },
     });
     expect(trip.ok).toBe(true);
 

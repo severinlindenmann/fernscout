@@ -29,13 +29,28 @@
  * first. A key that is simply absent, or sent as `false`, is not ignored —
  * both are the honest "no", not a mistake to surface.
  */
+
+import { TRACKS, type Track } from "@/lib/tracks";
+
 export type PublishFlags = {
   sendMail: boolean;
   sendWhatsapp: boolean;
   ignored: string[];
+  /**
+   * The completeness declines this call carries — B531, and the same reason
+   * the two flags above live here: the body is read once, so a second reader
+   * would get an empty stream and a permanent "nothing was declined".
+   *
+   * `"photos": false` on a publish is the day saying there are no pictures
+   * from it, which is the only row the publish gate asks about that a write
+   * could not have answered. The other rows are accepted here too, because a
+   * day written before its trip started tracking something meets the gate
+   * here for the first time and needs the same way past it.
+   */
+  declined: Track[];
 };
 
-const NOTHING: PublishFlags = { sendMail: false, sendWhatsapp: false, ignored: [] };
+const NOTHING: PublishFlags = { sendMail: false, sendWhatsapp: false, ignored: [], declined: [] };
 
 const FLAG_KEYS = ["send_mail", "send_whatsapp"] as const;
 
@@ -55,5 +70,9 @@ export async function readPublishFlags(request: Request): Promise<PublishFlags> 
     sendMail: record.send_mail === true,
     sendWhatsapp: record.send_whatsapp === true,
     ignored: FLAG_KEYS.filter((key) => key in record && typeof record[key] !== "boolean"),
+    // `=== false` for the same reason the flags are `=== true`: only the word
+    // itself counts, so a typo is a refusal to publish rather than a day
+    // quietly recorded as having deliberately no photographs.
+    declined: TRACKS.filter((key) => record[key] === false),
   };
 }

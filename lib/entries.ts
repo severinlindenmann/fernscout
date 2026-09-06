@@ -9,6 +9,7 @@ import { mediaWithOwner, parseTripRef, tripDir } from "./trips";
 import { hasHappened } from "./tripTime";
 import type { Day, Entry, EntryTranslations, GalleryItem, MediaTile, TravelSceneVariant } from "./types";
 import { TRAVEL_SCENE_VARIANTS } from "./validate/entry";
+import { parseWithout } from "./tracks";
 
 /**
  * Forgets gray-matter's own parse cache — not this module's, gray-matter's.
@@ -257,6 +258,11 @@ function readAllEntries(ref: string): Entry[] {
       // records something that happened must not be able to acquire a banner
       // saying it did not because somebody wrote `test: no`.
       test: data.test === true || undefined,
+      // What this day says it deliberately does not have — B531. Parsed the
+      // permissive way round: a word here this code does not know says
+      // nothing it can act on, and dropping it is not a reason to refuse a
+      // day that reads fine otherwise.
+      without: parseWithout(data.without),
     } satisfies Entry];
   });
 

@@ -1063,6 +1063,13 @@ export function openApiDocument() {
                 "An entry already exists for that date and title, or an idempotency_key was " +
                 "reused for a different day.",
             },
+            "422": {
+              description:
+                "`incomplete_day` — the day says nothing about something this trip keeps " +
+                "track of. Not a malformed request: `missing` names each field with what to " +
+                "send and, equally, how to decline it (`\"costs\": false`). Never invent a " +
+                "value to satisfy this; ask the person, or decline.",
+            },
           },
         },
         delete: {
@@ -1639,6 +1646,58 @@ export function openApiDocument() {
                 "the journal's owner (`out_of_scope`).",
             },
             "404": { description: "No such trip" },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}/tracks": {
+        get: {
+          summary: "What this trip keeps track of, and therefore asks every day for",
+          description:
+            "`costs`, `coordinates` and `photos`, each true unless the owner has turned it " +
+            "off. A day that says nothing about a tracked row is refused with 422 " +
+            "`incomplete_day` — send the thing, or say in the same call that the day does " +
+            "not have it. Read this before writing days rather than after the first refusal.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: { "200": { description: "The rows, and what each one asks for" } },
+        },
+        patch: {
+          summary: "Turn a row off, or back on. Owner only",
+          description:
+            'Send {"tracks": {"costs": false}} — only the rows you name change. Turning a ' +
+            "row off is the owner deciding this journey is not keeping that; it is not a way " +
+            "to quieten one awkward write, which is what the per-day decline is for. Nothing " +
+            "already written changes either way.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["tracks"],
+                  properties: {
+                    tracks: {
+                      type: "object",
+                      properties: {
+                        costs: { type: "boolean" },
+                        coordinates: { type: "boolean" },
+                        photos: { type: "boolean" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "What the trip asks for now, and what changed" },
+            "403": { description: "A trip-scoped token cannot lower the bar it is measured against" },
           },
         },
       },

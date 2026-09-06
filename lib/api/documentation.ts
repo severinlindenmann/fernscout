@@ -1259,6 +1259,45 @@ resubmitting for each:
 ]}
 \`\`\`
 
+**\`422\` with \`"error": "incomplete_day"\` is a different thing entirely**, and
+it is the one refusal here that is not about your request being malformed. A
+trip says what it keeps track of — money, coordinates, photographs, all three
+unless the owner has turned one off — and a day that says nothing about one of
+them is not written:
+
+\`\`\`json
+{"error": "incomplete_day", "missing": [
+  {"field": "costs",
+   "why": "This trip keeps track of what it costs, and this day says nothing about it.",
+   "send": "costs: [{\"label\": \"Dinner\", \"amount\": 42, \"currency\": \"EUR\"}] …",
+   "decline": "\"costs\": false — nothing was spent on this day, or nothing worth recording"}
+]}
+\`\`\`
+
+**There are two ways past it and they are equal.** Send the thing, or say in
+the call that the day does not have it — \`"costs": false\`,
+\`"coordinates": false\`, \`"photos": false\`. What there is not is a third way,
+and the one thing that must not happen is a value invented to satisfy the
+gate: a plausible cost is worse than no cost, and this refusal exists because
+an agent once wrote fourteen days and left the money on its own laptop without
+noticing.
+
+**The decline is a statement about the day, not a flag on the request.** It is
+written into the file as \`without: [costs]\`, so a reader a year later can
+tell "nothing was spent" from "nobody asked". Which means the honest move,
+when you have not asked, is to go and ask — the person is the only source for
+what a day cost and where it was.
+
+\`GET .../trips/<trip-id>/tracks\` says what a trip is asking for, and
+\`PATCH\` the same URL turns a row off for good — \`{"tracks": {"costs": false}}\`
+when this journey is not keeping track of money. That is the owner's decision
+and belongs to the trip; it is not a way to quieten one awkward call.
+
+**Photographs are checked when you publish, not when you write** — a day
+cannot carry a picture at \`POST\`, since media is its own call. So the same
+\`422\` can come back from \`publish\`, and \`{"photos": false}\` in that call is
+what says this day has none.
+
 ### Editing a day
 
 A wrong date, a misspelled place, a coordinate that was missing — correcting

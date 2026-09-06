@@ -115,7 +115,15 @@ async function writeDay(
     new Request(`https://example.test/api/v1/${OWNER}/trips/${trip}/days`, {
       method: "POST",
       headers: headers({ authorization: `Bearer ${token}` }),
-      body: JSON.stringify({ date: "2026-08-25", title: slug, content: "Something happened." }),
+      body: JSON.stringify({
+        date: "2026-08-25",
+        title: slug,
+        content: "Something happened.",
+        // This file is about revocation. The declines satisfy B531's
+        // completeness contract rather than arguing with it.
+        costs: false,
+        coordinates: false,
+      }),
     }),
     { params: Promise.resolve({ user: OWNER, trip }) },
   );

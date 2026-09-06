@@ -252,6 +252,9 @@ describe("spending it", () => {
           date: "2026-08-25",
           title: "A day from a handover",
           content: "Something happened.",
+          // B531's contract, satisfied rather than argued with.
+          costs: false,
+          coordinates: false,
         }),
       }),
       { params: Promise.resolve({ user: OWNER, trip: "asia-2026" }) },

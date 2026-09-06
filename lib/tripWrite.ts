@@ -16,6 +16,7 @@ import {
   OUTFITS,
   SKIN,
 } from "./travellers/vocabulary";
+import { TRACKS, parseTracks, tracksLines } from "./tracks";
 import { getTrip, MAX_TRIP_PEOPLE, PERSON_EMAIL_RE, tripRef } from "./trips";
 import { calendarStatus } from "./tripTime";
 import { getUser } from "./users";
@@ -101,6 +102,13 @@ export type NewTrip = {
    * `costsVisibility` above, one step further: these are maps and lists, so
    * there is more to get wrong than a spelling.
    */
+  /**
+   * What this trip keeps track of, and therefore what every day written into
+   * it is asked for — B531. Absent means all of it, which is the default an
+   * owner should not have to find. Raw for the same reason the block fields
+   * below are: a caller that misspelled a row is entitled to hear which.
+   */
+  tracks?: unknown;
   people?: unknown;
   /** How the party is drawn — see `travellersBlock`. Cosmetic, and
    *  therefore not owner-only the way `people` effectively is. */
@@ -172,6 +180,56 @@ function yamlNumber(n: number): string | null {
  * somebody is listening, and a 201 for a `people:` block the site then ignores
  * is worse than a 400 naming the entry.
  */
+/**
+ * The `tracks:` block — what this trip is keeping, and therefore what a day
+ * written into it is asked for. B531.
+ *
+ * **Refused, never dropped**, like every other block here: `parseTracks`
+ * fails open, because a reader has nobody to tell and the safe direction
+ * there is to keep asking. A *writer* is somebody listening, and a 201 for
+ * `{"cost": false}` — the singular, which is the obvious typo — followed by
+ * every day being refused for its costs is a worse afternoon than a 400.
+ *
+ * Only `false` turns a row off, and `true` is accepted and written as
+ * nothing: it is the default, and a file full of `costs: true` is a file whose
+ * every line has to be read to learn that it says nothing.
+ */
+export function tracksBlock(raw: unknown): BlockResult {
+  if (raw === undefined || raw === null) return NO_LINES;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return {
+      ok: false,
+      error: "invalid_tracks",
+      message:
+        'tracks must be an object, e.g. {"costs": false} — every row is on unless you turn ' +
+        `it off. The rows are ${TRACKS.join(", ")}.`,
+    };
+  }
+  const given = raw as Record<string, unknown>;
+  for (const [key, value] of Object.entries(given)) {
+    if (!(TRACKS as readonly string[]).includes(key)) {
+      return {
+        ok: false,
+        error: "invalid_tracks",
+        message:
+          `tracks has ${JSON.stringify(key)}, which is not something a trip tracks. ` +
+          `Expected: ${TRACKS.join(", ")}.`,
+      };
+    }
+    if (typeof value !== "boolean") {
+      return {
+        ok: false,
+        error: "invalid_tracks",
+        message:
+          `tracks.${key} is ${JSON.stringify(value)}; expected true or false. Only false ` +
+          `turns a row off — "no" and 0 are not spellings of it, and a typo must not quietly ` +
+          `stop this trip asking for its ${key}.`,
+      };
+    }
+  }
+  return { ok: true, lines: tracksLines(parseTracks(given)) };
+}
+
 export function peopleBlock(raw: unknown): BlockResult {
   if (raw === undefined || raw === null) return NO_LINES;
   if (!Array.isArray(raw)) {
@@ -792,6 +850,7 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     travellersBlock(input.travellers),
     ratesBlock(input.rates),
     translationsBlock(input.translations, user.locales),
+    tracksBlock(input.tracks),
   ];
   for (const block of blocks) {
     if (!block.ok) return { ok: false, error: block.error, message: block.message };

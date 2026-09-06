@@ -6,7 +6,7 @@ import { costsFilePath } from "../costs";
 import { parseBudget } from "../costFormat";
 import { getTrip } from "../trips";
 import { quoteScalar } from "../validate/frontmatter";
-import { costLines, type DraftInput } from "./entries";
+import { costLines, type CostInput } from "./entries";
 
 /**
  * Writing costs.md through the API — B295.
@@ -69,7 +69,7 @@ function budgetLines(budget: CostsBudgetInput | null | undefined): string[] {
  * reuses the one writer rather than a second copy that could drift from it.
  */
 function costsLines(costs: CostsItemInput[] | undefined): string[] {
-  return costLines(costs as DraftInput["costs"]);
+  return costLines(costs as CostInput[] | undefined);
 }
 
 /**

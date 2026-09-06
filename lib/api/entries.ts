@@ -21,6 +21,7 @@ import { appendGallery } from "../ingest/entry";
 import { slugify } from "../slug.ts";
 import { getTrip, tripDir, tripRef } from "../trips";
 import type { Entry, GalleryItem, Trip } from "../types";
+import { TRACKS, parseWithout, withoutLine, type DayFacts, type Track } from "../tracks";
 import { quoteScalar } from "../validate/frontmatter";
 
 /**
@@ -37,6 +38,10 @@ import { quoteScalar } from "../validate/frontmatter";
  * model. There is no second representation to keep in step, and anything an
  * agent writes can be read, corrected or reverted with a text editor.
  */
+
+/** One logged cost, as a caller sends it. Named because `DraftInput["costs"]`
+ * stopped being only a list when B531 gave it `false` — see there. */
+export type CostInput = { label: string; amount: number; currency?: string; category?: string };
 
 export type DraftInput = {
   title: string;
@@ -66,7 +71,22 @@ export type DraftInput = {
    * then dropped on the floor, because this writer never emitted it. A field
    * the API validates is a field the API has promised to keep.
    */
-  costs?: { label: string; amount: number; currency?: string; category?: string }[];
+  costs?: CostInput[] | false;
+  /**
+   * The two other declines — B531, and see `lib/tracks.ts`.
+   *
+   * `false` is the only value either takes, and it is a statement about the
+   * day rather than a switch on the request: *this day has no one place to put
+   * on a map*, *there are no pictures from this day*. `costs: false` above is
+   * the same word in the same sense, which is why it shares that field rather
+   * than getting one of its own — an agent that has costs sends costs, and one
+   * that asked and was told there were none says so in the same key.
+   *
+   * All three are written to the entry as `without: [...]`, never as the
+   * field itself.
+   */
+  coordinates?: false;
+  photos?: false;
   /** How the day was travelled. Same story as `costs` — validated since W29,
    * written since W38. */
   transportMode?: string;
@@ -134,7 +154,7 @@ const quote = quoteScalar;
  */
 // Exported since B295: the costs door writes a trip's preparation costs in
 // this identical shape, and reuses this renderer rather than a second copy.
-export function costLines(costs: DraftInput["costs"]): string[] {
+export function costLines(costs: CostInput[] | undefined): string[] {
   if (!costs?.length) return [];
   return [
     "costs:",
@@ -268,6 +288,45 @@ function draftDoesNotReadBack(file: string, input: DraftInput): string | null {
  * Refuses to overwrite: an agent retrying a request must not silently replace
  * yesterday's writing. The caller gets the existing slug back and can decide.
  */
+/**
+ * The rows this call declines — B531.
+ *
+ * One place, because a write and an edit have to agree about it, and because
+ * `costs: false` living in the same field as a list of costs is the sort of
+ * thing that is read wrong once per reader otherwise.
+ */
+export function declinedIn(input: Partial<DraftInput>): Track[] {
+  return TRACKS.filter((key) =>
+    key === "costs" ? input.costs === false : input[key as "coordinates" | "photos"] === false,
+  );
+}
+
+/**
+ * What a write *would* leave the day carrying, for the completeness contract.
+ *
+ * `photos` is always false here and that is not a mistake: media is a second
+ * call, so no write can carry a photograph. `missingFrom` only asks about the
+ * publish-time rows when it is publishing, so nothing is refused for it.
+ */
+export function factsOfInput(input: Partial<DraftInput>, declined: Track[] = declinedIn(input)): DayFacts {
+  return {
+    costs: Array.isArray(input.costs) && input.costs.length > 0,
+    coordinates: typeof input.lat === "number" && typeof input.lng === "number",
+    photos: false,
+    without: declined,
+  };
+}
+
+/** The same question of a day already on disk, which is what publish asks. */
+export function factsOfEntry(entry: Entry): DayFacts {
+  return {
+    costs: entry.costs.length > 0,
+    coordinates: entry.lat !== undefined && entry.lng !== undefined,
+    photos: entry.gallery.length > 0,
+    without: entry.without ?? [],
+  };
+}
+
 export function createDraft(ref: string, input: DraftInput): WriteResult {
   const problem = validateDraft(input);
   if (problem) return { ok: false, error: problem };
@@ -336,7 +395,10 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
       : []),
     ...(input.travelScene ? [`travelScene: ${quote(input.travelScene)}`] : []),
     ...translationLines(input.translations),
-    ...costLines(input.costs),
+    ...costLines(input.costs === false ? undefined : input.costs),
+    // What this day says it deliberately does not have. B531 — the line that
+    // makes "nothing was spent" different from "nobody asked".
+    ...withoutLine(declinedIn(input)),
     // Written only when true — see the note on NewTrip.test.
     ...(input.test === true ? ["test: true"] : []),
     // The line that keeps a person in the loop. Removing it publishes.
@@ -537,7 +599,7 @@ function spliceScalar(lines: string[], closing: number, key: string, rendered: s
  * diffed item by item, the same choice `appendGallery` makes for `gallery:`.
  * An empty array clears it: no manual costs recorded any more.
  */
-function spliceCosts(lines: string[], closing: number, costs: DraftInput["costs"]): number {
+function spliceCosts(lines: string[], closing: number, costs: CostInput[] | undefined): number {
   const at = frontmatterLineOf(lines, closing, "costs");
   let end = closing;
   if (at >= 0) {
@@ -684,7 +746,30 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
   // NewTrip.test. `test: false` unsets it rather than writing a line nobody
   // wants to read.
   if (input.test !== undefined) set("test", input.test === true ? "test: true" : null);
-  if (input.costs !== undefined) closing = spliceCosts(lines, closing, input.costs);
+  if (input.costs !== undefined) {
+    closing = spliceCosts(lines, closing, input.costs === false ? undefined : input.costs);
+  }
+  /**
+   * The declines, on an edit — B531.
+   *
+   * An edit that *supplies* what a day was missing has to clear the decline
+   * as well, or the file would say both "here is what it cost" and "this day
+   * has no money on it". So the block is rewritten from what the edit says
+   * plus what the file already said, minus anything the edit has now
+   * answered.
+   */
+  {
+    const declined = new Set<Track>(parseWithout(matter(markdown).data.without));
+    for (const key of TRACKS) {
+      const said = key === "costs" ? input.costs : input[key as "coordinates" | "photos"];
+      if (said === false) declined.add(key);
+      else if (said !== undefined) declined.delete(key);
+    }
+    // Coordinates arrive as two fields rather than one, so they are the one
+    // row an edit can answer without naming the row.
+    if (input.lat !== undefined && input.lng !== undefined) declined.delete("coordinates");
+    closing = spliceScalar(lines, closing, "without", withoutLine([...declined])[0] ?? null);
+  }
   if (input.translations !== undefined) {
     closing = spliceTranslations(lines, closing, input.translations);
   }
@@ -976,6 +1061,14 @@ export function tripSummary(username: string, tripId: string) {
     days: getDays(trip.ref).length,
     entries: getAllEntries(trip.ref).length,
     drafts: listDrafts(trip.ref).length,
+    /**
+     * What every day written into this trip is asked for — B531.
+     *
+     * Here rather than only in the refusal, because a contract an agent first
+     * meets as a 422 is one it meets after it has already decided what to
+     * send. This is the list an agent reads before it writes anything.
+     */
+    tracks: trip.tracks,
   };
 }
 

@@ -133,7 +133,9 @@ export async function PATCH(_request: Request, { params }: RouteContext<"/api/v1
         `/api/v1/${user}/trips/${trip}/rates (PATCH, owner only), who was on it at ` +
         `/api/v1/${user}/trips/${trip}/people and how they are drawn at ` +
         `/api/v1/${user}/trips/${trip}/travellers (both PATCH, owner only, both replacing ` +
-        `the whole list), the budget at ` +
+        `the whole list), what it keeps track of — and therefore what every day written into ` +
+        `it is asked for — at /api/v1/${user}/trips/${trip}/tracks (PATCH, owner only), ` +
+        `the budget at ` +
         `/api/v1/${user}/trips/${trip}/costs, a day at ` +
         `/api/v1/${user}/trips/${trip}/days/<slug>, and photographs at ` +
         `/api/v1/${user}/trips/${trip}/media. A trip's title, dates and cover are ` +
