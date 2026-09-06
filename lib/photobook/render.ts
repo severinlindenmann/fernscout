@@ -32,6 +32,7 @@ import {
   labelOf,
   mapClipMm,
   mapProjector,
+  routeLabelPlacements,
   typeScale,
   type BookPage,
   type BookVolume,
@@ -451,53 +452,34 @@ function drawRoutePage(
   }
 
   // A label every so often. Every stop labelled turns a map into a list, and
-  // on a long trip the names simply overlap.
-  let lastLabel: { x: number; y: number } | null = null;
-  //
-  // A label runs to the right of its dot unless that would take it off the
-  // paper, in which case it runs to the left. Without this the names at the
-  // edges of the spread were cut in half by the trim and by the gutter —
-  // "Archa", "s National Park" — which the preview cannot show you because
-  // its labels are HTML and simply overflow.
+  // on a long trip the names simply overlap. Bounded by the content box, not
+  // the clip box: the clip runs into the bleed and across the fold, so a
+  // label can sit well inside it and still be guillotined off the finished
+  // page or swallowed by the binding. The rule itself — which stops get a
+  // name and which side of the dot it goes on — is `routeLabelPlacements` in
+  // plan.ts, shared with the preview since B552 so the two cannot drift the
+  // way B519 found them.
   const box = contentBoxMm(spec, half);
   const leftEdge = frame.x(box.x);
   const rightEdge = frame.x(box.x + box.width);
-  plotted.forEach((p, i) => {
-    // Both halves draw every stop, so each page can carry the whole route
-    // line across its own edge. Only the page a dot actually lands on names
-    // it: labelling from the facing page is what printed "onal Park" and
-    // "National Park" against the fold, one fragment per stop that belonged
-    // to the other leaf.
-    if (p.x < leftEdge || p.x > rightEdge) return;
-    const far = !lastLabel || Math.hypot(p.x - lastLabel.x, p.y - lastLabel.y) > mm(9);
-    if (!far && i !== plotted.length - 1) return;
-    const width = measure(p.location, type.caption, "bold");
-    // Bounded by the content box, which already carries the gutter on the
-    // correct side for this page. Not the clip box: that runs into the bleed
-    // and across the fold, so a label can sit well inside it and still be
-    // guillotined off the finished page or swallowed by the binding. A name
-    // goes to the right of its dot, to the left if it will not fit there, and
-    // is pushed back inside the margin if it fits on neither — a stop in the
-    // corner of a spread is still a stop somebody drove to.
-    const right = p.x + mm(2.2);
-    const left = p.x - mm(2.2) - width;
-    const x =
-      right + width <= rightEdge
-        ? right
-        : left >= leftEdge
-          ? left
-          : Math.min(Math.max(right, leftEdge), rightEdge - width);
+  for (const placement of routeLabelPlacements(
+    plotted,
+    leftEdge,
+    rightEdge,
+    mm(2.2),
+    mm(9),
+    (location) => measure(location, type.caption, "bold"),
+  )) {
     PdfBuilder.drawText(
       page,
-      toWinAnsi(p.location),
-      x,
-      p.y - mm(1),
+      toWinAnsi(placement.location),
+      placement.anchorX,
+      placement.y - mm(1),
       type.caption,
       INK,
       "F2",
     );
-    lastLabel = { x: p.x, y: p.y };
-  });
+  }
 
   PdfBuilder.popClip(page);
 

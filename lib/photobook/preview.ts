@@ -21,6 +21,7 @@ import { measure } from "./text.ts";
 import {
   mapClipMm,
   mapProjector,
+  routeLabelPlacements,
   typeScale,
   type BookPage,
   type BookPhoto,
@@ -214,11 +215,13 @@ function routeSvg(
     })
     .join("");
 
-  const dots = points
-    .map((p) => {
-      const [x, y] = to(p.x, p.y);
-      return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="1.1" class="stop"/>`;
-    })
+  const projected = points.map((p) => {
+    const [x, y] = to(p.x, p.y);
+    return { location: p.location, x, y };
+  });
+
+  const dots = projected
+    .map((p) => `<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="1.1" class="stop"/>`)
     .join("");
 
   /**
@@ -228,41 +231,32 @@ function routeSvg(
    * reading a spread to check the map, the first question was "which stop is
    * that?" and the preview could not say. B519.
    *
-   * The rule is copied deliberately rather than approximated: skip a dot that
-   * belongs to the facing page, skip one that would crowd the last label, and
-   * put the name to the right unless it will not fit there. `measure()` is the
-   * renderer's own width function and is pure, so both agree about *which*
-   * side a name goes — which is the part that has to match. The browser will
-   * not set Helvetica to the same pixel, and it does not need to: this page is
-   * evidence about placement, not a proof of kerning.
+   * `routeLabelPlacements` (plan.ts) is the rule itself, shared rather than
+   * copied since B552 so the two cannot drift the way B519 found them.
+   * `measure()` is the renderer's own width function and is pure, so both
+   * agree about *which* side a name goes — which is the part that has to
+   * match. The browser will not set Helvetica to the same pixel, and it does
+   * not need to: this page is evidence about placement, not a proof of
+   * kerning.
    */
   const type = typeScale(spec);
   const box = contentBoxMm(spec, half);
   const leftEdge = box.x + spec.bleedMm;
   const rightEdge = box.x + box.width + spec.bleedMm;
   const captionMm = type.caption / mm(1);
-  let lastLabel: { x: number; y: number } | null = null;
-  const labels = points
-    .map((p, i) => {
-      const [x, y] = to(p.x, p.y);
-      if (x < leftEdge || x > rightEdge) return "";
-      const far = !lastLabel || Math.hypot(x - lastLabel.x, y - lastLabel.y) > 9;
-      if (!far && i !== points.length - 1) return "";
-      lastLabel = { x, y };
-      const width = measure(p.location, type.caption, "bold") / mm(1);
-      const right = x + 2.2;
-      const left = x - 2.2 - width;
-      const at =
-        right + width <= rightEdge
-          ? right
-          : left >= leftEdge
-            ? left
-            : Math.min(Math.max(right, leftEdge), rightEdge - width);
-      return (
-        `<text x="${at.toFixed(2)}" y="${(y + captionMm * 0.35).toFixed(2)}" ` +
-        `class="stopname" style="font-size:${captionMm.toFixed(2)}px">${escape(p.location)}</text>`
-      );
-    })
+  const labels = routeLabelPlacements(
+    projected,
+    leftEdge,
+    rightEdge,
+    2.2,
+    9,
+    (location) => measure(location, type.caption, "bold") / mm(1),
+  )
+    .map(
+      (p) =>
+        `<text x="${p.anchorX.toFixed(2)}" y="${(p.y + captionMm * 0.35).toFixed(2)}" ` +
+        `class="stopname" style="font-size:${captionMm.toFixed(2)}px">${escape(p.location)}</text>`,
+    )
     .join("");
 
   const clip = mapClipMm(spec, half);
