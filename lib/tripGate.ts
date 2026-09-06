@@ -5,6 +5,8 @@ import { resolveAccess } from "./auth/handshake";
 import { isEnabled } from "./capabilities";
 import { isJournalGuest, isOwner, journalReader } from "./contacts/session";
 import { isPersonOn, isPersonOnWith, redeemedTripsFor } from "./tripPeople";
+import type { ReadOptions } from "./entries";
+import type { ReaderLevel } from "./photos";
 import type { Trip } from "./types";
 
 /**
@@ -139,6 +141,58 @@ export type DraftAccess = {
 export async function draftsVisibleTo(trip: Trip, request?: Request): Promise<DraftAccess> {
   if (await isOwner(trip.username, request)) return { visible: true, canPublish: true };
   return { visible: await isTravellerOn(trip), canPublish: false };
+}
+
+/**
+ * How far this reader has got, for a photograph's own label — B596.
+ *
+ * Mirrors `isGuestOf` below, branch for branch and in the same order, and the
+ * order is what makes it safe: somebody on the trip first, then the owner,
+ * then `private` refusing everybody else outright, then the journal's grant.
+ * A signed-in stranger reaches the last line and is answered `public`, because
+ * proving an address opens nothing — the long note at the end of `mayReadTrip`
+ * is about exactly that mistake.
+ *
+ * It reports what the reader has *proved*, never what they may read: a trip a
+ * journal guest cannot open at all still answers `guest` for them if it is not
+ * `private`, and `mayReadTrip` is what refuses them. Two questions, kept
+ * apart, which is what B327 got wrong on this route's sibling.
+ */
+export async function readerLevelFor(trip: Trip, request?: Request): Promise<ReaderLevel> {
+  if (await isTravellerOn(trip)) return "person";
+  if (await isOwner(trip.username, request)) return "person";
+  // `private` is the people who were there. Nobody the journal let in gets a
+  // level above `public` on it, so a `guest` photograph on a `private` trip is
+  // seen by the travellers and by nobody else — the label narrows, it cannot
+  // widen (lib/photos.ts).
+  if (trip.visibility === "private") return "public";
+  return (await isJournalGuest(trip.username)) ? "guest" : "public";
+}
+
+/**
+ * Everything a reading path needs to know about who is asking: which days, and
+ * which photographs.
+ *
+ * One call, deliberately, and it replaced `draftsVisibleTo` at every page that
+ * reads entries. The pattern before it was two lines — resolve the draft
+ * access, then build `{ includeDrafts }` — and adding a second question to it
+ * meant editing thirty files and getting all thirty right. B327 is what
+ * happens when that goes one file short: nine reading paths learned who was
+ * asking and the tenth kept refusing a buddy their own photographs.
+ *
+ * `canPublish` rides along because the pages that need the read options
+ * mostly need it too, for `TripProvider` — and asking `draftsVisibleTo`
+ * separately for it would put the two answers back in two calls.
+ */
+export async function readFor(
+  trip: Trip,
+  request?: Request,
+): Promise<{ read: ReadOptions; canPublish: boolean }> {
+  const drafts = await draftsVisibleTo(trip, request);
+  return {
+    read: { includeDrafts: drafts.visible, reader: await readerLevelFor(trip, request) },
+    canPublish: drafts.canPublish,
+  };
 }
 
 /**

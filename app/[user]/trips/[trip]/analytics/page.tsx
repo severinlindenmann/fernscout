@@ -6,7 +6,7 @@ import { analyticsCardsFor } from "@/lib/analytics";
 import { getCostSummary } from "@/lib/costs";
 import { getDays } from "@/lib/entries";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { draftsVisibleTo, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { readFor, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUsernames } from "@/lib/users";
 import { summariseWeather, weatherDays } from "@/lib/weatherStats";
@@ -55,8 +55,7 @@ export default async function TripAnalyticsPage({
   const trip = getTrip(tripRef(user, id));
   if (!trip) notFound();
 
-  const drafts = await draftsVisibleTo(trip);
-  const read = { includeDrafts: drafts.visible };
+  const { read, canPublish } = await readFor(trip);
   const cards = analyticsCardsFor(user, trip.ref, read);
   if (!cards.costs && !cards.weather) notFound();
   // The layout draws the gate; this stops the page from *running*.

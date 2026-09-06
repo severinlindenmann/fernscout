@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
+import { readFor, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import GalleryPageContent from "@/app/[user]/(trip)/gallery/GalleryPageContent";
 import { photobookEntryFor } from "@/lib/photobook/entry";
@@ -53,8 +53,7 @@ export default async function TripGalleryPage({
   // B318: this page called getAllMedia/getPlaces with no options at all, so
   // it filtered drafts out for every viewer, owner included — the one
   // reading path in the trip that never checked who was asking.
-  const drafts = await draftsVisibleTo(trip);
-  const read = { includeDrafts: drafts.visible };
+  const { read, canPublish } = await readFor(trip);
 
   // Not `isOwner` inline: see the note beside the equivalent call in the
   // current-trip gallery page.
@@ -64,7 +63,7 @@ export default async function TripGalleryPage({
   const postcard = await postcardEntryFor(trip);
 
   return (
-    <TripProvider trip={trip} isCurrent={false} canPublish={drafts.canPublish}>
+    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish}>
       <GalleryPageContent
         media={getAllMedia(trip.ref, read)}
         places={getPlaces(trip.ref, read)}

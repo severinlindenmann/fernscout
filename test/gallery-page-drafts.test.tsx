@@ -135,7 +135,14 @@ afterEach(() => {
  * fixture is about. */
 async function currentGalleryProps(owner: boolean) {
   vi.resetModules();
-  vi.doMock("@/lib/contacts/session", () => ({ isOwner: async () => owner }));
+  // Spread the real module rather than replacing it: `readFor` asks
+  // `isJournalGuest` as well as `isOwner` since B596, and a mock that names
+  // only the export a test happens to care about breaks the moment the code
+  // under it asks a second question.
+  vi.doMock("@/lib/contacts/session", async (importOriginal) => ({
+    ...(await importOriginal<object>()),
+    isOwner: async () => owner,
+  }));
   const { default: GalleryPage } = await import("@/app/[user]/(trip)/gallery/page");
   const element = (await GalleryPage({
     params: Promise.resolve({ user: "alex" }),

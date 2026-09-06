@@ -4,7 +4,7 @@ import { SESSION_SCOPE } from "@/lib/auth";
 import { isTestContent } from "@/lib/access";
 import { isEnabled } from "@/lib/capabilities";
 import { balanceOf } from "@/lib/credits";
-import { getEntryBySlug } from "@/lib/entries";
+import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { incompleteMessage, missingFrom } from "@/lib/tracks";
 import { serverSite } from "@/lib/site";
@@ -94,7 +94,7 @@ export async function POST(
     );
   }
 
-  const entry = getEntryBySlug(ref, slug, { includeDrafts: true });
+  const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
   if (!entry) return Response.json({ error: "unknown_day" }, { status: 404 });
   if (!entry.draft) {
     return Response.json(
@@ -142,7 +142,7 @@ export async function POST(
     }
   }
 
-  const day = getEntryBySlug(ref, slug, { includeDrafts: true })!;
+  const day = getEntryBySlug(ref, slug, AS_AUTHOR)!;
   const missing = missingFrom(factsOfEntry(day), found.tracks, "publish");
   if (missing.length > 0) {
     return Response.json(

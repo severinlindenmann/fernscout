@@ -10,7 +10,7 @@ import {
 import { confirmationMatches, confirmationRequired } from "@/lib/agentConfirm";
 import { fillTripRatesQuietly } from "@/lib/api/tripRates";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
-import { getAllEntries } from "@/lib/entries";
+import { AS_AUTHOR, getAllEntries } from "@/lib/entries";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntry } from "@/lib/validate/entry";
@@ -77,7 +77,7 @@ export async function GET(
    */
   return Response.json({
     trip: ref,
-    days: getAllEntries(ref, { includeDrafts: true }).map((entry) => entrySummary(entry, found)),
+    days: getAllEntries(ref, AS_AUTHOR).map((entry) => entrySummary(entry, found)),
   });
 }
 

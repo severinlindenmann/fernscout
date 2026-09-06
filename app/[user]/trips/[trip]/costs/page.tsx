@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { draftsVisibleTo, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { readFor, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import CostsPageContent from "@/app/[user]/(trip)/costs/CostsPageContent";
 import CostsPrivate from "@/components/CostsPrivate";
@@ -109,8 +109,7 @@ export default async function TripCostsPage({ params }: PageProps<"/[user]/trips
    * moment and reached for `isOwner`, which was the pattern B318 had used an
    * hour earlier and which B327 replaced everywhere else.
    */
-  const drafts = await draftsVisibleTo(trip);
-  const read = { includeDrafts: drafts.visible };
+  const { read, canPublish } = await readFor(trip);
   if (!hasCostsData(trip.ref, read)) notFound();
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC

@@ -362,7 +362,14 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
   // reaching a printed page is not something a later publish can undo. An
   // owner wanting to preview drafts before ordering is a real request, but a
   // different one, and not one this call site should grow into answering.
-  const days: BookDay[] = getDays(tripId).map((day) => {
+  //
+  // Photographs the owner held back from readers are printed, and that is not
+  // the same decision as the drafts above: a label says who may see the
+  // picture *on the site*, and this book is going to the owner's own address.
+  // Read at `person` so the composer's grid — which is the owner's, and reads
+  // `AS_AUTHOR` — and the printed page hold the same pictures. Without it the
+  // grid offered a photograph the renderer then silently dropped. B596.
+  const days: BookDay[] = getDays(tripId, { reader: "person" }).map((day) => {
     const photos: BookPhoto[] = [];
     for (const entry of day.entries) {
       for (const item of entry.gallery) {

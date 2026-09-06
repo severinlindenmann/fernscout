@@ -6,7 +6,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { getDays } from "@/lib/entries";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
+import { readFor, mayReadTrip } from "@/lib/tripGate";
 import { getCurrentTrip } from "@/lib/trips";
 import { hasWeather, summariseWeather, weatherDays } from "@/lib/weatherStats";
 
@@ -46,8 +46,8 @@ export default async function WeatherPage({ params }: PageProps<"/[user]/weather
    * Who may see this trip's unpublished days is the *trip's* question, not
    * "is this the owner" — B327, pinned by test/draft-audience.test.ts.
    */
-  const drafts = await draftsVisibleTo(trip);
-  const days = weatherDays(getDays(trip.ref, { includeDrafts: drafts.visible }));
+  const { read, canPublish } = await readFor(trip);
+  const days = weatherDays(getDays(trip.ref, read));
   /**
    * The capability being on says nothing about whether this trip ever asked
    * for a reading: `weather: true` is per day, and a trip may carry none. A

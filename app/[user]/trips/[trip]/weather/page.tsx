@@ -5,7 +5,7 @@ import TripProvider from "@/components/TripProvider";
 import { isEnabled } from "@/lib/capabilities";
 import { getDays } from "@/lib/entries";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
+import { readFor, mayReadTrip } from "@/lib/tripGate";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUsernames } from "@/lib/users";
 import { hasWeather, summariseWeather, weatherDays } from "@/lib/weatherStats";
@@ -54,8 +54,8 @@ export default async function TripWeatherPage({
   const trip = getTrip(tripRef(user, id));
   if (!trip) notFound();
 
-  const drafts = await draftsVisibleTo(trip);
-  const days = weatherDays(getDays(trip.ref, { includeDrafts: drafts.visible }));
+  const { read, canPublish } = await readFor(trip);
+  const days = weatherDays(getDays(trip.ref, read));
   if (!hasWeather(days)) notFound();
   // The layout draws the gate; this stops the page from *running*.
   if (!(await mayReadTrip(trip))) return null;

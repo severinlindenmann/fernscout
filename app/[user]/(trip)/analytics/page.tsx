@@ -6,9 +6,9 @@ import { analyticsCardsFor } from "@/lib/analytics";
 import { getCostSummary } from "@/lib/costs";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { getCurrentTrip } from "@/lib/trips";
-import { getDays } from "@/lib/entries";
+import { getDays, type ReadOptions } from "@/lib/entries";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { draftsVisibleTo, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { readFor, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { summariseWeather, weatherDays } from "@/lib/weatherStats";
 
 export async function generateMetadata({
@@ -48,8 +48,7 @@ export default async function AnalyticsPage({ params }: PageProps<"/[user]/analy
    * hub's own figures come off the same read as the pages they lead to, so a
    * card cannot advertise a total that its page then declines to show.
    */
-  const drafts = await draftsVisibleTo(trip);
-  const read = { includeDrafts: drafts.visible };
+  const { read, canPublish } = await readFor(trip);
   const cards = analyticsCardsFor(user, trip.ref, read);
   /**
    * A hub with no cards is not an empty hub, it is a page that is not there —
@@ -89,7 +88,7 @@ export default async function AnalyticsPage({ params }: PageProps<"/[user]/analy
 }
 
 /** The three numbers the weather card shows, from the same summary its page draws. */
-function headline(ref: string, read: { includeDrafts: boolean }) {
+function headline(ref: string, read: ReadOptions) {
   const summary = summariseWeather(weatherDays(getDays(ref, read)));
   return { measured: summary.measured, missing: summary.missing, avgHigh: summary.avgHigh };
 }

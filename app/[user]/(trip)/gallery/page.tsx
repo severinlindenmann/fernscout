@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { recordTripView } from "@/lib/analytics/record";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
-import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
+import { readFor, mayReadTrip } from "@/lib/tripGate";
 import GalleryPageContent from "./GalleryPageContent";
 import { getAllMedia, getPlaces } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
@@ -54,8 +54,7 @@ export default async function GalleryPage({ params }: PageProps<"/[user]/gallery
   // B318: this page called getAllMedia/getPlaces with no options at all, so
   // it filtered drafts out for every viewer, owner included — the one
   // reading path in the trip that never checked who was asking.
-  const drafts = await draftsVisibleTo(trip);
-  const read = { includeDrafts: drafts.visible };
+  const { read, canPublish } = await readFor(trip);
 
   // B441. One call, and deliberately not `isOwner` inline: this file decides
   // draft visibility three lines up, and `lib/postcard/entry.ts` explains why
@@ -65,7 +64,7 @@ export default async function GalleryPage({ params }: PageProps<"/[user]/gallery
   const photobook = await photobookEntryFor(trip);
 
   return (
-    <TripProvider trip={trip} isCurrent canPublish={drafts.canPublish}>
+    <TripProvider trip={trip} isCurrent canPublish={canPublish}>
       <GalleryPageContent
         media={getAllMedia(tripId, read)}
         places={getPlaces(tripId, read)}

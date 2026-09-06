@@ -10,6 +10,7 @@ import { getTrips, parseTripRef, tripDir } from "../trips";
 import { IMAGE_FORMATS, validateMediaBatch, type MediaCandidate, type Problem } from "../validate/media";
 import { VIDEO_EXTENSIONS, probeVideo, transcodeVideo, videoToolsAvailable } from "../ingest/video";
 import { loadUserConfig } from "../config";
+import type { PhotoVisibility } from "../photos";
 import type { GalleryItem } from "../types";
 
 /**
@@ -38,6 +39,14 @@ export type UploadCandidate = {
    * to you; an empty caption beats a plausible one (B522).
    */
   caption?: string;
+  /**
+   * Held back from readers the trip otherwise lets in — B596.
+   *
+   * The second field on a gallery item an agent may supply, and the second
+   * thing the server cannot work out for itself. It is what the owner asked
+   * for; a picture nobody said anything about is not held back on a hunch.
+   */
+  visibility?: PhotoVisibility;
 };
 
 /**
@@ -356,6 +365,7 @@ export async function storeUploads(
           src: frontmatterSrc(tripId, path.join(slug, name)),
           type: "video",
           caption: upload.caption || undefined,
+          visibility: upload.visibility,
           width: result.width,
           height: result.height,
           poster: frontmatterSrc(tripId, path.join(slug, poster)),
@@ -401,6 +411,7 @@ export async function storeUploads(
           src: frontmatterSrc(tripId, path.join(slug, name)),
           type: "image",
           caption: upload.caption || undefined,
+          visibility: upload.visibility,
           width: derivative.width,
           height: derivative.height,
           // What the caller called it, so reading the day back tells them

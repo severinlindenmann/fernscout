@@ -60,6 +60,10 @@ export function galleryLines(items: IngestGalleryItem[]): string[] {
     if (item.width) lines.push(`    width: ${item.width}`);
     if (item.height) lines.push(`    height: ${item.height}`);
     if (item.caption) lines.push(`    caption: ${quoteScalar(item.caption)}`);
+    // B596. Never emitted for a picture nobody held back, so an ordinary day
+    // reads exactly as it did — the absent line is what "everyone the trip
+    // lets in" looks like.
+    if (item.visibility) lines.push(`    visibility: ${quoteScalar(item.visibility)}`);
     // Last, because it is the least interesting line to a person reading the
     // file and the most useful one to an agent reconciling a batch. B527.
     if (item.from) lines.push(`    from: ${quoteScalar(item.from)}`);

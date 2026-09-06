@@ -18,9 +18,12 @@ describe("the frontmatter-to-API table", () => {
   test("covers every field a day can be written or edited with", () => {
     const documented = new Set(FRONTMATTER_TO_API.flatMap((f) => f.key.split(" / ")));
     for (const field of EDITABLE_DAY_FIELDS) {
-      // `captions` is a photograph's field rather than a day's — the gallery
-      // row is where the table sends you, and it says so.
-      if (field === "captions") continue;
+      // `captions` and `photoVisibility` are a photograph's fields rather than
+      // a day's — the gallery rows are where the table sends you, and they say
+      // so. Both are keyed there by what the *frontmatter* calls them, which
+      // is the column this table is about: `caption:` and `visibility:` inside
+      // a gallery item, not the names a PATCH body gives them.
+      if (field === "captions" || field === "photoVisibility") continue;
       expect(documented, `${field} is writable and is not in FRONTMATTER_TO_API`).toContain(field);
     }
   });

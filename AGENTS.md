@@ -165,8 +165,25 @@ moment they create a trip: **`guest` means the people I let into this journal;
 `private` means only the people who were there.** A guest is a guest of the
 journal and never of one trip — approving somebody opens every `guest` trip in
 it, at once and for as long as the approval lasts. A trip that must be held
-back from people who are otherwise let in is `private`, and that is the only
-mechanism; there is deliberately no narrower one.
+back from people who are otherwise let in is `private`, and for a *trip* that
+is still the only mechanism.
+
+**One photograph is the exception, and it is the only one** (B596). A gallery
+item may carry `visibility: guest` or `visibility: private`, meaning the same
+two populations the trip's own values mean, and it **narrows and never widens**
+— the effective requirement is the stricter of the two, so a `guest`
+photograph inside a `private` trip stays private. There is no `public` value,
+because a label that could widen would be a way past the trip's gate rather
+than a way behind it. Absent is the normal case and means everyone the trip
+lets in.
+
+Two halves make it real, and half of it is worse than none: `visible()` in
+`lib/entries.ts` strips the item from every reading path — the closed default
+in `ReadOptions.reader` is what makes a path nobody updated fail safe — and
+`app/[user]/media/[...path]/route.ts` refuses the file, because a picture kept
+out of the gallery and left at a guessable URL is not held back at all.
+`lib/photos.ts` is the whole vocabulary; `readFor` in `lib/tripGate.ts` is the
+only thing that should be deciding a reader's level.
 
 **A closed trip does not name itself.** The sign-in gate an uninvited reader
 meets carries the journal's title and nothing of the trip — not in the heading,

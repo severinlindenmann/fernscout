@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { draftsVisibleTo, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { readFor, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { recordTripView } from "@/lib/analytics/record";
 import { notFound, redirect } from "next/navigation";
 import { basemapForRoute } from "@/lib/basemap";
@@ -78,14 +78,14 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
 
   // B327: who may see this trip's unpublished days, and whether putting one
   // on the site is theirs. Owner, or somebody on the trip.
-  const drafts = await draftsVisibleTo(trip);
+  const { read, canPublish } = await readFor(trip);
 
   // Not `status === "upcoming"` alone: see `showsCountdown` for why a
   // published day settles it whatever the status says (B72).
   if (showsCountdown(trip)) {
     // The countdown draws the same merged route as the map — see
     // app/[user]/(trip)/map/page.tsx for why this is gated on ownership.
-    const plan = getPlan(trip.ref, { includeDrafts: drafts.visible });
+    const plan = getPlan(trip.ref, read);
     return (
       <TripProvider trip={trip} isCurrent={false}>
         <TripCountdown
@@ -102,7 +102,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
 
   const { index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(trip.ref, {
     showCosts: await mayViewCosts(trip),
-    includeDrafts: drafts.visible,
+    ...read,
   });
   const userConfig = getUser(user);
   if (!userConfig) notFound();

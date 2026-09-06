@@ -1,18 +1,20 @@
 import fs from "node:fs";
 import { contentTypeFor, resolveMediaFile, resizedCopy } from "@/lib/media";
 import { parseWidth } from "@/lib/mediaSizes";
-import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
+import { draftsVisibleTo, mayReadTrip, readerLevelFor } from "@/lib/tripGate";
 import { getTrip } from "@/lib/trips";
-import { getEntryBySlug } from "@/lib/entries";
+import { AS_AUTHOR, getAllEntries, getEntryBySlug } from "@/lib/entries";
+import { maySeePhoto, mediaKey, type PhotoVisibility } from "@/lib/photos";
 
 /**
  * Serves trip media from the content folder.
  *
  * Media moved out of `public/` so that a trip is one self-contained directory
  * (see lib/media.ts). Serving it through a route rather than copying it back
- * into `public/` at build time is also what makes per-trip and per-photo
- * visibility possible later: this is the single place a permission check will
- * go.
+ * into `public/` at build time is what makes per-trip and per-photo visibility
+ * possible at all: this is the single place the permission checks go, and
+ * since B596 there are three of them — the trip's own gate, the day's draft
+ * state, and the photograph's own label.
  */
 /**
  * Whether this folder belongs to a day nobody has published.
@@ -28,7 +30,56 @@ import { getEntryBySlug } from "@/lib/entries";
  */
 function isDraftDay(ref: string, daySlug: string | undefined): boolean {
   if (!daySlug) return false;
-  return getEntryBySlug(ref, daySlug, { includeDrafts: true })?.draft === true;
+  return getEntryBySlug(ref, daySlug, AS_AUTHOR)?.draft === true;
+}
+
+/**
+ * The label on the photograph this request is for, if it has one — B596.
+ *
+ * Read from the gallery rather than from the path, because the label is a fact
+ * about the picture and the path is only how it was asked for. Every entry in
+ * the trip is searched rather than the day the folder names: the folder and
+ * the day's slug agree by convention, and a convention is not a good enough
+ * reason for a permission check to look in one place only. The parse is cached
+ * per directory, so this is a walk over objects already in memory.
+ *
+ * A `poster` counts as the item it belongs to. A private clip's still frame is
+ * a separate file with no label of its own, and it is a legible thumbnail of
+ * the thing being held back.
+ *
+ * `undefined` for a file no gallery mentions — an original, a trip's cover, a
+ * folder left behind by a deleted day. Those are the trip gate's business and
+ * not this function's.
+ *
+ * **The comparison is deliberately looser than the filesystem's.** A path is
+ * matched case-folded and NFC-normalised, because the question here is not
+ * "are these the same string" but "could this request reach that file" — and
+ * on a case-insensitive volume (APFS, which is every Mac this is developed on,
+ * and some deployments) `03.JPG` opens `03.jpg` while a byte comparison says
+ * they are different photographs. `resolveMediaFile` refuses `.`, `..` and
+ * empty segments, so those spellings never get this far; case and Unicode
+ * normalisation are the two that do.
+ *
+ * Loosening it can only ever find *more* labels, which is the safe direction:
+ * a match that should not have happened refuses a file, and a match that is
+ * missed serves a photograph somebody asked to hold back. Two files in one
+ * folder differing only in case cannot both exist on the volumes this
+ * matters for anyway.
+ */
+function pathKey(src: string): string {
+  return mediaKey(src).normalize("NFC").toLowerCase();
+}
+
+function labelOf(ref: string, segments: string[]): PhotoVisibility | undefined {
+  const wanted = pathKey(segments.join("/"));
+  for (const entry of getAllEntries(ref, AS_AUTHOR)) {
+    for (const item of entry.gallery) {
+      if (!item.visibility) continue;
+      if (pathKey(item.src) === wanted) return item.visibility;
+      if (item.poster && pathKey(item.poster) === wanted) return item.visibility;
+    }
+  }
+  return undefined;
 }
 
 export async function GET(
@@ -64,6 +115,25 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
+  /**
+   * And the photograph's own label, which the two gates above say nothing
+   * about — B596, and the check the docblock at the top of this file has been
+   * promising since media moved out of `public/`.
+   *
+   * It has to be here and not only in the read layer. `visible()` in
+   * lib/entries.ts keeps a labelled picture out of every gallery, every day
+   * page and every payload — and leaves the file itself one guessable URL
+   * away, which for the one feature whose entire purpose is holding a
+   * photograph back would not be a feature at all.
+   *
+   * 404, like every other refusal on this route: a 403 would confirm that
+   * something is there.
+   */
+  const label = labelOf(trip.ref, segments);
+  if (label && !maySeePhoto(label, await readerLevelFor(trip))) {
+    return new Response("Not found", { status: 404 });
+  }
+
   const file = resolveMediaFile(user, segments);
   if (!file) return new Response("Not found", { status: 404 });
 
@@ -92,8 +162,15 @@ export async function GET(
      * the set of unpublished photographs a shared cache could be holding, so
      * it is fixed here rather than captured. A published photograph is the
      * same bytes for everybody and keeps the long cache it has always had.
+     *
+     * **A labelled photograph is on the same footing, for a reason that is
+     * not the same reason** — B596. Its bytes *are* identical for everybody
+     * who may have them; what varies is whether the answer is 200 or 404. A
+     * shared cache cannot see that distinction, so a long `public` age on the
+     * one 200 would leave an intermediary holding a held-back photograph,
+     * ready for the next person who asks for that URL.
      */
-    "Cache-Control": draft
+    "Cache-Control": draft || label
       ? "private, no-store"
       : "public, max-age=3600, stale-while-revalidate=86400",
     "X-Content-Type-Options": "nosniff",
