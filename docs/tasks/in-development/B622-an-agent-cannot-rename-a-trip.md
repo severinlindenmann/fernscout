@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: api, trips
 found: "2026-09-06T17:05:57Z"
+started: "2026-09-06T17:50:49Z"
+session: 46b8aec7-0279-4118-8632-da0af1a52ced
+claimed: "2026-09-06T17:50:49Z"
 ---
 
 # B622 — An agent cannot rename a trip or move its dates, though the owner's own page now can
