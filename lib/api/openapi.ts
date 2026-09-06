@@ -498,6 +498,31 @@ export function openApiDocument() {
                 "typo cannot silently caption nothing.",
               additionalProperties: { type: "string" },
             },
+            coordinates: {
+              type: "string",
+              enum: ["unknown"],
+              description:
+                "The only value this field takes here — B599. `\"unknown\"` says it happened " +
+                "somewhere and nobody can say where, and can be sent about a day that already " +
+                "exists exactly as it can at creation. **`false` is refused on this route** — " +
+                "it is the answer given when a day is written (`false` in " +
+                "`components.schemas.Draft`, create-only by design), not something an " +
+                "existing day can be told afterwards; a day that has always had no one place " +
+                "already carries that answer from creation. To place the day, send lat and " +
+                "lng instead.",
+            },
+            photos: {
+              type: "string",
+              enum: ["unknown"],
+              description:
+                "The only value this field takes here — B599. `\"unknown\"` says there are " +
+                "pictures somewhere and nobody has them to hand, and is exactly the case this " +
+                "route exists for: a day published without them can say so afterwards, " +
+                "whenever that becomes true, without waiting on the pictures. **`false` is " +
+                "refused on this route** — it is the answer given when a day is written " +
+                "(`false` in `components.schemas.Draft`, create-only by design). Pictures " +
+                "never arrive in this body; POST them to .../media.",
+            },
             weather: {
               type: "boolean",
               description:

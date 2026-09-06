@@ -335,20 +335,50 @@ function checkTravelScene(input: EntryInput, problems: Problem[]): void {
  * nobody has it* — B560. Anything else on these fields is refused, because a
  * caller that sent something meant something, and reading an unrecognised
  * value as "not mentioned" is how a day ends up saying what nobody said.
+ *
+ * `isEdit` narrows `false` further — B599. `openapi.json` documents `false`
+ * as create-only for both fields, and until now nothing enforced that: a
+ * `PATCH` naming either field simply never reached this function at all,
+ * because neither was in `EDITABLE_DAY_FIELDS`, so the caller was told
+ * "unsupported_field" instead of the real reason. Now that both are editable,
+ * `false` on a `PATCH` is refused here, by name, with a message that says
+ * *why* rather than a generic list of fields the route accepts.
  */
-function checkDeclines(input: EntryInput, problems: Problem[]): void {
+function checkDeclines(input: EntryInput, problems: Problem[], isEdit = false): void {
   for (const field of ["coordinates", "photos"] as const) {
     const value = input[field];
-    if (value === undefined || value === false || value === UNKNOWN) continue;
+    if (value === undefined || value === UNKNOWN) continue;
+    if (value === false) {
+      if (!isEdit) continue;
+      problems.push({
+        field,
+        got: describe(value),
+        expected:
+          '`false` is the answer given when a day is created (POST .../days): it says, from ' +
+          "the start, that " +
+          (field === "coordinates"
+            ? "this day has no one place to put on a map"
+            : "there are no pictures from this day") +
+          ". This route cannot say that — only an existing day already carries it, if it " +
+          'was true at the start. What this route can say is "unknown": ' +
+          (field === "coordinates"
+            ? "it happened somewhere and nobody can say where"
+            : "there are pictures somewhere and nobody has them to hand") +
+          ". Send that instead.",
+      });
+      continue;
+    }
     problems.push({
       field,
       got: describe(value),
       expected:
         field === "coordinates"
-          ? 'false (this day has no one place) or "unknown" (it happened somewhere and ' +
-            "nobody can say where). To place the day, send lat and lng instead"
-          : 'false (there are no pictures from this day) or "unknown" (there are some and ' +
-            "nobody has them to hand). To add photographs, POST them to .../media",
+          ? (isEdit ? "" : "false (this day has no one place) or ") +
+            '"unknown" (it happened somewhere and nobody can say where). To place the day, ' +
+            "send lat and lng instead"
+          : (isEdit ? "" : "false (there are no pictures from this day) or ") +
+            '"unknown" (there are some and nobody has them to hand). To add photographs, ' +
+            "POST them to .../media",
     });
   }
 }
@@ -809,7 +839,7 @@ export function validateEntryEdit(
   checkTransportMode(input, problems);
   checkTravelScene(input, problems);
   checkCosts(input, problems);
-  checkDeclines(input, problems);
+  checkDeclines(input, problems, true);
   checkTags(input, problems);
   checkTest(input, problems);
   checkWeather(input, problems);
