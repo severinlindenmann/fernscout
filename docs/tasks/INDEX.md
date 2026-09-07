@@ -195,7 +195,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (7)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -204,6 +204,7 @@ _Nothing here._
 | [B712](in-development/B712-the-helper-routes-are-undocumented-in.md) | The helper routes are undocumented in the agent guide | DOCS | medium | low | `97b44327` |
 | [B713](in-development/B713-a-test-in-the-suite-fails.md) | A test in the suite fails intermittently and verify does not name which | ISSUE | medium | medium | `97b44327` |
 | [B732](in-development/B732-the-landing-page-shows-the-bring.md) | The landing page shows the bring-your-own-agent instructions to everybody, including the people who came for the helper | FEATURE | medium | low | `ccdd5120` |
+| [B733](in-development/B733-the-landing-page-and-the-helper.md) | The landing page and the helper door are flat cream, while the brand they are built from has paper, panels and a yellow that leads | FEATURE | medium | medium | `ccdd5120` |
 | [B391](in-development/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low | `97b44327` |
 | [B687](in-development/B687-photographs-cannot-describe-themselves.md) | Photographs cannot describe themselves | FEATURE | low | medium | `fdfcf5f2` |
 
