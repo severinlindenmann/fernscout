@@ -7,8 +7,7 @@ complexity: medium
 area: me-page, storage
 found: "2026-09-07T07:39:31Z"
 started: "2026-09-07T07:53:47Z"
-session: 52155fa5-6d95-440e-9de1-0e41d34e7f3d
-claimed: "2026-09-07T07:53:47Z"
+merged: "2026-09-07T08:10:21Z"
 ---
 
 # B664 — The owner cannot see what is using their storage, or reclaim any of it
