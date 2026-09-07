@@ -600,7 +600,6 @@
   "me.storageCleanupConfirm": "{size} freigeben? Das löscht erzeugte Fotobuch-PDFs und Postkarten-Bögen. Deine Fotos, Tage und Reisen bleiben unangetastet, und gedruckte Bücher und verschickte Karten behalten ihren Eintrag.",
   "me.storageCleanupFailed": "Das hat nicht geklappt. Es wurde nichts gelöscht.",
   "me.storageCleanupStaged": "Auch die vorbereiteten Dokumente im Eingang löschen (PDFs, Tabellen und Ähnliches)? Vorbereitete Fotos bleiben immer erhalten.",
-  "me.storageNothingToClean": "Es gibt nichts aufzuräumen: Keine erzeugten Fotobücher oder Postkarten-Bögen belegen Platz.",
   "me.storageNearlyFull": "Fast voll. Neue Fotos werden abgelehnt, sobald kein Platz mehr da ist.",
   "me.storageTitle": "Speicherplatz",
   "me.storageUsed": "{used} von {limit} belegt",

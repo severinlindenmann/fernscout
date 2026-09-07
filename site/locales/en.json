@@ -600,7 +600,6 @@
   "me.storageCleanupConfirm": "Free up {size}? This removes generated photobook PDFs and postcard sheets. Your photographs, days and trips are not touched, and printed books and posted cards keep their records.",
   "me.storageCleanupFailed": "That did not work. Nothing was deleted.",
   "me.storageCleanupStaged": "Also remove the documents staged in your inbox (PDFs, spreadsheets and the like)? Staged photographs are always kept.",
-  "me.storageNothingToClean": "There is nothing to clean up: no generated photobooks or postcard sheets are taking space.",
   "me.storageNearlyFull": "Nearly full. New photographs will be refused once there is no room left.",
   "me.storageTitle": "Storage",
   "me.storageUsed": "{used} of {limit} used",

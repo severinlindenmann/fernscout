@@ -114,3 +114,18 @@ bar — the thing a test cannot answer is whether the segments are legible at
 390px and whether the trip names are readable when one trip dwarfs the rest.
 Then press Free up and check the confirmation says what it will and will not
 take before you agree to it.
+
+## After the first look (2026-09-07)
+
+Sent back from `testing/` with one thing: with nothing to reclaim, the card
+explained itself — *"There is nothing to clean up: no generated photobooks or
+postcard sheets are taking space."* That is a paragraph about a button that is
+not there, on a card whose one job is to be read at a glance, and a journal
+with nothing to reclaim is the ordinary case rather than a state worth
+narrating.
+
+Now the ordinary case is silent: no sentence, and where there is neither a
+cleanup nor a purchase to offer, no footer rule either — a rule that separates
+nothing from nothing is the same noise one line up. `me.storageNothingToClean`
+is deleted in all three languages rather than left unused. Two tests replace
+the one that asserted the sentence.
