@@ -353,7 +353,7 @@ export async function claimForPrint(owner: string, id: string): Promise<boolean>
 }
 
 /** Records a submitted print: who it is for, what it cost, and Gelato's own id. */
-async function recordPrint(
+export async function recordPrint(
   owner: string,
   id: string,
   payload: PhotobookPayload,
