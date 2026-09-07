@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: landing, banner
 found: "2026-09-07T18:55:00Z"
+merged: "2026-09-07T16:54:36Z"
 ---
 
 # B847 — The beta banner takes three lines and a lot of height on a phone
