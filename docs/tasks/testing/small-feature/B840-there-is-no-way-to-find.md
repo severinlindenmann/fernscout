@@ -7,8 +7,7 @@ complexity: medium
 area: pricing, landing, docs
 found: "2026-09-07T16:19:12Z"
 started: "2026-09-07T16:19:43Z"
-session: 7433e107-d963-451a-931e-3ed819d59771
-claimed: "2026-09-07T16:19:43Z"
+merged: "2026-09-07T17:00:33Z"
 ---
 
 # B840 — There is no way to find out what this costs before signing up
