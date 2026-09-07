@@ -93,13 +93,49 @@ function GithubMark({ className }: { className?: string }) {
  * cannot read the hero has no way to guess that the rest of the site is
  * translated.
  */
-export function SiteHeader({ siteName, locales }: { siteName: string; locales?: string[] }) {
+export function SiteHeader({
+  siteName,
+  locales,
+  admin,
+}: {
+  siteName: string;
+  locales?: string[];
+  /**
+   * Whether this reader runs the instance — B746, placed here by B758.
+   *
+   * A corner word rather than a section, which is the shape this page already
+   * settled on for a link only some readers want: B426's note below records
+   * the reader's way in being put "next to the language switcher, in the same
+   * weight as the language switcher", and this is the same kind of door for a
+   * much smaller population.
+   *
+   * `undefined` on the server pass and for everybody who is not the operator.
+   * It arrives from `/api/v1/me/home` rather than the page, because `/` is the
+   * same cacheable document for everybody (B412) — and it grants nothing:
+   * `/admin` asks `isInstanceAdmin()` for itself on every request.
+   */
+  admin?: boolean;
+}) {
+  const { t } = useI18n();
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="pt-3">
         <Kicker>{siteName}</Kicker>
       </div>
-      <LocaleSwitcher locales={locales} subtle />
+      <div className="flex items-center gap-1">
+        {admin && (
+          // Drawn as LocaleSwitcher's `subtle` chip is, down to the hit area:
+          // two controls side by side in the same corner have to read as one
+          // pair, and min-h-11 is the tap target the switcher already keeps.
+          <Link
+            href="/admin"
+            className="flex min-h-11 items-center rounded-full border border-transparent bg-transparent px-2.5 text-xs font-bold text-navy-600 transition-colors hover:bg-cream-100 hover:text-navy-900"
+          >
+            {t("home.operator")}
+          </Link>
+        )}
+        <LocaleSwitcher locales={locales} subtle />
+      </div>
     </div>
   );
 }

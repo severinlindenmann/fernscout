@@ -188,7 +188,7 @@ export default function Landing({
    */
   const offerSignIn = phase === "out" || (phase === "unknown" && !expected);
 
-  const header = <SiteHeader siteName={siteName} locales={locales} />;
+  const header = <SiteHeader siteName={siteName} locales={locales} admin={home?.admin} />;
   const publicList = <PublicJournals journals={journals} />;
   const colophon = <Colophon repository={repository} credit={credit} legal={legal} />;
 
@@ -210,24 +210,6 @@ export default function Landing({
             <AgentBlock docUrl={docUrl} agentUrl={agentUrl} heading={t("home.agentTitle")} />
             <DocsLink />
           </div>
-          {/* The operator's own page — B746. Offered only to the one address
-              that runs this instance, and absent for everybody else, which is
-              every reader on every instance that has not set
-              FERNSCOUT_ADMIN_EMAIL. */}
-          {home.admin && (
-            <div className="mt-12 border-t border-navy-200 pt-8">
-              <h2 className="font-display text-lg font-semibold text-navy-900">
-                {t("home.operator")}
-              </h2>
-              <p className="mt-1 text-sm text-navy-700">{t("home.operatorBody")}</p>
-              <Link
-                href="/admin"
-                className="mt-3 inline-block font-semibold text-navy-900 underline"
-              >
-                {t("home.operator")} →
-              </Link>
-            </div>
-          )}
           <YourDevices
             devices={home.devices}
             onRevoke={(id) =>
