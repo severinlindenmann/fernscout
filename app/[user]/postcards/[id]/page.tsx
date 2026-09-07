@@ -201,18 +201,6 @@ export default async function PostcardOrderPage({
                 })}
         </p>
 
-        {typeof result === "string" && RESULTS[result] ? (
-          <p
-            // `scroll-mt-4` so the anchor `backToPreview` sends the reader to
-            // does not park this flush against the top edge — B850.
-            id="send-result"
-            className="mt-4 scroll-mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900"
-            role="status"
-            data-testid="send-result"
-          >
-            {t(RESULTS[result])}
-          </p>
-        ) : null}
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2">
           <figure>
@@ -354,6 +342,26 @@ export default async function PostcardOrderPage({
         </section>
 
         <section className="mt-8 rounded-xl border-2 border-navy-900 bg-cream-100 p-4">
+          {/* The outcome belongs where the button was, not at the top of the
+              page — B850, second attempt. The first put an `id` on this banner
+              and pointed the redirect at it, which was correct and useless: the
+              banner lived two lines under the `<h1>`, so scrolling to it and
+              jumping to the top are the same movement. The reader pressed a
+              button at the bottom of a long page and was shown a heading about
+              the order instead of an answer about their press. Moving it into
+              this box is the actual fix; the anchor now has somewhere worth
+              going. */}
+          {typeof result === "string" && RESULTS[result] ? (
+            <p
+              // `scroll-mt-4` keeps it off the very top edge once scrolled to.
+              id="send-result"
+              className="mb-3 scroll-mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900"
+              role="status"
+              data-testid="send-result"
+            >
+              {t(RESULTS[result])}
+            </p>
+          ) : null}
           <p className="text-sm">
             {t("postcard.page.cost", {
               each: String(order.payload.creditsEach),
