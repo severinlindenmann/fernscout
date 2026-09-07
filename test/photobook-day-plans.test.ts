@@ -610,7 +610,7 @@ describe("letting a day run on — B517", () => {
     expect(second.kind === "day" && second.truncated).toBe(false);
   });
 
-  test("the page count and the price both follow", () => {
+  test("the page count follows, and the build charge deliberately does not", () => {
     // A trip long enough that the binder's 32-page minimum is not what is
     // padding the count — otherwise a book that already needed padding would
     // absorb the extra page and this would test the padding rule instead.
@@ -627,7 +627,12 @@ describe("letting a day run on — B517", () => {
     // Padding was not the thing doing the work here.
     expect(withoutRunOn.volumes[0].interiorPages).toBeGreaterThan(SPEC.pageCount.min);
     expect(withRunOn.volumes[0].interiorPages).toBeGreaterThan(withoutRunOn.volumes[0].interiorPages);
-    expect(priceOf(withRunOn, options)).toBeGreaterThan(priceOf(withoutRunOn, DEFAULT_OPTIONS));
+    // The charge for *building* the book is flat, so letting a day run on
+    // costs the owner nothing — which is the point of the option. It used to
+    // rise, because the build charge carried a per-page term that was really
+    // pricing paper; paper is now the print step's own live quote, and that
+    // one does follow the page count (see test/photobook-pricing.test.ts).
+    expect(priceOf(withRunOn, options)).toBe(priceOf(withoutRunOn, DEFAULT_OPTIONS));
   });
 });
 
