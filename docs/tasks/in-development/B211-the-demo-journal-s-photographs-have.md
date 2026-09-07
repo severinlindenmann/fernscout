@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: readme, demo content
 found: "2026-09-04T06:15:57Z"
+started: "2026-09-07T13:46:44Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T13:46:44Z"
 ---
 
 # B211 — The demo journal's photographs have nothing to do with the places they are captioned with
