@@ -2,7 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
-import { decodeSource, extensionFor, makeDerivative } from "../ingest/image.ts";
+import { decodeSource, extensionFor, makeDerivative, perceptualHash } from "../ingest/image.ts";
 import { getEntryBySlug } from "../entries";
 import { frontmatterSrc } from "../ingest/paths.ts";
 import { resolveMediaFile, tripMediaDir, tripOriginalsDir } from "../media";
@@ -15,6 +15,7 @@ import {
   type Problem,
 } from "../validate/media";
 import { VIDEO_EXTENSIONS, probeVideo, transcodeVideo, videoToolsAvailable } from "../ingest/video";
+import { isDuplicate } from "../ingest/hash.ts";
 import { loadUserConfig } from "../config";
 import { mediaKey, type PhotoVisibility } from "../photos";
 import { storageRefusal } from "../storageQuota";
@@ -77,8 +78,29 @@ export type KeptOriginal = {
   height?: number;
 };
 
+/**
+ * A photograph this day already has — B604.
+ *
+ * Not a refusal. A caller resending a batch after a network failure is the
+ * ordinary case and the ordinary case should be idempotent, so the file is
+ * left out and named here: `matched` is the picture already on the day, so an
+ * agent can see the upload did not vanish, it arrived earlier.
+ */
+export type SkippedUpload = {
+  /** What the caller called the file they sent. */
+  filename: string;
+  /** The `src` of the photograph already on the day, as it will read back. */
+  matched: string;
+};
+
 export type UploadResult =
-  | { ok: true; items: GalleryItem[]; kept: KeptOriginal[]; advice: string[] }
+  | {
+      ok: true;
+      items: GalleryItem[];
+      kept: KeptOriginal[];
+      advice: string[];
+      skipped: SkippedUpload[];
+    }
   | { ok: false; problems: Problem[] };
 
 /**
@@ -137,6 +159,54 @@ function nextIndex(dir: string): number {
  */
 export function kindOf(filename: string): "image" | "video" {
   return VIDEO_EXTENSIONS.has(path.extname(filename).toLowerCase()) ? "video" : "image";
+}
+
+/**
+ * What this day already holds, as perceptual hashes — B604.
+ *
+ * Read off the files rather than remembered in a ledger, and that is the
+ * point: `.ingest.json` is a record of what ingest imported, so a photograph
+ * removed by `DELETE .../media` (B605) would still be in it and the re-upload
+ * that was meant to fix the mistake would be skipped as a duplicate. The
+ * folder cannot be stale about itself.
+ *
+ * Posters are left out. A clip's still frame is not a gallery item, and a
+ * photograph refused for resembling one would be the worst kind of wrong here
+ * — a picture silently missing from somebody's day.
+ *
+ * The cost is a decode of each photograph already on the day, up to
+ * `itemsPerDay` of them, on every upload to it. At ~40 ms for a 2000px JPEG
+ * that is under two seconds in the worst case, against an upload that already
+ * spends longer than that on the network — and it is why this is per day
+ * rather than per trip, which would be the same work multiplied by the number
+ * of days.
+ */
+async function dayFingerprints(dir: string): Promise<{ file: string; phash: string }[]> {
+  let names: string[];
+  try {
+    names = fs.readdirSync(dir);
+  } catch {
+    return []; // No folder yet: the first upload to this day.
+  }
+
+  const out: { file: string; phash: string }[] = [];
+  for (const name of names.sort()) {
+    if (kindOf(name) === "video" || /-poster\.jpe?g$/i.test(name)) continue;
+    const file = path.join(dir, name);
+    try {
+      const source = await decodeSource(file);
+      try {
+        out.push({ file: name, phash: await perceptualHash(source) });
+      } finally {
+        source.dispose();
+      }
+    } catch {
+      // Something in the folder that will not decode. It is not a photograph
+      // this upload can be a duplicate of, and refusing the upload over it
+      // would be answering a question nobody asked.
+    }
+  }
+  return out;
 }
 
 export async function storeUploads(
@@ -270,6 +340,14 @@ export async function storeUploads(
   const originals: KeptOriginal[] = [];
   /** Said about a batch that succeeded — see the long-clip note below. */
   const advice: string[] = [];
+  /** Left out because the day already has them — B604. */
+  const skipped: SkippedUpload[] = [];
+  /**
+   * What the day holds, plus what this batch has added as it goes: a batch
+   * carrying the same photograph twice is the same mistake as sending it in
+   * two batches, and it arrives here rather more often.
+   */
+  const fingerprints = await dayFingerprints(mediaOut);
   let index = nextIndex(mediaOut);
 
   /** Give up, leaving the trip exactly as it was. */
@@ -382,6 +460,41 @@ export async function storeUploads(
         ]);
       }
 
+      /**
+       * The same photograph twice — B604.
+       *
+       * `nextIndex` appends, so a resent batch used to become a second file, a
+       * second `gallery:` line and a second tile, with nothing on the write
+       * path ever comparing the arriving picture to what the day already had.
+       * Eleven such pairs across four days were found on one real trip.
+       *
+       * Perceptual rather than by bytes, because bytes do not survive the
+       * pipeline: the same photograph exported twice, or re-encoded, is a
+       * different file and an identical picture. `DUPLICATE_THRESHOLD` in
+       * lib/ingest/hash.ts is the same tightness ingest uses, and it is tight
+       * on purpose — a missed duplicate is a tile somebody deletes, while a
+       * false match silently drops a photograph nobody knows was sent.
+       */
+      let phash: string | undefined;
+      try {
+        phash = await perceptualHash(source);
+      } catch {
+        // Un-hashable is not a reason to refuse: it goes in unchecked.
+      }
+      const already = phash && fingerprints.find((seen) => isDuplicate(seen.phash, phash!));
+      if (already) {
+        skipped.push({
+          filename: upload.filename,
+          matched: frontmatterSrc(tripId, path.join(slug, already.file)),
+        });
+        source.dispose();
+        // The staged original goes too: keeping it would spend the journal's
+        // quota on a photograph that is not in the day.
+        staged.pop();
+        fs.rmSync(kept, { force: true });
+        continue;
+      }
+
       try {
         // Measured from the decoded source rather than from `upload.bytes`,
         // because a HEIC's own header is not something sharp can always read —
@@ -415,6 +528,7 @@ export async function storeUploads(
           width: original.width,
           height: original.height,
         });
+        if (phash) fingerprints.push({ file: name, phash });
       } finally {
         source.dispose();
       }
@@ -433,7 +547,7 @@ export async function storeUploads(
     fs.rmSync(staging, { recursive: true, force: true });
   }
 
-  return { ok: true, items, kept: originals, advice };
+  return { ok: true, items, kept: originals, advice, skipped };
 }
 
 /**

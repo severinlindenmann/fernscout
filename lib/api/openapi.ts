@@ -2712,7 +2712,11 @@ export function openApiDocument() {
                 "its dimensions are absent because for a video they describe the " +
                 "transcode, which `items` already carries. `advice` is present only when " +
                 "there is something worth saying about a batch that succeeded, today that " +
-                "a clip is long; it changed nothing and asks for nothing. " +
+                "a clip is long; it changed nothing and asks for nothing. `skipped` is " +
+                "the photographs this day already had: sending the same batch twice adds " +
+                "nothing the second time, and each entry names the file you sent and the " +
+                "`src` of the picture it matched, so fewer `items` than files is not a " +
+                "loss. Clips are not compared this way and a resent clip lands twice. " +
                 "`attached` is false only if the entry has " +
                 "no frontmatter to write into, in which case the files are still on disk " +
                 "and `items` is what to add by hand. `note` says plainly when the day is " +

@@ -7,6 +7,7 @@ import { EventEmitter } from "node:events";
 import { Readable } from "node:stream";
 import type { ClientRequest, IncomingMessage } from "node:http";
 import sharp from "sharp";
+import { paintJpeg } from "./support/pictures";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 
 /**
@@ -40,11 +41,7 @@ let calls = 0;
 
 const tripPath = () => path.join(dir, OWNER, "trips", TRIP);
 
-async function jpeg(width: number, height: number): Promise<Buffer> {
-  return sharp({ create: { width, height, channels: 3, background: { r: 10, g: 90, b: 140 } } })
-    .jpeg()
-    .toBuffer();
-}
+const jpeg = (width: number, height: number) => paintJpeg(width, height);
 
 /** One IP per call — `lib/rateLimit.ts` is a module-level map for the file. */
 function headers(extra: Record<string, string> = {}): Record<string, string> {

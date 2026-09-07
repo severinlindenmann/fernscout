@@ -1,6 +1,12 @@
 import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { attachGallery, detachGallery, isPublished } from "@/lib/api/entries";
-import { kindOf, storeUploads, type KeptOriginal, type UploadCandidate } from "@/lib/api/media";
+import {
+  kindOf,
+  storeUploads,
+  type KeptOriginal,
+  type SkippedUpload,
+  type UploadCandidate,
+} from "@/lib/api/media";
 import { getTrip, mediaWithOwner, tripRef } from "@/lib/trips";
 import fs from "node:fs";
 import { fetchImage } from "@/lib/api/fetchMedia";
@@ -41,6 +47,13 @@ function withOwner(items: GalleryItem[], user: string): GalleryItem[] {
     src: mediaWithOwner(item.src, user),
     poster: item.poster ? mediaWithOwner(item.poster, user) : undefined,
   }));
+}
+
+/** Same as `withOwner`, for the `src` a skipped upload points at: it is the
+ *  key an agent would use to read that photograph back, so it has to be
+ *  spelled the way every other `src` in this response is — B540. */
+function withOwnerSkipped(skipped: SkippedUpload[], user: string): SkippedUpload[] {
+  return skipped.map((item) => ({ ...item, matched: mediaWithOwner(item.matched, user) }));
 }
 
 /**
@@ -109,6 +122,8 @@ function stored(
    * decides whether to trim and send again.
    */
   advice: string[] = [],
+  /** Photographs the day already had — B604. Reported, never refused. */
+  skipped: SkippedUpload[] = [],
 ) {
   const published = isPublished(ref, day);
   const attachedNote = attached
@@ -116,6 +131,14 @@ function stored(
       `\`kept\` is what was stored untouched for print; \`items\` is the resized copy the ` +
       `site serves.`
     : `${error} The originals in \`kept\` are stored either way.`;
+  // Said before anything else, because a 201 carrying fewer items than files
+  // were sent reads as loss until this sentence explains it — B604.
+  const skippedNote =
+    skipped.length > 0
+      ? `${skipped.length} of them ${skipped.length === 1 ? "was" : "were"} already on this ` +
+        `day and ${skipped.length === 1 ? "was" : "were"} left out rather than added twice — ` +
+        `\`skipped\` names each one and the photograph it matched. Nothing was lost. `
+      : "";
   return Response.json(
     {
       ok: true,
@@ -132,12 +155,14 @@ function stored(
       kept,
       attached,
       ...(advice.length > 0 ? { advice } : {}),
+      ...(skipped.length > 0 ? { skipped } : {}),
       // Same honesty PATCH gives a prose edit to a published day (B266): say
       // plainly that readers already see it, rather than let a 201 imply the
       // change is still private. See B393.
       note: published
-        ? `${attachedNote} Still published — anyone who already read it can now see this change.`
-        : attachedNote,
+        ? `${skippedNote}${attachedNote} Still published — anyone who already read it can now ` +
+          `see this change.`
+        : `${skippedNote}${attachedNote}`,
     },
     { status: 201 },
   );
@@ -248,6 +273,7 @@ export async function POST(
         attached.ok,
         attached.ok ? undefined : attached.error,
         written.advice,
+        withOwnerSkipped(written.skipped, user),
       );
     }
 
@@ -311,6 +337,7 @@ export async function POST(
       attached.ok,
       attached.ok ? undefined : attached.error,
       written.advice,
+      withOwnerSkipped(written.skipped, user),
     );
   }
 
@@ -462,6 +489,7 @@ export async function POST(
     attached.ok,
     attached.ok ? undefined : attached.error,
     result.advice,
+    withOwnerSkipped(result.skipped, user),
   );
 }
 

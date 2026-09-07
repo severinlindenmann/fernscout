@@ -9,6 +9,7 @@ import { storeUploads } from "@/lib/api/media";
 import { attachGallery } from "@/lib/api/entries";
 import { getEntryBySlug } from "@/lib/entries";
 import { MAX_ITEMS_PER_DAY, VIDEO_SHORT_SECONDS, type Problem } from "@/lib/validate/media";
+import { paintJpeg } from "./support/pictures";
 
 /**
  * Media arriving over the network.
@@ -25,12 +26,6 @@ import { MAX_ITEMS_PER_DAY, VIDEO_SHORT_SECONDS, type Problem } from "@/lib/vali
 
 let dir: string;
 const REF = "alex/asia-2026";
-
-async function jpeg(width: number, height: number): Promise<Buffer> {
-  return sharp({ create: { width, height, channels: 3, background: { r: 10, g: 90, b: 140 } } })
-    .jpeg()
-    .toBuffer();
-}
 
 const tripPath = () => path.join(dir, "alex", "trips", "asia-2026");
 
@@ -108,7 +103,7 @@ function only(problems: Problem[], what: string, match: (p: Problem) => boolean)
 describe("storing an upload", () => {
   test("writes a resized derivative and keeps the original", async () => {
     const result = await storeUploads(REF, "lanterns-of-hoi-an", [
-      { filename: "DSC_4471.jpg", bytes: await jpeg(4200, 2800) },
+      { filename: "DSC_4471.jpg", bytes: await paintJpeg(4200, 2800) },
     ]);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -132,7 +127,7 @@ describe("storing an upload", () => {
   test("carries the name the caller sent, through to the day read back", async () => {
     writeDay("day-two", "2026-08-27");
     const result = await storeUploads(REF, "day-two", [
-      { filename: "IMG_4821.JPG", bytes: await jpeg(800, 600) },
+      { filename: "IMG_4821.JPG", bytes: await paintJpeg(800, 600) },
     ]);
     if (!result.ok) throw new Error("expected success");
     expect(result.items[0].from).toBe("IMG_4821.JPG");
@@ -145,7 +140,7 @@ describe("storing an upload", () => {
    * multi-user rewrite no entry file. */
   test("the gallery src is trip-relative, with no username in it", async () => {
     const result = await storeUploads(REF, "day-one", [
-      { filename: "a.jpg", bytes: await jpeg(800, 600) },
+      { filename: "a.jpg", bytes: await paintJpeg(800, 600) },
     ]);
     if (!result.ok) throw new Error("expected success");
     expect(result.items[0].src).toBe("/media/asia-2026/day-one/01.jpg");
@@ -156,10 +151,10 @@ describe("storing an upload", () => {
    * and a second upload to the same day must append rather than overwrite.
    */
   test("numbers from the next free index, so a second upload appends", async () => {
-    await storeUploads(REF, "day-one", [{ filename: "a.jpg", bytes: await jpeg(400, 300) }]);
+    await storeUploads(REF, "day-one", [{ filename: "a.jpg", bytes: await paintJpeg(400, 300) }]);
     const second = await storeUploads(REF, "day-one", [
-      { filename: "a.jpg", bytes: await jpeg(400, 300) },
-      { filename: "b.jpg", bytes: await jpeg(400, 300) },
+      { filename: "a.jpg", bytes: await paintJpeg(400, 300) },
+      { filename: "b.jpg", bytes: await paintJpeg(400, 300) },
     ]);
     if (!second.ok) throw new Error("expected success");
     expect(second.items.map((i) => i.src)).toEqual([
@@ -175,7 +170,7 @@ describe("storing an upload", () => {
     const vault = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-vault-"));
     process.env.MEDIA_ORIGINALS_DIR = vault;
     try {
-      await storeUploads(REF, "day-one", [{ filename: "a.jpg", bytes: await jpeg(400, 300) }]);
+      await storeUploads(REF, "day-one", [{ filename: "a.jpg", bytes: await paintJpeg(400, 300) }]);
       expect(fs.readdirSync(path.join(vault, "alex", "asia-2026", "day-one"))).toEqual(["01.jpg"]);
       expect(fs.existsSync(path.join(tripPath(), "originals"))).toBe(false);
     } finally {
@@ -199,7 +194,7 @@ describe("what it refuses", () => {
   /** A refused batch must leave no half-imported day behind. */
   test("writes nothing at all when the batch is refused", async () => {
     await storeUploads(REF, "day-one", [
-      { filename: "ok.jpg", bytes: await jpeg(400, 300) },
+      { filename: "ok.jpg", bytes: await paintJpeg(400, 300) },
       { filename: "notes.txt", bytes: Buffer.from("x") },
     ]);
     expect(fs.existsSync(path.join(tripPath(), "media", "day-one"))).toBe(false);
@@ -207,13 +202,13 @@ describe("what it refuses", () => {
   });
 
   test("the per-day ceiling counts what is already on disk", async () => {
-    // One encode, reused. The loop below is the slowest thing in this file and
-    // re-encoding the same 60px square forty times bought nothing.
-    const bytes = await jpeg(60, 60);
-    const one = () => [{ filename: "a.jpg", bytes }];
+    // A fresh picture each time: the same one forty times is one photograph
+    // uploaded forty times, which since B604 lands once. 60px squares, so the
+    // encoding is not what makes this the slowest test in the file.
+    const one = async () => [{ filename: "a.jpg", bytes: await paintJpeg(60, 60) }];
 
     for (let i = 0; i < MAX_ITEMS_PER_DAY; i++) {
-      const landed = await storeUploads(REF, "day-one", one());
+      const landed = await storeUploads(REF, "day-one", await one());
       expect(landed.ok, `upload ${i + 1} of ${MAX_ITEMS_PER_DAY} did not land`).toBe(true);
     }
     // Stated rather than assumed: the ceiling counts `readdirSync(mediaOut)`,
@@ -222,7 +217,7 @@ describe("what it refuses", () => {
       MAX_ITEMS_PER_DAY,
     );
 
-    const over = await storeUploads(REF, "day-one", one());
+    const over = await storeUploads(REF, "day-one", await one());
     expect(over.ok).toBe(false);
     if (over.ok) return;
     const ceiling = only(over.problems, "the per-day ceiling", (p) =>
@@ -280,7 +275,7 @@ describe("what it refuses", () => {
     // B292: the `field` key already named it, and an agent read past that —
     // so the refusal also carries a sentence naming the form field.
     if (!empty.ok) expect(empty.problems[0].hint).toContain("files");
-    expect((await storeUploads(REF, "///", [{ filename: "a.jpg", bytes: await jpeg(60, 60) }])).ok).toBe(false);
+    expect((await storeUploads(REF, "///", [{ filename: "a.jpg", bytes: await paintJpeg(60, 60) }])).ok).toBe(false);
   });
 });
 
@@ -323,7 +318,7 @@ describe("a file that is not the image it says it is", () => {
 describe("the day a photograph belongs to", () => {
   test("must exist", async () => {
     const result = await storeUploads(REF, "no-such-day", [
-      { filename: "a.jpg", bytes: await jpeg(400, 300) },
+      { filename: "a.jpg", bytes: await paintJpeg(400, 300) },
     ]);
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -335,7 +330,7 @@ describe("the day a photograph belongs to", () => {
   test("may be a draft", async () => {
     writeDay("still-a-draft", "2026-01-05", true);
     const result = await storeUploads(REF, "still-a-draft", [
-      { filename: "a.jpg", bytes: await jpeg(400, 300) },
+      { filename: "a.jpg", bytes: await paintJpeg(400, 300) },
     ]);
     expect(result.ok).toBe(true);
   });
@@ -483,6 +478,90 @@ describe("video", () => {
 });
 
 /**
+ * The same photograph twice — B604.
+ *
+ * `storeUploads` appended, and nothing on the write path ever compared an
+ * arriving picture to what the day already held: eleven pairs across four days
+ * were found on one real trip, each one a batch uploaded and then a second
+ * batch overlapping it. The owner saw a gallery that repeated itself and had no
+ * way to find out why.
+ */
+describe("a photograph the day already has", () => {
+  test("is left out rather than added twice, and said so", async () => {
+    writeDay("day-one", "2026-01-01");
+    const photo = await paintJpeg(1200, 800);
+
+    const first = await storeUploads(REF, "day-one", [{ filename: "a.jpg", bytes: photo }]);
+    expect(first.ok).toBe(true);
+
+    const again = await storeUploads(REF, "day-one", [{ filename: "a-again.jpg", bytes: photo }]);
+    expect(again.ok).toBe(true);
+    const result = again as { items: unknown[]; skipped: { filename: string; matched: string }[] };
+    expect(result.items).toEqual([]);
+    expect(result.skipped).toHaveLength(1);
+    expect(result.skipped[0].filename).toBe("a-again.jpg");
+    expect(result.skipped[0].matched).toMatch(/01\.jpg$/);
+
+    // The day has one copy, and so does the disk — the original of a skipped
+    // upload is not left behind spending the journal's quota.
+    expect(fs.readdirSync(path.join(tripPath(), "media", "day-one"))).toEqual(["01.jpg"]);
+    expect(fs.readdirSync(path.join(tripPath(), "originals", "day-one"))).toEqual(["01.jpg"]);
+  });
+
+  test("the same picture re-encoded is still the same picture", async () => {
+    writeDay("day-one", "2026-01-01");
+    const original = await paintJpeg(1200, 800);
+    // What a second export of one photograph looks like: different bytes,
+    // different size, the same picture. An exact-bytes check sees two files.
+    const reEncoded = await sharp(original).jpeg({ quality: 60 }).toBuffer();
+    expect(reEncoded.equals(original)).toBe(false);
+
+    await storeUploads(REF, "day-one", [{ filename: "a.jpg", bytes: original }]);
+    const again = await storeUploads(REF, "day-one", [{ filename: "b.jpg", bytes: reEncoded }]);
+
+    expect((again as { skipped: unknown[] }).skipped).toHaveLength(1);
+  });
+
+  test("twice in one batch is the same mistake and answered the same way", async () => {
+    writeDay("day-one", "2026-01-01");
+    const photo = await paintJpeg(1000, 1000);
+    const result = await storeUploads(REF, "day-one", [
+      { filename: "a.jpg", bytes: photo },
+      { filename: "a-copy.jpg", bytes: photo },
+    ]);
+
+    expect((result as { items: unknown[] }).items).toHaveLength(1);
+    expect((result as { skipped: unknown[] }).skipped).toHaveLength(1);
+  });
+
+  test("a different photograph is not mistaken for one the day has", async () => {
+    writeDay("day-one", "2026-01-01");
+    await storeUploads(REF, "day-one", [{ filename: "a.jpg", bytes: await paintJpeg(1200, 800) }]);
+
+    const second = await storeUploads(REF, "day-one", [
+      { filename: "b.jpg", bytes: await paintJpeg(1200, 800) },
+    ]);
+
+    expect((second as { items: unknown[] }).items).toHaveLength(1);
+    expect((second as { skipped: unknown[] }).skipped).toEqual([]);
+  });
+
+  /** Per day, not per trip: the same picture on two days is a thing people do
+   *  deliberately, and the ticket says to leave it alone. */
+  test("the same photograph on another day is kept", async () => {
+    writeDay("day-one", "2026-01-01");
+    writeDay("day-two", "2026-01-02");
+    const photo = await paintJpeg(900, 600);
+
+    await storeUploads(REF, "day-one", [{ filename: "a.jpg", bytes: photo }]);
+    const elsewhere = await storeUploads(REF, "day-two", [{ filename: "a.jpg", bytes: photo }]);
+
+    expect((elsewhere as { items: unknown[] }).items).toHaveLength(1);
+    expect((elsewhere as { skipped: unknown[] }).skipped).toEqual([]);
+  });
+});
+
+/**
  * A batch that fails halfway.
  *
  * "If any file in a batch is refused, nothing is written: fix it and send the
@@ -498,7 +577,7 @@ describe("a batch that fails halfway", () => {
   test("writes nothing at all", async () => {
     writeDay("day-one", "2026-01-01");
     const result = await storeUploads(REF, "day-one", [
-      { filename: "good.jpg", bytes: await jpeg(400, 300) },
+      { filename: "good.jpg", bytes: await paintJpeg(400, 300) },
       { filename: "broken.jpg", bytes: Buffer.from("not a jpeg at all") },
     ]);
     expect(result.ok).toBe(false);
@@ -513,13 +592,13 @@ describe("a batch that fails halfway", () => {
   test("so the retry the error asks for cannot duplicate anything", async () => {
     writeDay("day-one", "2026-01-01");
     await storeUploads(REF, "day-one", [
-      { filename: "good.jpg", bytes: await jpeg(400, 300) },
+      { filename: "good.jpg", bytes: await paintJpeg(400, 300) },
       { filename: "broken.jpg", bytes: Buffer.from("not a jpeg at all") },
     ]);
     // The person fixes the second file and sends the batch again, as told.
     const retry = await storeUploads(REF, "day-one", [
-      { filename: "good.jpg", bytes: await jpeg(400, 300) },
-      { filename: "fixed.jpg", bytes: await jpeg(400, 300) },
+      { filename: "good.jpg", bytes: await paintJpeg(400, 300) },
+      { filename: "fixed.jpg", bytes: await paintJpeg(400, 300) },
     ]);
     expect(retry.ok).toBe(true);
     expect(fs.readdirSync(path.join(tripPath(), "media", "day-one"))).toHaveLength(2);
@@ -528,8 +607,8 @@ describe("a batch that fails halfway", () => {
   test("and a batch that is entirely fine still lands", async () => {
     writeDay("day-one", "2026-01-01");
     const result = await storeUploads(REF, "day-one", [
-      { filename: "a.jpg", bytes: await jpeg(400, 300) },
-      { filename: "b.jpg", bytes: await jpeg(400, 300) },
+      { filename: "a.jpg", bytes: await paintJpeg(400, 300) },
+      { filename: "b.jpg", bytes: await paintJpeg(400, 300) },
     ]);
     expect(result.ok).toBe(true);
     expect(fs.readdirSync(path.join(tripPath(), "media", "day-one")).sort()).toEqual([
@@ -560,7 +639,7 @@ describe("what was kept, beside what is served", () => {
   test("reports the original's dimensions, not the derivative's", async () => {
     writeDay("day-one", "2026-01-01", true);
     const result = await storeUploads(REF, "day-one", [
-      { filename: "big.jpg", bytes: await jpeg(3000, 2000) },
+      { filename: "big.jpg", bytes: await paintJpeg(3000, 2000) },
     ]);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -578,7 +657,7 @@ describe("what was kept, beside what is served", () => {
   test("the original really is on disk at full size — the claim being doubted", async () => {
     writeDay("day-one", "2026-01-01", true);
     await storeUploads(REF, "day-one", [
-      { filename: "big.jpg", bytes: await jpeg(3000, 2000) },
+      { filename: "big.jpg", bytes: await paintJpeg(3000, 2000) },
     ]);
 
     const original = path.join(tripPath(), "originals", "day-one", "01.jpg");
@@ -591,8 +670,8 @@ describe("what was kept, beside what is served", () => {
   test("one entry per file, in the order they were sent", async () => {
     writeDay("day-one", "2026-01-01", true);
     const result = await storeUploads(REF, "day-one", [
-      { filename: "a.jpg", bytes: await jpeg(2400, 1600) },
-      { filename: "b.jpg", bytes: await jpeg(800, 600) },
+      { filename: "a.jpg", bytes: await paintJpeg(2400, 1600) },
+      { filename: "b.jpg", bytes: await paintJpeg(800, 600) },
     ]);
     if (!result.ok) throw new Error("expected the batch to land");
     expect(result.kept.map((k) => k.filename)).toEqual(["a.jpg", "b.jpg"]);
@@ -606,7 +685,7 @@ describe("attaching a gallery to the day", () => {
   test("puts what was uploaded into the entry that names it", async () => {
     writeDay("day-one", "2026-01-01", true);
     const result = await storeUploads(REF, "day-one", [
-      { filename: "a.jpg", bytes: await jpeg(400, 300) },
+      { filename: "a.jpg", bytes: await paintJpeg(400, 300) },
     ]);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -622,7 +701,7 @@ describe("attaching a gallery to the day", () => {
     writeDay("day-one", "2026-01-01", true);
     for (const name of ["a.jpg", "b.jpg"]) {
       const batch = await storeUploads(REF, "day-one", [
-        { filename: name, bytes: await jpeg(400, 300) },
+        { filename: name, bytes: await paintJpeg(400, 300) },
       ]);
       if (batch.ok) attachGallery(REF, "day-one", batch.items);
     }
@@ -632,7 +711,7 @@ describe("attaching a gallery to the day", () => {
   test("the prose and the frontmatter around it are left exactly as they were", async () => {
     writeDay("day-one", "2026-01-01", true);
     const result = await storeUploads(REF, "day-one", [
-      { filename: "a.jpg", bytes: await jpeg(400, 300) },
+      { filename: "a.jpg", bytes: await paintJpeg(400, 300) },
     ]);
     if (result.ok) attachGallery(REF, "day-one", result.items);
 
