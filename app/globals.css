@@ -62,6 +62,14 @@
 
   --background: var(--color-cream-50);
   --foreground: var(--color-navy-900);
+
+  /* Every checkbox, radio, range and progress bar on the site, in one line —
+     B702. Unset, the browser paints them in the operating system's blue,
+     which is the one colour on the page that belongs to no palette; six of
+     them sit in the photobook's own settings panel. yellow-600 rather than
+     the yellow of the mark: the browser picks the tick's own colour from
+     this one's contrast, and the brighter lozenge yellow gets a grey tick. */
+  accent-color: var(--color-yellow-600);
 }
 
 @theme inline {
