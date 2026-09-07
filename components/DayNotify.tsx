@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { creditWorth } from "@/lib/credits/pricing";
 import { useI18n } from "./LocaleProvider";
 
 type Status = {
@@ -128,6 +129,15 @@ export default function DayNotify({
           className="max-w-sm rounded-2xl border border-navy-200 bg-white p-4 shadow-sm"
         >
           <p className="text-sm leading-6 text-navy-700">{message}</p>
+          {/* B806 — a 71-year-old was offered this button, found nowhere that
+              said what a credit is, and put the phone down rather than press
+              something that would have cost about twenty rappen. Said here,
+              where the spend is actually being asked for, and only where
+              there is a spend: a free send has no unit to explain. Computed
+              from `TIERS`, never typed. */}
+          {status.balance !== null && (
+            <p className="mt-2 text-xs leading-5 text-navy-600">{t("credits.worth", creditWorth())}</p>
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="button"

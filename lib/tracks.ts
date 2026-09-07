@@ -145,6 +145,18 @@ export const TRACK_ROWS: Record<Track, Row> = {
      * photograph at `POST .../days` to report). If the wizard asks about
      * money too soon on its own first screen, that is the wizard's ordering
      * to fix, not this trip-wide contract.
+     *
+     * **A second witness, and it was the wizard's ordering** — B810. A
+     * 23-year-old, not technical, met "what did this day cost?" as the very
+     * first thing the product asked him to decide, before he had written a
+     * word, and said that somebody in his position would have made up a
+     * number to get past it. The paragraph above turned out to be the answer
+     * rather than an excuse: `components/AgentWizard.tsx` now creates the day
+     * saying `unknown` for whatever nobody has been asked about — which is
+     * what is true at that moment — says so in a line above the words, and
+     * asks for the figures under the preview, where a receipt can actually be
+     * typed in (B820). The contract here is unchanged, and the wall it had
+     * accidentally built is gone.
      */
     when: "write",
     keeps: "what it costs",

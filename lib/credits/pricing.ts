@@ -124,3 +124,26 @@ export const EXTRA_STORAGE_CREDITS = 50;
 /** What those fifty credits buy. Binary gigabytes, like every other byte
  * figure this software prints. */
 export const EXTRA_STORAGE_BYTES = 5 * 1024 ** 3;
+
+/**
+ * What one credit is worth, in words a person can judge — B806.
+ *
+ * A 71-year-old tester found a button that would have spent one credit, could
+ * not find out anywhere what a credit is, and put the phone down rather than
+ * press it. She was being offered something that cost about twenty rappen.
+ * B767 was right to take prices off the first screen; it did not follow that
+ * the *unit* should be unexplained at the moment somebody is asked to spend
+ * one.
+ *
+ * Three strings rather than one sentence, because the sentence is a
+ * translation and belongs in `site/locales/`. Every number here is arithmetic
+ * on `TIERS` — nothing about a price is ever typed into a locale file, which
+ * is what `test/credit-worth.test.ts` holds this to.
+ */
+export function creditWorth(): { one: string; credits: string; price: string } {
+  return {
+    one: formatChf(creditsInRappen(1)),
+    credits: String(TIERS[0].credits),
+    price: formatChf(TIERS[0].priceRappen),
+  };
+}

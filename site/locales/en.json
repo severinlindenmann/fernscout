@@ -1408,5 +1408,21 @@
   "agent.speechConsentDryRunShort": "Sends your voice to this server's own dry run. Nothing leaves the server, and the text that comes back is a placeholder.",
   "agent.askConsentShort": "Sends the sentence you typed to a model, so it can work out which screen you meant. Asking is free.",
   "agent.statementConsentShort": "Sends this file's heading row and its first five rows to a model, so it can say which column is which.",
-  "agent.pickPhotosWhy": "What the camera recorded — the day, the time and where you were — fills in the rest, and nothing is invented from it."
+  "agent.pickPhotosWhy": "What the camera recorded — the day, the time and where you were — fills in the rest, and nothing is invented from it.",
+  "credits.worth": "One credit is about {one}; {credits} credits cost {price}.",
+  "cost.currency": "Currency",
+  "cost.addHeading": "Add what this day cost",
+  "cost.addHint": "One receipt at a time. Nothing here is guessed — if you do not know, leave it.",
+  "cost.addButton": "Add this",
+  "cost.addBusy": "Adding…",
+  "cost.added": "Added to {date}.",
+  "cost.addNone": "Nothing has been written down for this day yet.",
+  "cost.addOn": "Already on this day",
+  "cost.addNoDay": "There is no day written for {date} yet, so there is nothing to put this on. Write that day first.",
+  "cost.addFailed": "That was not saved: {error}",
+  "agent.assumed": "For now this day says {fields}. Nothing was invented — nobody has been asked yet.",
+  "agent.assumedCosts": "nobody wrote down what it cost",
+  "agent.assumedCoordinates": "nobody wrote down where it was",
+  "agent.assumedPhotos": "nobody has the photographs to hand",
+  "agent.assumedChange": "Say something else"
 }

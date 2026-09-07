@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import ConfirmPanel from "@/components/ConfirmPanel";
+import DayCosts from "@/components/DayCosts";
 import {
   drain,
   enqueue,
@@ -15,6 +16,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import Why from "@/components/Why";
 import RecordButton from "@/components/RecordButton";
 import { DayCard } from "@/components/StoryPager";
+import { creditWorth } from "@/lib/credits/pricing";
 import { creditsForPhotos } from "@/lib/helper/credits";
 import {
   backFrom,
@@ -119,6 +121,17 @@ const TRACK_LABEL: Record<Track, TranslationKey> = {
   costs: "agent.missingCosts",
   coordinates: "agent.missingCoordinates",
   photos: "agent.missingPhotos",
+};
+
+/**
+ * The same three rows, as what a day says when nobody has been asked yet —
+ * B810. Deliberately not the labels above: "What it cost" is a question, and
+ * this is a sentence about the day on disk.
+ */
+const ASSUMED_LABEL: Record<Track, TranslationKey> = {
+  costs: "agent.assumedCosts",
+  coordinates: "agent.assumedCoordinates",
+  photos: "agent.assumedPhotos",
 };
 
 /** Where a way back leads, said as a place rather than as an arrow — B769.
@@ -378,6 +391,12 @@ export default function AgentWizard({
   const [progress, setProgress] = useState<QueueProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [missing, setMissing] = useState<Track[]>([]);
+  /**
+   * The rows the day was created carrying `unknown` because nobody had been
+   * asked — B810. Said out loud on the words step, with a way to say
+   * something else. Empty on any day where the person answered first.
+   */
+  const [assumed, setAssumed] = useState<Track[]>([]);
   const [answers, setAnswers] = useState<Partial<Record<Track, "none" | "unknown">>>({});
   const [asking, setAsking] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
@@ -431,6 +450,11 @@ export default function AgentWizard({
 
   const base = `/api/helper/${encodeURIComponent(username)}/day`;
 
+  /** What the last 422 asked for, readable in the same turn — the `missing`
+   *  state above arrives a render later, and `ensureDraft` has to act on it
+   *  immediately (B810). */
+  const lastMissing = useRef<Track[]>([]);
+
   /** One place where a refusal becomes something on the screen — including the
    *  422 that is not a refusal at all but the trip asking a question. */
   const send = useCallback(
@@ -443,6 +467,7 @@ export default function AgentWizard({
       }
       const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
       if (response.status === 422 && Array.isArray(body.missing)) {
+        lastMissing.current = body.missing as Track[];
         setMissing(body.missing as Track[]);
         return null;
       }
@@ -450,6 +475,7 @@ export default function AgentWizard({
         setError(t("agent.failed", { error: String(body.error ?? response.status) }));
         return null;
       }
+      lastMissing.current = [];
       setMissing([]);
       return body;
     },
@@ -602,18 +628,55 @@ export default function AgentWizard({
     async (on?: { date: string; trip: string }): Promise<WizardDraft | null> => {
       if (draft) return draft;
       const onTrip = on?.trip ?? trip;
-      const body = await send(base, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          trip: onTrip,
-          date: on?.date ?? date,
-          time: facts?.from,
-          lat: facts?.lat,
-          lng: facts?.lng,
-          answers,
-        }),
-      });
+      const create = (said: Partial<Record<Track, "none" | "unknown">>) =>
+        send(base, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            trip: onTrip,
+            date: on?.date ?? date,
+            time: facts?.from,
+            lat: facts?.lat,
+            lng: facts?.lng,
+            answers: said,
+          }),
+        });
+
+      let body = await create(answers);
+
+      /**
+       * The wall the money question used to be — B810.
+       *
+       * The trip's contract is unchanged and stays at write time (B709 decided
+       * that deliberately, and `lib/tracks.ts` carries the reasoning). What was
+       * wrong is that this screen turned it into a gate: a 23-year-old met
+       * "what did this day cost?" as the very first thing the product asked
+       * him, before he had written a word, and said plainly that somebody in
+       * his position would invent a number to get past it — which is the one
+       * thing this software exists not to have.
+       *
+       * So the day is created saying `unknown` for whatever nobody has been
+       * asked about, which is not a guess but the literal state of affairs:
+       * money was spent and nobody has told this journal the figures. It is
+       * the third answer B560 made first-class for exactly this, it is
+       * revisable, and the costs page already reports a day carrying it as a
+       * floor rather than a total. The line on the words step says so, and the
+       * form below the preview is where a receipt actually goes.
+       *
+       * Anything the person has already answered wins: `answers` is spread
+       * first, and this only fills the rows still silent.
+       */
+      if (!body && lastMissing.current.length > 0) {
+        const unasked = lastMissing.current;
+        const said = {
+          ...Object.fromEntries(unasked.map((field) => [field, "unknown" as const])),
+          ...answers,
+        };
+        setAnswers(said);
+        setAssumed(unasked.filter((field) => answers[field] === undefined));
+        body = await create(said);
+      }
+
       if (!body) return null;
       return await refresh(onTrip, String(body.slug));
     },
@@ -653,6 +716,7 @@ export default function AgentWizard({
     async (field: Track, said: "none" | "unknown") => {
       const next = { ...answers, [field]: said };
       setAnswers(next);
+      setAssumed((was) => was.filter((row) => row !== field));
       if (!draft) return;
       setBusy(true);
       const body = await send(base, {
@@ -1243,6 +1307,31 @@ export default function AgentWizard({
             </p>
           )}
 
+          {/* B810 — what this day is saying about itself while nobody has
+              been asked. Never in front of the words: the whole point is that
+              the first thing a person meets is the box they type into, and
+              the money question comes after there is something to say "no"
+              about. `unknown` is a real answer and means what it says, so
+              this is a statement rather than an apology — and the button
+              below opens the same three-answer panel the trip would have
+              shown, with the cost form waiting under the preview. */}
+          {assumed.length > 0 && (
+            <p className="mt-3 text-sm leading-6 text-navy-700">
+              {t("agent.assumed", {
+                fields: TRACKS.filter((field) => assumed.includes(field))
+                  .map((field) => t(ASSUMED_LABEL[field]))
+                  .join(" · "),
+              })}{" "}
+              <button
+                type="button"
+                onClick={() => setMissing(assumed)}
+                className="min-h-11 font-semibold text-navy-800 underline underline-offset-4"
+              >
+                {t("agent.assumedChange")}
+              </button>
+            </p>
+          )}
+
           {/* B780 — the two questions the express path did not ask, answered
               out loud, with the way to change either of them. Quiet, because
               it is almost always right; present, because "almost" is not
@@ -1350,7 +1439,11 @@ export default function AgentWizard({
                 <ConfirmPanel
                   label={t("agent.helperConsentLabel")}
                   question={t("agent.helperConsentShort")}
-                  details={t("agent.helperConsent")}
+                  /* B806 — the one sentence that says what a credit is, at
+                     the moment somebody is first asked to spend one. Not on
+                     the button: B767 took prices off the first screen and
+                     that stands. Every figure comes out of `TIERS`. */
+                  details={`${t("agent.helperConsent")} ${t("credits.worth", creditWorth())}`}
                   confirmLabel={t("agent.helperConsentConfirm")}
                   busy={busy}
                   onConfirm={() => void agree()}
@@ -1440,7 +1533,7 @@ export default function AgentWizard({
                 <ConfirmPanel
                   label={t("agent.photoConsentLabel")}
                   question={t("agent.photoConsentShort")}
-                  details={t("agent.photoConsent")}
+                  details={`${t("agent.photoConsent")} ${t("credits.worth", creditWorth())}`}
                   confirmLabel={t("agent.photoConsentConfirm")}
                   busy={busy}
                   onConfirm={() => void agreePhotos()}
@@ -1549,6 +1642,21 @@ export default function AgentWizard({
               </CurrencyProvider>
             </div>
           )}
+
+          {/* B820 — a receipt, entered by the person who paid it. Under the
+              preview because that is where the day is finished rather than
+              being written, and shown for a published day too: a receipt
+              turns up after the fact by definition. */}
+          <DayCosts
+            key={draft.slug}
+            username={username}
+            trip={draft.trip}
+            slug={draft.slug}
+            date={draft.date}
+            base={currency.base}
+            currencies={currency.currencies}
+            costs={preview?.day.entries.find((entry) => entry.slug === draft.slug)?.costs ?? []}
+          />
 
           {publishedUrl ? (
             <div className="mt-5 rounded-2xl border border-navy-200 bg-white p-4">
