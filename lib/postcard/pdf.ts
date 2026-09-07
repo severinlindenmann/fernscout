@@ -24,22 +24,41 @@
  *    far that gets us, and where it stops.
  */
 
+import { readExif } from "../ingest/exif.ts";
+
 type Rgb = { r: number; g: number; b: number };
 
 export type JpegImage = {
   data: Uint8Array;
+  /** The width the photograph is *seen* at — the frame header's, with the two
+   * axes swapped when EXIF says the camera was held sideways. Every caller
+   * lays out with these, because this is the shape a person sees. */
   width: number;
   height: number;
+  /** The frame header's own dimensions, before orientation. Only the
+   * `/XObject` dictionary wants these: the stream is the camera's bytes and
+   * they are what those bytes decode to. */
+  pixelWidth: number;
+  pixelHeight: number;
+  /** TIFF orientation, 1-8. 1 for a photograph that is already the right way
+   * up, which includes every photograph with no EXIF at all. */
+  orientation: number;
   /** 1 = grayscale, 3 = RGB, 4 = CMYK. */
   components: number;
 };
 
 /**
- * Reads dimensions and colour model straight out of a JPEG's frame header.
+ * Reads dimensions and colour model straight out of a JPEG's frame header,
+ * and which way up the camera was holding it.
  *
  * Throws rather than guessing: a wrong size here means a photograph silently
  * stretched on a printed card, which is the kind of error nobody notices until
- * fifty of them arrive in the post.
+ * fifty of them arrive in the post. B698 is that error, arriving: a phone
+ * writes a portrait picture as landscape pixels plus an orientation tag, the
+ * frame header alone therefore said "landscape" about half of everybody's
+ * photographs, and every caller laid out a landscape frame around an upright
+ * picture. So the orientation is read here, once, and `width`/`height` mean
+ * what a person means by them.
  */
 export function readJpeg(bytes: Uint8Array): JpegImage {
   if (bytes[0] !== 0xff || bytes[1] !== 0xd8) {
@@ -54,10 +73,20 @@ export function readJpeg(bytes: Uint8Array): JpegImage {
     const marker = bytes[i + 1];
     // Start-of-frame markers, excluding the ones that are not frames.
     if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
-      const height = (bytes[i + 5] << 8) | bytes[i + 6];
-      const width = (bytes[i + 7] << 8) | bytes[i + 8];
+      const pixelHeight = (bytes[i + 5] << 8) | bytes[i + 6];
+      const pixelWidth = (bytes[i + 7] << 8) | bytes[i + 8];
       const components = bytes[i + 9];
-      return { data: bytes, width, height, components };
+      const orientation = readExif(bytes).orientation ?? 1;
+      const sideways = orientation >= 5 && orientation <= 8;
+      return {
+        data: bytes,
+        width: sideways ? pixelHeight : pixelWidth,
+        height: sideways ? pixelWidth : pixelHeight,
+        pixelWidth,
+        pixelHeight,
+        orientation,
+        components,
+      };
     }
     if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7)) {
       i += 2;
@@ -68,6 +97,41 @@ export function readJpeg(bytes: Uint8Array): JpegImage {
     i += 2 + length;
   }
   throw new Error("Malformed JPEG: no frame header found.");
+}
+
+/**
+ * The eight EXIF orientations as transforms of the unit square, in PDF's own
+ * y-upwards space: `[a, b, c, d, e, f]`, the operands of `cm`.
+ *
+ * A JPEG is embedded exactly as the camera wrote it — that is the point of a
+ * DCTDecode stream — so the bytes come out the way the sensor read them and
+ * the tag is the only thing that says which way up that was. The caller has
+ * already worked in display space (see `readJpeg`), so all that is left is to
+ * turn the picture inside the rectangle it was given.
+ *
+ * Index 0 is unused; the tags are 1-8. Six of these no phone has ever
+ * written, but the table costs six lines and the alternative is a photograph
+ * printed mirrored for whoever owns the scanner that does.
+ */
+const ORIENTATIONS: [number, number, number, number, number, number][] = [
+  [1, 0, 0, 1, 0, 0],
+  [1, 0, 0, 1, 0, 0], // 1 — as written
+  [-1, 0, 0, 1, 1, 0], // 2 — mirrored across the vertical
+  [-1, 0, 0, -1, 1, 1], // 3 — half turn
+  [1, 0, 0, -1, 0, 1], // 4 — mirrored across the horizontal
+  [0, 1, 1, 0, 0, 0], // 5 — transposed
+  [0, -1, 1, 0, 0, 1], // 6 — quarter turn clockwise (phone held sideways)
+  [0, -1, -1, 0, 1, 1], // 7 — transposed the other way
+  [0, 1, -1, 0, 1, 0], // 8 — quarter turn anticlockwise
+];
+
+/**
+ * The `cm` operands that put one photograph, the right way up, into the
+ * rectangle `(x, y, w, h)` — which is already in display space.
+ */
+function imageMatrix(image: JpegImage, x: number, y: number, w: number, h: number): string {
+  const [a, b, c, d, e, f] = ORIENTATIONS[image.orientation] ?? ORIENTATIONS[1];
+  return `${F(a * w)} ${F(b * h)} ${F(c * w)} ${F(d * h)} ${F(e * w + x)} ${F(f * h + y)}`;
 }
 
 /** Anything outside WinAnsi's printable range, which the base-14 fonts encode. */
@@ -170,7 +234,7 @@ export class PdfBuilder {
   static drawImage(page: Page, image: JpegImage, x: number, y: number, w: number, h: number) {
     const name = `Im${page.images.length + 1}`;
     page.images.push({ name, image });
-    page.operations.push(`q ${F(w)} 0 0 ${F(h)} ${F(x)} ${F(y)} cm /${name} Do Q`);
+    page.operations.push(`q ${imageMatrix(image, x, y, w, h)} cm /${name} Do Q`);
   }
 
   /**
@@ -191,7 +255,7 @@ export class PdfBuilder {
     page.images.push({ name, image });
     page.operations.push(
       `q ${F(clip.x)} ${F(clip.y)} ${F(clip.width)} ${F(clip.height)} re W n ` +
-        `${F(draw.width)} 0 0 ${F(draw.height)} ${F(draw.x)} ${F(draw.y)} cm /${name} Do Q`,
+        `${imageMatrix(image, draw.x, draw.y, draw.width, draw.height)} cm /${name} Do Q`,
     );
   }
 
@@ -452,7 +516,7 @@ export class PdfBuilder {
               : "/DeviceRGB";
         startObject(ids.images[k]);
         push(
-          `<< /Type /XObject /Subtype /Image /Width ${img.image.width} /Height ${img.image.height} ` +
+          `<< /Type /XObject /Subtype /Image /Width ${img.image.pixelWidth} /Height ${img.image.pixelHeight} ` +
             `/ColorSpace ${colorSpace} /BitsPerComponent 8 /Filter /DCTDecode ` +
             `/Length ${img.image.data.length} >>\nstream\n`,
         );

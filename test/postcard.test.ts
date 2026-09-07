@@ -16,7 +16,7 @@ import { backLayout } from "@/lib/postcard/preview";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { renderPostcard, type PostalAddress } from "@/lib/postcard/render";
 import { recipientBase, recipientBases, slug } from "@/lib/postcard/filename";
-import { makeJpeg } from "./support/exif-jpeg";
+import { makeJpeg, withExif } from "./support/exif-jpeg";
 
 const PHOTO = path.join(
   process.cwd(),
@@ -75,6 +75,26 @@ describe("JPEG parsing", () => {
     expect(image.width).toBeGreaterThan(0);
     expect(image.height).toBeGreaterThan(0);
     expect([1, 3, 4]).toContain(image.components);
+  });
+
+  // B698. A phone writes a portrait picture as landscape pixels and a tag
+  // saying which way up the camera was; the frame header alone therefore
+  // called half of everybody's photographs landscape, and the planner built a
+  // landscape frame around an upright picture.
+  test("a photograph the camera rotated reports the size it is seen at", async () => {
+    const sideways = withExif(await makeJpeg(1, 400, 300), { orientation: 6 });
+    const image = readJpeg(new Uint8Array(sideways));
+    expect([image.width, image.height]).toEqual([300, 400]);
+    // The stream is still the camera's own bytes, and the XObject has to say
+    // what they decode to.
+    expect([image.pixelWidth, image.pixelHeight]).toEqual([400, 300]);
+    expect(image.orientation).toBe(6);
+  });
+
+  test("a photograph with no EXIF at all is the right way up", async () => {
+    const image = readJpeg(new Uint8Array(await makeJpeg(2, 400, 300)));
+    expect([image.width, image.height]).toEqual([400, 300]);
+    expect(image.orientation).toBe(1);
   });
 
   test("rejects a non-JPEG rather than producing a broken card", () => {
@@ -182,13 +202,50 @@ describe("rendering", () => {
  * B513's answer to the same problem). An absent crop is centre, which is
  * every card printed before this existed.
  */
+/**
+ * B698: the picture goes into the page the way a person sees it, not the way
+ * the sensor read it. Both halves matter — the *rectangle* has the upright
+ * aspect ratio, and the *bytes* are turned to match it. Either one alone is a
+ * photograph stretched across a frame it does not fit.
+ */
+describe("a photograph the camera rotated — B698", () => {
+  /** Every operand of the `cm` the front photograph is drawn with. */
+  function frontMatrix(pdf: Uint8Array): number[] {
+    const text = Buffer.from(pdf).toString("latin1");
+    const match = text.match(
+      /q (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) cm \/Im1 Do Q/,
+    );
+    if (!match) throw new Error("no drawImage operator found");
+    return match.slice(1).map(Number);
+  }
+
+  test("is placed exactly as an upright photograph of the same shape", async () => {
+    const rotated = withExif(await makeJpeg(3, 400, 300), { orientation: 6 });
+    const upright = await makeJpeg(3, 300, 400);
+    const [a, b, c, d, e, f] = frontMatrix(render({ photo: rotated }).pdf);
+    const [w, , , h, x, y] = frontMatrix(render({ photo: upright }).pdf);
+
+    // A quarter turn clockwise: both operands have moved onto the other
+    // diagonal, and the height is negative because the picture now runs down
+    // the page rather than up it. The rectangle itself is the upright one.
+    expect(a).toBe(0);
+    expect(d).toBe(0);
+    expect(c).toBeCloseTo(w, 3);
+    expect(-b).toBeCloseTo(h, 3);
+    expect(e).toBeCloseTo(x, 3);
+    expect(f).toBeCloseTo(y + h, 3);
+  });
+});
+
 describe("the front photograph's crop — B627", () => {
   /** The operand a `cm` matrix draws with `drawImage`, straight off the
    * operations list rather than parsed pixel-for-pixel — the geometry is what
    * this checks, not the byte layout of the page content stream. */
   function frontCm(pdf: Uint8Array): { w: number; h: number; x: number; y: number } {
     const text = Buffer.from(pdf).toString("latin1");
-    const match = text.match(/q ([\d.]+) 0 0 ([\d.]+) (-?[\d.]+) (-?[\d.]+) cm \/Im1 Do Q/);
+    const match = text.match(
+      /q ([\d.]+) 0\.000 0\.000 ([\d.]+) (-?[\d.]+) (-?[\d.]+) cm \/Im1 Do Q/,
+    );
     if (!match) throw new Error("no drawImage operator found");
     const [, w, h, x, y] = match.map(Number);
     return { w, h, x, y };
