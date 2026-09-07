@@ -1,6 +1,7 @@
 import { FEATURE_NAMES, OPERATOR_ONLY_FEATURES, loadServerConfig, type FeatureName } from "./config";
 import { getUser } from "./users";
 import { addressLookupEndpoints } from "./addressLookup";
+import { stripeMode, stripeProblem } from "./stripe";
 
 /**
  * What a capability needs before it can honestly claim to be on.
@@ -150,6 +151,37 @@ function dryRunNote(name: FeatureName, feature: Record<string, unknown>): string
     `features.${name}.provider is "dry-run" — orders can be created and previewed, ` +
     `but nothing is actually printed or posted (see B492)`
   );
+}
+
+/**
+ * `credits` is on, but which world is it charging in — B792.
+ *
+ * The capability is about whether a journal is *metered*, and that is true
+ * with or without a way to pay: an instance with no Stripe key still spends
+ * credits on sends, it just settles a purchase by the operator approving a
+ * mail by hand (B425). So this is a note rather than a reason, exactly like
+ * `dry-run` printing.
+ *
+ * The mode comes from the key's own prefix and nothing else, which is the
+ * whole of B792's switch — see `lib/stripe.ts`. Printing it here is what makes
+ * "is production actually taking money" a question `/api/health` answers,
+ * rather than one somebody guesses at from a deploy log.
+ */
+function paymentProviderNote(name: FeatureName): string | undefined {
+  if (name !== "credits") return undefined;
+  const mode = stripeMode();
+  if (!mode) {
+    return (
+      `no payment provider is configured (${stripeProblem()}) — a credit purchase ` +
+      `is approved by hand by the operator instead (see B425)`
+    );
+  }
+  if (stripeProblem()) {
+    return `Stripe is half-configured (${stripeProblem()}) — purchases fall back to the operator approving by hand`;
+  }
+  return mode === "test"
+    ? "payments settle through Stripe in TEST mode — no real money moves, and no card is ever charged"
+    : "payments settle through Stripe in LIVE mode — real money moves";
 }
 
 /**
@@ -318,7 +350,7 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
       reason: `features.${name} is enabled but ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} not set`,
     };
   }
-  const note = dryRunNote(name, feature) ?? addressLookupNote(name);
+  const note = dryRunNote(name, feature) ?? addressLookupNote(name) ?? paymentProviderNote(name);
   return note ? { name, enabled: true, note } : { name, enabled: true };
 }
 

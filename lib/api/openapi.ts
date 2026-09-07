@@ -3229,11 +3229,15 @@ export function openApiDocument() {
       },
       "/api/v1/{user}/credits/purchase": {
         post: {
-          summary: "Ask to buy credits (buys nothing)",
+          summary: "Start a credit purchase and get a link to it (buys nothing)",
           description:
-            "**Nothing is bought and nothing is granted.** It records a pending payment and " +
-            "mails the owner; the money and the credits happen elsewhere, deliberately, so " +
-            "that no token can spend anything. Report it as a request, never as a purchase.",
+            "**Nothing is bought and nothing is granted.** It records a pending payment, mails " +
+            "the owner, and answers with `paymentUrl` — an absolute link to the page where a " +
+            "person chooses how to pay. The money and the credits happen there and at the " +
+            "payment provider, deliberately, so that no token can spend anything. Hand the URL " +
+            "over and report it as a request, never as a purchase.\n\n" +
+            "`tier` is one of the fixed tiers; the response repeats `credits` and `priceRappen` " +
+            "so you can quote what was started. Owner-only.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
           requestBody: {
             required: true,
@@ -3248,7 +3252,12 @@ export function openApiDocument() {
             },
           },
           responses: {
-            "200": { description: "A pending payment, and where to look at it" },
+            "200": {
+              description:
+                "A pending payment. `paymentUrl` is the absolute link to hand over; " +
+                "`transactionId`, `credits` and `priceRappen` say what was started, and " +
+                "`mailedTo` is the owner address the same link went to.",
+            },
             "400": { description: "Unknown tier" },
             "403": { description: "Owner only" },
             "404": { description: "Credits are off on this server" },
@@ -3342,12 +3351,20 @@ export function openApiDocument() {
       },
       "/api/v1/{user}/payments/{id}/pay": {
         post: {
-          summary: "Say how a pending payment will be paid (grants nothing)",
+          summary: "Start paying a pending payment (grants nothing)",
           security: [],
           description:
-            "Authenticated by the single-use `token` in the body, not by a session — it is " +
-            "reached from a link in the owner's own mail. It mails the operator and adds " +
-            "**no** credits; `creditsAdded` is zero and always will be.",
+            "Authenticated by the payment id in the path, which is an unguessable capability " +
+            "reached from a link in the owner's own mail — not by a session and not by a " +
+            "token in the body. It adds **no** credits on any path; `creditsAdded` is zero " +
+            "and always will be.\n\n" +
+            "What it does depends on whether this instance has a payment provider " +
+            "configured (`/api/health` says, under `capabilities.credits.note`). With one, " +
+            "the response carries `url` — a hosted checkout page to send the buyer to — and " +
+            "`method` in the request is ignored, because the provider's own page is where " +
+            "TWINT, a wallet or a card is chosen. Without one, it files a request and mails " +
+            "the instance operator an approval link; `approver` is the address it went to, " +
+            "and `method` is then required.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "id", in: "path", required: true, schema: { type: "string" } },
@@ -3358,16 +3375,27 @@ export function openApiDocument() {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["method"],
-                  properties: { method: { type: "string", enum: ["twint", "card"] } },
+                  properties: {
+                    method: {
+                      type: "string",
+                      enum: ["twint", "card"],
+                      description:
+                        "Required when no payment provider is configured; ignored when one is.",
+                    },
+                  },
                 },
               },
             },
           },
           responses: {
-            "200": { description: "Recorded" },
-            "400": { description: "Unknown method" },
+            "200": {
+              description:
+                "Recorded. `status` is `requested`; `creditsAdded` is `0`; `url` is present " +
+                "when a provider is configured and the buyer should be sent there.",
+            },
+            "400": { description: "Unknown method, and no provider configured" },
             "404": { description: "No such payment" },
+            "502": { description: "The payment provider could not be reached" },
           },
         },
       },
@@ -3376,9 +3404,10 @@ export function openApiDocument() {
           summary: "Approve a payment — the one call that grants credits",
           security: [],
           description:
-            "Authenticated by the single-use `token` in the body. This is the only path in " +
-            "the codebase that adds credits to a journal, and it is reached from a link in " +
-            "the operator's mail rather than by anything an agent holds.",
+            "Authenticated by the single-use `token` in the body. It is reached from a link " +
+            "in the operator's mail rather than by anything an agent holds, and it is one of " +
+            "only two HTTP paths that add credits to a journal — the other is the payment " +
+            "provider's own signed webhook, which no client calls.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "id", in: "path", required: true, schema: { type: "string" } },

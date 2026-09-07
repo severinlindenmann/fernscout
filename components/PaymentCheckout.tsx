@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Smartphone, CreditCard } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import { formatChf } from "@/lib/credits/pricing";
@@ -28,9 +29,14 @@ type PaymentView = {
 export default function PaymentCheckout({
   username,
   payment,
+  provider,
 }: {
   username: string;
   payment: PaymentView;
+  /** `"stripe"` sends the buyer to a hosted checkout page and a webhook grants
+   *  the credits; `"manual"` is the operator-approves-by-mail path (B425),
+   *  which is what an instance with no provider configured still does. */
+  provider: "stripe" | "manual";
 }) {
   const { t, tn } = useI18n();
   const [status, setStatus] = useState<PaymentStatus>(payment.status);
@@ -47,18 +53,48 @@ export default function PaymentCheckout({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ method }),
     }).catch(() => null);
-    setBusy(false);
     if (response?.ok) {
-      const b = (await response.json().catch(() => null)) as { approver?: string | null } | null;
+      const b = (await response.json().catch(() => null)) as {
+        approver?: string | null;
+        url?: string;
+      } | null;
+      // The provider path answers with somewhere to go. Stay busy: this tab is
+      // leaving, and a button that springs back to life for the half-second
+      // before it does invites a second press.
+      if (b?.url) {
+        window.location.href = b.url;
+        return;
+      }
+      setBusy(false);
       setApprover(b?.approver ?? null);
       setStatus("requested");
     } else {
+      setBusy(false);
       setFailed(true);
     }
   }
 
   const paid = status === "paid";
   const requested = status === "requested";
+
+  // Back from the provider, and the webhook has not landed yet — B792. The
+  // redirect is the buyer arriving, not the payment settling: the two race,
+  // and the webhook usually wins by a second or two. Re-read the page a few
+  // times rather than telling somebody who has just paid that nothing has.
+  // Bounded on purpose: a payment that has genuinely not settled is not one a
+  // page should poll about forever, and the link still shows the truth later.
+  const returned = useSearchParams().get("returned") === "1";
+  const router = useRouter();
+  const [waited, setWaited] = useState(0);
+  const confirming = returned && !paid && waited < 10;
+  useEffect(() => {
+    if (!confirming) return;
+    const timer = setTimeout(() => {
+      setWaited((n) => n + 1);
+      router.refresh();
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [confirming, waited, router]);
 
   return (
     <>
@@ -102,21 +138,26 @@ export default function PaymentCheckout({
         ) : requested ? (
           <div className="mt-5 rounded-xl border border-navy-200 bg-cream-50 p-4">
             <p className="font-display text-base font-semibold text-navy-900">
-              {t("pay.requestedTitle")}
+              {t(provider === "stripe" ? "pay.confirmingTitle" : "pay.requestedTitle")}
             </p>
             {/* The manual-approval bridge, in plain words. */}
             <p className="mt-1.5 text-base leading-7 text-navy-700">
-              {approver
-                ? t("pay.requestedNote", { admin: approver })
-                : t("pay.requestedNoteNoAdmin")}
+              {provider === "stripe"
+                ? t(confirming ? "pay.confirming" : "pay.notSettled")
+                : approver
+                  ? t("pay.requestedNote", { admin: approver })
+                  : t("pay.requestedNoteNoAdmin")}
             </p>
           </div>
         ) : (
           <div className="mt-5">
+            {/* Under a provider there is nothing to choose here: Stripe's own
+                page offers TWINT, the device's wallet and a card, and a second
+                chooser in front of it would only be a guess at the first. */}
             <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
-              {t("pay.chooseMethod")}
+              {t(provider === "stripe" ? "pay.methodsNote" : "pay.chooseMethod")}
             </p>
-            <div className="mt-2 grid grid-cols-2 gap-3">
+            <div className={`mt-2 grid grid-cols-2 gap-3 ${provider === "stripe" ? "hidden" : ""}`}>
               {(
                 [
                   { id: "twint" as const, label: t("pay.twint"), Icon: Smartphone },
@@ -146,7 +187,9 @@ export default function PaymentCheckout({
               disabled={busy}
               className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {busy ? t("pay.working") : t("pay.payNow", { amount: formatChf(payment.amountRappen) })}
+              {busy
+                ? t(provider === "stripe" ? "pay.redirecting" : "pay.working")
+                : t("pay.payNow", { amount: formatChf(payment.amountRappen) })}
             </button>
             {failed && (
               <p role="alert" className="mt-3 text-base text-coral-600">

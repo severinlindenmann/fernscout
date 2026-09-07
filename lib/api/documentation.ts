@@ -17,6 +17,7 @@ import {
 } from "../validate/media";
 import { TAG_MAX_LENGTH, TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "../validate/entry";
 import { COST_CATEGORIES } from "../costFormat";
+import { TIERS, formatChf } from "../credits/pricing";
 import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
 import { isIndexable } from "../access";
@@ -1738,12 +1739,24 @@ bills; read it before you publish with either flag rather than discovering an
 empty account from a 402. An absent \`credits\` key means this server does not
 charge, not that the account is empty.
 
-**A 402 is a message to pass on, not something to work around.** Credits are
-added only by the person running the server, from a shell on it. There is no
-purchase call, and there is deliberately nothing you can do about it: say what
-was needed, say what is left, and let them decide. Publishing without either
-flag is never charged and never refused this way, so a day can always go on
-the site — it is only the announcement that waits.
+**A 402 is a message to pass on, and you can pass a link with it.** \`POST
+/api/v1/${example}/credits/purchase\` with a \`tier\` starts a purchase and
+answers with \`paymentUrl\` — an absolute link to a page showing the amount, the
+credits and a button. **It buys nothing.** No balance moves, no card is
+charged, and nothing you hold can change that: the money happens on that page,
+in a browser, at a payment provider, and the credits land when the provider
+tells this server they did. Owner-only, like every other credits call.
+
+So the honest report is: *"that send needs N credits and the balance is M —
+here is a link to buy 100 for CHF 18.00, open it when you like."* Hand over the
+URL. Do not say credits were added, and do not press on and retry the send.
+
+The tiers are fixed and this instance's are:
+
+${TIERS.map((t) => `- \`tier: "${t.id}"\` — ${t.credits} credits for ${formatChf(t.priceRappen)}${t.discount ? ` (${t.discount} off)` : ""}`).join("\n")}
+
+Publishing without either flag is never charged and never refused this way, so
+a day can always go on the site — it is only the announcement that waits.
 
 **Neither resend is idempotent, on purpose.** \`/send-mail\` and
 \`/send-whatsapp\` reach everybody again, every time — the owner asking twice is the only guard there is, so ask

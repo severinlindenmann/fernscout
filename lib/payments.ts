@@ -277,9 +277,13 @@ function hashToken(token: string): string {
 export async function submitRequest(
   owner: string,
   id: string,
-  method: PaymentMethod,
+  method: PaymentMethod | null,
 ): Promise<SubmitResult> {
-  if (!isPaymentMethod(method)) return { ok: false, reason: "bad_method" };
+  // Null is the Stripe path (B792): the buyer has not chosen yet — Stripe's own
+  // page is where they choose — and the webhook records what they actually
+  // used. A *named* method is still checked, so a request cannot smuggle in
+  // "admin".
+  if (method !== null && !isPaymentMethod(method)) return { ok: false, reason: "bad_method" };
   const handle = await getDatabaseOrNull();
   if (!handle) return { ok: false, reason: "unknown" };
 
@@ -380,6 +384,67 @@ export async function claimApproval(
     // Either the token was wrong or somebody claimed it first. Both mean "not
     // yours to grant"; the token being wrong is the common case.
     return { ok: false, reason: "bad_token" };
+  }
+  return { ok: true, credits: payment.credits };
+}
+export type ProviderClaimResult =
+  | { ok: true; credits: number }
+  | { ok: false; reason: "unknown" | "not_requested" | "amount_mismatch" };
+
+/**
+ * A payment provider says a purchase was paid — B792, and the same atomic
+ * shape as `claimApproval` above, for the same reason.
+ *
+ * The webhook has already verified Stripe's signature; this is the second
+ * half — that the row is ours, is still awaiting settlement, and is for the
+ * amount that was actually charged. One conditional UPDATE decides, and
+ * rows-affected is the whole answer: Stripe retries a webhook it did not get a
+ * 2xx for, and delivers at least once rather than exactly once, so the claim —
+ * not the caller's care — is what makes a repeat free.
+ *
+ * `amountRappen` is re-checked against our own row rather than trusted: the
+ * session was created by this server from a fixed tier, and a session whose
+ * total does not match the row it names is not a purchase of that row.
+ *
+ * It returns the credit count for the route to `grant`, deliberately, so the
+ * single `grant` call stays in the route and the "only sanctioned routes
+ * import grant" invariant stays checkable. It never grants here.
+ */
+export async function claimProviderPayment(
+  owner: string,
+  id: string,
+  amountRappen: number,
+  method: PaymentMethod | null,
+): Promise<ProviderClaimResult> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return { ok: false, reason: "unknown" };
+  const payment = await getPayment(owner, id);
+  if (!payment) return { ok: false, reason: "unknown" };
+  if (payment.amountRappen !== amountRappen) return { ok: false, reason: "amount_mismatch" };
+  if (payment.status !== "requested") return { ok: false, reason: "not_requested" };
+
+  const result = await handle.db
+    .updateTable("payments")
+    .set({
+      status: "paid",
+      granted: 1,
+      paid_at: nowIso(),
+      // The approval token this row was minted with was never mailed to
+      // anybody on this path; clearing it means a settled purchase leaves no
+      // second way to grant it.
+      approve_token_hash: null,
+      ...(method ? { method } : {}),
+    })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("status", "=", "requested")
+    .where("granted", "=", 0)
+    .executeTakeFirst();
+
+  if (Number(result.numUpdatedRows ?? 0) === 0) {
+    // Somebody claimed it first — a retried webhook, almost always. Not an
+    // error, and the caller answers 200 so Stripe stops retrying.
+    return { ok: false, reason: "not_requested" };
   }
   return { ok: true, credits: payment.credits };
 }

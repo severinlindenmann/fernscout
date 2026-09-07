@@ -4,6 +4,7 @@ import PageHeader from "@/components/PageHeader";
 import PaymentCheckout from "@/components/PaymentCheckout";
 import { creditsEnabled } from "@/lib/credits";
 import { getPayment } from "@/lib/payments";
+import { stripeEnabled } from "@/lib/stripe";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,7 @@ export default async function PaymentPage({ params }: PageProps<"/[user]/payment
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <PaymentCheckout
           username={user}
+          provider={stripeEnabled() ? "stripe" : "manual"}
           payment={{
             id: payment.id,
             credits: payment.credits,

@@ -204,6 +204,10 @@ describe("the grant path is not reachable over HTTP", () => {
   const GRANT_ALLOWED = [
     "app/api/v1/[user]/payments/[id]/approve/route.ts",
     "app/api/v1/journals/route.ts",
+    // B792. Stripe's signed webhook, behind a once-only claim — the same two
+    // guarantees the approve route above rests on, from a credential this
+    // server verified rather than a session or a bearer token.
+    "app/api/webhooks/stripe/route.ts",
   ];
 
   test("only the sanctioned routes import grant from lib/credits", () => {

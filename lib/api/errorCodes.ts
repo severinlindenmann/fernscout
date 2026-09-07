@@ -117,6 +117,8 @@ export const ERROR_CODES: Record<string, string> = {
   mail_failed: "The mail could not be sent. Nothing else about the call failed; tell the person, and do not retry in a loop.",
   no_owner_address: "This journal's config.json has no owner address, and this call has to mail somebody. That is an edit to the file.",
   no_database: "This capability stores data and this server has no database configured.",
+  provider_unavailable:
+    "The payment provider could not be reached, so there is no checkout page to send anybody to. Nothing was charged and the transaction is still waiting; try the same call again.",
   no_credits: "This journal has no credits left for that.",
   not_for_agents:
     "This spends the owner's money and is done by the owner, from their own page — a token is refused here whatever it is scoped to. Nothing was charged. Report what is needed and let them decide.",
