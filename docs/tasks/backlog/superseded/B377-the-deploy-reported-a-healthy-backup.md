@@ -76,3 +76,21 @@ something to do unasked.
 ## Triage 2026-09-07
 
 Checked against current code during the backlog cleanup: Same mechanism as B373 and closed by the same change. The one acceptance line still unmet — a restore drill actually run once — is B21, which is already in testing/ awaiting verification.
+
+### Not yet proven by a run (2026-09-07 15:00 UTC)
+
+Worth stating, because "superseded" here rests on reading the code rather than
+on watching it work. `/api/health` this afternoon reports:
+
+```
+lastFailureAt  2026-09-07T01:35:24Z   fernscout-backup.service failed (exit 1)
+lastSuccessAt  2026-09-07T06:28:55Z
+```
+
+Both of those **predate B653**, which merged at 08:25 and deployed after — so
+that failure is the old mechanism and is exactly what B653 was written to stop.
+It is not evidence the fix is wrong.
+
+It is also not evidence the fix is right. **No nightly run has happened under
+the new code yet**; tonight's is the first. If a failure appears after
+2026-09-07T08:25Z, reopen this rather than trusting the reading above.
