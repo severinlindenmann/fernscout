@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: photobook, print
 found: "2026-09-07T00:00:00Z"
+merged: "2026-09-07T13:21:37Z"
 ---
 
 # B749 — The figures float above the title with a gap, and repeat on every chapter divider
@@ -46,3 +47,26 @@ at most three times however long the trip is.
 - Looked at in the composer's preview and in the rasterised PDF, per
   `check-a-drawing` — both, since B740 is the record of what happens when only
   one is checked.
+
+## Findings (2026-09-07)
+
+Both, and both were one number each.
+
+**On the title, not above it.** The party's box moved from `c.height * 0.52`
+to `0.4` in `render.ts`, and the preview's from `bottom:52%` to `40%`. The
+title's own baseline is at `0.34`, so they now sit on it rather than across a
+band of paper from it. Checked in the rasterised PDF: the pair stand directly
+over "Algarve" with the rule and the dates beneath.
+
+**Once per book.** `figures` on a chapter page is filled only when
+`draft.index === 1`, in `materialise` — the decision belongs to the planner,
+which already has the index and the count; the renderer goes on drawing
+whatever it is handed. So the ceiling is three appearances (title, first
+divider, colophon) however many countries a trip crosses; a four-country book
+used to draw six. `test/photobook-travellers.test.ts` counts them, and counts
+the preview's drawings against the plan's pages so the two cannot drift.
+
+While here, `materialise`'s seventh argument became `marks: { figures,
+vehicles }` rather than growing a second loose boolean beside the first.
+
+`npm run verify`: all four passed (4529 tests).
