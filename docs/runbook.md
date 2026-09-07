@@ -732,6 +732,55 @@ one root-owned stray file was enough to abort the whole run at `cp -a` with
 `set -e`, before anything had been pushed — and the journal never said which
 file it was.
 
+### The off-site copy (B659)
+
+Everything above protects against a bad deploy, a bad ingest, or somebody
+deleting a trip — all real, all local to this machine. It does not protect
+against losing the machine, because the repository has been sitting on it.
+`RESTIC_REPOSITORY_SECONDARY` is the second, off-box destination.
+
+**Turning it on, once:**
+
+```bash
+# 1. Create a bucket at a different provider than the primary. A second
+#    bucket at the same provider is not an off-site copy if one compromised
+#    account reaches both. Backblaze B2 and Hetzner Object Storage are both
+#    plausible at this size (the repository here is under 1 GB).
+# 2. Prefer an append-only or write-only application key where the provider
+#    offers one. Since B653 /etc/fernscout/env travels inside the backup
+#    itself, so a key that can delete is a key that can delete the copy an
+#    attacker just found in it.
+# 3. Add to /etc/fernscout/env — the SAME RESTIC_PASSWORD as the primary,
+#    no second password to keep:
+RESTIC_REPOSITORY_SECONDARY=s3:https://<endpoint>/<bucket>
+# plus whatever credential variables that provider's restic backend needs
+# (e.g. AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY for an S3-compatible one).
+
+# 4. Initialise it once by hand, same as the primary was:
+set -a; . /etc/fernscout/env; set +a
+RESTIC_REPOSITORY="$RESTIC_REPOSITORY_SECONDARY" restic init
+
+# 5. Run the backup once and confirm the copy landed:
+sudo systemctl start fernscout-backup
+RESTIC_REPOSITORY="$RESTIC_REPOSITORY_SECONDARY" restic snapshots
+RESTIC_REPOSITORY="$RESTIC_REPOSITORY_SECONDARY" restic check
+```
+
+After that the nightly timer does the rest: `restic backup` to the primary as
+always, then — only when that primary run finished clean — `restic copy
+--from-repo` pushes the same snapshot on to the secondary and prunes it to the
+same `BACKUP_KEEP_DAILY`. **The primary alone decides whether the night
+succeeded** (B651): a secondary failure — wrong credentials, unreachable
+storage — is logged and changes nothing else. It does not fail the run, does
+not block `.backup-last-success`, and does not fire the `OnFailure=` alert.
+Restoring from either repository works the same way; see
+[disaster-recovery.md](disaster-recovery.md).
+
+Leaving `RESTIC_REPOSITORY_SECONDARY` unset is the default and is unchanged
+from before this existed: one destination, nothing else attempted, and
+`/api/health` -> `.backup.secondary` reads `unknown` rather than failing or
+being absent.
+
 ### Is the backup working?
 
 Not `systemctl list-timers`. That reports the schedule and never the result —
@@ -750,7 +799,9 @@ monitor should assert on:
 
 ```json
 "backup": { "state": "ok", "lastSuccessAt": "2026-09-01T03:20:14.000Z",
-            "ageHours": 9.4, "lastFailureAt": null, "maxAgeHours": 36 }
+            "ageHours": 9.4, "lastFailureAt": null, "maxAgeHours": 36,
+            "secondary": { "state": "ok", "lastSuccessAt": "2026-09-01T03:22:01.000Z",
+                           "ageHours": 9.3, "maxAgeHours": 36 } }
 ```
 
 `state` is `ok`, `stale` (nothing succeeded within `BACKUP_MAX_AGE_HOURS`,
@@ -760,6 +811,14 @@ backups at all reports, which is the point). Anything other than `ok` carries a
 `reason`. It deliberately does **not** change the endpoint's status code: a
 stale backup must not take an instance out of a load balancer or fail a deploy.
 `scripts/deploy.sh` prints the state on every deploy instead.
+
+`backup.secondary` is the off-site copy (B659) and has its own, smaller state
+machine: `ok`, `stale`, or `unknown` (either `RESTIC_REPOSITORY_SECONDARY` is
+not set — one destination, same as before this existed — or it has never
+copied successfully yet). It is never `failing`: nothing about the secondary
+can change `backup.state` or fire an alert, on purpose (B651, B655) — a copy
+destination is only worth adding once it cannot itself become the thing
+that pages somebody every night.
 
 A failure also *arrives*: `OnFailure=` runs `scripts/alert.sh`, which writes
 `$DATA_DIR/.backup-last-failure` and mails the operator through the app's own

@@ -25,11 +25,35 @@ import { dataDir } from "./dataDir";
  * instance with no backups at all must read as `unknown`, not as absent. That
  * distinction is the whole point — B65 is an instance that ran for months with
  * no backup and nothing anywhere said so.
+ *
+ * **A third file, since B659, for the off-site copy.** `RESTIC_REPOSITORY_SECONDARY`
+ * is optional — an instance with one destination is unchanged — so
+ * `.backup-last-success-secondary` simply never exists there, and `secondary`
+ * below reads `unknown` exactly the way the whole block would on an instance
+ * with no backup at all. There is deliberately no failure stamp for it: B659
+ * (following B655's reasoning) does not wire an alert channel for the
+ * secondary, only a stale reading here — a copy destination nobody has earned
+ * trust in yet must not be able to page anyone, and must never turn the
+ * primary's own `state` red. `scripts/backup.sh` writes the stamp only after
+ * `restic copy` **and** the secondary `restic forget --prune` both succeed;
+ * either failing there logs a warning and leaves the previous stamp in place,
+ * which is what makes an old stamp here mean "stale" rather than "lying".
  */
 
 export const DEFAULT_MAX_AGE_HOURS = 36;
 
 export type BackupState = "ok" | "stale" | "failing" | "unknown";
+
+export type SecondaryBackupStatus = {
+  /** `ok` recent success; `stale` too old; `unknown` never configured, or
+   *  never copied successfully yet. Never `failing` — a secondary destination
+   *  cannot turn the primary's own `state` red (B659, following B655). */
+  state: "ok" | "stale" | "unknown";
+  lastSuccessAt: string | null;
+  ageHours: number | null;
+  reason?: string;
+  maxAgeHours: number;
+};
 
 export type BackupStatus = {
   /** `ok` recent success; `stale` too old; `failing` a failure since the last
@@ -45,6 +69,9 @@ export type BackupStatus = {
    *  next to it — this is read at 2am by somebody who did not write it. */
   reason?: string;
   maxAgeHours: number;
+  /** The off-site copy `restic copy --from-repo` pushes on to, when
+   *  `RESTIC_REPOSITORY_SECONDARY` is set — see the module comment. */
+  secondary: SecondaryBackupStatus;
 };
 
 function maxAgeHours(): number {
@@ -79,6 +106,38 @@ export function failureStampPath(dir = dataDir()): string {
   return path.join(dir, ".backup-last-failure");
 }
 
+export function secondarySuccessStampPath(dir = dataDir()): string {
+  return path.join(dir, ".backup-last-success-secondary");
+}
+
+function readSecondaryStatus(dir: string, now: Date, limit: number): SecondaryBackupStatus {
+  const success = readStamp(secondarySuccessStampPath(dir));
+  const lastSuccessAt = success ? success.at.toISOString() : null;
+  const ageHours = success ? Math.round(((now.getTime() - success.at.getTime()) / 3_600_000) * 10) / 10 : null;
+
+  if (!success) {
+    return {
+      state: "unknown",
+      lastSuccessAt,
+      ageHours,
+      reason:
+        "no off-site copy has ever recorded a success in DATA_DIR — either RESTIC_REPOSITORY_SECONDARY is not " +
+        "set (this instance has one destination) or it has never copied successfully yet",
+      maxAgeHours: limit,
+    };
+  }
+  if (ageHours !== null && ageHours > limit) {
+    return {
+      state: "stale",
+      lastSuccessAt,
+      ageHours,
+      reason: `the last successful off-site copy was ${ageHours}h ago, more than the ${limit}h a nightly run allows for`,
+      maxAgeHours: limit,
+    };
+  }
+  return { state: "ok", lastSuccessAt, ageHours, maxAgeHours: limit };
+}
+
 export function readBackupStatus(now: Date = new Date()): BackupStatus {
   const dir = dataDir();
   const limit = maxAgeHours();
@@ -95,6 +154,7 @@ export function readBackupStatus(now: Date = new Date()): BackupStatus {
     lastFailureAt,
     ...(failure?.detail ? { lastFailure: failure.detail } : {}),
     maxAgeHours: limit,
+    secondary: readSecondaryStatus(dir, now, limit),
   };
 
   // A failure newer than the last success outranks the age check: a run that
