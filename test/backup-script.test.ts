@@ -26,6 +26,11 @@ import { announceSkip } from "./support/announce";
  *     never survives staging the env file, and generated per-trip output
  *     (`postcards/`, `photobooks/`) nested inside content/ is stripped back
  *     out even though the stage that copies it is wholesale;
+ *   - and, since B662, that the same is true of the two legacy plaintext-mail
+ *     shapes a not-yet-migrated deployment can still have sitting under
+ *     content/ — `content/.mail/` and `content/<user>/mail/`, left over from
+ *     before B636 moved sent mail to `<dataDir>/mail/` — because those are
+ *     nested the same way and named nowhere in the allowlist either;
  *   - the restore path the runbook actually documents — the snapshot keeps the
  *     staging directory's absolute path, so `docs/runbook.md` step 2
  *     locates it by name;
@@ -188,13 +193,16 @@ function digestTree(dir: string, skip: (rel: string) => boolean = () => false): 
   return out;
 }
 
-/** The two generated-output directories the backup set strips out of
- * content/<user>/ (postcards, photobooks) — excluded here too, so comparing
+/** The directories the backup set strips out of content/ after staging it
+ * wholesale — postcards/ and photobooks/ under content/<user>/ (B653), and
+ * the two legacy plaintext-mail shapes B662 found still reaching a snapshot:
+ * content/.mail/ and content/<user>/mail/. Excluded here too, so comparing
  * the source content tree against the staged one is not comparing apples to
  * a smaller pile of apples. */
 const isGeneratedOutput = (rel: string) => {
   const parts = rel.split(path.sep);
-  return parts.length >= 2 && (parts[1] === "postcards" || parts[1] === "photobooks");
+  if (parts[0] === ".mail") return true;
+  return parts.length >= 2 && (parts[1] === "postcards" || parts[1] === "photobooks" || parts[1] === "mail");
 };
 
 describe.runIf(RESTIC)("scripts/backup.sh", () => {
@@ -445,6 +453,22 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     fs.mkdirSync(path.join(userDir, "photobooks", "order-2"), { recursive: true });
     fs.writeFileSync(path.join(userDir, "photobooks", "order-2", "book.pdf"), crypto.randomBytes(1024));
 
+    // B662: the two legacy plaintext-mail shapes a not-yet-migrated (or
+    // not-yet-restarted) deployment can still have sitting under content/,
+    // left over from before B636 moved sent mail to <dataDir>/mail/. Both
+    // are nested inside content/, exactly like postcards/photobooks above,
+    // and must never leave the staged tree either.
+    fs.mkdirSync(path.join(contentDir, ".mail"), { recursive: true });
+    fs.writeFileSync(
+      path.join(contentDir, ".mail", "2026-06-01T00-00-00-000Z-code.eml"),
+      "To: newcomer@example.test\r\nSubject: Your code to start a journal\r\n\r\n654321\r\n",
+    );
+    fs.mkdirSync(path.join(userDir, "mail"), { recursive: true });
+    fs.writeFileSync(
+      path.join(userDir, "mail", "2026-06-01T00-00-00-000Z-agent-code.eml"),
+      "To: alex@example.test\r\nSubject: Your agent code\r\n\r\n112233\r\n",
+    );
+
     // /etc/fernscout/env, as a fixture the test points ENV_FILE at rather than
     // ever reading the real file. One variable a restored service would need,
     // and RESTIC_PASSWORD, which must never survive staging.
@@ -581,6 +605,34 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
       // Its sibling, the real payload, must still be there — this is an
       // exclusion of two named directories, not of everything beside them.
       expect(fs.existsSync(path.join(staged, "content", "alex", "trips", "kyrgyzstan-2026", "trip.md"))).toBe(true);
+    },
+    180_000,
+  );
+
+  test(
+    "B662: legacy plaintext mail under content/.mail/ and content/<user>/mail/ never reaches the snapshot",
+    () => {
+      const run = runBackup();
+      expect(run.status).toBe(0);
+
+      const staged = restoreLatest("no-legacy-mail");
+      const restoredContent = path.join(staged, "content");
+
+      // Neither shape survives the strip …
+      expect(fs.existsSync(path.join(restoredContent, ".mail"))).toBe(false);
+      expect(fs.existsSync(path.join(restoredContent, "alex", "mail"))).toBe(false);
+
+      // … and no .eml anywhere at all in the staged tree, which is the actual
+      // exposure B662 found: not merely those two directories by name, but
+      // any plaintext mail reaching a snapshot by whatever path.
+      const emls = Object.keys(digestTree(restoredContent)).filter((rel) => rel.endsWith(".eml"));
+      expect(emls).toEqual([]);
+
+      // Surgical, not scorched earth: the journal's real content beside the
+      // stripped mail directory is still staged.
+      expect(
+        fs.readFileSync(path.join(restoredContent, "alex", "trips", "kyrgyzstan-2026", "trip.md"), "utf8"),
+      ).toContain("edited on the box, never committed");
     },
     180_000,
   );
