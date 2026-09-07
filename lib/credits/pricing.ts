@@ -142,7 +142,7 @@ export const POSTCARD_CREDITS = 20;
  * words rather than only here. B841 is the real quote.
  *
  * `PHOTOBOOK_PRICING_VERIFIED` is how that is said in the data rather than
- * only in a comment, the same discipline `BINDING_PROFILES` uses.
+ * only in a comment.
  * `test/photobook-pricing.test.ts` asserts it, so the day somebody puts a real
  * quote in is a day they have to change a test on purpose.
  */
@@ -150,12 +150,13 @@ export const PHOTOBOOK_BASE_CREDITS = 160;
 export const PHOTOBOOK_PAGE_CREDITS = 2;
 export const PHOTOBOOK_PRICING_VERIFIED = false;
 
-/** A4 is 1.4× the sheet area of the 210mm square, and paper is most of the
- * marginal cost. Rounded down to something defensible rather than modelled. */
+/** Portrait and the large square are bigger sheets than the small square, and
+ * paper is most of the marginal cost. Rounded down to something defensible
+ * rather than modelled. */
 const SIZE_FACTOR: Record<string, number> = {
-  "square-210": 1,
-  "landscape-a4": 1.25,
-  "portrait-a4": 1.25,
+  square: 1,
+  portrait: 1.25,
+  "large-square": 1.25,
 };
 
 /** One volume, one copy. A book split into volumes is priced per volume by the

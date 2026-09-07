@@ -6,10 +6,10 @@ import {
   type BookPhoto,
   type BookSource,
 } from "@/lib/photobook/plan";
-import { BOOK_SIZES, defaultSpec, SADDLE_STITCH, fitsRule } from "@/lib/photobook/spec";
+import { BOOK_SIZES, defaultSpec, fitsRule } from "@/lib/photobook/spec";
 import { DEFAULT_OPTIONS, initialBookOptions, type BookOptions } from "@/lib/photobook/options";
 
-const SPEC = defaultSpec(BOOK_SIZES["square-210"]);
+const SPEC = defaultSpec(BOOK_SIZES["square"]);
 
 function photo(over: Partial<BookPhoto> = {}): BookPhoto {
   return { file: "a.jpg", width: 4000, height: 3000, ...over };
@@ -153,13 +153,6 @@ describe("BookOptions", () => {
     expect(dividers).toContain("Laos");
   });
 
-  test("saddle stitch plans a legal short book", () => {
-    const spec = { ...defaultSpec(BOOK_SIZES["square-210"]), pageCount: SADDLE_STITCH };
-    const book = planBook(source([day(0)]), spec, DEFAULT_OPTIONS);
-    for (const volume of book.volumes) {
-      expect(fitsRule(volume.interiorPages, SADDLE_STITCH)).toBe(true);
-    }
-  });
 });
 
 // B642 — the order page's first visit turns includeCosts/includeCharts on

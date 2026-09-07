@@ -1,17 +1,15 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
 import {
-  BINDING_PROFILES,
   BOOK_SIZES,
   contentBoxMm,
   defaultSpec,
   fitsRule,
+  GELATO_PAGE_RULE,
   HERO_FLOOR_DPI,
   normalisePageCount,
-  portableRule,
-  SADDLE_STITCH,
   sideOf,
   spineWidthMm,
 } from "@/lib/photobook/spec";
@@ -133,23 +131,6 @@ describe("book geometry", () => {
 });
 
 describe("page-count rules", () => {
-  test("the portable rule satisfies every provider's minimum", () => {
-    const rule = portableRule();
-    for (const profile of Object.values(BINDING_PROFILES)) {
-      expect(rule.min).toBeGreaterThanOrEqual(profile.min);
-      expect(rule.max).toBeLessThanOrEqual(profile.max);
-      expect(rule.multipleOf % profile.multipleOf).toBe(0);
-    }
-  });
-
-  test("no binding profile claims to be verified", () => {
-    // These numbers came from documentation, not from an account. If one is
-    // ever confirmed against a live API, this test is the reminder to say so.
-    for (const profile of Object.values(BINDING_PROFILES)) {
-      expect(profile.verified).toBe(false);
-    }
-  });
-
   test("rounds up to the minimum and to a whole signature", () => {
     const rule = { min: 32, max: 160, multipleOf: 4 };
     expect(normalisePageCount(5, rule)).toBe(32);
@@ -157,6 +138,37 @@ describe("page-count rules", () => {
     expect(normalisePageCount(36, rule)).toBe(36);
     expect(fitsRule(36, rule)).toBe(true);
     expect(fitsRule(34, rule)).toBe(false);
+  });
+});
+
+describe("Gelato's real page-count rule", () => {
+  it("is 28 to 200 in steps of 2", () => {
+    expect(GELATO_PAGE_RULE).toEqual({ min: 28, max: 200, multipleOf: 2 });
+  });
+
+  it("accepts what the API accepts and refuses what it refuses", () => {
+    for (const ok of [28, 30, 52, 160, 200]) expect(fitsRule(ok, GELATO_PAGE_RULE)).toBe(true);
+    for (const no of [4, 20, 24, 27, 31, 33, 202]) expect(fitsRule(no, GELATO_PAGE_RULE)).toBe(false);
+  });
+
+  it("rounds a short trip up to the floor rather than below it", () => {
+    expect(normalisePageCount(9, GELATO_PAGE_RULE)).toBe(28);
+    expect(normalisePageCount(53, GELATO_PAGE_RULE)).toBe(54);
+  });
+});
+
+describe("the sizes are the ones Gelato prints", () => {
+  it("offers three, all with a real productUid", () => {
+    expect(Object.keys(BOOK_SIZES)).toEqual(["square", "portrait", "large-square"]);
+    for (const size of Object.values(BOOK_SIZES)) {
+      expect(size.productUid).toMatch(/^photobooks-(soft|hard)cover_pf_/);
+      expect(size.productUid).not.toMatch(/pages/);
+    }
+  });
+
+  it("is 200 mm square by default, not 210", () => {
+    expect(BOOK_SIZES.square.trimWidthMm).toBe(200);
+    expect(BOOK_SIZES.square.trimHeightMm).toBe(200);
   });
 });
 
@@ -187,19 +199,6 @@ describe("planning a three-day trip", () => {
     expect(warning?.detail).toContain("saddle stitch");
   });
 
-  test("stapled instead, the same trip needs no padding at all", () => {
-    const stapled = defaultSpec();
-    stapled.pageCount = SADDLE_STITCH;
-    const stitched = planBook(source([day(0), day(1), day(2)]), stapled);
-    const pages = stitched.volumes[0].pages;
-    expect(fitsRule(pages.length, SADDLE_STITCH)).toBe(true);
-    expect(pages.length).toBeLessThan(volume.interiorPages);
-    // Trailing blanks are the padding; the ones in the middle are alignment,
-    // which every book has and which nothing is wrong with.
-    const trailing = pages.length - (pages.findLastIndex((p) => p.kind !== "blank") + 1);
-    expect(trailing).toBeLessThan(4);
-    expect(stitched.warnings.some((w) => w.code === "blank-padding")).toBe(false);
-  });
 
   test("opens with the title on a recto and ends with the colophon", () => {
     expect(volume.pages[0].kind).toBe("title");
@@ -849,7 +848,7 @@ describe("rendering", () => {
   });
 
   test("a book at a different trim size still lays out", () => {
-    const wide = defaultSpec(BOOK_SIZES["landscape-a4"]);
+    const wide = defaultSpec(BOOK_SIZES["portrait"]);
     const other = planBook(source([day(0), day(1), day(2)]), wide);
     expect(fitsRule(other.volumes[0].interiorPages, wide.pageCount)).toBe(true);
     expect(() => renderVolume(other.volumes[0], wide, { loadImage })).not.toThrow();

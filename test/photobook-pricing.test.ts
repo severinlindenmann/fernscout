@@ -15,17 +15,17 @@ describe("what a photobook costs", () => {
   });
 
   test("a base plus a page term, always a whole number of credits", () => {
-    const price = photobookCredits(52, "square-210");
+    const price = photobookCredits(52, "square");
     expect(price).toBe(PHOTOBOOK_BASE_CREDITS + PHOTOBOOK_PAGE_CREDITS * 52);
     expect(Number.isInteger(price)).toBe(true);
   });
 
   test("a wider page costs more paper", () => {
-    expect(photobookCredits(52, "landscape-a4")).toBeGreaterThan(photobookCredits(52, "square-210"));
-    expect(Number.isInteger(photobookCredits(52, "landscape-a4"))).toBe(true);
+    expect(photobookCredits(52, "portrait")).toBeGreaterThan(photobookCredits(52, "square"));
+    expect(Number.isInteger(photobookCredits(52, "portrait"))).toBe(true);
   });
 
   test("an unknown size is priced as the square, not as free", () => {
-    expect(photobookCredits(52, "not-a-size")).toBe(photobookCredits(52, "square-210"));
+    expect(photobookCredits(52, "not-a-size")).toBe(photobookCredits(52, "square"));
   });
 });

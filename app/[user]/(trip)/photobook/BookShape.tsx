@@ -182,7 +182,7 @@ export default function BookShape({ kind, size = 40 }: { kind: BookShapeKind; si
  * them has, which is also roughly how they compare in the hand.
  */
 export function FormatShape({ sizeId, box = 56 }: { sizeId: string; box?: number }) {
-  const size = BOOK_SIZES[sizeId] ?? BOOK_SIZES["square-210"];
+  const size = BOOK_SIZES[sizeId] ?? BOOK_SIZES["square"];
   const longest = Math.max(
     ...Object.values(BOOK_SIZES).map((s) => Math.max(s.trimWidthMm, s.trimHeightMm)),
   );

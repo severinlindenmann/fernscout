@@ -13,7 +13,7 @@ import { bookStrings, fill } from "@/lib/photobook/strings";
  * every other day exactly as it did before the feature existed.
  */
 
-const SPEC = defaultSpec(BOOK_SIZES["square-210"]);
+const SPEC = defaultSpec(BOOK_SIZES["square"]);
 const SIZES = Object.keys(BOOK_SIZES);
 
 function photo(n: number, over: Partial<BookPhoto> = {}): BookPhoto {
@@ -268,9 +268,17 @@ describe("cropping from a focal point — B513", () => {
   });
 
   test("keeps a subject near the top of the photograph in a hero (full-bleed) slot", () => {
-    // Day one is a hero day by the automatic rhythm, and p1 is its hero.
+    // Day one is a hero day by the automatic rhythm, and p1 is its hero. A
+    // full-bleed slot is square (the trim is), so a landscape hero — wider
+    // than it is tall — is scaled to fill the slot's height exactly and has
+    // no vertical crop margin to move a focal point within: only a portrait
+    // photograph, taller than the slot after scaling, has one.
+    const tallDays = [
+      day(0, [photo(1, { width: 3000, height: 4000 }), photo(2), photo(3), photo(4)]),
+      ...DAYS.slice(1),
+    ];
     const drawOf = (options: Partial<BookOptions>) => {
-      const page = plan(options)
+      const page = planBook(source(tallDays), SPEC, { ...DEFAULT_OPTIONS, ...options })
         .volumes.flatMap((v) => v.pages)
         .find((p) => p.kind === "photos" && p.layout === "full-bleed");
       return page?.kind === "photos" ? page.placements[0].draw : undefined;
@@ -332,7 +340,7 @@ describe("cropping from a focal point — B513", () => {
 
 describe("what a request body may say", () => {
   const base = {
-    size: "square-210",
+    size: "square",
     locale: "en",
     binding: "perfect",
     excludePhotos: [],
@@ -343,6 +351,17 @@ describe("what a request body may say", () => {
     includeCosts: true,
         includeCharts: false,
   };
+
+  test("reads an order stored before binding was removed", () => {
+    const parsed = parseOptions(base, SIZES);
+    expect(parsed).not.toBeNull();
+    expect(parsed).not.toHaveProperty("binding");
+  });
+
+  test("still refuses an object missing a field that matters", () => {
+    const { locale: _omitted, ...withoutLocale } = base;
+    expect(parseOptions(withoutLocale, SIZES)).toBeNull();
+  });
 
   test("a valid arrangement survives the boundary", () => {
     const parsed = parseOptions(
@@ -501,7 +520,7 @@ describe("what a request body may say", () => {
 
 describe("letting a day run on — B517", () => {
   // Long enough to overflow the column beside a shared photograph on a
-  // square-210 page (about 11 lines fit there, this wraps to about 16) but
+  // square page (about 11 lines fit there, this wraps to about 16) but
   // not so long that a second page of the same size could not hold the rest.
   const LONG_PARAGRAPH = Array.from({ length: 200 }, (_, i) => `Word${i}`).join(" ");
 

@@ -20,8 +20,8 @@ import type { PreviewState } from "./BookLevelView";
  * The composer is right for somebody returning to a book they have already
  * arranged, and B548 was right to put its nine controls behind one entry. It
  * does nothing for the first one: a format dropdown, a cover picker, a
- * language dropdown, two binding radios and six checkboxes, all at once, none
- * of them illustrated. "Print chapter dividers" is a yes/no about a page the
+ * language dropdown and six checkboxes, all at once, none of them
+ * illustrated. "Print chapter dividers" is a yes/no about a page the
  * person has never seen.
  *
  * So the same decisions, asked in order, each with a drawing of what the
@@ -41,9 +41,7 @@ import type { PreviewState } from "./BookLevelView";
  * answers are written as they are made, so a phone locking half way through
  * loses nothing.
  *
- * **Two questions are still not asked.** The *binding* depends on the page
- * count, which the planner knows and the owner cannot guess before a book
- * exists; the last step states it instead. The *language* is asked only where
+ * **One question is still not asked.** The *language* is asked only where
  * the journal offers more than one — a dropdown with one option is a screen
  * about nothing.
  */
@@ -487,15 +485,10 @@ export default function FirstBookFlow({
           </h2>
           {preview ? (
             <>
-              {/* The binding, stated with the page count it follows from
-                  rather than asked as a question nobody can answer yet. */}
+              {/* The binding, stated with the page count: Gelato glues every
+                  photobook, so this is a fact rather than a choice. */}
               <p className="mt-2 text-sm text-navy-700">
-                {t(
-                  options.binding === "saddle"
-                    ? "photobook.first.bindingSaddle"
-                    : "photobook.first.bindingPerfect",
-                  { pages: String(preview.pages) },
-                )}
+                {t("photobook.first.bindingPerfect", { pages: String(preview.pages) })}
               </p>
               <p className="mt-1 text-sm text-navy-700">
                 {t("photobook.first.price", {

@@ -17,9 +17,9 @@ import type { MediaTile } from "@/lib/types";
  * and the order block name the same format and must not drift from this.
  */
 export const SIZE_LABEL: Record<string, TranslationKey> = {
-  "square-210": "photobook.size.square",
-  "landscape-a4": "photobook.size.landscape",
-  "portrait-a4": "photobook.size.portrait",
+  square: "photobook.size.square",
+  portrait: "photobook.size.portrait",
+  "large-square": "photobook.size.largeSquare",
 };
 
 /** Each language named in itself, which is how a language picker should read
@@ -34,7 +34,7 @@ const LANGUAGE_NAME: Record<string, string> = {
  * Level 1's whole-book settings — B534.
  *
  * Everything here describes the book, not one day of it: size, cover
- * language, binding, what to include. It is deliberately the same block
+ * language, what to include. It is deliberately the same block
  * whether it is reached at level 1 (the book's own page) or drilled into from
  * a front-matter spread at level 2 — "every level-1 setting stays reachable
  * from level 2" is the ticket's own rule, and this is the one form that makes
@@ -182,29 +182,6 @@ export default function BookSettingsPanel({
           </span>
         </label>
       )}
-
-      <fieldset>
-        <legend className="text-sm font-semibold text-navy-800">
-          {t("photobook.option.binding")}
-        </legend>
-        <div className="mt-1 space-y-1">
-          {(["perfect", "saddle"] as const).map((binding) => (
-            <label key={binding} className="flex items-center gap-2 text-sm text-navy-700">
-              <input
-                type="radio"
-                name="binding"
-                checked={options.binding === binding}
-                onChange={() => setOptions((o) => ({ ...o, binding }))}
-              />
-              {t(
-                binding === "perfect"
-                  ? "photobook.option.bindingPerfect"
-                  : "photobook.option.bindingSaddle",
-              )}
-            </label>
-          ))}
-        </div>
-      </fieldset>
 
       <fieldset className="space-y-1">
         {(

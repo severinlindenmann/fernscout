@@ -7,7 +7,7 @@ import { listContacts } from "../contacts";
 import { photobookCredits } from "../credits/pricing";
 import { planBook, type Photobook } from "./plan";
 import { buildBookSource, resolvePrintFile } from "./source";
-import { BOOK_SIZES, SADDLE_STITCH, defaultSpec, portableRule, type BookSpec } from "./spec";
+import { BOOK_SIZES, defaultSpec, type BookSpec } from "./spec";
 import { renderCover, renderVolume } from "./render";
 import type { BookOptions } from "./options";
 
@@ -28,9 +28,8 @@ import type { BookOptions } from "./options";
  */
 
 export function specFor(options: BookOptions): BookSpec {
-  const size = BOOK_SIZES[options.size] ?? BOOK_SIZES["square-210"];
-  const spec = defaultSpec(size);
-  return { ...spec, pageCount: options.binding === "saddle" ? SADDLE_STITCH : portableRule() };
+  const size = BOOK_SIZES[options.size] ?? BOOK_SIZES["square"];
+  return defaultSpec(size);
 }
 
 export function planFor(trip: string, options: BookOptions, followers?: string[]): Photobook {

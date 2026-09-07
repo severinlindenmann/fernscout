@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (127)
+## backlog (128)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (37)
+### issue (38)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -82,6 +82,7 @@ Do not edit them by hand; run the script.
 | [B834](backlog/issue/B834-signup-grants-ten-credits-per-verified.md) | Signup grants ten credits per verified email with no per-identity cap, so credits can be farmed with disposable inboxes | ISSUE | medium | medium |
 | [B837](backlog/issue/B837-a-capability-test-passes-alone-and.md) | A capability test passes alone and fails in the full suite | ISSUE | medium | low |
 | [B853](backlog/issue/B853-component-tests-set-input-values-in.md) | Component tests set input values in a way React never hears | ISSUE | medium | low |
+| [B883](backlog/issue/B883-recordprint-has-no-callers-so-npm.md) | recordPrint has no callers, so npm run verify is red on main | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
