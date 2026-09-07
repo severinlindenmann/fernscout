@@ -7,8 +7,7 @@ complexity: low
 area: agent, signup, i18n
 found: "2026-09-07T16:07:36Z"
 started: "2026-09-07T16:22:32Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T16:22:32Z"
+merged: "2026-09-07T16:55:14Z"
 ---
 
 # B838 — The helper never asks which languages a journal is written in

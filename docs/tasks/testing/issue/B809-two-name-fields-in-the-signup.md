@@ -7,8 +7,7 @@ complexity: low
 area: agent, signup
 found: "2026-09-07T15:16:59Z"
 started: "2026-09-07T16:22:34Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T16:22:34Z"
+merged: "2026-09-07T16:55:18Z"
 ---
 
 # B809 — Two name fields in the signup form cannot be told apart
