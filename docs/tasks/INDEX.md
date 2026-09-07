@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (129)
+## backlog (131)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (38)
+### issue (39)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -68,6 +68,7 @@ Do not edit them by hand; run the script.
 | [B855](backlog/issue/B855-choosing-a-second-language-commits-you.md) | Choosing a second language commits you to writing everything twice and the API never says so | ISSUE | high | low |
 | [B857](backlog/issue/B857-every-mail-this-server-sends-is.md) | Every mail this server sends is English whatever language the reader chose | ISSUE | high | medium |
 | [B869](backlog/issue/B869-a-photograph-from-an-iphone-is.md) | A photograph from an iPhone is replaced by a wrong picture and called a success | ISSUE | high | medium |
+| [B888](backlog/issue/B888-the-box-points-at-buttons-that.md) | The box points at buttons that are not on the screen | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -83,6 +84,7 @@ Do not edit them by hand; run the script.
 | [B853](backlog/issue/B853-component-tests-set-input-values-in.md) | Component tests set input values in a way React never hears | ISSUE | medium | low |
 | [B883](backlog/issue/B883-recordprint-has-no-callers-so-npm.md) | recordPrint has no callers, so npm run verify is red on main | ISSUE | medium | low |
 | [B886](backlog/issue/B886-the-trip-chip-shows-a-title.md) | The trip chip shows a title long enough to truncate, which says less than a fixed label would | ISSUE | medium | low |
+| [B887](backlog/issue/B887-every-row-of-the-access-list.md) | Every row of the access list repeats a sentence where a tag would do | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
@@ -99,14 +101,14 @@ Do not edit them by hand; run the script.
 | [B863](backlog/issue/B863-the-upload-progress-line-calls-a.md) | The upload progress line calls a spreadsheet a photograph | ISSUE | low | low |
 | [B873](backlog/issue/B873-a-video-on-a-day-is.md) | A video on a day is dropped from the captions with no mention | ISSUE | low | low |
 | [B874](backlog/issue/B874-captions-read-like-an-inventory-of.md) | Captions read like an inventory of shapes rather than a caption | ISSUE | low | low |
-| [B887](backlog/issue/B887-every-row-of-the-access-list.md) | Every row of the access list repeats a sentence where a tag would do | ISSUE | low | low |
 
-### big-feature (13)
+### big-feature (14)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B537](backlog/big-feature/B537-a-journal-on-disk-cannot-be.md) | A journal on disk cannot be checked against the instance that will receive it | FEATURE | high | high |
+| [B889](backlog/big-feature/B889-the-helper-answers-only-what-somebody.md) | The helper answers only what somebody wrote a row for | FEATURE | high | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
