@@ -55,3 +55,41 @@ Not doing: motion anywhere else in the sign-in, and no animation library.
   still appears.
 - A failed send shows its error with nothing animating over it.
 - Checked at 390px.
+
+## Done
+
+New `components/EnvelopeFly.tsx` — a drawn envelope (flat fills, hairline
+stroke, one corner of airmail stripe as the envelope's own detail rather than
+a panel border), animated with `motion/react` (already a dependency, already
+used for `useReducedMotion` in `components/travel/Vehicle.tsx`). 450ms fade +
+fly (`x: 18, y: -30, rotate: -10, opacity: 0`), `ease: "easeIn"`.
+
+Wired into `components/IdentitySignIn.tsx`:
+- Fires only from `requestCode` (the send), never on mount, never from
+  `submitCode` (the code field's own submit).
+- Independent of the request's outcome: starts the moment the request goes
+  out, unmounts itself via `onAnimationComplete` on its own ~450ms clock. A
+  slow failure is never something it's still flying over, because it's
+  already gone by the time a realistic response lands.
+- Rendered on the outer `<section>` (not inside the email-only `<form>`), so
+  a fast response that flips `step` to `"code"` doesn't cut the flight short
+  by unmounting its parent.
+- `useReducedMotion()` gates whether it's rendered at all — `if (!reduceMotion)
+  { setFlightId(...); setFlying(true); }` — so reduced motion skips the
+  flight outright rather than shortening it, exactly as asked.
+
+**Verified in a browser** (Playwright, Chrome for Testing, 390×844):
+- Mid-flight capture (screenshot ~150ms after clicking "Send me a code"):
+  envelope visible, already fading/translating, over the sign-in panel — see
+  the ticket's screenshots.
+- `emulateMedia({ reducedMotion: "reduce" })` (Playwright's `newContext({
+  reducedMotion: "reduce" })`): no envelope svg rendered at any point, code
+  field still arrives once the request resolves — confirmed both by
+  screenshot and by DOM query.
+- New test `test/envelope-fly.test.tsx` (jsdom, `motion/react` mocked to make
+  the reduced-motion/normal branches deterministic — the library's own
+  reduced-motion read is a module-level singleton that only initialises once
+  per module instance, so a real `matchMedia` read is a fact about the first
+  test in the file rather than about each case): plays on an ordinary send,
+  does not play under reduced motion (and the code field still arrives),
+  does not play on mount.

@@ -80,3 +80,58 @@ reasoning in the code:
 - Visible instruction text still equals what the copy button puts on the
   clipboard, asserted by the existing test if there is one.
 - Checked at 390px, in German — the instruction is longest there.
+
+## Done
+
+**The treatment** (`components/LandingSections.tsx`, `AgentBlock`): rebuilt to
+match `AgentHandover` — `rounded-2xl border border-navy-200 bg-cream-50`, a
+`font-display text-xl font-semibold` heading, one sentence of body copy
+(`landing.handBody` / `home.helperBody`, new keys, en/de/hu), then the
+instruction in an inset `bg-cream-100` mono block (same string, same key as
+what the button copies — B255 preserved), then a yellow pill copy button.
+
+**The pill button is a new `CopyLine` variant.** `components/CopyLine.tsx`
+gained `variant?: "quiet" | "primary"` (default `"quiet"`, unchanged for
+every other caller — `AgentHandover`, `ContactsAdmin`, `BuddyHandover`);
+`"primary"` is the yellow pill (`bg-yellow-400`, `border-yellow-600`,
+`text-yellow-950`). `AgentBlock` passes `variant="primary"`.
+
+**No more all-caps mono kicker** — was `font-mono text-[11px] uppercase
+tracking-[0.18em]`, now `font-display text-xl font-semibold`. Mono stays only
+on the instruction block itself.
+
+**Call sites, decided and commented in place:**
+- `components/LandingSections.tsx:246` (inside `AgentDisclosure`) — kept, only
+  place it renders on this arrangement.
+- `components/AgentDoor.tsx:179` — kept, gated on `!signedIn ||
+  journals.length === 0`; never renders alongside a journal's own
+  `AgentHandover`.
+- `components/Landing.tsx` `/` signed out, helper off — kept, it's the only
+  door with no helper.
+- `components/Landing.tsx` `/` signed out, helper on — moved inside
+  `AgentDisclosure` (already covered by the disclosure call site above).
+- `components/Landing.tsx` `/` **signed in** — see addendum below; no longer
+  a bare `AgentBlock` call at all when the helper is on.
+
+**Addendum, from the owner while this was in flight:** on `/` signed in, with
+the helper on, replaced the direct `AgentBlock` call with the same two-door
+shape the signed-out page uses — a `PRIMARY_BUTTON` pill to `/agent`
+(`home.helperCta`: "Write today's day" / "Heutigen Tag schreiben" /
+"Mai nap megírása"), one sentence of body copy (`home.helperBody`), and
+`AgentDisclosure` underneath holding the handover material. New `home.*` keys
+in all three locales, written for somebody coming back to write rather than
+somebody deciding whether to use this at all — no exclamation, no arrow.
+Helper off keeps the old direct `AgentBlock` offer, still gated on the reader
+owning no journal here (unchanged from the ticket's own "judge it" note).
+
+**Verified in a browser** (Playwright, Chrome for Testing, 390×844):
+- `/` signed out, disclosure open, English and German — calm panel, single
+  yellow pill, no stripes, German instruction wraps cleanly with no page
+  overflow (`scrollWidth` 390).
+- `/agent` signed out — same treatment.
+- `/` signed in, English and German, disclosure closed then opened — hero
+  pill + one sentence + disclosure; opened, the disclosure shows exactly the
+  calm `AgentBlock`, once.
+- `grep -r "repeating-linear-gradient" components/` → no matches. New test
+  `test/no-striped-panels.test.ts` enforces this going forward; also updated
+  `test/identity-signin.test.tsx`'s existing (now-inverted) assertion.

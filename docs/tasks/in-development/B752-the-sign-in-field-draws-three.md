@@ -64,3 +64,50 @@ its focus* should be quiet.
 - Focus is still clearly visible on both fields, and everywhere else on the
   site is unchanged.
 - Verified by reading computed styles in a browser, not by eye.
+
+## Done
+
+Fixed in `components/IdentitySignIn.tsx` (both wrapper `<div>`s, email and
+code) and `app/globals.css`.
+
+- Dropped `focus-within:border-blue-500` from both wrappers — the ring
+  (`focus-within:ring-2 focus-within:ring-blue-500`) is now the wrapper's
+  only focus indicator.
+- **The input's own outline turned out not to be fixable with a Tailwind
+  utility at all.** `focus-visible:outline-none` lives in Tailwind's
+  `@layer utilities`; `app/globals.css:264`'s `:focus-visible` rule is
+  unlayered CSS, and an unlayered rule always beats a layered one regardless
+  of specificity or source order — so the utility silently never won,
+  measured or not. Added a new, separately-unlayered rule instead, right
+  after the block at :264 (left untouched, as asked):
+  ```css
+  .quiet-inner-focus:focus-visible {
+    outline: none;
+  }
+  ```
+  and applied `.quiet-inner-focus` to both `<input>`s. Being unlayered and
+  more specific than the bare `:focus-visible` pseudo-class, it wins.
+
+Verified by reading computed styles in a real browser (Playwright, Chrome for
+Testing), on `/agent` signed out:
+
+**Email field, focused:**
+- wrapper: `box-shadow: rgb(47, 111, 237) 0px 0px 0px 2px` (the ring), `border:
+  1px solid rgb(30, 41, 59)` (unchanged by focus)
+- input: `outline: rgb(30, 41, 59) none 3px` — style `none`, i.e. nothing
+  painted
+
+**Code field, focused:** identical shape — one ring on the wrapper, `outline:
+… none …` on the input.
+
+So: exactly one blue indicator per field, confirmed by computed style, not by
+eye. Screenshot: the email field at focus shows a single clean ring with no
+inner rectangle.
+
+**Found in passing, not fixed here (kept out of scope, filed as B757):** the
+wrapper's own unfocused border is `border-navy-300`, and no `--color-navy-300`
+token exists in `app/globals.css` — the ramp jumps from `navy-200` to
+`navy-500`. Tailwind can't colour an undefined token, so the border renders in
+`currentColor` (`navy-900`, near-black) instead of a light line. Pre-existing
+(present since B733, unrelated to the three-outline bug), not part of this
+ticket's acceptance, so left alone and captured separately.
