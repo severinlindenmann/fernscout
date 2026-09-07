@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (131)
+## backlog (133)
 
 ### security (7)
 
@@ -114,12 +114,13 @@ Do not edit them by hand; run the script.
 | [B603](backlog/issue/B603-npm-run-dev-s-strict-mode.md) | A dev-mode-only effect race can pass or fail local browser testing for the wrong reason | ISSUE | low | low |
 | [B613](backlog/issue/B613-the-guide-says-an-unknown-caption.md) | The guide says an unknown caption src is ignored; it is refused | ISSUE | low | low |
 
-### big-feature (12)
+### big-feature (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B537](backlog/big-feature/B537-a-journal-on-disk-cannot-be.md) | A journal on disk cannot be checked against the instance that will receive it | FEATURE | high | high |
+| [B663](backlog/big-feature/B663-there-is-nowhere-to-put-a.md) | There is nowhere to put a file before it belongs to a day | FEATURE | high | high |
 | [B06](backlog/big-feature/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B112](backlog/big-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts write straight to content, bypassing the token, draft status and rate limits every network write goes through | FEATURE | medium | high |
 | [B262](backlog/big-feature/B262-writing-to-a-journal-requires-bringing.md) | Writing to a journal requires bringing your own agent, so an owner without one cannot write at all | FEATURE | medium | high |
@@ -131,7 +132,7 @@ Do not edit them by hand; run the script.
 | [B591](backlog/big-feature/B591-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to relay a print job to a fulfilment instance | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 
-### small-feature (13)
+### small-feature (14)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -143,6 +144,7 @@ Do not edit them by hand; run the script.
 | [B436](backlog/small-feature/B436-nothing-ever-suggests-sending-postcards-so.md) | Nothing ever suggests sending postcards, so nobody discovers the feature | FEATURE | medium | low |
 | [B589](backlog/small-feature/B589-there-is-no-capability-for-one.md) | There is no capability for one instance to fulfil another's print jobs | FEATURE | medium | medium |
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
+| [B664](backlog/small-feature/B664-the-owner-cannot-see-what-is.md) | The owner cannot see what is using their storage, or reclaim any of it | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
 | [B176](backlog/small-feature/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
