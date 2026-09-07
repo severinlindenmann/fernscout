@@ -49,12 +49,6 @@ function forPaper(shapes: Shape[]): Shape[] {
   });
 }
 
-/** A vehicle's height at a given drawn width, in the same units. */
-export function vehicleHeight(mode: PrintableMode, width: number): number {
-  const box = VEHICLE_BOX[mode];
-  return (width / box.width) * box.height;
-}
-
 /**
  * Draw one vehicle with its wheels on `yMm`, its left edge at `xMm`.
  *
