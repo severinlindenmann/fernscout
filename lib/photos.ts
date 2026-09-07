@@ -92,3 +92,41 @@ export function maySeePhoto(visibility: PhotoVisibility | undefined, level: Read
   if (!visibility) return true;
   return READER_LEVELS.indexOf(level) >= READER_LEVELS.indexOf(DEMANDS[visibility]);
 }
+
+/**
+ * The stricter of two labels — `undefined` (no requirement) is the loosest
+ * thing there is.
+ *
+ * Narrowing composes: a photograph inside a held-back update is held back to
+ * whichever of the two demands more, the same sentence `PHOTO_VISIBILITIES`
+ * makes about a label inside a trip. Here rather than at the call site so
+ * that the order lives in exactly one file — `DEMANDS` above is the order,
+ * and nothing else should be spelling it out.
+ */
+export function strictestVisibility(
+  a: PhotoVisibility | undefined,
+  b: PhotoVisibility | undefined,
+): PhotoVisibility | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  return READER_LEVELS.indexOf(DEMANDS[a]) >= READER_LEVELS.indexOf(DEMANDS[b]) ? a : b;
+}
+
+/**
+ * The looser of two labels, which is the right answer when one file is
+ * reachable by more than one route.
+ *
+ * A photograph that appears in a public update and again in a held-back one
+ * is on the public page, and refusing the file would break the page that is
+ * legitimately showing it. So across *different* updates the effective demand
+ * is the smallest, while within one update it is `strictestVisibility` — two
+ * different questions that look alike: "is there a way you may see this" and
+ * "what does this one way require".
+ */
+export function loosestVisibility(
+  a: PhotoVisibility | undefined,
+  b: PhotoVisibility | undefined,
+): PhotoVisibility | undefined {
+  if (!a || !b) return undefined;
+  return strictestVisibility(a, b) === a ? b : a;
+}

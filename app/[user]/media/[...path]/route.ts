@@ -4,7 +4,13 @@ import { parseWidth } from "@/lib/mediaSizes";
 import { draftsVisibleTo, mayReadTrip, readerLevelFor } from "@/lib/tripGate";
 import { getTrip } from "@/lib/trips";
 import { AS_AUTHOR, getAllEntries, getEntryBySlug } from "@/lib/entries";
-import { maySeePhoto, mediaKey, type PhotoVisibility } from "@/lib/photos";
+import {
+  loosestVisibility,
+  maySeePhoto,
+  mediaKey,
+  strictestVisibility,
+  type PhotoVisibility,
+} from "@/lib/photos";
 
 /**
  * Serves trip media from the content folder.
@@ -34,22 +40,37 @@ function isDraftDay(ref: string, daySlug: string | undefined): boolean {
 }
 
 /**
- * The label on the photograph this request is for, if it has one — B596.
+ * What this request has to satisfy, if anything — B596 for the photograph's
+ * own label, B632 for the update it belongs to.
  *
  * Read from the gallery rather than from the path, because the label is a fact
  * about the picture and the path is only how it was asked for. Every entry in
  * the trip is searched rather than the day the folder names: the folder and
  * the day's slug agree by convention, and a convention is not a good enough
- * reason for a permission check to look in one place only. The parse is cached
- * per directory, so this is a walk over objects already in memory.
+ * reason for a permission check to look in one place only.
+ *
+ * **The update's own `visibility` counts too, and missing that was a leak.**
+ * B632 held an update back from the reading paths and stopped there: its
+ * photographs carried no label of their own, so this route served them to
+ * anybody who could guess `01.jpg` — the same half-a-feature B327 left behind
+ * on this exact file, arriving by the same door. Within one update the
+ * requirement is the *stricter* of the update's label and the picture's; a
+ * `guest` photograph inside a `private` update stays private.
+ *
+ * **Across updates it is the looser**, which is the opposite rule and the
+ * right one: the same file may appear in a public update and again in a
+ * held-back one, and refusing it would break the page that is legitimately
+ * showing it.
  *
  * A `poster` counts as the item it belongs to. A private clip's still frame is
  * a separate file with no label of its own, and it is a legible thumbnail of
  * the thing being held back.
  *
- * `undefined` for a file no gallery mentions — an original, a trip's cover, a
- * folder left behind by a deleted day. Those are the trip gate's business and
- * not this function's.
+ * A file no gallery mentions falls back to the update the *folder* names — an
+ * original, or anything ingest wrote beside the derivatives — which is the
+ * same convention `isDraftDay` above already trusts for the same reason.
+ * `undefined` for a folder that is no update's: those are the trip gate's
+ * business and not this function's.
  *
  * **The comparison is deliberately looser than the filesystem's.** A path is
  * matched case-folded and NFC-normalised, because the question here is not
@@ -72,14 +93,24 @@ function pathKey(src: string): string {
 
 function labelOf(ref: string, segments: string[]): PhotoVisibility | undefined {
   const wanted = pathKey(segments.join("/"));
+  let matched = false;
+  let demand: PhotoVisibility | undefined;
+
   for (const entry of getAllEntries(ref, AS_AUTHOR)) {
     for (const item of entry.gallery) {
-      if (!item.visibility) continue;
-      if (pathKey(item.src) === wanted) return item.visibility;
-      if (item.poster && pathKey(item.poster) === wanted) return item.visibility;
+      const hit = pathKey(item.src) === wanted || (item.poster && pathKey(item.poster) === wanted);
+      if (!hit) continue;
+      const here = strictestVisibility(entry.visibility, item.visibility);
+      demand = matched ? loosestVisibility(demand, here) : here;
+      matched = true;
     }
   }
-  return undefined;
+  if (matched) return demand;
+
+  // No gallery mentions this file. The folder is named for an update, and if
+  // that update is held back so is everything sitting in its folder.
+  const day = segments[1] ? getEntryBySlug(ref, segments[1], AS_AUTHOR) : undefined;
+  return day?.visibility;
 }
 
 export async function GET(
@@ -121,10 +152,11 @@ export async function GET(
    * promising since media moved out of `public/`.
    *
    * It has to be here and not only in the read layer. `visible()` in
-   * lib/entries.ts keeps a labelled picture out of every gallery, every day
-   * page and every payload — and leaves the file itself one guessable URL
-   * away, which for the one feature whose entire purpose is holding a
-   * photograph back would not be a feature at all.
+   * lib/entries.ts keeps a labelled picture — and, since B632, a labelled
+   * update entire — out of every gallery, every day page and every payload,
+   * and leaves the files themselves one guessable URL away, which for the two
+   * features whose entire purpose is holding something back would not be
+   * features at all.
    *
    * 404, like every other refusal on this route: a 403 would confirm that
    * something is there.

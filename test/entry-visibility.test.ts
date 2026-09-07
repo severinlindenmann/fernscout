@@ -105,6 +105,19 @@ function writeTrip(spec: (typeof TRIPS)[number]) {
   );
 
   for (const [i, entry] of ENTRIES.entries()) {
+    // One photograph per update, carrying **no label of its own** — which is
+    // the whole point: what holds it back can only be the update it belongs
+    // to. A second file beside it is never mentioned in the gallery, standing
+    // in for an original or anything else ingest leaves in the folder.
+    fs.mkdirSync(path.join(root, "media", entry.slug), { recursive: true });
+    for (const file of ["01.jpg", "loose.jpg"]) {
+      // A JPEG's first four bytes, which is all `contentTypeFor` looks at.
+      fs.writeFileSync(
+        path.join(root, "media", entry.slug, file),
+        Buffer.from([0xff, 0xd8, 0xff, 0xdb]),
+      );
+    }
+
     fs.writeFileSync(
       path.join(root, "entries", `2026-08-25-${entry.slug}.md`),
       [
@@ -115,6 +128,9 @@ function writeTrip(spec: (typeof TRIPS)[number]) {
         'location: "Bellinzona"',
         'country: "Switzerland"',
         ...(entry.label ? [`visibility: "${entry.label}"`] : []),
+        "gallery:",
+        `  - src: "/media/${spec.id}/${entry.slug}/01.jpg"`,
+        '    type: "image"',
         "tags: [\"day\"]",
         "---",
         "",
@@ -356,6 +372,78 @@ describe("the surfaces that walk every entry", () => {
  * partly theirs has to be told that, or the row reads as "you can read this
  * trip" when part of it is still held back further than they have proved.
  */
+/**
+ * The photographs of a held-back update, which is the half that makes this a
+ * feature rather than a decoration.
+ *
+ * B632 kept the update out of every reading path and stopped there. Its
+ * pictures carry no label of their own — nothing to find in `lib/photos.ts` —
+ * so the media route served them to anybody who could guess `01.jpg`, which
+ * is B327's mistake on the same file by a different door: the words hidden
+ * and the pictures not.
+ */
+describe("the photographs of a held-back update", () => {
+  async function fetchPhoto(tripId: string, slug: string, file: string, query = "") {
+    const { GET } = await import("@/app/[user]/media/[...path]/route");
+    const segments = [tripId, slug, file];
+    return GET(
+      new Request(`https://example.test/${OWNER}/media/${segments.join("/")}${query}`),
+      { params: Promise.resolve({ user: OWNER, path: segments }) } as never,
+    );
+  }
+
+  /** The same table as the entries themselves, one row per file. */
+  const EXPECTED_STATUS: Record<string, Record<string, number>> = {
+    anonymous: { arrival: 200, "arrival-guest-note": 404, "arrival-private-note": 404 },
+    stranger: { arrival: 200, "arrival-guest-note": 404, "arrival-private-note": 404 },
+    guest: { arrival: 200, "arrival-guest-note": 200, "arrival-private-note": 404 },
+    traveller: { arrival: 200, "arrival-guest-note": 200, "arrival-private-note": 200 },
+    owner: { arrival: 200, "arrival-guest-note": 200, "arrival-private-note": 200 },
+  };
+
+  for (const [viewer, bySlug] of Object.entries(EXPECTED_STATUS)) {
+    for (const [slug, status] of Object.entries(bySlug)) {
+      test(`${viewer} asking for ${slug}'s photograph on the public trip: ${status}`, async () => {
+        as(viewer);
+        expect((await fetchPhoto("open-2026", slug, "01.jpg")).status).toBe(status);
+      });
+    }
+  }
+
+  /** A thumbnail is the same file by another spelling, and so is another case. */
+  test("a resized copy and a differently-cased path are refused too", async () => {
+    as("anonymous");
+    expect((await fetchPhoto("open-2026", "arrival-guest-note", "01.jpg", "?w=320")).status).toBe(
+      404,
+    );
+    expect((await fetchPhoto("open-2026", "arrival-guest-note", "01.JPG")).status).toBe(404);
+  });
+
+  /**
+   * The file no gallery mentions. An original sitting in a held-back update's
+   * folder is as held back as the picture beside it — and this is the case
+   * a label-only check cannot reach at all, since there is no label to find.
+   */
+  test("a file the gallery never mentions follows the update's own folder", async () => {
+    as("anonymous");
+    expect((await fetchPhoto("open-2026", "arrival-guest-note", "loose.jpg")).status).toBe(404);
+    expect((await fetchPhoto("open-2026", "arrival", "loose.jpg")).status).toBe(200);
+  });
+
+  /**
+   * The bytes are the same for everybody who may have them; the *status* is
+   * what varies, and a shared cache cannot see that.
+   */
+  test("a held-back update's photograph is never handed to a shared cache", async () => {
+    as("traveller");
+    const held = await fetchPhoto("open-2026", "arrival-private-note", "01.jpg");
+    expect(held.headers.get("Cache-Control")).toBe("private, no-store");
+
+    const open = await fetchPhoto("open-2026", "arrival", "01.jpg");
+    expect(open.headers.get("Cache-Control")).toContain("public");
+  });
+});
+
 describe("what the access panel says about a partly-held-back trip", () => {
   test("a stranger's row on the public trip says part of it is held back too — two of the three updates are not theirs", async () => {
     const { resolveViewer } = await import("@/lib/viewer");
