@@ -444,11 +444,17 @@ export type BookWarning = {
    */
   date?: string;
   /**
-   * Which photographs this warning is about, when it names any — B642.
-   * `low-resolution` carries the one photograph each warning is about (its
-   * caption or filename), so a reader can be told *which* prints soft rather
-   * than only how many do. A UI wanting the affected photographs reads this
-   * rather than `detail`, which stays developer prose.
+   * Which photographs this warning is about, when it names any — B642, as
+   * `webSrc` since B701. `low-resolution` carries the one photograph each
+   * warning is about, so a reader can be *shown* which ones rather than told
+   * how many. It used to be `labelOf()`'s path, which named a file the owner
+   * never chose in a folder ingest named — true, and no help at all in
+   * deciding whether this is the picture worth replacing.
+   *
+   * Empty for a photograph with no `webSrc`, which is only ever a hand-built
+   * planner fixture: a warning that cannot be illustrated still counts.
+   * A UI wanting the affected photographs reads this rather than `detail`,
+   * which stays developer prose and still names files.
    */
   photos?: string[];
 };
@@ -1360,7 +1366,7 @@ function checkResolution(p: PhotoPlacement, spec: BookSpec, warnings: BookWarnin
   if (p.photo.width >= need) return;
   warnings.push({
     code: "low-resolution",
-    photos: [labelOf(p.photo)],
+    photos: p.photo.webSrc ? [p.photo.webSrc] : [],
     detail:
       `${labelOf(p.photo)} is ${p.photo.width}px wide but is printed ` +
       `${p.draw.width.toFixed(0)}mm wide, which needs ${need}px — it will print ` +
