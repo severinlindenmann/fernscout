@@ -8,8 +8,7 @@ area: auth, api
 found: "2026-09-04T08:24:24Z"
 related: B241
 started: "2026-09-07T11:40:27Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:40:27Z"
+merged: "2026-09-07T12:12:19Z"
 ---
 
 # B240 — Every owner-only gate is one scope string away from opening

@@ -7,8 +7,7 @@ complexity: medium
 area: agent
 found: "2026-09-07T09:52:59Z"
 started: "2026-09-07T11:46:59Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T11:46:59Z"
+merged: "2026-09-07T12:16:15Z"
 ---
 
 # B685 — The helper cannot understand a sentence a person types at it

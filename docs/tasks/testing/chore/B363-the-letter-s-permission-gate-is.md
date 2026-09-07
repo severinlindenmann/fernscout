@@ -7,8 +7,7 @@ complexity: medium
 area: mail, access
 found: "2026-09-04T20:22:13Z"
 started: "2026-09-07T11:40:29Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:40:29Z"
+merged: "2026-09-07T12:12:23Z"
 ---
 
 # B363 — The letter's permission gate is a second copy of the site's, and nothing holds them together
