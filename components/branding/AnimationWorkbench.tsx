@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useMotionValue } from "motion/react";
-import Cityscape, { cityScale, floraFor } from "@/components/Cityscape";
+import Cityscape, {
+  BUILDING_KINDS,
+  BuildingShape,
+  cityScale,
+  floraFor,
+} from "@/components/Cityscape";
 import Travelers from "@/components/Travelers";
 import TravelScene, { SKIES, type SkyName } from "@/components/TravelScene";
 import Vehicle from "@/components/travel/Vehicle";
@@ -87,6 +92,7 @@ export default function AnimationWorkbench() {
       <SceneBench />
       <VehicleBench />
       <SurfaceBench />
+      <BuildingBench />
       <SkylineBench />
       <PartyBench />
     </div>
@@ -292,6 +298,49 @@ const LATITUDES = [
   { label: "56° — northern", lat: 56 },
   { label: "78° — past the treeline", lat: 78 },
 ];
+
+function BuildingBench() {
+  const [w, setW] = useState(60);
+  const [h, setH] = useState(40);
+  return (
+    <Section
+      title="Buildings"
+      note="Every shape a skyline can put up, alone and at whatever size. In the scene they are four to twelve blocks the height of a thumbnail at the bottom of the frame, so the question here is only whether each one is still the thing it is meant to be at that size — the airport was on screen for a fortnight while people looking straight at it reported it missing."
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Slider label="Width" value={w} min={24} max={140} step={2} onChange={setW} />
+        <Slider label="Height" value={h} min={16} max={110} step={2} onChange={setH} />
+      </div>
+      <div className="mt-5 grid gap-5 sm:grid-cols-3">
+        {BUILDING_KINDS.map((kind) => (
+          <figure key={kind} className="overflow-hidden rounded-xl border border-navy-200">
+            <div className="flex h-[150px] items-end justify-center bg-sky-300">
+              <svg width={w + 40} height={140} viewBox={`0 0 ${w + 40} 140`} aria-hidden>
+                <BuildingShape
+                  b={{
+                    x: 20,
+                    w,
+                    h,
+                    wall: "#f4a259",
+                    roof: "#c9743a",
+                    kind,
+                    seed: 12_345,
+                  }}
+                  baseY={130}
+                />
+                <rect x={0} y={130} width={w + 40} height={12} fill="#cdeecb" />
+              </svg>
+            </div>
+            <figcaption className="border-t border-navy-200 bg-white px-3 py-2 font-display text-xs font-semibold text-navy-700">
+              {kind}
+              {kind === "airport" && " · only on a flight leg"}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </Section>
+  );
+}
 
 function SkylineBench() {
   return (
