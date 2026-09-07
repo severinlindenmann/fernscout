@@ -182,6 +182,51 @@ describe("the landing page", () => {
     expect(html).toContain("Copy instruction");
   });
 
+  /**
+   * B732 — the bring-your-own-agent material moves behind a native
+   * disclosure, but only when the helper is the primary door. The three
+   * pieces it reveals — the instruction box, the numbered steps, and the "no
+   * CMS" paragraph — must still all be on the page; a `<details>` renders its
+   * content in the static markup regardless of whether it starts open.
+   */
+  test("with the helper on, the bring-your-own material sits behind a disclosure", () => {
+    const html = renderLanding("en", true);
+    expect(html).toContain("<details");
+    expect(html).toContain("<summary");
+    // The trigger reuses the existing string rather than a new one.
+    expect(html).toContain("Already have your own agent?");
+    // No open attribute — closed by default.
+    expect(html).not.toMatch(/<details[^>]*\bopen\b/);
+    // Everything it reveals is still in the markup.
+    expect(html).toContain("Copy instruction");
+    expect(html).toMatch(/no CMS/i);
+    expect(html).toContain("Give your agent the link");
+  });
+
+  /**
+   * With the helper off there is no other door onto this material, so it
+   * must stay open on the first screen exactly as before — no `<details>` at
+   * all.
+   */
+  test("with the helper off, the material stays open on the page, not behind a disclosure", () => {
+    const html = renderLanding();
+    expect(html).not.toContain("<details");
+    expect(html).toContain("Copy instruction");
+    expect(html).toMatch(/no CMS/i);
+  });
+
+  /** B732 — `Read the docs` moves below the public journals in both
+   * arrangements. */
+  test("puts 'Read the docs' below the public journals", () => {
+    writeUser("example", "An example journey");
+    for (const helperOn of [false, true]) {
+      const html = renderLanding("en", helperOn);
+      expect(html.indexOf("Public journals on this server")).toBeLessThan(
+        html.indexOf(">Read the docs<"),
+      );
+    }
+  });
+
   test("invites the reader into the public journals", () => {
     writeUser("example", "An example journey");
     expect(renderLanding()).toMatch(/Public journals on this server/i);

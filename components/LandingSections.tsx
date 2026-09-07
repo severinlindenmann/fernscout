@@ -118,16 +118,20 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
 }
 
 /**
- * The first screen — B694.
+ * The first screen — B694, trimmed further by B732.
  *
  * `helperEnabled` decides which door is primary. Off (the default, and what
  * every self-hoster has today) this renders exactly as it always has: the
  * headline and the lede, with the instruction box and its copy button as the
  * next thing on the page. On, a button to `/agent` — the hosted wizard — is
- * the primary call to action, and a quiet line under it sends anyone who
- * already has an agent down to the instruction box rather than hiding it.
- * One page, two arrangements — see `Landing.tsx` for where the flag comes
- * from.
+ * the primary call to action, and everything the other audience needs is one
+ * tap away in `AgentDisclosure`, which `Landing.tsx` renders directly below
+ * this. One page, two arrangements — see `Landing.tsx` for where the flag
+ * comes from.
+ *
+ * The quiet `#handover` link this used to carry is gone: B732 turned what it
+ * pointed at into the disclosure's own `<summary>`, so a second line saying
+ * the same thing here would be noise above it.
  */
 export function LandingHero({ helperEnabled = false }: { helperEnabled?: boolean }) {
   const { t } = useI18n();
@@ -138,29 +142,53 @@ export function LandingHero({ helperEnabled = false }: { helperEnabled?: boolean
       </h1>
       <p className="mt-4 text-lg leading-7 text-navy-700">{t("landing.lede")}</p>
       {helperEnabled && (
-        <>
-          <Link
-            href="/agent"
-            className="mt-6 inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-navy-900 px-6
-                       text-lg font-semibold text-cream-50 transition-colors hover:bg-navy-700
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500
-                       sm:w-auto"
-          >
-            {t("landing.helperCta")}
-          </Link>
-          <p className="mt-3">
-            <a
-              href="#handover"
-              className="text-sm text-navy-700 underline decoration-navy-300 underline-offset-4
-                         transition-colors hover:decoration-navy-700
-                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            >
-              {t("landing.helperOwnAgent")}
-            </a>
-          </p>
-        </>
+        <Link
+          href="/agent"
+          className="mt-6 inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-navy-900 px-6
+                     text-lg font-semibold text-cream-50 transition-colors hover:bg-navy-700
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500
+                     sm:w-auto"
+        >
+          {t("landing.helperCta")}
+        </Link>
       )}
     </>
+  );
+}
+
+/**
+ * The bring-your-own-agent material, behind one tap — B732.
+ *
+ * With the helper on, the first screen a visitor scrolls through used to be a
+ * copyable prompt, three numbered steps about seven-day tokens, and a
+ * paragraph about there being no CMS — none of which the person who just
+ * pressed "Start writing" needs. A native `<details>` rather than `useState`:
+ * it is keyboard-operable and findable by the browser's own find-in-page for
+ * free, and this is already a client component for other reasons so there is
+ * no cost to *not* reaching for state here.
+ *
+ * What it reveals — `AgentBlock` and `LandingSteps`, which itself carries the
+ * `landing.noEditor` paragraph — is exactly what sat directly on the page
+ * before this ticket, unmoved and unrewritten. The trigger reuses
+ * `landing.helperOwnAgent` rather than a new key, because it is the same
+ * sentence the removed `#handover` link used to say.
+ */
+export function AgentDisclosure({ docUrl, agentUrl }: { docUrl: string; agentUrl: string }) {
+  const { t } = useI18n();
+  return (
+    <details className="group mt-6">
+      <summary
+        className="flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-semibold
+                   text-navy-700 underline decoration-navy-300 underline-offset-4
+                   transition-colors hover:decoration-navy-700
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500
+                   [&::-webkit-details-marker]:hidden"
+      >
+        {t("landing.helperOwnAgent")}
+      </summary>
+      <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
+      <LandingSteps />
+    </details>
   );
 }
 

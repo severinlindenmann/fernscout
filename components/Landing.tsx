@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   AgentBlock,
+  AgentDisclosure,
   Colophon,
   DocsLink,
   LandingHero,
@@ -249,12 +250,21 @@ export default function Landing({
       ) : (
         <>
           <LandingHero helperEnabled={helperEnabled} />
-          <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
-          <LandingSteps />
-          <DocsLink />
+          {/* Only when the helper is on — with it off there is no other
+              door, so this material stays where it is, open, on the first
+              screen (B732). */}
+          {helperEnabled ? (
+            <AgentDisclosure docUrl={docUrl} agentUrl={agentUrl} />
+          ) : (
+            <>
+              <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
+              <LandingSteps />
+            </>
+          )}
         </>
       )}
       {publicList}
+      <DocsLink />
       {colophon}
     </main>
   );
