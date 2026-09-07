@@ -104,7 +104,7 @@ export function priceUsage(totals: UsageTotal[], costs = loadServerConfig().cost
  * the currencies are listed, because converting them would need a rate this
  * module has no business fetching.
  */
-export async function printCosts(since: string): Promise<CostLine[]> {
+async function printCosts(since: string): Promise<CostLine[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
   const rows = await handle.db
@@ -140,7 +140,7 @@ export async function printCosts(since: string): Promise<CostLine[]> {
  * of them would put a made-up number in a column of measured ones. What the
  * operator needs from this group is the volume, and the volume is exact.
  */
-export async function sendCounts(since: string): Promise<CostLine[]> {
+async function sendCounts(since: string): Promise<CostLine[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
   const rows = await handle.db
@@ -160,7 +160,7 @@ export async function sendCounts(since: string): Promise<CostLine[]> {
 }
 
 /** The lines that are owed whether anybody writes a day or not. */
-export function fixedCosts(): CostLine[] {
+function fixedCosts(): CostLine[] {
   return loadServerConfig().costs.fixedMonthly.map((row) => ({
     label: row.label,
     detail: "every month",
@@ -170,7 +170,7 @@ export function fixedCosts(): CostLine[] {
   }));
 }
 
-export type JournalRow = {
+type JournalRow = {
   username: string;
   /** Null when credits are switched off instance-wide. */
   balance: number | null;
@@ -190,7 +190,7 @@ export type JournalRow = {
  * question nobody asked. The money column is the period, because that is what
  * the total at the top is.
  */
-export async function journalRows(since: string): Promise<JournalRow[]> {
+async function journalRows(since: string): Promise<JournalRow[]> {
   const handle = await getDatabaseOrNull();
   const byOwner = await usageByOwnerSince(since);
   const costs = loadServerConfig().costs;

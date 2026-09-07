@@ -50,11 +50,11 @@ const METHODS: readonly PaymentMethod[] = ["twint", "card", "admin"];
  *  operator's own method, and a request that could name it would be a way to
  *  file a zero-franc purchase for any number of credits. `/api/v1/.../pay`
  *  validates against this, `/admin` sets `admin` itself. */
-export const BUYER_METHODS: readonly PaymentMethod[] = ["twint", "card"];
+const BUYER_METHODS: readonly PaymentMethod[] = ["twint", "card"];
 export function isBuyerMethod(v: unknown): v is PaymentMethod {
   return typeof v === "string" && (BUYER_METHODS as readonly string[]).includes(v);
 }
-export function isPaymentMethod(v: unknown): v is PaymentMethod {
+function isPaymentMethod(v: unknown): v is PaymentMethod {
   return typeof v === "string" && (METHODS as readonly string[]).includes(v);
 }
 
