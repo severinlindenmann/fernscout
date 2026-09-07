@@ -203,3 +203,23 @@ elsewhere on this same page — but this is inference from reused classes, not
 an observed render. **The 390px acceptance line is not fully demonstrated**;
 a person (or a session with a free browser) should confirm visually before
 this is treated as done.
+
+## The capability swap, after merge
+
+This was built beside B684, which is what added `helper` to `FEATURE_NAMES`,
+so while it was in flight there was no capability to ask and `app/page.tsx`
+hardcoded `helperEnabled = false` behind a `ponytail:` comment naming the
+swap. B684 merged first, so the swap was made as a one-line follow-up on its
+own branch (`b694-helper-capability-swap`): the hero now asks
+`isEnabled("helper")`.
+
+That is worth knowing when this is verified, because it changes what "on"
+costs. `helper` is not a per-journal question — `lib/capabilities.ts` refuses
+it outright unless `credits` is enabled too, since every model call is metered
+and a helper without a ledger is an unmetered one billed to the operator. So
+the "helper on" arrangement of the landing page cannot be seen on an instance
+that has not also switched on credits and set `ANTHROPIC_API_KEY`.
+
+**The 390px check is still outstanding** and is the one acceptance line
+nothing here demonstrates — see the section above for why the browser was
+unavailable. It needs somebody with a free browser profile.
