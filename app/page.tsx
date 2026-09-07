@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Landing from "@/components/Landing";
+import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { publicJournals } from "@/lib/home";
 import { hasLegal } from "@/lib/legal";
@@ -51,15 +52,17 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * Whether `/agent` can actually write on this instance — B694.
  *
- * ponytail: `helper` is not a `FeatureName` yet — `docs/plans/2026-09-07-web-helper-agent.md`
- * calls for it (`isEnabled("helper")`) but adding it to `lib/config.ts`'s
- * `FEATURE_NAMES` is B684's, in flight alongside this ticket. Hardcoding
- * `false` is also the only honest answer today: the capability does not
- * exist on any instance yet, so a hero pointing at `/agent` as primary would
- * be the "worse than no button" case the plan itself warns about. Once B684
- * merges, replace this with `isEnabled("helper")`.
+ * `helper` off is the default and is what every self-hosted instance has, so
+ * the hero keeps the agent instruction as its primary route there: a button
+ * leading to a page that cannot write is the "worse than no button" case
+ * `docs/plans/2026-09-07-web-helper-agent.md` warns about. On, `/agent`
+ * becomes the primary call to action and bring-your-own moves to the quiet
+ * line beneath it — one page, two arrangements.
+ *
+ * B694 was built beside B684, which is what added `helper` to `FEATURE_NAMES`,
+ * and had to hardcode `false` until that landed. It has landed.
  */
-const helperEnabled = false;
+const helperEnabled = isEnabled("helper");
 
 export default async function Root() {
   const site = serverSite();
