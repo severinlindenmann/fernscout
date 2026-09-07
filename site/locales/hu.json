@@ -1505,5 +1505,21 @@
   "me.buyDialogAmount": "Hány kredit",
   "me.buyDialogNoDiscount": "{from}-tól {to}-ig. Minél többet veszel egyszerre, annál olcsóbb darabja.",
   "me.buyDialogBuyAmount": "Megveszem {price}-ért",
-  "pricing.range": "Egyszerre {from} és {to} között vehetsz — darabja {min}, {to} felett {max}."
+  "pricing.range": "Egyszerre {from} és {to} között vehetsz — darabja {min}, {to} felett {max}.",
+  "purchase.receipt.subject": "Nyugta — {credits} kredit",
+  "purchase.receipt.preheader": "{credits} kredit, {amount} — köszönjük.",
+  "purchase.receipt.title": "Köszönjük a vásárlást",
+  "purchase.receipt.body": "A fizetés megérkezett, {credits} kreditet jóváírtunk a naplódon.",
+  "purchase.receipt.balance": "Az egyenleged most {balance} kredit.",
+  "purchase.receipt.colItem": "Tétel",
+  "purchase.receipt.colAmount": "Összeg",
+  "purchase.receipt.lineCredits": "{credits} kredit",
+  "purchase.receipt.lineTotal": "Fizetve",
+  "purchase.receipt.paidWith": "Fizetve ezzel: {method}",
+  "purchase.receipt.method.card": "kártya",
+  "purchase.receipt.method.twint": "TWINT",
+  "purchase.receipt.method.admin": "üzemeltetői jóváhagyás",
+  "purchase.receipt.reference": "Hivatkozás: {id} · {date}",
+  "purchase.receipt.viewAccount": "Kreditek és tárhely",
+  "purchase.receipt.footer": "Azért kapod, mert a naplódhoz kreditet vásároltak. Őrizd meg nyugtaként; számlához add meg a fenti hivatkozást."
 }

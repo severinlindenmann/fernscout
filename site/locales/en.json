@@ -1505,5 +1505,21 @@
   "me.buyDialogAmount": "How many credits",
   "me.buyDialogNoDiscount": "From {from} to {to}. The more you buy at once, the less each one costs.",
   "me.buyDialogBuyAmount": "Buy for {price}",
-  "pricing.range": "Buy {from} to {to} at a time — {min} each, down to {max} at {to}."
+  "pricing.range": "Buy {from} to {to} at a time — {min} each, down to {max} at {to}.",
+  "purchase.receipt.subject": "Receipt — {credits} credits",
+  "purchase.receipt.preheader": "{credits} credits, {amount} — thank you.",
+  "purchase.receipt.title": "Thank you for your purchase",
+  "purchase.receipt.body": "Your payment went through and {credits} credits have been added to your journal.",
+  "purchase.receipt.balance": "Your balance is now {balance} credits.",
+  "purchase.receipt.colItem": "Item",
+  "purchase.receipt.colAmount": "Amount",
+  "purchase.receipt.lineCredits": "{credits} credits",
+  "purchase.receipt.lineTotal": "Total paid",
+  "purchase.receipt.paidWith": "Paid with {method}",
+  "purchase.receipt.method.card": "card",
+  "purchase.receipt.method.twint": "TWINT",
+  "purchase.receipt.method.admin": "an operator approval",
+  "purchase.receipt.reference": "Reference {id} · {date}",
+  "purchase.receipt.viewAccount": "Your credits and storage",
+  "purchase.receipt.footer": "Sent because credits were bought for your journal. Keep this as your receipt; quote the reference above if you need an invoice for your books."
 }

@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { grant } from "@/lib/credits";
-import { claimProviderPayment } from "@/lib/payments";
+import { sendPurchaseReceipt } from "@/lib/credits/receipt";
+import { claimProviderPayment, getPayment } from "@/lib/payments";
 import { stripe, stripeEnabled, stripeMode, webhookSecret } from "@/lib/stripe";
 import { getUser } from "@/lib/users";
 
@@ -183,6 +184,12 @@ export async function POST(request: Request) {
     );
     return new Response("could not grant", { status: 500 });
   }
+
+  // What they paid for, in their inbox — B866. After the grant and outside its
+  // try: a receipt that could fail the webhook would have Stripe redeliver a
+  // session whose credits have already landed.
+  const payment = await getPayment(owner, paymentId);
+  if (payment) await sendPurchaseReceipt(payment);
 
   return Response.json({ ok: true, granted: claim.credits });
 }

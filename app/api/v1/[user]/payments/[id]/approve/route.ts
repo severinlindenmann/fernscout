@@ -1,7 +1,5 @@
 import { grant } from "@/lib/credits";
-import { formatChf } from "@/lib/credits/pricing";
-import { sendTransactional } from "@/lib/mail";
-import { renderMail } from "@/lib/mail/template";
+import { sendPurchaseReceipt } from "@/lib/credits/receipt";
 import { claimApproval, getPayment } from "@/lib/payments";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
@@ -70,32 +68,11 @@ export async function POST(
   // reconciling can tie a credit to its purchase.
   await grant(user, claim.credits, `purchase ${id}`);
 
-  // Tell the buyer their credits landed. Best-effort — the grant already
-  // happened, so a mail failure must not undo it or fail the approval.
+  // Tell the buyer their credits landed — B866. Best-effort and silent about
+  // its own failures: the grant already happened, and the receipt must not be
+  // able to undo it or fail the approval.
   const payment = await getPayment(user, id);
-  if (journal.owner.email && payment) {
-    try {
-      const mail = renderMail(
-        journal.owner.email,
-        `${claim.credits} credits added`,
-        {
-          preheader: `Your purchase was approved`,
-          title: "Your credits are ready",
-          blocks: [
-            {
-              kind: "paragraph",
-              text: `Your purchase of ${claim.credits} credits (${formatChf(payment.amountRappen)}) has been approved and added to your balance.`,
-            },
-          ],
-          footer: "Sent because a credit purchase on your journal was approved.",
-        },
-        user,
-      );
-      await sendTransactional(mail, "credit purchase approved");
-    } catch {
-      // The credits are added regardless; the receipt is a courtesy.
-    }
-  }
+  if (payment) await sendPurchaseReceipt(payment);
 
   return Response.json({ ok: true, status: "paid", creditsGranted: claim.credits });
 }
