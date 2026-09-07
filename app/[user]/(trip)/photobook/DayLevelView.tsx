@@ -34,6 +34,7 @@ export default function DayLevelView({
   focalOf,
   setDayLayout,
   setDayRunOn,
+  setDayText,
   setDayExcluded,
   setHero,
   movePhoto,
@@ -65,6 +66,7 @@ export default function DayLevelView({
   focalOf: (src: string) => Focal;
   setDayLayout: (date: string, layout: DayLayout) => void;
   setDayRunOn: (date: string, runOn: boolean) => void;
+  setDayText: (date: string, wanted: boolean) => void;
   setDayExcluded: (date: string, excluded: boolean) => void;
   setHero: (date: string, src: string) => void;
   movePhoto: (date: string, src: string, by: -1 | 1, dayPhotos: MediaTile[]) => void;
@@ -131,6 +133,8 @@ export default function DayLevelView({
           focalOf={focalOf}
           setDayLayout={setDayLayout}
           setDayRunOn={setDayRunOn}
+          setDayText={setDayText}
+          bookPrintsText={options.includeText}
           setDayExcluded={setDayExcluded}
           setHero={setHero}
           movePhoto={movePhoto}

@@ -244,6 +244,20 @@ export default function PhotobookPageContent({
       return { ...o, days: { ...o.days, [date]: next } };
     });
 
+  /**
+   * Leave one day's words out while the rest of the book keeps its text —
+   * B703. Same shape as the two above, and the same reason for deleting the
+   * key rather than writing `true`: a day nobody has touched must stay
+   * indistinguishable from one turned back on.
+   */
+  const setDayText = (date: string, wanted: boolean) =>
+    setOptions((o) => {
+      const next = { ...o.days[date] };
+      if (wanted) delete next.text;
+      else next.text = false;
+      return { ...o, days: { ...o.days, [date]: next } };
+    });
+
   /** One tap: this is the photograph that should run big. Tapping the current
    * one again gives the choice back to the planner. */
   const setHero = (date: string, src: string) =>
@@ -625,6 +639,7 @@ export default function PhotobookPageContent({
                 focalOf={focalOf}
                 setDayLayout={setDayLayout}
                 setDayRunOn={setDayRunOn}
+                setDayText={setDayText}
                 setDayExcluded={setDayExcluded}
                 setHero={setHero}
                 movePhoto={movePhoto}

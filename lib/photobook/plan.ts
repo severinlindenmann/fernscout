@@ -1125,12 +1125,20 @@ function draftsForChapter(
     const day = { ...chosenDay, photos: chosenDay.photos.map((p) => withFocal(p, options.focalPoints)) };
 
     const layout = chosen?.layout ?? "auto";
-    const captions = options.includeText
+    /**
+     * Whether this day's words are printed — B703.
+     *
+     * The book's own switch, narrowed by the day's. A day may only take text
+     * away (`text: false`); `true` on a book printed without text prints
+     * nothing, which is what makes the book-level switch the one that decides.
+     */
+    const wantsText = options.includeText && chosen?.text !== false;
+    const captions = wantsText
       ? day.photos.map((p) => p.caption).filter((c): c is string => Boolean(c))
       : [];
     // Text off still leaves a dated page in front of each day: a photo album
     // that cannot say when it was is worse than one with a heading.
-    const written = options.includeText ? day : { ...day, paragraphs: [] };
+    const written = wantsText ? day : { ...day, paragraphs: [] };
 
     /**
      * Which photograph, if any, gets the whole page to itself.

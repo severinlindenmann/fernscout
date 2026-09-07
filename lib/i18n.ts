@@ -909,6 +909,8 @@ export type TranslationKey =
   | "photobook.day.reset"
   | "photobook.day.runOn"
   | "photobook.day.runOnHint"
+  | "photobook.day.text"
+  | "photobook.day.textHint"
   | "photobook.done"
   | "photobook.done.filesInMail"
   | "photobook.downloadFile"

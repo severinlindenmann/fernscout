@@ -728,6 +728,8 @@
   "photobook.day.layout.grid": "Vier pro Seite",
   "photobook.day.layout.text": "Nur Text",
   "photobook.day.layoutLegend": "Wie dieser Tag gestaltet wird",
+  "photobook.day.text": "Text dieses Tages mitdrucken",
+  "photobook.day.textHint": "Aus lassen, wenn die Worte dieses Tages nur Logistik sind. Überschrift und Datum bleiben.",
   "photobook.day.runOn": "Diesem Tag eine zweite Seite geben, statt zu kürzen",
   "photobook.day.runOnHint": "Fügt eine Seite hinzu, der Preis ändert sich also auch.",
   "photobook.day.reset": "Das Buch wieder entscheiden lassen",

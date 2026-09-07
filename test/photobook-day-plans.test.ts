@@ -378,6 +378,15 @@ describe("what a request body may say", () => {
     ).toBeNull();
   });
 
+  test("a day's own text flag survives the boundary — B703", () => {
+    const parsed = parseOptions({ ...base, days: { "2026-01-01": { text: false } } }, SIZES);
+    expect(parsed?.days["2026-01-01"]).toEqual({ text: false });
+  });
+
+  test("a text flag that is not a boolean is refused rather than coerced", () => {
+    expect(parseOptions({ ...base, days: { "2026-01-01": { text: 0 } } }, SIZES)).toBeNull();
+  });
+
   test("a key that is not a date is refused outright", () => {
     // It never reaches a filesystem, but a loose record from a request body is
     // the shape that later grows into one.
@@ -589,5 +598,52 @@ describe("letting a day run on — B517", () => {
     expect(withoutRunOn.volumes[0].interiorPages).toBeGreaterThan(SPEC.pageCount.min);
     expect(withRunOn.volumes[0].interiorPages).toBeGreaterThan(withoutRunOn.volumes[0].interiorPages);
     expect(priceOf(withRunOn, options)).toBeGreaterThan(priceOf(withoutRunOn, DEFAULT_OPTIONS));
+  });
+});
+
+/**
+ * B703 — one day's words, without touching the rest of the book.
+ */
+describe("leaving one day's prose out", () => {
+  const DAYS = [0, 1].map((i) => day(i, [photo(i * 2 + 1), photo(i * 2 + 2)]));
+  const prose = (book: ReturnType<typeof planBook>, date: string) =>
+    book.volumes[0].pages
+      .filter((p) => p.kind === "day" && p.date === date)
+      .flatMap((p) => (p.kind === "day" ? p.lines : []));
+
+  test("takes that day's words and leaves every other day's", () => {
+    const book = planBook(source(DAYS), SPEC, {
+      ...DEFAULT_OPTIONS,
+      days: { [DAYS[0].date]: { text: false } },
+    });
+    expect(prose(book, DAYS[0].date).join(" ")).not.toContain("A day that happened");
+    expect(prose(book, DAYS[1].date).join(" ")).toContain("A day that happened");
+  });
+
+  test("the day is still in the book, with its heading and its date", () => {
+    const book = planBook(source(DAYS), SPEC, {
+      ...DEFAULT_OPTIONS,
+      days: { [DAYS[0].date]: { text: false } },
+    });
+    const page = book.volumes[0].pages.find((p) => p.kind === "day" && p.date === DAYS[0].date);
+    expect(page && page.kind === "day" && page.title).toBe("Day 1");
+  });
+
+  test("a day cannot print words the book is not printing", () => {
+    const book = planBook(source(DAYS), SPEC, {
+      ...DEFAULT_OPTIONS,
+      includeText: false,
+      days: { [DAYS[0].date]: { text: true } },
+    });
+    expect(prose(book, DAYS[0].date).join(" ")).not.toContain("A day that happened");
+  });
+
+  test("a day nobody has touched is planned exactly as before", () => {
+    const before = planBook(source(DAYS), SPEC, DEFAULT_OPTIONS);
+    const after = planBook(source(DAYS), SPEC, {
+      ...DEFAULT_OPTIONS,
+      days: { [DAYS[0].date]: { text: false } },
+    });
+    expect(prose(after, DAYS[1].date)).toEqual(prose(before, DAYS[1].date));
   });
 });
