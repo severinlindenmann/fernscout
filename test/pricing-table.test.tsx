@@ -39,13 +39,14 @@ describe("the pricing table", () => {
     expect(html()).toContain(`>${EXTRA_STORAGE_CREDITS}<`);
   });
 
-  test("quotes the photobook from the smallest book the planner will bind, as an estimate", () => {
+  test("quotes the photobook from the smallest book the planner will bind, printed in Switzerland", () => {
     const from = photobookCredits(32, "square");
     const rendered = html();
     expect(rendered).toContain(String(from));
-    // Said in the row itself, not only in a source comment:
-    // PHOTOBOOK_PRICING_VERIFIED is still false.
-    expect(rendered).toContain("An estimate");
+    // Said in the row itself, not only in a source comment: since B841 the
+    // price is measured, and the row says where it is printed rather than
+    // hedging with "estimate".
+    expect(rendered).toContain("Printed in Switzerland");
   });
 
   test("states the range it sells and both ends of the per-credit price", () => {

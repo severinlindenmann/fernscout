@@ -1482,7 +1482,7 @@
   "pricing.rowStorage": "További {size}",
   "pricing.rowStorageDetail": "Egyszer, és sosem jár le",
   "pricing.rowPhotobook": "Egy nyomtatott fotókönyv",
-  "pricing.rowPhotobookDetail": "Becslés — az oldalszámtól és a mérettől függ, és a pontos összeget a rendelés előtt látod",
+  "pricing.rowPhotobookDetail": "Printed in Switzerland and posted to you — the figure depends on the page count and the size, and you see the exact total before you order",
   "pricing.fromCredits": "{credits}-tól",
   "pricing.grant": "Egy új napló {credits} kredittel indul.",
   "me.paymentFree": "ingyenes",
