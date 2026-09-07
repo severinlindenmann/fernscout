@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import BackLink from "@/components/BackLink";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
@@ -27,15 +26,14 @@ export default async function AgentLayout({ children }: LayoutProps<"/agent">) {
     <div className="min-h-full">
       <header className="border-b border-navy-200 bg-cream-100/95 px-4 py-3 backdrop-blur sm:px-6">
         <div className="mx-auto max-w-3xl">
-          <Link
-            href="/"
+          <BackLink
+            fallbackHref="/"
+            fallbackLabel={translateIn(locale, "docs.backToSite", { name: site.name })}
+            retraceLabel={translateIn(locale, "nav.back")}
             className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-navy-700
                        transition-colors hover:text-navy-900
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-            {translateIn(locale, "docs.backToSite", { name: site.name })}
-          </Link>
+          />
         </div>
       </header>
       {children}

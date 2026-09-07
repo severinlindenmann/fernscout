@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import BackLink from "@/components/BackLink";
 import LocaleProvider from "@/components/LocaleProvider";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import { dictionaryFor, installedLocales, requestLocale, translateIn } from "@/lib/locales";
@@ -26,15 +25,14 @@ export default async function DocsLayout({ children }: LayoutProps<"/docs">) {
     <div className="min-h-full">
       <header className="border-b border-navy-200 bg-cream-100/95 px-4 py-3 backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-          <Link
-            href="/"
+          <BackLink
+            fallbackHref="/"
+            fallbackLabel={translateIn(locale, "docs.backToSite", { name: site.name })}
+            retraceLabel={translateIn(locale, "nav.back")}
             className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-navy-700
                        transition-colors hover:text-navy-900
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-            {translateIn(locale, "docs.backToSite", { name: site.name })}
-          </Link>
+          />
           {/* `LocaleProvider` because the switcher is a client component that
               reads its dictionary from context, and nothing above `/docs`
               provides one — the journal layout is a sibling, not a parent. */}

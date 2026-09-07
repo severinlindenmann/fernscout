@@ -19,7 +19,10 @@ function read(file: string): string {
 describe("the docs shell", () => {
   test("a layout exists and links back to the site", () => {
     const layout = read("app/docs/layout.tsx");
-    expect(layout).toContain('href="/"');
+    // B822: the way home is `BackLink`'s fallback rather than a bare `<Link>`
+    // now, so a reader who arrived at `/docs` from elsewhere in the app
+    // retraces there instead of always landing on "/".
+    expect(layout).toContain('fallbackHref="/"');
     expect(layout).toContain("docs.backToSite");
   });
 

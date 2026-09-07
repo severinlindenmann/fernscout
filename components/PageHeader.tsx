@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Bot, FileText, Menu, X } from "lucide-react";
+import { Bot, FileText, Menu, X } from "lucide-react";
+import BackLink from "./BackLink";
 import SiteNav, { useNavEntries } from "./SiteNav";
 import SkipLink from "./SkipLink";
 import CurrencySwitcher from "./CurrencySwitcher";
@@ -111,15 +112,16 @@ export default function PageHeader({
               has no room for the sentence a laptop gets — with the same
               accessible name carried by `aria-label` instead of visible text. */}
           {site.hasIdentity && (
-            <Link
-              href="/"
-              aria-label={t("nav.myJournals")}
+            <BackLink
+              fallbackHref="/"
+              fallbackLabel={t("nav.myJournals")}
+              retraceLabel={t("nav.back")}
+              showLabel={false}
+              iconClassName="h-5 w-5"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-600
                          transition-colors hover:bg-navy-200/60 hover:text-navy-900
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            >
-              <ArrowLeft className="h-5 w-5" aria-hidden strokeWidth={2.4} />
-            </Link>
+            />
           )}
           {onHome ? (
             <button
@@ -310,19 +312,15 @@ export default function PageHeader({
             `signedIn`.
           */}
           {site.hasIdentity && (
-            <Link
-              href="/"
+            <BackLink
+              fallbackHref="/"
+              fallbackLabel={t("nav.myJournals")}
+              retraceLabel={t("nav.back")}
+              iconClassName="h-3.5 w-3.5"
               className="-ml-1 mb-0.5 inline-flex min-h-6 items-center gap-1 rounded px-1 text-xs
                          font-semibold text-navy-600 transition-colors hover:text-navy-900
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            >
-              <ArrowLeft
-                className="h-3.5 w-3.5"
-                aria-hidden
-                strokeWidth={2.4}
-              />
-              <span className="truncate">{t("nav.myJournals")}</span>
-            </Link>
+            />
           )}
           {onHome ? (
             <button
