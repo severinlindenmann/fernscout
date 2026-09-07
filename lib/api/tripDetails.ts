@@ -2,21 +2,31 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import { getTrip, tripDir, type TripRef } from "../trips";
+import { AS_AUTHOR, getAllMedia } from "../entries";
+import { getTrip, parseTripRef, tripDir, type TripRef } from "../trips";
 import { DATE_RE } from "../tripWrite";
 import { spliceScalar } from "../frontmatterScalar";
 
 /**
- * A trip's `title:`, `tagline:`, `start:` and `end:`, after it exists — B621.
+ * A trip's `title:`, `tagline:`, `start:`, `end:` and `cover:`, after it
+ * exists — B621, and `cover` since B245.
  *
- * These four were the last fields of a trip that nothing could write. Every
- * other one got a door as somebody needed it — `visibility` (B396), `rates`
- * (B352), `people`, `travellers`, `tracks` — and the `PATCH` on
- * `/api/v1/{user}/trips/{trip}` said so out loud in the refusal it hands an
- * agent that guesses: *"A trip's title, dates and cover are still trip.md
- * alone and no call writes them."* So a trip named "Alagrve 2026" needed a
- * shell on the server, which is the hole B220 closed for a journal's title
- * and left open one level down.
+ * `title`/`tagline`/`start`/`end` were the last four fields of a trip that
+ * nothing could write. Every other one got a door as somebody needed it —
+ * `visibility` (B396), `rates` (B352), `people`, `travellers`, `tracks` — and
+ * the `PATCH` on `/api/v1/{user}/trips/{trip}` said so out loud in the
+ * refusal it hands an agent that guesses: *"A trip's title, dates and cover
+ * are still trip.md alone and no call writes them."* So a trip named "Alagrve
+ * 2026" needed a shell on the server, which is the hole B220 closed for a
+ * journal's title and left open one level down.
+ *
+ * `cover` stayed out of B621 for a reason stated in `lib/tripWrite.ts`: at
+ * create time there is no `media/` yet, so a cover can only be chosen once
+ * photographs exist. B245 is that door, once a trip has some — and unlike the
+ * other four, a bad value is a broken image on the trips index and the OG
+ * card rather than a refused write, so it is checked against the trip's own
+ * gallery (`getAllMedia`, read `AS_AUTHOR` so an owner may cover a trip with a
+ * photo still in draft) rather than merely being well-formed text.
  *
  * Built exactly like `tripVisibility.ts` beside it, and sharing its splice:
  * change the one frontmatter line asked about, leave the prose and every
@@ -30,13 +40,20 @@ import { spliceScalar } from "../frontmatterScalar";
  */
 
 export type TripDetailsWriteResult =
-  | { ok: true; title: string; tagline: string; start: string; end: string }
+  | {
+      ok: true;
+      title: string;
+      tagline: string;
+      start: string;
+      end: string;
+      cover?: string;
+    }
   | { ok: false; error: string; message?: string; bug?: true };
 
-/** The four as they stand, for the form that edits them. */
+/** The five as they stand, for the form that edits them. */
 export function readTripDetails(
   ref: TripRef,
-): { title: string; tagline: string; start: string; end: string } | null {
+): { title: string; tagline: string; start: string; end: string; cover?: string } | null {
   const trip = getTrip(ref);
   if (!trip) return null;
   return {
@@ -44,6 +61,7 @@ export function readTripDetails(
     tagline: trip.tagline ?? "",
     start: trip.start,
     end: trip.end,
+    cover: trip.cover,
   };
 }
 
@@ -74,7 +92,13 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
     // exactly this — a body the route could not read as an object.
     return { ok: false, error: "invalid_json", message: "Send a JSON object." };
   }
-  const body = raw as { title?: unknown; tagline?: unknown; start?: unknown; end?: unknown };
+  const body = raw as {
+    title?: unknown;
+    tagline?: unknown;
+    start?: unknown;
+    end?: unknown;
+    cover?: unknown;
+  };
 
   const before = readTripDetails(ref)!;
   const next = { ...before };
@@ -133,6 +157,32 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
     };
   }
 
+  // `cover` names a photograph, and unlike the four text fields above a bad
+  // value does not merely look wrong — it renders as a broken image on the
+  // trips index and in the OG card. So it is checked against the trip's own
+  // gallery rather than only against its shape. `AS_AUTHOR`: the owner may
+  // cover a trip with a photo that is still in a draft day, since a draft is
+  // a courtesy to a reader and this call is the author's own.
+  if (body.cover !== undefined) {
+    if (body.cover === null || body.cover === "") {
+      next.cover = undefined;
+    } else if (typeof body.cover !== "string") {
+      return { ok: false, error: "invalid_cover", message: "cover must be a media src, or null to clear it." };
+    } else {
+      const known = getAllMedia(ref, AS_AUTHOR).some((tile) => tile.src === body.cover);
+      if (!known) {
+        return {
+          ok: false,
+          error: "invalid_cover",
+          message:
+            `"${body.cover}" is not a photograph in this trip's gallery. cover must be one of ` +
+            "the `src` values GET .../trips/{trip}/media returns.",
+        };
+      }
+      next.cover = body.cover;
+    }
+  }
+
   const file = path.join(tripDir(ref), "trip.md");
   const text = fs.readFileSync(file, "utf8");
 
@@ -163,6 +213,20 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
       : []),
     ...(body.end !== undefined
       ? ([["end", `end: ${JSON.stringify(next.end)}`]] as [string, string | null][])
+      : []),
+    // Written trip-relative, like every `cover:` on disk (see
+    // `mediaWithOwner` in lib/trips.ts) — `next.cover` here is the
+    // owner-prefixed form `getAllMedia` and `readTripDetails` both use, so
+    // the owner segment is stripped back off before it hits the file.
+    ...(body.cover !== undefined
+      ? ([
+          [
+            "cover",
+            next.cover
+              ? `cover: ${JSON.stringify(next.cover.replace(new RegExp(`^/${parseTripRef(ref)!.username}/`), "/"))}`
+              : null,
+          ],
+        ] as [string, string | null][])
       : []),
   ];
   for (const [key, line] of lines) {
@@ -196,7 +260,8 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
     after.title !== next.title ||
     after.tagline !== next.tagline ||
     after.start !== next.start ||
-    after.end !== next.end
+    after.end !== next.end ||
+    (after.cover ?? undefined) !== (next.cover ?? undefined)
   ) {
     return {
       ok: false,

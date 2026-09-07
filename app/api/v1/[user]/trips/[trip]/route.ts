@@ -160,29 +160,33 @@ export async function DELETE(
 }
 
 /**
- * A trip's title, subtitle and dates — B622.
+ * A trip's title, subtitle, dates and cover — B622, cover since B245.
  *
- * The last four fields of a trip nothing could write, and until B621 this
- * handler said so: it was a `405` that named every door that did exist and
- * ended *"A trip's title, dates and cover are still trip.md alone and no call
- * writes them."* B621 then built the writer and put a browser-only door in
- * front of it, for the owner standing on their own page — which left an agent
- * being told to ask a person to open a form, in a codebase whose first rule is
- * that the agent is the editor.
+ * Title/tagline/start/end were the last four fields of a trip nothing could
+ * write, and until B621 this handler said so: it was a `405` that named every
+ * door that did exist and ended *"A trip's title, dates and cover are still
+ * trip.md alone and no call writes them."* B621 then built the writer and put
+ * a browser-only door in front of it, for the owner standing on their own
+ * page — which left an agent being told to ask a person to open a form, in a
+ * codebase whose first rule is that the agent is the editor.
+ *
+ * `cover` was still trip.md-alone after B621: at trip-creation time there is
+ * no `media/` folder for it to name (`lib/tripWrite.ts`), so it could only be
+ * set once photographs exist — and nothing wrote it even then. B245 closes
+ * that: `patchTripDetails` now checks a `cover` against the trip's own
+ * gallery (`getAllMedia`) and refuses one that names a file the trip does not
+ * have, rather than writing a value that would render as a broken image.
  *
  * `patchTripDetails` (lib/api/tripDetails.ts) is the same function that door
  * calls, so the rules cannot differ between them: a title that cannot be
  * cleared, a subtitle whose emptying removes the key, dates that must parse
- * and must not run backwards, and a splice that leaves the prose and every
- * other key byte for byte.
+ * and must not run backwards, a cover that must name a photo already in the
+ * trip, and a splice that leaves the prose and every other key byte for byte.
  *
  * **Owner only**, like `.../visibility` and unlike `.../days`. A trip-scoped
  * token belongs to somebody who was on the bus; adding a day to a journey is
  * not the same authority as saying what the journey is called. The scope
  * check is the identical one three routes on this shelf already make.
- *
- * The cover is still `trip.md` alone. It is a photograph, and choosing one
- * belongs where photographs are.
  */
 export async function PATCH(
   request: Request,
@@ -223,15 +227,15 @@ export async function PATCH(
     return Response.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const FIELDS = ["title", "tagline", "start", "end"] as const;
+  const FIELDS = ["title", "tagline", "start", "end", "cover"] as const;
   if (!FIELDS.some((field) => body[field] !== undefined)) {
     return Response.json(
       {
         error: "nothing_to_change",
         message:
           `Name at least one of ${FIELDS.join(", ")}. Everything else about a trip has a door ` +
-          `of its own: visibility, rates, people, travellers and tracks are each one level ` +
-          `down from here, and the cover is trip.md alone.`,
+          `of its own: visibility, rates, people, travellers and tracks are each one level down ` +
+          `from here.`,
       },
       { status: 400 },
     );
@@ -253,5 +257,6 @@ export async function PATCH(
     tagline: result.tagline,
     start: result.start,
     end: result.end,
+    ...(result.cover ? { cover: result.cover } : {}),
   });
 }

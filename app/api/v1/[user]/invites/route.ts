@@ -101,18 +101,19 @@ function view(username: string, invite: Invite, token?: string) {
   };
 }
 
+/**
+ * **Ownership before capability, on purpose — B340.** `isOwner` answers
+ * false alike for a journal that does not exist and one that exists but is
+ * not this caller's, so refusing on that first is what keeps the shape of a
+ * refusal from becoming an oracle over journal names (B117's rule, one level
+ * up). Only once ownership is proven — which by construction means the
+ * journal is real — is the capability checked, and a caller who has already
+ * shown they own it is told the real reason rather than `404`: they are not a
+ * stranger an existence oracle could help, and `/api/health` cannot answer
+ * this for them anyway, since a per-journal narrowing needs an operator's
+ * `HEALTH_TOKEN` to read back, not an owner's own agent token or cookie.
+ */
 async function guard(username: string, request: Request): Promise<Response | null> {
-  if (!getUser(username) || !isEnabled("contacts", username)) {
-    return Response.json(
-      {
-        error: "contacts_disabled",
-        message:
-          "This journal does not have contacts switched on, so it has nobody to invite and " +
-          "no queue for a redemption to land in. /api/health says which capabilities are on.",
-      },
-      { status: 404 },
-    );
-  }
   if (!(await isOwner(username, request))) {
     return Response.json(
       {
@@ -123,6 +124,17 @@ async function guard(username: string, request: Request): Promise<Response | nul
           "trip are different authorities.",
       },
       { status: 403 },
+    );
+  }
+  if (!isEnabled("contacts", username)) {
+    return Response.json(
+      {
+        error: "contacts_disabled",
+        message:
+          "This journal does not have contacts switched on, so it has nobody to invite and " +
+          "no queue for a redemption to land in. /api/health says which capabilities are on.",
+      },
+      { status: 409 },
     );
   }
   return null;

@@ -7,8 +7,7 @@ complexity: low
 area: demo content, tooling
 found: "2026-09-06T09:22:09Z"
 started: "2026-09-07T11:06:12Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:06:12Z"
+merged: "2026-09-07T11:32:25Z"
 ---
 
 # B556 — Re-running the demo builder deletes fields the committed demo journal carries
@@ -60,3 +59,36 @@ Related: B238 (`npm run seed:example`).
   or preserves every field the committed demo carries.
 - `git diff --stat content/example` after a run is empty, or the run said in
   words what it was about to replace.
+
+## Resolution
+
+Took the second, smaller option the Work section named: the script is now a
+one-off seeder rather than a source of truth, and refuses to touch
+`content/example/` when a demo journal is already there, unless run with
+`--force`. `scripts/build-demo-content.mjs`: after `TRIPS` is defined and
+before any file is written, it checks whether any of the five trips' own
+`trip.md` already exists on disk; if one does and `--force` was not passed, it
+prints the reason (fields it cannot write back — weather, transport, hand
+edits — and the git-diff-only visibility of the loss) and `process.exit(1)`
+before touching anything. `--force` is unchanged behaviour: the original
+overwrite-everything path, now opt-in instead of the default. The top-of-file
+comment documents the new flag and states plainly that the script is a
+seeder, not authoritative over the committed journal.
+
+Did not pursue the first option (script becomes authoritative and learns to
+preserve `weatherData` etc. on rewrite) — it is strictly more work for the
+same acceptance, and AGENTS.md's own rule that weather is never invented by
+an agent already means the script could only ever *preserve* that field, never
+*write* it, which is most of the way to "the file is the source" already. Left
+as B541 — a separate, still-open ticket — the deeper question of the
+generator no longer reproducing the demo journal's actual shape (translations,
+prose, tags added by hand since); this ticket's job was only to stop a bare
+re-run from silently discarding what is already committed, not to make the
+generator whole again.
+
+Tests: `test/build-demo-content.test.ts` — spawns the real script as a child
+process against this checkout's own committed `content/example/` (there is no
+clean-checkout fixture to substitute; the point is that the *real* journal
+must survive an accidental run) and asserts a non-zero exit, a stderr message
+naming `--force`, and that `content/example/trips/alps-2024/trip.md` is
+untouched — with and without `--media`.

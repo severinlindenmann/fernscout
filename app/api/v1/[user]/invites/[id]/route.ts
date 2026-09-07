@@ -1,7 +1,6 @@
 import { isEnabled } from "@/lib/capabilities";
 import { listInvites, revokeInvite } from "@/lib/contacts/invites";
 import { isOwner } from "@/lib/contacts/session";
-import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +16,13 @@ export const dynamic = "force-dynamic";
  * Unlike deleting a journal or a trip, this needs no mailed confirmation. It
  * is reversible in the only sense that matters — issue another link — and it
  * removes nothing anybody wrote.
+ *
+ * **Ownership checked before the capability, same order as `.../invites` —
+ * B340.** `isOwner` refuses a journal that does not exist and one that is not
+ * this caller's alike, so that check goes first and stays the only thing an
+ * uninvolved caller ever sees; only a proven owner, for whom the journal's
+ * existence is not in question, is told *why* — `contacts_disabled` rather
+ * than a `404` shaped like "no such link".
  */
 export async function DELETE(
   request: Request,
@@ -24,11 +30,11 @@ export async function DELETE(
 ) {
   const { user, id } = await params;
 
-  if (!getUser(user) || !isEnabled("contacts", user)) {
-    return Response.json({ error: "contacts_disabled" }, { status: 404 });
-  }
   if (!(await isOwner(user, request))) {
     return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+  if (!isEnabled("contacts", user)) {
+    return Response.json({ error: "contacts_disabled" }, { status: 409 });
   }
 
   // Checked first so that "no such link" and "revoked" are distinguishable to

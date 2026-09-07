@@ -1,7 +1,6 @@
 import { listSessions, revokeSession } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
-import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +27,20 @@ export const dynamic = "force-dynamic";
  * here to leak; an id is what revoking needs and all it needs.
  */
 
+/**
+ * **Ownership before capability, on purpose — B340.** `isOwner` answers
+ * false alike for a journal that does not exist and one that exists but is
+ * not this caller's, which is the property that matters: everyone who is not
+ * this journal's proven owner gets the same `403`, so the shape of the
+ * refusal cannot be used to learn whether a name is a real journal (B117's
+ * rule, one level up). Only once ownership is proven — which by construction
+ * means the journal is real — is the capability checked, and a caller who has
+ * already shown they own it is told the real reason rather than `404`: they
+ * are not a stranger an existence oracle could help, and `/api/health` cannot
+ * answer this for them, since a per-journal narrowing needs an operator's
+ * `HEALTH_TOKEN` to read back, not an owner's own agent token.
+ */
 async function guard(user: string, request: Request): Promise<Response | null> {
-  if (!getUser(user) || !isEnabled("auth", user)) {
-    return Response.json({ error: "auth_disabled" }, { status: 404 });
-  }
   if (!(await isOwner(user, request))) {
     return Response.json(
       {
@@ -41,6 +50,17 @@ async function guard(user: string, request: Request): Promise<Response | null> {
           "to it.",
       },
       { status: 403 },
+    );
+  }
+  if (!isEnabled("auth", user)) {
+    return Response.json(
+      {
+        error: "auth_disabled",
+        message:
+          "This journal does not have sign-in switched on, so there are no keys to list or " +
+          "revoke. /api/health says which capabilities are on.",
+      },
+      { status: 409 },
     );
   }
   return null;

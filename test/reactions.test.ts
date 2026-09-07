@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { migrateKeys, reactionKey, scopeToJournal } from "@/lib/reactions";
+import { migrateKeys, reactionKey, scopeToJournal, scopeToTrip } from "@/lib/reactions";
 
 describe("reactionKey", () => {
   test("composes trip and day", () => {
@@ -48,13 +48,45 @@ describe("migrateKeys", () => {
 });
 
 /**
- * Whose picks come back.
+ * `getVotesFor`'s actual filter since B239 — one trip, not the whole journal.
  *
- * Spanning trips is deliberate — one browser has one voter id, and the pager
- * wants this reader's reactions for the whole journal in one request. Spanning
- * journals is not: `reactions.owner_id` is a constant and the qualified ref is
- * the tenant boundary (lib/db/owner.ts), so an unscoped answer handed one
- * journal's page the list of trips this visitor reacts to on another's.
+ * Both storage backends answer a voter id's rows across every trip the
+ * journal has; without this, a voter id that leaked in a query string (it is
+ * a `crypto.randomUUID()`, so not guessable, but not a secret either — it
+ * lands in access logs and `Referer` headers) would hand back the day slugs
+ * of trips the caller asking was never gated against.
+ */
+describe("scopeToTrip", () => {
+  const votes = {
+    "alex/asia-2023:hoi-an": "❤️",
+    "alex/alps-2024:susten": "😂",
+    "bea/pyrenees-2025:over-the-susten": "🤩",
+  };
+
+  test("keeps only the trip asked for, not the rest of the journal", () => {
+    expect(scopeToTrip(votes, "alex/asia-2023")).toEqual({
+      "alex/asia-2023:hoi-an": "❤️",
+    });
+  });
+
+  test("a trip id that prefixes another's is not swept up", () => {
+    expect(scopeToTrip({ "al/x:d": "a", "al/x-2:d": "b" }, "al/x")).toEqual({
+      "al/x:d": "a",
+    });
+  });
+
+  /** The pre-multi-user store has no trip in its keys. */
+  test("a bare id scopes nothing", () => {
+    expect(scopeToTrip({ "asia-2023:hoi-an": "❤️" }, "asia-2023")).toEqual({
+      "asia-2023:hoi-an": "❤️",
+    });
+  });
+});
+
+/**
+ * `scopeToJournal` — no longer `getVotesFor`'s filter (see `scopeToTrip`
+ * above), kept because it states a real, narrower-than-nothing guarantee and
+ * is tested in its own right.
  */
 describe("scopeToJournal", () => {
   const votes = {

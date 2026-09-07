@@ -593,8 +593,8 @@ export const TRIP_FIELDS: {
     absent: true,
     what:
       "**Not a field on this call.** A trip has no photographs when it is created, so anything " +
-      "sent here would name a file that is not there. It is a line added to `trip.md` once the " +
-      "pictures are in.",
+      "sent here would name a file that is not there. Set it afterwards, once photographs " +
+      "exist, with `PATCH /api/v1/{user}/trips/{trip}` — B245.",
   },
 ];
 

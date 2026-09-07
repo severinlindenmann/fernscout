@@ -1,7 +1,8 @@
-// Builds the demo journal: five trips, real photographs, one short clip.
+// Seeds the demo journal: five trips, real photographs, one short clip.
 //
 //   node scripts/build-demo-content.mjs            # entries only, offline
 //   node scripts/build-demo-content.mjs --media    # also fetch photos, make the clip
+//   node scripts/build-demo-content.mjs --force    # overwrite an existing content/example
 //
 // This is the content a fresh clone sees at /example, and it is what the test
 // guide walks through. It exists as a script rather than as committed prose so
@@ -21,6 +22,18 @@
 // and once at 4000px into `originals/`, which is what the photobook prints
 // from. Same seed, so the two are the same photograph. The video clip is assembled locally with ffmpeg from
 // photographs already fetched — no second download, and nothing to license.
+//
+// **This is a one-off seeder, not the source of truth — B556.** A run against
+// a checkout that already has `content/example/` rewrote 42 files with 161
+// deletions against 30 insertions: `weatherData:` a real archive lookup
+// filled in (B325), `transportMode:`/`transportFrom:`/`transportTo:`, and 22
+// lines of `usa-2026/trip.md`, all gone, with `Wrote 5 trips, 38 entries` and
+// exit 0 the only trace. The committed journal has drifted ahead of what this
+// script knows how to write — see B541, which is the separate, still-open
+// question of making the two agree again — so overwriting it silently is a
+// straight content loss, not a regeneration. `git diff --stat content/example`
+// is the only place that showed it, which is to say: only to somebody who
+// happened to run this in a clean checkout and thought to look.
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
@@ -28,6 +41,7 @@ import { execFileSync } from "node:child_process";
 const ROOT = path.join(import.meta.dirname, "..");
 const USER = path.join(ROOT, "content", "example");
 const WITH_MEDIA = process.argv.includes("--media");
+const FORCE = process.argv.includes("--force");
 
 /** Landscape, portrait and square, so the gallery and the book have to cope. */
 const SHAPES = [
@@ -1344,6 +1358,20 @@ async function media(trip) {
       }
     }
   }
+}
+
+// Refuse to overwrite a demo journal that already exists, unless told to.
+// Any one of these five trip folders already being there means a previous
+// run (or B325's weather sweep, or a hand edit) has content on disk this
+// script does not know how to reproduce.
+if (!FORCE && TRIPS.some((trip) => fs.existsSync(path.join(USER, "trips", trip.id, "trip.md")))) {
+  console.error(
+    "content/example already has a demo journal. Re-running this script would overwrite " +
+      "fields it does not know how to write back — weather readings, transport details, prose " +
+      "edited by hand since. Pass --force to overwrite anyway, or delete content/example first " +
+      "if you mean to start clean. See B556.",
+  );
+  process.exit(1);
 }
 
 for (const trip of TRIPS) writeTrip(trip);
