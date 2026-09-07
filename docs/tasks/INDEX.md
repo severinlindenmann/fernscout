@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (99)
+## backlog (98)
 
 ### security (3)
 
@@ -96,7 +96,7 @@ Do not edit them by hand; run the script.
 | [B689](backlog/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (22)
+### small-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -111,7 +111,6 @@ Do not edit them by hand; run the script.
 | [B589](backlog/small-feature/B589-there-is-no-capability-for-one.md) | There is no capability for one instance to fulfil another's print jobs | FEATURE | medium | medium |
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
 | [B673](backlog/small-feature/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
-| [B732](backlog/small-feature/B732-the-landing-page-shows-the-bring.md) | The landing page shows the bring-your-own-agent instructions to everybody, including the people who came for the helper | FEATURE | medium | low |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
@@ -194,7 +193,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (16)
+## in-development (17)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -206,6 +205,7 @@ _Nothing here._
 | [B707](in-development/B707-uploading-by-url-silently-drops-files.md) | Uploading by url silently drops files past the per-day limit | ISSUE | medium | low | `97b44327` |
 | [B712](in-development/B712-the-helper-routes-are-undocumented-in.md) | The helper routes are undocumented in the agent guide | DOCS | medium | low | `97b44327` |
 | [B713](in-development/B713-a-test-in-the-suite-fails.md) | A test in the suite fails intermittently and verify does not name which | ISSUE | medium | medium | `97b44327` |
+| [B732](in-development/B732-the-landing-page-shows-the-bring.md) | The landing page shows the bring-your-own-agent instructions to everybody, including the people who came for the helper | FEATURE | medium | low | `ccdd5120` |
 | [B391](in-development/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low | `97b44327` |
 | [B595](in-development/B595-a-photobook-can-be-charged-a.md) | A photobook can be charged a price the owner never saw | ISSUE | low | low | `97b44327` |
 | [B687](in-development/B687-photographs-cannot-describe-themselves.md) | Photographs cannot describe themselves | FEATURE | low | medium | `fdfcf5f2` |
