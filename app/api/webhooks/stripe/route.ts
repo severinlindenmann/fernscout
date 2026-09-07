@@ -84,18 +84,32 @@ export async function POST(request: Request) {
   }
   if (!getUser(owner)) return Response.json({ ok: true, ignored: "unknown_journal" });
 
-  // What the buyer actually reached for, for the transaction list. Stripe
-  // sends the list this session was *offered*; one entry means it is also the
-  // one that was used, and more than one means we do not know from here — and
-  // guessing which is worse than leaving it as it was.
-  // Checked against the two we offer rather than against the whole vocabulary:
+  // What the buyer actually reached for, for the transaction list — B803.
+  //
+  // Not `session.payment_method_types`: that is what the session *offered*, and
+  // we always offer two, so reading it left every purchase with no method at
+  // all. The payment intent knows which one was used, and it is the
+  // authoritative answer rather than an inference. Best-effort — this is a
+  // label on a transaction, and losing it must never cost somebody their
+  // credits, so a failed lookup leaves it null and carries on.
+  //
+  // Still checked against the two we offer rather than the whole vocabulary:
   // "admin" is a real `PaymentMethod` and is the operator's own, so a session
   // must never be able to name it.
-  const offered = session.payment_method_types ?? [];
-  const method =
-    offered.length === 1 && (offered[0] === "card" || offered[0] === "twint")
-      ? offered[0]
-      : null;
+  let method: "card" | "twint" | null = null;
+  try {
+    const full = await stripe().checkout.sessions.retrieve(session.id, {
+      expand: ["payment_intent.payment_method"],
+    });
+    const intent = full.payment_intent;
+    const used: string | undefined =
+      intent && typeof intent !== "string" && typeof intent.payment_method !== "string"
+        ? intent.payment_method?.type
+        : undefined;
+    if (used === "card" || used === "twint") method = used;
+  } catch (error) {
+    console.warn("[stripe] could not read the method used on", session.id, error);
+  }
 
   let claim;
   try {
