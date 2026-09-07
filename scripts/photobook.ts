@@ -295,6 +295,8 @@ for (const volume of built) {
     // placeholder is honest here because nothing downstream of this script
     // treats these files as a request that went anywhere.
     paymentRef: "PREVIEW_NO_PAYMENT_RECORDED",
+    productUid: size.productUid,
+    shipmentMethodUid: "swiss_post_economy",
   };
   for (const provider of CONNECTABLE) {
     write(

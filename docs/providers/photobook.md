@@ -2,11 +2,15 @@
 
 What is built, what deliberately is not, and exactly what is needed to go live.
 
-**Status: everything up to the account boundary is done.** A trip becomes a
-planned, laid-out, print-ready book with a cover and a preview, and all four
-provider request builders are written and tested against fixtures. Nothing
-calls a provider, because calling one needs an account — and that is where this
-work package was told to stop.
+**Status: the pipeline is built and no order has ever been placed.** A trip
+becomes a planned, laid-out, print-ready book with a cover and a preview, and
+all four provider request builders are written and tested against fixtures.
+A live probe against Gelato's own APIs on 2026-09-07 measured its real
+catalogue, page-count rule, Swiss shipment methods and prices — see
+[Gelato](#gelato) — but that probe only reached the *quote* endpoint. Nothing
+has called an order-creation endpoint at any of the four, because doing that
+needs an account and a card, and that is where this work package was told to
+stop.
 
 **One thing in this document is uncomfortable and is stated plainly rather than
 buried: the PDF this writer emits is RGB with unembedded base-14 fonts, which
@@ -21,8 +25,7 @@ below.
 npm run photobook -- --trip <user>/<trip-id>                      # the whole book
 npm run photobook -- --trip <user>/<trip-id> --guides             # + trim and safe-area guides
 npm run photobook -- --trip <user>/<trip-id> --outline            # just the page plan, as text
-npm run photobook -- --trip <user>/<trip-id> --binding saddle     # short trip: staples, not glue
-npm run photobook -- --trip <user>/<trip-id> --size landscape-a4
+npm run photobook -- --trip <user>/<trip-id> --size portrait      # square, portrait or large-square
 npm run photobook -- --trip <user>/<trip-id> --icc <profile.icc>  # embed an output intent
 npm run photobook -- --providers
 ```
@@ -54,32 +57,37 @@ code the website uses, with no second parser to drift.
 
 | | |
 | --- | --- |
-| Default size | Square 210 × 210 mm — every one of the four providers lists it, and neither photo orientation is second class |
-| Also available | A4 landscape (297 × 210), A4 portrait (210 × 297) |
-| Bleed | 3 mm on all four edges → media box 216 × 216 mm (612.28 pt square) |
+| Default size | Square 200 × 200 mm — a real Gelato product, softcover, and neither photo orientation is second class. **Not** 210 × 210: that square is what this document used to say and is a size Gelato does not print |
+| Also available | Portrait 210 × 280 mm (softcover — the nearest Gelato product to A4, which Gelato does not print either), Large square 280 × 280 mm (hardcover — the cover for this size is Task 6's, not built yet) |
+| Bleed | 3 mm on all four edges → media box 206 × 206 mm for the square size |
 | Outer margin | 10 mm inside the trim |
 | Gutter | **16 mm** at the spine — wider than the outer margin, because a perfect-bound book does not open flat and the first few millimetres curve away from the reader |
-| Resolution | 300 DPI. A full-bleed square photo therefore needs **2551 px** |
+| Resolution | 300 DPI. A full-bleed square photo therefore needs **2363 px** at 200 mm |
 | Handedness | Page 1 is a recto. The gutter alternates from there, and the layout knows which hand it is on |
 | Spine | `pages / 2 × 0.115 mm` — leaves, not pages. Get this wrong and the front image creeps onto the spine |
 | Boxes | `TrimBox` and `BleedBox` on every page, including the cover |
 
+Every size's `productUid` is copied verbatim from Gelato's own catalogue in
+`BOOK_SIZES` (`lib/photobook/spec.ts`) rather than constructed — see
+[Gelato](#gelato).
+
 ### Page-count rules
 
-Printers bind in signatures; "any number of pages" is never true. The book is
-planned against the **intersection** of all four providers, so choosing one
-later does not mean re-laying it out:
+Printers bind in signatures; "any number of pages" is never true. What stood
+here before was four providers' published ranges intersected by hand, every
+row carrying `verified: false` because none had ever met an account — they
+were wrong in both directions. A live probe against Gelato's product API on
+2026-09-07 found one rule, the same for every photobook product it sells,
+soft or hard, square or portrait:
 
-| Binding | Min | Max | Multiple of |
-| --- | --- | --- | --- |
-| Perfect bound (default) | 32 | 160 | 4 |
-| Saddle stitch (`--binding saddle`) | 4 | 48 | 4 |
+| Min | Max | Multiple of |
+| --- | --- | --- |
+| 28 | 200 | 2 |
 
-The per-provider numbers those come from are in `BINDING_PROFILES`
-(`lib/photobook/spec.ts`), each carrying `verified: false`, because they are
-read from published documentation and not from an account. A unit test asserts
-that flag, so confirming one against a live API means changing the flag and
-noticing.
+That is `GELATO_PAGE_RULE` in `lib/photobook/spec.ts`, and it is what the
+planner now plans against. It is measured for Gelato only — the other three
+providers' own limits have not been checked against this rule and may be
+narrower.
 
 Two consequences the planner handles rather than hides:
 
@@ -261,11 +269,13 @@ would give anyway.
 
 ## The four providers
 
-Everything in this section is written from published documentation and **has not
-been confirmed against a live account**. Prices especially: they are order-of-
-magnitude figures for a 52-page 210 × 210 mm colour softcover, and every one of
-these APIs has a quote endpoint that will give a real number in one call once a
-key exists. Get the real number before deciding anything.
+**Gelato is measured; the other three are not.** A live probe against
+Gelato's public quote API on 2026-09-07 confirmed its real product uids, its
+page-count rule and real Swiss prices — see [Gelato](#gelato) below for
+exactly what that probe did and did not reach. Peecho, Cloudprinter and Lulu
+are unchanged: everything about them is still written from published
+documentation and **has not been confirmed against a live account**. Get a
+real quote from each before deciding anything.
 
 ### The fact that shapes the deployment
 
@@ -296,19 +306,56 @@ asserts it for all four.
 
 ### Gelato
 
-- **Endpoint:** `POST https://order.gelatoapis.com/v4/orders`
+- **Endpoint:** `POST https://order.gelatoapis.com/v4/orders` — **not yet
+  confirmed against a live call.** Only the quote endpoint below has been.
+- **Quote (measured):** `POST https://order.gelatoapis.com/v4/orders:quote` —
+  its `recipient` object takes a `country` key. The create-order endpoint
+  above uses `shippingAddress` instead; that shape has not been checked
+  against a live call.
 - **Auth:** API key in `X-API-KEY`
-- **Products:** `GET https://product.gelatoapis.com/v3/…`; prices at
-  `/v3/products/{productUid}/prices`
-- **Built:** `buildGelatoRequest()`
-- The widest production network of the four, and the only one plausibly able to
-  print **inside Switzerland**. That single fact dominates the cost comparison
-  below, because Switzerland is outside the EU customs union and every book
-  printed in the EU crosses a border on the way.
+- **Products (measured):** `POST /v3/catalogs/{catalog}/products:search`.
+  Real product uids are opaque catalogue strings copied verbatim into
+  `BOOK_SIZES` (`lib/photobook/spec.ts`), e.g. for the square softcover:
+
+  ```
+  photobooks-softcover_pf_200x200-mm-8x8-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_250-gsm-100-lb-cover-coated-silk_ver
+  ```
+
+  `pageCount` travels as a **sibling field** on the order item, never as part
+  of the uid — the builder used to build one by string concatenation
+  (`photobook_pf_…-pages_…`), and that string matched no real product.
+- **Page-count rule (measured):** every photobook product, soft and hard,
+  square and portrait, accepts 28–200 pages in steps of 2 — see
+  [Page-count rules](#page-count-rules).
+- **Fulfilment (measured):** these books are produced in Switzerland
+  (`productionCountry: "CH"`), which is the single fact that dominates the
+  cost comparison below — Switzerland is outside the EU customs union and
+  every book printed in the EU crosses a border on the way.
+- **Shipment methods (measured):** `swiss_post_economy` (CHF 8.52, 4–7 days)
+  and `swiss_post_priority` (CHF 10.64, 3 days). `shipmentMethodUid: "normal"`
+  — what the builder used to hardcode — is not a value Gelato accepts.
+- **Built:** `buildGelatoRequest()`. `BookOrder.productUid` and
+  `.shipmentMethodUid` are now required fields the caller supplies; the
+  builder no longer computes either.
 - `orderType: "draft"` validates the files without printing, which is the
-  closest thing it has to a sandbox.
-- The `productUid` in the builder has the right *shape* and is not a real id.
-  It must come from the live product API — this is the first thing to verify.
+  closest thing it has to a sandbox — but this too is unconfirmed, since it
+  lives on the create-order endpoint.
+
+**Real prices, ex-VAT CHF, quoted 2026-09-07, one copy, printed in
+Switzerland:**
+
+| Pages | Softcover 200×200 | Hardcover 200×200 | Softcover 210×280 |
+| --- | --- | --- | --- |
+| 32 | 11.18 | 14.68 | 11.43 |
+| 52 | 14.40 | 18.35 | 14.99 |
+| 100 | 22.12 | 27.14 | 23.51 |
+| 160 | 31.78 | 38.13 | 34.16 |
+
+Hardcover 280×280 at 52 pages: **27.36**. Shipping is CHF 8.52
+(`swiss_post_economy`) or CHF 10.64 (`swiss_post_priority`) on top, per
+order rather than per copy. **No order has ever been placed** — these are
+quote-endpoint prices, not a confirmation that a create-order call with this
+shape succeeds.
 
 ### Cloudprinter
 
@@ -356,8 +403,8 @@ asserts it for all four.
 | **CH fulfilment** | Ships to CH; EU printed, so customs | **Likely printed in CH** — no border | Ships to CH; customs | Ships to CH; customs |
 | **Minimum order** | 1 | 1 | 1 | 1 |
 | **Subscription** | None | None (paid tier discounts) | None | None |
-| **Per unit, 5–10 copies** | ≈ €18–25 | ≈ €16–22 | ≈ €13–20 | ≈ €14–20 |
-| **Shipping to CH** | €8–14 | often domestic | €8–14 | €10–16 + duty |
+| **Per unit, 5–10 copies** | ≈ €18–25 | CHF 14.40–31.78 (measured, 52–160 pages, softcover) | ≈ €13–20 | ≈ €14–20 |
+| **Shipping to CH** | €8–14 | CHF 8.52–10.64 (measured, per order, domestic Swiss post) | €8–14 | €10–16 + duty |
 | **Auth** | Static key | Static key | Key in body | OAuth2 |
 | **Env** | `PEECHO_API_KEY` | `GELATO_API_KEY` | `CLOUDPRINTER_API_KEY` | `LULU_CLIENT_KEY`, `LULU_CLIENT_SECRET` |
 
@@ -403,11 +450,14 @@ up.
 7. **Confirm every field name** against the chosen provider's current
    documentation. The builders are written from published APIs, and field names
    drift; the first order is the wrong moment to find out.
-8. **Confirm the page-count rule and the `productUid` / `pod_package_id` /
-   offering ID** from the live product API. Then set `verified: true` on that
-   binding profile in `lib/photobook/spec.ts`.
-9. **Get a real quote** for 5 and for 10 copies, delivered, including duty.
-   Replace the estimates in the table above.
+8. **Confirm the `pod_package_id` / offering ID / product code** for Peecho,
+   Cloudprinter and Lulu from their live product APIs — Gelato's own
+   `productUid` and page-count rule are already measured (see
+   [Gelato](#gelato)), but its create-order request shape is not; confirm
+   that too before the first real order.
+9. **Get a real quote** for 5 and for 10 copies, delivered, including duty,
+   for the three providers not yet measured. Replace their estimates in the
+   table above.
 10. **Order one copy. Look at it on paper.** Colour, gutter and crop cannot be
     checked on a screen. Only then order the rest.
 

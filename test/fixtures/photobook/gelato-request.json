@@ -14,7 +14,7 @@
     "items": [
       {
         "itemReferenceId": "test-trip-2026-12-24-book",
-        "productUid": "photobook_pf_210x210-mm_pt_36-pages_cl_4-4_ct_matt-lamination_ver_softcover",
+        "productUid": "photobooks-softcover_pf_200x200-mm-8x8-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_250-gsm-100-lb-cover-coated-silk_ver",
         "pageCount": 36,
         "quantity": 5,
         "files": [
@@ -29,7 +29,7 @@
         ]
       }
     ],
-    "shipmentMethodUid": "normal",
+    "shipmentMethodUid": "swiss_post_economy",
     "shippingAddress": {
       "firstName": "Maria",
       "lastName": "Muster",
@@ -42,8 +42,8 @@
   },
   "requires": [
     "GELATO_API_KEY",
-    "The real productUid from GET https://product.gelatoapis.com/v3/... — the one above is the right shape, not a real id",
     "The interior and cover PDFs reachable at a public HTTPS URL",
-    "orderType 'draft' first: Gelato validates the files without printing"
+    "orderType 'draft' first: Gelato validates the files without printing",
+    "This create-order shape confirmed against a live call — only the quote endpoint has been, so far"
   ]
 }
