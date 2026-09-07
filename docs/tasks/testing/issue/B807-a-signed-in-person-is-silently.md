@@ -7,8 +7,7 @@ complexity: medium
 area: agent, auth
 found: "2026-09-07T15:16:56Z"
 started: "2026-09-07T15:37:35Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T15:37:35Z"
+merged: "2026-09-07T15:54:35Z"
 ---
 
 # B807 — A signed-in person is silently signed out mid-task and told the journal is not theirs
