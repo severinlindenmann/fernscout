@@ -6,7 +6,7 @@ import { clearConfigCache, loadServerConfig, type CostConfig } from "@/lib/confi
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { grant } from "@/lib/credits";
-import { createAdminGrant, getPayment } from "@/lib/payments";
+import { createAdminGrant, createPayment, getPayment, paymentsAwaiting, submitRequest, takings } from "@/lib/payments";
 import { recordUsage, usageSince } from "@/lib/usage";
 import { dailyCosts, dashboard, priceUsage } from "@/lib/instanceCosts";
 
@@ -305,5 +305,66 @@ describe("the daily series", () => {
     // arithmetic priceUsage does for the rows below the chart.
     expect(row?.rappen).toBe(480);
     expect(days.reduce((sum, day) => sum + day.rappen, 0)).toBe(480);
+  });
+});
+
+describe("money coming in", () => {
+  beforeEach(setup);
+
+  const TIER = { id: "50", credits: 50, priceRappen: 1000, discount: "" };
+
+  test("a purchase only joins the queue once the buyer has pressed Pay", async () => {
+    const payment = await createPayment("alice", TIER);
+    // `pending` is a checkout page somebody opened and may simply have closed.
+    expect(await paymentsAwaiting()).toHaveLength(0);
+
+    await submitRequest("alice", payment!.id, "twint");
+    const queue = await paymentsAwaiting();
+    expect(queue).toHaveLength(1);
+    expect(queue[0]).toMatchObject({ owner: "alice", credits: 50, amountRappen: 1000 });
+    expect(queue[0].requestedAt).not.toBeNull();
+  });
+
+  test("the queue reaches the dashboard, and nothing has been granted by being in it", async () => {
+    const payment = await createPayment("alice", TIER);
+    await submitRequest("alice", payment!.id, "card");
+
+    const data = await dashboard("1970-01-01T00:00:00.000Z");
+    expect(data.awaiting).toHaveLength(1);
+    // Queued is not paid: no takings, and no balance.
+    expect(data.takenRappen).toBe(0);
+    expect(data.journals.find((row) => row.username === "alice")?.balance).toBe(0);
+  });
+
+  /**
+   * The property B774 exists to keep honest. An admin grant rides the same
+   * approval machinery with `amount_rappen: 0` and `method: "admin"`, so it
+   * belongs in the queue — somebody really is waiting to approve it — and must
+   * never be summed as money anybody paid.
+   */
+  test("an admin grant waits in the queue and is not takings", async () => {
+    const created = await createAdminGrant("alice", 50);
+    const queue = await paymentsAwaiting();
+    expect(queue).toHaveLength(1);
+    expect(queue[0]).toMatchObject({ id: created!.payment.id, method: "admin", amountRappen: 0 });
+    expect(takings(queue)).toBe(0);
+  });
+
+  test("takings count real purchases and skip grants made by hand", () => {
+    expect(
+      takings([
+        { id: "a", owner: "alice", credits: 50, amountRappen: 1000, status: "paid", method: "twint", createdAt: "", paidAt: "", requestedAt: null },
+        { id: "b", owner: "alice", credits: 50, amountRappen: 0, status: "paid", method: "admin", createdAt: "", paidAt: "", requestedAt: null },
+        { id: "c", owner: "bob", credits: 100, amountRappen: 1800, status: "paid", method: "card", createdAt: "", paidAt: "", requestedAt: null },
+      ]),
+    ).toBe(2800);
+  });
+
+  test("nothing waiting is the ordinary state, not an error", async () => {
+    expect(await paymentsAwaiting()).toEqual([]);
+    const data = await dashboard("1970-01-01T00:00:00.000Z");
+    expect(data.awaiting).toEqual([]);
+    expect(data.paid).toEqual([]);
+    expect(data.takenRappen).toBe(0);
   });
 });

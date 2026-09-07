@@ -2,6 +2,7 @@ import "server-only";
 import { loadServerConfig } from "./config";
 import { balanceOf } from "./credits";
 import { getDatabaseOrNull } from "./db";
+import { paymentsAwaiting, paymentsPaidSince, takings, type Payment } from "./payments";
 import { getUsernames } from "./users";
 import { usageByOwnerSince, usageDailySince, usageSince, type UsageTotal } from "./usage";
 
@@ -269,6 +270,13 @@ export async function dailyCosts(since: string, days: number): Promise<{ date: s
 
 export type Dashboard = {
   since: string;
+  /** Purchases still waiting for the operator to approve — B774. The queue
+   *  this page exists to surface; empty is the normal state. */
+  awaiting: Payment[];
+  /** Purchases settled in the window, newest first. */
+  paid: Payment[];
+  /** What those came to, in rappen, with admin grants excluded. */
+  takenRappen: number;
   providers: CostLine[];
   print: CostLine[];
   sends: CostLine[];
@@ -281,16 +289,29 @@ export type Dashboard = {
 
 /** The whole page, in one call. */
 export async function dashboard(since: string): Promise<Dashboard> {
-  const [providers, print, sends, journals] = await Promise.all([
+  const [providers, print, sends, journals, awaiting, paid] = await Promise.all([
     usageSince(since).then((totals) => priceUsage(totals)),
     printCosts(since),
     sendCounts(since),
     journalRows(since),
+    paymentsAwaiting(),
+    paymentsPaidSince(since),
   ]);
   const fixed = fixedCosts();
   const totalRappen = [...providers, ...print, ...sends, ...fixed].reduce(
     (sum, line) => sum + line.rappen,
     0,
   );
-  return { since, providers, print, sends, fixed, totalRappen, journals };
+  return {
+    since,
+    awaiting,
+    paid,
+    takenRappen: takings(paid),
+    providers,
+    print,
+    sends,
+    fixed,
+    totalRappen,
+    journals,
+  };
 }

@@ -38,6 +38,10 @@ export type Payment = {
   method: PaymentMethod | null;
   createdAt: string;
   paidAt: string | null;
+  /** When the buyer pressed Pay and the operator's approval was asked for.
+   *  Null on a `pending` row, which nobody is waiting on. B774 reads it to say
+   *  how long a queued purchase has been sitting there. */
+  requestedAt: string | null;
 };
 
 const METHODS: readonly PaymentMethod[] = ["twint", "card", "admin"];
@@ -63,6 +67,9 @@ function toPayment(row: {
   method: string | null;
   created_at: string;
   paid_at: string | null;
+  // Optional because two callers build the row literal themselves rather than
+  // reading it back, and neither has stamped it at that point.
+  requested_at?: string | null;
 }): Payment {
   return {
     id: row.id,
@@ -73,6 +80,7 @@ function toPayment(row: {
     method: isPaymentMethod(row.method) ? row.method : null,
     createdAt: row.created_at,
     paidAt: row.paid_at,
+    requestedAt: row.requested_at ?? null,
   };
 }
 
@@ -180,6 +188,71 @@ export async function createAdminGrant(
     .values({ ...row, requested_at: nowIso(), approve_token_hash: hashToken(token) })
     .execute();
   return { payment: toPayment(row), token };
+}
+
+/**
+ * Every purchase still waiting for the operator to approve it — B774.
+ *
+ * Instance-wide, unlike `listPayments`, which is scoped to one journal because
+ * it feeds that journal's own page. This one exists for `/admin`, where the
+ * question is "who is waiting on me" and the answer spans every journal.
+ *
+ * `requested` only. A `pending` row is a checkout page somebody opened and may
+ * simply have closed; it is not a queue, and listing it would turn idle
+ * curiosity into a to-do. `paid` is done.
+ *
+ * **The approval token is not selected and must never be.** It is mailed to
+ * the operator and spent once; a page that rendered it would put a
+ * balance-raising credential into a browser, a screenshot and a scrollback,
+ * which is the whole thing B425 avoided by using a mailbox.
+ */
+export async function paymentsAwaiting(): Promise<Payment[]> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const rows = await handle.db
+    .selectFrom("payments")
+    .selectAll()
+    .where("status", "=", "requested")
+    .orderBy("requested_at", "asc")
+    .execute();
+  return rows.map(toPayment);
+}
+
+/**
+ * Purchases settled in a period, newest first — B774, for the takings on
+ * `/admin`.
+ *
+ * `paid_at` rather than `created_at`: a checkout opened in March and approved
+ * in April is April's money, and reconciling against a card statement is the
+ * only reason this list exists.
+ */
+export async function paymentsPaidSince(since: string): Promise<Payment[]> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const rows = await handle.db
+    .selectFrom("payments")
+    .selectAll()
+    .where("status", "=", "paid")
+    .where("paid_at", ">=", since)
+    .orderBy("paid_at", "desc")
+    .execute();
+  return rows.map(toPayment);
+}
+
+/**
+ * What a list of purchases came to, in rappen.
+ *
+ * **An admin grant is excluded, and that is the point of this function
+ * existing rather than a `reduce` at the call site.** `createAdminGrant` files
+ * a payment with `amount_rappen: 0` and `method: "admin"` (B746) so that it
+ * rides the same approval machinery. Summing it as takings would report income
+ * nobody paid — zero today, and a real number the moment anybody gives an
+ * admin grant a nominal price.
+ */
+export function takings(payments: Payment[]): number {
+  return payments
+    .filter((payment) => payment.method !== "admin")
+    .reduce((total, payment) => total + payment.amountRappen, 0);
 }
 
 export type SubmitResult =

@@ -7,6 +7,7 @@ import { creditsEnabled, ledgerFor } from "@/lib/credits";
 import { formatChf } from "@/lib/credits/pricing";
 import { BarChart, DailyChart } from "./Charts";
 import { dailyCosts, dashboard, type CostLine } from "@/lib/instanceCosts";
+import type { Payment } from "@/lib/payments";
 import { serverSite } from "@/lib/site";
 
 // Reads a session and the database on every request; nothing to prerender.
@@ -26,6 +27,12 @@ function since(): string {
   return new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
 }
 
+/** What a group of lines comes to. The charts and the total read the same
+ *  numbers the rows do, so nothing on this page can disagree with itself. */
+function sum(lines: CostLine[]): number {
+  return lines.reduce((total, line) => total + line.rappen, 0);
+}
+
 /**
  * One group of cost lines — B763, replacing the table B746 shipped.
  *
@@ -39,12 +46,6 @@ function since(): string {
  * stopped being a grid; a table whose rows reflow into blocks is a table only
  * to a screen reader, and a misleading one.
  */
-/** What a group of lines comes to. The charts and the total read the same
- *  numbers the rows do, so nothing on this page can disagree with itself. */
-function sum(lines: CostLine[]): number {
-  return lines.reduce((total, line) => total + line.rappen, 0);
-}
-
 function Lines({ title, lines, note }: { title: string; lines: CostLine[]; note?: string }) {
   return (
     <section className="mt-8">
@@ -121,8 +122,17 @@ export default async function AdminPage() {
         What this instance has cost over the last {WINDOW_DAYS} days, and what each journal holds.
       </p>
 
+      {/* First on the page, above the money, because it is the only thing here
+          that is a person waiting rather than a number to read. Until B774 the
+          sole signal that a purchase needed approving was a mail — which is a
+          queue whose length you cannot see. */}
+      <Awaiting payments={data.awaiting} />
+
       <p className="mt-6 rounded-2xl border border-navy-200 bg-cream-100 p-4 text-navy-900">
         <span className="font-display text-2xl font-semibold">{formatChf(data.totalRappen)}</span>
+        <span className="ml-2 font-mono text-sm text-navy-700">
+          out · {formatChf(data.takenRappen)} in
+        </span>
         <span className="mt-1 block text-sm text-navy-700">
           Everything priced below, including the fixed monthly lines. Lines marked{" "}
           <em>not priced</em> are real usage this instance has no price for, so treat this as a
@@ -175,6 +185,18 @@ export default async function AdminPage() {
       />
       <Lines title="Fixed" lines={data.fixed} note="Owed whether anybody writes a day or not." />
 
+      <Lines
+        title="Bought"
+        note="Credit purchases approved in this period, at what the buyer actually paid. A grant made from this page carries no price and is not takings."
+        lines={data.paid.map((payment) => ({
+          label: `${payment.owner} · ${payment.credits} credits`,
+          detail: `${payment.method ?? "unknown"} · ${(payment.paidAt ?? "").slice(0, 10)}`,
+          calls: 0,
+          rappen: payment.amountRappen,
+          unpriced: false,
+        }))}
+      />
+
       <section className="mt-10 border-t border-navy-200 pt-6">
         <h2 className="font-display text-lg font-semibold text-navy-900">Journals</h2>
         {!metered ? (
@@ -221,6 +243,60 @@ export default async function AdminPage() {
         <AdminGrant journals={data.journals.map((journal) => journal.username)} />
       </section>
     </main>
+  );
+}
+
+/**
+ * The approval queue — B774.
+ *
+ * **It shows, and it cannot approve.** Approval spends a single-use token that
+ * was mailed to the operator, and `lib/credits.ts`'s property 1 is that
+ * nothing reachable over HTTP raises a balance. Rendering the token here would
+ * put a balance-raising credential into a browser tab, a screenshot and a
+ * scrollback — exactly what B425 avoided by putting it in a mailbox — so it is
+ * not selected by the query that feeds this, and there is no button.
+ *
+ * Empty is the ordinary state and says so. A section that vanished when there
+ * was nothing in it would make "no queue" and "no such feature" look alike.
+ */
+function Awaiting({ payments }: { payments: Payment[] }) {
+  if (payments.length === 0) {
+    return (
+      <p className="mt-6 rounded-2xl border border-navy-200 bg-white p-4 text-sm text-navy-500">
+        Nothing is waiting for your approval.
+      </p>
+    );
+  }
+  return (
+    <section className="mt-6 rounded-2xl border border-navy-200 border-l-8 border-l-yellow-400 bg-white p-4">
+      <h2 className="font-display text-lg font-semibold text-navy-900">
+        Waiting for you ({payments.length})
+      </h2>
+      <p className="mt-1 text-sm text-navy-700">
+        Each of these was mailed to you with a link that approves it. That link is what adds the
+        credits — this page only shows that somebody is waiting.
+      </p>
+      <ul className="mt-3 divide-y divide-navy-200 border-t border-navy-200">
+        {payments.map((payment) => (
+          <li key={payment.id} className="py-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0 break-words text-sm text-navy-900">
+                {payment.owner} · {payment.credits} credits
+              </span>
+              <span className="shrink-0 font-mono text-sm text-navy-900">
+                {/* An admin grant has no price, and "CHF 0.00" would read as a
+                    purchase somebody got for nothing. */}
+                {payment.method === "admin" ? "by hand" : formatChf(payment.amountRappen)}
+              </span>
+            </div>
+            <p className="mt-0.5 break-words font-mono text-xs text-navy-500">
+              asked {(payment.requestedAt ?? payment.createdAt).slice(0, 16).replace("T", " ")}
+              {payment.method && payment.method !== "admin" ? ` · ${payment.method}` : ""}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
