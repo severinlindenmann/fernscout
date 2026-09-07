@@ -55,3 +55,24 @@ working form is `ssh <host> "sudo cat $D/\$(sudo ls -t $D | head -1)"`.
 
 A fresh agent following the skill reads a signup code on the first attempt,
 with no `No such file or directory` and no wasted code request.
+
+## Done, 2026-09-07
+
+Checked the current code rather than trusting the ticket's paths, per the
+note attached: since B636 (`lib/mail/index.ts:79-116`), mail lives under
+`<dataDir>/mail/`, not under content — journal mail at
+`<dataDir>/mail/<user>/`, signup mail (no journal yet) at
+`<dataDir>/mail/.mail/`. Neither the ticket's `/srv/fernscout/mail/` nor
+AGENTS.md's older `content/.mail/` phrasing matches the current code; the
+right variable to point at is `DATA_DIR` (`lib/dataDir.ts`), which
+`docs/runbook.md` sets to `/var/lib/fernscout` on this host.
+
+Rewrote `.claude/skills/test-the-live-site/SKILL.md`'s "Reading a code, a
+link, or any mail" section: both paths now read `$DATA_DIR/mail/<user>/` and
+`$DATA_DIR/mail/.mail/`, with a line saying `DATA_DIR` is what decides them.
+Also added `sudo` to the read example, since the ticket noted the files are
+not world-readable — the working form is `sudo cat $D/$(sudo ls -t $D | head
+-1)`.
+
+Not a code change, so `npm run verify`'s test suite is unaffected; ran it
+anyway as part of the full batch and it passed.

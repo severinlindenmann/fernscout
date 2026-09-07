@@ -48,3 +48,16 @@ not part of its diff, and if this one survived there may be others.
 No comment in the repository claims a new trip is private by default, and the
 one at `app/api/v1/[user]/trips/route.ts` describes what the code beneath it
 actually does.
+
+## Done, 2026-09-07
+
+Fixed the comment at `app/api/v1/[user]/trips/route.ts` (the doc comment on
+the `POST` handler): it now says the default follows the journal's own
+`visibility` (`guest` or `public`), with `private` named only as the fallback
+for an unrecognised value, and cites B306.
+
+Grepped the rest of the repo (`lib/`, `app/`, `components/`, `scripts/`) for
+other comments claiming the old "defaults to private" behaviour — none found.
+This was the only one.
+
+`npm run verify` passed.

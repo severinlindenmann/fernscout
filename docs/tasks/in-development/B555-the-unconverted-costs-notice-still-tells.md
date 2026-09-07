@@ -38,3 +38,19 @@ in is the design question this task is really asking.
 - The notice no longer asks for something the server does by itself.
 - All three locales say the same thing.
 - `npm run verify` passes.
+
+## Done, 2026-09-07
+
+Rewrote `cost.unconverted` in all three locales (`site/locales/{en,de,hu}.json`).
+It no longer asks a reader to ask an agent. New text distinguishes the two
+cases generically (per the Work section's own framing of the design
+question, left as generic rather than naming which case each currency is
+in): most currencies fill in on their own within a day or so (B543's
+automatic ECB fill), while a currency the ECB does not publish, or a payment
+more than ninety days old, needs a rate added to the journal's own
+`manualRates` (`lib/rates.ts:97-118`) instead. Kept it generic rather than
+computing per-currency which case applies — the page (`UnconvertedNotice.tsx`)
+renders one shared string for the whole list of unconverted amounts, and
+doing better would be a second ticket.
+
+`npm run verify` passed.

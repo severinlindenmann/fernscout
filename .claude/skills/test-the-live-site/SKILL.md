@@ -84,15 +84,21 @@ Agent tokens last seven days, which outlives any campaign.
 to disk. **This is how an agent gets sign-in codes, invite links and deletion
 links without a mailbox** — nobody needs to relay anything.
 
-- Mail belonging to a journal → `/var/lib/fernscout/content/<user>/mail/`
-- **Signup** codes, which have no journal yet → `/srv/fernscout/mail/`
+Since B636 mail lives under `DATA_DIR`, not under the content tree — `$DATA_DIR`
+is what decides both paths below, and an instance that sets it elsewhere moves
+both. On this host `DATA_DIR=/var/lib/fernscout`:
 
-Bodies are base64 inside a multipart message and the lines end **CRLF**. Strip
-the `\r` or the decode silently yields nothing:
+- Mail belonging to a journal → `$DATA_DIR/mail/<user>/`
+- **Signup** codes, which have no journal yet → `$DATA_DIR/mail/.mail/`
+
+The files are not world-readable, so every read below needs `sudo`. Bodies are
+base64 inside a multipart message and the lines end **CRLF**. Strip the `\r`
+or the decode silently yields nothing:
 
 ```bash
-F=$(ssh 95.216.112.173 "ls -t $DIR | head -1")
-ssh 95.216.112.173 "grep -E '^[A-Za-z0-9+/=]{40,}' '$DIR/$F' | tr -d '\r' | base64 -d" \
+D=/var/lib/fernscout/mail/<user or .mail>
+ssh 95.216.112.173 "sudo cat $D/\$(sudo ls -t $D | head -1)" \
+  | grep -E '^[A-Za-z0-9+/=]{40,}' | tr -d '\r' | base64 -d \
   | grep -oE 'code is [0-9]{6}'
 ```
 
@@ -129,6 +135,13 @@ explicitly, and bound it to test-flagged days in QA journals.
 config. If acceptance requires it, the agent stops and describes what would
 need running, by whom, and what it costs. A partial verdict is the right
 answer; an agent that drops a production database to close a ticket is not.
+
+**What a page shows, when acceptance says so.** `/<user>/contacts` and
+`/<user>/me` are the owner's own pages — cookie-session only, and an agent
+token renders neither (B422). A ticket whose acceptance is about what one of
+these pages *shows* cannot be closed over the API: report it as inferred from
+data and source, say so plainly, and do not spend a turn trying to fetch the
+page with a bearer token.
 
 ## Bookkeeping, as results come in
 

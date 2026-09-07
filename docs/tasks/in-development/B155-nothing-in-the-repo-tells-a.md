@@ -164,3 +164,25 @@ paragraph, that is its own task.
   disclaimer.
 - The author has answered the "extra features" question above and the task file
   records which reading was built.
+
+## Done, 2026-09-07
+
+Added, in `README.md`:
+
+- A disclaimer paragraph right after the hosted offer: hobby project, one
+  person, one journal per person, no uptime/durability/support guarantee,
+  immediately followed by `npm run export -- <username>` as the documented way
+  out.
+- A new `### Capabilities` section under "Or self-host it": a table of all 15
+  names currently in `FEATURE_NAMES` (`lib/config.ts:17-31` — grown from the
+  nine the ticket was written against; the note beside the table says the list
+  is checked against that constant), each with what it needs and what off
+  means, plus the three governing rules (off-by-default/absent, a bad config
+  fails the boot, a journal narrows the server) and the statement that `auth`
+  off still leaves the whole public site working.
+- Rather than restate what fernscout.ch runs today (drifts on the first flag
+  change), the section points at `https://fernscout.ch/api/health` directly,
+  which the ticket allows as an alternative to a static list.
+
+Not done: a pricing page, a signup web form, ToS/privacy — explicitly out of
+scope. `npm run verify` passed.

@@ -4,6 +4,26 @@ import type { Entry, Locale, Trip } from "./types";
  * others; their chrome falls back to English (ROADMAP §1.2). */
 export const MAINTAINED_LOCALES = ["en", "de", "hu"] as const;
 
+/**
+ * A constraint on writing a `{name}` string, not on reading one: Hungarian
+ * marks grammatical case with a suffix chosen by the vowels of the word it
+ * attaches to (*Vikitől* but *Somtól*), and a name interpolated from
+ * somebody's own `config.json` has no vowels a translator can pick the right
+ * suffix for ahead of time — there is no correct default, because any suffix
+ * chosen for `{name}` is wrong for some names. So a string that interpolates a
+ * person's name should place it where a language that inflects names can
+ * leave it uninflected — subject position, or after a preposition the
+ * translator can restructure the sentence around — rather than assume every
+ * language can append a case ending to whatever `{name}` turns out to be.
+ *
+ * Two existing strings depend on this and are the worked examples:
+ * `me.strangerBodyNamed` (Hungarian: "Rendes hozzáférésért {name} tud
+ * meghívni" — `{name}` is the subject, not inflected) and `trips.hiddenBody`
+ * (same move: "{name} tud küldeni meghívólinket"). German inflects less but
+ * not never — check it too when a new `{name}` string is added, rather than
+ * assuming only Hungarian minds the word order. (B289)
+ */
+
 export const LOCALE_LABEL: Record<string, string> = {
   en: "English",
   de: "Deutsch",
@@ -232,6 +252,7 @@ export type TranslationKey =
   | "contact.mailInviteGuestSubject"
   | "contact.mailInviteTitle"
   | "contact.mailManageButton"
+  | "contact.mailManageCaption"
   | "contact.mailRequestAskedBody"
   | "contact.mailRequestAskedSubject"
   | "contact.mailRequestBody"
@@ -242,6 +263,7 @@ export type TranslationKey =
   | "contact.mailRequestTitle"
   | "contact.manageIntro"
   | "contact.manageLink"
+  | "contact.manageLinkCaption"
   | "contact.manageTitle"
   | "contact.name"
   | "contact.needAddress"
@@ -275,6 +297,7 @@ export type TranslationKey =
   | "contact.wantsDigest"
   | "contact.wantsPostcard"
   | "contact.wantsWhatsapp"
+  | "contact.wantsWhatsappHint"
   | "contact.welcomeBackBody"
   | "contact.welcomeBackTitle"
   | "contact.working"

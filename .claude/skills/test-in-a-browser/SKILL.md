@@ -185,3 +185,16 @@ It runs against a dev build with the demo journal's content. It will not catch a
 production-only capability difference, a Postgres-only query, or anything about
 real photographs — the demo originals are generated. For those, deploy and use
 `test-the-live-site`.
+
+**A finding that only shows up under `next dev` is not automatically a phantom,
+and is not automatically real either.** React's Strict Mode double-invokes
+effects in development only, which is exactly the shape of bug B603 found in
+the photobook composer: a restore-then-persist pair of effects raced under the
+double invocation and reliably wiped an arrangement on reload, every time,
+under `next dev` — and never under `next build && next start`, where effects
+run once. That direction cuts both ways. Before reporting a persistence- or
+effect-ordering-shaped finding as a real user-facing bug, cross-check it
+against a production build on the same port (`npm run build && npm run
+start`); and before trusting a "looks fine" from `next dev`, remember that the
+same double invocation is what would have caught this one, had anybody run the
+composer in a browser sooner.

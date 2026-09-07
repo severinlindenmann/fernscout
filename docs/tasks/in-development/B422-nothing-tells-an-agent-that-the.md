@@ -58,3 +58,22 @@ a ticket, so it is met before the wasted turns rather than after.
 `AGENTS.md` and `/agent.md` both state the rule and name the owner-only pages.
 An agent reading either before starting knows, without trying, that it needs a
 browser for a page and a token for an API.
+
+## Done, 2026-09-07
+
+- `AGENTS.md`, in "The network doors", right after the existing paragraph on
+  bearer vs. cookie credentials: added the converse — an agent token reaches
+  `/api/…` and never a rendered page, naming `/<user>/contacts` and
+  `/<user>/me`, and the consequence for ticket-writing (an acceptance line
+  about what a page *shows* has to name the browser or the API state, not
+  assume a token can check it).
+- `lib/api/documentation.ts`, in `agentGuide()`'s "Letting other people in"
+  section, right after "Neither link grants anything by itself" (which
+  already points an agent at `${example}/contacts`): added "You cannot look
+  at that queue yourself", naming both pages and saying not to spend a turn
+  trying.
+- `.claude/skills/test-the-live-site/SKILL.md`, in "Two rules an agent must
+  not decide for itself": added a third item for this exact trap, so a
+  verification agent meets it before wasting turns rather than after.
+
+`npm run verify` passed.

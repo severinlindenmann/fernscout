@@ -46,3 +46,16 @@ anywhere.
 
 - A receipt generated on a dev server either links somewhere that works, or the
   local-testing documentation says why it does not.
+
+## Done, 2026-09-07
+
+Went with the first honest option the Work section named: keep the configured
+URL as the default and document the override. `lib/site.ts:27` already reads
+`process.env.NEXT_PUBLIC_SITE_URL ?? config.site.url` — `serverSite().url`
+prefers the env var on every call — so no code change was needed, only
+documenting it. Added a new subsection, "Mail from a dev server links to
+production, unless you say otherwise", to `docs/running-locally.md`'s "Three
+things that will cost you an hour", explaining the symptom and giving
+`NEXT_PUBLIC_SITE_URL=http://localhost:3000 npm run dev` as the fix.
+
+`npm run verify` passed.

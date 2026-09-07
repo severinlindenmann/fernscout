@@ -68,3 +68,24 @@ note.
 Somebody adding a `{name}` string finds the constraint without asking, and the
 two existing Hungarian strings that depend on it say why they are phrased as
 they are.
+
+## Done, 2026-09-07
+
+No `docs/i18n.md` or equivalent exists (checked `docs/` and
+`content/locales/README` — neither is there), so wrote the constraint as a
+doc comment in `lib/i18n.ts`, right after `MAINTAINED_LOCALES` — the file a
+developer opens for anything locale-shaped, and the one `lib/locales.ts`
+already imports `MAINTAINED_LOCALES` from. Names both worked examples with
+their actual Hungarian text: `me.strangerBodyNamed` ("Rendes hozzáférésért
+{name} tud meghívni") and `trips.hiddenBody` ("{name} tud küldeni
+meghívólinket").
+
+Checked German for the same problem: every existing `{name}` string in
+`de.json` places it after a preposition (`von {name}`, `bei {name}`, `an
+{name}`) rather than with a genitive suffix (`{name}s`), so German's dative
+does not inflect the name itself and nothing there is currently broken. Noted
+in the comment as a thing to re-check when a new `{name}` string is added,
+per the ticket's ask, rather than building a check for it (explicitly out of
+scope).
+
+`npm run verify` passed.

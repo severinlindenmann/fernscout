@@ -105,6 +105,24 @@ exactly those characters. The form itself only carries the short attribution
 line the suggestions require while they are on screen (B416) — this is the
 place for the fuller account of where a query goes.
 
+### Mail from a dev server links to production, unless you say otherwise
+
+`serverSite().url` — every link a letter carries, including a photobook
+receipt's download links — comes from `site.url` in `content/config.json`,
+which names the deployed site. A local server inherits that unchanged, so a
+receipt generated on `localhost:3000` mails links pointing at
+`https://fernscout.ch`: correct for the sharing card, useless for the person
+who just pressed the button on their own machine. The files are on disk and
+the page shows the same links working regardless, so this only bites when you
+read the mail itself.
+
+Set `NEXT_PUBLIC_SITE_URL` to override it — `lib/site.ts`'s `serverSite()`
+prefers it over the configured value on every call:
+
+```bash
+NEXT_PUBLIC_SITE_URL=http://localhost:3000 npm run dev
+```
+
 ---
 
 ## Opening an owner-only page

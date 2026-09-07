@@ -67,3 +67,30 @@ and doing them separately means writing the same strings twice.
   in all three locales.
 - Neither calls it the journal's address or a way in.
 - `npm run build`, `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`.
+
+## Done, 2026-09-07
+
+Relabelled `contact.mailManageButton` and `contact.manageLink` in all three
+locales (`site/locales/{en,de,hu}.json`) from "Change or remove your
+details"/local equivalents to "Your own link — keep it" (and translations),
+avoiding "Journal Link" as the owner had suggested and the ticket warned
+against. Added a new key, `contact.mailManageCaption`/`manageLinkCaption`,
+carrying the "it's personal and isn't the way into the journal" line, and
+wired it into every place the link appears:
+
+- `lib/contacts/mail.ts:190` — `sendConfirmedMail`'s button, as a `meta` block
+  under it.
+- `lib/contacts/mail.ts:385-386` — `sendApprovedMail`'s item, using the
+  block's own `meta` field.
+- `components/ContactForm.tsx:525-534` — the confirmation page shown right
+  after code entry.
+- `components/ContactManage.tsx` (the `/{user}/c/<token>` page itself) — so
+  somebody arriving months later, or somebody who forwarded it, both see it.
+
+Checked the "does this grant anything beyond editing their own record"
+question: `resolveManageToken` (`lib/contacts/index.ts:514`) looks up by
+`manage_token_hash` scoped to one `owner_id`, touches exactly that contact
+row, and grants no read access. No finding there.
+
+`npm run verify` passed (had to add the two new keys to `TranslationKey` in
+`lib/i18n.ts` for `test/locales.test.ts` to accept them).

@@ -36,6 +36,19 @@ Sending anything physical or paid stops at a preview page with a button: an
 agent proposes, you press. Addresses never reach an agent — cards are
 addressed to people who asked your journal for one.
 
+WhatsApp's template needs an image header, so the day's first photograph is
+uploaded to Meta's servers before the message goes — for every trip,
+including a `private` one. Mail differs here: it inlines the photograph so a
+closed trip's picture never leaves the gate.
+
+**What this does not promise.** fernscout.ch is a hobby project run by one
+person, free, one journal per person. There is no uptime guarantee, no
+durability guarantee and no support — best effort, and nothing more is
+implied by it being offered. Your content is still markdown and photographs in
+a folder, whoever hosts it: `npm run export -- <username>` hands the whole
+journal back as a zip at any time, so self-hosting the same content later is
+the documented way out, not a downgrade.
+
 ## Or self-host it
 
 ```bash
@@ -49,12 +62,48 @@ as the files it already is. One instance serves many people:
 `content/<username>/…`, reachable at `/<username>`. A demo journal ships in the
 repo and serves at `/example`.
 
-Every capability in the table above is **off by default** and absent rather
-than broken when disabled, so none needs a paid account to develop against:
-mail writes `.eml` files to a folder, and every print provider has a dry-run
-backend. For a production build, see
-[docs/running-locally.md](docs/running-locally.md); for a VPS, see
-[docs/runbook.md](docs/runbook.md).
+### Capabilities
+
+Every optional capability is **off by default** and absent rather than broken
+when disabled — a disabled capability's routes 404, they do not error — so
+none needs a paid account to develop against: mail writes `.eml` files to a
+folder, and every print provider has a `dry-run` backend that writes files
+instead of printing anything. `FEATURE_NAMES` in
+[`lib/config.ts`](lib/config.ts) is the complete, current list; this table is
+checked against it:
+
+| Feature | Needs | Off means |
+| --- | --- | --- |
+| `reactions` | — | no reactions on days |
+| `costs` | — | no cost pages or totals |
+| `push` | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | no web-push notifications |
+| `mail` | transport-specific — `file`/`console` need nothing, `smtp` needs `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | nothing is sent |
+| `whatsapp` | backend-specific — `dry-run` needs nothing, `cloud` needs `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` | no WhatsApp announcements |
+| `auth` | `SESSION_SECRET` + a database | no agent tokens at all — the whole write path is gone |
+| `signup` | `SESSION_SECRET` + a database, and mail | nobody can create a journal on the instance |
+| `contacts` | `CONTACTS_ENCRYPTION_KEY` + a database | no guests, no invite links, no buddy write-access, no approval queue |
+| `postcards` | provider-specific — `dry-run` needs nothing, others need a key — + a database | no postcard ordering |
+| `photobook` | provider-specific — `dry-run` needs nothing, others need a key — + a database | no photobook ordering |
+| `logging` | — (operator-only, not a journal's choice) | no request logging |
+| `credits` | a database (operator-only) | sending is never charged |
+| `addressLookup` | provider-specific — the default (`photon`) needs nothing | no address suggestions in a contact form |
+| `weather` | — | a day's `weather: true` is never looked up |
+| `analytics` | a database | no visits page |
+
+Three rules govern all of them: **enabling one is a promise the server has to
+keep** — a flag on with its credentials missing refuses to boot, with the
+reason, rather than half-working; **a journal's own `config.json` can narrow
+the server's capabilities and never widen them** — a journal can never switch
+on something the server itself cannot do; and **`auth` off still leaves the
+whole public site working** — every reading page, the search index, the feed,
+the sitemap — because a public trip's gate never touches a database or a
+session. What you lose with `auth` off is writing, and guests.
+
+For a production build, see [docs/running-locally.md](docs/running-locally.md);
+for a VPS, see [docs/runbook.md](docs/runbook.md). What fernscout.ch itself
+runs today is not repeated here, since a list here would drift the first time
+a flag changes — read it live from
+[fernscout.ch/api/health](https://fernscout.ch/api/health).
 
 ## What it looks like
 

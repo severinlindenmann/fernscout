@@ -64,7 +64,9 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
  * Unlike a day, a trip is **not** a draft. There is no such thing: the draft
  * rule protects readers from invented memories presented as fact, and an empty
  * trip asserts nothing. What protects them here is the visibility default,
- * which is `private` unless the caller says otherwise.
+ * which follows this journal's own `visibility` (`guest` or `public`) unless
+ * the caller says otherwise — an unrecognised value still falls back to
+ * `private`, the strictest state (B306).
  */
 export async function POST(request: Request, { params }: RouteContext<"/api/v1/[user]/trips">) {
   const auth = await authenticate(request);

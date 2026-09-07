@@ -56,3 +56,25 @@ the capability on has no way to discover it short of reading the client.
   true for closed trips too.
 - An operator reading the WhatsApp docs learns it without opening
   `lib/whatsapp/`.
+
+## Done, 2026-09-07
+
+- `lib/api/documentation.ts`, in `agentGuide()`'s WhatsApp section (the "Three
+  things differ from the letter" list): added a fourth bullet — the
+  photograph reaches Meta even for a private trip, contrasted with mail's
+  inlined bytes.
+- There is no dedicated operator doc for WhatsApp (checked `docs/`,
+  `docs/providers/`, `docs/runbook.md` — nothing describes it as a
+  capability the way `docs/providers/photobook.md` does for printing), so
+  added the same fact to `README.md`'s hosted-capability section, right after
+  the postcard/photobook sentence — the closest thing to "the WhatsApp docs"
+  an operator actually reads.
+- Added `contact.wantsWhatsappHint` (all three locales) under the WhatsApp
+  opt-in checkbox in both `components/ContactForm.tsx` (guestbook) and
+  `components/ContactManage.tsx` (the manage page), per the Work section's
+  "probably yes" — shown unconditionally rather than only when a private trip
+  exists, since it stays true if one is added later and a static site has no
+  cheap way to know at render time whether it should hide.
+- Not changing behaviour, as instructed.
+
+`npm run verify` passed.

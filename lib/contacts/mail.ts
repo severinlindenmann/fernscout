@@ -186,6 +186,7 @@ export async function sendConfirmedMail(
               text: translateIn(locale, "contact.mailManageButton"),
               href: manage,
             },
+            { kind: "meta", text: translateIn(locale, "contact.mailManageCaption") },
           ],
           footer: footerFor(locale, user),
           unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, manageToken),
@@ -382,6 +383,7 @@ export async function sendApprovedMail(
             {
               kind: "item",
               title: translateIn(locale, "contact.mailManageButton"),
+              meta: translateIn(locale, "contact.mailManageCaption"),
               href: manageUrl(baseUrl(), username, token),
             },
           ],
