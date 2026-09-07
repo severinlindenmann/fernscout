@@ -191,10 +191,29 @@ export default function PageHeader({
                 (`TripStory`'s day counter) already marks it `xl:block`, so it
                 never draws below the width this panel exists for — mounting
                 a second, permanently invisible copy would be for nothing. */}
+            {/* Docs sits with the chips, not with the destinations — B843.
+                Reise, Galerie, Karte and the rest are places inside this
+                journal; `/docs` is the software's own documentation and
+                leaves it entirely, so listing it among them said it was one
+                of them. The chips row is already where the things that are
+                not destinations live. Icon-only, with the label as its
+                accessible name, because it is joining a set rather than
+                arriving as a new kind of control. */}
             <div className="flex flex-wrap items-center gap-2 border-b border-navy-200 pb-3">
               <TripSwitcher />
               <CurrencySwitcher />
               <LocaleSwitcher />
+              <Link
+                href="/docs"
+                onClick={() => setMenuOpen(false)}
+                title={t("nav.docs")}
+                aria-label={t("nav.docs")}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-navy-200
+                           bg-white text-navy-700 transition-colors hover:border-navy-500
+                           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              >
+                <FileText className="h-4 w-4" aria-hidden strokeWidth={2.2} />
+              </Link>
             </div>
             <div className="mt-3">
               {/*
@@ -214,28 +233,24 @@ export default function PageHeader({
                 ever carries `aria-current` — they are never the active
                 destination, so `yellow-400` stays true to "you are here".
               */}
-              <nav className="flex flex-col gap-1 border-b border-navy-200 pb-2">
-                {site.helperEnabled && (
+              {site.helperEnabled && (
+                <nav className="border-b border-navy-200 pb-2">
                   <Link
                     href="/agent"
                     onClick={() => setMenuOpen(false)}
-                    className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-base font-semibold
-                               text-navy-700 transition-colors hover:bg-cream-100"
+                    className="flex min-h-12 items-center gap-3 rounded-xl bg-navy-900 px-3 text-base
+                               font-semibold text-cream-50 transition-colors hover:bg-navy-700
+                               focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
                   >
-                    <Bot className="h-5 w-5 shrink-0" aria-hidden strokeWidth={2.2} />
+                    <Bot
+                      className="h-5 w-5 shrink-0"
+                      aria-hidden
+                      strokeWidth={2.2}
+                    />
                     {t("nav.agent")}
                   </Link>
-                )}
-                <Link
-                  href="/docs"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-base font-semibold
-                             text-navy-700 transition-colors hover:bg-cream-100"
-                >
-                  <FileText className="h-5 w-5 shrink-0" aria-hidden strokeWidth={2.2} />
-                  {t("nav.docs")}
-                </Link>
-              </nav>
+                </nav>
+              )}
               <div className="mt-1">
                 <SiteNav variant="list" onNavigate={() => setMenuOpen(false)} />
               </div>
