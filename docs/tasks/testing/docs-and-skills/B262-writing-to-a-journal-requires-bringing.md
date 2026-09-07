@@ -7,8 +7,7 @@ complexity: low
 area: docs, roadmap, agent guide
 found: "2026-09-04T11:16:59Z"
 started: "2026-09-07T11:27:36Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T11:27:36Z"
+merged: "2026-09-07T11:38:42Z"
 ---
 
 # B262 — Every document still promises there will never be an editing interface, while one is being built
