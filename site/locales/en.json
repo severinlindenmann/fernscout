@@ -929,7 +929,8 @@
   "postcard.page.goingMany": "Going to {count} people",
   "postcard.page.goingOne": "Going to 1 person",
   "postcard.page.intro": "From {day}. Nothing has been printed or charged yet.",
-  "postcard.page.introSent": "From {day}. Sent {when} â they are with the printer.",
+  "postcard.page.introSent": "From {day}. Sent {when} — they are with the printer.",
+  "postcard.page.introFailed": "From {day}. Nothing was printed, and your credits have been given back.",
   "postcard.page.lost": "{count} of the people on this order can no longer be posted to — they withdrew their address or their consent since it was made. They are not counted or charged for.",
   "postcard.page.lowRes": "This photograph prints at about {dpi} dpi, below the 300 dpi a card wants — it will look slightly blurred on paper. A larger original would print better.",
   "postcard.page.messageLabel": "What it says",
@@ -950,6 +951,7 @@
   "postcard.page.signed": "Signed",
   "postcard.page.title": "Postcards, ready to send",
   "postcard.page.titleSent": "Postcards, sent",
+  "postcard.page.titleFailed": "Postcards, not sent",
   "postcard.page.writtenIn": "Written in",
   "postcard.pickHint": "Tap a photograph to put it on a postcard.",
   "postcard.pickPhoto": "Choose a photograph",
@@ -1409,5 +1411,6 @@
   "agent.speechConsentDryRunShort": "Sends your voice to this server's own dry run. Nothing leaves the server, and the text that comes back is a placeholder.",
   "agent.askConsentShort": "Sends the sentence you typed to a model, so it can work out which screen you meant. Asking is free.",
   "agent.statementConsentShort": "Sends this file's heading row and its first five rows to a model, so it can say which column is which.",
-  "agent.pickPhotosWhy": "What the camera recorded — the day, the time and where you were — fills in the rest, and nothing is invented from it."
+  "agent.pickPhotosWhy": "What the camera recorded — the day, the time and where you were — fills in the rest, and nothing is invented from it.",
+  "postcard.result.providerFailed": "The printer refused every card, so nothing was sent and your credits have been given back."
 }

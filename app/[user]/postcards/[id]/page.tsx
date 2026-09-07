@@ -72,7 +72,7 @@ const RESULTS: Record<string, TranslationKey> = {
   photo_missing: "postcard.result.photoMissing",
   postcards_off: "postcard.result.off",
   contacts_off: "postcard.result.off",
-  provider_unavailable: "postcard.result.off",
+  provider_unavailable: "postcard.result.providerFailed",
   unknown_order: "postcard.result.unknown",
 };
 
@@ -179,16 +179,26 @@ export default async function PostcardOrderPage({
             happened, so an order already at the printer was headed "ready to
             send" above a line promising nothing had been printed or charged —
             directly above the banner saying it had. */}
+        {/* Three states, not two. `failed` is not `draft` and so fell to the
+            "sent" side of a boolean, which headed an order whose every card the
+            printer had refused "Postcards, sent" over "they are with the
+            printer" — the same B474 fault one status further along. */}
         <h1 className="font-display text-2xl font-semibold text-navy-900">
-          {isPending(order) ? t("postcard.page.title") : t("postcard.page.titleSent")}
+          {isPending(order)
+            ? t("postcard.page.title")
+            : order.status === "failed"
+              ? t("postcard.page.titleFailed")
+              : t("postcard.page.titleSent")}
         </h1>
         <p className="mt-1 text-sm text-navy-600">
           {isPending(order)
             ? t("postcard.page.intro", { day: dayName })
-            : t("postcard.page.introSent", {
-                day: dayName,
-                when: formatDigestDate(locale, order.updatedAt.slice(0, 10)),
-              })}
+            : order.status === "failed"
+              ? t("postcard.page.introFailed", { day: dayName })
+              : t("postcard.page.introSent", {
+                  day: dayName,
+                  when: formatDigestDate(locale, order.updatedAt.slice(0, 10)),
+                })}
         </p>
 
         {typeof result === "string" && RESULTS[result] ? (

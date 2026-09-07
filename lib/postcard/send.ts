@@ -253,6 +253,16 @@ export async function sendOrder(owner: string, id: string): Promise<SendOutcome>
   await recordResults(owner, id, order.payload, results);
 
   const sent = results.length - failed;
+  // Nothing printed is not a send, and reporting it as one is the failure that
+  // looks fine in the logs. This returned `ok: true, sent: 0` and the page duly
+  // headed it "sent" over a banner reading "the cards are at the printer",
+  // above an order whose every card the provider had refused and whose credits
+  // had already been given back. `provider_unavailable` was declared in
+  // `SendFailure` and mapped on the page from the start and returned by
+  // nothing; this is the case it was written for.
+  if (sent === 0) {
+    return { ok: false, reason: "provider_unavailable" };
+  }
   if (sent > 0) {
     // Best effort, and never awaited into the outcome: the cards are already
     // at the printer, so a dead SMTP host must not turn a send that happened
