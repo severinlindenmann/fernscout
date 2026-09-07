@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: credits, mail
 found: "2026-09-07T17:31:21Z"
+merged: "2026-09-07T17:36:50Z"
 ---
 
 # B866 — A completed purchase sends no receipt to the buyer
