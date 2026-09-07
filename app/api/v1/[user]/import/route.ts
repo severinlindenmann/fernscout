@@ -276,6 +276,22 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     }
     return Response.json({
       ...statement,
+      // B690. The comment above has said "saying so is more honest than
+      // accepting it silently" since B677, and the answer did not say so: a
+      // caller who sent `dryRun` got an ordinary 200 with no mention of it,
+      // and could reasonably read their full statement as having been a
+      // no-op. It is not refused — refusing a harmless flag helps nobody —
+      // but it is answered.
+      ...(dryRun
+        ? {
+            dryRun: false,
+            note:
+              "`dryRun` was sent and changes nothing here: a costs import never writes. " +
+              "This is the whole read — the payments below are what the statement holds. " +
+              "Writing happens only when you send agreed rows to " +
+              `POST /api/v1/${user}/trips/<trip>/costs/import.`,
+          }
+        : {}),
       next:
         `Nothing has been written. Agree the categories — one decision per merchant covers ` +
         `every payment to it, and the list is sorted biggest first — then send the rows to ` +

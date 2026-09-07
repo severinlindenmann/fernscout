@@ -117,6 +117,63 @@ describe("checkCostsImporter", () => {
   test("says what an empty parse usually means", () => {
     expect(checkCostsImporter(ok, []).join(" ")).toMatch(/returned nothing/);
   });
+
+  /**
+   * B691 — the mistake an importer can otherwise make while passing every
+   * other check.
+   *
+   * These rows are the shape a real subagent produced, given this contract and
+   * the Revolut importer as an example: it put the account's amount in
+   * `amount` and the merchant's in `charged`, the exact inverse. Everything
+   * was green — its own tests, lint, types — and a 60 USD purchase that cost
+   * the account 50 EUR came out as a rate of 1.2 EUR and a day total of 60
+   * USD.
+   *
+   * A rate cannot be checked on its own: for USD against EUR, 1.2 and 0.83 are
+   * both perfectly ordinary numbers. The account's own currency is what gives
+   * it away.
+   */
+  test("catches amount and charged the wrong way round", () => {
+    const inverted: Payment[] = [
+      // No conversion on these, so they are already in the account's currency.
+      row({ date: "2026-06-22", amount: -12.4, currency: "EUR" }),
+      row({ date: "2026-06-23", amount: -240, currency: "EUR" }),
+      // And this one claims the account paid dollars.
+      row({
+        date: "2026-06-26",
+        amount: -50,
+        currency: "EUR",
+        charged: { amount: -60, currency: "USD" },
+      }),
+    ];
+    const problems = checkCostsImporter(ok, inverted).join(" ");
+    expect(problems).toMatch(/account/);
+    expect(problems).toMatch(/swapped/);
+  });
+
+  test("catches a charged that names several currencies", () => {
+    // The same mistake in a file with two foreign currencies: `charged` is
+    // what left one account, so it cannot be both.
+    const problems = checkCostsImporter(ok, [
+      row({ amount: -50, currency: "EUR", charged: { amount: -60, currency: "USD" } }),
+      row({ amount: -30, currency: "EUR", charged: { amount: -25, currency: "GBP" } }),
+    ]).join(" ");
+    expect(problems).toMatch(/different currencies/);
+  });
+
+  test("the right way round passes", () => {
+    expect(
+      checkCostsImporter(ok, [
+        row({ amount: -12.4, currency: "CHF" }),
+        row({ amount: -60, currency: "USD", charged: { amount: -50, currency: "CHF" } }),
+        row({ amount: -20, currency: "GBP", charged: { amount: -23, currency: "CHF" } }),
+      ]),
+    ).toEqual([]);
+  });
+
+  test("a statement with no conversion anywhere passes", () => {
+    expect(checkCostsImporter(ok, [row(), row({ date: "2026-06-23" })])).toEqual([]);
+  });
 });
 
 describe("reading a statement into a report", () => {

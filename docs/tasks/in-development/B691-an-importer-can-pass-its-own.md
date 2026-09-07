@@ -99,3 +99,33 @@ of reading the statement is that it knows what the money actually cost.
 - A test fails if `fixes` is not last in `GPS_IMPORTERS`.
 - `importers/costs/schema.ts` shows the direction with numbers.
 - `npm run verify` and `npm run unused` pass.
+
+## What was done
+
+**`checkCostsImporter` gained the account-currency invariant**, in three
+clauses: `charged` naming more than one currency, `charged` disagreeing with
+the rows that needed no conversion, and a `charged` that only ever repeats the
+payment's own currency and therefore says nothing.
+
+**The schema comment shows the direction with numbers**, and says why it is
+written that way: the paragraph above it was read correctly and implemented
+backwards, which is not a failure of the prose so much as evidence that prose
+was the wrong medium for it. `importers/README.md` carries the same example.
+
+**`fixes` must sort last in `GPS_IMPORTERS`**, asserted.
+
+## What was verified
+
+Run against the two artefacts that prompted it, in the worktrees they were
+written in:
+
+- The subagent's N26 importer, unmodified, now fails the check with: *"the
+  rows that needed no conversion are in EUR, so that is the account's currency
+  — but `charged` says USD. `charged` is what left the account; `amount` is
+  what the merchant charged. They look swapped"*.
+- Revolut, unmodified, comes back clean.
+- The subagent's importer order — `… → fixes → owntracks` — fails the new
+  ordering assertion.
+
+And four unit cases: the inverted rows, a `charged` naming two currencies, the
+right way round, and a statement with no conversion anywhere.

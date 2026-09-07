@@ -201,6 +201,31 @@ describe("reading a statement", () => {
     expect(JSON.stringify(body.spending)).not.toContain("category");
     expect(body.next).toMatch(/never what it was for/i);
   });
+
+  test("a dryRun is answered rather than silently ignored", async () => {
+    // B690. The route's own comment said saying so was more honest than
+    // accepting it silently, and then the answer said nothing at all: a
+    // caller who sent the flag got an ordinary 200 and could read their whole
+    // statement as a no-op. Found by a subagent reviewing the route.
+    const token = await ownerToken();
+    const { status, body } = await importCall(token, {
+      kind: "costs",
+      text: STATEMENT,
+      dryRun: true,
+    });
+    expect(status).toBe(200);
+    expect(body.dryRun).toBe(false);
+    expect(body.note).toMatch(/never writes/);
+    // And it is a full read, not a shortened one.
+    expect(body.spending.payments).toBe(3);
+  });
+
+  test("a costs import with no dryRun says nothing about it", async () => {
+    const token = await ownerToken();
+    const { body } = await importCall(token, { kind: "costs", text: STATEMENT });
+    expect(body.note).toBeUndefined();
+    expect(body.dryRun).toBeUndefined();
+  });
 });
 
 describe("putting the agreed rows on the days", () => {

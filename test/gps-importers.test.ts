@@ -190,6 +190,16 @@ describe("the folder and the list", () => {
     }
   });
 
+  test("the catch-all sorts last, because order is the order detect is tried in", () => {
+    // B691. `index.ts` says "put a stricter format above a looser one" and
+    // nothing enforced it: an agent adding an importer appended it after
+    // `fixes`, which is the loosest thing in the folder — it claims any
+    // `.jsonl`, and any first line that looks like `[number, …`. Harmless that
+    // time, and one loose `detect` away from a format that silently swallows
+    // another's files, with no error anywhere because a wrong parse succeeds.
+    expect(GPS_IMPORTERS[GPS_IMPORTERS.length - 1].id).toBe("fixes");
+  });
+
   test("checkGpsImporter names what is wrong, which is how somebody writes one", () => {
     // The function `importers/README.md` tells a contributor to run. Each of
     // these is a mistake somebody actually makes on a first attempt.

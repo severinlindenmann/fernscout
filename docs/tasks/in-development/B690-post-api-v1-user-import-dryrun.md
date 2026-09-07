@@ -28,3 +28,22 @@ Do not add a `dryRun` implementation for costs — that would be inventing a dec
 ## Acceptance
 
 The `/openapi.json` schema for `POST /api/v1/<user>/import` (costs variant) no longer names `dryRun`, or the response documentation states that the flag is accepted but has no effect on a costs import. The test in `test/openapi-contract.test.ts` passes.
+
+## What was done
+
+The route's own comment already said that saying so "is more honest than
+accepting it silently" — written in B677, and never implemented. A `costs`
+import that is sent `dryRun` now answers with `dryRun: false` and a `note`
+saying the flag changes nothing because a costs import never writes, and that
+what came back is the whole read.
+
+Not refused: refusing a harmless flag helps nobody, and a caller sending it is
+usually being careful rather than wrong.
+
+`/openapi.json` now marks the field `gps` only, and says what happens when a
+costs import is sent one. Two tests pin it — one that the note appears, one
+that a call *without* the flag says nothing about it, so the answer does not
+grow noise for everybody else.
+
+Found by a Haiku subagent asked to capture whatever it found while reading the
+import route. It is a small thing and a real one.
