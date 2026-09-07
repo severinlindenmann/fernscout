@@ -95,6 +95,50 @@ export const REGISTRY: readonly Intent[] = [
     },
   },
   {
+    /**
+     * B844 — "fix a typo in tuesday", from the day she just published.
+     *
+     * The nearest row was `write_day`, which opens the wizard on a *new* day:
+     * a correction understood as a creation is exactly the misroute B817 was
+     * about, one shape along. This resolves the day herself — the entry on
+     * that date, in that trip — and hands the wizard the same three query
+     * parameters the "Correct or take down this day" link already carries, so
+     * it opens on the day that exists rather than beside it.
+     *
+     * `open`, never `write`: the wizard has its own save button and its own
+     * sentence about a day that is already on the site.
+     */
+    name: "fix_day",
+    kind: "open",
+    describe:
+      "Correct a day that is already written — fix a typo, change the words, add a photograph to it. A day that exists, never a new one.",
+    slots: [
+      { name: "date", describe: "the day being corrected", date: true },
+      { name: "trip", describe: "the trip id it belongs to, if the person named one" },
+    ],
+    href: (username, slots) => {
+      const trips = getTrips(username);
+      const trip =
+        trips.find((one) => one.id === slots.trip) ??
+        [...trips].sort((a, b) => b.start.localeCompare(a.start))[0];
+      // No trip at all, or no day on that date: fall through to the wizard's
+      // own opening logic rather than inventing a slug. It lands on the same
+      // screen, one step further back, which is recoverable; a slug nobody
+      // has is a 404 in the middle of a correction.
+      const entry = trip
+        ? getAllEntries(trip.ref, AS_AUTHOR).find((one) => one.date === slots.date)
+        : undefined;
+      const query = new URLSearchParams(
+        Object.entries({
+          trip: entry ? trip!.id : (slots.trip ?? ""),
+          slug: entry?.slug ?? "",
+          date: slots.date ?? "",
+        }).filter(([, value]) => value !== ""),
+      ).toString();
+      return `/agent/${encodeURIComponent(username)}${query ? `?${query}` : ""}`;
+    },
+  },
+  {
     name: "storage",
     kind: "read",
     // B808 — "How much room this journal is using" caught "wheres my stuff" at

@@ -29,6 +29,7 @@ import {
 import type { TripGap, WizardTrip } from "@/lib/helper/server";
 import { weekdayNames, type TranslationKey } from "@/lib/i18n";
 import { isoDate, isoTime, readExif, wallClockMs } from "@/lib/ingest/exif";
+import type { PhotoVisibility } from "@/lib/photos";
 import type { CurrencyOptions } from "@/lib/rates";
 import { TRACKS, type Track } from "@/lib/tracks";
 import type { Day, DaySummary } from "@/lib/types";
@@ -227,6 +228,34 @@ function todayIso(): string {
 export const PICKER_ACCEPT = "image/*,video/*,.csv,.pdf,.json,.txt,.gpx,.md";
 
 /**
+ * The extensions that are *not* photographs — `INBOX_FILE_EXTENSIONS` in
+ * `lib/inbox.ts`, which is server-only and cannot be imported here (B845).
+ * `test/agent-picker-kinds.test.ts` keeps the two from drifting, the same way
+ * `PICKER_ACCEPT` above is kept honest.
+ */
+const FILE_EXTENSIONS = [".csv", ".pdf", ".json", ".txt", ".gpx", ".md"];
+
+/**
+ * How many of a pick are photographs and how many are something else — B845.
+ *
+ * B791 widened the picker so a bank statement or a Timeline export could be
+ * chosen, and the label did not follow: attaching `receipt.pdf` was answered
+ * with "1 photo chosen", which is the screen calling a PDF a photograph and
+ * giving no sign that anything different will happen to it.
+ *
+ * The split is by extension rather than by `File.type`, which is empty for a
+ * HEIC on most phones and wrong for a `.gpx` on all of them — and by the
+ * *same* extension list the route sorts on, so the count and the destination
+ * cannot disagree.
+ */
+export function countKinds(files: File[]): { photos: number; files: number } {
+  const isFile = (name: string) =>
+    FILE_EXTENSIONS.some((ext) => name.toLowerCase().endsWith(ext));
+  const other = files.filter((file) => isFile(file.name)).length;
+  return { photos: files.length - other, files: other };
+}
+
+/**
  * A file picker whose words are ours — B768.
  *
  * `<input type="file">` draws its own button and its own "No file chosen" in
@@ -243,17 +272,27 @@ export const PICKER_ACCEPT = "image/*,video/*,.csv,.pdf,.json,.txt,.gpx,.md";
  */
 function PhotoPicker({
   id,
-  count,
+  chosen,
   disabled,
   onPick,
 }: {
   id: string;
-  /** How many files are chosen right now — 0 says so in words. */
-  count: number;
+  /** What is chosen right now — empty says so in words. Files rather than a
+   *  count since B845: a receipt and a photograph are not the same noun and
+   *  do not go to the same place. */
+  chosen: File[];
   disabled?: boolean;
   onPick: (files: FileList | null) => void;
 }) {
   const { t, tn } = useI18n();
+  const kinds = countKinds(chosen);
+  // "3 Fotos und 1 Datei gewählt" — the two nouns pluralised on their own
+  // counts and then joined, because one key carrying both would have to
+  // decline both at once and no plural system here does that.
+  const parts = [
+    ...(kinds.photos > 0 ? [tn("agent.photosPart", kinds.photos, { count: String(kinds.photos) })] : []),
+    ...(kinds.files > 0 ? [tn("agent.filesPart", kinds.files, { count: String(kinds.files) })] : []),
+  ].join(` ${t("agent.andJoin")} `);
   return (
     <div className="mt-3">
       <input
@@ -274,8 +313,17 @@ function PhotoPicker({
         {t("agent.chooseFiles")}
       </label>
       <p className="mt-2 text-sm text-navy-700">
-        {count === 0 ? t("agent.noneChosen") : tn("agent.chosenCount", count, { count: String(count) })}
+        {chosen.length === 0 ? t("agent.noneChosen") : t("agent.chosenParts", { parts })}
       </p>
+      {/* Where the thing that is not a photograph has gone — B845. Said only
+          when one was actually chosen, because it is also the only place the
+          import feature is advertised, and a sentence about the inbox on a
+          screen holding twelve photographs is noise. */}
+      {kinds.files > 0 && (
+        <p role="status" className="mt-1 text-sm leading-6 text-navy-700">
+          {t("agent.filesToInbox")}
+        </p>
+      )}
       {/* What may be dropped here, since it is no longer only photographs —
           B791. The route sorts them; this stops the screen lying about what
           is welcome. */}
@@ -404,6 +452,9 @@ export default function AgentWizard({
   // happened. Never a delete: the day stays on disk as a draft.
   const [takingDown, setTakingDown] = useState(false);
   const [tookDown, setTookDown] = useState(false);
+  /** The photograph whose removal is being confirmed — B851. One at a time,
+   *  and `null` the rest of the time, which is nearly always. */
+  const [removing, setRemoving] = useState<string | null>(null);
 
   /**
    * Whether the gap line has been waved away — B819.
@@ -449,6 +500,12 @@ export default function AgentWizard({
   const [captions, setCaptions] = useState<PhotoCaption[] | null>(null);
 
   const base = `/api/helper/${encodeURIComponent(username)}/day`;
+
+  /** The photographs actually on the day, as disk has them — B851. Read off
+   *  the preview rather than kept beside it, so a removal shows because the
+   *  day was re-read and not because this component believed itself. */
+  const onTheDay =
+    preview?.day.entries.find((entry) => entry.slug === draft?.slug)?.gallery ?? [];
 
   /** What the last 422 asked for, readable in the same turn — the `missing`
    *  state above arrives a render later, and `ensureDraft` has to act on it
@@ -864,6 +921,65 @@ export default function AgentWizard({
     [base, draft, send],
   );
 
+  /**
+   * Hold one photograph back, or let it out again — B851, over B596's label.
+   *
+   * The gentler of the two answers to "please take that picture down", and
+   * the one most likely to be right: the day is fine, the picture is fine,
+   * and one person in it would rather not be on the open web. The label
+   * narrows and can never widen, so `private` here means the people who were
+   * on the trip and the owner, whatever the trip itself allows.
+   */
+  const hidePhoto = useCallback(
+    async (src: string, next: PhotoVisibility | null) => {
+      if (!draft) return;
+      setBusy(true);
+      const body = await send(base, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          trip: draft.trip,
+          slug: draft.slug,
+          photoVisibility: { [src]: next },
+        }),
+      });
+      setBusy(false);
+      if (!body) return;
+      setDraft(body.draft as WizardDraft);
+      setPreview((body.preview as Preview | null) ?? null);
+    },
+    [base, draft, send],
+  );
+
+  /**
+   * Take one photograph off the day — B851, and it does not come back.
+   *
+   * The derivative and the kept original both go from disk, so this is the
+   * one thing on this screen that is not undoable by pressing something else.
+   * The panel above the button says exactly that; the caption goes with the
+   * item it belonged to, and the remaining photographs keep their order.
+   */
+  const removePhoto = useCallback(
+    async (src: string) => {
+      if (!draft) return;
+      setBusy(true);
+      const body = await send(`${base}/media`, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ trip: draft.trip, day: draft.slug, src: [src] }),
+      });
+      setBusy(false);
+      if (!body) return;
+      setRemoving(null);
+      setDraft(body.draft as WizardDraft);
+      setPreview((body.preview as Preview | null) ?? null);
+      // A caption suggested for a photograph nobody has any more is a row
+      // that can only fail on being kept.
+      setCaptions((prior) => prior?.filter((row) => row.src !== src) ?? null);
+    },
+    [base, draft, send],
+  );
+
   const publish = useCallback(async () => {
     if (!draft) return;
     setBusy(true);
@@ -1185,7 +1301,7 @@ export default function AgentWizard({
                 <Why>{t("agent.pickPhotosWhy")}</Why>
                 <PhotoPicker
                   id="wizard-pick"
-                  count={files.length}
+                  chosen={files}
                   onPick={(list) => void pick(list)}
                 />
                 {reading && <p className="mt-2 text-sm text-navy-600">{t("agent.readingPhotos")}</p>}
@@ -1262,7 +1378,7 @@ export default function AgentWizard({
           </p>
           <PhotoPicker
             id="wizard-add"
-            count={files.length}
+            chosen={files}
             disabled={busy}
             onPick={async (list) => {
               const chosen = Array.from(list ?? []);
@@ -1270,6 +1386,67 @@ export default function AgentWizard({
               await startUploads(draft.trip, draft.slug, chosen);
             }}
           />
+
+          {/* Every photograph on the day, with the two answers to "take that
+              one down" — B851. Hiding narrows and is undoable; removing
+              deletes the derivative and the original and is not, which the
+              panel says before the button rather than the response saying it
+              after. */}
+          {onTheDay.length > 0 && (
+            <ul className="mt-5 space-y-3">
+              {onTheDay.map((item) => (
+                <li key={item.src} className="flex items-start gap-3">
+                  {/* Not next/image: these are the journal's own derivatives,
+                      already at the width they are served at, and behind a
+                      route that decides who may see them. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.poster ?? item.src}
+                    alt={item.caption ?? ""}
+                    className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    {item.visibility && (
+                      <p className="text-sm text-navy-700">
+                        {t(`agent.photoHidden.${item.visibility}` as TranslationKey)}
+                      </p>
+                    )}
+                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void hidePhoto(item.src, item.visibility ? null : "private")}
+                        className="min-h-11 text-sm font-semibold text-navy-800 underline underline-offset-4 disabled:opacity-50"
+                      >
+                        {item.visibility ? t("agent.photoShow") : t("agent.photoHide")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => setRemoving(item.src)}
+                        className="min-h-11 text-sm font-semibold text-coral-700 underline underline-offset-4 disabled:opacity-50"
+                      >
+                        {t("agent.photoRemove")}
+                      </button>
+                    </div>
+                    {removing === item.src && (
+                      <div className="mt-2">
+                        <ConfirmPanel
+                          label={t("agent.photoRemove")}
+                          question={t("agent.photoRemoveShort")}
+                          details={t("agent.photoRemoveWhy")}
+                          confirmLabel={t("agent.photoRemoveConfirm")}
+                          busy={busy}
+                          onConfirm={() => void removePhoto(item.src)}
+                          onCancel={() => setRemoving(null)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
           <button
             type="button"
             disabled={busy}
@@ -1360,7 +1537,7 @@ export default function AgentWizard({
           {quick && (
             <PhotoPicker
               id="wizard-quick-pick"
-              count={files.length}
+              chosen={files}
               disabled={busy}
               onPick={async (list) => {
                 const chosen = Array.from(list ?? []);

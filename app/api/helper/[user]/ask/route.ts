@@ -1,8 +1,9 @@
 import { isEnabled } from "@/lib/capabilities";
-import { helperConsent } from "@/lib/helper/consent";
+import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
 import { intentFor, refusalFor, slotsFor, type Say } from "@/lib/helper/intents";
 import { routeAsk, UNKNOWN_INTENT } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { speechProvider } from "@/lib/helper/transcribe";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 
@@ -43,6 +44,41 @@ const LIMIT = { max: 40, windowMs: 15 * 60 * 1000 };
 const SURE_ENOUGH = 0.5;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Whether this box belongs on the page asking, and what it needs to draw
+ * itself — B844.
+ *
+ * `/agent` reads all five of these on the server and hands them to
+ * `HelperAsk` as props. A journal page cannot: the day card and the trip
+ * overview are client components several levels below a page that knows
+ * nothing about the helper, and threading five props through `TripStory` and
+ * `StoryPager` to reach them would put the capability into the props of every
+ * page that renders a day.
+ *
+ * So the component asks, the same shape `InviteToRead` already has beside it:
+ * a 404 means "not yours, or switched off here", and the answer to a 404 is
+ * to draw nothing at all rather than a box that explains itself after being
+ * pressed. Owner only, so this reveals nothing about somebody else's journal
+ * — `notYourJournal` gives the same answer for a journal that is not yours as
+ * for one that does not exist.
+ */
+export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
+  const { user } = await params;
+  if (!(await isHelperOwner(user))) {
+    return notYourJournal(request, user);
+  }
+  if (!isEnabled("helper", user)) {
+    return Response.json({ error: "helper_unavailable" }, { status: 404 });
+  }
+  return Response.json({
+    ok: true,
+    consented: Boolean(helperConsent(user)),
+    speech: isEnabled("transcription", user),
+    consentedSpeech: hasHelperConsent(user, "speech"),
+    speechProvider: speechProvider(),
+  });
+}
 
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
   const { user } = await params;
