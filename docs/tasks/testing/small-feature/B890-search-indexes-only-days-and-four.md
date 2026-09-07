@@ -7,8 +7,7 @@ complexity: medium
 area: search
 found: "2026-09-07T18:25:54Z"
 started: "2026-09-07T18:26:31Z"
-session: 6c81e17b-6acf-4c0f-86ef-49124c9b2458
-claimed: "2026-09-07T18:26:31Z"
+merged: "2026-09-07T18:47:50Z"
 ---
 
 # B890 — Search indexes only days and four nav rows — trips, docs pages and journal destinations are unfindable
