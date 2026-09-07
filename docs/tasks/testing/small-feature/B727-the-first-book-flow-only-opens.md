@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook, onboarding
 found: "2026-09-07T00:00:00Z"
+merged: "2026-09-07T12:26:33Z"
 ---
 
 # B727 — The first-book flow only opens once, is laid out for a desktop, and draws a book as a grey rectangle
@@ -79,3 +80,62 @@ with a drawing beside each answer — which is what the flow is already for.
 - Answering the whole flow leaves a book whose days, layout, language and
   cover need no further editing.
 - Looked at in a real browser at 390px, per `test-in-a-browser`.
+
+## Findings (2026-09-07)
+
+All four complaints, plus the two things asked for while it was being built.
+
+**It opens every time, and offers to carry on.** `showFlow` is now
+`flowOpen ?? true`. `hadSaved` did not become dead — it is the difference
+between opening on *"How big?"* and opening on *"Carry on where you left
+off?"*, whose two cards are the composer in one tap or the questions with
+every answer already filled in. So "always" costs a returning owner one tap,
+which is what made "always" safe to do at all.
+
+**A format is drawn as a book.** `FormatShape` has a spine down one edge, the
+page block showing past the fore edge, and a photograph and a title line on
+the cover. The proportions are still true and still scaled against the longest
+edge any format has, so the shape is still the answer to the question.
+
+**Mobile first.** Three formats in a row rather than a column; two columns for
+the words, the extras and the languages; the primary action full width with
+back and skip as links beneath it. The progress dots stretch to the width
+rather than being fixed pills, because the number of steps now depends on the
+trip.
+
+**Six more questions, three of them conditional.**
+- *How should a day look?* — one `DayLayout` for the whole trip, through the
+  composer's own `applyLayoutToAll`, drawn with B703's `LayoutShape`. That is
+  the one that saves the most editing afterwards.
+- *Which days go in?* — every day, switchable, writing `DayPlan.excluded`.
+  Skipped for a one-day trip.
+- *In which language?* — only where the journal offers more than one.
+- The extras gained a fifth tile, *Your figures* — see below.
+
+**The figures, on paper, in a third place.** `includeFigureMarks` draws the
+party at the foot of every chapter divider, reusing `drawTravellers` — the
+figures were already spelled as PDF, so this is a placement rather than a
+drawing. Offered only where somebody has actually been described
+(`hasFigures`, computed with `partyFor` on both photobook pages) *and* "who
+travelled" is on, since `buildBookSource` empties the party when it is off.
+The vehicles from `/docs/branding/animation` are **not** done and are B737:
+they exist only as React components and need the extraction `shapes.ts` got.
+
+**One compatibility decision.** `includeFigureMarks` is the only flag
+`parseOptions` treats as optional. Every other one has been in the schema
+since the beginning, so a body omitting one has misunderstood the request;
+refusing every body written before today, over a decoration that is off by
+default, would have broken every stored arrangement and every agent that ever
+posted one. Absent means off. Two tests pin both halves.
+
+**Verified in a browser**, per `test-in-a-browser`, at 390 × 844: all eight
+steps of the demo journal's `alps-2024`, the three book drawings side by side,
+the day list, the five extras tiles, the resume screen after a reload, and
+carrying on landing back on the composer with the arrangement intact. No
+console errors.
+
+`npm run verify`: all four passed (4384 tests).
+
+**Left for a person:** whether eight steps is too many. It is skippable at
+every one and the list shortens for a simple trip (a one-day, one-language
+journal sees five), but the honest test is somebody making a real book.
