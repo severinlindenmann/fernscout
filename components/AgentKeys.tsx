@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { useI18n } from "./LocaleProvider";
 
 /**
@@ -90,8 +91,12 @@ export default function AgentKeys({
 
   return (
     <div className="mt-5">
-      <h3 className="font-display text-base font-semibold text-navy-900">{t("me.keysTitle")}</h3>
-      <p className="mt-1 text-base leading-7 text-navy-700">{t("me.keysBody")}</p>
+      <h3 className="font-display text-base font-semibold text-navy-900">
+        {t("me.keysTitle")}
+      </h3>
+      <p className="mt-1 text-base leading-7 text-navy-700">
+        {t("me.keysBody")}
+      </p>
       <ul className="mt-3 space-y-2">
         {keys.map((key) => (
           <li
@@ -100,25 +105,31 @@ export default function AgentKeys({
           >
             <span className="text-base">
               <span className="font-semibold text-navy-900">
-                {t(key.kind === "handover" ? "me.keysHandover" : "me.keysAgent")}
+                {t(
+                  key.kind === "handover" ? "me.keysHandover" : "me.keysAgent",
+                )}
               </span>
               <span className="block text-sm text-navy-600">
                 {[
-                  t("me.keysUntil", { date: new Date(key.expiresAt).toLocaleString() }),
+                  t("me.keysUntil", {
+                    date: new Date(key.expiresAt).toLocaleString(),
+                  }),
                   key.lastSeenAt
-                    ? t("me.keysUsed", { date: new Date(key.lastSeenAt).toLocaleString() })
+                    ? t("me.keysUsed", {
+                        date: new Date(key.lastSeenAt).toLocaleString(),
+                      })
                     : t("me.keysUnused"),
                 ].join(" · ")}
               </span>
             </span>
-            <button
+            <BusyButton
+              busy={busy === key.id}
               type="button"
-              disabled={busy === key.id}
               onClick={() => revoke(key.id)}
               className="rounded-lg border border-navy-200 px-3 py-1 text-sm text-navy-700 disabled:opacity-50"
             >
               {t("me.keysRevoke")}
-            </button>
+            </BusyButton>
           </li>
         ))}
       </ul>

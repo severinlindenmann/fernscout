@@ -902,6 +902,7 @@
   "postcard.confirm.working": "Küldés…",
   "postcard.confirm.yesMany": "Igen, küldd el",
   "postcard.confirm.yesOne": "Igen, küldd el",
+  "postcard.confirm.sending": "Küldés…",
   "postcard.cost": "{credits} kredit",
   "postcard.create": "Előnézet létrehozása",
   "postcard.creating": "Készül…",

@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { codeConfirmErrorKey } from "@/lib/contacts/codeConfirmError";
 import { redeemOutcome } from "@/lib/contacts/redeemOutcome";
-import { LOCALE_LABEL, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
+import {
+  LOCALE_LABEL,
+  telHintKey,
+  translate,
+  type TranslationKey,
+} from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 import AddressLookupField from "./AddressLookupField";
 import CountryField from "./CountryField";
@@ -203,7 +209,9 @@ export default function InviteRedeem({
       }
       if (
         wantsPostcard &&
-        (address.line1.trim() === "" || address.city.trim() === "" || address.country.trim() === "")
+        (address.line1.trim() === "" ||
+          address.city.trim() === "" ||
+          address.country.trim() === "")
       ) {
         return setError("contact.needAddress");
       }
@@ -225,13 +233,24 @@ export default function InviteRedeem({
         // are the same story: sent only on the "form" step, where they were
         // actually asked for — the confirm step must never answer for an
         // already-known reader (B273's doc comment above explains why).
-        ...(knownEmail ? {} : { email, address, wantsPostcard, wantsWhatsapp, wantsEmailDigest: wantsDigest }),
+        ...(knownEmail
+          ? {}
+          : {
+              email,
+              address,
+              wantsPostcard,
+              wantsWhatsapp,
+              wantsEmailDigest: wantsDigest,
+            }),
       }),
     }).catch(() => null);
     setBusy(false);
 
     if (!response) return setError("contact.error");
-    const body = (await response.json().catch(() => ({}))) as { error?: string; status?: string };
+    const body = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      status?: string;
+    };
     // B406: every refusal this endpoint can return has to reach the reader —
     // `redeemOutcome` is the one place that decides how, shared with the test
     // that checks each one does.
@@ -282,13 +301,23 @@ export default function InviteRedeem({
         <form onSubmit={redeem} noValidate>
           <p className="mt-3 text-lg leading-relaxed text-navy-700">
             {kind === "buddy"
-              ? t(preapproved ? "invite.buddyIntroPreapproved" : "invite.buddyIntro", {
-                  what,
-                  title: journalTitle,
-                })
-              : t(preapproved ? "invite.guestIntroPreapproved" : "invite.guestIntro", {
-                  title: journalTitle,
-                })}
+              ? t(
+                  preapproved
+                    ? "invite.buddyIntroPreapproved"
+                    : "invite.buddyIntro",
+                  {
+                    what,
+                    title: journalTitle,
+                  },
+                )
+              : t(
+                  preapproved
+                    ? "invite.guestIntroPreapproved"
+                    : "invite.guestIntro",
+                  {
+                    title: journalTitle,
+                  },
+                )}
           </p>
 
           {step === "confirm" ? (
@@ -323,7 +352,9 @@ export default function InviteRedeem({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
-                <p className="mt-2 text-base text-navy-600">{t("contact.emailHint")}</p>
+                <p className="mt-2 text-base text-navy-600">
+                  {t("contact.emailHint")}
+                </p>
                 {/* B338 — the sentence that matters more than the prefill
                     itself. Shown whenever this link carried an address to
                     prefill, regardless of whether the reader has since
@@ -381,105 +412,113 @@ export default function InviteRedeem({
               </div>
 
               {postcardsEnabled && (
-              <fieldset className="mt-10 rounded-2xl border border-navy-200 bg-cream-100 p-5">
-                <legend className="px-2 font-display text-xl text-navy-900">
-                  {t("contact.address")}
-                </legend>
-                <p className="text-base text-navy-700">{t("contact.addressHint")}</p>
+                <fieldset className="mt-10 rounded-2xl border border-navy-200 bg-cream-100 p-5">
+                  <legend className="px-2 font-display text-xl text-navy-900">
+                    {t("contact.address")}
+                  </legend>
+                  <p className="text-base text-navy-700">
+                    {t("contact.addressHint")}
+                  </p>
 
-                <div className="mt-4">
-                  <label className={LABEL} htmlFor="invite-addr-name">
-                    {t("contact.addrName")}
-                  </label>
-                  <input
-                    id="invite-addr-name"
-                    className={FIELD}
-                    value={address.name}
-                    onChange={(e) => setAddressField("name", e.target.value)}
-                  />
-                </div>
-                <div className="mt-4">
-                  <label className={LABEL} htmlFor="invite-addr-line1">
-                    {t("contact.addrLine1")}
-                  </label>
-                  <AddressLookupField
-                    id="invite-addr-line1"
-                    className={FIELD}
-                    autoComplete="address-line1"
-                    value={address.line1}
-                    onChange={(value) => setAddressField("line1", value)}
-                    onPick={(suggestion) => {
-                      setAddress((previous) => ({
-                        ...previous,
-                        line1: suggestion.line1,
-                        postcode: suggestion.postcode,
-                        city: suggestion.city,
-                        country: suggestion.country,
-                      }));
-                      setWantsPostcard(true);
-                    }}
-                    enabled={addressLookupEnabled}
-                    username={username}
-                    locale={locale}
-                    label={t("contact.addrLine1")}
-                    attribution={t("contact.addressLookupAttribution")}
-                  unavailable={t("contact.addressLookupUnavailable")}
-                  />
-                </div>
-                <div className="mt-4">
-                  <label className={LABEL} htmlFor="invite-addr-line2">
-                    {`${t("contact.addrLine2")} (${t("contact.optional")})`}
-                  </label>
-                  <input
-                    id="invite-addr-line2"
-                    className={FIELD}
-                    autoComplete="address-line2"
-                    value={address.line2}
-                    onChange={(e) => setAddressField("line2", e.target.value)}
-                  />
-                </div>
-                <div className="mt-4 flex gap-4">
-                  <div className="w-1/3">
-                    <label className={LABEL} htmlFor="invite-addr-postcode">
-                      {t("contact.addrPostcode")}
+                  <div className="mt-4">
+                    <label className={LABEL} htmlFor="invite-addr-name">
+                      {t("contact.addrName")}
                     </label>
                     <input
-                      id="invite-addr-postcode"
+                      id="invite-addr-name"
                       className={FIELD}
-                      autoComplete="postal-code"
-                      value={address.postcode}
-                      onChange={(e) => setAddressField("postcode", e.target.value)}
+                      value={address.name}
+                      onChange={(e) => setAddressField("name", e.target.value)}
                     />
                   </div>
-                  <div className="flex-1">
-                    <label className={LABEL} htmlFor="invite-addr-city">
-                      {t("contact.addrCity")}
+                  <div className="mt-4">
+                    <label className={LABEL} htmlFor="invite-addr-line1">
+                      {t("contact.addrLine1")}
+                    </label>
+                    <AddressLookupField
+                      id="invite-addr-line1"
+                      className={FIELD}
+                      autoComplete="address-line1"
+                      value={address.line1}
+                      onChange={(value) => setAddressField("line1", value)}
+                      onPick={(suggestion) => {
+                        setAddress((previous) => ({
+                          ...previous,
+                          line1: suggestion.line1,
+                          postcode: suggestion.postcode,
+                          city: suggestion.city,
+                          country: suggestion.country,
+                        }));
+                        setWantsPostcard(true);
+                      }}
+                      enabled={addressLookupEnabled}
+                      username={username}
+                      locale={locale}
+                      label={t("contact.addrLine1")}
+                      attribution={t("contact.addressLookupAttribution")}
+                      unavailable={t("contact.addressLookupUnavailable")}
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <label className={LABEL} htmlFor="invite-addr-line2">
+                      {`${t("contact.addrLine2")} (${t("contact.optional")})`}
                     </label>
                     <input
-                      id="invite-addr-city"
+                      id="invite-addr-line2"
                       className={FIELD}
-                      autoComplete="address-level2"
-                      value={address.city}
-                      onChange={(e) => setAddressField("city", e.target.value)}
+                      autoComplete="address-line2"
+                      value={address.line2}
+                      onChange={(e) => setAddressField("line2", e.target.value)}
                     />
                   </div>
-                </div>
-                <div className="mt-4">
-                  <label className={LABEL} htmlFor="invite-addr-country">
-                    {t("contact.addrCountry")}
-                  </label>
-                  <CountryField
-                    id="invite-addr-country"
-                    value={address.country}
-                    locales={locales}
-                    onChange={(code) => setAddressField("country", code)}
-                    label={t("contact.addrCountry")}
-                    searchPlaceholder={t("contact.addrCountrySearchPlaceholder")}
-                    noMatches={t("contact.addrCountryNoMatches")}
-                    locale={locale}
-                  />
-                </div>
-              </fieldset>
+                  <div className="mt-4 flex gap-4">
+                    <div className="w-1/3">
+                      <label className={LABEL} htmlFor="invite-addr-postcode">
+                        {t("contact.addrPostcode")}
+                      </label>
+                      <input
+                        id="invite-addr-postcode"
+                        className={FIELD}
+                        autoComplete="postal-code"
+                        value={address.postcode}
+                        onChange={(e) =>
+                          setAddressField("postcode", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className={LABEL} htmlFor="invite-addr-city">
+                        {t("contact.addrCity")}
+                      </label>
+                      <input
+                        id="invite-addr-city"
+                        className={FIELD}
+                        autoComplete="address-level2"
+                        value={address.city}
+                        onChange={(e) =>
+                          setAddressField("city", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className={LABEL} htmlFor="invite-addr-country">
+                      {t("contact.addrCountry")}
+                    </label>
+                    <CountryField
+                      id="invite-addr-country"
+                      value={address.country}
+                      locales={locales}
+                      onChange={(code) => setAddressField("country", code)}
+                      label={t("contact.addrCountry")}
+                      searchPlaceholder={t(
+                        "contact.addrCountrySearchPlaceholder",
+                      )}
+                      noMatches={t("contact.addrCountryNoMatches")}
+                      locale={locale}
+                    />
+                  </div>
+                </fieldset>
               )}
 
               {/* Two questions, two boxes. "Write to me" and "post me
@@ -498,26 +537,26 @@ export default function InviteRedeem({
                   <span>{t("contact.wantsDigest")}</span>
                 </label>
                 {postcardsEnabled && (
-                <label className="flex items-start gap-3 text-lg text-navy-900">
-                  <input
-                    type="checkbox"
-                    className="mt-1.5 size-5"
-                    checked={wantsPostcard}
-                    onChange={(e) => setWantsPostcard(e.target.checked)}
-                  />
-                  <span>{t("contact.wantsPostcard")}</span>
-                </label>
+                  <label className="flex items-start gap-3 text-lg text-navy-900">
+                    <input
+                      type="checkbox"
+                      className="mt-1.5 size-5"
+                      checked={wantsPostcard}
+                      onChange={(e) => setWantsPostcard(e.target.checked)}
+                    />
+                    <span>{t("contact.wantsPostcard")}</span>
+                  </label>
                 )}
                 {whatsappEnabled && (
-                <label className="flex items-start gap-3 text-lg text-navy-900">
-                  <input
-                    type="checkbox"
-                    className="mt-1.5 size-5"
-                    checked={wantsWhatsapp}
-                    onChange={(e) => setWantsWhatsapp(e.target.checked)}
-                  />
-                  <span>{t("contact.wantsWhatsapp")}</span>
-                </label>
+                  <label className="flex items-start gap-3 text-lg text-navy-900">
+                    <input
+                      type="checkbox"
+                      className="mt-1.5 size-5"
+                      checked={wantsWhatsapp}
+                      onChange={(e) => setWantsWhatsapp(e.target.checked)}
+                    />
+                    <span>{t("contact.wantsWhatsapp")}</span>
+                  </label>
                 )}
               </div>
             </>
@@ -527,12 +566,16 @@ export default function InviteRedeem({
             {t(preapproved ? "invite.notYetPreapproved" : "invite.notYet")}
           </p>
 
-          {error && <p role="alert" className="mt-6 text-lg text-red-700">{t(error)}</p>}
-          <button className={BUTTON} disabled={busy} type="submit">
+          {error && (
+            <p role="alert" className="mt-6 text-lg text-red-700">
+              {t(error)}
+            </p>
+          )}
+          <BusyButton busy={busy} className={BUTTON} type="submit">
             {step === "confirm"
               ? t("invite.confirmSubmit")
               : t(preapproved ? "invite.submitPreapproved" : "invite.submit")}
-          </button>
+          </BusyButton>
         </form>
       )}
 
@@ -554,10 +597,14 @@ export default function InviteRedeem({
               onChange={(e) => setCode(e.target.value)}
             />
           </div>
-          {error && <p role="alert" className="mt-6 text-lg text-red-700">{t(error)}</p>}
-          <button className={BUTTON} disabled={busy} type="submit">
+          {error && (
+            <p role="alert" className="mt-6 text-lg text-red-700">
+              {t(error)}
+            </p>
+          )}
+          <BusyButton busy={busy} className={BUTTON} type="submit">
             {t("contact.codeSubmit")}
-          </button>
+          </BusyButton>
         </form>
       )}
 

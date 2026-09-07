@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 
 /**
  * The one press that spends a sign-in link (B142).
@@ -51,7 +52,9 @@ export default function SignInButton({
       },
     ).catch(() => null);
 
-    const body = (await response?.json().catch(() => null)) as { next?: string } | null;
+    const body = (await response?.json().catch(() => null)) as {
+      next?: string;
+    } | null;
     if (!response?.ok) {
       // The server names where to go next — the page that can issue a fresh
       // code. Falling back here rather than guessing keeps the two in step.
@@ -68,14 +71,15 @@ export default function SignInButton({
 
   return (
     <div className="mt-9">
-      <button
+      <BusyButton
+        busy={state === "working"}
         type="button"
         onClick={open}
-        disabled={state === "working"}
         className="inline-flex min-h-12 items-center justify-center rounded-full bg-yellow-400 px-6 text-lg font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-60"
+        busyLabel={working}
       >
-        {state === "working" ? working : label}
-      </button>
+        label
+      </BusyButton>
       {state === "failed" && (
         <p className="mt-4 text-xl leading-8 text-navy-700">{failed}</p>
       )}

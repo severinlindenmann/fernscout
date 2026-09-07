@@ -902,6 +902,7 @@
   "postcard.confirm.working": "Wird gesendet …",
   "postcard.confirm.yesMany": "Ja, senden",
   "postcard.confirm.yesOne": "Ja, senden",
+  "postcard.confirm.sending": "Wird gesendet…",
   "postcard.cost": "{credits} Credits",
   "postcard.create": "Vorschau erstellen",
   "postcard.creating": "Wird erstellt …",

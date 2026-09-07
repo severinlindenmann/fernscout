@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import Link from "next/link";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import DayCosts from "@/components/DayCosts";
@@ -168,7 +169,9 @@ async function factsOf(files: File[]): Promise<ExifFacts> {
   for (const file of files) {
     let data;
     try {
-      const head = new Uint8Array(await file.slice(0, EXIF_HEAD_BYTES).arrayBuffer());
+      const head = new Uint8Array(
+        await file.slice(0, EXIF_HEAD_BYTES).arrayBuffer(),
+      );
       data = readExif(head);
     } catch {
       continue;
@@ -290,8 +293,12 @@ function PhotoPicker({
   // counts and then joined, because one key carrying both would have to
   // decline both at once and no plural system here does that.
   const parts = [
-    ...(kinds.photos > 0 ? [tn("agent.photosPart", kinds.photos, { count: String(kinds.photos) })] : []),
-    ...(kinds.files > 0 ? [tn("agent.filesPart", kinds.files, { count: String(kinds.files) })] : []),
+    ...(kinds.photos > 0
+      ? [tn("agent.photosPart", kinds.photos, { count: String(kinds.photos) })]
+      : []),
+    ...(kinds.files > 0
+      ? [tn("agent.filesPart", kinds.files, { count: String(kinds.files) })]
+      : []),
   ].join(` ${t("agent.andJoin")} `);
   return (
     <div className="mt-3">
@@ -313,7 +320,9 @@ function PhotoPicker({
         {t("agent.chooseFiles")}
       </label>
       <p className="mt-2 text-sm text-navy-700">
-        {chosen.length === 0 ? t("agent.noneChosen") : t("agent.chosenParts", { parts })}
+        {chosen.length === 0
+          ? t("agent.noneChosen")
+          : t("agent.chosenParts", { parts })}
       </p>
       {/* Where the thing that is not a photograph has gone — B845. Said only
           when one was actually chosen, because it is also the only place the
@@ -327,7 +336,9 @@ function PhotoPicker({
       {/* What may be dropped here, since it is no longer only photographs —
           B791. The route sorts them; this stops the screen lying about what
           is welcome. */}
-      <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.pickAnyFile")}</p>
+      <p className="mt-1 text-sm leading-6 text-navy-600">
+        {t("agent.pickAnyFile")}
+      </p>
     </div>
   );
 }
@@ -345,7 +356,11 @@ type OpenAt = { date?: string; trip?: string; slug?: string };
  * the link names, then today when today is inside a trip that is running, and
  * otherwise the oldest day of the last trip nobody ever wrote.
  */
-function openingDate(open: OpenAt | undefined, trips: WizardTrip[], gaps: TripGap | null): string {
+function openingDate(
+  open: OpenAt | undefined,
+  trips: WizardTrip[],
+  gaps: TripGap | null,
+): string {
   const today = todayIso();
   if (open?.date) return open.date;
   if (tripOn(trips, today)) return today;
@@ -405,7 +420,8 @@ export default function AgentWizard({
       !open?.date &&
       !open?.slug &&
       drafts.length === 0 &&
-      trips.filter((t) => todayIso() >= t.start && todayIso() <= t.end).length === 1,
+      trips.filter((t) => todayIso() >= t.start && todayIso() <= t.end)
+        .length === 1,
   );
   /** Set the moment somebody takes the long way round from the express screen
    *  — from then on this session is the ordinary six steps. */
@@ -419,9 +435,15 @@ export default function AgentWizard({
   const [reading, setReading] = useState(false);
 
   // The day this is most likely about (B818), and the trip it falls inside.
-  const [date, setDate] = useState<string>(() => openingDate(open, trips, gaps));
+  const [date, setDate] = useState<string>(() =>
+    openingDate(open, trips, gaps),
+  );
   const [trip, setTrip] = useState<string>(
-    () => open?.trip ?? tripOn(trips, openingDate(open, trips, gaps)) ?? trips[0]?.id ?? "",
+    () =>
+      open?.trip ??
+      tripOn(trips, openingDate(open, trips, gaps)) ??
+      trips[0]?.id ??
+      "",
   );
 
   /** On the express path the title starts as the weekday — B780. It is the
@@ -431,7 +453,9 @@ export default function AgentWizard({
    *  field between a person and their own words is the tap this ticket is
    *  about; it is an ordinary editable box and anybody may overwrite it. */
   const [title, setTitle] = useState(() =>
-    express ? weekdayNames(locale)[new Date(`${todayIso()}T00:00:00Z`).getUTCDay()] : "",
+    express
+      ? weekdayNames(locale)[new Date(`${todayIso()}T00:00:00Z`).getUTCDay()]
+      : "",
   );
   const [prose, setProse] = useState("");
 
@@ -445,7 +469,9 @@ export default function AgentWizard({
    * something else. Empty on any day where the person answered first.
    */
   const [assumed, setAssumed] = useState<Track[]>([]);
-  const [answers, setAnswers] = useState<Partial<Record<Track, "none" | "unknown">>>({});
+  const [answers, setAnswers] = useState<
+    Partial<Record<Track, "none" | "unknown">>
+  >({});
   const [asking, setAsking] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   // B816 — taking a published day back off the site, and the line that says it
@@ -495,7 +521,9 @@ export default function AgentWizard({
   // B687 — a separate consent and a separate answer, because sending
   // photographs is a bigger promise than sending typed words and one consent
   // must not silently cover the other.
-  const [consentedPhotos, setConsentedPhotos] = useState(helper.consentedPhotos);
+  const [consentedPhotos, setConsentedPhotos] = useState(
+    helper.consentedPhotos,
+  );
   const [consentingPhotos, setConsentingPhotos] = useState(false);
   const [captions, setCaptions] = useState<PhotoCaption[] | null>(null);
 
@@ -505,7 +533,8 @@ export default function AgentWizard({
    *  the preview rather than kept beside it, so a removal shows because the
    *  day was re-read and not because this component believed itself. */
   const onTheDay =
-    preview?.day.entries.find((entry) => entry.slug === draft?.slug)?.gallery ?? [];
+    preview?.day.entries.find((entry) => entry.slug === draft?.slug)?.gallery ??
+    [];
 
   /** What the last 422 asked for, readable in the same turn — the `missing`
    *  state above arrives a render later, and `ensureDraft` has to act on it
@@ -515,21 +544,29 @@ export default function AgentWizard({
   /** One place where a refusal becomes something on the screen — including the
    *  422 that is not a refusal at all but the trip asking a question. */
   const send = useCallback(
-    async (url: string, init: RequestInit): Promise<Record<string, unknown> | null> => {
+    async (
+      url: string,
+      init: RequestInit,
+    ): Promise<Record<string, unknown> | null> => {
       setError(null);
       const response = await fetch(url, init).catch(() => null);
       if (!response) {
         setError(t("agent.failed", { error: "network" }));
         return null;
       }
-      const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+      const body = (await response.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
       if (response.status === 422 && Array.isArray(body.missing)) {
         lastMissing.current = body.missing as Track[];
         setMissing(body.missing as Track[]);
         return null;
       }
       if (!response.ok) {
-        setError(t("agent.failed", { error: String(body.error ?? response.status) }));
+        setError(
+          t("agent.failed", { error: String(body.error ?? response.status) }),
+        );
         return null;
       }
       lastMissing.current = [];
@@ -561,7 +598,9 @@ export default function AgentWizard({
       setPreview(shown);
       if (next.written) {
         setTitle(next.title);
-        setProse(shown?.day.entries.find((e) => e.slug === next.slug)?.content ?? "");
+        setProse(
+          shown?.day.entries.find((e) => e.slug === next.slug)?.content ?? "",
+        );
       }
       return next;
     },
@@ -607,7 +646,11 @@ export default function AgentWizard({
       let readable = false;
       await drain(username, (state) => {
         setProgress(state);
-        if (!readable && state.webTotal > 0 && state.webDone === state.webTotal) {
+        if (
+          !readable &&
+          state.webTotal > 0 &&
+          state.webDone === state.webTotal
+        ) {
           readable = true;
           void refresh(tripId, slug);
         }
@@ -639,7 +682,8 @@ export default function AgentWizard({
       const needed = list.reduce((n, file) => n + file.size, 0);
       const left = room.remainingBytes as number | null;
       if (left !== null && needed > left) {
-        const mb = (n: number) => String(Math.max(1, Math.round(n / (1024 * 1024))));
+        const mb = (n: number) =>
+          String(Math.max(1, Math.round(n / (1024 * 1024))));
         setError(t("agent.noRoom", { needed: mb(needed), left: mb(left) }));
         setBusy(false);
         return;
@@ -682,7 +726,10 @@ export default function AgentWizard({
    * has only just been called and this closure still holds the old date.
    */
   const ensureDraft = useCallback(
-    async (on?: { date: string; trip: string }): Promise<WizardDraft | null> => {
+    async (on?: {
+      date: string;
+      trip: string;
+    }): Promise<WizardDraft | null> => {
       if (draft) return draft;
       const onTrip = on?.trip ?? trip;
       const create = (said: Partial<Record<Track, "none" | "unknown">>) =>
@@ -726,7 +773,9 @@ export default function AgentWizard({
       if (!body && lastMissing.current.length > 0) {
         const unasked = lastMissing.current;
         const said = {
-          ...Object.fromEntries(unasked.map((field) => [field, "unknown" as const])),
+          ...Object.fromEntries(
+            unasked.map((field) => [field, "unknown" as const]),
+          ),
           ...answers,
         };
         setAnswers(said);
@@ -760,7 +809,12 @@ export default function AgentWizard({
     const body = await send(base, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ trip: day.trip, slug: day.slug, title, content: prose }),
+      body: JSON.stringify({
+        trip: day.trip,
+        slug: day.slug,
+        title,
+        content: prose,
+      }),
     });
     setBusy(false);
     if (!body) return;
@@ -779,7 +833,11 @@ export default function AgentWizard({
       const body = await send(base, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ trip: draft.trip, slug: draft.slug, answers: { [field]: said } }),
+        body: JSON.stringify({
+          trip: draft.trip,
+          slug: draft.slug,
+          answers: { [field]: said },
+        }),
       });
       setBusy(false);
       if (!body) return;
@@ -831,9 +889,12 @@ export default function AgentWizard({
   /** Consent, once per journal, before the first model call ever made for it. */
   const agree = useCallback(async () => {
     setBusy(true);
-    const body = await send(`/api/helper/${encodeURIComponent(username)}/consent`, {
-      method: "POST",
-    });
+    const body = await send(
+      `/api/helper/${encodeURIComponent(username)}/consent`,
+      {
+        method: "POST",
+      },
+    );
     setBusy(false);
     if (!body) return;
     setConsented(true);
@@ -846,11 +907,14 @@ export default function AgentWizard({
   const withdraw = useCallback(
     async (scope: "words" | "photos") => {
       setBusy(true);
-      const body = await send(`/api/helper/${encodeURIComponent(username)}/consent`, {
-        method: "DELETE",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ scope }),
-      });
+      const body = await send(
+        `/api/helper/${encodeURIComponent(username)}/consent`,
+        {
+          method: "DELETE",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ scope }),
+        },
+      );
       setBusy(false);
       if (!body) return;
       if (scope === "words") setConsented(false);
@@ -890,11 +954,14 @@ export default function AgentWizard({
    *  above — B687. */
   const agreePhotos = useCallback(async () => {
     setBusy(true);
-    const body = await send(`/api/helper/${encodeURIComponent(username)}/consent`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ scope: "photos" }),
-    });
+    const body = await send(
+      `/api/helper/${encodeURIComponent(username)}/consent`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ scope: "photos" }),
+      },
+    );
     setBusy(false);
     if (!body) return;
     setConsentedPhotos(true);
@@ -911,7 +978,11 @@ export default function AgentWizard({
       const body = await send(base, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ trip: draft.trip, slug: draft.slug, captions: { [row.src]: row.caption } }),
+        body: JSON.stringify({
+          trip: draft.trip,
+          slug: draft.slug,
+          captions: { [row.src]: row.caption },
+        }),
       });
       setBusy(false);
       if (!body) return;
@@ -1044,7 +1115,8 @@ export default function AgentWizard({
     const on = draft?.date ?? date;
     if (on === "") return "";
     const place = preview?.day.lead.location ?? "";
-    const weekday = weekdayNames(locale)[new Date(`${on}T00:00:00Z`).getUTCDay()];
+    const weekday =
+      weekdayNames(locale)[new Date(`${on}T00:00:00Z`).getUTCDay()];
     return place ? `${place}, ${weekday}` : weekday;
   }, [date, draft, locale, preview]);
 
@@ -1094,7 +1166,11 @@ export default function AgentWizard({
    * on the first screen and on the published day, which is an ending.
    */
   const back =
-    draft && !publishedUrl && !asking && !takingDown && !(quick && step === "words")
+    draft &&
+    !publishedUrl &&
+    !asking &&
+    !takingDown &&
+    !(quick && step === "words")
       ? backFrom(step)
       : null;
 
@@ -1129,7 +1205,8 @@ export default function AgentWizard({
           somebody takes the long way round. */}
       {!quick && (
         <p className="mt-2 text-sm text-navy-600">
-          {t("agent.stepOf", { n: String(stepIndex + 1) })} · {t(STEP_LABEL[step])}
+          {t("agent.stepOf", { n: String(stepIndex + 1) })} ·{" "}
+          {t(STEP_LABEL[step])}
         </p>
       )}
 
@@ -1151,52 +1228,61 @@ export default function AgentWizard({
           it was picked for, so once somebody has walked on to a different
           draft the line has to say whose originals are still climbing
           (B721). */}
-      {progress && (progress.webDone < progress.webTotal || progress.originalDone < progress.originalTotal) && (
-        <p
-          aria-live="polite"
-          className="mt-4 rounded-2xl border border-navy-200 bg-cream-100 p-4 text-sm leading-6 text-navy-800"
-        >
-          {(() => {
-            const namedDay = uploadingDaySlug(progress, draft?.slug);
-            return namedDay && `${t("agent.uploadingFor", { date: namedDay })} `;
-          })()}
-          {progress.webDone < progress.webTotal
-            ? t("agent.uploading", {
-                done: String(progress.webDone),
-                total: String(progress.webTotal),
-              })
-            : t("agent.uploadingOriginals", {
-                done: String(progress.originalDone),
-                total: String(progress.originalTotal),
-              })}
-          {progress.error && ` — ${t("agent.failed", { error: progress.error })}`}
-        </p>
-      )}
+      {progress &&
+        (progress.webDone < progress.webTotal ||
+          progress.originalDone < progress.originalTotal) && (
+          <p
+            aria-live="polite"
+            className="mt-4 rounded-2xl border border-navy-200 bg-cream-100 p-4 text-sm leading-6 text-navy-800"
+          >
+            {(() => {
+              const namedDay = uploadingDaySlug(progress, draft?.slug);
+              return (
+                namedDay && `${t("agent.uploadingFor", { date: namedDay })} `
+              );
+            })()}
+            {progress.webDone < progress.webTotal
+              ? t("agent.uploading", {
+                  done: String(progress.webDone),
+                  total: String(progress.webTotal),
+                })
+              : t("agent.uploadingOriginals", {
+                  done: String(progress.originalDone),
+                  total: String(progress.originalTotal),
+                })}
+            {progress.error &&
+              ` — ${t("agent.failed", { error: progress.error })}`}
+          </p>
+        )}
 
       {missing.length > 0 && (
         <section className="mt-4 rounded-2xl border border-navy-200 bg-cream-100 p-4">
-          <h2 className="text-sm font-semibold leading-6 text-navy-800">{t("agent.missingTitle")}</h2>
+          <h2 className="text-sm font-semibold leading-6 text-navy-800">
+            {t("agent.missingTitle")}
+          </h2>
           <ul className="mt-3 space-y-3">
             {TRACKS.filter((field) => missing.includes(field)).map((field) => (
               <li key={field}>
-                <p className="text-sm font-semibold text-navy-900">{t(TRACK_LABEL[field])}</p>
+                <p className="text-sm font-semibold text-navy-900">
+                  {t(TRACK_LABEL[field])}
+                </p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <button
+                  <BusyButton
+                    busy={busy}
                     type="button"
-                    disabled={busy}
                     onClick={() => void answer(field, "none")}
                     className="min-h-11 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 disabled:opacity-50"
                   >
                     {t("agent.answerNone")}
-                  </button>
-                  <button
+                  </BusyButton>
+                  <BusyButton
+                    busy={busy}
                     type="button"
-                    disabled={busy}
                     onClick={() => void answer(field, "unknown")}
                     className="min-h-11 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 disabled:opacity-50"
                   >
                     {t("agent.answerUnknown")}
-                  </button>
+                  </BusyButton>
                 </div>
               </li>
             ))}
@@ -1267,7 +1353,9 @@ export default function AgentWizard({
                       onClick={() => void openDraft(unfinished)}
                       className="min-h-11 w-full rounded-xl border border-navy-200 px-4 py-2 text-left text-base text-navy-800 hover:bg-cream-100"
                     >
-                      <span className="font-semibold">{formatLongDate(unfinished.date)}</span>
+                      <span className="font-semibold">
+                        {formatLongDate(unfinished.date)}
+                      </span>
                       <span className="block text-sm text-navy-600">
                         {unfinished.photos > 0
                           ? tn("agent.photoCount", unfinished.photos, {
@@ -1285,7 +1373,9 @@ export default function AgentWizard({
 
           <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-4 sm:p-5">
             {trips.length === 0 ? (
-              <p className="text-base leading-7 text-navy-800">{t("agent.noTrips")}</p>
+              <p className="text-base leading-7 text-navy-800">
+                {t("agent.noTrips")}
+              </p>
             ) : (
               <>
                 <h2
@@ -1295,7 +1385,9 @@ export default function AgentWizard({
                 >
                   {t("agent.pickPhotos")}
                 </h2>
-                <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.pickPhotosHint")}</p>
+                <p className="mt-1 text-sm leading-6 text-navy-600">
+                  {t("agent.pickPhotosHint")}
+                </p>
                 {/* B781 — the rest of what this paragraph promised, behind
                     "why?" rather than in front of the picker. */}
                 <Why>{t("agent.pickPhotosWhy")}</Why>
@@ -1304,7 +1396,11 @@ export default function AgentWizard({
                   chosen={files}
                   onPick={(list) => void pick(list)}
                 />
-                {reading && <p className="mt-2 text-sm text-navy-600">{t("agent.readingPhotos")}</p>}
+                {reading && (
+                  <p className="mt-2 text-sm text-navy-600">
+                    {t("agent.readingPhotos")}
+                  </p>
+                )}
                 {facts && (
                   <p className="mt-2 text-sm text-navy-700">
                     {facts.from
@@ -1320,7 +1416,10 @@ export default function AgentWizard({
                 <h2 className="mt-6 font-display text-lg font-semibold text-navy-900">
                   {t("agent.chooseTrip")}
                 </h2>
-                <label className="mt-2 block text-sm font-semibold text-navy-800" htmlFor="wizard-trip">
+                <label
+                  className="mt-2 block text-sm font-semibold text-navy-800"
+                  htmlFor="wizard-trip"
+                >
                   {t("agent.stepTrip")}
                 </label>
                 <select
@@ -1336,7 +1435,10 @@ export default function AgentWizard({
                   ))}
                 </select>
 
-                <label className="mt-4 block text-sm font-semibold text-navy-800" htmlFor="wizard-date">
+                <label
+                  className="mt-4 block text-sm font-semibold text-navy-800"
+                  htmlFor="wizard-date"
+                >
                   {t("agent.dateLabel")}
                 </label>
                 <input
@@ -1347,14 +1449,16 @@ export default function AgentWizard({
                   className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
                 />
 
-                <button
+                <BusyButton
+                  busy={busy}
                   type="button"
-                  disabled={busy || reading || date === ""}
+                  disabled={reading || date === ""}
                   onClick={() => void create()}
                   className="mt-5 min-h-11 w-full rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
+                  busyLabel={t("agent.creating")}
                 >
-                  {busy ? t("agent.creating") : t("agent.startDay")}
-                </button>
+                  {t("agent.startDay")}
+                </BusyButton>
               </>
             )}
           </section>
@@ -1373,7 +1477,9 @@ export default function AgentWizard({
           </h2>
           <p className="mt-1 text-sm leading-6 text-navy-700">
             {draft.photos > 0
-              ? tn("agent.onTheDay", draft.photos, { count: String(draft.photos) })
+              ? tn("agent.onTheDay", draft.photos, {
+                  count: String(draft.photos),
+                })
               : t("agent.noPhotosYet")}
           </p>
           <PhotoPicker
@@ -1408,26 +1514,35 @@ export default function AgentWizard({
                   <div className="min-w-0 flex-1">
                     {item.visibility && (
                       <p className="text-sm text-navy-700">
-                        {t(`agent.photoHidden.${item.visibility}` as TranslationKey)}
+                        {t(
+                          `agent.photoHidden.${item.visibility}` as TranslationKey,
+                        )}
                       </p>
                     )}
                     <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
-                      <button
+                      <BusyButton
+                        busy={busy}
                         type="button"
-                        disabled={busy}
-                        onClick={() => void hidePhoto(item.src, item.visibility ? null : "private")}
+                        onClick={() =>
+                          void hidePhoto(
+                            item.src,
+                            item.visibility ? null : "private",
+                          )
+                        }
                         className="min-h-11 text-sm font-semibold text-navy-800 underline underline-offset-4 disabled:opacity-50"
                       >
-                        {item.visibility ? t("agent.photoShow") : t("agent.photoHide")}
-                      </button>
-                      <button
+                        {item.visibility
+                          ? t("agent.photoShow")
+                          : t("agent.photoHide")}
+                      </BusyButton>
+                      <BusyButton
+                        busy={busy}
                         type="button"
-                        disabled={busy}
                         onClick={() => setRemoving(item.src)}
                         className="min-h-11 text-sm font-semibold text-coral-700 underline underline-offset-4 disabled:opacity-50"
                       >
                         {t("agent.photoRemove")}
-                      </button>
+                      </BusyButton>
                     </div>
                     {removing === item.src && (
                       <div className="mt-2">
@@ -1447,14 +1562,14 @@ export default function AgentWizard({
               ))}
             </ul>
           )}
-          <button
+          <BusyButton
+            busy={busy}
             type="button"
-            disabled={busy}
             onClick={() => setStep("words")}
             className="mt-5 min-h-11 w-full rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
           >
             {draft.photos > 0 ? t("agent.stepWords") : t("agent.skipPhotos")}
-          </button>
+          </BusyButton>
         </section>
       )}
 
@@ -1468,7 +1583,9 @@ export default function AgentWizard({
           >
             {t("agent.wordsTitle")}
           </h2>
-          <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.wordsHint")}</p>
+          <p className="mt-1 text-sm leading-6 text-navy-600">
+            {t("agent.wordsHint")}
+          </p>
 
           {/* B816 — said before the button, not after it. Correcting a day
               that is already on the site is not publishing and cannot become
@@ -1517,7 +1634,9 @@ export default function AgentWizard({
           {quick && (
             <p className="mt-3 text-sm leading-6 text-navy-700">
               {t("agent.goingTo", {
-                trip: trips.find((option) => option.id === (draft?.trip ?? trip))?.title ?? "",
+                trip:
+                  trips.find((option) => option.id === (draft?.trip ?? trip))
+                    ?.title ?? "",
                 date: formatLongDate(draft?.date ?? date),
               })}{" "}
               <button
@@ -1543,14 +1662,22 @@ export default function AgentWizard({
                 const chosen = Array.from(list ?? []);
                 const read = await pick(list);
                 const day = await ensureDraft(
-                  read?.date ? { date: read.date, trip: tripOn(trips, read.date) ?? trip } : undefined,
+                  read?.date
+                    ? {
+                        date: read.date,
+                        trip: tripOn(trips, read.date) ?? trip,
+                      }
+                    : undefined,
                 );
                 if (day) await startUploads(day.trip, day.slug, chosen);
               }}
             />
           )}
 
-          <label className="mt-4 block text-sm font-semibold text-navy-800" htmlFor="wizard-title">
+          <label
+            className="mt-4 block text-sm font-semibold text-navy-800"
+            htmlFor="wizard-title"
+          >
             {t("agent.titleLabel")}
           </label>
           <input
@@ -1569,7 +1696,10 @@ export default function AgentWizard({
             </button>
           )}
 
-          <label className="mt-4 block text-sm font-semibold text-navy-800" htmlFor="wizard-prose">
+          <label
+            className="mt-4 block text-sm font-semibold text-navy-800"
+            htmlFor="wizard-prose"
+          >
             {t("agent.proseLabel")}
           </label>
           <textarea
@@ -1592,7 +1722,11 @@ export default function AgentWizard({
               onText={(said) =>
                 // Appended, never replacing: somebody who has already written
                 // half a day and then says the rest keeps both halves.
-                setProse((was) => (was.trim() === "" || was.trim() === NO_PROSE ? said : `${was}\n\n${said}`))
+                setProse((was) =>
+                  was.trim() === "" || was.trim() === NO_PROSE
+                    ? said
+                    : `${was}\n\n${said}`,
+                )
               }
             />
           )}
@@ -1632,7 +1766,9 @@ export default function AgentWizard({
                     {t("agent.helperSuggestionTitle")}
                   </h3>
                   {suggested.title !== "" && (
-                    <p className="mt-2 text-base font-semibold text-navy-900">{suggested.title}</p>
+                    <p className="mt-2 text-base font-semibold text-navy-900">
+                      {suggested.title}
+                    </p>
                   )}
                   <p className="mt-2 whitespace-pre-wrap text-base leading-7 text-navy-800">
                     {suggested.prose}
@@ -1672,27 +1808,34 @@ export default function AgentWizard({
                 </>
               ) : (
                 <>
-                  <p className="text-sm leading-6 text-navy-700">{t("agent.helperHint")}</p>
-                  <button
+                  <p className="text-sm leading-6 text-navy-700">
+                    {t("agent.helperHint")}
+                  </p>
+                  <BusyButton
+                    busy={busy}
                     type="button"
-                    disabled={busy || prose.trim() === "" || prose.trim() === NO_PROSE}
-                    onClick={() => (consented ? void writeUp() : setConsenting(true))}
+                    disabled={prose.trim() === "" || prose.trim() === NO_PROSE}
+                    onClick={() =>
+                      consented ? void writeUp() : setConsenting(true)
+                    }
                     className="mt-3 min-h-11 w-full rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 disabled:opacity-50"
                   >
                     {/* The price is on the button, before the tap. */}
                     {busy
                       ? t("agent.helperWorking")
-                      : t("agent.helperWrite", { credits: String(helper.credits) })}
-                  </button>
+                      : t("agent.helperWrite", {
+                          credits: String(helper.credits),
+                        })}
+                  </BusyButton>
                   {consented && (
-                    <button
+                    <BusyButton
+                      busy={busy}
                       type="button"
-                      disabled={busy}
                       onClick={() => void withdraw("words")}
                       className="mt-2 min-h-11 text-sm font-semibold text-navy-600 underline disabled:opacity-50"
                     >
                       {t("agent.helperWithdraw")}
-                    </button>
+                    </BusyButton>
                   )}
                 </>
               )}
@@ -1718,31 +1861,46 @@ export default function AgentWizard({
                 />
               ) : captions && captions.length > 0 ? (
                 <>
-                  <h3 className="text-sm font-semibold text-navy-900">{t("agent.captionsTitle")}</h3>
-                  <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.captionsHint")}</p>
+                  <h3 className="text-sm font-semibold text-navy-900">
+                    {t("agent.captionsTitle")}
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-navy-600">
+                    {t("agent.captionsHint")}
+                  </p>
                   <ul className="mt-3 space-y-3">
                     {captions.map((row) => (
-                      <li key={row.src} className="rounded-xl border border-navy-200 bg-white p-3">
+                      <li
+                        key={row.src}
+                        className="rounded-xl border border-navy-200 bg-white p-3"
+                      >
                         <p className="text-sm leading-6 text-navy-800">
-                          {row.caption === "" ? t("agent.captionEmpty") : row.caption}
+                          {row.caption === ""
+                            ? t("agent.captionEmpty")
+                            : row.caption}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <button
+                          <BusyButton
+                            busy={busy}
                             type="button"
-                            disabled={busy}
                             onClick={() => void keepCaption(row)}
                             className="min-h-11 rounded-full bg-yellow-400 px-4 text-sm font-semibold text-yellow-950 disabled:opacity-50"
                           >
                             {t("agent.helperUse")}
-                          </button>
-                          <button
+                          </BusyButton>
+                          <BusyButton
+                            busy={busy}
                             type="button"
-                            disabled={busy}
-                            onClick={() => setCaptions((prior) => prior?.filter((c) => c.src !== row.src) ?? null)}
+                            onClick={() =>
+                              setCaptions(
+                                (prior) =>
+                                  prior?.filter((c) => c.src !== row.src) ??
+                                  null,
+                              )
+                            }
                             className="min-h-11 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 disabled:opacity-50"
                           >
                             {t("agent.helperDiscard")}
-                          </button>
+                          </BusyButton>
                         </div>
                       </li>
                     ))}
@@ -1750,42 +1908,56 @@ export default function AgentWizard({
                 </>
               ) : (
                 <>
-                  <p className="text-sm leading-6 text-navy-700">{t("agent.describePhotosHint")}</p>
-                  <button
+                  <p className="text-sm leading-6 text-navy-700">
+                    {t("agent.describePhotosHint")}
+                  </p>
+                  <BusyButton
+                    busy={busy}
                     type="button"
-                    disabled={busy}
-                    onClick={() => (consentedPhotos ? void describePhotosUp() : setConsentingPhotos(true))}
+                    onClick={() =>
+                      consentedPhotos
+                        ? void describePhotosUp()
+                        : setConsentingPhotos(true)
+                    }
                     className="mt-3 min-h-11 w-full rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 disabled:opacity-50"
                   >
                     {/* The price is on the button, before the tap — computed
                         from the photographs actually on the day. */}
                     {busy
                       ? t("agent.helperWorking")
-                      : t("agent.describePhotos", { credits: String(creditsForPhotos(draft.photos)) })}
-                  </button>
+                      : t("agent.describePhotos", {
+                          credits: String(creditsForPhotos(draft.photos)),
+                        })}
+                  </BusyButton>
                   {consentedPhotos && (
-                    <button
+                    <BusyButton
+                      busy={busy}
                       type="button"
-                      disabled={busy}
                       onClick={() => void withdraw("photos")}
                       className="mt-2 min-h-11 text-sm font-semibold text-navy-600 underline disabled:opacity-50"
                     >
                       {t("agent.helperWithdraw")}
-                    </button>
+                    </BusyButton>
                   )}
                 </>
               )}
             </div>
           )}
 
-          <button
+          <BusyButton
+            busy={busy}
             type="button"
-            disabled={busy || title.trim() === "" || prose.trim() === "" || prose.trim() === NO_PROSE}
+            disabled={
+              title.trim() === "" ||
+              prose.trim() === "" ||
+              prose.trim() === NO_PROSE
+            }
             onClick={() => void save()}
             className="mt-5 min-h-11 w-full rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
+            busyLabel={t("agent.saving")}
           >
-            {busy ? t("agent.saving") : t(draft?.published ? "agent.saveChange" : "agent.save")}
-          </button>
+            {t(draft?.published ? "agent.saveChange" : "agent.save")}
+          </BusyButton>
         </section>
       )}
 
@@ -1815,7 +1987,11 @@ export default function AgentWizard({
               {/* The real card, with the real props — not a lookalike. What is
                   wrong here is wrong on the site. */}
               <CurrencyProvider options={currency}>
-                <DayCard day={preview.day} summary={preview.summary} dayIndex={preview.dayIndex} />
+                <DayCard
+                  day={preview.day}
+                  summary={preview.summary}
+                  dayIndex={preview.dayIndex}
+                />
               </CurrencyProvider>
             </div>
           )}
@@ -1832,7 +2008,10 @@ export default function AgentWizard({
             date={draft.date}
             base={currency.base}
             currencies={currency.currencies}
-            costs={preview?.day.entries.find((entry) => entry.slug === draft.slug)?.costs ?? []}
+            costs={
+              preview?.day.entries.find((entry) => entry.slug === draft.slug)
+                ?.costs ?? []
+            }
           />
 
           {publishedUrl ? (

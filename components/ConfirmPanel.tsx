@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import Why from "@/components/Why";
 
@@ -87,22 +88,22 @@ export default function ConfirmPanel({
       {details && <Why>{details}</Why>}
       {children}
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button
+        <BusyButton
+          busy={busy}
           type="button"
           onClick={onConfirm}
-          disabled={busy}
           className="min-h-11 rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-50"
         >
           {busy && busyLabel ? busyLabel : confirmLabel}
-        </button>
-        <button
+        </BusyButton>
+        <BusyButton
+          busy={busy}
           type="button"
           onClick={onCancel}
-          disabled={busy}
           className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-700 transition-colors hover:bg-cream-100 disabled:opacity-50"
         >
           {t("me.cancel")}
-        </button>
+        </BusyButton>
       </div>
       {error && (
         <p role="status" className="mt-2 text-sm text-coral-600">

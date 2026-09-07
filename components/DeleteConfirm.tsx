@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import Link from "next/link";
 
 /**
@@ -32,7 +33,9 @@ export default function DeleteConfirm({
     doneBody: string;
   };
 }) {
-  const [state, setState] = useState<"idle" | "working" | "done" | "failed">("idle");
+  const [state, setState] = useState<"idle" | "working" | "done" | "failed">(
+    "idle",
+  );
 
   async function remove() {
     setState("working");
@@ -46,9 +49,16 @@ export default function DeleteConfirm({
 
   if (state === "done") {
     return (
-      <div role="status" className="mt-10 rounded-2xl border border-navy-200 bg-white p-6">
-        <h2 className="font-display text-2xl font-semibold text-navy-900">{labels.doneTitle}</h2>
-        <p className="mt-3 text-lg leading-8 text-navy-700">{labels.doneBody}</p>
+      <div
+        role="status"
+        className="mt-10 rounded-2xl border border-navy-200 bg-white p-6"
+      >
+        <h2 className="font-display text-2xl font-semibold text-navy-900">
+          {labels.doneTitle}
+        </h2>
+        <p className="mt-3 text-lg leading-8 text-navy-700">
+          {labels.doneBody}
+        </p>
       </div>
     );
   }
@@ -61,14 +71,15 @@ export default function DeleteConfirm({
       >
         {labels.keep}
       </Link>
-      <button
+      <BusyButton
+        busy={state === "working"}
         type="button"
         onClick={remove}
-        disabled={state === "working"}
         className="inline-flex min-h-12 items-center justify-center rounded-full border border-coral-600 px-6 text-lg font-semibold text-coral-600 transition-colors hover:bg-coral-600 hover:text-white disabled:opacity-60"
+        busyLabel={labels.working}
       >
-        {state === "working" ? labels.working : labels.remove}
-      </button>
+        {labels.remove}
+      </BusyButton>
       {state === "failed" && (
         <p role="alert" className="text-lg leading-8 text-coral-600">
           {labels.failed}

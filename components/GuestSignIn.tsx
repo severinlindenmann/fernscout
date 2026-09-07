@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 
 /**
@@ -96,12 +97,19 @@ export default function GuestSignIn({
 
   return (
     <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-      <h2 className="font-display text-xl font-semibold text-navy-900">{t("me.signInTitle")}</h2>
+      <h2 className="font-display text-xl font-semibold text-navy-900">
+        {t("me.signInTitle")}
+      </h2>
 
       {step === "email" ? (
         <form onSubmit={requestCode}>
-          <p className="mt-2 text-base leading-7 text-navy-700">{t("me.signInBody")}</p>
-          <label htmlFor="signin-email" className="mt-4 block text-base font-medium text-navy-700">
+          <p className="mt-2 text-base leading-7 text-navy-700">
+            {t("me.signInBody")}
+          </p>
+          <label
+            htmlFor="signin-email"
+            className="mt-4 block text-base font-medium text-navy-700"
+          >
             {t("me.signInEmail")}
           </label>
           <input
@@ -114,9 +122,15 @@ export default function GuestSignIn({
             onChange={(e) => setEmail(e.target.value)}
             className={field}
           />
-          <button type="submit" disabled={busy || email === ""} className={button}>
-            {busy ? t("me.signInSending") : t("me.signInSend")}
-          </button>
+          <BusyButton
+            busy={busy}
+            type="submit"
+            disabled={email === ""}
+            className={button}
+            busyLabel={t("me.signInSending")}
+          >
+            {t("me.signInSend")}
+          </BusyButton>
         </form>
       ) : (
         <form onSubmit={submitCode}>
@@ -126,7 +140,10 @@ export default function GuestSignIn({
           <p className="mt-2 text-base leading-7 text-navy-700">
             {t("me.signInSent", { minutes: codeMinutes })}
           </p>
-          <label htmlFor="signin-code" className="mt-4 block text-base font-medium text-navy-700">
+          <label
+            htmlFor="signin-code"
+            className="mt-4 block text-base font-medium text-navy-700"
+          >
             {t("me.signInCode")}
           </label>
           <input
@@ -146,12 +163,22 @@ export default function GuestSignIn({
             aria-invalid={wrong ? true : undefined}
             className={`${field} font-mono text-2xl tracking-[0.3em]`}
           />
-          <p id="signin-error" role="alert" className="mt-3 text-base text-coral-600 empty:mt-0">
+          <p
+            id="signin-error"
+            role="alert"
+            className="mt-3 text-base text-coral-600 empty:mt-0"
+          >
             {wrong ? t("me.signInWrong") : ""}
           </p>
-          <button type="submit" disabled={busy || code.length < 6} className={button}>
-            {busy ? t("me.signInSending") : t("me.signInSubmit")}
-          </button>
+          <BusyButton
+            busy={busy}
+            type="submit"
+            disabled={code.length < 6}
+            className={button}
+            busyLabel={t("me.signInSending")}
+          >
+            {t("me.signInSubmit")}
+          </BusyButton>
           <button
             type="button"
             onClick={() => {

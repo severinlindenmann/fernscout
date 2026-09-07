@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import CopyLine from "./CopyLine";
 import { useI18n } from "./LocaleProvider";
 
@@ -94,11 +95,15 @@ export default function InviteToRead({ username }: { username: string }) {
         <p className="font-display text-base font-semibold text-navy-900">
           {t("me.inviteGuestTitle")}
         </p>
-        <p className="mt-1 text-sm leading-6 text-navy-700">{t("me.inviteGuestBody")}</p>
+        <p className="mt-1 text-sm leading-6 text-navy-700">
+          {t("me.inviteGuestBody")}
+        </p>
         <code className="mt-3 block break-all rounded-xl bg-cream-100 p-3 text-xs text-navy-900">
           {link}
         </code>
-        <p className="mt-2 text-xs text-coral-700">{t("contact.adminInviteCopy")}</p>
+        <p className="mt-2 text-xs text-coral-700">
+          {t("contact.adminInviteCopy")}
+        </p>
         <div className="mt-3 flex flex-wrap items-center gap-4">
           <CopyLine
             value={link}
@@ -118,14 +123,14 @@ export default function InviteToRead({ username }: { username: string }) {
 
   return (
     <div className="mt-3">
-      <button
+      <BusyButton
+        busy={busy}
         type="button"
-        disabled={busy}
         onClick={make}
         className="min-h-11 rounded-full border border-navy-200 bg-white px-4 text-xs font-semibold text-navy-900 transition-colors hover:border-navy-500 disabled:opacity-60"
       >
         {t("invite.share")}
-      </button>
+      </BusyButton>
       {failed && (
         <p role="alert" className="mt-2 text-xs text-coral-700">
           {t("contact.adminInviteFailed")}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import { tellWorkerSignedOut } from "@/lib/signedOut";
 
@@ -33,7 +34,9 @@ export default function SignOut() {
   async function signOut() {
     setBusy(true);
     setFailed(false);
-    const response = await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+    const response = await fetch("/api/auth/logout", { method: "POST" }).catch(
+      () => null,
+    );
 
     if (response?.ok) {
       // Before the reload, not after: the reload is what re-requests the home
@@ -50,16 +53,21 @@ export default function SignOut() {
 
   return (
     <section className="mt-8 border-t border-navy-200 pt-6">
-      <h2 className="font-display text-xl font-semibold text-navy-900">{t("me.signOutTitle")}</h2>
-      <p className="mt-2 text-base leading-7 text-navy-700">{t("me.signOutBody")}</p>
-      <button
+      <h2 className="font-display text-xl font-semibold text-navy-900">
+        {t("me.signOutTitle")}
+      </h2>
+      <p className="mt-2 text-base leading-7 text-navy-700">
+        {t("me.signOutBody")}
+      </p>
+      <BusyButton
+        busy={busy}
         type="button"
         onClick={signOut}
-        disabled={busy}
         className="mt-4 inline-flex min-h-11 items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 disabled:opacity-50"
+        busyLabel={t("me.signingOut")}
       >
-        {busy ? t("me.signingOut") : t("me.signOut")}
-      </button>
+        {t("me.signOut")}
+      </BusyButton>
       <p role="alert" className="mt-3 text-base text-coral-600 empty:mt-0">
         {failed ? t("me.signOutFailed") : ""}
       </p>

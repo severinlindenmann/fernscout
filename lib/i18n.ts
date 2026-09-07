@@ -40,7 +40,8 @@ export const LOCALE_SHORT: Record<string, string> = {
 /** What `localizedTripTitle` needs — a full `Trip` satisfies this, but so
  * does a `TripSummary` (the header's trip switcher only has that for the
  * other trips in the list, and `TripSummary` deliberately omits `tagline`). */
-type LocalizableTrip = Pick<Trip, "title" | "translations"> & Partial<Pick<Trip, "tagline">>;
+type LocalizableTrip = Pick<Trip, "title" | "translations"> &
+  Partial<Pick<Trip, "tagline">>;
 
 /**
  * A trip's title/tagline in the given locale, falling back to the original.
@@ -55,7 +56,10 @@ export function localizedTripTitle(
 ): { title: string; tagline?: string } {
   if (locale === "en") return { title: trip.title, tagline: trip.tagline };
   const tr = trip.translations?.[locale];
-  return { title: tr?.title ?? trip.title, tagline: tr?.tagline ?? trip.tagline };
+  return {
+    title: tr?.title ?? trip.title,
+    tagline: tr?.tagline ?? trip.tagline,
+  };
 }
 
 /** What `localizedEntryTitle` needs. */
@@ -1307,6 +1311,7 @@ export type TranslationKey =
   | "postcard.confirm.bodyOne"
   | "postcard.confirm.cost"
   | "postcard.confirm.heading"
+  | "postcard.confirm.sending"
   | "postcard.confirm.undone"
   | "postcard.confirm.working"
   | "postcard.confirm.yesMany"
@@ -1608,7 +1613,6 @@ export type TranslationKey =
   | "welcome.token"
   | "welcome.tokenHeading";
 
-
 /**
  * A translated string, with `{token}` placeholders filled from `vars`.
  *
@@ -1642,28 +1646,90 @@ export function translate(
       // reader — "nav.gallery" in place of a sentence — is certainly wrong
       // for everybody who sees it, so it is loud in the log rather than only
       // visible on the page (B279).
-      console.error(`[i18n] "${key}" has no string in any dictionary — rendering the key.`);
+      console.error(
+        `[i18n] "${key}" has no string in any dictionary — rendering the key.`,
+      );
       raw = key;
     } else {
-      console.error(`[i18n] "${key}" is missing from the requested locale — using English.`);
+      console.error(
+        `[i18n] "${key}" is missing from the requested locale — using English.`,
+      );
     }
   }
   if (!vars) return raw;
-  return raw.replace(/\{(\w+)\}/g, (match, name: string) => vars[name] ?? match);
+  return raw.replace(
+    /\{(\w+)\}/g,
+    (match, name: string) => vars[name] ?? match,
+  );
 }
 
 /** Month/weekday names per locale, so dates stay deterministic (never
  * `toLocaleDateString`, which differs between server and browser). */
 const MONTHS: Record<string, string[]> = {
-  en: ["January","February","March","April","May","June","July","August","September","October","November","December"],
-  de: ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"],
-  hu: ["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"],
+  en: [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ],
+  de: [
+    "Januar",
+    "Februar",
+    "März",
+    "April",
+    "Mai",
+    "Juni",
+    "Juli",
+    "August",
+    "September",
+    "Oktober",
+    "November",
+    "Dezember",
+  ],
+  hu: [
+    "január",
+    "február",
+    "március",
+    "április",
+    "május",
+    "június",
+    "július",
+    "augusztus",
+    "szeptember",
+    "október",
+    "november",
+    "december",
+  ],
 };
 
 const WEEKDAYS: Record<string, string[]> = {
-  en: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
-  de: ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"],
-  hu: ["vasárnap","hétfő","kedd","szerda","csütörtök","péntek","szombat"],
+  en: [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ],
+  de: [
+    "Sonntag",
+    "Montag",
+    "Dienstag",
+    "Mittwoch",
+    "Donnerstag",
+    "Freitag",
+    "Samstag",
+  ],
+  hu: ["vasárnap", "hétfő", "kedd", "szerda", "csütörtök", "péntek", "szombat"],
 };
 
 /** Dates stay deterministic — never `toLocaleDateString`, which differs
@@ -1701,7 +1767,12 @@ export function plural(
 ): string {
   const one = `${key}.one`;
   if (count === 1 && dictionary[one]) {
-    return translate({ ...dictionary, [key]: dictionary[one] }, key, vars, english);
+    return translate(
+      { ...dictionary, [key]: dictionary[one] },
+      key,
+      vars,
+      english,
+    );
   }
   return translate(dictionary, key, vars, english);
 }
