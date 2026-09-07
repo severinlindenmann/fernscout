@@ -39,13 +39,22 @@ function mulberry32(seed: number) {
 const WALLS = ["#f4a259", "#5fb08a", "#e8746c", "#6ea8dc", "#f0c05a", "#b98adc"];
 const ROOFS = ["#c9743a", "#3f8a68", "#c2544c", "#4a80ad", "#c99a35", "#8f66ad"];
 
-type Building = {
+/** Every shape a skyline can put up. The bench at `/docs/branding/animation`
+ * draws one of each, which is the only place any of them is seen alone. */
+export const BUILDING_KINDS = ["flat", "pitched", "spire", "dome", "airport"] as const;
+
+export type BuildingKind = (typeof BUILDING_KINDS)[number];
+
+export type Building = {
   x: number;
   w: number;
   h: number;
   wall: string;
   roof: string;
-  kind: "flat" | "pitched" | "spire" | "dome" | "airport";
+  kind: BuildingKind;
+  /** Decides which windows are lit. Fixed when the building is generated, so
+   * a re-render never relights them. */
+  seed: number;
 };
 
 /**
@@ -129,7 +138,7 @@ export default function Cityscape({
     const kindRoll = rand();
     // Spires and domes are civic buildings; a place too small to have one is
     // drawn without one rather than given a cathedral by the dice.
-    const kind: Building["kind"] =
+    const kind: BuildingKind =
       kindRoll > 0.86 && scale > 0.45
         ? "spire"
         : kindRoll > 0.72 && scale > 0.3
@@ -137,7 +146,7 @@ export default function Cityscape({
           : kindRoll > 0.45
             ? "pitched"
             : "flat";
-    buildings.push({ x, w, h, wall: WALLS[ci], roof: ROOFS[ci], kind });
+    buildings.push({ x, w, h, wall: WALLS[ci], roof: ROOFS[ci], kind, seed: rand() * 1e9 });
     x += w + 4 + Math.floor(rand() * 7);
   }
 
@@ -146,7 +155,19 @@ export default function Cityscape({
   if (airport) {
     const h = 18 + Math.floor(scale * 8);
     const ci = Math.floor(rand() * WALLS.length);
-    buildings.push({ x, w: airportW, h, wall: WALLS[ci], roof: ROOFS[ci], kind: "airport" });
+    // Clamped to the frame: the loop leaves `x` wherever its last building
+    // ended, which can be past `loopWidth`, and the terminal is the one
+    // building drawn at a skyline's edge — on the arrival side that edge is
+    // the frame's, and the tower ran off it.
+    buildings.push({
+      x: Math.min(x, width - airportW - 4),
+      w: airportW,
+      h,
+      wall: WALLS[ci],
+      roof: ROOFS[ci],
+      kind: "airport",
+      seed: rand() * 1e9,
+    });
   }
 
   const baseY = height - 10;
@@ -161,88 +182,133 @@ export default function Cityscape({
       style={{ overflow: "visible" }}
       aria-hidden
     >
-      {buildings.map((b, i) => {
-        const top = baseY - b.h;
-        const cols = Math.max(2, Math.floor(b.w / 13));
-        const rows = Math.max(2, Math.floor(b.h / 18));
-        return (
-          <g key={i}>
-            {/* body */}
-            <rect x={b.x} y={top} width={b.w} height={b.h} rx={3} fill={b.wall} />
-            {/* roof treatments */}
-            {b.kind === "pitched" && (
-              <path
-                d={`M${b.x - 3},${top + 1} L${b.x + b.w / 2},${top - 12} L${b.x + b.w + 3},${top + 1} Z`}
-                fill={b.roof}
-              />
-            )}
-            {b.kind === "dome" && (
-              <path
-                d={`M${b.x + 2},${top + 2} a${b.w / 2 - 2},${b.w / 2 - 2} 0 0 1 ${b.w - 4},0 Z`}
-                fill={b.roof}
-              />
-            )}
-            {b.kind === "spire" && (
-              <>
-                <rect x={b.x + b.w / 2 - 1.5} y={top - 16} width={3} height={16} fill={b.roof} />
-                <circle cx={b.x + b.w / 2} cy={top - 18} r={3} fill={b.roof} />
-              </>
-            )}
-            {b.kind === "flat" && (
-              <rect x={b.x - 2} y={top - 4} width={b.w + 4} height={5} rx={2} fill={b.roof} />
-            )}
-            {b.kind === "airport" && (
-              <>
-                {/* terminal: a low flat roof, wider than it is tall */}
-                <rect x={b.x - 2} y={top - 3} width={b.w + 4} height={4} rx={1.5} fill={b.roof} />
-                {/* control tower: a thin mast rising off one end, with a cab
-                    at the top that overhangs it on both sides — flared, the
-                    one shape here that is not a plain box */}
-                <rect x={b.x + b.w - 8} y={top - 24} width={3} height={21} fill={b.wall} />
-                <rect
-                  x={b.x + b.w - 13}
-                  y={top - 31}
-                  width={13}
-                  height={7}
-                  rx={1.5}
-                  fill={b.roof}
-                />
-              </>
-            )}
-            {/* windows */}
-            {Array.from({ length: rows }).map((_, r) =>
-              Array.from({ length: cols }).map((_, c) => {
-                const wx = b.x + 6 + c * ((b.w - 10) / cols);
-                const wy = top + 12 + r * ((b.h - 18) / rows);
-                if (wy > baseY - 12) return null;
-                const lit = rand() > 0.45;
-                return (
-                  <rect
-                    key={`${r}-${c}`}
-                    x={wx}
-                    y={wy}
-                    width={5.5}
-                    height={7}
-                    rx={1.2}
-                    fill={lit ? "#fff8d8" : "#ffffff"}
-                    opacity={lit ? 0.95 : 0.45}
-                  />
-                );
-              }),
-            )}
-          </g>
-        );
-      })}
+      {buildings.map((b, i) => (
+        <BuildingShape key={i} b={b} baseY={baseY} />
+      ))}
 
       {/* What grows here, from the latitude rather than from a preference for
           palm trees. `bare` plants nothing: above the treeline there is
           nothing to draw, and an empty verge says that. */}
-      <Tree flora={flora} x={width - 26} baseY={baseY} scale={1} />
-      <Tree flora={flora} x={width - 6} baseY={baseY} scale={0.78} />
+      {/* The right verge, except on a flight leg — that is where the terminal
+          stands, and two trees planted on top of it hid the one building this
+          skyline was drawn to show. */}
+      <Tree flora={flora} x={airport ? 10 : width - 26} baseY={baseY} scale={1} />
+      <Tree flora={flora} x={airport ? 26 : width - 6} baseY={baseY} scale={0.78} />
 
       {/* ground line */}
       <rect x={-10} y={baseY} width={width + 20} height={12} fill="#cdeecb" />
     </svg>
+  );
+}
+
+/**
+ * One building, drawn from its own facts and nothing else.
+ *
+ * Out of the `buildings.map()` it used to live in so that the bench at
+ * `/docs/branding/animation` can draw one alone — an airport among four
+ * towers at the bottom of a 340px frame was reported missing twice by people
+ * looking straight at it, and there was nowhere to hold it still. B700.
+ */
+export function BuildingShape({ b, baseY }: { b: Building; baseY: number }) {
+  const top = baseY - b.h;
+  const rand = mulberry32(Math.floor(b.seed));
+  const cols = Math.max(2, Math.floor(b.w / 13));
+  const rows = Math.max(2, Math.floor(b.h / 18));
+
+  // The tower stands at the terminal's far end, and rises well clear of it:
+  // the whole silhouette is a long low shed with one thin mast beside it, and
+  // a mast that stops among the roofline is just another aerial.
+  const mast = b.x + b.w - 11;
+  const cabTop = top - 46;
+
+  return (
+    <g>
+      {/* body */}
+      <rect x={b.x} y={top} width={b.w} height={b.h} rx={3} fill={b.wall} />
+      {/* roof treatments */}
+      {b.kind === "pitched" && (
+        <path
+          d={`M${b.x - 3},${top + 1} L${b.x + b.w / 2},${top - 12} L${b.x + b.w + 3},${top + 1} Z`}
+          fill={b.roof}
+        />
+      )}
+      {b.kind === "dome" && (
+        <path
+          d={`M${b.x + 2},${top + 2} a${b.w / 2 - 2},${b.w / 2 - 2} 0 0 1 ${b.w - 4},0 Z`}
+          fill={b.roof}
+        />
+      )}
+      {b.kind === "spire" && (
+        <>
+          <rect x={b.x + b.w / 2 - 1.5} y={top - 16} width={3} height={16} fill={b.roof} />
+          <circle cx={b.x + b.w / 2} cy={top - 18} r={3} fill={b.roof} />
+        </>
+      )}
+      {b.kind === "flat" && (
+        <rect x={b.x - 2} y={top - 4} width={b.w + 4} height={5} rx={2} fill={b.roof} />
+      )}
+      {b.kind === "airport" && (
+        <>
+          {/* terminal: a curved roof over the whole length. Not the flat cap —
+              that is what every plain block already wears, which is why the
+              first drawing of this read as one more block with a stick on it */}
+          <path
+            d={`M${b.x - 3},${top + 3} Q${b.x + b.w / 2},${top - 12} ${b.x + b.w + 3},${top + 3} Z`}
+            fill={b.roof}
+          />
+          {/* the glazed front, in one strip rather than a grid of windows, and
+              stopping short of the tower rather than running under it */}
+          <rect
+            x={b.x + 4}
+            y={top + 7}
+            width={Math.max(8, mast - b.x - 8)}
+            height={Math.max(5, b.h * 0.34)}
+            rx={2}
+            fill="#ffffff"
+            opacity={0.6}
+          />
+          {/* control tower: mast planted on the ground beside the terminal, a
+              cab that flares out over it, and the aerial above that */}
+          <rect x={mast} y={cabTop} width={4.5} height={baseY - cabTop} fill={b.wall} />
+          <path
+            d={`M${mast - 4},${cabTop + 11} L${mast + 8.5},${cabTop + 11} L${mast + 12},${cabTop} L${mast - 7.5},${cabTop} Z`}
+            fill={b.roof}
+          />
+          <rect
+            x={mast - 5.5}
+            y={cabTop + 2}
+            width={16}
+            height={5}
+            rx={1.5}
+            fill="#ffffff"
+            opacity={0.75}
+          />
+          <rect x={mast + 1} y={cabTop - 7} width={1.6} height={7} fill={b.roof} />
+        </>
+      )}
+      {/* windows — the airport has its glazed strip instead */}
+      {b.kind !== "airport" &&
+        Array.from({ length: rows }).map((_, r) =>
+          Array.from({ length: cols }).map((_, c) => {
+            const wx = b.x + 6 + c * ((b.w - 10) / cols);
+            const wy = top + 12 + r * ((b.h - 18) / rows);
+            if (wy > baseY - 12) return null;
+            const lit = rand() > 0.45;
+            return (
+              <rect
+                key={`${r}-${c}`}
+                x={wx}
+                y={wy}
+                width={5.5}
+                height={7}
+                rx={1.2}
+                fill={lit ? "#fff8d8" : "#ffffff"}
+                opacity={lit ? 0.95 : 0.45}
+              />
+            );
+          }),
+        )}
+    </g>
   );
 }
 
