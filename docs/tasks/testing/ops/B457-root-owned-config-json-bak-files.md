@@ -7,8 +7,7 @@ complexity: low
 area: backups
 found: "2026-09-05T12:51:15Z"
 started: "2026-09-07T11:06:01Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:06:01Z"
+merged: "2026-09-07T11:23:39Z"
 ---
 
 # B457 — Root-owned config.json.bak files keep appearing in the content root, and each one fails a nightly backup

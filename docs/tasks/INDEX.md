@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (104)
+## backlog (106)
 
 ### security (4)
 
@@ -92,10 +92,8 @@ Do not edit them by hand; run the script.
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B537](backlog/big-feature/B537-a-journal-on-disk-cannot-be.md) | A journal on disk cannot be checked against the instance that will receive it | FEATURE | high | high |
 | [B704](backlog/big-feature/B704-a-first-photobook-opens-as-a.md) | A first photobook opens as a wall of settings with nothing to compare them against | FEATURE | high | high |
-| [B06](backlog/big-feature/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B112](backlog/big-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts write straight to content, bypassing the token, draft status and rate limits every network write goes through | FEATURE | medium | high |
 | [B262](backlog/big-feature/B262-writing-to-a-journal-requires-bringing.md) | Writing to a journal requires bringing your own agent, so an owner without one cannot write at all | FEATURE | medium | high |
-| [B275](backlog/big-feature/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | There is no way to manage a journal's content folder locally and sync it to a running instance | FEATURE | medium | high |
@@ -106,13 +104,14 @@ Do not edit them by hand; run the script.
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B689](backlog/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high |
+| [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
+| [B715](backlog/big-feature/B715-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (22)
+### small-feature (20)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B435](backlog/small-feature/B435-no-print-provider-can-actually-post.md) | No print provider can actually post a card — print.one is unevaluated and unwired | FEATURE | high | medium |
-| [B680](backlog/small-feature/B680-a-person-without-an-agent-has.md) | A person without an agent has nowhere to start | FEATURE | high | medium |
 | [B10](backlog/small-feature/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
@@ -125,7 +124,6 @@ Do not edit them by hand; run the script.
 | [B694](backlog/small-feature/B694-the-landing-page-sends-everybody-off.md) | The landing page sends everybody off to fetch an agent of their own | FEATURE | medium | low |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
-| [B176](backlog/small-feature/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 | [B666](backlog/small-feature/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
@@ -168,7 +166,7 @@ Do not edit them by hand; run the script.
 | [B712](backlog/docs-and-skills/B712-the-helper-routes-are-undocumented-in.md) | The helper routes are undocumented in the agent guide | DOCS | medium | low |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 
-### superseded (22)
+### superseded (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -176,8 +174,11 @@ Do not edit them by hand; run the script.
 | [B377](backlog/superseded/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
 | [B65](backlog/superseded/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
 | [B658](backlog/superseded/B658-the-b653-backup-allowlist-drops-a.md) | The B653 backup allowlist drops a no-database deployment's own state | ISSUE | high | low |
+| [B680](backlog/superseded/B680-a-person-without-an-agent-has.md) | A person without an agent has nowhere to start | FEATURE | high | medium |
+| [B06](backlog/superseded/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B14](backlog/superseded/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B260](backlog/superseded/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |
+| [B275](backlog/superseded/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
 | [B341](backlog/superseded/B341-a-malformed-plan-md-throws-uncaught.md) | A malformed plan.md throws uncaught out of getPlan, crashing the trip and map pages | ISSUE | medium | low |
 | [B369](backlog/superseded/B369-whatsapp-announcements-are-sent-without-being.md) | WhatsApp announcements are sent without being charged, because B365 landed after the ledger | CHORE | medium | low |
 | [B43](backlog/superseded/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
@@ -187,6 +188,7 @@ Do not edit them by hand; run the script.
 | [B654](backlog/superseded/B654-whether-restic-can-drive-rclone-s.md) | Whether restic can drive rclone's Proton Drive backend well enough to trust it | OPS | medium | medium |
 | [B655](backlog/superseded/B655-the-backup-has-one-destination-and.md) | The backup has one destination, and no second copy off Backblaze | CHORE | medium | medium |
 | [B89](backlog/superseded/B89-nothing-that-costs-the-operator-money.md) | Nothing that costs the operator money can be paid for, so every paid feature is dry-run only | FEATURE | medium | high |
+| [B176](backlog/superseded/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B243](backlog/superseded/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |
 | [B246](backlog/superseded/B246-openapi-json-does-not-document-costsvisibility.md) | openapi.json does not document costsVisibility on POST trips | ISSUE | low | low |
 | [B253](backlog/superseded/B253-the-demo-journal-s-tagline-says.md) | The demo journal's tagline says four journeys and the count beside it says five | ISSUE | low | low |
@@ -199,30 +201,25 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (18)
+## in-development (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B520](in-development/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low | `97b44327` |
-| [B559](in-development/B559-a-deploy-can-advance-the-server.md) | A deploy can advance the server's checkout without rebuilding, and then report nothing to do | OPS | high | low | `97b44327` |
-| [B651](in-development/B651-two-root-owned-config-backups-in.md) | Two root-owned config backups in DATA_DIR make every nightly snapshot partial | OPS | high | low | `97b44327` |
 | [B683](in-development/B683-uploading-photographs-from-a-phone-fails.md) | Uploading photographs from a phone fails halfway with no resume | FEATURE | high | high | `fdfcf5f2` |
 | [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
 | [B244](in-development/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium | `97b44327` |
 | [B245](in-development/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium | `97b44327` |
 | [B340](in-development/B340-a-disabled-capability-answers-404-across.md) | A disabled capability answers 404 across every gated route, hiding a real refusal as no-such-route | ISSUE | medium | low | `97b44327` |
 | [B378](in-development/B378-the-whatsapp-checkbox-is-offered-on.md) | The WhatsApp checkbox is offered on a journal with WhatsApp switched off, one line under a hint saying nothing sends there | ISSUE | medium | low | `97b44327` |
-| [B457](in-development/B457-root-owned-config-json-bak-files.md) | Root-owned config.json.bak files keep appearing in the content root, and each one fails a nightly backup | OPS | medium | low | `97b44327` |
 | [B521](in-development/B521-every-photo-upload-logs-that-the.md) | every photo upload logs that the body was truncated at 10MB | ISSUE | medium | low | `97b44327` |
 | [B556](in-development/B556-re-running-the-demo-builder-deletes.md) | Re-running the demo builder deletes fields the committed demo journal carries | ISSUE | medium | low | `97b44327` |
 | [B684](in-development/B684-spoken-or-typed-notes-cannot-be.md) | Spoken or typed notes cannot be turned into a day | FEATURE | medium | high | `fdfcf5f2` |
-| [B238](in-development/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low | `97b44327` |
 | [B239](in-development/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low | `97b44327` |
 | [B388](in-development/B388-resending-a-mailed-guest-invitation-has.md) | Resending a mailed guest invitation has no rate limit | ISSUE | low | low | `97b44327` |
 | [B389](in-development/B389-a-contact-s-stored-phone-number.md) | A contact's stored phone number that toE164 cannot parse is shown to the owner as if it were fine | ISSUE | low | low | `97b44327` |
 | [B429](in-development/B429-the-invite-form-shows-a-canned.md) | The invite form shows a canned mail-off line instead of the server's, losing which switch is off | ISSUE | low | low | `97b44327` |
 
-## testing (393)
+## testing (398)
 
 ### security (6)
 
@@ -235,7 +232,7 @@ _Nothing here._
 | [B330](testing/security/B330-story-json-varies-by-cookie-and.md) | story.json varies by cookie and does not say so, so a browser cache can serve one reader's drafts to the next | SECURITY | medium | low | — |
 | [B662](testing/security/B662-plaintext-sign-in-codes-still-reach.md) | Plaintext sign-in codes still reach the backup through content/.mail | SECURITY | medium | low | — |
 
-### issue (187)
+### issue (189)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -271,6 +268,7 @@ _Nothing here._
 | [B486](testing/issue/B486-the-photobook-gate-asks-for-credits.md) | The photobook gate asks for credits per journal, so the button never appears | ISSUE | high | low | — |
 | [B493](testing/issue/B493-a-trip-title-with-no-spaces.md) | A trip title with no spaces in it scrolls the home page sideways | ISSUE | high | low | — |
 | [B509](testing/issue/B509-a-photobook-order-charges-before-it.md) | A photobook order charges before it builds, so an interrupted build takes the money | ISSUE | high | medium | — |
+| [B520](testing/issue/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low | — |
 | [B523](testing/issue/B523-a-request-body-over-10-mib.md) | A request body over 10 MiB is refused as expected_multipart, and the cap is documented nowhere | ISSUE | high | low | — |
 | [B572](testing/issue/B572-publish-reports-done-after-silently-dropping.md) | publish reports Done after silently dropping most of an existing trip's trip.md | ISSUE | high | low | — |
 | [B577](testing/issue/B577-selftest-mjs-exits-0-having-tested.md) | selftest.mjs exits 0 having tested nothing, because its fixtures are gitignored | ISSUE | high | low | — |
@@ -380,6 +378,7 @@ _Nothing here._
 | [B218](testing/issue/B218-a-postcard-run-reports-three-files.md) | A postcard run reports three files per recipient and writes four | ISSUE | low | low | — |
 | [B229](testing/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low | — |
 | [B237](testing/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low | — |
+| [B238](testing/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low | — |
 | [B241](testing/issue/B241-an-agent-code-can-be-issued.md) | An agent code can be issued for a trip that does not exist | ISSUE | low | low | — |
 | [B247](testing/issue/B247-the-shape-of-an-email-address.md) | The shape of an email address is checked by three different regexes | ISSUE | low | low | — |
 | [B249](testing/issue/B249-a-test-in-the-suite-failed.md) | A test in the suite failed once in six runs and left no name behind | ISSUE | low | medium | — |
@@ -597,14 +596,17 @@ _Nothing here._
 | [B71](testing/chore/B71-the-per-day-media-ceiling-test.md) | The per-day media ceiling test asserts on problems[0], and failed once in a full run | CHORE | low | low | — |
 | [B81](testing/chore/B81-the-notify-script-still-calls-a.md) | The notify script still calls a closed trip password-protected | CHORE | low | low | — |
 
-### ops (4)
+### ops (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B21](testing/ops/B21-the-restore-drill-has-never-been.md) | The restore drill has never been run on the stack that is deployed | OPS | high | medium | — |
 | [B401](testing/ops/B401-nightly-backups-have-been-failing-since.md) | Nightly backups have been failing since two unreadable config.json.bak files appeared in the content root | OPS | high | low | — |
 | [B506](testing/ops/B506-nobody-has-looked-at-the-photobook.md) | Nobody has looked at the photobook composer or the drawn travellers in a browser | OPS | high | medium | — |
+| [B559](testing/ops/B559-a-deploy-can-advance-the-server.md) | A deploy can advance the server's checkout without rebuilding, and then report nothing to do | OPS | high | low | — |
+| [B651](testing/ops/B651-two-root-owned-config-backups-in.md) | Two root-owned config backups in DATA_DIR make every nightly snapshot partial | OPS | high | low | — |
 | [B22](testing/ops/B22-no-sweep-has-been-run-over.md) | No sweep has been run over the code as it now stands | OPS | medium | medium | — |
+| [B457](testing/ops/B457-root-owned-config-json-bak-files.md) | Root-owned config.json.bak files keep appearing in the content root, and each one fails a nightly backup | OPS | medium | low | — |
 
 ### docs-and-skills (35)
 

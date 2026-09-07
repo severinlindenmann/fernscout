@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: tracking, map, db
 found: "2026-09-01"
+superseded: ingest, importers and route rendering shipped as B665 and B671; live position is B666, map tiles is its own capture — see B665
 ---
 
 # B06 — Location tracking ingest and route rendering
@@ -55,3 +56,26 @@ The plan's own list, unchanged:
 - 400k points render without shipping 400k points.
 - Live position never appears on a public trip.
 - Both Timeline formats import; malformed input degrades, never crashes.
+
+## Superseded, 2026-09-07
+
+Three of the four acceptance lines are met, by work that was never filed
+against this id:
+
+- **B665** built the store (`lib/gps/`), the thinning, `trips/<trip>/track.json`
+  and the map that draws the road actually driven. A long track no longer
+  ships its points.
+- **B671** built the way in — `POST /api/v1/<user>/import` — and `importers/`
+  now parses Google Timeline, Google Takeout, GPX and JSON Lines, degrading
+  rather than crashing on malformed input.
+- Live position never reaches a reading path at all: `test/gps-store.test.ts`
+  asserts the import graph, which is a stronger answer than "never on a public
+  trip".
+
+What is left is not this ticket:
+
+- **Live ingest from a phone** is **B666**, already captured.
+- **Real map tiles** — the one thing `lib/worldLand.json` cannot do — is a
+  hosting decision, and W20 flagged it as its own roadmap item. Captured
+  separately rather than kept alive inside a ticket whose other four fifths
+  are done.

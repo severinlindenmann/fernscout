@@ -7,8 +7,7 @@ complexity: low
 area: deploy, ops
 found: "2026-09-06T09:40:41Z"
 started: "2026-09-07T11:05:57Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:05:57Z"
+merged: "2026-09-07T11:23:37Z"
 ---
 
 # B559 — A deploy can advance the server's checkout without rebuilding, and then report nothing to do

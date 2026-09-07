@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: access, entries, media, feed, search
 found: "2026-09-04T12:20:00Z"
+superseded: day-level visibility was built as B632 — see B632
 ---
 
 # B275 — A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only
@@ -187,3 +188,11 @@ of this journal" — no per-person allow-lists on an entry.
 - `npm run build && npx tsc --noEmit && npx eslint . && npx vitest run` pass,
   and `claude-security` has been run over the branch with each finding either
   fixed or captured by id.
+
+## Superseded, 2026-09-07
+
+B632 built this, reusing `PHOTO_VISIBILITIES` and `maySeePhoto` from
+`lib/photos.ts` rather than inventing a second vocabulary — a day now carries
+`visibility:` and narrows against its trip the way a photograph does. It is
+merged and in `testing/`. The open questions this file lists about the feed,
+the search index and media were answered there.

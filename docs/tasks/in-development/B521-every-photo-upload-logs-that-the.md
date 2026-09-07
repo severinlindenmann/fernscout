@@ -5,6 +5,7 @@ type: ISSUE
 priority: medium
 complexity: low
 area: media upload, proxy, next config
+superseded: "fixed by B523 — next.config.ts sets proxyClientMaxBodySize"
 found: "2026-09-05T21:12:00Z"
 started: "2026-09-07T11:06:00Z"
 session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
@@ -100,3 +101,10 @@ covers this (asserting the configured `proxyClientMaxBodySize` against
 No code change made here — B523 already is the fix, and pre-dates this
 worktree by weeks. Superseding note: this ticket's Work is fully covered by
 B523's diff; nothing further to build.
+
+## Triage 2026-09-07
+
+Already fixed. `next.config.ts` sets `experimental.proxyClientMaxBodySize` to
+`REQUEST_MAX_BYTES` (derived from `lib/validate/media.ts`), and
+`test/media-body-limit.test.ts` covers it. B523 landed that about twenty minutes
+after this was captured — the same incident found twice by two sessions.

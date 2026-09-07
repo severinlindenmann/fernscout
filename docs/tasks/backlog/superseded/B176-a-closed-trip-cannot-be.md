@@ -6,6 +6,7 @@ priority: low
 complexity: medium
 area: trips, access
 found: "2026-09-03"
+superseded: built as `teaser: true` — see B587
 ---
 
 # B176 — A closed trip cannot be advertised as existing without being made readable
@@ -61,3 +62,11 @@ Not doing: touching `mayReadTrip`. This is entirely about what a reader is
 - The table in `test/access-gate.test.ts` grows a column for it, so the panel,
   the switcher, the digest and the gate keep naming one set of trips between
   them.
+
+## Superseded, 2026-09-07
+
+B587 built this, and answered the spelling question the way this file guessed
+it might: not `listed: true` on a closed trip, but a separate `teaser: true`
+that leaves `listed` monotone. It is live — `teaser` is read in
+`lib/trips.ts`, `lib/api/tripVisibility.ts` and `app/[user]/trips/` — and
+AGENTS.md documents it.

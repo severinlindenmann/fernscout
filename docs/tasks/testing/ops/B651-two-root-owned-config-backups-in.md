@@ -7,8 +7,7 @@ complexity: low
 area: backup, VPS, file ownership
 found: "2026-09-07T04:59:19Z"
 started: "2026-09-07T11:06:03Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:06:03Z"
+merged: "2026-09-07T11:23:39Z"
 ---
 
 # B651 — Two root-owned config backups in DATA_DIR make every nightly snapshot partial

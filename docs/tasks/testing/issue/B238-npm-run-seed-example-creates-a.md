@@ -8,8 +8,7 @@ area: scripts, content
 found: "2026-09-04T08:20:16Z"
 related: B243
 started: "2026-09-07T11:06:01Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:06:01Z"
+merged: "2026-09-07T11:23:38Z"
 ---
 
 # B238 — npm run seed:example creates a journal beside the code rather than in the content root
