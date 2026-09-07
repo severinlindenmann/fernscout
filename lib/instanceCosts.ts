@@ -3,7 +3,7 @@ import { loadServerConfig } from "./config";
 import { balanceOf } from "./credits";
 import { getDatabaseOrNull } from "./db";
 import { getUsernames } from "./users";
-import { usageByOwnerSince, usageSince, type UsageTotal } from "./usage";
+import { usageByOwnerSince, usageDailySince, usageSince, type UsageTotal } from "./usage";
 
 /**
  * What the instance costs to run — B746.
@@ -232,6 +232,39 @@ export async function journalRows(since: string): Promise<JournalRow[]> {
       };
     }),
   );
+}
+
+/**
+ * Model and speech spend per day across the window — B763.
+ *
+ * Every day in the range, including the empty ones: a series that drops the
+ * days nothing happened on turns a quiet fortnight into a straight line and
+ * makes one busy afternoon look like a trend.
+ *
+ * Only the metered providers. Print lands in lumps on the day somebody ordered
+ * a book and would swamp the shape; the fixed lines are monthly and have no
+ * day at all.
+ */
+export async function dailyCosts(since: string, days: number): Promise<{ date: string; rappen: number }[]> {
+  const rows = await usageDailySince(since);
+  const costs = loadServerConfig().costs;
+
+  const byDate = new Map<string, number>();
+  for (const row of rows) {
+    const priced = priceUsage(
+      [{ ...row, operation: "", calls: 0 }],
+      costs,
+    )[0];
+    byDate.set(row.date, (byDate.get(row.date) ?? 0) + priced.rappen);
+  }
+
+  // Built from the window rather than from the rows, so the axis is the period
+  // the page claims and not merely the days that happened to have traffic.
+  const start = new Date(since);
+  return Array.from({ length: days }, (_, i) => {
+    const date = new Date(start.getTime() + i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    return { date, rappen: byDate.get(date) ?? 0 };
+  });
 }
 
 export type Dashboard = {

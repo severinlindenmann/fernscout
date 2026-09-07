@@ -8,7 +8,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { grant } from "@/lib/credits";
 import { createAdminGrant, getPayment } from "@/lib/payments";
 import { recordUsage, usageSince } from "@/lib/usage";
-import { dashboard, priceUsage } from "@/lib/instanceCosts";
+import { dailyCosts, dashboard, priceUsage } from "@/lib/instanceCosts";
 
 /**
  * B746: the operator's bill.
@@ -269,5 +269,41 @@ describe("granting from the dashboard", () => {
     expect(await createAdminGrant("alice", 0)).toBeNull();
     expect(await createAdminGrant("alice", -5)).toBeNull();
     expect(await createAdminGrant("alice", 2.5)).toBeNull();
+  });
+});
+
+describe("the daily series", () => {
+  beforeEach(setup);
+
+  /**
+   * The property the chart rests on: a quiet day is a column of zero, not an
+   * absent column. Without it a fortnight of silence compresses and one busy
+   * afternoon reads as a trend.
+   */
+  test("every day of the window is present, including the ones with no calls", async () => {
+    const since = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString();
+    const days = await dailyCosts(since, 7);
+    expect(days).toHaveLength(7);
+    expect(days.every((day) => /^\d{4}-\d{2}-\d{2}$/.test(day.date))).toBe(true);
+    expect(days.every((day) => day.rappen === 0)).toBe(true);
+  });
+
+  test("a call lands on its own day, priced the way every other line is", async () => {
+    await recordUsage({
+      owner: "alice",
+      provider: "anthropic",
+      model: "test-model",
+      operation: "write_day",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    const since = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const days = await dailyCosts(since, 3);
+    const today = new Date().toISOString().slice(0, 10);
+    const row = days.find((day) => day.date === today);
+    // 80 for the input million, 400 for the output million — the same
+    // arithmetic priceUsage does for the rows below the chart.
+    expect(row?.rappen).toBe(480);
+    expect(days.reduce((sum, day) => sum + day.rappen, 0)).toBe(480);
   });
 });

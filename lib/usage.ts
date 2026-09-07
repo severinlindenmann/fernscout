@@ -1,4 +1,5 @@
 import "server-only";
+import { sql } from "kysely";
 import { getDatabaseOrNull, newId, nowIso } from "./db";
 
 /**
@@ -202,4 +203,61 @@ export async function usageByOwnerSince(
     byOwner.set(row.owner_id, list);
   }
   return [...byOwner.entries()].map(([owner, totals]) => ({ owner, totals }));
+}
+
+/** One day's consumption, for the trend on `/admin` — B763. */
+export type UsageDay = {
+  /** `YYYY-MM-DD`, UTC, as `created_at` was written. */
+  date: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  seconds: number;
+};
+
+/**
+ * The same rows as `usageSince`, bucketed by day — B763.
+ *
+ * **`substr(created_at, 1, 10)` rather than a date function**, because that
+ * expression is spelled identically on SQLite and on Postgres and both answer
+ * it the same way over ISO text. `date_trunc` is Postgres-only and `date()` is
+ * SQLite-only, so either would have put a dialect fork in a file that has no
+ * business knowing which database is running — the rule AGENTS.md sets for
+ * everything outside `lib/db/`.
+ *
+ * Bucketed in UTC, which is what `nowIso()` writes. A day boundary an hour off
+ * the operator's own midnight is not worth a timezone to carry: the shape of a
+ * month is the question, not which side of midnight one call landed.
+ *
+ * Provider and model come back because the caller prices them, and a model
+ * swapped mid-window must be priced at its own rate on the days it ran.
+ */
+export async function usageDailySince(since: string): Promise<UsageDay[]> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const day = sql<string>`substr(created_at, 1, 10)`;
+  const rows = await handle.db
+    .selectFrom("usage")
+    .select(({ fn }) => [
+      day.as("day"),
+      "provider",
+      "model",
+      fn.sum<number>("input_tokens").as("input_tokens"),
+      fn.sum<number>("output_tokens").as("output_tokens"),
+      fn.sum<number>("seconds").as("seconds"),
+    ])
+    .where("created_at", ">=", since)
+    .groupBy([day, "provider", "model"])
+    .orderBy(day)
+    .execute();
+
+  return rows.map((row) => ({
+    date: String(row.day),
+    provider: row.provider,
+    model: row.model,
+    inputTokens: Number(row.input_tokens ?? 0),
+    outputTokens: Number(row.output_tokens ?? 0),
+    seconds: Number(row.seconds ?? 0),
+  }));
 }
