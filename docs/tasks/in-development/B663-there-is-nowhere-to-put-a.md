@@ -38,104 +38,89 @@ step.
 Related: B661 built the ceiling this will be counted against, and B664 is the
 page that shows what is using it.
 
+
 ## Work
 
-**A bucket per journal, called `inbox/`.** `content/<username>/inbox/`, with
-four subfolders, because what a file is *for* decides what happens to it next
-and a flat folder makes an agent guess:
+Built as described, with one change of shape recorded below.
 
-```
-content/<username>/inbox/
-  media/       photographs and video, destined for a day's gallery
-  files/       csv, pdf, json — read, not published (see "later" below)
-  photobook/   artwork and inserts for a printed book
-  postcards/   the same for a card
-```
+**`content/<username>/inbox/`**, four subfolders — `media/`, `files/`,
+`photobook/`, `postcards/` — and `lib/inbox.ts` is the whole vocabulary.
+Inside the journal folder on purpose: it is the owner's content, it is in
+their backup and their export, and B661 already counts it against the ceiling.
 
-It is inside the journal folder on purpose: it is the owner's content, it is
-in their backup and their export, and — since B661 counts the whole folder —
-it is already inside the storage ceiling with nothing further to write.
+**The name is the content.** `<sha256[0..12]>-<safe-stem><ext>`. The same bytes
+under the same name resolve to the same id, so a second upload is a no-op that
+returns the first one's id and `duplicate: true`; two different files sharing a
+name get different prefixes and both survive. No index is needed for either,
+which is what keeps it true when somebody copies a file in by hand.
 
-**A name that is the content, so a duplicate cannot collide or accumulate.**
-`<sha256[0..12]>-<safe-name>.<ext>`. Two files with the same name and different
-bytes get different prefixes and both survive; the *same* bytes uploaded twice
-resolve to the same name, so the second upload is a no-op that returns the
-first one's id. That is the whole duplicate story, and it needs no index to be
-true — it is a property of the filename.
+**One sidecar per file**, `<id>.meta.json` — the suffix rather than a swapped
+extension, because `files/` may itself hold a `.json` and a sidecar that could
+be mistaken for an upload gets listed as one. Every field on it is optional and
+every field is what somebody said; a test asserts the server writes no
+`caption` and no `description` of its own.
 
-**One sidecar per file, not one manifest.** `a3f1c2-sunset.jpg` beside
-`a3f1c2-sunset.json`. A file and its facts are moved, copied and deleted
-together, and two agents uploading at once never write the same file — a
-single `index.json` would be a lock nobody has and a half-written manifest
-that orphans everything in the folder. Listing costs a directory read, which
-is what `lib/storageQuota.ts` already does to every one of these files anyway.
+**The routes.** `POST /api/v1/<user>/inbox` (multipart, positional `meta` and
+`kind` alongside `files`), `GET /api/v1/<user>/inbox`, and `DELETE
+/api/v1/<user>/inbox/<id>`. All three are journal-scope only: the bucket
+belongs to the journal, and showing it to a trip-scoped token would show files
+staged for trips that person is not on. The refusal names the trip's own media
+route instead.
 
-Every field on the sidecar is optional and every one of them is *what somebody
-said*, never what the server guessed:
+**Filing into a day is the media route's third door, not a fourth verb here** —
+the one change from the capture, which had imagined `inbox:<id>` as a gallery
+item on a day write. Days do not take a gallery on write at all: photographs
+reach an entry through `attachGallery`, which the media route already calls.
+So `POST .../trips/<trip>/media` now accepts `{"day": …, "inbox": [ids]}`
+beside `files` and `urls`, and gets decode, resize, metadata-stripping,
+original-keeping and attachment for free rather than growing a second set of
+rules for what a gallery item may be. It **moves**: the file leaves the inbox
+once it is in the trip, and the deletion happens after the store, so a batch
+that fails to write cannot delete somebody's only copy.
 
-| | |
-| --- | --- |
-| `description` | what it is, in the uploader's words |
-| `lat`, `lon` | where, if they said |
-| `takenAt` | when, if they said |
-| `caption` | the caption to carry into a gallery item |
-| `tags` | free tags, for an agent to search on |
-| `kind` | which subfolder it went to |
-| `uploadedAt`, `bytes`, `sha256`, `filename` | measured, not claimed |
+**Orienting.** `GET /api/v1/<user>/status` carries `inbox: {count, bytes,
+url}`, and `next` says to look at it when files are staged and no drafts are
+waiting — an agent that does not know the bucket has anything in it writes a
+day without its photographs. `/agent.md` gains the workflow as its own section
+before the photographs one, including that which day a picture belongs to is
+still not an agent's decision.
 
-**Nothing here is inferred.** EXIF is read where it is already read
-(`lib/ingest/image.ts` strips it), and a coordinate the file carried is a
-measurement, not an invention — but a *description* is never written by
-whatever uploaded the file. AGENTS.md's one rule applies in full: an empty
-field beats a plausible fiction.
+**B661's guard, from this door too** — the inbox is inside the ceiling and must
+not be the way round it.
 
-**The API.**
-
-- `POST /api/v1/<user>/inbox` — bytes as multipart, or `urls` like the media
-  route already takes, plus the optional metadata above. Answers with each
-  file's id, name and sidecar.
-- `GET /api/v1/<user>/inbox` — the whole structure: every subfolder, every
-  file, its sidecar, its size. This is the call the ticket is really about —
-  an agent asks it once and knows what it has to work with.
-- `DELETE /api/v1/<user>/inbox/<id>` — file and sidecar together.
-- **Referencing one when writing a day**: a gallery item may name
-  `inbox:<id>` instead of carrying bytes. Writing the day *moves* the file out
-  of `inbox/media/` and through the ordinary pipeline into the trip
-  (`storeUploads`), so a day that has been written owns its photographs and
-  the inbox shrinks. Draft or published makes no difference: it is the write
-  that files it, not the publish.
-
-**It goes through B661's guard.** `storageRefusal` before anything is written,
-same as `storeUploads` — the inbox is inside the ceiling and must not be the
-way round it.
-
-**Nothing in `inbox/` is reachable by URL.** `resolveMediaFile` resolves under
-`tripMediaDir` and nothing else, so this is true by construction today; a
-preview for the owner is an authenticated route and must be written as one. A
-file waiting to be filed is not published, and the person who uploaded it has
-not decided anything yet.
-
-**Not doing now** — the file kinds beyond media are accepted and stored, and
-nothing reads them yet: no bank-statement parsing, no CSV into costs, no AI
-description of a scan. `files/` exists so those have somewhere to arrive when
-they are built, and so the format does not have to change when they are.
-
-Contract: three routes into `lib/api/openapi.ts` with their refusals, the
-sidecar's fields into a schema, and `/agent.md` gains the workflow — upload
-first, list, then write days that reference what is there.
+**Not doing:** nothing reads `files/` yet. No bank-statement parsing, no CSV
+into costs, no AI description of a scan. The folder and the sidecar format
+exist so those arrive somewhere sensible when they are built.
 
 ## Acceptance
 
-- `POST` a file with no day and no trip; `GET /api/v1/<user>/inbox` lists it
-  with its sidecar. Neither call names a day, which is the whole point.
-- The same bytes uploaded twice leave one file on disk and return the same id.
-  Two different files sharing a name both survive, with different ids.
-- A day written with a gallery item of `inbox:<id>` ends with the photograph
-  in the trip's `media/`, a derivative made, and nothing left in
-  `inbox/media/` for that id.
-- An upload that would take the journal past its ceiling is refused, and
-  writes nothing — B661's guard, from this door too.
-- A file in `inbox/` is not fetchable at any `/media/…` URL, signed in or not.
-- A sidecar field nobody supplied is absent, not invented. A test asserts the
-  server never writes `description`.
-- `npm run verify` passes, and `/openapi.json` documents all three routes.
+`test/inbox.test.ts` (20) and `test/inbox-route.test.ts` (5).
+`npm run verify` passes: 312 files, 4080 tests.
+
+- **Staging with no day.** "the round trip: stage, write the day, file it,
+  bucket empty" asserts the day does not exist when the file is staged, then
+  writes it, files the photograph, and finds it in the trip's `media/`, in the
+  entry's `gallery:`, and gone from the inbox.
+- **Duplicates.** "the same bytes under the same name are stored once" — one
+  file on disk, the same id, and the journal's byte total unchanged. "two
+  different files sharing a name both survive". "a duplicate does not
+  overwrite what was said the first time".
+- **All or nothing.** "an id that names nothing refuses the whole call and
+  moves nothing" — 400 `unknown_inbox_file`, the good file still staged, no
+  media directory created for the day.
+- **The ceiling.** B661's `storageRefusal` runs before anything is written;
+  the refusal is the same sentence uploads get.
+- **Not reachable by URL.** `resolveMediaFile` resolves under `tripMediaDir`
+  only, so this holds by construction; "an id cannot climb out of the inbox"
+  covers the other direction — `../../config.json` neither resolves nor
+  deletes.
+- **Nothing invented.** "carries what was said, and nothing else" asserts a
+  sidecar has no `caption` and no `lon` when nobody supplied them.
+- **The contract.** Both routes and the media route's new `inbox` field are in
+  `lib/api/openapi.ts`; `test/openapi-contract.test.ts` passes.
+
+**For whoever verifies this:** the thing to try is the order of work — stage a
+few photographs against a trip whose days are not written, `GET
+/api/v1/<user>/status` and check `next` points at the inbox, then write a day
+and file them. The failure worth looking for is a file that is in the day
+*and* still in the inbox.

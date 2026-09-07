@@ -33,6 +33,9 @@ export const ERROR_CODES: Record<string, string> = {
 
   // ── what you asked about does not exist ────────────────────────────────
   no_such_journal: "No journal of that name on this server. Check the username; /documentation.txt lists the ones this instance advertises.",
+  unknown_user: "No journal of that name on this instance.",
+  unknown_inbox_file:
+    "One of the `inbox` ids names nothing staged in this journal — or names something that is not a photograph. Nothing was written and nothing was taken out of the inbox; GET the inbox and send the ids it lists.",
   unknown_trip: "No trip of that id in this journal — or none this token may write to. The two answer alike on purpose, so this cannot be used to ask which trips exist. GET the trips list first.",
   unknown_day: "No day of that slug in this trip. The slug is made from the title and is in the answer to the call that wrote it; GET the days list to see them.",
   missing_day: "The day this call names does not exist yet. Write the day first, then send this.",
