@@ -761,104 +761,15 @@ journalctl -u fernscout-backup -n 30
 
 ## Restore procedure
 
-Every step below was executed on the native stack on 2026-09-01. Where the
-earlier draft was wrong, the correction is inline and marked — the four things
-that had to change are the whole value of having run it.
+**Moved to [disaster-recovery.md](disaster-recovery.md).**
 
-```bash
-# 0. Fresh machine: steps 1–5 of "First deploy", with the same
-#    RESTIC_REPOSITORY / RESTIC_PASSWORD.
-
-# 1. Load the environment FIRST. Without this, step 1 fails with
-#    "Please specify repository location" and step 3 silently tries to read
-#    /db/postgres.dump, because $DATABASE_URL is empty. sudo does not carry
-#    the service's environment; nothing else supplies it.
-set -a; . /etc/fernscout/env; set +a
-
-# 2. Restore the latest snapshot to a scratch directory. -E keeps the restic
-#    credentials across sudo.
-sudo -E restic restore latest --target /restore
-
-# 3. The tree keeps its original absolute path — find it once.
-STAGED=$(sudo find /restore -maxdepth 4 -type d -name 'fernscout-backup-staging' | head -1)
-
-# 4. restic restores as root, and pg_restore below runs as fernscout.
-#    Without this it fails with "Permission denied" on the dump.
-sudo chmod -R a+rX /restore
-
-# 5. Database (skip if this deployment has none). createdb fails harmlessly
-#    if a previous attempt already made it — that is not the restore failing.
-sudo -u postgres createdb fernscout -O fernscout || true
-sudo -E -u fernscout pg_restore --dbname="$DATABASE_URL" --clean --if-exists \
-  "$STAGED/db/postgres.dump"
-
-# 6. DATA_DIR. On this deployment CONTENT_DIR is *inside* DATA_DIR
-#    (/var/lib/fernscout/content), so this one rsync restores the journals too.
-#    There is no `$STAGED/content/` in a snapshot from this layout: since B444
-#    the backup skips the second stage rather than copying the same bytes
-#    twice, and says so in its log. On the un-nested layout (CONTENT_DIR is the
-#    git checkout, DATA_DIR elsewhere) `$STAGED/content/` is there as before —
-#    see the note below for what to do with it.
-sudo rsync -a "$STAGED/data/" /var/lib/fernscout/
-sudo chown -R fernscout:fernscout /var/lib/fernscout
-
-#    If a snapshot does carry "$STAGED/content/": do NOT rsync it into
-#    /srv/fernscout/content/. That is the
-#    git checkout, not what the app reads. It left 49 tracked files modified,
-#    and scripts/deploy.sh does `git pull --ff-only`, so the next deploy would
-#    have refused. Restore there only if CONTENT_DIR is unset — i.e. the app
-#    really is reading the checkout.
-
-# 7. Build and start.
-cd /srv/fernscout && sudo -u fernscout npm ci && sudo -u fernscout npm run build
-sudo systemctl restart fernscout
-
-# 8. Verify: health, then a known reaction count on a known day.
-curl -s https://<domain>/api/health
-```
-
-### Restore drill — executed and timed
-
-- [x] **Run on the native stack — 2026-09-01, ~35 seconds end to end.**
-
-Seeded: 7 reaction rows on a known day, an uncommitted file under
-`content/`, and a 64 KiB `originals/DRILL.RAF` that is in neither git nor the
-export. Backed up, then dropped the database and `rm -rf`'d `DATA_DIR`
-entirely. **All three came back identical** — the row count exact, both file
-hashes matching. `restic restore` moved 453 MiB in 1 second; `npm ci` plus the
-build was 29 of the 35 seconds.
-
-An earlier drill against the previous containerised layout took 46 seconds and
-is superseded by this one.
-
-Four things the procedure got wrong, all now fixed above: the environment was
-never loaded, so it failed at the first command; the restored tree was
-unreadable by the user that reads it; `createdb` aborted a re-run; and the
-`content/` rsync wrote to a directory this deployment does not read while
-dirtying the deploy checkout.
-
-Three more surfaced in *setting the backup up*, which had never been done on
-this machine at all (B65):
-
-- `RESTIC_REPOSITORY` must be under a path in the unit's `ReadWritePaths=`
-  (`/var/backups/fernscout`). Anywhere else and systemd refuses to start the
-  service with `Failed at step NAMESPACE`, before `backup.sh` runs at all.
-- The repository must be **owned by the service user**. Root-owned, the
-  script's probe fails on permissions — which the old probe read as "not
-  initialised yet", so it ran `restic init` and died on `config file already
-  exists`. **Fixed in B63:** the probe is `restic cat config` now, and it
-  distinguishes *absent* from *cannot see it*; the ownership requirement is
-  unchanged, but getting it wrong now produces a message that says so.
-- A single unreadable file anywhere under `DATA_DIR` aborted the whole backup:
-  `cp -a` failed, `set -e` stopped the script, and nobody was told. One
-  root-owned stray file left by an operator was enough. **Both halves are fixed
-  now.** B64 added the `OnFailure=` alert, the stamp files and the
-  `/api/health` `.backup` block described above, so somebody is told; **B114**
-  stopped the file from vetoing the run — staging keeps going, names every path
-  it could not take, pushes the snapshot it *could* take, and then still exits
-  non-zero so the run is never recorded as a success. See §Backups above.
-
----
+It was here and it is now wrong: since B653 the snapshot is an allowlist with
+`db/`, `content/`, `config/`, `state/` and `env/` rather than a `data/` tree,
+and there is a new step — restoring `/etc/fernscout/env` — without which the
+service does not start. A restore procedure that describes the wrong layout is
+worse than none, because it is followed under pressure by somebody who has
+already lost the machine. One copy, in one file, is the whole reason this
+section is four lines.
 
 ## Troubleshooting
 
