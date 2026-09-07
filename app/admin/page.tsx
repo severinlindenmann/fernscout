@@ -5,7 +5,8 @@ import AdminGrant from "./AdminGrant";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { creditsEnabled, ledgerFor } from "@/lib/credits";
 import { formatChf } from "@/lib/credits/pricing";
-import { dashboard, type CostLine } from "@/lib/instanceCosts";
+import { BarChart, DailyChart } from "./Charts";
+import { dailyCosts, dashboard, type CostLine } from "@/lib/instanceCosts";
 import { serverSite } from "@/lib/site";
 
 // Reads a session and the database on every request; nothing to prerender.
@@ -25,6 +26,25 @@ function since(): string {
   return new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
 }
 
+/**
+ * One group of cost lines — B763, replacing the table B746 shipped.
+ *
+ * A `<table>` of four columns needs about 36rem before the last one stops
+ * wrapping, so on a phone it became a side-scrolling pane whose right-hand
+ * edge held the cost — the one number anybody opened this page for. These are
+ * the same fields stacked: the name and the money on one line, because that is
+ * the pair being read, and the smaller facts under them.
+ *
+ * `<ul>` rather than `<table>` because it stopped being a table the moment it
+ * stopped being a grid; a table whose rows reflow into blocks is a table only
+ * to a screen reader, and a misleading one.
+ */
+/** What a group of lines comes to. The charts and the total read the same
+ *  numbers the rows do, so nothing on this page can disagree with itself. */
+function sum(lines: CostLine[]): number {
+  return lines.reduce((total, line) => total + line.rappen, 0);
+}
+
 function Lines({ title, lines, note }: { title: string; lines: CostLine[]; note?: string }) {
   return (
     <section className="mt-8">
@@ -33,36 +53,28 @@ function Lines({ title, lines, note }: { title: string; lines: CostLine[]; note?
       {lines.length === 0 ? (
         <p className="mt-2 text-sm text-navy-500">Nothing in this period.</p>
       ) : (
-        <div className="mt-2 overflow-x-auto">
-          <table className="w-full min-w-[36rem] text-sm">
-            <thead>
-              <tr className="text-left text-navy-500">
-                <th className="py-1 font-medium">What</th>
-                <th className="py-1 font-medium">Consumed</th>
-                <th className="py-1 text-right font-medium">Calls</th>
-                <th className="py-1 text-right font-medium">Cost</th>
-              </tr>
-            </thead>
-            <tbody className="text-navy-700">
-              {lines.map((line) => (
-                <tr key={`${line.label}-${line.detail}`} className="border-t border-navy-200">
-                  <td className="py-1.5 pr-3">{line.label}</td>
-                  <td className="py-1.5 pr-3 font-mono text-xs">{line.detail}</td>
-                  <td className="py-1.5 pr-3 text-right font-mono">{line.calls}</td>
-                  <td className="py-1.5 text-right font-mono">
-                    {/* An unpriced line shows what it cost us to *say* nothing,
-                        rather than a zero that reads as "this was free". */}
-                    {line.unpriced ? (
-                      <span className="text-navy-500">not priced</span>
-                    ) : (
-                      formatChf(line.rappen)
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="mt-2 divide-y divide-navy-200 border-t border-navy-200">
+          {lines.map((line) => (
+            <li key={`${line.label}-${line.detail}`} className="py-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="min-w-0 break-words text-sm text-navy-900">{line.label}</span>
+                <span className="shrink-0 font-mono text-sm text-navy-900">
+                  {/* An unpriced line says so rather than showing a zero that
+                      would read as "this was free". */}
+                  {line.unpriced ? (
+                    <span className="text-navy-500">not priced</span>
+                  ) : (
+                    formatChf(line.rappen)
+                  )}
+                </span>
+              </div>
+              <p className="mt-0.5 break-words font-mono text-xs text-navy-500">
+                {line.detail}
+                {line.calls > 0 ? ` · ${line.calls} ${line.calls === 1 ? "call" : "calls"}` : ""}
+              </p>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );
@@ -90,7 +102,7 @@ export default async function AdminPage() {
 
   const siteName = serverSite().name;
   const from = since();
-  const data = await dashboard(from);
+  const [data, daily] = await Promise.all([dashboard(from), dailyCosts(from, WINDOW_DAYS)]);
   const metered = creditsEnabled();
 
   return (
@@ -117,6 +129,34 @@ export default async function AdminPage() {
           floor rather than an invoice.
         </span>
       </p>
+
+      {/* The three questions an operator opens this page with, in the order
+          they ask them: what does it cost (the hero above), where does it go,
+          who is spending it, and is it growing. The rows below are the detail
+          behind these, and every number in a chart is the same number a row
+          repeats. */}
+      <BarChart
+        title="Where it goes"
+        bars={[
+          { label: "Models and speech", rappen: sum(data.providers) },
+          { label: "Print", rappen: sum(data.print) },
+          { label: "Sent to readers", rappen: sum(data.sends), note: "counted, not priced" },
+          { label: "Fixed", rappen: sum(data.fixed) },
+        ]}
+        empty="Nothing has cost anything in this period."
+      />
+
+      <BarChart
+        title="By journal"
+        bars={data.journals.map((journal) => ({ label: journal.username, rappen: journal.rappen }))}
+        empty="No journal has made a metered call in this period."
+      />
+
+      <DailyChart
+        title="Models and speech, by day"
+        days={daily}
+        empty="No metered calls in this period yet — metering began when B746 was deployed, so this fills in from here."
+      />
 
       <Lines
         title="Models and speech"
@@ -145,16 +185,22 @@ export default async function AdminPage() {
         <div className="mt-3 space-y-2">
           {data.journals.map((journal) => (
             <details key={journal.username} className="rounded-2xl border border-navy-200 bg-white">
-              <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-4 gap-y-1 px-4 py-3">
-                <span className="font-display font-semibold text-navy-900">{journal.username}</span>
-                <span className="font-mono text-sm text-navy-700">
-                  {journal.balance === null ? "—" : `${journal.balance} credits`}
+              {/* Name and money on one line whatever the width — an `ml-auto`
+                  inside a flex-wrap put the cost under the username on a
+                  phone, which is where it stopped being a summary. The two
+                  smaller facts wrap underneath, where wrapping is harmless. */}
+              <summary className="cursor-pointer list-none px-4 py-3">
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 break-words font-display font-semibold text-navy-900">
+                    {journal.username}
+                  </span>
+                  <span className="shrink-0 font-mono text-sm text-navy-900">
+                    {formatChf(journal.rappen)}
+                  </span>
                 </span>
-                <span className="font-mono text-xs text-navy-500">
-                  {journal.spent} spent of {journal.granted} granted
-                </span>
-                <span className="ml-auto font-mono text-sm text-navy-700">
-                  {formatChf(journal.rappen)}
+                <span className="mt-0.5 block font-mono text-xs text-navy-500">
+                  {journal.balance === null ? "no credits on this instance" : `${journal.balance} credits`}
+                  {` · ${journal.spent} spent of ${journal.granted} granted`}
                 </span>
               </summary>
               {/* The ledger, read only when the row is opened — a journal with
@@ -178,30 +224,33 @@ export default async function AdminPage() {
   );
 }
 
-/** One journal's transactions, newest first. */
+/**
+ * One journal's transactions, newest first — B763 took this out of a table
+ * for the same reason as the cost lines, and one more: it sits inside a
+ * `<details>` that is already indented, so it had the least width on the page
+ * and the widest `min-w`.
+ */
 async function Ledger({ username }: { username: string }) {
   const rows = await ledgerFor(username, 50);
   if (rows.length === 0) {
     return <p className="px-4 pb-4 text-sm text-navy-500">No transactions.</p>;
   }
   return (
-    <div className="overflow-x-auto px-4 pb-4">
-      <table className="w-full min-w-[30rem] text-sm">
-        <tbody className="text-navy-700">
-          {rows.map((row) => (
-            <tr key={row.id} className="border-t border-navy-200">
-              <td className="py-1.5 pr-3 font-mono text-xs text-navy-500">
-                {row.createdAt.slice(0, 16).replace("T", " ")}
-              </td>
-              <td className="py-1.5 pr-3">{row.reason}</td>
-              <td className="py-1.5 pr-3 font-mono text-xs text-navy-500">{row.ref ?? row.note ?? ""}</td>
-              <td className="py-1.5 text-right font-mono">
-                {row.delta > 0 ? `+${row.delta}` : row.delta}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ul className="divide-y divide-navy-200 border-t border-navy-200 px-4 pb-4">
+      {rows.map((row) => (
+        <li key={row.id} className="py-2">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="min-w-0 break-words text-sm text-navy-900">{row.reason}</span>
+            <span className="shrink-0 font-mono text-sm text-navy-900">
+              {row.delta > 0 ? `+${row.delta}` : row.delta}
+            </span>
+          </div>
+          <p className="mt-0.5 break-words font-mono text-xs text-navy-500">
+            {row.createdAt.slice(0, 16).replace("T", " ")}
+            {row.ref || row.note ? ` · ${row.ref ?? row.note}` : ""}
+          </p>
+        </li>
+      ))}
+    </ul>
   );
 }
