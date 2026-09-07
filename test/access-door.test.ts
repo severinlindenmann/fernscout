@@ -86,6 +86,9 @@ describe("what the header is told about signing in", () => {
       // identity, which is a fact about them and the instance and cannot vary
       // with what the gate did or did not filter out of this journal.
       "hasIdentity",
+      // B797. Journal-wide and viewer-independent, exactly like
+      // `analyticsEnabled` above.
+      "helperEnabled",
       "locales",
       "signedIn",
       "startLocation",

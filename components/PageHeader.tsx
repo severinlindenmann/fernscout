@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Menu, X } from "lucide-react";
+import { ArrowLeft, Bot, FileText, Menu, X } from "lucide-react";
 import SiteNav, { useNavEntries } from "./SiteNav";
 import SkipLink from "./SkipLink";
 import CurrencySwitcher from "./CurrencySwitcher";
@@ -185,11 +185,59 @@ export default function PageHeader({
             tabIndex={-1}
             className="mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-navy-200 bg-cream-50 p-3 shadow-lg"
           >
+            {/*
+              The way to `/agent`, first in the panel and the loudest thing
+              in it — B797. The whole block is gated on `helper`: B797's own
+              acceptance line is "with the helper off, neither appears", so
+              Docs travels with Agent here rather than standing alone — with
+              the helper off this journal's only way to write is still
+              whatever `AgentBlock` on `/` explains, and a Docs symbol with
+              nothing beside it would be a stray icon promising a feature
+              this instance has not turned on.
+
+              Measured at 390px, icon-and-word beside the row's existing
+              back/title/disc/menu did not leave the title a usable width
+              (see the measurement in B797's task file), so it moves here
+              instead, as the ticket's own fallback says: first, and
+              emphasised. `bg-navy-900` rather than `yellow-400` — the disc
+              two lines up already spends yellow on "this is where you are",
+              and a second yellow control in the same header would have made
+              neither mean anything (the two-yellows trap the ticket names).
+              Docs sits beside it, quieter, per request 3.
+            */}
+            {site.helperEnabled && (
+              <div className="flex flex-col gap-2 border-b border-navy-200 pb-3">
+                <Link
+                  href="/agent"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-navy-900 px-4
+                             text-lg font-semibold text-cream-50 transition-colors hover:bg-navy-800
+                             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                >
+                  <Bot className="h-5 w-5" aria-hidden strokeWidth={2.2} />
+                  {t("nav.agent")}
+                </Link>
+                <Link
+                  href="/docs"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold
+                             text-navy-600 transition-colors hover:bg-cream-100 hover:text-navy-900
+                             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                >
+                  <FileText className="h-4 w-4" aria-hidden strokeWidth={2.2} />
+                  {t("nav.docs")}
+                </Link>
+              </div>
+            )}
             {/* `children` is not repeated here: the one caller that passes any
                 (`TripStory`'s day counter) already marks it `xl:block`, so it
                 never draws below the width this panel exists for — mounting
                 a second, permanently invisible copy would be for nothing. */}
-            <div className="flex flex-wrap items-center gap-2 border-b border-navy-200 pb-3">
+            <div
+              className={`flex flex-wrap items-center gap-2 border-b border-navy-200 pb-3 ${
+                site.helperEnabled ? "mt-3" : ""
+              }`}
+            >
               <TripSwitcher />
               <CurrencySwitcher />
               <LocaleSwitcher />
@@ -307,6 +355,43 @@ export default function PageHeader({
           <TripSwitcher />
           <CurrencySwitcher />
           <LocaleSwitcher />
+          {/*
+            The way to `/agent`, at `sm` and up — B797. Gated on `helper`
+            together with Docs, same as the mobile panel and for the same
+            reason — see the comment there.
+
+            There is room here that the phone row does not have, so
+            icon-and-word sits inline rather than waiting for the panel.
+            `bg-navy-900` rather than `yellow-400`, same reasoning as the
+            mobile panel above: `SiteNav`'s active-tab colour, on the line
+            below, is already the header's "you are here" waymark, and this
+            is a different kind of control — a call to action to leave the
+            journal and go write, not a place in it. Docs stays quieter,
+            icon only, per request 3.
+          */}
+          {site.helperEnabled && (
+            <>
+              <Link
+                href="/agent"
+                className="flex min-h-11 items-center gap-2 rounded-full bg-navy-900 px-4 text-sm font-semibold
+                           text-cream-50 transition-colors hover:bg-navy-800
+                           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              >
+                <Bot className="h-4 w-4" aria-hidden strokeWidth={2.2} />
+                {t("nav.agent")}
+              </Link>
+              <Link
+                href="/docs"
+                title={t("nav.docs")}
+                aria-label={t("nav.docs")}
+                className="flex h-11 w-11 items-center justify-center rounded-full text-navy-600
+                           transition-colors hover:bg-navy-200/60 hover:text-navy-900
+                           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              >
+                <FileText className="h-4 w-4" aria-hidden strokeWidth={2.2} />
+              </Link>
+            </>
+          )}
         </div>
         <div className="flex w-full grow justify-end lg:w-auto lg:grow-0">
           <SiteNav />
