@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: docs, landing
 found: "2026-09-07T11:43:55Z"
+started: "2026-09-07T12:53:39Z"
+session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
+claimed: "2026-09-07T12:53:39Z"
 ---
 
 # B717 — README.md still says there is no editing interface and there will not be one

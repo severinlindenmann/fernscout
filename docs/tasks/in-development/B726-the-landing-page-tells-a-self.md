@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: landing, i18n
 found: "2026-09-07T12:05:00Z"
+started: "2026-09-07T12:53:38Z"
+session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
+claimed: "2026-09-07T12:53:38Z"
 ---
 
 # B726 — The landing page tells a self-hoster with the helper off that the agent may be this instance's own
