@@ -8,6 +8,7 @@ import { createDraft, listDrafts, validateDraft } from "@/lib/api/entries";
 import { slugify } from "@/lib/slug.ts";
 import { agentGuide, instanceDocumentation, userDocumentation } from "@/lib/api/documentation";
 import { openApiDocument } from "@/lib/api/openapi";
+import { IMAGE_MAX_BYTES, REQUEST_MAX_BYTES } from "@/lib/validate/media";
 import { getAllEntries } from "@/lib/entries";
 import { validateEntry } from "@/lib/validate/entry";
 import {
@@ -510,7 +511,10 @@ describe("what the guide has to tell an agent before it starts", () => {
    * and only one of them was ever written down. */
   test("the guide states the request-body cap beside the per-file cap", () => {
     const guide = agentGuide();
-    expect(guide).toMatch(/64 MB/);
+    // The constant, not a literal: this test is about the cap being *stated*,
+    // and a number typed here goes on passing after the cap has moved.
+    expect(guide).toContain(`${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB`);
+    expect(guide).toContain(`${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB`);
     expect(guide).toMatch(/body_too_large/);
   });
 

@@ -1,6 +1,6 @@
 import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { attachGallery, detachGallery, isPublished } from "@/lib/api/entries";
-import { storeUploads, type KeptOriginal, type UploadCandidate } from "@/lib/api/media";
+import { kindOf, storeUploads, type KeptOriginal, type UploadCandidate } from "@/lib/api/media";
 import { getTrip, mediaWithOwner, tripRef } from "@/lib/trips";
 import fs from "node:fs";
 import { fetchImage } from "@/lib/api/fetchMedia";
@@ -9,6 +9,7 @@ import { getUser } from "@/lib/users";
 import {
   IMAGE_MAX_BYTES,
   MAX_ITEMS_PER_DAY,
+  VIDEO_MAX_BYTES,
   REQUEST_MAX_BYTES,
   captionsFor,
   visibilitiesFor,
@@ -342,11 +343,12 @@ export async function POST(
         ],
         message:
           `This is the whole request, not one file: a photograph may be ` +
-          `${megabytes(IMAGE_MAX_BYTES)} and up to ${MAX_ITEMS_PER_DAY} may go in one call, ` +
-          `but together they have to fit in ${megabytes(REQUEST_MAX_BYTES)}. Send fewer files ` +
-          `per request — a day can be filled by several calls, and each one appends. A single ` +
-          `file larger than that cannot come through this door at all; \`npm run ingest\`, ` +
-          `which reads a folder on the same machine, has no such limit.`,
+          `${megabytes(IMAGE_MAX_BYTES)}, a clip ${megabytes(VIDEO_MAX_BYTES)}, and up to ` +
+          `${MAX_ITEMS_PER_DAY} may go in one call, but together they have to fit in ` +
+          `${megabytes(REQUEST_MAX_BYTES)}. Send fewer files per request — a day can be ` +
+          `filled by several calls, and each one appends. One large clip is a call of its ` +
+          `own; \`npm run ingest\`, which reads a folder on the same machine, has no ceiling ` +
+          `at all and is the way to move many files at once.`,
       },
       { status: 413 },
     );
@@ -391,16 +393,32 @@ export async function POST(
       { status: 400 },
     );
   }
-  const oversize = files.find((f) => f.size > IMAGE_MAX_BYTES);
+  /**
+   * Each file against the cap for *its own kind*.
+   *
+   * This measured everything against `IMAGE_MAX_BYTES`, which was invisible
+   * while a clip could not exceed the request cap anyway — 64 MB then, under
+   * the 50 MB an image may be. With video at 500 MB it is the difference
+   * between a clip landing and a clip refused as an oversized photograph, in a
+   * message naming a limit that was never the one for it. `storeUploads`
+   * enforces the same thing again off the journal's own (possibly narrower)
+   * limits; this one is here so a bad request is refused before it is read.
+   */
+  const oversize = files.find(
+    (f) => f.size > (kindOf(f.name) === "video" ? VIDEO_MAX_BYTES : IMAGE_MAX_BYTES),
+  );
   if (oversize) {
+    const cap = kindOf(oversize.name) === "video" ? VIDEO_MAX_BYTES : IMAGE_MAX_BYTES;
     return Response.json(
       {
         error: "invalid_media",
         problems: [
           {
             field: `${oversize.name}.size`,
-            got: `${(oversize.size / 1024 / 1024).toFixed(1)} MB`,
-            expected: `at most ${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB`,
+            got: `${megabytes(oversize.size)}`,
+            expected:
+              `at most ${(cap / 1024 / 1024).toFixed(0)} MB for a ` +
+              `${kindOf(oversize.name) === "video" ? "clip" : "photograph"}`,
           },
         ],
       },

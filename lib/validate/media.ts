@@ -61,7 +61,16 @@ export const IMAGE_MAX_EDGE = 8000;
  */
 export const VIDEO_MAX_SECONDS = 5 * 60;
 export const VIDEO_SHORT_SECONDS = 60;
-export const VIDEO_MAX_BYTES = 200 * 1024 * 1024;
+/**
+ * Five hundred megabytes, which is a real clip off a real phone.
+ *
+ * It was 200 MB, and the number was never the binding one anyway: the request
+ * cap below was a third of it, so the honest ceiling on a clip arriving over
+ * the network was 64 MB and this constant only described what `npm run ingest`
+ * would take off a folder. Both moved together, so the two doors now say the
+ * same thing.
+ */
+export const VIDEO_MAX_BYTES = 500 * 1024 * 1024;
 
 export const MAX_ITEMS_PER_DAY = 40;
 
@@ -82,15 +91,19 @@ export const MAX_ITEMS_PER_DAY = 40;
  * `next.config.ts` reads it from this file so the cap and the documentation
  * cannot drift apart.
  *
- * Why 64 MiB and not 200 (`VIDEO_MAX_BYTES`): every byte of it is held in
- * memory before the route sees the request, so this is the one limit whose
- * ceiling is the server's RAM rather than somebody's disk. 64 MiB clears the
- * 50 MB an image may be, with room for the multipart framing around it. A clip
- * larger than this cannot come through the network door at all — `npm run
- * ingest`, which reads a folder on the same machine, has no such ceiling — and
- * the refusal says so rather than leaving it to be discovered.
+ * Why 512 MiB, and what it costs. Every byte of it is held in memory before
+ * the route sees the request, so this is the one limit here whose ceiling is
+ * the server's RAM rather than somebody's disk — a single upload in flight can
+ * be half a gigabyte of it, and two at once a gigabyte. It sits above
+ * `VIDEO_MAX_BYTES` deliberately, with room for the multipart framing: a cap
+ * below the largest file the same document says is acceptable is a promise the
+ * door cannot keep, which is exactly what it was before — clips were advertised
+ * at 200 MB and refused at 64. An instance that cannot afford the memory should
+ * narrow `media.videoBytes` in its own config (lib/mediaLimits.ts) and tell
+ * people to use `npm run ingest`, which reads a folder on the same machine and
+ * has no ceiling at all.
  */
-export const REQUEST_MAX_BYTES = 64 * 1024 * 1024;
+export const REQUEST_MAX_BYTES = 512 * 1024 * 1024;
 /** A caption is one line under a picture; the day's prose is where the rest
  * belongs. Applied on the way in through the media endpoint and again on a
  * `PATCH` that corrects one. B522. */
