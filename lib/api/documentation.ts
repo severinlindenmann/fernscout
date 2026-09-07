@@ -122,7 +122,8 @@ export function instanceDocumentation(): string {
     "",
     "> A travel journal whose content is markdown and photographs in a folder the",
     "> author owns. Reading happens in a browser. Writing happens through an agent",
-    "> holding a token — there is no editing interface, and there will not be one.",
+    "> holding a token — still no CMS, whether that agent is this instance's own",
+    `> hosted one at ${site.url}/agent or one you bring yourself.`,
     "",
     "## Already holding a token?",
     "",
@@ -172,12 +173,15 @@ export function instanceDocumentation(): string {
     ),
     "",
     ...wrap(
-      "If neither is open to you: say so, plainly, and stop there. There is no " +
-        "upload interface to build instead, no web form, and no CMS — that absence " +
-        "is the software (ROADMAP decision 24), not a gap for you to route around. " +
-        'Do not offer a file the owner can "manually upload" — nothing here accepts ' +
-        "one — and do not hand the job back by telling the owner to follow this " +
-        "guide themselves; that is the job they asked you to do.",
+      "If neither is open to you: say so, plainly, and point them at " +
+        `${site.url}/agent instead — a browser door this instance hosts for ` +
+        "exactly this case, no API key required. There is still no upload " +
+        "interface for *you* to build, no web form, and no CMS behind your own " +
+        "calls — that absence is the software (ROADMAP decision 24), not a gap " +
+        'for you to route around. Do not offer a file the owner can "manually ' +
+        'upload" — nothing here accepts one — and do not hand the job back by ' +
+        "telling the owner to follow this guide themselves; send them to " +
+        "/agent instead.",
       78,
     ),
     "",

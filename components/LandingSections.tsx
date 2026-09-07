@@ -117,7 +117,19 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
   );
 }
 
-export function LandingHero() {
+/**
+ * The first screen — B694.
+ *
+ * `helperEnabled` decides which door is primary. Off (the default, and what
+ * every self-hoster has today) this renders exactly as it always has: the
+ * headline and the lede, with the instruction box and its copy button as the
+ * next thing on the page. On, a button to `/agent` — the hosted wizard — is
+ * the primary call to action, and a quiet line under it sends anyone who
+ * already has an agent down to the instruction box rather than hiding it.
+ * One page, two arrangements — see `Landing.tsx` for where the flag comes
+ * from.
+ */
+export function LandingHero({ helperEnabled = false }: { helperEnabled?: boolean }) {
   const { t } = useI18n();
   return (
     <>
@@ -125,6 +137,29 @@ export function LandingHero() {
         {t("landing.hero")}
       </h1>
       <p className="mt-4 text-lg leading-7 text-navy-700">{t("landing.lede")}</p>
+      {helperEnabled && (
+        <>
+          <Link
+            href="/agent"
+            className="mt-6 inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-navy-900 px-6
+                       text-lg font-semibold text-cream-50 transition-colors hover:bg-navy-700
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500
+                       sm:w-auto"
+          >
+            {t("landing.helperCta")}
+          </Link>
+          <p className="mt-3">
+            <a
+              href="#handover"
+              className="text-sm text-navy-700 underline decoration-navy-300 underline-offset-4
+                         transition-colors hover:decoration-navy-700
+                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            >
+              {t("landing.helperOwnAgent")}
+            </a>
+          </p>
+        </>
+      )}
     </>
   );
 }
@@ -200,7 +235,7 @@ export function AgentBlock({
   );
 }
 
-/** The three steps, and the promise that there is no editor. */
+/** The three steps for bring-your-own-agent, and the promise that there is no CMS. */
 export function LandingSteps() {
   const { t } = useI18n();
   const steps = [

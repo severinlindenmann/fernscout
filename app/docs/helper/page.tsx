@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import DocsNav from "@/components/DocsNav";
 import EntryContent from "@/components/EntryContent";
 import { docsNavEntries, readRepoFile, section } from "@/lib/docs";
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "Making content" };
 const HELPER_REPO = "https://github.com/severinlindenmann/fernscout-helper";
 
 /**
- * Where content comes from, when there is no editing interface.
+ * Where content comes from, when there is no CMS.
  *
  * Decision 24 says there is no web form and no CMS, and every other page here
  * states that as a property of the software. It is also the first thing a
@@ -44,8 +45,15 @@ export default async function HelperPage() {
         Making content
       </h1>
       <p className="mt-3 text-lg leading-relaxed text-navy-700">
-        There is no editing interface here, and there will not be one. Photographs
-        and words arrive through an agent — and{" "}
+        There is still no CMS, and there will not be one. Photographs and words
+        arrive through an agent — this instance can host one for you at{" "}
+        <Link
+          href="/agent"
+          className="underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-coral-600"
+        >
+          /agent
+        </Link>
+        , or, if you would rather run your own,{" "}
         <a
           href={HELPER_REPO}
           className="underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-coral-600"
