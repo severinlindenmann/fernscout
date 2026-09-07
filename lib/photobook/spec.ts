@@ -101,13 +101,6 @@ export type BookSpec = {
   gutterMm: number;
   /** Target resolution for photographs. */
   dpi: number;
-  /** Caliper of one leaf of the interior stock, for the spine width.
-   * 0.115 mm is about 130 gsm silk, the usual photobook interior. */
-  paperCaliperMm: number;
-  /** Board and wrap that a hardcover case adds to the spine. 0 for softcover. */
-  coverBoardMm: number;
-  /** How far the cover artwork wraps around the boards. */
-  coverWrapMm: number;
   pageCount: PageCountRule;
 };
 
@@ -118,10 +111,6 @@ export function defaultSpec(size: BookSize = BOOK_SIZES["square"]): BookSpec {
     safeMm: 10,
     gutterMm: 16,
     dpi: 300,
-    paperCaliperMm: 0.115,
-    // A hardcover case adds board to the spine; Task 6 sets this from `size.cover`.
-    coverBoardMm: 0,
-    coverWrapMm: 15,
     pageCount: GELATO_PAGE_RULE,
   };
 }
@@ -177,17 +166,6 @@ export function bleedBoxMm(spec: BookSpec): RectMm {
     width: spec.size.trimWidthMm + spec.bleedMm * 2,
     height: spec.size.trimHeightMm + spec.bleedMm * 2,
   };
-}
-
-/**
- * Spine width for a given interior page count.
- *
- * Pages, not leaves: two printed pages share one sheet of paper. Getting this
- * wrong does not fail preflight — it produces a cover whose front image creeps
- * around onto the spine, which is only visible on the finished object.
- */
-export function spineWidthMm(interiorPages: number, spec: BookSpec): number {
-  return (interiorPages / 2) * spec.paperCaliperMm + spec.coverBoardMm;
 }
 
 /**
