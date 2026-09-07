@@ -138,11 +138,29 @@ describe("resolveCapabilities", () => {
     expect(state.enabled === true && state.note).toMatch(/dry-run/);
   });
 
-  test("a real, fully-configured print provider carries no note", () => {
+  // B435 changed what this test is about. A configured Stannp still posts
+  // nothing until `live` is set, so "fully configured" is no longer the same
+  // claim as "putting cards in the post" — and which of the two an instance is
+  // doing has to be readable from /api/health rather than guessed at.
+  test("a configured print provider says whether it is really posting", () => {
     process.env.DATABASE_URL = "sqlite:./x.db";
     process.env.STANNP_API_KEY = "k";
     writeConfig({ postcards: { enabled: true, provider: "stannp" } });
     const state = resolveCapabilities().postcards;
+    expect(state.enabled).toBe(true);
+    expect(state.enabled === true && state.note).toMatch(/dispatches none of them/);
+
+    writeConfig({ postcards: { enabled: true, provider: "stannp", live: true } });
+    const live = resolveCapabilities().postcards;
+    expect(live.enabled === true && live.note).toMatch(/PRINTS AND POSTS/);
+  });
+
+  test("photobook has no live switch, so a configured provider carries no note", () => {
+    process.env.DATABASE_URL = "sqlite:./x.db";
+    process.env.LULU_CLIENT_KEY = "k";
+    process.env.LULU_CLIENT_SECRET = "s";
+    writeConfig({ photobook: { enabled: true, provider: "lulu" } });
+    const state = resolveCapabilities().photobook;
     expect(state.enabled).toBe(true);
     expect(state.enabled === true && state.note).toBeUndefined();
   });

@@ -1,18 +1,17 @@
 import type { PostalAddress } from "./render.ts";
 
 /**
- * Print providers, prepared but not connected.
+ * Print providers: what each one's request looks like, and which are real.
  *
- * Everything here builds a request and stops. No provider is called, because
- * calling one needs an account, and an account is the boundary this work
- * package deliberately stops at (see docs/plans/W13-postcards.md). What that
- * buys: the payload shapes, the auth models and the failure modes are settled
- * and tested against fixtures now, so wiring up a real key later is an
- * afternoon rather than a rewrite.
+ * This file builds requests and does not send them. `lib/postcard/stannp.ts`
+ * is what posts one, and it posts exactly the map `buildStannpRequest`
+ * returns — the split is so the payload can be asserted in a test with no key,
+ * no network and no account, which is the rule this repository is built on.
  *
- * The exact field names below are written from each provider's published API
- * and MUST be confirmed against their live documentation before the first real
- * send — see docs/providers/postcards.md for what to verify.
+ * Until B435 nothing here was called at all, and three fields had drifted from
+ * the published API in the eighteen months nobody was checking. Anything added
+ * below is a claim about somebody else's server: confirm it against their live
+ * documentation, and see docs/providers/postcards.md.
  */
 
 export type ProviderName = "dry-run" | "stannp" | "swisspost";
@@ -44,7 +43,7 @@ export type PreparedRequest = {
   url: string;
   /** Header names only — never the values, which are secrets. */
   authHeaders: string[];
-  /** Multipart field names and a description of each value. */
+  /** The request's text fields, verbatim. Files are added by the client. */
   fields: Record<string, string>;
   /** What must be true before this can succeed. */
   requires: string[];
@@ -56,6 +55,12 @@ export type PreparedRequest = {
  * Official, documented, self-serve, and it prints and posts internationally.
  * Regional endpoints exist; EU is the right one for Swiss and European
  * recipients, both for postage cost and for where the data sits.
+ *
+ * `fields` is the request's actual text body, not a description of one:
+ * `lib/postcard/stannp.ts` posts exactly this map and adds the two files. It
+ * used to hold prose ("the rendered front PDF, as a file upload") because
+ * nothing called it, and the moment something did, a second field list beside
+ * this one would have been a list that disagreed with it within a month.
  */
 export function buildStannpRequest(order: PostcardOrder, region: "eu" | "us" = "eu"): PreparedRequest {
   if (!order.paymentRef) {
@@ -64,25 +69,29 @@ export function buildStannpRequest(order: PostcardOrder, region: "eu" | "us" = "
   return {
     provider: "stannp",
     method: "POST",
-    url: `https://${region}.stannp.com/api/v1/postcards/create`,
+    url: `https://api-${region}1.stannp.com/v1/postcards/create`,
     authHeaders: ["Authorization"],
     fields: {
       test: String(order.test),
       size: "A6",
-      front: "the rendered front PDF, as a file upload",
-      back: "the rendered back PDF, as a file upload",
+      // Stannp lays a white border over the front unless this is zero, which
+      // would crop into art rendered to the bleed. B435.
+      padding: "0",
       "recipient[firstname]": order.to.name.split(" ").slice(0, -1).join(" ") || order.to.name,
       "recipient[lastname]": order.to.name.split(" ").slice(-1).join(" "),
       "recipient[address1]": order.to.line1,
       ...(order.to.line2 ? { "recipient[address2]": order.to.line2 } : {}),
       "recipient[postcode]": order.to.postcode,
-      "recipient[town]": order.to.city,
+      // `city`, not `town` — the field this was written with is not the field
+      // their reference documents, and an unrecognised one is dropped in
+      // silence rather than refused.
+      "recipient[city]": order.to.city,
       "recipient[country]": order.to.country ?? "CH",
     },
     requires: [
       "STANNP_API_KEY",
       "An account with credit on it",
-      "Field names confirmed against the current Stannp API documentation",
+      "features.postcards.live — until it is true, every request carries test=true",
     ],
   };
 }
@@ -119,8 +128,10 @@ export function availableProviders(): Record<ProviderName, { ready: boolean; not
   return {
     "dry-run": { ready: true, note: "Writes print-ready files to ./out/postcards. No account." },
     stannp: {
-      ready: false,
-      note: "Request builder written and tested; needs STANNP_API_KEY and a funded account.",
+      ready: Boolean(process.env.STANNP_API_KEY),
+      note: process.env.STANNP_API_KEY
+        ? "Wired. Posts unless features.postcards.live is true, in which case it prints and dispatches."
+        : "Wired, but STANNP_API_KEY is unset and a funded account is needed.",
     },
     swisspost: { ready: false, note: swissPostStatus().reason },
   };

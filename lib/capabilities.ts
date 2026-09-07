@@ -146,11 +146,21 @@ export type CapabilityState =
 function dryRunNote(name: FeatureName, feature: Record<string, unknown>): string | undefined {
   if (name !== "postcards" && name !== "photobook") return undefined;
   const provider = optionOf(feature, "provider") ?? "dry-run";
-  if (provider !== "dry-run") return undefined;
-  return (
-    `features.${name}.provider is "dry-run" — orders can be created and previewed, ` +
-    `but nothing is actually printed or posted (see B492)`
-  );
+  if (provider === "dry-run") {
+    return (
+      `features.${name}.provider is "dry-run" — orders can be created and previewed, ` +
+      `but nothing is actually printed or posted (see B492)`
+    );
+  }
+  // B435. The same shape as the Stripe note above and for the same reason: a
+  // provider that is wired, funded and configured still posts nothing until
+  // `live` is true, and "is this instance actually putting cards in the post"
+  // must be a question /api/health answers rather than one somebody guesses
+  // at from a deploy log.
+  if (name !== "postcards") return undefined;
+  return feature.live === true
+    ? `features.postcards.live is true — ${provider} PRINTS AND POSTS real cards, and real money moves`
+    : `features.postcards.live is not set — ${provider} renders a free sample of every card and dispatches none of them`;
 }
 
 /**

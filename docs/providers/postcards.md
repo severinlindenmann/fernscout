@@ -2,10 +2,10 @@
 
 What is built, what is deliberately not, and exactly what is needed to go live.
 
-**Status: everything up to the account boundary is done.** The renderer, the
-batch CLI and the Stannp request builder all work with no credentials. Nothing
-calls a provider, because calling one needs an account — and that is where this
-work package was told to stop.
+**Status: Stannp is wired and posts — but only when told to twice.** The
+renderer, the batch CLI and the request builder all still work with no
+credentials, and `dry-run` remains the default so a fresh clone needs no
+account. B435 connected the client.
 
 ---
 
@@ -79,16 +79,64 @@ hostel in month four.
 - **Built:** `buildStannpRequest()` in `lib/postcard/providers.ts`, unit-tested
   against fixtures with no network
 
+### The two switches, and why there are two
+
+```json
+"postcards": { "enabled": true, "provider": "stannp", "live": false }
+```
+
+`provider` says who prints. `live` says whether anything is actually posted,
+and **absent means no**. Every request Stannp receives carries `test=true`
+until an operator sets it, which makes the card render for real — same
+composition, same trim, a sample PDF you can open and inspect — and dispatches
+none of them. It is free.
+
+That is deliberately not a per-request argument. A caller who *can* ask for a
+live send is a caller who can ask for one by mistake, and the whole shape of
+`lib/postcard/send.ts` is about making the expensive thing unreachable rather
+than merely discouraged. The ledger ref records which happened: a test render
+is `stannp-test:<id>`, and only a real dispatch is `stannp:<id>`.
+
+`/api/health` prints which of the three states the instance is in — dry-run,
+stannp-in-test, stannp-live — beside the Stripe note that exists for exactly
+the same reason.
+
+**An order still spends the journal's own credits in test mode.** Branching the
+money code so that test sends are free would be putting a condition on the one
+path in this codebase that must not have a surprising one; the operator refunds
+their own instance's play money instead.
+
+### The corrected field table — B435
+
+Three things had drifted in the eighteen months nobody was calling the builder.
+Each has a first symptom that is a ruined card rather than an error:
+
+| Was | Is | What the mistake costs |
+| --- | --- | --- |
+| `https://eu.stannp.com/api/v1/postcards/create` | `https://api-eu1.stannp.com/v1/postcards/create` | Nothing sends at all |
+| `recipient[town]` | `recipient[city]` | An unrecognised field is dropped in silence — the card posts with no city on it |
+| *(unset)* | `padding=0` | They lay a white border over art rendered to the bleed |
+
+- **Auth:** HTTP basic, the key as the username and an empty password
+- **Files:** `front` and `back` as two separate PDF parts, never the two-page
+  card — Stannp composes it and has no way to be told which page is which side
+- **Response:** `{ success, data: { id, pdf, cost, status } }`. `pdf` is the
+  sample to look at
+
 ### To go live
 
-1. Create a Stannp account and add credit.
-2. Set `STANNP_API_KEY`.
-3. **Confirm the field names against Stannp's current API documentation.** The
-   builder is written from their published API, but field names are the kind of
-   thing that drifts, and the first send is the wrong moment to find out.
-4. Send one card to yourself with `test: true`, then with `test: false`.
+1. Create a Stannp account and add credit. `STANNP_PUBLIC_KEY` is for their
+   client-side preview widget and is not used here.
+2. Set `STANNP_API_KEY` in the environment. Never in a config file — it can
+   spend money.
+3. Set `provider: "stannp"`, leave `live` alone, and order a card to yourself.
+   Open the sample PDF the response carries: check the trim, the address block
+   position and the photograph's sharpness. `GET
+   https://api-eu1.stannp.com/v1/accounts/balance` before and after is the
+   honest proof that nothing was charged.
+4. Only then `"live": true`, and send one card to yourself.
 5. **Look at the printed card before sending any to family.** Colour, crop and
-   the address position cannot be checked on screen.
+   the address position cannot be checked on screen. That engagement is B437.
 
 ---
 
