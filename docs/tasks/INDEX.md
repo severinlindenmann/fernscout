@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (86)
+## backlog (87)
 
 ### security (3)
 
@@ -59,7 +59,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 
-### issue (7)
+### issue (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -70,6 +70,7 @@ Do not edit them by hand; run the script.
 | [B709](backlog/issue/B709-every-day-must-answer-the-money.md) | Every day must answer the money question before it is written | ISSUE | low | medium |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
+| [B754](backlog/issue/B754-a-second-trip-cannot-be-made.md) | A second trip cannot be made from the wizard when the helper is off | ISSUE | low | low |
 
 ### big-feature (13)
 
@@ -181,7 +182,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (9)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -190,12 +191,11 @@ _Nothing here._
 | [B743](in-development/B743-one-provider-name-is-recorded-for.md) | One provider name is recorded for three different consents | ISSUE | medium | low | `97b44327` |
 | [B751](in-development/B751-the-striped-handover-box-shouts-louder.md) | The striped handover box shouts louder than anything it sits beside, and it is on the page up to four times | FEATURE | medium | medium | `ccdd5120` |
 | [B752](in-development/B752-the-sign-in-field-draws-three.md) | The sign-in field draws three focus indicators at once, so it reads as a box inside a box | ISSUE | medium | low | `ccdd5120` |
-| [B688](in-development/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium | `fdfcf5f2` |
 | [B735](in-development/B735-withdrawing-photo-consent-also-withdraws-consent.md) | Withdrawing photo consent also withdraws consent for words | ISSUE | low | low | `97b44327` |
 | [B744](in-development/B744-the-speech-consent-panel-names-deepgram.md) | The speech consent panel names Deepgram even on a dry-run instance | ISSUE | low | low | `97b44327` |
 | [B753](in-development/B753-sending-a-sign-in-code-gives.md) | Sending a sign-in code gives no sign that anything was sent | FEATURE | low | low | `ccdd5120` |
 
-## testing (7)
+## testing (8)
 
 ### issue (4)
 
@@ -212,10 +212,11 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B746](testing/big-feature/B746-the-operator-cannot-see-what-the.md) | The operator cannot see what the instance costs to run | FEATURE | high | high | — |
 
-### small-feature (1)
+### small-feature (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B688](testing/small-feature/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium | — |
 | [B737](testing/small-feature/B737-the-travel-scene-s-vehicles-exist.md) | The travel scene's vehicles exist only on the web, so a book cannot show how a leg was travelled | FEATURE | low | medium | — |
 
 ### docs-and-skills (1)

@@ -7,8 +7,7 @@ complexity: medium
 area: agent, signup
 found: "2026-09-07T09:53:01Z"
 started: "2026-09-07T12:51:36Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T12:51:36Z"
+merged: "2026-09-07T13:25:23Z"
 ---
 
 # B688 — A new visitor cannot make a journal inside the helper
