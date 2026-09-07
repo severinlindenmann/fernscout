@@ -79,3 +79,51 @@ itself.
 - Every other route that serves session-dependent content with a storable
   `Cache-Control` either carries `Vary: Cookie` or is named in this task with a
   reason it does not need one.
+
+## Triage
+
+Confirmed against current code — `app/[user]/story.json/route.ts` still sends
+`private, max-age=60, stale-while-revalidate=600` with no `Vary`. Fixed by
+adding `Vary: "Cookie"` to that response's headers.
+
+**The rest of the surface, checked one route at a time:**
+
+- **`app/[user]/media/[...path]/route.ts`** (the one the ticket named to look
+  at first) — does **not** need it. It reads with `includeDrafts: true`
+  internally to *locate* a draft day's file, but a draft or a labelled photo
+  a reader may not see is refused with a **404 before the `Cache-Control`
+  header is ever built** (`draft && !visible` → 404; `label &&
+  !maySeePhoto(...)` → 404), and the one that *is* returned that path is sent
+  `"private, no-store"` — not storable at all. A published, unlabelled photo
+  — the only case that reaches the storable `"public, max-age=3600"` branch —
+  is the same bytes for every reader who reaches it, gate already applied.
+  Nothing here varies by cookie once you're looking at the header rather than
+  the read call above it.
+- **`app/[user]/search-index.json/route.ts`** — same shape as `story.json`
+  and missed by the ticket's own text (it names only the media route to check
+  first). `resolveAccess(user)` decides between a public, cacheable index
+  (`buildSearchIndexJson`, `Cache-Control: public, max-age=300,
+  stale-while-revalidate=3600`) and a reader-scoped one
+  (`buildSearchIndexJsonForReader`, `private, max-age=60,
+  stale-while-revalidate=600`) — the private branch is keyed on the request's
+  own cookie exactly like `story.json`'s drafts/costs. Fixed the same way:
+  `Vary: "Cookie"` added, only on the `email` (reader-scoped) branch, since
+  the public branch's answer genuinely does not depend on the cookie and
+  adding `Vary` there would be a needless cache-key split for a response that
+  is identical either way.
+- **`app/[user]/export.zip/route.ts`** — session-dependent (owner vs.
+  anonymous), but the owner branch is `Bearer`-authenticated (not cookie) and
+  already `private, no-store`; the anonymous branch is `public, max-age=300`
+  and is the same archive for anyone unauthenticated. No cookie variance to
+  declare.
+- **`app/[user]/photobooks/[id]/[file]/route.ts`**,
+  **`app/[user]/delete/[token]/export.zip/route.ts`**,
+  **`app/api/v1/me/home/route.ts`**, and every `/api/**` JSON route checked
+  (`reactions`, `push/subscribe`, `address-lookup`, `travellers/preview`,
+  `health`) — all already `no-store`, nothing to widen.
+
+Test: `test/session-varying-json-cache.test.ts` (new) — builds a real journal
+fixture, calls both routes' `GET` directly (mocking `next/headers` the way
+`test/current-trip.test.ts` does), and asserts `story.json`'s `Vary` header
+alongside its `Cache-Control`. Confirmed it fails without the
+`story.json/route.ts` change (stashed and reran) and passes with it.

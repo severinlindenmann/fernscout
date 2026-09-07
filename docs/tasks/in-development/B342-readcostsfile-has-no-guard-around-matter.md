@@ -58,3 +58,27 @@ every one of those with it, including the sitemap for the whole journal.
   `readCostsFile` returns `null` rather than throwing, that `hasCostsData`
   and `costsAvailable` do not throw either, and that a warning was logged.
 - `npm run verify` passes.
+
+## Triage
+
+Confirmed against current code: `readCostsFile` (`lib/costs.ts:70`, unchanged
+line count from the ticket's `67-68`) called `matter(fs.readFileSync(...))`
+with no guard. Fixed the same shape as `readPlanFile` (`lib/plan.ts`, B313):
+`try`/`catch`, `clearMatterCache()` in the catch (imported from
+`lib/entries.ts`), `console.warn`, return `null`.
+
+Confirmed the three callers below it already treat `null` as "no costs.md"
+without any change needed: `hasCostsData` (`=== null` check),
+`getPreparationCosts` and `getBudget` (`if (!parsed) …` / `parsed ? … :
+undefined`). Also checked the one caller outside `lib/costs.ts` —
+`app/api/v1/[user]/trips/[trip]/costs/route.ts` — which already reads
+`exists: parsed !== null` and guards every use of `parsed` with `parsed ?
+… : …`. No changes needed below `readCostsFile` itself, as the ticket
+expected but asked to confirm.
+
+Test: `test/malformed-costs.test.ts` (new, mirrors
+`test/malformed-plan.test.ts`) — a `costs.md` with unterminated frontmatter,
+asserting `readCostsFile` returns `null` without throwing, `hasCostsData`
+and `costsAvailable` also don't throw, a warning naming `costs.md` was
+logged, a well-formed file is unaffected, and the guard clears once the file
+is fixed without a restart.

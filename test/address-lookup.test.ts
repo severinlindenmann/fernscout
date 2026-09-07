@@ -155,4 +155,27 @@ describe("lookupAddresses", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ features: [] }))));
     expect(await lookupAddresses("Bahnhofstrasse", "en")).toEqual([]);
   });
+
+  test("a building and a shop at the same address (B415) collapse into one result", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              // Photon's own shape for this: one feature per OSM object at
+              // the address, distinguished only by fields the mapped
+              // suggestion drops (`osm_key`/`name`) — see the ticket's own
+              // live example.
+              features: [
+                houseFeature({ osm_key: "building" }),
+                houseFeature({ osm_key: "shop", name: "Versace" }),
+              ],
+            }),
+          ),
+      ),
+    );
+    const results = await lookupAddresses("Bahnhofstrasse 12 Zurich", "de");
+    expect(results).toEqual([{ line1: "Bahnhofstrasse 12", postcode: "8001", city: "Zürich", country: "CH" }]);
+  });
 });

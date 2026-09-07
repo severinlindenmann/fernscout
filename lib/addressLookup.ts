@@ -111,13 +111,22 @@ export async function lookupAddresses(query: string, locale: string): Promise<Ad
   }
 
   const out: AddressSuggestion[] = [];
+  // Photon can hand back a building and a shop at the same address as two
+  // distinct features (B415) — indistinguishable once mapped down to the
+  // four fields a suggestion actually carries, so dedupe on those four,
+  // keeping the first occurrence, before anything else sees the list.
+  const seen = new Set<string>();
   for (const feature of body.features ?? []) {
     const p = feature.properties ?? {};
     if (p.type !== "house") continue;
     const countrycode = (p.countrycode ?? "").toUpperCase();
     const line1 = line1From(p.street ?? "", p.housenumber ?? "", countrycode);
     if (line1 === "") continue;
-    out.push({ line1, postcode: p.postcode ?? "", city: p.city ?? "", country: countrycode });
+    const suggestion = { line1, postcode: p.postcode ?? "", city: p.city ?? "", country: countrycode };
+    const key = `${suggestion.line1}|${suggestion.postcode}|${suggestion.city}|${suggestion.country}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(suggestion);
   }
   return out;
 }
