@@ -7,8 +7,7 @@ complexity: low
 area: api, health
 found: "2026-09-07T10:13:11Z"
 started: "2026-09-07T10:13:38Z"
-session: d7d9b2c7-a675-4d23-9205-0830bbf3e059
-claimed: "2026-09-07T10:13:38Z"
+merged: "2026-09-07T10:14:03Z"
 ---
 
 # B695 — A public GET spawns ffmpeg: /api/health and /agent.md turn a cheap request into processes
