@@ -7,6 +7,7 @@ import { drain, enqueue, outstanding, type QueueProgress } from "@/components/up
 import CurrencyProvider from "@/components/CurrencyProvider";
 import { useI18n } from "@/components/LocaleProvider";
 import { DayCard } from "@/components/StoryPager";
+import { creditsForPhotos } from "@/lib/helper/credits";
 import { NO_PROSE, stepFor, WIZARD_STEPS, type WizardDraft, type WizardStep } from "@/lib/helper/draft";
 import type { WizardTrip } from "@/lib/helper/server";
 import { weekdayNames, type TranslationKey } from "@/lib/i18n";
@@ -57,12 +58,23 @@ type Preview = { day: Day; summary: DaySummary; dayIndex: number };
 /** What the model layer is, from the browser's side — B684. `enabled: false`
  *  is the whole of "absent rather than broken": no button, no panel, no fetch,
  *  and every other step of this wizard unchanged. */
-type HelperState = { enabled: boolean; consented: boolean; credits: number };
+type HelperState = {
+  enabled: boolean;
+  consented: boolean;
+  /** Whether the journal has separately agreed to photographs leaving the
+   *  machine — B687. Never inferred from `consented` above. */
+  consentedPhotos: boolean;
+  credits: number;
+};
 
 /** What came back from one write-up, held for review and saved by nobody.
  *  Keeping it beside the fields rather than in them is the point: the person's
  *  own words stay on the screen until they say otherwise. */
 type Suggested = { title: string; prose: string; warnings: string[] };
+
+/** One photograph's suggested caption — B687. Keyed by `src` so it lines up
+ *  with `EditInput.captions` when a person keeps it. */
+type PhotoCaption = { src: string; caption: string };
 
 /** What the picked photographs said about themselves, before anything is sent. */
 type ExifFacts = {
@@ -198,6 +210,13 @@ export default function AgentWizard({
   const [consented, setConsented] = useState(helper.consented);
   const [consenting, setConsenting] = useState(false);
   const [suggested, setSuggested] = useState<Suggested | null>(null);
+
+  // B687 — a separate consent and a separate answer, because sending
+  // photographs is a bigger promise than sending typed words and one consent
+  // must not silently cover the other.
+  const [consentedPhotos, setConsentedPhotos] = useState(helper.consentedPhotos);
+  const [consentingPhotos, setConsentingPhotos] = useState(false);
+  const [captions, setCaptions] = useState<PhotoCaption[] | null>(null);
 
   const base = `/api/helper/${encodeURIComponent(username)}/day`;
 
@@ -460,16 +479,82 @@ export default function AgentWizard({
     await writeUp();
   }, [send, username, writeUp]);
 
-  /** Taking it back, from the same panel that asked. Deletes the record on the
-   *  journal; the next write-up asks again. */
+  /** Taking it back, from either panel that asked. Deletes the whole record on
+   *  the journal — both scopes, since there is one file — and the next call in
+   *  either one asks again. */
   const withdraw = useCallback(async () => {
     setBusy(true);
     const body = await send(`/api/helper/${encodeURIComponent(username)}/consent`, {
       method: "DELETE",
     });
     setBusy(false);
-    if (body) setConsented(false);
+    if (body) {
+      setConsented(false);
+      setConsentedPhotos(false);
+    }
   }, [send, username]);
+
+  /**
+   * Ask the model to caption the photographs already on this day.
+   *
+   * Nothing is saved here either: the answer lands in `captions`, one row per
+   * photograph, and a person keeps or edits each one through the ordinary
+   * caption field — nothing is written to the gallery by this call.
+   */
+  const describePhotosUp = useCallback(async () => {
+    if (!draft) return;
+    setBusy(true);
+    const body = await send(`${base}/describe-photos`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        trip: draft.trip,
+        slug: draft.slug,
+        // One key per photo count, so a retried tap is answered rather than
+        // charged twice; a photograph added afterwards is a new count and a
+        // deliberately new call.
+        idempotency_key: `${draft.trip}/${draft.slug}/describe/${draft.photos}`,
+      }),
+    });
+    setBusy(false);
+    if (!body) return;
+    setCaptions(body.captions as PhotoCaption[]);
+  }, [base, draft, send]);
+
+  /** Consent to photographs specifically, separate from the words consent
+   *  above — B687. */
+  const agreePhotos = useCallback(async () => {
+    setBusy(true);
+    const body = await send(`/api/helper/${encodeURIComponent(username)}/consent`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ scope: "photos" }),
+    });
+    setBusy(false);
+    if (!body) return;
+    setConsentedPhotos(true);
+    setConsentingPhotos(false);
+    await describePhotosUp();
+  }, [describePhotosUp, send, username]);
+
+  /** Keep one caption on the photograph it belongs to — the same `PATCH` the
+   *  words step uses to save prose, applied here to one gallery item. */
+  const keepCaption = useCallback(
+    async (row: PhotoCaption) => {
+      if (!draft) return;
+      setBusy(true);
+      const body = await send(base, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ trip: draft.trip, slug: draft.slug, captions: { [row.src]: row.caption } }),
+      });
+      setBusy(false);
+      if (!body) return;
+      setPreview((body.preview as Preview | null) ?? null);
+      setCaptions((prior) => prior?.filter((c) => c.src !== row.src) ?? null);
+    },
+    [base, draft, send],
+  );
 
   const publish = useCallback(async () => {
     if (!draft) return;
@@ -828,6 +913,81 @@ export default function AgentWizard({
                       : t("agent.helperWrite", { credits: String(helper.credits) })}
                   </button>
                   {consented && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void withdraw()}
+                      className="mt-2 min-h-11 text-sm font-semibold text-navy-600 underline disabled:opacity-50"
+                    >
+                      {t("agent.helperWithdraw")}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* B687 — vision, on demand, never on upload. Absent with no
+              photographs on the day, and with the capability off. */}
+          {helper.enabled && draft.photos > 0 && (
+            <div className="mt-4 rounded-2xl border border-navy-200 bg-cream-50 p-4">
+              {consentingPhotos ? (
+                <ConfirmPanel
+                  label={t("agent.photoConsentLabel")}
+                  question={t("agent.photoConsent")}
+                  confirmLabel={t("agent.photoConsentConfirm")}
+                  busy={busy}
+                  onConfirm={() => void agreePhotos()}
+                  onCancel={() => setConsentingPhotos(false)}
+                />
+              ) : captions && captions.length > 0 ? (
+                <>
+                  <p className="text-sm font-semibold text-navy-900">{t("agent.captionsTitle")}</p>
+                  <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.captionsHint")}</p>
+                  <ul className="mt-3 space-y-3">
+                    {captions.map((row) => (
+                      <li key={row.src} className="rounded-xl border border-navy-200 bg-white p-3">
+                        <p className="text-sm leading-6 text-navy-800">
+                          {row.caption === "" ? t("agent.captionEmpty") : row.caption}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void keepCaption(row)}
+                            className="min-h-11 rounded-full bg-yellow-400 px-4 text-sm font-semibold text-yellow-950 disabled:opacity-50"
+                          >
+                            {t("agent.helperUse")}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => setCaptions((prior) => prior?.filter((c) => c.src !== row.src) ?? null)}
+                            className="min-h-11 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 disabled:opacity-50"
+                          >
+                            {t("agent.helperDiscard")}
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm leading-6 text-navy-700">{t("agent.describePhotosHint")}</p>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => (consentedPhotos ? void describePhotosUp() : setConsentingPhotos(true))}
+                    className="mt-3 min-h-11 w-full rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 disabled:opacity-50"
+                  >
+                    {/* The price is on the button, before the tap — computed
+                        from the photographs actually on the day. */}
+                    {busy
+                      ? t("agent.helperWorking")
+                      : t("agent.describePhotos", { credits: String(creditsForPhotos(draft.photos)) })}
+                  </button>
+                  {consentedPhotos && (
                     <button
                       type="button"
                       disabled={busy}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AgentWizard from "@/components/AgentWizard";
 import { isEnabled } from "@/lib/capabilities";
-import { helperConsent } from "@/lib/helper/consent";
+import { hasHelperConsent } from "@/lib/helper/consent";
 import { WRITE_DAY_CREDITS } from "@/lib/helper/model";
 import { draftsForWizard, isHelperOwner, tripsForWizard } from "@/lib/helper/server";
 import { requestLocale, translateIn } from "@/lib/locales";
@@ -48,7 +48,8 @@ export default async function AgentWizardPage({ params }: PageProps<"/agent/[use
       // exactly as it did with no model on the instance at all.
       helper={{
         enabled: isEnabled("helper", user),
-        consented: helperConsent(user) !== null,
+        consented: hasHelperConsent(user, "words"),
+        consentedPhotos: hasHelperConsent(user, "photos"),
         credits: WRITE_DAY_CREDITS,
       }}
     />

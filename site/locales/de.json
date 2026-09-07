@@ -1201,6 +1201,7 @@
   "agent.helperWarnings": "Bewusst weggelassen",
   "agent.helperUse": "Diese Worte übernehmen",
   "agent.helperDiscard": "Bei meinen bleiben",
+<<<<<<< HEAD
   "agent.askLabel": "Was möchtest du tun?",
   "agent.askPlaceholder": "Eine neue Reise nach Japan im März anlegen",
   "agent.askGo": "Fragen",
@@ -1221,5 +1222,15 @@
   "agent.askCreditsOff": "Dieser Server rechnet nichts ab, es gibt also keine Credits.",
   "agent.askUnfinished": "Unfertig und wartend: {count}. Der neueste ist vom {date}.",
   "agent.askUnfinishedNone": "Nichts ist unfertig. Jeder Tag hier ist veröffentlicht.",
+=======
+  "agent.describePhotosHint": "Nicht sicher, was du dazu sagen sollst? Die Fotos selbst können für jedes eine Bildunterschrift vorschlagen — du liest jeden Vorschlag, bevor etwas übernommen wird.",
+  "agent.describePhotos": "Für mich beschreiben · {credits} Guthaben",
+  "agent.photoConsentLabel": "Meine Fotos an das Modell senden",
+  "agent.photoConsent": "Damit gehen die Fotos dieses Tages — verkleinerte Kopien, nicht die Originale — an Anthropic, wo das Modell läuft, damit es für jedes eine Bildunterschrift vorschlägt. Sonst nichts: kein Standortverlauf, keine Kontakte, keine Adresse von irgendwem und keine Reise, die du nicht geöffnet hast. Es wird keinen Ort nennen, den es erkennt, nicht raten, wer jemand ist, und keine Stimmung erraten — es beschreibt nur, was sichtbar im Bild ist, und darf auch nichts dazu sagen. Was zurückkommt, liest und behältst oder verwirfst du; gespeichert wird nichts, bis du speicherst. Das kostet ein Guthaben pro zehn Fotos, aufgerundet. Deine Fotos werden für kein Modelltraining verwendet. Das gilt für dieses Journal, bis du es zurückziehst — getrennt von der Zustimmung, deine Worte zu senden.",
+  "agent.photoConsentConfirm": "Ja, diese Fotos senden",
+  "agent.captionsTitle": "Vorgeschlagene Bildunterschriften",
+  "agent.captionsHint": "Lies jede einzelne und übernimm oder verwirf sie. Es ist noch nichts gespeichert.",
+  "agent.captionEmpty": "Dazu gibt es nichts zu sagen.",
+>>>>>>> b687-vision
   "agent.failed": "Das hat nicht geklappt: {error}"
 }

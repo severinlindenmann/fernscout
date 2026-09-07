@@ -78,6 +78,77 @@ export type DayFacts = {
 export type WrittenDay = { title: string; prose: string; warnings: string[] };
 
 /**
+ * The system prompt for `describePhotos` — B687, plan §4 and §2.3.
+ *
+ * The same discipline as `SYSTEM_PROMPT` above, aimed at a narrower job: a
+ * caption is shorter than a day's prose, but a photograph invites a worse
+ * kind of invention than a paragraph does, because a model that can *see* a
+ * face is one guess away from naming it, and one guess away from placing it
+ * somewhere it recognises but was never told. Both are forbidden absolutely,
+ * not softened into "be careful" — a caption that reads "this is Anna in
+ * Lisbon" is the exact failure this exists to prevent, whatever the picture
+ * actually shows.
+ */
+export const PHOTO_SYSTEM_PROMPT = `You are looking at photographs from somebody's own travel journal. For each one, suggest a short caption for the owner to keep, edit or discard — nothing you say is written anywhere by itself.
+
+The one rule, and it outranks everything else you might think makes a caption better:
+
+DESCRIBE ONLY WHAT IS VISIBLE IN THE FRAME. Do not name a place, a country, a landmark or a business — even one you recognise, even if signage in the photograph names it — because a caption is not the place to turn a guess into a fact. Never identify a person: no name, no relationship, no guess at who somebody is. You may describe what is visibly happening (someone is walking, someone is cooking) but never who. Never guess a mood, an occasion, a reason, or anything about what the day meant. A plain caption of what is actually in the frame — the colours, the setting, the action — beats a caption that reaches for any of that, and an empty caption is the correct answer for a photograph you cannot describe without guessing.
+
+Write in English. Return exactly one caption per photograph, in the same order the photographs were sent, as a plain string each — an empty string where there is nothing safe to say.`;
+
+const PHOTO_SCHEMA = {
+  type: "object",
+  properties: {
+    captions: { type: "array", items: { type: "string" } },
+  },
+  required: ["captions"],
+  additionalProperties: false,
+} as const;
+
+/** One photograph, already resized, as bytes ready to send. */
+export type PhotoImage = { base64: string; mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" };
+
+/**
+ * One request, one caption per image sent, in order.
+ *
+ * Throws on anything that goes wrong, the same contract as `writeDay`: the
+ * caller has already spent the credit and refunds on a throw.
+ */
+export async function describePhotos(images: PhotoImage[]): Promise<string[]> {
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: HELPER_MODEL,
+    max_tokens: 200 * images.length + 200,
+    system: PHOTO_SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: [
+          ...images.map((image) => ({
+            type: "image" as const,
+            source: { type: "base64" as const, media_type: image.mediaType, data: image.base64 },
+          })),
+          { type: "text" as const, text: `${images.length} photographs, in the order sent.` },
+        ],
+      },
+    ],
+    output_config: { format: { type: "json_schema", schema: PHOTO_SCHEMA } },
+  });
+
+  const text = response.content
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .join("")
+    .trim();
+  const parsed = JSON.parse(text) as Record<string, unknown>;
+  const captions = strings(parsed.captions);
+  // The model is told the count and the order; a caller that returns the
+  // wrong number of captions is padded rather than trusted to have meant one
+  // photograph for the next — an empty caption is always the safe answer.
+  return images.map((_, i) => captions[i]?.trim() ?? "");
+}
+
+/**
  * The user message, built from the notes and the facts and nothing else.
  *
  * Exported because it is what the tests assert on: what a model returns is not

@@ -1,6 +1,6 @@
 import { isEnabled } from "@/lib/capabilities";
 import { refund, spend } from "@/lib/credits";
-import { helperConsent } from "@/lib/helper/consent";
+import { hasHelperConsent } from "@/lib/helper/consent";
 import { HELPER_PROVIDER, WRITE_DAY_CREDITS, writeDay, type DayFacts } from "@/lib/helper/model";
 import { isHelperOwner } from "@/lib/helper/server";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
@@ -72,7 +72,7 @@ export async function POST(
   // Before the first model call ever made for this journal, and before the
   // spend — a charge for a call that consent would have refused is a charge
   // for nothing.
-  if (!helperConsent(user)) {
+  if (!hasHelperConsent(user, "words")) {
     return Response.json({ error: "consent_required" }, { status: 403 });
   }
 

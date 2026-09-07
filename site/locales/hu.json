@@ -1201,6 +1201,7 @@
   "agent.helperWarnings": "Szándékosan kihagyva",
   "agent.helperUse": "Ezeket használom",
   "agent.helperDiscard": "Maradok a sajátomnál",
+<<<<<<< HEAD
   "agent.askLabel": "Mit szeretnél csinálni?",
   "agent.askPlaceholder": "Új utazás Japánba márciusban",
   "agent.askGo": "Kérdezés",
@@ -1221,5 +1222,15 @@
   "agent.askCreditsOff": "Ez a szerver semmit sem számláz, így nincsenek kreditek.",
   "agent.askUnfinished": "Befejezetlen és várakozik: {count}. A legfrissebb: {date}.",
   "agent.askUnfinishedNone": "Semmi sincs befejezetlenül. Itt minden nap közzé van téve.",
+=======
+  "agent.describePhotosHint": "Nem tudod, mit írj ezekről? Maguk a fényképek is javasolhatnak egy-egy feliratot — minden javaslatot elolvasol, mielőtt bármi megmaradna.",
+  "agent.describePhotos": "Írd le helyettem · {credits} kredit",
+  "agent.photoConsentLabel": "Fényképeim elküldése a modellnek",
+  "agent.photoConsent": "Ezzel ennek a napnak a fényképei — kicsinyített másolatok, nem az eredetik — elmennek az Anthropichoz, ahol a modell fut, hogy mindegyikhez javasoljon egy feliratot. Más semmi: sem a helyelőzményeid, sem a névjegyeid, sem bárkinek a címe, sem olyan út, amelyet nem nyitottál meg. Nem nevez meg olyan helyet, amit felismer, nem találgatja, ki látható a képen, és nem találgat hangulatot sem — csak azt írja le, ami ténylegesen látszik a képen, és az is előfordulhat, hogy semmit nem mond. Amit visszakapsz, elolvasod, és megtartod vagy elveted; semmi nem mentődik, amíg te nem mented. Ez tíz fényképenként egy kreditbe kerül, felfelé kerekítve. A fényképeidet nem használják modell tanítására. Ez a napló számára addig érvényes, amíg vissza nem vonod — külön attól, hogy a szavaid elküldéséhez hozzájárultál-e.",
+  "agent.photoConsentConfirm": "Igen, küldjük el ezeket a fényképeket",
+  "agent.captionsTitle": "Javasolt feliratok",
+  "agent.captionsHint": "Olvasd el mindegyiket, és tartsd meg vagy vesd el. Még semmi nincs elmentve.",
+  "agent.captionEmpty": "Erről nincs mit mondani.",
+>>>>>>> b687-vision
   "agent.failed": "Ez nem sikerült: {error}"
 }

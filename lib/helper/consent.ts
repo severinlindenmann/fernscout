@@ -17,14 +17,29 @@ import { isValidUsername, userDir } from "../users";
  * deleting a file — which is a thing an owner can do with a shell when
  * everything else is broken. There is no database column to migrate and
  * nothing to reconcile.
+ *
+ * **B687 split it into scopes.** "Your words" and "your photographs" are not
+ * the same promise — one sends what somebody typed, the other sends the
+ * pictures themselves — and a person who agreed to the first was never asked
+ * about the second. So a consent now names *what* it covers, and a route
+ * checks its own scope rather than "has this journal ever said yes to
+ * anything". A file written before this split carries no `scopes` at all; it
+ * is read as `["words"]`, because that is the only thing the old panel ever
+ * asked about.
  */
 
+export const HELPER_SCOPES = ["words", "photos"] as const;
+export type HelperScope = (typeof HELPER_SCOPES)[number];
+
 export type HelperConsent = {
-  /** When it was given, as a whole UTC instant. */
+  /** When consent was last given or extended, as a whole UTC instant. */
   agreedAt: string;
   /** Who the words would be going to, recorded as it stood at the time — so a
    *  change of provider is not silently covered by an old yes. */
   provider: string;
+  /** What was actually agreed to. Never widened by anything but a fresh POST
+   *  naming the new scope. */
+  scopes: HelperScope[];
 };
 
 function consentFile(username: string): string {
@@ -38,7 +53,10 @@ export function helperConsent(username: string): HelperConsent | null {
   try {
     const raw = JSON.parse(fs.readFileSync(consentFile(username), "utf8")) as Partial<HelperConsent>;
     if (typeof raw.agreedAt !== "string" || typeof raw.provider !== "string") return null;
-    return { agreedAt: raw.agreedAt, provider: raw.provider };
+    const scopes = Array.isArray(raw.scopes)
+      ? raw.scopes.filter((s): s is HelperScope => (HELPER_SCOPES as readonly string[]).includes(s))
+      : (["words"] as HelperScope[]); // pre-B687 file: the only thing the old panel ever asked about.
+    return { agreedAt: raw.agreedAt, provider: raw.provider, scopes };
   } catch {
     // No file, unreadable file, or nonsense in it: all three mean "nobody has
     // said yes here", which is the only safe reading of a missing consent.
@@ -46,8 +64,23 @@ export function helperConsent(username: string): HelperConsent | null {
   }
 }
 
-export function recordHelperConsent(username: string, provider: string): HelperConsent {
-  const consent: HelperConsent = { agreedAt: new Date().toISOString(), provider };
+/** Whether this journal has said yes to this particular scope — never inferred
+ *  from having said yes to another one. */
+export function hasHelperConsent(username: string, scope: HelperScope): boolean {
+  return helperConsent(username)?.scopes.includes(scope) ?? false;
+}
+
+/** Records a scope, adding it to whatever this journal had already agreed to
+ *  rather than replacing it — agreeing to "photos" does not require
+ *  re-agreeing to "words". */
+export function recordHelperConsent(
+  username: string,
+  provider: string,
+  scope: HelperScope = "words",
+): HelperConsent {
+  const existing = helperConsent(username);
+  const scopes = existing?.scopes.includes(scope) ? existing.scopes : [...(existing?.scopes ?? []), scope];
+  const consent: HelperConsent = { agreedAt: new Date().toISOString(), provider, scopes };
   fs.writeFileSync(consentFile(username), `${JSON.stringify(consent, null, 2)}\n`);
   return consent;
 }
