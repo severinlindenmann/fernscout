@@ -71,6 +71,7 @@ type LedgerReason =
   | "digest"
   | "postcard"
   | "photobook"
+  | "photobook_print"
   | "storage"
   | "helper"
   | "transcription"
@@ -97,6 +98,14 @@ export type SpendReason =
   | "digest"
   | "postcard"
   | "photobook"
+  /** Turning a built book into a posted one — B434's photobook counterpart.
+   * Its own value rather than reusing `photobook`, for the reason `digest`
+   * is its own value above: the ledger is what an operator reconciles a
+   * supplier bill against, and rendering a PDF and printing a physical
+   * object are two different suppliers — one a model call, the other a
+   * Gelato invoice — so "photobook" spend alone cannot say which of the two
+   * a month's credits went on. */
+  | "photobook_print"
   /** More disk, bought once and for good — B661. The one spend that buys the
    * journal something rather than reaching somebody, and the reason it is
    * counted rather than merely logged: `purchasedBytes` in
