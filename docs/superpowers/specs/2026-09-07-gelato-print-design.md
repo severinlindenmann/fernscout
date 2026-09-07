@@ -108,14 +108,22 @@ sizes on offer become three that exist:
 | --- | --- | --- |
 | **Square** (default) | `photobooks-softcover ... 200x200 ... _ver` | CHF 14.40 |
 | **Portrait** | `photobooks-softcover ... 210x280 ... _ver` | CHF 14.99 |
-| **Landscape** | `photobooks-hardcover ... 210x280 ... _hor` | CHF 19.81 |
+| **Large square** | `photobooks-hardcover ... 280x280 ... _ver` | CHF 27.36 |
 
-**The one compromise, stated rather than buried:** there is no softcover
-landscape above 140 x 215, so choosing landscape chooses hardcover. That is a
-different cover wrap — board wrap and turn-in, not just spine width — so the
-cover renderer needs a hardcover case as well. If that is not worth it,
-landscape is dropped rather than faked, and the third slot goes to 280 x 280
-hardcover as a large square.
+**Landscape is dropped rather than faked.** There is no softcover landscape
+above 140 x 215, so a landscape book would have had to be hardcover, and a
+third orientation is worth less than a large square object. The slot goes to
+280 x 280 instead.
+
+**The cost that carries, and it is stated rather than buried:** the large
+square is the only hardcover, and `coverBoardMm` and `coverWrapMm` exist in
+`BookSpec` today but are read by nothing except the spine sum — a hardcover
+case has never been rendered here. It wraps the artwork around the boards and
+turns it in, so its cover PDF is materially larger than trim plus bleed. That
+is one task, it is last in the plan, and it is droppable: dropping it leaves
+two softcover formats, and a third softcover format is available at no
+rendering cost at all — 140 x 140 mm, CHF 10.68 at 52 pages — if three formats
+matter more than a large one does.
 
 Work this implies, and it is real:
 
@@ -233,6 +241,7 @@ to Australia is a price that is wrong.
 
 - Object storage for the PDFs.
 - Saddle stitching, which Gelato does not offer.
+- Landscape, which Gelato offers only in hardcover.
 - A second `print_orders` table, or a `photobook_print` kind.
 - A status webhook.
 - Reprinting an existing order.
