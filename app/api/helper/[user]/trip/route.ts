@@ -1,5 +1,5 @@
 import { isEnabled } from "@/lib/capabilities";
-import { isHelperOwner } from "@/lib/helper/server";
+import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
 import { createTrip, DATE_RE } from "@/lib/tripWrite";
@@ -50,7 +50,7 @@ function idFrom(username: string, title: string, start: string): string {
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/trip">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
   if (!isEnabled("helper", user)) {
     return Response.json({ error: "helper_unavailable" }, { status: 404 });

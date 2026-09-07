@@ -1,7 +1,7 @@
 import { isEnabled } from "@/lib/capabilities";
 import { refund, spend } from "@/lib/credits";
 import { hasHelperConsent } from "@/lib/helper/consent";
-import { isHelperOwner } from "@/lib/helper/server";
+import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import {
   creditsForSeconds,
   MAX_AUDIO_BYTES,
@@ -55,7 +55,7 @@ export async function POST(
 ) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
   if (!isEnabled("transcription", user)) {
     return Response.json({ error: "transcription_unavailable" }, { status: 404 });

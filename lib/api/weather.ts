@@ -162,3 +162,43 @@ function writeWeather(file: string, ref: string, reading: DayWeather): boolean {
 export function fillDayWeatherQuietly(ref: string, slug: string): Promise<unknown> {
   return fillDayWeather(ref, slug).catch(() => undefined);
 }
+
+/**
+ * `weather: true` asked for on a journal where the capability is off — B778.
+ *
+ * The lookup above is deliberately silent: it is fire-and-forget, called after
+ * the write, and it must never turn a saved day into a failed request. That is
+ * right for the nightly sweep and wrong for a synchronous answer to somebody
+ * who just asked for something, which is what the write routes were giving:
+ * `200 {"changed":["weather"]}` and no measurement, ever, with nothing in the
+ * response to say so and no pending marker to re-read.
+ *
+ * So the request is refused before anything is written, rather than accepted
+ * and dropped. `weather: true` is a request for a measurement, and a request
+ * nobody will service is better declined — it is the one field on a day that
+ * asks the server to *do* something rather than to store what it was sent.
+ *
+ * Only for a caller's `true`. `false` is withdrawing a request nobody was
+ * going to service anyway, and the helper's own day route sets `weather: true`
+ * itself rather than being asked for it (`app/api/helper/[user]/day/route.ts`),
+ * so neither goes through here.
+ *
+ * @returns the refusal body, or `null` when there is nothing to refuse.
+ */
+export function weatherOffRefusal(
+  username: string,
+  body: { weather?: unknown },
+): { error: string; message: string } | null {
+  if (body.weather !== true || isEnabled("weather", username)) return null;
+  return {
+    error: "weather_disabled",
+    message:
+      "weather: true asks this server to look the day up in a public archive, and the " +
+      "weather capability is off for this journal — no lookup would happen, now or in the " +
+      "nightly sweep, so nothing was written rather than accepting a request nobody will " +
+      "service. /api/health says whether this server provides weather at all and why not; " +
+      'where it does, the owner turns it on with PATCH /api/v1/<user>/config {"features": ' +
+      '{"weather": true}}. Send the day without the field in the meantime. A reading a ' +
+      "person actually took goes in weatherData, with its source — never one you believe.",
+  };
+}

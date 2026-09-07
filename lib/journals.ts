@@ -15,7 +15,8 @@ import { contentRoot } from "./contentRoot";
 import { normalizeCurrency, type RateTable } from "./currency";
 import { toE164 } from "./whatsapp/phone";
 import { issueStandingLink, signInUrl } from "./auth";
-import type { TranslationKey } from "./i18n";
+import { LOCALE_LIST } from "./api/agentCopy";
+import { MAINTAINED_LOCALES, type TranslationKey } from "./i18n";
 import { LOCALE_TAG_RE, translateIn } from "./locales";
 import { sendMail } from "./mail";
 import { renderMail } from "./mail/template";
@@ -1001,8 +1002,7 @@ export function setJournalProfile(
           return refuse(
             "invalid_locales",
             'locales is a non-empty list of language codes, most preferred first: ["de", "en"]. ' +
-              "A journal may offer a language this software ships no menus for — the content " +
-              "translations work and the chrome falls back to English.",
+              `This instance maintains ${LOCALE_LIST}, and a journal may offer those.`,
           );
         }
         const out: string[] = [];
@@ -1012,6 +1012,21 @@ export function setJournalProfile(
               "invalid_locales",
               `locales has ${JSON.stringify(item)}; each entry is a language code like "de" ` +
                 `or "pt-BR", not a language name.`,
+            );
+          }
+          if (!(MAINTAINED_LOCALES as readonly string[]).includes(item)) {
+            // B777 — the same check `POST /api/v1/journals` makes, against the
+            // same constant, in the same words. Creating a journal refused a
+            // language this build ships no strings for; correcting one
+            // accepted it and answered `200 {"ok":true}`, leaving an owner
+            // with a journal whose config claims a language its readers will
+            // never see. A field validated at creation and unvalidated
+            // forever after is the same field twice with two different
+            // meanings.
+            return refuse(
+              "invalid_locales",
+              `locales has ${JSON.stringify(item)}; each entry must be one of ${LOCALE_LIST} — ` +
+                "which of them a reader may switch the journal into.",
             );
           }
           if (!out.includes(item)) out.push(item);
@@ -1025,6 +1040,17 @@ export function setJournalProfile(
           return refuse(
             "invalid_defaultLocale",
             `defaultLocale is a language code like "de", got ${JSON.stringify(value)}.`,
+          );
+        }
+        if (!(MAINTAINED_LOCALES as readonly string[]).includes(value)) {
+          // B777, and the create route's words: this one decides the chrome
+          // and the language of the mail this server sends, so a code with no
+          // strings behind it is a journal rendering in English while its
+          // config says otherwise.
+          return refuse(
+            "invalid_defaultLocale",
+            `defaultLocale must be one of ${LOCALE_LIST}, got ${JSON.stringify(value)}. ` +
+              'Send the code, not the language\'s name — "Deutsch" and "German" are both "de".',
           );
         }
         patch.defaultLocale = value;

@@ -2,7 +2,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { refund, spend } from "@/lib/credits";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { HELPER_PROVIDER, WRITE_DAY_CREDITS, writeDay, type DayFacts } from "@/lib/helper/model";
-import { isHelperOwner } from "@/lib/helper/server";
+import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -44,7 +44,7 @@ export async function POST(
 ) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
   if (!isEnabled("helper", user)) {
     return Response.json({ error: "helper_unavailable" }, { status: 404 });

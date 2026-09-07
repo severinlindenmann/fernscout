@@ -8,7 +8,7 @@ import {
 } from "@/lib/helper/consent";
 import { HELPER_PROVIDER } from "@/lib/helper/model";
 import { speechProvider } from "@/lib/helper/transcribe";
-import { isHelperOwner } from "@/lib/helper/server";
+import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +32,13 @@ export const dynamic = "force-dynamic";
  * instance may run speech with no model at all, and gating its consent on
  * `helper` would leave the record button with no way to ask.
  */
-async function gate(user: string, scope: HelperScope | "any"): Promise<Response | null> {
+async function gate(
+  request: Request,
+  user: string,
+  scope: HelperScope | "any",
+): Promise<Response | null> {
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
   // A `DELETE` is gated on "any" regardless of which scope it names, so
   // either capability being on is reason enough to let somebody withdraw —
@@ -59,7 +63,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const { user } = await params;
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const scope = scopeOf(body.scope);
-  const refused = await gate(user, scope);
+  const refused = await gate(request, user, scope);
   if (refused) return refused;
   // Whoever this particular yes is about: the model for words and
   // photographs, the transcriber for a voice.
@@ -77,7 +81,7 @@ export async function DELETE(
   // Gated on "any" rather than this scope's own capability: a permission
   // that could not be withdrawn because the switch happened to be off would
   // not be a permission. The actual removal below is still scoped.
-  const refused = await gate(user, "any");
+  const refused = await gate(request, user, "any");
   if (refused) return refused;
   revokeHelperConsent(user, scope);
   return Response.json({ ok: true, consent: helperConsent(user) });

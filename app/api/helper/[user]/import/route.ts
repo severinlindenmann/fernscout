@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { isEnabled } from "@/lib/capabilities";
 import { deriveTripTrack, importGps, isRefusal } from "@/lib/gps/api";
-import { isHelperOwner } from "@/lib/helper/server";
+import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { findInboxFile } from "@/lib/inbox";
 import { getTrip, tripRef } from "@/lib/trips";
 import { storageRefusal } from "@/lib/storageQuota";
@@ -33,7 +33,7 @@ type Body = { inbox?: unknown; trip?: unknown };
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/import">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
 
   const body = (await request.json().catch(() => null)) as Body | null;

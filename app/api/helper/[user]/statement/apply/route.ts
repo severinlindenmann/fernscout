@@ -9,7 +9,7 @@ import {
 } from "@/importers/costs/mapping";
 import { COSTS_IMPORTERS } from "@/importers/costs";
 import { applyCosts, validateRows } from "@/lib/statements/apply";
-import { isHelperOwner } from "@/lib/helper/server";
+import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { findInboxFile } from "@/lib/inbox";
 import { getTrip, tripRef } from "@/lib/trips";
 
@@ -67,7 +67,7 @@ export async function POST(
 ) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;

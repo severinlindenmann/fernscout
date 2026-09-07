@@ -36,6 +36,41 @@ export async function isHelperOwner(username: string): Promise<boolean> {
   return email === journal.owner.email || isAdminEmail(email);
 }
 
+/**
+ * The helper family's one refusal — B779.
+ *
+ * The status stays 404 and stays the same for a journal that is not yours as
+ * for one that does not exist: a wizard URL must not confirm whose journal it
+ * is, and every route here answers alike for that reason.
+ *
+ * What was wrong was the word. A caller holding a **valid** agent token for
+ * the journal it named was told `not_your_journal` — that they do not own a
+ * journal they demonstrably do own — when the actual cause is that this
+ * family never reads `Authorization` at all (`isHelperOwner` above). So when
+ * a bearer token is present, the body says so and names the door that does
+ * take it. It confirms nothing: the caller has already proved who they are,
+ * and the sentence is the same one for a token belonging to somebody else.
+ */
+export function notYourJournal(request: Request): Response {
+  const bearer = request.headers.get("authorization");
+  return Response.json(
+    {
+      error: "not_your_journal",
+      ...(bearer
+        ? {
+            message:
+              "This is the helper — a browser flow — and it reads a signed-in session " +
+              "cookie only. It never looks at an Authorization header, so a valid token " +
+              "gets this same answer, and this is not a statement about who owns the " +
+              "journal. Everything here an agent does through /api/v1/<user>/… with that " +
+              "token: see /agent.md and /openapi.json.",
+          }
+        : {}),
+    },
+    { status: 404 },
+  );
+}
+
 /** One trip, as the wizard's first step needs it. */
 export type WizardTrip = {
   id: string;

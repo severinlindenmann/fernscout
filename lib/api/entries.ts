@@ -30,7 +30,7 @@ import { slugify } from "../slug.ts";
 import { mediaKey, type PhotoVisibility } from "../photos";
 import { deleteMediaFiles } from "./media";
 import { getTrip, parseTripRef, tripDir, tripRef } from "../trips";
-import type { Entry, GalleryItem, Trip } from "../types";
+import type { Entry, GalleryItem, Trip, TripVisibility } from "../types";
 import type { Problem } from "../validate/media";
 import {
   UNKNOWN,
@@ -1390,15 +1390,63 @@ export function publishNotice(input: {
   url: string;
   /** `isTestContent(trip, entry)` — the trip's flag counts, not just the day's. */
   test: boolean;
+  /**
+   * The trip's own `visibility:` — B775.
+   *
+   * Until then this said "the feed, the search index, and anyone with the
+   * link" to every publisher alike, and on a closed trip all three were
+   * false: `lib/feed.ts` and `lib/search.ts` carry public trips only, and a
+   * stranger with the link meets the sign-in gate. It was false in the
+   * frightening direction, too — an owner who chose `guest` so that
+   * strangers could not read their trip was told by the software that they
+   * now can, and the obvious reaction is to take down something that was
+   * never exposed.
+   *
+   * So the sentence names *who* can read it rather than only how far it
+   * went, which is the question the person was actually asking.
+   */
+  visibility: TripVisibility;
+  /**
+   * `listed: false` on a public trip keeps it out of the feed, the search
+   * index and the sitemap while leaving it readable by anyone with the link
+   * — half of the old sentence true and half of it not.
+   */
+  listed?: boolean;
 }): string {
   const head = `"${input.title}" (${input.date}) is on ${input.url}.`;
   const tail =
     `Taking it down again removes it from the site, not from the people who have ` +
     `already read it.`;
-  return input.test
-    ? `${head} It is marked test: true — content nobody lived — so the page says so in a ` +
-        `banner and it is kept out of the feed, the search index and the sitemap. Anyone ` +
-        `with the link can still read it. ${tail}`
+
+  if (input.visibility !== "public") {
+    // Nothing about the feed, the search index or a link: none of them
+    // applies to a closed trip, and naming them here is what made the old
+    // sentence frightening. Who can read it is the whole answer.
+    const who =
+      input.visibility === "guest"
+        ? "you and the people you have approved into this journal"
+        : "you and the people listed on the trip";
+    const marked = input.test
+      ? ` It is marked test: true — content nobody lived — so the page says so in a banner.`
+      : "";
+    return (
+      `${head} The trip is ${input.visibility}, so it can be read by ${who}, and by nobody ` +
+      `else.${marked} ${tail}`
+    );
+  }
+
+  if (input.test) {
+    return (
+      `${head} It is marked test: true — content nobody lived — so the page says so in a ` +
+      `banner and it is kept out of the feed, the search index and the sitemap. Anyone ` +
+      `with the link can still read it. ${tail}`
+    );
+  }
+
+  return input.listed === false
+    ? `${head} It is in the journal and anyone with the link can read it, but the trip is ` +
+        `listed: false, so it is kept out of the feed, the search index and the sitemap — ` +
+        `it is found by being given the link, not by looking. ${tail}`
     : `${head} It is in the journal, the feed and the search index, and anyone with ` +
         `the link can read it. ${tail}`;
 }

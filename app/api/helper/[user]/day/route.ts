@@ -3,7 +3,7 @@ import { createDraft, editEntry, factsOfInput, type DraftInput, type EditInput }
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { isEnabled } from "@/lib/capabilities";
 import { NO_PROSE } from "@/lib/helper/draft";
-import { draftForWizard, isHelperOwner, previewOf } from "@/lib/helper/server";
+import { draftForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { requestLocale } from "@/lib/locales";
 import { missingFrom, TRACKS, UNKNOWN, type Track } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -61,9 +61,9 @@ function declines(raw: unknown): Partial<Record<Track, false | typeof UNKNOWN>> 
 
 /** 404 for a journal that is not this reader's, the same answer as for one
  *  that does not exist — a wizard URL must not confirm whose journal it is. */
-async function gate(user: string): Promise<Response | null> {
+async function gate(request: Request, user: string): Promise<Response | null> {
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
   return null;
 }
@@ -86,7 +86,7 @@ function state(user: string, trip: string, slug: string): Response {
 
 export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
-  const refused = await gate(user);
+  const refused = await gate(request, user);
   if (refused) return refused;
 
   const url = new URL(request.url);
@@ -118,7 +118,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
  */
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
-  const refused = await gate(user);
+  const refused = await gate(request, user);
   if (refused) return refused;
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
@@ -182,7 +182,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
  */
 export async function PATCH(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
-  const refused = await gate(user);
+  const refused = await gate(request, user);
   if (refused) return refused;
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;

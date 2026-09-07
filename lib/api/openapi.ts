@@ -399,8 +399,10 @@ export function openApiDocument() {
                 + "the day. It needs coordinates: a day without them gets nothing, never a guess "
                 + "from the trip's other days or the nearest city. The lookup cannot fail this "
                 + "call — a day the archive has no answer for yet is filled in later by "
-                + "`npm run weather:update`. Off unless this instance has the `weather` capability "
-                + "on; /api/health says.",
+                + "`npm run weather:update`. It needs the `weather` capability: with it off, this "
+                + "call is refused (400, `weather_disabled`) and nothing is written, rather "
+                + "than accepted and quietly dropped — B778. /api/health says whether this "
+                + "server provides it.",
             },
             weatherData: {
               type: "object",
@@ -591,7 +593,9 @@ export function openApiDocument() {
               type: "boolean",
               description:
                 "Same meaning as on creation, and the way to have a day already written looked " +
-                "up. `false` withdraws the request; it does not remove a reading already recorded.",
+                "up. `false` withdraws the request; it does not remove a reading already " +
+                "recorded. `true` on a journal whose `weather` capability is off is refused " +
+                "(400, `weather_disabled`) and nothing is written — B778.",
             },
             weatherData: {
               type: "object",
@@ -1593,7 +1597,10 @@ export function openApiDocument() {
             "400": {
               description:
                 "Invalid entry. The body carries a `problems` list — every problem at once, " +
-                "each naming the field, what arrived and what was expected.",
+                "each naming the field, what arrived and what was expected. Also " +
+                "`weather_disabled`: `weather: true` on a journal whose weather capability " +
+                "is off, refused with nothing written rather than accepted and never looked " +
+                "up (B778).",
             },
             "401": { description: "Missing or invalid token" },
             "403": { description: "The token belongs to a different journal" },
@@ -1735,7 +1742,15 @@ export function openApiDocument() {
             },
           },
           responses: {
-            "200": { description: "Published; the body carries the day's public URL" },
+            "200": {
+              description:
+                "Published; the body carries the day's public URL, and `note` says who can " +
+                "now read it. That answer is the trip's, not the publish's: a public trip's " +
+                "day is in the feed and the search index and readable by anyone with the " +
+                "link, a `guest` trip's by the people the owner has approved into the " +
+                "journal, and a `private` trip's by the people on the trip — B775. Read the " +
+                "note out; do not paraphrase it into \"it is live\".",
+            },
             "400": { description: "The day could not be published — the body says why" },
             "402": {
               description:
@@ -1906,7 +1921,10 @@ export function openApiDocument() {
               description:
                 "Invalid entry (a `problems` list, same shape as creation's), an empty " +
                 "body, or a field this endpoint does not write — `status` included, named " +
-                "in `unsupported_field` rather than silently dropped.",
+                "in `unsupported_field` rather than silently dropped. `weather_disabled` " +
+                "when `weather: true` is sent to a journal whose weather capability is off: " +
+                "nothing is written, because the lookup that would answer it will never " +
+                "run (B778).",
             },
             "401": { description: "Missing or invalid token" },
             "403": { description: "The token belongs to a different journal" },
@@ -3556,13 +3574,24 @@ export function openApiDocument() {
                     units: { type: "string", enum: ["metric", "imperial"] },
                     locales: {
                       type: "array",
-                      items: { type: "string" },
+                      items: { type: "string", enum: [...MAINTAINED_LOCALES] },
                       description:
                         "Language codes, most preferred first. Must contain `defaultLocale`; " +
                         "a pair that disagrees is refused rather than written, because the " +
-                        "resulting config would take the journal off the site entirely.",
+                        "resulting config would take the journal off the site entirely. " +
+                        `Each entry must be one of ${LOCALE_LIST}, the same set creation ` +
+                        "refuses outside of — B777: a field checked when a journal is made " +
+                        "and unchecked when it is corrected is the same field with two " +
+                        "meanings.",
                     },
-                    defaultLocale: { type: "string" },
+                    defaultLocale: {
+                      type: "string",
+                      enum: [...MAINTAINED_LOCALES],
+                      description:
+                        `One of ${LOCALE_LIST}. The language the site's own chrome is in; a ` +
+                        "code this build ships no strings for is refused here exactly as it " +
+                        "is at creation.",
+                    },
                     displayCurrencies: {
                       type: "array",
                       items: { type: "string" },

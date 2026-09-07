@@ -2,7 +2,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { helperConsent } from "@/lib/helper/consent";
 import { intentFor, slotsFor, type Say } from "@/lib/helper/intents";
 import { routeAsk, UNKNOWN_INTENT } from "@/lib/helper/model";
-import { isHelperOwner } from "@/lib/helper/server";
+import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 
@@ -47,7 +47,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
   if (!isEnabled("helper", user)) {
     return Response.json({ error: "helper_unavailable" }, { status: 404 });

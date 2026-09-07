@@ -1194,6 +1194,11 @@ what you are changing; \`""\` clears a tagline, a start location or the number. 
 each call rewrites \`config.json\` whole and puts it back if it does not load.
 \`GET\` returns all of it under \`journal\`.
 
+\`locales\` and \`defaultLocale\` take the languages this instance maintains —
+${LOCALE_LIST} — and nothing else, which is the same set creation refuses
+outside of. A code with no strings behind it would leave a reader looking at
+English chrome with no way to tell why.
+
 Three keys are refused, and each says why. **\`owner.email\`** is the address that
 decides who can get a token for this journal, so a token cannot move it.
 **\`baseCurrency\`** is not a display setting: a cost written without a
@@ -1424,7 +1429,7 @@ one. The full schema, with the shape of each nested item, is in
 | \`costs\` | What the day cost, one entry per thing rather than one total: \`[{"label": "Coffee", "amount": 4.5, "currency": "EUR", "category": "food"}]\`. \`label\` and \`amount\` are required, and the amount must be greater than zero — a zero or negative one is refused rather than stored and silently dropped when the page renders. \`currency\` is the one the money was actually spent in, as an ISO-4217 code (\`VND\`, not \`₫\`); no \`currency\` means the journal's base currency, so leave it out only when that is true. Nothing is converted on the way in — see below. \`category\` is one of ${COST_CATEGORIES.join(", ")}; anything else is refused by name. |
 | \`transportMode\`, \`transportFrom\`, \`transportTo\` | How this day was reached, on the day it was reached — \`{"transportMode": "car", "transportFrom": "Susten Pass", "transportTo": "Grimsel Pass"}\`. \`transportMode\` is what makes the leg exist: without it there is no arrival scene between the day before and this one, and no icon on the map, whatever the other two say. One of ${TRANSPORT_MODES.join(", ")}, and only these — an unlisted mode is refused rather than shown. \`transportFrom\` and \`transportTo\` are free text and are printed exactly as sent (\`Susten Pass → Grimsel Pass\`), so write the places the way the person says them rather than as coordinates or airport codes; they are not geocoded, and \`lat\`/\`lng\` remain what puts the day on the map. Leave the whole group out on a day nobody travelled — a rest day with a mode on it draws a leg from a place to itself. |
 | \`travelScene\` | How the arrival scene between the previous day and this one plays: ${TRAVEL_SCENE_VARIANTS.join(", ")} — absent plays the default, timed to the distance covered. \`skip\` leaves the leg out of the story pager entirely, for a leg a reader has already seen many times over. Anything else is written as sent and read back as the default rather than refused. |
-| \`weather\` | \`true\` asks this server to look up what the weather actually was — from the Open-Meteo archive, at this day's \`lat\`/\`lng\` on its \`date\`. **It is the only way weather gets onto a day, and you must not write one from what you believe.** A day with no coordinates gets nothing rather than a guess, and a day the archive has no answer for yet is filled in later rather than left wrong. Needs the \`weather\` capability; \`/api/health\` says whether it is on. |
+| \`weather\` | \`true\` asks this server to look up what the weather actually was — from the Open-Meteo archive, at this day's \`lat\`/\`lng\` on its \`date\`. **It is the only way weather gets onto a day, and you must not write one from what you believe.** A day with no coordinates gets nothing rather than a guess, and a day the archive has no answer for yet is filled in later rather than left wrong. Needs the \`weather\` capability: with it off this call is refused — \`400 weather_disabled\` — and nothing is written, rather than answered \`200\` for a lookup that will never happen. \`/api/health\` says whether it is on. |
 | \`weatherData\` | A reading somebody actually took, for when you have one the archive does not. Accepted only with \`source\` (where it came from, in a few words) and \`recordedAt\` (an ISO instant), plus at least one of \`tempMin\`, \`tempMax\`, \`code\` (WMO), \`precipitation\` (mm), \`windMax\` (km/h). \`open-meteo\` is refused as a source — that name means this server measured it. The provenance is not bureaucracy: it is what lets a reader tell a measurement from something that was made up, which is the only reason weather is allowed here at all. |
 | \`test\` | \`true\` when this day did not happen. See **The one rule**. |
 | \`idempotency_key\` | Names this one write — see below. |
@@ -1576,6 +1581,14 @@ Content-Type: application/json
 \`\`\`
 
 **Give them the URL.** It is the thing they actually wanted.
+
+**And read out \`note\`, which says who can now read the day.** That answer
+belongs to the trip and not to the publish: on a public trip it is the feed,
+the search index and anybody with the link; on a \`guest\` trip it is the people
+the owner has approved into this journal; on a \`private\` trip it is the people
+on the trip. Publishing widens nothing — do not turn the note into "it is
+live", which is the sentence that makes an owner take down a closed trip
+nobody could read.
 
 **And then ask about telling people.** Publishing puts the day on the site and
 announces it to nobody, so where this journal can send, the reply carries a
