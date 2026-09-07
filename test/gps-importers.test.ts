@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { checkGpsImporter, type GpsImporter } from "@/importers/gps/schema";
+import { GPS_IMPORTERS } from "@/importers/gps";
 import timeline from "@/importers/gps/google-timeline";
 import records from "@/importers/gps/google-records";
 import gpx from "@/importers/gps/gpx";
@@ -149,26 +150,43 @@ describe("fixes — the format for a tool that is not TypeScript", () => {
   });
 });
 
-describe("the folder is the registry", () => {
-  test("every importer in it holds up the contract, without being named here", async () => {
-    // `importers/gps/`, not `importers/` — the kind of data is the folder, so
-    // a costs importer arriving later is a sibling directory rather than a
-    // file this walk has to learn to skip.
-    const root = path.join(process.cwd(), "importers", "gps");
-    const files = fs.readdirSync(root).filter((n) => n.endsWith(".ts") && n !== "schema.ts");
-    expect(files.length).toBeGreaterThan(0);
+describe("the folder and the list", () => {
+  /** `importers/gps/`, not `importers/` — the kind of data is the folder, so a
+   * costs importer arriving later is a sibling directory rather than a file
+   * this walk has to learn to skip. `index.ts` and `schema.ts` are the
+   * plumbing, not formats. */
+  const root = path.join(process.cwd(), "importers", "gps");
+  const files = fs
+    .readdirSync(root)
+    .filter((n) => n.endsWith(".ts") && n !== "schema.ts" && n !== "index.ts");
 
-    const ids = new Set<string>();
+  test("every file in the folder is in GPS_IMPORTERS", async () => {
+    // B671 replaced a runtime directory scan with this list, because a bundler
+    // cannot trace a dynamic import and the importers would be *missing* from
+    // a production build. This test is what keeps the drop-in promise honest:
+    // add a file, and it tells you the line to add.
+    expect(files.length).toBeGreaterThan(0);
     for (const name of files) {
       const loaded = (await import(path.join(root, name))) as { default?: GpsImporter };
-      const importer = loaded.default;
-      expect(importer, `${name} exports no importer`).toBeDefined();
-      expect(importer!.id).toMatch(/^[a-z0-9-]+$/);
-      expect(importer!.label.length).toBeGreaterThan(0);
-      expect(typeof importer!.detect).toBe("function");
-      expect(typeof importer!.parse).toBe("function");
-      expect(ids.has(importer!.id), `two importers called ${importer!.id}`).toBe(false);
-      ids.add(importer!.id);
+      expect(loaded.default, `${name} exports no importer`).toBeDefined();
+      expect(
+        GPS_IMPORTERS.some((i) => i.id === loaded.default!.id),
+        `${name} is not in importers/gps/index.ts — add it to GPS_IMPORTERS or it will not ` +
+          "exist in a production build",
+      ).toBe(true);
+    }
+    expect(GPS_IMPORTERS).toHaveLength(files.length);
+  });
+
+  test("every listed importer holds up the contract", () => {
+    const ids = new Set<string>();
+    for (const importer of GPS_IMPORTERS) {
+      expect(importer.id).toMatch(/^[a-z0-9-]+$/);
+      expect(importer.label.length).toBeGreaterThan(0);
+      expect(typeof importer.detect).toBe("function");
+      expect(typeof importer.parse).toBe("function");
+      expect(ids.has(importer.id), `two importers called ${importer.id}`).toBe(false);
+      ids.add(importer.id);
     }
   });
 

@@ -21,6 +21,32 @@ TODO — the problem, not the fix.
 
 TODO
 
+## What changed while building
+
+**Four doors for the bytes, not three.** `inbox` (the normal path), multipart
+`file`, and `text` for a few lines pasted inline. The inline door needed a
+correction found by driving it: the placeholder filename was `inline.jsonl`,
+and `fixes.detect` recognises a `.jsonl` **by name**, so a pasted CSV came back
+saying JSON Lines held no positions rather than that nothing recognised it. The
+placeholder now carries no extension, which forces detection to read the
+contents — the only honest thing to go on there. The refusal also says "the
+text you sent" rather than naming a file nobody sent.
+
+**A refusal an importer's own filtering hides.** Every importer here drops a
+row that is not on Earth, so a file with latitude and longitude the wrong way
+round reaches the contract check as an *empty parse*, not as bad rows. The
+"parse returned nothing" message therefore had to name that cause too, or it
+sends somebody hunting a format problem they do not have.
+
+**`storageRefusal` is async and answers with a message, not a Response.** Taken
+for a synchronous `Response | null`, the route returned a promise, Next
+resolved it to `null`, and every owner call answered with nothing at all. Found
+by the route test, which is the argument for having written it.
+
+**Three error codes reach a caller through a variable**, so `lib/gps/api.ts`
+joins `SPEAKS_TO_CALLERS` in `test/openapi-contract.test.ts` — the mechanism
+that list already existed for.
+
 ## Acceptance
 
 TODO
@@ -94,6 +120,32 @@ with their refusals, the kinds and formats as *imported* enums rather than
 retyped lists, and `/agent.md` gaining the workflow end to end — upload to the
 inbox, import, derive, and what never to do with what comes back.
 
+## What changed while building
+
+**Four doors for the bytes, not three.** `inbox` (the normal path), multipart
+`file`, and `text` for a few lines pasted inline. The inline door needed a
+correction found by driving it: the placeholder filename was `inline.jsonl`,
+and `fixes.detect` recognises a `.jsonl` **by name**, so a pasted CSV came back
+saying JSON Lines held no positions rather than that nothing recognised it. The
+placeholder now carries no extension, which forces detection to read the
+contents — the only honest thing to go on there. The refusal also says "the
+text you sent" rather than naming a file nobody sent.
+
+**A refusal an importer's own filtering hides.** Every importer here drops a
+row that is not on Earth, so a file with latitude and longitude the wrong way
+round reaches the contract check as an *empty parse*, not as bad rows. The
+"parse returned nothing" message therefore had to name that cause too, or it
+sends somebody hunting a format problem they do not have.
+
+**`storageRefusal` is async and answers with a message, not a Response.** Taken
+for a synchronous `Response | null`, the route returned a promise, Next
+resolved it to `null`, and every owner call answered with nothing at all. Found
+by the route test, which is the argument for having written it.
+
+**Three error codes reach a caller through a variable**, so `lib/gps/api.ts`
+joins `SPEAKS_TO_CALLERS` in `test/openapi-contract.test.ts` — the mechanism
+that list already existed for.
+
 ## Acceptance
 
 - An agent token can `POST` a `Timeline.json` (by inbox id and by multipart)
@@ -108,3 +160,27 @@ inbox, import, derive, and what never to do with what comes back.
 - `npm run gps` no longer exists, and nothing references it.
 - `/openapi.json` documents all three, and `/agent.md` explains the workflow.
 - `npm run verify` and `npm run unused` pass.
+
+## What was verified
+
+Against a running dev server with a real ten-month Google Timeline export
+(3.3 MB), driven over HTTP with a token obtained the way an agent obtains one:
+
+| | |
+| --- | --- |
+| Staged in the inbox, imported by id | detected `google-timeline`, 22,659 read → 16,315 stored across 11 months |
+| The same call again | `before 16315, after 16315` — a re-import is a no-op |
+| `dryRun` | same counts, `stored` absent, nothing on disk |
+| A trip made over the API, then `POST …/track` | 21 segments, 471 points; the flight out is a gap |
+| The same again | identical, and it rewrites one file |
+| A trip with nothing stored for its dates | `written: false`, and no file replaced |
+| A private zone, then redraw | `zones: 1`, and the points inside gone |
+| GPX by multipart, format named | `detected: false`, 3 fixes |
+| The same GPX, format omitted | `detected: true` |
+| Inline JSON Lines | `fixes`, 2 rows |
+
+And the refusals, each answering in words: `unknown_format` (named, and
+detected), `unknown_kind`, `contract` (swapped coordinates, seconds as
+milliseconds), `no_file`, `unknown_inbox_file`, `missing_token`, 404 on an
+unknown trip. No response anywhere carried a coordinate, and there is no route
+that reads the store.

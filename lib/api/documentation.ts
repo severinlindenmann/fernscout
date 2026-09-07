@@ -2061,6 +2061,68 @@ own bytes, so re-sending one you already sent answers with the same id and
 \`duplicate: true\` rather than a second copy. Retry a half-finished batch
 freely.
 
+### Where somebody actually went
+
+A trip's map knows the days and the photographs, and joins them with straight
+lines. If the owner has a location history — Google Maps Timeline, a Takeout,
+a GPX from a watch — the map can show the road actually driven instead.
+
+Two calls, because they are two decisions.
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/import
+\`\`\`
+
+Answers with the kinds of data this instance reads and the formats it knows.
+A **kind** is what the data *is* (\`gps\`); a **format** is who wrote it
+(\`google-timeline\`, \`google-records\`, \`gpx\`, \`fixes\`). The same call
+shape will take a bank export into a trip's costs when that kind exists.
+
+Stage the export in the inbox as above — it is a \`.json\` or a \`.gpx\`, so it
+lands in \`files/\` — and then:
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/import
+Content-Type: application/json
+
+{"kind": "gps", "inbox": "<id>"}
+\`\`\`
+
+Leave \`format\` out and the file is recognised from its own contents. Add
+\`"dryRun": true\` to see what would be read without writing anything — that is
+also how somebody tests an importer they wrote, because it runs the same
+contract check the format's own schema exports and answers in words: *seconds
+where milliseconds were meant*, *coordinates the wrong way round*.
+
+Nothing is drawn yet. The second call says which trip may show it:
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/trips/<trip-id>/track
+\`\`\`
+
+That clips the history to the trip's dates, cuts out the owner's private
+zones, leaves a gap of more than two hours as a gap — a flight is a hole in
+the data, not a line across a continent — and writes the result into the trip,
+where the map draws it faintly under the day markers. Run it again whenever
+more history is imported.
+
+**Read this part twice.** What you are handling is every address that person
+sleeps at, every place they work, everywhere they have ever been ill.
+
+- **Nothing gives it back to you.** There is no call that returns a position,
+  and there will not be. You can cause a line to be drawn for one trip; you
+  cannot read the history, and neither can anyone else.
+- **The raw export stays in the inbox until somebody deletes it**, and it is
+  the unthinned original. When the import has worked, say so and offer to
+  \`DELETE\` it.
+- **Ask about home.** If a trip started or ended at the front door, the line
+  starts at the front door. The answer to the track call says how many private
+  zones were applied; if it says none, ask whether there should be one before
+  anything is published.
+- **A trip-scoped token cannot do any of this**, even for its own trip. If you
+  hold one, the person you are working for is not the person whose history
+  this is.
+
 ### Photographs and video
 
 \`\`\`http
@@ -2369,11 +2431,19 @@ ${wrap(MIGRATION_RECONCILE).join("\n")}
 
 ## If you need help extracting pictures or data
 
-The photographs are on the owner's machine and so are the receipts, and
-neither this API nor ingest can reach them from here.
+The photographs are on the owner's machine and so are the receipts, and this
+API cannot reach them from here.
 **[Fernscout Helper](${HELPER_REPO})** is a separate, MIT-licensed repository
 of agent skills that runs *there* — a toolbox, not a service, and this
 journal does not depend on it.
+
+**The line between the two is worth knowing before you reach for it.** Anything
+that can be done on this server is a call above, and that is where it should be
+done: reading a location export is \`POST /api/v1/${example}/import\`, not a
+script on somebody's laptop. The helper is for the half that genuinely cannot
+run here — getting at a photo library, a local iCloud export, a PDF statement
+that never leaves the machine. Once it has produced a file, the file comes back
+through the calls above like anything else.
 
 | It does | So you get |
 | --- | --- |

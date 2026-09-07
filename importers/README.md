@@ -10,18 +10,20 @@ without anybody having to read a licence first.
 ```
 importers/
   schema.ts       what every importer is, whatever it reads
-  gps/            positions — read by `npm run gps -- import`
+  gps/            positions — read by `POST /api/v1/<user>/import`
     schema.ts     ← start here: the row type, and the function that checks yours
+    index.ts      the list the server bundles — add your file here too
     google-timeline.ts  google-records.ts  gpx.ts  fixes.ts
 ```
 
 **`<kind>/schema.ts` is the whole contract for that kind.** Read it, produce
-the row it names, and call the check it exports. There is nothing else to know
-and nowhere else to register.
+the row it names, call the check it exports, and add your file to that kind's
+`index.ts`. There is nothing else to know.
 
 A new **format** for something already here is a file in that kind's folder. A
 new **kind** — a bank export into a trip's costs, say — is a new folder with
-its own `schema.ts` naming its own row type, and its own command reading it.
+its own `schema.ts` naming its own row type, and its own writer behind the
+same `POST /api/v1/<user>/import` — the same call with a different `kind`.
 `Cost` and `Fix` have nothing to say to each other, and one folder holding both
 would be a pile to filter rather than a place to look.
 
@@ -45,9 +47,13 @@ const importer: GpsImporter = {
 export default importer;
 ```
 
-Drop it in `gps/`. Nothing registers it and no list needs editing — the folder
-*is* the registry, read at startup, and `npm run gps -- formats` will list it
-back to you.
+Drop it in `gps/`, and add it to `GPS_IMPORTERS` in `gps/index.ts`.
+`GET /api/v1/<user>/import` will list it back to you.
+
+The line in `index.ts` is not ceremony: a bundler cannot trace a directory
+scan, so an importer that is only a file would be *missing* from a production
+build and the failure would appear on the deployed instance and nowhere else.
+The test walks the folder and fails with the line to add.
 
 **Then run the check.** `<kind>/schema.ts` exports one, and it tells you what is
 wrong in words:
@@ -64,7 +70,7 @@ const problems = checkGpsImporter(importer, importer.parse(myExport));
 //    milliseconds since the epoch; seconds land in 1970"
 ```
 
-`npm run gps -- import <user> <file> --dry-run` runs exactly that function
+`POST /api/v1/<user>/import` with `"dryRun": true` runs exactly that function
 against your real export and writes nothing, so you never have to import the
 check yourself unless you want it in your own test.
 
@@ -112,19 +118,24 @@ use `gps/fixes.ts`, which is already here:
 {"t": "2025-11-06T05:00:00Z", "lat": 47.38564, "lon": 8.21819}
 ```
 
-One fix per line, `t` as an ISO instant or epoch seconds or milliseconds. Then
-`npm run gps -- import <user> out.jsonl`.
+One fix per line, `t` as an ISO instant or epoch seconds or milliseconds. Send
+it as `{"kind": "gps", "format": "fixes", "text": …}`, or stage the file and
+name it by id.
 
 ## Testing yours
 
-```bash
-npm run gps -- formats                         # is it listed?
-npm run gps -- import <user> <file> --dry-run  # what would it read?
+```http
+GET  /api/v1/<user>/import                          is it listed?
+POST /api/v1/<user>/import  {"kind":"gps", "text": "…", "dryRun": true}
 ```
 
-`--dry-run` parses, runs `checkGpsImporter`, prints how many fixes came out and
+The dry run parses, runs `checkGpsImporter`, says how many fixes came out and
 over what span, and writes nothing. A count of zero, a span running to 1970, or
 a complaint about the Earth is the parse being wrong.
+
+There is no CLI. Everything here runs on the server, reached over the API —
+which is the point: the person with the export usually has no shell on the
+machine the journal lives on.
 
 ## What is here
 

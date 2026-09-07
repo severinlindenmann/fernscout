@@ -173,10 +173,21 @@ own registry, so adding a format is dropping a file in.
 contract.** `importers/gps/schema.ts` names the row (`Fix`), and exports the
 function that checks somebody's importer against it. A second kind — a bank
 export into a trip's costs is the obvious one — is `importers/costs/` with its
-own `schema.ts` and its own command, never a file beside `gpx.ts`: a `Cost` and
-a `Fix` have nothing to say to each other. `importers/schema.ts` holds the only
-thing they share, `Importer<Row>`, and there is deliberately no plugin
-interface beneath it. `importers/README.md` is the guide.
+own `schema.ts`, never a file beside `gpx.ts`: a `Cost` and a `Fix` have
+nothing to say to each other. `importers/schema.ts` holds the only thing they
+share, `Importer<Row>`, and there is deliberately no plugin interface beneath
+it. Each kind also has an `index.ts` listing its importers, because a bundler
+cannot trace a directory scan and an unlisted importer is missing from a
+production build; a test walks the folder and names the line to add.
+`importers/README.md` is the guide.
+
+**The door is `POST /api/v1/<user>/import`, and there is no other one** — B671
+deleted the CLI B665 shipped with. A hosted journal's owner has no shell on the
+server and an agent never has one, so a capability reachable only by `npm run`
+was unreachable by both. The route takes a `kind` and an optional `format`,
+reads bytes from the inbox or multipart, and writes into the store;
+`POST /api/v1/<user>/trips/<trip>/track` is the separate decision that draws
+one trip's line from it. Neither ever returns a position.
 
 Sent mail is not in this tree. Since B636 it lives under the data dir
 instead — `<dataDir>/mail/<username>/` (and `<dataDir>/mail/.mail/` for a

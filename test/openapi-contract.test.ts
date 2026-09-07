@@ -387,6 +387,10 @@ describe("every error code a route answers with is published", () => {
     "lib/api/tripRates.ts",
     "lib/api/tripVisibility.ts",
     "lib/api/media.ts",
+    // B671: the import route answers with `error: result.refusal`, and the
+    // refusal words are written here — the same "reaches a caller through a
+    // variable" case the list above exists for.
+    "lib/gps/api.ts",
   ];
   const answered = new Set<string>();
   /** Every quoted string in those files, for the "nothing here is dead" check

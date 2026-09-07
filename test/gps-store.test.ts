@@ -124,6 +124,12 @@ describe("the rules that keep it private", () => {
     // Structural, like `test/postcard-orders.test.ts`'s guard on `sendOrder`.
     // There is no route that reads a position, and this is what keeps it that
     // way: what the site draws is the derived `track.json`, never this.
+    //
+    // Since B671 there are routes that *write* into the store, and they reach
+    // it through `lib/gps/api.ts` — one module that owns what an import is and
+    // hands back counts rather than coordinates. That indirection is the point
+    // of this assertion surviving the API: a route that imported `./store`
+    // directly could answer `readRange` straight down the wire.
     const hits: string[] = [];
     const walk = (root: string) => {
       for (const entry of fs.readdirSync(root, { withFileTypes: true })) {

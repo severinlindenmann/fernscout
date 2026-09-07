@@ -38,15 +38,27 @@ before.** That is the reason for two files rather than one, and it is a test.
 
 ## Importing
 
-```bash
-npm run gps -- formats
-npm run gps -- import <user> ~/Downloads/Timeline.json [--dry-run]
-npm run gps -- import <user> walk.gpx --format gpx
+**Over the API, and only over the API.** B665 shipped a CLI and B671 deleted
+it: the owner of a hosted journal has no shell on the machine the site runs on,
+and an agent never has one, so a capability whose only door was `npm run` was a
+capability the two people it was built for could not use. Two doors would have
+been worse — the unexercised one is the one that rots.
+
+```http
+GET  /api/v1/<user>/import          the kinds, and the formats each one knows
+POST /api/v1/<user>/import          {"kind": "gps", "inbox": "<id>"}
 ```
 
-The format is detected from the file; `--format` overrides. `--dry-run` parses,
-runs the kind's own contract check, reports what it found and writes nothing —
-which is the fastest way to check a new importer.
+The export is staged in the inbox first (`POST /api/v1/<user>/inbox` — a
+`.json` or `.gpx` lands in `files/`), then named by id. Multipart `file` is the
+one-shot; `text` takes a few lines inline.
+
+The format is detected from the file's own contents; `format` overrides.
+`"dryRun": true` parses, runs the kind's own contract check, reports what it
+found and writes nothing — which is how somebody tests an importer they wrote.
+
+Owner only. A trip-scoped token is refused: the history covers every day of
+somebody's life, not the days its holder was there.
 
 **Thinning: a fix is kept if it is five minutes after the last kept one, or
 250 metres from it.** Time alone logs a phone fidgeting on a bedside table all
@@ -74,9 +86,13 @@ Lines and use the `fixes` format that is already there.
 
 ## Deriving a trip's line
 
-```bash
-npm run gps -- enrich <user>/<trip> [--dry-run]
+```http
+POST /api/v1/<user>/trips/<trip>/track
 ```
+
+Separate from the import because it is a separate decision — and one that can
+be made years later, or never. It answers with counts and never with a
+coordinate.
 
 Four things happen, and three are about what does not come out:
 
