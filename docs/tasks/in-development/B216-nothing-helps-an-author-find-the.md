@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: currency, tooling
 found: "2026-09-04T06:33:41Z"
+started: "2026-09-07T11:06:10Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T11:06:10Z"
 ---
 
 # B216 — Nothing helps an author find the rate to freeze into a trip

@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: tests, ci, deploy
 found: "2026-09-04T07:40:57Z"
+started: "2026-09-07T11:06:11Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T11:06:11Z"
 ---
 
 # B226 — Two new deploy-time checks run only where a binary happens to exist, and CI may have neither

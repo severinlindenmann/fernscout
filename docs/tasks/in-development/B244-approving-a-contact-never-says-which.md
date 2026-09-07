@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: contacts, trips, api
 found: "2026-09-04T08:43:45Z"
+started: "2026-09-07T11:06:08Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T11:06:08Z"
 ---
 
 # B244 — Approving a contact never says which trips the approval opened

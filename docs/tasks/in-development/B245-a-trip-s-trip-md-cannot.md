@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: trips, api
 found: "2026-09-04T09:04:59Z"
+started: "2026-09-07T11:06:12Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T11:06:12Z"
 ---
 
 # B245 — A trip's trip.md cannot be changed after the trip is created

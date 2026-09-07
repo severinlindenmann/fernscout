@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: contacts, whatsapp
 found: "2026-09-04T22:11:55Z"
+started: "2026-09-07T11:06:04Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T11:06:04Z"
 ---
 
 # B389 — A contact's stored phone number that toE164 cannot parse is shown to the owner as if it were fine

@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: capabilities, api
 found: "2026-09-04T19:29:50Z"
+started: "2026-09-07T11:06:13Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T11:06:13Z"
 ---
 
 # B340 — A disabled capability answers 404 across every gated route, hiding a real refusal as no-such-route
