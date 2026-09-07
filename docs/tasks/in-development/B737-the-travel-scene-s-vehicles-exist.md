@@ -6,6 +6,9 @@ priority: low
 complexity: medium
 area: photobook, print
 found: "2026-09-07T00:00:00Z"
+started: "2026-09-07T12:59:53Z"
+session: cd599e8c-dde0-4a5b-9f06-d5795febbb72
+claimed: "2026-09-07T12:59:53Z"
 ---
 
 # B737 — The travel scene's vehicles exist only on the web, so a book cannot show how a leg was travelled
