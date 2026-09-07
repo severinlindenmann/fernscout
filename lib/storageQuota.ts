@@ -10,6 +10,8 @@ import { getTrips, tripDir } from "./trips";
 import { EXTRA_STORAGE_BYTES } from "./credits/pricing";
 import { sendTransactional } from "./mail";
 import { renderMail } from "./mail/template";
+import { pickLocale } from "./contacts/locale";
+import { translateIn } from "./locales";
 import { rateLimitFor } from "./rateLimit";
 import { serverSite } from "./site";
 
@@ -220,39 +222,44 @@ async function warnOwner(
   usage: StorageUsage,
   level: "low" | "full",
 ): Promise<void> {
-  const to = getUser(username)?.owner.email;
+  const journal = getUser(username);
+  const to = journal?.owner.email;
   if (!to) return;
   if (!rateLimitFor(`storage-${level}`, username, { max: 1, windowMs: 24 * 60 * 60 * 1000 }).ok) {
     return;
   }
 
+  // Written in the owner's own language — B857. This goes to one address, the
+  // one in the journal's own `config.json`, so the journal's `defaultLocale`
+  // is the whole answer; there is no request to fall back to.
+  const locale = pickLocale(journal.defaultLocale);
+  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
+    translateIn(locale, key, vars);
+
   const limit = usage.limitBytes === null ? "" : formatBytes(usage.limitBytes);
   const full = level === "full";
-  const subject = full
-    ? `${username} is out of storage`
-    : `${username} has used ${formatBytes(usage.usedBytes)} of ${limit}`;
+  const vars = { user: username, used: formatBytes(usage.usedBytes), limit };
 
   await sendTransactional(
     renderMail(
       to,
-      subject,
+      t(full ? "mail.storageFullSubject" : "mail.storageLowSubject", vars),
       {
-        preheader: `${formatBytes(usage.usedBytes)} of ${limit}`,
-        title: full ? "This journal is full" : "This journal is nearly full",
+        preheader: t("mail.storagePreheader", vars),
+        title: t(full ? "mail.storageFullTitle" : "mail.storageLowTitle"),
         blocks: [
           {
             kind: "paragraph",
-            text: full
-              ? `${username} holds ${formatBytes(usage.usedBytes)} of its ${limit} and is refusing new photographs and photobooks. Nothing already published has been touched.`
-              : `${username} holds ${formatBytes(usage.usedBytes)} of its ${limit}. Uploads will be refused once it is full.`,
+            text: t(full ? "mail.storageFullBody" : "mail.storageLowBody", vars),
           },
+          { kind: "paragraph", text: t("mail.storageAdvice") },
           {
-            kind: "paragraph",
-            text: "Delete what you no longer need, or add 5 GB from your own page — it is a one-off purchase and it does not expire.",
+            kind: "button",
+            text: t("mail.storageOpen"),
+            href: `${serverSite().url}/${username}/me`,
           },
-          { kind: "button", text: "Open the journal", href: `${serverSite().url}/${username}/me` },
         ],
-        footer: `Sent because you are the owner of ${username}.`,
+        footer: t("mail.storageFooter", vars),
       },
       username,
     ),
