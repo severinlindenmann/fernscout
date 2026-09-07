@@ -95,3 +95,23 @@ was built had to say what replaced that property.
 
 `docs/plans/2026-09-07-web-helper-agent.md` is the answer that was given, and
 B681 is where the session handling was decided.
+
+---
+
+## What changed while building (2026-09-07)
+
+`/agent.md`'s text turned out to live in `lib/api/documentation.ts`
+(`agentGuide()`, served by `app/agent.md/route.ts`) — on B694's exclusion list,
+not this ticket's. Left untouched here; B694 (in `in-development/`,
+`docs/tasks/in-development/B694-the-landing-page-sends-everybody-off.md`) is
+carrying that copy. Only `docs/ROADMAP.md` decision 24 and `AGENTS.md` were
+amended.
+
+What shipped and is confirmed in code, not just the plan: `app/agent/page.tsx`
+(B681, in `testing/`) and the wizard (B682, in `testing/`) — a person with no
+agent signs in at `/agent` and a day comes out, `status: draft`, behind the
+`helper` capability which is off by default. B683 and B684 (uploads, spoken
+notes) are still `in-development/`; B685–B689 (router, transcription,
+photo captions, signup-in-wizard, import) are still `backlog/`. The amendment
+cites B681/B682 as what actually landed and names B683–B689 only as "the rest
+of the wizard", rather than claiming any of that later work is done.
