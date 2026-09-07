@@ -63,7 +63,7 @@ Do not edit them by hand; run the script.
 | [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (48)
+### issue (46)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -95,7 +95,6 @@ Do not edit them by hand; run the script.
 | [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
 | [B241](backlog/issue/B241-an-agent-code-can-be-issued.md) | An agent code can be issued for a trip that does not exist | ISSUE | low | low |
-| [B243](backlog/issue/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |
 | [B247](backlog/issue/B247-the-shape-of-an-email-address.md) | The shape of an email address is checked by three different regexes | ISSUE | low | low |
 | [B274](backlog/issue/B274-the-self-serve-link-in-a.md) | The self-serve link in a reader's mail is labelled as a detail change when it is their standing way back | ISSUE | low | low |
 | [B288](backlog/issue/B288-an-agent-orienting-through-status-is.md) | An agent orienting through status is not told a trip.md failed to load, though the trip list would tell it | ISSUE | low | low |
@@ -113,7 +112,6 @@ Do not edit them by hand; run the script.
 | [B570](backlog/issue/B570-minimap-s-svg-hydrates-with-a.md) | MiniMap's SVG hydrates with a mismatch from floating-point rounding | ISSUE | low | low |
 | [B595](backlog/issue/B595-a-photobook-can-be-charged-a.md) | A photobook can be charged a price the owner never saw | ISSUE | low | low |
 | [B603](backlog/issue/B603-npm-run-dev-s-strict-mode.md) | A dev-mode-only effect race can pass or fail local browser testing for the wrong reason | ISSUE | low | low |
-| [B613](backlog/issue/B613-the-guide-says-an-unknown-caption.md) | The guide says an unknown caption src is ignored; it is refused | ISSUE | low | low |
 | [B697](backlog/issue/B697-there-is-no-way-back-to.md) | There is no way back to the site from /agent | ISSUE | low | low |
 
 ### big-feature (18)
@@ -182,18 +180,15 @@ Do not edit them by hand; run the script.
 | [B462](backlog/chore/B462-systemd-logs-multiple-trigger-source-candidates.md) | systemd logs 'multiple trigger source candidates' every backup run now that one handler serves both OnFailure and OnSuccess | CHORE | low | low |
 | [B594](backlog/chore/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-### ops (18)
+### ops (15)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B101](backlog/ops/B101-nobody-has-attacked-a-running-instance.md) | Nobody has attacked a running instance from the outside with the source in hand | OPS | high | high |
 | [B102](backlog/ops/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | OPS | high | medium |
 | [B103](backlog/ops/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | OPS | high | medium |
-| [B373](backlog/ops/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
-| [B377](backlog/ops/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
 | [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
 | [B559](backlog/ops/B559-a-deploy-can-advance-the-server.md) | A deploy can advance the server's checkout without rebuilding, and then report nothing to do | OPS | high | low |
-| [B65](backlog/ops/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
 | [B651](backlog/ops/B651-two-root-owned-config-backups-in.md) | Two root-owned config backups in DATA_DIR make every nightly snapshot partial | OPS | high | low |
 | [B104](backlog/ops/B104-signup-is-on-at-the-server.md) | Signup is on at the server and off in every journal, so no account has ever been created on the live site | OPS | medium | medium |
 | [B105](backlog/ops/B105-contacts-is-on-at-the-server.md) | Contacts is on at the server and off in every journal, so no invitation has ever been carried through on the live site | OPS | medium | medium |
@@ -218,10 +213,13 @@ Do not edit them by hand; run the script.
 | [B422](backlog/docs-and-skills/B422-nothing-tells-an-agent-that-the.md) | Nothing tells an agent that the owner's pages are cookie-only, so a bearer token that works on every API call renders none of them | DOCS | low | low |
 | [B555](backlog/docs-and-skills/B555-the-unconverted-costs-notice-still-tells.md) | The unconverted-costs notice still tells a reader to ask an agent to add a rate that now arrives on its own | DOCS | low | low |
 
-### superseded (16)
+### superseded (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B373](backlog/superseded/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
+| [B377](backlog/superseded/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
+| [B65](backlog/superseded/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
 | [B658](backlog/superseded/B658-the-b653-backup-allowlist-drops-a.md) | The B653 backup allowlist drops a no-database deployment's own state | ISSUE | high | low |
 | [B14](backlog/superseded/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B260](backlog/superseded/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |
@@ -234,9 +232,11 @@ Do not edit them by hand; run the script.
 | [B654](backlog/superseded/B654-whether-restic-can-drive-rclone-s.md) | Whether restic can drive rclone's Proton Drive backend well enough to trust it | OPS | medium | medium |
 | [B655](backlog/superseded/B655-the-backup-has-one-destination-and.md) | The backup has one destination, and no second copy off Backblaze | CHORE | medium | medium |
 | [B89](backlog/superseded/B89-nothing-that-costs-the-operator-money.md) | Nothing that costs the operator money can be paid for, so every paid feature is dry-run only | FEATURE | medium | high |
+| [B243](backlog/superseded/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |
 | [B246](backlog/superseded/B246-openapi-json-does-not-document-costsvisibility.md) | openapi.json does not document costsVisibility on POST trips | ISSUE | low | low |
 | [B253](backlog/superseded/B253-the-demo-journal-s-tagline-says.md) | The demo journal's tagline says four journeys and the count beside it says five | ISSUE | low | low |
 | [B297](backlog/superseded/B297-a-nul-byte-in-the-idempotency.md) | A NUL byte in the idempotency key separator makes git treat the whole file as binary | CHORE | low | low |
+| [B613](backlog/superseded/B613-the-guide-says-an-unknown-caption.md) | The guide says an unknown caption src is ignored; it is refused | ISSUE | low | low |
 | [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
 ## open (0)

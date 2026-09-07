@@ -5,6 +5,7 @@ type: OPS
 priority: high
 complexity: low
 area: backups, DATA_DIR, deploy health
+superseded: "fixed by B651 and B653 — the backup no longer stages DATA_DIR wholesale"
 found: "2026-09-04T21:16:00Z"
 ---
 

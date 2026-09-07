@@ -5,6 +5,7 @@ type: OPS
 priority: high
 complexity: low
 area: ops, backups
+superseded: "fixed by B651 and B653; the restore-drill half is B21, in testing/"
 found: "2026-09-04T22:20:00Z"
 ---
 
