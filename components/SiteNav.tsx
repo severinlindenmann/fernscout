@@ -2,39 +2,31 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Images, Map, ChartNoAxesColumn, Compass, Search, UserRound } from "lucide-react";
+import {
+  BookOpen,
+  Images,
+  Map,
+  ChartNoAxesColumn,
+  Compass,
+  Search,
+  UserRound,
+  Wallet,
+} from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import { useSite } from "./SiteProvider";
 import { useTrip } from "./TripProvider";
-import type { TranslationKey } from "@/lib/i18n";
+import { ACCOUNT_DESTINATION, TRIP_DESTINATIONS } from "@/lib/navDestinations";
 
-const LINKS: {
-  href: string;
-  key: TranslationKey;
-  Icon: typeof BookOpen;
-  /** Other paths this tab owns, for the active state. */
-  also?: string[];
-}[] = [
-  { href: "/", key: "nav.story" as TranslationKey, Icon: BookOpen },
-  { href: "/gallery", key: "nav.gallery" as TranslationKey, Icon: Images },
-  { href: "/map", key: "nav.map" as TranslationKey, Icon: Map },
-  /**
-   * Analytics, and the leaves that hang off it — B557.
-   *
-   * `also` exists because the hub's own children keep their own URLs: the
-   * costs page is still `/<user>/costs` and nothing about a hub was worth
-   * breaking a bookmark or a printed photobook reference for. A prefix match
-   * on `/analytics` alone would therefore leave the whole row unhighlighted
-   * while the reader is standing on one of its pages, which reads as having
-   * navigated out of the site.
-   */
-  {
-    href: "/analytics",
-    key: "nav.analytics" as TranslationKey,
-    Icon: ChartNoAxesColumn,
-    also: ["/costs", "/weather"],
-  },
-];
+/** Icons keyed by `NavDestination.path` — the destinations themselves live in
+ * lib/navDestinations.ts, shared with lib/search.ts, and know nothing about
+ * how they are drawn. */
+const ICONS: Record<string, typeof BookOpen> = {
+  "/": BookOpen,
+  "/gallery": Images,
+  "/map": Map,
+  "/analytics": ChartNoAxesColumn,
+  "/account": Wallet,
+};
 
 /** One destination, resolved to this reader's URLs and its own active state —
  * B770. The single thing both the icon bar and the mobile panel's list draw
@@ -116,14 +108,16 @@ export function useNavEntries(): NavEntry[] {
    * weather keeps the tab and gets a hub with one card on it. Nothing else in
    * this row is optional today.
    */
-  const links = site.analyticsEnabled ? LINKS : LINKS.filter((l) => l.href !== "/analytics");
+  const links = site.analyticsEnabled
+    ? TRIP_DESTINATIONS
+    : TRIP_DESTINATIONS.filter((l) => l.path !== "/analytics");
   const meLabel = strangerDoor ? t("nav.signIn") : t("me.title");
   const meHref = userHref("/me");
   const meActive = pathname === meHref;
   const tripsHref = userHref("/trips");
   const searchHref = userHref("/search");
 
-  const entries: NavEntry[] = links.map(({ href: path, key, Icon, also }) => {
+  const entries: NavEntry[] = links.map(({ path, labelKey, also }) => {
     const target = href(path);
     // The story page is the base itself, so "active" is an exact match
     // plus its day permalinks; every other page is a prefix match, plus
@@ -132,11 +126,24 @@ export function useNavEntries(): NavEntry[] {
       path === "/"
         ? pathname === target || pathname === `${base}/` || pathname.startsWith(`${base}/day`)
         : pathname.startsWith(target) || (also ?? []).some((p) => pathname.startsWith(href(p)));
-    return { href: target, label: t(key), Icon, active };
+    return { href: target, label: t(labelKey), Icon: ICONS[path], active };
   });
   entries.push({ href: tripsHref, label: t("nav.trips"), Icon: Compass, active: pathname === tripsHref });
   entries.push({ href: searchHref, label: t("nav.search"), Icon: Search, active: pathname === searchHref });
   entries.push({ href: meHref, label: meLabel, Icon: UserRound, active: meActive, strangerDoor });
+
+  // The credits-and-storage page — B821. Owner-only: everybody else has
+  // nothing behind it, and the door pattern above already covers "nothing to
+  // show" for a reader with no rights at all.
+  if (site.isOwner) {
+    const accountHref = userHref(ACCOUNT_DESTINATION.path);
+    entries.push({
+      href: accountHref,
+      label: t(ACCOUNT_DESTINATION.labelKey),
+      Icon: ICONS[ACCOUNT_DESTINATION.path],
+      active: pathname === accountHref,
+    });
+  }
 
   return entries;
 }

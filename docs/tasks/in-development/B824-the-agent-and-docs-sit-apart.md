@@ -50,3 +50,25 @@ which is what B797 was for; it is where it sits inside the panel.
 - The active destination is still the only yellow thing.
 - Header height is unchanged at 65px on a phone.
 - Checked at 390px.
+
+## Done
+
+`components/PageHeader.tsx`: the mobile panel's separate navy-pill-plus-quiet-link
+block (B797) is gone. Agent and Docs are now two `<Link>`s in the same
+row shape `ListNav` already draws (`min-h-12`, icon + word,
+`rounded-xl`, `hover:bg-cream-100`), inside their own small `<nav>`
+with a `border-b border-navy-200` hairline under them — the one thing
+that still marks them as not-ordinary-destinations, per the ticket's
+own suggestion. `helper` still gates Agent; Docs is ungated (B802).
+Neither row is ever `aria-current` / yellow — they are never the
+active destination.
+
+Measured headless at 390×844 (Chromium, reduced motion): header
+`65px` in both states. With `helper` on, panel rows top to bottom are
+Agent(48px)/Docs(48px)/Story(48px, active/yellow)/Gallery(48px)/Map(48px)/Trips(48px)/Search(48px)/Sign
+in(48px). With `helper` off, the same list minus Agent. Screenshots
+taken and read back; both match the description above — Agent+Docs at
+top with a hairline under them, one list, Story the only yellow row.
+
+Nothing in the ticket turned out wrong. Committed as
+`4a63563d B824: agent and docs become rows in the panel, above Reise`.

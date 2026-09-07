@@ -1,0 +1,708 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Check, HardDrive, Mail, MessageCircle, Wallet } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import ConfirmPanel from "@/components/ConfirmPanel";
+import PageHeader from "@/components/PageHeader";
+import { useI18n } from "@/components/LocaleProvider";
+import { useSite } from "@/components/SiteProvider";
+import { EXTRA_STORAGE_CREDITS, formatChf, TIERS } from "@/lib/credits/pricing";
+
+/**
+ * Credits and storage, on their own page — B821.
+ *
+ * Moved whole from `/[user]/me`, which held them among the contact form, the
+ * journal's own title, the device list and the access panel. They are the
+ * two questions an owner asks most often and most urgently — how much can I
+ * still spend, how much room is left — and the only two on that page that
+ * answer with a number rather than a form. `/me` keeps a line and a link
+ * (`me.accountCardTitle`); the figures themselves live here and nowhere
+ * else, because two live copies of a balance is how they disagree.
+ *
+ * Owner-only — `app/[user]/account/page.tsx` 404s for anybody else, the same
+ * gate `/me` uses. `payment` is absent (not zero) when credits are switched
+ * off; the page is then storage alone rather than a broken half, exactly the
+ * B74 rule the rest of `/me` already followed for these two panels.
+ */
+
+/**
+ * One channel's mute switch — B463.
+ *
+ * The two capabilities that spend the balance this card is about, next to the
+ * balance, for the person already signed in as the owner of it. Not a settings
+ * page and deliberately not the shape of one: two named channels, and the
+ * route behind it (`POST /api/v1/<user>/channels`) accepts no other key.
+ *
+ * `router.refresh()` rather than local state, because the numbers beside it —
+ * what a day costs now — are the server's and are exactly what changed.
+ * Optimism here would show a total that the next navigation contradicts.
+ */
+function ChannelSwitch({
+  username,
+  channel,
+  label,
+  enabled,
+}: {
+  username: string;
+  channel: "mail" | "whatsapp";
+  label: string;
+  enabled: boolean;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function toggle() {
+    setBusy(true);
+    setFailed(false);
+    const response = await fetch(`/api/v1/${username}/channels`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ channel, enabled: !enabled }),
+    }).catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      setFailed(true);
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <span className="inline-flex shrink-0 items-center gap-2">
+      {/* The word beside it is gone — B471. `role="switch"` with `aria-checked`
+          announces on or off to a screen reader, and the control says it to
+          everybody else; repeating it in text cost the width that made the
+          switch wrap under the channel's name on a phone. The failure line
+          stays, because that one is not visible in the control. */}
+      {failed && <span className="text-sm text-coral-600">{t("me.paymentChannelFailed")}</span>}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={enabled}
+        aria-label={label}
+        disabled={busy}
+        onClick={toggle}
+        // Off is `navy-500` rather than the `navy-200` the card's rules use:
+        // a border at 1.3:1 on white is a rule, not a control, and this one
+        // has to look pressable while it is off. `navy-500` is the palette's
+        // border-and-label ink (5.51:1 on white) — see apply-the-brand.
+        className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-50 ${
+          enabled ? "border-navy-900 bg-navy-900" : "border-navy-500 bg-white"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-4 w-4 rounded-full transition-[left] ${
+            enabled ? "left-[22px] bg-white" : "left-0.5 bg-navy-500"
+          }`}
+          aria-hidden="true"
+        />
+      </button>
+    </span>
+  );
+}
+
+/**
+ * Five more gigabytes, for fifty credits — B661.
+ *
+ * A button rather than the tiers dialog above it, because there is one thing
+ * to buy and one price. It spends immediately: `POST /api/v1/<user>/storage`
+ * takes the credits and the extension exists from that moment, so the
+ * confirmation is the browser's own — there is no second page to go to and
+ * nothing to come back and finish. `router.refresh()` is what redraws the
+ * figure above it from the server.
+ */
+function BuyStorageButton({ username }: { username: string }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function buy() {
+    setBusy(true);
+    setFailed(false);
+    const response = await fetch(`/api/v1/${username}/storage`, { method: "POST" }).catch(
+      () => null,
+    );
+    setBusy(false);
+    if (response?.ok) {
+      setAsking(false);
+      router.refresh();
+    } else setFailed(true);
+  }
+
+  if (asking) {
+    return (
+      <ConfirmPanel
+        label={t("me.storageBuy", { credits: String(EXTRA_STORAGE_CREDITS) })}
+        question={t("me.storageBuyConfirm", { credits: String(EXTRA_STORAGE_CREDITS) })}
+        confirmLabel={t("me.storageBuyGo")}
+        busyLabel={t("me.storageBuyBusy")}
+        busy={busy}
+        error={failed ? t("me.storageBuyFailed") : undefined}
+        onConfirm={buy}
+        onCancel={() => setAsking(false)}
+      />
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setFailed(false);
+          setAsking(true);
+        }}
+        className="inline-flex min-h-11 items-center rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50"
+      >
+        {t("me.storageBuy", { credits: String(EXTRA_STORAGE_CREDITS) })}
+      </button>
+      {failed && (
+        <span role="status" className="mt-1 block text-sm text-coral-600">
+          {t("me.storageBuyFailed")}
+        </span>
+      )}
+    </>
+  );
+}
+
+/**
+ * Give the space back — B664, asked in the page since B668.
+ *
+ * The confirmation **names what goes and what stays** before anything is
+ * deleted, because the person pressing this has usually just been told their
+ * journal is full and is in no mood to read carefully.
+ *
+ * The staged documents used to be a second `confirm()` stacked on the first,
+ * which read as a stutter rather than as two questions. They are a checkbox
+ * inside the one panel now, unticked: they are somebody's uploads rather than
+ * generated output, so they are never swept along with the PDFs unless
+ * somebody says so — see `lib/storageCleanup.ts`.
+ */
+function CleanupButton({
+  username,
+  reclaimable,
+}: {
+  username: string;
+  reclaimable: StoragePanel["reclaimable"];
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [asking, setAsking] = useState(false);
+  const [staged, setStaged] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function clean() {
+    setBusy(true);
+    setFailed(false);
+    const response = await fetch(
+      `/api/v1/${username}/storage/cleanup${staged ? "?staged=1" : ""}`,
+      { method: "POST" },
+    ).catch(() => null);
+    setBusy(false);
+    if (response?.ok) {
+      setAsking(false);
+      router.refresh();
+    } else setFailed(true);
+  }
+
+  if (asking) {
+    return (
+      <ConfirmPanel
+        label={t("me.storageCleanup", { size: reclaimable.human })}
+        question={t("me.storageCleanupConfirm", { size: reclaimable.human })}
+        confirmLabel={t("me.storageCleanupGo")}
+        busyLabel={t("me.storageCleanupBusy")}
+        busy={busy}
+        error={failed ? t("me.storageCleanupFailed") : undefined}
+        onConfirm={clean}
+        onCancel={() => setAsking(false)}
+      >
+        {reclaimable.hasStagedFiles && (
+          <label className="mt-3 flex items-start gap-2 text-sm leading-6 text-navy-700">
+            <input
+              type="checkbox"
+              checked={staged}
+              onChange={(event) => setStaged(event.target.checked)}
+              className="mt-1.5 h-4 w-4 shrink-0 accent-navy-900"
+            />
+            <span>{t("me.storageCleanupStaged")}</span>
+          </label>
+        )}
+      </ConfirmPanel>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setFailed(false);
+          setAsking(true);
+        }}
+        className="inline-flex min-h-11 items-center rounded-full border border-navy-500 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50"
+      >
+        {t("me.storageCleanup", { size: reclaimable.human })}
+      </button>
+      {failed && (
+        <span role="status" className="mt-1 block text-sm text-coral-600">
+          {t("me.storageCleanupFailed")}
+        </span>
+      )}
+    </>
+  );
+}
+
+/**
+ * Which of these is the big one — B664.
+ *
+ * One stacked bar and a legend, rather than a table: the question an owner
+ * actually has is comparative, and a column of numbers answers it slowest.
+ * Colours are the brand's, in a fixed order so the same trip keeps the same
+ * colour between renders; the legend carries the size in words, so the chart
+ * is decoration and nothing is only available by looking at a colour.
+ */
+const BAR_COLOURS = [
+  "bg-navy-900",
+  "bg-yellow-400",
+  "bg-sky-400",
+  "bg-coral-400",
+  "bg-green-500",
+  "bg-navy-500",
+  "bg-yellow-600",
+  "bg-sky-500",
+];
+
+function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
+  return (
+    <>
+      <div
+        className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-navy-200"
+        aria-hidden="true"
+      >
+        {rows.map((row, at) => (
+          <span
+            key={row.key}
+            className={BAR_COLOURS[at % BAR_COLOURS.length]}
+            style={{ width: `${row.share}%` }}
+          />
+        ))}
+      </div>
+      <ul className="mt-3 space-y-1.5">
+        {rows.map((row, at) => (
+          <li key={row.key} className="flex items-center justify-between gap-3 text-base">
+            <span className="flex min-w-0 items-center gap-2">
+              <span
+                className={`h-3 w-3 shrink-0 rounded-full ${BAR_COLOURS[at % BAR_COLOURS.length]}`}
+                aria-hidden="true"
+              />
+              <span className="truncate text-navy-700">{row.label}</span>
+            </span>
+            <span className="shrink-0 tabular-nums text-navy-900">{row.human}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function BuyCreditsDialog({ username }: { username: string }) {
+  const { t, tn } = useI18n();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [busyTier, setBusyTier] = useState<string | null>(null);
+  const [result, setResult] = useState<"failed" | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Escape and click-outside close it — the two things a modal `<dialog>` gave
+  // for free and a popover has to wire up. Only while open, so the listeners
+  // are not attached for every owner who never presses the button.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    }
+    function onPointer(event: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onPointer);
+    };
+  }, [open]);
+
+  async function buy(tierId: string) {
+    setBusyTier(tierId);
+    const response = await fetch(`/api/v1/${username}/credits/purchase`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tier: tierId }),
+    }).catch(() => null);
+    setBusyTier(null);
+
+    if (response?.ok) {
+      // The purchase created a pending transaction; go to its payment page.
+      // The same link was emailed too, so this can be finished later — B405.
+      const body = (await response.json().catch(() => null)) as { paymentUrl?: string } | null;
+      setOpen(false);
+      if (body?.paymentUrl) {
+        router.push(body.paymentUrl);
+        return;
+      }
+      setResult("failed");
+    } else {
+      setResult("failed");
+    }
+  }
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => {
+            setResult(null);
+            setOpen((o) => !o);
+          }}
+          className="inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+        >
+          {t("me.paymentBuyTitle")}
+        </button>
+        <span className="text-sm text-navy-600">{t("me.paymentBuyBody")}</span>
+      </div>
+      {result && (
+        <span role="status" className="mt-1 block text-sm text-coral-600">
+          {t("me.paymentBuyFailed")}
+        </span>
+      )}
+
+      {/*
+        The panel stays in the DOM so it can animate both ways; `open` toggles
+        opacity + a short downward slide, and turns off pointer events and tab
+        focus while hidden. `motion-reduce` drops the slide for readers who ask
+        for less motion.
+      */}
+      <div
+        role="menu"
+        aria-label={t("me.buyDialogTitle")}
+        aria-hidden={!open}
+        className={`absolute left-0 top-full z-20 mt-2 w-[min(22rem,100%)] origin-top rounded-2xl border border-navy-200 bg-white p-4 shadow-xl transition duration-150 ease-out motion-reduce:transition-none ${
+          open
+            ? "pointer-events-auto translate-y-0 opacity-100"
+            : "pointer-events-none -translate-y-1 opacity-0"
+        }`}
+      >
+        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-navy-600">
+          {t("me.buyDialogTitle")}
+        </p>
+        <ul className="mt-2 space-y-2.5">
+          {TIERS.map((tier) => (
+            <li
+              key={tier.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-navy-200 bg-cream-50 px-4 py-3"
+            >
+              <div>
+                <p className="font-display text-base font-semibold text-navy-900">
+                  {tier.credits} {tn("me.paymentUnit", tier.credits)}
+                </p>
+                <p className="text-sm text-navy-600">
+                  {formatChf(tier.priceRappen)}
+                  {tier.discount && ` · ${t("me.buyDialogDiscount", { discount: tier.discount })}`}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="menuitem"
+                tabIndex={open ? 0 : -1}
+                disabled={busyTier !== null}
+                onClick={() => buy(tier.id)}
+                className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-yellow-400 px-4 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {busyTier === tier.id ? t("me.buyDialogBusy") : t("me.buyDialogBuy")}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * How full this journal is, and what is filling it — B661, B664.
+ *
+ * `limit` is null where the instance sets no ceiling, and then there is
+ * nothing to be near the end of — the whole page section is absent then,
+ * same as before B821.
+ */
+export type StoragePanel = {
+  used: string;
+  limit: string | null;
+  percent: number | null;
+  rows: { key: string; label: string; human: string; share: number }[];
+  reclaimable: { human: string; files: number; hasStagedFiles: boolean };
+  canBuy: boolean;
+  buyCredits: number;
+};
+
+/** What the Payment section needs — B367. `undefined` is credits switched
+ * off; the page shows storage alone then, per B821's own acceptance line. */
+export type PaymentPanel = {
+  balance: number;
+  emailRecipients: number;
+  whatsappRecipients: number;
+  channels: { mail: boolean | null; whatsapp: boolean | null };
+  postcardCredits: number | null;
+  transactions: PaymentRow[];
+};
+
+/** One row of the transaction history. `amount` is a preformatted CHF string
+ * (server-side, from the pricing table) so the component never does money
+ * arithmetic. */
+type PaymentRow = {
+  id: string;
+  credits: number;
+  amount: string;
+  status: "pending" | "requested" | "paid";
+  createdAt: string;
+};
+
+export default function AccountPageContent({
+  username,
+  storage,
+  payment,
+}: {
+  username: string;
+  /** Absent only where the instance sets no ceiling. */
+  storage?: StoragePanel;
+  /** Absent when credits are switched off. */
+  payment?: PaymentPanel;
+}) {
+  const { t, tn } = useI18n();
+  const site = useSite();
+
+  const CHANNELS = payment
+    ? ([
+        {
+          key: "mail",
+          icon: Mail,
+          labelKey: "me.paymentChannelEmail",
+          recipients: payment.emailRecipients,
+        },
+        {
+          key: "whatsapp",
+          icon: MessageCircle,
+          labelKey: "me.paymentChannelWhatsapp",
+          recipients: payment.whatsappRecipients,
+        },
+      ] as const)
+    : [];
+
+  const dayCost = CHANNELS.reduce(
+    (total, { key, recipients }) => total + (payment?.channels[key] ? recipients : 0),
+    0,
+  );
+
+  return (
+    <div className="min-h-screen">
+      <PageHeader />
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+          {t("account.title")}
+        </h1>
+
+        <div className="mt-6 space-y-4">
+          {storage && (
+            <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-navy-900">
+                  <HardDrive className="h-[18px] w-[18px]" aria-hidden="true" />
+                </span>
+                <h3 className="font-display text-lg font-semibold text-navy-900">
+                  {t("me.storageTitle")}
+                </h3>
+              </div>
+
+              <p className="mt-4 text-base text-navy-900">
+                {t("me.storageUsed", { used: storage.used, limit: storage.limit ?? "" })}
+              </p>
+              {storage.percent !== null && storage.percent >= 90 && (
+                <p className="mt-1 text-sm leading-6 text-coral-600">{t("me.storageNearlyFull")}</p>
+              )}
+
+              <StorageBar rows={storage.rows} />
+
+              {(storage.reclaimable.files > 0 || storage.canBuy) && (
+                <div className="mt-5 border-t border-navy-200 pt-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    {storage.reclaimable.files > 0 && (
+                      <CleanupButton username={username} reclaimable={storage.reclaimable} />
+                    )}
+                    {storage.canBuy && <BuyStorageButton username={username} />}
+                  </div>
+                  {storage.reclaimable.files > 0 && (
+                    <p className="mt-2 text-sm leading-6 text-navy-600">
+                      {t("me.storageCleanupBody")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {payment && (
+            <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-navy-900">
+                  <Wallet className="h-[18px] w-[18px]" aria-hidden="true" />
+                </span>
+                <h3 className="font-display text-lg font-semibold text-navy-900">
+                  {t("me.paymentTitle")}
+                </h3>
+              </div>
+
+              <div className="mt-4 sm:flex sm:items-stretch sm:gap-4">
+                <div className="flex flex-col justify-center rounded-xl border border-navy-200 bg-cream-50 px-5 py-4 sm:w-44 sm:shrink-0">
+                  <span className="font-display text-4xl font-semibold tabular-nums tracking-tight text-navy-900">
+                    {payment.balance}
+                  </span>
+                  <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-navy-600">
+                    {tn("me.paymentUnit", payment.balance)}
+                  </span>
+                  {payment.balance === 0 && (
+                    <span className="mt-2 text-sm leading-6 text-coral-600">
+                      {t("me.paymentBalanceEmpty")}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-4 sm:mt-0 sm:flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+                    {t("me.paymentEstimateTitle")}
+                  </p>
+                  <ul className="mt-2 border-t border-navy-200">
+                    {CHANNELS.map(({ key, icon: Icon, labelKey, recipients }) => {
+                      const on = payment.channels[key];
+                      if (on === null) return null;
+                      return (
+                        <li
+                          className="flex items-center justify-between gap-3 border-b border-navy-200 py-2.5"
+                          key={key}
+                        >
+                          <div className="min-w-0">
+                            <span className="flex items-center gap-2 text-base text-navy-900">
+                              <Icon className="h-4 w-4 shrink-0 text-navy-600" aria-hidden="true" />
+                              {t(labelKey)}
+                            </span>
+                            <span className="mt-0.5 block text-sm text-navy-500">
+                              {tn("me.paymentUpTo", recipients, { count: String(recipients) })}
+                              {" · "}
+                              <span className={on ? "font-semibold text-navy-900" : undefined}>
+                                {on ? recipients : 0} {tn("me.paymentUnit", on ? recipients : 0)}
+                              </span>
+                            </span>
+                          </div>
+                          <ChannelSwitch
+                            username={username}
+                            channel={key}
+                            label={t(labelKey)}
+                            enabled={on}
+                          />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="flex items-baseline justify-between gap-3 py-2.5 text-base font-semibold text-navy-900">
+                    <span>{t("me.paymentDayTotal")}</span>
+                    <span className="tabular-nums">{dayCost}</span>
+                  </p>
+                  <p className="mt-2.5 text-sm leading-6 text-navy-600">
+                    {t("me.paymentPrices")}
+                    {payment.postcardCredits !== null && (
+                      <>
+                        {" "}
+                        {t("me.paymentPostcardPrice", { credits: String(payment.postcardCredits) })}
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-navy-200 pt-4">
+                <BuyCreditsDialog username={username} />
+              </div>
+
+              {payment.transactions.length > 0 && (
+                <div className="mt-5 border-t border-navy-200 pt-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+                    {t("me.txHistoryTitle")}
+                  </p>
+                  <ul className="mt-2 divide-y divide-navy-200">
+                    {payment.transactions.map((tx) => (
+                      <li key={tx.id} className="flex items-center justify-between gap-3 py-2">
+                        <div className="min-w-0">
+                          <p className="text-base text-navy-900">
+                            {tx.credits} {tn("me.paymentUnit", tx.credits)} · {tx.amount}
+                          </p>
+                          <p className="text-sm tabular-nums text-navy-600">
+                            {tx.createdAt.slice(0, 10)}
+                          </p>
+                        </div>
+                        {tx.status === "paid" ? (
+                          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
+                            <Check className="h-4 w-4" aria-hidden="true" />
+                            {t("me.txPaid")}
+                          </span>
+                        ) : tx.status === "requested" ? (
+                          <Link
+                            href={`${site.base}/payment/${tx.id}`}
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-navy-200 bg-cream-50 px-3 py-1 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500"
+                          >
+                            {t("me.txAwaiting")}
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`${site.base}/payment/${tx.id}`}
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-coral-300 bg-coral-300/15 px-3 py-1 text-sm font-semibold text-coral-600 transition-colors hover:bg-coral-300/30"
+                          >
+                            {t("me.txPay")}
+                          </Link>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!storage && !payment && (
+            // Neither figure has anything behind it — no ceiling configured
+            // and credits switched off. Rare (an instance normally sets one
+            // or the other), but a page with two absent cards and no
+            // explanation reads as broken rather than as "nothing to show".
+            <p className="rounded-2xl border border-navy-200 bg-white p-5 text-base leading-7 text-navy-700 sm:p-6">
+              {t("me.accountCardBody")}
+            </p>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}

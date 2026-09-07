@@ -185,65 +185,58 @@ export default function PageHeader({
             tabIndex={-1}
             className="mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-navy-200 bg-cream-50 p-3 shadow-lg"
           >
-            {/*
-              The way to `/agent`, first in the panel and the loudest thing
-              in it — B797. The whole block is gated on `helper`: B797's own
-              acceptance line is "with the helper off, neither appears", so
-              Docs travels with Agent here rather than standing alone — with
-              the helper off this journal's only way to write is still
-              whatever `AgentBlock` on `/` explains, and a Docs symbol with
-              nothing beside it would be a stray icon promising a feature
-              this instance has not turned on.
-
-              Measured at 390px, icon-and-word beside the row's existing
-              back/title/disc/menu did not leave the title a usable width
-              (see the measurement in B797's task file), so it moves here
-              instead, as the ticket's own fallback says: first, and
-              emphasised. `bg-navy-900` rather than `yellow-400` — the disc
-              two lines up already spends yellow on "this is where you are",
-              and a second yellow control in the same header would have made
-              neither mean anything (the two-yellows trap the ticket names).
-              Docs sits beside it, quieter, per request 3.
-            */}
-            <div className="flex flex-col gap-2 border-b border-navy-200 pb-3">
-              {site.helperEnabled && (
-                <Link
-                  href="/agent"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-navy-900 px-4
-                             text-lg font-semibold text-cream-50 transition-colors hover:bg-navy-800
-                             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                >
-                  <Bot className="h-5 w-5" aria-hidden strokeWidth={2.2} />
-                  {t("nav.agent")}
-                </Link>
-              )}
-              <Link
-                href="/docs"
-                onClick={() => setMenuOpen(false)}
-                className="flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold
-                             text-navy-600 transition-colors hover:bg-cream-100 hover:text-navy-900
-                             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-              >
-                <FileText className="h-4 w-4" aria-hidden strokeWidth={2.2} />
-                {t("nav.docs")}
-              </Link>
-            </div>
             {/* `children` is not repeated here: the one caller that passes any
                 (`TripStory`'s day counter) already marks it `xl:block`, so it
                 never draws below the width this panel exists for — mounting
                 a second, permanently invisible copy would be for nothing. */}
-            <div
-              className={`flex flex-wrap items-center gap-2 border-b border-navy-200 pb-3 ${
-                site.helperEnabled ? "mt-3" : ""
-              }`}
-            >
+            <div className="flex flex-wrap items-center gap-2 border-b border-navy-200 pb-3">
               <TripSwitcher />
               <CurrencySwitcher />
               <LocaleSwitcher />
             </div>
             <div className="mt-3">
-              <SiteNav variant="list" onNavigate={() => setMenuOpen(false)} />
+              {/*
+                Agent and Docs, as rows in the same list as the destinations
+                below them — B824. B797 put these above the list as a
+                differently-shaped navy pill and a quiet link under a rule;
+                seeing that in place read as a banner stuck on the menu
+                rather than as part of it, so they take the destinations'
+                own row shape instead (`min-h-12`, icon + word, `rounded-xl`)
+                and sit first, above Reise. They keep exactly one thing that
+                marks them out: a hairline under Docs, since they are still
+                not ordinary destinations — the agent leads from every
+                header (B797) and Docs needs no capability to reach (B802).
+
+                `helper` still gates the agent row; Docs stays ungated for
+                the same reason as the `sm`-and-up header below. Neither row
+                ever carries `aria-current` — they are never the active
+                destination, so `yellow-400` stays true to "you are here".
+              */}
+              <nav className="flex flex-col gap-1 border-b border-navy-200 pb-2">
+                {site.helperEnabled && (
+                  <Link
+                    href="/agent"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-base font-semibold
+                               text-navy-700 transition-colors hover:bg-cream-100"
+                  >
+                    <Bot className="h-5 w-5 shrink-0" aria-hidden strokeWidth={2.2} />
+                    {t("nav.agent")}
+                  </Link>
+                )}
+                <Link
+                  href="/docs"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-base font-semibold
+                             text-navy-700 transition-colors hover:bg-cream-100"
+                >
+                  <FileText className="h-5 w-5 shrink-0" aria-hidden strokeWidth={2.2} />
+                  {t("nav.docs")}
+                </Link>
+              </nav>
+              <div className="mt-1">
+                <SiteNav variant="list" onNavigate={() => setMenuOpen(false)} />
+              </div>
             </div>
           </div>
         )}

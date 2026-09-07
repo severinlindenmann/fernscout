@@ -1,10 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import MePageContent, {
-  type ManagePanel,
-  type PaymentPanel,
-  type StoragePanel,
-} from "@/app/[user]/me/MePageContent";
+import MePageContent, { type ManagePanel } from "@/app/[user]/me/MePageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
@@ -72,8 +68,6 @@ function render(
     /** `undefined` means the journal names nobody — see the B20 block below. */
     ownerName?: string;
     manage?: ManagePanel;
-    payment?: PaymentPanel;
-    storage?: StoragePanel;
   } = {},
 ) {
   return renderToStaticMarkup(
@@ -93,8 +87,6 @@ function render(
           contactsEnabled={over.contactsEnabled ?? false}
           ownerName={"ownerName" in over ? over.ownerName : "Robin"}
           manage={over.manage}
-          payment={over.payment}
-          storage={over.storage}
         />
           </TripListProvider>
         </CurrencyProvider>
@@ -561,17 +553,6 @@ describe("what somebody on a trip is told they can write", () => {
 });
 
 /**
- * The Payment section — B367.
- *
- * `payment` is resolved server-side and handed down as one prop, the same
- * rule the rest of this file already tests for `ownerName` and `manage`:
- * the component renders what it is given and asks no question of its own
- * about who may see a balance. So what these assert is the gate around the
- * prop, not the numbers inside it — `test/contacts-panel.test.ts` (a
- * sibling, not a React test) is where the count itself is checked against
- * `recipientsFor`'s own predicate.
- */
-/**
  * B448 — the heading that stood over an empty box.
  *
  * `PushOptIn` decides on the first effect, so at render time it is still
@@ -588,257 +569,27 @@ describe("the notifications section", () => {
   });
 });
 
-describe("the payment section", () => {
-  const payment: PaymentPanel = {
-    balance: 12,
-    emailRecipients: 5,
-    whatsappRecipients: 2,
-    channels: { mail: true, whatsapp: true },
-    postcardCredits: null,
-    transactions: [],
-  };
-
-  test("renders for the owner", () => {
-    const html = render({ viewer: owner, payment });
-    expect(html).toContain(dictionaryFor("en")["me.paymentTitle"]);
-    // The balance is a featured numeral beside its unit label now (B392), not
-    // a sentence — the digit and the word are separate elements.
-    expect(html).toContain("12");
-    expect(html).toContain(dictionaryFor("en")["me.paymentUnit"]);
-    expect(html).toContain("up to 5");
-    expect(html).toContain("up to 2");
-  });
-
-  test("says plainly that a zero balance sends nothing", () => {
-    const html = render({ viewer: owner, payment: { ...payment, balance: 0 } });
-    expect(html).toContain(">0<");
-    expect(html).toContain(dictionaryFor("en")["me.paymentBalanceEmpty"]);
-  });
-
-  test("says nothing about a balance that is not zero", () => {
-    const html = render({ viewer: owner, payment });
-    expect(html).not.toContain(dictionaryFor("en")["me.paymentBalanceEmpty"]);
-  });
-
-  /** B369 has not shipped the channel yet; the row is omitted rather than a
-   * confident zero that would read as "nobody wants WhatsApp". */
-  test("lists recent transactions, with an unpaid one as a link to pay", () => {
-    const html = render({
-      viewer: owner,
-      payment: {
-        ...payment,
-        transactions: [
-          { id: "tx-pending", credits: 100, amount: "CHF 18.00", status: "pending", createdAt: "2026-09-05T10:00:00.000Z" },
-          { id: "tx-paid", credits: 50, amount: "CHF 10.00", status: "paid", createdAt: "2026-09-04T09:00:00.000Z" },
-        ],
-      },
-    });
-    expect(html).toContain(dictionaryFor("en")["me.txHistoryTitle"]);
-    // The pending one links to its payment page and is labelled unpaid.
-    expect(html).toContain("/alex/payment/tx-pending");
-    expect(html).toContain(dictionaryFor("en")["me.txPay"]);
-    // The paid one shows the paid label and is not a pay link.
-    expect(html).toContain(dictionaryFor("en")["me.txPaid"]);
-    expect(html).not.toContain("/alex/payment/tx-paid");
-  });
-
-  test("shows no transaction history when there are none", () => {
-    const html = render({ viewer: owner, payment: { ...payment, transactions: [] } });
-    expect(html).not.toContain(dictionaryFor("en")["me.txHistoryTitle"]);
-  });
-
-  test("omits the WhatsApp row rather than showing a zero, when it is not offered", () => {
-    const html = render({
-      viewer: owner,
-      payment: { ...payment, channels: { mail: true, whatsapp: null } },
-    });
-    expect(html).toContain("up to 5");
-    // The WhatsApp table row is absent, so its "up to 2" cell never renders.
-    // ("WhatsApp" itself still appears in the flat-price caption, so that is
-    // not the thing to assert on.)
-    expect(html).not.toContain("up to 2");
-  });
-
-  /**
-   * B463 — the three things the card would not say.
-   *
-   * A muted channel is not the same as one this server cannot offer: the
-   * first is the owner's own decision and keeps its row, greyed and costing
-   * nothing, because they have to be able to undo it. The second has no row,
-   * because nothing an owner does here would change it.
-   */
-  test("totals what one published day costs right now", () => {
-    const html = render({ viewer: owner, payment });
-    expect(html).toContain(dictionaryFor("en")["me.paymentDayTotal"]);
-    // 5 email + 2 WhatsApp, both switched on.
-    expect(html).toContain(">7<");
-  });
-
-  test("a muted channel still has a row, and costs nothing", () => {
-    const html = render({
-      viewer: owner,
-      payment: { ...payment, channels: { mail: true, whatsapp: false } },
-    });
-    // Still listed — it is the owner's own switch and they can put it back.
-    expect(html).toContain("up to 2");
-    // …but the day now costs the email side alone.
-    expect(html).toContain(">5<");
-  });
-
-  test("both channels muted means a day costs nothing at all", () => {
-    const html = render({
-      viewer: owner,
-      payment: { ...payment, channels: { mail: false, whatsapp: false } },
-    });
-    expect(html).toContain(">0<");
-  });
-
-  test("names the price of a printed postcard where cards can be sent", () => {
-    const html = render({ viewer: owner, payment: { ...payment, postcardCredits: 15 } });
-    expect(html).toContain("A printed postcard is 15 credits per card.");
-  });
-
-  test("says nothing about postcards on a journal that does not offer them", () => {
-    const html = render({ viewer: owner, payment });
-    expect(html).not.toContain("A printed postcard");
-  });
-
-  /**
-   * B368 built the real flow: the button opens a dialog listing the three
-   * tiers, rather than sitting disabled with a "coming soon" caption. It
-   * still builds no checkout — pressing Buy on a tier only mails the
-   * journal's own owner; see `app/api/v1/[user]/credits/purchase/route.ts`.
-   */
-  test("offers the three tiers behind the buy button, none of them disabled", () => {
-    const html = render({ viewer: owner, payment });
-    expect(html).toContain(dictionaryFor("en")["me.paymentBuyTitle"]);
-    expect(html).not.toContain("disabled=\"\"");
-    expect(html).toContain("50 credits");
-    expect(html).toContain("CHF 10.00");
-    expect(html).toContain("100 credits");
-    expect(html).toContain("CHF 18.00");
-    expect(html).toContain("200 credits");
-    expect(html).toContain("CHF 32.00");
-  });
-
-  /**
-   * `payment` is `undefined` in every case below — the same as credits being
-   * switched off, or this reader not being the owner. B74: the section is
-   * absent, never a greyed-out shell or a dash where the balance would be.
-   */
-  test("is absent with credits off, owner included — payment is never handed down", () => {
-    const html = render({ viewer: owner });
-    expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
-  });
-
-  test("is absent for a signed-in guest of the journal", () => {
-    const guestViewer: Viewer = { email: "gran@example.test", owner: false, guest: true, trips: [] };
-    const html = render({ viewer: guestViewer, payment });
-    expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
-  });
-
-  test("is absent for a traveller who is not the owner", () => {
-    const traveller: Viewer = {
-      email: "kevin@example.test",
-      owner: false,
-      guest: true,
-      trips: [
-        { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller" },
-      ],
-    };
-    const html = render({ viewer: traveller, payment });
-    expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
-  });
-
-  test("is absent for a reader with no session at all", () => {
-    const html = render({ viewer: stranger, payment });
-    expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
-  });
-});
-
 /**
- * Storage — B664, and its own card rather than a line inside Payment.
- *
- * The two things worth asserting are the two the panel exists for: an owner
- * can see *which* of their things is the big one, and the lever that costs
- * nothing is offered before the one that costs money.
+ * The way to the account page — B821. A line and a link, never the balance
+ * or the storage bar again: those moved whole to `/account`
+ * (test/account-page.test.tsx), and two live copies of a figure is how they
+ * disagree.
  */
-describe("the storage card", () => {
-  const storage: StoragePanel = {
-    used: "4.2 GB",
-    limit: "5.0 GB",
-    percent: 84,
-    rows: [
-      { key: "trip:bus-2026", label: "The bus year", human: "3.0 GB", share: 60 },
-      { key: "photobooks", label: "Photobooks", human: "1.0 GB", share: 20 },
-    ],
-    reclaimable: { human: "1.0 GB", files: 6, hasStagedFiles: false },
-    canBuy: true,
-    buyCredits: 50,
-  };
-
-  test("names every row and its size, not only the colours", () => {
-    const html = render({ viewer: owner, storage });
-    expect(html).toContain("The bus year");
-    expect(html).toContain("3.0 GB");
-    expect(html).toContain("Photobooks");
-    expect(html).toContain("4.2 GB of 5.0 GB used");
+describe("the account card", () => {
+  test("offers the owner a link to the account page", () => {
+    const html = render({ viewer: owner });
+    // `&` is escaped to `&amp;` by `renderToStaticMarkup`.
+    expect(html).toContain(dictionaryFor("en")["me.accountCardTitle"].replace("&", "&amp;"));
+    expect(html).toContain('href="/alex/account"');
+    // And never the figures themselves — those are the account page's job.
+    expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
+    expect(html).not.toContain(dictionaryFor("en")["me.storageTitle"]);
   });
 
-  test("offers the cleanup before the purchase, and says what it takes", () => {
-    const html = render({ viewer: owner, storage });
-    expect(html).toContain("Free up 1.0 GB");
-    expect(html).toContain("Add 5 GB for 50 credits");
-    expect(html.indexOf("Free up")).toBeLessThan(html.indexOf("Add 5 GB"));
-  });
-
-  /** An owner on an instance that does not charge still wants the figure and
-   * still wants the cleanup — only the purchase is absent. */
-  test("is there with credits off; only the buy button is not", () => {
-    const html = render({ viewer: owner, storage: { ...storage, canBuy: false } });
-    expect(html).toContain("4.2 GB of 5.0 GB used");
-    expect(html).toContain("Free up 1.0 GB");
-    expect(html).not.toContain("Add 5 GB");
-  });
-
-  /** A paragraph about a button that is not there is noise on a card whose
-   * job is to be read at a glance, and a journal with nothing to reclaim is
-   * the ordinary case. So the ordinary case says nothing at all. */
-  test("with nothing to reclaim, says nothing rather than explaining itself", () => {
-    const html = render({
-      viewer: owner,
-      storage: { ...storage, reclaimable: { human: "0 KB", files: 0, hasStagedFiles: false } },
-    });
-    expect(html).not.toContain("Free up");
-    expect(html).not.toContain("nothing to clean up");
-    // The rest of the card is untouched — this is about the empty state only.
-    expect(html).toContain("4.2 GB of 5.0 GB used");
-  });
-
-  /** With nothing to reclaim *and* nothing for sale there is no footer at
-   * all, rather than a rule under the legend separating nothing from
-   * nothing. */
-  test("drops the whole footer when there is neither a cleanup nor a purchase", () => {
-    const html = render({
-      viewer: owner,
-      storage: {
-        ...storage,
-        canBuy: false,
-        reclaimable: { human: "0 KB", files: 0, hasStagedFiles: false },
-      },
-    });
-    expect(html).not.toContain("Free up");
-    expect(html).not.toContain("Add 5 GB");
-    expect(html).toContain("The bus year");
-  });
-
-  test("warns past ninety per cent, and not below it", () => {
-    expect(render({ viewer: owner, storage })).not.toContain("Nearly full");
-    expect(render({ viewer: owner, storage: { ...storage, percent: 95 } })).toContain("Nearly full");
-  });
-
-  /** A stranger has no business knowing how full somebody's journal is. */
-  test("is absent for a reader who is not the owner", () => {
-    expect(render({ viewer: stranger })).not.toContain("4.2 GB");
+  test("is absent for anybody but the owner", () => {
+    const html = render({ viewer: stranger });
+    expect(html).not.toContain(dictionaryFor("en")["me.accountCardTitle"].replace("&", "&amp;"));
+    expect(html).not.toContain("/alex/account");
   });
 });
+

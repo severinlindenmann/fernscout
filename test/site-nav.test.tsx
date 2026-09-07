@@ -48,6 +48,7 @@ const site: SiteSummary = {
   canSignIn: false,
   analyticsEnabled: true,
   helperEnabled: false,
+  isOwner: false,
 };
 
 const trip = {
@@ -149,6 +150,27 @@ describe("SiteNav", () => {
     // /trips and /search stay at the journal level even inside a trip.
     expect(hrefs).toContain("/alex/trips");
     expect(hrefs).toContain("/alex/search");
+  });
+
+  /**
+   * The credits-and-storage destination — B821. Owner-only: a reader with no
+   * rights to it must not see a row that leads to a 404, the same rule the
+   * analytics tab and the sign-in door already follow.
+   */
+  describe("the account destination", () => {
+    test("is absent for a reader who is not the owner", () => {
+      expect(render(false)).not.toContain("/alex/account");
+    });
+
+    test("is offered to the owner, at the journal's own base even inside a trip", () => {
+      site.isOwner = true;
+      try {
+        expect(render(false)).toContain("/alex/account");
+        expect(render(true, false)).toContain("/alex/account");
+      } finally {
+        site.isOwner = false;
+      }
+    });
   });
 });
 

@@ -89,6 +89,9 @@ describe("what the header is told about signing in", () => {
       // B797. Journal-wide and viewer-independent, exactly like
       // `analyticsEnabled` above.
       "helperEnabled",
+      // B821. Viewer-derived, like `signedIn` and `hasIdentity` above: it is
+      // whether this reader is the owner, not a fact the trip gate filtered.
+      "isOwner",
       "locales",
       "signedIn",
       "startLocation",

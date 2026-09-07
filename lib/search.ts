@@ -1,9 +1,12 @@
 import "server-only";
 import MiniSearch from "minisearch";
 import { isIndexable } from "./access";
+import { analyticsAvailable } from "./analytics";
 import { isOwner } from "./contacts/session";
 import { getAllEntries } from "./entries";
+import { localesFor, translateIn } from "./locales";
 import { stripMarkdown } from "./markdownText";
+import { ACCOUNT_DESTINATION, TRIP_DESTINATIONS, type NavDestination } from "./navDestinations";
 import { SEARCH_OPTIONS, type SearchDoc } from "./searchOptions";
 import { isTravellerOn, mayReadTrip, readFor } from "./tripGate";
 import { getCurrentTrip, getTrips } from "./trips";
@@ -43,6 +46,7 @@ import { getUser } from "./users";
 function toDoc(trip: Trip, tripBase: string, entry: Entry): SearchDoc {
   return {
     id: `${trip.id}/${entry.slug}`,
+    kind: "day",
     title: entry.title,
     location: entry.location,
     country: entry.country,
@@ -51,11 +55,67 @@ function toDoc(trip: Trip, tripBase: string, entry: Entry): SearchDoc {
     url: `${tripBase}/day/${entry.slug}`,
     body: stripMarkdown(entry.content),
     tags: entry.tags,
+    terms: "",
   };
 }
 
 function tripBaseFor(username: string, trip: Trip, currentId: string | undefined): string {
   return trip.id === currentId ? `/${username}` : `/${username}/trips/${trip.id}`;
+}
+
+/**
+ * A destination as its own document — B823. `title` is the journal's own
+ * default language, the same choice `entry.title` already makes: nobody's
+ * reading locale enters a search doc, only the journal's own languages
+ * (`localesFor`). `terms` gathers the label and any synonyms in every one of
+ * those languages, so a reader typing "Kosten" finds the costs page (which
+ * lives under Analytics, B557) whatever language the chrome is currently
+ * showing.
+ */
+function pageDoc(
+  username: string,
+  id: string,
+  dest: NavDestination,
+  url: string,
+  tripTitle: string,
+): SearchDoc {
+  const locales = localesFor(username);
+  const words = new Set<string>();
+  for (const code of locales) {
+    words.add(translateIn(code, dest.labelKey));
+    if (dest.synonymsKey) words.add(translateIn(code, dest.synonymsKey));
+  }
+  return {
+    id,
+    kind: "page",
+    title: translateIn(locales[0], dest.labelKey),
+    location: "",
+    country: "",
+    tripTitle,
+    date: "",
+    url,
+    body: "",
+    tags: [],
+    terms: [...words].join(" "),
+  };
+}
+
+/** The trip-scoped destinations for one already-included trip — Story,
+ * Gallery, Map, and Analytics where the journal has anything to add up.
+ * Nothing here asks a visibility question beyond "is this trip in the loop
+ * at all": every one of these rows is exactly what `useNavEntries()` already
+ * draws for a reader who can open the trip, drafts and closed trips alike —
+ * see lib/navDestinations.ts. */
+function tripPageDocs(username: string, trip: Trip, tripBase: string): SearchDoc[] {
+  const destinations = analyticsAvailable(username)
+    ? TRIP_DESTINATIONS
+    : TRIP_DESTINATIONS.filter((d) => d.path !== "/analytics");
+  return destinations.map((dest) => {
+    // Same rule `userHref` in components/SiteNav.tsx follows: the story page
+    // is the trip's base itself, with no trailing slash.
+    const url = dest.path === "/" ? tripBase : `${tripBase}${dest.path}`;
+    return pageDoc(username, `page:${trip.id}${dest.path}`, dest, url, trip.title);
+  });
 }
 
 function buildDocs(username: string): SearchDoc[] {
@@ -70,6 +130,7 @@ function buildDocs(username: string): SearchDoc[] {
     if (trip.status === "upcoming") continue;
 
     const tripBase = tripBaseFor(username, trip, currentId);
+    docs.push(...tripPageDocs(username, trip, tripBase));
 
     for (const entry of getAllEntries(trip.ref)) {
       // See the same line in lib/feed.ts: content nobody lived is not found
@@ -144,6 +205,7 @@ async function buildDocsForReader(username: string, request?: Request): Promise<
     if (!(await includeInReaderIndex(trip, request))) continue;
 
     const tripBase = tripBaseFor(username, trip, currentId);
+    docs.push(...tripPageDocs(username, trip, tripBase));
     const { read } = await readFor(trip, request);
 
     for (const entry of getAllEntries(trip.ref, read)) {
@@ -151,6 +213,20 @@ async function buildDocsForReader(username: string, request?: Request): Promise<
       docs.push(toDoc(trip, tripBase, entry));
     }
   }
+
+  /**
+   * The credits-and-storage page — B821. Owner-only, and the one destination
+   * in this file that is not trip-scoped at all: `isOwner` is the exact same
+   * check the page itself makes and the nav row is gated on (B821, B824), so
+   * search can never tell a stranger this journal even has one. Never added
+   * to the public builder above — an anonymous reader is never the owner.
+   */
+  if (await isOwner(username, request)) {
+    docs.push(
+      pageDoc(username, "page:account", ACCOUNT_DESTINATION, `/${username}/account`, ""),
+    );
+  }
+
   return docs;
 }
 

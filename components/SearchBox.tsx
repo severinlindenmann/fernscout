@@ -92,22 +92,38 @@ export default function SearchBox() {
 
         {results.length > 0 && (
           <ul className="divide-y divide-navy-200 overflow-hidden rounded-2xl border border-navy-200 bg-white">
-            {results.map((r) => (
-              <li key={r.id as string}>
-                <Link
-                  href={r.url as string}
-                  className="block px-4 py-3 transition-colors hover:bg-cream-100"
-                >
-                  <p className="font-display text-base font-semibold text-navy-900">
-                    {r.title as string}
-                  </p>
-                  <p className="mt-0.5 text-xs text-navy-600">
-                    {r.location as string} · {formatShortDate(r.date as string)} ·{" "}
-                    {r.tripTitle as string}
-                  </p>
-                </Link>
-              </li>
-            ))}
+            {results.map((r) => {
+              // A destination (Gallery, Costs, the account page — B823) has
+              // no date and no location: it is not a day, and showing it as
+              // one is exactly what a reader scanning results would mistake
+              // it for.
+              const isPage = r.kind === "page";
+              const tripTitle = r.tripTitle as string;
+              return (
+                <li key={r.id as string}>
+                  <Link
+                    href={r.url as string}
+                    className="block px-4 py-3 transition-colors hover:bg-cream-100"
+                  >
+                    <p className="font-display text-base font-semibold text-navy-900">
+                      {r.title as string}
+                    </p>
+                    {isPage ? (
+                      // A journal-wide destination (the account page) names
+                      // no trip at all; a trip-scoped one (Gallery, Costs)
+                      // says which trip so two trips' costs pages read apart.
+                      tripTitle && (
+                        <p className="mt-0.5 text-xs text-navy-600">{tripTitle}</p>
+                      )
+                    ) : (
+                      <p className="mt-0.5 text-xs text-navy-600">
+                        {r.location as string} · {formatShortDate(r.date as string)} · {tripTitle}
+                      </p>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

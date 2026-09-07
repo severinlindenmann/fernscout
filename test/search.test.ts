@@ -52,7 +52,11 @@ describe("buildSearchIndex", () => {
     const index = buildSearchIndex("creator")!;
     expect(index.search("PRIVATEMARKERSECRET")).toEqual([]);
     expect(index.search("Secretville")).toEqual([]);
-    expect(index.documentCount).toBeLessThan(3); // only the one public entry
+    // The one public entry, plus its trip's own destinations (Story, Gallery,
+    // Map — B823; no Analytics, since this fixture carries no costs or
+    // weather data). Nothing from the closed trips contributes either kind
+    // of document.
+    expect(index.documentCount).toBe(4);
   });
 
   test("an unlisted trip's content is not indexed at all", () => {
