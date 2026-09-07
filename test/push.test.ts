@@ -285,6 +285,49 @@ describe("subscribersFor — a private trip", () => {
  * hand it every subscription in the journal before any other question is
  * asked.
  */
+/**
+ * B632 — an update's own `visibility`, on the channel that interrupts.
+ *
+ * The trip is `public` in every case here: what narrows the audience is the
+ * day, not the journey. Before this, a `guest` update on an open trip put its
+ * title and its location on every subscribed phone — the leak the label
+ * exists to close, arriving where no banner can explain it.
+ */
+describe("subscribersFor — a held-back update on an open trip", () => {
+  test("`guest` reaches an approved contact and nobody else", async () => {
+    const trip = fakeTrip({ visibility: "public" });
+    const contact = await signUpAndConfirm("ana", "family@example.com");
+    await approveContact("ana", contact.id); // approval is the grant
+    const known = fakeSub({ contactId: contact.id });
+    await saveSubscription(known);
+    await saveSubscription(fakeSub({ contactId: null }));
+
+    // Both devices for an ordinary update; only the identified one once the
+    // day says `guest`. Asserted together, so this cannot pass by the fixture
+    // having stopped subscribing anybody.
+    expect(await subscribersFor(trip)).toHaveLength(2);
+    expect((await subscribersFor(trip, { visibility: "guest" })).map((s) => s.endpoint)).toEqual([
+      known.endpoint,
+    ]);
+  });
+
+  test("`private` reaches nobody, grant or no grant", async () => {
+    const trip = fakeTrip({ visibility: "public" });
+    const contact = await signUpAndConfirm("ana", "family@example.com");
+    await approveContact("ana", contact.id);
+    await saveSubscription(fakeSub({ contactId: contact.id }));
+
+    expect(await subscribersFor(trip)).toHaveLength(1);
+    expect(await subscribersFor(trip, { visibility: "private" })).toEqual([]);
+  });
+
+  test("an unlabelled update is announced exactly as before B632", async () => {
+    const trip = fakeTrip({ visibility: "public" });
+    await saveSubscription(fakeSub({ contactId: null }));
+    expect(await subscribersFor(trip, { test: false })).toHaveLength(1);
+  });
+});
+
 describe("subscribersFor — a trip nobody lived", () => {
   test("a public test trip notifies nobody, unidentified device or approved contact", async () => {
     const trip = fakeTrip({ visibility: "public", test: true });

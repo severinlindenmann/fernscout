@@ -727,6 +727,7 @@ export type TranslationKey =
   | "nav.toJournal"
   | "nav.trips"
   | "notify.button"
+  | "notify.cancel"
   | "notify.confirm"
   | "notify.confirmFree"
   | "notify.failed"

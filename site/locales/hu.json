@@ -640,6 +640,7 @@
   "nav.toJournal": "Vissza: {title}",
   "nav.trips": "Utak",
   "notify.button": "Értesítsd az olvasóidat erről a napról",
+  "notify.cancel": "Most nem",
   "notify.confirm": "A küldés {needed} kreditbe kerül, utána {rest} marad. Küldöd most?",
   "notify.confirmFree": "Elküldöd ezt a napot az olvasóidnak most?",
   "notify.failed": "Ezt nem sikerült elküldeni. Semmit sem számláztunk.",
