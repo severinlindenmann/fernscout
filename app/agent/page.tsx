@@ -3,6 +3,7 @@ import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { resolveIdentity } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
 import AgentDoor from "@/components/AgentDoor";
+import { draftsForWizard } from "@/lib/helper/server";
 import { journalsFor } from "@/lib/home";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
@@ -57,7 +58,15 @@ export default async function AgentPage() {
       agentUrl={`${site.url}/agent.md`}
       codeMinutes={CODE_TTL_MINUTES}
       signedIn={Boolean(identity)}
-      journals={owned.map((journal) => ({ username: journal.username, title: journal.title }))}
+      journals={owned.map((journal) => ({
+        username: journal.username,
+        title: journal.title,
+        // Read here rather than in the card, because the card is a client
+        // component and this is a directory walk — and because it is the same
+        // read `GET /api/v1/<user>/drafts` makes, which is what makes the
+        // resume card and an agent's own queue agree about what is waiting.
+        drafts: draftsForWizard(journal.username),
+      }))}
     />
   );
 }
