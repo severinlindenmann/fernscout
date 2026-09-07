@@ -23,7 +23,7 @@ export async function DELETE(
 ) {
   const { user, id } = await params;
   if (!(await isHelperOwner(user))) {
-    return notYourJournal(request);
+    return notYourJournal(request, user);
   }
   if (!removeInboxFile(user, id)) {
     return Response.json({ error: "unknown_inbox_file" }, { status: 404 });

@@ -38,7 +38,7 @@ async function gate(
   scope: HelperScope | "any",
 ): Promise<Response | null> {
   if (!(await isHelperOwner(user))) {
-    return notYourJournal(request);
+    return notYourJournal(request, user);
   }
   // A `DELETE` is gated on "any" regardless of which scope it names, so
   // either capability being on is reason enough to let somebody withdraw —

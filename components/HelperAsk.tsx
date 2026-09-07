@@ -72,6 +72,11 @@ export default function HelperAsk({
   const [said, setSaid] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // B807 — told apart from every other failure, because it is the only one
+  // with something the person can do about it. A man mid-write-up got
+  // `not_your_journal` with nothing on the screen, read it as the software
+  // being broken, and closed the tab.
+  const [lapsed, setLapsed] = useState(false);
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [fields, setFields] = useState<Field[]>([]);
   const [consented, setConsented] = useState(initialConsent);
@@ -85,6 +90,13 @@ export default function HelperAsk({
   useEffect(() => {
     if (open) box.current?.focus();
   }, [open]);
+
+  /** The one failure with a way out of it, told apart from the rest — B807. */
+  function failed(thrown: unknown) {
+    const message = (thrown as Error).message;
+    if (message === "session_lapsed") setLapsed(true);
+    else setError(t("agent.failed", { error: message }));
+  }
 
   async function post(url: string, body?: unknown): Promise<Record<string, unknown>> {
     const response = await fetch(url, {
@@ -100,6 +112,7 @@ export default function HelperAsk({
   async function ask() {
     setBusy(true);
     setError("");
+    setLapsed(false);
     setAnswer(null);
     try {
       const body = await post(`/api/helper/${encodeURIComponent(username)}/ask`, {
@@ -127,7 +140,7 @@ export default function HelperAsk({
         setAnswer({ kind: "unknown" });
       }
     } catch (thrown) {
-      setError(t("agent.failed", { error: (thrown as Error).message }));
+      failed(thrown);
     } finally {
       setBusy(false);
     }
@@ -143,7 +156,7 @@ export default function HelperAsk({
       setBusy(false);
       await ask();
     } catch (thrown) {
-      setError(t("agent.failed", { error: (thrown as Error).message }));
+      failed(thrown);
       setBusy(false);
     }
   }
@@ -159,7 +172,7 @@ export default function HelperAsk({
       );
       window.location.href = String(body.href ?? window.location.href);
     } catch (thrown) {
-      setError(t("agent.failed", { error: (thrown as Error).message }));
+      failed(thrown);
       setBusy(false);
     }
   }
@@ -290,6 +303,18 @@ export default function HelperAsk({
             </div>
           </ConfirmPanel>
         </div>
+      )}
+
+      {lapsed && (
+        <p role="status" className="mt-3 rounded-xl bg-cream-100 p-3 text-base leading-6 text-navy-800">
+          {t("agent.askLapsed")}{" "}
+          <a
+            href={`/${encodeURIComponent(username)}/me`}
+            className="font-semibold underline underline-offset-4"
+          >
+            {t("agent.askLapsedLink")}
+          </a>
+        </p>
       )}
 
       {error && (

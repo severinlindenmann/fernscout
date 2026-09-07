@@ -33,7 +33,7 @@ type Body = { inbox?: unknown; trip?: unknown };
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/import">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return notYourJournal(request);
+    return notYourJournal(request, user);
   }
 
   const body = (await request.json().catch(() => null)) as Body | null;

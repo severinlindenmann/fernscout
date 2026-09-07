@@ -252,14 +252,18 @@ describe("B779 — a token on the helper's door", () => {
     expect(message).toContain("cookie");
   });
 
-  test("a browser with no session gets the bare refusal, with nothing to explain", async () => {
+  test("a browser with no session is told its session lapsed — B807", async () => {
     const response = await helperDayRoute(
       new Request("https://t.test/api/helper/alex/day?trip=reise&slug=a-day"),
       params,
     );
     const body = (await response.json()) as Record<string, unknown>;
-    expect(response.status).toBe(404);
-    expect(body.error).toBe("not_your_journal");
+    // It used to be the bare 404, and a person mid-task read that as the
+    // software being broken. This says nothing about the journal — with no
+    // address, every username here answers alike — and the screen puts the
+    // way back in beside it.
+    expect(response.status).toBe(401);
+    expect(body.error).toBe("session_lapsed");
     expect(body.message).toBeUndefined();
   });
 });
