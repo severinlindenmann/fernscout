@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (108)
+## backlog (107)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (26)
+### issue (25)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -76,7 +76,6 @@ Do not edit them by hand; run the script.
 | [B828](backlog/issue/B828-a-journal-may-briefly-not-exist.md) | A journal may briefly not exist while a deploy copies content | ISSUE | medium | medium |
 | [B834](backlog/issue/B834-signup-grants-ten-credits-per-verified.md) | Signup grants ten credits per verified email with no per-identity cap, so credits can be farmed with disposable inboxes | ISSUE | medium | medium |
 | [B837](backlog/issue/B837-a-capability-test-passes-alone-and.md) | A capability test passes alone and fails in the full suite | ISSUE | medium | low |
-| [B842](backlog/issue/B842-a-trip-with-no-tagline-shows.md) | A trip with no tagline shows the journal's, so the journal's words are presented as the trip's | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
@@ -224,7 +223,7 @@ _Nothing here._
 | [B810](in-development/B810-the-first-thing-the-product-asks.md) | The first thing the product asks a new person is what their day cost | ISSUE | medium | low | `fdfcf5f2` |
 | [B822](in-development/B822-a-back-arrow-returns-to-a.md) | A back arrow returns to a fixed parent rather than where the reader actually came from | ISSUE | medium | medium | `ccdd5120` |
 
-## testing (64)
+## testing (65)
 
 ### security (2)
 
@@ -233,7 +232,7 @@ _Nothing here._
 | [B830](testing/security/B830-the-stripe-webhook-checks-the-amount.md) | The Stripe webhook checks the amount but not the currency, and not that the event's mode matches the key | SECURITY | high | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (32)
+### issue (33)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -261,6 +260,7 @@ _Nothing here._
 | [B818](testing/issue/B818-the-date-defaults-to-today-when.md) | The date defaults to today when you are writing up a day from three weeks ago | ISSUE | medium | low | — |
 | [B824](testing/issue/B824-the-agent-and-docs-sit-apart.md) | The agent and docs sit apart from the destinations they are listed with | ISSUE | medium | low | — |
 | [B831](testing/issue/B831-a-buyer-who-pays-two-checkout.md) | A buyer who pays two checkout sessions for one purchase is charged twice and credited once, silently | ISSUE | medium | low | — |
+| [B842](testing/issue/B842-a-trip-with-no-tagline-shows.md) | A trip with no tagline shows the journal's, so the journal's words are presented as the trip's | ISSUE | medium | low | — |
 | [B726](testing/issue/B726-the-landing-page-tells-a-self.md) | The landing page tells a self-hoster with the helper off that the agent may be this instance's own | ISSUE | low | low | — |
 | [B742](testing/issue/B742-the-api-docs-page-scrolls-sideways.md) | The API docs page scrolls sideways on a phone | ISSUE | low | low | — |
 | [B748](testing/issue/B748-the-disclosure-that-hides-the-agent.md) | The disclosure that hides the agent instructions looks like a link, so nothing says it opens | ISSUE | low | low | — |

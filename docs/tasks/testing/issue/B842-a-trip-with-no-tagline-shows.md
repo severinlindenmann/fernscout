@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: trip, header
 found: "2026-09-07T18:30:00Z"
+merged: "2026-09-07T16:33:00Z"
 ---
 
 # B842 — A trip with no tagline shows the journal's, so the journal's words are presented as the trip's
