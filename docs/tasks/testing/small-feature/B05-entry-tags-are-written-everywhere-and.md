@@ -7,8 +7,7 @@ complexity: low
 area: search, tags
 found: "2026-09-01"
 started: "2026-09-07T11:27:37Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T11:27:37Z"
+merged: "2026-09-07T11:43:54Z"
 ---
 
 # B05 — Entry tags are written everywhere and searched nowhere

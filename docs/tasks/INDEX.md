@@ -181,7 +181,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (24)
+## in-development (23)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -201,7 +201,6 @@ _Nothing here._
 | [B707](in-development/B707-uploading-by-url-silently-drops-files.md) | Uploading by url silently drops files past the per-day limit | ISSUE | medium | low | `97b44327` |
 | [B712](in-development/B712-the-helper-routes-are-undocumented-in.md) | The helper routes are undocumented in the agent guide | DOCS | medium | low | `97b44327` |
 | [B713](in-development/B713-a-test-in-the-suite-fails.md) | A test in the suite fails intermittently and verify does not name which | ISSUE | medium | medium | `97b44327` |
-| [B05](in-development/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low | `ccdd5120` |
 | [B391](in-development/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low | `97b44327` |
 | [B595](in-development/B595-a-photobook-can-be-charged-a.md) | A photobook can be charged a price the owner never saw | ISSUE | low | low | `97b44327` |
 | [B697](in-development/B697-there-is-no-way-back-to.md) | There is no way back to the site from /agent | ISSUE | low | low | `97b44327` |
@@ -210,7 +209,7 @@ _Nothing here._
 | [B710](in-development/B710-the-reverse-geocoding-url-is-guessed.md) | The reverse geocoding URL is guessed from the forward one | ISSUE | low | low | `97b44327` |
 | [B711](in-development/B711-the-preview-still-says-draft-after.md) | The preview still says draft after the day is published | ISSUE | low | low | `97b44327` |
 
-## testing (408)
+## testing (409)
 
 ### security (7)
 
@@ -467,7 +466,7 @@ _Nothing here._
 | [B665](testing/big-feature/B665-a-trip-s-map-draws-straight.md) | A trip's map draws straight lines between days, because nothing holds where somebody actually went | FEATURE | medium | high | — |
 | [B677](testing/big-feature/B677-a-bank-statement-can-only-be.md) | A bank statement can only be read on the owner's own laptop, so the parsing lives in the helper | FEATURE | medium | high | — |
 
-### small-feature (86)
+### small-feature (87)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -550,6 +549,7 @@ _Nothing here._
 | [B706](testing/small-feature/B706-the-party-never-boards-the-vehicle.md) | The party never boards — the vehicle and the people are two animations that ignore each other | FEATURE | medium | medium | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
+| [B05](testing/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low | — |
 | [B07](testing/small-feature/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium | — |
 | [B11](testing/small-feature/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium | — |
 | [B15](testing/small-feature/B15-the-travel-scene-plays-one-fixed.md) | The travel scene plays one fixed sequence and nothing can choose another | FEATURE | low | medium | — |
