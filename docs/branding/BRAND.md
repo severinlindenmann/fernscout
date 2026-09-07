@@ -174,6 +174,7 @@ it cost; it does not sell them the trip back to themselves.
 
 ## 9. Trademark
 
-The code is AGPL-3.0. The **name and the mark are not** — see `TRADEMARK.md`.
+The code is PolyForm Shield 1.0.0. The **name and the mark are not** — see
+`TRADEMARK.md`.
 Forks are welcome and must rebrand: unregistered word mark *Fernscout* and the
 waymark device, no implication of endorsement.

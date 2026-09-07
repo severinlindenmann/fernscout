@@ -161,5 +161,14 @@ anywhere outside `content/` — there is a test that fails the build over that.
 
 ## Licence
 
-AGPL-3.0. The **name and the waymark are not covered by it** — see
+[PolyForm Shield 1.0.0](https://polyformproject.org/licenses/shield/1.0.0).
+The source is public and free to use: run it, self-host it, change it,
+redistribute it, for as long as you like, at no cost. The one restriction is
+that you may not use it to provide a product that competes with Fernscout.
+
+This is **source-available, not open source** — the non-compete clause is a
+restriction the Open Source Definition does not allow, so the term does not
+apply here and this project does not use it.
+
+The **name and the waymark are covered by neither** — see
 [TRADEMARK.md](TRADEMARK.md) before using either outside this repository.

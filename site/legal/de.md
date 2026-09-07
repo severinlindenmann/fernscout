@@ -5,8 +5,15 @@ keine Firma, es gibt keinen Support und keine zugesicherte Verfügbarkeit.
 
 Kontakt: <agent@fernscout.ch>
 
-Die Software ist Open Source unter der AGPL-3.0 und vollständig einsehbar auf
+Der Quellcode ist öffentlich und vollständig einsehbar auf
 [github.com/severinlindenmann/fernscout](https://github.com/severinlindenmann/fernscout).
+Er steht unter der Lizenz [PolyForm Shield 1.0.0](https://polyformproject.org/licenses/shield/1.0.0):
+kostenlos zu nutzen, zu ändern und selbst zu betreiben, so lange man möchte,
+mit einer einzigen Einschränkung — er darf nicht verwendet werden, um ein
+Angebot bereitzustellen, das mit Fernscout konkurriert. Wegen dieser
+Einschränkung ist die Lizenz **quelloffen, aber keine Open-Source-Lizenz** im
+Sinne der Open Source Definition; dieser Begriff wird hier deshalb nicht
+verwendet.
 
 ## Was nicht versprochen wird
 

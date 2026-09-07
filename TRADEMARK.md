@@ -8,14 +8,19 @@ doesn't mean for you.
 
 The code is free. The name and logo are not part of that.
 
-- **Code:** licensed under AGPL-3.0 (see `LICENSE`). Use it, self-host it,
-  modify it, redistribute it — the license spells out exactly what that
-  requires of you (in particular: if you run a modified version as a network
-  service, you must offer its source to the people using it).
-- **Name and logo:** not covered by the AGPL-3.0 grant. You can build on the
+- **Code:** licensed under PolyForm Shield 1.0.0 (see `LICENSE`). Use it,
+  self-host it, modify it, redistribute it, free and for as long as you like —
+  with one restriction, which is that you may not use it to provide a product
+  that competes with Fernscout.
+- **Name and logo:** not covered by that grant either. You can build on the
   code freely; that doesn't hand you the right to call your fork or your
   hosted service "Fernscout", or to use the logo, in a way that suggests it
   *is* Fernscout or is endorsed by this project.
+
+The two are separate restrictions and it is worth keeping them apart: the
+licence decides **whether** you may run a competing service, the trademark
+decides only **what you may call it**. Renaming does not buy you the first
+one.
 
 ## What's fine
 
@@ -28,10 +33,12 @@ The code is free. The name and logo are not part of that.
 
 ## What's not fine
 
-- Naming a public fork or a competing hosted service "Fernscout" (or
-  something confusingly close to it), or using the waymark logo for it, in
-  a way that could make people think it's this project or affiliated with
-  it.
+- Naming a public fork "Fernscout" (or something confusingly close to it),
+  or using the waymark logo for it, in a way that could make people think
+  it's this project or affiliated with it.
+- A competing hosted service, under any name at all — that one is the
+  licence's answer rather than this document's, and rebranding does not
+  change it.
 - Any use that implies endorsement, partnership, or official status this
   project hasn't actually given you.
 
