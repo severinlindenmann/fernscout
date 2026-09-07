@@ -7,8 +7,7 @@ complexity: low
 area: runbook, DR, restore drill
 found: "2026-09-07T05:44:27Z"
 started: "2026-09-07T06:45:39Z"
-session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
-claimed: "2026-09-07T06:45:39Z"
+merged: "2026-09-07T06:47:46Z"
 ---
 
 # B656 — The restore procedure describes a layout the backup will no longer have

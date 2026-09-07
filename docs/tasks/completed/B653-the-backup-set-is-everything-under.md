@@ -8,6 +8,7 @@ area: backup, DR, scripts/backup.sh
 found: "2026-09-07T05:44:26Z"
 started: "2026-09-07T05:48:16Z"
 merged: "2026-09-07T06:27:23Z"
+completed: "2026-09-07T06:47:46Z"
 ---
 
 # B653 — The backup set is everything under DATA_DIR minus what somebody remembered to subtract
