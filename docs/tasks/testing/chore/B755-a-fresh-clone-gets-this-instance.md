@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: config, docs
 found: "2026-09-07T15:40:00Z"
+merged: "2026-09-07T13:48:09Z"
 ---
 
 # B755 — A fresh clone gets this instance's costs and an env example missing six keys
