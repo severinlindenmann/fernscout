@@ -28,9 +28,31 @@ export function serverSite() {
     defaultUser: config.site.defaultUser,
     repository: config.site.repository,
     credit: config.site.credit,
-    /** The landing-page notice, already reduced to "show it, or nothing". */
-    banner: config.site.banner?.text,
   };
+}
+
+/**
+ * The landing-page notice in the reader's language, or nothing.
+ *
+ * The operator writes it themselves — `site.banner.text`, plus whatever
+ * `site.banner.translations` they could manage — so this is a pick, not a
+ * lookup in a dictionary. `text` is the one every reader is guaranteed, which
+ * makes it the fallback: a reader whose language the operator did not write in
+ * gets the notice anyway, in the wrong language, because a beta warning nobody
+ * sees is worse than one somebody has to translate in their head.
+ *
+ * `de-CH` takes `de` when the operator wrote only `de`, since a region is a
+ * dialect of a language the notice is already in. B660.
+ */
+export function bannerFor(locale: string): string | undefined {
+  const banner = loadServerConfig().site.banner;
+  if (!banner) return undefined;
+  const translations = banner.translations ?? {};
+  return (
+    translations[locale] ??
+    translations[locale.split("-")[0]] ??
+    banner.text
+  );
 }
 
 /**

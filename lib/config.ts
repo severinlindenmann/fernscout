@@ -236,11 +236,18 @@ export type ServerConfig = {
      * afternoon of downtime. `enabled: false` keeps the wording on disk, so
      * the next occasion is a one-word edit rather than a rewrite.
      *
-     * The operator's own words, in the operator's own language: nothing here
-     * is translated, because an instance cannot add to a locale file without
-     * editing the checkout.
+     * The operator's own words, and still not a locale file: `text` is what
+     * every reader gets, and `translations` is the operator's own wording in
+     * whatever other languages they can write it in. An instance cannot add a
+     * key to `site/locales/`, but it can write its own sentence twice — and a
+     * beta notice in a language the reader does not read is a notice nobody
+     * reads (B660).
      */
-    banner?: { enabled: boolean; text: string };
+    banner?: {
+      enabled: boolean;
+      text: string;
+      translations?: Record<string, string>;
+    };
     /**
      * The instance admin who approves credit purchases while there is no
      * payment provider (B425). The accept link for every purchase is mailed
@@ -765,20 +772,35 @@ export function serverConfigPath(): string {
 function parseBanner(
   raw: unknown,
   problems: string[],
-): { enabled: boolean; text: string } | undefined {
+): ServerConfig["site"]["banner"] {
   if (raw === undefined) return undefined;
   if (
     !isRecord(raw) ||
     typeof raw.enabled !== "boolean" ||
-    typeof raw.text !== "string"
+    typeof raw.text !== "string" ||
+    (raw.translations !== undefined &&
+      (!isRecord(raw.translations) ||
+        Object.values(raw.translations).some((v) => typeof v !== "string")))
   ) {
     problems.push(
-      "site.banner must be { enabled: boolean, text: string }, or absent",
+      "site.banner must be { enabled: boolean, text: string, translations?: " +
+        "{ [locale]: string } }, or absent",
     );
     return undefined;
   }
   if (!raw.enabled || raw.text.trim() === "") return undefined;
-  return { enabled: true, text: raw.text.trim() };
+  const translations: Record<string, string> = {};
+  for (const [locale, text] of Object.entries(raw.translations ?? {})) {
+    const trimmed = (text as string).trim();
+    // An empty translation is the operator not having written one yet, which
+    // is what `text` is for. Keeping it would serve a blank banner.
+    if (trimmed !== "") translations[locale] = trimmed;
+  }
+  return {
+    enabled: true,
+    text: raw.text.trim(),
+    ...(Object.keys(translations).length > 0 ? { translations } : {}),
+  };
 }
 
 /**

@@ -238,6 +238,27 @@ describe("site.banner", () => {
     );
   });
 
+  test("and the operator's words again, in whatever languages they wrote", () => {
+    expect(
+      parseServerConfig({
+        site: site({ enabled: true, text: "Beta", translations: { en: " Beta ", hu: "Béta", de: "  " } }),
+      }).site.banner,
+    ).toEqual({ enabled: true, text: "Beta", translations: { en: "Beta", hu: "Béta" } });
+  });
+
+  /** A translation nobody wrote is what `text` is for — not a blank banner. */
+  test("an empty translations block is the same as none", () => {
+    expect(
+      parseServerConfig({ site: site({ enabled: true, text: "Beta", translations: {} }) }).site.banner,
+    ).toEqual({ enabled: true, text: "Beta" });
+  });
+
+  test("a translation that is not a string is a problem", () => {
+    expect(() =>
+      parseServerConfig({ site: site({ enabled: true, text: "Beta", translations: { en: 3 } }) }),
+    ).toThrow(/site\.banner/);
+  });
+
   /** An operator who wrote a notice meant it to be seen. */
   test("a malformed block is a problem rather than a silent no", () => {
     expect(() => parseServerConfig({ site: site({ enabled: "yes", text: "Beta" }) })).toThrow(

@@ -4,7 +4,7 @@ import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { publicJournals } from "@/lib/home";
 import { hasLegal } from "@/lib/legal";
 import { installedLocales, requestLocale, translateIn } from "@/lib/locales";
-import { serverSite } from "@/lib/site";
+import { bannerFor, serverSite } from "@/lib/site";
 
 /**
  * The bare domain is the landing page.
@@ -48,8 +48,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function Root() {
+export default async function Root() {
   const site = serverSite();
+  // The notice is the operator's own words in the reader's language — see
+  // bannerFor(). Same locale rule as the tab title above, and for the same
+  // reason: a German page with an English warning across the top of it is the
+  // bug B225 fixed, one element higher.
+  const banner = bannerFor(await requestLocale());
 
   return (
     <>
@@ -61,12 +66,12 @@ export default function Root() {
         Rendered beside the page rather than inside `Landing`, which has two
         different orders of the same sections and would have needed it twice.
       */}
-      {site.banner && (
+      {banner && (
         <div
           role="note"
           className="border-b-2 border-coral-600 bg-coral-300 px-6 py-3 text-center text-sm leading-6 text-navy-900"
         >
-          {site.banner}
+          {banner}
         </div>
       )}
       <Landing
