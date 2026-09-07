@@ -7,8 +7,7 @@ complexity: medium
 area: header, nav, landing, agent
 found: "2026-09-07T17:10:00Z"
 started: "2026-09-07T14:57:20Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T14:57:20Z"
+merged: "2026-09-07T15:21:33Z"
 ---
 
 # B797 — Nothing in the header leads to the agent, and the signed-in landing repeats the invitation in a block of its own
