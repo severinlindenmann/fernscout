@@ -72,3 +72,70 @@ B655.
 - A root-owned unreadable file beside `config.json` does not make the run
   partial; an unreadable file under `content/` still does.
 - `test/backup-script.test.ts` covers each of the four lines above.
+
+## What was built, and what was found
+
+**Layout.** `content/` is now staged at `content/` unconditionally — the
+`is_inside()` nesting dance that used to skip a second stage when `CONTENT_DIR`
+sat inside `DATA_DIR` (B444) is gone from the staging path entirely, because
+`DATA_DIR` is no longer staged wholesale so there is nothing left to double up
+against. `is_inside()` itself stays, repurposed as the one check the
+skipped-entries log needs: without it, a nested `CONTENT_DIR` would show up as
+a top-level `DATA_DIR` entry and get wrongly logged as "skipped" even though
+step 2 just staged it as `content/`.
+
+**RESTIC_PASSWORD stripped with `grep -v '^RESTIC_PASSWORD='`** — anchored on
+the whole `KEY=` prefix, not a bare substring match. The env file is one
+`KEY=value` per line (confirmed against `.env.example`'s shape); `grep -v`
+therefore only ever drops lines that *are* that assignment, never a comment
+that mentions the name, a neighbouring value that happens to contain the
+string, or (there being no multi-line values anywhere in this file) a
+continuation line. `AWS_SECRET_ACCESS_KEY` and the rest of the object-storage
+credentials were considered as a second circular case — they too grant access
+to the repository — and deliberately left in: they cannot *decrypt* a leaked
+repository the way `RESTIC_PASSWORD` can, which is the specific blast-radius
+argument W42 makes, and the design doc names only the one variable. Flagging
+the distinction here rather than acting on it unasked.
+
+**Generated output.** The ticket says excluding `postcards/`, `photobooks/`
+and `mail/` "should require no code" — true for `mail/` (moved to `DATA_DIR`
+by B636 and simply never in the allowlist) but not for the other two: both
+live *nested inside* `content/<user>/`, not at a top level the allowlist could
+skip for free. Staging `content/` wholesale therefore still copies them, so a
+one-line `find … -exec rm -rf {} +` strips `content/<user>/postcards` and
+`content/<user>/photobooks` back out after `stage_tree` has already run (same
+shape as the pre-existing `data/mail` subtraction this replaces). Noted
+because it contradicts the ticket's "no code" phrasing, not because the
+outcome is in question.
+
+**Env file permissions.** `root:fernscout 0640` with the unit's `User=fernscout
+Group=fernscout` (`deploy/fernscout-backup.service`) is readable: 0640 grants
+the owning group read, and the service's group is that file's group. No mode
+change made or needed.
+
+**Found and NOT fixed here, filed as B658**: on a deployment with no
+`DATABASE_URL` (`docs/runbook.md:107`: "Leave `DATABASE_URL` unset for a
+public-only site" — a supported shape, not a hypothetical one) or with
+`DATABASE_URL=sqlite:…`, the app's own state — `reactions.json`,
+`push-subscriptions.json`, and the sqlite file itself — lives only under
+`DATA_DIR` and is not in this allowlist. It was backed up before, as part of
+`DATA_DIR`; it is not now, and the only sign is a "skipped" line per file, per
+night. This production instance runs Postgres and has none of the three, so
+nothing here regresses for it — but the allowlist as specified does regress
+the no-database/sqlite deployment shape the runbook documents as valid. Left
+as a decision for a person rather than scope-crept into this ticket.
+
+**Test changes.** The B114 partial-run tests moved their stray/locked fixtures
+from `dataDir` to `contentDir`, because `stage_tree`'s tree-diff machinery now
+only ever runs over `content/`. Added: a test that an unreadable file *beside*
+`config.json` does **not** make the run partial (the literal B651 shape,
+inverted); a test that the skipped-entries log names `home/`,
+`example-before-b325.tgz`, `reactions.json`, `fernscout.db` and `mail/`, and
+does not name `config.json`; a test that `postcards/`/`photobooks/` nested
+under `content/<user>/` never reach a restored snapshot; and the former B444/
+B401 nested-`CONTENT_DIR` tests were rewritten for the new layout (content
+lands at `content/`, not `data/content`, and is not logged as skipped).
+
+`npm run verify`: build, tsc, eslint (pre-existing warnings only, no new
+ones), and all 4008 vitest tests green. `bash -n scripts/backup.sh` and
+`shellcheck scripts/backup.sh` both clean.
