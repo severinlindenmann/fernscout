@@ -7,8 +7,7 @@ complexity: high
 area: photobook, print, credits
 found: "2026-09-07T17:29:37Z"
 started: "2026-09-07T17:35:13Z"
-session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
-claimed: "2026-09-07T17:35:13Z"
+merged: "2026-09-07T19:06:04Z"
 ---
 
 # B865 — A photobook can be built but never printed

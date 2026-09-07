@@ -7,8 +7,7 @@ complexity: medium
 area: photobook, print
 found: "2026-09-07T18:11:30Z"
 started: "2026-09-07T18:15:28Z"
-session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
-claimed: "2026-09-07T18:15:28Z"
+merged: "2026-09-07T19:06:04Z"
 ---
 
 # B885 — A hardcover case is rendered as though it were a softcover
