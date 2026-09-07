@@ -68,8 +68,13 @@ export default async function ApiDocsPage() {
       <nav className="mt-8 rounded-2xl border border-navy-200 bg-white p-4" aria-label="Endpoints">
         <ul className="grid gap-1 font-mono text-sm text-navy-700 sm:grid-cols-2">
           {paths.map(([path]) => (
-            <li key={path}>
-              <a href={`#${anchorFor(path)}`} className="hover:text-navy-900 hover:underline">
+            // `min-w-0`: a grid item's default `min-width: auto` refuses to
+            // shrink below its content, and a route path is one unbreakable
+            // string — same failure mode as the `min-w-0` on `<body>` in
+            // `app/layout.tsx` (B431), one level down. `break-all` on the
+            // link is what actually wraps it once the item can shrink.
+            <li key={path} className="min-w-0">
+              <a href={`#${anchorFor(path)}`} className="break-all hover:text-navy-900 hover:underline">
                 {path}
               </a>
             </li>
