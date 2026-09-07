@@ -1,0 +1,82 @@
+---
+id: B206
+title: MCP create_trip cannot set listed, so the two doors do not accept the same trip
+type: ISSUE
+priority: low
+complexity: low
+area: trips, api, mcp
+found: "2026-09-04T06:14:09Z"
+merged: "2026-09-04T08:40:12Z"
+superseded: "B298 — MCP was removed entirely; /api/mcp answers 404 on the live instance as of 2026-09-05"
+completed: "2026-09-07T13:06:53Z"
+---
+
+# B206 — MCP create_trip cannot set listed, so the two doors do not accept the same trip
+
+## Why
+
+Noticed while adding `costsVisibility` to both doors for B178, which required
+checking that they accept the same body.
+
+`POST /api/v1/<user>/trips` takes `listed` (`app/api/v1/[user]/trips/route.ts`)
+and passes it to `createTrip`, which writes `listed: false` when the caller
+narrows a public trip and refuses `listed: true` on a trip no visibility
+advertises. MCP `create_trip` does not have the property in its `inputSchema`
+at all (`lib/mcp/tools.ts`), and its handler never reads one.
+
+So the two doors are not the same content behind two doors for this field: an
+agent working over MCP cannot create the setting AGENTS.md calls "the old
+`unlisted`" — public, readable by anybody holding the link, advertised
+nowhere. That is the honest setting for a trip somebody will mail to their
+family, and over MCP the only way to it is to create the trip and then edit
+`trip.md` by hand, which is the thing this product says nobody has to do.
+
+Same shape as B178, one field over, and worth doing in the same place.
+
+## Resolved under B175 (2026-09-04)
+
+This is B175 rediscovered from the other side, and **B175 carries the fix** —
+`listed` is now a property of `create_trip`'s `inputSchema`, passed through the
+handler, refused with `createTrip`'s own `invalid_listed` message on a trip no
+visibility advertises, and read back off the trip into both the tool's text and
+its structured result. `test/mcp.test.ts` asserts the byte-identical frontmatter
+against the REST door, both refusals, and that an ordinary public trip still
+writes no `listed:` line at all.
+
+Nothing further is needed here. Kept because the id is how tasks refer to each
+other, and because this file records the second sighting.
+
+## Work
+
+- Add `listed` to `create_trip`'s `inputSchema` as a boolean, with the
+  description saying it only ever narrows, and pass it through the handler the
+  way `test` is passed.
+- Extend the "REST and MCP write identical frontmatter" test in
+  `test/mcp.test.ts` to cover `listed: false` on a public trip.
+
+Not doing: any change to the parser or to what `listed:` means. B51 settled
+that and this is only about a door that cannot ask for it.
+
+## Acceptance
+
+- `create_trip` with `{"visibility": "public", "listed": false}` writes a
+  `trip.md` byte-identical to the one REST writes for the same body.
+- `create_trip` with `listed: true` on a private trip is a tool error, not a
+  written trip — the same refusal REST gives.
+
+## Verified closed (2026-09-04)
+
+Checked against `main` rather than taken on the note above:
+
+- `listed` is a boolean property of `create_trip`'s `inputSchema`
+  (`lib/mcp/tools.ts:1320`) and is read by the handler (`:1025`), which passes
+  only a real boolean through so a missing argument stays `undefined`.
+- Both acceptance lines have a test. `test/mcp.test.ts:1346` — "a public trip
+  narrowed to unlisted reads back that way, and both doors write it
+  identically" — is the parity assertion this task asked for, and it passes:
+  `npx vitest run test/mcp.test.ts -t "narrowed to unlisted"` → 1 passed.
+  `:1381` covers the `invalid_listed` refusal on a private trip and `:1395`
+  that an ordinary public trip still writes no `listed:` line.
+
+No work was done under this id. Moved to `testing/` so a person can close it
+alongside B175, which carried the fix.
