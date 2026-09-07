@@ -49,9 +49,17 @@ export function wantsJson(request: Request): boolean {
 }
 
 export function backToPreview(user: string, id: string, result: string): Response {
+  // `#send-result` so the browser lands on the answer — B850. The button is at
+  // the bottom of a long page, the redirect renders a fresh document, and the
+  // reader therefore arrived at the *top*, where the heading describes the
+  // order rather than what just happened to it. Somebody with two orders open
+  // read the other one's heading — "ready to send, nothing has been printed or
+  // charged" — immediately after sending, and reasonably concluded the button
+  // had done nothing. The banner was on the page the whole time, a screen and
+  // a half above where they were looking.
   const location =
     `/${encodeURIComponent(user)}/postcards/${encodeURIComponent(id)}` +
-    `?result=${encodeURIComponent(result)}`;
+    `?result=${encodeURIComponent(result)}#send-result`;
   // 303 so the browser follows with a GET: reloading the preview must not
   // repost the form — which for the send route would be a second attempt to
   // print and charge.

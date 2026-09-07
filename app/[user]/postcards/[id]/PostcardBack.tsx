@@ -174,7 +174,20 @@ export default function PostcardBack({
           </p>
           {figuresSvg && figures ? (
             <div
-              className="absolute"
+              // B849. The overrides are load bearing, and `!` is what makes
+              // them win: `travellersSvg` sizes itself `height:<n>cqh`, and
+              // `cqh` is a *height* query unit that an `inline-size` container
+              // — which is what this card is, two elements up — cannot answer.
+              // It resolved past the card to the viewport, so the figures came
+              // out about a window tall inside a box 22 × 14 mm on a 148 × 105
+              // card: drawn every time, and never once visible. B740 is the
+              // same unit going wrong in the photobook, where the fix was to
+              // make the sheet a size container; here the box already carries
+              // an explicit width and height from `backLayout`, so the honest
+              // answer is to let the box do the sizing and let the viewBox
+              // letterbox inside it — which is precisely what `drawTravellers`
+              // does on the paper.
+              className="absolute [&>svg]:h-full! [&>svg]:w-full!"
               style={layout.figures}
               // The same SVG the photobook and the travellers bench draw.
               dangerouslySetInnerHTML={{ __html: figuresSvg }}
