@@ -1153,5 +1153,16 @@
   "agent.answerUnknown": "Senkinél nincs meg",
   "agent.uploadingOriginals": "A teljes méretű másolatok még töltődnek — {done} / {total}. Nyugodtan írj tovább; maguktól befejeződnek.",
   "agent.noRoom": "Ennyinek nincs hely: {needed} MB küldendő, {left} MB szabad ebben a naplóban. Küldj kevesebbet, vagy előbb szabadíts fel helyet.",
+  "agent.helperHint": "Ha nem szeretnéd magad megfogalmazni, a fenti szavaidból rendezett nap lesz. Semmi nem kerül bele, amit nem mondtál, és elolvasod az eredményt, mielőtt bármi megmaradna.",
+  "agent.helperWrite": "Fogalmazd meg helyettem · {credits} kredit",
+  "agent.helperWorking": "Írás…",
+  "agent.helperWithdraw": "Engedély visszavonása",
+  "agent.helperConsentLabel": "Szavaim elküldése a modellnek",
+  "agent.helperConsent": "Ezzel a fent begépelt szavaid és a nap már meglévő adatai — dátum, út, hely, a fényképek száma — elmennek az Anthropichoz, ahol a modell fut. Más semmi: sem a fényképeid, sem a helyelőzményeid, sem a névjegyeid, sem bárkinek a címe, sem olyan út, amelyet nem nyitottál meg. Amit visszakapsz, elolvasod és javíthatod; semmi nem mentődik, amíg te nem mented. Minden megfogalmazás egy kreditbe kerül. A szavaidat nem használják modell tanítására. Ez a napló számára addig érvényes, amíg vissza nem vonod.",
+  "agent.helperConsentConfirm": "Igen, küldjük el",
+  "agent.helperSuggestionTitle": "Ez lett a jegyzeteidből",
+  "agent.helperWarnings": "Szándékosan kihagyva",
+  "agent.helperUse": "Ezeket használom",
+  "agent.helperDiscard": "Maradok a sajátomnál",
   "agent.failed": "Ez nem sikerült: {error}"
 }

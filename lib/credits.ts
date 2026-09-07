@@ -65,6 +65,7 @@ export type LedgerReason =
   | "postcard"
   | "photobook"
   | "storage"
+  | "helper"
   | "refund";
 
 /**
@@ -88,7 +89,14 @@ export type SpendReason =
    * journal something rather than reaching somebody, and the reason it is
    * counted rather than merely logged: `purchasedBytes` in
    * `lib/storageQuota.ts` reads these rows back as the extension itself. */
-  | "storage";
+  | "storage"
+  /** One write-up by the helper's model — B684. The first spend that buys
+   * neither a delivery nor disk but a single request to a provider, and the
+   * fourth caller of `spend` after the three named above. It is charged
+   * *before* the call and refunded when the call fails, because a credit that
+   * bought nothing is not spent; `lib/idempotency.ts` is what stops a retry
+   * charging twice. */
+  | "helper";
 
 export type LedgerRow = {
   id: string;

@@ -31,6 +31,7 @@ export const FEATURE_NAMES = [
   "addressLookup",
   "weather",
   "analytics",
+  "helper",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -60,6 +61,12 @@ export const OPERATOR_ONLY_FEATURES = [
   "credits",
   "photobook",
   "postcards",
+  // B684. The same claim the two printing capabilities make, one supplier
+  // along: the helper spends the operator's model key, so a journal has
+  // nothing to consent to *here*. What it does consent to — words leaving the
+  // machine at all — is `lib/helper/consent.ts`, which is a person reading a
+  // panel rather than a flag in a file nobody sees.
+  "helper",
 ] as const satisfies readonly FeatureName[];
 
 /**
@@ -352,6 +359,13 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // decline. Needs a database: these are rows, and a journal with no
   // DATABASE_URL gets no page rather than an empty one.
   analytics: { enabled: false },
+  // B684. Off by default like every optional capability, and off means the
+  // wizard exactly as B682 shipped it: the button to write a day up is simply
+  // not there, and every other step still works with no model and no credits.
+  // Needs `ANTHROPIC_API_KEY`, a database and `credits` — see
+  // lib/capabilities.ts for why the last of those is a requirement rather
+  // than a nicety.
+  helper: { enabled: false },
 };
 
 /**
