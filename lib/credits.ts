@@ -74,7 +74,11 @@ type LedgerReason =
   | "storage"
   | "helper"
   | "transcription"
-  | "refund";
+  | "refund"
+  /** Credits taken back because the money that bought them was returned —
+   * B878. A negative delta that is not a spend, which is why
+   * `spentByReason` excludes it by name. */
+  | "purchase_refund";
 
 /**
  * What a *send* may charge for. Narrower than `LedgerReason` on purpose: it is
@@ -257,6 +261,76 @@ export async function refund(owner: string, n: number, ref: string): Promise<voi
   });
 }
 
+/**
+ * Take credits back off a balance because the purchase was refunded — B878.
+ *
+ * **Floored at zero, and that is a decision rather than a limitation.** A
+ * journal that bought a hundred credits, spent sixty and asked for its money
+ * back has forty to give: the sixty are gone into letters that were delivered
+ * and models that answered, and there is no way to un-send them. A negative
+ * balance would be the alternative, and it would put `spend`'s one guard —
+ * `balance >= n` — in charge of a state it was never written for, on every
+ * send in the system, to express a debt of sixty credits that no route can
+ * collect. So it takes what is there, records what it took, and returns the
+ * shortfall for the operator to read; a person who was refunded more than
+ * they had left is a conversation, not a database state.
+ *
+ * Property 2 is kept the way `spend` keeps it: the deduction carries its own
+ * `balance >= taken` guard, so a spend landing between the read and the write
+ * makes the update affect nothing rather than push the balance under. When
+ * that happens it re-reads and tries again — a handful of times, because the
+ * loop is bounded by the balance falling, and a balance cannot fall forever.
+ *
+ * Returns what was actually taken. The caller has already moved real money and
+ * cannot be failed here.
+ */
+export async function clawBack(owner: string, n: number, ref: string): Promise<number> {
+  if (!creditsEnabled()) return 0;
+  if (!Number.isInteger(n) || n <= 0) return 0;
+  const handle = await getDatabaseOrNull();
+  if (!handle) return 0;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const row = await handle.db
+      .selectFrom("credits")
+      .select("balance")
+      .where("owner_id", "=", owner)
+      .executeTakeFirst();
+    const taken = Math.min(n, Number(row?.balance ?? 0));
+    if (taken <= 0) return 0;
+
+    const done = await handle.db.transaction().execute(async (trx) => {
+      const result = await trx
+        .updateTable("credits")
+        .set((eb) => ({ balance: eb("balance", "-", taken), updated_at: nowIso() }))
+        .where("owner_id", "=", owner)
+        .where("balance", ">=", taken)
+        .executeTakeFirst();
+      if (Number(result.numUpdatedRows ?? 0) === 0) return false;
+      await trx
+        .insertInto("credit_ledger")
+        .values({
+          id: newId(),
+          owner_id: owner,
+          delta: -taken,
+          reason: "purchase_refund" satisfies LedgerReason,
+          ref,
+          note: null,
+          created_at: nowIso(),
+        })
+        .execute();
+      return true;
+    });
+    if (done) return taken;
+  }
+
+  // Five reads in a row each overtaken by a spend. Vanishingly unlikely, and
+  // the honest answer is that nothing was taken — never a deduction the guard
+  // did not agree to.
+  console.warn(`[credits] could not claw back ${n} from ${owner} for ${ref}; balance kept moving`);
+  return 0;
+}
+
 /** The first grant a new journal ever sees — B688, plan §6's "a free grant on
  * signup". Fixed rather than configurable: a number a request could name
  * would be property 1's whole exception swallowed by its own loophole.
@@ -379,6 +453,10 @@ export async function spentByReason(owner: string): Promise<{ reason: string; cr
     .select((eb) => ["reason", eb.fn.sum<number>("delta").as("total")])
     .where("owner_id", "=", owner)
     .where("delta", "<", 0)
+    // Credits taken back with the money that bought them (B878). Negative,
+    // and not a thing the journal spent on anything — listing it under
+    // "where credits went" would invent a purchase nobody made.
+    .where("reason", "!=", "purchase_refund")
     .groupBy("reason")
     .execute();
   return rows

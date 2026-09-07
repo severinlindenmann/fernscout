@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminGrant from "./AdminGrant";
+import AdminRefund from "./AdminRefund";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { creditsEnabled, ledgerFor } from "@/lib/credits";
 import { formatChf } from "@/lib/credits/pricing";
 import { BarChart, DailyChart } from "./Charts";
 import { dailyCosts, dashboard, type CostLine } from "@/lib/instanceCosts";
-import type { Payment } from "@/lib/payments";
+import { listPayments, type Payment } from "@/lib/payments";
 import { serverSite } from "@/lib/site";
 
 // Reads a session and the database on every request; nothing to prerender.
@@ -225,8 +226,10 @@ export default async function AdminPage() {
                   {` · ${journal.spent} spent of ${journal.granted} granted`}
                 </span>
               </summary>
-              {/* The ledger, read only when the row is opened — a journal with
-                  a long history should not cost anything to *not* look at. */}
+              {/* The purchases and the ledger, read only when the row is
+                  opened — a journal with a long history should not cost
+                  anything to *not* look at. */}
+              <Purchases username={journal.username} />
               <Ledger username={journal.username} />
             </details>
           ))}
@@ -297,6 +300,50 @@ function Awaiting({ payments }: { payments: Payment[] }) {
         ))}
       </ul>
     </section>
+  );
+}
+
+/**
+ * One journal's purchases, and the only place a refund can be recorded — B878.
+ *
+ * Settled purchases carry a button; everything else is shown with its status
+ * and nothing to press. A refunded row keeps its place in the list rather than
+ * disappearing: the question this section answers is "what has this person
+ * paid me", and a purchase that was given back is part of that answer.
+ */
+async function Purchases({ username }: { username: string }) {
+  const payments = await listPayments(username, 20);
+  if (payments.length === 0) return null;
+  return (
+    <div className="border-t border-navy-200 px-4 pt-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">Purchases</p>
+      <ul className="mt-1 divide-y divide-navy-200">
+        {payments.map((payment) => (
+          <li key={payment.id} className="py-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0 break-words text-sm text-navy-900">
+                {payment.credits} credits
+              </span>
+              <span className="shrink-0 font-mono text-sm text-navy-900">
+                {payment.method === "admin" ? "by hand" : formatChf(payment.amountRappen)}
+              </span>
+            </div>
+            <p className="mt-0.5 break-words font-mono text-xs text-navy-500">
+              {payment.status}
+              {` · ${(payment.paidAt ?? payment.createdAt).slice(0, 10)} · ${payment.id}`}
+            </p>
+            {payment.status === "paid" ? (
+              <AdminRefund
+                username={username}
+                payment={payment.id}
+                amount={formatChf(payment.amountRappen)}
+                credits={payment.credits}
+              />
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

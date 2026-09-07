@@ -1521,5 +1521,13 @@
   "purchase.receipt.method.admin": "Freigabe durch den Betreiber",
   "purchase.receipt.reference": "Referenz {id} · {date}",
   "purchase.receipt.viewAccount": "Credits und Speicher",
-  "purchase.receipt.footer": "Du bekommst diese Nachricht, weil für dein Journal Credits gekauft wurden. Bewahre sie als Beleg auf; für eine Rechnung genügt die Referenz oben."
+  "purchase.receipt.footer": "Du bekommst diese Nachricht, weil für dein Journal Credits gekauft wurden. Bewahre sie als Beleg auf; für eine Rechnung genügt die Referenz oben.",
+  "purchase.refund.subject": "Rückerstattung — {amount}",
+  "purchase.refund.preheader": "{amount} wurden zurückerstattet.",
+  "purchase.refund.title": "Dein Kauf wurde zurückerstattet",
+  "purchase.refund.body": "{amount} wurden auf dem Weg zurückerstattet, auf dem du bezahlt hast. Je nach Bank dauert es ein paar Tage, bis es sichtbar ist.",
+  "purchase.refund.credits": "{credits} Credits wurden wieder von deinem Guthaben abgezogen.",
+  "purchase.refund.creditsNone": "Die Credits waren bereits verbraucht, es wurde nichts abgezogen.",
+  "purchase.refund.footer": "Du bekommst diese Nachricht, weil ein Kauf auf deinem Journal zurückerstattet wurde. Antworte darauf, falls etwas nicht stimmt.",
+  "me.txRefunded": "Erstattet"
 }

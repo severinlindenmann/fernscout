@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, HardDrive, Mail, MessageCircle, Wallet } from "lucide-react";
+import { Check, HardDrive, Mail, MessageCircle, Undo2, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ConfirmPanel from "@/components/ConfirmPanel";
@@ -530,7 +530,7 @@ type PaymentRow = {
   id: string;
   credits: number;
   amount: string;
-  status: "pending" | "requested" | "paid";
+  status: "pending" | "requested" | "paid" | "refunded";
   createdAt: string;
 };
 
@@ -750,7 +750,14 @@ export default function AccountPageContent({
                             {tx.createdAt.slice(0, 10)}
                           </p>
                         </div>
-                        {tx.status === "paid" ? (
+                        {tx.status === "refunded" ? (
+                          // No link: there is nothing left to pay, and the
+                          // money is on its way back. B878.
+                          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-navy-100 px-3 py-1 text-sm font-semibold text-navy-700">
+                            <Undo2 className="h-4 w-4" aria-hidden="true" />
+                            {t("me.txRefunded")}
+                          </span>
+                        ) : tx.status === "paid" ? (
                           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
                             <Check className="h-4 w-4" aria-hidden="true" />
                             {t("me.txPaid")}

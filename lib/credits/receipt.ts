@@ -110,3 +110,64 @@ export async function sendPurchaseReceipt(payment: Payment): Promise<void> {
     console.error(`[credits] receipt for payment ${payment.id} could not be sent:`, error);
   }
 }
+
+/**
+ * The money went back — B878.
+ *
+ * Sent when the operator records a refund, and it says what was actually
+ * taken rather than what was bought: somebody who spent sixty of a hundred
+ * credits gets forty back off their balance, and a letter claiming a hundred
+ * would be the first thing they check and the first thing that is wrong.
+ * Where nothing could be taken it says that too, which is a truer sentence
+ * than silence about the credits.
+ *
+ * Best effort and silent, like the receipt above: the money has already been
+ * refunded by the time this runs.
+ */
+export async function sendRefundNotice(payment: Payment, creditsTaken: number): Promise<void> {
+  try {
+    const user = getUser(payment.owner);
+    const to = user?.owner.email;
+    if (!to) return;
+
+    const locale: Locale = pickLocale(user.defaultLocale);
+    const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
+      translateIn(locale, key, vars);
+
+    const amount = formatChf(payment.amountRappen);
+    const content = {
+      preheader: t("purchase.refund.preheader", { amount }),
+      title: t("purchase.refund.title"),
+      blocks: [
+        { kind: "paragraph" as const, text: t("purchase.refund.body", { amount }) },
+        {
+          kind: "paragraph" as const,
+          text:
+            creditsTaken > 0
+              ? t("purchase.refund.credits", { credits: String(creditsTaken) })
+              : t("purchase.refund.creditsNone"),
+        },
+        {
+          kind: "meta" as const,
+          text: t("purchase.receipt.reference", {
+            id: payment.id,
+            date: (payment.paidAt ?? payment.createdAt).slice(0, 10),
+          }),
+        },
+        {
+          kind: "item" as const,
+          title: t("purchase.receipt.viewAccount"),
+          href: `${serverSite().url}/${payment.owner}/account`,
+        },
+      ],
+      footer: t("purchase.refund.footer"),
+    };
+
+    await sendTransactional(
+      renderMail(to, t("purchase.refund.subject", { amount }), content, payment.owner),
+      `refund notice for ${payment.id}`,
+    );
+  } catch (error) {
+    console.error(`[credits] refund notice for ${payment.id} could not be sent:`, error);
+  }
+}

@@ -19,7 +19,13 @@ import { getDatabaseOrNull, newId, nowIso } from "./db";
  * payment to a `spend`/`grant`.
  */
 
-export type PaymentStatus = "pending" | "requested" | "paid";
+/**
+ * `refunded` is where a settled purchase ends when the operator gives the
+ * money back — B878. A terminal state: nothing re-grants from it, and
+ * `claimApproval`/`claimProviderPayment` both require `requested`, so a
+ * refunded row cannot be settled a second time by any path.
+ */
+export type PaymentStatus = "pending" | "requested" | "paid" | "refunded";
 /**
  * How a purchase was settled. `admin` is not a way to pay — it is the operator
  * granting credits by hand from `/admin` (B746), recorded as a zero-franc
@@ -47,6 +53,7 @@ export type Payment = {
 };
 
 const METHODS: readonly PaymentMethod[] = ["twint", "card", "admin"];
+const STATUSES: readonly PaymentStatus[] = ["pending", "requested", "paid", "refunded"];
 
 /** What a buyer may choose. `admin` is deliberately absent: it is the
  *  operator's own method, and a request that could name it would be a way to
@@ -79,7 +86,13 @@ function toPayment(row: {
     owner: row.owner_id,
     credits: Number(row.credits),
     amountRappen: Number(row.amount_rappen),
-    status: row.status === "paid" ? "paid" : row.status === "requested" ? "requested" : "pending",
+    // A closed list, checked against the type, with `pending` for anything
+    // unrecognised — an unknown status must read as "nothing has happened
+    // yet", never as settled. It was a chain of ternaries until B878 added a
+    // fourth value and a refunded row came back reading `pending`.
+    status: (STATUSES as readonly string[]).includes(row.status)
+      ? (row.status as PaymentStatus)
+      : "pending",
     method: isPaymentMethod(row.method) ? row.method : null,
     createdAt: row.created_at,
     paidAt: row.paid_at,
@@ -429,6 +442,44 @@ export async function claimApproval(
   }
   return { ok: true, credits: payment.credits };
 }
+export type RefundResult =
+  | { ok: true; payment: Payment }
+  | { ok: false; reason: "unknown" | "not_paid" };
+
+/**
+ * Mark a settled purchase as refunded — B878.
+ *
+ * **It moves no money and touches no balance.** The money is refunded by the
+ * operator in the payment provider's own dashboard, and the credits are taken
+ * back by `clawBack` in `lib/credits.ts`; this is the record that the two
+ * happened. Splitting it that way keeps the rule this file has held since
+ * B405 — nothing here reads or writes a balance — and it keeps the ledger
+ * entry in the module that owns the ledger.
+ *
+ * The same conditional-UPDATE shape as `claimApproval`, and for the same
+ * reason: `status = "paid"` in the `where` is what makes refunding twice a
+ * no-op rather than a second deduction, whatever races or double-clicks
+ * arrive. Rows affected is the whole answer.
+ */
+export async function refundPayment(owner: string, id: string): Promise<RefundResult> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return { ok: false, reason: "unknown" };
+  const payment = await getPayment(owner, id);
+  if (!payment) return { ok: false, reason: "unknown" };
+  if (payment.status !== "paid") return { ok: false, reason: "not_paid" };
+
+  const result = await handle.db
+    .updateTable("payments")
+    .set({ status: "refunded" })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("status", "=", "paid")
+    .executeTakeFirst();
+
+  if (Number(result.numUpdatedRows ?? 0) === 0) return { ok: false, reason: "not_paid" };
+  return { ok: true, payment: { ...payment, status: "refunded" } };
+}
+
 export type ProviderClaimResult =
   | { ok: true; credits: number }
   | { ok: false; reason: "unknown" | "not_requested" | "amount_mismatch" };

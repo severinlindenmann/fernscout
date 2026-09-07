@@ -1521,5 +1521,13 @@
   "purchase.receipt.method.admin": "an operator approval",
   "purchase.receipt.reference": "Reference {id} · {date}",
   "purchase.receipt.viewAccount": "Your credits and storage",
-  "purchase.receipt.footer": "Sent because credits were bought for your journal. Keep this as your receipt; quote the reference above if you need an invoice for your books."
+  "purchase.receipt.footer": "Sent because credits were bought for your journal. Keep this as your receipt; quote the reference above if you need an invoice for your books.",
+  "purchase.refund.subject": "Refunded — {amount}",
+  "purchase.refund.preheader": "{amount} has been refunded.",
+  "purchase.refund.title": "Your purchase was refunded",
+  "purchase.refund.body": "{amount} has been refunded to the way you paid. Depending on your bank it can take a few days to appear.",
+  "purchase.refund.credits": "{credits} credits have been taken off your balance again.",
+  "purchase.refund.creditsNone": "The credits had already been used, so nothing was taken off your balance.",
+  "purchase.refund.footer": "Sent because a purchase on your journal was refunded. Reply to this message if anything looks wrong.",
+  "me.txRefunded": "Refunded"
 }
