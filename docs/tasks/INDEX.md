@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (99)
+## backlog (102)
 
 ### security (2)
 
@@ -58,11 +58,12 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (20)
+### issue (23)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
+| [B804](backlog/issue/B804-the-bring-your-own-agent-panel.md) | The bring-your-own-agent panel reads as the next step to somebody who has no agent | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -72,6 +73,8 @@ Do not edit them by hand; run the script.
 | [B787](backlog/issue/B787-the-sign-in-button-may-stay.md) | The sign-in button may stay disabled when the address is autofilled | ISSUE | medium | low |
 | [B790](backlog/issue/B790-a-journal-can-be-created-with.md) | A journal can be created with a currency that is not one, and it can never be corrected | ISSUE | medium | low |
 | [B801](backlog/issue/B801-a-request-with-the-wrong-field.md) | A request with the wrong field name is accepted and silently does nothing | ISSUE | medium | low |
+| [B805](backlog/issue/B805-the-publish-note-is-english-only.md) | The publish note is English only and is shown to people | ISSUE | medium | low |
+| [B806](backlog/issue/B806-a-credit-is-never-named-in.md) | A credit is never named in francs anywhere a person reads | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
