@@ -67,21 +67,14 @@ describe("the helper routes", () => {
     .filter((file) => file.endsWith("route.ts"))
     .map((file) => fs.readFileSync(path.join(dir, file), "utf8"));
 
-<<<<<<< HEAD
-  // Seven since B685 added the intent router and the trip its one write
-  // intent lands on. The count is spelled out rather than inferred so that
-  // the next route has to be thought about here, which is where the guard is
-  // asserted.
-  test("there are seven of them, and each is guarded", () => {
-    expect(sources).toHaveLength(7);
-=======
-  // Six since B687 added describe-photos alongside B684's write-up and the
-  // consent it needs. The count is spelled out rather than inferred so that a
-  // seventh route has to be thought about here, which is where the guard is
-  // asserted.
-  test("there are six of them, and each is guarded", () => {
-    expect(sources).toHaveLength(6);
->>>>>>> b687-vision
+  // Eight since B687 added describe-photos beside B685's intent router and the
+  // trip its one write intent lands on. The count is spelled out rather than
+  // inferred so that the next route has to be thought about here, which is
+  // where the guard is asserted — and it earned that on the B685/B687 merge,
+  // where two branches built in parallel each updated it to a number that was
+  // right on its own branch and wrong on main.
+  test("there are eight of them, and each is guarded", () => {
+    expect(sources).toHaveLength(8);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

@@ -1201,7 +1201,6 @@
   "agent.helperWarnings": "Left out on purpose",
   "agent.helperUse": "Use these words",
   "agent.helperDiscard": "Keep my own",
-<<<<<<< HEAD
   "agent.askLabel": "What would you like to do?",
   "agent.askPlaceholder": "Make a new trip to Japan in March",
   "agent.askGo": "Ask",
@@ -1222,7 +1221,6 @@
   "agent.askCreditsOff": "This server charges for nothing, so there are no credits to count.",
   "agent.askUnfinished": "Unfinished and waiting: {count}. The newest is {date}.",
   "agent.askUnfinishedNone": "Nothing is unfinished. Every day here is published.",
-=======
   "agent.describePhotosHint": "Not sure what to say about these? The photographs themselves can suggest a caption for each one — you read every suggestion before anything is kept.",
   "agent.describePhotos": "Describe these for me · {credits} credit",
   "agent.photoConsentLabel": "Send my photographs to the model",
@@ -1231,6 +1229,5 @@
   "agent.captionsTitle": "Suggested captions",
   "agent.captionsHint": "Read each one, and keep it or discard it. Nothing has been saved yet.",
   "agent.captionEmpty": "Nothing to say about this one.",
->>>>>>> b687-vision
   "agent.failed": "That did not work: {error}"
 }
