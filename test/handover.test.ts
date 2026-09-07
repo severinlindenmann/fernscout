@@ -369,7 +369,16 @@ describe("a handover credential is refused everywhere else", () => {
   });
 });
 
-type KeysBody = { keys?: { id: string; kind: string; lastSeenAt: string | null }[]; error?: string };
+type KeysBody = {
+  keys?: {
+    id: string;
+    kind: string;
+    lastSeenAt: string | null;
+    scope?: string;
+    email?: string;
+  }[];
+  error?: string;
+};
 
 async function keys(auth?: string): Promise<{ status: number; body: KeysBody }> {
   const { GET } = await import("@/app/api/v1/[user]/keys/route");
@@ -475,14 +484,89 @@ describe("the keys that can write, and revoking one", () => {
     expect((after.body.keys ?? []).some((k) => k.id === session!.id)).toBe(false);
   });
 
-  test("nobody but the owner may look, or revoke", async () => {
+  test("a caller with no credential at all may not look, or revoke", async () => {
     const listed = await keys(await ownerAgentToken());
     const id = (listed.body.keys ?? [])[0]?.id ?? "none";
 
     expect((await keys()).status).toBe(403);
-    expect((await keys(await tripAgentToken(ROBIN, "asia-2026"))).status).toBe(403);
     expect(await revoke(undefined, id)).toBe(403);
-    expect(await revoke(await tripAgentToken(ROBIN, "asia-2026"), id)).toBe(403);
+  });
+
+  /**
+   * B323 — a buddy sees and revokes only the keys issued to their own
+   * address, never the owner's or anybody else's.
+   */
+  describe("a buddy's own keys", () => {
+    test("a buddy's token lists their own row and not the owner's", async () => {
+      const buddyToken = await tripAgentToken(ROBIN, "asia-2026");
+      const ownerListed = await keys(await ownerAgentToken());
+      // The owner's *own* rows, not everyone's — the owner's list also
+      // contains this very buddy row, which is the correct behaviour for the
+      // owner and exactly what this test must not confuse it with.
+      const ownersOwnIds = new Set(
+        (ownerListed.body.keys ?? []).filter((k) => k.email === OWNER_EMAIL).map((k) => k.id),
+      );
+
+      const listed = await keys(buddyToken);
+      expect(listed.status).toBe(200);
+      const rows = listed.body.keys ?? [];
+      expect(rows.length).toBeGreaterThan(0);
+      // Every row a buddy sees is one of theirs — none of the owner's own ids
+      // leak into it, and no `email` field appears (the whole list is
+      // already implicitly theirs).
+      expect(rows.every((k) => !ownersOwnIds.has(k.id))).toBe(true);
+      expect(rows.every((k) => k.email === undefined)).toBe(true);
+    });
+
+    test("a buddy cannot widen what they see with a parameter", async () => {
+      // There is no `?email=` this route reads at all — the filter is the
+      // session's own address, from the server, never the request. Passing
+      // the owner's address as a query string changes nothing.
+      const { GET } = await import("@/app/api/v1/[user]/keys/route");
+      const response = await GET(
+        new Request(`https://example.test/api/v1/${OWNER}/keys?email=${OWNER_EMAIL}`, {
+          headers: headers({ authorization: `Bearer ${await tripAgentToken(ROBIN, "asia-2026")}` }),
+        }),
+        { params: Promise.resolve({ user: OWNER }) },
+      );
+      const body = (await response.json()) as KeysBody;
+      const ownerListed = await keys(await ownerAgentToken());
+      const ownersOwnIds = new Set(
+        (ownerListed.body.keys ?? []).filter((k) => k.email === OWNER_EMAIL).map((k) => k.id),
+      );
+      expect((body.keys ?? []).every((k) => !ownersOwnIds.has(k.id))).toBe(true);
+    });
+
+    test("a buddy revokes their own key, and it stops writing", async () => {
+      const buddyToken = await tripAgentToken(ROBIN, "asia-2026");
+      const { resolveSession } = await import("@/lib/auth");
+      const session = await resolveSession(buddyToken, "agent");
+      expect(session).not.toBeNull();
+
+      expect(await revoke(buddyToken, session!.id)).toBe(200);
+      expect(await resolveSession(buddyToken, "agent")).toBeNull();
+    });
+
+    test("a buddy cannot revoke the owner's key, or another buddy's — 404, not silently accepted", async () => {
+      const ownerListed = await keys(await ownerAgentToken());
+      const ownerId = (ownerListed.body.keys ?? []).find((k) => k.email === OWNER_EMAIL)?.id;
+      expect(ownerId).toBeTruthy();
+
+      const buddyToken = await tripAgentToken(ROBIN, "asia-2026");
+      expect(await revoke(buddyToken, ownerId!)).toBe(404);
+
+      // And the owner's key is unaffected.
+      const stillLive = (await keys(await ownerAgentToken())).body.keys ?? [];
+      expect(stillLive.some((k) => k.id === ownerId)).toBe(true);
+    });
+
+    test("the owner's own list is unchanged — every key in the journal, theirs and other people's", async () => {
+      await tripAgentToken(ROBIN, "asia-2026");
+      const listed = await keys(await ownerAgentToken());
+      const rows = listed.body.keys ?? [];
+      expect(rows.some((k) => k.email === OWNER_EMAIL)).toBe(true);
+      expect(rows.some((k) => k.email === ROBIN)).toBe(true);
+    });
   });
 
   test("an id that is not this journal's is refused, not silently accepted", async () => {

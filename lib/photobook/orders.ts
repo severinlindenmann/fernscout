@@ -160,7 +160,19 @@ export async function getPhotobookOrder(owner: string, id: string): Promise<Phot
  * asks that every *shipped* key exists in every locale, not that every key is
  * reachable.
  */
-export const PHOTOBOOK_OUTCOME_STATES = ["done", "duplicate", "no_credits", "no_photos", "no_room", "failed"] as const;
+export const PHOTOBOOK_OUTCOME_STATES = [
+  "done",
+  "duplicate",
+  "no_credits",
+  "no_photos",
+  "no_room",
+  "failed",
+  // B595. The price the button showed does not match what the trip prices at
+  // right now — a day or a photograph was added between the preview and the
+  // press. Refused before anything is claimed, spent or built; the page's own
+  // answer is to ask for a fresh preview, never to charge the new number.
+  "stale_preview",
+] as const;
 export type PhotobookOutcomeState = (typeof PHOTOBOOK_OUTCOME_STATES)[number];
 
 function isOutcomeState(value: string): value is PhotobookOutcomeState {

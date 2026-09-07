@@ -2,12 +2,13 @@ import "server-only";
 import { hasSwitchedOff, isEnabled } from "../capabilities";
 import { isTestContent } from "../access";
 import { balanceOf, refund, spend } from "../credits";
-import { listContacts } from "../contacts";
+import { listContacts, manageTokenFor, manageUrl as manageUrlFor } from "../contacts";
 import { pickLocale } from "../contacts/locale";
 import type { UserConfig } from "../config";
 import { AS_AUTHOR, getEntryBySlug } from "../entries";
 import { contactsWithReadGrant } from "../grants";
 import { maySeePhoto, type ReaderLevel } from "../photos";
+import { serverSite } from "../site";
 import { peopleOf } from "../tripPeople";
 import { getTrip } from "../trips";
 import type { Locale, Trip } from "../types";
@@ -67,6 +68,20 @@ type WhatsappRecipient = {
    * reason: a day held back further than the trip's own gate has to be
    * checked per recipient, not once for the whole list. */
   reader: ReaderLevel;
+  /**
+   * Where this recipient goes to stop the messages — B386.
+   *
+   * A contact's own self-serve page (`manageUrl`, the same one the mail
+   * footer links), reached by a token tied to their `contact.id` rather than
+   * their email — so it works for somebody who gave a number and never an
+   * address. The owner's own free copy has no contact row to hold a token,
+   * so it points at their own `/me` page, where the WhatsApp channel itself
+   * can be switched off.
+   *
+   * Only ever reaches a template that has been approved with a body variable
+   * to hold it — see `templateFor`'s `manageLink`.
+   */
+  manageUrl: string;
 };
 
 /** What a send actually costs: one credit per recipient who is not the
@@ -96,6 +111,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappReci
   const travellerSet = new Set(travellers.map((e) => e.toLowerCase()));
   const countryCode = whatsappCountryCode();
   const ownerEmail = user.owner.email?.trim().toLowerCase() ?? null;
+  const base = serverSite().url;
 
   const out: WhatsappRecipient[] = [];
   const seen = new Set<string>();
@@ -122,6 +138,9 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappReci
       locale: pickLocale(user.defaultLocale),
       free: true,
       reader: "person",
+      // No contact row to hold a manage token — the owner's own account page
+      // is where their own WhatsApp channel is switched off.
+      manageUrl: `${base}/${owner}/me`,
     });
   }
 
@@ -156,6 +175,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappReci
       // dropping the owner's address from its own loop.
       free: email === ownerEmail,
       reader: isTraveller ? "person" : "guest",
+      manageUrl: manageUrlFor(base, owner, manageTokenFor(owner, contact.id)),
     });
   }
 
@@ -346,6 +366,11 @@ export async function sendDayWhatsapp(
         asParameter(recipient.name ?? "", "Hallo"),
         asParameter(trip.title, trip.id),
         asParameter(entry.title, entry.date),
+        // B386. Only appended when the configured template's own body was
+        // approved with a fourth variable to hold it — see `manageLink` on
+        // `templateFor`. A template still on three variables must never
+        // receive a fourth: Meta counts them and rejects a mismatch outright.
+        ...(template.manageLink ? [asParameter(recipient.manageUrl, recipient.manageUrl)] : []),
       ],
       // No leading slash: the approved template owns the origin and appends
       // this to it. `dayUrl`'s shape, minus the base.

@@ -1156,6 +1156,7 @@ export async function listSessions(owner: string) {
     .select([
       "sessions.id as id",
       "sessions.kind as kind",
+      "sessions.scope as scope",
       "sessions.created_at as createdAt",
       "sessions.expires_at as expiresAt",
       "sessions.last_seen_at as lastSeenAt",

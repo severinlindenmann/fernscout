@@ -38,12 +38,13 @@ const params = Promise.resolve({ user: "alex" });
 const BOOK = { volumes: [{ interiorPages: 40 }], warnings: [], photoCount: 12 };
 const CREDITS = 88;
 
-function orderRequest(orderId: string) {
+function orderRequest(orderId: string, previewedCredits: string = String(CREDITS)) {
   return new Request("https://example.test/alex/photobook/order", {
     method: "POST",
     body: new URLSearchParams({
       trip: "alex/asia-2026",
       orderId,
+      previewedCredits,
       options: JSON.stringify({
         size: "square-210",
         // Required since the book learned to be printed in a language.
@@ -166,6 +167,68 @@ describe("the order route", () => {
       expect(claimOrder).not.toHaveBeenCalled();
       expect(buildPhotobook).not.toHaveBeenCalled();
       expect(spend).not.toHaveBeenCalled();
+    });
+
+    /**
+     * B595. The preview and the press plan and price the same trip twice, and
+     * between the two the trip on disk can change — a day published, a
+     * photograph added. Paying whatever the second `priceOf` says, with no
+     * check against what the first one told the owner, is how somebody is
+     * charged a number their own screen never showed them. All three of the
+     * ways this can fail answer the same `stale_preview`, and none of them
+     * claims an order, builds a book or spends a credit.
+     */
+    describe("the previewed price must still hold at Pay time", () => {
+      test("a price that grew between preview and press refuses rather than charging the new one", async () => {
+        // `priceOf` now returns more than the form's `previewedCredits`
+        // (still `CREDITS`, from the default) — a trip that grew a day or a
+        // photograph in between.
+        vi.mocked(priceOf).mockReturnValue(CREDITS + 12);
+
+        const response = await POST(orderRequest("order-price-grew"), { params });
+
+        expect(response.status).toBe(303);
+        expect(response.headers.get("location")).toContain("state=stale_preview");
+        expect(claimOrder).not.toHaveBeenCalled();
+        expect(buildPhotobook).not.toHaveBeenCalled();
+        expect(spend).not.toHaveBeenCalled();
+      });
+
+      test("a missing previewed price — an old tab, or a hand-built form — refuses the same way", async () => {
+        const response = await POST(orderRequest("order-no-preview", ""), { params });
+
+        expect(response.status).toBe(303);
+        expect(response.headers.get("location")).toContain("state=stale_preview");
+        expect(claimOrder).not.toHaveBeenCalled();
+        expect(spend).not.toHaveBeenCalled();
+      });
+
+      test("a previewed price lower than the real one is refused too — it never lets a caller pay less by lying", async () => {
+        const response = await POST(orderRequest("order-price-lied", String(CREDITS - 5)), {
+          params,
+        });
+
+        expect(response.status).toBe(303);
+        expect(response.headers.get("location")).toContain("state=stale_preview");
+        expect(claimOrder).not.toHaveBeenCalled();
+        expect(spend).not.toHaveBeenCalled();
+      });
+
+      test("a previewed price that still matches goes through exactly as before", async () => {
+        vi.mocked(buildPhotobook).mockReturnValue({
+          files: ["book-interior.pdf"],
+          pages: 52,
+          volumes: 1,
+          missing: [],
+        });
+        vi.mocked(spend).mockResolvedValue(true);
+
+        const response = await POST(orderRequest("order-price-matches"), { params });
+
+        expect(response.status).toBe(303);
+        expect(response.headers.get("location")).toContain("state=done");
+        expect(spend).toHaveBeenCalledWith("alex", CREDITS, "photobook", "order-price-matches");
+      });
     });
 
     test("a balance that moves under a finished book keeps the files and says so", async () => {

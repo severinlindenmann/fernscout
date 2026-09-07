@@ -327,6 +327,54 @@ describe("what goes out", () => {
   });
 });
 
+/**
+ * B386 — a way out of the messages from inside WhatsApp itself.
+ *
+ * `manageLink` is an opt-in on the *configured* template, never the default,
+ * because sending a fourth body variable to a template Meta approved with
+ * three would fail every send in that language. So the property to pin is
+ * two-sided: off by default (today's config, unmodified, still sends three),
+ * and — once a person has approved a new template version and flipped it —
+ * a working, per-recipient unsubscribe reaches the message.
+ */
+describe("a way to stop the messages — B386", () => {
+  test("an ordinary template — manageLink absent — still sends exactly three body parameters", async () => {
+    const contactId = await addReader("yes@example.test", { tel: "+41765613150" });
+    writeTrip("utah");
+    const slug = writeEntry("utah");
+    await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
+
+    expect(payloads()[0].body).toHaveLength(3);
+    const manageToken = manageTokenFor(OWNER, contactId);
+    expect(JSON.stringify(payloads()[0])).not.toContain(manageToken);
+  });
+
+  test("a template configured with manageLink: true gets a fourth parameter — the contact's own manage URL", async () => {
+    writeServerConfig({ templates: { en: { name: TEMPLATE, manageLink: true } } });
+    const contactId = await addReader("yes@example.test", { tel: "+41765613150" });
+    writeTrip("utah");
+    const slug = writeEntry("utah");
+    await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
+
+    const body = payloads()[0].body as string[];
+    expect(body).toHaveLength(4);
+    const manageToken = manageTokenFor(OWNER, contactId);
+    expect(body[3]).toContain(manageToken);
+    expect(body[3]).toContain(`/${OWNER}/c/`);
+  });
+
+  test("the owner's own free copy — no contact row — is pointed at their own account page instead", async () => {
+    writeServerConfig({ templates: { en: { name: TEMPLATE, manageLink: true } } });
+    writeUserConfig({ tel: "+41765613199" });
+    writeTrip("utah");
+    const slug = writeEntry("utah");
+    await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
+
+    const body = payloads()[0].body as string[];
+    expect(body[3]).toBe(`https://example.test/${OWNER}/me`);
+  });
+});
+
 describe("what never goes out", () => {
   test("a test: true day reaches nobody", async () => {
     await addReader("yes@example.test", { tel: "+41765613150" });

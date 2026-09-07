@@ -3088,25 +3088,45 @@ export function openApiDocument() {
       },
       "/api/v1/{user}/keys": {
         get: {
-          summary: "The tokens and sessions live on this journal (owner only)",
+          summary:
+            "The tokens and sessions that can write here — the owner sees every row, " +
+            "anybody else only their own (B323)",
+          description:
+            "The owner gets one row per live credential in the journal, each with `email`. " +
+            "Anybody else who has proved an address — a guest cookie, a year-long identity, " +
+            "or a trip-scoped bearer token — gets only the rows issued to *that* address, " +
+            "with no `email` field (the list is already implicitly theirs). There is no " +
+            "parameter that widens this: the filter is the caller's own proven address, " +
+            "never anything the request sends. Every row carries `scope`, in " +
+            "`tripWriteScope`'s vocabulary, so a trip-bound key can be told apart from a " +
+            "journal-wide one.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
           responses: {
-            "200": { description: "One row per live credential, with its kind and expiry" },
+            "200": {
+              description:
+                "One row per live credential this caller may see, with its kind, scope and " +
+                "expiry",
+            },
             "403": {
               description:
-                "Not this journal's owner — checked before the capability is, so this also " +
-                "covers a journal that does not exist. B340.",
+                "No proven address at all — no cookie, no identity, no bearer token for " +
+                "this journal. For an address that owns the journal this also covers a " +
+                "journal that does not exist, checked before the capability is (B340).",
             },
             "409": {
-              description: "This journal's own owner, but sign-in is off on it (`auth_disabled`)",
+              description: "A proven address on this journal, but sign-in is off on it (`auth_disabled`)",
             },
           },
         },
         post: {
-          summary: "Revoke one of them (owner only)",
+          summary:
+            "Revoke one of them — the owner may revoke any row, anybody else only their own",
           description:
             "`{\"revoke\": \"<key id>\"}`, with an id from the GET above. It ends that " +
-            "credential immediately — the way to answer \"an agent has a token I want back\".",
+            "credential immediately — the way to answer \"an agent has a token I want back\". " +
+            "An id that is not this journal's, or — for a non-owner — not this caller's own " +
+            "row, answers the same `404` as an id that does not exist at all, so a guess " +
+            "learns nothing.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
           requestBody: {
             required: true,
@@ -3125,12 +3145,17 @@ export function openApiDocument() {
             "400": { description: "No key id sent" },
             "403": {
               description:
-                "Not this journal's owner — checked before the capability is, so this also " +
-                "covers a journal that does not exist. B340.",
+                "No proven address at all. For an address that owns the journal this also " +
+                "covers a journal that does not exist, checked before the capability is " +
+                "(B340).",
             },
-            "404": { description: "No such key" },
+            "404": {
+              description:
+                "No such key — either it does not exist, or (for a non-owner) it belongs to " +
+                "somebody else's address",
+            },
             "409": {
-              description: "This journal's own owner, but sign-in is off on it (`auth_disabled`)",
+              description: "A proven address on this journal, but sign-in is off on it (`auth_disabled`)",
             },
           },
         },

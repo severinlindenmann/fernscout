@@ -1,4 +1,5 @@
-import { listSessions, revokeSession } from "@/lib/auth";
+import { listSessions, resolveSession, revokeSession } from "@/lib/auth";
+import { resolveAccess } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
 
@@ -28,6 +29,33 @@ export const dynamic = "force-dynamic";
  */
 
 /**
+ * Either an owner — who sees and may revoke every row — or a caller who has
+ * proved a particular address and may see and revoke only rows issued to it.
+ */
+type Caller = { owner: true } | { owner: false; email: string };
+
+/**
+ * The address a non-owner caller has proved, from whichever credential
+ * carries it — B323.
+ *
+ * `resolveAccess` covers a guest cookie or a year-long identity, which is
+ * how a reader signed in on `/{user}/me` is recognised. A buddy driving an
+ * agent instead presents a trip-scoped **bearer** token, so that is checked
+ * too, the same way `isOwner`'s own admin fallback does. Either way what
+ * comes back is an address, never a scope — the filter below is "this row's
+ * address", not "this row's trip".
+ */
+async function callerEmail(user: string, request: Request): Promise<string | null> {
+  const { email } = await resolveAccess(user);
+  if (email) return email;
+
+  const header = request.headers.get("authorization") ?? "";
+  const bearer = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : undefined;
+  const agent = await resolveSession(bearer, "agent");
+  return agent && agent.owner === user ? agent.email : null;
+}
+
+/**
  * **Ownership before capability, on purpose — B340.** `isOwner` answers
  * false alike for a journal that does not exist and one that exists but is
  * not this caller's, which is the property that matters: everyone who is not
@@ -39,15 +67,24 @@ export const dynamic = "force-dynamic";
  * are not a stranger an existence oracle could help, and `/api/health` cannot
  * answer this for them, since a per-journal narrowing needs an operator's
  * `HEALTH_TOKEN` to read back, not an owner's own agent token.
+ *
+ * **A non-owner is not turned away — B323.** Somebody on a trip who has
+ * proved their own address may see and revoke the keys issued *to that
+ * address*, and nothing else; `?email=` or any other parameter is never
+ * consulted, so a caller cannot ask to be shown somebody else's rows. Only a
+ * caller who has proved no address at all — no cookie, no identity, no
+ * bearer token for this journal — gets the owner's `forbidden`.
  */
-async function guard(user: string, request: Request): Promise<Response | null> {
-  if (!(await isOwner(user, request))) {
+async function guard(user: string, request: Request): Promise<Caller | Response> {
+  const owner = await isOwner(user, request);
+  const email = owner ? null : await callerEmail(user, request);
+  if (!owner && !email) {
     return Response.json(
       {
         error: "forbidden",
         message:
-          "Only the address that owns this journal may see or revoke the keys that write " +
-          "to it.",
+          "Sign in, or hold a key for this journal, to see or revoke the keys issued to " +
+          "your own address.",
       },
       { status: 403 },
     );
@@ -63,7 +100,7 @@ async function guard(user: string, request: Request): Promise<Response | null> {
       { status: 409 },
     );
   }
-  return null;
+  return owner ? { owner: true } : { owner: false, email: email! };
 }
 
 /** Whether a row is a key that could still be used right now. */
@@ -75,20 +112,36 @@ function live(row: { kind: string; revokedAt: string | null; expiresAt: string }
 
 export async function GET(request: Request, { params }: RouteContext<"/api/v1/[user]/keys">) {
   const { user } = await params;
-  const denied = await guard(user, request);
-  if (denied) return denied;
+  const caller = await guard(user, request);
+  if (caller instanceof Response) return caller;
 
-  const rows = await listSessions(user);
+  const rows = (await listSessions(user)).filter(live);
+  // A non-owner's own rows only — the server does the filtering, from the
+  // proven address, never from anything the request asked for. This is the
+  // whole security point of B323: a person on a trip must not be able to
+  // enumerate anybody else's keys, including the owner's.
+  const visible = caller.owner ? rows : rows.filter((row) => row.email === caller.email);
+
   return Response.json({
     user,
-    keys: rows.filter(live).map((row) => ({
+    keys: visible.map((row) => ({
       id: row.id,
       kind: row.kind,
       createdAt: row.createdAt,
       expiresAt: row.expiresAt,
-      // When it was last used, which is the field that tells an owner whether
-      // a key they have forgotten about is one somebody is still holding.
+      // When it was last used, which is the field that tells whoever is
+      // looking whether a key they have forgotten about is one somebody is
+      // still holding.
       lastSeenAt: row.lastSeenAt,
+      // What it may write, in `tripWriteScope`'s own vocabulary — B323. The
+      // owner previously had no way to tell a trip-scoped buddy key apart
+      // from their own journal-wide one; a non-owner's rows are always their
+      // own, but the scope still says which trip.
+      scope: row.scope,
+      // The address the row belongs to. Only the owner is shown this — a
+      // non-owner's list is already filtered to their own address, so
+      // repeating it back would say nothing a second row could not.
+      ...(caller.owner ? { email: row.email } : {}),
     })),
   });
 }
@@ -105,8 +158,8 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
  */
 export async function POST(request: Request, { params }: RouteContext<"/api/v1/[user]/keys">) {
   const { user } = await params;
-  const denied = await guard(user, request);
-  if (denied) return denied;
+  const caller = await guard(user, request);
+  if (caller instanceof Response) return caller;
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const id = typeof body.revoke === "string" ? body.revoke : "";
@@ -117,12 +170,13 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     );
   }
 
-  // Scoped to this journal's own rows. Without this, an owner of one journal
-  // could revoke a session belonging to another on the same instance by
-  // passing its id — the id is a UUID and unguessable, but "unguessable" is
-  // not the same as "checked".
-  const mine = (await listSessions(user)).find((row) => row.id === id);
-  if (!mine) {
+  // Scoped to this journal's own rows, and — for a non-owner — to their own
+  // address too. Without the first check, an owner of one journal could
+  // revoke a session belonging to another on the same instance by passing
+  // its id; without the second, a buddy could revoke anybody's key by
+  // guessing its (unguessable, but unchecked is still unchecked) id.
+  const row = (await listSessions(user)).find((candidate) => candidate.id === id);
+  if (!row || (!caller.owner && row.email !== caller.email)) {
     return Response.json({ error: "unknown_key" }, { status: 404 });
   }
 

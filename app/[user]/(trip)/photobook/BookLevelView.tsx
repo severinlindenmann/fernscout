@@ -346,6 +346,10 @@ export default function BookLevelView({
           <input type="hidden" name="trip" value={tripRef} />
           <input type="hidden" name="options" value={JSON.stringify(options)} />
           <input type="hidden" name="orderId" value={orderId} />
+          {/* B595: the price this screen is showing right now, so
+              `order/route.ts` can refuse rather than charge a number that
+              silently grew between this render and the press. */}
+          <input type="hidden" name="previewedCredits" value={credits === null ? "" : String(credits)} />
           <button
             type="submit"
             // Not `tooPoor`: a short balance leaves the button live, and the
