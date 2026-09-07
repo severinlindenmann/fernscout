@@ -29,16 +29,19 @@ import { getDatabaseOrNull, newId, nowIso } from "./db";
  * ## The two properties everything else is arranged around
  *
  * **1. A balance only ever increases where the amount is fixed and the event
- * is one this server already verified.** `grant` is exported for two callers.
+ * is one this server already verified.** `grant` is exported for three
+ * callers, and `test/credits.test.ts` asserts exactly that allowlist.
  * `scripts/grant-credits.ts` needs a shell on the server, after money has
- * actually arrived. `POST /api/v1/journals` (B688) is the one HTTP path: it
- * grants `SIGNUP_CREDIT_GRANT` exactly once, only after `createJournal` has
- * actually written a journal to disk under a freshly spent signup token — the
- * same one-journal-per-token guarantee `test/signup-token.test.ts` already
- * checks — so there is no request shape that grants twice or grants an amount
- * a caller chose. Nothing else grants: no form, no other route, no amount a
- * request gets to name. `test/credits.test.ts` asserts the whole allowlist,
- * because a rule stated in a comment is a rule until somebody is in a hurry.
+ * actually arrived. `POST /api/v1/journals` (B688) grants `SIGNUP_CREDIT_GRANT`
+ * exactly once, only after `createJournal` has written a journal to disk under
+ * a freshly spent signup token — the same one-journal-per-token guarantee
+ * `test/signup-token.test.ts` already checks. `POST /api/webhooks/stripe`
+ * (B792) grants a purchase's credits once Stripe's signed webhook confirms the
+ * payment, behind a single conditional claim that a replay or race cannot win
+ * twice. In all three the amount is fixed or measured, never named by a
+ * caller. Nothing else grants: no form, no other route, no amount a request
+ * gets to choose — a rule stated in a comment is a rule until somebody is in a
+ * hurry, which is why the test holds it too.
  *
  * **2. A balance never goes below zero, under concurrency.** `spend` is one
  * conditional `UPDATE … SET balance = balance - :n WHERE owner_id = :u AND

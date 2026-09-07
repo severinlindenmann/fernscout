@@ -70,6 +70,9 @@ function sessionEvent(paymentId: string, amount: number, over: Record<string, un
     id: `evt_${paymentId}`,
     object: "event",
     type: "checkout.session.completed",
+    // A test-mode key signs test-mode events; the route (B830) refuses an
+    // event whose livemode does not match the key's mode.
+    livemode: false,
     data: {
       object: {
         id: `cs_test_${paymentId}`,
@@ -207,6 +210,25 @@ describe("the webhook", () => {
     // with the label left null rather than invented (B803). Which method a
     // real purchase records is checked against the live sandbox, not here.
     expect(row?.method).toBe(null);
+  });
+
+  test("refuses a paid session in a currency other than chf, and grants nothing", async () => {
+    const p = await requested();
+    const before = await balance();
+    const r = await hook(sessionEvent(p.id, p.amount, { currency: "eur" }));
+    expect(r.status).toBe(200);
+    expect(r.text).toContain("currency");
+    expect(await balance()).toBe(before);
+  });
+
+  test("refuses an event whose livemode does not match the test key, and grants nothing", async () => {
+    const p = await requested();
+    const before = await balance();
+    const ev = sessionEvent(p.id, p.amount);
+    (ev as { livemode: boolean }).livemode = true; // a live event against a test key
+    const r = await hook(ev);
+    expect(r.status).toBe(400);
+    expect(await balance()).toBe(before);
   });
 
   test("refuses a paid session whose total is not the row's", async () => {
