@@ -17,7 +17,7 @@ import {
   SKIN,
 } from "./travellers/vocabulary";
 import { TRACKS, parseTracks, tracksLines } from "./tracks";
-import { getTrip, MAX_TRIP_PEOPLE, PERSON_EMAIL_RE, tripRef } from "./trips";
+import { getTrip, MAX_TRIP_PEOPLE, isPersonEmail, tripRef } from "./trips";
 import { calendarStatus } from "./tripTime";
 import { getUser } from "./users";
 import { quoteScalar, singleLineProblem } from "./validate/frontmatter";
@@ -307,7 +307,7 @@ export function peopleBlock(raw: unknown): BlockResult {
     if (!name) {
       return { ok: false, error: "invalid_people", message: `${at}.name is required.` };
     }
-    if (!PERSON_EMAIL_RE.test(email)) {
+    if (!isPersonEmail(email)) {
       return {
         ok: false,
         error: "invalid_people",
@@ -465,7 +465,7 @@ export function travellersBlock(raw: unknown): BlockResult {
     const forWhom = entry.for;
     if (forWhom !== undefined && forWhom !== null) {
       const email = typeof forWhom === "string" ? forWhom.trim().toLowerCase() : "";
-      if (!PERSON_EMAIL_RE.test(email)) {
+      if (!isPersonEmail(email)) {
         return {
           ok: false,
           error: "invalid_travellers",

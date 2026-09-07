@@ -65,3 +65,38 @@ should ask answers both.
   in the journal does not issue a code.
 - A test covering it, beside the B230 cases in `test/scope-escalation.test.ts`.
 - All four checks pass.
+
+## Triage
+
+Confirmed as described: `mayRequestAgentToken` returned `true` for the owner
+(and the admin) the moment the address matched, before `tripId` was resolved
+at all.
+
+Fixed in `app/api/auth/request/route.ts` (`mayRequestAgentToken`, ~line
+306): the owner/admin check and the `people:`/buddy check now share one trip
+lookup. A trip named on the request has to resolve via `getTrip` before
+either branch can say yes; if it does not, the function returns `false`
+regardless of who is asking.
+
+```ts
+const isOwnerOrAdmin = user.owner.email === address || isAdminEmail(address);
+if (!tripId) return isOwnerOrAdmin;
+const trip = getTrip(tripRef(user.username, tripId));
+if (!trip) return false;
+return isOwnerOrAdmin || isPersonOn(trip, address);
+```
+
+**Disclosure.** Took the uniform answer the ticket's Work section asked to
+decide between: an owner naming a trip that does not exist and a stranger
+naming a real trip they are not on both produce the identical
+`403 not_authorised` body — verified by
+`test/scope-escalation.test.ts`'s "the refusal for a nonexistent trip matches
+the refusal for a real one the caller is not on". So the 403 tells an
+unauthenticated caller nothing about whether the named trip exists — same as
+before this fix, just now also true for the owner's own typos.
+
+**Test:** `test/scope-escalation.test.ts`, new `describe("B241 — …")` block
+(three tests). Confirmed failing before the fix (`202` where `403` was
+expected) and passing after, by stashing the route change and re-running.
+
+**Acceptance:** met. `npm run verify` passes in full.

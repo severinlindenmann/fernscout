@@ -53,6 +53,23 @@ export async function POST(request: Request) {
   }
 
   /**
+   * `auth` is a per-journal opt-in — B252. The check above is the server-wide
+   * ceiling; this is the journal's own vote under it, the same question the
+   * trip gate and `/api/health` already ask for this username. Without it, a
+   * code issued (however that happened) for a journal that never turned
+   * `auth` on could still be redeemed into a session for it.
+   *
+   * Only for a username that exists. An unknown one falls through unchanged,
+   * to fail exactly as it already did — no live code, no session — so this
+   * adds no way to tell "no such journal" apart from "wrong code" that was
+   * not there before. What it discloses for a real journal is nothing new:
+   * the same absence is already on the page, as a gate with no sign-in form.
+   */
+  if (getUser(username) && !isEnabled("auth", username)) {
+    return Response.json({ error: "auth_disabled" }, { status: 404 });
+  }
+
+  /**
    * How wide the token is, decided **before** anything is redeemed.
    *
    * A guest session reads and has nothing to narrow, so it skips this
