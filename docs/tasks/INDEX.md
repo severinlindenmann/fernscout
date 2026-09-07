@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (109)
+## backlog (110)
 
 ### security (2)
 
@@ -58,12 +58,13 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (27)
+### issue (28)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
 | [B804](backlog/issue/B804-the-bring-your-own-agent-panel.md) | The bring-your-own-agent panel reads as the next step to somebody who has no agent | ISSUE | high | low |
+| [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
