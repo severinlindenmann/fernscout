@@ -19,10 +19,13 @@ export default function MapPageContent({
   places,
   stats,
   plan = [],
+  track = [],
   reachedCount = 0,
   basemap = null,
 }: {
   places: PlaceView[];
+  /** This trip's own line, where the owner has derived one — see lib/gps/. */
+  track?: [number, number][][];
   stats: { tripDays: number; places: number; countries: number; totalMedia: number };
   plan?: PlannedStop[];
   reachedCount?: number;
@@ -115,8 +118,8 @@ export default function MapPageContent({
             anything else to show, and it was answering "no entries yet"
             directly above a legend for the route it had just refused to draw. */}
         <div className="mt-7">
-          {hasPlaces || plan.length > 0 ? (
-            <WorldMap places={places} plan={plan} basemap={basemap} />
+          {hasPlaces || plan.length > 0 || track.length > 0 ? (
+            <WorldMap places={places} plan={plan} track={track} basemap={basemap} />
           ) : (
             // Not `story.empty`. "No entries yet" is true and is not the reason
             // the map is missing; with neither days nor a route there is

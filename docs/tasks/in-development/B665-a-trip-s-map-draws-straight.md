@@ -49,6 +49,12 @@ files with different rules.
 
 Three pieces, and the seam between the first two is the whole point.
 
+**Five things changed while building, and each has its reason below**: the
+importers moved into an MIT-licensed folder of their own, the private zones
+moved *out* of `config.json`, the source credit was dropped, the CLI became one
+command rather than two, and the thinning rule grew a third clause it turned
+out to need.
+
 ### 1. The private store — `content/<user>/gps/YYYY-MM.jsonl`
 
 One line per fix, `[epochSeconds, lat, lon]`, five decimal places (≈1 m).
@@ -74,41 +80,83 @@ few megabytes.
 - It is in the owner's filesystem backup (`scripts/backup.sh`), because it is
   theirs.
 
-### 2. Import — `npm run gps:import <user> <file>`
+**A third clause the thinning rule turned out to need.** Five minutes *or* 250
+metres was not enough on the real export: Google ends an activity and starts
+the next segment at the same instant, hundreds of metres apart, and that pair
+is far enough apart to survive the distance rule — *and* to make the next
+import's copy of it survive as well. Re-importing the same file grew the store
+by 1,191 positions, every time, for ever. **One second holds one position**,
+and the first wins. Timestamps are also rounded to whole seconds *before*
+thinning rather than only on the way to disk, or a re-parsed fix still carrying
+its milliseconds sorts either side of the one already stored.
 
-Reads a dropped export and appends to the store. Formats, in this order of
-who actually has one:
+### 2. Import — `npm run gps -- import <user> <file>`
+
+**One command with subcommands, not two npm scripts.** `formats`, `import` and
+`enrich` share the importer discovery and the argument parsing, and three
+entries in `package.json` for one file buys nothing.
+
+Formats, in this order of who actually has one:
 
 | | |
 | --- | --- |
-| Google Timeline (phone export) | `semanticSegments[].timelinePath[]`, points as `"geo:lat,lng"` with a time |
+| Google Timeline (phone export) | a flat array of segments: `timelinePath[]` points as `"geo:lat,lng"` at a minute offset, plus `activity` start/end and `visit` places |
 | Google Takeout Records | `locations[]`, `latitudeE7` / `longitudeE7` / `timestamp` |
 | GPX | `<trkpt lat lon>` with `<time>` |
+| plain fixes | JSON Lines, `[t, lat, lon]` — the door for a tool that is not TypeScript |
 
 Parse defensively and skip what does not parse — these files are large,
 versioned by Google without notice, and one unreadable segment must not lose
-the import. Report counts: read, kept, skipped.
+the import.
+
+**They live in `importers/`, and that folder is MIT.** Not planned, and asked
+for while building: a parser for somebody's device is useful outside this
+project entirely, and adding one should not mean reading a non-compete clause
+first. The folder is its own registry — `scripts/gps.mts` reads the directory
+and imports what it finds — so contributing a format is dropping a file in,
+with no list here to edit. `importers/types.ts` is the contract, forty lines,
+and `importers/README.md` is how to implement it. The carve-out is stated in
+the root `LICENSE` and the README; `knip.jsonc` gets the folder as an entry
+point, because nothing names an importer statically and that is the point.
+
+The fourth importer, `fixes`, is the answer to "I already have a script".
+Print JSON Lines and no importer needs writing at all.
 
 Where the file arrives from is B663's inbox (`inbox/files/`), and this is the
 first thing that reads one — but the CLI takes a path, so it does not block on
 B663.
 
-### 3. Derivation — `npm run gps:enrich <user>/<trip>`, writing `trips/<id>/track.json`
+### 3. Derivation — `npm run gps -- enrich <user>/<trip>`, writing `trips/<id>/track.json`
 
 The trip's own copy, and **the only thing anything renders**:
 
 ```json
-{ "generated": "2026-09-07", "source": "google-timeline",
+{ "generated": "2026-09-07T08:12:00.000Z",
   "segments": [ { "from": "2026-06-01T08:12:00Z", "points": [[46.12345, 7.21456], …] } ] }
 ```
+
+**No `source:` field, dropped deliberately.** The plan had one crediting the
+importer, by analogy with `weatherData` — but that analogy is wrong. Weather
+names its source because it is a third-party measurement the reader is being
+asked to trust; a track is the owner's own record of their own movement, and
+there is nothing to attribute. Carrying it would also have meant per-fix
+provenance in the store, which is a column to keep correct for a line nothing
+displays.
 
 - **Clipped to the trip's dates**, `start`..`end` inclusive, in the trip's own
   local sense of a day. Nothing before, nothing after — that is where the
   house is.
-- **Private zones dropped.** A `gps.exclude` list in the user's `config.json`
-  — `{ lat, lon, radiusM }` — and every point inside one is removed, splitting
-  the segment. Without it a track that starts at the front door publishes the
+- **Private zones dropped**, every point inside one removed and the segment
+  split there. Without it a track that starts at the front door publishes the
   front door, and clipping by date does not help on the morning of day one.
+
+  **Not in `config.json`, which is where this ticket said to put them.**
+  `appendUserContent` puts that file into *every* export, including the
+  open-to-link one an anonymous visitor can download — so a home address
+  written there to keep it off the map would have been published by the act of
+  hiding it. They live in `content/<user>/gps/exclude.json` instead, inside the
+  folder that is already in no export and behind no route. An unreadable list
+  is refused rather than ignored, for the same reason.
 - **Simplified**, Douglas–Peucker at ~50 m. A fortnight thins from ~40k points
   to a few thousand; the file stays small enough to ship in the page props.
 - **Split into segments on a gap** — more than about 2 hours with no fix, or
@@ -141,16 +189,41 @@ the taken one.
 
 ## Acceptance
 
-- `gps:import` on a real Google Timeline export writes month files, and a
+- `gps import` on a real Google Timeline export writes month files, and a
   second run of the same file adds nothing.
 - Thinning holds: no two kept fixes within 5 minutes *and* 250 m of each
   other.
-- `gps:enrich` writes `track.json` with segments broken at gaps, no point
-  outside the trip's dates, and no point inside a `gps.exclude` zone. A test
+- `gps enrich` writes `track.json` with segments broken at gaps, no point
+  outside the trip's dates, and no point inside an exclusion zone. A test
   covers each of the three.
 - `rm -rf content/<user>/gps` and every trip page renders identically.
-- A test asserts nothing under `app/` imports the store module, and that
-  `export.zip` in either scope contains no `gps/` path.
+- A test asserts nothing under `app/` imports the store module, and that a
+  built `export.zip` in either scope carries the trip's `track.json` and no
+  `gps/` path.
 - The trip map draws the track under the markers, and a trip with no
   `track.json` is unchanged.
+- Somebody has looked at it, not only asserted it — `check-a-drawing`.
 - `npm run verify` passes.
+
+## What was verified
+
+Against a real ten-month Google Timeline export (3,855 segments, 22,659 fixes),
+in a scratch `CONTENT_DIR` so that nobody's location history went near this
+repository:
+
+- **Import.** 22,659 fixes read, thinned to **16,315** across eleven month
+  files, **508 kB** on disk. A second and third run: `was 16315` → `now 16315`,
+  byte-identical files.
+- **Enrich.** A ten-day trip came out as **21 segments, 471 points, 10 kB** —
+  and the flight out shows as exactly what it is: one segment ending near
+  Basel, the next beginning in the Algarve thirteen hours later, with no line
+  drawn between them.
+- **The neutral importer, end to end.** A synthetic route through the
+  `alps-2024` passes (invented coordinates, JSON Lines) imported through
+  `fixes`, enriched, and rendered.
+- **The drawing.** Screenshotted at 1200px and at 390px. The first attempt —
+  navy-500 at 0.4 opacity, 1.5px — was **invisible**: the paths were in the
+  DOM at the right coordinates and could not be seen at all until they were
+  recoloured in the inspector. Settled at 0.7 and 2.2px, which reads as a line
+  that wandered without competing with the markers.
+- `npm run verify`: 315 files, 4,117 tests. `npm run unused`: clean.

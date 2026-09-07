@@ -72,11 +72,22 @@ function clusterPlaces(places: PlaceView[], markerRadius: number, frame: Frame):
 export default function WorldMap({
   places,
   plan = [],
+  track = [],
   basemap = null,
 }: {
   places: PlaceView[];
   /** The intended route, drawn behind the real one. */
   plan?: PlannedStop[];
+  /**
+   * The ground actually covered — B665. One array of `[lat, lon]` per segment,
+   * derived from the owner's own position history and clipped to this trip.
+   *
+   * Drawn under everything and faintly on purpose: the markers are what
+   * somebody wrote and the track is the texture between them. Empty is the
+   * normal case, and a trip without one looks exactly as it did before this
+   * existed.
+   */
+  track?: [number, number][][];
   /**
    * Borders, water, peaks and towns for this frame, clipped on the server
    * (lib/basemap.ts). Null when the bundle has not been built, in which case
@@ -403,6 +414,38 @@ export default function WorldMap({
                     {peak.metres ? ` ${peak.metres} m` : ""}
                   </text>
                 </g>
+              ))}
+            </g>
+          )}
+
+          {/* The ground actually covered, under everything else. Framing is
+              deliberately *not* recomputed to include it: the frame is the
+              trip's stops, and a track that wandered outside them — a day trip
+              nobody wrote up — must not be able to zoom the whole map out to
+              fit itself. The viewBox clips whatever falls outside, which is
+              the right answer for a line that is texture rather than record.
+
+              Its weight was settled by looking at it (`check-a-drawing`) and
+              not by taste: navy-500 at 0.4 and 1.5px was *invisible* on the
+              green basemap — the paths were in the DOM, in the right place,
+              and could not be seen at all until they were recoloured in the
+              inspector. 0.7 and 2.2 reads as a line that wandered, without
+              competing with the markers. */}
+          {track.length > 0 && (
+            <g pointerEvents="none" fill="none" stroke="#5a6a80" opacity={0.7}>
+              {track.map((segment, i) => (
+                <path
+                  key={i}
+                  d={segment
+                    .map(
+                      ([lat, lon], j) =>
+                        `${j === 0 ? "M" : "L"}${placeIn(base, { lat, lng: lon }).join(",")}`,
+                    )
+                    .join(" ")}
+                  strokeWidth={px(2.2)}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               ))}
             </g>
           )}

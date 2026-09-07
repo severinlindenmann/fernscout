@@ -6,6 +6,7 @@ import MapPageContent from "@/app/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
 import { getPlaces, getTripStats } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
+import { readTrack } from "@/lib/gps/track";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUsernames } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
@@ -76,6 +77,8 @@ export default async function TripMapPage({ params }: PageProps<"/[user]/trips/[
       <MapPageContent
         places={places}
         plan={plan.stops}
+        // B665, and behind `mayReadTrip` above like everything else here.
+        track={readTrack(user, trip.id)?.segments.map((s) => s.points) ?? []}
         reachedCount={plan.reachedCount}
         basemap={basemap}
         stats={{

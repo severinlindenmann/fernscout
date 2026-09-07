@@ -11,6 +11,7 @@ maintained guidance for an agent; this folder is the long form for a person.
 | [disaster-recovery.md](disaster-recovery.md) | the machine is gone: what a snapshot holds, and how the journals come back |
 | [architecture.md](architecture.md) | where things live, and why they are shaped that way |
 | [ingest.md](ingest.md) | photographs, EXIF, geodata |
+| [gps.md](gps.md) | where somebody actually went: a private position store, and the line a trip owns |
 | [helper.md](helper.md) | Fernscout Helper — agent tools that make content for a journal |
 | [currencies.md](currencies.md) | how money is stored, converted and refused |
 | [config-upgrades.md](config-upgrades.md) | moving a config file forward a version |

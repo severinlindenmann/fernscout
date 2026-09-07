@@ -130,6 +130,8 @@ content/
         plan.md               planned route (`route:` of `location:` stops),
                               for an upcoming trip (optional)
         media/                derivatives served to the browser
+        track.json            the ground actually covered on this trip, derived
+                              from `gps/` below and clipped to it — B665
         .ingest.json          what ingest has already imported (do not edit)
     inbox/                    files that belong to no day yet — B663.
       media/ files/           `media/` is destined for a gallery, `files/` is
@@ -137,8 +139,36 @@ content/
                               by a hash of its own bytes, with its facts in a
                               `<name>.meta.json` sidecar beside it. Nothing
                               here is reachable by URL. See lib/inbox.ts.
+    gps/                      the owner's own position history — B665.
+      YYYY-MM.jsonl           `[epochSeconds, lat, lon]`, thinned to one fix
+                              per 5 min or 250 m. Read by no route and in no
+                              export. See below.
+      exclude.json            places that are never drawn
     postcards/ photobooks/    generated output (gitignored)
 ```
+
+**`gps/` is the most sensitive folder in this repository, and it is the one an
+agent must never read out.** It is a person's whole location history — every
+address they sleep at, every place they work, everywhere they have been ill —
+and it is there so that a trip's map can show the road actually driven rather
+than a straight line between two days.
+
+The shape is two files on purpose. `lib/gps/store.ts` holds the history and is
+reachable from nothing under `app/`: no route, no page, no API returns a
+position, and `test/gps-store.test.ts` asserts the import graph. What the site
+draws is `trips/<trip>/track.json` — derived by `npm run gps -- enrich`,
+clipped to the trip's dates, with the owner's private zones cut out and gaps
+left as gaps. **Deleting `gps/` outright leaves every trip rendering exactly as
+before.** Do not add a route that reads the store, do not put a coordinate from
+it into a day, and do not copy one into a conversation. `docs/gps.md` is the
+whole of it.
+
+Getting history *in* is `importers/`, which is **MIT-licensed** while the rest
+of this repository is not: it is a folder of small parsers — Google Timeline,
+Google Takeout, GPX, and a neutral JSON Lines format for anybody's own tool —
+each turning one export into plain fixes and knowing nothing about journals.
+The folder is its own registry, so adding a format is dropping a file in.
+`importers/README.md` is the contract.
 
 Sent mail is not in this tree. Since B636 it lives under the data dir
 instead — `<dataDir>/mail/<username>/` (and `<dataDir>/mail/.mail/` for a
