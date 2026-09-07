@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: account, me
 found: "2026-09-07T17:41:41Z"
+merged: "2026-09-07T18:10:36Z"
 ---
 
 # B876 — The account page's pointer card on /me is a whole card to say a menu entry exists
