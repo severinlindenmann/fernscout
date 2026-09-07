@@ -50,3 +50,39 @@ while you are there, and either cover it or say why not.
 
 A `GET /<user>/day/<slug>.md` appears in the log with logging on, and a test
 asserts the matcher covers both twin shapes.
+
+## Work done
+
+Confirmed the twins were genuinely uncovered: `/<user>/day/<slug>.md` and
+`/<user>/trips/<trip>/day/<slug>.md` are the actual browser-facing URLs
+(rewritten to `/api/md/...` in `next.config.ts`, but `proxy()` runs on the
+pre-rewrite pathname), and the general matcher's extension exclusion
+(`.*\.(?:txt|json|xml|md|png|svg|ico)$`) strips anything ending `.md` before
+any of the explicit doc entries get a chance — there was no other `/:user/...`
+entry that would have caught them.
+
+Added four explicit matcher entries to `proxy.ts`, mirroring the two-pattern
+convention `next.config.ts`'s own rewrites already use for these paths (a bare
+`:slug.md` param and a `:slug([^/]+)\.md` regex form, because a param stops at
+the first `.` and a slug is not guaranteed not to contain one):
+
+```
+"/:user/day/:slug.md",
+"/:user/day/:slug([^/]+)\\.md",
+"/:user/trips/:trip/day/:slug.md",
+"/:user/trips/:trip/day/:slug([^/]+)\\.md",
+```
+
+Checked the rest of AGENTS.md's network-doors table while there: every other
+agent-facing document (`/documentation.txt`, `/<user>/documentation.txt`,
+`/agent.md`, `/api/:path*`) was already in the matcher from B257's tombstone
+work; every reader-facing page (`/<user>/postcards/<id>`, the two invite
+pages) falls under the general catch-all pattern already, since none of them
+end in an excluded extension. Nothing else needed covering.
+
+Tests added to `test/request-log.test.ts`: one calls `proxy()` directly against
+both twin URLs with logging on and asserts the log line contains the full
+path; the other reads `proxyConfig.matcher` (compile-time, so it cannot be
+exercised by invoking `proxy()` alone — same reasoning as the pre-existing
+"still excludes build assets" test right below it) and asserts it contains all
+four new patterns. `npm run verify` passed.

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { clearMatterCache } from "./matterCache";
 import { countryCodeFor } from "./flags";
 import { parseCostItems } from "./costFormat";
 import { loadUserConfig } from "./config";
@@ -13,25 +14,10 @@ import { parseWeather } from "./weather";
 import { parseUnrecorded, parseWithout } from "./tracks";
 import { maySeePhoto, parsePhotoVisibility, type ReaderLevel } from "./photos";
 
-/**
- * Forgets gray-matter's own parse cache — not this module's, gray-matter's.
- *
- * `matter()` memoizes a parse *by raw content*, globally, for the life of the
- * process, and it writes that cache entry before it parses rather than after
- * — so a call that throws leaves a half-built, non-throwing result sitting
- * under the failing text's key. The next caller to hand it the same bytes
- * (the same broken entry, read again after some other file in the trip
- * changed and forced a re-read) gets that stale result back instead of the
- * same failure repeating, which is exactly the silent success this guard
- * exists to prevent. Every catch around a `matter()` call in this file and in
- * lib/api/entries.ts clears it for that reason. B236.
- *
- * Not in gray-matter's own `.d.ts` — `clearCache` exists on the runtime
- * export but is absent from its published types — hence the cast.
- */
-export function clearMatterCache(): void {
-  (matter as unknown as { clearCache: () => void }).clearCache();
-}
+// clearMatterCache re-exported from lib/matterCache.ts: lib/costs.ts,
+// lib/plan.ts, lib/api/entries.ts and this file's own tests all import it
+// from here. See lib/matterCache.ts for what it does and why. B343.
+export { clearMatterCache };
 
 /**
  * Forgets one trip's parsed entries.
@@ -288,7 +274,7 @@ function readAllEntries(ref: string): Entry[] {
     try {
       parsed = matter(raw);
     } catch (err) {
-      // See `clearMatterCache` above for why this call is here too.
+      // See `clearMatterCache` in lib/matterCache.ts for why this call is here too.
       clearMatterCache();
       // First line only: gray-matter quotes the offending source at length,
       // and a server log is not a terminal either.

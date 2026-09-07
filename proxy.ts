@@ -217,5 +217,16 @@ export const config = {
     "/documentation.txt",
     "/agent.md",
     "/api/:path*",
+    // The day markdown twins (B291) — the other agent-facing document, and
+    // the one an agent actually reaches for: it is what checks a day's own
+    // work back. Excluded by the extension pattern above like every other
+    // `.md`, so it needs the same explicit re-inclusion as the four above.
+    // Two entries per shape, matching the same pair next.config.ts's
+    // rewrites use, because a bare `:slug.md` param stops at the first `.`
+    // and a slug is not guaranteed not to contain one.
+    "/:user/day/:slug.md",
+    "/:user/day/:slug([^/]+)\\.md",
+    "/:user/trips/:trip/day/:slug.md",
+    "/:user/trips/:trip/day/:slug([^/]+)\\.md",
   ],
 };

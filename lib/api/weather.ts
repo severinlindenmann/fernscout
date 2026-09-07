@@ -77,7 +77,7 @@ export async function fillDayWeather(
     raw = fs.readFileSync(file, "utf8");
     data = matter(raw).data;
   } catch {
-    // See `clearMatterCache` in lib/entries.ts for why a failed parse has to
+    // See `clearMatterCache` in lib/matterCache.ts for why a failed parse has to
     // forget itself.
     clearMatterCache();
     return "unwritable";

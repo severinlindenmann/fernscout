@@ -124,6 +124,32 @@ describe("proxy request logging", () => {
     log.mockRestore();
   });
 
+  test("logs the day markdown twins — the one document an agent reads to check its own work", () => {
+    writeConfig(true);
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    proxy(get("/alice/day/zion-narrows.md"));
+    proxy(get("/alice/trips/parks-2025/day/zion-narrows.md"));
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("/alice/day/zion-narrows.md"));
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining("/alice/trips/parks-2025/day/zion-narrows.md"),
+    );
+    log.mockRestore();
+  });
+
+  test("the matcher covers both day markdown twin shapes (B291)", () => {
+    // config.matcher is compile-time — see the comment on the build-asset
+    // test above for why this reads the pattern rather than invoking proxy.
+    const matcher = proxyConfig.matcher.map(String);
+    expect(matcher).toEqual(
+      expect.arrayContaining([
+        "/:user/day/:slug.md",
+        "/:user/day/:slug([^/]+)\\.md",
+        "/:user/trips/:trip/day/:slug.md",
+        "/:user/trips/:trip/day/:slug([^/]+)\\.md",
+      ]),
+    );
+  });
+
   test("still excludes build assets from the matcher, capability on or off", () => {
     // config.matcher is compile-time, not something a unit test invoking
     // proxy() directly can exercise — asserted instead by reading the
