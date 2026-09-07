@@ -396,6 +396,7 @@
   "hero.timePerCountry": "Zeit pro Land",
   "home.adminSection": "Andere Tagebücher auf diesem Server",
   "home.adminSectionBody": "Nicht deine. Du kommst rein, weil du diesen Server betreibst — was hier veröffentlicht wird, steht im Tagebuch von jemand anderem.",
+  "home.agentLink": "Agent",
   "home.agentTitle": "Dein Agent",
   "home.devices": "Deine Geräte",
   "home.devicesBody": "Wo du angemeldet bist. Ein Gerät abzumelden beendet die Anmeldung sofort auf diesem ganzen Server.",

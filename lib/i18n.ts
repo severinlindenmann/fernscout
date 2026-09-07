@@ -709,6 +709,7 @@ export type TranslationKey =
   | "hero.timePerCountry"
   | "home.adminSection"
   | "home.adminSectionBody"
+  | "home.agentLink"
   | "home.agentTitle"
   | "home.devices"
   | "home.devicesBody"

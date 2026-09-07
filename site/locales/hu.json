@@ -396,6 +396,7 @@
   "hero.timePerCountry": "Idő országonként",
   "home.adminSection": "A szerver többi naplója",
   "home.adminSectionBody": "Nem a tiéd. Azért férsz hozzá, mert te üzemelteted ezt a szervert — amit itt közzéteszel, valaki más naplójában jelenik meg.",
+  "home.agentLink": "Ügynök",
   "home.agentTitle": "Az ügynököd",
   "home.devices": "Az eszközeid",
   "home.devicesBody": "Ahol be vagy jelentkezve. Egy eszköz kiléptetése azonnal megszünteti a hozzáférést ezen a kiszolgálón.",
