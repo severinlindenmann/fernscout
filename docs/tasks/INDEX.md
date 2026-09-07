@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (118)
+## backlog (119)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (26)
+### issue (27)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -70,6 +70,7 @@ Do not edit them by hand; run the script.
 | [B645](backlog/issue/B645-nothing-runs-a-photograph-through-the.md) | Nothing runs a photograph through the helper's build.mjs, so nine were published sideways | ISSUE | high | medium |
 | [B647](backlog/issue/B647-publish-mjs-matches-a-day-by.md) | publish.mjs matches a day by date alone and overwrote one day with another day's content | ISSUE | high | low |
 | [B648](backlog/issue/B648-publish-dry-run-cannot-show-a.md) | publish --dry-run cannot show a plan for a trip the instance does not have yet, and --offline still hits the network | ISSUE | high | low |
+| [B698](backlog/issue/B698-a-photograph-the-camera-rotated-with.md) | A photograph the camera rotated with EXIF is stretched in the book | ISSUE | high | medium |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
 | [B308](backlog/issue/B308-the-entry-document-has-tripled-and.md) | The entry document has tripled and the guide is 56KB, which is the property they were valued for | ISSUE | medium | medium |
