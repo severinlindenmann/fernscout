@@ -427,19 +427,23 @@ function UpdateBlock({
         </div>
       )}
 
-      {(entry.draft && !first) || entry.visibility ? (
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          {entry.draft && !first && (
-            <span className="inline-block rounded-full border border-coral-600 bg-coral-300 px-2.5 py-0.5 font-display text-xs font-semibold text-navy-900">
-              {t("draft.badge")}
-            </span>
-          )}
-          <EntryVisibilityBadge visibility={entry.visibility} reader={reader} />
+      {entry.draft && !first ? (
+        <div className="mt-1">
+          <span className="inline-block rounded-full border border-coral-600 bg-coral-300 px-2.5 py-0.5 font-display text-xs font-semibold text-navy-900">
+            {t("draft.badge")}
+          </span>
         </div>
       ) : null}
 
+      {/* The visibility label rides with the title rather than sitting on a
+          line of its own above it. On its own row it read as a banner about
+          the day; beside the heading it reads as what it is — a note about
+          this update, attached to the update's name. The draft badge stays
+          where it was: "unfinished" is a state of the whole thing and is
+          meant to interrupt. */}
       <h2 className="mb-4 mt-1 font-display text-2xl font-semibold tracking-tight text-navy-900 sm:text-3xl">
         {title}
+        <EntryVisibilityBadge visibility={entry.visibility} reader={reader} />
       </h2>
 
       {/* B305 — a day carried over from before B294 that has no translation

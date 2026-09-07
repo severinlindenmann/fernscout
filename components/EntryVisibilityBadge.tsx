@@ -13,9 +13,11 @@ import { useI18n } from "./LocaleProvider";
  * may read) or sees no update at all, so there is nothing here to leak.
  *
  * Inline rather than absolutely positioned: `PhotoVisibilityBadge` sits on
- * top of an image tile and needs to float in a corner; this sits beside a
- * day's own draft badge, in the flow of the heading, and has no picture to
- * float over.
+ * top of an image tile and needs to float in a corner; this sits inside the
+ * update's own heading and has no picture to float over. `align-middle` and
+ * `whitespace-nowrap` are what keep it on the heading's baseline instead of
+ * stretching the line, and stop the label wrapping away from its icon when
+ * the title runs to the edge.
  */
 export default function EntryVisibilityBadge({
   visibility,
@@ -28,7 +30,7 @@ export default function EntryVisibilityBadge({
   if (!visibility || reader !== "person") return null;
   const label = t(visibility === "guest" ? "photo.visibilityGuest" : "photo.visibilityPrivate");
   return (
-    <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-coral-600 bg-coral-100 px-2.5 py-0.5 font-display text-xs font-semibold text-navy-900">
+    <span className="ml-2 inline-flex select-none items-center gap-1 whitespace-nowrap align-middle rounded-full border border-coral-600 bg-coral-100 px-2.5 py-0.5 font-display text-xs font-semibold text-navy-900">
       <EyeOff className="h-3 w-3" aria-hidden />
       {label}
     </span>
