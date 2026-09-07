@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: agent, ui
 found: "2026-09-07T15:30:51Z"
+started: "2026-09-07T15:37:36Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T15:37:36Z"
 ---
 
 # B818 — The date defaults to today when you are writing up a day from three weeks ago

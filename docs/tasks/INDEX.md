@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (115)
+## backlog (108)
 
 ### security (2)
 
@@ -58,20 +58,16 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (31)
+### issue (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
 | [B804](backlog/issue/B804-the-bring-your-own-agent-panel.md) | The bring-your-own-agent panel reads as the next step to somebody who has no agent | ISSUE | high | low |
-| [B807](backlog/issue/B807-a-signed-in-person-is-silently.md) | A signed-in person is silently signed out mid-task and told the journal is not theirs | ISSUE | high | medium |
-| [B808](backlog/issue/B808-the-ask-box-answers-a-vague.md) | The ask box answers a vague question confidently and wrongly | ISSUE | high | low |
-| [B817](backlog/issue/B817-asking-to-take-something-down-opens.md) | Asking to take something down opens the screen that creates one | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
 | [B782](backlog/issue/B782-asking-what-you-have-spent-answers.md) | Asking what you have spent answers with app credits | ISSUE | medium | low |
-| [B783](backlog/issue/B783-an-unrecognised-question-is-answered-with.md) | An unrecognised question is answered with silence | ISSUE | medium | low |
 | [B785](backlog/issue/B785-an-agent-facing-english-refusal-is.md) | An agent-facing English refusal is shown to a person on a German screen | ISSUE | medium | low |
 | [B787](backlog/issue/B787-the-sign-in-button-may-stay.md) | The sign-in button may stay disabled when the address is autofilled | ISSUE | medium | low |
 | [B790](backlog/issue/B790-a-journal-can-be-created-with.md) | A journal can be created with a currency that is not one, and it can never be corrected | ISSUE | medium | low |
@@ -81,7 +77,6 @@ Do not edit them by hand; run the script.
 | [B809](backlog/issue/B809-two-name-fields-in-the-signup.md) | Two name fields in the signup form cannot be told apart | ISSUE | medium | low |
 | [B810](backlog/issue/B810-the-first-thing-the-product-asks.md) | The first thing the product asks a new person is what their day cost | ISSUE | medium | low |
 | [B814](backlog/issue/B814-the-one-screen-a-brand-new.md) | The one screen a brand new journal sees has no heading to land on | ISSUE | medium | low |
-| [B818](backlog/issue/B818-the-date-defaults-to-today-when.md) | The date defaults to today when you are writing up a day from three weeks ago | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
@@ -94,13 +89,12 @@ Do not edit them by hand; run the script.
 | [B812](backlog/issue/B812-focus-is-lost-when-the-handover.md) | Focus is lost when the handover prompt appears | ISSUE | low | low |
 | [B813](backlog/issue/B813-a-denied-microphone-is-announced-politely.md) | A denied microphone is announced politely instead of as a problem | ISSUE | low | low |
 
-### big-feature (14)
+### big-feature (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B537](backlog/big-feature/B537-a-journal-on-disk-cannot-be.md) | A journal on disk cannot be checked against the instance that will receive it | FEATURE | high | high |
-| [B816](backlog/big-feature/B816-a-published-day-cannot-be-corrected.md) | A published day cannot be corrected or taken down without an agent | FEATURE | high | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
@@ -113,7 +107,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (21)
+### small-feature (20)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -128,7 +122,6 @@ Do not edit them by hand; run the script.
 | [B589](backlog/small-feature/B589-there-is-no-capability-for-one.md) | There is no capability for one instance to fulfil another's print jobs | FEATURE | medium | medium |
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
 | [B673](backlog/small-feature/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
-| [B819](backlog/small-feature/B819-nothing-tells-you-which-days-of.md) | Nothing tells you which days of your trip were never written | FEATURE | medium | low |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
@@ -212,11 +205,18 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B822](open/B822-a-back-arrow-returns-to-a.md) | A back arrow returns to a fixed parent rather than where the reader actually came from | ISSUE | medium | medium |
 
-## in-development (5)
+## in-development (12)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B807](in-development/B807-a-signed-in-person-is-silently.md) | A signed-in person is silently signed out mid-task and told the journal is not theirs | ISSUE | high | medium | `fdfcf5f2` |
+| [B808](in-development/B808-the-ask-box-answers-a-vague.md) | The ask box answers a vague question confidently and wrongly | ISSUE | high | low | `fdfcf5f2` |
+| [B816](in-development/B816-a-published-day-cannot-be-corrected.md) | A published day cannot be corrected or taken down without an agent | FEATURE | high | high | `fdfcf5f2` |
+| [B817](in-development/B817-asking-to-take-something-down-opens.md) | Asking to take something down opens the screen that creates one | ISSUE | high | low | `fdfcf5f2` |
 | [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
+| [B783](in-development/B783-an-unrecognised-question-is-answered-with.md) | An unrecognised question is answered with silence | ISSUE | medium | low | `fdfcf5f2` |
+| [B818](in-development/B818-the-date-defaults-to-today-when.md) | The date defaults to today when you are writing up a day from three weeks ago | ISSUE | medium | low | `fdfcf5f2` |
+| [B819](in-development/B819-nothing-tells-you-which-days-of.md) | Nothing tells you which days of your trip were never written | FEATURE | medium | low | `fdfcf5f2` |
 | [B821](in-development/B821-credits-and-storage-are-buried-on.md) | Credits and storage are buried on the account page with everything else | FEATURE | medium | medium | `ccdd5120` |
 | [B823](in-development/B823-search-finds-days-and-never-the.md) | Search finds days and never the pages, so there is no way to search your way to costs or storage | FEATURE | medium | medium | `ccdd5120` |
 | [B824](in-development/B824-the-agent-and-docs-sit-apart.md) | The agent and docs sit apart from the destinations they are listed with | ISSUE | medium | low | `ccdd5120` |
