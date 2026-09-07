@@ -7,8 +7,7 @@ complexity: low
 area: auth, ui, motion
 found: "2026-09-07T15:32:00Z"
 started: "2026-09-07T13:20:25Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T13:20:25Z"
+merged: "2026-09-07T13:56:02Z"
 ---
 
 # B753 — Sending a sign-in code gives no sign that anything was sent

@@ -7,8 +7,7 @@ complexity: medium
 area: landing, agent, brand
 found: "2026-09-07T15:30:00Z"
 started: "2026-09-07T13:20:24Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T13:20:24Z"
+merged: "2026-09-07T13:56:00Z"
 ---
 
 # B751 — The striped handover box shouts louder than anything it sits beside, and it is on the page up to four times

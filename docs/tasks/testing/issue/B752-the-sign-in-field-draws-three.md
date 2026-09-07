@@ -7,8 +7,7 @@ complexity: low
 area: auth, ui, a11y
 found: "2026-09-07T15:30:00Z"
 started: "2026-09-07T13:20:25Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T13:20:25Z"
+merged: "2026-09-07T13:56:01Z"
 ---
 
 # B752 — The sign-in field draws three focus indicators at once, so it reads as a box inside a box
