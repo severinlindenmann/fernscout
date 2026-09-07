@@ -1485,8 +1485,8 @@
   "pricing.rowPostcardDetail": "Gedruckt und verschickt, weltweit",
   "pricing.rowStorage": "Weitere {size}",
   "pricing.rowStorageDetail": "Einmalig, und läuft nie ab",
-  "pricing.rowPhotobook": "Ein gedrucktes Fotobuch",
-  "pricing.rowPhotobookDetail": "In der Schweiz gedruckt und an dich verschickt — der Betrag hängt von Seitenzahl und Format ab, und du siehst die genaue Summe vor der Bestellung",
+  "pricing.rowPhotobook": "Ein Fotobuch, als PDF gesetzt",
+  "pricing.rowPhotobookDetail": "Die ganze Reise in Seiten gesetzt, mit Umschlag, druckfertig — der gleiche Preis, egal wie lang, und es bleibt dir, ob du es drucken lässt oder nicht",
   "pricing.fromCredits": "ab {credits}",
   "pricing.grant": "Ein neues Journal startet mit {credits}.",
   "me.paymentFree": "gratis",
@@ -1527,5 +1527,7 @@
   "purchase.refund.credits": "{credits} Credits wurden wieder von deinem Guthaben abgezogen.",
   "purchase.refund.creditsNone": "Die Credits waren bereits verbraucht, es wurde nichts abgezogen.",
   "purchase.refund.footer": "Du bekommst diese Nachricht, weil ein Kauf auf deinem Journal zurückerstattet wurde. Antworte darauf, falls etwas nicht stimmt.",
-  "me.txRefunded": "Erstattet"
+  "me.txRefunded": "Erstattet",
+  "pricing.rowPhotobookPrint": "… gedruckt und verschickt",
+  "pricing.rowPhotobookPrintDetail": "In der Schweiz gedruckt und verschickt, an wen du willst. Für dein Buch und deine Adresse offeriert, bevor du bestellst — hier ein quadratisches Softcover mit {pages} Seiten an eine Schweizer Adresse"
 }

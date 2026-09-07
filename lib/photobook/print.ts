@@ -1,10 +1,11 @@
 import "server-only";
 import { refund, spend } from "../credits";
-import { BASE_RAPPEN_PER_CREDIT } from "../credits/pricing";
+import { photobookPrintCredits } from "../credits/pricing";
+import { COUNTRY_CODES } from "../countryCodes";
 import { getUser } from "../users";
 import { serverSite } from "../site";
 import { signFileLink } from "./fileLink";
-import { quoteBook, submitBookPrint, type QuoteResult } from "./gelato";
+import { quoteBook, submitBookPrint } from "./gelato";
 import {
   claimForPrint,
   getPhotobookOrder,
@@ -51,6 +52,8 @@ export type PrintFailure =
   | "no_recipient"
   | "no_credits"
   | "stale_quote"
+  /** The address has a country Gelato cannot be asked about. */
+  | "unknown_country"
   | "provider_unavailable"
   | "refused";
 
@@ -63,16 +66,34 @@ export type PrintOutcome =
  * to turn money into a number a person spends, ceilinged so the ledger never
  * takes less than what was actually quoted.
  *
- * Always quoted to Switzerland. Pricing anywhere else needs a live quote to
- * the actual destination, which is left for a capture (see the plan's
- * self-review notes) — every book ordered through this path ships from and,
- * for now, is priced as though it were also read to, Zurich.
+ * Quoted to wherever the book is actually going.
+ *
+ * Postage is most of the difference between a cheap book and an expensive
+ * one — CHF 8.52 inside Switzerland, several times that to another continent
+ * — so a price quoted to Zurich for a book going to Sydney is a price the
+ * owner is not paying and we are. The recipient is resolved before the quote
+ * for that reason, which is the one departure from `sendOrder`'s order of
+ * operations: nothing is claimed or spent either way, and knowing the
+ * destination is a precondition of knowing the price.
  */
-const QUOTE_COUNTRY = "CH";
 const QUOTE_CURRENCY = "CHF";
 
-function creditsFor(quote: QuoteResult): number {
-  return Math.ceil((quote.printMinor + quote.shipMinor) / BASE_RAPPEN_PER_CREDIT);
+/**
+ * The recipient's country as Gelato needs it: ISO 3166-1 alpha-2.
+ *
+ * A contact's country is whatever the person typed on the form that took
+ * their address — "Switzerland", "switzerland" and "CH" are all in the table
+ * — and Gelato refuses anything that is not the two-letter code. Guessing
+ * "CH" for an unrecognised one would quote Swiss postage for a book going
+ * somewhere else, which is the exact mistake this function exists to prevent,
+ * so an unknown country refuses the order instead. `COUNTRY_CODES` is the map
+ * the rest of the codebase already uses for this.
+ */
+function isoCountry(name: string | undefined): string | null {
+  const raw = (name ?? "").trim();
+  if (!raw) return null;
+  if (/^[A-Za-z]{2}$/.test(raw)) return raw.toUpperCase();
+  return COUNTRY_CODES[raw.toLowerCase()] ?? null;
 }
 
 export async function printOrder(owner: string, id: string, quotedCredits: number): Promise<PrintOutcome> {
@@ -86,17 +107,22 @@ export async function printOrder(owner: string, id: string, quotedCredits: numbe
   const size = BOOK_SIZES[order.payload.options.size];
   if (!size) return { ok: false, reason: "no_recipient" };
 
+  const to = await bookAddressFor(owner, print.contactId);
+  if (!to) return { ok: false, reason: "no_recipient" };
+
+  const country = isoCountry(to.country);
+  if (!country) return { ok: false, reason: "unknown_country" };
+
   const quote = await quoteBook({
     productUid: size.productUid,
     pageCount: order.payload.pages,
-    country: QUOTE_COUNTRY,
+    country,
     currency: QUOTE_CURRENCY,
   });
   if ("error" in quote) return { ok: false, reason: "provider_unavailable" };
-  if (creditsFor(quote) !== quotedCredits) return { ok: false, reason: "stale_quote" };
-
-  const to = await bookAddressFor(owner, print.contactId);
-  if (!to) return { ok: false, reason: "no_recipient" };
+  if (photobookPrintCredits(quote.printMinor, quote.shipMinor) !== quotedCredits) {
+    return { ok: false, reason: "stale_quote" };
+  }
 
   if (!(await claimForPrint(owner, id))) return { ok: false, reason: "already_printing" };
 

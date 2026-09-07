@@ -10,6 +10,8 @@ import {
   creditsInRappen,
   formatChf,
   photobookCredits,
+  photobookPrintCredits,
+  PHOTOBOOK_QUOTE_EXAMPLE,
   priceRappen,
 } from "@/lib/credits/pricing";
 import { serverMediaCeiling } from "@/lib/config";
@@ -69,10 +71,17 @@ export default function Pricing({ locale }: { locale: string }) {
     t("pricing.freeExport"),
   ];
 
-  /** A book at the smallest page count the planner will bind, which is what
-   *  "from" means here. See `PHOTOBOOK_BASE_CREDITS` for the measured basis
-   *  — Gelato prints it in Switzerland, which is what this row says instead. */
-  const photobookFrom = photobookCredits(32, "square");
+  /** Two rows, because there are two things to buy and they cost very
+   *  different amounts. Laying the book out is a flat charge whatever the
+   *  trip; printing it is quoted per order, because postage to Sydney is not
+   *  postage to Zurich. The printed figure is the example book every measured
+   *  number in `lib/credits/pricing.ts` was taken from, so the table and the
+   *  constants cannot quote different books. */
+  const photobookFrom = photobookCredits();
+  const photobookPrintExample = photobookPrintCredits(
+    PHOTOBOOK_QUOTE_EXAMPLE.printMinor,
+    PHOTOBOOK_QUOTE_EXAMPLE.shipMinor,
+  );
 
   const rows: { label: string; detail: string; credits: number; from?: boolean }[] = [
     {
@@ -98,6 +107,13 @@ export default function Pricing({ locale }: { locale: string }) {
       label: t("pricing.rowPhotobook"),
       detail: t("pricing.rowPhotobookDetail"),
       credits: photobookFrom,
+    },
+    {
+      label: t("pricing.rowPhotobookPrint"),
+      detail: t("pricing.rowPhotobookPrintDetail", {
+        pages: String(PHOTOBOOK_QUOTE_EXAMPLE.pages),
+      }),
+      credits: photobookPrintExample,
       from: true,
     },
   ];

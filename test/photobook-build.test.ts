@@ -27,7 +27,7 @@ describe("price of a planned book", () => {
       volumes: [{ interiorPages: 40 }, { interiorPages: 60 }],
     } as unknown as ReturnType<typeof planBook>;
     expect(priceOf(book, DEFAULT_OPTIONS)).toBe(
-      photobookCredits(40, "square") + photobookCredits(60, "square"),
+      photobookCredits() + photobookCredits(),
     );
   });
 });

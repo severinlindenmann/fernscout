@@ -1415,6 +1415,8 @@ export type TranslationKey =
   | "pricing.rowHelpDetail"
   | "pricing.rowPhotobook"
   | "pricing.rowPhotobookDetail"
+  | "pricing.rowPhotobookPrint"
+  | "pricing.rowPhotobookPrintDetail"
   | "pricing.rowPostcard"
   | "pricing.rowPostcardDetail"
   | "pricing.rowStorage"

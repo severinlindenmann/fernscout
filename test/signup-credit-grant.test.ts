@@ -143,6 +143,6 @@ describe("the signup grant cannot buy anything physical", () => {
   });
 
   test("is strictly less than the smallest photobook", () => {
-    expect(SIGNUP_CREDIT_GRANT).toBeLessThan(photobookCredits(20, "a5"));
+    expect(SIGNUP_CREDIT_GRANT).toBeLessThan(photobookCredits());
   });
 });

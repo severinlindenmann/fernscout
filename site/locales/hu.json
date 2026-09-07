@@ -1485,8 +1485,8 @@
   "pricing.rowPostcardDetail": "Kinyomtatva és feladva, bárhová",
   "pricing.rowStorage": "További {size}",
   "pricing.rowStorageDetail": "Egyszer, és sosem jár le",
-  "pricing.rowPhotobook": "Egy nyomtatott fotókönyv",
-  "pricing.rowPhotobookDetail": "Printed in Switzerland and posted to you — the figure depends on the page count and the size, and you see the exact total before you order",
+  "pricing.rowPhotobook": "A photobook, laid out as a PDF",
+  "pricing.rowPhotobookDetail": "Your whole trip planned into pages, with covers, ready to print — the same charge whatever the length, and yours to keep whether or not you have it printed",
   "pricing.fromCredits": "{credits}-tól",
   "pricing.grant": "Egy új napló {credits} kredittel indul.",
   "me.paymentFree": "ingyenes",
@@ -1527,5 +1527,7 @@
   "purchase.refund.credits": "{credits} kreditet levontunk az egyenlegedből.",
   "purchase.refund.creditsNone": "A kreditek már elfogytak, így nem vontunk le semmit.",
   "purchase.refund.footer": "Azért kapod, mert a naplódon egy vásárlást visszatérítettünk. Válaszolj erre az üzenetre, ha valami nem stimmel.",
-  "me.txRefunded": "Visszatérítve"
+  "me.txRefunded": "Visszatérítve",
+  "pricing.rowPhotobookPrint": "…printed on paper and posted",
+  "pricing.rowPhotobookPrintDetail": "Printed in Switzerland and posted to whoever you choose. Quoted for your book and your address before you order — this is a {pages}-page square softcover to a Swiss address"
 }

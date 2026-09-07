@@ -144,33 +144,64 @@ export const POSTCARD_CREDITS = 20;
  * both that it is `true` and that the charge for a 52-page square book sits
  * between the measured landed cost and twice it.
  */
-export const PHOTOBOOK_BASE_CREDITS = 160;
-export const PHOTOBOOK_PAGE_CREDITS = 2;
+export const PHOTOBOOK_BASE_CREDITS = 40;
 export const PHOTOBOOK_PRICING_VERIFIED = true;
 
 /**
- * Measured price ratios against the square, not modelled from paper area.
+ * What building the PDF costs, and why it no longer depends on the book.
  *
- * At 52 pages Gelato quotes square CHF 14.40, portrait (210×280) CHF 14.99 —
- * 1.04× — and large-square (280×280) CHF 27.36 — 1.90×. Portrait is barely
- * dearer because it is barely more paper; large-square is dearer mostly
- * because it is the only hardcover of the three, not because of its sheet
- * size. This used to be guessed from A4 being "1.4x the sheet area of the
- * 210mm square" — square is 200mm now, and the guess was never checked
- * against a quote either way.
+ * It used to be `160 + 2 per page`, times a factor for the larger sheet, and
+ * every part of that was pricing *paper* — because until Gelato was connected
+ * there was no second step to charge for, so the one charge had to cover a
+ * printed object nobody could actually order.
+ *
+ * Now printing is its own step with its own live quote
+ * (`photobookPrintCredits` below), and leaving the paper in this number would
+ * charge for it twice. What is left is the render: laying the trip out,
+ * choosing the pages, making the covers. That is the same work for a 28-page
+ * book as for a 200-page one and the same work for every size, so it is one
+ * flat number — and somebody who only ever wants the PDF pays CHF 8.00 for it
+ * rather than CHF 52.80.
+ *
+ * `SIZE_FACTOR` went with it. It scaled this charge by measured *print* price
+ * ratios, which belong to the print step and are now read from the quote.
  */
-const SIZE_FACTOR: Record<string, number> = {
-  square: 1,
-  portrait: 1.04,
-  "large-square": 1.9,
-};
-
-/** One volume, one copy. A book split into volumes is priced per volume by the
- * caller, because each is a separate object with its own cover and postage. */
-export function photobookCredits(pages: number, sizeId: string): number {
-  const factor = SIZE_FACTOR[sizeId] ?? 1;
-  return Math.ceil((PHOTOBOOK_BASE_CREDITS + PHOTOBOOK_PAGE_CREDITS * pages) * factor);
+export function photobookCredits(): number {
+  return PHOTOBOOK_BASE_CREDITS;
 }
+
+/**
+ * What printing one book costs the owner, from a live Gelato quote.
+ *
+ * The quote is the real landed cost — print plus postage to the recipient's
+ * own country, measured per order rather than assumed, because a book to
+ * Australia is not a book to Zurich. `PHOTOBOOK_PRINT_MARGIN` is what sits on
+ * top: 1.5x, in the 30-50% band print-on-demand resale runs at, and enough
+ * that one spoiled book costs a third of a sale rather than a whole one.
+ *
+ * Rounded up to a whole credit, and computed here rather than at the call
+ * site so the panel that shows a price and the code that charges it cannot
+ * drift apart — the stale-quote check compares the two, and two formulas
+ * would make it compare a number against itself computed differently.
+ *
+ * Measured basis, 2026-09-07, 52-page 200x200 softcover to Zurich: print
+ * CHF 14.40 + postage CHF 8.52 = CHF 22.92 landed, so 172 credits (CHF 34.40).
+ */
+export const PHOTOBOOK_PRINT_MARGIN = 1.5;
+
+/**
+ * The book the price table quotes as an example, and the one every measured
+ * number in this file was taken from: a 52-page 200 x 200 softcover to a
+ * Swiss address, quoted 2026-09-07. Kept here so the public table and the
+ * comments above cannot quote different books.
+ */
+export const PHOTOBOOK_QUOTE_EXAMPLE = { pages: 52, printMinor: 1440, shipMinor: 852 };
+
+export function photobookPrintCredits(printMinor: number, shipMinor: number): number {
+  const landedMinor = printMinor + shipMinor;
+  return Math.ceil((landedMinor * PHOTOBOOK_PRINT_MARGIN) / BASE_RAPPEN_PER_CREDIT);
+}
+
 
 /**
  * What a number of credits is worth in money — B551.

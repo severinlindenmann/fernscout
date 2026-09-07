@@ -40,7 +40,7 @@ describe("the pricing table", () => {
   });
 
   test("quotes the photobook from the smallest book the planner will bind, printed in Switzerland", () => {
-    const from = photobookCredits(32, "square");
+    const from = photobookCredits();
     const rendered = html();
     expect(rendered).toContain(String(from));
     // Said in the row itself, not only in a source comment: since B841 the
