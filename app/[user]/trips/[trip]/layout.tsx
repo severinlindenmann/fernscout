@@ -4,7 +4,7 @@ import TripGate from "@/components/TripGate";
 import { isIndexable } from "@/lib/access";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
-import { guestBlockedByPrivateTrip, mayReadTrip, signedInAs } from "@/lib/tripGate";
+import { awaitingApproval, guestBlockedByPrivateTrip, mayReadTrip, signedInAs } from "@/lib/tripGate";
 import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 
@@ -63,6 +63,7 @@ export default async function TripLayout({
       canAsk={isEnabled("contacts", user)}
       codeMinutes={CODE_TTL_MINUTES}
       guestBlockedByPrivate={await guestBlockedByPrivateTrip(trip)}
+      waiting={await awaitingApproval(user)}
     />
   );
 }

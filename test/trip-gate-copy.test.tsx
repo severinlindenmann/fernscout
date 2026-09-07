@@ -33,6 +33,7 @@ function render(
     canAsk?: boolean;
     locale?: string;
     guestBlockedByPrivate?: boolean;
+    waiting?: boolean;
   } = {},
 ) {
   const locale = over.locale ?? "en";
@@ -46,6 +47,7 @@ function render(
         canAsk={over.canAsk ?? true}
         codeMinutes={CODE_TTL_MINUTES}
         guestBlockedByPrivate={over.guestBlockedByPrivate ?? false}
+        waiting={over.waiting ?? false}
       />
     </LocaleProvider>,
   );
@@ -220,6 +222,8 @@ describe("the layout that draws the gate", () => {
       // it — but the layout calls it in the same branch as the other two, so
       // a mock missing it throws rather than exercising anything.
       guestBlockedByPrivateTrip: async () => false,
+      // Same reason: the layout asks it in the same branch (B800).
+      awaitingApproval: async () => false,
     }));
     vi.doMock("@/lib/trips", () => ({
       tripRef: (user: string, id: string) => `${user}/${id}`,
@@ -267,5 +271,40 @@ describe("the layout that draws the gate", () => {
     vi.doUnmock("@/lib/users");
     vi.doUnmock("@/lib/capabilities");
     vi.resetModules();
+  });
+});
+
+/**
+ * B800 — the fifth state: signed in, already asked, nobody has decided yet.
+ *
+ * The failure it closes is not a missing sentence, it is a wrong one. A reader
+ * who redeemed an invitation an hour ago and comes back to the URL used to
+ * meet "ask whoever writes this journal to let you in" plus a button to ask
+ * again — so from the page there was no way to tell "not yet" from "broken",
+ * and the offered action would have put a second identical row in front of the
+ * owner.
+ */
+describe("a reader who has already asked", () => {
+  test("is told they are waiting, roughly how long, and offered nothing to press", () => {
+    const html = render({ signedInAs: "mum@example.test", waiting: true });
+    expect(html).toContain("in the queue");
+    expect(html).toMatch(/day or two/);
+    expect(html, "asking again is not the answer").not.toContain("ask-name");
+  });
+
+  test("but a guest refused a private trip is not, whatever their row says", () => {
+    const html = render({
+      signedInAs: "mum@example.test",
+      waiting: true,
+      guestBlockedByPrivate: true,
+    });
+    expect(html).not.toContain("in the queue");
+    expect(html).not.toContain("ask-name");
+  });
+
+  test("and a stranger with no session is shown the sign-in form as before", () => {
+    const html = render({ waiting: true });
+    expect(html).toContain("signin-email");
+    expect(html).not.toContain("in the queue");
   });
 });

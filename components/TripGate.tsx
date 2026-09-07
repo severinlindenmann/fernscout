@@ -31,9 +31,15 @@ import { useI18n } from "@/components/LocaleProvider";
  *
  * **It never names the trip.** See B117, and the `<h1>` below.
  *
- * Which is why there are four states and not one:
+ * Which is why there are five states and not one:
  *
  * - **not signed in** — the form, and an honest sentence about who it is for.
+ * - **signed in, and already in the owner's queue** — B800. They redeemed an
+ *   invitation, were told "you're in the queue" on a tab they have long since
+ *   closed, and came back to the URL. Told that they are still waiting and
+ *   roughly how long it usually takes, and offered nothing to press: asking
+ *   again would put a second identical row in front of the owner, and a button
+ *   suggesting it reads as the first attempt having failed.
  * - **signed in, refused because this trip is `private`, and refused to an
  *   approved journal guest specifically** — B300. "Ask whoever writes this
  *   journal to let you in" is false for exactly this reader: they already
@@ -62,6 +68,7 @@ export default function TripGate({
   canAsk,
   codeMinutes,
   guestBlockedByPrivate,
+  waiting,
 }: {
   username: string;
   journalTitle: string;
@@ -86,6 +93,18 @@ export default function TripGate({
    * computed.
    */
   guestBlockedByPrivate: boolean;
+  /**
+   * True when this reader has already asked and the owner has not decided yet
+   * — `awaitingApproval` in `lib/tripGate.ts`, the only place it is computed.
+   *
+   * A fifth state, and the one B800 was filed over: without it, somebody who
+   * redeemed an invitation an hour ago and came back to the same URL met the
+   * ordinary refusal and a form asking them to ask again. Says how long it
+   * usually takes, and does **not** offer `AskToBeLetIn` — a second identical
+   * row in the owner's queue is not what a waiting reader needs, and a button
+   * offering one reads as the first attempt having failed.
+   */
+  waiting: boolean;
 }) {
   const { t } = useI18n();
   /**
@@ -109,6 +128,11 @@ export default function TripGate({
   // just the same defensive habit the rest of this component keeps: nothing
   // upstream is treated as enough on its own.
   const refusedForPrivacy = Boolean(signedInAs) && guestBlockedByPrivate;
+  // Same doubling, same reason: a reader with no session cannot be somebody
+  // this journal is holding a pending request for. `refusedForPrivacy` wins —
+  // an approved guest meeting a `private` trip is not waiting for anything,
+  // whatever else is on their row.
+  const stillWaiting = Boolean(signedInAs) && waiting && !refusedForPrivacy;
 
   return (
     <main
@@ -123,7 +147,15 @@ export default function TripGate({
           is what a reader needs in order to know whose sign-in form this is,
           and is already the tab's title on this page. */}
       <h1 className="font-display text-2xl text-navy-900">
-        {signedInAs ? t(refusedForPrivacy ? "gate.privateTitle" : "gate.refusedTitle") : journalTitle}
+        {signedInAs
+          ? t(
+              refusedForPrivacy
+                ? "gate.privateTitle"
+                : stillWaiting
+                  ? "gate.waitingTitle"
+                  : "gate.refusedTitle",
+            )
+          : journalTitle}
       </h1>
 
       {signedInAs ? (
@@ -131,7 +163,9 @@ export default function TripGate({
           <p className="mt-3 text-lg leading-8 text-navy-700">
             {refusedForPrivacy
               ? t("gate.privateBody")
-              : t("gate.refusedBody", { email: signedInAs })}
+              : stillWaiting
+                ? t("gate.waitingBody", { email: signedInAs })
+                : t("gate.refusedBody", { email: signedInAs })}
           </p>
           {/* Not a dead end. `/<user>/me` is the page that lists what this
               address *can* open, and carries the control for signing out and
@@ -145,7 +179,9 @@ export default function TripGate({
           {/* Not for the reader above: `gate.privateBody` says in words that
               there is nothing to ask for, and a button beside it would be the
               page contradicting itself. B601. */}
-          {canAsk && !refusedForPrivacy ? <AskToBeLetIn username={username} /> : null}
+          {canAsk && !refusedForPrivacy && !stillWaiting ? (
+            <AskToBeLetIn username={username} />
+          ) : null}
         </>
       ) : canSignIn ? (
         <>

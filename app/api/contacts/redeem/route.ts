@@ -327,8 +327,25 @@ export async function POST(request: Request) {
     // other door here uses, then `/api/contacts/confirm`. This is the
     // expensive act `REDEEMED` above is counting — mail sent, a code that
     // burns whatever the reader was already holding.
-    const { code } = await issueCode(username, email, "guest");
-    await sendCodeMail(username, user, email, locale, code);
+    //
+    // B798: the code is mailed with a one-click link beside it, and the link
+    // comes back **here** — `/{user}/invite/<kind>/<token>`, the page they are
+    // standing on. Pressing it signs the address in (through `/{user}/s/…`,
+    // which is a button rather than a GET — see B142) and lands them back on
+    // this same landing page, now with a session, where `RedeemPage` shows the
+    // one-button "confirm" step instead of the six-digit form. So the whole
+    // journey is: name and address, one press in the mail, one press to
+    // confirm. Nothing is typed twice and nothing is transcribed between two
+    // apps.
+    //
+    // **Nothing about what a redemption grants changes.** The session the link
+    // mints is an address, not a permission (`mayReadTrip` still asks
+    // `isJournalGuest`), and the confirm step still ends at a `pending` row
+    // with `approveContact` the only thing that can open it.
+    const { code, linkToken } = await issueCode(username, email, "guest", {
+      destination: `/${username}/invite/${invite.kind}/${token}`,
+    });
+    await sendCodeMail(username, user, email, locale, code, linkToken);
     rateLimitFor("contacts-redeem", ip, REDEEMED);
     return Response.json({ status: "code" }, { status: 202 });
   }

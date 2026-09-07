@@ -110,7 +110,12 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
   // gallery page.
   const photobook = await photobookEntryFor(trip);
   return (
-    <TripProvider trip={trip} isCurrent={false} reader={read.reader}>
+    // `canPublish` is the same viewer fact every sibling route passes
+    // (`/day/<slug>`, the gallery, the map) and this one did not — it is read
+    // at the top of this function and was simply never handed on, so an
+    // owner's own controls on a past trip's story, `DayNotify` among them,
+    // rendered for nobody.
+    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader}>
       <BlogStructuredData
         entries={getAllEntries(trip.ref)}
         site={site}
