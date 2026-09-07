@@ -31,10 +31,22 @@ deliverable is an answer and the findings, not a diff.
 
 ## Work
 
-- Create a **dedicated Proton account** for this. Not the operator's own:
-  where the account has 2FA, rclone needs `RCLONE_PROTONDRIVE_OTP_SECRET_KEY`,
-  which is the TOTP *seed* and not a code, and it would live in
-  `/etc/fernscout/env` on a public web server. W42 has the reasoning.
+- **The operator's own Proton account, decided 2026-09-07.** W42 argued for a
+  dedicated one and the reasoning there still stands unchanged; the operator
+  read it and chose their main account, which has the storage (200GB+) and
+  avoids a second subscription. Recorded here rather than in W42, which is
+  intent-as-written and is not corrected after the fact.
+
+  What that decision costs, so the next person does not have to re-derive it:
+  `/etc/fernscout/env` will hold that account's password and — if 2FA is on —
+  `RCLONE_PROTONDRIVE_OTP_SECRET_KEY`, which is the TOTP **seed** and not a
+  code. Anybody who reads that file can generate codes for the account
+  indefinitely, and the file sits on a public web server.
+
+  **First thing to establish in this spike: does the account have 2FA on?**
+  If it does not, the seed never exists and only the password is exposed,
+  which is a materially smaller thing. If it does, say so in this task and
+  let the operator decide again with that in hand.
 - Establish whether restic's built-in `rclone:` backend drives it at all —
   `restic init`, a backup of a few hundred megabytes, `restic check`, and a
   restore of one file out of it.
