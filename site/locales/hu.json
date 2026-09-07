@@ -450,6 +450,7 @@
   "landing.metaDescription": "Markdown fájlok és fényképek egy mappában, ami a tiéd. Böngészőben olvasod; egy ügynök írja.",
   "landing.metaTitle": "{name} — útinapló, amit az ügynököd ír",
   "landing.noEditor": "Továbbra sincs űrlap, CMS, feltöltő felület — a mappa a tiéd. Az ügynök a szerkesztő, akár a miénk, akár a sajátod.",
+  "landing.noEditorNoHelper": "Továbbra sincs űrlap, CMS, feltöltő felület — a mappa a tiéd. Az ügynök a szerkesztő.",
   "landing.noTracking": "Nincs analitika, nincs nyomkövetés",
   "landing.publicNone": "Még nincs napló. Másold a content/example mappát a content/<neved> helyre, és tölts újra.",
   "landing.publicTitle": "Nyilvános naplók ezen a szerveren",

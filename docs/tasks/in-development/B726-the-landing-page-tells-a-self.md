@@ -54,3 +54,29 @@ this is the paragraph under them.
 On an instance with `helper` off, nothing on `/` claims this server hosts an
 agent. On one with it on, the sentence reads as it does today. Checked in all
 three locales.
+
+## Done
+
+Added `landing.noEditorNoHelper` beside `landing.noEditor` in all three
+locale files (`site/locales/{en,de,hu}.json`) — the same sentence minus the
+"whether it's this instance's or your own" clause. `LandingSteps` in
+`components/LandingSections.tsx` now takes a `helperEnabled` prop (default
+`false`, matching what it already inherited implicitly) and picks between the
+two keys; `AgentDisclosure` passes `helperEnabled` explicitly since it only
+ever renders in the helper-on arrangement, and the helper-off call site in
+`components/Landing.tsx` needed no change — its default was already correct.
+Regenerated `lib/i18n.ts` with `npm run i18n:keys`.
+
+Extended `test/landing.test.tsx` with two tests: the helper-off render must
+not contain "whether it's this instance's or your own" (any spelling of the
+apostrophe — the rendered HTML escapes it as `&#x27;`), and the helper-on
+render must still contain it.
+
+Verified both arrangements at 390px in a real browser: helper off shows "The
+agent is the editor." with no `/agent` link; helper on (via
+`site/config.json` with `features.helper.enabled` and `features.credits.enabled`
+both `true`, booted against a copy of the repo's `.local-dev.db`) shows the
+full sentence, only inside the `AgentDisclosure` `<details>`, which is B748's
+territory. No change needed to `app/page.tsx` — it already threaded
+`helperEnabled` all the way down; the gap was only that `LandingSteps` never
+received it.

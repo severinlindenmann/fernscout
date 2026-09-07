@@ -450,6 +450,7 @@
   "landing.metaDescription": "Markdown-Dateien und Fotos in einem Ordner, der dir gehört. Du liest es im Browser; ein Agent schreibt es.",
   "landing.metaTitle": "{name} — ein Reisetagebuch, das dein Agent schreibt",
   "landing.noEditor": "Es gibt weiterhin kein Formular, kein CMS, keinen Upload-Bereich — der Ordner gehört dir. Der Agent ist der Editor, egal ob unserer oder deiner.",
+  "landing.noEditorNoHelper": "Es gibt weiterhin kein Formular, kein CMS, keinen Upload-Bereich — der Ordner gehört dir. Der Agent ist der Editor.",
   "landing.noTracking": "Keine Analytics, keine Tracker",
   "landing.publicNone": "Noch keine Tagebücher. Kopiere content/example nach content/<dein-name> und lade neu.",
   "landing.publicTitle": "Öffentliche Reisetagebücher auf diesem Server",

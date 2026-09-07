@@ -667,6 +667,7 @@ export type TranslationKey =
   | "landing.metaDescription"
   | "landing.metaTitle"
   | "landing.noEditor"
+  | "landing.noEditorNoHelper"
   | "landing.noTracking"
   | "landing.publicNone"
   | "landing.publicTitle"
