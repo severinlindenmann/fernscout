@@ -6,6 +6,9 @@ priority: low
 complexity: medium
 area: entries, tracks
 found: "2026-09-07T11:17:11Z"
+started: "2026-09-07T13:36:43Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T13:36:43Z"
 ---
 
 # B709 — Every day must answer the money question before it is written
