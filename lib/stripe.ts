@@ -1,5 +1,6 @@
 import "server-only";
 import Stripe from "stripe";
+import { palette } from "./brand";
 import type { CreditTier } from "./credits/pricing";
 import type { Payment } from "./payments";
 
@@ -77,6 +78,53 @@ export function webhookSecret(): string {
 }
 
 /**
+ * What the checkout page should look like — B826.
+ *
+ * A buyer leaves a cream-and-navy travel journal and lands on somebody else's
+ * white page with a black button, at the one moment they are about to spend
+ * money. `branding_settings` is Stripe's answer and it is set per session, so
+ * all of this lives in git rather than in a dashboard nobody can diff.
+ *
+ * **The colours are read, not typed.** `palette()` parses `app/globals.css`,
+ * which is where this project's hexes are actually defined; B575 split that
+ * module out precisely because the same numbers written down a second time
+ * became the copy nobody updated. If the palette cannot be read — a pruned
+ * build, a moved file — each colour is simply **left out** and Stripe uses its
+ * own default. That is deliberately not a hardcoded fallback: a fallback would
+ * be the second copy this is avoiding, and an unbranded checkout page is a far
+ * smaller failure than one that throws instead of taking a payment.
+ *
+ * The icon is a **URL on this instance's own site** rather than a file
+ * uploaded to Stripe. An upload would leave a file id belonging to one Stripe
+ * account, needing an env var, in a product other people self-host; every
+ * instance already serves `/icon.svg`.
+ */
+function brandingSettings(
+  baseUrl: string,
+  displayName: string,
+): Stripe.Checkout.SessionCreateParams.BrandingSettings {
+  let hex: (token: string) => string | undefined = () => undefined;
+  try {
+    const swatches = palette();
+    hex = (token) => swatches.find((s) => s.token === token)?.hex;
+  } catch {
+    // No palette, no colours. See above.
+  }
+  const background = hex("cream-50");
+  const button = hex("yellow-400");
+  return {
+    display_name: displayName,
+    icon: { type: "url", url: `${baseUrl}/icon.svg` },
+    // Fredoka is not among Stripe's twenty-five faces; Nunito is the nearest
+    // rounded sans, and supports every locale this instance ships.
+    font_family: "nunito",
+    border_style: "rounded",
+    ...(background ? { background_color: background } : {}),
+    ...(button ? { button_color: button } : {}),
+  };
+}
+
+/**
  * The buyer's hosted checkout page.
  *
  * **No Product and no Price is created, here or anywhere.** The line item is
@@ -117,6 +165,9 @@ export async function createCheckoutSession(
    * failing.
    */
   ownerEmail?: string,
+  /** What this instance calls itself, for the checkout page's heading — the
+   *  operator's own `site.name`, not whatever the Stripe account is named. */
+  siteName = "Fernscout",
 ): Promise<string | null> {
   const back = `${baseUrl}/${username}/payment/${payment.id}`;
   const session = await stripe().checkout.sessions.create({
@@ -136,6 +187,7 @@ export async function createCheckoutSession(
       },
     ],
     ...(ownerEmail ? { customer_email: ownerEmail } : {}),
+    branding_settings: brandingSettings(baseUrl, siteName),
     client_reference_id: payment.id,
     metadata: { owner: payment.owner, paymentId: payment.id },
     // Both land back on our own checkout page, which reads the row and says
