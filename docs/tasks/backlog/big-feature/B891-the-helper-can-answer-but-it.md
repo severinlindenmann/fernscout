@@ -59,8 +59,19 @@ Then the rest: `create_trip` (with the visibility question asked, B731),
 **Charging.** The plan proposes: a conversation costs nothing until a write is
 accepted, and the credit is charged on the write, as today. So somebody who
 chats and accepts nothing pays nothing, and the exposure is bounded by
-`lib/rateLimit.ts` rather than by the ledger. Confirm with the owner before
-building the metering; it is his money and the shape changed.
+`lib/rateLimit.ts` rather than by the ledger. **The owner approved this on 2026-09-07** — "cost is good" — so build it: a
+conversation is free, the credit is charged when a write is accepted, and the
+rate limit is what bounds somebody who only ever chats.
+
+Two things that follow and are not optional:
+
+- **Say what a turn costs somewhere an operator can see it.** A conversation
+  that is free to the journal is not free to the instance, and `/api/health`
+  or the ledger should carry enough for the operator to know what a busy day
+  costs them.
+- **A refused or abandoned proposal charges nothing**, including one the person
+  edits three times before accepting. The credit belongs to the write, not to
+  the asking.
 
 **When a proposal is wrong**, the person edits it in the conversation rather
 than starting again. That is the difference between this and a form.
