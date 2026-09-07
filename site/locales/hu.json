@@ -1493,5 +1493,15 @@
   "pricing.tier": "{credits} ennyiért: {price}",
   "pricing.tierOff": "{off} kedvezmény",
   "pricing.grant": "Egy új napló {credits} kredittel indul.",
-  "me.paymentFree": "ingyenes"
+  "me.paymentFree": "ingyenes",
+  "me.spentTitle": "Mire ment el a kredit",
+  "me.spentAiNote": "A leírásokat és az átiratokat egy MI-modell készíti — a Fernscout elküldi a modellnek, amit elmondasz, és kérésenként egy kreditet számol fel.",
+  "me.spentReason.helper": "Ügynök által írt naplók (MI)",
+  "me.spentReason.transcription": "Hangátirat (MI)",
+  "me.spentReason.day_mail": "E-mailek",
+  "me.spentReason.day_whatsapp": "WhatsApp-üzenetek",
+  "me.spentReason.digest": "Összefoglalók",
+  "me.spentReason.postcard": "Nyomtatott képeslapok",
+  "me.spentReason.photobook": "Nyomtatott fotókönyvek",
+  "me.spentReason.storage": "Extra tárhely"
 }

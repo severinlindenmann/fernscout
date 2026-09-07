@@ -9,6 +9,7 @@ import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
 import { EXTRA_STORAGE_CREDITS, formatChf, TIERS } from "@/lib/credits/pricing";
+import type { TranslationKey } from "@/lib/i18n";
 
 /**
  * Credits and storage, on their own page — B821.
@@ -470,6 +471,9 @@ export type PaymentPanel = {
   channels: { mail: boolean | null; whatsapp: boolean | null };
   postcardCredits: number | null;
   transactions: PaymentRow[];
+  /** What credits have gone on, biggest first — B860. Empty when the journal
+   *  has never spent one. */
+  spent: { reason: string; credits: number }[];
 };
 
 /** One row of the transaction history. `amount` is a preformatted CHF string
@@ -661,6 +665,27 @@ export default function AccountPageContent({
               <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-navy-200 pt-4">
                 <BuyCreditsDialog username={username} />
               </div>
+
+              {payment.spent.length > 0 && (
+                <div className="mt-5 border-t border-navy-200 pt-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+                    {t("me.spentTitle")}
+                  </p>
+                  <ul className="mt-2 divide-y divide-navy-200">
+                    {payment.spent.map(({ reason, credits }) => (
+                      <li key={reason} className="flex items-baseline justify-between gap-3 py-2">
+                        <span className="text-base text-navy-900">
+                          {t(`me.spentReason.${reason}` as TranslationKey)}
+                        </span>
+                        <span className="shrink-0 tabular-nums text-navy-700">
+                          {credits} {tn("me.paymentUnit", credits)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2.5 text-sm leading-6 text-navy-600">{t("me.spentAiNote")}</p>
+                </div>
+              )}
 
               {payment.transactions.length > 0 && (
                 <div className="mt-5 border-t border-navy-200 pt-4">

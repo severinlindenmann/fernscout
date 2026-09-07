@@ -66,6 +66,7 @@ describe("the payment section", () => {
     channels: { mail: true, whatsapp: true },
     postcardCredits: null,
     transactions: [],
+    spent: [],
   };
 
   test("renders the balance and the per-channel estimate", () => {
@@ -88,6 +89,26 @@ describe("the payment section", () => {
   test("says nothing about a balance that is not zero", () => {
     const html = render({ payment });
     expect(html).not.toContain(dictionaryFor("en")["me.paymentBalanceEmpty"]);
+  });
+
+  test("names what credits went on, and says which of it was a model — B860", () => {
+    const html = render({
+      payment: {
+        ...payment,
+        spent: [
+          { reason: "helper", credits: 14 },
+          { reason: "day_whatsapp", credits: 3 },
+        ],
+      },
+    });
+    expect(html).toContain(dictionaryFor("en")["me.spentTitle"]);
+    expect(html).toContain(dictionaryFor("en")["me.spentReason.helper"]);
+    expect(html).toContain("14");
+    expect(html).toContain(dictionaryFor("en")["me.spentAiNote"]);
+  });
+
+  test("shows no spend list at all when nothing has been spent", () => {
+    expect(render({ payment })).not.toContain(dictionaryFor("en")["me.spentTitle"]);
   });
 
   /** B369 has not shipped the channel yet; the row is omitted rather than a

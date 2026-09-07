@@ -1493,5 +1493,15 @@
   "pricing.tier": "{credits} for {price}",
   "pricing.tierOff": "{off} off",
   "pricing.grant": "A new journal starts with {credits}.",
-  "me.paymentFree": "free"
+  "me.paymentFree": "free",
+  "me.spentTitle": "Where credits went",
+  "me.spentAiNote": "Write-ups and transcriptions are produced by an AI model — Fernscout sends what you describe to the model and charges one credit per request.",
+  "me.spentReason.helper": "Agent write-ups (AI)",
+  "me.spentReason.transcription": "Voice transcription (AI)",
+  "me.spentReason.day_mail": "Emails",
+  "me.spentReason.day_whatsapp": "WhatsApp messages",
+  "me.spentReason.digest": "Digests",
+  "me.spentReason.postcard": "Printed postcards",
+  "me.spentReason.photobook": "Printed photobooks",
+  "me.spentReason.storage": "Extra storage"
 }
