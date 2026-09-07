@@ -7,8 +7,7 @@ complexity: medium
 area: agent, ui
 found: "2026-09-07T17:43:07Z"
 started: "2026-09-07T17:43:17Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T17:43:17Z"
+merged: "2026-09-07T18:16:18Z"
 ---
 
 # B877 — Four owner controls have piled up under a day with no order between them

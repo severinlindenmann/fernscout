@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: media, api
 found: "2026-09-07T17:41:38Z"
+merged: "2026-09-07T18:16:17Z"
 ---
 
 # B875 — A skipped upload claims nothing was lost when something was
