@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (105)
+## backlog (104)
 
 ### security (4)
 
@@ -107,7 +107,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B689](backlog/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high |
 
-### small-feature (23)
+### small-feature (22)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -123,7 +123,6 @@ Do not edit them by hand; run the script.
 | [B673](backlog/small-feature/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
 | [B685](backlog/small-feature/B685-the-helper-cannot-understand-a-sentence.md) | The helper cannot understand a sentence a person types at it | FEATURE | medium | medium |
 | [B694](backlog/small-feature/B694-the-landing-page-sends-everybody-off.md) | The landing page sends everybody off to fetch an agent of their own | FEATURE | medium | low |
-| [B703](backlog/small-feature/B703-a-day-s-text-cannot-be.md) | A day's text cannot be left out on its own, and the layout names say nothing about what they look like | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
 | [B176](backlog/small-feature/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
@@ -223,7 +222,7 @@ _Nothing here._
 | [B389](in-development/B389-a-contact-s-stored-phone-number.md) | A contact's stored phone number that toE164 cannot parse is shown to the owner as if it were fine | ISSUE | low | low | `97b44327` |
 | [B429](in-development/B429-the-invite-form-shows-a-canned.md) | The invite form shows a canned mail-off line instead of the server's, losing which switch is off | ISSUE | low | low | `97b44327` |
 
-## testing (392)
+## testing (393)
 
 ### security (6)
 
@@ -469,7 +468,7 @@ _Nothing here._
 | [B665](testing/big-feature/B665-a-trip-s-map-draws-straight.md) | A trip's map draws straight lines between days, because nothing holds where somebody actually went | FEATURE | medium | high | — |
 | [B677](testing/big-feature/B677-a-bank-statement-can-only-be.md) | A bank statement can only be read on the owner's own laptop, so the parsing lives in the helper | FEATURE | medium | high | — |
 
-### small-feature (85)
+### small-feature (86)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -548,6 +547,7 @@ _Nothing here._
 | [B664](testing/small-feature/B664-the-owner-cannot-see-what-is.md) | The owner cannot see what is using their storage, or reclaim any of it | FEATURE | medium | medium | — |
 | [B701](testing/small-feature/B701-the-low-resolution-warning-names-paths.md) | The low-resolution warning names paths nobody recognises and says a photograph prints soft | FEATURE | medium | low | — |
 | [B702](testing/small-feature/B702-the-book-s-charts-route-and.md) | The book's charts, route and rules are drawn in a blue that is not a brand colour | FEATURE | medium | low | — |
+| [B703](testing/small-feature/B703-a-day-s-text-cannot-be.md) | A day's text cannot be left out on its own, and the layout names say nothing about what they look like | FEATURE | medium | medium | — |
 | [B706](testing/small-feature/B706-the-party-never-boards-the-vehicle.md) | The party never boards — the vehicle and the people are two animations that ignore each other | FEATURE | medium | medium | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |

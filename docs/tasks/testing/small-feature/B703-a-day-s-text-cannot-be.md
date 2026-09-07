@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: photobook, composer
 found: "2026-09-07T00:00:00Z"
+merged: "2026-09-07T11:22:04Z"
 ---
 
 # B703 — A day's text cannot be left out on its own, and the layout names say nothing about what they look like
@@ -47,3 +48,40 @@ show what they mean before they are chosen.
 - One day's prose can be left out while the rest of the book keeps its text.
 - Every layout in the picker shows its shape without being chosen.
 - A phone reaches the same information without hovering.
+
+## Findings (2026-09-07)
+
+Both halves built.
+
+**`DayPlan.text`.** Absent means "as the book says"; `false` is the only other
+value that does anything. `planBook` computes one `wantsText = options.includeText
+&& chosen?.text !== false` and both the day's paragraphs and its captions read
+it, so a day narrows the book and can never widen it — `text: true` on a book
+with `includeText: false` prints nothing, which a test pins. The heading and
+the date stay, for the same reason the book-level switch leaves them: a photo
+album that cannot say when it was is worse than one with a heading.
+`setDayText` deletes the key when it is turned back on, so a day nobody has
+touched stays indistinguishable from one set back. The checkbox only appears
+when the book prints prose at all — on a book with text off there is nothing
+to take away.
+
+**`LayoutShape`.** Six schematic drawings, one per `DayLayout`, shown *beside*
+each name in the picker rather than on hover: a phone cannot hover, and this
+is information rather than a flourish. The picker's pills became small
+rounded cards, 28px drawing over the label, `min-h-11` so they are still a
+tap target. Not the day's own photographs — the question is how many frames
+and how big, and a real thumbnail would answer a different one and change
+whenever a photograph moved.
+
+**Verified by looking**, per `check-a-drawing`: rendered all six through
+`renderToStaticMarkup` and rasterised at 96px. `auto` (one big, two small),
+`hero` (edge to edge, no margin), `single`, `pair`, `grid` and `text` are each
+distinguishable from the others at a glance, and the last rule of a prose block
+stops short the way a paragraph does. They are also on `/docs/branding/day`
+now, at 96px, which is where somebody should look next.
+
+`npm run verify`: all four passed (4308 tests).
+
+**Left for a person:** the picker itself in a browser at 390px — six cards
+with drawings is more furniture than six text pills were, and whether they
+wrap acceptably on a phone is a thing to see rather than reason about.
