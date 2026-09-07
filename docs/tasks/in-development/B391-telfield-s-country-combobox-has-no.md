@@ -47,3 +47,30 @@ listbox narrows to the matching countries; and a test that drives Enter (or
 Escape) with a keyboard event and asserts the resulting `onChange` call — or
 this ticket is closed as `superseded` with the reasoning for skipping it
 written here, not just decided silently.
+
+## Triage
+
+The Why section is stale on one point: `jsdom` (and `@types/jsdom`) are
+already devDependencies (`package.json`), and per-file `// @vitest-environment
+jsdom` is already in use — `test/address-lookup-field-a11y.test.tsx` (B419)
+runs a real DOM via `createRoot`/`act` with no `@testing-library/react`,
+following on from what the AGENTS.md-referenced B507 harness apparently
+established. So the dependency question this ticket raised is already
+answered in the affirmative elsewhere in the tree; this ticket just needed
+`TelField` to get its own file in that style.
+
+## Done
+
+Added `test/tel-field-combobox.test.tsx`, reusing the exact harness pattern
+from `test/address-lookup-field-a11y.test.tsx` (`@vitest-environment jsdom`,
+`createRoot` + `act`, no new dependency). Seven tests: focusing opens the
+unfiltered list; typing "Switzerland" narrows the listbox to one option
+showing "+41"; Enter on the highlighted (first) option picks it and closes the
+list; ArrowDown then Enter picks the second filtered row rather than the
+first; Escape closes without picking anything; clicking an option (via
+`mousedown`, matching the component's own use of `mousedown` over `click`)
+picks it; and clicking outside the field closes the list. All seven pass:
+`npx vitest run test/tel-field-combobox.test.tsx` → 7/7.
+
+Acceptance met without the `superseded` fallback — the filter-as-you-type and
+Enter/Escape cases both landed.

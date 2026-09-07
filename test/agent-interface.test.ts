@@ -427,6 +427,17 @@ describe("the documents an agent reads", () => {
     expect(agentGuide()).toMatch(/do not invent/i);
   });
 
+  // B712: the web helper's own routes (/api/helper/[user]/**) are
+  // cookie-only and deliberately outside /openapi.json — say so here, or an
+  // agent reading only this document has no way to know they exist and
+  // cannot be reached with a bearer token.
+  test("the guide explains the helper's own routes and that a bearer token cannot reach them", () => {
+    const guide = agentGuide();
+    expect(guide).toContain("/api/helper/");
+    expect(guide).toMatch(/cookie-only/i);
+    expect(guide).toMatch(/not.*part of this contract|not.*in this document|outside this document/i);
+  });
+
   /**
    * B331: an agent holding a valid owner token was asked to invite somebody,
    * found no call in either summary, and invented a browser "dashboard" that

@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -66,7 +67,17 @@ describe("the visitor identifier is what the imprint says it is", () => {
   });
 
   test("the code is not a reversible encoding of anything it was made from", () => {
+    // B713: the salt is a genuine crypto.randomBytes() draw (by design — see
+    // the module comment), so a substring check against an unpinned hash is
+    // a coin flip that comes up "contains 203" about one run in three
+    // hundred. Pin the salt so the assertion is about the hashing, not about
+    // today's randomness.
+    // `randomBytes` has a callback overload TS prefers when inferring
+    // `spyOn`'s type, so `mockReturnValueOnce` alone types as `void` —
+    // `mockImplementationOnce` sidesteps overload selection entirely.
+    vi.spyOn(crypto, "randomBytes").mockImplementationOnce(() => Buffer.alloc(32, 0x11));
     const hash = visitorHash("alice", "203.0.113.9", "Mozilla/5.0 (X11)", day1);
+    vi.restoreAllMocks();
     expect(hash).toMatch(/^[0-9a-f]{16}$/);
     expect(hash).not.toContain("203");
     expect(hash).not.toContain("alice");
