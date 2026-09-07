@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (84)
+## backlog (83)
 
 ### security (1)
 
@@ -57,11 +57,10 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 
-### issue (8)
+### issue (7)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B756](backlog/issue/B756-a-party-of-five-overlaps-the.md) | A party of five overlaps the title it was moved onto, and the vehicles cannot be found on a real book | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -191,12 +190,13 @@ _Nothing here._
 | [B709](in-development/B709-every-day-must-answer-the-money.md) | Every day must answer the money question before it is written | ISSUE | low | medium | `97b44327` |
 | [B753](in-development/B753-sending-a-sign-in-code-gives.md) | Sending a sign-in code gives no sign that anything was sent | FEATURE | low | low | `ccdd5120` |
 
-## testing (9)
+## testing (10)
 
-### issue (4)
+### issue (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B756](testing/issue/B756-a-party-of-five-overlaps-the.md) | A party of five overlaps the title it was moved onto, and the vehicles cannot be found on a real book | ISSUE | high | low | — |
 | [B749](testing/issue/B749-the-figures-float-above-the-title.md) | The figures float above the title with a gap, and repeat on every chapter divider | ISSUE | medium | low | — |
 | [B726](testing/issue/B726-the-landing-page-tells-a-self.md) | The landing page tells a self-hoster with the helper off that the agent may be this instance's own | ISSUE | low | low | — |
 | [B742](testing/issue/B742-the-api-docs-page-scrolls-sideways.md) | The API docs page scrolls sideways on a phone | ISSUE | low | low | — |
