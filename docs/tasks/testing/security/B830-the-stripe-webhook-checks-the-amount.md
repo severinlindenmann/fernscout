@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: credits, payments, stripe
 found: "2026-09-07T16:05:00Z"
+merged: "2026-09-07T16:10:06Z"
 ---
 
 # B830 — The Stripe webhook checks the amount but not the currency, and not that the event's mode matches the key
