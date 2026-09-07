@@ -15,6 +15,9 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 const OWNER = "ana";
 const OWNER_EMAIL = "ana@example.test";
 const OPERATOR_EMAIL = "operator@example.test";
+/** Any amount the purchase route would accept; the price is whatever the
+ *  price function says it is — B854. */
+const TEST_CREDITS = 200;
 
 let dir: string;
 let calls = 0;
@@ -99,8 +102,8 @@ async function reset(operatorEmail: string | undefined) {
 
 async function requestWithToken(owner = OWNER): Promise<{ id: string; token: string }> {
   const { createPayment, submitRequest } = await import("@/lib/payments");
-  const { tierFor } = await import("@/lib/credits/pricing");
-  const p = await createPayment(owner, tierFor("200")!);
+  const { priceRappen } = await import("@/lib/credits/pricing");
+  const p = await createPayment(owner, TEST_CREDITS, priceRappen(TEST_CREDITS));
   if (!p) throw new Error("no payment");
   const r = await submitRequest(owner, p.id, "twint");
   if (!r.ok) throw new Error("submit failed");
@@ -109,8 +112,8 @@ async function requestWithToken(owner = OWNER): Promise<{ id: string; token: str
 
 async function newPending(owner = OWNER) {
   const { createPayment } = await import("@/lib/payments");
-  const { tierFor } = await import("@/lib/credits/pricing");
-  const p = await createPayment(owner, tierFor("200")!);
+  const { priceRappen } = await import("@/lib/credits/pricing");
+  const p = await createPayment(owner, TEST_CREDITS, priceRappen(TEST_CREDITS));
   if (!p) throw new Error("no payment");
   return p;
 }

@@ -43,7 +43,9 @@ export const ERROR_CODES: Record<string, string> = {
   unknown_key: "No credential of that id. GET the keys list for the ids this journal has.",
   unknown_order: "No postcard order of that id.",
   unknown_payment: "No payment of that id.",
-  unknown_tier: "That credit tier does not exist. The purchase route's own answer lists the ones that do.",
+  invalid_amount:
+    "Not a number of credits this server sells — out of range, not a whole number, or off the " +
+    "step. The refusal names the three bounds.",
   no_such_device: "No device of that id on this account.",
   not_found: "Nothing at this address.",
   no_costs_file: "This trip has no costs.md yet. PUT the costs once to create it, then PATCH to change it.",

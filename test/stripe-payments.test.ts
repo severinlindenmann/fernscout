@@ -56,13 +56,14 @@ function writeJournal(user: string) {
 /** A payment that has been through Pay and is waiting to settle. */
 async function requested(): Promise<{ id: string; credits: number; amount: number }> {
   const { createPayment, submitRequest } = await import("@/lib/payments");
-  const { tierFor } = await import("@/lib/credits/pricing");
-  const tier = tierFor("200")!;
-  const p = await createPayment(OWNER, tier);
+  const { priceRappen } = await import("@/lib/credits/pricing");
+  const credits = 200;
+  const amount = priceRappen(credits);
+  const p = await createPayment(OWNER, credits, amount);
   if (!p) throw new Error("no payment");
   const r = await submitRequest(OWNER, p.id, null);
   if (!r.ok) throw new Error("submit failed");
-  return { id: p.id, credits: tier.credits, amount: tier.priceRappen };
+  return { id: p.id, credits, amount };
 }
 
 function sessionEvent(paymentId: string, amount: number, over: Record<string, unknown> = {}) {
@@ -176,15 +177,16 @@ describe("the sandbox switch is the key itself", () => {
 describe("the operator approval queue (B833)", () => {
   test("excludes Stripe rows, which have no approval token, and keeps manual ones", async () => {
     const { createPayment, submitRequest, paymentsAwaiting } = await import("@/lib/payments");
-    const { tierFor } = await import("@/lib/credits/pricing");
+    const { priceRappen } = await import("@/lib/credits/pricing");
+    const fifty = [50, priceRappen(50)] as const;
 
     // A Stripe-path request (method null) mints no token — it settles by
     // webhook — so it must not sit in the operator's queue.
-    const stripeRow = await createPayment(OWNER, tierFor("50")!);
+    const stripeRow = await createPayment(OWNER, ...fifty);
     await submitRequest(OWNER, stripeRow!.id, null);
 
     // A manual request (a named method) does mint a token and does belong.
-    const manualRow = await createPayment(OWNER, tierFor("50")!);
+    const manualRow = await createPayment(OWNER, ...fifty);
     await submitRequest(OWNER, manualRow!.id, "twint");
 
     const queue = await paymentsAwaiting();

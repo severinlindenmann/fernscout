@@ -1,6 +1,15 @@
 import { creditsEnabled } from "@/lib/credits";
 import { createPayment } from "@/lib/payments";
-import { formatChf, tierFor } from "@/lib/credits/pricing";
+import {
+  CREDIT_STEP,
+  MAX_CREDITS,
+  MIN_CREDITS,
+  discountFor,
+  discountLabel,
+  formatChf,
+  isBuyableAmount,
+  priceRappen,
+} from "@/lib/credits/pricing";
 import { isOwner } from "@/lib/contacts/session";
 import { sendTransactional } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
@@ -86,18 +95,17 @@ export async function POST(
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-  const tierId =
-    typeof body.tier === "string"
-      ? body.tier
-      : typeof body.tier === "number"
-        ? String(body.tier)
-        : "";
-  const tier = tierFor(tierId);
-  if (!tier) {
+  // An amount, not a price — B854. The caller says how many credits; what they
+  // cost is `priceRappen`'s answer and nothing a request can influence. A body
+  // that could name a price would be a way to buy five hundred for a franc.
+  const credits = body.credits;
+  if (!isBuyableAmount(credits)) {
     return Response.json(
       {
-        error: "unknown_tier",
-        message: `"${tierId || "(none)"}" is not one of the tiers this journal offers.`,
+        error: "invalid_amount",
+        message:
+          `Ask for a whole number of credits between ${MIN_CREDITS} and ${MAX_CREDITS}, ` +
+          `in steps of ${CREDIT_STEP} — ${JSON.stringify(credits ?? null)} is not one.`,
       },
       { status: 400 },
     );
@@ -108,9 +116,9 @@ export async function POST(
     return Response.json({ error: "no_owner_address" }, { status: 409 });
   }
 
-  // Record the pending transaction. Amount and credits are the tier's, never
-  // a body value — see `createPayment`.
-  const payment = await createPayment(user, tier);
+  // Record the pending transaction. The amount is computed here, never read
+  // from the body — see `createPayment`.
+  const payment = await createPayment(user, credits, priceRappen(credits));
   if (!payment) {
     return Response.json(
       { error: "no_database", message: "This server cannot record a transaction." },
@@ -120,8 +128,9 @@ export async function POST(
 
   const base = serverSite().url;
   const payUrl = `${base}/${user}/payment/${payment.id}`;
-  const price = formatChf(tier.priceRappen);
-  const discount = tier.discount ? ` (${tier.discount} off the per-credit price)` : "";
+  const price = formatChf(priceRappen(credits));
+  const discount =
+    discountFor(credits) > 0 ? ` (${discountLabel(credits)} off the per-credit price)` : "";
 
   // The same link the browser is sent to, so it can be finished from a phone
   // later — the email is the "come back to it" half of the flow.
@@ -129,12 +138,12 @@ export async function POST(
     to,
     `Your credit purchase — ${price}`,
     {
-      preheader: `${tier.credits} credits for ${price}${discount}`,
+      preheader: `${credits} credits for ${price}${discount}`,
       title: "Finish your credit purchase",
       blocks: [
         {
           kind: "paragraph",
-          text: `${tier.credits} credits for ${price}${discount}, started from your own page. Transaction ${payment.id}.`,
+          text: `${credits} credits for ${price}${discount}, started from your own page. Transaction ${payment.id}.`,
         },
         {
           kind: "paragraph",
@@ -157,9 +166,9 @@ export async function POST(
     // "/ana/payment/xyz". The browser overlay that also calls this ignores it
     // and navigates itself.
     paymentUrl: payUrl,
-    tier: tier.id,
-    credits: tier.credits,
-    priceRappen: tier.priceRappen,
+    credits,
+    priceRappen: priceRappen(credits),
+    discount: discountLabel(credits),
     mailedTo: to,
   });
 }

@@ -17,7 +17,15 @@ import {
 } from "../validate/media";
 import { TAG_MAX_LENGTH, TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "../validate/entry";
 import { COST_CATEGORIES } from "../costFormat";
-import { TIERS, formatChf } from "../credits/pricing";
+import {
+  BASE_RAPPEN_PER_CREDIT,
+  DISCOUNT_FROM,
+  CREDIT_STEP,
+  MAX_CREDITS,
+  MIN_CREDITS,
+  formatChf,
+  priceRappen,
+} from "../credits/pricing";
 import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
 import { isIndexable } from "../access";
@@ -1741,7 +1749,7 @@ empty account from a 402. An absent \`credits\` key means this server does not
 charge, not that the account is empty.
 
 **A 402 is a message to pass on, and you can pass a link with it.** \`POST
-/api/v1/${example}/credits/purchase\` with a \`tier\` starts a purchase and
+/api/v1/${example}/credits/purchase\` with a \`credits\` amount starts a purchase and
 answers with \`paymentUrl\` — an absolute link to a page showing the amount, the
 credits and a button. **It buys nothing.** No balance moves, no card is
 charged, and nothing you hold can change that: the money happens on that page,
@@ -1752,9 +1760,13 @@ So the honest report is: *"that send needs N credits and the balance is M —
 here is a link to buy more, open it when you like."* Hand over the
 URL. Do not say credits were added, and do not press on and retry the send.
 
-The tiers are fixed and this instance's are:
-
-${TIERS.map((t) => `- \`tier: "${t.id}"\` — ${t.credits} credits for ${formatChf(t.priceRappen)}${t.discount ? ` (${t.discount} off)` : ""}`).join("\n")}
+**Name the amount, never the price.** \`credits\` is a whole number from
+${MIN_CREDITS} to ${MAX_CREDITS}, in steps of ${CREDIT_STEP}; this server works
+out what it costs and answers with \`priceRappen\` and the \`discount\` it
+applied. Buying more at once costs less per credit — ${formatChf(BASE_RAPPEN_PER_CREDIT)}
+each up to ${DISCOUNT_FROM}, falling to about ${formatChf(Math.round(priceRappen(MAX_CREDITS) / MAX_CREDITS))} at ${MAX_CREDITS}.
+An amount out of range, not whole, or off the step is refused with **400**
+rather than rounded to one that is.
 
 Publishing without either flag is never charged and never refused this way, so
 a day can always go on the site — it is only the announcement that waits.

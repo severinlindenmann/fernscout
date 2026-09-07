@@ -7,8 +7,7 @@ complexity: low
 area: header, nav
 found: "2026-09-07T18:35:00Z"
 started: "2026-09-07T17:09:29Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T17:09:29Z"
+merged: "2026-09-07T17:23:05Z"
 ---
 
 # B843 — Doku sits in the destination list though it leaves the journal, and Agent reads as a row rather than a button

@@ -1,7 +1,6 @@
 import "server-only";
 import Stripe from "stripe";
 import { palette } from "./brand";
-import type { CreditTier } from "./credits/pricing";
 import type { Payment } from "./payments";
 
 /**
@@ -148,7 +147,10 @@ function brandingSettings(
  */
 export async function createCheckoutSession(
   payment: Payment,
-  tier: Pick<CreditTier, "credits">,
+  /** How many credits this row buys, for the line item's name. The row itself
+   *  carries it; taken as an argument so the caller cannot be tempted to pass
+   *  a different figure than the one being charged for. */
+  tier: { credits: number },
   username: string,
   baseUrl: string,
   locale?: string,

@@ -311,10 +311,13 @@ describe("the daily series", () => {
 describe("money coming in", () => {
   beforeEach(setup);
 
-  const TIER = { id: "50", credits: 50, priceRappen: 1000, discount: "" };
+  // An amount and its price, the way the purchase route computes them — B854
+  // replaced the fixed tier table with a function.
+  const CREDITS = 50;
+  const RAPPEN = 1000;
 
   test("a purchase only joins the queue once the buyer has pressed Pay", async () => {
-    const payment = await createPayment("alice", TIER);
+    const payment = await createPayment("alice", CREDITS, RAPPEN);
     // `pending` is a checkout page somebody opened and may simply have closed.
     expect(await paymentsAwaiting()).toHaveLength(0);
 
@@ -326,7 +329,7 @@ describe("money coming in", () => {
   });
 
   test("the queue reaches the dashboard, and nothing has been granted by being in it", async () => {
-    const payment = await createPayment("alice", TIER);
+    const payment = await createPayment("alice", CREDITS, RAPPEN);
     await submitRequest("alice", payment!.id, "card");
 
     const data = await dashboard("1970-01-01T00:00:00.000Z");

@@ -11,7 +11,13 @@ import {
   VISIBILITY_NOT_A_LOCK,
 } from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
-import { EXTRA_STORAGE_BYTES, EXTRA_STORAGE_CREDITS } from "@/lib/credits/pricing";
+import {
+  CREDIT_STEP,
+  EXTRA_STORAGE_BYTES,
+  EXTRA_STORAGE_CREDITS,
+  MAX_CREDITS,
+  MIN_CREDITS,
+} from "@/lib/credits/pricing";
 import { INBOX_FILE_EXTENSIONS, INBOX_KINDS } from "@/lib/inbox";
 import { IMPORT_KINDS } from "@/lib/gps/api";
 import { GPS_FORMATS } from "@/importers/gps";
@@ -3249,8 +3255,14 @@ export function openApiDocument() {
             "person chooses how to pay. The money and the credits happen there and at the " +
             "payment provider, deliberately, so that no token can spend anything. Hand the URL " +
             "over and report it as a request, never as a purchase.\n\n" +
-            "`tier` is one of the fixed tiers; the response repeats `credits` and `priceRappen` " +
-            "so you can quote what was started. Owner-only.",
+            "`credits` is a whole number between `MIN_CREDITS` and `MAX_CREDITS` in steps of " +
+            "`CREDIT_STEP` — " +
+            `${MIN_CREDITS} to ${MAX_CREDITS} in ${CREDIT_STEP}s on this build. It replaced a ` +
+            "`tier` field naming one of a fixed list (B854), so any amount in range can now be " +
+            "asked for. **You name the amount, never the price:** the server computes what it " +
+            "costs, and the response repeats `credits`, `priceRappen` and the `discount` that " +
+            "was applied so you can quote what was started. Buying more at once costs less per " +
+            "credit. Owner-only.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
           requestBody: {
             required: true,
@@ -3258,8 +3270,15 @@ export function openApiDocument() {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["tier"],
-                  properties: { tier: { type: ["string", "integer"] } },
+                  required: ["credits"],
+                  properties: {
+                    credits: {
+                      type: "integer",
+                      minimum: MIN_CREDITS,
+                      maximum: MAX_CREDITS,
+                      multipleOf: CREDIT_STEP,
+                    },
+                  },
                 },
               },
             },
@@ -3268,10 +3287,14 @@ export function openApiDocument() {
             "200": {
               description:
                 "A pending payment. `paymentUrl` is the absolute link to hand over; " +
-                "`transactionId`, `credits` and `priceRappen` say what was started, and " +
-                "`mailedTo` is the owner address the same link went to.",
+                "`transactionId`, `credits`, `priceRappen` and `discount` say what was " +
+                "started, and `mailedTo` is the owner address the same link went to.",
             },
-            "400": { description: "Unknown tier" },
+            "400": {
+              description:
+                "Not an amount this server sells — out of range, not a whole number, or off " +
+                "the step. Nothing was recorded and nothing was mailed.",
+            },
             "403": { description: "Owner only" },
             "404": { description: "Credits are off on this server" },
           },

@@ -8,7 +8,16 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
-import { EXTRA_STORAGE_CREDITS, formatChf, TIERS } from "@/lib/credits/pricing";
+import {
+  CREDIT_STEP,
+  EXTRA_STORAGE_CREDITS,
+  MAX_CREDITS,
+  MIN_CREDITS,
+  discountFor,
+  discountLabel,
+  formatChf,
+  priceRappen,
+} from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 
 /**
@@ -314,11 +323,28 @@ function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
   );
 }
 
+/**
+ * Choose an amount and start a purchase — B854.
+ *
+ * It was two fixed buttons, and every amount that was not one of them was
+ * unbuyable. Now it is a slider over `MIN_CREDITS`..`MAX_CREDITS`, and the
+ * price under it moves as the thumb does.
+ *
+ * **`<input type="range">`, not a slider component.** It is keyboard operable
+ * (arrows, Home, End), it is what a phone already knows how to drag, and it
+ * costs nothing to ship. The only thing worth adding is what the platform
+ * cannot know — `aria-valuetext`, so a screen reader hears "120 credits, CHF
+ * 22.75" rather than the bare number 120.
+ *
+ * The price shown is `priceRappen`, the same function the route charges from,
+ * so what somebody reads on the slider is what the transaction is filed for.
+ */
 function BuyCreditsDialog({ username }: { username: string }) {
   const { t, tn } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [busyTier, setBusyTier] = useState<string | null>(null);
+  const [credits, setCredits] = useState(50);
+  const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<"failed" | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -345,14 +371,15 @@ function BuyCreditsDialog({ username }: { username: string }) {
     };
   }, [open]);
 
-  async function buy(tierId: string) {
-    setBusyTier(tierId);
+  async function buy() {
+    setBusy(true);
     const response = await fetch(`/api/v1/${username}/credits/purchase`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ tier: tierId }),
+      // The amount, never the price: the server prices it. See the route.
+      body: JSON.stringify({ credits }),
     }).catch(() => null);
-    setBusyTier(null);
+    setBusy(false);
 
     if (response?.ok) {
       // The purchase created a pending transaction; go to its payment page.
@@ -412,34 +439,54 @@ function BuyCreditsDialog({ username }: { username: string }) {
         <p className="px-1 text-xs font-semibold uppercase tracking-wide text-navy-600">
           {t("me.buyDialogTitle")}
         </p>
-        <ul className="mt-2 space-y-2.5">
-          {TIERS.map((tier) => (
-            <li
-              key={tier.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-navy-200 bg-cream-50 px-4 py-3"
-            >
-              <div>
-                <p className="font-display text-base font-semibold text-navy-900">
-                  {tier.credits} {tn("me.paymentUnit", tier.credits)}
-                </p>
-                <p className="text-sm text-navy-600">
-                  {formatChf(tier.priceRappen)}
-                  {tier.discount && ` · ${t("me.buyDialogDiscount", { discount: tier.discount })}`}
-                </p>
-              </div>
-              <button
-                type="button"
-                role="menuitem"
-                tabIndex={open ? 0 : -1}
-                disabled={busyTier !== null}
-                onClick={() => buy(tier.id)}
-                className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-yellow-400 px-4 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {busyTier === tier.id ? t("me.buyDialogBusy") : t("me.buyDialogBuy")}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-3 rounded-xl border border-navy-200 bg-cream-50 px-4 py-3">
+          <p className="flex items-baseline justify-between gap-3">
+            <span className="font-display text-2xl font-semibold tabular-nums text-navy-900">
+              {credits} {tn("me.paymentUnit", credits)}
+            </span>
+            <span className="font-display text-2xl font-semibold tabular-nums text-navy-900">
+              {formatChf(priceRappen(credits))}
+            </span>
+          </p>
+          <label className="mt-2 block">
+            <span className="sr-only">{t("me.buyDialogAmount")}</span>
+            <input
+              type="range"
+              min={MIN_CREDITS}
+              max={MAX_CREDITS}
+              step={CREDIT_STEP}
+              value={credits}
+              tabIndex={open ? 0 : -1}
+              onChange={(event) => setCredits(Number(event.target.value))}
+              // What the platform cannot work out: a screen reader would
+              // otherwise announce "120" with no unit and no price.
+              aria-valuetext={`${credits} ${tn("me.paymentUnit", credits)}, ${formatChf(
+                priceRappen(credits),
+              )}`}
+              className="h-11 w-full accent-yellow-400"
+            />
+          </label>
+          <p className="text-sm text-navy-600">
+            {discountFor(credits) > 0
+              ? t("me.buyDialogDiscount", { discount: discountLabel(credits) })
+              : t("me.buyDialogNoDiscount", {
+                  from: String(MIN_CREDITS),
+                  to: String(MAX_CREDITS),
+                })}
+          </p>
+          <button
+            type="button"
+            role="menuitem"
+            tabIndex={open ? 0 : -1}
+            disabled={busy}
+            onClick={() => buy()}
+            className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-yellow-400 px-4 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {busy
+              ? t("me.buyDialogBusy")
+              : t("me.buyDialogBuyAmount", { price: formatChf(priceRappen(credits)) })}
+          </button>
+        </div>
       </div>
     </div>
   );
