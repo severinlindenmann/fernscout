@@ -170,9 +170,8 @@ export async function createCheckoutSession(
   siteName = "Fernscout",
 ): Promise<{ id: string; url: string } | null> {
   const back = `${baseUrl}/${username}/payment/${payment.id}`;
-  const session = await stripe().checkout.sessions.create({
+  const params: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",
-    payment_method_types: ["card", "twint"],
     line_items: [
       {
         quantity: 1,
@@ -195,7 +194,35 @@ export async function createCheckoutSession(
     success_url: `${back}?returned=1`,
     cancel_url: back,
     locale: locale === "de" ? "de" : locale === "hu" ? "hu" : "en",
-  });
+  };
+
+  // We name the methods rather than letting Stripe pick, to keep Klarna, Link
+  // and the rest off a page buying credits for a travel journal (B792). But a
+  // named method that the account has not *activated* yet — TWINT sits pending
+  // review on a fresh live account — makes Stripe refuse the whole session, so
+  // naming it would take card checkout down with it until review clears. So:
+  // ask for card+twint, and if Stripe says a method is not activated, fall back
+  // to card alone. TWINT reappears by itself the moment it is switched on —
+  // B846, no code change needed then.
+  const create = (methods: Stripe.Checkout.SessionCreateParams.PaymentMethodType[]) =>
+    stripe().checkout.sessions.create({ ...params, payment_method_types: methods });
+
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await create(["card", "twint"]);
+  } catch (error) {
+    const notActivated =
+      error instanceof Stripe.errors.StripeInvalidRequestError &&
+      /payment method type|is invalid|not activated|activated in your dashboard/i.test(error.message);
+    if (!notActivated) throw error;
+    console.warn(
+      "[stripe] a named payment method is not activated on this account; falling back to card only.",
+      "Activate it at https://dashboard.stripe.com/settings/payment_methods to offer it.",
+      error.message,
+    );
+    session = await create(["card"]);
+  }
+
   // The id comes back so the pay route can store it and reuse this session
   // next time rather than opening a rival to it — B831.
   return session.url ? { id: session.id, url: session.url } : null;
