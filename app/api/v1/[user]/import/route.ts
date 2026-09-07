@@ -1,5 +1,4 @@
-import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
-import { SESSION_SCOPE } from "@/lib/auth";
+import { authenticate, errorResponse, mayActAsOwner, outOfScope, ownsUser } from "@/lib/api/auth";
 import { findInboxFile } from "@/lib/inbox";
 import {
   IMPORT_KINDS,
@@ -69,7 +68,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
 
   const { user } = await params;
   if (!ownsUser(auth.session, user)) return outOfScope(auth.session, user);
-  if (auth.session.scope !== SESSION_SCOPE.agent) return needsJournalScope(user);
+  if (!mayActAsOwner(auth.session, user)) return needsJournalScope(user);
 
   // Formats, never data. This is the one `GET` in the whole feature and it
   // describes the door rather than what is behind it.
@@ -201,7 +200,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
 
   const { user } = await params;
   if (!ownsUser(auth.session, user)) return outOfScope(auth.session, user);
-  if (auth.session.scope !== SESSION_SCOPE.agent) return needsJournalScope(user);
+  if (!mayActAsOwner(auth.session, user)) return needsJournalScope(user);
   if (!getUser(user)) return Response.json({ error: "unknown_user" }, { status: 404 });
 
   // Before the body is touched, like the media and inbox routes.

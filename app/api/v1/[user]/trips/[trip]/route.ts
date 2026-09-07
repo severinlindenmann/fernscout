@@ -1,5 +1,4 @@
-import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser } from "@/lib/api/auth";
-import { SESSION_SCOPE } from "@/lib/auth";
+import { authenticate, errorResponse, mayActAsOwner, mayWriteTrip, outOfScope, ownsUser } from "@/lib/api/auth";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
 import { tripTombstone } from "@/lib/tombstones";
 import { patchTripDetails } from "@/lib/api/tripDetails";
@@ -108,7 +107,7 @@ export async function DELETE(
    * write to the whole trip; being able to add a day to somebody's honeymoon
    * is not a reason to be able to delete the honeymoon.
    */
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return Response.json(
       {
         error: "out_of_scope",
@@ -208,7 +207,7 @@ export async function PATCH(
   const gate = found ? await mayWriteTrip(auth.session, found) : null;
   if (!found || !gate?.ok) return Response.json({ error: "unknown_trip" }, { status: 404 });
 
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return Response.json(
       {
         error: "out_of_scope",

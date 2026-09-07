@@ -1,6 +1,5 @@
-import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayActAsOwner, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { editEntry, factsOfEntry, publishNotice, publishDraft } from "@/lib/api/entries";
-import { SESSION_SCOPE } from "@/lib/auth";
 import { isTestContent } from "@/lib/access";
 import { isEnabled } from "@/lib/capabilities";
 import { balanceOf } from "@/lib/credits";
@@ -82,7 +81,7 @@ export async function POST(
   const gate = await mayWriteTrip(auth.session, found);
   if (!gate.ok) return refuseWrite(gate);
 
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return Response.json(
       {
         error: "out_of_scope",

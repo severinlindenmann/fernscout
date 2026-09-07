@@ -1,6 +1,5 @@
-import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayActAsOwner, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
 import { mailSummary } from "@/lib/api/dayMail";
-import { SESSION_SCOPE } from "@/lib/auth";
 import { isTestContent } from "@/lib/access";
 import { sendDayLetter } from "@/lib/digest/dayLetter";
 import { getEntryBySlug } from "@/lib/entries";
@@ -41,7 +40,7 @@ export async function POST(
   const gate = await mayWriteTrip(auth.session, found);
   if (!gate.ok) return refuseWrite(gate);
 
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return Response.json(
       {
         error: "out_of_scope",

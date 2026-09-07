@@ -10,6 +10,7 @@ import {
   manageUrl,
   unsubscribeUrlFor,
 } from "../contacts";
+import { mayMailContact } from "../contacts/mail";
 import { pickLocale } from "../contacts/locale";
 import type { UserConfig } from "../config";
 import { conversionFor, costForDay } from "../costs";
@@ -59,23 +60,28 @@ import { journalTimezone } from "./quiet";
  * person, on pain of a letter carrying words and a cost to somebody the site
  * would refuse.
  *
- * **They are a second copy of a permission rule, and nothing holds the two
- * together.** Checked faithful when written — `mayMailTrip` is
+ * **They are a second copy of a permission rule** — `mayMailTrip` is
  * `isOpenToLink || traveller || (not private && granted)`, and `mayMailCosts`
  * is `isEnabled && (costsVisibility public || isGuestOf)`, which is
- * `maySeeCosts(trip, isGuestOf(trip))` inlined — but faithful *when written*
- * is exactly what every drift in this codebase was. `test/day-mail.test.ts`
- * pins the behaviour these produce; it does not compare them against
- * `lib/tripGate.ts`, so a change there can leave these two behind without
- * anything failing. B346 is the test that would close that, and until it
- * exists a change to `mayReadTrip` or `mayViewCosts` has to be made here by
- * hand, deliberately.
+ * `maySeeCosts(trip, isGuestOf(trip))` inlined — and B363 is the record that
+ * "faithful when written" is not a promise a second copy keeps on its own.
+ * `test/day-mail.test.ts` pins the behaviour these produce in isolation;
+ * `test/day-mail-parity.test.ts` is the one that would have caught B363
+ * itself — it drives `mayReadTrip`/`mayViewCosts` and these two for the same
+ * viewer, over every visibility and cost-visibility combination, and fails
+ * the moment either pair disagrees. A change to `mayReadTrip` or
+ * `mayViewCosts` that leaves these two behind fails that suite, not silently.
  *
  * The reason they exist at all: `mayReadTrip` reads a cookie, and there is no
  * cookie when the question is "may this address be sent a letter". If that
  * ever becomes expressible without duplication — a shared pure core the two
  * wrappers call — that is the better answer and this comment is the argument
- * for it.
+ * for it. The parity test is the smaller, safer thing done in the meantime
+ * (B363): the two wrappers special-case the owner differently from the site
+ * gates (`recipientsFor` includes the owner upstream of both, unconditionally
+ * and for free, so neither wrapper has an owner branch to keep in step), which
+ * is exactly the kind of "cannot be reduced without contortion" the ticket
+ * asked to have written down.
  */
 
 /** Mirrors `mayReadTrip` (`lib/tripGate.ts`) for one address, without a
@@ -97,8 +103,12 @@ export function mayMailTrip(trip: Trip, isTraveller: boolean, granted: boolean):
 }
 
 /** Mirrors `mayViewCosts` + `isGuestOf` (`lib/tripGate.ts`) for one address —
- * asked per recipient, never once for the whole letter. */
-function mayMailCosts(trip: Trip, isTraveller: boolean, granted: boolean): boolean {
+ * asked per recipient, never once for the whole letter. Exported only for
+ * `test/day-mail-parity.test.ts` (B363), the same way `mayMailTrip` is
+ * exported for B365's WhatsApp announcement — a black-box parity test that
+ * had to re-derive this formula rather than call it would not catch drift in
+ * the formula itself. */
+export function mayMailCosts(trip: Trip, isTraveller: boolean, granted: boolean): boolean {
   if (!isEnabled("costs", trip.username)) return false;
   if (trip.costsVisibility === "public") return true;
   if (isTraveller) return true;
@@ -182,6 +192,11 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
     // B345: one switch, not two. A reader who turned the digest off asked
     // for no more letters, this one included.
     if (!contact.wantsEmailDigest) continue;
+    // B334 — `status === "active"` is unreachable without `confirmed_at` set
+    // today, which is exactly why nothing here had ever failed. Asked anyway,
+    // through the one gate every contact-addressed sender routes through, so
+    // a future change to what "active" means cannot quietly reopen this.
+    if (!mayMailContact(contact)) continue;
 
     const email = contact.email.trim().toLowerCase();
     if (seen.has(email)) continue; // never the owner twice

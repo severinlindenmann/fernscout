@@ -7,8 +7,7 @@ import type { TripPerson } from "../types";
 import type { Figure } from "../travellers/vocabulary";
 import { peopleBlock, travellersBlock, type BlockResult } from "../tripWrite";
 import { spliceBlock } from "./tripFile";
-import { authenticate, errorResponse, ownsUser } from "./auth";
-import { SESSION_SCOPE } from "../auth";
+import { authenticate, errorResponse, mayActAsOwner, ownsUser } from "./auth";
 
 /**
  * Amending a trip's `people:` and `travellers:` blocks after it has been
@@ -162,7 +161,7 @@ export async function resolveTripOwner(
     return { ok: false, response: Response.json({ error: "unknown_trip" }, { status: 404 }) };
   }
 
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return {
       ok: false,
       response: Response.json({ error: "out_of_scope", message: refusal }, { status: 403 }),

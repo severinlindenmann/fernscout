@@ -1,5 +1,4 @@
-import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
-import { SESSION_SCOPE } from "@/lib/auth";
+import { authenticate, errorResponse, mayActAsOwner, outOfScope, ownsUser } from "@/lib/api/auth";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
 import { journalTombstone } from "@/lib/tombstones";
 import { getUser } from "@/lib/users";
@@ -53,7 +52,7 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/v1
   // The owner, and nobody else. Somebody listed in a trip's `people:` holds a
   // `write:trip:<id>` scope — they may write days into that trip, which is not
   // the same authority as removing the journal it sits in.
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return Response.json(
       {
         error: "out_of_scope",

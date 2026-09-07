@@ -1,5 +1,4 @@
-import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
-import { SESSION_SCOPE } from "@/lib/auth";
+import { authenticate, errorResponse, mayActAsOwner, outOfScope, ownsUser } from "@/lib/api/auth";
 import { FEATURE_NAMES } from "@/lib/config";
 import {
   JOURNAL_FIELD_REFUSALS,
@@ -111,7 +110,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
    * idiom, so it is fixed in the same pass rather than left as the last
    * instance of it.
    */
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return Response.json(
       {
         error: "out_of_scope",
@@ -177,7 +176,7 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/v1/
     return outOfScope(auth.session, user);
   }
 
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return Response.json(
       {
         error: "out_of_scope",
