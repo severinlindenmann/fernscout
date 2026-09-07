@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (105)
+## backlog (106)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (26)
+### issue (27)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -78,6 +78,7 @@ Do not edit them by hand; run the script.
 | [B805](backlog/issue/B805-the-publish-note-is-english-only.md) | The publish note is English only and is shown to people | ISSUE | medium | low |
 | [B806](backlog/issue/B806-a-credit-is-never-named-in.md) | A credit is never named in francs anywhere a person reads | ISSUE | medium | low |
 | [B809](backlog/issue/B809-two-name-fields-in-the-signup.md) | Two name fields in the signup form cannot be told apart | ISSUE | medium | low |
+| [B810](backlog/issue/B810-the-first-thing-the-product-asks.md) | The first thing the product asks a new person is what their day cost | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
@@ -433,7 +434,6 @@ _Nothing here._
 | [B695](completed/B695-a-public-get-spawns-ffmpeg-api.md) | A public GET spawns ffmpeg: /api/health and /agent.md turn a cheap request into processes | SECURITY | high | low |
 | [B698](completed/B698-a-photograph-the-camera-rotated-with.md) | A photograph the camera rotated with EXIF is stretched in the book | ISSUE | high | medium |
 | [B704](completed/B704-a-first-photobook-opens-as-a.md) | A first photobook opens as a wall of settings with nothing to compare them against | FEATURE | high | high |
-| [B709](completed/B709-every-day-must-answer-the-money.md) | Every day must answer the money question before it is written | ISSUE | high | medium |
 | [B72](completed/B72-a-trip-whose-dates-have-passed.md) | A trip whose dates have passed still calls itself upcoming, and hides every day written to it | ISSUE | high | medium |
 | [B727](completed/B727-the-first-book-flow-only-opens.md) | The first-book flow only opens once, is laid out for a desktop, and draws a book as a grey rectangle | FEATURE | high | medium |
 | [B73](completed/B73-a-journal-with-no-current-trip.md) | A journal with no current trip answers 404 on three of the four pages its own nav offers | ISSUE | high | low |
@@ -886,6 +886,7 @@ _Nothing here._
 | [B687](completed/B687-photographs-cannot-describe-themselves.md) | Photographs cannot describe themselves | FEATURE | low | medium |
 | [B697](completed/B697-there-is-no-way-back-to.md) | There is no way back to the site from /agent | ISSUE | low | low |
 | [B708](completed/B708-a-day-of-videos-hits-the.md) | A day of videos hits the per-day item limit early | ISSUE | low | low |
+| [B709](completed/B709-every-day-must-answer-the-money.md) | Every day must answer the money question before it is written | ISSUE | low | medium |
 | [B71](completed/B71-the-per-day-media-ceiling-test.md) | The per-day media ceiling test asserts on problems[0], and failed once in a full run | CHORE | low | low |
 | [B710](completed/B710-the-reverse-geocoding-url-is-guessed.md) | The reverse geocoding URL is guessed from the forward one | ISSUE | low | low |
 | [B711](completed/B711-the-preview-still-says-draft-after.md) | The preview still says draft after the day is published | ISSUE | low | low |

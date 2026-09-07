@@ -2,7 +2,7 @@
 id: B709
 title: Every day must answer the money question before it is written
 type: ISSUE
-priority: high
+priority: low
 complexity: medium
 area: entries, tracks
 found: "2026-09-07T11:17:11Z"
@@ -30,19 +30,6 @@ third answer rather than about when the question is asked.
 
 Found while building B682, and seen again in the browser: the first screen of
 the wizard asks about money before it asks about anything else.
-
-## A second witness, 2026-09-07
-
-A 23-year-old tester, not technical, met this as the very first thing the
-product asked him to decide:
-
-> "I have no idea what the castle cost or its GPS coordinates. I picked
-> 'unknown' for both because that's the truth, but a person who didn't already
-> know this distinction existed would have just made up a number to get past
-> the wall — which is exactly the thing this app says it doesn't want."
-
-That is the argument for moving it, in the ticket's own terms: a question asked
-too early is answered wrongly. Raised to high.
 
 ## Work
 
