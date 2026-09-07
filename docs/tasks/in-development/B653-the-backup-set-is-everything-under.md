@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: backup, DR, scripts/backup.sh
 found: "2026-09-07T05:44:26Z"
+started: "2026-09-07T05:48:16Z"
+session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
+claimed: "2026-09-07T05:48:16Z"
 ---
 
 # B653 — The backup set is everything under DATA_DIR minus what somebody remembered to subtract
