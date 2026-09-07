@@ -14,15 +14,15 @@ gallery:
   - src: "/media/parks-2025/arches-at-dusk/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1074
   - src: "/media/parks-2025/arches-at-dusk/02.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1074
   - src: "/media/parks-2025/arches-at-dusk/03.jpg"
     type: "image"
-    width: 1067
-    height: 1600
+    width: 1600
+    height: 1066
 tags: ["utah", "national-parks", "sunset"]
 costs:
   - { label: "Fuel", amount: 34, category: "transport", currency: "USD" }

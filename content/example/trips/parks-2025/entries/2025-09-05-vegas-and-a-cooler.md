@@ -14,11 +14,11 @@ gallery:
   - src: "/media/parks-2025/vegas-and-a-cooler/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1200
   - src: "/media/parks-2025/vegas-and-a-cooler/02.jpg"
     type: "image"
-    width: 1600
-    height: 1067
+    width: 1199
+    height: 1600
 tags: ["nevada", "logistics"]
 costs:
   - { label: "Motel by the airport", amount: 96, category: "accommodation", currency: "USD" }

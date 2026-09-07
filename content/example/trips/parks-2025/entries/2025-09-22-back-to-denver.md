@@ -14,11 +14,11 @@ gallery:
   - src: "/media/parks-2025/back-to-denver/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1200
   - src: "/media/parks-2025/back-to-denver/02.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1236
 tags: ["colorado", "driving"]
 costs:
   - { label: "Fuel", amount: 54, category: "transport", currency: "USD" }

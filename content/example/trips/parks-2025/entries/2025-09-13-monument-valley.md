@@ -15,11 +15,11 @@ gallery:
   - src: "/media/parks-2025/monument-valley/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1081
   - src: "/media/parks-2025/monument-valley/02.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1044
 tags: ["arizona", "desert", "driving"]
 costs:
   - { label: "Fuel", amount: 47, category: "transport", currency: "USD" }

@@ -14,15 +14,15 @@ gallery:
   - src: "/media/parks-2025/badlands-loop/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 867
   - src: "/media/parks-2025/badlands-loop/02.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 847
   - src: "/media/parks-2025/badlands-loop/03.jpg"
     type: "image"
-    width: 1067
-    height: 1600
+    width: 1600
+    height: 900
 tags: ["south-dakota", "national-parks", "wildlife"]
 costs:
   - { label: "Fuel", amount: 58, category: "transport", currency: "USD" }

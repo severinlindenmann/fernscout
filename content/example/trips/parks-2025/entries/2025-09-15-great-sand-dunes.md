@@ -14,11 +14,11 @@ gallery:
   - src: "/media/parks-2025/great-sand-dunes/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1060
   - src: "/media/parks-2025/great-sand-dunes/02.jpg"
     type: "image"
-    width: 1600
-    height: 1067
+    width: 1073
+    height: 1600
 tags: ["colorado", "national-parks", "dunes"]
 costs:
   - { label: "Fuel", amount: 52, category: "transport", currency: "USD" }

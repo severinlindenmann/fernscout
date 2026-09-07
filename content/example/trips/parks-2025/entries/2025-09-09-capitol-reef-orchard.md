@@ -14,14 +14,14 @@ gallery:
   - src: "/media/parks-2025/capitol-reef-orchard/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1065
   - src: "/media/parks-2025/capitol-reef-orchard/02.jpg"
     type: "image"
-    width: 1600
-    height: 1067
+    width: 1066
+    height: 1600
   - src: "/media/parks-2025/capitol-reef-orchard/03.jpg"
     type: "image"
-    width: 1067
+    width: 1066
     height: 1600
 tags: ["utah", "national-parks", "food"]
 costs:

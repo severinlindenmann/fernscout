@@ -14,11 +14,11 @@ gallery:
   - src: "/media/parks-2025/goblin-valley/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1200
   - src: "/media/parks-2025/goblin-valley/02.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1200
 tags: ["utah", "desert", "camping"]
 costs:
   - { label: "Fuel", amount: 39, category: "transport", currency: "USD" }

@@ -1,0 +1,386 @@
+{
+  "trip": "parks-2025",
+  "fetched": "2026-09-07",
+  "days": {
+    "vegas-and-a-cooler": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1200,
+        "title": "Ceasars Palace Las Vegas 03-13-2005.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Ceasars_Palace_Las_Vegas_03-13-2005.jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1199,
+        "height": 1600,
+        "title": "Circus Circus Las Vegas.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Circus_Circus_Las_Vegas.jpg"
+      }
+    ],
+    "zion-narrows": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1066,
+        "title": "Virgin River Zion NP. (30595616656).jpg",
+        "licence": "CC0",
+        "source": "https://commons.wikimedia.org/wiki/File:Virgin_River_Zion_NP._(30595616656).jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 1066,
+        "title": "Zion \"The Narrows\" Stream.jpg",
+        "licence": "CC0",
+        "source": "https://commons.wikimedia.org/wiki/File:Zion_%22The_Narrows%22_Stream.jpg"
+      },
+      {
+        "file": "03.jpg",
+        "width": 1600,
+        "height": 919,
+        "title": "Zion National Park. Utah. (33150617081).jpg",
+        "licence": "CC0",
+        "source": "https://commons.wikimedia.org/wiki/File:Zion_National_Park._Utah._(33150617081).jpg"
+      }
+    ],
+    "bryce-at-six": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 778,
+        "title": "Bryce Canyon National Park, (29980390774).jpg",
+        "licence": "CC0",
+        "source": "https://commons.wikimedia.org/wiki/File:Bryce_Canyon_National_Park,_(29980390774).jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 1007,
+        "title": "Bryce Canyon National Park. (31661169271).jpg",
+        "licence": "CC0",
+        "source": "https://commons.wikimedia.org/wiki/File:Bryce_Canyon_National_Park._(31661169271).jpg"
+      },
+      {
+        "file": "03.jpg",
+        "width": 1600,
+        "height": 952,
+        "title": "Bryce Canyon National Park (30855829996).jpg",
+        "licence": "CC0",
+        "source": "https://commons.wikimedia.org/wiki/File:Bryce_Canyon_National_Park_(30855829996).jpg"
+      }
+    ],
+    "escalante-backroad": [
+      {
+        "file": "01.jpg",
+        "width": 1506,
+        "height": 1600,
+        "title": "Grand Staircase-Escalante National Monument, Utah.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Grand_Staircase-Escalante_National_Monument,_Utah.jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 1063,
+        "title": "Barbed Wire–Grand Staircase-Escalante National Monument, Utah, October 9, 2015 (25944689398).jpg",
+        "licence": "CC0",
+        "source": "https://commons.wikimedia.org/wiki/File:Barbed_Wire%E2%80%93Grand_Staircase-Escalante_National_Monument,_Utah,_October_9,_2015_(25944689398).jpg"
+      }
+    ],
+    "capitol-reef-orchard": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1065,
+        "title": "Big Thomson Mesa, Capitol Reef National Park, Utah.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Big_Thomson_Mesa,_Capitol_Reef_National_Park,_Utah.jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1066,
+        "height": 1600,
+        "title": "Capitol Reef NP01.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Capitol_Reef_NP01.jpg"
+      },
+      {
+        "file": "03.jpg",
+        "width": 1066,
+        "height": 1600,
+        "title": "Capitol Reef NP03.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Capitol_Reef_NP03.jpg"
+      }
+    ],
+    "goblin-valley": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1200,
+        "title": "Goblin Valley SP in UT.jpg",
+        "licence": "CC0",
+        "source": "https://commons.wikimedia.org/wiki/File:Goblin_Valley_SP_in_UT.jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 1200,
+        "title": "Goblin Valley SP in UT - 51830323532.jpg",
+        "licence": "CC0",
+        "source": "https://commons.wikimedia.org/wiki/File:Goblin_Valley_SP_in_UT_-_51830323532.jpg"
+      }
+    ],
+    "arches-at-dusk": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1074,
+        "title": "BACKPACKERS TERRY MCGAW AND GLEN DENNY REST IN THE SETTING SUN AT THE END OF THE TRAIL TO DELICATE ARCH - NARA - 545770.tif",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:BACKPACKERS_TERRY_MCGAW_AND_GLEN_DENNY_REST_IN_THE_SETTING_SUN_AT_THE_END_OF_THE_TRAIL_TO_DELICATE_ARCH_-_NARA_-_545770.tif"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 1074,
+        "title": "BACKPACKERS TERRY MCGAW AND GLEN DENNY REST IN THE SETTING SUN AT THE END OF THE TRAIL TO DELICATE ARCH - NARA - 545770.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:BACKPACKERS_TERRY_MCGAW_AND_GLEN_DENNY_REST_IN_THE_SETTING_SUN_AT_THE_END_OF_THE_TRAIL_TO_DELICATE_ARCH_-_NARA_-_545770.jpg"
+      },
+      {
+        "file": "03.jpg",
+        "width": 1600,
+        "height": 1066,
+        "title": "Cloudy Sunset at Delicate Arch (8520706358).jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Cloudy_Sunset_at_Delicate_Arch_(8520706358).jpg"
+      }
+    ],
+    "needles-district": [
+      {
+        "file": "01.jpg",
+        "width": 1081,
+        "height": 1600,
+        "title": "RANGER AT WORK IN THE NEEDLES AREA OF CANYONLANDS NATIONAL PARK - NARA - 545591.tif",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:RANGER_AT_WORK_IN_THE_NEEDLES_AREA_OF_CANYONLANDS_NATIONAL_PARK_-_NARA_-_545591.tif"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1081,
+        "height": 1600,
+        "title": "RANGER AT WORK IN THE NEEDLES AREA OF CANYONLANDS NATIONAL PARK - NARA - 545591.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:RANGER_AT_WORK_IN_THE_NEEDLES_AREA_OF_CANYONLANDS_NATIONAL_PARK_-_NARA_-_545591.jpg"
+      }
+    ],
+    "monument-valley": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1081,
+        "title": "Monument Valley06.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Monument_Valley06.jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 1044,
+        "title": "Monument Valley14.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Monument_Valley14.jpg"
+      }
+    ],
+    "mesa-verde-ladders": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1284,
+        "title": "Cliff dwellings, \"Mesa Verde National Park,\" Colorado, \"1941.\", 1941 - NARA - 519943.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Cliff_dwellings,_%22Mesa_Verde_National_Park,%22_Colorado,_%221941.%22,_1941_-_NARA_-_519943.jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 1066,
+        "title": "Mesa Verde National Park MEVE1980.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Mesa_Verde_National_Park_MEVE1980.jpg"
+      },
+      {
+        "file": "03.jpg",
+        "width": 1600,
+        "height": 1066,
+        "title": "Mesa Verde National Park MEVE6012.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Mesa_Verde_National_Park_MEVE6012.jpg"
+      }
+    ],
+    "great-sand-dunes": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1060,
+        "title": "Great Sand Dunes National Park and Preserve.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Great_Sand_Dunes_National_Park_and_Preserve.jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1073,
+        "height": 1600,
+        "title": "GREAT SAND DUNES NATIONAL MONUMENT - NARA - 544873.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:GREAT_SAND_DUNES_NATIONAL_MONUMENT_-_NARA_-_544873.jpg"
+      }
+    ],
+    "black-canyon": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1200,
+        "title": "Black Canyon of the Gunnison National Park (2fcf9a56-7e84-41f7-9a88-123cf7311b2a).jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Black_Canyon_of_the_Gunnison_National_Park_(2fcf9a56-7e84-41f7-9a88-123cf7311b2a).jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 1200,
+        "title": "Black Canyon of the Gunnison National Park (37d8ccd8-c3ac-421d-a315-ec6218d8f7ae).jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Black_Canyon_of_the_Gunnison_National_Park_(37d8ccd8-c3ac-421d-a315-ec6218d8f7ae).jpg"
+      }
+    ],
+    "independence-pass": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1200,
+        "title": "Independence Pass CO.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Independence_Pass_CO.jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 1200,
+        "title": "ColoradoHwy82.JPG",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:ColoradoHwy82.JPG"
+      }
+    ],
+    "trail-ridge-road": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1066,
+        "title": "Rocky Mountain National Park ROMO2160.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Rocky_Mountain_National_Park_ROMO2160.jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 1066,
+        "title": "Rocky Mountain National Park ROMO3043.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Rocky_Mountain_National_Park_ROMO3043.jpg"
+      },
+      {
+        "file": "03.jpg",
+        "width": 1600,
+        "height": 1066,
+        "title": "Rocky Mountain National Park ROMO3157.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Rocky_Mountain_National_Park_ROMO3157.jpg"
+      }
+    ],
+    "wyoming-nothing": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1200,
+        "title": "Sage-steppe Habitat in Upper Green River Basin, Wyoming (19957608999).jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Sage-steppe_Habitat_in_Upper_Green_River_Basin,_Wyoming_(19957608999).jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 1066,
+        "title": "Wyoming Toad Conservation Area- Solomon's Slough (53252012556).jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Wyoming_Toad_Conservation_Area-_Solomon%27s_Slough_(53252012556).jpg"
+      }
+    ],
+    "badlands-loop": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 867,
+        "title": "Badlands National Park. (30908333195).jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Badlands_National_Park._(30908333195).jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 847,
+        "title": "Badlands National Park (49620205198).jpg",
+        "licence": "CC0",
+        "source": "https://commons.wikimedia.org/wiki/File:Badlands_National_Park_(49620205198).jpg"
+      },
+      {
+        "file": "03.jpg",
+        "width": 1600,
+        "height": 900,
+        "title": "Badlands National Park Forward Into Light (2fd17d5c-397f-4876-9317-001b319510d0).jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Badlands_National_Park_Forward_Into_Light_(2fd17d5c-397f-4876-9317-001b319510d0).jpg"
+      }
+    ],
+    "wind-cave": [
+      {
+        "file": "01.jpg",
+        "width": 1124,
+        "height": 1600,
+        "title": "Pulsatilla (Wind Cave NP).jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Pulsatilla_(Wind_Cave_NP).jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1200,
+        "height": 1600,
+        "title": "Fabaceae Wind Cave NP.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Fabaceae_Wind_Cave_NP.jpg"
+      }
+    ],
+    "back-to-denver": [
+      {
+        "file": "01.jpg",
+        "width": 1600,
+        "height": 1200,
+        "title": "Downtown Denver skyline.jpg",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Downtown_Denver_skyline.jpg"
+      },
+      {
+        "file": "02.jpg",
+        "width": 1600,
+        "height": 1236,
+        "title": "Motation Study, Circulation, Features and Water, and Spatial Edges and Visual Boundaries - Skyline Park, 1500-1800 Arapaho Street, Denver, Denver County, CO HALS CO-1 (sheet 8 of 11).tif",
+        "licence": "Public domain",
+        "source": "https://commons.wikimedia.org/wiki/File:Motation_Study,_Circulation,_Features_and_Water,_and_Spatial_Edges_and_Visual_Boundaries_-_Skyline_Park,_1500-1800_Arapaho_Street,_Denver,_Denver_County,_CO_HALS_CO-1_(sheet_8_of_11).tif"
+      }
+    ]
+  }
+}

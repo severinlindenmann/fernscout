@@ -100,15 +100,29 @@ export default function TripHero({
   // drawn empty.
   const hasLocation = current.location !== "";
 
-  // The bare URLs are the journal's front door, so the masthead there is the
-  // journal. Open one particular trip and the masthead is that trip — the date
-  // line underneath already belongs to it, and a journal title above a past
-  // trip's dates reads as a mistake. (The hero only renders inside a trip's
-  // story, so the context is always there.)
+  // **The masthead is always the trip**, on the bare journal URL as much as on
+  // a trip's own address.
+  //
+  // It used to be the journal's own title and tagline whenever the trip on
+  // screen was the current one, on the reasoning that the bare URL is the
+  // journal's front door. Two things were wrong with that. `PageHeader`
+  // already renders the journal's title directly above this, so the hero was
+  // repeating it and spending its largest line saying nothing new — while the
+  // one fact a reader wants there, *which journey is this*, was missing
+  // entirely. And "current" only means the most recent trip, not one that is
+  // still happening: a finished journey sat under the journal's name beside a
+  // card reading "the trip is over", which reads as a mistake because it is
+  // one.
+  //
+  // The date line underneath has always belonged to the trip, so this is the
+  // heading agreeing with what was already beneath it. (The hero only renders
+  // inside a trip's story, so there is always a trip to name.)
   const active = useTrip()!;
   const localized = localizedTrip(active.trip);
-  const heading = active.isCurrent ? site.title : localized.title;
-  const subheading = active.isCurrent ? site.tagline : (localized.tagline ?? site.tagline);
+  const heading = localized.title;
+  // A trip without its own tagline falls back to the journal's rather than
+  // leaving a gap — the line is part of the masthead's shape.
+  const subheading = localized.tagline ?? site.tagline;
   // "Right now we're in" is a claim about the world, and `status` alone is not
   // enough to make it: a trip still marked `current` a fortnight after its end
   // date is exactly the case that goes on claiming a location. `isOver` decides

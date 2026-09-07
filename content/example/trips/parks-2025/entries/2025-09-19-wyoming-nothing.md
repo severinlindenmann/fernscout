@@ -14,11 +14,11 @@ gallery:
   - src: "/media/parks-2025/wyoming-nothing/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1200
   - src: "/media/parks-2025/wyoming-nothing/02.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1066
 tags: ["wyoming", "driving", "plains"]
 costs:
   - { label: "Fuel", amount: 51, category: "transport", currency: "USD" }
