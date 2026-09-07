@@ -194,13 +194,19 @@ describe("the grant path is not reachable over HTTP", () => {
    * HTTP request can spend. B368 adds a "buy credits" button that mails
    * information and grants nothing — this is the test that keeps it honest.
    */
-  // Since B425 there is exactly one sanctioned exception: the operator approve
-  // route, which grants after a single-use token (mailed only to
-  // site.operatorEmail) is spent atomically. Anything else importing grant
-  // still fails, which keeps a second unreviewed grant path from appearing.
-  const GRANT_ALLOWED = ["app/api/v1/[user]/payments/[id]/approve/route.ts"];
+  // Since B425 there is one sanctioned exception: the operator approve route,
+  // which grants after a single-use token (mailed only to site.operatorEmail)
+  // is spent atomically. B688 adds a second: the journal-creation route
+  // grants a fixed `SIGNUP_CREDIT_GRANT` exactly once, only after a journal
+  // has actually been written under a freshly spent signup token — see
+  // property 1 in the module comment. Anything else importing grant still
+  // fails, which keeps a third, unreviewed grant path from appearing.
+  const GRANT_ALLOWED = [
+    "app/api/v1/[user]/payments/[id]/approve/route.ts",
+    "app/api/v1/journals/route.ts",
+  ];
 
-  test("only the operator approve route imports grant from lib/credits", () => {
+  test("only the sanctioned routes import grant from lib/credits", () => {
     const offenders: string[] = [];
     const walk = (d: string): void => {
       for (const item of fs.readdirSync(d, { withFileTypes: true })) {

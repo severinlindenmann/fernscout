@@ -2,6 +2,7 @@ import { LOCALE_LIST } from "@/lib/api/agentCopy";
 import { SESSION_SCOPE, NO_JOURNAL, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { normalizeJournalVisibility } from "@/lib/config";
+import { creditsEnabled, grant, SIGNUP_CREDIT_GRANT } from "@/lib/credits";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 import { createJournal, sendWelcome } from "@/lib/journals";
 import { clientIp, rateLimitFor, rateLimitStatus } from "@/lib/rateLimit";
@@ -344,6 +345,23 @@ export async function POST(request: Request) {
     await revokeSession(session.id);
   } catch (err) {
     console.error(`[journals] could not spend the signup token for ${created.username}:`, err);
+  }
+
+  /**
+   * The free grant, so the first trip costs nothing — plan §6.
+   *
+   * Only when `credits` is on: with it off every spend already succeeds for
+   * free (`spend()`'s own behaviour), so a grant would write a ledger row
+   * nobody will ever read back. Best effort and after the journal already
+   * exists, for the same reason the welcome mail is: a journal that exists is
+   * a journal, not a failed creation, whatever a grant does.
+   */
+  if (creditsEnabled()) {
+    try {
+      await grant(created.username, SIGNUP_CREDIT_GRANT, "signup");
+    } catch (err) {
+      console.error(`[journals] could not grant the signup credit to ${created.username}:`, err);
+    }
   }
 
   const token = await openAgentSession(created.username, session.email);

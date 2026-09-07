@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
 import HelperAsk from "@/components/HelperAsk";
 import { AgentBlock, Kicker } from "@/components/LandingSections";
 import IdentitySignIn from "@/components/IdentitySignIn";
+import SignupWizard from "@/components/SignupWizard";
 import { useI18n } from "@/components/LocaleProvider";
 import type { WizardDraft } from "@/lib/helper/draft";
 
@@ -46,9 +48,14 @@ export type AgentJournal = {
  * second, separate "bring your own agent" panel once a journal is known; one
  * panel that gets more specific as more is known is the point.
  *
- * A signed-in reader who owns no journal here gets a plain sentence and the
- * generic panel — there is nothing to write into yet, and no signup wizard
- * either (that is its own later step, item 8 in the plan).
+ * A signed-in reader who owns no journal gets `SignupWizard` in place of the
+ * plain sentence, where `signup` is on — B688: email and code (skipped where
+ * an identity cookie already proved the address, though a signup token still
+ * needs its own fresh code), a journal name and address, and a first trip,
+ * ending signed in and inside `/agent/<user>`. The same wizard is what a
+ * signed-*out* visitor sees below `IdentitySignIn`, since an identity proves
+ * an address and grants nothing — it is never a journal on its own. Off, both
+ * places fall back to a plain sentence rather than a form that cannot work.
  */
 export default function AgentDoor({
   siteUrl,
@@ -56,6 +63,8 @@ export default function AgentDoor({
   agentUrl,
   codeMinutes,
   signedIn,
+  identityEmail,
+  signupEnabled,
   journals,
 }: {
   /** This instance's public base URL, from server config. */
@@ -67,10 +76,24 @@ export default function AgentDoor({
   codeMinutes: string;
   /** Whether the request carried a live `fs_identity` cookie. */
   signedIn: boolean;
+  /** The address behind that cookie, prefilled into the signup wizard so a
+   * visitor who already proved it once is not asked to type it again — B688. */
+  identityEmail: string | null;
+  /** Whether `signup` is on for this instance — B688. Off is absent rather
+   * than broken: no form, a plain sentence instead. */
+  signupEnabled: boolean;
   /** The reader's own journals — `role: "owner"` only, see the page. */
   journals: AgentJournal[];
 }) {
-  const { t, tn, formatLongDate } = useI18n();
+  const { t, tn, locale, formatLongDate } = useI18n();
+  const router = useRouter();
+
+  /** Where a brand-new owner lands, the moment they are signed in with a
+   * trip already made — B688's whole point: the wizard for the first day,
+   * never a second stop to explain what a username was. */
+  function intoTheWizard(username: string) {
+    router.push(`/agent/${encodeURIComponent(username)}`);
+  }
 
   return (
     // Full-bleed paper ground — B733, the same two-step as `/`: `cream-100`
@@ -94,11 +117,32 @@ export default function AgentDoor({
           />
         )}
 
-        {signedIn && journals.length === 0 && (
-          <p className="mt-6 rounded-2xl border border-navy-200 bg-cream-50 p-5 text-base leading-7 text-navy-800 sm:p-6">
-            {t("agent.noJournal")}
-          </p>
-        )}
+        {/* B688: a visitor with no journal completes the whole of signup
+          right here — email, a name, an address, a first trip — and never
+          sees `/welcome`, which was written for somebody who already knows
+          what this is. Shown whether or not they are signed in: an identity
+          cookie proves an address but grants nothing, so it is never a
+          journal on its own. */}
+        {!signedIn &&
+          (signupEnabled ? (
+            <div className="mt-6">
+              <SignupWizard email={identityEmail ?? undefined} locale={locale} codeMinutes={codeMinutes} onSignedIn={intoTheWizard} />
+            </div>
+          ) : (
+            <p className="mt-6 text-base leading-7 text-navy-600">{t("agent.signupOff")}</p>
+          ))}
+
+        {signedIn &&
+          journals.length === 0 &&
+          (signupEnabled ? (
+            <div className="mt-6">
+              <SignupWizard email={identityEmail ?? undefined} locale={locale} codeMinutes={codeMinutes} onSignedIn={intoTheWizard} />
+            </div>
+          ) : (
+            <p className="mt-6 rounded-2xl border border-navy-200 bg-cream-50 p-5 text-base leading-7 text-navy-800 sm:p-6">
+              {t("agent.noJournal")}
+            </p>
+          ))}
 
         {signedIn && journals.length > 0 && (
           <div className="mt-8 space-y-6">
