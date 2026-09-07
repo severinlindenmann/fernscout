@@ -50,7 +50,7 @@ function render() {
 describe("the file picker speaks the journal's language", () => {
   test("our own words on a label in front of the input", () => {
     const html = render();
-    expect(html).toContain("Fotos wählen");
+    expect(html).toContain("Dateien wählen");
     expect(html).toContain('for="wizard-pick"');
   });
 

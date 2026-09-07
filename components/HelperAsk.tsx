@@ -221,7 +221,8 @@ export default function HelperAsk({
         <div className="mt-3">
           <ConfirmPanel
             label={t("agent.helperConsentLabel")}
-            question={t("agent.askConsent")}
+            question={t("agent.askConsentShort")}
+            details={t("agent.askConsent")}
             confirmLabel={t("agent.helperConsentConfirm")}
             busy={busy}
             onConfirm={() => void consentThenAsk()}

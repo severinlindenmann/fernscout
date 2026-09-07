@@ -323,7 +323,8 @@ export default function AgentInbox({
                   {consenting && (
                     <ConfirmPanel
                       label={t("agent.statementConsentLabel")}
-                      question={t("agent.statementConsent")}
+                      question={t("agent.statementConsentShort")}
+                      details={t("agent.statementConsent", { credits: String(helper.credits) })}
                       confirmLabel={t("agent.statementConsentConfirm")}
                       busy={busy}
                       onConfirm={() => consentThenRead(id)}

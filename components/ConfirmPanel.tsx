@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/components/LocaleProvider";
+import Why from "@/components/Why";
 
 /**
  * A question asked in the page, not by the browser — B668.
@@ -29,6 +30,7 @@ import { useI18n } from "@/components/LocaleProvider";
 export default function ConfirmPanel({
   label,
   question,
+  details,
   confirmLabel,
   busyLabel,
   busy = false,
@@ -39,7 +41,12 @@ export default function ConfirmPanel({
 }: {
   /** Names the dialog for a screen reader — usually the button that opened it. */
   label: string;
+  /** The whole question in one line — about 25 words, B781. */
   question: string;
+  /** Everything the line leaves out, behind a "why?" — B781. Every promise the
+   * long version made, the provider's name included. Absent where the question
+   * is already the whole of it (deleting one file says all there is to say). */
+  details?: string;
   confirmLabel: string;
   busyLabel?: string;
   busy?: boolean;
@@ -59,6 +66,7 @@ export default function ConfirmPanel({
       className="max-w-md rounded-2xl border border-navy-200 bg-cream-50 p-4"
     >
       <p className="text-sm leading-6 text-navy-700">{question}</p>
+      {details && <Why>{details}</Why>}
       {children}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button

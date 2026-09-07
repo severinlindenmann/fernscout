@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
@@ -8,6 +9,7 @@ import { AgentBlock } from "@/components/LandingSections";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import SignupWizard from "@/components/SignupWizard";
 import { useI18n } from "@/components/LocaleProvider";
+import Why from "@/components/Why";
 import type { WizardDraft } from "@/lib/helper/draft";
 
 export type AgentJournal = {
@@ -105,6 +107,12 @@ export default function AgentDoor({
   const { t, tn, locale, formatLongDate } = useI18n();
   const router = useRouter();
 
+  /** B786 — which of the two forms this visitor is here for. `null` until they
+   * say, which is the question itself. Nothing is remembered: a wrong answer
+   * is one tap back, and the signup path already tells somebody whose address
+   * has no journal so. */
+  const [has, setHas] = useState<boolean | null>(null);
+
   /** Where a brand-new owner lands, the moment they are signed in with a
    * trip already made — B688's whole point: the wizard for the first day,
    * never a second stop to explain what a username was. */
@@ -123,31 +131,79 @@ export default function AgentDoor({
         <p className="mt-3 text-lg leading-7 text-navy-700">
           {t("agent.intro")}
         </p>
+        {/* B781 — the door's intro was 31 words above a button. The half that
+            is a promise rather than a direction is behind "why?", where the
+            person who wants it can have all of it. */}
+        <Why>{t("agent.introWhy")}</Why>
 
-        {!signedIn && (
-          // Reloads on success, like the same form on `/` — the page re-renders
-          // from the cookie the server just set rather than the client
-          // pretending to know what it now opens.
-          <IdentitySignIn
-            codeMinutes={codeMinutes}
-            onDone={() => window.location.reload()}
-          />
+        {/* B786 — one question, then one email field.
+            Signed out, this screen used to draw `IdentitySignIn` and
+            `SignupWizard` one above the other: the same label, the same
+            button, the same shape, two centimetres apart, and nothing saying
+            which was whose. A 71-year-old tester read both paragraphs three
+            times and telephoned her son. Better headings were not the fix —
+            two identical forms stay confusing however they are labelled — so
+            the screen asks first and shows one.
+
+            With signup switched off there is only ever one form, so there is
+            nothing to ask: the question is not drawn at all. */}
+        {!signedIn && !signupEnabled && (
+          <>
+            <IdentitySignIn codeMinutes={codeMinutes} onDone={() => window.location.reload()} />
+            <p className="mt-6 text-base leading-7 text-navy-600">{t("agent.signupOff")}</p>
+          </>
         )}
 
-        {/* B688: a visitor with no journal completes the whole of signup
-          right here — email, a name, an address, a first trip — and never
-          sees `/welcome`, which was written for somebody who already knows
-          what this is. Shown whether or not they are signed in: an identity
-          cookie proves an address but grants nothing, so it is never a
-          journal on its own. */}
-        {!signedIn &&
-          (signupEnabled ? (
-            <div className="mt-6">
+        {!signedIn && signupEnabled && (
+          <div className="mt-6">
+            {has === null ? (
+              <section className="rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6">
+                <h2 className="font-display text-xl font-semibold text-navy-900">
+                  {t("agent.haveJournal")}
+                </h2>
+                <div className="mt-4 flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setHas(true)}
+                    className="min-h-11 rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+                  >
+                    {t("agent.haveJournalYes")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHas(false)}
+                    className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 transition-colors hover:bg-cream-100"
+                  >
+                    {t("agent.haveJournalNo")}
+                  </button>
+                </div>
+              </section>
+            ) : has ? (
+              // Reloads on success, like the same form on `/` — the page
+              // re-renders from the cookie the server just set rather than the
+              // client pretending to know what it now opens.
+              <IdentitySignIn codeMinutes={codeMinutes} onDone={() => window.location.reload()} />
+            ) : (
+              /* B688: a visitor with no journal completes the whole of signup
+                 right here — email, a name, an address, a first trip — and
+                 never sees `/welcome`, which was written for somebody who
+                 already knows what this is. */
               <SignupWizard email={identityEmail ?? undefined} locale={locale} codeMinutes={codeMinutes} onSignedIn={intoTheWizard} />
-            </div>
-          ) : (
-            <p className="mt-6 text-base leading-7 text-navy-600">{t("agent.signupOff")}</p>
-          ))}
+            )}
+
+            {/* Choosing wrongly costs one tap and no reload — which is what
+                makes asking safe to ask. */}
+            {has !== null && (
+              <button
+                type="button"
+                onClick={() => setHas(null)}
+                className="mt-3 min-h-11 text-base text-navy-600 underline underline-offset-4 hover:text-navy-900"
+              >
+                {t("agent.haveJournalAgain")}
+              </button>
+            )}
+          </div>
+        )}
 
         {signedIn &&
           journals.length === 0 &&

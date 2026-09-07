@@ -221,7 +221,15 @@ export default function RecordButton({
     return (
       <ConfirmPanel
         label={t("agent.speechConsentLabel")}
+        // B781 — one line here, the whole of it behind "why?". The provider is
+        // named in both: in the line when there is a real one, and in the
+        // expansion always.
         question={
+          provider === "dry-run"
+            ? t("agent.speechConsentDryRunShort")
+            : t("agent.speechConsentShort", { provider })
+        }
+        details={
           provider === "dry-run"
             ? t("agent.speechConsentDryRun", { minutes: String(MINUTES_PER_CREDIT) })
             : t("agent.speechConsent", { provider, minutes: String(MINUTES_PER_CREDIT) })
