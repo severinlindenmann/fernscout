@@ -534,25 +534,32 @@ function drawPage(
 
   switch (plan.kind) {
     case "title": {
-      // The two of us, standing above the title, at a size that reads as a
-      // mark rather than an illustration. See lib/photobook/travellers.ts.
+      // One group, sitting on the lower third — the title page's whole job is
+      // to be quiet and unmistakably the front of something.
+      const lines = wrap(plan.title, type.display, mm(c.width), "bold");
+      const titleBaseline = c.y + c.height * 0.34;
+      /**
+       * The party, standing on the title — B749, placed off the title's own
+       * top since B756 rather than at a fraction of the page.
+       *
+       * A percentage was two numbers that had to agree by coincidence, and
+       * they stopped agreeing the moment a party of five was drawn against a
+       * title long enough to wrap: the figures came down through the words.
+       * The top of the first line is where the title actually ends, so that
+       * is what the feet stand on, plus a gap. Party-independent, wrap-
+       * independent, and it cannot overlap by arithmetic.
+       */
+      const titleTop = titleBaseline + (type.display * 0.72) / mm(1);
       drawTravellers(page, (xMm, yMm) => [frame.x(xMm), frame.y(yMm)], {
         x: c.x,
-        // Standing *on* the title block rather than floating above it — B749.
-        // At 0.52 there was a band of paper between the party and the words
-        // they belong to (the title's own baseline is at 0.34 below), and two
-        // things on a page with nothing between them read as two decisions.
-        y: c.y + c.height * 0.4,
+        y: titleTop + 5,
         // Left-aligned with the title rather than centred over it: everything
         // else on this page hangs off the same margin, and a centred mark
         // above ranged-left type reads as two decisions instead of one.
         width: c.height * 0.28,
         height: c.height * 0.2,
       }, plan.figures);
-      // One group, sitting on the lower third — the title page's whole job is
-      // to be quiet and unmistakably the front of something.
-      const lines = wrap(plan.title, type.display, mm(c.width), "bold");
-      let y = c.y + c.height * 0.34;
+      let y = titleBaseline;
       for (const line of lines) {
         text(page, frame, line, c.x, y, type.display, INK, "F2");
         y -= (type.display * 1.16) / mm(1);

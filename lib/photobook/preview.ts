@@ -358,14 +358,17 @@ function pageHtml(
   switch (page.kind) {
     case "title":
       parts.push(
-        `<div style="position:absolute;left:${((spec.safeMm / (spec.size.trimWidthMm + spec.bleedMm * 2)) * 100).toFixed(3)}%;` +
-          `bottom:40%">${travellersSvg(20, page.figures)}</div>`,
-      );
-      parts.push(
         textBlock(
           spec,
           page,
-          `<div class="stack"><h1 style="${pt(type.display)}">${escape(page.title)}</h1>` +
+          // The party stands *in* the title's own stack rather than at a
+          // percentage of the page — B756. Absolutely positioned, it was two
+          // numbers that had to agree by coincidence, and a party of five
+          // came down through a title long enough to wrap. In the flow it
+          // cannot overlap: the browser is doing the arithmetic the PDF does
+          // by hand in `render.ts`.
+          `<div class="stack">${travellersSvg(20, page.figures)}` +
+            `<h1 style="${pt(type.display)}">${escape(page.title)}</h1>` +
             (page.tagline ? `<p class="muted" style="${pt(type.subheading)}">${escape(page.tagline)}</p>` : "") +
             `<hr><p style="${pt(type.caption)}">${escape(page.dates)}</p>` +
             `<p class="muted" style="${pt(type.caption)}">${escape(page.travellers)}</p>` +
@@ -679,6 +682,8 @@ export function renderPreview(
   .copy { position:absolute; display:flex; flex-direction:column; justify-content:flex-start;
           gap:.15em; overflow:hidden; color:var(--ink); }
   .copy .stack { margin-top:auto; margin-bottom:20%; }
+  /* The title page's party, standing on the title — B756. */
+  .copy .stack > svg { margin-bottom:0.6em; }
   .copy h1 { font-weight:700; line-height:1.12; margin:0; }
   .copy h2 { font-weight:700; margin:0 0 .35em; }
   .copy p { margin:0 0 .3em; line-height:1.5; }

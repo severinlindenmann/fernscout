@@ -267,12 +267,31 @@ export function initialBookOptions(
   locale: string,
   hasCosts: boolean,
   hasWeather: boolean,
+  /** Whether anybody has been described, and whether any day says how it was
+   * travelled — the two drawings, B756. */
+  hasFigures = false,
+  hasTransport = false,
 ): BookOptions {
   return {
     ...DEFAULT_OPTIONS,
     locale,
     includeCosts: hasCosts,
     includeCharts: hasCosts && hasWeather,
+    // On where there is something to draw — B756.
+    //
+    // Both shipped off, on the reasoning that a switch which adds ink should
+    // be asked for. That reasoning holds for a page of charts and fails for
+    // these two: the owner who asked for them went through the questions,
+    // was shown both tiles, and reported that the vehicles did not work. A
+    // feature somebody has to find is a feature they do not have.
+    //
+    // The same rule `includeCharts` already follows, and the same safety: a
+    // journal that has described nobody and a trip that never said how it
+    // moved both start off, because there `hasFigures` and `hasTransport` are
+    // false and the switches would draw nothing anyway. Still switches — a
+    // saved arrangement is untouched by this, and the panel turns them off.
+    includeFigureMarks: hasFigures,
+    includeVehicles: hasTransport,
   };
 }
 

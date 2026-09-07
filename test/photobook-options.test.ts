@@ -194,3 +194,30 @@ describe("initialBookOptions", () => {
     expect(options).toEqual({ ...DEFAULT_OPTIONS, locale: "de", includeCosts: true, includeCharts: true });
   });
 });
+
+/**
+ * B756 — the two drawings start on where there is something to draw.
+ *
+ * They shipped off, and the owner who had asked for them went through the
+ * questions, was shown both tiles, and reported the vehicles did not work.
+ * A switch somebody has to find is a feature they do not have.
+ */
+describe("the figures and the vehicles on a first visit", () => {
+  test("on when the journal has described somebody and the trip says how it moved", () => {
+    const options = initialBookOptions("en", false, false, true, true);
+    expect(options.includeFigureMarks).toBe(true);
+    expect(options.includeVehicles).toBe(true);
+  });
+
+  test("off when there is nothing to draw, rather than on and silent", () => {
+    const options = initialBookOptions("en", false, false, false, false);
+    expect(options.includeFigureMarks).toBe(false);
+    expect(options.includeVehicles).toBe(false);
+  });
+
+  test("the constant itself is unchanged — a caller with no trip to look at", () => {
+    expect(DEFAULT_OPTIONS.includeFigureMarks).toBe(false);
+    expect(DEFAULT_OPTIONS.includeVehicles).toBe(false);
+  });
+});
+
