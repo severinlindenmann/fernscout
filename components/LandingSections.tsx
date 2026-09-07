@@ -243,6 +243,9 @@ export function AgentDisclosure({ docUrl, agentUrl }: { docUrl: string; agentUrl
           className="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
         />
       </summary>
+      {/* B751: belongs here — this disclosure exists to hold exactly this
+          material, and it renders nowhere else on this arrangement of the
+          page. */}
       <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
       <LandingSteps helperEnabled />
     </details>
@@ -250,12 +253,20 @@ export function AgentDisclosure({ docUrl, agentUrl }: { docUrl: string; agentUrl
 }
 
 /**
- * What you actually hand over, set like an address on an airmail envelope.
+ * What you actually hand over.
  *
- * The signature: an airmail border, the one piece of postal vernacular
- * everybody recognises on sight, drawn in the site's own coral and sky rather
- * than the literal red and blue. Everything else stays quiet so this is what
- * is remembered.
+ * Used to be set like an address on an airmail envelope — a 5px striped
+ * border in coral and sky, the one piece of postal vernacular everybody
+ * recognises on sight. B751 dropped it: the owner called it "flashing", and
+ * once the helper (B694/B732) made this page's first screen about signing in
+ * rather than about handing a string to an agent, the stripes were the
+ * loudest thing beside panels that are all deliberately quieter — including
+ * `AgentHandover`, the signed-in sibling of this block. This is now built to
+ * match it: `cream-50`, a `navy-200` hairline, `rounded-2xl`, a real
+ * `font-display` heading rather than an all-caps mono kicker (the mono voice
+ * stays on the instruction itself, where it means "this is machine text").
+ * `docs/branding/BRAND.md` keeps the airmail direction on record even though
+ * it is no longer drawn here.
  *
  * `heading` lets the signed-in page title this "your agent" rather than "hand
  * this to your agent" — the same block one step further along, for somebody
@@ -274,47 +285,44 @@ export function AgentBlock({
   return (
     <section
       aria-labelledby="handover"
-      className="mt-8 rounded-2xl p-[5px]"
-      style={{
-        backgroundImage:
-          "repeating-linear-gradient(45deg, #f06a8a 0 10px, transparent 10px 20px, #3fa9c4 20px 30px, transparent 30px 40px)",
-      }}
+      className="mt-8 rounded-2xl border border-navy-200 bg-cream-50 px-5 py-5 sm:px-6"
     >
-      <div className="rounded-xl bg-cream-50 px-5 py-5 sm:px-6">
-        <h2
-          id="handover"
-          className="font-mono text-[11px] uppercase tracking-[0.18em] text-navy-600"
-        >
-          {heading ?? t("landing.handTitle")}
-        </h2>
-        {/* The instruction itself, visible — the same string, from the same
-            key, that the button below copies. B255: a postal-style address
-            and a sentence fragment used to sit here, showing a different
-            thing than the clipboard carried.
+      <h2 id="handover" className="font-display text-xl font-semibold text-navy-900">
+        {heading ?? t("landing.handTitle")}
+      </h2>
+      <p className="mt-1 text-base leading-7 text-navy-700">{t("landing.handBody")}</p>
+      {/* The instruction itself, visible — the same string, from the same
+          key, that the button below copies. B255: a postal-style address
+          and a sentence fragment used to sit here, showing a different
+          thing than the clipboard carried. Set quietly, inset, rather than
+          as the centrepiece — the heading and the button are what a reader's
+          eye should land on first.
 
-            `overflow-wrap: anywhere` rather than Tailwind's `break-words`
-            (`break-word`) — B431. The two wrap a rendered line identically;
-            they differ in the one place that mattered here, which is that
-            `anywhere` also lets the **min-content** width of this paragraph
-            fall below the length of the URL. `break-word` does not, so the
-            block reported a min-content width of the whole URL, the flex item
-            above refused to shrink under it, and the entire page laid out
-            wider than the phone. */}
-        <p className="mt-3 font-mono text-base leading-7 text-navy-900 [overflow-wrap:anywhere] sm:text-lg">
-          {t("landing.instruction", { docUrl, agentUrl })}
-        </p>
-        <div className="mt-4">
-          {/* With visible and copied text identical, `name` is no longer
-              covering a mismatch — it stays anyway, because an accessible
-              name that recites a whole sentence is worse than one that says
-              what the button does (B199). B254. */}
-          <CopyLine
-            value={t("landing.instruction", { docUrl, agentUrl })}
-            label={t("landing.copyInstruction")}
-            copiedLabel={t("landing.copied")}
-            name={t("landing.copyInstruction")}
-          />
-        </div>
+          `overflow-wrap: anywhere` rather than Tailwind's `break-words`
+          (`break-word`) — B431. The two wrap a rendered line identically;
+          they differ in the one place that mattered here, which is that
+          `anywhere` also lets the **min-content** width of this paragraph
+          fall below the length of the URL. `break-word` does not, so the
+          block reported a min-content width of the whole URL, the flex item
+          above refused to shrink under it, and the entire page laid out
+          wider than the phone. */}
+      <p className="mt-3 rounded-xl bg-cream-100 p-3 font-mono text-sm leading-6 text-navy-900 [overflow-wrap:anywhere]">
+        {t("landing.instruction", { docUrl, agentUrl })}
+      </p>
+      <div className="mt-4">
+        {/* With visible and copied text identical, `name` is no longer
+            covering a mismatch — it stays anyway, because an accessible
+            name that recites a whole sentence is worse than one that says
+            what the button does (B199). B254. The yellow pill matches the
+            page's other primary actions — B751: this is the block's only
+            action, so it earns the weight. */}
+        <CopyLine
+          value={t("landing.instruction", { docUrl, agentUrl })}
+          label={t("landing.copyInstruction")}
+          copiedLabel={t("landing.copied")}
+          name={t("landing.copyInstruction")}
+          variant="primary"
+        />
       </div>
     </section>
   );

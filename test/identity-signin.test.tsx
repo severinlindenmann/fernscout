@@ -70,11 +70,13 @@ describe("the root page's way in", () => {
     );
   });
 
-  /** The airmail frame is the agent block's signature and the one thing this
-   * page is remembered by. A second one would make it wallpaper. */
-  test("does not borrow the agent block's airmail border", () => {
+  /** B751 retired the striped airmail border entirely — the owner called it
+   * "flashing", and `AgentBlock` now matches the calm `AgentHandover` panel
+   * instead. `test/no-striped-panels.test.ts` covers this across the whole
+   * of `components/`; this just confirms the root page in particular. */
+  test("does not draw the agent block's old striped border", () => {
     const html = render(landing);
-    expect(html.match(/repeating-linear-gradient/g) ?? []).toHaveLength(1);
+    expect(html).not.toContain("repeating-linear-gradient");
   });
 
   test("still leads with the pitch, which is what a stranger came for", () => {
