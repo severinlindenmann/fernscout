@@ -145,12 +145,11 @@ Do not edit them by hand; run the script.
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (9)
+### chore (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B841](backlog/chore/B841-the-photobook-price-is-an-estimate.md) | The photobook price is an estimate nobody has checked against a real Gelato quote | CHORE | medium | low |
-| [B880](backlog/chore/B880-recordprint-is-exported-and-unreachable-so.md) | recordPrint is exported and unreachable, so knip fails verify on main | CHORE | medium | low |
 | [B594](backlog/chore/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B724](backlog/chore/B724-a-capability-that-needs-another-one.md) | A capability that needs another one is an if rather than a field | CHORE | low | low |
 | [B736](backlog/chore/B736-build-demo-content-mjs-still-cannot.md) | build-demo-content.mjs still cannot reproduce travelScene, per-item visibility, some captions, or six fixture days | CHORE | low | medium |
@@ -182,7 +181,7 @@ Do not edit them by hand; run the script.
 | [B870](backlog/docs-and-skills/B870-the-api-never-reads-the-place.md) | The API never reads the place and time out of a photograph and only says so 1700 lines away | DOCS | medium | low |
 | [B871](backlog/docs-and-skills/B871-a-png-is-served-as-a.md) | A PNG is served as a JPEG and nothing says so | DOCS | low | low |
 
-### superseded (32)
+### superseded (33)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -207,6 +206,7 @@ Do not edit them by hand; run the script.
 | [B654](backlog/superseded/B654-whether-restic-can-drive-rclone-s.md) | Whether restic can drive rclone's Proton Drive backend well enough to trust it | OPS | medium | medium |
 | [B655](backlog/superseded/B655-the-backup-has-one-destination-and.md) | The backup has one destination, and no second copy off Backblaze | CHORE | medium | medium |
 | [B861](backlog/superseded/B861-the-account-page-does-not-say.md) | The account page does not say what credits went on AI | FEATURE | medium | low |
+| [B880](backlog/superseded/B880-recordprint-is-exported-and-unreachable-so.md) | recordPrint is exported and unreachable, so knip fails verify on main | CHORE | medium | low |
 | [B89](backlog/superseded/B89-nothing-that-costs-the-operator-money.md) | Nothing that costs the operator money can be paid for, so every paid feature is dry-run only | FEATURE | medium | high |
 | [B176](backlog/superseded/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B243](backlog/superseded/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |

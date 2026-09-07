@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: photobook, build
 found: "2026-09-07T19:55:00Z"
+superseded: fixed by the Gelato session while this was being written — knip is green
 ---
 
 # B880 — recordPrint is exported and unreachable, so knip fails verify on main
@@ -46,3 +47,23 @@ a way knip cannot see.
 - `npm run verify` passes on a clean `main` with nothing else changed.
 - `AGENTS.md` and `knip.jsonc` agree about whether an unused export is a
   failure.
+
+## Superseded, 2026-09-07
+
+Both halves resolved by other sessions while this was open, which is the right
+outcome and worth recording rather than deleting.
+
+**The code**: the session working on Gelato unexported it —
+*"Unexport recordPrint, which nothing calls"* — which is exactly the remedy
+`AGENTS.md` prescribes for this finding. `npm run unused` now exits 0 on
+`main`. I deliberately did not touch `lib/photobook/orders.ts` myself: it was
+dirty in the shared checkout at the time, meaning that session was inside it,
+and deleting a function from under an active edit is how two sessions produce
+one broken merge.
+
+**The documentation** was already right. My reading of it was stale: the text
+I quoted — *"unused exports it prints without failing; there are about a
+hundred and thirty"* — had since been replaced with a paragraph that says
+exports **do** fail and names the fix. So the guide and `knip.jsonc` agree,
+and the premise of this ticket's second half was mine being out of date rather
+than the repository being inconsistent.
