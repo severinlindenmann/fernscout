@@ -96,6 +96,7 @@ const site = {
   signedIn: true,
   canSignIn: true,
   analyticsEnabled: false,
+  helperEnabled: false,
 } as unknown as SiteSummary;
 
 /** The page as the layout hands it over: the four providers, and no trip in

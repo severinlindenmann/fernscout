@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   AgentBlock,
@@ -9,7 +8,6 @@ import {
   DocsLink,
   LandingHero,
   LandingSteps,
-  PRIMARY_BUTTON,
   PublicJournals,
   ReaderInvite,
   SiteHeader,
@@ -204,35 +202,23 @@ export default function Landing({
           {header}
           <YourJournals email={home.email} journals={home.journals} />
           {publicList}
-          <div className="mt-12 border-t border-navy-200 pt-8">
-            {helperEnabled ? (
-              // B751 addendum: the owner asked for the same two doors, in the
-              // same order, that a signed-out reader gets — a hero call to
-              // action to `/agent`, then the bring-your-own-agent material
-              // behind the same quiet disclosure — rather than a separate,
-              // louder component. Only the wording changes: `home.helperCta`
-              // and `home.helperBody` are written for somebody coming back to
-              // write, not somebody deciding whether to use this at all.
-              <>
-                <Link href="/agent" className={`w-full sm:w-auto ${PRIMARY_BUTTON}`}>
-                  {t("home.helperCta")}
-                </Link>
-                <p className="mt-3 text-base leading-7 text-navy-700">{t("home.helperBody")}</p>
-                <AgentDisclosure docUrl={docUrl} agentUrl={agentUrl} />
-              </>
-            ) : (
-              // Helper off: there is no `/agent` worth sending anybody to, so
-              // the handover material stays the direct offer — B694's rule,
-              // applied here the same way it is on the signed-out page. Still
-              // only for a reader who owns no journal (B751): somebody who
-              // already owns one has this on `/agent` as a real
-              // `AgentHandover` key rather than this generic prompt.
-              !home.journals.some((journal) => journal.role === "owner") && (
-                <AgentBlock docUrl={docUrl} agentUrl={agentUrl} heading={t("home.agentTitle")} />
-              )
-            )}
-            <DocsLink />
-          </div>
+          {/*
+            B797: the write call to action, its paragraph, the agent
+            disclosure and the docs link used to sit here for every signed-in
+            reader — a second copy of what the header now carries on every
+            page (`PageHeader`'s Agent and Docs symbols), on the one page
+            whose reader least needs to be sold: they already have a journal.
+            With the helper on, the header's door replaces this outright.
+            With it off there is no header door to replace it — every
+            self-hoster has it off — so the bring-your-own-agent material
+            stays, for exactly the reader B751 wrote it for: one who owns no
+            journal yet.
+          */}
+          {!helperEnabled && !home.journals.some((journal) => journal.role === "owner") && (
+            <div className="mt-12 border-t border-navy-200 pt-8">
+              <AgentBlock docUrl={docUrl} agentUrl={agentUrl} heading={t("home.agentTitle")} />
+            </div>
+          )}
           <YourDevices
             devices={home.devices}
             onRevoke={(id) =>

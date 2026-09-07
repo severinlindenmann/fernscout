@@ -221,6 +221,17 @@ export type SiteSummary = {
    * reader and is decided by `mayViewCosts` on the server.
    */
   analyticsEnabled: boolean;
+  /**
+   * Whether `/agent` can actually write on this instance — `features.helper`,
+   * resolved for this user by `isEnabled`. B797.
+   *
+   * The header needs it for the same reason `canSignIn` and
+   * `analyticsEnabled` do: with the capability off there is no `/agent` worth
+   * sending a reader to, and a call-to-action pointing at nothing is the same
+   * bug those two fields already guard against. Journal-wide and
+   * viewer-independent — it comes from config, not from who is reading.
+   */
+  helperEnabled: boolean;
 };
 
 /**
@@ -265,6 +276,7 @@ export function siteSummaryFor(
     // answer, and one of them would eventually forget to.
     canSignIn: isEnabled("auth", user.username),
     analyticsEnabled: analyticsAvailable(user.username),
+    helperEnabled: isEnabled("helper", user.username),
   };
 }
 

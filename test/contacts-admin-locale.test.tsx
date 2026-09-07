@@ -136,6 +136,7 @@ const site = {
   signedIn: true,
   canSignIn: true,
   analyticsEnabled: false,
+  helperEnabled: false,
 } as unknown as SiteSummary;
 
 async function render(): Promise<string> {
