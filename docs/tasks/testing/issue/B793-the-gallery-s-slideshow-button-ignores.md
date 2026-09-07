@@ -7,8 +7,7 @@ complexity: low
 area: gallery, slideshow
 found: "2026-09-07T17:00:00Z"
 started: "2026-09-07T14:50:07Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T14:50:07Z"
+merged: "2026-09-07T14:56:47Z"
 ---
 
 # B793 — The gallery's slideshow button ignores the gallery's own filter and duplicates the map's
