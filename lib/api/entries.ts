@@ -1532,6 +1532,67 @@ export function publishDraft(
 }
 
 /**
+ * Take a published day back off the site — B816.
+ *
+ * The inverse of `publishDraft` above, and the reason it exists rather than a
+ * second `deleteEntry`: somebody in a photograph asks to come out of it, and
+ * the only answer the browser had was a permanent delete that also orphans
+ * every photograph on the day. A takedown a person can undo is the right shape
+ * for a request made on somebody else's behalf — the day goes back to being a
+ * draft, off the site, and publishing it again is the undo.
+ *
+ * Textual for the same reason `publishDraft` is: the file is not parsed and
+ * re-emitted, so key order, comments and anything hand-written survive. The
+ * line goes back where `createDraft` writes it, last inside the frontmatter.
+ */
+export function unpublishEntry(
+  ref: string,
+  slug: string,
+): { ok: true; slug: string } | { ok: false; error: string } {
+  const dir = path.join(tripDir(ref), "entries");
+  let files: string[] = [];
+  try {
+    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
+  } catch {
+    return { ok: false, error: `no entry "${slug}" in this trip` };
+  }
+  const match = files.find((f) => entrySlugFromFile(f) === slug);
+  if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
+
+  const file = path.join(dir, match);
+  const raw = fs.readFileSync(file, "utf8");
+  const { data } = matter(raw);
+  if (isDraft(data)) {
+    // Not an error worth a 500, and not silently fine either — the same
+    // reasoning as publishing something already published.
+    return { ok: false, error: `"${slug}" is not on the site` };
+  }
+
+  const lines = raw.split("\n");
+  if (lines[0].trim() !== "---") {
+    return { ok: false, error: `"${slug}" has no frontmatter block to change` };
+  }
+  const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
+  if (closing < 0) return { ok: false, error: `"${slug}" has no frontmatter block to change` };
+
+  lines.splice(closing, 0, "status: draft");
+  // B643 — the same guard publishing has, and for the same reason: writing
+  // from a copy a second writer has since moved past would erase their change.
+  if (!fileUnchangedSince(file, raw)) {
+    console.warn(`[entries] ${ref}/${slug}: refused a takedown — the day changed under it.`);
+    return {
+      ok: false,
+      error:
+        `"${slug}" changed while it was being taken down — something else wrote to this day at ` +
+        "the same time. Nothing was written; read the day back and take it down again.",
+    };
+  }
+  fs.writeFileSync(file, lines.join("\n"));
+  forgetEntries(ref);
+  return { ok: true, slug };
+}
+
+/**
  * Entries awaiting a human, for the review queue.
  *
  * `test` is carried out with them, resolved the way every other surface

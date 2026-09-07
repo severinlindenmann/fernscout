@@ -245,7 +245,15 @@ export default function AgentDoor({
                   says that instead and names the day, because somebody with
                   unfinished work does not want a second decision. */}
                 <Link
-                  href={`/agent/${encodeURIComponent(journal.username)}`}
+                  // B818 — a button that says "Finish Wednesday, 19 August"
+                  // has to open that day, not today. The wizard reads these
+                  // three off the query string on the server, so its very
+                  // first render is already the day this link names.
+                  href={
+                    journal.drafts.length > 0
+                      ? `/agent/${encodeURIComponent(journal.username)}?trip=${encodeURIComponent(journal.drafts[0].trip)}&slug=${encodeURIComponent(journal.drafts[0].slug)}&date=${journal.drafts[0].date}`
+                      : `/agent/${encodeURIComponent(journal.username)}`
+                  }
                   className="mt-4 inline-flex min-h-11 items-center rounded-full border border-yellow-600 bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
                 >
                   {journal.drafts.length > 0

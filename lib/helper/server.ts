@@ -5,7 +5,7 @@ import { GPS_IMPORTERS } from "@/importers/gps";
 import { isAdminEmail } from "../admin";
 import { resolveAccess } from "../auth/handshake";
 import { costForDay, costLocalForDay } from "../costs";
-import { AS_AUTHOR, getAllEntries, getDays } from "../entries";
+import { AS_AUTHOR, getAllEntries, getDays, getEntryBySlug } from "../entries";
 import { getTrips, tripRef } from "../trips";
 import type { Day, DaySummary } from "../types";
 import { findInboxFile, listInbox, type InboxEntry } from "../inbox";
@@ -111,12 +111,78 @@ export function draftsForWizard(username: string): WizardDraft[] {
   return out.sort((a, b) => b.date.localeCompare(a.date));
 }
 
-export function draftForWizard(
+/**
+ * One day the wizard is holding — draft **or published** (B816).
+ *
+ * `draftsForWizard` above is the resume list and stays drafts-only; this is
+ * the read behind `GET /api/helper/<user>/day`, and a published day has to
+ * come back through it or the browser is read-only the moment a day goes up.
+ * `published` is what the screen turns into a different sentence and a
+ * different button — never into a different write.
+ */
+export function dayForWizard(
   username: string,
   tripId: string,
   slug: string,
 ): WizardDraft | null {
-  return draftsForWizard(username).find((d) => d.trip === tripId && d.slug === slug) ?? null;
+  const entry = getEntryBySlug(tripRef(username, tripId), slug, AS_AUTHOR);
+  if (!entry) return null;
+  return {
+    trip: tripId,
+    slug: entry.slug,
+    date: entry.date,
+    title: entry.title,
+    photos: entry.gallery.length,
+    written: isWritten(entry.content),
+    ...(entry.draft ? {} : { published: true as const }),
+  };
+}
+
+/**
+ * The days of a finished trip that nobody ever started — B819.
+ *
+ * The journal already knows both halves: the trip's own dates, and which
+ * dates carry an entry. Nothing showed the difference, so a person returning
+ * to a half-written trip had to remember which days were missing and type
+ * them in.
+ *
+ * **One trip, and only one that has ended.** A trip still running has days
+ * that are missing because they have not happened yet, and a trip nobody has
+ * written a word of is not a gap — it is a trip somebody has not started. What
+ * comes back is the most recently finished trip that has at least one day
+ * written and at least one day missing, or nothing at all: the ticket's own
+ * warning is that a trip where somebody deliberately wrote three days of
+ * fourteen is not a to-do list with eleven failures on it.
+ */
+export type TripGap = {
+  trip: string;
+  title: string;
+  /** How many days the trip ran. */
+  total: number;
+  /** The dates with no entry of any kind, oldest first. */
+  missing: string[];
+};
+
+export function gapsForWizard(username: string, today: string): TripGap | null {
+  for (const trip of getTrips(username).sort((a, b) => b.end.localeCompare(a.end))) {
+    if (trip.end >= today) continue;
+    const written = new Set(getAllEntries(trip.ref, AS_AUTHOR).map((entry) => entry.date));
+    if (written.size === 0) continue;
+    const missing: string[] = [];
+    let total = 0;
+    for (let at = new Date(`${trip.start}T00:00:00Z`); ; at.setUTCDate(at.getUTCDate() + 1)) {
+      const date = at.toISOString().slice(0, 10);
+      if (date > trip.end) break;
+      total += 1;
+      // A trip whose dates are the wrong way round, or one that ran a year:
+      // stop rather than walk forever.
+      if (total > 400) break;
+      if (!written.has(date)) missing.push(date);
+    }
+    if (missing.length === 0) continue;
+    return { trip: trip.id, title: trip.title, total, missing };
+  }
+  return null;
 }
 
 /**
