@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (124)
+## backlog (125)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (36)
+### issue (37)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -98,6 +98,7 @@ Do not edit them by hand; run the script.
 | [B863](backlog/issue/B863-the-upload-progress-line-calls-a.md) | The upload progress line calls a spreadsheet a photograph | ISSUE | low | low |
 | [B873](backlog/issue/B873-a-video-on-a-day-is.md) | A video on a day is dropped from the captions with no mention | ISSUE | low | low |
 | [B874](backlog/issue/B874-captions-read-like-an-inventory-of.md) | Captions read like an inventory of shapes rather than a caption | ISSUE | low | low |
+| [B876](backlog/issue/B876-the-account-page-s-pointer-card.md) | The account page's pointer card on /me is a whole card to say a menu entry exists | ISSUE | low | low |
 
 ### big-feature (13)
 
