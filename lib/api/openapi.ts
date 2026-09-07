@@ -15,6 +15,7 @@ import { EXTRA_STORAGE_BYTES, EXTRA_STORAGE_CREDITS } from "@/lib/credits/pricin
 import { INBOX_FILE_EXTENSIONS, INBOX_KINDS } from "@/lib/inbox";
 import { IMPORT_KINDS } from "@/lib/gps/api";
 import { GPS_FORMATS } from "@/importers/gps";
+import { COSTS_FORMATS } from "@/importers/costs";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 // Every enum below is imported rather than typed out. A hand-written list
@@ -2344,13 +2345,18 @@ export function openApiDocument() {
           summary: "What can be imported, and in which formats",
           description:
             "The kinds of data this instance can read, and who wrote each format it " +
-            `understands. One kind today: ${IMPORT_KINDS.join(", ")}. A kind is what the ` +
-            "data *is*; a format is who wrote it.\n\n" +
+            `understands: ${IMPORT_KINDS.join(", ")}. A kind is what the data *is* — a ` +
+            "location history, a bank statement — and a format is who wrote it.\n\n" +
             "This is the only `GET` in the import feature, and it describes the door rather " +
             "than what is behind it. **Nothing anywhere hands back a position.** A location " +
             "history is every address somebody sleeps at and every place they work; what a " +
             "reader ever sees is the derived line for one trip, drawn behind that trip's own " +
             "gate.\n\n" +
+            "**The two kinds end differently.** `gps` is stored as it is read — a coordinate " +
+            "is a measurement and there is nothing to decide about it. `costs` writes " +
+            "nothing at all: a statement covers the trip and the fortnight either side of " +
+            "it, and what each line was *for* is an editorial decision. It reports, a person " +
+            "agrees, and `POST /api/v1/{user}/trips/{trip}/costs/import` writes.\n\n" +
             "**A trip-scoped token is refused** on all of these — the history belongs to the " +
             "journal, not to the trip you came on.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
@@ -2364,8 +2370,11 @@ export function openApiDocument() {
           summary: "Read an export into the journal's own data",
           description:
             "Takes a file somebody exported from somewhere else — Google Maps Timeline, a " +
-            "Takeout `Records.json`, a GPX track, or plain JSON Lines from a tool of your " +
-            "own — and reads it into the journal.\n\n" +
+            "Takeout `Records.json`, a GPX track, plain JSON Lines from a tool of your own, " +
+            "or a Revolut statement — and reads it into the journal.\n\n" +
+            "**Say the `kind`.** With two of them an absent one is refused rather than " +
+            "guessed at: reading a bank statement as positions, or a location history as " +
+            "money, is not a mistake to make quietly.\n\n" +
             "**Three ways to hand over the bytes.** `inbox` names a file already staged with " +
             "`POST /api/v1/{user}/inbox` and is the normal path for a real export; " +
             "multipart `file` is a one-shot; `text` is for a handful of lines pasted in. The " +
@@ -2391,13 +2400,25 @@ export function openApiDocument() {
                       type: "string",
                       enum: [...IMPORT_KINDS],
                       description:
-                        "What the data is. Optional while there is one kind; name it anyway.",
+                        "What the data is. **Required**: with two kinds, an absent one is " +
+                        "refused rather than guessed at.",
                     },
                     format: {
                       type: "string",
-                      enum: [...GPS_FORMATS],
+                      enum: [...GPS_FORMATS, ...COSTS_FORMATS],
                       description:
-                        "Who wrote the file. Left out, it is detected from the contents.",
+                        "Who wrote the file, within its kind. Left out, it is detected from " +
+                        "the contents.",
+                    },
+                    from: {
+                      type: "string",
+                      description:
+                        "`costs` only: ignore rows before this ISO date. Usually the trip's " +
+                        "start — a statement holds the fortnight either side of it too.",
+                    },
+                    to: {
+                      type: "string",
+                      description: "`costs` only: ignore rows after this ISO date.",
                     },
                     inbox: {
                       type: "string",
@@ -2427,7 +2448,7 @@ export function openApiDocument() {
                   properties: {
                     file: { type: "string", format: "binary" },
                     kind: { type: "string", enum: [...IMPORT_KINDS] },
-                    format: { type: "string", enum: [...GPS_FORMATS] },
+                    format: { type: "string", enum: [...GPS_FORMATS, ...COSTS_FORMATS] },
                     dryRun: { type: "string", enum: ["true", "false"] },
                   },
                 },
@@ -2450,6 +2471,75 @@ export function openApiDocument() {
             "403": { description: "A different journal's token, or one scoped to a trip" },
             "404": { description: "No such journal, or no such file in the inbox" },
             "413": { description: "The whole request is too big to buffer" },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}/costs/import": {
+        post: {
+          summary: "Put agreed statement rows onto the days they happened",
+          description:
+            "The second half of a `costs` import. `POST /api/v1/{user}/import` read the " +
+            "statement and wrote nothing; this takes back the rows a person has agreed and " +
+            "records them as costs on the days.\n\n" +
+            "**Two decisions happen in between, and neither is yours.** *Which rows* — a " +
+            "statement covers the trip, the rent and the phone bill. *Which category* — a " +
+            "statement says what was paid, never what it was for. Agree them against the " +
+            "import's `merchants` list, which is sorted biggest first because one decision " +
+            "about a merchant covers every payment to it. `other` is a real answer; a guess " +
+            "dressed as a category is not.\n\n" +
+            "**It adds, and never replaces.** Costs somebody wrote by hand stay. Sending the " +
+            "same rows twice writes them twice — visible on the day and correctable there, " +
+            "which is the honest behaviour for an append.\n\n" +
+            "A date whose day has not been written yet is reported back in `orphaned` and " +
+            "nothing is recorded for it. The cost is never moved to a neighbouring day.\n\n" +
+            "Writable by anybody who may write the trip, trip-scoped tokens included: " +
+            "nothing here reads the owner's statement or reaches outside this trip.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["rows"],
+                  properties: {
+                    rows: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        required: ["date", "label", "amount", "currency", "category"],
+                        properties: {
+                          date: { type: "string", description: "ISO date — which day it goes on" },
+                          label: { type: "string", description: "What it is called on the day" },
+                          amount: {
+                            type: "number",
+                            description:
+                              "Positive: what it cost. A statement's minus sign belongs to " +
+                              "the statement; a negative cost renders as a negative total.",
+                          },
+                          currency: { type: "string" },
+                          category: { type: "string", enum: [...COST_CATEGORIES] },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "What was written, per day, with how many existing costs were kept — and " +
+                "`orphaned` for dates with no day",
+            },
+            "400": { description: "`invalid_costs` — every bad field of every row at once" },
+            "401": { description: "No live token — authenticate" },
+            "403": { description: "A token that may not write this trip" },
+            "404": { description: "No such trip" },
           },
         },
       },

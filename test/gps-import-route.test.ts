@@ -302,10 +302,22 @@ describe("what it refuses", () => {
   });
 
   test("an unknown kind is refused rather than guessed at", async () => {
+    // `costs` was the example here until B677 made it real. It is a fine
+    // reminder that this assertion is about the refusal, not the word.
     const token = await tokenFor(OWNER_EMAIL);
-    const { status, body } = await importCall(token, { kind: "costs", text: fixesJsonl() });
+    const { status, body } = await importCall(token, { kind: "receipts", text: fixesJsonl() });
     expect(status).toBe(400);
     expect(body.error).toBe("unknown_kind");
+  });
+
+  test("an absent kind is refused too, now that there are two", async () => {
+    // It defaulted to `gps` while that was the only kind. Reading somebody's
+    // bank statement as positions is not a mistake to make quietly — B677.
+    const token = await tokenFor(OWNER_EMAIL);
+    const { status, body } = await importCall(token, { text: fixesJsonl() });
+    expect(status).toBe(400);
+    expect(body.error).toBe("unknown_kind");
+    expect(body.message).toMatch(/Say what kind/);
   });
 
   test("a file nothing recognises says how to name one", async () => {

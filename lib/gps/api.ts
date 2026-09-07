@@ -1,4 +1,5 @@
 import { GPS_IMPORTERS } from "@/importers/gps";
+import { COSTS_IMPORTERS } from "@/importers/costs";
 import { checkGpsImporter, type GpsImporter } from "@/importers/gps/schema";
 import { appendFixes, type AppendResult } from "./store";
 import { readExcludeZones, trackForTrip } from "./enrich";
@@ -23,16 +24,20 @@ import { readTrack, trackPointCount, writeTrack } from "./track";
 /**
  * The kinds of data that can be imported.
  *
- * One today. A bank export into a trip's costs would be `"costs"`, with its
- * own folder under `importers/`, its own row type and its own writer — the
- * same request shape with a different word, which is why the API takes a kind
- * at all rather than being called `/gps/import`.
+ * Two, since B677: positions, and a bank statement into a trip's costs. Each
+ * has its own folder under `importers/`, its own row type and its own writer —
+ * the same request shape with a different word, which is why the API takes a
+ * kind at all rather than being called `/gps/import`.
+ *
+ * **With two, an absent `kind` is refused rather than defaulted.** Reading a
+ * bank statement as positions is not a mistake to make quietly, and it was one
+ * word away while there was a single kind to fall back to.
  */
-export const IMPORT_KINDS = ["gps"] as const;
+export const IMPORT_KINDS = ["gps", "costs"] as const;
 export type ImportKind = (typeof IMPORT_KINDS)[number];
 
 export type ImportOutcome = {
-  kind: ImportKind;
+  kind: "gps";
   /** The importer that read it — asked for, or detected. */
   format: string;
   detected: boolean;
@@ -60,10 +65,20 @@ export function isRefusal(result: ImportOutcome | ImportRefusal): result is Impo
  * before they can make the `POST`. */
 export function importFormats(): {
   kind: ImportKind;
+  what: string;
   formats: { id: string; label: string }[];
 }[] {
   return [
-    { kind: "gps", formats: GPS_IMPORTERS.map((i) => ({ id: i.id, label: i.label })) },
+    {
+      kind: "gps",
+      what: "where somebody went — a location history, drawn as one trip's route",
+      formats: GPS_IMPORTERS.map((i) => ({ id: i.id, label: i.label })),
+    },
+    {
+      kind: "costs",
+      what: "what a trip cost — a bank statement, read into the days it happened on",
+      formats: COSTS_IMPORTERS.map((i) => ({ id: i.id, label: i.label })),
+    },
   ];
 }
 
