@@ -22,122 +22,74 @@ import { mm } from "../postcard/spec.ts";
 
 export { mm };
 
-/** A finished book size. Only sizes all four candidate providers offer. */
+/** A finished book size. Every one of these is a product Gelato prints, and
+ * `productUid` is copied from its catalogue rather than constructed — the uid
+ * that used to be built by concatenation was never a real product. */
 export type BookSize = {
   id: string;
   name: string;
   trimWidthMm: number;
   trimHeightMm: number;
+  /** Verbatim from `POST /v3/catalogs/{catalog}/products:search`. */
+  productUid: string;
+  cover: "soft" | "hard";
 };
 
 export const BOOK_SIZES: Record<string, BookSize> = {
-  /** 21 × 21 cm. The photobook shape: neither photo orientation is a
-   * second-class citizen, and every provider below lists it. */
-  "square-210": { id: "square-210", name: "Square 210 × 210 mm", trimWidthMm: 210, trimHeightMm: 210 },
-  /** A4 landscape — the widest page for panoramas, and the most paper. */
-  "landscape-a4": { id: "landscape-a4", name: "A4 landscape 297 × 210 mm", trimWidthMm: 297, trimHeightMm: 210 },
-  /** A4 portrait — cheapest to post, best for text-heavy trips. */
-  "portrait-a4": { id: "portrait-a4", name: "A4 portrait 210 × 297 mm", trimWidthMm: 210, trimHeightMm: 297 },
+  /** 20 x 20 cm. The photobook shape: neither photo orientation is a
+   * second-class citizen. 210 x 210 is what this used to say and is a size
+   * Gelato does not print. */
+  square: {
+    id: "square",
+    name: "Square 200 × 200 mm",
+    trimWidthMm: 200,
+    trimHeightMm: 200,
+    productUid:
+      "photobooks-softcover_pf_200x200-mm-8x8-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_250-gsm-100-lb-cover-coated-silk_ver",
+    cover: "soft",
+  },
+  /** Portrait, and the cheapest per page for a text-heavy trip. Not A4:
+   * Gelato's nearest is 210 x 280. */
+  portrait: {
+    id: "portrait",
+    name: "Portrait 210 × 280 mm",
+    trimWidthMm: 210,
+    trimHeightMm: 280,
+    productUid:
+      "photobooks-softcover_pf_210x280-mm-8x11-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_250-gsm-100-lb-cover-coated-silk_ver",
+    cover: "soft",
+  },
+  /** The big one, and the only hardcover. Task 6 is what makes its cover
+   * printable; until then it is refused rather than rendered wrongly. */
+  "large-square": {
+    id: "large-square",
+    name: "Large square 280 × 280 mm",
+    trimWidthMm: 280,
+    trimHeightMm: 280,
+    productUid:
+      "photobooks-hardcover_pf_280x280-mm-11x11-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_130-gsm-65-lb-cover-coated-silk_ver",
+    cover: "hard",
+  },
 };
 
-/**
- * Binding limits, which are a property of the machine and not of taste.
- *
- * These are the numbers each provider publishes for a perfect-bound colour
- * book. **They are written from published documentation and are not verified
- * against a live account** — see docs/providers/photobook.md, which says so in
- * the same words. `verified: false` is carried in the data so nothing can
- * quietly present them as fact.
- */
 export type PageCountRule = {
   min: number;
   max: number;
-  /** Pages per signature. 4 satisfies every binder; 2 satisfies most. */
+  /** Pages per signature. */
   multipleOf: number;
 };
 
-export type BindingProfile = PageCountRule & {
-  id: string;
-  label: string;
-  verified: boolean;
-  note: string;
-};
-
-export const BINDING_PROFILES: Record<string, BindingProfile> = {
-  peecho: {
-    id: "peecho",
-    label: "Peecho / Prodigi — softcover perfect bound",
-    min: 20,
-    max: 600,
-    multipleOf: 2,
-    verified: false,
-    note: "From Peecho's published product matrix. Confirm against the live product list before ordering.",
-  },
-  gelato: {
-    id: "gelato",
-    label: "Gelato — photo book, perfect bound",
-    min: 20,
-    max: 160,
-    multipleOf: 2,
-    verified: false,
-    note: "Gelato's photo-book products cap far lower than its trade books. Confirm the exact product UID's range.",
-  },
-  cloudprinter: {
-    id: "cloudprinter",
-    label: "Cloudprinter — book_softcover_*",
-    min: 32,
-    max: 800,
-    multipleOf: 2,
-    verified: false,
-    note: "Cloudprinter ranges are per printing partner, not global. The quote API returns the real range.",
-  },
-  lulu: {
-    id: "lulu",
-    label: "Lulu — perfect bound, premium colour",
-    min: 32,
-    max: 800,
-    multipleOf: 2,
-    verified: false,
-    note: "Lulu also ships saddle stitch at 4–48 pages, which suits a short trip better than padding to 32.",
-  },
-};
-
 /**
- * Saddle stitch — folded and stapled, not glued.
+ * The page-count rule, and there is only one.
  *
- * Kept out of `BINDING_PROFILES` on purpose: it is not a fifth provider, it is
- * a different *product*, and mixing it into the intersection below would make
- * the portable rule useless for anything longer than a long weekend. It earns
- * its place because a short trip has perhaps fifteen pages of real content, and
- * the alternative to stapling it is seventeen blank leaves at the back.
+ * Read from the live API on 2026-09-07: every photobook product, soft and
+ * hard, square and portrait, answers with the same list. What stood here
+ * before was four providers' published ranges intersected into `multipleOf: 4`,
+ * every row of it carrying `verified: false` because none had ever met an
+ * account. They were wrong in both directions — 4 is stricter than any binder
+ * needs, and 160 is below the 200 Gelato allows.
  */
-export const SADDLE_STITCH: BindingProfile = {
-  id: "saddle",
-  label: "Saddle stitch — folded and stapled (Lulu, and most others)",
-  min: 4,
-  max: 48,
-  multipleOf: 4,
-  verified: false,
-  note: "The right binding for a trip of a week or two. Lulu publishes 4–48 pages; confirm per provider.",
-};
-
-/**
- * The rule that keeps a book printable by all four without re-laying it out.
- *
- * Deliberately the intersection rather than a favourite: choosing a provider
- * is a decision for the day you have an account, and it should not require
- * regenerating the book. `multipleOf: 4` is one step stricter than any of them
- * demands, which costs at most three blank pages and buys saddle stitch as an
- * option for short trips.
- */
-export function portableRule(): PageCountRule {
-  const profiles = Object.values(BINDING_PROFILES);
-  return {
-    min: Math.max(...profiles.map((p) => p.min)),
-    max: Math.min(...profiles.map((p) => p.max)),
-    multipleOf: 4,
-  };
-}
+export const GELATO_PAGE_RULE: PageCountRule = { min: 28, max: 200, multipleOf: 2 };
 
 export type BookSpec = {
   size: BookSize;
@@ -159,7 +111,7 @@ export type BookSpec = {
   pageCount: PageCountRule;
 };
 
-export function defaultSpec(size: BookSize = BOOK_SIZES["square-210"]): BookSpec {
+export function defaultSpec(size: BookSize = BOOK_SIZES["square"]): BookSpec {
   return {
     size,
     bleedMm: 3,
@@ -167,9 +119,10 @@ export function defaultSpec(size: BookSize = BOOK_SIZES["square-210"]): BookSpec
     gutterMm: 16,
     dpi: 300,
     paperCaliperMm: 0.115,
+    // A hardcover case adds board to the spine; Task 6 sets this from `size.cover`.
     coverBoardMm: 0,
     coverWrapMm: 15,
-    pageCount: portableRule(),
+    pageCount: GELATO_PAGE_RULE,
   };
 }
 

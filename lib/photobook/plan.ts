@@ -2214,8 +2214,8 @@ export function planBook(
           detail:
             `Volume ${meta.index} ends with ${padding} blank pages: there was not enough ` +
             `content to reach the ${spec.pageCount.min}-page minimum even after spreading the ` +
-            `photographs out. A trip this short wants saddle stitch (4-48 pages) rather ` +
-            `than perfect binding — see SADDLE_STITCH in lib/photobook/spec.ts.`,
+            `photographs out. A trip this short would want saddle stitch (4-48 pages) rather ` +
+            `than perfect binding, but Gelato prints only glued-left — there is no such option.`,
         });
       }
     }
