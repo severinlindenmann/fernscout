@@ -33,6 +33,19 @@ Three files carry their own copy of the geometry and must be kept in step:
 cannot load a file. All three hold the waymark. When the mark changes, all
 three change. There is no fourth.
 
+**Every one of them carries a copyright notice, and so does every asset in
+`docs/branding/` — in the SVGs as a comment, in the PNG as metadata written by
+`npm run avatar`.** Keep it when you edit one. The drawings are the strongest
+right this project holds: copyright attached the moment they were drawn, with
+no registration, while the *name* has no registered trademark behind it at
+all. The notice is the only part of that claim that travels with a copy which
+has left the repository. `LICENSE` (BRAND ASSETS) and `TRADEMARK.md` are the
+terms; B657 is the reasoning.
+
+The notice under `app/` names no holder and points at `LICENSE` instead —
+`test/depersonalised.test.ts` forbids a real name there. Do not "fix" it by
+adding one.
+
 ## Which file for which slot
 
 `/docs/branding/identity` renders all of them, on the ground each is for, from
@@ -48,6 +61,13 @@ reasons. Never ship them.
 
 One word, capital F, no camel case: **Fernscout**. Not *FernScout*, not
 *Fern Scout*. Never split the halves across two colours or weights.
+
+Always a proper noun, never a common one — "a Fernscout instance", never "a
+fernscout". That is what keeps an unregistered mark a mark. `Fernscout™` on
+first use in `README.md`, `TRADEMARK.md` and the imprints; `®` nowhere at all,
+because nothing is registered and claiming otherwise is itself an offence.
+Leave `site/config.json` alone — that file is the operator's, and a
+self-hoster's instance must not inherit somebody else's trademark claim.
 
 The site name is config, not a literal — read it from `serverSite().name`
 (`site/config.json`). Do not hardcode it in a component.

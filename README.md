@@ -1,4 +1,4 @@
-# Fernscout
+# Fernscout™
 
 *Travel mail — news from far away, arriving at home.*
 
@@ -170,5 +170,9 @@ This is **source-available, not open source** — the non-compete clause is a
 restriction the Open Source Definition does not allow, so the term does not
 apply here and this project does not use it.
 
-The **name and the waymark are covered by neither** — see
-[TRADEMARK.md](TRADEMARK.md) before using either outside this repository.
+The **name is outside that grant entirely** — Shield licenses copyright and
+patents, never a trademark. The **waymark and wordmark are inside it and
+narrowed**: they ship with the code so an instance can draw itself, and they
+are not licensed as the identity of anything else. The BRAND ASSETS section at
+the top of `LICENSE` is the operative text; [TRADEMARK.md](TRADEMARK.md) is
+the policy behind it, and the document to read before using either.

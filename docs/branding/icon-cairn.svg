@@ -1,4 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Copyright 2026 Severin Lindenmann. The Fernscout wordmark and waymark
+       are not licensed for use as the identity of another project or
+       product. See TRADEMARK.md and the BRAND ASSETS section of LICENSE. -->
   <rect width="32" height="32" rx="7" fill="#1e293b" />
   <rect x="8.7" y="22" width="14.7" height="5" rx="2.5" fill="#ffd23f" stroke="#1e293b" stroke-width="0.8" />
   <rect x="10.3" y="16" width="11.3" height="4.7" rx="2.3" fill="#ffd23f" stroke="#1e293b" stroke-width="0.8" />

@@ -2,6 +2,51 @@ Required Notice: Copyright 2026 Severin Lindenmann (https://fernscout.ch)
 
 Licensor Line of Business: Fernscout hosted travel journals (https://fernscout.ch)
 
+Required Notice: The Fernscout name, wordmark and waymark logo are the
+licensor's, and this licence does not hand them over. See TRADEMARK.md.
+
+
+BRAND ASSETS
+------------
+
+This section is the licensor's statement of what is being made available. The
+PolyForm Shield licence text below it is unmodified.
+
+The brand assets are the Fernscout wordmark, the waymark logo and the icons
+drawn from it. In this repository they are:
+
+    docs/branding/fernscout-logo.svg
+    docs/branding/fernscout-logo-inverse.svg
+    docs/branding/fernscout-logo-mono.svg
+    docs/branding/fernscout-wordmark.svg
+    docs/branding/fernscout-mark.svg
+    docs/branding/fernscout-avatar-640.png
+    docs/branding/icon-waymark.svg
+    docs/branding/icon-cairn.svg
+    docs/branding/icon-farsight.svg
+    docs/branding/alt-cairn.svg
+    docs/branding/alt-farsight.svg
+    app/icon.svg
+
+and the copies of the waymark's paths written inline, verbatim, in
+app/apple-icon.tsx and app/opengraph-image.tsx.
+
+They are part of the software and they ship with it, because an instance has
+to be able to draw itself. Run Fernscout for yourself, modify it, redistribute
+it: the assets come along, and that is intended.
+
+What the copyright licence below does not extend to, for these files alone, is
+using them as the identity of something else — a fork presented to the public
+as its own project, or any other product or service. Copyright in them is
+retained in full, and it is a separate right from the trademark: rebranding a
+fork is not optional, and the drawings do not become anyone else's by being
+redistributed with the code.
+
+No trademark licence is granted by any of this. PolyForm Shield grants
+copyright and patent licences only; the name is not among them. TRADEMARK.md
+is the policy, and it is the document to read before using either.
+
+
 # PolyForm Shield License 1.0.0
 
 <https://polyformproject.org/licenses/shield/1.0.0>
