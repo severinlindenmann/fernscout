@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook, print
 found: "2026-09-07T00:00:00Z"
+merged: "2026-09-07T10:45:59Z"
 ---
 
 # B698 — A photograph the camera rotated with EXIF is stretched in the book

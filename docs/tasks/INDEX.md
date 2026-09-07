@@ -70,7 +70,6 @@ Do not edit them by hand; run the script.
 | [B645](backlog/issue/B645-nothing-runs-a-photograph-through-the.md) | Nothing runs a photograph through the helper's build.mjs, so nine were published sideways | ISSUE | high | medium |
 | [B647](backlog/issue/B647-publish-mjs-matches-a-day-by.md) | publish.mjs matches a day by date alone and overwrote one day with another day's content | ISSUE | high | low |
 | [B648](backlog/issue/B648-publish-dry-run-cannot-show-a.md) | publish --dry-run cannot show a plan for a trip the instance does not have yet, and --offline still hits the network | ISSUE | high | low |
-| [B698](backlog/issue/B698-a-photograph-the-camera-rotated-with.md) | A photograph the camera rotated with EXIF is stretched in the book | ISSUE | high | medium |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
 | [B308](backlog/issue/B308-the-entry-document-has-tripled-and.md) | The entry document has tripled and the guide is 56KB, which is the property they were valued for | ISSUE | medium | medium |
@@ -85,6 +84,7 @@ Do not edit them by hand; run the script.
 | [B649](backlog/issue/B649-a-day-s-time-is-the.md) | A day's time: is the first file's timestamp, screenshots included, so a day went out stamped 06:44 | ISSUE | medium | low |
 | [B650](backlog/issue/B650-a-day-s-location-and-its.md) | A day's location: and its lat/lng can name towns 200 km apart and nothing says so | ISSUE | medium | low |
 | [B696](backlog/issue/B696-a-journal-called-agent-can-still.md) | A journal called agent can still be created on an instance with its own config | ISSUE | medium | low |
+| [B700](backlog/issue/B700-the-airport-does-not-read-as.md) | The airport does not read as an airport, and has no bench of its own | ISSUE | medium | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
 | [B388](backlog/issue/B388-resending-a-mailed-guest-invitation-has.md) | Resending a mailed guest invitation has no rate limit | ISSUE | low | low |
 | [B389](backlog/issue/B389-a-contact-s-stored-phone-number.md) | A contact's stored phone number that toE164 cannot parse is shown to the owner as if it were fine | ISSUE | low | low |
@@ -251,7 +251,7 @@ _Nothing here._
 | [B570](in-development/B570-minimap-s-svg-hydrates-with-a.md) | MiniMap's SVG hydrates with a mismatch from floating-point rounding | ISSUE | low | low | `97b44327` |
 | [B603](in-development/B603-npm-run-dev-s-strict-mode.md) | A dev-mode-only effect race can pass or fail local browser testing for the wrong reason | ISSUE | low | low | `97b44327` |
 
-## testing (350)
+## testing (351)
 
 ### security (4)
 
@@ -262,7 +262,7 @@ _Nothing here._
 | [B695](testing/security/B695-a-public-get-spawns-ffmpeg-api.md) | A public GET spawns ffmpeg: /api/health and /agent.md turn a cheap request into processes | SECURITY | high | low | — |
 | [B662](testing/security/B662-plaintext-sign-in-codes-still-reach.md) | Plaintext sign-in codes still reach the backup through content/.mail | SECURITY | medium | low | — |
 
-### issue (164)
+### issue (165)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -314,6 +314,7 @@ _Nothing here._
 | [B679](testing/issue/B679-a-served-clip-is-5-mbps.md) | A served clip is 5 Mbps, so a five-minute one costs a reader 190 MB | ISSUE | high | low | — |
 | [B691](testing/issue/B691-an-importer-can-pass-its-own.md) | An importer can pass its own contract check and still have the money upside down | ISSUE | high | medium | — |
 | [B692](testing/issue/B692-api-health-advertises-video-formats-on.md) | /api/health advertises video formats on a server that cannot take a clip | ISSUE | high | low | — |
+| [B698](testing/issue/B698-a-photograph-the-camera-rotated-with.md) | A photograph the camera rotated with EXIF is stretched in the book | ISSUE | high | medium | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
 | [B116](testing/issue/B116-a-test-day-inside-a-real.md) | A test day inside a real trip is unmarked in the day list and in MCP's readable summary | ISSUE | medium | low | `62683d95` |
