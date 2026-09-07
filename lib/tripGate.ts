@@ -310,6 +310,34 @@ export async function guestBlockedByPrivateTrip(trip: Trip): Promise<boolean> {
 }
 
 /**
+ * Whether the reader in front of the gate has already asked, and is waiting —
+ * B800.
+ *
+ * The failure it closes: somebody redeems an invite, is told "you're in the
+ * queue" on the tab they happen to have open, and then comes back to the day
+ * URL an hour later — where the gate met them as a stranger and offered the
+ * same door again, with nothing anywhere saying they had already knocked. From
+ * that page there is no way to tell "not yet approved" from "broken", and the
+ * honest reading of a form you have already filled in is that the first one
+ * did not work.
+ *
+ * A bare `boolean` about the *reader*, exactly like
+ * `guestBlockedByPrivateTrip` above and for the same reason: nothing it can
+ * put on the page says anything about the trip (B117), and it is a fact this
+ * reader already knows about themselves — they typed the address that proves
+ * it.
+ *
+ * `pending` and not "has a contact row": `active` is somebody the owner let in
+ * (they are refused here for a different reason — a `private` trip — which the
+ * sentence above already handles), and `blocked` is somebody shown the door,
+ * who must never be told so.
+ */
+export async function awaitingApproval(username: string): Promise<boolean> {
+  const { contact } = await journalReader(username);
+  return contact?.status === "pending";
+}
+
+/**
  * Trips this viewer may see *listed*.
  *
  * Public trips, plus the journal's `guest` trips once its owner has let this

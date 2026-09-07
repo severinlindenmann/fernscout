@@ -108,27 +108,70 @@ async function buddyTripFor(
   return trip ? { title: trip.title } : null;
 }
 
-/** The one-time code (C12). Transactional: no unsubscribe link, because there
- * is nothing yet to unsubscribe from. */
+/**
+ * The one-time code (C12). Transactional: no unsubscribe link, because there
+ * is nothing yet to unsubscribe from.
+ *
+ * **And, since B798, a button — when the caller has a link token to hang one
+ * off.** The reader this mail is for is a 66-year-old following one link from
+ * a group chat, and the step she gives up at is leaving the browser, finding
+ * six digits in a mail app, and typing them back into a form she left open
+ * behind her. The approval mail two steps later is already one press
+ * (`sendApprovedMail`); this is the same mechanism, on the step that actually
+ * loses people.
+ *
+ * **The code stays, underneath, and that is not a formality.** A mail client
+ * that mangles a long URL is a real failure with a real frequency, and the six
+ * digits are what rescues it — the same reasoning `/{user}/s/{token}` gives
+ * for keeping the code in the sign-in mail.
+ *
+ * `linkToken` is `issueCode`'s own — one row, one code, one link, so following
+ * the button retires the code and vice versa. Guarded on
+ * `isEnabled("auth", …)`, exactly as `sendApprovedMail` guards its own: a
+ * journal with `contacts` on and `auth` off has no `/{user}/s/…` page, and a
+ * button pointing at a 404 is worse than no button.
+ */
 export async function sendCodeMail(
   username: string,
   user: UserConfig,
   to: string,
   locale: Locale,
   code: string,
+  linkToken?: string | null,
 ) {
   // The one named exception (B334): an unconfirmed address is the whole point
   // of a passcode mail — there is nothing yet to have confirmed.
   mayMailContact({ email: to, confirmedAt: null }, { allowUnconfirmed: true });
+  const link = linkToken && isEnabled("auth", username)
+    ? signInUrl(baseUrl(), username, linkToken)
+    : null;
+  const codeText = translateIn(
+    locale,
+    link ? "contact.mailCodeFallback" : "contact.mailCodeBody",
+    { code, minutes: CODE_TTL_MINUTES },
+  );
   return sendMail(
     renderMail(
       to,
       translateIn(locale, "contact.mailCodeSubject", { title: user.title }),
       {
         preheader: translateIn(locale, "contact.mailCodeBody", { code, minutes: CODE_TTL_MINUTES }),
-        title: translateIn(locale, "contact.mailCodeTitle"),
+        title: translateIn(locale, link ? "contact.mailCodeLinkTitle" : "contact.mailCodeTitle"),
         blocks: [
-          { kind: "paragraph", text: translateIn(locale, "contact.mailCodeBody", { code, minutes: CODE_TTL_MINUTES }) },
+          ...(link
+            ? [
+                {
+                  kind: "paragraph" as const,
+                  text: translateIn(locale, "contact.mailCodeLinkBody"),
+                },
+                {
+                  kind: "button" as const,
+                  text: translateIn(locale, "contact.mailCodeButton"),
+                  href: link,
+                },
+              ]
+            : []),
+          { kind: "paragraph", text: codeText },
           { kind: "paragraph", text: translateIn(locale, "contact.mailCodeIgnore") },
         ],
         footer: footerFor(locale, user),
@@ -327,6 +370,13 @@ export async function notifyOwnerOfRequest(
               // mail.
               text: translateIn(locale, bodyKey, bodyVars),
             },
+            // B800 — the other half of a sentence the reader is now told:
+            // "most people are let in within a day or two". Neither side used
+            // to be told *when*, so a reader could not tell "not yet" from
+            // "broken" and the owner had no sense that anybody was blocked on
+            // them. One line, in the owner's language, saying somebody is
+            // waiting on this.
+            { kind: "paragraph", text: translateIn(locale, "contact.mailRequestSoon") },
             {
               kind: "button",
               text: translateIn(locale, "contact.mailRequestButton"),

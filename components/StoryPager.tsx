@@ -6,6 +6,7 @@ import { useTrip } from "@/components/TripProvider";
 import { useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import DayNotify from "./DayNotify";
+import InviteToRead from "./InviteToRead";
 import DayReactions from "./DayReactions";
 import DayWeather from "./DayWeather";
 import DraftNotice from "./DraftNotice";
@@ -343,7 +344,14 @@ export function DayCard({
               journal with nothing to send it on all answer with nothing to
               show, so no draft-specific gating is duplicated here. */}
           {trip?.canPublish && (
-            <DayNotify username={trip.trip.username} tripId={trip.trip.id} slug={lead.slug} />
+            <>
+              <DayNotify username={trip.trip.username} tripId={trip.trip.id} slug={lead.slug} />
+              {/* B799 — the day she has just published is where offering to
+                  show it to somebody belongs. A *guest* link, and only ever
+                  that: see `InviteToRead`, which hides itself on a journal
+                  with contacts switched off. */}
+              <InviteToRead username={trip.trip.username} />
+            </>
           )}
         </div>
       </div>
