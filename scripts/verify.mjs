@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// The four checks every change passes, in the one order that works.
+// The five checks every change passes, in the one order that works.
 //
-//   npm run verify              build → tsc → eslint → vitest
+//   npm run verify              build → tsc → eslint → vitest → knip
 //   npm run verify -- --quick   the same, without the build
 //
-// Why a script rather than four commands in a document: the order is not
+// Why a script rather than five commands in a document: the order is not
 // cosmetic and it was getting typed by hand a hundred and forty times a week.
 // `next build` writes the typed-route definitions into `.next/types`, and
 // `PageProps`, `LayoutProps` and `RouteContext` resolve against them. Run
@@ -53,6 +53,12 @@ const steps = [
   ["types", ["npx", ["tsc", "--noEmit"]], "the typecheck"],
   ["lint", ["npx", ["eslint", "."]], "the linter"],
   ["tests", ["npx", ["vitest", "run"]], "the suite"],
+  // CI runs this as its own "unused" job, separate from build/typecheck/lint/
+  // test, so it used to pass here and fail only there — an export left
+  // unreferenced by an ordinary edit (not a whole file or dependency removed)
+  // is the shape that kept slipping through. Running it every time, last, is
+  // cheap: knip does not touch the network and takes under two seconds.
+  ["unused", ["npm", ["run", "unused"]], "knip"],
 ].filter(([name]) => !(quick && name === "build"));
 
 if (quick && !fs.existsSync(path.join(process.cwd(), ".next", "types"))) {

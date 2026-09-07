@@ -250,7 +250,7 @@ important".
 
 `work-on-a-task` covers this in full: take from `open/`, commit the lane move,
 branch and worktree named for the task, update the task file as you learn,
-verify against the four checks and the task's own acceptance criteria, merge,
+verify against `npm run verify` and the task's own acceptance criteria, merge,
 and land in `testing/`.
 
 ```bash

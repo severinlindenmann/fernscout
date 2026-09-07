@@ -28,13 +28,15 @@ on).
 
 ## Before you open a PR
 
-Run all four of these — CI runs the same checks:
+Run all of these — CI runs the same checks (`npm run verify` runs them in this
+order and stops at the first failure, and is the easier way to run them):
 
 ```bash
 npm run build          # first — it writes .next/types, which tsc reads
 npx tsc --noEmit
 npx eslint .
 npx vitest run
+npm run unused          # knip — is anything here for nothing
 ```
 
 The build goes first because Next writes the typed-route definitions in

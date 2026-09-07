@@ -191,8 +191,8 @@ One command, every time:
 npm run verify
 ```
 
-It runs the build, `tsc`, `eslint` and the suite in that order and stops at the
-first failure. The build is first because it writes `.next/types`, which is
+It runs the build, `tsc`, `eslint`, the suite and knip (`npm run unused`) in
+that order and stops at the first failure. The build is first because it writes `.next/types`, which is
 where Next puts the typed-route definitions `PageProps`, `LayoutProps` and
 `RouteContext` resolve against. A worktree that has never been built fails
 `tsc` on every route file for that reason alone — sixty errors in code you did

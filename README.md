@@ -205,7 +205,7 @@ the skills in `.claude/skills/` cover the same jobs against files on disk.
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md). In short: all four checks pass, the
+Read [CONTRIBUTING.md](CONTRIBUTING.md). In short: `npm run verify` passes, the
 dev server boots with a capability both on and off, and nothing personal goes
 anywhere outside `content/` — there is a test that fails the build over that.
 
