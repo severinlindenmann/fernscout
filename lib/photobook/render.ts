@@ -596,6 +596,17 @@ function drawPage(
       rule(page, frame, c.x, y + 4, Math.min(c.width, 60), ACCENT);
       text(page, frame, plan.dates, c.x, y - 6, type.subheading, INK);
       text(page, frame, plan.stats, c.x, y - 14, type.caption, MUTED);
+      // The party, arriving in this country — B727. At the foot of the page
+      // and small, on the same margin everything else here hangs off, so it
+      // reads as a mark rather than an illustration. `drawTravellers` returns
+      // immediately for an empty list, which is every book that did not ask
+      // for this and every journal that has described nobody.
+      drawTravellers(page, (xMm, yMm) => [frame.x(xMm), frame.y(yMm)], {
+        x: c.x,
+        y: c.y + c.height * 0.06,
+        width: c.height * 0.2,
+        height: c.height * 0.14,
+      }, plan.figures);
       break;
     }
 

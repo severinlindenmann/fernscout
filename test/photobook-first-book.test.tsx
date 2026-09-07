@@ -18,10 +18,14 @@ import { initialBookOptions, type BookOptions } from "@/lib/photobook/options";
 // environment says so; the flag is the documented way to say it.
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
+/** Filled by the test that watches `setDayExcluded`. */
+let mountedExcluded: string[] | undefined;
+
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
 
 afterEach(() => {
+  mountedExcluded = undefined;
   act(() => root?.unmount());
   container?.remove();
   root = undefined;
@@ -29,6 +33,12 @@ afterEach(() => {
 });
 
 const INITIAL = () => initialBookOptions("de", true, true);
+
+/** Two days, so the "which days" step is offered — a one-day trip skips it. */
+const DAYS = [
+  { date: "2026-01-01", title: "Day one", location: "Lagos" },
+  { date: "2026-01-02", title: "Day two", location: "Faro" },
+];
 
 /** Renders the flow over real state, and hands back what the options are now. */
 function mount(over: Partial<Parameters<typeof FirstBookFlow>[0]> = {}) {
@@ -51,9 +61,15 @@ function mount(over: Partial<Parameters<typeof FirstBookFlow>[0]> = {}) {
         options={options}
         setOptions={(update) => setOptions((o) => update(o))}
         media={[]}
+        days={DAYS}
+        locales={["de"]}
         hasCosts
         hasWeather
+        hasFigures
+        hadSaved={false}
         preview={null}
+        applyLayoutToAll={() => {}}
+        setDayExcluded={(date) => mountedExcluded?.push(date)}
         onDone={() => {
           seen.done = true;
         }}
@@ -65,6 +81,18 @@ function mount(over: Partial<Parameters<typeof FirstBookFlow>[0]> = {}) {
 
   act(() => root!.render(<Host />));
   return seen;
+}
+
+/** Taps "next" until the step whose heading key this is, or gives up loudly.
+ * Written this way rather than counting taps because the list of steps depends
+ * on the trip — a one-day trip has no "which days", a single-language journal
+ * no language step — and a test that counts would pin the wrong thing. */
+function goTo(headingKey: string) {
+  for (let i = 0; i < 10; i++) {
+    if (container!.querySelector("h2")?.textContent === headingKey) return;
+    click("photobook.first.next");
+  }
+  throw new Error(`never reached ${headingKey}`);
 }
 
 /** The first button whose text is exactly this key — `t` is the identity here. */
@@ -85,7 +113,7 @@ function tile(label: string) {
 describe("the first-book questions", () => {
   test("answering none of them leaves the book exactly as the composer would have made it", () => {
     const seen = mount();
-    for (let i = 0; i < 4; i++) click("photobook.first.next");
+    goTo("photobook.first.summary");
     click("photobook.first.open");
     expect(seen.done).toBe(true);
     expect(seen.options).toEqual(INITIAL());
@@ -100,7 +128,7 @@ describe("the first-book questions", () => {
 
   test("an answer is written when it is given, not at the end", () => {
     const seen = mount();
-    click("photobook.first.next"); // to the words question
+    goTo("photobook.first.text");
     act(() => tile("photobook.first.text.without").click());
     expect(seen.options.includeText).toBe(false);
     // Still on the question, and the answer given is the one shown as chosen.
@@ -110,8 +138,7 @@ describe("the first-book questions", () => {
 
   test("the numbers tile is two switches, because it is one decision", () => {
     const seen = mount();
-    click("photobook.first.next");
-    click("photobook.first.next"); // the extras
+    goTo("photobook.first.extras");
     expect(seen.options.includeCosts).toBe(true);
     expect(seen.options.includeCharts).toBe(true);
     act(() => tile("photobook.first.extras.numbers").click());
@@ -121,10 +148,55 @@ describe("the first-book questions", () => {
 
   test("a trip with no budget and no weather is never asked about numbers", () => {
     mount({ hasCosts: false, hasWeather: false });
-    click("photobook.first.next");
-    click("photobook.first.next");
+    goTo("photobook.first.extras");
     expect(container!.textContent).not.toContain("photobook.first.extras.numbers");
     expect(container!.textContent).toContain("photobook.first.extras.map");
+  });
+
+  test("a saved arrangement is met with an offer to carry on, not a question", () => {
+    const seen = mount({ hadSaved: true });
+    expect(container!.querySelector("h2")!.textContent).toBe("photobook.first.resume");
+    act(() => tile("photobook.first.resume.carryOn").click());
+    expect(seen.done).toBe(true);
+    expect(seen.options).toEqual(INITIAL());
+  });
+
+  test("…and going through them anyway starts at the first question", () => {
+    mount({ hadSaved: true });
+    act(() => tile("photobook.first.resume.again").click());
+    expect(container!.querySelector("h2")!.textContent).toBe("photobook.first.size");
+  });
+
+  test("a day left out is a day the planner is told to leave out", () => {
+    const seen = mount();
+    goTo("photobook.first.days");
+    const excluded: string[] = [];
+    // `setDayExcluded` is the composer's own; the flow's job is to call it.
+    mountedExcluded = excluded;
+    act(() => tile("Day two").click());
+    expect(excluded).toEqual(["2026-01-02"]);
+    expect(seen.done).toBe(false);
+  });
+
+  test("a one-day trip is never asked which days", () => {
+    mount({ days: [DAYS[0]] });
+    goTo("photobook.first.extras");
+    expect(container!.textContent).not.toContain("photobook.first.days");
+  });
+
+  test("the figures switch is offered only where somebody has been described", () => {
+    mount({ hasFigures: false });
+    goTo("photobook.first.extras");
+    expect(container!.textContent).not.toContain("photobook.first.extras.figures");
+    mount({ hasFigures: true });
+    goTo("photobook.first.extras");
+    expect(container!.textContent).toContain("photobook.first.extras.figures");
+  });
+
+  test("the language is asked only where the journal offers more than one", () => {
+    mount({ locales: ["de"] });
+    goTo("photobook.first.summary");
+    expect(container!.textContent).not.toContain("photobook.first.language");
   });
 
   test("the binding is stated with its page count, never asked", () => {
@@ -139,7 +211,7 @@ describe("the first-book questions", () => {
         buyable: true,
       },
     });
-    for (let i = 0; i < 4; i++) click("photobook.first.next");
+    goTo("photobook.first.summary");
     expect(container!.textContent).toContain("photobook.first.bindingPerfect");
     // No radio anywhere in the flow: the panel keeps those.
     expect(container!.querySelector('input[type="radio"]')).toBeNull();

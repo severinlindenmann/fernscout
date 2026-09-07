@@ -291,6 +291,13 @@ export type BookPage = { number: number; side: PageSide; from?: BookPageOption }
       kind: "chapter";
       /** "Chapter 2 of 5", already in the book's language. */
       label: string;
+      /**
+       * The party, to draw walking in at the foot of the divider — B727.
+       * Empty unless `includeFigureMarks` is on *and* the journal has
+       * described somebody; the renderer draws nothing for an empty list, so
+       * there is one condition rather than two.
+       */
+      figures: Figure[];
       country: string;
       countryCode?: string;
       dates: string;
@@ -1397,6 +1404,9 @@ function materialise(
   volume: { index: number; of: number },
   warnings: BookWarning[],
   s: BookStrings,
+  /** `BookOptions.includeFigureMarks` — the one option this needs and the
+   * only reason to hand it the whole object. B727. */
+  figureMarks: boolean,
 ): BookPage {
   const side = sideOf(number);
   const type = typeScale(spec);
@@ -1465,6 +1475,7 @@ function materialise(
         countryCode: draft.chapter.countryCode,
         dates: formatDateRange(days[0].date, days[days.length - 1].date, s),
         stats: `${days.length} ${days.length === 1 ? "day" : "days"} · ${photos} ${photos === 1 ? "photograph" : "photographs"}`,
+        figures: figureMarks ? source.figures : [],
         index: draft.index,
         of: draft.of,
       };
@@ -2208,7 +2219,7 @@ export function planBook(
     }
 
     const materialised = pages.map((draft, n) =>
-      materialise(draft, n + 1, spec, source, meta, warnings, s),
+      materialise(draft, n + 1, spec, source, meta, warnings, s, options.includeFigureMarks),
     );
 
     const firstPhoto = chapterBlocks

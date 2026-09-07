@@ -73,6 +73,7 @@ export default function PhotobookPageContent({
   days,
   hasCosts,
   hasWeather,
+  hasFigures,
   balance,
   locales,
   outcome,
@@ -91,6 +92,9 @@ export default function PhotobookPageContent({
    * chart and cost pages already on; a saved arrangement is unaffected. */
   hasCosts: boolean;
   hasWeather: boolean;
+  /** Whether anybody has been described, so the flow can offer the figures
+   * switch only where it would draw something — B727. */
+  hasFigures: boolean;
   balance: number | null;
   /** The languages this journal offers, from its own config. The picker is
    * hidden entirely where there is only one. */
@@ -162,19 +166,25 @@ export default function PhotobookPageContent({
    * than rendering the composer for a frame and then replacing it with a
    * flow, or the other way round for somebody coming back.
    *
-   * `flowOpen` is what anybody has *said* since — `false` from finishing or
-   * skipping, `true` from the settings panel's "start from the questions
-   * again", which is the only way back in once a book has been arranged.
-   * `null` means nobody has said anything and the arrangement decides. It is
-   * deliberately not persisted: it is about this visit, and once an
-   * arrangement exists the flow never opens by itself again.
+   * `flowOpen` is what anybody has *said* since — `false` from finishing,
+   * skipping or carrying on, `true` from the settings panel's "start from the
+   * questions again". `null` means nobody has said anything yet, and the
+   * questions open, which since B727 is what happens on **every** visit.
+   *
+   * Opening only on a first visit was the right instinct for a wizard
+   * standing between somebody and their book, and the wrong one for what this
+   * turned into: for most people the questions *are* the composer, and an
+   * owner who wanted them back had to find a text link inside a collapsed
+   * settings panel. `hadSaved` still earns its keep — it is the difference
+   * between opening on a question and opening on an offer to carry on, which
+   * is one tap to the book as they left it.
    *
    * Never over an outcome: somebody redirected back from paying has a book
    * already and is here to read the result.
    */
   const [flowOpen, setFlowOpen] = useState<boolean | null>(null);
   const waiting = hadSaved === null && flowOpen === null;
-  const showFlow = !waiting && !outcome && (flowOpen ?? hadSaved === false);
+  const showFlow = !waiting && !outcome && (flowOpen ?? true);
   const [submitting, setSubmitting] = useState(false);
 
   // The double-press guard for the Pay button lives on the server
@@ -614,9 +624,15 @@ export default function PhotobookPageContent({
                 options={options}
                 setOptions={setOptions}
                 media={media}
+                days={days}
+                locales={locales}
                 hasCosts={hasCosts}
                 hasWeather={hasWeather}
+                hasFigures={hasFigures}
+                hadSaved={hadSaved === true}
                 preview={preview}
+                applyLayoutToAll={applyLayoutToAll}
+                setDayExcluded={setDayExcluded}
                 onDone={() => setFlowOpen(false)}
                 t={t}
               />

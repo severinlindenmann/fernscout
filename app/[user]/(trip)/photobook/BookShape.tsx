@@ -56,7 +56,10 @@ export type BookShapeKind =
   /** The title page, with the people on it — `includeNames`. */
   | "names"
   /** A page of bars — `includeCosts` and `includeCharts`. */
-  | "numbers";
+  | "numbers"
+  /** The party walking in at the foot of a chapter divider —
+   * `includeFigureMarks`, B727. */
+  | "figures";
 
 const SHAPES: Record<BookShapeKind, React.ReactNode> = {
   text: (
@@ -109,6 +112,20 @@ const SHAPES: Record<BookShapeKind, React.ReactNode> = {
       ))}
     </>
   ),
+  figures: (
+    <>
+      {/* A chapter divider: one word, and the pair arriving underneath it. */}
+      <rect x="6" y="7" width="12" height="2.2" {...ink(0.5)} />
+      <rect x="9" y="11" width="6" height="1" {...ink(0.3)} />
+      {[9, 14].map((x) => (
+        <g key={x}>
+          <circle cx={x} cy="16" r="1.4" fill="currentColor" opacity="0.55" />
+          <rect x={x - 1.4} y="18" width="2.8" height="3.4" fill="currentColor" opacity="0.55" />
+        </g>
+      ))}
+      <rect x="6" y="21.6" width="12" height="0.6" {...ink(0.2)} />
+    </>
+  ),
   numbers: (
     <>
       <rect x={PAD} y={PAD} width="10" height="2" {...ink(0.3)} />
@@ -130,32 +147,73 @@ export default function BookShape({ kind, size = 40 }: { kind: BookShapeKind; si
 }
 
 /**
- * The three formats, drawn against each other at their true proportions —
- * B704.
+ * The three formats, as books rather than as rectangles — B704, redrawn for
+ * B727.
  *
- * The point of the card is the *shape*, and a square and an A4 landscape
- * shown at the same box size are the one thing this picker must not do. So
- * every format is drawn inside the same 40-unit square, scaled by its own
- * longer edge, which is also roughly how they compare in the hand.
+ * The first version drew each format as a plain rectangle at its true
+ * proportions, which is accurate and, in the owner's word, *misleading*: three
+ * grey boxes of slightly different shapes next to the words "Quadratisch,
+ * 21 × 21 cm" say nothing about the thing being bought. It is a printed book,
+ * and at 56px a book still has all three of the parts that make it one — a
+ * cover, a spine down one edge, and the block of pages showing at the other.
+ *
+ * The proportions are still the answer to the question, and are still true:
+ * every format is drawn inside the same box, scaled by the longest edge any of
+ * them has, which is also roughly how they compare in the hand.
  */
-export function FormatShape({ sizeId, box = 44 }: { sizeId: string; box?: number }) {
+export function FormatShape({ sizeId, box = 56 }: { sizeId: string; box?: number }) {
   const size = BOOK_SIZES[sizeId] ?? BOOK_SIZES["square-210"];
-  const longest = Math.max(...Object.values(BOOK_SIZES).map((s) => Math.max(s.trimWidthMm, s.trimHeightMm)));
-  const w = (size.trimWidthMm / longest) * box;
-  const h = (size.trimHeightMm / longest) * box;
+  const longest = Math.max(
+    ...Object.values(BOOK_SIZES).map((s) => Math.max(s.trimWidthMm, s.trimHeightMm)),
+  );
+  // Room for the spine and the page block, which stand outside the cover.
+  const scale = box * 0.82;
+  const w = (size.trimWidthMm / longest) * scale;
+  const h = (size.trimHeightMm / longest) * scale;
+  const spine = Math.max(w * 0.09, 2.5);
+  const pages = Math.max(w * 0.06, 2);
+  const x = (box - (w + spine + pages)) / 2 + spine;
+  const y = (box - h) / 2;
   return (
     <svg viewBox={`0 0 ${box} ${box}`} width={box} height={box} aria-hidden="true" className="shrink-0">
+      {/* The page block, showing past the fore edge — thin rules rather than a
+          solid, so it reads as paper and not as a second cover. */}
+      {[0, 1, 2].map((i) => (
+        <rect
+          key={i}
+          x={x + w}
+          y={y + 1.5 + i * ((h - 3) / 3)}
+          width={pages}
+          height={Math.max((h - 3) / 3 - 1, 0.6)}
+          fill="currentColor"
+          opacity="0.25"
+        />
+      ))}
+      {/* The spine, darker: it is the edge in shadow, and it is the part that
+          carries the title on a real one. */}
+      <rect x={x - spine} y={y} width={spine} height={h} fill="currentColor" opacity="0.5" />
+      <rect x={x} y={y} width={w} height={h} fill="currentColor" opacity="0.18" />
       <rect
-        x={(box - w) / 2}
-        y={(box - h) / 2}
+        x={x}
+        y={y}
         width={w}
         height={h}
-        fill="currentColor"
-        opacity="0.12"
+        fill="none"
         stroke="currentColor"
-        strokeOpacity="0.5"
+        strokeOpacity="0.45"
         strokeWidth="1"
       />
+      {/* A photograph on the cover, which is what every one of these books
+          has, and the quickest way to read the drawing as a book. */}
+      <rect
+        x={x + w * 0.14}
+        y={y + h * 0.14}
+        width={w * 0.72}
+        height={h * 0.5}
+        fill="currentColor"
+        opacity="0.45"
+      />
+      <rect x={x + w * 0.14} y={y + h * 0.74} width={w * 0.46} height={Math.max(h * 0.05, 1)} fill="currentColor" opacity="0.35" />
     </svg>
   );
 }
