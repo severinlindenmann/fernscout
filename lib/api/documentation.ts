@@ -2,7 +2,7 @@ import "server-only";
 import { serverSite } from "../site";
 // The limits are published from the constants that enforce them: a table
 // typed out a second time is a table that goes stale.
-import { videoToolsAvailable } from "../ingest/video";
+import { videoToolsKnown } from "../ingest/video";
 import {
   CAPTION_MAX_CHARS,
   IMAGE_FORMATS,
@@ -592,7 +592,10 @@ function dayFieldRows(): string {
  */
 function videoRow(): string {
   const formats = VIDEO_FORMATS.join(", ");
-  if (!videoToolsAvailable()) {
+  // The cached answer, never the spawning one — this page is public and
+  // unauthenticated, and B695 is what that cost. `null` reads as "probably
+  // fine", the same way `/api/health` treats it.
+  if (videoToolsKnown() === false) {
     return (
       `**not accepted on this instance.** ffmpeg and ffprobe are not installed, so a ` +
       `clip cannot be converted for the browser. Send the photographs, and tell the person ` +

@@ -9,7 +9,7 @@ import { DEFAULT_MEDIA_LIMITS } from "@/lib/mediaLimits";
 import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
 import { contentRootProblem, getUsernames } from "@/lib/users";
 import pkg from "@/package.json";
-import { videoToolsAvailable } from "@/lib/ingest/video";
+import { videoToolsKnown } from "@/lib/ingest/video";
 import {
   CAPTION_MAX_CHARS,
   IMAGE_FORMATS,
@@ -297,21 +297,30 @@ export async function GET(request: Request) {
        * an optional capability is *absent* rather than broken, and a limit
        * belongs where a caller can read it before they hit it.
        *
-       * `videoToolsAvailable()` caches, so a server where ffmpeg was installed
-       * under a running process keeps saying no until it is restarted — which
-       * is correct, since the process really cannot spawn what it has already
-       * concluded is missing.
+       * **`videoToolsKnown()` and never `videoToolsAvailable()` — B695.** This
+       * route is public and unauthenticated, and the second one spawns two
+       * processes and can hold its caller ten seconds, re-spawning next time
+       * whenever the check was inconclusive. That turns a cheap GET into a
+       * process amplifier, worst on a machine already loaded enough to make
+       * the check inconclusive. `register()` asks the question once at boot;
+       * this reads the answer.
+       *
+       * `null` — nobody has concluded anything yet — reports the formats. It
+       * is the honest answer to "we do not know": a clip may well work, and
+       * `storeUploads` still refuses cleanly if it does not. Saying "no video
+       * here" on a machine that merely hesitated would be the same kind of
+       * wrong this block was written to remove, pointed the other way.
        */
-      videoFormats: videoToolsAvailable() ? [...VIDEO_FORMATS] : [],
-      ...(videoToolsAvailable()
-        ? {}
-        : {
+      videoFormats: videoToolsKnown() === false ? [] : [...VIDEO_FORMATS],
+      ...(videoToolsKnown() === false
+        ? {
             video: {
               reason:
                 "ffmpeg and ffprobe are not installed on this server, so a clip cannot be " +
                 "converted for the browser. Photographs are unaffected.",
             },
-          }),
+          }
+        : {}),
       imageMaxBytes: IMAGE_MAX_BYTES,
       imageMaxEdge: IMAGE_MAX_EDGE,
       videoMaxBytes: VIDEO_MAX_BYTES,
