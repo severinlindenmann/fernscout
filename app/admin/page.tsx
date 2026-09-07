@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminGrant from "./AdminGrant";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { creditsEnabled, ledgerFor } from "@/lib/credits";
 import { formatChf } from "@/lib/credits/pricing";
 import { dashboard, type CostLine } from "@/lib/instanceCosts";
+import { serverSite } from "@/lib/site";
 
 // Reads a session and the database on every request; nothing to prerender.
 export const dynamic = "force-dynamic";
@@ -86,13 +88,23 @@ function Lines({ title, lines, note }: { title: string; lines: CostLine[]; note?
 export default async function AdminPage() {
   if (!(await isInstanceAdmin())) notFound();
 
+  const siteName = serverSite().name;
   const from = since();
   const data = await dashboard(from);
   const metered = creditsEnabled();
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10 sm:py-16">
-      <h1 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">Operator</h1>
+      {/* The way back. `/admin` is reached from the landing page and is not in
+          any navigation, so without this the only exit is the browser's own
+          back button — and a page opened from a mailed link has no history to
+          go back through. */}
+      <Link href="/" className="text-sm font-semibold text-navy-700 underline">
+        ← {siteName}
+      </Link>
+      <h1 className="mt-3 font-display text-3xl font-semibold text-navy-900 sm:text-4xl">
+        Operator
+      </h1>
       <p className="mt-3 text-navy-700">
         What this instance has cost over the last {WINDOW_DAYS} days, and what each journal holds.
       </p>

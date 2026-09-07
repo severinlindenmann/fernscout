@@ -1,5 +1,6 @@
 import { listIdentities } from "@/lib/auth";
 import { resolveIdentity } from "@/lib/auth/handshake";
+import { isAdminEmail } from "@/lib/admin";
 import { isEnabled } from "@/lib/capabilities";
 import { journalsFor } from "@/lib/home";
 
@@ -44,7 +45,7 @@ export async function GET() {
   const identity = isEnabled("auth") ? await resolveIdentity() : null;
   if (!identity) {
     return Response.json(
-      { id: null, email: null, journals: [], devices: [] },
+      { id: null, email: null, journals: [], devices: [], admin: false },
       { headers: NO_STORE },
     );
   }
@@ -59,6 +60,20 @@ export async function GET() {
       /** The opaque name of *this* device's identity. Never the token. */
       id: identity.publicId,
       email: identity.email,
+      /**
+       * Whether this address runs the instance — B746, so the landing page
+       * can offer `/admin` to the one person it exists for.
+       *
+       * It belongs here rather than in the page for the reason everything
+       * else here does: `/` is the same document for everybody and stays
+       * cacheable, so anything that differs per reader arrives through this
+       * route and lands in the identity-keyed cache B412 keeps.
+       *
+       * It grants nothing. `/admin` and `/api/admin/grants` each ask
+       * `isInstanceAdmin()` themselves on every request, so a `true` forged
+       * into this response buys a link and a 404 behind it.
+       */
+      admin: isAdminEmail(identity.email),
       journals,
       devices: devices.map((row) => ({
         id: row.id,

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   AgentBlock,
@@ -55,6 +56,10 @@ type Home = {
   email: string;
   journals: HomeJournal[];
   devices: HomeDevice[];
+  /** True when this address runs the instance — B746. Decides whether the
+   *  operator link below is offered, and nothing else: `/admin` asks
+   *  `isInstanceAdmin()` for itself, so a forged `true` reaches a 404. */
+  admin?: boolean;
 };
 
 /**
@@ -205,6 +210,24 @@ export default function Landing({
             <AgentBlock docUrl={docUrl} agentUrl={agentUrl} heading={t("home.agentTitle")} />
             <DocsLink />
           </div>
+          {/* The operator's own page — B746. Offered only to the one address
+              that runs this instance, and absent for everybody else, which is
+              every reader on every instance that has not set
+              FERNSCOUT_ADMIN_EMAIL. */}
+          {home.admin && (
+            <div className="mt-12 border-t border-navy-200 pt-8">
+              <h2 className="font-display text-lg font-semibold text-navy-900">
+                {t("home.operator")}
+              </h2>
+              <p className="mt-1 text-sm text-navy-700">{t("home.operatorBody")}</p>
+              <Link
+                href="/admin"
+                className="mt-3 inline-block font-semibold text-navy-900 underline"
+              >
+                {t("home.operator")} →
+              </Link>
+            </div>
+          )}
           <YourDevices
             devices={home.devices}
             onRevoke={(id) =>
