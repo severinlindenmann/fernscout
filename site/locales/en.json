@@ -703,6 +703,7 @@
   "photobook.first.resume.againHint": "Your answers so far are already filled in.",
   "photobook.first.layout": "How should a day look?",
   "photobook.first.layoutHint": "The same arrangement for every day. Any single day can still be changed afterwards, by tapping its spread.",
+  "photobook.first.layoutOverwrite": "You arranged {count} days by hand before. Giving every day this layout replaces those too.",
   "photobook.first.days": "Which days go in?",
   "photobook.first.daysHint": "{included} of {total} days. Leave out the ones that were only driving.",
   "photobook.first.language": "In which language?",

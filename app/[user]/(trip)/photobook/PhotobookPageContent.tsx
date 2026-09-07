@@ -437,13 +437,18 @@ export default function PhotobookPageContent({
    * are about to change — the "obvious before, not after" the ticket asks
    * for.
    */
+  /** Every day like this, with no question asked — the flow's own, since it
+   * asks its own (B739) about the days that predate it rather than about the
+   * ones it has just written itself. */
+  const applyLayoutToEveryDay = (layout: DayLayout) =>
+    setOptions((o) => {
+      const next = { ...o.days };
+      for (const d of days) next[d.date] = { ...next[d.date], layout };
+      return { ...o, days: next };
+    });
+
   const applyLayoutToAll = (layout: DayLayout) => {
-    const apply = () =>
-      setOptions((o) => {
-        const next = { ...o.days };
-        for (const d of days) next[d.date] = { ...next[d.date], layout };
-        return { ...o, days: next };
-      });
+    const apply = () => applyLayoutToEveryDay(layout);
     const overridden = days.filter(
       (d) => options.days[d.date]?.layout !== undefined && options.days[d.date]?.layout !== layout,
     ).length;
@@ -631,7 +636,7 @@ export default function PhotobookPageContent({
                 hasFigures={hasFigures}
                 hadSaved={hadSaved === true}
                 preview={preview}
-                applyLayoutToAll={applyLayoutToAll}
+                applyLayoutToEveryDay={applyLayoutToEveryDay}
                 setDayExcluded={setDayExcluded}
                 onDone={() => setFlowOpen(false)}
                 t={t}

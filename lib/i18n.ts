@@ -993,6 +993,7 @@ export type TranslationKey =
   | "photobook.first.language"
   | "photobook.first.layout"
   | "photobook.first.layoutHint"
+  | "photobook.first.layoutOverwrite"
   | "photobook.first.next"
   | "photobook.first.open"
   | "photobook.first.planning"

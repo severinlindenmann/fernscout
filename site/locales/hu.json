@@ -703,6 +703,7 @@
   "photobook.first.resume.againHint": "Az eddigi válaszaid már ki vannak töltve.",
   "photobook.first.layout": "Hogy nézzen ki egy nap?",
   "photobook.first.layoutHint": "Ugyanaz az elrendezés minden napra. Egy-egy napot utána is bármikor módosíthatsz — koppints a dupla oldalára.",
+  "photobook.first.layoutOverwrite": "Korábban {count} napot kézzel rendeztél el. Ha minden nap ezt az elrendezést kapja, azok is felülíródnak.",
   "photobook.first.days": "Mely napok kerüljenek bele?",
   "photobook.first.daysHint": "{total} napból {included}. Hagyd ki azokat, amikor csak utaztatok.",
   "photobook.first.language": "Milyen nyelven?",
