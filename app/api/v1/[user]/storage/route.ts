@@ -2,7 +2,9 @@ import { creditsEnabled, spend } from "@/lib/credits";
 import { EXTRA_STORAGE_BYTES, EXTRA_STORAGE_CREDITS, formatChf, creditsInRappen } from "@/lib/credits/pricing";
 import { isOwner } from "@/lib/contacts/session";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
-import { formatBytes, storageFor } from "@/lib/storageQuota";
+import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
+import { cleanupPlan } from "@/lib/storageCleanup";
+import { formatBytes, storageBreakdown, storageFor } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +26,38 @@ export const dynamic = "force-dynamic";
  * uses. A trip-scoped agent may fill a journal up; deciding to pay for more of
  * somebody else's disk is not its call.
  */
+/**
+ * Where the journal's space is going — B664.
+ *
+ * The same numbers `/[user]/me` renders, so "why is this journal full" has an
+ * answer an agent can give without walking anything itself. A token may read
+ * it: knowing the ceiling is close is what stops an agent starting a batch it
+ * cannot finish, and none of it is anybody else's business — it is one
+ * journal's own directory sizes.
+ *
+ * Not cached. It is the owner's own page and it must not lie about what is on
+ * disk; the walk is a directory read per trip.
+ */
+export async function GET(request: Request, { params }: RouteContext<"/api/v1/[user]/storage">) {
+  const auth = await authenticate(request);
+  if (!auth.ok) return errorResponse(auth);
+
+  const { user } = await params;
+  if (!ownsUser(auth.session, user)) return outOfScope(auth.session, user);
+
+  const usage = await storageFor(user);
+  return Response.json({
+    ...usage,
+    breakdown: storageBreakdown(user).filter((row) => row.bytes > 0),
+    reclaimable: await cleanupPlan(user),
+    cleanup:
+      "POST /api/v1/" +
+      user +
+      "/storage/cleanup — the owner's own session only. It removes generated " +
+      "photobook PDFs and postcard sheets; every photograph, day and order record survives.",
+  });
+}
+
 export async function POST(request: Request, { params }: RouteContext<"/api/v1/[user]/storage">) {
   const { user } = await params;
 

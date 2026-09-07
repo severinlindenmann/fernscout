@@ -2913,6 +2913,22 @@ export function openApiDocument() {
         },
       },
       "/api/v1/{user}/storage": {
+        get: {
+          summary: "Where this journal's space is going",
+          description:
+            "What is used, what is allowed, what is left, and a `breakdown` — one row per " +
+            "trip, plus the inbox, the generated photobooks and postcards, and everything " +
+            "else. The rows sum to `usedBytes` exactly.\n\n" +
+            "`reclaimable` is what a cleanup would take back without touching a photograph: " +
+            "generated PDFs and postcard sheets. Only the owner, in their own browser, can " +
+            "run one — report the number and let them decide.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": { description: "Usage, the breakdown, and what could be reclaimed" },
+            "401": { description: "No live token — authenticate" },
+            "403": { description: "This token belongs to a different journal" },
+          },
+        },
         post: {
           summary: `Buy this journal ${EXTRA_STORAGE_BYTES / 1024 ** 3} GB more room`,
           description:
@@ -2934,6 +2950,50 @@ export function openApiDocument() {
             "403": { description: "Owner only, and never a bearer token — `not_for_agents`" },
             "404": { description: "Credits are off on this server" },
             "429": { description: "Too many purchases in a minute" },
+          },
+        },
+      },
+      "/api/v1/{user}/storage/cleanup": {
+        get: {
+          summary: "What a cleanup would remove (removes nothing)",
+          description:
+            "The plan behind the confirmation the owner reads: bytes and file counts, split " +
+            "into photobooks, postcards and staged documents. `?staged=1` includes the " +
+            "documents in `inbox/files/`. Nothing is deleted.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "staged", in: "query", required: false, schema: { type: "string", enum: ["1"] } },
+          ],
+          responses: {
+            "200": { description: "What would go" },
+            "403": { description: "Owner only, and never a bearer token — `not_for_agents`" },
+            "404": { description: "No such journal" },
+          },
+        },
+        post: {
+          summary: "Delete generated photobooks and postcard sheets",
+          description:
+            "**Deletes files.** Generated photobook PDFs for orders that finished printing, " +
+            "and dry-run postcard sheets. `?staged=1` also removes the documents staged in " +
+            "`inbox/files/`; staged *photographs* are never in scope, and are removed one at " +
+            "a time through `DELETE /api/v1/{user}/inbox/{id}` where a person is looking at " +
+            "what they are removing.\n\n" +
+            "Nothing else is touched: every photograph, day and trip stays, and a printed " +
+            "book keeps its record, its price and its date — only the PDF goes, and it can " +
+            "be built again from photographs that are still there. A book still building is " +
+            "never touched.\n\n" +
+            "**The owner's own browser session, and never a token**, for the same reason as " +
+            "buying storage: an agent reports what is taking the space and does not decide " +
+            "which of somebody's files to delete.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "staged", in: "query", required: false, schema: { type: "string", enum: ["1"] } },
+          ],
+          responses: {
+            "200": { description: "Removed, with what was taken" },
+            "403": { description: "Owner only, and never a bearer token — `not_for_agents`" },
+            "404": { description: "No such journal" },
+            "429": { description: "Too many cleanups in a minute" },
           },
         },
       },

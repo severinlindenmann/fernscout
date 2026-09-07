@@ -13,6 +13,7 @@ import {
   MessageCircle,
   TriangleAlert,
   ChartNoAxesColumn,
+  HardDrive,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -158,7 +159,7 @@ function BuyStorageButton({ username }: { username: string }) {
         type="button"
         onClick={buy}
         disabled={busy}
-        className="mt-3 inline-flex min-h-11 items-center rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50 disabled:opacity-60"
+        className="inline-flex min-h-11 items-center rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50 disabled:opacity-60"
       >
         {busy
           ? t("me.storageBuyBusy")
@@ -169,6 +170,120 @@ function BuyStorageButton({ username }: { username: string }) {
           {t("me.storageBuyFailed")}
         </span>
       )}
+    </>
+  );
+}
+
+/**
+ * Give the space back — B664.
+ *
+ * A confirmation that **names what goes and what stays** before anything is
+ * deleted, because the person pressing this has usually just been told their
+ * journal is full and is in no mood to read carefully. A native `confirm()`
+ * rather than a dialog of our own: it cannot be dismissed by a stray click, it
+ * is announced by every screen reader, and this is one sentence and two
+ * answers.
+ *
+ * The staged documents are a *second* question, asked only when there are any.
+ * They are somebody's uploads rather than generated output, so they are never
+ * swept along with the PDFs — see `lib/storageCleanup.ts`.
+ */
+function CleanupButton({
+  username,
+  reclaimable,
+}: {
+  username: string;
+  reclaimable: StoragePanel["reclaimable"];
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function clean() {
+    if (!window.confirm(t("me.storageCleanupConfirm", { size: reclaimable.human }))) return;
+    const staged =
+      reclaimable.hasStagedFiles && window.confirm(t("me.storageCleanupStaged"));
+
+    setBusy(true);
+    setFailed(false);
+    const response = await fetch(
+      `/api/v1/${username}/storage/cleanup${staged ? "?staged=1" : ""}`,
+      { method: "POST" },
+    ).catch(() => null);
+    setBusy(false);
+    if (response?.ok) router.refresh();
+    else setFailed(true);
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={clean}
+        disabled={busy}
+        className="inline-flex min-h-11 items-center rounded-full border border-navy-500 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50 disabled:opacity-60"
+      >
+        {busy ? t("me.storageCleanupBusy") : t("me.storageCleanup", { size: reclaimable.human })}
+      </button>
+      {failed && (
+        <span role="status" className="mt-1 block text-sm text-coral-600">
+          {t("me.storageCleanupFailed")}
+        </span>
+      )}
+    </>
+  );
+}
+
+/**
+ * Which of these is the big one — B664.
+ *
+ * One stacked bar and a legend, rather than a table: the question an owner
+ * actually has is comparative, and a column of numbers answers it slowest.
+ * Colours are the brand's, in a fixed order so the same trip keeps the same
+ * colour between renders; the legend carries the size in words, so the chart
+ * is decoration and nothing is only available by looking at a colour.
+ */
+const BAR_COLOURS = [
+  "bg-navy-900",
+  "bg-yellow-400",
+  "bg-sky-400",
+  "bg-coral-400",
+  "bg-green-500",
+  "bg-navy-500",
+  "bg-yellow-600",
+  "bg-sky-500",
+];
+
+function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
+  return (
+    <>
+      <div
+        className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-navy-200"
+        aria-hidden="true"
+      >
+        {rows.map((row, at) => (
+          <span
+            key={row.key}
+            className={BAR_COLOURS[at % BAR_COLOURS.length]}
+            style={{ width: `${row.share}%` }}
+          />
+        ))}
+      </div>
+      <ul className="mt-3 space-y-1.5">
+        {rows.map((row, at) => (
+          <li key={row.key} className="flex items-center justify-between gap-3 text-base">
+            <span className="flex min-w-0 items-center gap-2">
+              <span
+                className={`h-3 w-3 shrink-0 rounded-full ${BAR_COLOURS[at % BAR_COLOURS.length]}`}
+                aria-hidden="true"
+              />
+              <span className="truncate text-navy-700">{row.label}</span>
+            </span>
+            <span className="shrink-0 tabular-nums text-navy-900">{row.human}</span>
+          </li>
+        ))}
+      </ul>
     </>
   );
 }
@@ -711,15 +826,34 @@ export type PaymentPanel = {
   /** Recent purchases, newest first — the history under the buy button (B413).
    * Each is a mock transaction; an unpaid one links back to its payment page. */
   transactions: PaymentRow[];
-  /**
-   * How full this journal is — B661.
-   *
-   * Preformatted on the server, like `PaymentRow.amount` and for the same
-   * reason: the component does no arithmetic on bytes any more than it does
-   * on money. `limit` is null where the instance sets no ceiling, and then
-   * there is nothing to be near the end of.
-   */
-  storage: { used: string; limit: string | null; percent: number | null };
+};
+
+/**
+ * How full this journal is, and what is filling it — B661, B664.
+ *
+ * Its own panel rather than a line inside Payment, and its own prop for the
+ * reason that follows from that: it is about the journal and not about
+ * credits, so it has to be there when charging is off. `canBuy` is the only
+ * part that goes away then — an owner still wants to know they are nearly
+ * full even where nothing is for sale.
+ *
+ * Preformatted on the server, like `PaymentRow.amount` and for the same
+ * reason: the component does no arithmetic on bytes any more than on money.
+ * `limit` is null where the instance sets no ceiling, and then there is
+ * nothing to be near the end of.
+ */
+export type StoragePanel = {
+  used: string;
+  limit: string | null;
+  percent: number | null;
+  /** One row per thing an owner could act on, biggest first, already
+   * formatted. `share` is a percentage of the *allowance* where there is one,
+   * so the bar and the number under it agree. */
+  rows: { key: string; label: string; human: string; share: number }[];
+  /** What a cleanup would take back, and roughly what it is made of. */
+  reclaimable: { human: string; files: number; hasStagedFiles: boolean };
+  canBuy: boolean;
+  buyCredits: number;
 };
 
 /** One row of the transaction history. `amount` is a preformatted CHF string
@@ -756,6 +890,7 @@ export default function MePageContent({
   journal,
   editableTrips,
   payment,
+  storage,
   canSignIn,
   codeMinutes,
   contactsEnabled,
@@ -777,6 +912,9 @@ export default function MePageContent({
   /** The trips this reader may edit — B621. Owner only, and absent for
    * everybody else, which is what leaves their rows exactly as they were. */
   editableTrips?: TripEditPanel[];
+  /** Present only for the owner — see `StoragePanel`. Absent where the
+   * instance sets no ceiling, which is the one case with nothing to show. */
+  storage?: StoragePanel;
   /** Present only for the owner, and only when credits are switched on —
    * see `PaymentPanel`. */
   payment?: PaymentPanel;
@@ -1239,6 +1377,51 @@ export default function MePageContent({
                 journal-wide, so "up to N" rather than a promise a private
                 trip's send would not keep.
               */}
+              {/*
+                Storage — B664, and its own card rather than a line inside
+                Payment. It is about the journal and not about credits, which
+                is why it is here when charging is off: an owner still wants to
+                know they are nearly full even where nothing is for sale, and
+                the cleanup button is the lever that costs nothing. Absent only
+                where the instance sets no ceiling, since a bar with no end
+                measures nothing.
+              */}
+              {storage && (
+                <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-navy-900">
+                      <HardDrive className="h-[18px] w-[18px]" aria-hidden="true" />
+                    </span>
+                    <h3 className="font-display text-lg font-semibold text-navy-900">
+                      {t("me.storageTitle")}
+                    </h3>
+                  </div>
+
+                  <p className="mt-4 text-base text-navy-900">
+                    {t("me.storageUsed", { used: storage.used, limit: storage.limit ?? "" })}
+                  </p>
+                  {storage.percent !== null && storage.percent >= 90 && (
+                    <p className="mt-1 text-sm leading-6 text-coral-600">
+                      {t("me.storageNearlyFull")}
+                    </p>
+                  )}
+
+                  <StorageBar rows={storage.rows} />
+
+                  <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-navy-200 pt-4">
+                    {storage.reclaimable.files > 0 && (
+                      <CleanupButton username={username} reclaimable={storage.reclaimable} />
+                    )}
+                    {storage.canBuy && <BuyStorageButton username={username} />}
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-navy-600">
+                    {storage.reclaimable.files > 0
+                      ? t("me.storageCleanupBody")
+                      : t("me.storageNothingToClean")}
+                  </p>
+                </div>
+              )}
+
               {payment && (
                 <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
                   <div className="flex items-center gap-3">
@@ -1362,34 +1545,6 @@ export default function MePageContent({
                   <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-navy-200 pt-4">
                     <BuyCreditsDialog username={username} />
                   </div>
-
-                  {/*
-                    How full the journal is, and the one thing that can be done
-                    about it — B661. Under the balance because it is the second
-                    thing credits buy, and the only one that is not a send.
-                    Absent where the instance sets no ceiling: a bar with no end
-                    measures nothing.
-                  */}
-                  {payment.storage.limit !== null && (
-                    <div className="mt-4 border-t border-navy-200 pt-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
-                        {t("me.storageTitle")}
-                      </p>
-                      <p className="mt-1 text-base text-navy-900">
-                        {t("me.storageUsed", {
-                          used: payment.storage.used,
-                          limit: payment.storage.limit,
-                        })}
-                      </p>
-                      {payment.storage.percent !== null &&
-                        payment.storage.percent >= 90 && (
-                          <p className="mt-1 text-sm leading-6 text-coral-600">
-                            {t("me.storageNearlyFull")}
-                          </p>
-                        )}
-                      <BuyStorageButton username={username} />
-                    </div>
-                  )}
 
                   {/*
                     The transaction history — B413. Only when there is one.
