@@ -244,7 +244,8 @@ export async function storeUploads(
   // folder of public files attached to nothing, discoverable by anyone who
   // guessed the path and cleaned up by nobody. Drafts count: attaching
   // photographs to a day still awaiting approval is the normal way round.
-  if (!getEntryBySlug(ref, slug, { includeDrafts: true })) {
+  const entry = getEntryBySlug(ref, slug, { includeDrafts: true });
+  if (!entry) {
     return {
       ok: false,
       problems: [
@@ -261,9 +262,13 @@ export async function storeUploads(
   const mediaOut = path.join(tripMediaDir(ref), slug);
   const originalsOut = path.join(tripOriginalsDir(ref), slug);
 
-  // The batch limit counts what is already on disk, not just what arrived —
-  // forty per day means forty, not forty per request.
-  const existing = fs.existsSync(mediaOut) ? fs.readdirSync(mediaOut).length : 0;
+  // The batch limit counts items in the gallery, not files on disk — B708. A
+  // video leaves a poster frame and a second format beside it in `mediaOut`,
+  // so counting the directory made a day of clips hit the ceiling at a third
+  // of the advertised count. The frontmatter's own gallery list is what
+  // "item" means everywhere else (the day page, `story.json`, this same
+  // limit's own error message), so it is what counts here too.
+  const existing = entry.gallery.length;
   // Every upload used to be declared an image, so an .mp4 was measured
   // against the image formats and refused as a broken photograph — while the
   // limits table in /agent.md advertised video. The extension decides.

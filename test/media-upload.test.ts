@@ -201,19 +201,24 @@ describe("what it refuses", () => {
     expect(fs.existsSync(path.join(tripPath(), "originals", "day-one"))).toBe(false);
   });
 
-  test("the per-day ceiling counts what is already on disk", async () => {
+  test("the per-day ceiling counts gallery items, not files on disk (B708)", async () => {
     // A fresh picture each time: the same one forty times is one photograph
     // uploaded forty times, which since B604 lands once. 60px squares, so the
-    // encoding is not what makes this the slowest test in the file.
+    // encoding is not what makes this the slowest test in the file. Each
+    // upload is attached, the way the route always does it — `storeUploads`
+    // itself no longer counts files, it reads the entry's own gallery, so the
+    // ceiling only sees an upload once it is attached.
     const one = async () => [{ filename: "a.jpg", bytes: await paintJpeg(60, 60) }];
 
     for (let i = 0; i < MAX_ITEMS_PER_DAY; i++) {
       const landed = await storeUploads(REF, "day-one", await one());
       expect(landed.ok, `upload ${i + 1} of ${MAX_ITEMS_PER_DAY} did not land`).toBe(true);
+      if (landed.ok) attachGallery(REF, "day-one", landed.items);
     }
-    // Stated rather than assumed: the ceiling counts `readdirSync(mediaOut)`,
-    // so a short write here would be a failure about the wrong thing.
     expect(fs.readdirSync(path.join(tripPath(), "media", "day-one"))).toHaveLength(
+      MAX_ITEMS_PER_DAY,
+    );
+    expect(getEntryBySlug(REF, "day-one", { includeDrafts: true })?.gallery).toHaveLength(
       MAX_ITEMS_PER_DAY,
     );
 
@@ -228,6 +233,48 @@ describe("what it refuses", () => {
     // another day" an instruction rather than a guess — B209.
     expect(ceiling.expected).toContain(`This day already holds ${MAX_ITEMS_PER_DAY}`);
     expect(ceiling.expected).toContain("another day");
+  });
+
+  /**
+   * B708 — a video leaves a poster frame beside it in `mediaOut`, and a
+   * second format leaves another file, so a day of clips used to hit the
+   * ceiling at a third of the advertised count because the old check counted
+   * `readdirSync(mediaOut).length`. Simulated here without ffmpeg: three
+   * gallery items, each with two files on disk (a clip plus its poster) —
+   * six files, three items — and the ceiling has to see three.
+   */
+  test("a day of videos counts items, not the poster and format files beside them", async () => {
+    // A ceiling of 5, so 6 files-on-disk-but-3-items is the case that tells
+    // the old and new counting apart: the old check (readdirSync) refuses at
+    // 6, the new one (gallery length) has two items of room left.
+    fs.writeFileSync(
+      path.join(dir, "alex", "config.json"),
+      JSON.stringify({
+        title: "Alex", tagline: "t", owner: { name: "A B", nickname: "A" },
+        startLocation: "X", defaultLocale: "en", locales: ["en"], baseCurrency: "CHF",
+        displayCurrencies: ["CHF"], units: "metric", features: {},
+        media: { itemsPerDay: 5 },
+      }),
+    );
+    clearUserCache();
+
+    const mediaOut = path.join(tripPath(), "media", "day-one");
+    fs.mkdirSync(mediaOut, { recursive: true });
+    const gallery: import("@/lib/types").GalleryItem[] = [];
+    for (let i = 1; i <= 3; i++) {
+      fs.writeFileSync(path.join(mediaOut, `0${i}.mp4`), "clip");
+      fs.writeFileSync(path.join(mediaOut, `0${i}-poster.jpg`), "poster");
+      gallery.push({ type: "video", src: `day-one/0${i}.mp4`, poster: `day-one/0${i}-poster.jpg` });
+    }
+    attachGallery(REF, "day-one", gallery);
+    expect(fs.readdirSync(mediaOut)).toHaveLength(6);
+
+    const withRoom = await storeUploads(REF, "day-one", [
+      { filename: "a.jpg", bytes: await paintJpeg(60, 60) },
+    ]);
+    // 6 files on disk would refuse this under the old, file-counting check
+    // (6 + 1 > 5); 3 gallery items leaves two items of room.
+    expect(withRoom.ok).toBe(true);
   });
 
   /**

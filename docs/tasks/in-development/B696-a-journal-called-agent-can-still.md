@@ -41,3 +41,18 @@ same gap — `welcome` and `docs` are worth a glance.
 
 A journal cannot be created called `agent` on an instance whose own
 `config.json` does not mention it. A test asserts it.
+
+## Resolution
+
+Added `"agent"`, `"docs"`, `"legal"` and `"s"` to `ALWAYS_RESERVED` in
+`lib/users.ts:40`. `welcome` was already there; `docs` was the gap the ticket
+pointed at, and a walk of `app/`'s top-level static routes turned up two more
+of the same shape: `app/legal/page.tsx` (its own doc comment already claims
+"legal is in the reserved usernames", true only of `site/config.json`'s list,
+not the code-level one) and `app/s/[token]/page.tsx` (the buddy/guest invite
+shortener — a username `s` would shadow `/s/<token>` the same way `agent`
+shadows `/agent`).
+
+Test: `test/multiuser.test.ts` — "reserves agent, docs, legal and s in code
+even when a custom config omits them (B696)", against a server config that
+only reserves `admin`.

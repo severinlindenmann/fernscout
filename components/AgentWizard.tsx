@@ -1021,7 +1021,14 @@ export default function AgentWizard({
           </h2>
           <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.previewHint")}</p>
 
-          {preview && (
+          {/* Not once `publishedUrl` is set — B711. `preview.day` is read once,
+              before publishing, and carries `draft: true` on every entry; the
+              card below it would keep showing `DraftNotice` even though the
+              outcome panel already says the day is on the site. Re-fetching
+              the day just to redraw a card the outcome panel is about to
+              replace is work for a picture that is off the screen in a
+              moment; dropping it is the whole fix. */}
+          {preview && !publishedUrl && (
             <div className="mt-4">
               {/* The real card, with the real props — not a lookalike. What is
                   wrong here is wrong on the site. */}

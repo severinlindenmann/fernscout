@@ -9,6 +9,7 @@ import type { ClientRequest, IncomingMessage } from "node:http";
 import sharp from "sharp";
 import { paintJpeg } from "./support/pictures";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
+import { MAX_ITEMS_PER_DAY } from "@/lib/validate/media";
 
 /**
  * The URL door, end to end — B133.
@@ -313,5 +314,43 @@ describe("attaching media to a published day", () => {
     expect(reply.note).toContain("already read it can now see this change");
 
     expect(fs.existsSync(path.join(tripPath(), "media", PUBLISHED_DAY, "01.jpg"))).toBe(true);
+  });
+});
+
+/**
+ * B707 — this door used to be `urls.slice(0, limits.itemsPerDay)`, so a batch
+ * over the ceiling answered `201` for the trimmed head and said nothing about
+ * the tail it dropped. The multipart form refuses the same overage with a
+ * `400`; this one now does too, before any URL is fetched.
+ */
+describe("a batch of urls bigger than the per-day limit", () => {
+  test("is refused, not silently trimmed", async () => {
+    const token = await ownerToken();
+    const urls = Array.from(
+      { length: MAX_ITEMS_PER_DAY + 1 },
+      (_, i) => `https://example.com/seed/x/${i}`,
+    );
+    const before = fs.existsSync(path.join(tripPath(), "media", DAY))
+      ? fs.readdirSync(path.join(tripPath(), "media", DAY)).length
+      : 0;
+
+    // No stub installed for this call — a fetch attempt would throw against
+    // the real network, so a passing test proves the request never went out.
+    const { status, body } = await postUrls(token, urls);
+    expect(status).toBe(400);
+    const reply = body as { error: string; problems: { field: string; got: string; expected: string }[] };
+    expect(reply.error).toBe("invalid_media");
+    expect(reply.problems[0]).toMatchObject({
+      field: "urls",
+      got: `${MAX_ITEMS_PER_DAY + 1} items`,
+      expected: `at most ${MAX_ITEMS_PER_DAY} per request`,
+    });
+
+    // Nothing written — the same all-or-nothing promise the multipart door
+    // keeps.
+    const after = fs.existsSync(path.join(tripPath(), "media", DAY))
+      ? fs.readdirSync(path.join(tripPath(), "media", DAY)).length
+      : 0;
+    expect(after).toBe(before);
   });
 });

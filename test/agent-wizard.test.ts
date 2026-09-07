@@ -99,3 +99,25 @@ describe("the helper routes", () => {
     expect(publishers).toHaveLength(1);
   });
 });
+
+/**
+ * B711 — the preview card kept saying "Draft — not on the site yet" after a
+ * successful publish, because `preview.day` is read once before publishing
+ * and carries `draft: true` on every entry; nothing re-fetched it once
+ * `publishedUrl` was set, so the outcome panel below said "It is on the
+ * site." while the card above it still said the opposite.
+ *
+ * Asserted at the source, in the style of `test/agent-shell.test.ts`: there is
+ * no component-render harness in this suite, and what matters is that the
+ * card's own render guard excludes the published state, not what a snapshot
+ * looks like.
+ */
+describe("the preview card, once published", () => {
+  test("is no longer shown once the outcome panel takes over", () => {
+    const source = fs.readFileSync(
+      path.join(import.meta.dirname, "..", "components", "AgentWizard.tsx"),
+      "utf8",
+    );
+    expect(source).toContain("preview && !publishedUrl");
+  });
+});

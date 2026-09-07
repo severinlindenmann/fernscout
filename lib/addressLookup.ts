@@ -66,12 +66,43 @@ function line1From(street: string, housenumber: string, countrycode: string): st
     : `${housenumber} ${street}`;
 }
 
-/** `features.addressLookup`'s own provider/url — validated only as far as
+/**
+ * Photon's reverse endpoint sits beside its forward one at `/reverse` rather
+ * than `/api/` — true of the public instance and of a self-hosted Photon, but
+ * not guaranteed of anything else `url` might point at. Only a fallback, so
+ * an instance whose provider is *not* shaped like Photon still starts up; the
+ * fix is `reverseUrl` in config, not this guess.
+ */
+function derivedReverseUrl(url: string): string {
+  return url.replace(/\/api\/?$/, "/reverse");
+}
+
+/** `features.addressLookup`'s own provider/url(s) — validated only as far as
  * `lib/capabilities.ts` needs to (env presence); a bad URL here is a runtime
- * fetch failure, caught below the same as an unreachable provider. */
-function providerConfig(): { url: string } {
-  const feature = loadServerConfig().features.addressLookup as { url?: string };
-  return { url: typeof feature.url === "string" && feature.url !== "" ? feature.url : DEFAULT_URL };
+ * fetch failure, caught below the same as an unreachable provider.
+ *
+ * `reverseUrl` — B710 — used to be guessed from `url` unconditionally, on the
+ * assumption every provider is shaped like Photon (`/api/` → `/reverse`).
+ * Nothing checks that assumption, so a provider that is not shaped that way
+ * failed reverse lookups silently: `reversePlace` never throws, so a wrong
+ * guess reads as "the provider found nothing" rather than as a
+ * misconfiguration. An instance can now say the real one; absent, the guess
+ * is unchanged.
+ */
+function providerConfig(): { url: string; reverseUrl: string } {
+  const feature = loadServerConfig().features.addressLookup as { url?: string; reverseUrl?: string };
+  const url = typeof feature.url === "string" && feature.url !== "" ? feature.url : DEFAULT_URL;
+  const reverseUrl =
+    typeof feature.reverseUrl === "string" && feature.reverseUrl !== ""
+      ? feature.reverseUrl
+      : derivedReverseUrl(url);
+  return { url, reverseUrl };
+}
+
+/** What `/api/health` reports, so an operator can see the guessed URL rather
+ *  than take it on faith — B710. Same values `reversePlace` actually uses. */
+export function addressLookupEndpoints(): { url: string; reverseUrl: string } {
+  return providerConfig();
 }
 
 /**
@@ -164,7 +195,7 @@ export async function reversePlace(
 
   let target: URL;
   try {
-    target = new URL(providerConfig().url.replace(/\/api\/?$/, "/reverse"));
+    target = new URL(providerConfig().reverseUrl);
   } catch {
     return null;
   }

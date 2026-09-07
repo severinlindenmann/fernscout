@@ -1,5 +1,6 @@
 import { FEATURE_NAMES, OPERATOR_ONLY_FEATURES, loadServerConfig, type FeatureName } from "./config";
 import { getUser } from "./users";
+import { addressLookupEndpoints } from "./addressLookup";
 
 /**
  * What a capability needs before it can honestly claim to be on.
@@ -130,6 +131,17 @@ function dryRunNote(name: FeatureName, feature: Record<string, unknown>): string
     `features.${name}.provider is "dry-run" — orders can be created and previewed, ` +
     `but nothing is actually printed or posted (see B492)`
   );
+}
+
+/**
+ * B710: `reverseUrl` is guessed from `url` unless an instance says otherwise,
+ * and the guess fails silently (`reversePlace` never throws). Naming the URL
+ * actually in use here is what lets an operator catch a wrong guess without
+ * reading `lib/addressLookup.ts`.
+ */
+function addressLookupNote(name: FeatureName): string | undefined {
+  if (name !== "addressLookup") return undefined;
+  return `reverse lookups are sent to ${addressLookupEndpoints().reverseUrl}`;
 }
 
 function optionOf(feature: Record<string, unknown>, key: string): string | undefined {
@@ -263,7 +275,7 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
       reason: `features.${name} is enabled but ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} not set`,
     };
   }
-  const note = dryRunNote(name, feature);
+  const note = dryRunNote(name, feature) ?? addressLookupNote(name);
   return note ? { name, enabled: true, note } : { name, enabled: true };
 }
 

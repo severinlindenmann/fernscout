@@ -43,6 +43,14 @@ const ALWAYS_RESERVED = [
   "static",
   "media",
   "welcome",
+  // The agent guide and its sign-in page (B681) — a journal here would
+  // collide with the network door every agent is told to use.
+  "agent",
+  // The self-hosting docs and the instance's own imprint page.
+  "docs",
+  "legal",
+  // The buddy/guest invite link shortener, app/s/[token].
+  "s",
   // The service worker's offline fallback. A journal that shadowed it would
   // make the offline page unreachable exactly when it is needed.
   "offline",
