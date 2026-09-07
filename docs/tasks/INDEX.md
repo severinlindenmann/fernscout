@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (89)
+## backlog (91)
 
 ### security (1)
 
@@ -91,7 +91,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (20)
+### small-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -106,6 +106,7 @@ Do not edit them by hand; run the script.
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
 | [B673](backlog/small-feature/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
 | [B763](backlog/small-feature/B763-the-operator-page-is-a-wall.md) | The operator page is a wall of tables that does not fit a phone | FEATURE | medium | medium |
+| [B771](backlog/small-feature/B771-the-postcard-page-is-unbranded-above.md) | The postcard page is unbranded above the send block, unlike every page the photobook shows | FEATURE | medium | low |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
@@ -116,13 +117,14 @@ Do not edit them by hand; run the script.
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (3)
+### chore (4)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B594](backlog/chore/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B724](backlog/chore/B724-a-capability-that-needs-another-one.md) | A capability that needs another one is an if rather than a field | CHORE | low | low |
 | [B736](backlog/chore/B736-build-demo-content-mjs-still-cannot.md) | build-demo-content.mjs still cannot reproduce travelScene, per-item visibility, some captions, or six fixture days | CHORE | low | medium |
+| [B772](backlog/chore/B772-the-contacts-page-carries-no-brand.md) | The contacts page carries no brand tokens at all | CHORE | low | low |
 
 ### ops (10)
 
