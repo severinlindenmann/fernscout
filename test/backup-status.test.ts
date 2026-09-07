@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { DEFAULT_MAX_AGE_HOURS, readBackupStatus } from "@/lib/backupStatus";
+import { DEFAULT_MAX_AGE_HOURS, readBackupStatus, secondarySuccessStampPath } from "@/lib/backupStatus";
 
 /**
  * "Are the backups working?", answered from off the machine.
@@ -32,6 +32,13 @@ function stampFailure(agoHours: number, detail = "fernscout-backup.service faile
   fs.writeFileSync(
     path.join(dir, ".backup-last-failure"),
     `${new Date(Date.now() - agoHours * HOUR).toISOString()}\n${detail}\n`,
+  );
+}
+
+function stampSecondarySuccess(agoHours: number) {
+  fs.writeFileSync(
+    secondarySuccessStampPath(dir),
+    `${new Date(Date.now() - agoHours * HOUR).toISOString()}\n`,
   );
 }
 
@@ -120,6 +127,45 @@ describe("readBackupStatus", () => {
     fs.writeFileSync(path.join(dir, ".backup-last-success"), "not a date at all\n");
     expect(readBackupStatus().state).toBe("unknown");
   });
+
+  // --- B659: the off-site copy's own, smaller state machine ---------------
+  describe("secondary", () => {
+    test("no secondary stamp at all is unknown — either unset, or never copied yet", () => {
+      stampSuccess(1); // the primary can be perfectly healthy either way
+      const status = readBackupStatus();
+      expect(status.state).toBe("ok");
+      expect(status.secondary.state).toBe("unknown");
+      expect(status.secondary.lastSuccessAt).toBeNull();
+      expect(status.secondary.reason).toContain("RESTIC_REPOSITORY_SECONDARY");
+    });
+
+    test("a recent secondary success is ok, independently of the primary's own age", () => {
+      stampSuccess(1);
+      stampSecondarySuccess(2);
+      const status = readBackupStatus();
+      expect(status.secondary.state).toBe("ok");
+      expect(status.secondary.ageHours).toBeCloseTo(2, 1);
+      expect(status.secondary.reason).toBeUndefined();
+    });
+
+    test("a stale secondary is stale without touching the primary's own state", () => {
+      stampSuccess(1);
+      stampSecondarySuccess(DEFAULT_MAX_AGE_HOURS + 5);
+      const status = readBackupStatus();
+      expect(status.state).toBe("ok");
+      expect(status.secondary.state).toBe("stale");
+      expect(status.secondary.reason).toContain(`${DEFAULT_MAX_AGE_HOURS}h`);
+    });
+
+    test("a failing primary never contaminates a healthy secondary, and vice versa", () => {
+      stampSuccess(2);
+      stampFailure(1);
+      stampSecondarySuccess(3);
+      const status = readBackupStatus();
+      expect(status.state).toBe("failing"); // the primary alone decides this (B651)
+      expect(status.secondary.state).toBe("ok");
+    });
+  });
 });
 
 describe("/api/health", () => {
@@ -132,9 +178,16 @@ describe("/api/health", () => {
     // An anonymous probe, which is what an uptime monitor is (B234).
     const res = await GET(new Request("https://example.test/api/health"));
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { status: string; backup: { state: string; reason?: string } };
+    const body = (await res.json()) as {
+      status: string;
+      backup: { state: string; reason?: string; secondary: { state: string; reason?: string } };
+    };
     expect(body.status).toBe("ok");
     expect(body.backup.state).toBe("stale");
     expect(body.backup.reason).toBeTruthy();
+    // No RESTIC_REPOSITORY_SECONDARY configured here — B659's degrade-cleanly
+    // case — reported as its own `unknown`, and never as a reason the top-level
+    // status or the primary's own state changes.
+    expect(body.backup.secondary.state).toBe("unknown");
   });
 });

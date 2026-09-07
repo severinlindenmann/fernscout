@@ -26,7 +26,14 @@ sudo grep ^RESTIC_PASSWORD= /etc/fernscout/env    # while the machine still exis
 The other thing worth knowing before the day arrives: on this instance
 `RESTIC_REPOSITORY` is a **local path** (`/var/backups/fernscout`). That
 protects against deleting something by accident and not against losing the
-machine. B659 is the open task for an off-site copy.
+machine. B659 adds the mechanism for an off-site copy —
+`RESTIC_REPOSITORY_SECONDARY`, encrypted with the same `RESTIC_PASSWORD` — but
+whether it is actually configured on this instance is a separate, operator
+decision (see `docs/runbook.md` §"The off-site copy"). If it is: either
+repository restores exactly the same way below, since `restic copy` keeps the
+snapshot's contents identical; substitute `RESTIC_REPOSITORY_SECONDARY` for
+`RESTIC_REPOSITORY` in step 1 when the primary machine's own repository is
+the thing that was lost along with it.
 
 ## What a snapshot contains
 

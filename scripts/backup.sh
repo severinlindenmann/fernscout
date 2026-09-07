@@ -75,7 +75,7 @@
 #   RESTIC_PASSWORD     encrypts the repo; losing it means losing the backups
 #   DATA_DIR            same directory the app writes to: config.json, the
 #                        sqlite file and its own JSON stores when that is the
-#                        dialect, and the two backup stamp files
+#                        dialect, and the backup stamp files
 # Optional:
 #   DATABASE_URL         postgres://… is dumped with pg_dump; sqlite:… is
 #                         staged from DATA_DIR/fernscout.db (see db/ above);
@@ -84,10 +84,34 @@
 #   CONTENT_DIR           default: <repo>/content
 #   ENV_FILE              default: /etc/fernscout/env — staged as
 #                         env/fernscout.env, RESTIC_PASSWORD stripped
-#   BACKUP_KEEP_DAILY     default: 14 — passed to `restic forget --prune`
+#   BACKUP_KEEP_DAILY     default: 14 — passed to `restic forget --prune`,
+#                         against BOTH repositories when a secondary is
+#                         configured (B659) — "matching local" is this script
+#                         reusing the one number rather than tracking two.
 #   BACKUP_INIT_IF_MISSING  default: 0. With 1, a missing repository is created
 #                         instead of refused. Off for the nightly timer on
 #                         purpose — see step 8.
+#   RESTIC_REPOSITORY_SECONDARY  a second, off-site restic repository (B659 —
+#                         the machine backing up and the only copy of the
+#                         backup must not be the same machine). Unset means
+#                         exactly what it did before this existed: one
+#                         destination, nothing more attempted. When set, step
+#                         8d pushes what the primary just backed up on to it
+#                         with `restic copy --from-repo`, which keeps
+#                         deduplication, reads the snapshot the primary has
+#                         already decided is good, and cannot corrupt it.
+#                         Encrypted with the SAME `RESTIC_PASSWORD` as the
+#                         primary — one secret to keep, not two — so no new
+#                         password variable exists to set. A failure here
+#                         (wrong credentials, unreachable storage) is logged
+#                         and never fails the run, never blocks
+#                         `.backup-last-success`, and never touches the
+#                         primary: the primary alone decides whether the night
+#                         succeeded (B651 — an alert that fires every night is
+#                         one nobody reads). Its own freshness is
+#                         `.backup-last-success-secondary`, read by
+#                         `/api/health` -> `.backup.secondary`
+#                         (lib/backupStatus.ts).
 #   APP_DIR               default: the directory this script lives in, minus
 #                         /scripts
 #
@@ -669,6 +693,44 @@ if (( SKIPPED_TOTAL > 0 )); then
   log "ERROR: not recording this run as a success: no .backup-last-success stamp, and a non-zero exit so the unit's OnFailure= alert fires and /api/health reports backup.state=failing."
   log "ERROR: content/, config.json, the sqlite database, the JSON stores and the env file must all be readable by the user this unit runs as (usually 'fernscout'). Fix the ownership on the paths above and re-run."
   exit 1
+fi
+
+# --- 8d. Off-site copy, if a second destination is configured (B659) -------
+#
+# The only backup an instance had before this was on the same machine it
+# protects — losing the VPS lost every snapshot along with it. This is the
+# second, off-box destination, and its whole design rule is B651's: the
+# PRIMARY alone decides whether tonight succeeded. Nothing below can turn a
+# good primary backup into a failed run, fire the OnFailure= alert, or block
+# the `.backup-last-success` stamp step 9 is about to write.
+#
+# `restic copy --from-repo`, not a second `restic backup`: it reads the
+# snapshot the primary already verified, keeps restic's own deduplication, and
+# has no way to write back into the primary. The destination repository is
+# selected by overriding RESTIC_REPOSITORY for this one command; the source
+# password and the destination password are the SAME `RESTIC_PASSWORD` (B655's
+# call — one secret to keep, not two), so the source side is supplied as
+# `--from-password-command`, which restic execs directly with no shell in
+# between (confirmed against 0.19.1: `echo "$RESTIC_PASSWORD"` is passed
+# through argv unexpanded and echoes the literal string, not the value) —
+# `printenv` needs no shell to read the already-inherited variable.
+if [[ -n "${RESTIC_REPOSITORY_SECONDARY:-}" ]]; then
+  log "copying tonight's snapshot(s) to the secondary repository at $RESTIC_REPOSITORY_SECONDARY"
+  if RESTIC_REPOSITORY="$RESTIC_REPOSITORY_SECONDARY" restic copy \
+       --from-repo "$RESTIC_REPOSITORY" \
+       --from-password-command 'printenv RESTIC_PASSWORD' \
+       --tag fernscout \
+       --host "${HOSTNAME:-fernscout-vps}"; then
+    log "pruning secondary snapshots older than ${BACKUP_KEEP_DAILY} daily generations"
+    if RESTIC_REPOSITORY="$RESTIC_REPOSITORY_SECONDARY" restic forget --tag fernscout --keep-daily "$BACKUP_KEEP_DAILY" --prune; then
+      date -u +%FT%TZ > "$DATA_DIR/.backup-last-success-secondary"
+      log "recorded secondary success in $DATA_DIR/.backup-last-success-secondary"
+    else
+      log "WARNING: pruning the secondary repository failed — tonight's copy is still there, and this does not affect the primary or tonight's success"
+    fi
+  else
+    log "WARNING: copying to the secondary repository at $RESTIC_REPOSITORY_SECONDARY failed — the primary backup already succeeded and is unaffected; /api/health will report the secondary as stale until a copy gets through"
+  fi
 fi
 
 # --- 9. Record that it worked ----------------------------------------------

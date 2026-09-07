@@ -1484,4 +1484,70 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     },
     180_000,
   );
+
+  // --- B659: a second, off-site destination -----------------------------
+  //
+  // The design rule under test throughout this block: the PRIMARY alone
+  // decides whether the night succeeded (B651). A secondary that is absent,
+  // broken or simply slower to arrive must never touch the primary's exit
+  // status, its `.backup-last-success` stamp, or the run's own stdout claim
+  // of "done".
+
+  test(
+    "no RESTIC_REPOSITORY_SECONDARY: unchanged from before it existed, no secondary stamp",
+    () => {
+      const run = runBackup();
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+      expect(run.stdout).not.toContain("secondary repository");
+      expect(fs.existsSync(path.join(dataDir, ".backup-last-success-secondary"))).toBe(false);
+    },
+    60_000,
+  );
+
+  test(
+    "RESTIC_REPOSITORY_SECONDARY configured: the snapshot lands there too, and restic check passes",
+    () => {
+      const secondaryRepo = path.join(scratch, "restic-repo-secondary");
+      expect(restic(["init"], secondaryRepo).status, "the secondary fixture repository must initialise").toBe(0);
+
+      const run = runBackup({ RESTIC_REPOSITORY_SECONDARY: secondaryRepo });
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+      expect(run.stdout).toContain(`copying tonight's snapshot(s) to the secondary repository at ${secondaryRepo}`);
+      expect(run.stdout).toContain("recorded secondary success");
+
+      // Not necessarily 1: the primary fixture repository has already taken
+      // several nights' worth of snapshots earlier in this file, and `restic
+      // copy` (with no --newest / snapshot-id filter) copies every one of them
+      // not yet in the destination. What matters here is that the copy landed
+      // and the repository it landed in checks out clean.
+      expect(snapshotCount(secondaryRepo)).toBeGreaterThanOrEqual(1);
+      const check = restic(["check"], secondaryRepo);
+      expect(check.status, check.stdout + check.stderr).toBe(0);
+
+      const stampPath = path.join(dataDir, ".backup-last-success-secondary");
+      expect(fs.existsSync(stampPath)).toBe(true);
+      expect(fs.readFileSync(stampPath, "utf8").trim()).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    },
+    120_000,
+  );
+
+  test(
+    "a secondary repository with the wrong password does not fail the run, and no stamp is written",
+    () => {
+      const secondaryRepo = path.join(scratch, "restic-repo-secondary-wrong-password");
+      const wrongPasswordEnv = { ...process.env, RESTIC_REPOSITORY: secondaryRepo, RESTIC_PASSWORD: "not-the-password" };
+      expect(spawnSync("restic", ["init"], { encoding: "utf8", env: wrongPasswordEnv }).status).toBe(0);
+
+      fs.rmSync(path.join(dataDir, ".backup-last-success-secondary"), { force: true });
+      const run = runBackup({ RESTIC_REPOSITORY_SECONDARY: secondaryRepo });
+
+      // The primary is entirely unaffected — this is the acceptance line in
+      // B659: the unit exits zero and a real night still lands locally.
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+      expect(run.stdout).toContain("done");
+      expect(run.stdout).toContain(`WARNING: copying to the secondary repository at ${secondaryRepo} failed`);
+      expect(fs.existsSync(path.join(dataDir, ".backup-last-success-secondary"))).toBe(false);
+    },
+    60_000,
+  );
 });
