@@ -11,6 +11,8 @@ import { hasWeather, weatherDays } from "@/lib/weatherStats";
 import { bookLocalesFor, photobookEntryFor } from "@/lib/photobook/entry";
 import { spineTextFor } from "@/lib/photobook/plan";
 import { outcomeFrom } from "@/lib/photobook/orders";
+import { loadUserConfig } from "@/lib/config";
+import { partyFor } from "@/lib/travellers/parse";
 import PhotobookPageContent from "./PhotobookPageContent";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -42,6 +44,16 @@ export default async function PhotobookPage({
         tripRef={trip.ref}
         tripTitle={trip.title}
         spineText={spineTextFor(trip.title, trip.start)}
+        // Whether anybody has actually been described — B727. The figures
+        // switch is offered only where it would draw something, the same rule
+        // the numbers tile follows: `buildBookSource` filters an undescribed
+        // party away to nothing, so the alternative is a control that does
+        // nothing and says nothing about why.
+        hasFigures={
+          partyFor(trip.travellers ?? [], loadUserConfig(user).travellers ?? []).filter(
+            (f) => Object.keys(f).length > 0,
+          ).length > 0
+        }
         // Every photograph is in the book until the owner says otherwise, so
         // the grid starts fully selected. Drafts are the owner's own and are
         // included: this page is only ever the owner's.

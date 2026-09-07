@@ -11,6 +11,8 @@ import { bookLocalesFor, photobookEntryFor } from "@/lib/photobook/entry";
 import { spineTextFor } from "@/lib/photobook/plan";
 import { getTrip, tripRef } from "@/lib/trips";
 import { outcomeFrom } from "@/lib/photobook/orders";
+import { loadUserConfig } from "@/lib/config";
+import { partyFor } from "@/lib/travellers/parse";
 import PhotobookPageContent from "../../../(trip)/photobook/PhotobookPageContent";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -41,6 +43,13 @@ export default async function TripPhotobookPage({
         tripRef={trip.ref}
         tripTitle={trip.title}
         spineText={spineTextFor(trip.title, trip.start)}
+        // See the sibling page: the figures switch is offered only where
+        // somebody has been described — B727.
+        hasFigures={
+          partyFor(trip.travellers ?? [], loadUserConfig(user).travellers ?? []).filter(
+            (f) => Object.keys(f).length > 0,
+          ).length > 0
+        }
         media={// Un-reversed. `getAllMedia` returns newest first, which is what a
         // gallery wants and the opposite of what a book prints: the planner
         // walks each entry's `gallery` in the order it was written. Showing

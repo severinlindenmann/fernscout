@@ -76,6 +76,20 @@ export type BookOptions = {
    */
   includeCharts: boolean;
   /**
+   * The party, drawn small at the foot of every chapter divider — B727.
+   *
+   * The walking figures are already on the title page and in the colophon
+   * (`drawTravellers`), which is twice in a book of sixty pages. The owner
+   * asked for them somewhere else too, and the chapter divider is the page
+   * with the room: a country's name, its dates, and otherwise paper.
+   *
+   * Off by default, like every other switch that adds ink. It draws nothing
+   * at all when the journal has described nobody (`source.figures` empty) or
+   * when there are no chapter pages to draw them on — a switch that adds
+   * nothing quietly is better than a page of decoration nobody asked for.
+   */
+  includeFigureMarks: boolean;
+  /**
    * The photograph on the front cover, as a `MediaTile.src`.
    *
    * Absent means the planner picks, which is what every book did before this
@@ -218,6 +232,7 @@ export const DEFAULT_OPTIONS: BookOptions = {
   includeNames: true,
   includeCosts: true,
   includeCharts: false,
+  includeFigureMarks: false,
   focalPoints: {},
 };
 
@@ -413,6 +428,20 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     raw.excludePhotos.every((s) => typeof s === "string" && s.length <= MAX_SRC_LENGTH)
       ? (raw.excludePhotos as string[])
       : null;
+  /**
+   * A switch added after this route existed, and therefore optional — B727.
+   *
+   * Every other flag is required, and a body missing one is refused whole
+   * rather than repaired: those have been in the schema since the beginning,
+   * so a caller omitting one has misunderstood the request. `includeFigureMarks`
+   * is different only in when it arrived — refusing every body written before
+   * today would break every stored arrangement and every agent that ever
+   * posted one, to insist on a decoration that is off by default anyway.
+   * Absent means off, which is what it meant before it existed.
+   */
+  const figureMarks =
+    raw.includeFigureMarks === undefined ? false : bool("includeFigureMarks");
+
   const flags = {
     includeText: bool("includeText"),
     includeMap: bool("includeMap"),
@@ -428,6 +457,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     !excludePhotos ||
     !days ||
     !focalPoints ||
+    figureMarks === null ||
     Object.values(flags).some((v) => v === null)
   ) {
     return null;
@@ -448,6 +478,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     includeNames: flags.includeNames as boolean,
     includeCosts: flags.includeCosts as boolean,
     includeCharts: flags.includeCharts as boolean,
+    includeFigureMarks: figureMarks,
     ...(cover !== undefined ? { cover } : {}),
   };
 }

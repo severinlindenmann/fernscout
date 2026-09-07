@@ -378,6 +378,17 @@ describe("what a request body may say", () => {
     ).toBeNull();
   });
 
+  // B727. Every other flag is required; this one arrived late, and refusing
+  // every body written before it existed would break stored arrangements and
+  // agents alike over a decoration that is off by default.
+  test("a body from before the figures switch existed is accepted, with it off", () => {
+    expect(parseOptions(base, SIZES)?.includeFigureMarks).toBe(false);
+  });
+
+  test("but a figures switch that is not a boolean is still refused", () => {
+    expect(parseOptions({ ...base, includeFigureMarks: "yes" }, SIZES)).toBeNull();
+  });
+
   test("a day's own text flag survives the boundary — B703", () => {
     const parsed = parseOptions({ ...base, days: { "2026-01-01": { text: false } } }, SIZES);
     expect(parsed?.days["2026-01-01"]).toEqual({ text: false });
