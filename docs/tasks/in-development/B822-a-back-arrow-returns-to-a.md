@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: navigation, ux
 found: "2026-09-07T17:40:00Z"
+started: "2026-09-07T16:20:43Z"
+session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
+claimed: "2026-09-07T16:20:43Z"
 ---
 
 # B822 — A back arrow returns to a fixed parent rather than where the reader actually came from
@@ -61,3 +64,35 @@ The honest shape is *up, unless we know where you came from*:
   site and lands on the sensible parent.
 - The label never says one destination and goes to another.
 - Checked at 390px.
+
+## Notes from the parent, before starting
+
+**The five sites, and what each points at today:**
+
+| where | destination | label key |
+| --- | --- | --- |
+| `components/PageHeader.tsx` | `/` | `nav.myJournals` |
+| `components/BackToJournal.tsx` | the journal | its own |
+| `app/agent/layout.tsx` | `/` | `docs.backToSite` |
+| `app/docs/layout.tsx` | `/` | `docs.backToSite` |
+| the photobook views | the trip | their own |
+
+**Two of them are server components.** `app/agent/layout.tsx` and
+`app/docs/layout.tsx` have no `"use client"` and call `translateIn` directly.
+Anything that reads client-side history has to be a client child mounted in
+them, not a change of their own boundary.
+
+**`document.referrer` is not the answer**, and it is the first thing that
+looks like one: with the App Router a client-side navigation does not update
+it, so after two soft navigations it still names whatever loaded the tab.
+`history.length` is not the answer either — it counts entries from other
+sites in the same tab, so a reader who browsed elsewhere and then typed a
+journal URL has a length greater than one and no in-app previous page.
+
+What is left is to track it: record in-app navigations per tab
+(`sessionStorage`, which is already per-tab) and let the control read that.
+Either mechanism is acceptable —
+`router.back()` guarded by that flag, or storing the previous in-app path and
+linking to it — but say in this file which you chose and why. The second gives
+a real `href` (middle-click, and a label that can name its destination); the
+first keeps the browser's own history honest. Do not ship both.
