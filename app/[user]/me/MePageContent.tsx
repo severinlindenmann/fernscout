@@ -26,7 +26,7 @@ import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
-import { formatChf, TIERS } from "@/lib/credits/pricing";
+import { EXTRA_STORAGE_CREDITS, formatChf, TIERS } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 import type { Viewer } from "@/lib/viewer";
 
@@ -120,6 +120,56 @@ function ChannelSwitch({
         />
       </button>
     </span>
+  );
+}
+
+/**
+ * Five more gigabytes, for fifty credits — B661.
+ *
+ * A button rather than the tiers dialog above it, because there is one thing
+ * to buy and one price. It spends immediately: `POST /api/v1/<user>/storage`
+ * takes the credits and the extension exists from that moment, so the
+ * confirmation is the browser's own — there is no second page to go to and
+ * nothing to come back and finish. `router.refresh()` is what redraws the
+ * figure above it from the server.
+ */
+function BuyStorageButton({ username }: { username: string }) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function buy() {
+    if (!window.confirm(t("me.storageBuyConfirm", { credits: String(EXTRA_STORAGE_CREDITS) })))
+      return;
+    setBusy(true);
+    setFailed(false);
+    const response = await fetch(`/api/v1/${username}/storage`, { method: "POST" }).catch(
+      () => null,
+    );
+    setBusy(false);
+    if (response?.ok) router.refresh();
+    else setFailed(true);
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={buy}
+        disabled={busy}
+        className="mt-3 inline-flex min-h-11 items-center rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50 disabled:opacity-60"
+      >
+        {busy
+          ? t("me.storageBuyBusy")
+          : t("me.storageBuy", { credits: String(EXTRA_STORAGE_CREDITS) })}
+      </button>
+      {failed && (
+        <span role="status" className="mt-1 block text-sm text-coral-600">
+          {t("me.storageBuyFailed")}
+        </span>
+      )}
+    </>
   );
 }
 
@@ -661,6 +711,15 @@ export type PaymentPanel = {
   /** Recent purchases, newest first — the history under the buy button (B413).
    * Each is a mock transaction; an unpaid one links back to its payment page. */
   transactions: PaymentRow[];
+  /**
+   * How full this journal is — B661.
+   *
+   * Preformatted on the server, like `PaymentRow.amount` and for the same
+   * reason: the component does no arithmetic on bytes any more than it does
+   * on money. `limit` is null where the instance sets no ceiling, and then
+   * there is nothing to be near the end of.
+   */
+  storage: { used: string; limit: string | null; percent: number | null };
 };
 
 /** One row of the transaction history. `amount` is a preformatted CHF string
@@ -1303,6 +1362,34 @@ export default function MePageContent({
                   <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-navy-200 pt-4">
                     <BuyCreditsDialog username={username} />
                   </div>
+
+                  {/*
+                    How full the journal is, and the one thing that can be done
+                    about it — B661. Under the balance because it is the second
+                    thing credits buy, and the only one that is not a send.
+                    Absent where the instance sets no ceiling: a bar with no end
+                    measures nothing.
+                  */}
+                  {payment.storage.limit !== null && (
+                    <div className="mt-4 border-t border-navy-200 pt-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+                        {t("me.storageTitle")}
+                      </p>
+                      <p className="mt-1 text-base text-navy-900">
+                        {t("me.storageUsed", {
+                          used: payment.storage.used,
+                          limit: payment.storage.limit,
+                        })}
+                      </p>
+                      {payment.storage.percent !== null &&
+                        payment.storage.percent >= 90 && (
+                          <p className="mt-1 text-sm leading-6 text-coral-600">
+                            {t("me.storageNearlyFull")}
+                          </p>
+                        )}
+                      <BuyStorageButton username={username} />
+                    </div>
+                  )}
 
                   {/*
                     The transaction history — B413. Only when there is one.

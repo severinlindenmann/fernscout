@@ -33,6 +33,7 @@ const OUTCOME_MESSAGE: Record<Exclude<PhotobookOutcomeState, "done">, Translatio
   duplicate: "photobook.duplicate",
   no_credits: "photobook.noCredits",
   no_photos: "photobook.noPhotos",
+  no_room: "photobook.noRoom",
   failed: "photobook.failed",
 };
 

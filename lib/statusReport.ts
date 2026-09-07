@@ -21,14 +21,14 @@
  * block goes through it.
  */
 import fs from "node:fs";
-import path from "node:path";
 
 import { balanceOf, creditsEnabled } from "./credits";
 import { contactsWithReadGrant } from "./grants";
 import { getDays } from "./entries";
 import { getTrips } from "./trips";
-import { getUsernames, getUser, listedUsernames, userDir } from "./users";
+import { getUsernames, getUser, listedUsernames } from "./users";
 import { contentRoot } from "./contentRoot";
+import { formatBytes, journalBytes } from "./storageQuota";
 import { listContacts } from "./contacts";
 import { loadServerConfig } from "./config";
 import { getDatabaseOrNull } from "./db";
@@ -58,35 +58,6 @@ export type StatusReport = {
   /** Sections that could not be read, each named. Never thrown. */
   problems: string[];
 };
-
-/** Bytes, at the precision an operator reads rather than the one a disk has. */
-function formatBytes(n: number): string {
-  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} GB`;
-  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(0)} MB`;
-  return `${(n / 1024).toFixed(0)} KB`;
-}
-
-/** Every byte under a directory. Same walk as lib/api/media.ts's quota. */
-function dirBytes(at: string): number {
-  let total = 0;
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(at, { withFileTypes: true });
-  } catch {
-    return 0;
-  }
-  for (const entry of entries) {
-    const full = path.join(at, entry.name);
-    if (entry.isDirectory()) total += dirBytes(full);
-    else if (entry.isFile())
-      try {
-        total += fs.statSync(full).size;
-      } catch {
-        // Vanished between readdir and stat. Not our byte to count.
-      }
-  }
-  return total;
-}
 
 export async function collectStatus(): Promise<StatusReport> {
   const problems: string[] = [];
@@ -183,7 +154,7 @@ export async function collectStatus(): Promise<StatusReport> {
               credits && hasDatabase
                 ? await section(`${username} credits`, () => balanceOf(username), null)
                 : null,
-            bytes: dirBytes(userDir(username)),
+            bytes: journalBytes(username),
           };
         },
         empty,

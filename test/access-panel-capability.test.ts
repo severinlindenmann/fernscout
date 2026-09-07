@@ -39,6 +39,19 @@ const JOURNAL = {
   features: { mail: { enabled: true }, whatsapp: { enabled: true } },
 };
 vi.mock("@/lib/users", () => ({ getUser: () => JOURNAL }));
+// The page reports how full the journal is (B661), which means walking a
+// content directory these fixtures do not have. Stubbed whole: this file is
+// about which capabilities the panel is told about, and a byte count is
+// `test/storage-quota.test.ts`'s subject.
+vi.mock("@/lib/storageQuota", () => ({
+  storageFor: async () => ({
+    usedBytes: 0,
+    limitBytes: null,
+    purchasedBytes: 0,
+    remainingBytes: null,
+  }),
+  formatBytes: (n: number) => `${n} B`,
+}));
 vi.mock("@/lib/viewer", () => ({
   resolveViewer: async () => ({
     email: viewerEmail(),

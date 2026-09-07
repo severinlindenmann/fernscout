@@ -1714,6 +1714,13 @@ needs the code *and* a payment the person makes themselves: the server emails
 them a link, and nothing reaches a printer until that is paid. There is no
 call here that puts a charge on somebody's card.
 
+**A full journal is the owner's to fix, not yours.** When an upload is refused
+for want of room, say so and stop — the owner can delete something or buy
+5 GB more from their own page, and either is their decision. The call that
+buys it takes the owner's own browser session and refuses a token, so it is
+not one you can make on their behalf. Their journal's owner is already mailed
+when it gets close to full.
+
 ### Deleting a trip, or the whole journal
 
 \`\`\`http
@@ -2213,7 +2220,7 @@ about is not held back on a hunch.
 | video | ${VIDEO_FORMATS.join(", ")} — at most ${(VIDEO_MAX_BYTES / 1024 / 1024).toFixed(0)} MB and ${VIDEO_MAX_SECONDS}s. Needs ffmpeg on the server; if it is missing the refusal says so |
 | per day | at most ${MAX_ITEMS_PER_DAY} items, counting what the day already holds |
 | per request | at most ${MAX_ITEMS_PER_DAY} items — the same number, so a batch too big for one call is too big for one day, and splitting it will not help — **and at most ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB of body**, which is the limit you will actually meet |
-| per journal | whatever this instance's \`media.perUserBytes\` says, if anything |
+| per journal | a storage ceiling over the whole journal folder — photobooks and all, not only photographs. \`GET /api/v1/<user>/status\` carries \`storage\`: what is used, what is allowed, what is left. Read it before a big batch; one that would go past the ceiling is refused whole and nothing is written |
 | tags | lowercase letters, digits and single hyphens, up to ${TAG_MAX_LENGTH} characters |
 | transport | ${TRANSPORT_MODES.join(", ")} |
 | travel scene | ${TRAVEL_SCENE_VARIANTS.join(", ")} — absent plays the default |

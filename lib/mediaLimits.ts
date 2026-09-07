@@ -36,11 +36,23 @@ export type MediaLimits = {
   /** Items on one day — one "post". */
   itemsPerDay: number;
   /**
-   * Total bytes of media one journal may hold, originals included.
+   * Total bytes one journal may hold — B661.
    *
-   * `null` means no ceiling, which is the default: a limit nobody asked for
-   * that stops somebody's holiday photographs uploading is worse than a disk
-   * that fills up visibly. Set it on a shared instance.
+   * Everything under `content/<username>/`, not only its photographs:
+   * photobook PDFs are tens to hundreds of megabytes each and were outside
+   * this number until B661, which is how a ceiling that was set could still
+   * be walked past. `lib/storageQuota.ts` is what counts it.
+   *
+   * Five gigabytes by default. It used to be `null` — no ceiling — on the
+   * argument that a limit nobody asked for is worse than a disk that fills up
+   * visibly, and the argument was wrong in the shared case: the disk that
+   * fills up is everybody else's too, and the first symptom is a stranger's
+   * upload failing. `null` still parses, for an instance that would rather
+   * take the risk.
+   *
+   * An owner may buy past it, 5 GB at a time and for good — see
+   * `EXTRA_STORAGE_CREDITS`. Those bytes are added on top of this number
+   * rather than replacing it, so the server's ceiling still means something.
    */
   perUserBytes: number | null;
   /**
@@ -61,13 +73,17 @@ export type MediaLimits = {
  * that would otherwise never stop growing. See `photobookOrdersPerUser`. */
 const DEFAULT_PHOTOBOOK_ORDERS_PER_USER = 20;
 
+/** Room for a few thousand photographs at 2000px, which is several trips. See
+ * `perUserBytes`. */
+const DEFAULT_PER_USER_BYTES = 5 * 1024 ** 3;
+
 export const DEFAULT_MEDIA_LIMITS: MediaLimits = {
   imageBytes: IMAGE_MAX_BYTES,
   imageEdge: IMAGE_MAX_EDGE,
   videoBytes: VIDEO_MAX_BYTES,
   videoSeconds: VIDEO_MAX_SECONDS,
   itemsPerDay: MAX_ITEMS_PER_DAY,
-  perUserBytes: null,
+  perUserBytes: DEFAULT_PER_USER_BYTES,
   photobookOrdersPerUser: DEFAULT_PHOTOBOOK_ORDERS_PER_USER,
 };
 

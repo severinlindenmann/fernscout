@@ -13,6 +13,7 @@ import {
 import { pruneOldPhotobooks } from "@/lib/photobook/retention";
 import { sendPhotobookReceipt } from "@/lib/photobook/receipt";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
+import { storageRefusal } from "@/lib/storageQuota";
 import { getTrip, parseTripRef } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
@@ -123,6 +124,24 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   // here, before an order is even claimed, so nothing is charged — B482.
   if (book.photoCount === 0) {
     return back_("no_photos");
+  }
+
+  /**
+   * A full journal cannot be printed into — B661.
+   *
+   * The PDFs land under `content/<user>/photobooks/`, are tens to hundreds of
+   * megabytes, and were outside every ceiling this instance had. Checked
+   * before the order is claimed and before anything is charged, so a refusal
+   * costs nothing and pressing the button again after deleting something
+   * works.
+   *
+   * Asked about one byte rather than an estimate of the book: its size is
+   * only known once it is rendered, and a guess would refuse the wrong
+   * orders. "Is there room for anything at all" is the question that can be
+   * answered honestly here.
+   */
+  if (await storageRefusal(user, 1)) {
+    return back_("no_room");
   }
 
   const credits = priceOf(book, options);

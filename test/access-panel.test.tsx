@@ -590,6 +590,7 @@ describe("the payment section", () => {
     channels: { mail: true, whatsapp: true },
     postcardCredits: null,
     transactions: [],
+    storage: { used: "1.0 GB", limit: "5.0 GB", percent: 20 },
   };
 
   test("renders for the owner", () => {

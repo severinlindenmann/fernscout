@@ -7,6 +7,7 @@ import { writableTrips } from "@/lib/api/auth";
 import { balanceOf } from "@/lib/credits";
 import { getTrips } from "@/lib/trips";
 import { serverSite } from "@/lib/site";
+import { storageFor } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
 
 /**
@@ -197,6 +198,17 @@ export async function journalStatus(user: string, session: Session) {
      * the agent has no way to tell an empty account from a malformed request.
      */
     ...(creditBalance !== null ? { credits: { balance: creditBalance, perEmail: 1, perWhatsapp: 1 } } : {}),
+    /*
+     * How much room is left before an upload is refused — B661.
+     *
+     * Here for the same reason `credits` is: an agent that finds out by being
+     * refused has already spent the batch. Reported to a trip-scoped token
+     * too, unlike the balance — the whole journal's ceiling is what refuses a
+     * trip's photographs, so a slice of it would be a number that does not
+     * predict anything. `limitBytes` is null on an instance that has switched
+     * the ceiling off; `null` there means "no limit", never "unknown".
+     */
+    storage: await storageFor(user),
     next: nextStep(drafts.length, trips.length, scoped),
   };
 }

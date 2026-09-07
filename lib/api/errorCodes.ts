@@ -107,6 +107,8 @@ export const ERROR_CODES: Record<string, string> = {
   no_owner_address: "This journal's config.json has no owner address, and this call has to mail somebody. That is an edit to the file.",
   no_database: "This capability stores data and this server has no database configured.",
   no_credits: "This journal has no credits left for that.",
+  not_for_agents:
+    "This spends the owner's money and is done by the owner, from their own page — a token is refused here whatever it is scoped to. Nothing was charged. Report what is needed and let them decide.",
   bad_token: "The single-use token in the body does not verify.",
   bad_method: "That payment method is not one this server takes.",
   too_many_requests: "Too many of these too quickly. `retryAfter` says how long to wait — wait it out rather than retrying immediately.",

@@ -11,6 +11,7 @@ import {
   VISIBILITY_NOT_A_LOCK,
 } from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
+import { EXTRA_STORAGE_BYTES, EXTRA_STORAGE_CREDITS } from "@/lib/credits/pricing";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 // Every enum below is imported rather than typed out. A hand-written list
@@ -2794,6 +2795,31 @@ export function openApiDocument() {
           },
         },
       },
+      "/api/v1/{user}/storage": {
+        post: {
+          summary: `Buy this journal ${EXTRA_STORAGE_BYTES / 1024 ** 3} GB more room`,
+          description:
+            `Spends ${EXTRA_STORAGE_CREDITS} credits and raises this journal's storage ceiling ` +
+            `by ${EXTRA_STORAGE_BYTES / 1024 ** 3} GB, immediately and for good — unlike ` +
+            "`/credits/purchase`, this one really does charge. It cannot be undone, it does not " +
+            "expire, and buying twice adds twice. No request body: there is one thing to buy and " +
+            "one price.\n\n" +
+            "**The owner's own browser session, and nothing else.** A bearer token is refused " +
+            "here whatever it is scoped to, the same way ordering a photobook or posting a card " +
+            "is: an agent that has just been refused an upload reports that the journal is full " +
+            "and lets the owner decide whether to delete something or buy more room. " +
+            "`GET /api/v1/{user}/status` is where the bytes held and the bytes allowed are read " +
+            "back.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": { description: "Bought. The new ceiling and what is used against it" },
+            "402": { description: "The balance does not cover it — nothing was charged" },
+            "403": { description: "Owner only, and never a bearer token — `not_for_agents`" },
+            "404": { description: "Credits are off on this server" },
+            "429": { description: "Too many purchases in a minute" },
+          },
+        },
+      },
       "/api/v1/{user}/payments/{id}/pay": {
         post: {
           summary: "Say how a pending payment will be paid (grants nothing)",
@@ -2879,7 +2905,15 @@ export function openApiDocument() {
             "`send_whatsapp` — a balance too small refuses the whole publish with 402 and " +
             "writes nothing. Absent means this server does not bill, not that the account " +
             "is empty; it is also absent for a trip-scoped token, which can neither " +
-            "publish nor send.",
+            "publish nor send.\n\n" +
+            "**`storage`** is how full the journal is — `usedBytes`, `limitBytes`, " +
+            "`remainingBytes` and `purchasedBytes`. Read it before uploading a batch: a " +
+            "batch that would go past `limitBytes` is refused whole and nothing is " +
+            "written. It counts every byte under the journal's folder, photobook PDFs " +
+            "included, not only its photographs. A `limitBytes` of `null` means this " +
+            "instance sets no ceiling — never that the answer is unknown. Present for a " +
+            "trip-scoped token too, because the whole journal's ceiling is what refuses a " +
+            "trip's photographs. `POST /api/v1/{user}/storage` is how the owner raises it.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],
