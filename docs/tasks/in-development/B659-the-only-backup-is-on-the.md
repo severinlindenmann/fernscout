@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: backup, DR, off-site
 found: "2026-09-07T06:19:24Z"
+started: "2026-09-07T12:24:00Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T12:24:00Z"
 ---
 
 # B659 — The only backup is on the machine it is backing up
