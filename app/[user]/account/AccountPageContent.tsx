@@ -433,7 +433,6 @@ function BuyCreditsDialog({ username }: { username: string }) {
         >
           {t("me.paymentBuyTitle")}
         </button>
-        <span className="text-sm text-navy-600">{t("me.paymentBuyBody")}</span>
       </div>
       {result && (
         <span role="status" className="mt-1 block text-sm text-coral-600">
