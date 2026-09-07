@@ -352,6 +352,17 @@ describe("what a request body may say", () => {
         includeCharts: false,
   };
 
+  test("reads an order stored before binding was removed", () => {
+    const parsed = parseOptions(base, SIZES);
+    expect(parsed).not.toBeNull();
+    expect(parsed).not.toHaveProperty("binding");
+  });
+
+  test("still refuses an object missing a field that matters", () => {
+    const { locale: _omitted, ...withoutLocale } = base;
+    expect(parseOptions(withoutLocale, SIZES)).toBeNull();
+  });
+
   test("a valid arrangement survives the boundary", () => {
     const parsed = parseOptions(
       { ...base, days: { "2026-01-01": { layout: "grid", photos: ["/a.jpg"] } } },

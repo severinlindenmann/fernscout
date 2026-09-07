@@ -172,15 +172,11 @@ export default function BookLevelView({
   const unbuyable = preview?.buyable === false;
 
   const sizeName = t(SIZE_LABEL[options.size] ?? "photobook.size.square");
-  const bindingName = t(
-    options.binding === "saddle" ? "photobook.binding.saddle" : "photobook.binding.perfect",
-  );
   const summary = preview
     ? t(preview.volumes > 1 ? "photobook.summaryVolumes" : "photobook.summary", {
         pages: String(preview.pages),
         volumes: String(preview.volumes),
         size: sizeName,
-        binding: bindingName,
       })
     : null;
 

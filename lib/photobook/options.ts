@@ -27,7 +27,6 @@ export type BookOptions = {
    * translation service.
    */
   locale: string;
-  binding: "perfect" | "saddle";
   /** `MediaTile.src` values left out of the book. */
   excludePhotos: readonly string[];
   /**
@@ -231,9 +230,8 @@ export type DayLayout =
 export const DAY_LAYOUTS: readonly DayLayout[] = ["auto", "hero", "single", "pair", "grid", "text"];
 
 export const DEFAULT_OPTIONS: BookOptions = {
-  size: "square-210",
+  size: "square",
   locale: "en",
-  binding: "perfect",
   excludePhotos: [],
   days: {},
   includeText: true,
@@ -451,7 +449,6 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     if (typeof raw.cover !== "string" || raw.cover.length > MAX_SRC_LENGTH) return null;
     cover = raw.cover;
   }
-  const binding = raw.binding === "perfect" || raw.binding === "saddle" ? raw.binding : null;
   const excludePhotos =
     Array.isArray(raw.excludePhotos) &&
     raw.excludePhotos.length <= MAX_EXCLUDED_PHOTOS &&
@@ -485,7 +482,6 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
   if (
     !size ||
     !locale ||
-    !binding ||
     !excludePhotos ||
     !days ||
     !focalPoints ||
@@ -501,7 +497,6 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
   return {
     size,
     locale,
-    binding,
     excludePhotos,
     days,
     focalPoints,
