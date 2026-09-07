@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (108)
+## backlog (107)
 
 ### security (2)
 
@@ -107,11 +107,10 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (20)
+### small-feature (19)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B435](backlog/small-feature/B435-no-print-provider-can-actually-post.md) | No print provider can actually post a card — print.one is unevaluated and unwired | FEATURE | high | medium |
 | [B820](backlog/small-feature/B820-receipts-cannot-be-entered-anywhere-a.md) | Receipts cannot be entered anywhere a person can reach | FEATURE | high | medium |
 | [B10](backlog/small-feature/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B112](backlog/small-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
@@ -205,10 +204,11 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B822](open/B822-a-back-arrow-returns-to-a.md) | A back arrow returns to a fixed parent rather than where the reader actually came from | ISSUE | medium | medium |
 
-## in-development (11)
+## in-development (12)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B435](in-development/B435-no-print-provider-can-actually-post.md) | No print provider can actually post a card — Stannp is built but never called | FEATURE | high | medium | `1ea1a367` |
 | [B807](in-development/B807-a-signed-in-person-is-silently.md) | A signed-in person is silently signed out mid-task and told the journal is not theirs | ISSUE | high | medium | `fdfcf5f2` |
 | [B808](in-development/B808-the-ask-box-answers-a-vague.md) | The ask box answers a vague question confidently and wrongly | ISSUE | high | low | `fdfcf5f2` |
 | [B816](in-development/B816-a-published-day-cannot-be-corrected.md) | A published day cannot be corrected or taken down without an agent | FEATURE | high | high | `fdfcf5f2` |
