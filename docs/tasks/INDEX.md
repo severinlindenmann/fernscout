@@ -187,7 +187,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (23)
+## in-development (22)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -201,7 +201,6 @@ _Nothing here._
 | [B363](in-development/B363-the-letter-s-permission-gate-is.md) | The letter's permission gate is a second copy of the site's, and nothing holds them together | CHORE | medium | medium | `97b44327` |
 | [B541](in-development/B541-build-demo-content-mjs-no-longer.md) | build-demo-content.mjs no longer reproduces the demo it is supposed to generate | CHORE | medium | medium | `97b44327` |
 | [B685](in-development/B685-the-helper-cannot-understand-a-sentence.md) | The helper cannot understand a sentence a person types at it | FEATURE | medium | medium | `fdfcf5f2` |
-| [B694](in-development/B694-the-landing-page-sends-everybody-off.md) | The landing page sends everybody off to fetch an agent of their own | FEATURE | medium | low | `ccdd5120` |
 | [B696](in-development/B696-a-journal-called-agent-can-still.md) | A journal called agent can still be created on an instance with its own config | ISSUE | medium | low | `97b44327` |
 | [B707](in-development/B707-uploading-by-url-silently-drops-files.md) | Uploading by url silently drops files past the per-day limit | ISSUE | medium | low | `97b44327` |
 | [B712](in-development/B712-the-helper-routes-are-undocumented-in.md) | The helper routes are undocumented in the agent guide | DOCS | medium | low | `97b44327` |
@@ -215,7 +214,7 @@ _Nothing here._
 | [B710](in-development/B710-the-reverse-geocoding-url-is-guessed.md) | The reverse geocoding URL is guessed from the forward one | ISSUE | low | low | `97b44327` |
 | [B711](in-development/B711-the-preview-still-says-draft-after.md) | The preview still says draft after the day is published | ISSUE | low | low | `97b44327` |
 
-## testing (412)
+## testing (413)
 
 ### security (7)
 
@@ -475,7 +474,7 @@ _Nothing here._
 | [B677](testing/big-feature/B677-a-bank-statement-can-only-be.md) | A bank statement can only be read on the owner's own laptop, so the parsing lives in the helper | FEATURE | medium | high | — |
 | [B684](testing/big-feature/B684-spoken-or-typed-notes-cannot-be.md) | Spoken or typed notes cannot be turned into a day | FEATURE | medium | high | — |
 
-### small-feature (87)
+### small-feature (88)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -552,6 +551,7 @@ _Nothing here._
 | [B633](testing/small-feature/B633-there-is-no-way-for-the.md) | There is no way for the owner to send a day's notification from the day itself | FEATURE | medium | medium | — |
 | [B660](testing/small-feature/B660-the-operator-s-banner-is-one.md) | The operator's banner is one language on a multilingual instance | FEATURE | medium | low | — |
 | [B664](testing/small-feature/B664-the-owner-cannot-see-what-is.md) | The owner cannot see what is using their storage, or reclaim any of it | FEATURE | medium | medium | — |
+| [B694](testing/small-feature/B694-the-landing-page-sends-everybody-off.md) | The landing page sends everybody off to fetch an agent of their own | FEATURE | medium | low | — |
 | [B701](testing/small-feature/B701-the-low-resolution-warning-names-paths.md) | The low-resolution warning names paths nobody recognises and says a photograph prints soft | FEATURE | medium | low | — |
 | [B702](testing/small-feature/B702-the-book-s-charts-route-and.md) | The book's charts, route and rules are drawn in a blue that is not a brand colour | FEATURE | medium | low | — |
 | [B703](testing/small-feature/B703-a-day-s-text-cannot-be.md) | A day's text cannot be left out on its own, and the layout names say nothing about what they look like | FEATURE | medium | medium | — |

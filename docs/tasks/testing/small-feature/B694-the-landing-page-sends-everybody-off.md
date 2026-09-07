@@ -7,8 +7,7 @@ complexity: low
 area: landing, docs, i18n, agent
 found: "2026-09-07T10:05:53Z"
 started: "2026-09-07T11:27:36Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T11:27:36Z"
+merged: "2026-09-07T11:58:21Z"
 ---
 
 # B694 — The landing page sends everybody off to fetch an agent of their own
@@ -223,3 +222,35 @@ that has not also switched on credits and set `ANTHROPIC_API_KEY`.
 **The 390px check is still outstanding** and is the one acceptance line
 nothing here demonstrates — see the section above for why the browser was
 unavailable. It needs somebody with a free browser profile.
+
+## The 390px check, done after merge
+
+It was the one acceptance line the build left undemonstrated, because both MCP
+browser profiles were locked by a concurrent session. Driven instead with an
+isolated Chromium (`playwright-core`, its own `userDataDir`) against a dev
+server in this ticket's worktree, with `helper` and `credits` switched on in
+`site/config.json` and `ANTHROPIC_API_KEY` set to a dummy — the landing page is
+public and calls no model, so nothing was spent.
+
+Both arrangements, at 390×844, full page:
+
+| | `helper` on | `helper` off |
+| --- | --- | --- |
+| links to `/agent` | 1 | 0 |
+| `document.documentElement.scrollWidth` | 390 | 390 |
+| primary CTA box | 342×56 at x=24 | absent |
+
+Neither arrangement scrolls horizontally, and the button clears the 44px tap
+target this audience wants (J9 in `docs/ROADMAP.md` is the standing complaint
+about the ones that do not). Helper on renders "Start writing →" as the
+primary route with the quiet bring-your-own line beneath it and the
+instruction box and 01/02/03 steps moved below — the ticket's sketch, built.
+Helper off is byte-for-byte the page as it was.
+
+The config edits were reverted and the server stopped; the worktree was clean
+before removal.
+
+**One capture came out of looking at it: B726.** The reworded `landing.noEditor`
+ends "whether it's this instance's or your own", which is false on an instance
+with the helper off — the same class of fault this ticket was opened to fix,
+one paragraph further down.
