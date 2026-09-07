@@ -174,6 +174,13 @@ export default function AgentDoor({
           </div>
         )}
 
+        {/* B751: kept here, and only here on this page. Signed out, this is
+            the second door and belongs. Signed in with journals, each
+            journal's own `AgentHandover` above already does this job with a
+            real key — this generic panel does not render alongside it. Signed
+            in with no journal, there is no `AgentHandover` to duplicate (it
+            needs a journal), so the generic panel is the only offer there
+            is. */}
         {(!signedIn || journals.length === 0) && (
           <div className="mt-2">
             <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />

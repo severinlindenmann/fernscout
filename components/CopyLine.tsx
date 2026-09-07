@@ -15,6 +15,7 @@ export default function CopyLine({
   label,
   copiedLabel,
   name,
+  variant = "quiet",
 }: {
   value: string;
   label: string;
@@ -33,6 +34,13 @@ export default function CopyLine({
    * page as text, which is where they are readable one at a time.
    */
   name?: string;
+  /**
+   * "quiet" (default) is the bordered outline every existing caller uses.
+   * "primary" is the yellow pill — B751's `AgentBlock`, where copying the
+   * instruction is the block's only action and deserves the weight the rest
+   * of the page gives a primary call to action.
+   */
+  variant?: "quiet" | "primary";
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -59,9 +67,15 @@ export default function CopyLine({
       // The focus ring is the global blue-500 one from globals.css: sky-500
       // is 2.73:1 on white and 2.63:1 on cream, so as a ring it failed the 3:1
       // that a focus indicator needs on every surface it is drawn against.
-      className="group inline-flex min-h-11 items-center gap-2 rounded-lg border border-navy-200
-                 bg-cream-50 px-4 font-mono text-base text-navy-700 transition-colors
-                 hover:border-navy-700 hover:text-navy-900"
+      className={
+        variant === "primary"
+          ? "group inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-600 " +
+            "bg-yellow-400 px-5 font-mono text-base font-semibold text-yellow-950 transition-colors " +
+            "hover:bg-yellow-300"
+          : "group inline-flex min-h-11 items-center gap-2 rounded-lg border border-navy-200 " +
+            "bg-cream-50 px-4 font-mono text-base text-navy-700 transition-colors " +
+            "hover:border-navy-700 hover:text-navy-900"
+      }
     >
       <span aria-hidden="true">{copied ? copiedLabel : label}</span>
       <span className="sr-only" role="status">
