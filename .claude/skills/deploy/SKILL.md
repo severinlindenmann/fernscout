@@ -117,6 +117,7 @@ The usual causes, in order of likelihood:
 | `503` from health | `site/config.json` did not parse |
 | TLS fails on a new domain | DNS does not resolve yet; Caddy needs port 80 |
 | Migrations "did nothing" | `DATABASE_URL` is unset — that is supported, not a bug |
+| Clips refused, photographs fine | No `ffmpeg` on the server. The deploy prints `video: off`, and `/api/health` stops advertising the formats. `apt install ffmpeg`, then restart the service — the check is cached per process |
 
 Nothing here is fixed by re-running the deploy. Read the log first.
 

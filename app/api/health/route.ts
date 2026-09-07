@@ -9,6 +9,7 @@ import { DEFAULT_MEDIA_LIMITS } from "@/lib/mediaLimits";
 import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
 import { contentRootProblem, getUsernames } from "@/lib/users";
 import pkg from "@/package.json";
+import { videoToolsAvailable } from "@/lib/ingest/video";
 import {
   CAPTION_MAX_CHARS,
   IMAGE_FORMATS,
@@ -287,7 +288,30 @@ export async function GET(request: Request) {
      */
     media: {
       imageFormats: [...IMAGE_FORMATS],
-      videoFormats: [...VIDEO_FORMATS],
+      /**
+       * Empty on a server with no ffmpeg — B692.
+       *
+       * This used to be the constant, always, which told every caller that
+       * mp4, mov and webm were accepted while `storeUploads` refused each one
+       * for want of the tools. It is the failure this file exists to prevent:
+       * an optional capability is *absent* rather than broken, and a limit
+       * belongs where a caller can read it before they hit it.
+       *
+       * `videoToolsAvailable()` caches, so a server where ffmpeg was installed
+       * under a running process keeps saying no until it is restarted — which
+       * is correct, since the process really cannot spawn what it has already
+       * concluded is missing.
+       */
+      videoFormats: videoToolsAvailable() ? [...VIDEO_FORMATS] : [],
+      ...(videoToolsAvailable()
+        ? {}
+        : {
+            video: {
+              reason:
+                "ffmpeg and ffprobe are not installed on this server, so a clip cannot be " +
+                "converted for the browser. Photographs are unaffected.",
+            },
+          }),
       imageMaxBytes: IMAGE_MAX_BYTES,
       imageMaxEdge: IMAGE_MAX_EDGE,
       videoMaxBytes: VIDEO_MAX_BYTES,

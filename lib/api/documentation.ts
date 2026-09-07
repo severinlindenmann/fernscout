@@ -2,6 +2,7 @@ import "server-only";
 import { serverSite } from "../site";
 // The limits are published from the constants that enforce them: a table
 // typed out a second time is a table that goes stale.
+import { videoToolsAvailable } from "../ingest/video";
 import {
   CAPTION_MAX_CHARS,
   IMAGE_FORMATS,
@@ -579,6 +580,32 @@ function dayFieldRows(): string {
       return `| \`${name}\` | ${required.has(name) ? "**required**" : ""} | ${said || "—"} |`;
     })
     .join("\n");
+}
+
+/**
+ * The video row of the limits table, which depends on the machine — B692.
+ *
+ * `/agent.md` is rendered per request and per instance, so it can say what is
+ * true here rather than what the constants describe. An agent told to send mp4
+ * by a server that will refuse every one of them has been sent to do work that
+ * cannot land, and it only finds out after the upload.
+ */
+function videoRow(): string {
+  const formats = VIDEO_FORMATS.join(", ");
+  if (!videoToolsAvailable()) {
+    return (
+      `**not accepted on this instance.** ffmpeg and ffprobe are not installed, so a ` +
+      `clip cannot be converted for the browser. Send the photographs, and tell the person ` +
+      `running this instance if they wanted clips — it is one package. Everything else on this ` +
+      `page is unaffected`
+    );
+  }
+  return (
+    `${formats} — at most ${(VIDEO_MAX_BYTES / 1024 / 1024).toFixed(0)} MB and ` +
+    `${VIDEO_MAX_SECONDS}s. Longer than about ${VIDEO_SHORT_SECONDS}s still goes in whole — ` +
+    `nothing is cut — and the response says so in \`advice\`, because a short clip is the one ` +
+    `a reader watches and the one that costs them less on mobile data`
+  );
 }
 
 export function agentGuide(): string {
@@ -2392,7 +2419,7 @@ about is not held back on a hunch.
 | | |
 | --- | --- |
 | images | ${IMAGE_FORMATS.join(", ")} — at most ${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB, ${IMAGE_MAX_EDGE}px on the longest edge |
-| video | ${VIDEO_FORMATS.join(", ")} — at most ${(VIDEO_MAX_BYTES / 1024 / 1024).toFixed(0)} MB and ${VIDEO_MAX_SECONDS}s. Longer than about ${VIDEO_SHORT_SECONDS}s still goes in whole — nothing is cut — and the response says so in \`advice\`, because a short clip is the one a reader watches and the one that costs them less on mobile data. Needs ffmpeg on the server; if it is missing the refusal says so |
+| video | ${videoRow()} |
 | per day | at most ${MAX_ITEMS_PER_DAY} items, counting what the day already holds |
 | per request | at most ${MAX_ITEMS_PER_DAY} items — the same number, so a batch too big for one call is too big for one day, and splitting it will not help — **and at most ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB of body**, which is the limit you will actually meet |
 | per journal | a storage ceiling over the whole journal folder — photobooks and all, not only photographs. \`GET /api/v1/<user>/status\` carries \`storage\`: what is used, what is allowed, what is left. Read it before a big batch; one that would go past the ceiling is refused whole and nothing is written |

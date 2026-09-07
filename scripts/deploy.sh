@@ -309,6 +309,30 @@ report_logging() {
   esac
 }
 
+# Whether this server can take a clip at all — B693.
+#
+# ffmpeg is not an npm dependency and nothing here installs it: a deploy runs
+# on every push, as root, and one that quietly `apt install`s changes the
+# machine on a docs-only push. Provisioning is docs/runbook.md's job, and has
+# to work on a VPS that is not Debian.
+#
+# So this reports, in the same breath as backup and logging. fernscout.ch ran
+# for months advertising mp4, mov and webm with no ffmpeg on the box, refusing
+# every clip after the upload, and no deploy ever mentioned it. `videoFormats`
+# is empty exactly when the tools are missing (B692), which is what this reads.
+report_video() {
+  local health="$1"
+  local formats
+  formats="$(printf '%s' "$health" | node -e \
+    'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const f=JSON.parse(s).media?.videoFormats;process.stdout.write(Array.isArray(f)?String(f.length):"")}catch{}})' \
+    2>/dev/null)" || formats=""
+  case "$formats" in
+    "") ;;  # an older build, or no node to read the answer with
+    0) log "video: off — ffmpeg is not installed, so clips are refused (apt install ffmpeg)" ;;
+    *) log "video: on (${formats} formats)" ;;
+  esac
+}
+
 # Whether the proxy in front of this app is still the one the release expects
 # (B66). `deploy/fernscout.caddy` is imported by the machine's Caddyfile, so on
 # a machine that took the import there is nothing to say; on one whose operator
@@ -348,6 +372,7 @@ for i in $(seq 1 30); do
     record_deployed
     report_backup "$HEALTH"
     report_logging "$HEALTH"
+    report_video "$HEALTH"
     [ "$do_caddy" = 1 ] && report_caddy
     if [ "$do_restart" = 0 ] && [ "$do_build" = 0 ]; then
       log "note: /api/health still reports the commit it was built from — that is what is serving"

@@ -65,9 +65,19 @@ sudo chown fernscout:fernscout /var/lib/fernscout
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
-sudo apt install -y nodejs git build-essential python3
+sudo apt install -y nodejs git build-essential python3 ffmpeg
 node -v            # expect v24.x
+ffmpeg -version    # expect 7.x
 ```
+
+**`ffmpeg` is what makes video possible, and leaving it out is a real choice.**
+Every clip is converted on this server — h264 in an MP4, a poster frame, the
+metadata dropped — so without `ffmpeg` and `ffprobe` on `PATH` a clip is refused
+at both doors and photographs are unaffected. A deploy says which you have, and
+`/api/health` stops advertising the video formats when they are missing. It is
+about 100 MB of codecs; a journal that is only ever photographs does not need
+it, and a server that skips it should skip it knowingly rather than find out
+from an owner whose video would not upload.
 
 `build-essential` and `python3` are for node-gyp: `better-sqlite3` compiles
 from source, and `package.json`'s `allowScripts` block means `npm ci` actually
