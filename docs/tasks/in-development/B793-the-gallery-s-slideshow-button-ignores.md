@@ -58,3 +58,22 @@ justification for keeping a button that does not do it.
 - The map's slideshow still opens and plays.
 - `npm run unused` reports nothing new.
 - Checked at 390px.
+
+## What changed while building
+
+Removing the button stranded a chain of things, which is the useful part of
+this ticket: the `places` prop nothing read any more, the `PlaceView` type
+import, `next/dynamic`, the `Clapperboard` icon, and — two levels up — the
+`getPlaces()` call both gallery pages were making purely to feed it. A gallery
+page was fetching the trip's places on every render for a control that ignored
+them.
+
+`test/gallery-postcard-button.test.tsx` asserted the slideshow's presence in
+two places ("the slideshow is still there for that reader"). Those assertions
+were written to guard against the postcard work removing a control the page
+already had; they now assert the opposite, with the reasoning in the test so
+the next reader does not restore it by accident.
+
+`npm run unused` reports one unused export, `Kicker` in
+`components/LandingSections.tsx` — left by the earlier header and handover
+work, not by this change, and knip prints unused exports without failing.

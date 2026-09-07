@@ -1,26 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
-import { BookOpen, Clapperboard, Send } from "lucide-react";
+import { BookOpen, Send } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import GalleryGrid from "@/components/GalleryGrid";
-import type { PlaceView } from "@/components/WorldMap";
 import type { MediaTile, PhotobookEntry, PostcardEntry } from "@/lib/types";
 import { useI18n } from "@/components/LocaleProvider";
 
 // Behind a button — nobody should pay to download the presentation bundle
 // (map projection data, motion) until they actually press it.
-const SlideShow = dynamic(() => import("@/components/SlideShow"), { ssr: false });
 
 export default function GalleryPageContent({
   media,
-  places,
   photobook,
   postcard,
 }: {
   media: MediaTile[];
-  places: PlaceView[];
   /**
    * Present only for the journal's owner, on a journal with photobook and
    * credits switched on. The server decides (`page.tsx`, via
@@ -38,12 +33,15 @@ export default function GalleryPageContent({
   postcard?: PostcardEntry;
 }) {
   const { t } = useI18n();
-  const [showing, setShowing] = useState(false);
   const [picking, setPicking] = useState(false);
   return (
     <div className="min-h-screen">
       <PageHeader />
-      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8"
+      >
         <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
           {t("gallery.title")}
         </h1>
@@ -85,18 +83,11 @@ export default function GalleryPageContent({
                 {picking ? t("postcard.cancel") : t("postcard.start")}
               </button>
             )}
-            {media.length > 0 && (
-              <button
-                onClick={() => setShowing(true)}
-                className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-navy-200 bg-white px-4 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500"
-              >
-                <Clapperboard className="h-4 w-4" />
-                {t("show.start")}
-              </button>
-            )}
           </div>
         </div>
-        {picking && <p className="mt-3 text-sm text-navy-700">{t("postcard.pickHint")}</p>}
+        {picking && (
+          <p className="mt-3 text-sm text-navy-700">{t("postcard.pickHint")}</p>
+        )}
         <div className="mt-6">
           <GalleryGrid
             media={media}
@@ -106,8 +97,6 @@ export default function GalleryPageContent({
           />
         </div>
       </main>
-
-      {showing && <SlideShow places={places} onClose={() => setShowing(false)} />}
     </div>
   );
 }
