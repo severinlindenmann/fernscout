@@ -189,7 +189,12 @@ function TripRow({
               </span>
             )}
           </span>
-          <span className="text-sm text-navy-600">{t(reasonKey)}</span>
+          <span
+            className="shrink-0 self-start rounded-full bg-cream-100 px-2.5 py-1 text-xs
+                       font-semibold text-navy-600"
+          >
+            {t(reasonKey)}
+          </span>
         </Link>
         {edit && (
           <button
@@ -521,11 +526,17 @@ export default function MePageContent({
   // One line beside each trip, saying why it is open to this reader. The
   // wording is `resolveViewer`'s answer and never this component's: the panel
   // computing anything of its own about access is B41.
+  // A tag, not a sentence — B887. Five rows each ending "sie steht in deinem
+  // Tagebuch" is the same clause five times, and it pushed every trip title
+  // into two or three lines to make room for it. The reason is still
+  // `resolveViewer`'s answer and never this component's (B41); only its
+  // length changed. The long forms stay in the locales: `me.via*` is what
+  // the trip gate says when there is one row and space to explain it.
   const reason: Record<Viewer["trips"][number]["through"], TranslationKey> = {
-    public: "me.viaPublic",
-    owner: "me.viaOwner",
-    traveller: "me.viaTraveller",
-    guest: "me.viaGuest",
+    public: "me.tagPublic",
+    owner: "me.tagOwner",
+    traveller: "me.tagTraveller",
+    guest: "me.tagGuest",
   };
 
   /**
