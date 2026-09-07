@@ -898,8 +898,6 @@ export type TranslationKey =
   | "map.zoomIn"
   | "map.zoomOut"
   | "me.accountCardBody"
-  | "me.accountCardTitle"
-  | "me.accountOpen"
   | "me.agentBody"
   | "me.agentCardTitle"
   | "me.agentTitle"

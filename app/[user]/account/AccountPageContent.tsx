@@ -28,9 +28,11 @@ import type { TranslationKey } from "@/lib/i18n";
  * journal's own title, the device list and the access panel. They are the
  * two questions an owner asks most often and most urgently — how much can I
  * still spend, how much room is left — and the only two on that page that
- * answer with a number rather than a form. `/me` keeps a line and a link
- * (`me.accountCardTitle`); the figures themselves live here and nowhere
- * else, because two live copies of a balance is how they disagree.
+ * answer with a number rather than a form. B821 left a card on `/me` pointing
+ * here; B876 removed it — the menu entry is the way in, and a card whose only
+ * content is "this lives elsewhere" is a whole card to say so. The figures
+ * live here and nowhere else, because two live copies of a balance is how
+ * they disagree.
  *
  * Owner-only — `app/[user]/account/page.tsx` 404s for anybody else, the same
  * gate `/me` uses. `payment` is absent (not zero) when credits are switched

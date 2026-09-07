@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Pencil,
   KeyRound,
-  Wallet,
   UserRound,
   TriangleAlert,
   ChartNoAxesColumn,
@@ -936,35 +935,6 @@ export default function MePageContent({
                 {/* The way to take a key back — B283. Renders nothing until
                     there is a live key. */}
                 <AgentKeys username={username} reloadOn={keysChanged} />
-              </div>
-
-              {/*
-                Credits and storage moved to their own page — B821. This card
-                is a line and a link, never the figures again: two live
-                copies of a balance is how they disagree. Shown regardless of
-                whether there is anything behind either panel today (credits
-                off, no storage ceiling set) — it is where an owner has
-                learnt to look for both, and the page itself is what decides
-                whether there is a number to show.
-              */}
-              <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-navy-900">
-                    <Wallet className="h-[18px] w-[18px]" aria-hidden="true" />
-                  </span>
-                  <h3 className="font-display text-lg font-semibold text-navy-900">
-                    {t("me.accountCardTitle")}
-                  </h3>
-                </div>
-                <p className="mt-3 text-base leading-7 text-navy-700">
-                  {t("me.accountCardBody")}
-                </p>
-                <Link
-                  href={`${site.base}/account`}
-                  className="mt-4 inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-                >
-                  {t("me.accountOpen")}
-                </Link>
               </div>
 
               {/*
