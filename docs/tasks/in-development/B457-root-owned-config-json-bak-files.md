@@ -15,18 +15,6 @@ claimed: "2026-09-07T11:06:01Z"
 
 ## Why
 
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
-
-## Why
-
 B401 was two of these. Four hours after they were cleared, two more had
 appeared — `content/config.json.bak-20260905-143215` and
 `content/example/config.json.bak-20260905-143215`, both `root:root 0600`, both
@@ -65,3 +53,44 @@ the next one that matters.
 
 A week with no `chown` needed, and `sudo find /var/lib/fernscout ! -user
 fernscout` empty on a spot check.
+
+## Triage
+
+The technical failure mode this ticket describes — a stray unreadable file
+failing the *whole* nightly run — is already fixed, by B653 (merged as
+`31687e50`, "the backup set is an allowlist and the env file is in it").
+`scripts/backup.sh` no longer copies `content/` (or `DATA_DIR`) wholesale; it
+stages an explicit allowlist, and `config.json` is staged by exact name only
+(`scripts/backup.sh:432`, `stage_file "config.json" "$DATA_DIR/config.json" …`).
+A `config.json.bak*` file sitting beside it does not match `*.json` in the
+"say what else is under DATA_DIR" sweep (`scripts/backup.sh:472-486`) and is
+therefore never attempted — it is named on stdout as `skipped … (not in the
+backup set)` and has no bearing on the run's exit code or its
+`.backup-last-success` stamp. Root ownership of such a file no longer fails a
+backup at all; this was reproduced by reading the current script rather than
+by running it (it needs a real `DATA_DIR`/systemd context this worktree does
+not have).
+
+What B653 did not touch, and what this ticket is actually left holding, is
+option 1 from the Work section above — telling people how the file gets
+there in the first place so root-owned stragglers stop accumulating and
+needing manual `chown`/deletion. That is now written into the runbook: see
+`docs/runbook.md`, the note directly below the "Three lifecycles, three
+places" table, added by this change — edit `$DATA_DIR/config.json` as
+`sudo -u fernscout`, and if a safety copy is wanted, take it outside
+`DATA_DIR` (e.g. `/root/fernscout-config-backups/`) rather than beside the
+live file.
+
+Options 2 (copies live outside DATA_DIR) and 3 (a deploy-time readability
+check) are covered by the same runbook addition and by B651's note that a
+stray unreadable file can no longer fail the run — no code change was made
+here beyond the doc.
+
+**Not done, and not this ticket's to do:** running `sudo find
+/var/lib/fernscout ! -user fernscout` on the live VPS, or chowning/removing
+any file found. That is server access this worktree does not have. A person
+should run that spot check after reading the new runbook note, and clean up
+any existing root-owned `config.json.bak*` files by hand
+(`sudo chown fernscout:fernscout <file>` or `sudo rm <file>`, whichever is
+still wanted — B651 documents the same decision for the two backups found
+there).

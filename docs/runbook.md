@@ -144,6 +144,23 @@ sudo -u fernscout cp -a /srv/fernscout/site/config.json /var/lib/fernscout/confi
 > live in `site/` in the checkout since B510, so `git pull` is the whole
 > update and nothing is copied anywhere.
 >
+> **Editing `$DATA_DIR/config.json` by hand means `sudo -u fernscout`, not
+> plain `sudo`.** A bare `sudo nano` (or `sudo cp … config.json.bak`) writes
+> as root, and a root-owned file the `fernscout` unit cannot read fails that
+> night's backup (B457, B651) — `scripts/backup.sh` only ever stages the exact
+> file `config.json`, so a `.bak` copy left beside it is never part of the
+> backup set regardless of who owns it, but a root-owned copy still has to be
+> cleaned up by hand once it starts showing up in `sudo find /var/lib/fernscout
+> ! -user fernscout`. If you want a safety copy before editing, take it
+> outside `DATA_DIR` — `/root/fernscout-config-backups/`, say — where the
+> backup has no expectation of reading it at all:
+>
+> ```bash
+> sudo -u fernscout cp /var/lib/fernscout/config.json \
+>   /root/fernscout-config-backups/config.json.bak-$(date +%F)
+> sudo -u fernscout nano /var/lib/fernscout/config.json
+> ```
+>
 > **Do not hand-edit `locales/` under `CONTENT_DIR`.** `lib/locales.ts` reads
 > the shipped dictionary first and then merges the content folder's on top, key
 > by key, so a copy taken at install time wins for every string it holds, for
