@@ -25,7 +25,7 @@
 
 import type { BookSpec } from "./spec.ts";
 
-export type CoverPanel = { widthMm: number; heightMm: number };
+type CoverPanel = { widthMm: number; heightMm: number };
 
 export type CoverGeometry = {
   /** The whole cover as one file: back + joint + spine + joint + front, plus
