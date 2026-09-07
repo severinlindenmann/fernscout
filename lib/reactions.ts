@@ -24,18 +24,41 @@ export async function getAllCounts(tripId: string) {
 /** What this particular reader has already picked, so their choice shows as
  * selected when they come back on another day. */
 /**
- * One reader's own picks, across the trips of **one journal**.
+ * One reader's own picks, on **one trip** — B239.
  *
- * Spanning trips is deliberate: one browser has one voter id, and the story
- * pager wants to know what this reader already reacted to without a request
- * per trip. Spanning *journals* is not — `owner_id` on the table is a constant
- * and the qualified ref is the tenant boundary (lib/db/owner.ts), so an
- * unscoped answer handed one journal's page a list of the trips this visitor
- * reads on somebody else's. The reader's own data, but not that journal's to
- * be told.
+ * Both storage backends answer this voter id's rows across the whole
+ * journal (`reactionsDb.ts` filters by `voter_id` alone; `reactionsFile.ts`'s
+ * `readVotes` reads the one file the whole journal shares), so without a
+ * filter here a voter id — a `crypto.randomUUID()` that travels in a query
+ * string, and so lands in access logs, `Referer` headers and any proxy in
+ * between — would hand back the day slugs of every trip in the journal this
+ * voter has reacted to, including closed ones the caller asking is not
+ * entitled to read. `resolveReadableTrip` in the route already gates the
+ * *requested* trip with `mayReadTrip`; this is what stops the answer from
+ * naming trips that check was never asked about.
+ *
+ * Used to be `scopeToJournal`, one level looser: it kept every trip of the
+ * caller's own journal rather than only the one asked about. That was never
+ * exercised by the one caller there is — `ReactionsProvider` mounts one per
+ * trip and asks for that trip alone — so narrowing it costs nothing the
+ * client uses today.
  */
 export async function getVotesFor(voterId: string, ref: string) {
-  return scopeToJournal(await (await reactionRepo()).getVotesFor(voterId, ref), ref);
+  return scopeToTrip(await (await reactionRepo()).getVotesFor(voterId, ref), ref);
+}
+
+/**
+ * Keeps only the votes for one trip.
+ *
+ * Keys are `<username>/<trip-id>:<day-slug>`, so the trip is everything
+ * before the colon. A bare day slug predates multi-trip and names no trip;
+ * there is nothing to scope by, and returning it unchanged keeps the older
+ * single-user store working.
+ */
+export function scopeToTrip<T>(votes: Record<string, T>, ref: string): Record<string, T> {
+  if (!ref.includes("/")) return votes;
+  const prefix = `${ref}:`;
+  return Object.fromEntries(Object.entries(votes).filter(([key]) => key.startsWith(prefix)));
 }
 
 /**
@@ -45,6 +68,10 @@ export async function getVotesFor(voterId: string, ref: string) {
  * before the first slash. A bare id predates multi-user and names no journal;
  * there is nothing to scope by, and returning it unchanged keeps the older
  * single-user store working.
+ *
+ * No longer used by `getVotesFor` (see `scopeToTrip`, B239) — kept because it
+ * states a real, narrower guarantee than "nothing at all" and its own test
+ * pins it.
  */
 export function scopeToJournal<T>(
   votes: Record<string, T>,

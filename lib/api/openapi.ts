@@ -817,19 +817,22 @@ export function openApiDocument() {
           },
         },
         patch: {
-          summary: "Rename a trip, or move its dates",
+          summary: "Rename a trip, move its dates, or set its cover",
           description:
-            "The four fields of a trip nothing could write until B622: `title`, `tagline`, " +
-            "`start` and `end`. Send only what is changing. A title cannot be cleared — a " +
-            "trip.md without one does not load — while an emptied `tagline` removes the key " +
-            "rather than storing `\"\"`. Dates are `YYYY-MM-DD`, and `end` may not precede " +
-            "`start`: the check is against the *result*, so either date may arrive on its " +
-            "own.\n\nOnly the frontmatter lines you name are rewritten. The prose under it, " +
+            "Five fields of a trip nothing could write until B622 (four) and B245 (`cover`): " +
+            "`title`, `tagline`, `start`, `end` and `cover`. Send only what is changing. A " +
+            "title cannot be cleared — a trip.md without one does not load — while an emptied " +
+            "`tagline` or a `cover` sent as `null`/`\"\"` removes the key rather than storing " +
+            "an empty one. Dates are `YYYY-MM-DD`, and `end` may not precede `start`: the " +
+            "check is against the *result*, so either date may arrive on its own. `cover` " +
+            "must be a `src` this trip's own gallery already carries — read " +
+            "`GET .../trips/{trip}/media` for the list — since a value naming a photo the trip " +
+            "does not have would render as a broken image on the trips index and the OG " +
+            "card.\n\nOnly the frontmatter lines you name are rewritten. The prose under it, " +
             "the key order, and every other key are left byte for byte, so this is safe on a " +
             "trip.md somebody wrote by hand.\n\n**Owner only.** A trip-scoped token belongs " +
             "to somebody who was on the journey, and adding a day to it is not the same " +
-            "authority as saying what it is called. The cover is still trip.md alone — it is " +
-            "a photograph, and choosing one belongs where photographs are.",
+            "authority as saying what it is called.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
@@ -851,18 +854,26 @@ export function openApiDocument() {
                       type: "string",
                       description: "YYYY-MM-DD, and not before `start`.",
                     },
+                    cover: {
+                      type: "string",
+                      description:
+                        "A `src` from this trip's own gallery (`GET .../trips/{trip}/media`). " +
+                        "`null` or empty string clears it. A value naming a photo the trip " +
+                        "does not have is refused rather than written.",
+                    },
                   },
                 },
               },
             },
           },
           responses: {
-            "200": { description: "The four fields as they now stand on disk" },
+            "200": { description: "The fields named, as they now stand on disk" },
             "400": {
               description:
-                "A body naming none of the four (`nothing_to_change`), a cleared or " +
-                "multi-line title (`invalid_title`), or a date that is not one — an `end` " +
-                "before the `start` is the same `invalid_date` — and nothing is written in " +
+                "A body naming none of the five (`nothing_to_change`), a cleared or " +
+                "multi-line title (`invalid_title`), a date that is not one — an `end` " +
+                "before the `start` is the same `invalid_date` — or a `cover` naming a photo " +
+                "not in this trip's gallery (`invalid_cover`) — and nothing is written in " +
                 "any of those cases",
             },
             "401": { description: "Missing or invalid token" },
@@ -1050,8 +1061,14 @@ export function openApiDocument() {
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
           responses: {
             "200": { description: "Links, with their kind, scope, expiry, uses and revocation" },
-            "403": { description: "Not this journal's owner" },
-            "404": { description: "No such journal, or contacts are off on it" },
+            "403": {
+              description:
+                "Not this journal's owner — checked before contacts is, so this also " +
+                "covers a journal that does not exist. B340.",
+            },
+            "409": {
+              description: "This journal's own owner, but contacts are off on it (`contacts_disabled`)",
+            },
           },
         },
         post: {
@@ -1130,8 +1147,15 @@ export function openApiDocument() {
                 "reading a failed send as a failed invitation.",
             },
             "400": { description: "No kind, a guest link with a trip, or a buddy link without" },
-            "403": { description: "Not this journal's owner" },
-            "404": { description: "No such journal or trip, or contacts are off" },
+            "403": {
+              description:
+                "Not this journal's owner — checked before contacts is, so this also " +
+                "covers a journal that does not exist. B340.",
+            },
+            "404": { description: "No such trip, for a buddy link" },
+            "409": {
+              description: "This journal's own owner, but contacts are off on it (`contacts_disabled`)",
+            },
           },
         },
       },
@@ -1149,8 +1173,13 @@ export function openApiDocument() {
           ],
           responses: {
             "200": { description: "Revoked" },
-            "403": { description: "Not this journal's owner" },
+            "403": {
+              description:
+                "Not this journal's owner — checked before contacts is, so this also " +
+                "covers a journal that does not exist. B340.",
+            },
             "404": { description: "No such link in this journal" },
+            "409": { description: "This journal's own owner, but contacts are off on it" },
           },
         },
       },
@@ -3063,8 +3092,14 @@ export function openApiDocument() {
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
           responses: {
             "200": { description: "One row per live credential, with its kind and expiry" },
-            "403": { description: "Owner only" },
-            "404": { description: "Authentication is off on this server" },
+            "403": {
+              description:
+                "Not this journal's owner — checked before the capability is, so this also " +
+                "covers a journal that does not exist. B340.",
+            },
+            "409": {
+              description: "This journal's own owner, but sign-in is off on it (`auth_disabled`)",
+            },
           },
         },
         post: {
@@ -3088,8 +3123,15 @@ export function openApiDocument() {
           responses: {
             "200": { description: "Revoked" },
             "400": { description: "No key id sent" },
-            "403": { description: "Owner only" },
+            "403": {
+              description:
+                "Not this journal's owner — checked before the capability is, so this also " +
+                "covers a journal that does not exist. B340.",
+            },
             "404": { description: "No such key" },
+            "409": {
+              description: "This journal's own owner, but sign-in is off on it (`auth_disabled`)",
+            },
           },
         },
       },

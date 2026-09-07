@@ -1998,10 +1998,11 @@ shelf \`visibility\` and \`people\` sit on, and not content a traveller logs.
 That is different from the trip's budget, above, which anyone on the trip may
 write.
 
-### What the trip is called, and when it ran
+### What the trip is called, when it ran, and its cover
 
-Four fields nothing could write until B622, on a route that until then existed
-only to say so: \`title\`, \`tagline\`, \`start\` and \`end\`.
+Four fields nothing could write until B622 — \`title\`, \`tagline\`, \`start\`
+and \`end\` — plus \`cover\`, which B245 added to the same door once a trip has
+photographs to choose from.
 
 \`\`\`http
 PATCH ${site.url}/api/v1/${example}/trips/<trip-id>
@@ -2012,10 +2013,14 @@ Content-Type: application/json
 \`\`\`
 
 Send only what changes. A \`title\` cannot be cleared — a \`trip.md\` without
-one does not load at all — while an emptied \`tagline\` removes the key rather
-than storing an empty string. Dates are \`YYYY-MM-DD\`, and \`end\` may not
-come before \`start\`; that is checked against the *result*, so either date may
-arrive on its own.
+one does not load at all — while an emptied \`tagline\` or a \`cover\` sent as
+\`null\`/\`""\` removes the key rather than storing an empty one. Dates are
+\`YYYY-MM-DD\`, and \`end\` may not come before \`start\`; that is checked
+against the *result*, so either date may arrive on its own. \`cover\` must name
+a \`src\` this trip's own gallery already has — read it from
+\`GET .../trips/<trip-id>/media\` — since a value naming a photo the trip does
+not carry would render as a broken image on the trips index and the sharing
+card, so it is refused (\`invalid_cover\`) rather than written.
 
 **Only the lines you name are rewritten.** The prose under the frontmatter, the
 order of the keys, and every key this call has never heard of come back byte for
@@ -2025,9 +2030,6 @@ in a title does not turn up as a diff touching three other fields.
 **Owner only**, like \`visibility\` and \`rates\`: a trip-scoped token is
 refused with \`out_of_scope\`. Being on the bus is not the same as saying what
 the journey is called.
-
-The **cover** is not here and is still \`trip.md\` alone. It is a photograph,
-and choosing one belongs where photographs are.
 
 ### Who may read the trip
 

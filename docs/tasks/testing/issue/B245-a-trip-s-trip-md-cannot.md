@@ -7,8 +7,7 @@ complexity: medium
 area: trips, api
 found: "2026-09-04T09:04:59Z"
 started: "2026-09-07T11:06:12Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:06:12Z"
+merged: "2026-09-07T11:32:22Z"
 ---
 
 # B245 — A trip's trip.md cannot be changed after the trip is created
@@ -81,3 +80,64 @@ Not doing: an editing interface. There is none and there will not be one
   the trip does not have is refused.
 - `people` is owner-only wherever it ends up, with a test that a trip-scoped
   token cannot change who may write to its trip.
+
+## Triage, 2026-09-07
+
+Confirmed against current code rather than trusting the ticket's own history:
+`rates` (`PATCH .../trips/<trip>/rates`, `lib/api/tripRates.ts`), `visibility`
++ `listed` (`PATCH .../trips/<trip>/visibility`), `people`/`travellers`
+(`PATCH .../trips/<trip>/people` and `.../travellers`, B524) and `costs`
+(`.../costs`) all have their own doors already. `title`, `tagline`, `start`
+and `end` also already have one — B622's `PATCH /api/v1/{user}/trips/{trip}`
+(`lib/api/tripDetails.ts`, `patchTripDetails`), which this task's own Why had
+not caught up with (it predates B622). Grepped every field B207 named as
+create-only and found a door for all of them except one: **`cover` had no
+write path anywhere** — `lib/tripWrite.ts:134` still said so explicitly, and
+`PATCH /api/v1/{user}/trips/{trip}` refused it by name (*"The cover is still
+trip.md alone"*). The narrowing the ticket already recorded twice was correct;
+`cover` was the entire remaining scope.
+
+## Resolution
+
+Added `cover` to the same door B622 already built, rather than a new route —
+`patchTripDetails` (`lib/api/tripDetails.ts`) now accepts a fifth field, and
+`PATCH /api/v1/{user}/trips/{trip}` (`app/api/v1/[user]/trips/[trip]/route.ts`)
+passes it through. Reused `createTrip`'s pattern of refusing rather than
+dropping, as the Work section asked, but `cover` needed its own check that no
+other field on that door does: a value naming a photo the trip does not have
+would render as a broken image on the trips index and the OG card, so it is
+checked against `getAllMedia(ref, AS_AUTHOR)` (`lib/entries.ts`) and refused
+(`invalid_cover`, `400`) rather than written when it does not match a `src`
+already in the trip's gallery. `AS_AUTHOR` rather than the closed default
+because this is the owner's own call and a cover naming a photo still in a
+draft day is a legitimate choice for them to make.
+
+Storage detail worth recording: `cover:` on disk is trip-relative
+(`/media/<trip>/…`), while `getTrip().cover`, `getAllMedia()[].src` and this
+route's own request/response all use the owner-prefixed form
+(`/<user>/media/<trip>/…`, via `mediaWithOwner`) — the same form a caller
+reads back from `GET .../trips/{trip}` and `GET .../trips/{trip}/media`, so
+the field is round-trippable by construction. `patchTripDetails` strips the
+`/<user>` prefix back off before splicing the frontmatter line.
+
+`null` or `""` clears the key, matching how `tagline` already behaves on the
+same door. `PATCH` with only `cover` set is accepted (previously refused with
+`nothing_to_change`, since the field did not exist) — one existing test in
+`test/trip-details.test.ts` asserted the old refusal and was updated to name
+a genuinely unwritable field (`accent`) instead.
+
+**Contract**: `lib/api/openapi.ts` — the `PATCH /api/v1/{user}/trips/{trip}`
+summary, description, request schema and `400` response now name `cover`;
+`lib/api/errorCodes.ts` gained `invalid_cover`; `lib/api/agentCopy.ts` and
+`lib/api/documentation.ts` (the `/agent.md` guide text) were updated so they
+no longer say cover has nowhere to be set.
+
+Tests: `test/trip-details.test.ts`, new `describe("the fifth field, cover")`
+block — a real photo is accepted and read back (`cover` in the response, and
+through `getTrip` after a cache clear), the trip-relative form on disk is
+pinned byte-for-byte, a draft day's photo is accepted (`AS_AUTHOR`), a photo
+the trip does not have is refused with `invalid_cover` and nothing is
+written, and clearing removes the key rather than writing an empty one.
+
+Not done: nothing — the ticket's own narrowing left exactly one field, and
+it now has a door.

@@ -85,6 +85,29 @@ function tripFile(): string {
   return path.join(dir, OWNER, "trips", TRIP, "trip.md");
 }
 
+/** A day with a gallery, so a `cover` can name a real photo — and a draft
+ * one, so `AS_AUTHOR` covering it is exercised too. */
+const ENTRY_MD = [
+  "---",
+  'title: "Over the Susten"',
+  'date: "2024-09-12"',
+  'status: "draft"',
+  'location: "Susten Pass"',
+  'country: "Switzerland"',
+  'countryCode: "CH"',
+  "gallery:",
+  '  - src: "/media/alps-2024/over-the-susten/01.jpg"',
+  '    type: "image"',
+  "---",
+  "",
+  "The pass, from the top.",
+  "",
+].join("\n");
+
+function entryFile(): string {
+  return path.join(dir, OWNER, "trips", TRIP, "entries", "2024-09-12-over-the-susten.md");
+}
+
 async function clearCaches() {
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");
@@ -135,6 +158,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   fs.writeFileSync(tripFile(), TRIP_MD);
+  fs.writeFileSync(entryFile(), ENTRY_MD);
   await clearCaches();
 });
 
@@ -324,8 +348,8 @@ describe("the agent's door onto the same four fields", () => {
     expect(getTrip(`${OWNER}/${TRIP}`)?.title).toBe("Algarve 2026");
   });
 
-  test("a body naming none of the four is refused, not silently accepted", async () => {
-    const refused = await v1({ cover: "/media/x.jpg" }, await tokenFor(OWNER_EMAIL));
+  test("a body naming none of the five is refused, not silently accepted", async () => {
+    const refused = await v1({ accent: "coral" }, await tokenFor(OWNER_EMAIL));
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("nothing_to_change");
   });
@@ -351,5 +375,84 @@ describe("the agent's door onto the same four fields", () => {
     const missing = await v1({ title: "x" }, await tokenFor(OWNER_EMAIL), "no-such-trip");
     expect(missing.status).toBe(404);
     expect(missing.body.error).toBe("unknown_trip");
+  });
+});
+
+/**
+ * B245 — the fifth field, `cover`, on the same door.
+ *
+ * The last field of a trip with no write door anywhere. Unlike the other
+ * four, a bad value does not merely fail to parse — it would render as a
+ * broken image on the trips index and the OG card — so it is checked against
+ * the trip's own gallery rather than only against its shape.
+ */
+describe("the fifth field, cover", () => {
+  async function v1(
+    body: Record<string, unknown>,
+    token?: string,
+  ): Promise<{ status: number; body: Body & { cover?: string } }> {
+    const { PATCH } = await import("@/app/api/v1/[user]/trips/[trip]/route");
+    const response = await PATCH(
+      new Request(`https://example.test/api/v1/${OWNER}/trips/${TRIP}`, {
+        method: "PATCH",
+        headers: headers(token ? { authorization: `Bearer ${token}` } : {}),
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ user: OWNER, trip: TRIP }) },
+    );
+    return { status: response.status, body: (await response.json()) as Body & { cover?: string } };
+  }
+
+  test("a cover naming a real photo is written and read back", async () => {
+    const saved = await v1(
+      { cover: `/${OWNER}/media/alps-2024/over-the-susten/01.jpg` },
+      await tokenFor(OWNER_EMAIL),
+    );
+    expect(saved.status).toBe(200);
+    expect(saved.body.cover).toBe(`/${OWNER}/media/alps-2024/over-the-susten/01.jpg`);
+
+    // Written trip-relative on disk, like every other cover.
+    expect(fs.readFileSync(tripFile(), "utf8")).toContain(
+      'cover: "/media/alps-2024/over-the-susten/01.jpg"',
+    );
+
+    await clearCaches();
+    const { getTrip } = await import("@/lib/trips");
+    expect(getTrip(`${OWNER}/${TRIP}`)?.cover).toBe(`/${OWNER}/media/alps-2024/over-the-susten/01.jpg`);
+  });
+
+  test("the cover may name a photo still in a draft day — this is the owner's own call", async () => {
+    // ENTRY_MD carries `status: draft`; a cover naming its photo must still
+    // be accepted, because `patchTripDetails` reads `AS_AUTHOR`.
+    const saved = await v1(
+      { cover: `/${OWNER}/media/alps-2024/over-the-susten/01.jpg` },
+      await tokenFor(OWNER_EMAIL),
+    );
+    expect(saved.status).toBe(200);
+  });
+
+  test("a cover naming a photo the trip does not have is refused, not written", async () => {
+    const refused = await v1(
+      { cover: `/${OWNER}/media/alps-2024/nowhere/nope.jpg` },
+      await tokenFor(OWNER_EMAIL),
+    );
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toBe("invalid_cover");
+    expect(fs.readFileSync(tripFile(), "utf8")).not.toContain("cover:");
+  });
+
+  test("clearing a cover removes the key rather than writing an empty one", async () => {
+    fs.writeFileSync(
+      tripFile(),
+      TRIP_MD.replace(
+        "tagline:",
+        'cover: "/media/alps-2024/over-the-susten/01.jpg"\ntagline:',
+      ),
+    );
+    await clearCaches();
+
+    const saved = await v1({ cover: "" }, await tokenFor(OWNER_EMAIL));
+    expect(saved.status).toBe(200);
+    expect(fs.readFileSync(tripFile(), "utf8")).not.toContain("cover:");
   });
 });

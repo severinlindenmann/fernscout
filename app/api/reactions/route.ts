@@ -31,19 +31,29 @@ export const dynamic = "force-dynamic";
  *   would only move the oracle. `mayWriteTrip` in lib/api/auth.ts states the
  *   same property for the write routes and explains it at length.
  * - **A journal with reactions switched off answers exactly as a journal that
- *   does not exist**: `404 reactions_disabled`. That is the idiom the contacts
- *   routes already use (`!getUser(user) || !isEnabled(…)`), and taking it
- *   whole means the capability check cannot become a second oracle over
- *   journal names. A capability that is off must be *absent*, not an empty
- *   panel — B165, one endpoint over.
+ *   does not exist**: `404 reactions_disabled`. A capability that is off must
+ *   be *absent*, not an empty panel — B165, one endpoint over.
+ *
+ * **B340 looked at this `404` instance-wide, alongside `invites` and `keys`,
+ * and left it as `404` here — deliberately, and this is why.** Those two
+ * routes now check ownership *before* the capability (`isOwner` refuses a
+ * nonexistent journal and somebody else's alike, so that check alone protects
+ * against the oracle) and only then tell a *proven owner* the real reason,
+ * with a `409` rather than a `404` — a caller who has already shown they own
+ * the journal is not a stranger an existence oracle could help. This route
+ * has no such caller to defer to: every reader here is anonymous by design
+ * (the whole point of a voter id in `localStorage` rather than an account),
+ * so there is no later point at which "this caller already knows the journal
+ * is real" becomes true. `404` stays for exactly the reason B165 gave it.
  *
  * `mayReadTrip` reads the guest cookie, so a reader the owner has let in still
  * sees and records reactions; `ReactionsProvider` fetches same-origin, and
  * `fetch` sends cookies for that by default.
  *
- * `getVotesFor` is left ungated on purpose: it is already scoped to the
- * journal (`scopeToJournal`) and answers only about the voter id the caller
- * supplied, which is that browser's own random id. Guessing one is B239.
+ * `getVotesFor` is left ungated on purpose: it is scoped to the *trip already
+ * gated above* (`scopeToTrip`, B239 — it used to be the whole journal) and
+ * answers only about the voter id the caller supplied, which is that
+ * browser's own random id.
  */
 
 /** The one refusal for "no such trip", and for "not yours to read". */

@@ -294,6 +294,60 @@ describe("B232 — /api/reactions answers for a trip nobody is allowed to read",
   });
 });
 
+describe("B239 — a guessed voter id must not return another trip's slugs", () => {
+  async function ask(ref: string, voter: string) {
+    const { GET } = await import("@/app/api/reactions/route");
+    const response = await GET(
+      new Request(
+        `https://example.test/api/reactions?trip=${encodeURIComponent(ref)}&voter=${encodeURIComponent(voter)}`,
+      ),
+    );
+    return { status: response.status, body: (await response.json()) as { mine?: Record<string, unknown> } };
+  }
+
+  async function react(ref: string, day: string, voter: string, ip: string) {
+    const { POST } = await import("@/app/api/reactions/route");
+    const response = await POST(
+      new Request("https://example.test/api/reactions", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": ip },
+        body: JSON.stringify({ trip: ref, day, voter, emoji: "❤️" }),
+      }),
+    );
+    expect(response.status).toBe(200);
+  }
+
+  test("the same voter id's picks on a private trip do not leak into a public one's answer", async () => {
+    const voter = "shared-across-trips";
+
+    // The owner reacted to a day on the private trip, with this voter id —
+    // standing in for a browser that also happens to hold the guest cookie.
+    as("owner");
+    await react(`${OWNER}/the-quiet-week`, "a-day-nobody-may-read", voter, "10.9.1.1");
+
+    // Anybody holding that same id — leaked in a query string, a `Referer`,
+    // an access log — asks about the public trip the id also reacted on.
+    as("anonymous");
+    const seen = await ask(`${OWNER}/open-2026`, voter);
+    expect(seen.status).toBe(200);
+    // Before B239 this answered every trip the voter had reacted to in the
+    // journal, so `the-quiet-week`'s day slug would be here too.
+    expect(Object.keys(seen.body.mine ?? {})).not.toContain(
+      `${OWNER}/the-quiet-week:a-day-nobody-may-read`,
+    );
+  });
+
+  test("that voter's own picks on the trip actually asked about still come back", async () => {
+    const voter = "shared-across-trips-2";
+    as("anonymous");
+    await react(`${OWNER}/open-2026`, "the-first-day", voter, "10.9.1.2");
+
+    const seen = await ask(`${OWNER}/open-2026`, voter);
+    expect(seen.status).toBe(200);
+    expect(seen.body.mine).toEqual({ [`${OWNER}/open-2026:the-first-day`]: "❤️" });
+  });
+});
+
 describe("B233 — the https-only rule is not re-applied after a redirect", () => {
   /** Answers the first call with a redirect and every later one with an image. */
   function redirectingTo(location: string): { transport: Transport; seen: URL[] } {
