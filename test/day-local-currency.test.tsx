@@ -134,6 +134,15 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+/** Everything from `<main id="main"` onward — the day card actually open,
+ * without the desktop sidebar's own list of every day (`GamePath`), which
+ * since B554 shows its own ≈-marked figure per day regardless of which one
+ * is open. */
+function mainOnly(html: string): string {
+  const i = html.indexOf('<main id="main"');
+  return i < 0 ? html : html.slice(i);
+}
+
 function render(
   viewer: ViewerOptions = {},
   openAt = "2026-06-01",
@@ -211,18 +220,24 @@ describe("the day view leads with what was actually paid", () => {
   });
 
   test("a mixed-currency day shows only its one converted total, no ≈ beside it", () => {
+    // Scoped to the open day's own card: the sidebar (GamePath) lists every
+    // day at once and, since B554, marks day one's own THB total with ≈
+    // regardless of which day is open — that is the fix working, not this
+    // day acquiring a local figure it must not have.
     const { html } = render({}, "2026-06-02");
+    const main = mainOnly(html);
     // 200 THB (≈5.20) + 5 EUR (≈4.80) ≈ CHF 10 — one figure, and no local
     // amount or ≈ to go with it: two currencies never sum into one "local".
-    expect(html).toContain("CHF 10");
-    expect(html).not.toContain("≈");
-    expect(html).not.toContain("THB");
+    expect(main).toContain("CHF 10");
+    expect(main).not.toContain("≈");
+    expect(main).not.toContain("THB");
   });
 
   test("a base-currency day is unchanged: no local figure, no ≈", () => {
     const { html } = render({}, "2026-06-03");
-    expect(html).toContain("CHF 30");
-    expect(html).not.toContain("≈");
+    const main = mainOnly(html);
+    expect(main).toContain("CHF 30");
+    expect(main).not.toContain("≈");
   });
 
   /**

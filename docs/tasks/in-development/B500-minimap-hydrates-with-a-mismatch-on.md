@@ -56,3 +56,35 @@ the number should agree.
 - The map still draws in the same place — compare a screenshot before and
   after, since rounding is exactly the kind of change that silently shifts a
   route by a pixel.
+
+## Resolution
+
+Fixed once, in `lib/mapFrame.ts` — the same bug as B570, found twice, closed
+together. See B570's file for the full account; the short version:
+
+`place()` (the one place `lngScale` is applied to a projected point — every
+marker and polyline vertex in `MiniMap.tsx` and `WorldMap.tsx` goes through
+it) and `frameRoute()` (which builds the `Frame` that becomes the SVG's
+`viewBox`) both now round every number they return to 4 decimal places —
+about 4 metres at this projection's scale, thousands of times finer than a
+pixel on any map this draws. `Math.cos`, used to compute `lngScale`, is not
+required by spec to return a correctly-rounded result, so the server's V8 and
+the browser's can disagree by a handful of ULPs on the exact same call; that
+noise was propagating into the viewBox and every coordinate, showing up as a
+differing sixteenth significant figure that React's hydration check does not
+forgive.
+
+The string-versus-number half needed nothing separate: once both renders
+compute the identical rounded `Number`, `String()` of that number is
+identical too, on both sides.
+
+Added `test/map-frame.test.ts` — "B500 / B570 — rounding absorbs cross-runtime
+float noise" — which asserts every number `frameRoute` and `place` hand back
+is rounded to the fixed precision, that a difference far larger than any
+realistic `Math.cos` ULP gap still rounds identically, and that the same
+input produces the identical string on repeat calls (the actual thing React
+compares on hydration). A live two-engine reproduction is not practical in
+this suite; the acceptance's screenshot comparison and a console check on
+`/example/trips/parks-2025` and `/asia-2023` are for a person with a browser.
+
+`npm run verify` passes with the change in place.

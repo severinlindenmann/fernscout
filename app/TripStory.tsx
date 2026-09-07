@@ -278,7 +278,12 @@ export default function TripStory({
       return;
     }
     const day = index[s.dayIndex];
-    history.replaceState(null, "", hashForDay(day));
+    // A real permalink, not `#day-…` — /day/<slug> is a route of its own
+    // (see app/[user]/(trip)/day/[slug]/page.tsx) that opens the story
+    // window centred on this day server-side. A `#fragment` never reaches
+    // the server, so a link copied from the address bar mid-scroll opened on
+    // whatever day the page happened to land on by default (B329).
+    history.replaceState(null, "", trip ? trip.href(`/day/${day.slug}`) : hashForDay(day));
     if (s.kind === "day") {
       if (storageRef) {
         window.localStorage.setItem(resumeKey(storageRef), day.slug);
@@ -296,7 +301,7 @@ export default function TripStory({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setReached((prev) => (prev && prev > day.date ? prev : day.date));
     }
-  }, [stepIndex, steps, index, storageRef, lastVisit]);
+  }, [stepIndex, steps, index, storageRef, lastVisit, trip]);
 
   const progress =
     index.length > 0 ? ((activeIndex + 1) / index.length) * 100 : 0;
