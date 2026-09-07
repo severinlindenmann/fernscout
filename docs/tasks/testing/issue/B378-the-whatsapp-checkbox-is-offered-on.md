@@ -7,8 +7,7 @@ complexity: low
 area: contacts
 found: "2026-09-04T21:43:00Z"
 started: "2026-09-07T11:06:03Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:06:03Z"
+merged: "2026-09-07T11:35:07Z"
 ---
 
 # B378 — The WhatsApp checkbox is offered on a journal with WhatsApp switched off, one line under a hint saying nothing sends there
