@@ -53,7 +53,7 @@ export async function GET(
 ) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return notYourJournal(request);
+    return notYourJournal(request, user);
   }
   const usage = await storageFor(user);
   const limits = loadUserConfig(user).media;
@@ -73,7 +73,7 @@ export async function POST(
 ) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return notYourJournal(request);
+    return notYourJournal(request, user);
   }
 
   const form = await request.formData().catch(() => null);

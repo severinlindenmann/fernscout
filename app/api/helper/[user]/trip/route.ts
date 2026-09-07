@@ -50,7 +50,7 @@ function idFrom(username: string, title: string, start: string): string {
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/trip">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return notYourJournal(request);
+    return notYourJournal(request, user);
   }
   if (!isEnabled("helper", user)) {
     return Response.json({ error: "helper_unavailable" }, { status: 404 });

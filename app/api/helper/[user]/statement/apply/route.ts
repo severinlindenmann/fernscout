@@ -67,7 +67,7 @@ export async function POST(
 ) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return notYourJournal(request);
+    return notYourJournal(request, user);
   }
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;

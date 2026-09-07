@@ -63,7 +63,7 @@ function declines(raw: unknown): Partial<Record<Track, false | typeof UNKNOWN>> 
  *  that does not exist — a wizard URL must not confirm whose journal it is. */
 async function gate(request: Request, user: string): Promise<Response | null> {
   if (!(await isHelperOwner(user))) {
-    return notYourJournal(request);
+    return notYourJournal(request, user);
   }
   return null;
 }

@@ -1,6 +1,8 @@
 import "server-only";
 import { balanceOf } from "../credits";
+import { AS_AUTHOR, getAllEntries } from "../entries";
 import { formatBytes, storageFor } from "../storageQuota";
+import { getTrips } from "../trips";
 import { draftsForWizard } from "./server";
 
 /**
@@ -95,7 +97,11 @@ export const REGISTRY: readonly Intent[] = [
   {
     name: "storage",
     kind: "read",
-    describe: "How much room this journal is using, and how much is left.",
+    // B808 — "How much room this journal is using" caught "wheres my stuff" at
+    // 0.72, and the person was told about disk space when they meant their
+    // photographs. The row answers about bytes and nothing else, so it says so.
+    describe:
+      "How much disk space this journal is taking up, and how many megabytes are left before its storage limit. Bytes on disk only — never where a photograph, a day or a file has got to.",
     slots: [],
     answer: async (username, say) => {
       const usage = await storageFor(username);
@@ -106,6 +112,36 @@ export const REGISTRY: readonly Intent[] = [
         used: formatBytes(usage.usedBytes),
         limit: formatBytes(usage.limitBytes),
         left: formatBytes(usage.remainingBytes ?? 0),
+      });
+    },
+  },
+  {
+    // B783 — "whats my trip called" came back `unknown` at 0.1. It is the
+    // first thing anybody asks and there was no row for it.
+    name: "what_is_my_trip",
+    kind: "read",
+    describe:
+      "What the trip being written is called, the days it runs between, how many of its days are written and how many are still drafts.",
+    slots: [],
+    answer: async (username, say) => {
+      const trips = getTrips(username);
+      if (trips.length === 0) return say("agent.askTripNone");
+      // The newest by start date: the one somebody writing today means.
+      const trip = [...trips].sort((a, b) => b.start.localeCompare(a.start))[0];
+      const entries = getAllEntries(trip.ref, AS_AUTHOR);
+      // Days, not updates — several updates on one date are one day to a
+      // reader, and "how many days are written" is the reader's question.
+      const days = (draft: boolean) =>
+        // `draft` is absent rather than false on a published entry, so this
+        // asks Boolean of it — `=== false` counted every published day as
+        // neither written nor a draft.
+        String(new Set(entries.filter((e) => Boolean(e.draft) === draft).map((e) => e.date)).size);
+      return say("agent.askTrip", {
+        title: trip.title,
+        start: trip.start,
+        end: trip.end,
+        written: days(false),
+        drafts: days(true),
       });
     },
   },
@@ -177,4 +213,70 @@ export function slotsFor(intent: Intent, raw: unknown): Slots {
     out[slot.name] = text;
   }
   return out;
+}
+
+/* -------------------------------------------------------------------------
+ * The territories with no row, and what is said instead — B817 and B783.
+ *
+ * **This is a safety mechanism before it is a courtesy.** "take down the day
+ * with the photo of anna" routed to `write_day` and opened the wizard at step
+ * one, pre-set to today, ready to *create* a day. Nothing was wrong with the
+ * model: the registry has no row anywhere near removal, so the nearest
+ * neighbour won, and the nearest neighbour to "take this down" is the screen
+ * that puts things up.
+ *
+ * So these are matched **in this file, from the sentence itself, before a
+ * model is asked anything at all.** Not a low-confidence fallback and not a
+ * check on what came back: a deterministic refusal that no confidence can get
+ * past, because the failure it prevents is a person publishing a day while
+ * trying to remove one.
+ *
+ * Each refusal is an *answer*: it names what it will not do and says where the
+ * thing actually happens. None of them is a route to doing it, and the removal
+ * one in particular must never read as though this box could delete something
+ * if only it were asked more nicely. It cannot, and it never has been able to.
+ *
+ * The words are matched in three languages because the box is offered in
+ * three. A stem rather than a whole word wherever the language inflects
+ * ("lösch" for löschen/lösche/gelöscht, "törl" for törlés/törölni), and no
+ * `\b` around the non-ASCII ones.
+ * ---------------------------------------------------------------------- */
+export type Refusal = {
+  /** Reported as the intent, so this is visible in a log and in a test. */
+  name: string;
+  match: RegExp;
+  /** The sentence shown, in the reader's own language. */
+  key: string;
+};
+
+export const REFUSALS: readonly Refusal[] = [
+  {
+    // First, always: "unpublish" is removal before it is publishing, and a
+    // sentence that says both is a sentence about taking something away.
+    name: "remove",
+    match:
+      /\b(delete|deleting|deleted|remove|removing|removed|erase|unpublish|takedown|take down|get rid of)\b|\btake\b[^.!?]{0,40}\bdown\b|lösch|entfern|runternehm|wegnehm|nimm[^.!?]{0,40}(runter|herunter|weg)|törl|töröl|távolít|vedd le|levesz|levenn|leszed/i,
+    key: "agent.askRefuseRemove",
+  },
+  {
+    name: "publish",
+    match: /\b(publish|publishing|publishes|go live)\b|veröffentlich|publizier|freischalt|közzé|publikál/i,
+    key: "agent.askRefusePublish",
+  },
+  {
+    name: "postcard",
+    match: /\bpostcards?\b|postkarte|ansichtskarte|képeslap|levelezőlap/i,
+    key: "agent.askRefusePostcard",
+  },
+];
+
+/**
+ * The refusal a sentence has earned, or null.
+ *
+ * Null is the ordinary case and means the router runs as before. `unknown`
+ * keeps its own job — a sentence nobody could map — and this is the other
+ * thing: a sentence understood well enough to be refused by name.
+ */
+export function refusalFor(said: string): Refusal | null {
+  return REFUSALS.find((refusal) => refusal.match.test(said)) ?? null;
 }

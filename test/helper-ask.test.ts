@@ -222,7 +222,8 @@ describe("when it does not know", () => {
 
   test("a row nobody has heard of is unknown rather than an error", async () => {
     routeAsk.mockResolvedValue({ intent: "delete_everything", slots: {}, confidence: 1 });
-    const routed = await read(await ask("delete it all"));
+    // Not "delete it all", which since B817 never reaches the router at all.
+    const routed = await read(await ask("do the thing with the stuff"));
     expect(routed.body.intent).toBe("unknown");
   });
 

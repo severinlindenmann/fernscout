@@ -51,7 +51,7 @@ export async function POST(
 ) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return notYourJournal(request);
+    return notYourJournal(request, user);
   }
   if (!isEnabled("helper", user)) {
     return Response.json({ error: "helper_unavailable" }, { status: 404 });

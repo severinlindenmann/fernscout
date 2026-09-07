@@ -1,6 +1,6 @@
 import { isEnabled } from "@/lib/capabilities";
 import { helperConsent } from "@/lib/helper/consent";
-import { intentFor, slotsFor, type Say } from "@/lib/helper/intents";
+import { intentFor, refusalFor, slotsFor, type Say } from "@/lib/helper/intents";
 import { routeAsk, UNKNOWN_INTENT } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { requestLocale, translateIn } from "@/lib/locales";
@@ -47,7 +47,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return notYourJournal(request);
+    return notYourJournal(request, user);
   }
   if (!isEnabled("helper", user)) {
     return Response.json({ error: "helper_unavailable" }, { status: 404 });
@@ -66,6 +66,33 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
 
   const said = typeof body.said === "string" ? body.said.trim().slice(0, 500) : "";
   if (said === "") return Response.json({ error: "no_question" }, { status: 400 });
+
+  const locale = await requestLocale();
+  const say: Say = (key, vars) =>
+    translateIn(locale, key as Parameters<typeof translateIn>[1], vars);
+
+  /**
+   * B817 — before the model, and before their words leave the machine.
+   *
+   * A sentence about taking something down is answered here, deterministically,
+   * and never reaches the router. That ordering is the whole fix: a refusal
+   * decided *after* routing is a refusal that can be argued with by a confident
+   * guess, and the guess this replaces opened the screen that creates a day.
+   * Nothing is written, nothing is opened, and no confidence can reach past it.
+   */
+  const refused = refusalFor(said);
+  if (refused) {
+    return Response.json({
+      ok: true,
+      intent: `refuse_${refused.name}`,
+      // A sentence shown in the answer box, which is what `read` already is.
+      kind: "read",
+      refused: refused.name,
+      slots: {},
+      confidence: 1,
+      answer: say(refused.key),
+    });
+  }
 
   // Their words go to a provider, so the same panel guards this as guards a
   // write-up. Free or not, it is the sentence that leaves the machine.
@@ -102,9 +129,6 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const common = { ok: true, intent: intent.name, slots, confidence: routed.confidence };
 
   if (intent.kind === "read") {
-    const locale = await requestLocale();
-    const say: Say = (key, vars) =>
-      translateIn(locale, key as Parameters<typeof translateIn>[1], vars);
     return Response.json({ ...common, kind: "read", answer: await intent.answer(user, say) });
   }
 

@@ -37,7 +37,7 @@ export async function isHelperOwner(username: string): Promise<boolean> {
 }
 
 /**
- * The helper family's one refusal — B779.
+ * The helper family's one refusal — B779, and B807.
  *
  * The status stays 404 and stays the same for a journal that is not yours as
  * for one that does not exist: a wizard URL must not confirm whose journal it
@@ -50,25 +50,48 @@ export async function isHelperOwner(username: string): Promise<boolean> {
  * a bearer token is present, the body says so and names the door that does
  * take it. It confirms nothing: the caller has already proved who they are,
  * and the sentence is the same one for a token belonging to somebody else.
+ *
+ * ## The third answer, and why it is safe — B807
+ *
+ * A person mid-task on the live site had his session stop being recognised and
+ * got `not_your_journal` with nothing on the screen. He read that as the
+ * software being broken and closed the tab, which is the correct reading of
+ * it: he had not stopped owning his journal, he had stopped being signed in,
+ * and the two are not the same sentence.
+ *
+ * So a request carrying **no address at all** is told its session has lapsed,
+ * and `components/HelperAsk.tsx` puts the way back in on the screen. This
+ * leaks nothing, and the reason is worth stating: with nobody signed in, every
+ * username on this instance answers this identically — the answer is about the
+ * *request*, not about the journal. The moment an address is present the 404
+ * comes back, unexplained, because at that point the answer would be about
+ * whose journal this is.
+ *
+ * `resolveAccess` is `cache()`d per request, so asking it a second time here
+ * after `isHelperOwner` costs nothing.
  */
-export function notYourJournal(request: Request): Response {
-  const bearer = request.headers.get("authorization");
-  return Response.json(
-    {
-      error: "not_your_journal",
-      ...(bearer
-        ? {
-            message:
-              "This is the helper — a browser flow — and it reads a signed-in session " +
-              "cookie only. It never looks at an Authorization header, so a valid token " +
-              "gets this same answer, and this is not a statement about who owns the " +
-              "journal. Everything here an agent does through /api/v1/<user>/… with that " +
-              "token: see /agent.md and /openapi.json.",
-          }
-        : {}),
-    },
-    { status: 404 },
-  );
+export async function notYourJournal(request: Request, username: string): Promise<Response> {
+  if (request.headers.get("authorization")) {
+    return Response.json(
+      {
+        error: "not_your_journal",
+        message:
+          "This is the helper — a browser flow — and it reads a signed-in session " +
+          "cookie only. It never looks at an Authorization header, so a valid token " +
+          "gets this same answer, and this is not a statement about who owns the " +
+          "journal. Everything here an agent does through /api/v1/<user>/… with that " +
+          "token: see /agent.md and /openapi.json.",
+      },
+      { status: 404 },
+    );
+  }
+
+  const { email } = await resolveAccess(username);
+  if (!email) {
+    return Response.json({ error: "session_lapsed" }, { status: 401 });
+  }
+
+  return Response.json({ error: "not_your_journal" }, { status: 404 });
 }
 
 /** One trip, as the wizard's first step needs it. */

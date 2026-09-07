@@ -194,10 +194,14 @@ describe("writing a day from the wizard", () => {
     expect(refused.status).toBe(404);
     expect(refused.body.error).toBe("not_your_journal");
 
+    // Nobody signed in at all is a different sentence — B807. It says the
+    // session has lapsed, which is safe because with no address every username
+    // on the instance answers this identically.
     resolveAccess.mockResolvedValue({ email: null });
     const anonymous = await read(
       await POST(json("POST", { trip: "a-trip", date: "2026-05-06" }), params),
     );
-    expect(anonymous.status).toBe(404);
+    expect(anonymous.status).toBe(401);
+    expect(anonymous.body.error).toBe("session_lapsed");
   });
 });
